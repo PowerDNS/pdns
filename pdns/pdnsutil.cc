@@ -2642,6 +2642,7 @@ try
     cout << "test-schema ZONE                   Test DB schema - will create ZONE" << endl;
     cout << "raw-lua-from-content TYPE CONTENT  Display record contents in a form suitable for dnsdist's `SpoofRawAction`" << endl;
     cout << "zonemd-verify-file ZONE FILE       Validate ZONEMD for ZONE" << endl;
+    cout << "lmdb-get-backend-version           Get schema version supported by backend" << endl;
     cout << desc << endl;
 
     return 0;
@@ -2649,6 +2650,10 @@ try
 
   loadMainConfig(g_vm["config-dir"].as<string>());
 
+  if (cmds.at(0) == "lmdb-get-backend-version") {
+    cout << "5" << endl; // FIXME this should reuse the constant from lmdbbackend but that is currently a #define in a .cc
+    return 0;
+  }
   if (cmds.at(0) == "test-algorithm") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnsutil test-algorithm algonum"<<endl;

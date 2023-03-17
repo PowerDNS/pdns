@@ -232,6 +232,7 @@ pdns_server_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	histogram.hh \
 	iputils.cc iputils.hh \
@@ -368,6 +369,7 @@ pdnsutil_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
+	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc iputils.hh \

@@ -1,4 +1,5 @@
 #pragma once
+#include <stdexcept>
 #include <string_view>
 #include <iostream>
 #include "lmdb-safe.hh"
@@ -41,6 +42,7 @@ unsigned int MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi);
 */
 unsigned int MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi);
 
+typedef std::vector<uint32_t> LMDBIDvec;
 
 /** This is our serialization interface.
     You can define your own serToString for your type if you know better
@@ -92,6 +94,51 @@ inline std::string keyConv(const T& t)
 }
 
 
+namespace {
+  MDBOutVal getKeyFromCombinedKey(MDBInVal combined) {
+    if (combined.d_mdbval.mv_size < sizeof(uint32_t)) {
+      throw std::runtime_error("combined key too short to get ID from");
+    }
+
+    MDBOutVal ret;
+    ret.d_mdbval.mv_data = combined.d_mdbval.mv_data;
+    ret.d_mdbval.mv_size = combined.d_mdbval.mv_size - sizeof(uint32_t);
+
+    return ret;
+  }
+
+  MDBOutVal getIDFromCombinedKey(MDBInVal combined) {
+    if (combined.d_mdbval.mv_size < sizeof(uint32_t)) {
+      throw std::runtime_error("combined key too short to get ID from");
+    }
+
+    MDBOutVal ret;
+    ret.d_mdbval.mv_data = (char*) combined.d_mdbval.mv_data + combined.d_mdbval.mv_size - sizeof(uint32_t);
+    ret.d_mdbval.mv_size = sizeof(uint32_t);
+
+    return ret;
+  }
+
+  std::string makeCombinedKey(MDBInVal key, MDBInVal val)
+  {
+    std::string lenprefix(sizeof(uint16_t), '\0');
+    std::string skey((char*) key.d_mdbval.mv_data, key.d_mdbval.mv_size);
+    std::string sval((char*) val.d_mdbval.mv_data, val.d_mdbval.mv_size);
+
+    if (val.d_mdbval.mv_size != 0 &&  // empty val case, for range queries
+        val.d_mdbval.mv_size != 4) {   // uint32_t case
+      throw std::runtime_error("got wrong size value in makeCombinedKey");
+    }
+
+    uint16_t len = htons(skey.size());
+    memcpy(lenprefix.data(), &len, sizeof(len));
+    std::string scombined = lenprefix + skey + sval;
+
+    return scombined;
+  }
+}
+
+
 /** This is a struct that implements index operations, but
     only the operations that are broadcast to all indexes.
     Specifically, to deal with databases with less than the maximum
@@ -106,14 +153,24 @@ template<class Class,typename Type, typename Parent>
 struct LMDBIndexOps
 {
   explicit LMDBIndexOps(Parent* parent) : d_parent(parent){}
+
   void put(MDBRWTransaction& txn, const Class& t, uint32_t id, int flags=0)
   {
-    txn->put(d_idx, keyConv(d_parent->getMember(t)), id, flags);
+    std::string sempty("");
+    MDBInVal empty(sempty);
+
+    auto scombined = makeCombinedKey(keyConv(d_parent->getMember(t)), id);
+    MDBInVal combined(scombined);
+
+    txn->put(d_idx, combined, empty, flags);
   }
 
   void del(MDBRWTransaction& txn, const Class& t, uint32_t id)
   {
-    if(int rc = txn->del(d_idx, keyConv(d_parent->getMember(t)), id)) {
+    auto scombined = makeCombinedKey(keyConv(d_parent->getMember(t)), id);
+    MDBInVal combined(scombined);
+
+    if(int rc = txn->del(d_idx, combined)) {
       throw std::runtime_error("Error deleting from index: " + std::string(mdb_strerror(rc)));
     }
   }
@@ -124,6 +181,7 @@ struct LMDBIndexOps
   }
   MDBDbi d_idx;
   Parent* d_parent;
+
 };
 
 /** This is an index on a field in a struct, it derives from the LMDBIndexOps */
@@ -160,13 +218,13 @@ struct index_on_function : LMDBIndexOps<Class, Type, index_on_function<Class, Ty
 struct nullindex_t
 {
   template<typename Class>
-  void put(MDBRWTransaction& txn, const Class& t, uint32_t id, int flags=0)
+  void put(MDBRWTransaction& /* txn */, const Class& /* t */, uint32_t /* id */, int /* flags */ =0)
   {}
   template<typename Class>
-  void del(MDBRWTransaction& txn, const Class& t, uint32_t id)
+  void del(MDBRWTransaction& /* txn */, const Class& /* t */, uint32_t /* id */)
   {}
 
-  void openDB(std::shared_ptr<MDBEnv>& env, string_view str, int flags)
+  void openDB(std::shared_ptr<MDBEnv>& /* env */, string_view /* str */, int /* flags */)
   {
 
   }
@@ -181,12 +239,12 @@ public:
   TypedDBI(std::shared_ptr<MDBEnv> env, string_view name)
     : d_env(env), d_name(name)
   {
-    d_main = d_env->openDB(name, MDB_CREATE | MDB_INTEGERKEY);
+    d_main = d_env->openDB(name, MDB_CREATE);
 
     // now you might be tempted to go all MPL on this so we can get rid of the
     // ugly macro. I'm not very receptive to that idea since it will make things
     // EVEN uglier.
-#define openMacro(N) std::get<N>(d_tuple).openDB(d_env, std::string(name)+"_"#N, MDB_CREATE | MDB_DUPFIXED | MDB_DUPSORT);
+#define openMacro(N) std::get<N>(d_tuple).openDB(d_env, std::string(name)+"_"#N, MDB_CREATE);
     openMacro(0);
     openMacro(1);
     openMacro(2);
@@ -207,22 +265,22 @@ public:
     ReadonlyOperations(Parent& parent) : d_parent(parent)
     {}
 
-    //! Number of entries in main database
-    uint32_t size()
-    {
-      MDB_stat stat;
-      mdb_stat(**d_parent.d_txn, d_parent.d_parent->d_main, &stat);
-      return stat.ms_entries;
-    }
+    // //! Number of entries in main database
+    // uint32_t size()
+    // {
+    //   MDB_stat stat;
+    //   mdb_stat(**d_parent.d_txn, d_parent.d_parent->d_main, &stat);
+    //   return stat.ms_entries;
+    // }
 
-    //! Number of entries in the various indexes - should be the same
-    template<int N>
-    uint32_t size()
-    {
-      MDB_stat stat;
-      mdb_stat(**d_parent.d_txn, std::get<N>(d_parent.d_parent->d_tuple).d_idx, &stat);
-      return stat.ms_entries;
-    }
+    // //! Number of entries in the various indexes - should be the same
+    // template<int N>
+    // uint32_t size()
+    // {
+    //   MDB_stat stat;
+    //   mdb_stat(**d_parent.d_txn, std::get<N>(d_parent.d_parent->d_tuple).d_idx, &stat);
+    //   return stat.ms_entries;
+    // }
 
     //! Get item with id, from main table directly
     bool get(uint32_t id, T& t)
@@ -239,28 +297,43 @@ public:
     template<int N>
     uint32_t get(const typename std::tuple_element<N, tuple_t>::type::type& key, T& out)
     {
-      MDBOutVal id;
-      if(!(*d_parent.d_txn)->get(std::get<N>(d_parent.d_parent->d_tuple).d_idx, keyConv(key), id)) {
-        if(get(id.get<uint32_t>(), out))
-          return id.get<uint32_t>();
+      // MDBOutVal out;
+      // uint32_t id;
+
+      // auto range = (*d_parent.d_txn)->prefix_range<N>(domain);
+
+      // auto range = prefix_range<N>(key);
+      LMDBIDvec ids;
+
+      get_multi<N>(key, ids);
+
+      if (ids.size() == 0) {
+        return 0;
       }
-      return 0;
+
+      if (ids.size() == 1) {
+        if (get(ids[0], out)) {
+          return ids[0];
+        }
+      }
+
+      throw std::runtime_error("in index get, found more than one item");
     }
 
-    //! Cardinality of index N
-    template<int N>
-    uint32_t cardinality()
-    {
-      auto cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
-      bool first = true;
-      MDBOutVal key, data;
-      uint32_t count = 0;
-      while(!cursor.get(key, data, first ? MDB_FIRST : MDB_NEXT_NODUP)) {
-        ++count;
-        first=false;
-      }
-      return count;
-    }
+    // //! Cardinality of index N
+    // template<int N>
+    // uint32_t cardinality()
+    // {
+    //   auto cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
+    //   bool first = true;
+    //   MDBOutVal key, data;
+    //   uint32_t count = 0;
+    //   while(!cursor.get(key, data, first ? MDB_FIRST : MDB_NEXT_NODUP)) {
+    //     ++count;
+    //     first=false;
+    //   }
+    //   return count;
+    // }
 
     //! End iterator type
     struct eiter_t
@@ -280,14 +353,25 @@ public:
         d_one_key(one_key),   // should we stop at end of key? (equal range)
         d_end(end)
       {
-        if(d_end)
+        if(d_end) {
           return;
+        }
         d_prefix.clear();
 
         if(d_cursor.get(d_key, d_id,  MDB_GET_CURRENT)) {
           d_end = true;
           return;
         }
+
+        if (d_id.d_mdbval.mv_size < LMDBLS::LS_MIN_HEADER_SIZE) {
+          throw std::runtime_error("got short value");
+        }
+
+        // MDBOutVal id = d_id;
+
+        // id.d_mdbval.mv_size -= LS_HEADER_SIZE;
+        // id.d_mdbval.mv_data = (char*)d_id.d_mdbval.mv_data + LS_HEADER_SIZE;
+
 
         if(d_on_index) {
           if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data))
@@ -314,6 +398,8 @@ public:
           return;
         }
 
+        d_id = getIDFromCombinedKey(d_key);
+
         if(d_on_index) {
           if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data))
             throw std::runtime_error("Missing id in constructor");
@@ -324,18 +410,18 @@ public:
       }
 
 
-      std::function<bool(const MDBOutVal&)> filter;
+      // std::function<bool(const MDBOutVal&)> filter;
       void del()
       {
         d_cursor.del();
       }
 
-      bool operator!=(const eiter_t& rhs) const
+      bool operator!=(const eiter_t& /* rhs */) const
       {
         return !d_end;
       }
 
-      bool operator==(const eiter_t& rhs) const
+      bool operator==(const eiter_t& /* rhs */) const
       {
         return d_end;
       }
@@ -351,33 +437,45 @@ public:
       }
 
       // implements generic ++ or --
-      iter_t& genoperator(MDB_cursor_op dupop, MDB_cursor_op op)
+      iter_t& genoperator(MDB_cursor_op op)
       {
         MDBOutVal data;
         int rc;
-      next:;
-        rc = d_cursor.get(d_key, d_id, d_one_key ? dupop : op);
-        if(rc == MDB_NOTFOUND) {
+      // next:;
+        if (!d_one_key) {
+          rc = d_cursor.get(d_key, d_id, op);
+        }
+        if(d_one_key || rc == MDB_NOTFOUND) {
           d_end = true;
         }
         else if(rc) {
           throw std::runtime_error("in genoperator, " + std::string(mdb_strerror(rc)));
         }
-        else if(!d_prefix.empty() && d_key.get<std::string>().rfind(d_prefix, 0)!=0) {
+        else if(!d_prefix.empty() &&
+          // d_key.getNoStripHeader<std::string>().rfind(d_prefix, 0)!=0 &&
+          getKeyFromCombinedKey(d_key).template getNoStripHeader<std::string>() != d_prefix) {
           d_end = true;
         }
         else {
+          // if (d_id.d_mdbval.mv_size < LS_HEADER_SIZE) throw std::runtime_error("got short value");
+
+          // MDBOutVal id = d_id;
+
+          // id.d_mdbval.mv_size -= LS_HEADER_SIZE;
+          // id.d_mdbval.mv_data = (char*)d_id.d_mdbval.mv_data+LS_HEADER_SIZE;
+
           if(d_on_index) {
+            d_id = getIDFromCombinedKey(d_key);
             if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, data))
               throw std::runtime_error("Missing id field");
-            if(filter && !filter(data))
-              goto next;
+            // if(filter && !filter(data))
+            //   goto next;
 
             serFromString(data.get<std::string>(), d_t);
           }
           else {
-            if(filter && !filter(data))
-              goto next;
+            // if(filter && !filter(data))
+            //   goto next;
 
             serFromString(d_id.get<std::string>(), d_t);
           }
@@ -387,20 +485,23 @@ public:
 
       iter_t& operator++()
       {
-        return genoperator(MDB_NEXT_DUP, MDB_NEXT);
+        return genoperator(MDB_NEXT);
       }
-      iter_t& operator--()
-      {
-        return genoperator(MDB_PREV_DUP, MDB_PREV);
-      }
+      // iter_t& operator--()
+      // {
+      //   return genoperator(MDB_PREV);
+      // }
 
       // get ID this iterator points to
       uint32_t getID()
       {
-        if(d_on_index)
-          return d_id.get<uint32_t>();
-        else
-          return d_key.get<uint32_t>();
+        if(d_on_index) {
+          // return d_id.get<uint32_t>();
+          return d_id.getNoStripHeader<uint32_t>();
+        }
+        else {
+          return d_key.getNoStripHeader<uint32_t>();
+        }
       }
 
       const MDBOutVal& getKey()
@@ -474,7 +575,7 @@ public:
     {
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
 
-      std::string keystr = keyConv(key);
+      std::string keystr = makeCombinedKey(keyConv(key), MDBInVal(""));
       MDBInVal in(keystr);
       MDBOutVal out, id;
       out.d_mdbval = in.d_mdbval;
@@ -506,7 +607,7 @@ public:
     {
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
 
-      std::string keyString=keyConv(key);
+      std::string keyString=makeCombinedKey(keyConv(key), MDBInVal(""));
       MDBInVal in(keyString);
       MDBOutVal out, id;
       out.d_mdbval = in.d_mdbval;
@@ -525,17 +626,57 @@ public:
     {
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
 
-      std::string keyString=keyConv(key);
+      std::string keyString=makeCombined(keyConv(key), MDBInVal(""));
       MDBInVal in(keyString);
       MDBOutVal out, id;
       out.d_mdbval = in.d_mdbval;
 
-      if(cursor.get(out, id,  MDB_SET_RANGE)) {
-                                              // on_index, one_key, end
+      if(cursor.get(out, id,  MDB_SET_RANGE) ||
+         getKeyFromCombinedKey(out).template getNoStripHeader<std::string>() != keyString) {
+                                                    // on_index, one_key, end
         return {iter_t{&d_parent, std::move(cursor), true, true, true}, eiter_t()};
       }
 
       return {iter_t(&d_parent, std::move(cursor), keyString), eiter_t()};
+    };
+
+    template<int N>
+    void get_multi(const typename std::tuple_element<N, tuple_t>::type::type& key, LMDBIDvec& ids)
+    {
+      // std::cerr<<"in get_multi"<<std::endl;
+      typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
+
+      std::string keyString=makeCombinedKey(keyConv(key), MDBInVal(""));
+      MDBInVal in(keyString);
+      MDBOutVal out, id;
+      out.d_mdbval = in.d_mdbval;
+
+      int rc = cursor.get(out, id,  MDB_SET_RANGE);
+
+      int scanned = 0;
+      while (rc == 0) {
+        scanned++;
+        auto sout = out.getNoStripHeader<std::string>(); // FIXME: this (and many others) could probably be string_view
+        auto thiskey = getKeyFromCombinedKey(out);
+        auto sthiskey = thiskey.getNoStripHeader<std::string>();
+
+        if (sout.find(keyString) != 0) {
+          // we are no longer in range, so we are done
+          break;
+        }
+
+        if (sthiskey == keyString) {
+          auto _id = getIDFromCombinedKey(out);
+          ids.push_back(_id.getNoStripHeader<uint32_t>());
+        }
+
+        rc = cursor.get(out, id, MDB_NEXT);
+      }
+
+      // std::cerr<<"get_multi scanned="<<scanned<<std::endl;
+      if (rc != 0 && rc != MDB_NOTFOUND) {
+        throw std::runtime_error("error during get_multi");
+      }
     };
 
 
@@ -603,7 +744,8 @@ public:
         }
         else {
           id = MDBGetMaxID(*d_txn, d_parent->d_main) + 1;
-          flags = MDB_APPEND;
+          // FIXME: after dropping MDB_INTEGERKEY, we had to drop MDB_APPEND here. Check if this is an LMDB quirk.
+          // flags = MDB_APPEND;
         }
       }
       (*d_txn)->put(d_parent->d_main, id, serToString(t), flags);
