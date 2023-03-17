@@ -206,7 +206,7 @@ void copyDBIAndAddLSHeader(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
 
   while (rc == 0) {
     std::string skey(reinterpret_cast<const char*>(key.mv_data), key.mv_size);
-    std::string sdata(reinterpret_cast<const har*>(data.mv_data), data.mv_size);
+    std::string sdata(reinterpret_cast<const char*>(data.mv_data), data.mv_size);
 
     std::string stdata = header + sdata;
 
@@ -275,7 +275,7 @@ void copyTypedDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
 
     tkey.mv_data = reinterpret_cast<char*>(&id);
     tkey.mv_size = sizeof(uint32_t);
-    tdata.mv_data = reinterpret_cast<char*>(stdata.c_str());
+    tdata.mv_data = const_cast<char*>(stdata.c_str());
     tdata.mv_size = stdata.size();
 
     if ((rc = mdb_put(txn, tdbi, &tkey, &tdata, 0)) != 0) {
