@@ -125,6 +125,11 @@ namespace {
     std::string skey((char*) key.d_mdbval.mv_data, key.d_mdbval.mv_size);
     std::string sval((char*) val.d_mdbval.mv_data, val.d_mdbval.mv_size);
 
+    if (val.d_mdbval.mv_size != 0 &&  // empty val case, for range queries
+        val.d_mdbval.mv_size != 4) {   // uint32_t case
+      throw std::runtime_error("got wrong size value in makeCombinedKey");
+    }
+
     uint16_t len = htons(skey.size());
     memcpy(lenprefix.data(), &len, sizeof(len));
     std::string scombined = lenprefix + skey + sval;
