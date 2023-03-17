@@ -7,7 +7,6 @@
 #include <map>
 
 #ifndef DNSDIST
-#include <lmdb.h>
 #include "../../pdns/gettime.hh"
 #endif
 
