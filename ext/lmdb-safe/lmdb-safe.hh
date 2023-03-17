@@ -216,7 +216,7 @@ struct MDBOutVal
 
     size_t offset = LMDBLS::LScheckHeaderAndGetSize(this, sizeof(T));
 
-    memcpy(&ret, (char *)d_mdbval.mv_data+offset, sizeof(T));
+    memcpy(&ret, reinterpret_cast<const char *>(d_mdbval.mv_data)+offset, sizeof(T));
     return ret;
   }
 
