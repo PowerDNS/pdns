@@ -457,7 +457,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     mdb_env_close(shenv);
   }
 
-  std::array<MDB_dbi,4> fromtypeddbi;
+  std::array<MDB_dbi, 4> fromtypeddbi;
   std::array<MDB_dbi, 4> totypeddbi;
 
   int index = 0;
@@ -497,7 +497,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     index++;
   }
 
-  std::array<MDB_dbi,4> fromindexdbi;
+  std::array<MDB_dbi, 4> fromindexdbi;
   std::array<MDB_dbi, 4> toindexdbi;
 
   index = 0;
