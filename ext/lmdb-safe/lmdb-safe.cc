@@ -24,13 +24,13 @@ static string MDBError(int rc)
 
 namespace LMDBLS {
   // this also returns a pointer to the string's data. Do not hold on to it too long!
-  LSheader* LSassertFixedHeaderSize(std::string_view val) {
+  const LSheader* LSassertFixedHeaderSize(std::string_view val) {
     // cerr<<"val.size()="<<val.size()<<endl;
     if (val.size() < LS_MIN_HEADER_SIZE) {
       throw std::runtime_error("LSheader too short");
     }
 
-    return (LSheader*)val.data();
+    return reinterpret_cast<const LSheader*>(val.data());
   }
 
   size_t LScheckHeaderAndGetSize(std::string_view val, size_t datasize) {
