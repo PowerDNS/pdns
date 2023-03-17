@@ -182,7 +182,7 @@ struct MDBOutVal
   }
 
   template <class T,
-          typename std::enable_if<std::is_arithmetic<T>::value,
+          typename std::enable_if<std::is_integral<T>::value,
                                   T>::type* = nullptr> const
   T getNoStripHeader()
   {
