@@ -42,7 +42,8 @@ namespace LMDBLS {
 
     size_t headersize = LS_MIN_HEADER_SIZE;
 
-    uint16_t numextra = (val[LS_NUMEXTRA_OFFSET] << 8) + val[LS_NUMEXTRA_OFFSET+1];
+    unsigned char* tmp = (unsigned char*)val.data();
+    uint16_t numextra = (tmp[LS_NUMEXTRA_OFFSET] << 8) + tmp[LS_NUMEXTRA_OFFSET+1];
 
     headersize += numextra * LS_BLOCK_SIZE;
 
