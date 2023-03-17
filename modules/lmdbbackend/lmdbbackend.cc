@@ -1303,7 +1303,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
     txn.get_multi<0>(domain, ids);
 
-    for (auto _id : ids) {
+    for (auto &_id : ids) {
       txn.del(_id);
     }
 
