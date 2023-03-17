@@ -79,7 +79,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     throw std::runtime_error("mdb_env_set_mapsize failed");
   }
 
-  if ((rc = mdb_env_set_maxdbs(env, 20)) != 0) {
+  if ((rc = mdb_env_set_maxdbs(env, 20)) != 0) {   // we need 17: 1 {"pdns"} + 4 {"domains", "keydata", "tsig", "metadata"} * 2 {v4, v5} * 2 {main, index in _0}
     mdb_env_close(env);
     throw std::runtime_error("mdb_env_set_maxdbs failed");
   }
