@@ -2367,7 +2367,6 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   // cerr<<"here qname="<<qname<<" ordername="<<ordername<<" qtype="<<qtype<<" matchkey="<<makeHexDump(matchkey)<<endl;
   int txngetrc;
   if (!(txngetrc = txn->txn->get(txn->db->dbi, matchkey, val))) {
-    cerr << "rc =" << txngetrc << " size=" << val.get<string_view>().size() << endl;
     serFromString(val.get<string_view>(), lrr);
 
     if (needNSEC3) {
