@@ -1618,6 +1618,19 @@ Before version 4.6.0 only ``ServFail`` answers were considered as such. Starting
     This setting's maximum is capped to `packetcache-ttl`_.
     i.e. setting ``packetcache-ttl=15`` and keeping ``packetcache-servfail-ttl`` at the default will lower ``packetcache-servfail-ttl`` to ``15``.
 
+
+.. _setting-packetcache-shards:
+
+``packetcache-shards``
+------------------------
+.. versionadded:: 4.9.0
+
+-  Integer
+-  Default: 1024
+
+Sets the number of shards in the packet cache. If you have high contention as reported by ``packetcache-contented/packetcache-acquired``,
+you can try to enlarge this value or run with fewer threads.
+
 .. _setting-pdns-distributes-queries:
 
 ``pdns-distributes-queries``

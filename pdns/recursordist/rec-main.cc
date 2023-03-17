@@ -1038,9 +1038,9 @@ static void doStats(void)
                 "record-cache-contended", Logging::Loggable(rc_stats.first),
                 "record-cache-acquired", Logging::Loggable(rc_stats.second),
                 "record-cache-contended-perc", Logging::Loggable(rrc),
-                "packet-cache-contended", Logging::Loggable(pc_stats.first),
-                "packet-cache-acquired", Logging::Loggable(pc_stats.second),
-                "packet-cache-contended-perc", Logging::Loggable(rpc));
+                "packetcache-contended", Logging::Loggable(pc_stats.first),
+                "packetcache-acquired", Logging::Loggable(pc_stats.second),
+                "packetcache-contended-perc", Logging::Loggable(rpc));
       log->info(Logr::Info, m,
                 "throttle-entries", Logging::Loggable(SyncRes::getThrottledServersSize()),
                 "nsspeed-entries", Logging::Loggable(SyncRes::getNSSpeedsSize()),
@@ -2808,7 +2808,10 @@ int main(int argc, char** argv)
     ::arg().setSwitch("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)") = "dnssec";
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file") = "0";
     ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file") = "20";
+
     ::arg().set("record-cache-shards", "Number of shards in the record cache") = "1024";
+    ::arg().set("packetcache-shards", "Number of shards in the packet cache") = "1024";
+
     ::arg().set("refresh-on-ttl-perc", "If a record is requested from the cache and only this % of original TTL remains, refetch") = "0";
     ::arg().set("record-cache-locked-ttl-perc", "Replace records in record cache only after this % of original TTL has passed") = "0";
 
@@ -3035,7 +3038,7 @@ int main(int argc, char** argv)
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);
     if (!::arg().mustDo("disable-packetcache")) {
       g_maxPacketCacheEntries = ::arg().asNum("max-packetcache-entries");
-      g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum("record-cache-shards")); // XXX
+      g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum("packetcache-shards"));
     }
 
     ret = serviceMain(argc, argv, startupLog);

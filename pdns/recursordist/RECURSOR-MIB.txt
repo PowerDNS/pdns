@@ -55,7 +55,7 @@ rec MODULE-IDENTITY
     DESCRIPTION "Added metrics for answers from auths by rcode"
 
     REVISION "202302240000Z"
-    DESCRIPTION "Added metrics for sharded packet cache contrntion"
+    DESCRIPTION "Added metrics for sharded packet cache contention"
 
     ::= { powerdns 2 }
 
@@ -1423,7 +1423,9 @@ recGroup OBJECT-GROUP
         authrcode12Count,
         authrcode13Count,
         authrcode14Count,
-        authrcode15Count
+        authrcode15Count,
+        packetCacheContended,
+        packetCacheAcquired
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"
