@@ -516,7 +516,7 @@ private:
     // * we know the cursor op that got us here
 
     while (true) {
-      std::string sval = data.getNoStripHeader<std::string>();
+      auto sval = data.getNoStripHeader<std::string_view>();
 
       if (!LMDBLS::LSisDeleted(sval)) {
         // done!
@@ -788,7 +788,7 @@ public:
 
 #ifndef DNSDIST
     if(rc != MDB_NOTFOUND) {  // key was found, value was retrieved
-      std::string sval = val.getNoStripHeader<std::string>();
+      auto sval = val.getNoStripHeader<std::string_view>();
       if (LMDBLS::LSisDeleted(sval)) {  // but it was deleted
         rc = MDB_NOTFOUND;
       }
