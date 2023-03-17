@@ -126,7 +126,7 @@ namespace {
     std::string sval((char*) val.d_mdbval.mv_data, val.d_mdbval.mv_size);
 
     uint16_t len = htons(skey.size());
-    memcpy((void*) lenprefix.data(), &len, sizeof(len));
+    memcpy(lenprefix.data(), &len, sizeof(len));
     std::string scombined = lenprefix + skey + sval;
 
     // MDBInVal combined(scombined);
