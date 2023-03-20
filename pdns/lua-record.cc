@@ -548,13 +548,13 @@ static vector<string> convComboAddressListToString(const vector<ComboAddress>& i
   return result;
 }
 
-static vector<ComboAddress> convComboAddressList(const iplist_t& items)
+static vector<ComboAddress> convComboAddressList(const iplist_t& items, uint16_t port=0)
 {
   vector<ComboAddress> result;
   result.reserve(items.size());
 
   for(const auto& item : items) {
-    result.emplace_back(ComboAddress(item.second));
+    result.emplace_back(ComboAddress(item.second, port));
   }
 
   return result;
@@ -832,33 +832,51 @@ static void setupLuaRecords(LuaContext& lua)
    *
    * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
    */
-  lua.writeFunction("ifportup", [](int port, const vector<pair<int, string> >& ips, const boost::optional<std::unordered_map<string,string>> options) {
-      vector<ComboAddress> candidates, unavailables;
+  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<std::unordered_map<string,string>> options) {
+      vector<vector<ComboAddress>> candidates;
       opts_t opts;
-      vector<ComboAddress > conv;
       std::string selector;
 
+      if (port < 0) {
+        port = 0;
+      }
+      if (port > std::numeric_limits<uint16_t>::max()) {
+        port = std::numeric_limits<uint16_t>::max();
+      }
       if(options)
         opts = *options;
-      for(const auto& i : ips) {
-        ComboAddress rem(i.second, port);
-        if(g_up.isUp(rem, opts)) {
-          candidates.push_back(rem);
-        }
-        else {
-          unavailables.push_back(rem);
-        }
-      }
-      if(!candidates.empty()) {
-        // use regular selector
-        selector = getOptionValue(options, "selector", "random");
+
+      if(auto simple = boost::get<iplist_t>(&ips)) {
+        vector<ComboAddress> unit = convComboAddressList(*simple, port);
+        candidates.push_back(unit);
       } else {
-        // All units are down, apply backupSelector on all candidates
-        candidates = std::move(unavailables);
-        selector = getOptionValue(options, "backupSelector", "random");
+        auto units = boost::get<ipunitlist_t>(ips);
+        for(const auto& u : units) {
+          vector<ComboAddress> unit = convComboAddressList(u.second, port);
+          candidates.push_back(unit);
+        }
       }
 
-      vector<ComboAddress> res = useSelector(selector, s_lua_record_ctx->bestwho, candidates);
+      for(const auto& unit : candidates) {
+        vector<ComboAddress> available;
+        for(const auto& c : unit) {
+          if(g_up.isUp(c, opts)) {
+            available.push_back(c);
+          }
+        }
+        if(!available.empty()) {
+          vector<ComboAddress> res = useSelector(getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
+          return convComboAddressListToString(res);
+        }
+      }
+
+      // All units down, apply backupSelector on all candidates
+      vector<ComboAddress> unavailable{};
+      for(const auto& unit : candidates) {
+        unavailable.insert(unavailable.end(), unit.begin(), unit.end());
+      }
+
+      vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, unavailable);
       return convComboAddressListToString(res);
     });
 
