@@ -19,7 +19,6 @@
 #include <boost/range/detail/common.hpp>
 #include <stdint.h>
 #include <netinet/in.h>
-#include <bit>
 #include <stdexcept>
 #include "../../pdns/misc.hh"
 #endif
@@ -102,6 +101,10 @@ private:
 std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB=(sizeof(void *)==4) ? 100 : 16000);
 
 #ifndef DNSDIST
+
+#if !defined(__BYTE_ORDER__) || !defined(__ORDER_LITTLE_ENDIAN__) || !defined(__ORDER_BIG_ENDIAN__)
+#error "your compiler did not define byte order macros"
+#endif
 
 // FIXME do something more portable than __builtin_bswap64
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
