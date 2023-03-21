@@ -1979,11 +1979,12 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
 
     t_Counters.at(rec::Counter::packetCacheHits)++;
     t_Counters.at(rec::Counter::syncresqueries)++; // XXX
-    ageDNSPacket(response, age);
     if (response.length() >= sizeof(struct dnsheader)) {
-      const struct dnsheader* dh = reinterpret_cast<const dnsheader*>(response.data());
-      updateResponseStats(dh->rcode, source, response.length(), nullptr, 0);
-      t_Counters.at(rec::ResponseStats::responseStats).submitResponse(qtype, response.length(), dh->rcode);
+      dnsheader_aligned dh_aligned(response.data());
+      ageDNSPacket(response, age, dh_aligned);
+      const auto* dhp = dh_aligned.get();
+      updateResponseStats(dhp->rcode, source, response.length(), nullptr, 0);
+      t_Counters.at(rec::ResponseStats::responseStats).submitResponse(qtype, response.length(), dhp->rcode);
     }
 
     // we assume 0 usec

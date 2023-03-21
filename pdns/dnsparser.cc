@@ -925,47 +925,45 @@ void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::unordered_set<QT
 }
 
 // method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
-void ageDNSPacket(char* packet, size_t length, uint32_t seconds)
+void ageDNSPacket(char* packet, size_t length, uint32_t seconds, const dnsheader_aligned& aligned_dh)
 {
-  if(length < sizeof(dnsheader))
+  if (length < sizeof(dnsheader)) {
     return;
-  try
-  {
-    const dnsheader* dh = reinterpret_cast<const dnsheader*>(packet);
-    const uint64_t dqcount = ntohs(dh->qdcount);
-    const uint64_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
+  }
+  try {
+    const dnsheader* dhp = aligned_dh.get();
+    const uint64_t dqcount = ntohs(dhp->qdcount);
+    const uint64_t numrecords = ntohs(dhp->ancount) + ntohs(dhp->nscount) + ntohs(dhp->arcount);
     DNSPacketMangler dpm(packet, length);
 
-    uint64_t n;
-    for(n=0; n < dqcount; ++n) {
+    for (uint64_t rec = 0; rec < dqcount; ++rec) {
       dpm.skipDomainName();
       /* type and class */
       dpm.skipBytes(4);
     }
-   // cerr<<"Skipped "<<n<<" questions, now parsing "<<numrecords<<" records"<<endl;
-    for(n=0; n < numrecords; ++n) {
+
+    for(uint64_t rec = 0; rec < numrecords; ++rec) {
       dpm.skipDomainName();
 
       uint16_t dnstype = dpm.get16BitInt();
       /* class */
       dpm.skipBytes(2);
 
-      if(dnstype == QType::OPT) // not aging that one with a stick
+      if (dnstype == QType::OPT) { // not aging that one with a stick
         break;
+      }
 
       dpm.decreaseAndSkip32BitInt(seconds);
       dpm.skipRData();
     }
   }
-  catch(...)
-  {
-    return;
+  catch(...) {
   }
 }
 
-void ageDNSPacket(std::string& packet, uint32_t seconds)
+void ageDNSPacket(std::string& packet, uint32_t seconds, const dnsheader_aligned& aligned_dh)
 {
-  ageDNSPacket((char*)packet.c_str(), packet.length(), seconds);
+  ageDNSPacket(packet.data(), packet.length(), seconds, aligned_dh);
 }
 
 uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA)

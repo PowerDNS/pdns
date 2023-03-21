@@ -471,8 +471,8 @@ private:
 };
 
 string simpleCompress(const string& label, const string& root="");
-void ageDNSPacket(char* packet, size_t length, uint32_t seconds);
-void ageDNSPacket(std::string& packet, uint32_t seconds);
+void ageDNSPacket(char* packet, size_t length, uint32_t seconds, const dnsheader_aligned&);
+void ageDNSPacket(std::string& packet, uint32_t seconds, const dnsheader_aligned&);
 void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)>& visitor);
 void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::unordered_set<QType>& qtypes);
 void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::unordered_set<QType>& qtypes);
