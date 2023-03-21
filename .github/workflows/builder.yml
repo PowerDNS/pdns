@@ -24,6 +24,7 @@ jobs:
           - centos-8-stream
           - centos-9-stream
           - ubuntu-kinetic
+          - ubuntu-lunar
           - debian-bookworm
       fail-fast: false
     steps:
