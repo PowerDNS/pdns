@@ -67,6 +67,7 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
         self.assertTrue(foundMisses)
 
     def testPacketCache(self):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
         # first query, no cookie
         qname = 'a.example.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
