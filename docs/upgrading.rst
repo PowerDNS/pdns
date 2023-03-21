@@ -14,10 +14,10 @@ any version to 4.8.x
 LMDB backend
 ^^^^^^^^^^^^
 
-Version 4.8.0-alpha1 ships a new version of the LMDB database schema (called version 5).
+Version 4.8.0-alpha1 ships a new version of the LMDB database schema (called version 5), for compatibility with `Lightning Stream <https://doc.powerdns.com/lightningstream>`_.
 This schema is somewhat experimental, and although we do intend to make databases portable/upgradeable to future releases in the 4.8 train, we currently make no promises.
 There is no downgrade process.
-If you upgrade your database (by starting 4.8.0 without `lmdb-schema-version=4`), you cannot go back.
+If you upgrade your database (by starting 4.8.0 without ``lmdb-schema-version=4``), you cannot go back.
 
 Upgrading is only supported from database schema versions 3 and 4, that is, databases created/upgraded by version 4.4 and up.
 
