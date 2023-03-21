@@ -20,14 +20,17 @@ BuildRequires: systemd-devel
 BuildRequires: krb5-devel
 BuildRequires: p11-kit-devel
 BuildRequires: libcurl-devel
-%if 0%{?rhel} < 8
+%if 0%{?rhel} < 8 && 0%{?amzn} != 2023
 BuildRequires: boost169-devel
 %else
 BuildRequires: boost-devel
 %endif
-BuildRequires: libsodium-devel
 BuildRequires: bison
 BuildRequires: openssl-devel
+
+%if 0%{?amzn} != 2023
+BuildRequires: libsodium-devel
+%endif
 
 Requires(pre): shadow-utils
 
@@ -59,7 +62,7 @@ This package contains the extra tools for %{name}
 Summary: MySQL backend for %{name}
 Group: System Environment/Daemons
 Requires: %{name}%{?_isa} = %{version}-%{release}
-%if 0%{?rhel} < 8
+%if 0%{?rhel} < 8 && 0%{?amzn} != 2023
 BuildRequires: mysql-devel
 %else
 BuildRequires: mariadb-connector-c-devel
@@ -141,7 +144,7 @@ Summary: Geo backend for %{name}
 Group: System Environment/Daemons
 Requires: %{name}%{?_isa} = %{version}-%{release}
 BuildRequires: yaml-cpp-devel
-%if 0%{?rhel} < 9
+%if 0%{?rhel} < 9 && 0%{?amzn} != 2023
 BuildRequires: geoip-devel
 %endif
 BuildRequires: libmaxminddb-devel
@@ -203,7 +206,9 @@ export LDFLAGS=-L/usr/lib64/boost169
   --with-lua=%{lua_implementation} \
   --with-dynmodules='%{backends}' \
   --enable-tools \
+%if 0%{?amzn} != 2023
   --with-libsodium \
+%endif
 %if 0%{?amzn} != 2
   --enable-ixfrdist \
 %endif
