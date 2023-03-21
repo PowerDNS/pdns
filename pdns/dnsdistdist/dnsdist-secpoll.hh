@@ -25,6 +25,7 @@
 
 #ifndef DISABLE_SECPOLL
 #include <string>
+#include <ctime>
 
 extern std::string g_secPollSuffix;
 extern time_t g_secPollInterval;
