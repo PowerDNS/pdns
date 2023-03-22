@@ -117,7 +117,8 @@ BOOST_AUTO_TEST_CASE(test_ageDNSPacket) {
   auto firstPacket = generatePacket(3600);
   auto expectedAlteredPacket = generatePacket(1800);
 
-  ageDNSPacket(reinterpret_cast<char*>(firstPacket.data()), firstPacket.size(), 1800);
+  dnsheader_aligned dh_aligned(firstPacket.data());
+  ageDNSPacket(reinterpret_cast<char*>(firstPacket.data()), firstPacket.size(), 1800, dh_aligned);
 
   BOOST_REQUIRE_EQUAL(firstPacket.size(), expectedAlteredPacket.size());
   for (size_t idx = 0; idx < firstPacket.size(); idx++) {
@@ -127,14 +128,14 @@ BOOST_AUTO_TEST_CASE(test_ageDNSPacket) {
 
   /* now call it with a truncated packet, missing the last TTL and rdata,
      the packet should not be altered. */
-  ageDNSPacket(reinterpret_cast<char*>(firstPacket.data()), firstPacket.size() - sizeof(uint32_t) - /* rdata length */ sizeof (uint16_t) - /* IPv4 payload in rdata */ 4 - /* size of OPT record */ 11, 900);
+  ageDNSPacket(reinterpret_cast<char*>(firstPacket.data()), firstPacket.size() - sizeof(uint32_t) - /* rdata length */ sizeof (uint16_t) - /* IPv4 payload in rdata */ 4 - /* size of OPT record */ 11, 900, dh_aligned);
 
   BOOST_CHECK(firstPacket == expectedAlteredPacket);
 
   /* now remove more than the remaining TTL. We expect ageDNSPacket
      to cap this at zero and not cause an unsigned underflow into
      the 2^32-1 neighbourhood */
-  ageDNSPacket(reinterpret_cast<char*>(firstPacket.data()), firstPacket.size(), 1801);
+  ageDNSPacket(reinterpret_cast<char*>(firstPacket.data()), firstPacket.size(), 1801, dh_aligned);
 
   uint32_t ttl = 0;
 
