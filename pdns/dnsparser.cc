@@ -949,11 +949,11 @@ void ageDNSPacket(char* packet, size_t length, uint32_t seconds, const dnsheader
       /* class */
       dpm.skipBytes(2);
 
-      if (dnstype == QType::OPT) { // not aging that one with a stick
-        break;
+      if (dnstype != QType::OPT) { // not aging that one with a stick
+        dpm.decreaseAndSkip32BitInt(seconds);
+      } else {
+        dpm.skipBytes(4);
       }
-
-      dpm.decreaseAndSkip32BitInt(seconds);
       dpm.skipRData();
     }
   }
