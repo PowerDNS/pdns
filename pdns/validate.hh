@@ -85,26 +85,26 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 bool isSupportedDS(const DSRecordContent& ds, const OptLog&);
 DNSName getSigner(const std::vector<std::shared_ptr<const RRSIGRecordContent> >& signatures);
 bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords);
-bool isRRSIGNotExpired(const time_t now, const std::shared_ptr<const RRSIGRecordContent>& sig);
-bool isRRSIGIncepted(const time_t now, const shared_ptr<const RRSIGRecordContent>& sig);
-bool isWildcardExpanded(unsigned int labelCount, const std::shared_ptr<const RRSIGRecordContent>& sign);
-bool isWildcardExpandedOntoItself(const DNSName& owner, unsigned int labelCount, const std::shared_ptr<const RRSIGRecordContent>& sign);
+bool isRRSIGNotExpired(const time_t now, const RRSIGRecordContent& sig);
+bool isRRSIGIncepted(const time_t now, const RRSIGRecordContent& sig);
+bool isWildcardExpanded(unsigned int labelCount, const RRSIGRecordContent& sign);
+bool isWildcardExpandedOntoItself(const DNSName& owner, unsigned int labelCount, const RRSIGRecordContent& sign);
 void updateDNSSECValidationState(vState& state, const vState stateUpdate);
 
-dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner, const std::shared_ptr<const NSECRecordContent>& nsec, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, const OptLog&);
+dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner, const NSECRecordContent& nsec, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, const OptLog&);
 
-bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<const NSEC3RecordContent>& nsec3);
+bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const NSEC3RecordContent& nsec3);
 DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::shared_ptr<const RRSIGRecordContent> >& signatures);
 DNSName getClosestEncloserFromNSEC(const DNSName& name, const DNSName& owner, const DNSName& next);
 
 template <typename NSEC> bool isTypeDenied(const NSEC& nsec, const QType& type)
 {
-  if (nsec->isSet(type.getCode())) {
+  if (nsec.isSet(type.getCode())) {
     return false;
   }
 
   /* RFC 6840 section 4.3 */
-  if (nsec->isSet(QType::CNAME)) {
+  if (nsec.isSet(QType::CNAME)) {
     return false;
   }
 
