@@ -696,7 +696,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     auto range = txn.equal_range<0>(domain);
 
     for (auto& iter = range.first; iter != range.second; ++iter) {
-      iter.del();
+      txn.del(iter.getID());
     }
 
     txn.commit();
@@ -707,7 +707,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     auto range = txn.equal_range<0>(domain);
 
     for (auto& iter = range.first; iter != range.second; ++iter) {
-      iter.del();
+      txn.del(iter.getID());
     }
 
     txn.commit();
@@ -1189,7 +1189,7 @@ bool LMDBBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 
   for (auto& iter = range.first; iter != range.second; ++iter) {
     if (iter->key == kind)
-      iter.del();
+      txn.del(iter.getID());
   }
 
   for (const auto& m : meta) {

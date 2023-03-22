@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -e
+if [ "${PDNS_DEBUG}" = "YES" ]; then
+  set -x
+fi
+
+rootPath=$(readlink -f $(dirname $0))
+
+for random in no yes
+do
+  workdir=$(mktemp -d)
+
+  cat << EOF > "${workdir}/pdns-lmdb.conf"
+  module-dir=../regression-tests/modules
+  launch=lmdb
+  lmdb-filename=${workdir}/pdns.lmdb
+  lmdb-shards=2
+  lmdb-random-ids=$random
+EOF
+
+  echo === random=$random
+
+  echo == creating zone
+  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb create-zone example.com
+  
+  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb set-meta example.com FOO BAR
+  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb show-zone example.com | grep FOO
+  mdb_dump -p -a -n ${workdir}/pdns.lmdb | egrep -o 'FOO[0-9]*' | LC_ALL=C sort
+
+  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb set-meta example.com FOO2 BAR2
+  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb show-zone example.com | grep FOO
+  mdb_dump -p -a -n ${workdir}/pdns.lmdb | egrep -o 'FOO[0-9]*' | LC_ALL=C sort
+
+  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb set-meta example.com FOO2 BAR2
+  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb show-zone example.com | grep FOO
+  mdb_dump -p -a -n ${workdir}/pdns.lmdb | egrep -o 'FOO[0-9]*' | LC_ALL=C sort
+
+  echo == deleting zone
+  $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb delete-zone example.com
+  mdb_dump -p -a -n ${workdir}/pdns.lmdb | egrep -o 'FOO[0-9]*' | LC_ALL=C sort
+done
