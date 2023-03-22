@@ -47,6 +47,7 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
         super(PacketCacheRecursorTest, cls).generateRecursorConfig(confdir)
 
     def checkPacketCacheMetrics(self, expectedHits, expectedMisses):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
         headers = {'x-api-key': self._apiKey}
         url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
