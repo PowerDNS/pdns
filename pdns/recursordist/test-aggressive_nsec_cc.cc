@@ -1087,18 +1087,18 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wiping)
   rec.d_name = DNSName("www.powerdns.com");
   rec.d_type = QType::NSEC;
   rec.d_ttl = now.tv_sec + 10;
-  rec.d_content = getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC");
+  rec.setContent(getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC"));
   auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
 
   rec.d_name = DNSName("z.powerdns.com");
-  rec.d_content = getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC");
+  rec.setContent(getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC"));
   cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
 
   rec.d_name = DNSName("www.powerdns.org");
   rec.d_type = QType::NSEC3;
   rec.d_ttl = now.tv_sec + 10;
-  rec.d_content = getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3");
+  rec.setContent(getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3"));
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
 
@@ -1136,12 +1136,12 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
   rec.d_name = DNSName("www.powerdns.com");
   rec.d_type = QType::NSEC;
   rec.d_ttl = now.tv_sec + 10;
-  rec.d_content = getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC");
+  rec.setContent(getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC"));
   auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
 
   rec.d_name = DNSName("z.powerdns.com");
-  rec.d_content = getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC");
+  rec.setContent(getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC"));
   cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
 
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
@@ -1153,7 +1153,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
   rec.d_name = DNSName("www.powerdns.org");
   rec.d_type = QType::NSEC3;
   rec.d_ttl = now.tv_sec + 10;
-  rec.d_content = getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3");
+  rec.setContent(getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3"));
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
 
@@ -1197,18 +1197,18 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
   rec.d_name = DNSName("www.powerdns.com");
   rec.d_type = QType::NSEC;
   rec.d_ttl = now.tv_sec + 10;
-  rec.d_content = getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC");
+  rec.setContent(getRecordContent(QType::NSEC, "z.powerdns.com. A RRSIG NSEC"));
   auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
 
   rec.d_name = DNSName("z.powerdns.com");
-  rec.d_content = getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC");
+  rec.setContent(getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC"));
   cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
 
   rec.d_name = DNSName("www.powerdns.org");
   rec.d_type = QType::NSEC3;
   rec.d_ttl = now.tv_sec + 10;
-  rec.d_content = getRecordContent(QType::NSEC3, "1 0 50 ab HASG==== A RRSIG NSEC3");
+  rec.setContent(getRecordContent(QType::NSEC3, "1 0 50 ab HASG==== A RRSIG NSEC3"));
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
 
@@ -1258,7 +1258,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
   drSOA.d_name = zone;
   drSOA.d_type = QType::SOA;
   drSOA.d_class = QClass::IN;
-  drSOA.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  drSOA.setContent(std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600"));
   drSOA.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
   drSOA.d_place = DNSResourceRecord::ANSWER;
   records.push_back(drSOA);
@@ -1289,7 +1289,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
     nrc.set(type);
   }
 
-  rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+  rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
   auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1318,7 +1318,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
     nrc.set(type);
   }
 
-  rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+  rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1348,7 +1348,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
     nrc.set(type);
   }
 
-  rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+  rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1378,7 +1378,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
   drSOA.d_name = zone;
   drSOA.d_type = QType::SOA;
   drSOA.d_class = QClass::IN;
-  drSOA.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  drSOA.setContent(std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600"));
   drSOA.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
   drSOA.d_place = DNSResourceRecord::ANSWER;
   records.push_back(drSOA);
@@ -1401,7 +1401,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
       nrc.set(type);
     }
 
-    rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+    rec.setContent(std::make_shared<NSECRecordContent>(nrc));
     auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 sub.powerdns.com. data");
     cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, false);
 
@@ -1434,7 +1434,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
       nrc.set(type);
     }
 
-    rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+    rec.setContent(std::make_shared<NSECRecordContent>(nrc));
     auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
     cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, false);
 
@@ -1466,7 +1466,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
       nrc.set(type);
     }
 
-    rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+    rec.setContent(std::make_shared<NSECRecordContent>(nrc));
     auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
     cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, false);
 
@@ -1504,7 +1504,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
         nrc.set(type);
       }
 
-      rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+      rec.setContent(std::make_shared<NSECRecordContent>(nrc));
       auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
       cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, false);
 
@@ -1523,7 +1523,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
         nrc.set(type);
       }
 
-      rec.d_content = std::make_shared<NSECRecordContent>(nrc);
+      rec.setContent(std::make_shared<NSECRecordContent>(nrc));
       auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
       cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, false);
 
@@ -1561,7 +1561,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
   drSOA.d_name = zone;
   drSOA.d_type = QType::SOA;
   drSOA.d_class = QClass::IN;
-  drSOA.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  drSOA.setContent(std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600"));
   drSOA.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
   drSOA.d_place = DNSResourceRecord::ANSWER;
   records.push_back(drSOA);
@@ -1593,7 +1593,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
       nrc.set(type);
     }
 
-    rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+    rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
     auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 sub.powerdns.com. data");
     cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1632,7 +1632,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
       nrc.set(type);
     }
 
-    rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+    rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
     auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
     cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1670,7 +1670,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
       nrc.set(type);
     }
 
-    rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+    rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
     auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
     cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1717,7 +1717,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
         nrc.set(type);
       }
 
-      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
       auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
       cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1745,7 +1745,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
         nrc.set(type);
       }
 
-      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
       auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
       cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1773,7 +1773,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
         nrc.set(type);
       }
 
-      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
       auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
       cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1822,7 +1822,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
         nrc.set(type);
       }
 
-      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
       auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
       cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1850,7 +1850,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
         nrc.set(type);
       }
 
-      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
       auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
       cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 
@@ -1878,7 +1878,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
         nrc.set(type);
       }
 
-      rec.d_content = std::make_shared<NSEC3RecordContent>(nrc);
+      rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
       auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
       cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
 

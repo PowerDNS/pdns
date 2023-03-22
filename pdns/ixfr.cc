@@ -27,7 +27,7 @@
 #include "tsigverifier.hh"
 
 vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const ComboAddress& primary, const DNSName& zone,
-                                                                        const vector<DNSRecord>& records, const std::shared_ptr<SOARecordContent>& primarySOA)
+                                                                        const vector<DNSRecord>& records, const std::shared_ptr<const SOARecordContent>& primarySOA)
 {
   vector<pair<vector<DNSRecord>, vector<DNSRecord> > >  ret;
 
@@ -137,7 +137,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
   pw.getHeader()->rd=0;
   pw.getHeader()->id=dns_random_uint16();
   pw.startRecord(zone, QType::SOA, 0, QClass::IN, DNSResourceRecord::AUTHORITY);
-  oursr.d_content->toPacket(pw);
+  oursr.getContent()->toPacket(pw);
 
   pw.commit();
   TSIGRecordContent trc;
@@ -193,7 +193,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
   //   SOA WHERE THIS DELTA GOES
   //   RECORDS TO ADD
   // CURRENT PRIMARY SOA
-  std::shared_ptr<SOARecordContent> primarySOA = nullptr;
+  std::shared_ptr<const SOARecordContent> primarySOA = nullptr;
   vector<DNSRecord> records;
   size_t receivedBytes = 0;
   std::string reply;
@@ -255,7 +255,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
           throw std::runtime_error("Error getting the content of the first SOA record of the IXFR answer for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort()+"'");
         }
 
-        if(sr->d_st.serial == std::dynamic_pointer_cast<SOARecordContent>(oursr.d_content)->d_st.serial) {
+        if(sr->d_st.serial == getRR<SOARecordContent>(oursr)->d_st.serial) {
           // we are up to date
           return ret;
         }

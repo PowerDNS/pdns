@@ -48,7 +48,7 @@ struct ZoneData
   // Potentially the two fields below could be merged into a single map. ATM it is not clear to me
   // if that would make the code easier to read.
   std::map<pair<DNSName, QType>, vector<DNSRecord>> d_all;
-  std::map<pair<DNSName, QType>, vector<shared_ptr<RRSIGRecordContent>>> d_sigs;
+  std::map<pair<DNSName, QType>, vector<shared_ptr<const RRSIGRecordContent>>> d_sigs;
 
   // Maybe use a SuffixMatchTree?
   std::set<DNSName> d_delegations;
@@ -105,7 +105,7 @@ void ZoneData::parseDRForCache(DNSRecord& dr)
       found->second.push_back(rr);
     }
     else {
-      vector<shared_ptr<RRSIGRecordContent>> sigsrr;
+      vector<shared_ptr<const RRSIGRecordContent>> sigsrr;
       sigsrr.push_back(rr);
       d_sigs.insert({sigkey, sigsrr});
     }
@@ -401,7 +401,7 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
     case QType::RRSIG:
       break;
     default: {
-      vector<shared_ptr<RRSIGRecordContent>> sigsrr;
+      vector<shared_ptr<const RRSIGRecordContent>> sigsrr;
       auto it = d_sigs.find(key);
       if (it != d_sigs.end()) {
         sigsrr = it->second;

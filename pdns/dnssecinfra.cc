@@ -414,7 +414,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, c
   // zonemd: digest = hash( RR(1) | RR(2) | RR(3) | ... ), so skip RRSIG_RDATA
 
   if (includeRRSIG_RDATA) {
-    toHash.append(const_cast<RRSIGRecordContent&>(rrc).serialize(g_rootdnsname, true, true));
+    toHash.append(rrc.serialize(g_rootdnsname, true, true));
     toHash.resize(toHash.size() - rrc.d_signature.length()); // chop off the end, don't sign the signature!
   }
   string nameToHash(qname.toDNSStringLC());
@@ -435,7 +435,7 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, c
     }
   }
 
-  for(const shared_ptr<DNSRecordContent>& add : signRecords) {
+  for (const shared_ptr<const DNSRecordContent>& add : signRecords) {
     toHash.append(nameToHash);
     uint16_t tmp=htons(rrc.d_type);
     toHash.append((char*)&tmp, 2);
@@ -492,7 +492,7 @@ DSRecordContent makeDSFromDNSKey(const DNSName& qname, const DNSKEYRecordContent
 {
   string toHash;
   toHash.assign(qname.toDNSStringLC());
-  toHash.append(const_cast<DNSKEYRecordContent&>(drc).serialize(DNSName(), true, true));
+  toHash.append(drc.serialize(DNSName(), true, true));
 
   DSRecordContent dsrc;
   try {

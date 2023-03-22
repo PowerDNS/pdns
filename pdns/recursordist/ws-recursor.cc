@@ -162,7 +162,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
       {"name", dr.d_name.toString()},
       {"type", DNSRecordContent::NumberToType(dr.d_type)},
       {"ttl", (double)dr.d_ttl},
-      {"content", dr.d_content->getZoneRepresentation()}});
+      {"content", dr.getContent()->getZoneRepresentation()}});
   }
 
   // id is the canonical lookup key, which doesn't actually match the name (in some cases)
@@ -385,7 +385,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
     const SyncRes::AuthDomain& zone = val.second;
 
     for (const SyncRes::AuthDomain::records_t::value_type& rr : zone.d_records) {
-      if (pdns_ci_find(rr.d_name.toString(), q) == string::npos && pdns_ci_find(rr.d_content->getZoneRepresentation(), q) == string::npos)
+      if (pdns_ci_find(rr.d_name.toString(), q) == string::npos && pdns_ci_find(rr.getContent()->getZoneRepresentation(), q) == string::npos)
         continue;
 
       doc.push_back(Json::object{
@@ -393,7 +393,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
         {"zone_id", zoneId},
         {"zone_name", zoneName},
         {"name", rr.d_name.toString()},
-        {"content", rr.d_content->getZoneRepresentation()}});
+        {"content", rr.getContent()->getZoneRepresentation()}});
     }
   }
   resp->setJsonBody(doc);

@@ -1208,7 +1208,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
     sort(pre.begin(), pre.end(), DNSRecord::prettyCompare);
     for(const auto& dr : pre) {
       ostringstream os;
-      os<<dr.d_name<<"\t"<<dr.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(dr.d_type)<<"\t"<<dr.d_content->getZoneRepresentation(true)<<endl;
+      os<<dr.d_name<<"\t"<<dr.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(dr.d_type)<<"\t"<<dr.getContent()->getZoneRepresentation(true)<<endl;
       if(write(tmpfd, os.str().c_str(), os.str().length()) < 0)
         unixDie("Writing zone to temporary file");
     }
@@ -1283,7 +1283,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
   set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diff), DNSRecord::prettyCompare);
   for(const auto& d : diff) {
     ostringstream str;
-    str << col.red() << "-" << d.d_name << " " << d.d_ttl << " IN " << DNSRecordContent::NumberToType(d.d_type) << " " <<d.d_content->getZoneRepresentation(true) << col.rst() <<endl;
+    str << col.red() << "-" << d.d_name << " " << d.d_ttl << " IN " << DNSRecordContent::NumberToType(d.d_type) << " " <<d.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
     changed[{d.d_name,d.d_type}] += str.str();
 
   }
@@ -1292,7 +1292,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
   for(const auto& d : diff) {
     ostringstream str;
 
-    str<<col.green() << "+" << d.d_name << " " << d.d_ttl << " IN " <<DNSRecordContent::NumberToType(d.d_type) << " " << d.d_content->getZoneRepresentation(true) << col.rst() <<endl;
+    str<<col.green() << "+" << d.d_name << " " << d.d_ttl << " IN " <<DNSRecordContent::NumberToType(d.d_type) << " " << d.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
     changed[{d.d_name,d.d_type}]+=str.str();
   }
   cout<<"Detected the following changes:"<<endl;
@@ -1310,7 +1310,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
           {
             DNSRecord oldSoaDR = grouped[{zone, QType::SOA}].at(0); // there should be only one SOA record, so we can use .at(0);
             ostringstream str;
-            str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.d_content->getZoneRepresentation(true) << col.rst() <<endl;
+            str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
 
             SOAData sd;
             B.getSOAUncached(zone, sd);
@@ -1322,7 +1322,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
             DNSResourceRecord rr;
             makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr);
             DNSRecord dr(rr);
-            str << col.green() << "+" << dr.d_name << " " << dr.d_ttl<< " IN " <<DNSRecordContent::NumberToType(dr.d_type) << " " <<dr.d_content->getZoneRepresentation(true) << col.rst() <<endl;
+            str << col.green() << "+" << dr.d_name << " " << dr.d_ttl<< " IN " <<DNSRecordContent::NumberToType(dr.d_type) << " " <<dr.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
 
             changed[{dr.d_name, dr.d_type}]+=str.str();
             grouped[{dr.d_name, dr.d_type}].at(0) = dr;

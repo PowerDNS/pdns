@@ -25,7 +25,7 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
     }
     DNSRecord rec;
     rec.d_name = dnsResourceRecord.qname;
-    rec.d_content = drc;
+    rec.setContent(std::move(drc));
     rec.d_type = dnsResourceRecord.qtype;
     rec.d_class = dnsResourceRecord.qclass;
     rec.d_ttl = dnsResourceRecord.ttl;
@@ -53,14 +53,14 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
   if (record.d_class == QClass::IN && record.d_name == d_zone) {
     switch (record.d_type) {
     case QType::SOA: {
-      d_soaRecordContent = std::dynamic_pointer_cast<SOARecordContent>(record.d_content);
+      d_soaRecordContent = getRR<SOARecordContent>(record);
       if (d_soaRecordContent == nullptr) {
         throw PDNSException("Invalid SOA record");
       }
       break;
     }
     case QType::DNSKEY: {
-      auto dnskey = std::dynamic_pointer_cast<DNSKEYRecordContent>(record.d_content);
+      auto dnskey = getRR<DNSKEYRecordContent>(record);
       if (dnskey == nullptr) {
         throw PDNSException("Invalid DNSKEY record");
       }
@@ -68,7 +68,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       break;
     }
     case QType::ZONEMD: {
-      auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(record.d_content);
+      auto zonemd = getRR<ZONEMDRecordContent>(record);
       if (zonemd == nullptr) {
         throw PDNSException("Invalid ZONEMD record");
       }
@@ -80,7 +80,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       break;
     }
     case QType::RRSIG: {
-      auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(record.d_content);
+      auto rrsig = getRR<RRSIGRecordContent>(record);
       if (rrsig == nullptr) {
         throw PDNSException("Invalid RRSIG record");
       }
@@ -92,7 +92,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       break;
     }
     case QType::NSEC: {
-      auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(record.d_content);
+      auto nsec = getRR<NSECRecordContent>(record);
       if (nsec == nullptr) {
         throw PDNSException("Invalid NSEC record");
       }
@@ -103,7 +103,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       // Handled below
       break;
     case QType::NSEC3PARAM: {
-      auto param = std::dynamic_pointer_cast<NSEC3PARAMRecordContent>(record.d_content);
+      auto param = getRR<NSEC3PARAMRecordContent>(record);
       if (param == nullptr) {
         throw PDNSException("Invalid NSEC3PARAM record");
       }
@@ -130,7 +130,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
   if (record.d_class == QClass::IN && (d_nsec3label.empty() || record.d_name == d_nsec3label)) {
     switch (record.d_type) {
     case QType::NSEC3: {
-      auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(record.d_content);
+      auto nsec3 = getRR<NSEC3RecordContent>(record);
       if (nsec3 == nullptr) {
         throw PDNSException("Invalid NSEC3 record");
       }
@@ -138,7 +138,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       break;
     }
     case QType::RRSIG: {
-      auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(record.d_content);
+      auto rrsig = getRR<RRSIGRecordContent>(record);
       if (rrsig == nullptr) {
         throw PDNSException("Invalid RRSIG record");
       }
@@ -150,7 +150,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
     }
   }
   RRSetKey_t key = std::pair(record.d_name, record.d_type);
-  d_resourceRecordSets[key].push_back(record.d_content);
+  d_resourceRecordSets[key].push_back(record.getContent());
   d_resourceRecordSetTTLs[key] = record.d_ttl;
 }
 
@@ -218,7 +218,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     sortedRecords_t sorted;
     for (auto& rr : rrset.second) {
       if (qtype == QType::RRSIG) {
-        const auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(rr);
+        const auto rrsig = std::dynamic_pointer_cast<const RRSIGRecordContent>(rr);
         if (rrsig->d_type == QType::ZONEMD && qname == d_zone) {
           continue;
         }
@@ -241,7 +241,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
       // RRSIG is special, since  original TTL depends on qtype covered by RRSIG
       // which can be different per record
       for (const auto& rrsig : sorted) {
-        auto rrsigc = std::dynamic_pointer_cast<RRSIGRecordContent>(rrsig);
+        auto rrsigc = std::dynamic_pointer_cast<const RRSIGRecordContent>(rrsig);
         RRSIGRecordContent rrc;
         rrc.d_originalttl = d_resourceRecordSetTTLs[pair(rrset.first.first, rrsigc->d_type)];
         rrc.d_type = qtype;

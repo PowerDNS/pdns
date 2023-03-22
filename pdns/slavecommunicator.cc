@@ -449,7 +449,7 @@ void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, c
     st.serial=di.serial;
 
     DNSRecord drsoa;
-    drsoa.d_content = std::make_shared<SOARecordContent>(g_rootdnsname, g_rootdnsname, st);
+    drsoa.setContent(std::make_shared<SOARecordContent>(g_rootdnsname, g_rootdnsname, st));
     auto deltas = getIXFRDeltas(remote, domain, drsoa, xfrTimeout, false, tt, laddr.sin4.sin_family ? &laddr : nullptr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
     zs.numDeltas=deltas.size();
     //    cout<<"Got "<<deltas.size()<<" deltas from serial "<<di.serial<<", applying.."<<endl;

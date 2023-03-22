@@ -174,7 +174,7 @@ void DNSPacket::addRecord(DNSZoneRecord&& rr)
   // in case we are not compressing for AXFR, no such checking is performed!
 
   if(d_compress) {
-    std::string ser = const_cast<DNSZoneRecord&>(rr).dr.d_content->serialize(rr.dr.d_name);
+    std::string ser = rr.dr.getContent()->serialize(rr.dr.d_name);
     auto hash = boost::hash< std::pair<DNSName, std::string> >()({rr.dr.d_name, ser});
     if(d_dedup.count(hash)) { // might be a dup
       for(auto & i : d_rrs) {
@@ -354,7 +354,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
         maxScopeMask = max(maxScopeMask, pos->scopeMask);
         
         pw.startRecord(pos->dr.d_name, pos->dr.d_type, pos->dr.d_ttl, pos->dr.d_class, pos->dr.d_place);
-        pos->dr.d_content->toPacket(pw);
+        pos->dr.getContent()->toPacket(pw);
         if(pw.size() + optsize > (d_tcp ? 65535 : getMaxReplyLen())) {
           if (throwsOnTruncation) {
             throw PDNSException("attempt to write an oversized chunk");
@@ -516,7 +516,7 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_
   for(const auto & answer : mdp.d_answers) {
     if(answer.first.d_type == QType::TSIG && answer.first.d_class == QType::ANY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
-      shared_ptr<TSIGRecordContent> content = std::dynamic_pointer_cast<TSIGRecordContent>(answer.first.d_content);
+      auto content = getRR<TSIGRecordContent>(answer.first);
       if (!content) {
         g_log<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl;
         return false;
@@ -549,7 +549,7 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 
     if(answer.first.d_type == QType::TKEY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
-      shared_ptr<TKEYRecordContent> content = std::dynamic_pointer_cast<TKEYRecordContent>(answer.first.d_content);
+      auto content = getRR<TKEYRecordContent>(answer.first);
       if (!content) {
         g_log<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl;
         return false;

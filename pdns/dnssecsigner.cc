@@ -169,7 +169,7 @@ static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& sign
     rr.auth=false;
     rr.dr.d_place = signPlace;
     for(RRSIGRecordContent& rrc :  rrcs) {
-      rr.dr.d_content = std::make_shared<RRSIGRecordContent>(rrc);
+      rr.dr.setContent(std::make_shared<RRSIGRecordContent>(rrc));
       outsigned.push_back(rr);
     }
   }
@@ -236,7 +236,7 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
     origTTL = pos->dr.d_ttl;
     signPlace = pos->dr.d_place;
     if(pos->auth || pos->dr.d_type == QType::DS) {
-      toSign.insert(pos->dr.d_content); // so ponder.. should this be a deep copy perhaps?
+      toSign.insert(pos->dr.getContent()); // so ponder.. should this be a deep copy perhaps?
     }
   }
   if(getBestAuthFromSet(authSet, signQName, signer))

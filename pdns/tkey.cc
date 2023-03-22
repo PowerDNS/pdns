@@ -26,11 +26,12 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
     return;
   }
 
+  auto inception = time(nullptr);
   // retain original name for response
   tkey_out->d_error = 0;
   tkey_out->d_mode = tkey_in.d_mode;
   tkey_out->d_algo = tkey_in.d_algo;
-  tkey_out->d_inception = time((time_t*)nullptr);
+  tkey_out->d_inception = inception;
   tkey_out->d_expiration = tkey_out->d_inception+15;
 
   if (tkey_in.d_mode == 3) { // establish context
@@ -107,7 +108,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   zrr.dr.d_ttl = 0;
   zrr.dr.d_type = QType::TKEY;
   zrr.dr.d_class = QClass::ANY;
-  zrr.dr.d_content = tkey_out;
+  zrr.dr.setContent(std::move(tkey_out));
   zrr.dr.d_place = DNSResourceRecord::ANSWER;
   r->addRecord(std::move(zrr));
 
@@ -116,7 +117,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   {
     TSIGRecordContent trc;
     trc.d_algoName = DNSName("gss-tsig");
-    trc.d_time = tkey_out->d_inception;
+    trc.d_time = inception;
     trc.d_fudge = 300;
     trc.d_mac = "";
     trc.d_origID = p.d.id;

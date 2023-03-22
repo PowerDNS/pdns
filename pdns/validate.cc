@@ -30,9 +30,9 @@ static bool isRevokedKey(const DNSKEYRecordContent& key)
   return (key.d_flags & 128) != 0;
 }
 
-static vector<shared_ptr<DNSKEYRecordContent > > getByTag(const skeyset_t& keys, uint16_t tag, uint8_t algorithm, const OptLog& log)
+static vector<shared_ptr<const DNSKEYRecordContent > > getByTag(const skeyset_t& keys, uint16_t tag, uint8_t algorithm, const OptLog& log)
 {
-  vector<shared_ptr<DNSKEYRecordContent>> ret;
+  vector<shared_ptr<const DNSKEYRecordContent>> ret;
 
   for (const auto& key : keys) {
     if (!isAZoneKey(*key)) {
@@ -88,7 +88,7 @@ static bool nsecProvesENT(const DNSName& name, const DNSName& begin, const DNSNa
 
 using nsec3HashesCache = std::map<std::tuple<DNSName, std::string, uint16_t>, std::string>;
 
-static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<NSEC3RecordContent>& nsec3, nsec3HashesCache& cache)
+static std::string getHashFromNSEC3(const DNSName& qname, const std::shared_ptr<const NSEC3RecordContent>& nsec3, nsec3HashesCache& cache)
 {
   std::string result;
 
@@ -163,7 +163,7 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
    Labels field of the covering RRSIG RR, then the RRset and its
    covering RRSIG RR were created as a result of wildcard expansion."
 */
-bool isWildcardExpanded(unsigned int labelCount, const std::shared_ptr<RRSIGRecordContent>& sign)
+bool isWildcardExpanded(unsigned int labelCount, const std::shared_ptr<const RRSIGRecordContent>& sign)
 {
   if (sign && sign->d_labels < labelCount) {
     return true;
@@ -172,7 +172,7 @@ bool isWildcardExpanded(unsigned int labelCount, const std::shared_ptr<RRSIGReco
   return false;
 }
 
-static bool isWildcardExpanded(const DNSName& owner, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
+static bool isWildcardExpanded(const DNSName& owner, const std::vector<std::shared_ptr<const RRSIGRecordContent> >& signatures)
 {
   if (signatures.empty()) {
     return false;
@@ -183,7 +183,7 @@ static bool isWildcardExpanded(const DNSName& owner, const std::vector<std::shar
   return isWildcardExpanded(labelsCount, sign);
 }
 
-bool isWildcardExpandedOntoItself(const DNSName& owner, unsigned int labelCount, const std::shared_ptr<RRSIGRecordContent>& sign)
+bool isWildcardExpandedOntoItself(const DNSName& owner, unsigned int labelCount, const std::shared_ptr<const RRSIGRecordContent>& sign)
 {
   if (owner.isWildcard() && (labelCount - 1) == sign->d_labels) {
     /* this is a wildcard alright, but it has not been expanded */
@@ -192,7 +192,7 @@ bool isWildcardExpandedOntoItself(const DNSName& owner, unsigned int labelCount,
   return false;
 }
 
-static bool isWildcardExpandedOntoItself(const DNSName& owner, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
+static bool isWildcardExpandedOntoItself(const DNSName& owner, const std::vector<std::shared_ptr<const RRSIGRecordContent> >& signatures)
 {
   if (signatures.empty()) {
     return false;
@@ -205,7 +205,7 @@ static bool isWildcardExpandedOntoItself(const DNSName& owner, const std::vector
 
 /* if this is a wildcard NSEC, the owner name has been modified
    to match the name. Make sure we use the original '*' form. */
-DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
+DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::shared_ptr<const RRSIGRecordContent> >& signatures)
 {
   DNSName result = initialOwner;
 
@@ -228,14 +228,14 @@ DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::sha
   return result;
 }
 
-static bool isNSECAncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSECRecordContent>& nsec)
+static bool isNSECAncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<const NSECRecordContent>& nsec)
 {
   return nsec->isSet(QType::NS) &&
     !nsec->isSet(QType::SOA) &&
     signer.countLabels() < owner.countLabels();
 }
 
-bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec3)
+bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<const NSEC3RecordContent>& nsec3)
 {
   return nsec3->isSet(QType::NS) &&
     !nsec3->isSet(QType::SOA) &&
@@ -251,7 +251,7 @@ static bool provesNoDataWildCard(const DNSName& qname, const uint16_t qtype, con
     if (v.first.second == QType::NSEC) {
       for (const auto& r : v.second.records) {
         VLOG(log, ":\t"<<r->getZoneRepresentation()<<endl);
-        auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
+        auto nsec = std::dynamic_pointer_cast<const NSECRecordContent>(r);
         if (!nsec) {
           continue;
         }
@@ -298,7 +298,7 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const D
     if (v.first.second == QType::NSEC) {
       for (const auto& r : v.second.records) {
         VLOG(log, qname << ":\t"<<r->getZoneRepresentation()<<endl);
-        auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
+        auto nsec = std::dynamic_pointer_cast<const NSECRecordContent>(r);
         if (!nsec) {
           continue;
         }
@@ -347,7 +347,7 @@ static bool provesNSEC3NoWildCard(const DNSName& closestEncloser, uint16_t const
     if (v.first.second == QType::NSEC3) {
       for (const auto& r : v.second.records) {
         VLOG(log, closestEncloser << ":\t"<<r->getZoneRepresentation()<<endl);
-        auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
+        auto nsec3 = std::dynamic_pointer_cast<const NSEC3RecordContent>(r);
         if (!nsec3) {
           continue;
         }
@@ -402,7 +402,7 @@ static bool provesNSEC3NoWildCard(const DNSName& closestEncloser, uint16_t const
   return false;
 }
 
-dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner, const std::shared_ptr<NSECRecordContent>& nsec, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, const OptLog& log)
+dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner, const std::shared_ptr<const NSECRecordContent>& nsec, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, const OptLog& log)
 {
   const DNSName signer = getSigner(signatures);
   if (!name.isPartOf(signer) || !nsecOwner.isPartOf(signer)) {
@@ -499,7 +499,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           continue;
         }
 
-        auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(r);
+        auto nsec = std::dynamic_pointer_cast<const NSECRecordContent>(r);
         if (!nsec) {
           continue;
         }
@@ -642,7 +642,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
     } else if(v.first.second==QType::NSEC3) {
       for (const auto& r : v.second.records) {
         VLOG(log, qname << ":\t"<<r->getZoneRepresentation()<<endl);
-        auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
+        auto nsec3 = std::dynamic_pointer_cast<const NSEC3RecordContent>(r);
         if (!nsec3) {
           continue;
         }
@@ -747,7 +747,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         if(v.first.second==QType::NSEC3) {
           for(const auto& r : v.second.records) {
             VLOG(log, qname << ":\t"<<r->getZoneRepresentation()<<endl);
-            auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
+            auto nsec3 = std::dynamic_pointer_cast<const NSEC3RecordContent>(r);
             if (!nsec3) {
               continue;
             }
@@ -831,7 +831,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         if(v.first.second==QType::NSEC3) {
           for(const auto& r : v.second.records) {
             VLOG(log, qname << ":\t"<<r->getZoneRepresentation()<<endl);
-            auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(r);
+            auto nsec3 = std::dynamic_pointer_cast<const NSEC3RecordContent>(r);
             if(!nsec3)
               continue;
 
@@ -896,19 +896,19 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
   return dState::NODENIAL;
 }
 
-bool isRRSIGNotExpired(const time_t now, const shared_ptr<RRSIGRecordContent>& sig)
+bool isRRSIGNotExpired(const time_t now, const shared_ptr<const RRSIGRecordContent>& sig)
 {
   // Should use https://www.rfc-editor.org/rfc/rfc4034.txt section 3.1.5
   return sig->d_sigexpire >= now;
 }
 
-bool isRRSIGIncepted(const time_t now, const shared_ptr<RRSIGRecordContent>& sig)
+bool isRRSIGIncepted(const time_t now, const shared_ptr<const RRSIGRecordContent>& sig)
 {
   // Should use https://www.rfc-editor.org/rfc/rfc4034.txt section 3.1.5
   return sig->d_siginception - g_signatureInceptionSkew <= now;
 }
 
-static bool checkSignatureWithKey(const DNSName& qname, time_t now, const shared_ptr<RRSIGRecordContent> sig, const shared_ptr<DNSKEYRecordContent> key, const std::string& msg, vState& ede, const OptLog& log)
+static bool checkSignatureWithKey(const DNSName& qname, time_t now, const shared_ptr<const RRSIGRecordContent>& sig, const shared_ptr<const DNSKEYRecordContent>& key, const std::string& msg, vState& ede, const OptLog& log)
 {
   bool result = false;
   try {
@@ -936,7 +936,7 @@ static bool checkSignatureWithKey(const DNSName& qname, time_t now, const shared
   return result;
 }
 
-vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& toSign, const vector<shared_ptr<RRSIGRecordContent> >& signatures, const skeyset_t& keys, const OptLog& log, bool validateAllSigs)
+vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& signatures, const skeyset_t& keys, const OptLog& log, bool validateAllSigs)
 {
   bool foundKey = false;
   bool isValid = false;
@@ -1023,7 +1023,7 @@ cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs)
       }
     }
     else {
-      cspmap[{rec.d_name, rec.d_type}].records.insert(rec.d_content);
+      cspmap[{rec.d_name, rec.d_type}].records.insert(rec.getContent());
     }
   }
   return cspmap;
@@ -1053,7 +1053,7 @@ bool haveNegativeTrustAnchor(const map<DNSName,std::string>& negAnchors, const D
   return true;
 }
 
-vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog& log)
+vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog& log)
 {
   /*
    * Check all DNSKEY records against all DS records and place all DNSKEY records
@@ -1204,7 +1204,7 @@ bool isSupportedDS(const DSRecordContent& ds, const OptLog& log)
   return true;
 }
 
-DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures)
+DNSName getSigner(const std::vector<std::shared_ptr<const RRSIGRecordContent> >& signatures)
 {
   for (const auto& sig : signatures) {
     if (sig) {

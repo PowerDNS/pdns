@@ -125,7 +125,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     if (rrType == QType::NSEC3PARAM) {
       g_log<<Logger::Notice<<msgPrefix<<"Adding/updating NSEC3PARAM for zone, resetting ordernames."<<endl;
 
-      *ns3pr = NSEC3PARAMRecordContent(rr->d_content->getZoneRepresentation(), di->zone);
+      *ns3pr = NSEC3PARAMRecordContent(rr->getContent()->getZoneRepresentation(), di->zone);
       *narrow = false; // adding a NSEC3 will cause narrow mode to be dropped, as you cannot specify that in a NSEC3PARAM record
       d_dk.setNSEC3PARAM(di->zone, *ns3pr, (*narrow));
       *haveNSEC3 = true;
@@ -153,7 +153,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         SOAData sdOld, sdUpdate;
         DNSResourceRecord *oldRec = &rrset.front();
         fillSOAData(oldRec->content, sdOld);
-        oldRec->setContent(rr->d_content->getZoneRepresentation());
+        oldRec->setContent(rr->getContent()->getZoneRepresentation());
         fillSOAData(oldRec->content, sdUpdate);
         if (rfc1982LessThan(sdOld.serial, sdUpdate.serial)) {
           di->backend->replaceRRSet(di->id, oldRec->qname, oldRec->qtype, rrset);
@@ -168,9 +168,9 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       } else if (rrType == QType::CNAME) {
         int changedCNames = 0;
         for (auto& i : rrset) {
-          if (i.ttl != rr->d_ttl || i.content != rr->d_content->getZoneRepresentation()) {
+          if (i.ttl != rr->d_ttl || i.content != rr->getContent()->getZoneRepresentation()) {
             i.ttl = rr->d_ttl;
-            i.setContent(rr->d_content->getZoneRepresentation());
+            i.setContent(rr->getContent()->getZoneRepresentation());
             changedCNames++;
           }
         }
@@ -192,7 +192,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
             rrType.getCode() == QType::SRV) {
           lowerCase = true;
         }
-        string content = rr->d_content->getZoneRepresentation();
+        string content = rr->getContent()->getZoneRepresentation();
         if (lowerCase) content = toLower(content);
         for (auto& i : rrset) {
           string icontent = i.getZoneRepresentation();
@@ -371,7 +371,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       if (rr->d_class == QClass::ANY)
         d_dk.unsetNSEC3PARAM(rr->d_name);
       else if (rr->d_class == QClass::NONE) {
-        NSEC3PARAMRecordContent nsec3rr(rr->d_content->getZoneRepresentation(), di->zone);
+        NSEC3PARAMRecordContent nsec3rr(rr->getContent()->getZoneRepresentation(), di->zone);
         if (*haveNSEC3 && ns3pr->getZoneRepresentation() == nsec3rr.getZoneRepresentation())
           d_dk.unsetNSEC3PARAM(rr->d_name);
         else
@@ -410,8 +410,8 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           repr = rc->getZoneRepresentation(true);
           DLOG(g_log<<msgPrefix<<"Adjusted TXT content to ["<<repr<<"]"<<endl);
         }
-        DLOG(g_log<<msgPrefix<<"Matching RR in RRset - (adjusted) representation from request=["<<repr<<"], rr->d_content->getZoneRepresentation()=["<<rr->d_content->getZoneRepresentation()<<"]"<<endl);
-        if (rrType == rec.qtype && repr == rr->d_content->getZoneRepresentation())
+        DLOG(g_log<<msgPrefix<<"Matching RR in RRset - (adjusted) representation from request=["<<repr<<"], rr->getContent()->getZoneRepresentation()=["<<rr->getContent()->getZoneRepresentation()<<"]"<<endl);
+        if (rrType == rec.qtype && repr == rr->getContent()->getZoneRepresentation())
           recordsToDelete.push_back(rec);
         else
           rrset.push_back(rec);
@@ -956,7 +956,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       if (nsRRInZone.size() > nsRRtoDelete.size()) { // only delete if the NS's we delete are less then what we have in the zone (3.4.2.4)
         for (auto& inZone: nsRRInZone) {
           for (auto& rr: nsRRtoDelete) {
-            if (inZone.getZoneRepresentation() == (rr)->d_content->getZoneRepresentation())
+            if (inZone.getZoneRepresentation() == (rr)->getContent()->getZoneRepresentation())
               changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
           }
         }

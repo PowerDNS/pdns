@@ -168,7 +168,7 @@ std::shared_ptr<DNSRecordContent> LOCRecordContent::make(const string& content)
 }
 
 
-void LOCRecordContent::toPacket(DNSPacketWriter& pw)
+void LOCRecordContent::toPacket(DNSPacketWriter& pw) const
 {
   pw.xfr8BitInt(d_version);
   pw.xfr8BitInt(d_size);

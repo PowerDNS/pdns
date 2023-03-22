@@ -366,10 +366,10 @@ static void measureResultAndClean(qids_t::const_iterator iter)
     if(!g_quiet) {
       cout<<"orig: rcode="<<qd.d_origRcode<<"\n";
       for(set<DNSRecord>::const_iterator i=canonicOrig.begin(); i!=canonicOrig.end(); ++i)
-        cout<<"\t"<<i->d_name<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
+        cout<<"\t"<<i->d_name<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->getContent() ? i->getContent()->getZoneRepresentation() : "") <<"'\n";
       cout<<"new: rcode="<<qd.d_newRcode<<"\n";
       for(set<DNSRecord>::const_iterator i=canonicNew.begin(); i!=canonicNew.end(); ++i)
-        cout<<"\t"<<i->d_name<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->d_content ? i->d_content->getZoneRepresentation() : "") <<"'\n";
+        cout<<"\t"<<i->d_name<<"\t"<<DNSRecordContent::NumberToType(i->d_type)<<"\t'"  << (i->getContent() ? i->getContent()->getZoneRepresentation() : "") <<"'\n";
       cout<<"\n";
       cout<<"-\n";
 

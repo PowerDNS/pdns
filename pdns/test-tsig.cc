@@ -85,7 +85,7 @@ static void checkTSIG(const DNSName& tsigName, const DNSName& tsigAlgo, const st
       BOOST_CHECK_EQUAL(answer.first.d_ttl, 0U);
       BOOST_CHECK_EQUAL(tsigFound, false);
 
-      shared_ptr<TSIGRecordContent> rectrc = getRR<TSIGRecordContent>(answer.first);
+      auto rectrc = getRR<TSIGRecordContent>(answer.first);
       if (rectrc) {
         trc = *rectrc;
         theirMac = rectrc->d_mac;

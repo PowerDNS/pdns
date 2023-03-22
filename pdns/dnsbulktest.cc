@@ -157,14 +157,14 @@ struct SendReceive
       dr.rcode = mdp.d_header.rcode;
       for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
         if(i->first.d_place == 1 && i->first.d_type == mdp.d_qtype)
-          dr.ips.push_back(ComboAddress(i->first.d_content->getZoneRepresentation()));
+          dr.ips.push_back(ComboAddress(i->first.getContent()->getZoneRepresentation()));
         if(i->first.d_place == 2 && i->first.d_type == QType::SOA) {
           dr.seenauthsoa = true;
         }
         if(!g_quiet)
         {
           cout<<i->first.d_place-1<<"\t"<<i->first.d_name<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-          cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
+          cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.getContent()->getZoneRepresentation()<<"\n";
         }
       }
       

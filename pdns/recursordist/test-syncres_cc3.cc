@@ -407,7 +407,7 @@ BOOST_AUTO_TEST_CASE(test_answer_no_aa)
   /* check that the record in the answer section has not been cached */
   const ComboAddress who;
   vector<DNSRecord> cached;
-  vector<std::shared_ptr<RRSIGRecordContent>> signatures;
+  vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::None, &cached, who, boost::none, &signatures), 0);
 }
 
@@ -1279,7 +1279,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob)
   dr.d_name = target;
   dr.d_type = QType::A;
   dr.d_ttl = 1800;
-  dr.d_content = std::make_shared<ARecordContent>(targetAddr);
+  dr.setContent(std::make_shared<ARecordContent>(targetAddr));
   ad.d_records.insert(dr);
 
   (*SyncRes::t_sstorage.domainmap)[authZone] = ad;
@@ -1340,14 +1340,14 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob_cname)
   dr.d_name = target;
   dr.d_type = QType::CNAME;
   dr.d_ttl = 1800;
-  dr.d_content = std::make_shared<CNAMERecordContent>(targetCname);
+  dr.setContent(std::make_shared<CNAMERecordContent>(targetCname));
   ad.d_records.insert(dr);
 
   dr.d_place = DNSResourceRecord::ANSWER;
   dr.d_name = targetCname;
   dr.d_type = QType::A;
   dr.d_ttl = 1800;
-  dr.d_content = std::make_shared<ARecordContent>(targetCnameAddr);
+  dr.setContent(std::make_shared<ARecordContent>(targetCnameAddr));
   ad.d_records.insert(dr);
 
   (*SyncRes::t_sstorage.domainmap)[authZone] = ad;
@@ -1409,14 +1409,14 @@ BOOST_AUTO_TEST_CASE(test_auth_zone)
   dr.d_name = target;
   dr.d_type = QType::SOA;
   dr.d_ttl = 3600;
-  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  dr.setContent(std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600"));
   ad.d_records.insert(dr);
 
   dr.d_place = DNSResourceRecord::ANSWER;
   dr.d_name = target;
   dr.d_type = QType::A;
   dr.d_ttl = 3600;
-  dr.d_content = std::make_shared<ARecordContent>(addr);
+  dr.setContent(std::make_shared<ARecordContent>(addr));
   ad.d_records.insert(dr);
 
   auto map = std::make_shared<SyncRes::domainmap_t>();
@@ -1458,14 +1458,14 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_cname_lead_to_oob)
   dr.d_name = authZone;
   dr.d_type = QType::SOA;
   dr.d_ttl = 3600;
-  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  dr.setContent(std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600"));
   ad.d_records.insert(dr);
 
   dr.d_place = DNSResourceRecord::ANSWER;
   dr.d_name = authZone;
   dr.d_type = QType::A;
   dr.d_ttl = 3600;
-  dr.d_content = std::make_shared<ARecordContent>(addr);
+  dr.setContent(std::make_shared<ARecordContent>(addr));
   ad.d_records.insert(dr);
 
   auto map = std::make_shared<SyncRes::domainmap_t>();
@@ -1514,14 +1514,14 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob_lead_to_outgoing_queryb)
   dr.d_name = target;
   dr.d_type = QType::SOA;
   dr.d_ttl = 3600;
-  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  dr.setContent(std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600"));
   ad.d_records.insert(dr);
 
   dr.d_place = DNSResourceRecord::ANSWER;
   dr.d_name = target;
   dr.d_type = QType::CNAME;
   dr.d_ttl = 3600;
-  dr.d_content = std::make_shared<CNAMERecordContent>(externalCNAME);
+  dr.setContent(std::make_shared<CNAMERecordContent>(externalCNAME));
   ad.d_records.insert(dr);
 
   auto map = std::make_shared<SyncRes::domainmap_t>();
@@ -1570,14 +1570,14 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_ds)
   dr.d_name = target;
   dr.d_type = QType::SOA;
   dr.d_ttl = 3600;
-  dr.d_content = std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.corp. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600");
+  dr.setContent(std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.corp. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600"));
   ad.d_records.insert(dr);
 
   dr.d_place = DNSResourceRecord::ANSWER;
   dr.d_name = target;
   dr.d_type = QType::A;
   dr.d_ttl = 3600;
-  dr.d_content = std::make_shared<ARecordContent>(addr);
+  dr.setContent(std::make_shared<ARecordContent>(addr));
   ad.d_records.insert(dr);
 
   auto map = std::make_shared<SyncRes::domainmap_t>();
