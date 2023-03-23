@@ -1768,10 +1768,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
         setQNameMinimization(false);
         setQMFallbackMode(true);
 
-        // We might have hit a depth level check, but we still want to allow some recursion levels in the fallback
-        // no-qname-minimization case. This has the effect that a qname minimization fallback case might reach 150% of
-        // maxdepth.
-        res = doResolveNoQNameMinimization(qname, qtype, ret, depth / 2, beenthere, context);
+        res = doResolveNoQNameMinimization(qname, qtype, ret, depth + 1, beenthere, context);
 
         if (res == RCode::NoError) {
           t_Counters.at(rec::Counter::qnameminfallbacksuccess)++;
@@ -1805,11 +1802,21 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
 
   LOG(prefix << qname << ": Wants " << (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing, " << (d_requireAuthData ? "" : "NO ") << "auth data required by query for " << qtype << endl);
 
-  if (s_maxdepth > 0 && depth > s_maxdepth) {
-    string msg = "More than " + std::to_string(s_maxdepth) + " (max-recursion-depth) levels of recursion needed while resolving " + qname.toLogString();
-    LOG(prefix << qname << ": " << msg << endl);
-    throw ImmediateServFailException(msg);
+  if (s_maxdepth > 0) {
+    auto bound = s_maxdepth;
+    if (getQMFallbackMode()) {
+      // We might have hit a depth level check, but we still want to allow some recursion levels in the fallback
+      // no-qname-minimization case. This has the effect that a qname minimization fallback case might reach 150% of
+      // maxdepth, taking care to not repeatedly increase the bound.
+      bound += s_maxdepth / 2;
+    }
+    if (depth > bound) {
+      string msg = "More than " + std::to_string(bound) + " (adjusted max-recursion-depth) levels of recursion needed while resolving " + qname.toLogString();
+      LOG(prefix << qname << ": " << msg << endl);
+      throw ImmediateServFailException(msg);
+    }
   }
+
   int res = 0;
 
   const int iterations = !d_refresh && MemRecursorCache::s_maxServedStaleExtensions > 0 ? 2 : 1;
