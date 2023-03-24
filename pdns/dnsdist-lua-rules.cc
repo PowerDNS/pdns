@@ -67,7 +67,7 @@ static boost::uuids::uuid makeRuleID(std::string& id)
   return getUniqueID(id);
 }
 
-void parseRuleParams(boost::optional<luaruleparams_t> params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder)
+void parseRuleParams(boost::optional<luaruleparams_t>& params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder)
 {
   static uint64_t s_creationOrder = 0;
 
