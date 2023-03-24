@@ -26,6 +26,7 @@ jobs:
           - ubuntu-kinetic
           - ubuntu-lunar
           - debian-bookworm
+          - amazon-2023
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
