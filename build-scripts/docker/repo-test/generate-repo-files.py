@@ -25,7 +25,7 @@ from jinja2 import Environment, FileSystemLoader
 
 # Globals
 
-g_version = '0.0.1'
+g_version = '1.0.0'
 
 g_verbose = False
 
@@ -258,8 +258,9 @@ def test_release (release):
             failed_builds.append((str(df), returncode))
         else:
             (returncode, return_version) = run(tag)
-            # for some reason 99 is returned on  `cmd --version` :shrug:
-            # (not sure if this is true since using `stdout=PIPE...`)
+            # for some reason 99 is returned on `cmd --version` :shrug:
+            # (not sure if this is true since using `stdout=PIPE...`
+            #  (commit bda2db33768c103294381f539ad30238412491f7))
             if returncode != 0 and returncode != 99:
                 failed_runs.append((tag, returncode))
             if return_version:
