@@ -41,6 +41,15 @@ class APITestsBase(DNSDistTest):
                         'doh-query-pipe-full', 'doh-response-pipe-full', 'proxy-protocol-invalid', 'tcp-listen-overflows',
                         'outgoing-doh-query-pipe-full', 'tcp-query-pipe-full', 'tcp-cross-protocol-query-pipe-full',
                         'tcp-cross-protocol-response-pipe-full']
+    _verboseMode = True
+
+    @classmethod
+    def setUpClass(cls):
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+        cls.waitForTCPSocket('127.0.0.1', cls._webServerPort)
+        print("Launching tests..")
 
 class TestAPIBasics(APITestsBase):
 

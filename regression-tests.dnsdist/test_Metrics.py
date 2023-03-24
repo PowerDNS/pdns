@@ -39,6 +39,14 @@ class TestRuleMetrics(DNSDistTest):
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_params = ['_tlsServerPort', '_serverCert', '_serverKey', '_dohServerPort', '_serverCert', '_serverKey', '_testServerPort', '_webServerPort', '_webServerAPIKeyHashed']
 
+    @classmethod
+    def setUpClass(cls):
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+        cls.waitForTCPSocket('127.0.0.1', cls._webServerPort)
+        print("Launching tests..")
+
     def getMetric(self, name):
         headers = {'x-api-key': self._webServerAPIKey}
         url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
