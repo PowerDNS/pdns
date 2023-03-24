@@ -58,7 +58,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _toResponderQueue = Queue()
     _fromResponderQueue = Queue()
     _queueTimeout = 1
-    _dnsdistStartupDelay = 2.0
     _dnsdist = None
     _responsesCounter = {}
     _config_template = """

@@ -29,8 +29,6 @@ class DNSCryptTest(DNSDistTest):
     _resolverCertificateValidFrom = int(time.time() - 60)
     _resolverCertificateValidUntil = int(time.time() + 7200)
 
-    _dnsdistStartupDelay = 10
-
     def doDNSCryptQuery(self, client, query, response, tcp):
         self._toResponderQueue.put(response)
         data = client.query(query.to_wire(), tcp=tcp)
