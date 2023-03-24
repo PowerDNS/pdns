@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 4 * * *'
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   build:
     name: docker build
@@ -14,7 +17,7 @@ jobs:
       matrix:
         product: ['auth']
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive

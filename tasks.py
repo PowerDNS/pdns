@@ -117,7 +117,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
 @task
 def apt_fresh(c):
     c.sudo('apt-get update')
-    c.sudo('apt-get dist-upgrade')
+    c.sudo('apt-get -qq -y --allow-downgrades dist-upgrade')
 
 @task
 def install_clang(c):
@@ -149,7 +149,11 @@ auth_backend_test_deps = dict(
     geoip=[],
     lua2=[],
     tinydns=[],
-    authpy=[]
+    authpy=[],
+    godbc_sqlite3=['libsqliteodbc'],
+    godbc_mssql=['freetds-bin','tdsodbc'],
+    ldap=[],
+    geoip_mmdb=[]
 )
 
 @task(help={'backend': 'Backend to install test deps for, e.g. gsqlite3; can be repeated'}, iterable=['backend'], optional=['backend'])
@@ -376,67 +380,164 @@ def test_api(c, product, backend=''):
 
 backend_regress_tests = dict(
     bind = [
-      'bind-both',
-      'bind-dnssec-both',
-      'bind-dnssec-nsec3-both',
-      'bind-dnssec-nsec3-optout-both',
-      'bind-dnssec-nsec3-narrow',
-    # FIXME  'bind-dnssec-pkcs11'
+        'bind-both',
+        'bind-dnssec-both',
+        'bind-dnssec-nsec3-both',
+        'bind-dnssec-nsec3-optout-both',
+        'bind-dnssec-nsec3-narrow',
+        # FIXME  'bind-dnssec-pkcs11'
     ],
     geoip = [
-      'geoip',
-      'geoip-nsec3-narrow'
-      # FIXME: also run this with the mmdb we ship
+        'geoip',
+        'geoip-nsec3-narrow'
     ],
-    lua2 = [
-      'lua2',
-      'lua2-dnssec'
-    ],
-    tinydns = [
-      'tinydns'
-    ],
+    lua2 = ['lua2', 'lua2-dnssec'],
+    tinydns = ['tinydns'],
     remote = [
-      'remotebackend-pipe',
-      'remotebackend-unix',
-      'remotebackend-http',
-      'remotebackend-zeromq',
-      'remotebackend-pipe-dnssec',
-      'remotebackend-unix-dnssec',
-      'remotebackend-http-dnssec',
-      'remotebackend-zeromq-dnssec'
+        'remotebackend-pipe',
+        'remotebackend-unix',
+        'remotebackend-http',
+        'remotebackend-zeromq',
+        'remotebackend-pipe-dnssec',
+        'remotebackend-unix-dnssec',
+        'remotebackend-http-dnssec',
+        'remotebackend-zeromq-dnssec'
     ],
     lmdb = [
-      'lmdb-nodnssec-both',
-      'lmdb-both',
-      'lmdb-nsec3-both',
-      'lmdb-nsec3-optout-both',
-      'lmdb-nsec3-narrow'
+        'lmdb-nodnssec-both',
+        'lmdb-both',
+        'lmdb-nsec3-both',
+        'lmdb-nsec3-optout-both',
+        'lmdb-nsec3-narrow'
     ],
-    gmysql   = ['gmysql',     'gmysql-nodnssec-both',   'gmysql-nsec3-both',   'gmysql-nsec3-optout-both',   'gmysql-nsec3-narrow',   'gmysql_sp-both'],
-    gpgsql   = ['gpgsql',     'gpgsql-nodnssec-both',   'gpgsql-nsec3-both',   'gpgsql-nsec3-optout-both',   'gpgsql-nsec3-narrow',   'gpgsql_sp-both'],
-    gsqlite3 = ['gsqlite3', 'gsqlite3-nodnssec-both', 'gsqlite3-nsec3-both', 'gsqlite3-nsec3-optout-both', 'gsqlite3-nsec3-narrow'],
+    gmysql = [
+        'gmysql',
+        'gmysql-nodnssec-both',
+        'gmysql-nsec3-both',
+        'gmysql-nsec3-optout-both',
+        'gmysql-nsec3-narrow',
+        'gmysql_sp-both'
+    ],
+    gpgsql = [
+        'gpgsql',
+        'gpgsql-nodnssec-both',
+        'gpgsql-nsec3-both',
+        'gpgsql-nsec3-optout-both',
+        'gpgsql-nsec3-narrow',
+        'gpgsql_sp-both'
+    ],
+    gsqlite3 = [
+        'gsqlite3',
+        'gsqlite3-nodnssec-both',
+        'gsqlite3-nsec3-both',
+        'gsqlite3-nsec3-optout-both',
+        'gsqlite3-nsec3-narrow'
+    ],
+    godbc_sqlite3 = ['godbc_sqlite3-nodnssec'],
+    godbc_mssql = [
+        'godbc_mssql',
+        'godbc_mssql-nodnssec',
+        'godbc_mssql-nsec3',
+        'godbc_mssql-nsec3-optout',
+        'godbc_mssql-nsec3-narrow'
+    ],
+    ldap = [
+        'ldap-tree',
+        'ldap-simple',
+        'ldap-strict'
+    ],
+    geoip_mmdb = ['geoip'],
 )
+
+godbc_mssql_credentials = {"username": "sa", "password": "SAsa12%%"}
+
+godbc_config = '''
+[pdns-mssql-docker]
+Driver=FreeTDS
+Trace=No
+Server=127.0.0.1
+Port=1433
+Database=pdns
+TDS_Version=7.1
+
+[pdns-mssql-docker-nodb]
+Driver=FreeTDS
+Trace=No
+Server=127.0.0.1
+Port=1433
+TDS_Version=7.1
+
+[pdns-sqlite3-1]
+Driver = SQLite3
+Database = pdns.sqlite3
+
+[pdns-sqlite3-2]
+Driver = SQLite3
+Database = pdns.sqlite32
+'''
+
+def setup_godbc_mssql(c):
+    with open(os.path.expanduser("~/.odbc.ini"), "a") as f:
+        f.write(godbc_config)
+    c.sudo('sh -c \'echo "Threading=1" | cat /usr/share/tdsodbc/odbcinst.ini - | tee -a /etc/odbcinst.ini\'')
+    c.sudo('sed -i "s/libtdsodbc.so/\/usr\/lib\/x86_64-linux-gnu\/odbc\/libtdsodbc.so/g" /etc/odbcinst.ini')
+    c.run(f'echo "create database pdns" | isql -v pdns-mssql-docker-nodb {godbc_mssql_credentials["username"]} {godbc_mssql_credentials["password"]}')
+    # FIXME: Skip 8bit-txt-unescaped test
+    c.run('touch ${PWD}/regression-tests/tests/8bit-txt-unescaped/skip')
+
+def setup_godbc_sqlite3(c):
+    with open(os.path.expanduser("~/.odbc.ini"), "a") as f:
+        f.write(godbc_config)
+    c.sudo('sed -i "s/libsqlite3odbc.so/\/usr\/lib\/x86_64-linux-gnu\/odbc\/libsqlite3odbc.so/g" /etc/odbcinst.ini')
+
+def setup_ldap_client(c):
+    c.sudo('DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ldap-utils')
+    c.sudo('sh -c \'echo "127.0.0.1 ldapserver" | tee -a /etc/hosts\'')
 
 @task
 def test_auth_backend(c, backend):
+    pdns_auth_env_vars = 'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432"'
+
     if backend == 'remote':
         ci_auth_install_remotebackend_ruby_deps(c)
 
     if backend == 'authpy':
         with c.cd('regression-tests.auth-py'):
-            c.run(f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./runtests')
+            c.run(f'{pdns_auth_env_vars} ./runtests')
+        return
+
+    if backend == 'godbc_sqlite3':
+        setup_godbc_sqlite3(c)
+        with c.cd('regression-tests'):
+            for variant in backend_regress_tests[backend]:
+                c.run(f'{pdns_auth_env_vars} GODBC_SQLITE3_DSN=pdns-sqlite3-1 ./start-test-stop 5300 {variant}')
+        return
+
+    if backend == 'godbc_mssql':
+        setup_godbc_mssql(c)
+        with c.cd('regression-tests'):
+            for variant in backend_regress_tests[backend]:
+                c.run(f'{pdns_auth_env_vars} GODBC_MSSQL_PASSWORD={godbc_mssql_credentials["password"]} GODBC_MSSQL_USERNAME={godbc_mssql_credentials["username"]} GODBC_MSSQL_DSN=pdns-mssql-docker GODBC_MSSQL2_PASSWORD={godbc_mssql_credentials["password"]} GODBC_MSSQL2_USERNAME={godbc_mssql_credentials["username"]} GODBC_MSSQL2_DSN=pdns-mssql-docker ./start-test-stop 5300 {variant}')
+        return
+
+    if backend == 'ldap':
+        setup_ldap_client(c)
+
+    if backend == 'geoip_mmdb':
+        with c.cd('regression-tests'):
+            for variant in backend_regress_tests[backend]:
+                c.run(f'{pdns_auth_env_vars} geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb ./start-test-stop 5300 {variant}')
         return
 
     with c.cd('regression-tests'):
         if backend == 'lua2':
             c.run('touch trustedkeys')  # avoid silly error during cleanup
         for variant in backend_regress_tests[backend]:
-            # FIXME this long line is terrible
-            c.run(f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./start-test-stop 5300 {variant}')
+            c.run(f'{pdns_auth_env_vars} ./start-test-stop 5300 {variant}')
 
     if backend == 'gsqlite3':
         with c.cd('regression-tests.nobackend'):
-            c.run(f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./runtests')
+            c.run(f'{pdns_auth_env_vars} ./runtests')
         c.run('/opt/pdns-auth/bin/pdnsutil test-algorithms')
         return
 
