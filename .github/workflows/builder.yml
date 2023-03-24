@@ -7,6 +7,9 @@ on:
   schedule:
     - cron: '0 22 * * 2'
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   build:
     name: build.sh
@@ -21,7 +24,7 @@ jobs:
           - el-8
           - centos-8-stream
     steps:
-      - uses: actions/checkout@v2.3.4
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive

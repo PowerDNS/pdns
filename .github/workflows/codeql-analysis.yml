@@ -6,10 +6,18 @@ on:
   schedule:
     - cron: '0 22 * * 2'
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-20.04
+
+    permissions:
+      actions: read # for github/codeql-action/init to get workflow details
+      contents: read  # for actions/checkout to fetch code
+      security-events: write  # for github/codeql-action/analyze to upload SARIF results
 
     strategy:
       fail-fast: false
@@ -23,14 +31,14 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.
         fetch-depth: 2
 
     # Python is required for building the Authoritative server
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: '3.8'
 
