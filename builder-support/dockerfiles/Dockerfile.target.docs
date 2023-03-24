@@ -1,12 +1,11 @@
 # Sphinx
-FROM ubuntu:bionic as pdns-docs
+FROM ubuntu:jammy as pdns-docs
 RUN apt-get update && apt-get -y dist-upgrade && apt-get -y --no-install-recommends install \
     ghostscript \
     git \
     latexmk \
     make \
-    python-minimal \
-    python2.7 \
+    python3-minimal \
     texlive \
     texlive-font-utils \
     texlive-fonts-extra \
