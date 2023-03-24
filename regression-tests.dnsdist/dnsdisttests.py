@@ -73,6 +73,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _checkConfigExpectedOutput = None
     _verboseMode = False
     _skipListeningOnCL = False
+    _alternateListeningAddr = None
+    _alternateListeningPort = None
     _backgroundThreads = {}
     _UDPResponder = None
     _TCPResponder = None
@@ -146,7 +148,10 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         with open(logFile, 'w') as fdLog:
           cls._dnsdist = subprocess.Popen(dnsdistcmd, close_fds=True, stdout=fdLog, stderr=fdLog)
 
-        cls.waitForTCPSocket(cls._dnsDistListeningAddr, cls._dnsDistPort);
+        if cls._alternateListeningAddr and cls._alternateListeningPort:
+            cls.waitForTCPSocket(cls._alternateListeningAddr, cls._alternateListeningPort)
+        else:
+            cls.waitForTCPSocket(cls._dnsDistListeningAddr, cls._dnsDistPort)
 
         if cls._dnsdist.poll() is not None:
             print(f"\n*** startDNSDist log for {logFile} ***")
