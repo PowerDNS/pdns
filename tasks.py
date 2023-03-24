@@ -458,6 +458,7 @@ def ci_dnsdist_configure(c, features):
                       --enable-systemd \
                       --prefix=/opt/dnsdist \
                       --with-gnutls \
+                      --with-h2o \
                       --with-libsodium \
                       --with-lua=luajit \
                       --with-libcap \
@@ -472,6 +473,7 @@ def ci_dnsdist_configure(c, features):
                       --without-cdb \
                       --without-ebpf \
                       --without-gnutls \
+                      --without-h2o \
                       --without-libedit \
                       --without-libsodium \
                       --without-lmdb \
