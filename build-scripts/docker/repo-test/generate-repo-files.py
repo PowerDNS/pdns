@@ -13,6 +13,7 @@
 # Modules
 
 import argparse
+import re
 import subprocess
 import sys
 
@@ -24,7 +25,7 @@ from jinja2 import Environment, FileSystemLoader
 
 # Globals
 
-g_version = '0.0.1'
+g_version = '1.0.2'
 
 g_verbose = False
 
@@ -46,7 +47,7 @@ def init_argparser():
                                  'auth-44', 'auth-45', 'auth-46', 'auth-47',
                                  'auth-48', 'auth-master',
                                  # Recursor
-                                 'rec-45', 'rec-46', 'rec-47', 'rec-48',
+                                 'rec-46', 'rec-47', 'rec-48', 'rec-49',
                                  'rec-master',
                                  # DNSDist
                                  'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
@@ -142,7 +143,7 @@ def write_release_files (release):
 
     if release in ['auth-44', 'auth-45', 'auth-46', 'auth-47', 'auth-48',
                    'auth-master',
-                   'rec-45', 'rec-46', 'rec-47', 'rec-48',
+                   'rec-46', 'rec-47', 'rec-48', 'rec-49',
                    'rec-master',
                    'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-18',
                    'dnsdist-master']:
@@ -151,8 +152,6 @@ def write_release_files (release):
         write_dockerfile('el', '8', release)
         write_dockerfile('debian', 'buster', release)
         write_list_file('debian', 'buster', release)
-        write_dockerfile('ubuntu', 'bionic', release)
-        write_list_file('ubuntu', 'bionic', release)
         write_dockerfile('ubuntu', 'focal', release)
         write_list_file('ubuntu', 'focal', release)
 
@@ -161,19 +160,25 @@ def write_release_files (release):
         write_list_file('raspbian', 'buster', release)
 
     if release in ['auth-46', 'auth-47', 'auth-48', 'auth-master',
-                   'rec-45', 'rec-46', 'rec-47', 'rec-48', 'rec-master',
+                   'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-master',
                    'dnsdist-16', 'dnsdist-17', 'dnsdist-18', 'dnsdist-master']:
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
 
+    if release in ['auth-46', 'auth-47', 'auth-master',
+                   'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-master',
+                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
+        write_dockerfile('ubuntu', 'bionic', release)
+        write_list_file('ubuntu', 'bionic', release)
+
     if release in ['auth-46', 'auth-47', 'auth-48', 'auth-master',
-                   'rec-46', 'rec-47', 'rec-48', 'rec-master',
+                   'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-master',
                    'dnsdist-17', 'dnsdist-18', 'dnsdist-master']:
         write_dockerfile('ubuntu', 'jammy', release)
         write_list_file('ubuntu', 'jammy', release)
 
     if release in ['auth-47', 'auth-48', 'auth-master',
-                   'rec-47', 'rec-48', 'rec-master',
+                   'rec-47', 'rec-48', 'rec-49', 'rec-master',
                    'dnsdist-17', 'dnsdist-18', 'dnsdist-master']:
         write_dockerfile('el', '9', release)
 
@@ -205,13 +210,21 @@ def run (tag):
         capture_run_output = not(g_verbose)
     print('Running Docker container tagged {}...'.format(tag))
     cp = subprocess.run(['docker', 'run', tag],
-                        capture_output=capture_run_output)
+                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    version = re.search('(PowerDNS Authoritative Server|PowerDNS Recursor|' +
+                         'dnsdist) (\d+\.\d+\.\d+(-\w+)?)',
+                        cp.stdout.decode())
+    if g_verbose:
+        print(cp.stdout.decode())
     # for some reason 99 is returned on  `cmd --version` :shrug:
     if cp.returncode != 0 and cp.returncode != 99:
         # FIXME write failed output to log
         print('Error running {}: {}'.format(tag, repr(cp.returncode)))
         return cp.returncode
-    return cp.returncode
+    if version and version.group(2):
+        return cp.returncode, version.group(2)
+    else:
+        return cp.returncode, None
 
 
 def collect_dockerfiles (release):
@@ -230,6 +243,7 @@ def test_release (release):
     dockerfiles = sorted(collect_dockerfiles(release))
     failed_builds = []
     failed_runs = []
+    returned_versions = []
     print('=== testing {} ==='.format(release))
     for df in dockerfiles:
         if g_verbose:
@@ -243,10 +257,13 @@ def test_release (release):
             print('Skipping running {} due to undetermined tag.'.format(df))
             failed_builds.append((str(df), returncode))
         else:
-            returncode = run(tag)
-            # for some reason 99 is returned on  `cmd --version` :shrug:
+            (returncode, return_version) = run(tag)
+            # for some reason 99 is returned on `cmd --version` :shrug:
+            # (not sure if this is true since using `stdout=PIPE...`)
             if returncode != 0 and returncode != 99:
                 failed_runs.append((tag, returncode))
+            if return_version:
+                returned_versions.append((tag, return_version))
     print('Test done.')
     if len(failed_builds) > 0:
         print('- failed builds:')
@@ -256,6 +273,12 @@ def test_release (release):
         print('- failed runs:')
         for fr in failed_runs:
             print('    - {}'.format(fr))
+    if len(returned_versions) > 0:
+        print('- returned versions:')
+        for rv in returned_versions:
+            print('    - {}: {}'.format(rv[0], rv[1]))
+    else:
+        print('- ERROR: no returned versions (unsupported product?)')
 
 
 # Main Program
