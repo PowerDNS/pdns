@@ -666,9 +666,10 @@ private:
   void initZoneCutsFromTA(const DNSName& from, const string& prefix);
   size_t countSupportedDS(const dsmap_t& dsmap, const string& prefix);
 
-  void handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, QType qtype, std::vector<DNSRecord>& ret, int& rcode, int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state);
+  void handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, QType qtype, std::vector<DNSRecord>& ret, int& rcode, unsigned int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state);
 
   void handlePolicyHit(const std::string& prefix, const DNSName& qname, QType qtype, vector<DNSRecord>& ret, bool& done, int& rcode, unsigned int depth);
+  unsigned int getAdjustedRecursionBound() const;
 
   void setUpdatingRootNS()
   {
