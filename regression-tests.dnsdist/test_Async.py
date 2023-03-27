@@ -96,12 +96,6 @@ class AsyncTests(object):
     _dohWithNGHTTP2BaseURL = ("https://%s:%d/" % (_serverName, _dohWithNGHTTP2ServerPort))
     _dohWithH2OBaseURL = ("https://%s:%d/" % (_serverName, _dohWithH2OServerPort))
 
-    def sendDOHWithNGHTTP2QueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOHQuery(self._dohWithNGHTTP2ServerPort, self._serverName, self._dohWithNGHTTP2BaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
-
-    def sendDOHWithH2OQueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOHQuery(self._dohWithH2OServerPort, self._serverName, self._dohWithH2OBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
-
     def testPass(self):
         """
         Async: Accept

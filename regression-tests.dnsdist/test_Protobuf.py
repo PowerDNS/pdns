@@ -510,12 +510,6 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
     """
     _config_params = ['_testServerPort', '_protobufServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_dohWithH2OServerPort', '_serverCert', '_serverKey']
 
-    def sendDOHWithNGHTTP2QueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOHQuery(self._dohWithNGHTTP2ServerPort, self._serverName, self._dohWithNGHTTP2BaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
-
-    def sendDOHWithH2OQueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOHQuery(self._dohWithH2OServerPort, self._serverName, self._dohWithH2OBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
-
     def testProtobufMetaDoH(self):
         """
         Protobuf: Meta values - DoH
