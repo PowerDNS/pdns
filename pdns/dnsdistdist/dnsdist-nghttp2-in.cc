@@ -189,6 +189,7 @@ void IncomingHTTP2Connection::handleResponse(const struct timeval& now, TCPRespo
     dnsheader* responseDH = reinterpret_cast<struct dnsheader*>(response.d_buffer.data());
 
     if (responseDH->tc && state.d_packet && state.d_packet->size() > state.d_proxyProtocolPayloadSize && state.d_packet->size() - state.d_proxyProtocolPayloadSize > sizeof(dnsheader)) {
+      vinfolog("Response received from backend %s via UDP, for query %d received from %s via DoH, is truncated, retrying over TCP", response.d_ds->getNameWithAddr(), state.d_streamID, state.origRemote.toStringWithPort());
       auto& query = *state.d_packet;
       dnsheader* queryDH = reinterpret_cast<struct dnsheader*>(query.data() + state.d_proxyProtocolPayloadSize);
       /* restoring the original ID */
