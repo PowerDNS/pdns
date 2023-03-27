@@ -492,20 +492,29 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _tlsServerPort = pickAvailablePort()
-    _dohServerPort = pickAvailablePort()
-    _dohBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohServerPort))
-    _config_params = ['_testServerPort', '_protobufServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohServerPort', '_serverCert', '_serverKey']
+    _dohWithNGHTTP2ServerPort = pickAvailablePort()
+    _dohWithNGHTTP2BaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohWithNGHTTP2ServerPort))
+    _dohWithH2OServerPort = pickAvailablePort()
+    _dohWithH2OBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohWithH2OServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     rl = newRemoteLogger('127.0.0.1:%d')
 
     addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { '/dns-query' }, { keepIncomingHeaders=true })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { keepIncomingHeaders=true, library='nghttp2' })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { keepIncomingHeaders=true, library='h2o' })
 
     local mytags = {path='doh-path', host='doh-host', ['query-string']='doh-query-string', scheme='doh-scheme', agent='doh-header:user-agent'}
     addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='dnsdist-server-1'}, mytags))
     addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1'}, mytags))
     """
+    _config_params = ['_testServerPort', '_protobufServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_dohWithH2OServerPort', '_serverCert', '_serverKey']
+
+    def sendDOHWithNGHTTP2QueryWrapper(self, query, response, useQueue=True):
+        return self.sendDOHQuery(self._dohWithNGHTTP2ServerPort, self._serverName, self._dohWithNGHTTP2BaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
+
+    def sendDOHWithH2OQueryWrapper(self, query, response, useQueue=True):
+        return self.sendDOHQuery(self._dohWithH2OServerPort, self._serverName, self._dohWithH2OBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
 
     def testProtobufMetaDoH(self):
         """
@@ -521,7 +530,7 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHQueryWrapper"):
+        for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
 
@@ -543,7 +552,7 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
                 pbMessageType = dnsmessage_pb2.PBDNSMessage.TCP
             elif method == "sendDOTQueryWrapper":
                 pbMessageType = dnsmessage_pb2.PBDNSMessage.DOT
-            elif method == "sendDOHQueryWrapper":
+            elif method == "sendDOHWithNGHTTP2QueryWrapper" or method == "sendDOHWithH2OQueryWrapper":
                 pbMessageType = dnsmessage_pb2.PBDNSMessage.DOH
 
             self.checkProtobufQuery(msg, pbMessageType, query, dns.rdataclass.IN, dns.rdatatype.A, name)
@@ -554,10 +563,13 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
                 tags[entry.key] = entry.value.stringVal[0]
 
             self.assertIn('agent', tags)
-            if method == "sendDOHQueryWrapper":
+            if method == "sendDOHWithNGHTTP2QueryWrapper" or method == "sendDOHWithH2OQueryWrapper":
                 self.assertIn('PycURL', tags['agent'])
                 self.assertIn('host', tags)
-                self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohServerPort))
+                if method == "sendDOHWithNGHTTP2QueryWrapper":
+                    self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohWithNGHTTP2ServerPort))
+                elif method == "sendDOHWithH2OQueryWrapper":
+                    self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohWithH2OServerPort))
                 self.assertIn('path', tags)
                 self.assertEqual(tags['path'], '/dns-query')
                 self.assertIn('query-string', tags)
@@ -575,10 +587,13 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
                 tags[entry.key] = entry.value.stringVal[0]
 
             self.assertIn('agent', tags)
-            if method == "sendDOHQueryWrapper":
+            if method == "sendDOHWithNGHTTP2QueryWrapper" or method == "sendDOHWithH2OQueryWrapper":
                 self.assertIn('PycURL', tags['agent'])
                 self.assertIn('host', tags)
-                self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohServerPort))
+                if method == "sendDOHWithNGHTTP2QueryWrapper":
+                    self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohWithNGHTTP2ServerPort))
+                elif method == "sendDOHWithH2OQueryWrapper":
+                    self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohWithH2OServerPort))
                 self.assertIn('path', tags)
                 self.assertEqual(tags['path'], '/dns-query')
                 self.assertIn('query-string', tags)
