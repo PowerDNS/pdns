@@ -777,6 +777,14 @@ class TestWebConcurrentConnections(APITestsBase):
     setWebserverConfig({password="%s", apiKey="%s", maxConcurrentConnections=%d})
     """
 
+    @classmethod
+    def setUpClass(cls):
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+        # do no check if the web server socket is up, because this
+        # might mess up the concurrent connections counter
+
     def testConcurrentConnections(self):
         """
         Web: Concurrent connections
