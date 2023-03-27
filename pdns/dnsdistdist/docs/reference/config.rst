@@ -1138,8 +1138,11 @@ Status, Statistics and More
 
   :param int top: How many rules to return. Default is 10.
 
-.. function:: grepq(selector[, num])
-              grepq(selectors[, num])
+.. function:: grepq(selector[, num [, options]])
+              grepq(selectors[, num [, options]])
+
+  .. versionchanged:: 1.9.0
+    ``options`` optional parameter table added.
 
   Prints the last ``num`` queries and responses matching ``selector`` or ``selectors``.
   Queries and responses are accounted in separate ring buffers, and answers from the packet cache are not stored in the response ring buffer.
@@ -1154,6 +1157,11 @@ Status, Statistics and More
   :param str selector: Select queries based on this property.
   :param {str} selectors: A lua table of selectors. Only queries matching all selectors are shown
   :param int num: Show a maximum of ``num`` recent queries+responses, default is 10.
+  :param table options: A table with key: value pairs with options described below.
+
+  Options:
+
+  * ``outputFile=path``: string - Write the output of the command to the supplied file, instead of the standard output.
 
 .. function:: setVerbose(verbose)
 

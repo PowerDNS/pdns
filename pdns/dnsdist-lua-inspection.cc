@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <fcntl.h>
+
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-dynblocks.hh"
@@ -408,11 +410,28 @@ void setupLuaInspection(LuaContext& luaCtx)
       }
     });
 
-  luaCtx.writeFunction("grepq", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<unsigned int> limit) {
+  luaCtx.writeFunction("grepq", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<unsigned int> limit, boost::optional<LuaAssociativeTable<std::string>> options) {
       setLuaNoSideEffect();
       boost::optional<Netmask>  nm;
       boost::optional<DNSName> dn;
       int msec=-1;
+      std::unique_ptr<FILE, decltype(&fclose)> outputFile{nullptr, fclose};
+
+      if (options) {
+        if (options->count("outputFile")) {
+          const std::string& outputFileName = options->at("outputFile");
+          int fd = open(outputFileName.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0600);
+          if (fd < 0) {
+            g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
+            return;
+          }
+          outputFile = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(fd, "w"), fclose);
+          if (outputFile == nullptr) {
+            g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
+            return;
+          }
+        }
+      }
 
       vector<string> vec;
       auto str=boost::get<string>(&inp);
@@ -477,8 +496,13 @@ void setupLuaInspection(LuaContext& luaCtx)
 
       std::multimap<struct timespec, string> out;
 
-      boost::format      fmt("%-7.1f %-47s %-12s %-12s %-5d %-25s %-5s %-6.1f %-2s %-2s %-2s %-s\n");
-      g_outputBuffer+= (fmt % "Time" % "Client" % "Protocol" % "Server" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
+      boost::format        fmt("%-7.1f %-47s %-12s %-12s %-5d %-25s %-5s %-6.1f %-2s %-2s %-2s %-s\n");
+      if (!outputFile) {
+        g_outputBuffer += (fmt % "Time" % "Client" % "Protocol" % "Server" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
+      }
+      else {
+        fprintf(outputFile.get(), "%s", (fmt % "Time" % "Client" % "Protocol" % "Server" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str().c_str());
+      }
 
       if(msec==-1) {
         for(const auto& c : qr) {
@@ -556,8 +580,13 @@ void setupLuaInspection(LuaContext& luaCtx)
         }
       }
 
-      for(const auto& p : out) {
-        g_outputBuffer+=p.second;
+      for (const auto& p : out) {
+        if (!outputFile) {
+          g_outputBuffer += p.second;
+        }
+        else {
+          fprintf(outputFile.get(), "%s", p.second.c_str());
+        }
       }
     });
 
