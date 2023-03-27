@@ -1785,6 +1785,18 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
   return RCode::ServFail;
 }
 
+unsigned int SyncRes::getAdjustedRecursionBound() const
+{
+  auto bound = s_maxdepth; // 40 is default value of s_maxdepth
+  if (getQMFallbackMode()) {
+    // We might have hit a depth level check, but we still want to allow some recursion levels in the fallback
+    // no-qname-minimization case. This has the effect that a qname minimization fallback case might reach 150% of
+    // maxdepth, taking care to not repeatedly increase the bound.
+    bound += s_maxdepth / 2;
+  }
+  return bound;
+}
+
 /*! This function will check the cache and go out to the internet if the answer is not in cache
  *
  * \param qname The name we need an answer for
@@ -1803,13 +1815,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
   LOG(prefix << qname << ": Wants " << (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing, " << (d_requireAuthData ? "" : "NO ") << "auth data required by query for " << qtype << endl);
 
   if (s_maxdepth > 0) {
-    auto bound = s_maxdepth;
-    if (getQMFallbackMode()) {
-      // We might have hit a depth level check, but we still want to allow some recursion levels in the fallback
-      // no-qname-minimization case. This has the effect that a qname minimization fallback case might reach 150% of
-      // maxdepth, taking care to not repeatedly increase the bound.
-      bound += s_maxdepth / 2;
-    }
+    auto bound = getAdjustedRecursionBound();
     if (depth > bound) {
       string msg = "More than " + std::to_string(bound) + " (adjusted max-recursion-depth) levels of recursion needed while resolving " + qname.toLogString();
       LOG(prefix << qname << ": " << msg << endl);
@@ -2402,7 +2408,11 @@ static bool scanForCNAMELoop(const DNSName& name, const vector<DNSRecord>& recor
 
 bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse)
 {
-  if ((depth > 9 && d_outqueries > 10 && d_throttledqueries > 5) || depth > 15) {
+  // Even if s_maxdepth is zero, we want to have this check
+  auto bound = std::max(40U, getAdjustedRecursionBound());
+  // Bounds were > 9 and > 15 originally, now they are derived from s_maxdepth (default 40)
+  // Apply more strict bound if we see throttling
+  if ((depth >= bound / 4 && d_outqueries > 10 && d_throttledqueries > 5) || depth > bound * 3 / 8) {
     LOG(prefix << qname << ": Recursing (CNAME or other indirection) too deep, depth=" << depth << endl);
     res = RCode::ServFail;
     return true;
@@ -5291,7 +5301,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   return true;
 }
 
-void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, const QType qtype, std::vector<DNSRecord>& ret, int& rcode, int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state)
+void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, const QType qtype, std::vector<DNSRecord>& ret, int& rcode, unsigned int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state)
 {
   if (newtarget == qname) {
     LOG(prefix << qname << ": Status=got a CNAME referral to self, returning SERVFAIL" << endl);
@@ -5305,7 +5315,9 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
     setQNameMinimization(false);
   }
 
-  if (depth > 10) {
+  // Was 10 originally, default s_maxdepth is 40, but even if it is zero we want to apply a bound
+  auto bound = std::max(40U, getAdjustedRecursionBound()) / 4;
+  if (depth > bound) {
     LOG(prefix << qname << ": Status=got a CNAME referral, but recursing too deep, returning SERVFAIL" << endl);
     rcode = RCode::ServFail;
     return;
