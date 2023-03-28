@@ -425,6 +425,8 @@ class TestAdvancedGetLocalAddressOnNonDefaultLoopbackBind(DNSDistTest):
     _config_params = ['_testServerPort', '_dnsDistPort']
     _acl = ['127.0.0.1/32']
     _skipListeningOnCL = True
+    _alternateListeningAddr = '127.0.1.19'
+    _alternateListeningPort = DNSDistTest._dnsDistPort
 
     def testAdvancedCheckSourceAddrOnNonDefaultLoopbackBind(self):
         """

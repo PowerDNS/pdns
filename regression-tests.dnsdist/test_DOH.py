@@ -1173,6 +1173,8 @@ class TestDOHFrontendLimits(DNSDistDOHTest):
     addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { maxConcurrentTCPConnections=%d })
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_maxTCPConnsPerDOHFrontend']
+    _alternateListeningAddr = '127.0.0.1'
+    _alternateListeningPort = _dohServerPort
 
     def testTCPConnsPerDOHFrontend(self):
         """

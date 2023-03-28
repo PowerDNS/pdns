@@ -393,6 +393,8 @@ class TestTLSFrontendLimits(DNSDistTest):
     addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl", maxConcurrentTCPConnections=%d })
     """
     _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_maxTCPConnsPerTLSFrontend']
+    _alternateListeningAddr = '127.0.0.1'
+    _alternateListeningPort = _tlsServerPort
 
     def testTCPConnsPerTLSFrontend(self):
         """
