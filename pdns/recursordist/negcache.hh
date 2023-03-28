@@ -100,7 +100,7 @@ public:
   size_t count(const DNSName& qname, QType qtype);
   void prune(size_t maxEntries);
   void clear();
-  size_t doDump(int fd, size_t maxCacheEntries);
+  size_t doDump(int fd, size_t maxCacheEntries, time_t now = time(nullptr));
   size_t wipe(const DNSName& name, bool subtree = false);
   size_t wipeTyped(const DNSName& name, QType qtype);
   size_t size() const;
