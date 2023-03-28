@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include "dnsdist.hh"
 #include <random>
 
 struct ResponseConfig

@@ -778,20 +778,17 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     break;
   case DNSAction::Action::Nxdomain:
     dq.getHeader()->rcode = RCode::NXDomain;
-    dq.getHeader()->qr=true;
-    ++g_stats.ruleNXDomain;
+    dq.getHeader()->qr = true;
     return true;
     break;
   case DNSAction::Action::Refused:
     dq.getHeader()->rcode = RCode::Refused;
-    dq.getHeader()->qr=true;
-    ++g_stats.ruleRefused;
+    dq.getHeader()->qr = true;
     return true;
     break;
   case DNSAction::Action::ServFail:
     dq.getHeader()->rcode = RCode::ServFail;
-    dq.getHeader()->qr=true;
-    ++g_stats.ruleServFail;
+    dq.getHeader()->qr = true;
     return true;
     break;
   case DNSAction::Action::Spoof:
@@ -941,14 +938,14 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
         updateBlockStats();
 
         dq.getHeader()->rcode = RCode::NXDomain;
-        dq.getHeader()->qr=true;
+        dq.getHeader()->qr = true;
         return true;
       case DNSAction::Action::Refused:
         vinfolog("Query from %s for %s refused because of dynamic block", dq.remote->toStringWithPort(), dq.qname->toLogString());
         updateBlockStats();
 
         dq.getHeader()->rcode = RCode::Refused;
-        dq.getHeader()->qr=true;
+        dq.getHeader()->qr = true;
         return true;
       case DNSAction::Action::Truncate:
         if (!dq.overTCP()) {
@@ -979,13 +976,13 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
     }
   }
 
-  DNSAction::Action action=DNSAction::Action::None;
+  DNSAction::Action action = DNSAction::Action::None;
   string ruleresult;
   bool drop = false;
-  for(const auto& lr : *holders.ruleactions) {
-    if(lr.d_rule->matches(&dq)) {
+  for (const auto& lr : *holders.ruleactions) {
+    if (lr.d_rule->matches(&dq)) {
       lr.d_rule->d_matches++;
-      action=(*lr.d_action)(&dq, &ruleresult);
+      action = (*lr.d_action)(&dq, &ruleresult);
       if (processRulesResult(action, dq, ruleresult, drop)) {
         break;
       }
@@ -1018,14 +1015,14 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss
 
   if (result == -1) {
     int savederrno = errno;
-    vinfolog("Error sending request to backend %s: %d", ss->remote.toStringWithPort(), savederrno);
+    vinfolog("Error sending request to backend %s: %d", ss->remote.toStringWithPort(), stringerror(savederrno));
 
     /* This might sound silly, but on Linux send() might fail with EINVAL
        if the interface the socket was bound to doesn't exist anymore.
        We don't want to reconnect the real socket if the healthcheck failed,
        because it's not using the same socket.
     */
-    if (!healthCheck && (savederrno == EINVAL || savederrno == ENODEV)) {
+    if (!healthCheck && (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH)) {
       ss->reconnect();
     }
   }
@@ -1184,6 +1181,17 @@ ProcessQueryResult processQuery(DNSQuestion& dq, ClientState& cs, LocalHolders& 
 
       if (!prepareOutgoingResponse(holders, cs, dq, false)) {
         return ProcessQueryResult::Drop;
+      }
+
+      const auto rcode = dq.getHeader()->rcode;
+      if (rcode == RCode::NXDomain) {
+        ++g_stats.ruleNXDomain;
+      }
+      else if (rcode == RCode::Refused) {
+        ++g_stats.ruleRefused;
+      }
+      else if (rcode == RCode::ServFail) {
+        ++g_stats.ruleServFail;
       }
 
       ++g_stats.selfAnswered;
@@ -1890,6 +1898,8 @@ static void healthChecksThread()
             struct dnsheader fake;
             memset(&fake, 0, sizeof(fake));
             fake.id = ids.origID;
+            uint16_t* flags = getFlagsFromDNSHeader(&fake);
+            *flags = ids.origFlags;
 
             g_rings.insertResponse(ts, ids.origRemote, ids.qname, ids.qtype, std::numeric_limits<unsigned int>::max(), 0, fake, dss->remote, dss->getProtocol());
           }

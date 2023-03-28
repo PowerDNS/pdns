@@ -88,6 +88,15 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   return DNSAction::Action::None;
 }
 
+bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>&)
+{
+  return true;
+}
+
+void responderThread(std::shared_ptr<DownstreamState> dss)
+{
+}
+
 string g_outputBuffer;
 
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)

@@ -961,7 +961,6 @@ private:
   uint16_t d_code{3};
 };
 
-
 class SetEDNSOptionAction : public DNSAction
 {
 public:
@@ -972,38 +971,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    std::string optRData;
-    generateEDNSOption(d_code, d_data, optRData);
-
-    if (dq->getHeader()->arcount) {
-      bool ednsAdded = false;
-      bool optionAdded = false;
-      PacketBuffer newContent;
-      newContent.reserve(dq->getData().size());
-
-      if (!slowRewriteEDNSOptionInQueryWithRecords(dq->getData(), newContent, ednsAdded, d_code, optionAdded, true, optRData)) {
-        return Action::None;
-      }
-
-      if (newContent.size() > dq->getMaximumSize()) {
-        return Action::None;
-      }
-
-      dq->getMutableData() = std::move(newContent);
-      if (!dq->ednsAdded && ednsAdded) {
-        dq->ednsAdded = true;
-      }
-
-      return Action::None;
-    }
-
-    auto& data = dq->getMutableData();
-    if (generateOptRR(optRData, data, dq->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
-      dq->getHeader()->arcount = htons(1);
-      // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
-      dq->ednsAdded = true;
-    }
-
+    setEDNSOption(*dq, d_code, d_data);
     return Action::None;
   }
 

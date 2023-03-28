@@ -240,9 +240,11 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
       std::vector<std::pair<uint16_t, std::string>> options;
       getEDNSOptionsFromContent(blob, options);
 
+      /* getDnsrecordheader() has helpfully converted the TTL for us, which we do not want in that case */
+      uint32_t ttl = htonl(ah.d_ttl);
       EDNS0Record edns0;
-      static_assert(sizeof(edns0) == sizeof(ah.d_ttl), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
-      memcpy(&edns0, &ah.d_ttl, sizeof(edns0));
+      static_assert(sizeof(edns0) == sizeof(ttl), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
+      memcpy(&edns0, &ttl, sizeof(edns0));
 
       /* addOrReplaceEDNSOption will set it to false if there is already an existing option */
       optionAdded = true;
@@ -1066,5 +1068,42 @@ bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0)
   static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t) AKA RR TTL size");
   // copy out 4-byte "ttl" (really the EDNS0 record), after root label (1) + type (2) + class (2).
   memcpy(&edns0, &packet.at(optStart + 5), sizeof edns0);
+  return true;
+}
+
+bool setEDNSOption(DNSQuestion& dq, uint16_t ednsCode, const std::string& ednsData)
+{
+  std::string optRData;
+  generateEDNSOption(ednsCode, ednsData, optRData);
+
+  if (dq.getHeader()->arcount) {
+    bool ednsAdded = false;
+    bool optionAdded = false;
+    PacketBuffer newContent;
+    newContent.reserve(dq.getData().size());
+
+    if (!slowRewriteEDNSOptionInQueryWithRecords(dq.getData(), newContent, ednsAdded, ednsCode, optionAdded, true, optRData)) {
+      return false;
+    }
+
+    if (newContent.size() > dq.getMaximumSize()) {
+      return false;
+    }
+
+    dq.getMutableData() = std::move(newContent);
+    if (!dq.ednsAdded && ednsAdded) {
+      dq.ednsAdded = true;
+    }
+
+    return true;
+  }
+
+  auto& data = dq.getMutableData();
+  if (generateOptRR(optRData, data, dq.getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
+    dq.getHeader()->arcount = htons(1);
+    // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
+    dq.ednsAdded = true;
+  }
+
   return true;
 }

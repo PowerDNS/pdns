@@ -152,7 +152,7 @@ protected:
 
     struct timeval res = now;
     res.tv_sec += d_ds->checkTimeout / 1000; /* ms to s */
-    res.tv_usec += (d_ds->checkTimeout % 1000) / 1000; /* remaining ms to µs */
+    res.tv_usec += (d_ds->checkTimeout % 1000) * 1000; /* remaining ms to µs */
 
     return res;
   }
@@ -241,7 +241,7 @@ public:
 
   bool reachedMaxConcurrentQueries() const override
   {
-    const size_t concurrent = d_pendingQueries.size() + d_pendingResponses.size();
+    const size_t concurrent = d_pendingQueries.size() + d_pendingResponses.size() + (d_state == State::sendingQueryToBackend ? 1 : 0);
     if (concurrent > 0 && concurrent >= d_ds->d_maxInFlightQueriesPerConn) {
       return true;
     }

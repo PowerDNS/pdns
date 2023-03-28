@@ -177,6 +177,10 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       }
   });
 
+  luaCtx.registerFunction<void(DNSQuestion::*)(uint16_t code, const std::string&)>("setEDNSOption", [](DNSQuestion& dq, uint16_t code, const std::string& data) {
+    setEDNSOption(dq, code, data);
+  });
+
   /* LuaWrapper doesn't support inheritance */
   luaCtx.registerMember<const ComboAddress (DNSResponse::*)>("localaddr", [](const DNSResponse& dq) -> const ComboAddress { return *dq.local; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void) newLocal; });
   luaCtx.registerMember<const DNSName (DNSResponse::*)>("qname", [](const DNSResponse& dq) -> const DNSName { return *dq.qname; }, [](DNSResponse& dq, const DNSName newName) { (void) newName; });
