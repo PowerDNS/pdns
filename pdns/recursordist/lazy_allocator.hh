@@ -28,8 +28,10 @@
 #include <unistd.h>
 
 // On OpenBSD mem used as stack should be marked MAP_STACK
-#if !defined(MAP_STACK)
-#define MAP_STACK 0
+#ifdef __OpenBSD__
+#define PDNS_MAP_STACK MAP_STACK
+#else
+#define PDNS_MAP_STACK 0
 #endif
 
 template <typename T>
@@ -88,7 +90,7 @@ struct lazy_allocator
 #else
     const int protection = PROT_NONE;
 #endif
-    void* p = mmap(nullptr, allocatedSize, protection, MAP_PRIVATE | MAP_ANON | MAP_STACK, -1, 0);
+    void* p = mmap(nullptr, allocatedSize, protection, MAP_PRIVATE | MAP_ANON | PDNS_MAP_STACK, -1, 0);
     if (p == MAP_FAILED) {
       throw std::bad_alloc();
     }
