@@ -1768,10 +1768,17 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
         setQNameMinimization(false);
         setQMFallbackMode(true);
 
+        auto oldEDE = context.extendedError;
         res = doResolveNoQNameMinimization(qname, qtype, ret, depth + 1, beenthere, context);
 
         if (res == RCode::NoError) {
           t_Counters.at(rec::Counter::qnameminfallbacksuccess)++;
+        }
+        else {
+          // as doResolveNoQNameMinimization clears the EDE, we put it back here, it is relevant but might not be set by the last effort attempt
+          if (!context.extendedError) {
+            context.extendedError = oldEDE;
+          }
         }
 
         LOG(prefix << qname << ": Step5 End resolve: " << RCode::to_s(res) << "/" << ret.size() << endl);
@@ -1810,6 +1817,7 @@ unsigned int SyncRes::getAdjustedRecursionBound() const
  */
 int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* fromCache, StopAtDelegation* stopAtDelegation)
 {
+  context.extendedError.reset();
   auto prefix = getPrefix(depth);
 
   LOG(prefix << qname << ": Wants " << (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing, " << (d_requireAuthData ? "" : "NO ") << "auth data required by query for " << qtype << endl);
