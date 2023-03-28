@@ -46,6 +46,27 @@ class AggressiveNSECCacheBase(RecursorTest):
 
         self.assertTrue(False)
 
+    def testNoEDE(self):
+        # This isn't an aggresive cache check, but the strcuture is very similar to the others,
+        # so letys place it here.
+        # It test the issue that an intermediate EDE does not get reported with the final answer
+        # https://github.com/PowerDNS/pdns/pull/12694
+        self.wipe()
+
+        res = self.sendQuery('host1.sub.secure.example.', 'TXT')
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnswerEmpty(res)
+        self.assertAuthorityHasSOA(res)
+        self.assertMessageIsAuthenticated(res)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 0)
+
+        res = self.sendQuery('host1.sub.secure.example.', 'A')
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertMessageIsAuthenticated(res)
+        self.assertEqual(res.edns, 0)
+        self.assertEqual(len(res.options), 0)
+
     def testNoData(self):
         self.wipe()
 
