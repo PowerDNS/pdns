@@ -3082,14 +3082,14 @@ static void harvestNXRecords(const vector<DNSRecord>& records, NegCache::NegCach
       if (rrsig) {
         if (rrsig->d_type == QType::SOA) {
           ne.authoritySOA.signatures.push_back(rec);
-          if (lowestTTL && isRRSIGNotExpired(now, rrsig)) {
+          if (lowestTTL && isRRSIGNotExpired(now, *rrsig)) {
             *lowestTTL = min(*lowestTTL, rec.d_ttl);
             *lowestTTL = min(*lowestTTL, getRRSIGTTL(now, rrsig));
           }
         }
         if (nsecTypes.count(rrsig->d_type)) {
           ne.DNSSECRecords.signatures.push_back(rec);
-          if (lowestTTL && isRRSIGNotExpired(now, rrsig)) {
+          if (lowestTTL && isRRSIGNotExpired(now, *rrsig)) {
             *lowestTTL = min(*lowestTTL, rec.d_ttl);
             *lowestTTL = min(*lowestTTL, getRRSIGTTL(now, rrsig));
           }
@@ -3445,7 +3445,7 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
     lowestTTD = min(lowestTTD, static_cast<uint32_t>(signaturesTTL + d_now.tv_sec));
 
     for (const auto& sig : signatures) {
-      if (isRRSIGNotExpired(d_now.tv_sec, sig)) {
+      if (isRRSIGNotExpired(d_now.tv_sec, *sig)) {
         // we don't decrement d_sigexpire by 'now' because we actually want a TTD, not a TTL */
         lowestTTD = min(lowestTTD, static_cast<uint32_t>(sig->d_sigexpire));
       }
@@ -3459,7 +3459,7 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
     if (entry->d_type == QType::RRSIG && validationEnabled()) {
       auto rrsig = getRR<RRSIGRecordContent>(*entry);
       if (rrsig) {
-        if (isRRSIGNotExpired(d_now.tv_sec, rrsig)) {
+        if (isRRSIGNotExpired(d_now.tv_sec, *rrsig)) {
           // we don't decrement d_sigexpire by 'now' because we actually want a TTD, not a TTL */
           lowestTTD = min(lowestTTD, static_cast<uint32_t>(rrsig->d_sigexpire));
         }
@@ -4299,9 +4299,9 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
            count can be lower than the name's label count if it was
            synthesized from the wildcard. Note that the difference might
            be > 1. */
-        if (rec.d_name == qname && isWildcardExpanded(labelCount, rrsig)) {
+        if (rec.d_name == qname && isWildcardExpanded(labelCount, *rrsig)) {
           gatherWildcardProof = true;
-          if (!isWildcardExpandedOntoItself(rec.d_name, labelCount, rrsig)) {
+          if (!isWildcardExpandedOntoItself(rec.d_name, labelCount, *rrsig)) {
             /* if we have a wildcard expanded onto itself, we don't need to prove
                that the exact name doesn't exist because it actually does.
                We still want to gather the corresponding NSEC/NSEC3 records
@@ -4586,7 +4586,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
              wildcard in its non-expanded form in the cache to be able to synthesize wildcard answers later */
           const auto& rrsig = i->second.signatures.at(0);
 
-          if (isWildcardExpanded(labelCount, rrsig) && !isWildcardExpandedOntoItself(i->first.name, labelCount, rrsig)) {
+          if (isWildcardExpanded(labelCount, *rrsig) && !isWildcardExpandedOntoItself(i->first.name, labelCount, *rrsig)) {
             DNSName realOwner = getNSECOwnerName(i->first.name, i->second.signatures);
 
             std::vector<DNSRecord> content;

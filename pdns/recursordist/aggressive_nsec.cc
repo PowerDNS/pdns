@@ -342,7 +342,7 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
     }
 
     /* the TTL is already a TTD by now */
-    if (!nsec3 && isWildcardExpanded(owner.countLabels(), signatures.at(0))) {
+    if (!nsec3 && isWildcardExpanded(owner.countLabels(), *signatures.at(0))) {
       DNSName realOwner = getNSECOwnerName(owner, signatures);
       auto pair = zoneEntry->d_entries.insert({record.getContent(), signatures, std::move(realOwner), std::move(next), record.d_ttl});
       if (pair.second) {
@@ -557,7 +557,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
       return false;
     }
 
-    if (!isTypeDenied(nsec3, type)) {
+    if (!isTypeDenied(*nsec3, type)) {
       VLOG_NO_PREFIX(log, " but the requested type (" << type.toString() << ") does exist" << endl);
       return false;
     }
@@ -565,7 +565,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
     const DNSName signer = getSigner(exactNSEC3.d_signatures);
     /* here we need to allow an ancestor NSEC3 proving that a DS does not exist as it is an
        exact match for the name */
-    if (type != QType::DS && isNSEC3AncestorDelegation(signer, exactNSEC3.d_owner, nsec3)) {
+    if (type != QType::DS && isNSEC3AncestorDelegation(signer, exactNSEC3.d_owner, *nsec3)) {
       /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
          Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
          nonexistence of any RRs below that zone cut, which include all RRs at
@@ -608,7 +608,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
       const DNSName signer = getSigner(closestNSEC3.d_signatures);
       /* This time we do not allow any ancestor NSEC3, as if the closest encloser is a delegation
          NS we know nothing about the names in the child zone. */
-      if (isNSEC3AncestorDelegation(signer, closestNSEC3.d_owner, nsec3)) {
+      if (isNSEC3AncestorDelegation(signer, closestNSEC3.d_owner, *nsec3)) {
         /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
            Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
            nonexistence of any RRs below that zone cut, which include all RRs at
@@ -692,7 +692,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
     const DNSName wcSigner = getSigner(wcEntry.d_signatures);
     /* It's an exact match for the wildcard, so it does exist. If we are looking for a DS
        an ancestor NSEC3 is fine, otherwise it does not prove anything. */
-    if (type != QType::DS && isNSEC3AncestorDelegation(wcSigner, wcEntry.d_owner, nsec3)) {
+    if (type != QType::DS && isNSEC3AncestorDelegation(wcSigner, wcEntry.d_owner, *nsec3)) {
       /* RFC 6840 section 4.1 "Clarifications on Nonexistence Proofs":
          Ancestor delegation NSEC or NSEC3 RRs MUST NOT be used to assume
          nonexistence of any RRs below that zone cut, which include all RRs at
@@ -708,7 +708,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
       return false;
     }
 
-    if (!isTypeDenied(nsec3, type)) {
+    if (!isTypeDenied(*nsec3, type)) {
       VLOG_NO_PREFIX(log, " but the requested type (" << type.toString() << ") does exist" << endl);
       return synthesizeFromNSEC3Wildcard(now, name, type, ret, res, doDNSSEC, nextCloserEntry, wildcard, log);
     }
@@ -816,7 +816,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
 
   VLOG_NO_PREFIX(log, ": found a possible NSEC at " << entry.d_owner << " ");
   // note that matchesNSEC() takes care of ruling out ancestor NSECs for us
-  auto denial = matchesNSEC(name, type.getCode(), entry.d_owner, content, entry.d_signatures, log);
+  auto denial = matchesNSEC(name, type.getCode(), entry.d_owner, *content, entry.d_signatures, log);
   if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
     VLOG_NO_PREFIX(log, " but it does not cover us" << endl);
     return false;
@@ -841,7 +841,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
 
     auto nsecContent = std::dynamic_pointer_cast<const NSECRecordContent>(wcEntry.d_record);
 
-    denial = matchesNSEC(wc, type.getCode(), wcEntry.d_owner, nsecContent, wcEntry.d_signatures, log);
+    denial = matchesNSEC(wc, type.getCode(), wcEntry.d_owner, *nsecContent, wcEntry.d_signatures, log);
     if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
 
       if (wcEntry.d_owner == wc) {
