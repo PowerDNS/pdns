@@ -526,7 +526,7 @@ BOOST_AUTO_TEST_CASE(test_dumpToFile)
   if (!fp)
     BOOST_FAIL("Temporary file could not be opened");
 
-  cache.doDump(fileno(fp.get()), 0);
+  cache.doDump(fileno(fp.get()), 0, now.tv_sec);
 
   rewind(fp.get());
   char* line = nullptr;

@@ -295,7 +295,7 @@ void NegCache::prune(size_t maxEntries)
  *
  * \param fp A pointer to an open FILE object
  */
-size_t NegCache::doDump(int fd, size_t maxCacheEntries)
+size_t NegCache::doDump(int fd, size_t maxCacheEntries, time_t now)
 {
   int newfd = dup(fd);
   if (newfd == -1) {
@@ -307,9 +307,6 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries)
     return 0;
   }
   fprintf(fp.get(), "; negcache dump follows\n;\n");
-
-  struct timeval now;
-  Utility::gettimeofday(&now, nullptr);
 
   size_t ret = 0;
 
@@ -326,7 +323,7 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries)
     auto& sidx = m->d_map.get<SequenceTag>();
     for (const NegCacheEntry& ne : sidx) {
       ret++;
-      int64_t ttl = ne.d_ttd - now.tv_sec;
+      int64_t ttl = ne.d_ttd - now;
       fprintf(fp.get(), "%s %" PRId64 " IN %s VIA %s ; (%s) origttl=%" PRIu32 " ss=%hu\n", ne.d_name.toString().c_str(), ttl, ne.d_qtype.toString().c_str(), ne.d_auth.toString().c_str(), vStateToString(ne.d_validationState).c_str(), ne.d_orig_ttl, ne.d_servedStale);
       for (const auto& rec : ne.authoritySOA.records) {
         fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
