@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <fcntl.h>
+
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-dynblocks.hh"
@@ -408,38 +410,59 @@ void setupLuaInspection(LuaContext& luaCtx)
       }
     });
 
-  luaCtx.writeFunction("grepq", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<unsigned int> limit) {
+  luaCtx.writeFunction("grepq", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<unsigned int> limit, boost::optional<LuaAssociativeTable<std::string>> options) {
       setLuaNoSideEffect();
       boost::optional<Netmask>  nm;
       boost::optional<DNSName> dn;
-      int msec=-1;
+      int msec = -1;
+      std::unique_ptr<FILE, decltype(&fclose)> outputFile{nullptr, fclose};
 
-      vector<string> vec;
-      auto str=boost::get<string>(&inp);
-      if(str)
-        vec.push_back(*str);
-      else {
-        auto v = boost::get<LuaArray<std::string>>(inp);
-        for(const auto& a: v)
-          vec.push_back(a.second);
+      if (options) {
+        std::string outputFileName;
+        if (getOptionalValue<std::string>(options, "outputFile", outputFileName) > 0) {
+          int fd = open(outputFileName.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0600);
+          if (fd < 0) {
+            g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
+            return;
+          }
+          outputFile = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(fd, "w"), fclose);
+          if (outputFile == nullptr) {
+            g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
+            close(fd);
+            return;
+          }
+        }
+        checkAllParametersConsumed("grepq", options);
       }
 
-      for(const auto& s : vec) {
-        try
-          {
+      vector<string> vec;
+      auto str = boost::get<string>(&inp);
+      if (str) {
+        vec.push_back(*str);
+      }
+      else {
+        auto v = boost::get<LuaArray<std::string>>(inp);
+        for (const auto& a: v) {
+          vec.push_back(a.second);
+        }
+      }
+
+      for (const auto& s : vec) {
+        try {
             nm = Netmask(s);
-          }
-        catch(...) {
-          if(boost::ends_with(s,"ms") && sscanf(s.c_str(), "%ums", &msec)) {
+        }
+        catch (...) {
+          if (boost::ends_with(s,"ms") && sscanf(s.c_str(), "%ums", &msec)) {
             ;
           }
           else {
-            try { dn=DNSName(s); }
-            catch(...)
-              {
-                g_outputBuffer = "Could not parse '"+s+"' as domain name or netmask";
-                return;
-              }
+            try {
+              dn = DNSName(s);
+            }
+            catch (...) {
+              g_outputBuffer = "Could not parse '"+s+"' as domain name or netmask";
+              return;
+            }
           }
         }
       }
@@ -477,12 +500,19 @@ void setupLuaInspection(LuaContext& luaCtx)
 
       std::multimap<struct timespec, string> out;
 
-      boost::format      fmt("%-7.1f %-47s %-12s %-12s %-5d %-25s %-5s %-6.1f %-2s %-2s %-2s %-s\n");
-      g_outputBuffer+= (fmt % "Time" % "Client" % "Protocol" % "Server" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
+      boost::format        fmt("%-7.1f %-47s %-12s %-12s %-5d %-25s %-5s %-6.1f %-2s %-2s %-2s %-s\n");
+      const auto headLine = (fmt % "Time" % "Client" % "Protocol" % "Server" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
+      if (!outputFile) {
+        g_outputBuffer += headLine;
+      }
+      else {
+        fprintf(outputFile.get(), "%s", headLine.c_str());
+      }
 
-      if(msec==-1) {
-        for(const auto& c : qr) {
-          bool nmmatch=true, dnmatch=true;
+      if (msec == -1) {
+        for (const auto& c : qr) {
+          bool nmmatch = true;
+          bool dnmatch = true;
           if (nm) {
             nmmatch = nm->match(c.requestor);
           }
@@ -502,17 +532,19 @@ void setupLuaInspection(LuaContext& luaCtx)
             }
             out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % "" % htons(c.dh.id) % c.name.toString() % qt.toString() % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % ("Question" + extra)).str());
 
-            if(limit && *limit==++num)
+            if (limit && *limit == ++num) {
               break;
+            }
           }
         }
       }
-      num=0;
-
+      num = 0;
 
       string extra;
-      for(const auto& c : rr) {
-        bool nmmatch=true, dnmatch=true, msecmatch=true;
+      for (const auto& c : rr) {
+        bool nmmatch = true;
+        bool dnmatch = true;
+        bool msecmatch = true;
         if (nm) {
           nmmatch = nm->match(c.requestor);
         }
@@ -525,13 +557,13 @@ void setupLuaInspection(LuaContext& luaCtx)
           }
         }
         if (msec != -1) {
-          msecmatch=(c.usec/1000 > (unsigned int)msec);
+          msecmatch = (c.usec/1000 > (unsigned int)msec);
         }
 
         if (nmmatch && dnmatch && msecmatch) {
           QType qt(c.qtype);
 	  if (!c.dh.rcode) {
-	    extra=". " +std::to_string(htons(c.dh.ancount))+ " answers";
+	    extra = ". " +std::to_string(htons(c.dh.ancount)) + " answers";
           }
 	  else {
 	    extra.clear();
@@ -556,8 +588,13 @@ void setupLuaInspection(LuaContext& luaCtx)
         }
       }
 
-      for(const auto& p : out) {
-        g_outputBuffer+=p.second;
+      for (const auto& p : out) {
+        if (!outputFile) {
+          g_outputBuffer += p.second;
+        }
+        else {
+          fprintf(outputFile.get(), "%s", p.second.c_str());
+        }
       }
     });
 
