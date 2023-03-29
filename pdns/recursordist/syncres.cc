@@ -2757,7 +2757,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
     giveNegative = true;
     cachedState = ne.d_validationState;
     if (s_addExtendedResolutionDNSErrors) {
-      context.extendedError = EDNSExtendedError{0, "Result synthesized by root-nx-trust"};
+      context.extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::Synthesized), "Result synthesized by root-nx-trust"};
     }
   }
   else if (g_negCache->get(qname, qtype, d_now, ne, false, d_serveStale, d_refresh)) {
@@ -2779,13 +2779,13 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
           LOG(prefix << qname << "|" << qtype << ": Is negatively cached via '" << ne.d_auth << "' for another " << sttl << " seconds" << endl);
           res = RCode::NoError;
           if (s_addExtendedResolutionDNSErrors) {
-            context.extendedError = EDNSExtendedError{0, "Result from negative cache"};
+            context.extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::Synthesized), "Result from negative cache"};
           }
         }
         else {
           LOG(prefix << qname << ": Entire name '" << qname << "' is negatively cached via '" << ne.d_auth << "' for another " << sttl << " seconds" << endl);
           if (s_addExtendedResolutionDNSErrors) {
-            context.extendedError = EDNSExtendedError{0, "Result from negative cache for entire name"};
+            context.extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::Synthesized), "Result from negative cache for entire name"};
           }
         }
       }
@@ -2811,7 +2811,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
           cachedState = ne.d_validationState;
           LOG(prefix << qname << ": Name '" << negCacheName << "' and below, is negatively cached via '" << ne.d_auth << "' for another " << sttl << " seconds" << endl);
           if (s_addExtendedResolutionDNSErrors) {
-            context.extendedError = EDNSExtendedError{0, "Result synthesized by nothing-below-nxdomain (RFC8020)"};
+            context.extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::Synthesized), "Result synthesized by nothing-below-nxdomain (RFC8020)"};
           }
           break;
         }
@@ -2973,7 +2973,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
     if (g_aggressiveNSECCache->getDenial(d_now.tv_sec, qname, qtype, ret, res, d_cacheRemote, d_routingTag, d_doDNSSEC, LogObject(prefix))) {
       context.state = vState::Secure;
       if (s_addExtendedResolutionDNSErrors) {
-        context.extendedError = EDNSExtendedError{0, "Result synthesized from aggressive NSEC cache (RFC8198)"};
+        context.extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::Synthesized), "Result synthesized from aggressive NSEC cache (RFC8198)"};
       }
       return true;
     }
