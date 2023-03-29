@@ -792,7 +792,6 @@ MBOXFW
 mbytes
 Meerwald
 Mekking
-MEMLOCK
 memlock
 Memusage
 menuselection
