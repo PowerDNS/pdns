@@ -3984,6 +3984,12 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   }
 
   d_totUsec += lwr.d_usec;
+
+  if (resolveret == LWResult::Result::Spoofed) {
+    spoofed = true;
+    return false;
+  }
+
   accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
 
   bool dontThrottle = false;
@@ -4014,9 +4020,6 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       /* OS resource limit reached */
       LOG(prefix<<qname<<": hit a local resource limit resolving"<< (doTCP ? " over TCP" : "")<<", probable error: "<<stringerror()<<endl);
       g_stats.resourceLimits++;
-    }
-    else if (resolveret == LWResult::Result::Spoofed) {
-      spoofed = true;
     }
     else {
       /* -1 means server unreachable */
