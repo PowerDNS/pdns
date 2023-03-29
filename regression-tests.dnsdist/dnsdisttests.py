@@ -174,7 +174,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             return
         try:
             p.terminate()
-            for count in range(10):
+            for count in range(20):
                 x = p.poll()
                 if x is not None:
                     break
