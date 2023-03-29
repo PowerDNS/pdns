@@ -2,6 +2,16 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+  :version: 4.8.4
+  :released: 29th of March 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12700
+
+    PowerDNS Security Advisory 2023-02: Deterred spoofing attempts can lead to authoritative servers being marked unavailable.
+
+.. changelog::
   :version: 4.8.3
   :released: 7th of March 2023
 
