@@ -2,6 +2,28 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.8.0
+  :released: 30th of March 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12687
+
+    Fix 'Unknown key' issue for actions and rules parameters
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12672
+
+    Fix a dnsheader unaligned case
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12654
+
+    secpoll: explicitly include necessary ctime header for time_t
+
+.. changelog::
   :version: 1.8.0-rc3
   :released: 16th of March 2023
 
