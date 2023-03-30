@@ -3179,7 +3179,7 @@ try
   }
   else if (cmds.at(0) == "clear-zone") {
     if(cmds.size() != 2) {
-      cerr<<"Syntax: pdnsutil edit-zone ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil clear-zone ZONE"<<endl;
       return 0;
     }
     if (cmds.at(1) == ".")
