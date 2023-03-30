@@ -14,7 +14,7 @@ End of life statements
      -
    * - 1.7
      - January 17 2022
-     -
+     - March 30 2023
      -
    * - 1.6
      - May 11 2021
