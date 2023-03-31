@@ -420,9 +420,13 @@ static void handleRPZCustom(const DNSRecord& spoofed, const QType& qtype, SyncRe
   }
 }
 
-static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_t& minTTL, uint32_t ttlCap, const uint16_t maxAnswerSize)
+static bool addRecordToPacket(DNSPacketWriter& pw, const DNSRecord& rec, uint32_t& minTTL, uint32_t ttlCap, const uint16_t maxAnswerSize, bool& seenAuthSOA)
 {
   pw.startRecord(rec.d_name, rec.d_type, (rec.d_ttl > ttlCap ? ttlCap : rec.d_ttl), rec.d_class, rec.d_place);
+
+  if (rec.d_type == QType::SOA && rec.d_place == DNSResourceRecord::AUTHORITY) {
+    seenAuthSOA = true;
+  }
 
   if (rec.d_type != QType::OPT) // their TTL ain't real
     minTTL = min(minTTL, rec.d_ttl);
@@ -875,6 +879,20 @@ static void dumpTrace(const string& trace, const timeval& timev)
   // fclose by unique_ptr does implicit flush
 }
 
+static uint32_t capPacketCacheTTL(const struct dnsheader& hdr, uint32_t ttl, bool seenAuthSOA)
+{
+  if (hdr.rcode == RCode::NXDomain || (hdr.rcode == RCode::NoError && hdr.ancount == 0 && seenAuthSOA)) {
+    ttl = std::min(ttl, SyncRes::s_packetcachenegativettl);
+  }
+  else if ((hdr.rcode != RCode::NoError && hdr.rcode != RCode::NXDomain) || (hdr.ancount == 0 && hdr.nscount == 0)) {
+    ttl = min(ttl, SyncRes::s_packetcacheservfailttl);
+  }
+  else {
+    ttl = std::min(ttl, SyncRes::s_packetcachettl);
+  }
+  return ttl;
+}
+
 void startDoResolve(void* p)
 {
   auto dc = std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
@@ -984,6 +1002,7 @@ void startDoResolve(void* p)
        If we have a TTL cap, this value can't be larger than the
        cap no matter what. */
     uint32_t minTTL = dc->d_ttlCap;
+    bool seenAuthSOA = false;
 
     sr.d_eventTrace = std::move(dc->d_eventTrace);
     sr.setId(MT->getTid());
@@ -1413,7 +1432,7 @@ void startDoResolve(void* p)
           continue;
         }
 
-        if (!addRecordToPacket(pw, *i, minTTL, dc->d_ttlCap, maxanswersize)) {
+        if (!addRecordToPacket(pw, *i, minTTL, dc->d_ttlCap, maxanswersize, seenAuthSOA)) {
           needCommit = false;
           break;
         }
@@ -1655,11 +1674,7 @@ void startDoResolve(void* p)
     }
 
     if (t_packetCache && !variableAnswer && !sr.wasVariable()) {
-      const auto& hdr = pw.getHeader();
-      if ((hdr->rcode != RCode::NoError && hdr->rcode != RCode::NXDomain) || (hdr->ancount == 0 && hdr->nscount == 0)) {
-        minTTL = min(minTTL, SyncRes::s_packetcacheservfailttl);
-      }
-      minTTL = min(minTTL, SyncRes::s_packetcachettl);
+      minTTL = capPacketCacheTTL(*pw.getHeader(), minTTL, seenAuthSOA);
       t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
                                           dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                           string((const char*)&*packet.begin(), packet.size()),

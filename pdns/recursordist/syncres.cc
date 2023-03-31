@@ -436,6 +436,7 @@ unsigned int SyncRes::s_minimumTTL;
 unsigned int SyncRes::s_minimumECSTTL;
 unsigned int SyncRes::s_packetcachettl;
 unsigned int SyncRes::s_packetcacheservfailttl;
+unsigned int SyncRes::s_packetcachenegativettl;
 unsigned int SyncRes::s_serverdownmaxfails;
 unsigned int SyncRes::s_serverdownthrottletime;
 unsigned int SyncRes::s_nonresolvingnsmaxfails;
