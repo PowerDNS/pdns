@@ -282,7 +282,7 @@ static void carbonHandler(Carbon::Endpoint&& endpoint)
           usleep(toSleepUSec);
         }
         else {
-          vinfolog("Carbon export for %s took longer (%s usec) than the configured interval (%d usec)", endpoint.server.toStringWithPort(), elapsedUSec, intervalUSec);
+          vinfolog("Carbon export for %s took longer (%s us) than the configured interval (%d us)", endpoint.server.toStringWithPort(), elapsedUSec, intervalUSec);
         }
         consecutiveFailures = 0;
       }

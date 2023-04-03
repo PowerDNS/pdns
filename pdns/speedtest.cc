@@ -53,7 +53,7 @@ template<typename C> void doRun(const C& cmd, int mseconds=100)
     cmd();
   }
   double delta=dt.ndiff()/1000000000.0;
-  boost::format fmt("'%s' %.02f seconds: %.1f runs/s, %.02f usec/run");
+  boost::format fmt("'%s' %.02f seconds: %.1f runs/s, %.02f us/run");
 
   cerr<< (fmt % cmd.getName() % delta % (runs/delta) % (delta* 1000000.0/runs)) << endl;
   g_totalRuns += runs;

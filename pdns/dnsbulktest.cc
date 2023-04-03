@@ -188,9 +188,9 @@ struct SendReceive
   {
     (*d_acc)(usec/1000.0);
 //    if(usec > 1000000)
-  //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" msec)\n";
+  //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" ms)\n";
     if(!g_quiet) {
-      cout<<domain.name<<"|"<<DNSRecordContent::NumberToType(domain.type)<<": ("<<usec/1000.0<<"msec) rcode: "<<dr.rcode;
+      cout<<domain.name<<"|"<<DNSRecordContent::NumberToType(domain.type)<<": ("<<usec/1000.0<<" ms) rcode: "<<dr.rcode;
       for(const ComboAddress& ca :  dr.ips) {
         cout<<", "<<ca.toString();
       }
@@ -351,9 +351,9 @@ try
   cerr<< datafmt % "Total " % (sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns + inflighter.getTimeouts()) % "" % "";
   
   cerr<<"\n";
-  cerr<< "Mean response time: "<<mean(*sr.d_acc) << " msec"<<", median: "<<median(*sr.d_acc)<< " msec\n";
+  cerr<< "Mean response time: "<<mean(*sr.d_acc) << " ms"<<", median: "<<median(*sr.d_acc)<< " ms\n";
   
-  boost::format statfmt("Time < %6.03f msec %|30t|%6.03f%% cumulative\n");
+  boost::format statfmt("Time < %6.03f ms %|30t|%6.03f%% cumulative\n");
   
   for (unsigned int i = 0; i < sr.d_probs.size(); ++i) {
         cerr << statfmt % extended_p_square(*sr.d_acc)[i] % (100*sr.d_probs[i]);

@@ -375,7 +375,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
 
   if(verified) {
     udiffVerify = dt.udiff() / 100;
-    cout<<"Signature & verify ok, create "<<udiffCreate<<"usec, signature "<<udiffSign<<"usec, verify "<<udiffVerify<<"usec"<<endl;
+    cout<<"Signature & verify ok, create "<<udiffCreate<<"us, signature "<<udiffSign<<"us, verify "<<udiffVerify<<"us"<<endl;
   }
   else {
     throw runtime_error("Verification of creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");

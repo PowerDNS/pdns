@@ -247,7 +247,7 @@ try
   if(g_verbose) {
     cout<<"Sending queries to: "<<g_dest.toStringWithPort()<<endl;
     cout<<"Attempting UDP first: " << (g_onlyTCP ? "no" : "yes") <<endl;
-    cout<<"Timeout: "<< g_timeoutMsec<<"msec"<<endl;
+    cout<<"Timeout: "<< g_timeoutMsec<<" ms"<<endl;
     cout << "Using TCP_NODELAY: "<<g_tcpNoDelay<<endl;
   }
 
@@ -305,8 +305,8 @@ try
   }
 
   cout<<"Average qps: "<<mean(qps)<<", median qps: "<<median(qps)<<endl;
-  cout<<"Average UDP latency: "<<mean(udpspeeds)<<"usec, median: "<<median(udpspeeds)<<"usec"<<endl;
-  cout<<"Average TCP latency: "<<mean(tcpspeeds)<<"usec, median: "<<median(tcpspeeds)<<"usec"<<endl;
+  cout<<"Average UDP latency: "<<mean(udpspeeds)<<" us, median: "<<median(udpspeeds)<<" us"<<endl;
+  cout<<"Average TCP latency: "<<mean(tcpspeeds)<<" us, median: "<<median(tcpspeeds)<<" us"<<endl;
 
   cout<<"OK: "<<g_OK<<", network errors: "<<g_networkErrors<<", other errors: "<<g_otherErrors<<endl;
   cout<<"Timeouts: "<<g_timeOuts<<endl;

@@ -478,9 +478,9 @@ try
 
         perc=sum*100.0/totpairs;
         if(j->first < 1024)
-          cout<< perc <<"% of questions answered within " << j->first << " usec (";
+          cout<< perc <<"% of questions answered within " << j->first << " us (";
         else
-          cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
+          cout<< perc <<"% of questions answered within " << j->first/1000.0 << " ms (";
 
         cout<<perc-lastperc<<"%)\n";
         lastperc=sum*100.0/totpairs;
@@ -494,9 +494,9 @@ try
     if(!j->second) {
       perc=sum*100.0/totpairs;
       if(j->first < 1024)
-        cout<< perc <<"% of questions answered within " << j->first << " usec (";
+        cout<< perc <<"% of questions answered within " << j->first << " us (";
       else
-        cout<< perc <<"% of questions answered within " << j->first/1000.0 << " msec (";
+        cout<< perc <<"% of questions answered within " << j->first/1000.0 << " ms (";
 
       cout<<perc-lastperc<<"%)\n";
       lastperc=sum*100.0/totpairs;
@@ -507,7 +507,7 @@ try
 
   cout<< (totpairs-lastsum)<<" responses ("<<((totpairs-lastsum)*100.0/answers) <<"%) older than "<< (done.rbegin()->first/1000000.0) <<" seconds"<<endl;
   if(totpairs)
-    cout<<"Average non-late response time: "<<tottime/totpairs<<" usec"<<endl;
+    cout<<"Average non-late response time: "<<tottime/totpairs<<" us"<<endl;
 
   if(!g_vm["load-stats"].as<string>().empty()) {
     ofstream load(g_vm["load-stats"].as<string>().c_str());
