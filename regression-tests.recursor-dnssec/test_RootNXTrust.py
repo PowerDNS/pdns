@@ -138,4 +138,4 @@ extended-resolution-errors
         self.assertEqual(res.edns, 0)
         self.assertEqual(len(res.options), 1)
         self.assertEqual(res.options[0].otype, 15)
-        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(0, b'Result synthesized by root-nx-trust'))
+        self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(29, b'Result synthesized by root-nx-trust'))
