@@ -466,8 +466,7 @@ overloaded, but it will be at the cost of an increased latency.
 -  Default: 1 if `pdns-distributes-queries`_ is set, 0 otherwise
 
 If `pdns-distributes-queries`_ is set, spawn this number of distributor threads on startup. Distributor threads
-handle incoming queries and distribute them to other threads based on a hash of the query, to maximize the cache hit
-ratio.
+handle incoming queries and distribute them to other threads based on a hash of the query.
 
 .. _setting-dot-to-auth-names:
 
@@ -1636,12 +1635,17 @@ you can try to enlarge this value or run with fewer threads.
 ``pdns-distributes-queries``
 ----------------------------
 -  Boolean
--  Default: yes
+-  Default: no
 
 If set, PowerDNS will use distinct threads to listen to client sockets and distribute that work to worker-threads using a hash of the query.
-This feature should maximize the cache hit ratio.
-To use more than one thread set `distributor-threads` in version 4.2.0 or newer.
-Enabling should improve performance for medium sized resolvers.
+This feature should maximize the cache hit ratio on versions before 4.9.0.
+To use more than one thread set `distributor-threads`_ in version 4.2.0 or newer.
+Enabling should improve performance on systems where `reuseport`_ does not have the effect of
+balancing the queries evenly over multiple worker threads.
+
+.. versionchanged:: 4.9.0
+
+   Default changed to ``no``, previously it was ``yes``.
 
 .. _setting-protobuf-use-kernel-timestamp:
 
@@ -1801,11 +1805,16 @@ A typical value is 10. If the value is zero, this functionality is disabled.
 ``reuseport``
 -------------
 -  Boolean
--  Default: no
+-  Default: yes
 
 If ``SO_REUSEPORT`` support is available, allows multiple threads and processes to open listening sockets for the same port.
 
-Since 4.1.0, when ``pdns-distributes-queries`` is set to false and ``reuseport`` is enabled, every worker-thread will open a separate listening socket to let the kernel distribute the incoming queries instead of running a distributor thread (which could otherwise be a bottleneck) and avoiding thundering herd issues, thus leading to much higher performance on multi-core boxes.
+Since 4.1.0, when `pdns-distributes-queries`_ is disabled and `reuseport`_ is enabled, every worker-thread will open a separate listening socket to let the kernel distribute the incoming queries instead of running a distributor thread (which could otherwise be a bottleneck) and avoiding thundering herd issues, thus leading to much higher performance on multi-core boxes.
+
+.. versionchanged:: 4.9.0
+
+   The default is changed to ``yes``, previously it was ``no``.
+   If ``SO_REUSEPORT`` support is not available, the setting defaults to ``no``.
 
 .. _setting-rng:
 

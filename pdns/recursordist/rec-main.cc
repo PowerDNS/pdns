@@ -2739,7 +2739,7 @@ int main(int argc, char** argv)
     ::arg().set("ecs-add-for", "List of client netmasks for which EDNS Client Subnet will be added") = "0.0.0.0/0, ::/0, " LOCAL_NETS_INVERSE;
     ::arg().set("ecs-scope-zero-address", "Address to send to allow-listed authoritative servers for incoming queries with ECS prefix-length source of 0") = "";
     ::arg().setSwitch("use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information") = "no";
-    ::arg().setSwitch("pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads") = "yes";
+    ::arg().setSwitch("pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads") = "no";
     ::arg().setSwitch("root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist") = "yes";
     ::arg().setSwitch("any-to-tcp", "Answer ANY queries with tc=1, shunting to TCP") = "no";
     ::arg().setSwitch("lowercase-outgoing", "Force outgoing questions to lowercase") = "no";
@@ -2759,8 +2759,11 @@ int main(int argc, char** argv)
     ::arg().set("include-dir", "Include *.conf files from this directory") = "";
     ::arg().set("security-poll-suffix", "Domain name from which to query security update notifications") = "secpoll.powerdns.com.";
 
+#ifdef SO_REUSEPORT
+    ::arg().setSwitch("reuseport", "Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address") = "yes";
+#else
     ::arg().setSwitch("reuseport", "Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address") = "no";
-
+#endif
     ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent") = "no";
     ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon (deprecated)") = "";
     ::arg().set("snmp-daemon-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon") = "";
