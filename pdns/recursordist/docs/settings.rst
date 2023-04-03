@@ -42,12 +42,11 @@ In this case the address ``128.66.1.2`` is excluded from the addresses allowed a
 The number of records to cache in the aggressive cache. If set to a value greater than 0, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in :rfc:`8198`.
 To use this, DNSSEC processing or validation must be enabled by setting `dnssec`_ to ``process``, ``log-fail`` or ``validate``.
 
-.. _setting-aggressive-cache-max-nsec3-hit-ratio:
+.. _setting-aggressive-cache-min-nsec3-hit-ratio:
 
 ``aggressive-cache-min-nsec3-hit-ratio``
 ----------------------------------------
-
-.. versionadded: 4.9.0
+.. versionadded:: 4.9.0
 
 - Integer
 - Default: 2000
@@ -1611,6 +1610,7 @@ i.e. setting ``packetcache-ttl=15`` and keeping ``packetcache-negative-ttl`` at 
 
 Maximum number of seconds to cache an answer indicating a failure to resolve in the packet cache.
 Before version 4.6.0 only ``ServFail`` answers were considered as such. Starting with 4.6.0, all responses with a code other than ``NoError`` and ``NXDomain``, or without records in the answer and authority sections, are considered as a failure to resolve.
+Since 4.9.0, negative answers are handled separately from resolving failures.
 
 .. versionchanged:: 4.0.0
 

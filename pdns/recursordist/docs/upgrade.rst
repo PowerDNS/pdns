@@ -15,6 +15,25 @@ This is now resolved, but has the consequence that some metrics (in particular r
 This affects the results shown by ``rec_control get-qtypelist`` and the ``response-by-qtype``, ``response-sizes`` and ``response-by-rcode`` items returned by the ``/api/v1/servers/localhost/statistics`` API endpoint.
 Additionally, most ``RCodes`` and ``QTypes`` that are marked ``Unassigned``, ``Reserved`` or ``Obsolete`` by IANA are not accounted, to reduce the memory consumed by these metrics.
 
+New settings
+~~~~~~~~~~~~
+- The :ref:`setting-packetcache-negative-ttl` settings to control the TTL of negative (NxDomain or NoData) answers in the packet cache has been introduced.
+- The :ref:`setting-stack-cache-size` setting to  control the number of allocated mthread stacks has been introduced.
+- The :ref:`setting-packetcache-shards` settings to control the number of shards in the packet cache has been introduced.
+- The :ref:`setting-aggressive-cache-min-nsec3-hit-ratio` setting to control which NSEC3 records are stored in the aggressive NSEC cache has been introduced.
+
+Changed settings
+~~~~~~~~~~~~~~~~
+The first two settings below have effect on the way the recursor distributes queries over threads.
+In some rare cases, this can have negative performance impact.
+In those cases it might be needed to change these settings.
+See :doc:`performance`.
+
+- The :ref:`setting-pdns-distributes-queries` default has been changed to ``no``.
+- The :ref:`setting-reuseport` default has been changed to ``yes``.
+
+- The :ref:`setting-packetcache-ttl` default has been changed to 24 hours.
+
 :program:`rec_control`
 ^^^^^^^^^^^^^^^^^^^^^^
 The ``trace_regex`` subcommand has been changed to take a file argument.
@@ -60,7 +79,6 @@ The ``dump-throttle`` and ``dump-edns`` subcommands no longer produces a table p
 Additionally, the ``dump-edns`` command  now only lists IPs that have a not OK status.
 The ``dump-nsspeeds`` command has changed format to make it more readable and lists the last round trip time recorded for each address.
 The ``get-proxymapping-stats`` and ``get-remotelogger-stats`` subcommands have been added.
-
 
 4.7.2 to 4.7.3
 --------------
