@@ -2694,7 +2694,7 @@ int main(int argc, char** argv)
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory") = "3600";
     ::arg().set("max-cache-bogus-ttl", "maximum number of seconds to keep a Bogus (positive or negative) cached entry in memory") = "3600";
     ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory") = "86400";
-    ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache") = "3600";
+    ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache") = "86400";
     ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache") = "500000";
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache") = "60";
     ::arg().set("packetcache-negative-ttl", "maximum number of seconds to keep a cached NxDomain or NoData entry in packetcache") = "60";
