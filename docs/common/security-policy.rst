@@ -12,10 +12,10 @@ This :doc:`license <../common/license>`  is included in this documentation.
 
 If you believe you have found a security vulnerability that applies to DNS implementations generally, and you want to report this responsibly to a number of implementers, you might consider also using the `Open Source DNS Vulnerability mailing list <https://www.dns-oarc.net/oarc/oss-dns-vulns/>`_, managed by `DNS-OARC <https://www.dns-oarc.net/>`_.
 
-HackerOne
+YesWeHack
 ^^^^^^^^^
-Security issues can also be reported on `our HackerOne page <https://hackerone.com/powerdns>`_ and might fetch a bounty.
-Do note that only the PowerDNS software is in scope for the HackerOne program, not our websites or other infrastructure.
+Security issues can also be reported on `our YesWeHack page <https://yeswehack.com/programs/powerdns>`_ and might fetch a bounty.
+Do note that only the PowerDNS software is in scope for the YesWeHack program, not our websites or other infrastructure.
 
 Disclosure Policy
 ^^^^^^^^^^^^^^^^^
