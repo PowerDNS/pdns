@@ -2,7 +2,7 @@ PowerDNS and dnsdist Security Policy
 ====================================
 
 If you have a security problem to report, please email us at both peter.van.dijk@powerdns.com and remi.gacogne@powerdns.com.
-In case you want to encrypt your report using PGP, please use: https://www.powerdns.com/powerdns-keyblock.asc
+In case you want to encrypt your report using PGP, please use: https://doc.powerdns.com/powerdns-keyblock.asc
 
 Please do not mail security issues to public lists, nor file a ticket, unless we do not get back to you in a timely manner.
 We fully credit reporters of security issues, and respond quickly, but please allow us a reasonable timeframe to coordinate a response.
