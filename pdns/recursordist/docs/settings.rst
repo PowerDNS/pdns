@@ -1582,9 +1582,26 @@ If an answer containing an NSEC3 record with more iterations is received, its DN
 ``packetcache-ttl``
 -------------------
 -  Integer
--  Default: 3600
+-  Default: 86400
 
 Maximum number of seconds to cache an item in the packet cache, no matter what the original TTL specified.
+
+.. versionchanged:: 4.9.0
+
+   The default was changed from 3600 (1 hour) to 86400 (24 hours).
+
+.. _setting-packetcache-negative-ttl:
+
+``packetcache-negative-ttl``
+----------------------------
+.. versionadded:: 4.9.0
+
+-  Integer
+-  Default: 60
+
+Maximum number of seconds to cache an ``NxDomain`` or ``NoData`` answer in the packetcache.
+This setting's maximum is capped to `packetcache-ttl`_.
+i.e. setting ``packetcache-ttl=15`` and keeping ``packetcache-negative-ttl`` at the default will lower ``packetcache-negative-ttl`` to ``15``.
 
 .. _setting-packetcache-servfail-ttl:
 

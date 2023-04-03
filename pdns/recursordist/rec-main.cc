@@ -1510,10 +1510,12 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   SyncRes::s_maxnegttl = ::arg().asNum("max-negative-ttl");
   SyncRes::s_maxbogusttl = ::arg().asNum("max-cache-bogus-ttl");
   SyncRes::s_maxcachettl = max(::arg().asNum("max-cache-ttl"), 15);
+
   SyncRes::s_packetcachettl = ::arg().asNum("packetcache-ttl");
-  // Cap the packetcache-servfail-ttl to the packetcache-ttl
-  uint32_t packetCacheServFailTTL = ::arg().asNum("packetcache-servfail-ttl");
-  SyncRes::s_packetcacheservfailttl = (packetCacheServFailTTL > SyncRes::s_packetcachettl) ? SyncRes::s_packetcachettl : packetCacheServFailTTL;
+  // Cap the packetcache-servfail-ttl and packetcache-negative-ttl to packetcache-ttl
+  SyncRes::s_packetcacheservfailttl = std::min(static_cast<unsigned int>(::arg().asNum("packetcache-servfail-ttl")), SyncRes::s_packetcachettl);
+  SyncRes::s_packetcachenegativettl = std::min(static_cast<unsigned int>(::arg().asNum("packetcache-negative-ttl")), SyncRes::s_packetcachettl);
+
   SyncRes::s_serverdownmaxfails = ::arg().asNum("server-down-max-fails");
   SyncRes::s_serverdownthrottletime = ::arg().asNum("server-down-throttle-time");
   SyncRes::s_nonresolvingnsmaxfails = ::arg().asNum("non-resolving-ns-max-fails");
@@ -2692,9 +2694,10 @@ int main(int argc, char** argv)
     ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory") = "3600";
     ::arg().set("max-cache-bogus-ttl", "maximum number of seconds to keep a Bogus (positive or negative) cached entry in memory") = "3600";
     ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory") = "86400";
-    ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache") = "3600";
+    ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache") = "86400";
     ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache") = "500000";
     ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache") = "60";
+    ::arg().set("packetcache-negative-ttl", "maximum number of seconds to keep a cached NxDomain or NoData entry in packetcache") = "60";
     ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname, set custom or 'disabled'") = "";
     ::arg().set("stats-ringbuffer-entries", "maximum number of packets to store statistics for") = "10000";
     ::arg().set("version-string", "string reported on version.pdns or version.bind") = fullVersionString();

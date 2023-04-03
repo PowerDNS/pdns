@@ -518,6 +518,7 @@ public:
   static unsigned int s_maxcachettl;
   static unsigned int s_packetcachettl;
   static unsigned int s_packetcacheservfailttl;
+  static unsigned int s_packetcachenegativettl;
   static unsigned int s_serverdownmaxfails;
   static unsigned int s_serverdownthrottletime;
   static unsigned int s_nonresolvingnsmaxfails;
