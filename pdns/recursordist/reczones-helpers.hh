@@ -32,6 +32,9 @@
 #include "syncres.hh"
 #include "logger.hh"
 
+bool readHintsIntoCache(time_t now, const std::string& hintfile, std::vector<DNSRecord>& nsvec);
+void putDefaultHintsIntoCache(time_t now, std::vector<DNSRecord>& nsvec);
+
 void makeIPToNamesZone(const std::shared_ptr<SyncRes::domainmap_t>& newMap,
                        const vector<string>& parts,
                        Logr::log_t log);

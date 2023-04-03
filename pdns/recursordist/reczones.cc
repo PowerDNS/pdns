@@ -25,138 +25,38 @@
 #endif
 
 #include "reczones-helpers.hh"
-#include "syncres.hh"
 #include "arguments.hh"
-#include "zoneparser-tng.hh"
-#include "logger.hh"
 #include "dnsrecords.hh"
-#include "root-addresses.hh"
+#include "logger.hh"
+#include "syncres.hh"
+#include "zoneparser-tng.hh"
 
 extern int g_argc;
 extern char** g_argv;
 
-bool primeHints(time_t ignored)
+bool primeHints(time_t now)
 {
-  // prime root cache
-  const vState validationState = vState::Insecure;
-  const ComboAddress from("255.255.255.255");
-  vector<DNSRecord> nsset;
-
-  time_t now = time(nullptr);
-
-  auto log = g_slog->withName("config");
   const string hintfile = ::arg()["hint-file"];
+  vector<DNSRecord> nsvec;
+  bool ret = true;
+
   if (hintfile == "no") {
+    auto log = g_slog->withName("config");
     SLOG(g_log << Logger::Debug << "Priming root disabled by hint-file=no" << endl,
          log->info(Logr::Debug, "Priming root disabled by hint-file=no"));
-    return true;
+    return ret;
   }
+
   if (hintfile.empty()) {
-    DNSRecord arr, aaaarr, nsrr;
-    nsrr.d_name = g_rootdnsname;
-    arr.d_type = QType::A;
-    aaaarr.d_type = QType::AAAA;
-    nsrr.d_type = QType::NS;
-
-    arr.d_ttl = aaaarr.d_ttl = nsrr.d_ttl = now + 3600000;
-
-    for (char c = 'a'; c <= 'm'; ++c) {
-      char templ[40];
-      strncpy(templ, "a.root-servers.net.", sizeof(templ) - 1);
-      templ[sizeof(templ) - 1] = '\0';
-      *templ = c;
-      aaaarr.d_name = arr.d_name = DNSName(templ);
-      nsrr.setContent(std::make_shared<NSRecordContent>(DNSName(templ)));
-      arr.setContent(std::make_shared<ARecordContent>(ComboAddress(rootIps4[c - 'a'])));
-      vector<DNSRecord> aset;
-      aset.push_back(arr);
-      /*
-       * Originally the hint records were inserted with the auth flag set, with the consequence that data from AUTHORITY and
-       * ADDITIONAL sections (as seen in a . NS response) were not used. This (together with the long ttl) caused outdated
-       * hint to be kept in cache. So insert as non-auth, and the extra sections in the . NS refreshing cause the cached
-       * records to be updated with up-to-date information received from a real root server.
-       *
-       * Note that if a user query is done for one of the root-server.net names, it will be inserted into the cache with the
-       * auth bit set. Further NS refreshes will not update that entry. If all root names are queried at the same time by a user,
-       * all root-server.net names will be marked auth and will expire at the same time. A re-prime is then triggered,
-       * as before, when the records were inserted with the auth bit set and the TTD comes.
-       */
-      g_recCache->replace(now, DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname, boost::none, boost::none, validationState, from); // auth, nuke it all
-      if (rootIps6[c - 'a'] != NULL) {
-        aaaarr.setContent(std::make_shared<AAAARecordContent>(ComboAddress(rootIps6[c - 'a'])));
-
-        vector<DNSRecord> aaaaset;
-        aaaaset.push_back(aaaarr);
-        g_recCache->replace(now, DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname, boost::none, boost::none, validationState, from);
-      }
-
-      nsset.push_back(nsrr);
-    }
+    putDefaultHintsIntoCache(now, nsvec);
   }
   else {
-    ZoneParserTNG zpt(hintfile);
-    zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
-    zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
-    DNSResourceRecord rr;
-    set<DNSName> seenNS;
-    set<DNSName> seenA;
-    set<DNSName> seenAAAA;
-
-    while (zpt.get(rr)) {
-      rr.ttl += now;
-      if (rr.qtype.getCode() == QType::A) {
-        seenA.insert(rr.qname);
-        vector<DNSRecord> aset;
-        aset.push_back(DNSRecord(rr));
-        g_recCache->replace(now, rr.qname, QType(QType::A), aset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState, from); // auth, etc see above
-      }
-      else if (rr.qtype.getCode() == QType::AAAA) {
-        seenAAAA.insert(rr.qname);
-        vector<DNSRecord> aaaaset;
-        aaaaset.push_back(DNSRecord(rr));
-        g_recCache->replace(now, rr.qname, QType(QType::AAAA), aaaaset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::none, boost::none, validationState, from);
-      }
-      else if (rr.qtype.getCode() == QType::NS) {
-        seenNS.insert(DNSName(rr.content));
-        rr.content = toLower(rr.content);
-        nsset.push_back(DNSRecord(rr));
-      }
-    }
-
-    // Check reachability of A and AAAA records
-    bool reachableA = false, reachableAAAA = false;
-    for (auto const& r : seenA) {
-      if (seenNS.count(r)) {
-        reachableA = true;
-        break;
-      }
-    }
-    for (auto const& r : seenAAAA) {
-      if (seenNS.count(r)) {
-        reachableAAAA = true;
-        break;
-      }
-    }
-    if (SyncRes::s_doIPv4 && !SyncRes::s_doIPv6 && !reachableA) {
-      SLOG(g_log << Logger::Error << "Running IPv4 only but no IPv4 root hints" << endl,
-           log->info(Logr::Error, "Running IPv4 only but no IPv4 root hints"));
-      return false;
-    }
-    if (!SyncRes::s_doIPv4 && SyncRes::s_doIPv6 && !reachableAAAA) {
-      SLOG(g_log << Logger::Error << "Running IPv6 only but no IPv6 root hints" << endl,
-           log->info(Logr::Error, "Running IPv6 only but no IPv6 root hints"));
-      return false;
-    }
-    if (SyncRes::s_doIPv4 && SyncRes::s_doIPv6 && !reachableA && !reachableAAAA) {
-      SLOG(g_log << Logger::Error << "No valid root hints" << endl,
-           log->info(Logr::Error, "No valid root hints"));
-      return false;
-    }
+    ret = readHintsIntoCache(now, hintfile, nsvec);
   }
 
   g_recCache->doWipeCache(g_rootdnsname, false, QType::NS);
-  g_recCache->replace(now, g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname, boost::none, boost::none, validationState, from); // and stuff in the cache
-  return true;
+  g_recCache->replace(now, g_rootdnsname, QType::NS, nsvec, {}, {}, false, g_rootdnsname, boost::none, boost::none, vState::Insecure, ComboAddress("255.255.255.255")); // and stuff in the cache
+  return ret;
 }
 
 static void convertServersForAD(const std::string& zone, const std::string& input, SyncRes::AuthDomain& ad, const char* sepa, Logr::log_t log, bool verbose = true)

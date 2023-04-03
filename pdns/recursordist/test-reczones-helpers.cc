@@ -258,4 +258,48 @@ BOOST_FIXTURE_TEST_CASE(test_loading_etc_hosts, Fixture)
   BOOST_TEST_MESSAGE("-----------------------------------------------------");
 }
 
+const std::string hints = ". 3600 IN NS ns.\n"
+                          ". 3600 IN NS ns1.\n"
+                          "ns. 3600 IN A 192.168.178.16\n"
+                          "ns. 3600 IN A 192.168.178.17\n"
+                          "ns. 3600 IN A 192.168.178.18\n"
+                          "ns. 3600 IN AAAA 1::2\n"
+                          "ns. 3600 IN AAAA 1::3\n"
+                          "ns1. 3600 IN A 192.168.178.18\n";
+
+BOOST_AUTO_TEST_CASE(test_UserHints)
+{
+
+  g_recCache = make_unique<MemRecursorCache>();
+
+  ::arg().set("max-generate-steps") = "0";
+  ::arg().set("max-include-depth") = "0";
+  char temp[] = "/tmp/hintsXXXXXXXXXX";
+  int fd = mkstemp(temp);
+  BOOST_REQUIRE(fd > 0);
+  FILE* fp = fdopen(fd, "w");
+  BOOST_REQUIRE(fp != nullptr);
+  size_t written = fwrite(hints.data(), 1, hints.length(), fp);
+  BOOST_REQUIRE(written == hints.length());
+  BOOST_REQUIRE(fclose(fp) == 0);
+
+  time_t now = time(nullptr);
+  std::vector<DNSRecord> nsvec;
+
+  auto ok = readHintsIntoCache(now, std::string(temp), nsvec);
+  BOOST_CHECK(ok);
+  BOOST_CHECK_EQUAL(nsvec.size(), 2U);
+
+  const MemRecursorCache::Flags flags = 0;
+
+  BOOST_CHECK(g_recCache->get(now, DNSName("ns"), QType::A, flags, &nsvec, ComboAddress()) > 0);
+  BOOST_CHECK_EQUAL(nsvec.size(), 3U);
+
+  BOOST_CHECK(g_recCache->get(now, DNSName("ns"), QType::AAAA, flags, &nsvec, ComboAddress()) > 0);
+  BOOST_CHECK_EQUAL(nsvec.size(), 2U);
+
+  BOOST_CHECK(g_recCache->get(now, DNSName("ns1"), QType::A, flags, &nsvec, ComboAddress()) > 0);
+  BOOST_CHECK_EQUAL(nsvec.size(), 1U);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
