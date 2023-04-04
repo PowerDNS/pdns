@@ -1070,7 +1070,15 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
 
   {"record-cache-contended",
    MetricDefinition(PrometheusMetricType::counter,
-                    "Number of contented record cache lock acquisitions")},
+                    "Number of contended record cache lock acquisitions")},
+
+  {"packetcache-acquired",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of packet cache lock acquisitions")},
+
+  {"packetcache-contended",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of contended packet cache lock acquisitions")},
 
   {"taskqueue-expired",
    MetricDefinition(PrometheusMetricType::counter,

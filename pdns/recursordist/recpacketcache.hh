@@ -34,6 +34,8 @@
 
 #include "packetcache.hh"
 #include "validate.hh"
+#include "lock.hh"
+#include "stat_t.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -41,11 +43,6 @@
 
 using namespace ::boost::multi_index;
 
-//! Stores whole packets, ready for lobbing back at the client. Not threadsafe.
-/* Note: we store answers as value AND KEY, and with careful work, we make sure that
-   you can use a query as a key too. But query and answer must compare as identical! 
-   
-   This precludes doing anything smart with EDNS directly from the packet */
 class RecursorPacketCache : public PacketCache
 {
 public:
@@ -57,44 +54,54 @@ public:
     std::string d_response;
     bool d_tagged;
   };
-  typedef boost::optional<PBData> OptPBData;
+  using OptPBData = boost::optional<PBData>;
 
-  RecursorPacketCache(size_t maxsize) :
-    d_maxSize(maxsize)
+  RecursorPacketCache(size_t maxsize, size_t shards = 1024) :
+    d_maps(shards)
   {
+    setMaxSize(maxsize);
   }
 
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash);
-  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, uint32_t* qhash);
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, time_t now,
+                         std::string* responsePacket, uint32_t* age, uint32_t* qhash)
+  {
+    DNSName qname;
+    uint16_t qtype{0};
+    uint16_t qclass{0};
+    vState valState{vState::Indeterminate};
+    return getResponsePacket(tag, queryPacket, qname, &qtype, &qclass, now, responsePacket, age, &valState, qhash, nullptr, false);
+  }
+
+  bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now,
+                         std::string* responsePacket, uint32_t* age, uint32_t* qhash)
+  {
+    vState valState{vState::Indeterminate};
+    return getResponsePacket(tag, queryPacket, qname, qtype, qclass, now, responsePacket, age, &valState, qhash, nullptr, false);
+  }
+
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp);
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp);
 
   void insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp);
-  void doPruneTo(size_t maxSize = 250000);
-  uint64_t doDump(int fd);
-  int doWipePacketCache(const DNSName& name, uint16_t qtype = 0xffff, bool subtree = false);
+  void doPruneTo(size_t maxSize);
+  uint64_t doDump(int file);
+  uint64_t doWipePacketCache(const DNSName& name, uint16_t qtype = 0xffff, bool subtree = false);
 
-  void setMaxSize(size_t sz)
+  void setMaxSize(size_t size)
   {
-    d_maxSize = sz;
+    if (size < d_maps.size()) {
+      size = d_maps.size();
+    }
+    setShardSizes(size / d_maps.size());
   }
 
-  uint64_t size() const
-  {
-    return d_packetCache.size();
-  }
-  uint64_t bytes() const;
-
-  uint64_t d_hits{0};
-  uint64_t d_misses{0};
+  [[nodiscard]] uint64_t size() const;
+  [[nodiscard]] uint64_t bytes();
+  [[nodiscard]] uint64_t getHits();
+  [[nodiscard]] uint64_t getMisses();
+  [[nodiscard]] pair<uint64_t, uint64_t> stats();
 
 private:
-  struct HashTag
-  {
-  };
-  struct NameTag
-  {
-  };
   struct Entry
   {
     Entry(const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& packet, std::string&& query, bool tcp,
@@ -129,24 +136,84 @@ private:
     }
   };
 
+  struct HashTag
+  {
+  };
+  struct NameTag
+  {
+  };
   struct SequencedTag
   {
   };
-  typedef multi_index_container<
-    Entry,
-    indexed_by<
-      hashed_non_unique<tag<HashTag>,
-                        composite_key<Entry,
-                                      member<Entry, uint32_t, &Entry::d_tag>,
-                                      member<Entry, uint32_t, &Entry::d_qhash>,
-                                      member<Entry, bool, &Entry::d_tcp>>>,
-      sequenced<tag<SequencedTag>>,
-      ordered_non_unique<tag<NameTag>, member<Entry, DNSName, &Entry::d_name>, CanonDNSNameCompare>>>
-    packetCache_t;
+  using packetCache_t = multi_index_container<Entry,
+                                              indexed_by<hashed_non_unique<tag<HashTag>,
+                                                                           composite_key<Entry,
+                                                                                         member<Entry, uint32_t, &Entry::d_tag>,
+                                                                                         member<Entry, uint32_t, &Entry::d_qhash>,
+                                                                                         member<Entry, bool, &Entry::d_tcp>>>,
+                                                         sequenced<tag<SequencedTag>>,
+                                                         ordered_non_unique<tag<NameTag>, member<Entry, DNSName, &Entry::d_name>, CanonDNSNameCompare>>>;
 
-  packetCache_t d_packetCache;
-  size_t d_maxSize;
+  struct MapCombo
+  {
+    MapCombo() = default;
+    MapCombo(const MapCombo&) = delete;
+    MapCombo& operator=(const MapCombo&) = delete;
+    struct LockedContent
+    {
+      packetCache_t d_map;
+      size_t d_shardSize{0};
+      uint64_t d_hits{0};
+      uint64_t d_misses{0};
+      uint64_t d_contended_count{0};
+      uint64_t d_acquired_count{0};
+      void invalidate() {}
+    };
+    pdns::stat_t d_entriesCount{0};
+
+    LockGuardedTryHolder<MapCombo::LockedContent> lock()
+    {
+      auto locked = d_content.try_lock();
+      if (!locked.owns_lock()) {
+        locked.lock();
+        ++locked->d_contended_count;
+      }
+      ++locked->d_acquired_count;
+      return locked;
+    }
+
+  private:
+    LockGuarded<LockedContent> d_content;
+  };
+
+  vector<MapCombo> d_maps;
+
+  static size_t combine(unsigned int tag, uint32_t hash, bool tcp)
+  {
+    size_t ret = 0;
+    boost::hash_combine(ret, tag);
+    boost::hash_combine(ret, hash);
+    boost::hash_combine(ret, tcp);
+    return ret;
+  }
+
+  MapCombo& getMap(unsigned int tag, uint32_t hash, bool tcp)
+  {
+    return d_maps.at(combine(tag, hash, tcp) % d_maps.size());
+  }
+
+  [[nodiscard]] const MapCombo& getMap(unsigned int tag, uint32_t hash, bool tcp) const
+  {
+    return d_maps.at(combine(hash, hash, tcp) % d_maps.size());
+  }
 
   static bool qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass);
-  bool checkResponseMatches(std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata);
+  bool checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata);
+
+  void setShardSizes(size_t shardSize);
+
+public:
+  void preRemoval(MapCombo::LockedContent& map, const Entry& entry)
+  {
+  }
 };

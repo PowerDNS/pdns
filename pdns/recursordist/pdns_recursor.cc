@@ -49,8 +49,8 @@ thread_local ProtobufServersInfo t_outgoingProtobufServers;
 thread_local std::unique_ptr<MT_t> MT; // the big MTasker
 std::unique_ptr<MemRecursorCache> g_recCache;
 std::unique_ptr<NegCache> g_negCache;
+std::unique_ptr<RecursorPacketCache> g_packetCache;
 
-thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
 thread_local std::unique_ptr<FDMultiplexer> t_fdm;
 thread_local std::unique_ptr<addrringbuf_t> t_remotes, t_servfailremotes, t_largeanswerremotes, t_bogusremotes;
 thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t>>> t_queryring, t_servfailqueryring, t_bogusqueryring;
@@ -1673,9 +1673,9 @@ void startDoResolve(void* p)
 #endif
     }
 
-    if (t_packetCache && !variableAnswer && !sr.wasVariable()) {
+    if (g_packetCache && !variableAnswer && !sr.wasVariable()) {
       minTTL = capPacketCacheTTL(*pw.getHeader(), minTTL, seenAuthSOA);
-      t_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
+      g_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
                                           dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
                                           string((const char*)&*packet.begin(), packet.size()),
                                           g_now.tv_sec,
@@ -1957,7 +1957,7 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       string& response, uint32_t& qhash,
                       RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source, const ComboAddress& mappedSource)
 {
-  if (!t_packetCache) {
+  if (!g_packetCache) {
     return false;
   }
   bool cacheHit = false;
@@ -1965,10 +1965,10 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
   vState valState;
 
   if (qnameParsed) {
-    cacheHit = t_packetCache->getResponsePacket(tag, data, qname, qtype, qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
+    cacheHit = g_packetCache->getResponsePacket(tag, data, qname, qtype, qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
   }
   else {
-    cacheHit = t_packetCache->getResponsePacket(tag, data, qname, &qtype, &qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
+    cacheHit = g_packetCache->getResponsePacket(tag, data, qname, &qtype, &qclass, now.tv_sec, &response, &age, &valState, &qhash, &pbData, tcp);
   }
 
   if (cacheHit) {

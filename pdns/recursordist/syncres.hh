@@ -922,8 +922,6 @@ uint64_t* pleaseGetNsSpeedsSize();
 uint64_t* pleaseGetFailedServersSize();
 uint64_t* pleaseGetConcurrentQueries();
 uint64_t* pleaseGetThrottleSize();
-uint64_t* pleaseGetPacketCacheHits();
-uint64_t* pleaseGetPacketCacheSize();
 void doCarbonDump(void*);
 bool primeHints(time_t now = time(nullptr));
 const char* isoDateTimeMillis(const struct timeval& tv, char* buf, size_t sz);

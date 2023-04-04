@@ -987,13 +987,15 @@ static void doStats(void)
   uint64_t cacheMisses = g_recCache->cacheMisses;
   uint64_t cacheSize = g_recCache->size();
   auto rc_stats = g_recCache->stats();
-  double r = rc_stats.second == 0 ? 0.0 : (100.0 * rc_stats.first / rc_stats.second);
+  auto pc_stats = g_packetCache ? g_packetCache->stats() : std::pair<uint64_t, uint64_t>{0, 0};
+  double rrc = rc_stats.second == 0 ? 0.0 : (100.0 * rc_stats.first / rc_stats.second);
+  double rpc = pc_stats.second == 0 ? 0.0 : (100.0 * pc_stats.first / pc_stats.second);
   uint64_t negCacheSize = g_negCache->size();
   auto taskPushes = getTaskPushes();
   auto taskExpired = getTaskExpired();
   auto taskSize = getTaskSize();
-  uint64_t pcSize = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheSize);
-  uint64_t pcHits = broadcastAccFunction<uint64_t>(pleaseGetPacketCacheHits);
+  uint64_t pcSize = g_packetCache ? g_packetCache->size() : 0;
+  uint64_t pcHits = g_packetCache ? g_packetCache->getHits() : 0;
 
   auto log = g_slog->withName("stats");
 
@@ -1007,7 +1009,8 @@ static void doStats(void)
   if (qcounter > 0 && (cacheHits + cacheMisses) > 0 && syncresqueries > 0 && outqueries > 0) {
     if (!g_slogStructured) {
       g_log << Logger::Notice << "stats: " << qcounter << " questions, " << cacheSize << " cache entries, " << negCacheSize << " negative entries, " << ratePercentage(cacheHits, cacheHits + cacheMisses) << "% cache hits" << endl;
-      g_log << Logger::Notice << "stats: cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << r << '%' << endl;
+      g_log << Logger::Notice << "stats: record cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << rrc << '%' << endl;
+      g_log << Logger::Notice << "stats: packet cache contended/acquired " << pc_stats.first << '/' << pc_stats.second << " = " << rpc << '%' << endl;
 
       g_log << Logger::Notice << "stats: throttle map: "
             << SyncRes::getThrottledServersSize() << ", ns speeds: "
@@ -1034,7 +1037,10 @@ static void doStats(void)
                 "record-cache-hitratio-perc", Logging::Loggable(ratePercentage(cacheHits, cacheHits + cacheMisses)),
                 "record-cache-contended", Logging::Loggable(rc_stats.first),
                 "record-cache-acquired", Logging::Loggable(rc_stats.second),
-                "record-cache-contended-perc", Logging::Loggable(r));
+                "record-cache-contended-perc", Logging::Loggable(rrc),
+                "packetcache-contended", Logging::Loggable(pc_stats.first),
+                "packetcache-acquired", Logging::Loggable(pc_stats.second),
+                "packetcache-contended-perc", Logging::Loggable(rpc));
       log->info(Logr::Info, m,
                 "throttle-entries", Logging::Loggable(SyncRes::getThrottledServersSize()),
                 "nsspeed-entries", Logging::Loggable(SyncRes::getNSSpeedsSize()),
@@ -1441,7 +1447,6 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
 
   g_maxCacheEntries = ::arg().asNum("max-cache-entries");
-  g_maxPacketCacheEntries = ::arg().asNum("max-packetcache-entries");
 
   luaConfigDelayedThreads delayedLuaThreads;
   try {
@@ -2139,14 +2144,6 @@ static void houseKeeping(void*)
     t_Counters.updateSnap(now, g_regressionTestMode);
 
     // Below are the tasks that run for every recursorThread, including handler and taskThread
-    if (t_packetCache) {
-      static thread_local PeriodicTask packetCacheTask{"packetCacheTask", 5};
-      packetCacheTask.runIfDue(now, []() {
-        size_t sz = g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors());
-        t_packetCache->setMaxSize(sz); // g_maxPacketCacheEntries might have changed by rec_control
-        t_packetCache->doPruneTo(sz);
-      });
-    }
 
     static thread_local PeriodicTask pruneTCPTask{"pruneTCPTask", 5};
     pruneTCPTask.runIfDue(now, [now]() {
@@ -2184,6 +2181,12 @@ static void houseKeeping(void*)
       });
     }
     else if (info.isHandler()) {
+      if (g_packetCache) {
+        static PeriodicTask packetCacheTask{"packetCacheTask", 5};
+        packetCacheTask.runIfDue(now, []() {
+          g_packetCache->doPruneTo(g_maxPacketCacheEntries);
+        });
+      }
       static PeriodicTask recordCachePruneTask{"RecordCachePruneTask", 5};
       recordCachePruneTask.runIfDue(now, []() {
         g_recCache->doPrune(g_maxCacheEntries);
@@ -2360,11 +2363,6 @@ static void recursorThread()
         SLOG(g_log << Logger::Debug << "Done priming cache with root hints" << endl,
              log->info(Logr::Debug, "Done priming cache with root hints"));
       }
-    }
-
-    if (!::arg().mustDo("disable-packetcache") && (threadInfo.isDistributor() || threadInfo.isWorker())) {
-      // Only enable packet cache for thread processing queries from the outside world
-      t_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries / (RecThreadInfo::numWorkers() + RecThreadInfo::numDistributors()));
     }
 
 #ifdef NOD_ENABLED
@@ -2741,7 +2739,7 @@ int main(int argc, char** argv)
     ::arg().set("ecs-add-for", "List of client netmasks for which EDNS Client Subnet will be added") = "0.0.0.0/0, ::/0, " LOCAL_NETS_INVERSE;
     ::arg().set("ecs-scope-zero-address", "Address to send to allow-listed authoritative servers for incoming queries with ECS prefix-length source of 0") = "";
     ::arg().setSwitch("use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information") = "no";
-    ::arg().setSwitch("pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads") = "yes";
+    ::arg().setSwitch("pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads") = "no";
     ::arg().setSwitch("root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist") = "yes";
     ::arg().setSwitch("any-to-tcp", "Answer ANY queries with tc=1, shunting to TCP") = "no";
     ::arg().setSwitch("lowercase-outgoing", "Force outgoing questions to lowercase") = "no";
@@ -2761,8 +2759,11 @@ int main(int argc, char** argv)
     ::arg().set("include-dir", "Include *.conf files from this directory") = "";
     ::arg().set("security-poll-suffix", "Domain name from which to query security update notifications") = "secpoll.powerdns.com.";
 
+#ifdef SO_REUSEPORT
+    ::arg().setSwitch("reuseport", "Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address") = "yes";
+#else
     ::arg().setSwitch("reuseport", "Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address") = "no";
-
+#endif
     ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent") = "no";
     ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon (deprecated)") = "";
     ::arg().set("snmp-daemon-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon") = "";
@@ -2810,7 +2811,10 @@ int main(int argc, char** argv)
     ::arg().setSwitch("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)") = "dnssec";
     ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file") = "0";
     ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file") = "20";
+
     ::arg().set("record-cache-shards", "Number of shards in the record cache") = "1024";
+    ::arg().set("packetcache-shards", "Number of shards in the packet cache") = "1024";
+
     ::arg().set("refresh-on-ttl-perc", "If a record is requested from the cache and only this % of original TTL remains, refetch") = "0";
     ::arg().set("record-cache-locked-ttl-perc", "Replace records in record cache only after this % of original TTL has passed") = "0";
 
@@ -3035,6 +3039,10 @@ int main(int argc, char** argv)
 
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);
+    if (!::arg().mustDo("disable-packetcache")) {
+      g_maxPacketCacheEntries = ::arg().asNum("max-packetcache-entries");
+      g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum("packetcache-shards"));
+    }
 
     ret = serviceMain(argc, argv, startupLog);
   }
@@ -3126,11 +3134,6 @@ string doTraceRegex(FDWrapper file, vector<string>::const_iterator begin, vector
   return broadcastAccFunction<string>([=] { return pleaseUseNewTraceRegex(begin != end ? *begin : "", fileno); });
 }
 
-static uint64_t* pleaseWipePacketCache(const DNSName& canon, bool subtree, uint16_t qtype)
-{
-  return new uint64_t(t_packetCache ? t_packetCache->doWipePacketCache(canon, qtype, subtree) : 0);
-}
-
 struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype)
 {
   struct WipeCacheResult res;
@@ -3138,7 +3141,9 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
   try {
     res.record_count = g_recCache->doWipeCache(canon, subtree, qtype);
     // scanbuild complains here about an allocated function object that is being leaked. Needs investigation
-    res.packet_count = broadcastAccFunction<uint64_t>([=] { return pleaseWipePacketCache(canon, subtree, qtype); });
+    if (g_packetCache) {
+      res.packet_count = g_packetCache->doWipePacketCache(canon, qtype, subtree);
+    }
     res.negative_record_count = g_negCache->wipe(canon, subtree);
     if (g_aggressiveNSECCache) {
       g_aggressiveNSECCache->removeZoneInfo(canon, subtree);
