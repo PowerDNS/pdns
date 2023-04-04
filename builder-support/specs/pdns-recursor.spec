@@ -69,7 +69,8 @@ export LDFLAGS=-L/usr/lib64/boost169
     --with-libsodium \
     --with-net-snmp \
 %endif
-    --enable-systemd --with-systemd=%{_unitdir}
+    --enable-systemd --with-systemd=%{_unitdir} \
+    --enable-nod
 
 make %{?_smp_mflags}
 
