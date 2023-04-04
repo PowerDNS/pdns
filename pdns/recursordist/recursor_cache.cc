@@ -62,30 +62,31 @@ MemRecursorCache::MemRecursorCache(size_t mapsCount) :
 size_t MemRecursorCache::size() const
 {
   size_t count = 0;
-  for (const auto& map : d_maps) {
-    count += map.d_entriesCount;
+  for (const auto& shard : d_maps) {
+    count += shard.d_entriesCount;
   }
   return count;
 }
 
 pair<uint64_t, uint64_t> MemRecursorCache::stats()
 {
-  uint64_t c = 0, a = 0;
-  for (auto& mc : d_maps) {
-    auto content = mc.lock();
-    c += content->d_contended_count;
-    a += content->d_acquired_count;
+  uint64_t contended = 0;
+  uint64_t acquired = 0;
+  for (auto& shard : d_maps) {
+    auto lockedShard = shard.lock();
+    contended += lockedShard->d_contended_count;
+    acquired += lockedShard->d_acquired_count;
   }
-  return pair<uint64_t, uint64_t>(c, a);
+  return {contended, acquired};
 }
 
 size_t MemRecursorCache::ecsIndexSize()
 {
   // XXX!
   size_t count = 0;
-  for (auto& mc : d_maps) {
-    auto content = mc.lock();
-    count += content->d_ecsIndex.size();
+  for (auto& shard : d_maps) {
+    auto lockedShard = shard.lock();
+    count += lockedShard->d_ecsIndex.size();
   }
   return count;
 }
@@ -94,12 +95,12 @@ size_t MemRecursorCache::ecsIndexSize()
 size_t MemRecursorCache::bytes()
 {
   size_t ret = 0;
-  for (auto& mc : d_maps) {
-    auto m = mc.lock();
-    for (const auto& i : m->d_map) {
+  for (auto& shard : d_maps) {
+    auto lockedShard = shard.lock();
+    for (const auto& entry : lockedShard->d_map) {
       ret += sizeof(struct CacheEntry);
-      ret += i.d_qname.toString().length();
-      for (const auto& record : i.d_records) {
+      ret += entry.d_qname.toString().length();
+      for (const auto& record : entry.d_records) {
         ret += sizeof(record); // XXX WRONG we don't know the stored size!
       }
     }
@@ -145,45 +146,45 @@ time_t MemRecursorCache::handleHit(MapCombo::LockedContent& content, MemRecursor
   time_t ttd = entry->d_ttd;
   origTTL = entry->d_orig_ttl;
 
-  if (variable && (!entry->d_netmask.empty() || entry->d_rtag)) {
+  if (variable != nullptr && (!entry->d_netmask.empty() || entry->d_rtag)) {
     *variable = true;
   }
 
-  if (res) {
+  if (res != nullptr) {
     res->reserve(res->size() + entry->d_records.size());
 
-    for (const auto& k : entry->d_records) {
-      DNSRecord dr;
-      dr.d_name = qname;
-      dr.d_type = entry->d_qtype;
-      dr.d_class = QClass::IN;
-      dr.setContent(k);
+    for (const auto& record : entry->d_records) {
+      DNSRecord result;
+      result.d_name = qname;
+      result.d_type = entry->d_qtype;
+      result.d_class = QClass::IN;
+      result.setContent(record);
       // coverity[store_truncates_time_t]
-      dr.d_ttl = static_cast<uint32_t>(entry->d_ttd);
-      dr.d_place = DNSResourceRecord::ANSWER;
-      res->push_back(std::move(dr));
+      result.d_ttl = static_cast<uint32_t>(entry->d_ttd);
+      result.d_place = DNSResourceRecord::ANSWER;
+      res->push_back(std::move(result));
     }
   }
 
-  if (signatures) {
+  if (signatures != nullptr) {
     signatures->insert(signatures->end(), entry->d_signatures.begin(), entry->d_signatures.end());
   }
 
-  if (authorityRecs) {
+  if (authorityRecs != nullptr) {
     authorityRecs->insert(authorityRecs->end(), entry->d_authorityRecs.begin(), entry->d_authorityRecs.end());
   }
 
   updateDNSSECValidationStateFromCache(state, entry->d_state);
 
-  if (wasAuth) {
+  if (wasAuth != nullptr) {
     *wasAuth = *wasAuth && entry->d_auth;
   }
 
-  if (fromAuthZone) {
+  if (fromAuthZone != nullptr) {
     *fromAuthZone = entry->d_authZone;
   }
 
-  if (fromAuthIP) {
+  if (fromAuthIP != nullptr) {
     *fromAuthIP = entry->d_from;
   }
 
@@ -354,32 +355,32 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
   boost::optional<vState> cachedState{boost::none};
   uint32_t origTTL;
 
-  if (res) {
+  if (res != nullptr) {
     res->clear();
   }
   const uint16_t qtype = qt.getCode();
-  if (wasAuth) {
+  if (wasAuth != nullptr) {
     // we might retrieve more than one entry, we need to set that to true
     // so it will be set to false if at least one entry is not auth
     *wasAuth = true;
   }
 
-  auto& mc = getMap(qname);
-  auto map = mc.lock();
+  auto& shard = getMap(qname);
+  auto lockedShard = shard.lock();
 
   /* If we don't have any netmask-specific entries at all, let's just skip this
      to be able to use the nice d_cachecache hack. */
-  if (qtype != QType::ANY && !map->d_ecsIndex.empty() && !routingTag) {
+  if (qtype != QType::ANY && !lockedShard->d_ecsIndex.empty() && !routingTag) {
     if (qtype == QType::ADDR) {
       time_t ret = -1;
 
-      auto entryA = getEntryUsingECSIndex(*map, now, qname, QType::A, requireAuth, who, serveStale);
-      if (entryA != map->d_map.end()) {
-        ret = handleHit(*map, entryA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
+      auto entryA = getEntryUsingECSIndex(*lockedShard, now, qname, QType::A, requireAuth, who, serveStale);
+      if (entryA != lockedShard->d_map.end()) {
+        ret = handleHit(*lockedShard, entryA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
       }
-      auto entryAAAA = getEntryUsingECSIndex(*map, now, qname, QType::AAAA, requireAuth, who, serveStale);
-      if (entryAAAA != map->d_map.end()) {
-        time_t ttdAAAA = handleHit(*map, entryAAAA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
+      auto entryAAAA = getEntryUsingECSIndex(*lockedShard, now, qname, QType::AAAA, requireAuth, who, serveStale);
+      if (entryAAAA != lockedShard->d_map.end()) {
+        time_t ttdAAAA = handleHit(*lockedShard, entryAAAA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
         if (ret > 0) {
           ret = std::min(ret, ttdAAAA);
         }
@@ -395,9 +396,9 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
       return ret > 0 ? (ret - now) : ret;
     }
     else {
-      auto entry = getEntryUsingECSIndex(*map, now, qname, qtype, requireAuth, who, serveStale);
-      if (entry != map->d_map.end()) {
-        time_t ret = handleHit(*map, entry, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
+      auto entry = getEntryUsingECSIndex(*lockedShard, now, qname, qtype, requireAuth, who, serveStale);
+      if (entry != lockedShard->d_map.end()) {
+        time_t ret = handleHit(*lockedShard, entry, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
         if (state && cachedState) {
           *state = *cachedState;
         }
@@ -408,18 +409,18 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
   }
 
   if (routingTag) {
-    auto entries = getEntries(*map, qname, qt, routingTag);
+    auto entries = getEntries(*lockedShard, qname, qt, routingTag);
     bool found = false;
     time_t ttd;
 
     if (entries.first != entries.second) {
       OrderedTagIterator_t firstIndexIterator;
       for (auto i = entries.first; i != entries.second; ++i) {
-        firstIndexIterator = map->d_map.project<OrderedTag>(i);
+        firstIndexIterator = lockedShard->d_map.project<OrderedTag>(i);
 
         // When serving stale, we consider expired records
         if (!i->isEntryUsable(now, serveStale)) {
-          moveCacheItemToFront<SequencedTag>(map->d_map, firstIndexIterator);
+          moveCacheItemToFront<SequencedTag>(lockedShard->d_map, firstIndexIterator);
           continue;
         }
 
@@ -430,7 +431,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
 
         handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
-        ttd = handleHit(*map, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
+        ttd = handleHit(*lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
         if (qt != QType::ANY && qt != QType::ADDR) { // normally if we have a hit, we are done
           break;
@@ -448,7 +449,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
     }
   }
   // Try (again) without tag
-  auto entries = getEntries(*map, qname, qt, boost::none);
+  auto entries = getEntries(*lockedShard, qname, qt, boost::none);
 
   if (entries.first != entries.second) {
     OrderedTagIterator_t firstIndexIterator;
@@ -456,11 +457,11 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
     time_t ttd;
 
     for (auto i = entries.first; i != entries.second; ++i) {
-      firstIndexIterator = map->d_map.project<OrderedTag>(i);
+      firstIndexIterator = lockedShard->d_map.project<OrderedTag>(i);
 
       // When serving stale, we consider expired records
       if (!i->isEntryUsable(now, serveStale)) {
-        moveCacheItemToFront<SequencedTag>(map->d_map, firstIndexIterator);
+        moveCacheItemToFront<SequencedTag>(lockedShard->d_map, firstIndexIterator);
         continue;
       }
 
@@ -471,7 +472,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qt, F
 
       handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
-      ttd = handleHit(*map, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
+      ttd = handleHit(*lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
       if (qt != QType::ANY && qt != QType::ADDR) { // normally if we have a hit, we are done
         break;
@@ -532,10 +533,10 @@ bool MemRecursorCache::CacheEntry::shouldReplace(time_t now, bool auth, vState s
 
 void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<const RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from, bool refresh)
 {
-  auto& mc = getMap(qname);
-  auto map = mc.lock();
+  auto& shard = getMap(qname);
+  auto lockedShard = shard.lock();
 
-  map->d_cachecachevalid = false;
+  lockedShard->d_cachecachevalid = false;
   if (ednsmask) {
     ednsmask = ednsmask->getNormalized();
   }
@@ -544,10 +545,10 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
   // We only store an ednsmask if we do not have a tag and we do have a mask.
   auto key = std::make_tuple(qname, qt.getCode(), ednsmask ? routingTag : boost::none, (ednsmask && !routingTag) ? *ednsmask : Netmask());
   bool isNew = false;
-  cache_t::iterator stored = map->d_map.find(key);
-  if (stored == map->d_map.end()) {
-    stored = map->d_map.insert(CacheEntry(key, auth)).first;
-    ++mc.d_entriesCount;
+  cache_t::iterator stored = lockedShard->d_map.find(key);
+  if (stored == lockedShard->d_map.end()) {
+    stored = lockedShard->d_map.insert(CacheEntry(key, auth)).first;
+    ++shard.d_entriesCount;
     isNew = true;
   }
 
@@ -560,9 +561,9 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
     /* don't bother building an ecsIndex if we don't have any netmask-specific entries */
     if (!routingTag && ednsmask && !ednsmask->empty()) {
       auto ecsIndexKey = std::make_tuple(qname, qt.getCode());
-      auto ecsIndex = map->d_ecsIndex.find(ecsIndexKey);
-      if (ecsIndex == map->d_ecsIndex.end()) {
-        ecsIndex = map->d_ecsIndex.insert(ECSIndexEntry(qname, qt.getCode())).first;
+      auto ecsIndex = lockedShard->d_ecsIndex.find(ecsIndexKey);
+      if (ecsIndex == lockedShard->d_ecsIndex.end()) {
+        ecsIndex = lockedShard->d_ecsIndex.insert(ECSIndexEntry(qname, qt.getCode())).first;
       }
       ecsIndex->addMask(*ednsmask);
     }
@@ -611,11 +612,11 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
   }
 
   if (!isNew) {
-    moveCacheItemToBack<SequencedTag>(map->d_map, stored);
+    moveCacheItemToBack<SequencedTag>(lockedShard->d_map, stored);
   }
   ce.d_submitted = false;
   ce.d_servedStale = 0;
-  map->d_map.replace(stored, ce);
+  lockedShard->d_map.replace(stored, ce);
 }
 
 size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType qtype)
@@ -623,17 +624,17 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
   size_t count = 0;
 
   if (!sub) {
-    auto& mc = getMap(name);
-    auto map = mc.lock();
-    map->d_cachecachevalid = false;
-    auto& idx = map->d_map.get<OrderedTag>();
+    auto& shard = getMap(name);
+    auto lockedShard = shard.lock();
+    lockedShard->d_cachecachevalid = false;
+    auto& idx = lockedShard->d_map.get<OrderedTag>();
     auto range = idx.equal_range(name);
     auto i = range.first;
     while (i != range.second) {
       if (i->d_qtype == qtype || qtype == 0xffff) {
         i = idx.erase(i);
         count++;
-        --mc.d_entriesCount;
+        --shard.d_entriesCount;
       }
       else {
         ++i;
@@ -641,12 +642,12 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
     }
 
     if (qtype == 0xffff) {
-      auto& ecsIdx = map->d_ecsIndex.get<OrderedTag>();
+      auto& ecsIdx = lockedShard->d_ecsIndex.get<OrderedTag>();
       auto ecsIndexRange = ecsIdx.equal_range(name);
       ecsIdx.erase(ecsIndexRange.first, ecsIndexRange.second);
     }
     else {
-      auto& ecsIdx = map->d_ecsIndex.get<HashedTag>();
+      auto& ecsIdx = lockedShard->d_ecsIndex.get<HashedTag>();
       auto ecsIndexRange = ecsIdx.equal_range(std::tie(name, qtype));
       ecsIdx.erase(ecsIndexRange.first, ecsIndexRange.second);
     }
@@ -687,26 +688,27 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
 // Name should be doLimitTime or so
 bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, const QType qtype, uint32_t newTTL)
 {
-  auto& mc = getMap(name);
-  auto map = mc.lock();
-  cache_t::iterator iter = map->d_map.find(std::tie(name, qtype));
-  if (iter == map->d_map.end()) {
+  auto& shard = getMap(name);
+  auto lockedShard = shard.lock();
+  cache_t::iterator iter = lockedShard->d_map.find(std::tie(name, qtype));
+  if (iter == lockedShard->d_map.end()) {
     return false;
   }
 
   CacheEntry ce = *iter;
-  if (ce.d_ttd < now)
+  if (ce.d_ttd < now) {
     return false; // would be dead anyhow
+  }
 
   uint32_t maxTTL = static_cast<uint32_t>(ce.d_ttd - now);
   if (maxTTL > newTTL) {
-    map->d_cachecachevalid = false;
+    lockedShard->d_cachecachevalid = false;
 
     time_t newTTD = now + newTTL;
 
     if (ce.d_ttd > newTTD) {
       ce.d_ttd = newTTD;
-      map->d_map.replace(iter, ce);
+      lockedShard->d_map.replace(iter, ce);
     }
     return true;
   }
@@ -775,17 +777,17 @@ uint64_t MemRecursorCache::doDump(int fd, size_t maxCacheEntries)
 
   fprintf(fp.get(), "; main record cache dump follows\n;\n");
   uint64_t count = 0;
-  size_t shard = 0;
+  size_t shardNumber = 0;
   size_t min = std::numeric_limits<size_t>::max();
   size_t max = 0;
-  for (auto& mc : d_maps) {
-    auto map = mc.lock();
-    const auto shardSize = map->d_map.size();
-    fprintf(fp.get(), "; record cache shard %zu; size %zu\n", shard, shardSize);
+  for (auto& shard : d_maps) {
+    auto lockedShard = shard.lock();
+    const auto shardSize = lockedShard->d_map.size();
+    fprintf(fp.get(), "; record cache shard %zu; size %zu\n", shardNumber, shardSize);
     min = std::min(min, shardSize);
     max = std::max(max, shardSize);
-    shard++;
-    const auto& sidx = map->d_map.get<SequencedTag>();
+    shardNumber++;
+    const auto& sidx = lockedShard->d_map.get<SequencedTag>();
     time_t now = time(nullptr);
     for (const auto& i : sidx) {
       for (const auto& j : i.d_records) {
@@ -820,8 +822,8 @@ void MemRecursorCache::doPrune(size_t keep)
 
 namespace boost
 {
-size_t hash_value(const MemRecursorCache::OptTag& o)
+size_t hash_value(const MemRecursorCache::OptTag& rtag)
 {
-  return o ? hash_value(o.get()) : 0xcafebaaf;
+  return rtag ? hash_value(rtag.get()) : 0xcafebaaf;
 }
 }
