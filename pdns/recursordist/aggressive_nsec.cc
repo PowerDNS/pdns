@@ -488,7 +488,7 @@ static void addRecordToRRSet(time_t /* now */, const DNSName& owner, const QType
   }
 }
 
-bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& /* res */, bool doDNSSEC, ZoneEntry::CacheEntry& nextCloser, const DNSName& wildcardName, const OptLog& log)
+bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nextCloser, const DNSName& wildcardName, const OptLog& log)
 {
   vState cachedState;
 
@@ -507,10 +507,11 @@ bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName&
 
   VLOG(log, name << ": Synthesized valid answer from NSEC3s and wildcard!" << endl);
   ++d_nsec3WildcardHits;
+  res = RCode::NoError;
   return true;
 }
 
-bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& /* res */, bool doDNSSEC, ZoneEntry::CacheEntry& nsec, const DNSName& wildcardName, const OptLog& log)
+bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nsec, const DNSName& wildcardName, const OptLog& log)
 {
   vState cachedState;
 
@@ -527,6 +528,7 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
 
   VLOG(log, name << ": Synthesized valid answer from NSECs and wildcard!" << endl);
   ++d_nsecWildcardHits;
+  res = RCode::NoError;
   return true;
 }
 

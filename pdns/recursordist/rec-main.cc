@@ -832,7 +832,7 @@ static void usr2Handler(int)
   ::arg().set("quiet") = g_quiet ? "" : "no";
 }
 
-static void checkLinuxIPv6Limits(Logr::log_t log)
+static void checkLinuxIPv6Limits([[maybe_unused]] Logr::log_t log)
 {
 #ifdef __linux__
   string line;

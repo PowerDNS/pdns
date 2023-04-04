@@ -1843,7 +1843,7 @@ int OpenSSLEDDSADNSCryptoKeyEngine::getBits() const
   return (int)d_len << 3;
 }
 
-bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey(std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const
+bool OpenSSLEDDSADNSCryptoKeyEngine::checkKey([[maybe_unused]] std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages) const
 {
 #if OPENSSL_VERSION_MAJOR >= 3
   auto ctx = KeyContext{EVP_PKEY_CTX_new_from_pkey(nullptr, d_edkey.get(), nullptr), EVP_PKEY_CTX_free};

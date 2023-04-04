@@ -147,7 +147,7 @@ int SSetsockopt(int sockfd, int level, int opname, int value)
   return ret;
 }
 
-void setSocketIgnorePMTU(int sockfd, int family)
+void setSocketIgnorePMTU([[maybe_unused]] int sockfd, [[maybe_unused]] int family)
 {
   if (family == AF_INET) {
 #if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)

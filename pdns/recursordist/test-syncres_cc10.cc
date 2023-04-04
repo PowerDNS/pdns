@@ -1642,7 +1642,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_immediateservfail)
 
   const int theTTL = 5;
 
-  sr->setAsyncCallback([&downServers, &downCount, &lookupCount, target](const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, LWResult* res, bool* chained) {
+  sr->setAsyncCallback([&downServers, &downCount, &lookupCount, target](const ComboAddress& ip, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
     /* this will cause issue with qname minimization if we ever implement it */
 
     if (downServers.find(ip) != downServers.end()) {

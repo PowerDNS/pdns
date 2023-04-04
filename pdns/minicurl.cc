@@ -116,7 +116,7 @@ static string extractHostFromURL(const std::string& url)
   return url.substr(pos, endpos-pos);
 }
 
-void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, size_t byteslimit, bool fastopen, bool verify)
+void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, size_t byteslimit, [[maybe_unused]] bool fastopen, bool verify)
 {
   if (!d_fresh) {
     curl_easy_reset(getCURLPtr(d_curl));
@@ -198,7 +198,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   d_data.clear();
 }
 
-std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, bool fastopen, bool verify, size_t byteslimit)
+std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, [[maybe_unused]] bool fastopen, bool verify, size_t byteslimit)
 {
   setupURL(str, rem, src, timeout, byteslimit, fastopen, verify);
   auto res = curl_easy_perform(getCURLPtr(d_curl));

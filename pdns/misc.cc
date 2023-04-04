@@ -1014,7 +1014,7 @@ bool isNonBlocking(int sock)
   return flags & O_NONBLOCK;
 }
 
-bool setReceiveSocketErrors(int sock, int af)
+bool setReceiveSocketErrors([[maybe_unused]] int sock, [[maybe_unused]] int af)
 {
 #ifdef __linux__
   int tmp = 1, ret;
@@ -1159,7 +1159,7 @@ int getMACAddress(const ComboAddress& ca, char* dest, size_t destLen)
   return foundMAC ? 0 : ENOENT;
 }
 #else
-int getMACAddress(const ComboAddress& ca, char* dest, size_t len)
+int getMACAddress(const ComboAddress& /* ca */, char* /* dest */, size_t /* len */)
 {
   return ENOENT;
 }
@@ -1175,7 +1175,7 @@ string getMACAddress(const ComboAddress& ca)
   return ret;
 }
 
-uint64_t udpErrorStats(const std::string& str)
+uint64_t udpErrorStats([[maybe_unused]] const std::string& str)
 {
 #ifdef __linux__
   ifstream ifs("/proc/net/snmp");
@@ -1217,7 +1217,7 @@ uint64_t udpErrorStats(const std::string& str)
   return 0;
 }
 
-uint64_t udp6ErrorStats(const std::string& str)
+uint64_t udp6ErrorStats([[maybe_unused]] const std::string& str)
 {
 #ifdef __linux__
   const std::map<std::string, std::string> keys = {
@@ -1545,7 +1545,7 @@ bool isSettingThreadCPUAffinitySupported()
 #endif
 }
 
-int mapThreadToCPUList(pthread_t tid, const std::set<int>& cpus)
+int mapThreadToCPUList([[maybe_unused]] pthread_t tid, [[maybe_unused]] const std::set<int>& cpus)
 {
 #ifdef HAVE_PTHREAD_SETAFFINITY_NP
 #  ifdef __NetBSD__
@@ -1613,7 +1613,7 @@ std::vector<ComboAddress> getResolvers(const std::string& resolvConfPath)
   return results;
 }
 
-size_t getPipeBufferSize(int fd)
+size_t getPipeBufferSize([[maybe_unused]] int fd)
 {
 #ifdef F_GETPIPE_SZ
   int res = fcntl(fd, F_GETPIPE_SZ);
@@ -1627,7 +1627,7 @@ size_t getPipeBufferSize(int fd)
 #endif /* F_GETPIPE_SZ */
 }
 
-bool setPipeBufferSize(int fd, size_t size)
+bool setPipeBufferSize([[maybe_unused]] int fd, [[maybe_unused]] size_t size)
 {
 #ifdef F_SETPIPE_SZ
   if (size > static_cast<size_t>(std::numeric_limits<int>::max())) {
