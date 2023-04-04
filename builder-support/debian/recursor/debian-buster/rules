@@ -29,7 +29,8 @@ override_dh_auto_configure:
 		--with-lua \
 		--with-net-snmp \
 		--enable-dns-over-tls \
-		--enable-dnstap
+		--enable-dnstap \
+		--enable-nod
 
 override_dh_auto_install:
 	dh_auto_install
