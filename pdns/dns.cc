@@ -71,8 +71,9 @@ static const std::array<std::string, 10> rcodes_short_s =  {
 };
 
 std::string RCode::to_s(uint8_t rcode) {
-  if (rcode > 0xF)
+  if (rcode > 0xF) {
     return std::string("ErrOutOfRange");
+  }
   return ERCode::to_s(rcode);
 }
 
@@ -83,9 +84,10 @@ std::string RCode::to_short_s(uint8_t rcode) {
   return rcodes_short_s.at(rcode);
 }
 
-std::string ERCode::to_s(uint8_t rcode) {
-  if (rcode > RCode::rcodes_s.size()-1)
+std::string ERCode::to_s(uint16_t rcode) {
+  if (rcode >= RCode::rcodes_s.size()) {
     return std::string("Err#")+std::to_string(rcode);
+  }
   return RCode::rcodes_s.at(rcode);
 }
 
