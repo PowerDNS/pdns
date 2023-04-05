@@ -46,6 +46,7 @@ auth_build_deps = [    # FIXME: perhaps we should be stealing these from the deb
     'ruby-dev',
     'sqlite3',
     'unixodbc-dev',
+    'cmake',
 ]
 rec_build_deps = [
     'libcap-dev',
