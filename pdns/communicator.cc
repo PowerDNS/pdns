@@ -118,22 +118,22 @@ void CommunicatorClass::mainloop()
   try {
     setThreadName("pdns/comm-main");
     signal(SIGPIPE,SIG_IGN);
-    g_log<<Logger::Error<<"Primary/secondary communicator launching"<<endl;
-    PacketHandler P;
-    d_tickinterval=min(::arg().asNum("slave-cycle-interval"), ::arg().asNum("xfr-cycle-interval"));
-    makeNotifySockets();
+    g_log << Logger::Warning << "Primary/secondary communicator launching" << endl;
+
+    d_tickinterval = ::arg().asNum("xfr-cycle-interval");
 
     int rc;
-    time_t next, tick;
+    time_t next;
+    PacketHandler P;
+
+    makeNotifySockets();
 
     for(;;) {
       slaveRefresh(&P);
       masterUpdateCheck(&P);
-      tick=doNotifications(&P); // this processes any notification acknowledgements and actually send out our own notifications
-      
-      tick = min (tick, d_tickinterval); 
-      
-      next=time(nullptr)+tick;
+      doNotifications(&P); // this processes any notification acknowledgements and actually send out our own notifications
+
+      next = time(nullptr) + d_tickinterval;
 
       while(time(nullptr) < next) {
         rc=d_any_sem.tryWait();
@@ -156,7 +156,7 @@ void CommunicatorClass::mainloop()
           }
           break; // something happened
         }
-        // this gets executed at least once every second
+        // this gets executed about once per second
         doNotifications(&P);
       }
     }
@@ -176,4 +176,3 @@ void CommunicatorClass::mainloop()
     _exit(1);
   }
 }
-
