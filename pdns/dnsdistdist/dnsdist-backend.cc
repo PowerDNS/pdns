@@ -115,7 +115,28 @@ bool DownstreamState::reconnect()
     }
   }
 
+  if (connected) {
+    tl.unlock();
+    d_connectedWait.notify_all();
+  }
+
   return connected;
+}
+
+void DownstreamState::waitUntilConnected()
+{
+  if (d_stopped) {
+    return;
+  }
+  if (connected) {
+    return;
+  }
+  {
+    std::unique_lock<std::mutex> lock(connectLock);
+    d_connectedWait.wait(lock, [this]{
+      return connected.load();
+    });
+  }
 }
 
 void DownstreamState::stop()

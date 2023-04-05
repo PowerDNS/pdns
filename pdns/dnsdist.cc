@@ -722,9 +722,25 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
   std::vector<int> sockets;
   sockets.reserve(dss->sockets.size());
 
-  for(;;) {
+  for (;;) {
     try {
+      if (dss->isStopped()) {
+        break;
+      }
+
+      if (!dss->connected) {
+        /* the sockets are not connected yet, likely because we detected a problem,
+           tried to reconnect and it failed. We will try to reconnect after the next
+           successful health-check (unless reconnectOnUp is false), or when trying
+           to send in the UDP listener thread, but until then we simply need to wait. */
+        dss->waitUntilConnected();
+        continue;
+      }
+
       dss->pickSocketsReadyForReceiving(sockets);
+
+      /* check a second time here because we might have waited quite a bit
+         since the first check */
       if (dss->isStopped()) {
         break;
       }
@@ -1117,7 +1133,7 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss
        We don't want to reconnect the real socket if the healthcheck failed,
        because it's not using the same socket.
     */
-    if (!healthCheck && (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH)) {
+    if (!healthCheck && (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH || savederrno == EBADF)) {
       ss->reconnect();
     }
   }
