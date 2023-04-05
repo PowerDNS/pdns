@@ -166,7 +166,8 @@ def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
     with c.cd('/tmp/libdecaf'):
         c.run('git checkout 41f349')
-        c.run('cmake -B build '
+        c.run('CC=clang-12 CXX=clang-12 '
+              'cmake -B build '
               '-DCMAKE_INSTALL_PREFIX=/usr/local '
               '-DCMAKE_INSTALL_LIBDIR=lib '
               '-DENABLE_STATIC=OFF '
