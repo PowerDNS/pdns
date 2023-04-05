@@ -78,7 +78,7 @@ int Utility::timed_connect( Utility::sock_t sock,
 
 
 
-void Utility::setBindAny(int af, sock_t sock)
+void Utility::setBindAny([[maybe_unused]] int af, [[maybe_unused]] sock_t sock)
 {
   const int one = 1;
 
@@ -199,9 +199,9 @@ Utility::pid_t Utility::getpid( )
 
 
 // Returns the current time.
-int Utility::gettimeofday( struct timeval *tv, void *tz )
+int Utility::gettimeofday( struct timeval *tv, void * /* tz */)
 {
-  return ::gettimeofday(tv,nullptr);
+  return ::gettimeofday(tv, nullptr);
 }
 
 // Sets the random seed.

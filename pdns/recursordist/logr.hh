@@ -170,10 +170,8 @@ private:
     map.emplace(key, value.to_string());
     mapArguments(map, args...);
   }
-  void mapArguments(std::map<std::string, std::string>& map) const
-  {
-    return;
-  }
+
+  void mapArguments(std::map<std::string, std::string>& /* map */) const {}
 };
 
 using log_t = const std::shared_ptr<Logger>&;

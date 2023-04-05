@@ -204,7 +204,7 @@ private:
 
   [[nodiscard]] const MapCombo& getMap(unsigned int tag, uint32_t hash, bool tcp) const
   {
-    return d_maps.at(combine(hash, hash, tcp) % d_maps.size());
+    return d_maps.at(combine(tag, hash, tcp) % d_maps.size());
   }
 
   static bool qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass);
@@ -213,7 +213,7 @@ private:
   void setShardSizes(size_t shardSize);
 
 public:
-  void preRemoval(MapCombo::LockedContent& map, const Entry& entry)
+  void preRemoval(MapCombo::LockedContent& /* map */, const Entry& /* entry */)
   {
   }
 };

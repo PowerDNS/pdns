@@ -189,7 +189,7 @@ public:
   {
     d_fd = -1;
   }
-  bool handleTCPReadResult(int fd, ssize_t bytes)
+  bool handleTCPReadResult(int /* fd */, ssize_t bytes)
   {
     if (bytes == 0) {
       /* EOF */
@@ -858,7 +858,7 @@ static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
   TCPIOHandlerStateChange(pid->lowState, newstate, pid);
 }
 
-void checkFastOpenSysctl(bool active, Logr::log_t log)
+void checkFastOpenSysctl([[maybe_unused]] bool active, [[maybe_unused]] Logr::log_t log)
 {
 #ifdef __linux__
   string line;

@@ -764,7 +764,7 @@ struct PacketID
   TCPAction highState{TCPAction::DoingRead};
   IOState lowState{IOState::NeedRead};
 
-  bool operator<(const PacketID& b) const
+  bool operator<(const PacketID& /* b */) const
   {
     // We don't want explicit PacketID compare here, but always via predicate classes below
     assert(0);

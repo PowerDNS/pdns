@@ -177,7 +177,7 @@ static std::unordered_map<oid, std::string> s_statsMap;
 /* a instance handler also only hands us one request at a time, so
    we don't need to loop over a list of requests; we'll only get one. */
 
-static int handleCounter64Stats(netsnmp_mib_handler* handler,
+static int handleCounter64Stats(netsnmp_mib_handler* /* handler */,
                                 netsnmp_handler_registration* reginfo,
                                 netsnmp_agent_request_info* reqinfo,
                                 netsnmp_request_info* requests)
@@ -204,7 +204,7 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
   }
 }
 
-static int handleDisabledCounter64Stats(netsnmp_mib_handler* handler,
+static int handleDisabledCounter64Stats(netsnmp_mib_handler* /* handler */,
                                         netsnmp_handler_registration* reginfo,
                                         netsnmp_agent_request_info* reqinfo,
                                         netsnmp_request_info* requests)

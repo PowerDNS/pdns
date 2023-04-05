@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(test_MtaskerException)
 
 #else
 
-static void willThrow(void* p)
+static void willThrow(void* /* p */)
 {
   throw std::runtime_error("Help!");
 }

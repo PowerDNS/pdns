@@ -282,7 +282,7 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
   }
 }
 
-static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName)
+static bool tcpconnect(const ComboAddress& ip, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName)
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && ip.getPort() == 853;
 
@@ -510,7 +510,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
         if (context && !context->d_nsName.empty()) {
           nsName = context->d_nsName.toStringNoDot();
         }
-        isNew = tcpconnect(*now, ip, connection, dnsOverTLS, nsName);
+        isNew = tcpconnect(ip, connection, dnsOverTLS, nsName);
         ret = tcpsendrecv(ip, connection, localip, vpacket, len, buf);
 #ifdef HAVE_FSTRM
         if (fstrmQEnabled) {

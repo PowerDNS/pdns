@@ -832,7 +832,7 @@ static void usr2Handler(int)
   ::arg().set("quiet") = g_quiet ? "" : "no";
 }
 
-static void checkLinuxIPv6Limits(Logr::log_t log)
+static void checkLinuxIPv6Limits([[maybe_unused]] Logr::log_t log)
 {
 #ifdef __linux__
   string line;
@@ -1362,7 +1362,7 @@ template ThreadTimes broadcastAccFunction(const std::function<ThreadTimes*()>& f
 template ProxyMappingStats_t broadcastAccFunction(const std::function<ProxyMappingStats_t*()>& fun);
 template RemoteLoggerStats_t broadcastAccFunction(const std::function<RemoteLoggerStats_t*()>& fun);
 
-static int serviceMain(int argc, char* argv[], Logr::log_t log)
+static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
 {
   g_log.setName(g_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
@@ -2015,7 +2015,7 @@ static int serviceMain(int argc, char* argv[], Logr::log_t log)
   return RecThreadInfo::runThreads(log);
 }
 
-static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
+static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& /* var */)
 {
   ThreadMSG* tmsg = nullptr;
 
@@ -2049,7 +2049,7 @@ static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& var)
   delete tmsg;
 }
 
-static void handleRCC(int fd, FDMultiplexer::funcparam_t& var)
+static void handleRCC(int fd, FDMultiplexer::funcparam_t& /* var */)
 {
   auto log = g_slog->withName("control");
   try {

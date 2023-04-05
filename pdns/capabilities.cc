@@ -33,7 +33,7 @@
 #include "capabilities.hh"
 #include "misc.hh"
 
-bool dropCapabilities(std::set<std::string> capabilitiesToKeep)
+bool dropCapabilities([[maybe_unused]] std::set<std::string> capabilitiesToKeep)
 {
 #ifdef HAVE_LIBCAP
    cap_t caps = cap_get_proc();
