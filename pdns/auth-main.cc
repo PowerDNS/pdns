@@ -210,7 +210,7 @@ static void declareArguments()
   ::arg().set("only-notify", "Only send AXFR NOTIFY to these IP addresses or netmasks") = "0.0.0.0/0,::/0";
   ::arg().set("also-notify", "When notifying a zone, also notify these nameservers") = "";
   ::arg().set("allow-notify-from", "Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.") = "0.0.0.0/0,::/0";
-  ::arg().set("slave-cycle-interval", "Schedule slave freshness checks once every .. seconds") = "60";
+  ::arg().set("slave-cycle-interval", "Schedule slave freshness checks once every .. seconds") = "";
   ::arg().set("xfr-cycle-interval", "Schedule primary/secondary SOA freshness checks once every .. seconds") = "60";
   ::arg().set("secondary-check-signature-freshness", "Check signatures in SOA freshness check. Sets DO flag on SOA queries. Outside some very problematic scenarios, say yes here.") = "yes";
 
@@ -1241,6 +1241,8 @@ int main(int argc, char** argv)
       ::arg().set("allow-unsigned-autoprimary") = "yes";
     if (!::arg().isEmpty("domain-metadata-cache-ttl"))
       ::arg().set("zone-metadata-cache-ttl") = ::arg()["domain-metadata-cache-ttl"];
+    if (!::arg().isEmpty("slave-cycle-interval"))
+      ::arg().set("xfr-cycle-interval") = ::arg()["slave-cycle-interval"];
 
     // this mirroring back is on purpose, so that config dumps reflect the actual setting on both names
     if (::arg().mustDo("primary"))
@@ -1254,6 +1256,7 @@ int main(int argc, char** argv)
     if (::arg().mustDo("allow-unsigned-autoprimary"))
       ::arg().set("allow-unsigned-supermaster") = "yes";
     ::arg().set("domain-metadata-cache-ttl") = ::arg()["zone-metadata-cache-ttl"];
+    ::arg().set("slave-cycle-interval") = ::arg()["xfr-cycle-interval"];
 
     g_log.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
     g_log.disableSyslog(::arg().mustDo("disable-syslog"));
