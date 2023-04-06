@@ -162,7 +162,11 @@ struct LMDBIndexOps
     auto scombined = makeCombinedKey(keyConv(d_parent->getMember(t)), id);
     MDBInVal combined(scombined);
 
-    txn->put(d_idx, combined, empty, flags);
+    MDBOutVal currentvalue;
+
+    if (txn->get(d_idx, combined, currentvalue) == MDB_NOTFOUND) {
+      txn->put(d_idx, combined, empty, flags);
+    }
   }
 
   void del(MDBRWTransaction& txn, const Class& t, uint32_t id)
