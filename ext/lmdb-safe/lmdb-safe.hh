@@ -140,13 +140,16 @@ namespace LMDBLS {
       return std::string((char*)this, sizeof(*this)) + std::string(ntohs(d_numextra)*8, '\0');
     }
 
-
+    uint64_t getTimestamp() const {
+      return _LMDB_SAFE_BSWAP64MAYBE(d_timestamp);
+    }
   };
 
   static_assert(sizeof(LSheader)==24, "LSheader size is wrong");
 
   const size_t LS_MIN_HEADER_SIZE = sizeof(LSheader);
   const size_t LS_BLOCK_SIZE = 8;
+  const size_t LS_TIMESTAMP_OFFSET = 0;
   const size_t LS_NUMEXTRA_OFFSET = 22;
   const uint8_t LS_FLAG_DELETED = 0x01;
 
@@ -154,6 +157,7 @@ namespace LMDBLS {
   size_t LScheckHeaderAndGetSize(std::string_view val, size_t datasize=0);
   size_t LScheckHeaderAndGetSize(const MDBOutVal *val, size_t datasize=0);
   bool LSisDeleted(std::string_view val);
+  uint64_t LSgetTimestamp(std::string_view val);
 
   extern bool s_flag_deleted;
   extern bool s_handle_dups;
