@@ -773,12 +773,36 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
   // Catalog zone start
   if (di.kind == DomainInfo::Producer) {
-    // Ignore all records except NS at apex
-    sd.db->lookup(QType::NS, target, di.id);
+    const DNSName extLabel = DNSName("ext");
+    const DNSName customPropertiesSuffix = extLabel + target;
+    const DNSName zonesPropertiesSuffix = DNSName("zones") + target;
+
+    bool seenNS = false;
+    sd.db->list(target, di.id);
     while (sd.db->get(zrr)) {
-      zrrs.emplace_back(zrr);
+      // Ignore all records except:
+      // 1. NS at apex
+      if (zrr.dr.d_name == target && zrr.dr.d_type == QType::NS) {
+        zrrs.emplace_back(zrr);
+        seenNS = true;
+      }
+      // 2. Global custom properties
+      else if (zrr.dr.d_name.isPartOf(customPropertiesSuffix)) {
+        zrrs.emplace_back(zrr);
+      }
+      // 3. Member zone custom properties
+      else if (zrr.dr.d_name.isPartOf(zonesPropertiesSuffix) && zrr.dr.d_name.countLabels() > 4) {
+        // get labels after making the name relative to zones.TARGET
+        auto labels = zrr.dr.d_name.makeRelative(zonesPropertiesSuffix).getRawLabels();
+        // check the last but one label, the last one being the unique ID of the zone
+        if (DNSName(labels.at(labels.size() - 2)) == extLabel) {
+          zrrs.emplace_back(zrr);
+        }
+      }
     }
-    if (zrrs.empty()) {
+
+    /* synthesize a NS record if needed */
+    if (!seenNS) {
       zrr.dr.d_name = target;
       zrr.dr.d_ttl = 0;
       zrr.dr.d_type = QType::NS;
@@ -786,6 +810,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       zrrs.emplace_back(zrr);
     }
 
+    /* add the catalog zone version number */
     zrrs.emplace_back(CatalogInfo::getCatalogVersionRecord(target));
 
     vector<CatalogInfo> members;
