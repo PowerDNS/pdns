@@ -1885,18 +1885,18 @@ Other functions
 
   PKCS12 files are only supported by the ``openssl`` provider, password-protected or not.
 
-  :param string pathToCert: Path to a file containing the certificate or a PCKS12 file containing both a certificate and a key.
+  :param string pathToCert: Path to a file containing the certificate or a PKCS12 file containing both a certificate and a key.
   :param table options: A table with key: value pairs with additional options.
 
   Options:
 
   * ``key="path/to/key"``: string - Path to a file containing the key corresponding to the certificate.
-  * ``password="pass"``: string - Password protecting the PCKS12 file if appropriate.
+  * ``password="pass"``: string - Password protecting the PKCS12 file if appropriate.
 
   .. code-block:: lua
 
     newTLSCertificate("path/to/pub.crt", {key="path/to/private.pem"})
-    newTLSCertificate("path/to/domain.p12", {password="passphrase"}) -- use a password protected PCKS12 file
+    newTLSCertificate("path/to/domain.p12", {password="passphrase"}) -- use a password protected PKCS12 file
 
 DOHFrontend
 ~~~~~~~~~~~
