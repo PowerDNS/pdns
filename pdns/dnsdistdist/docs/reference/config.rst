@@ -333,7 +333,7 @@ Webserver configuration
     The ``password`` parameter is now optional.
     The use of optional parameters is now deprecated. Please use :func:`setWebserverConfig` instead.
 
-  .. versionchanged:: 1.7.0
+  .. versionchanged:: 1.8.0
     The ``password``, ``apikey``, ``customHeaders`` and ``acl`` parameters is no longer supported.
     Please use :func:`setWebserverConfig` instead.
 
