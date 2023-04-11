@@ -1260,7 +1260,7 @@ class TestProtocols(DNSDistDOHTest):
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-class TestDOHWithPCKS12Cert(DNSDistDOHTest):
+class TestDOHWithPKCS12Cert(DNSDistDOHTest):
     _serverCert = 'server.p12'
     _pkcs12Password = 'passw0rd'
     _serverName = 'tls.tests.dnsdist.org'
@@ -1276,7 +1276,7 @@ class TestDOHWithPCKS12Cert(DNSDistDOHTest):
 
     def testProtocolDOH(self):
         """
-        DoH: Test Simple DOH Query with a password protected PCKS12 file configured
+        DoH: Test Simple DOH Query with a password protected PKCS12 file configured
         """
         name = 'simple.doh.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)

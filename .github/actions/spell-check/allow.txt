@@ -2548,7 +2548,6 @@ PBpq
 pbtag
 pcall
 PCDNSSEC
-PCKS
 PCmissing
 pcomp
 pcount

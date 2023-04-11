@@ -376,7 +376,7 @@ class Pkcs11Token {
       attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
       FindObjects2(*slot, attr, key, 1);
       if (key.size() == 0) {
-        g_log<<Logger::Warning<<"Cannot load PCKS#11 private key "<<d_label<<std::endl;;
+        g_log<<Logger::Warning<<"Cannot load PKCS#11 private key "<<d_label<<std::endl;;
         return;
       }
       d_private_key = key[0];
@@ -386,7 +386,7 @@ class Pkcs11Token {
       attr.push_back(P11KitAttribute(CKA_LABEL, d_pub_label));
       FindObjects2(*slot, attr, key, 1);
       if (key.size() == 0) {
-        g_log<<Logger::Warning<<"Cannot load PCKS#11 public key "<<d_pub_label<<std::endl;
+        g_log<<Logger::Warning<<"Cannot load PKCS#11 public key "<<d_pub_label<<std::endl;
         return;
       }
       d_public_key = key[0];
@@ -407,7 +407,7 @@ class Pkcs11Token {
             d_exponent = attr[1].str();
             d_bits = attr[2].ulong();
           } else {
-            throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_pub_label);
+            throw PDNSException("Cannot load attributes for PKCS#11 public key " + d_pub_label);
           }
         } else if (d_key_type == CKK_EC || d_key_type == CKK_ECDSA) {
           attr.clear();
@@ -419,13 +419,13 @@ class Pkcs11Token {
             if (attr[1].str().length() != (d_bits*2/8 + 3)) throw PDNSException("EC Point data invalid");
             d_ec_point = attr[1].str().substr(3);
           } else {
-            throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_pub_label);
+            throw PDNSException("Cannot load attributes for PKCS#11 public key " + d_pub_label);
           }
         } else {
-          throw PDNSException("Cannot determine type for PCKS#11 public key " + d_pub_label);
+          throw PDNSException("Cannot determine type for PKCS#11 public key " + d_pub_label);
         }
       } else {
-        throw PDNSException("Cannot load attributes for PCKS#11 public key " + d_pub_label);
+        throw PDNSException("Cannot load attributes for PKCS#11 public key " + d_pub_label);
       }
 
       d_loaded = true;

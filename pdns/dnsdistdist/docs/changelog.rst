@@ -923,7 +923,7 @@ Changelog
     :tags: New Features, DNS over HTTPS, DNS over TLS
     :pullreq: 11027
 
-    Add support for password protected PCKS12 files for TLS configuration
+    Add support for password protected PKCS12 files for TLS configuration
 
   .. change::
     :tags: New Features
