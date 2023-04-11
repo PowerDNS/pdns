@@ -495,7 +495,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 #endif /* HAVE_FSTRM */
 
     // sleep until we see an answer to this, interface to mtasker
-    ret = arecvfrom(buf, 0, ip, &len, qid, domain, type, queryfd, now);
+    ret = arecvfrom(buf, 0, ip, len, qid, domain, type, queryfd, *now);
   }
   else {
     bool isNew;
