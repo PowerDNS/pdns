@@ -58,3 +58,9 @@ endif
 
 override_dh_gencontrol:
 	dh_gencontrol -- $(SUBSTVARS)
+
+# Explicitly set a compression method, as Debian and Ubuntu defaults vary widely,
+# and xz support is not available in all tools yet. Removing this override can
+# make reprepro fail.
+override_dh_builddeb:
+	dh_builddeb -- -Zgzip
