@@ -498,7 +498,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          getOptionalValue<bool>(vars, "useClientSubnet", config.useECS);
                          getOptionalValue<bool>(vars, "useProxyProtocol", config.useProxyProtocol);
-                         getOptionalValue<bool>(vars, "disableZeroScoping", config.disableZeroScope);
+                         getOptionalValue<bool>(vars, "disableZeroScope", config.disableZeroScope);
                          getOptionalValue<bool>(vars, "ipBindAddrNoPort", config.ipBindAddrNoPort);
 
                          getOptionalIntegerValue("newServer", vars, "addXPF", config.xpfRRCode);
