@@ -15,27 +15,39 @@ See below for more information about the various caches.
 When deploying (large scale) IPv6, please be aware some Linux distributions leave IPv6 routing cache tables at very small default values.
 Please check and if necessary raise ``sysctl net.ipv6.route.max_size``.
 
-Set :ref:`setting-threads` to your number of CPU cores minus the number of distributor threads (but values above 8 rarely improve performance).
+Set :ref:`setting-threads` to your number of CPU cores minus the number of distributor threads.
 
 Threading and distribution of queries
 -------------------------------------
 
-When running with several threads, you can either ask PowerDNS to start one or more special threads to dispatch the incoming queries to the workers by setting :ref:`setting-pdns-distributes-queries` to true, or let the worker threads handle the incoming queries themselves.
+When running with several threads, you can either ask PowerDNS to start one or more special threads to dispatch the incoming queries to the workers by setting :ref:`setting-pdns-distributes-queries` to ``yes``, or let the worker threads handle the incoming queries themselves.
+The latter is the default since version 4.9.0.
 
 The dispatch thread enabled by :ref:`setting-pdns-distributes-queries` tries to send the same queries to the same thread to maximize the cache-hit ratio.
 If the incoming query rate is so high that the dispatch thread becomes a bottleneck, you can increase :ref:`setting-distributor-threads` to use more than one.
 
-If :ref:`setting-pdns-distributes-queries` is set to false and either ``SO_REUSEPORT`` support is not available or the :ref:`setting-reuseport` directive is set to false, all worker threads share the same listening sockets.
+If :ref:`setting-pdns-distributes-queries` is set to ``no`` and either ``SO_REUSEPORT`` support is not available or the :ref:`setting-reuseport` directive is set to ``no``, all worker threads share the same listening sockets.
 
 This prevents a single thread from having to handle every incoming queries, but can lead to thundering herd issues where all threads are awoken at once when a query arrives.
 
-If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to true, separate listening sockets are opened for each worker thread and the query distributions is handled by the kernel, avoiding any thundering herd issue as well as preventing the distributor thread from becoming the bottleneck.
+If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to ``yes``, which is the
+default since version 4.9.0, separate listening sockets are opened for each worker thread and the query distributions is handled by the kernel, avoiding any thundering herd issue as well as preventing the distributor thread from becoming the bottleneck.
+
+On some systems setting :ref:`setting-reuseport` to ``yes`` does not have the desired effect.
+If your systems shows imbalance in the number of queries processed per thread (as reported by the periodic statistics report), try switching :ref:`setting-reuseport` to ``no`` and/or setting  :ref:`setting-pdns-distributes-queries` to ``yes``.
 
 .. versionadded:: 4.1.0
    The :ref:`setting-cpu-map` parameter can be used to pin worker threads to specific CPUs, in order to keep caches as warm as possible and optimize memory access on NUMA systems.
 
 .. versionadded:: 4.2.0
    The :ref:`setting-distributor-threads` parameter can be used to run more than one distributor thread.
+
+.. versionchanged:: 4.9.0
+   The :ref:`setting-reuseport` parameter now defaults to ``yes``.
+
+.. versionchanged:: 4.9.0
+   The :ref:`setting-pdns-distributes-queries` parameter now defaults to ``no``.
+
 
 MTasker and MThreads
 --------------------

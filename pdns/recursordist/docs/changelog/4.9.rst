@@ -1,0 +1,199 @@
+Changelogs for 4.9.X
+====================
+
+.. changelog::
+  :version: 4.9.0-alpha1
+  :released: 14th of April 2023
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12710
+
+    Cleanup rcode enums: base one is 8 bit unsigned, extended one 16 bit unsigned
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12594
+
+    Sharded and shared packet cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12709
+
+    More fine grained capping of packet cache TTL.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12655
+    :tickets: 12486
+
+    Rework root priming code to allow multiple addresses per NS.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10072,12716
+
+    Update Debian packaging for Recursor (Chris Hofstaedtler).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12497
+
+    Unify shorthands for seconds in log messages (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12674
+
+    Validate: Stop passing shared pointers all the way down.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12688
+
+    Re-establish "recursion depth is always increasing" invariant.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12672
+
+    Fix a dnsheader unaligned case.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12550,12540,12524,12516,12515,12513,12502,12501,12462,12412,12401
+
+    OpenSSL 3.0 compatibility.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12554
+
+    Serve-stale-extensions works on 30s so an hour should be 120. (Andreas Jakum)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12539
+
+    Fix doc typo (Matt Nordhoff).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12493
+
+    Only store NSEC3 records in aggressive cache if we expect them to be effective.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11777
+
+    rec_control trace-regex: trace to a file or stdout instead of the general log.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12495
+
+    Logging tweaks (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12434
+
+    Unify trace logging code in syncres and validator.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12446,12695
+
+    Stack protector for mthread stacks.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12425
+
+    Change the way RD=0 forwarded queries are handled.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12381
+
+    Enable FORTIFY_SOURCE=3 when supported by the compiler.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12419
+    :tickets: 12374
+
+    Negcache dump code: close fd on fdopen fail.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12396
+
+    Introduce a thread-safe version of stringerror().
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12399
+    :tickets: 11138
+
+    Name recursor threads consistently with a "rec/" prefix.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12392
+
+    Be more careful saving errno in makeClientSocket() and closesocket()
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12373
+
+    Rec: Warn on high (90%) mthread stack usage.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12334,12691,12698
+
+    Rec: Generate EDE in more cases, specifically on unreachable auths or synthesized results.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12368
+
+    Add the 'parse packet from auth' error message to structured logging.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12292
+
+    Wrap the CURL raw pointers in smart pointers.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12318
+    :tickets: 12241
+
+    Reorganization: move recursor specific files to recursordist.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12193,12348,12323
+
+    Introducing TCounters.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12120
+    :tickets: 12090
+
+    If we encounter a loop in QM, continue with the next iteration.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12121
+    :tickets: 12080
+
+    More clear trace message for cache-only lookups.
+
