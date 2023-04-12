@@ -194,8 +194,8 @@ static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name,
 void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, vector<DNSZoneRecord>& rrs)
 {
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
-  
-  DNSName signQName, wildcardQName;
+
+  DNSName authQName, signQName, wildcardQName;
   uint16_t signQType=0;
   uint32_t signTTL=0;
   uint32_t origTTL=0;
@@ -209,11 +209,20 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
   DNSName signer;
   for(auto pos = rrs.cbegin(); pos != rrs.cend(); ++pos) {
     if(pos != rrs.cbegin() && (signQType != pos->dr.d_type  || signQName != pos->dr.d_name)) {
-      if(getBestAuthFromSet(authSet, signQName, signer))
+      if (getBestAuthFromSet(authSet, authQName, signer))
         addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL);
     }
     signedRecords.push_back(*pos);
-    signQName= pos->dr.d_name.makeLowerCase();
+    signQName = pos->dr.d_name.makeLowerCase();
+    if (pos->dr.d_type == QType::NSEC) {
+      authQName = signQName.getCommonLabels(getRR<NSECRecordContent>(pos->dr)->d_next);
+      if (authQName.empty()) {
+        authQName = g_rootdnsname;
+      }
+    }
+    else {
+      authQName = signQName;
+    }
     if(!pos->wildcardname.empty())
       wildcardQName = pos->wildcardname.makeLowerCase();
     else
@@ -229,7 +238,7 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
       toSign.insert(pos->dr.d_content); // so ponder.. should this be a deep copy perhaps?
     }
   }
-  if(getBestAuthFromSet(authSet, signQName, signer))
+  if (getBestAuthFromSet(authSet, authQName, signer))
     addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL);
   rrs.swap(signedRecords);
 }
