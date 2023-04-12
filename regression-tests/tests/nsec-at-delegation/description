@@ -1,0 +1,1 @@
+Check that we generate the right NSECs when the NSEC name is a delegation point.
