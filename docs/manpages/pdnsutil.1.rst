@@ -220,6 +220,8 @@ list-keys [*ZONE*]
 list-all-zones:
     List all active zone names. --verbose or -v will also include disabled
     or empty zones.
+list-member-zones *CATALOG*
+    List all members of catalog zone *CATALOG*"
 list-zone *ZONE*
     Show all records for *ZONE*.
 load-zone *ZONE* *FILE*

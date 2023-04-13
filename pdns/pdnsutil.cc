@@ -1748,6 +1748,47 @@ static int listAllZones(const string &type="") {
   return 0;
 }
 
+static int listMemberZones(const string& catalog)
+{
+
+  UeberBackend B("default");
+
+  DNSName catz(catalog);
+  DomainInfo di;
+  if (!B.getDomainInfo(catz, di)) {
+    cerr << "Zone '" << catz << "' not found" << endl;
+    return EXIT_FAILURE;
+  }
+  if (!di.isCatalogType()) {
+    cerr << "Zone '" << catz << "' is not a catalog zone" << endl;
+    return EXIT_FAILURE;
+  }
+
+  CatalogInfo::CatalogType type;
+  if (di.kind == DomainInfo::Producer) {
+    type = CatalogInfo::Producer;
+  }
+  else {
+    type = CatalogInfo::Consumer;
+  }
+
+  vector<CatalogInfo> members;
+  if (!di.backend->getCatalogMembers(catz, members, type)) {
+    cerr << "Backend does not support catalog zones" << endl;
+    return EXIT_FAILURE;
+  }
+
+  for (const auto& ci : members) {
+    cout << ci.d_zone << endl;
+  }
+
+  if (g_verbose) {
+    cout << "All zonecount: " << members.size() << endl;
+  }
+
+  return EXIT_SUCCESS;
+}
+
 static bool testAlgorithm(int algo)
 {
   return DNSCryptoKeyEngine::testOne(algo);
@@ -2535,6 +2576,7 @@ try
     cout << "list-zone ZONE                     List zone contents" << endl;
     cout << "list-all-zones [primary|secondary|native|producer|consumer]" << endl;
     cout << "                                   List all active zone names. --verbose or -v will also include disabled or empty zones" << endl;
+    cout << "list-member-zones CATALOG          List all members of catalog zone CATALOG" << endl;
 
     cout << "list-tsig-keys                     List all TSIG keys" << endl;
     cout << "publish-zone-key ZONE KEY-ID       Publish the zone key with key id KEY-ID in ZONE" << endl;
@@ -2762,6 +2804,13 @@ try
     if (cmds.size() == 2)
       return listAllZones(cmds.at(1));
     return listAllZones();
+  }
+  else if (cmds.at(0) == "list-member-zones") {
+    if (cmds.size() != 2) {
+      cerr << "Syntax: pdnsutil list-member-zones CATALOG" << endl;
+      return 0;
+    }
+    return listMemberZones(cmds.at(1));
   }
   else if (cmds.at(0) == "test-zone") {
     cerr << "Did you mean check-zone?"<<endl;
