@@ -1,0 +1,2 @@
+This test verifies that, with the LMDB-backend, pdnsutil set-meta and delete-zone do not leave old unreachable metadata items lying around
+

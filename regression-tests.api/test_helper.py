@@ -121,17 +121,3 @@ def sdig(*args):
         return subprocess.check_output(sdig_command_line).decode('utf-8')
     except subprocess.CalledProcessError as except_inst:
         raise RuntimeError("sdig %s failed: %s" % (sdig_command_line, except_inst.output.decode('ascii', errors='replace')))
-
-def get_db_tsigkeys(keyname):
-    db, placeholder = get_auth_db()
-    cur = db.cursor()
-    cur.execute("""
-        SELECT name, algorithm, secret
-        FROM tsigkeys
-        WHERE name = """+placeholder, (keyname, ))
-    rows = cur.fetchall()
-    cur.close()
-    db.close()
-    keys = [{'name': row[0], 'algorithm': row[1], 'secret': row[2]} for row in rows]
-    print("DB TSIG keys:", keys)
-    return keys
