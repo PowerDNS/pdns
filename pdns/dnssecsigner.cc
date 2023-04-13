@@ -226,9 +226,6 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
     signQName = pos->dr.d_name.makeLowerCase();
     if (pos->dr.d_type == QType::NSEC) {
       authQName = signQName.getCommonLabels(getRR<NSECRecordContent>(pos->dr)->d_next);
-      if (authQName.empty()) {
-        authQName = g_rootdnsname;
-      }
     }
     else {
       authQName = signQName;
