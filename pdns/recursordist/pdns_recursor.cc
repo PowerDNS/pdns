@@ -1802,7 +1802,9 @@ void startDoResolve(void* p)
                         "tcpout", Logging::Loggable(sr.d_tcpoutqueries),
                         "dotout", Logging::Loggable(sr.d_dotoutqueries),
                         "rcode", Logging::Loggable(res),
-                        "validationState", Logging::Loggable(sr.getValidationState()));
+                        "validationState", Logging::Loggable(sr.getValidationState()),
+                        "answer-is-variable", Logging::Loggable(sr.wasVariable()),
+                        "into-packetcache", Logging::Loggable(g_packetCache && !variableAnswer && !sr.wasVariable()));
       }
     }
 
