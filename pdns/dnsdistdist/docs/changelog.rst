@@ -2,6 +2,118 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.4
+  :released: 14th of April 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12183
+    :tickets: 12177
+
+    Fix building with boost < 1.56
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12460
+    :tickets: 12453
+
+    lock.hh: include <stdexcept>
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12569
+
+    dnsdist-protocols.hh: include <cstdint> (Sander Hoentjen)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12621
+    :tickets: 12074
+
+    Add getPoolNames() function, returning a list of pool names (Christof Chen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12535
+
+    Fix the formatting of 'showServers'
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12529
+    :tickets: 11905
+
+    Properly record the incoming flags on a timeout
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 12484
+    :tickets: 11498
+
+    Properly update rcode-related metrics on RCodeAction hits
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 12421
+    :tickets: 12341
+
+    Skip invalid OCSP files after issuing a warning
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12365
+    :tickets: 12357
+
+    Prevent an underflow of the TCP d_queued counter
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 12327
+
+    Fix the health-check timeout computation for DoH backend
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 12260
+    :tickets: 9349
+
+    Properly encode json strings containing binary data
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS
+    :pullreq: 12237
+    :tickets: 12236
+
+    Ignore unclean TLS session shutdown
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12100
+    :tickets: 12099
+
+    Properly handle single-SOA XFR responses
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11830
+    :tickets: 4155
+
+    Also reconnect on ENETUNREACH. (Asgeir Storesund Nilsen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11729
+    :tickets: 11728
+
+    Fix a bug in SetEDNSOptionAction
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11718
+
+    Fix the number of concurrent queries on a backend TCP conn
+
+.. changelog::
   :version: 1.8.0
   :released: 30th of March 2023
 
