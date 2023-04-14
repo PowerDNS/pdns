@@ -1002,6 +1002,56 @@ BOOST_AUTO_TEST_CASE(test_glueless_referral)
   BOOST_CHECK_EQUAL(ret[0].d_name, target);
 }
 
+BOOST_AUTO_TEST_CASE(test_endless_glueless_referral)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr);
+
+  primeHints();
+
+  const DNSName target("powerdns.com.");
+
+  size_t count = 0;
+  sr->setAsyncCallback([target, &count](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(ip)) {
+      setLWResult(res, 0, false, false, true);
+
+      if (domain.isPartOf(DNSName("com."))) {
+        addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      }
+      else if (domain.isPartOf(DNSName("org."))) {
+        addRecordToLW(res, "org.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      }
+      else {
+        setLWResult(res, RCode::NXDomain, false, false, true);
+        return LWResult::Result::Success;
+      }
+
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (domain == target) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, "powerdns.com.", QType::NS, "ns1.powerdns.org.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "powerdns.com.", QType::NS, "ns2.powerdns.org.", DNSResourceRecord::AUTHORITY, 172800);
+      return LWResult::Result::Success;
+    }
+    setLWResult(res, 0, false, false, true);
+    addRecordToLW(res, domain, QType::NS, std::to_string(count) + ".ns1.powerdns.org", DNSResourceRecord::AUTHORITY, 172800);
+    addRecordToLW(res, domain, QType::NS, std::to_string(count) + ".ns2.powerdns.org", DNSResourceRecord::AUTHORITY, 172800);
+    count++;
+    return LWResult::Result::Success;
+  });
+
+  vector<DNSRecord> ret;
+  BOOST_CHECK_EXCEPTION(sr->beginResolve(target, QType(QType::A), QClass::IN, ret),
+                        ImmediateServFailException,
+                        [](const ImmediateServFailException& isfe) {
+                          return isfe.reason.substr(0, 9) == "More than";
+                        });
+}
+
 BOOST_AUTO_TEST_CASE(test_glueless_referral_aaaa_task)
 {
   std::unique_ptr<SyncRes> sr;
@@ -1647,17 +1697,17 @@ BOOST_AUTO_TEST_CASE(test_cname_long_loop)
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_cname_depth)
+BOOST_AUTO_TEST_CASE(test_cname_length)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
 
   primeHints();
 
-  size_t depth = 0;
+  size_t length = 0;
   const DNSName target("cname.powerdns.com.");
 
-  sr->setAsyncCallback([target, &depth](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([target, &length](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
     if (isRootServer(ip)) {
 
       setLWResult(res, 0, false, false, true);
@@ -1668,8 +1718,8 @@ BOOST_AUTO_TEST_CASE(test_cname_depth)
     else if (ip == ComboAddress("192.0.2.1:53")) {
 
       setLWResult(res, 0, true, false, false);
-      addRecordToLW(res, domain, QType::CNAME, std::to_string(depth) + "-cname.powerdns.com");
-      depth++;
+      addRecordToLW(res, domain, QType::CNAME, std::to_string(length) + "-cname.powerdns.com");
+      length++;
       return LWResult::Result::Success;
     }
 
@@ -1679,9 +1729,8 @@ BOOST_AUTO_TEST_CASE(test_cname_depth)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
-  BOOST_CHECK_EQUAL(ret.size(), depth);
-  /* we have an arbitrary limit at 10 when following a CNAME chain */
-  BOOST_CHECK_EQUAL(depth, 10U + 2U);
+  BOOST_CHECK_EQUAL(ret.size(), length);
+  BOOST_CHECK_EQUAL(length, SyncRes::s_max_CNAMES_followed + 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_time_limit)

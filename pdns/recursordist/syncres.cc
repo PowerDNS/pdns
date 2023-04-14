@@ -468,6 +468,7 @@ bool SyncRes::s_dot_to_port_853;
 int SyncRes::s_event_trace_enabled;
 bool SyncRes::s_save_parent_ns_set;
 unsigned int SyncRes::s_max_busy_dot_probes;
+unsigned int SyncRes::s_max_CNAMES_followed = 10;
 bool SyncRes::s_addExtendedResolutionDNSErrors;
 
 #define LOG(x)                       \
@@ -1825,7 +1826,8 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
 
   if (s_maxdepth > 0) {
     auto bound = getAdjustedRecursionBound();
-    if (depth > bound) {
+    // Use a stricter bound if throttling
+    if (depth > bound || (d_outqueries > 10 && d_throttledqueries > 5 && depth > bound * 2 / 3)) {
       string msg = "More than " + std::to_string(bound) + " (adjusted max-recursion-depth) levels of recursion needed while resolving " + qname.toLogString();
       LOG(prefix << qname << ": " << msg << endl);
       throw ImmediateServFailException(msg);
@@ -2403,30 +2405,22 @@ void SyncRes::updateValidationStatusInCache(const DNSName& qname, const QType qt
   }
 }
 
-static bool scanForCNAMELoop(const DNSName& name, const vector<DNSRecord>& records)
+static pair<bool, unsigned int> scanForCNAMELoop(const DNSName& name, const vector<DNSRecord>& records)
 {
+  unsigned int numCNames = 0;
   for (const auto& record : records) {
     if (record.d_type == QType::CNAME && record.d_place == DNSResourceRecord::ANSWER) {
+      ++numCNames;
       if (name == record.d_name) {
-        return true;
+        return {true, numCNames};
       }
     }
   }
-  return false;
+  return {false, numCNames};
 }
 
 bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse)
 {
-  // Even if s_maxdepth is zero, we want to have this check
-  auto bound = std::max(40U, getAdjustedRecursionBound());
-  // Bounds were > 9 and > 15 originally, now they are derived from s_maxdepth (default 40)
-  // Apply more strict bound if we see throttling
-  if ((depth >= bound / 4 && d_outqueries > 10 && d_throttledqueries > 5) || depth > bound * 3 / 8) {
-    LOG(prefix << qname << ": Recursing (CNAME or other indirection) too deep, depth=" << depth << endl);
-    res = RCode::ServFail;
-    return true;
-  }
-
   vector<DNSRecord> cset;
   vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   vector<std::shared_ptr<DNSRecord>> authorityRecs;
@@ -2599,9 +2593,15 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
         return true;
       }
 
-      // Check to see if we already have seen the new target as a previous target
-      if (scanForCNAMELoop(newTarget, ret)) {
+      // Check to see if we already have seen the new target as a previous target or that we have a very long CNAME chain
+      const auto [CNAMELoop, numCNAMEs] = scanForCNAMELoop(newTarget, ret);
+      if (CNAMELoop) {
         string msg = "got a CNAME referral (from cache) that causes a loop";
+        LOG(prefix << qname << ": Status=" << msg << endl);
+        throw ImmediateServFailException(msg);
+      }
+      if (numCNAMEs > s_max_CNAMES_followed) {
+        string msg = "max number of CNAMEs exceeded";
         LOG(prefix << qname << ": Status=" << msg << endl);
         throw ImmediateServFailException(msg);
       }
@@ -5327,23 +5327,21 @@ void SyncRes::handleNewTarget(const std::string& prefix, const DNSName& qname, c
     setQNameMinimization(false);
   }
 
-  // Was 10 originally, default s_maxdepth is 40, but even if it is zero we want to apply a bound
-  auto bound = std::max(40U, getAdjustedRecursionBound()) / 4;
-  if (depth > bound) {
-    LOG(prefix << qname << ": Status=got a CNAME referral, but recursing too deep, returning SERVFAIL" << endl);
-    rcode = RCode::ServFail;
-    return;
-  }
-
   if (!d_followCNAME) {
     rcode = RCode::NoError;
     return;
   }
 
-  // Check to see if we already have seen the new target as a previous target
-  if (scanForCNAMELoop(newtarget, ret)) {
+  // Check to see if we already have seen the new target as a previous target or that the chain is too long
+  const auto [CNAMELoop, numCNAMEs] = scanForCNAMELoop(newtarget, ret);
+  if (CNAMELoop) {
     LOG(prefix << qname << ": Status=got a CNAME referral that causes a loop, returning SERVFAIL" << endl);
     ret.clear();
+    rcode = RCode::ServFail;
+    return;
+  }
+  if (numCNAMEs > s_max_CNAMES_followed) {
+    LOG(prefix << qname << ": Status=got a CNAME referral, but chain too long, returning SERVFAIL" << endl);
     rcode = RCode::ServFail;
     return;
   }

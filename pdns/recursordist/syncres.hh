@@ -545,6 +545,7 @@ public:
   static bool s_tcp_fast_open_connect;
   static bool s_dot_to_port_853;
   static unsigned int s_max_busy_dot_probes;
+  static unsigned int s_max_CNAMES_followed;
 
   static const int event_trace_to_pb = 1;
   static const int event_trace_to_log = 2;
