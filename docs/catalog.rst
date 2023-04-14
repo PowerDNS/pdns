@@ -18,7 +18,9 @@ All the important features of catalog zones version "2" are supported.
 There are however a few properties where support is limited:
 
 -  There is no support for group templates on consumers;
--  There is no support for custom extensions;
+
+Since 4.8.0, custom extensions present in catalog zones are exported to consumers.
+Before 4.8.0 all custom extensions were ignored.
 
 The implementation requires the backend to support a number of new operations.
 Currently, the following backends have been modified to support catalog zones:
