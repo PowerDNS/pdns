@@ -1267,9 +1267,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
 
     typedef map<query_t, unsigned int> counts_t;
     counts_t counts;
-    unsigned int total = 0;
     for (const query_t& q : queries) {
-      total++;
       if (filter)
         counts[pair(getRegisteredName(q.first), q.second)]++;
       else
@@ -1313,9 +1311,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
 
     typedef map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts_t;
     counts_t counts;
-    unsigned int total = 0;
     for (const ComboAddress& q : queries) {
-      total++;
       counts[q]++;
     }
 
