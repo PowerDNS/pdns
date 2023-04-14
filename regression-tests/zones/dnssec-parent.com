@@ -25,3 +25,4 @@ insecure-delegated.ent.ent.auth-ent	IN	NS	ns.example.com.
 something1.auth-ent	IN	A	1.1.2.3
 insecure		IN	NS	ns.example.com.
 www			IN	CNAME	www.insecure
+*			IN	CNAME	secure-delegated

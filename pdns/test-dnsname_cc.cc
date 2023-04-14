@@ -1019,14 +1019,18 @@ BOOST_AUTO_TEST_CASE(test_getcommonlabels) {
   BOOST_CHECK_EQUAL(name2.getCommonLabels(name1), DNSName("powerdns.com"));
 
   const DNSName name3("www.powerdns.org");
-  BOOST_CHECK_EQUAL(name1.getCommonLabels(name3), DNSName());
-  BOOST_CHECK_EQUAL(name2.getCommonLabels(name3), DNSName());
-  BOOST_CHECK_EQUAL(name3.getCommonLabels(name1), DNSName());
-  BOOST_CHECK_EQUAL(name3.getCommonLabels(name2), DNSName());
+  BOOST_CHECK_EQUAL(name1.getCommonLabels(name3), g_rootdnsname);
+  BOOST_CHECK_EQUAL(name2.getCommonLabels(name3), g_rootdnsname);
+  BOOST_CHECK_EQUAL(name3.getCommonLabels(name1), g_rootdnsname);
+  BOOST_CHECK_EQUAL(name3.getCommonLabels(name2), g_rootdnsname);
 
   const DNSName name4("WWw.PowErDnS.org");
   BOOST_CHECK_EQUAL(name3.getCommonLabels(name4), name3);
   BOOST_CHECK_EQUAL(name4.getCommonLabels(name3), name4);
+
+  const DNSName(name5);
+  BOOST_CHECK_EQUAL(name1.getCommonLabels(name5), DNSName());
+  BOOST_CHECK_EQUAL(name5.getCommonLabels(name1), DNSName());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

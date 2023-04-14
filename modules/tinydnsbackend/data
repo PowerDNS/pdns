@@ -20167,6 +20167,9 @@ Zexample.com:ns1.example.com.:ahu.example.com.:2847484148:28800:7200:604800:8640
 &sub.test.test.com::ns-test.example.net.test.com.:3600
 &test.com::ns1.test.com.:3600
 &test.com::ns2.test.com.:3600
++10.order.test.com:192.168.0.1:3600
++100.order.test.com:192.168.0.1:3600
++15.order.test.com:192.168.0.1:3600
 +\052.a.b.c.test.com:8.7.6.5:3600
 +b.c.test.com:5.6.7.8:3600
 +blah.test.com:192.168.6.1:3600
@@ -20268,6 +20271,7 @@ Znztest.com:ns1.nztest.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:
 +ns2.secure-delegated.dnssec-parent.com:5.6.7.8:3600
 +something1.auth-ent.dnssec-parent.com:1.1.2.3:3600
 :secure-delegated.dnssec-parent.com:43:\324\057\010\002\240\271\303\214\323\044\030\052\360\357f\203\015\012\016\205\241\325\211y\311\203N\030\310qw\236\004\010W\267:3600
+C\052.dnssec-parent.com:secure-delegated.dnssec-parent.com.:3600
 Cwww.dnssec-parent.com:www.insecure.dnssec-parent.com.:3600
 Zdnssec-parent.com:ns1.dnssec-parent.com.:ahu.example.com.:2005092501:28800:7200:604800:86400:3600
 #2000081501 auto axfr-get
