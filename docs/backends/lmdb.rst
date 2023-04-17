@@ -112,6 +112,7 @@ This number can be increased later, but never decreased.
 Defaults to 100 on 32 bit systems, and 16000 on 64 bit systems.
 
 .. _settings-lmdb-flag-deleted:
+
 ``lmdb-flag-deleted``
 ^^^^^^^^^^^^^^^^^^^^^
 
