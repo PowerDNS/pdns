@@ -237,7 +237,26 @@ else:
 # Now run pdns and the tests.
 print("Launching server...")
 print(format_call_args(servercmd))
-serverproc = subprocess.Popen(servercmd, close_fds=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+server_stdout = tempfile.TemporaryFile()
+server_stderr = tempfile.TemporaryFile()
+serverproc = subprocess.Popen(servercmd, close_fds=True, text=True, stdout=server_stdout, stderr=server_stderr)
+
+def finalize_server():
+    serverproc.terminate()
+    serverproc.wait()
+
+    print("==STDOUT==")
+    server_stdout.seek(0, 0)
+    sys.stdout.flush()
+    sys.stdout.buffer.write(server_stdout.read())
+    server_stdout.close()
+
+    print("==STDERR==")
+    server_stderr.seek(0, 0)
+    sys.stdout.flush()
+    sys.stdout.buffer.write(server_stderr.read())
+    server_stderr.close()
+
 
 print("Waiting for webserver port to become available...")
 available = False
@@ -255,12 +274,7 @@ for try_number in range(0, 10):
 
 if not available:
     print("Webserver port not reachable after 10 tries, giving up.")
-    serverproc.terminate()
-    serverproc.wait()
-    print("==STDOUT===")
-    print(serverproc.stdout.read())
-    print("==STDERRR===")
-    print(serverproc.stderr.read())
+    finalize_server()
     sys.exit(2)
 
 print("Query for example.com/A to create statistic data...")
@@ -297,11 +311,6 @@ finally:
     if wait:
         print("Waiting as requested, press ENTER to stop.")
         raw_input()
-    serverproc.terminate()
-    serverproc.wait()
-    print("==STDOUT===")
-    print(serverproc.stdout.read())
-    print("==STDERRR===")
-    print(serverproc.stderr.read())
+    finalize_server()
 
 sys.exit(returncode)
