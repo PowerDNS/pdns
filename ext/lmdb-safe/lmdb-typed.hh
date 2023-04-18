@@ -653,9 +653,7 @@ public:
 
       int rc = cursor.get(out, id,  MDB_SET_RANGE);
 
-      int scanned = 0;
       while (rc == 0) {
-        scanned++;
         auto sout = out.getNoStripHeader<std::string>(); // FIXME: this (and many others) could probably be string_view
         auto thiskey = getKeyFromCombinedKey(out);
         auto sthiskey = thiskey.getNoStripHeader<std::string>();
@@ -673,7 +671,6 @@ public:
         rc = cursor.get(out, id, MDB_NEXT);
       }
 
-      // std::cerr<<"get_multi scanned="<<scanned<<std::endl;
       if (rc != 0 && rc != MDB_NOTFOUND) {
         throw std::runtime_error("error during get_multi");
       }
