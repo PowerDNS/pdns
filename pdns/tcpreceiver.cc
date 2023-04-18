@@ -993,9 +993,7 @@ send:
   unsigned int udiff;
   DTime dt;
   dt.set();
-  int records=0;
   for(DNSZoneRecord &loopZRR :  zrrs) {
-    records++;
     if(securedZone && (loopZRR.auth || loopZRR.dr.d_type == QType::NS)) {
       if (NSEC3Zone || loopZRR.dr.d_type) {
         if (presignedZone && NSEC3Zone && loopZRR.dr.d_type == QType::RRSIG && getRR<RRSIGRecordContent>(loopZRR.dr)->d_type == QType::NSEC3) {
