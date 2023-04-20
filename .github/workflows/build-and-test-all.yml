@@ -48,7 +48,7 @@ jobs:
       - run: ln -s .clang-tidy.full .clang-tidy
       - name: Run clang-tidy
         working-directory: pdns
-        run: git diff -U0 HEAD^..HEAD | python3 /usr/bin/clang-tidy-diff-12.py -clang-tidy-binary /usr/bin/clang-tidy-12 -extra-arg=-ferror-limit=0 -p2 -export-fixes clang-tidy-auth.yml
+        run: git diff -U0 HEAD^..HEAD | python3 ../.github/scripts/git-filter.py | python3 /usr/bin/clang-tidy-diff-12.py -clang-tidy-binary /usr/bin/clang-tidy-12 -extra-arg=-ferror-limit=0 -p2 -export-fixes clang-tidy-auth.yml
       - name: Print clang-tidy fixes YAML
         working-directory: pdns
         shell: bash
@@ -116,7 +116,7 @@ jobs:
       - run: inv ci-rec-make-bear
       - run: ln -s ../../.clang-tidy.full .clang-tidy
       - name: Run clang-tidy
-        run: git diff -U0 HEAD^..HEAD | python3 /usr/bin/clang-tidy-diff-12.py -clang-tidy-binary /usr/bin/clang-tidy-12 -extra-arg=-ferror-limit=0 -p3 -export-fixes clang-tidy-rec.yml
+        run: git diff -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py | python3 /usr/bin/clang-tidy-diff-12.py -clang-tidy-binary /usr/bin/clang-tidy-12 -extra-arg=-ferror-limit=0 -p3 -export-fixes clang-tidy-rec.yml
       - name: Print clang-tidy fixes YAML
         shell: bash
         run: |
@@ -185,7 +185,7 @@ jobs:
       - run: inv ci-dnsdist-make-bear
       - run: ln -s ../../.clang-tidy.full .clang-tidy
       - name: Run clang-tidy
-        run: git diff -U0 HEAD^..HEAD | python3 /usr/bin/clang-tidy-diff-12.py -clang-tidy-binary /usr/bin/clang-tidy-12 -extra-arg=-ferror-limit=0 -p3 -export-fixes clang-tidy-dnsdist.yml
+        run: git diff -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py | python3 /usr/bin/clang-tidy-diff-12.py -clang-tidy-binary /usr/bin/clang-tidy-12 -extra-arg=-ferror-limit=0 -p3 -export-fixes clang-tidy-dnsdist.yml
       - name: Print clang-tidy fixes YAML
         shell: bash
         run: |
