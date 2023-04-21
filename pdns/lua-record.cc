@@ -301,7 +301,6 @@ bool doCompare(const T& var, const std::string& res, const C& cmp)
 }
 }
 
-
 static std::string getGeo(const std::string& ip, GeoIPInterface::GeoIPQueryAttribute qa)
 {
   static bool initialized;
@@ -548,16 +547,39 @@ static vector<string> convComboAddressListToString(const vector<ComboAddress>& i
   return result;
 }
 
-static vector<ComboAddress> convComboAddressList(const iplist_t& items)
+static vector<ComboAddress> convComboAddressList(const iplist_t& items, uint16_t port=0)
 {
   vector<ComboAddress> result;
   result.reserve(items.size());
 
   for(const auto& item : items) {
-    result.emplace_back(ComboAddress(item.second));
+    result.emplace_back(ComboAddress(item.second, port));
   }
 
   return result;
+}
+
+/**
+ * Reads and unify single or multiple sets of ips :
+ * - {'192.0.2.1', '192.0.2.2'}
+ * - {{'192.0.2.1', '192.0.2.2'}, {'198.51.100.1'}}
+ */
+
+static vector<vector<ComboAddress>> convMultiComboAddressList(const boost::variant<iplist_t, ipunitlist_t>& items, uint16_t port = 0)
+{
+  vector<vector<ComboAddress>> candidates;
+
+  if(auto simple = boost::get<iplist_t>(&items)) {
+    vector<ComboAddress> unit = convComboAddressList(*simple, port);
+    candidates.push_back(unit);
+  } else {
+    auto units = boost::get<ipunitlist_t>(items);
+    for(const auto& u : units) {
+      vector<ComboAddress> unit = convComboAddressList(u.second, port);
+      candidates.push_back(unit);
+    }
+  }
+  return candidates;
 }
 
 static vector<string> convStringList(const iplist_t& items)
@@ -595,6 +617,37 @@ typedef struct AuthLuaRecordContext
 } lua_record_ctx_t;
 
 static thread_local unique_ptr<lua_record_ctx_t> s_lua_record_ctx;
+
+static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, std::function<bool(const ComboAddress&, const opts_t&)> upcheckf, uint16_t port = 0) {
+  vector<vector<ComboAddress> > candidates;
+  opts_t opts;
+  if(options)
+    opts = *options;
+
+  candidates = convMultiComboAddressList(ips, port);
+
+  for(const auto& unit : candidates) {
+    vector<ComboAddress> available;
+    for(const auto& c : unit) {
+      if (upcheckf(c, opts)) {
+        available.push_back(c);
+      }
+    }
+    if(!available.empty()) {
+      vector<ComboAddress> res = useSelector(getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
+      return convComboAddressListToString(res);
+    }
+  }
+
+  // All units down, apply backupSelector on all candidates
+  vector<ComboAddress> ret{};
+  for(const auto& unit : candidates) {
+    ret.insert(ret.end(), unit.begin(), unit.end());
+  }
+
+  vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, ret);
+  return convComboAddressListToString(res);
+}
 
 static void setupLuaRecords(LuaContext& lua)
 {
@@ -832,34 +885,18 @@ static void setupLuaRecords(LuaContext& lua)
    *
    * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
    */
-  lua.writeFunction("ifportup", [](int port, const vector<pair<int, string> >& ips, const boost::optional<std::unordered_map<string,string>> options) {
-      vector<ComboAddress> candidates, unavailables;
-      opts_t opts;
-      vector<ComboAddress > conv;
-      std::string selector;
-
-      if(options)
-        opts = *options;
-      for(const auto& i : ips) {
-        ComboAddress rem(i.second, port);
-        if(g_up.isUp(rem, opts)) {
-          candidates.push_back(rem);
-        }
-        else {
-          unavailables.push_back(rem);
-        }
+  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<std::unordered_map<string,string>> options) {
+      if (port < 0) {
+        port = 0;
       }
-      if(!candidates.empty()) {
-        // use regular selector
-        selector = getOptionValue(options, "selector", "random");
-      } else {
-        // All units are down, apply backupSelector on all candidates
-        candidates = std::move(unavailables);
-        selector = getOptionValue(options, "backupSelector", "random");
+      if (port > std::numeric_limits<uint16_t>::max()) {
+        port = std::numeric_limits<uint16_t>::max();
       }
 
-      vector<ComboAddress> res = useSelector(selector, s_lua_record_ctx->bestwho, candidates);
-      return convComboAddressListToString(res);
+      auto checker = [](const ComboAddress& addr, const opts_t& opts) {
+        return g_up.isUp(addr, opts);
+      };
+      return genericIfUp(ips, options, checker, port);
     });
 
   lua.writeFunction("ifurlextup", [](const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options) {
@@ -898,42 +935,11 @@ static void setupLuaRecords(LuaContext& lua)
   lua.writeFunction("ifurlup", [](const std::string& url,
                                           const boost::variant<iplist_t, ipunitlist_t>& ips,
                                           boost::optional<opts_t> options) {
-      vector<vector<ComboAddress> > candidates;
-      opts_t opts;
-      if(options)
-        opts = *options;
-      if(auto simple = boost::get<iplist_t>(&ips)) {
-        vector<ComboAddress> unit = convComboAddressList(*simple);
-        candidates.push_back(unit);
-      } else {
-        auto units = boost::get<ipunitlist_t>(ips);
-        for(const auto& u : units) {
-          vector<ComboAddress> unit = convComboAddressList(u.second);
-          candidates.push_back(unit);
-        }
-      }
 
-      for(const auto& unit : candidates) {
-        vector<ComboAddress> available;
-        for(const auto& c : unit) {
-          if(g_up.isUp(c, url, opts)) {
-            available.push_back(c);
-          }
-        }
-        if(!available.empty()) {
-          vector<ComboAddress> res = useSelector(getOptionValue(options, "selector", "random"), s_lua_record_ctx->bestwho, available);
-          return convComboAddressListToString(res);
-        }
-      }
-
-      // All units down, apply backupSelector on all candidates
-      vector<ComboAddress> ret{};
-      for(const auto& unit : candidates) {
-        ret.insert(ret.end(), unit.begin(), unit.end());
-      }
-
-      vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, ret);
-      return convComboAddressListToString(res);
+    auto checker = [&url](const ComboAddress& addr, const opts_t& opts) {
+        return g_up.isUp(addr, url, opts);
+      };
+      return genericIfUp(ips, options, checker);
     });
   /*
    * Returns a random IP address from the supplied list

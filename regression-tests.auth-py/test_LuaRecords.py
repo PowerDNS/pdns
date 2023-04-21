@@ -60,6 +60,7 @@ web3.example.org.            3600 IN A    {prefix}.103
 
 all.ifportup                 3600 IN LUA  A     "ifportup(8080, {{'{prefix}.101', '{prefix}.102'}})"
 some.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '{prefix}.102'}})"
+multi.ifportup               3600 IN LUA  A     "ifportup(8080, {{ {{'192.168.42.23'}}, {{'192.168.42.21', '{prefix}.102'}}, {{'{prefix}.101'}} }})"
 none.ifportup                3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}})"
 all.noneup.ifportup          3600 IN LUA  A     "ifportup(8080, {{'192.168.42.21', '192.168.21.42'}}, {{ backupSelector='all' }})"
 
@@ -83,20 +84,20 @@ all.example.org.             3600 IN LUA  A     "all({{'1.2.3.4','4.3.2.1'}})"
 config    IN    LUA    LUA ("settings={{stringmatch='Programming in Lua'}} "
                             "EUWips={{'{prefix}.101','{prefix}.102'}}      "
                             "EUEips={{'192.168.42.101','192.168.42.102'}}  "
-                            "NLips={{'{prefix}.111', '{prefix}.112'}}  "
-                            "USAips={{'{prefix}.103'}}                     ")
+                            "NLips={{'{prefix}.111', '{prefix}.112'}}      "
+                            "USAips={{'{prefix}.103', '192.168.42.105'}}   ")
 
 usa          IN    LUA    A   ( ";include('config')                         "
                                 "return ifurlup('http://www.lua.org:8080/', "
-                                "{{USAips, EUEips}}, settings)              ")
+                                "USAips, settings)                          ")
+
+usa-ext      IN    LUA    A   ( ";include('config')                         "
+                                "return ifurlup('http://www.lua.org:8080/', "
+                                "{{EUEips, USAips}}, settings)              ")
 
 mix.ifurlup  IN    LUA    A   ("ifurlup('http://www.other.org:8080/ping.json', "
                                "{{ '192.168.42.101', '{prefix}.101' }},        "
                                "{{ stringmatch='pong' }})                      ")
-
-eu-west      IN    LUA    A   ( ";include('config')                         "
-                                "return ifurlup('http://www.lua.org:8080/', "
-                                "{{EUWips, EUEips, USAips}}, settings)      ")
 
 ifurlextup   IN    LUA    A   "ifurlextup({{{{['192.168.0.1']='http://{prefix}.101:8080/404',['192.168.0.2']='http://{prefix}.102:8080/404'}}, {{['192.168.0.3']='http://{prefix}.101:8080/'}}}})"
 
@@ -327,6 +328,33 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected)
 
+    def testIfportupWithSomeDownMultiset(self):
+        """
+        Basic ifportup() test with some ports DOWN from multiple sets
+        """
+        query = dns.message.make_query('multi.ifportup.example.org', 'A')
+        expected = [
+            dns.rrset.from_text('multi.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
+                                '192.168.42.21'),
+            dns.rrset.from_text('multi.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
+                                '192.168.42.23'),
+            dns.rrset.from_text('multi.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
+                                '{prefix}.102'.format(prefix=self._PREFIX)),
+            dns.rrset.from_text('multi.ifportup.example.org.', 0, dns.rdataclass.IN, 'A',
+                                '{prefix}.101'.format(prefix=self._PREFIX))
+        ]
+
+        # we first expect any of the IPs as no check has been performed yet
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
+        # An ip is up in 2 sets, but we expect only the one from the middle set
+        expected = [expected[2]]
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
+
     def testIfportupWithAllDown(self):
         """
         Basic ifportup() test with all ports DOWN
@@ -371,7 +399,7 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         reachable = [
             '{prefix}.103'.format(prefix=self._PREFIX)
         ]
-        unreachable = ['192.168.42.101', '192.168.42.102']
+        unreachable = ['192.168.42.105']
         ips = reachable + unreachable
         all_rrs = []
         reachable_rrs = []
@@ -382,6 +410,34 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 reachable_rrs.append(rr)
 
         query = dns.message.make_query('usa.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
+
+        # the timeout in the LUA health checker is 2 second, so we make sure to wait slightly longer here
+        time.sleep(3)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, reachable_rrs)
+
+    def testIfurlupMultiSet(self):
+        """
+        Basic ifurlup() test with mutiple sets
+        """
+        reachable = [
+            '{prefix}.103'.format(prefix=self._PREFIX)
+        ]
+        unreachable = ['192.168.42.101', '192.168.42.102', '192.168.42.105']
+        ips = reachable + unreachable
+        all_rrs = []
+        reachable_rrs = []
+        for ip in ips:
+            rr = dns.rrset.from_text('usa-ext.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            all_rrs.append(rr)
+            if ip in reachable:
+                reachable_rrs.append(rr)
+
+        query = dns.message.make_query('usa-ext.example.org', 'A')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
