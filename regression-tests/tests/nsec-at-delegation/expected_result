@@ -1,0 +1,9 @@
+0	secure-delegated.dnssec-parent.com.	3600	IN	A	9.9.9.9
+0	secure-delegated.dnssec-parent.com.	3600	IN	RRSIG	A 8 3 3600 [expiry] [inception] [keytag] secure-delegated.dnssec-parent.com. ...
+0	secure-delegated1.dnssec-parent.com.	3600	IN	CNAME	secure-delegated.dnssec-parent.com.
+0	secure-delegated1.dnssec-parent.com.	3600	IN	RRSIG	CNAME 13 2 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
+1	secure-delegated.dnssec-parent.com.	3600	IN	NSEC	www.dnssec-parent.com. NS DS RRSIG NSEC
+1	secure-delegated.dnssec-parent.com.	3600	IN	RRSIG	NSEC 13 3 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
+2	.	32768	IN	OPT	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='secure-delegated1.dnssec-parent.com.', qtype=A

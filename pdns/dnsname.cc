@@ -296,7 +296,11 @@ void DNSName::makeUsRelative(const DNSName& zone)
 
 DNSName DNSName::getCommonLabels(const DNSName& other) const
 {
-  DNSName result;
+  if (empty() || other.empty()) {
+    return DNSName();
+  }
+
+  DNSName result(g_rootdnsname);
 
   const std::vector<std::string> ours = getRawLabels();
   const std::vector<std::string> others = other.getRawLabels();
