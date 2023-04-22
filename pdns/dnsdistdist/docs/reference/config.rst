@@ -1156,7 +1156,7 @@ Status, Statistics and More
 
   :param str selector: Select queries based on this property.
   :param {str} selectors: A lua table of selectors. Only queries matching all selectors are shown
-  :param int num: Show a maximum of ``num`` recent queries+responses, default is 10.
+  :param int num: Show a maximum of ``num`` recent queries+responses.
   :param table options: A table with key: value pairs with options described below.
 
   Options:
