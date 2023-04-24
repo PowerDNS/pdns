@@ -98,9 +98,13 @@ webserver-loglevel: normal
 # When no port is specified, 53 is used. When specifying ports for IPv6, use the
 # "bracket" notation:
 #
+# You can optionally cap the refresh time of the SOA using 'max-soa-refresh' (seconds)
+# Otherwise, or if set to 0, the retreived SOA refresh time will be used
+#
 #    domains:
 #      - domain: example.com
 #        master: 192.0.2.15
+#        max-soa-refresh: 180
 #      - domain: rpz.example
 #        master: [2001:DB8:a34:543::53]:5353
 #

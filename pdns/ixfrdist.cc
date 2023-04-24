@@ -142,6 +142,7 @@ struct ixfrinfo_t {
 // Why a struct? This way we can add more options to a domain in the future
 struct ixfrdistdomain_t {
   set<ComboAddress> masters; // A set so we can do multiple master addresses in the future
+  uint32_t maxSOARefresh{0}; // Cap SOA refresh value to the given value in seconds
 };
 
 // This contains the configuration for each domain
@@ -337,8 +338,16 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
       }
 
       auto& zoneLastCheck = lastCheck[domain];
-      if ((current_soa != nullptr && now - zoneLastCheck < current_soa->d_st.refresh) || // Only check if we have waited `refresh` seconds
-          (current_soa == nullptr && now - zoneLastCheck < soaRetry))  {                       // Or if we could not get an update at all still, every 30 seconds
+      uint32_t refresh = soaRetry; // default if we don't get an update at all
+      if (current_soa != nullptr) {
+        // Check every `refresh` seconds as advertised in the SOA record
+        refresh = current_soa->d_st.refresh;
+        if (domainConfig.second.maxSOARefresh > 0) {
+          // Cap refresh value to the configured one if any
+          refresh = std::min(refresh, domainConfig.second.maxSOARefresh);
+        }
+      }
+      if (now - zoneLastCheck < refresh) {
         continue;
       }
 
@@ -1111,6 +1120,13 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
         g_log<<Logger::Error<<"Unable to read domain '"<<domain["domain"].as<string>()<<"' master address: "<<e.what()<<endl;
         retval = false;
       }
+      if (domain["max-soa-refresh"]) {
+        try {
+          config["max-soa-refresh"].as<uint32_t>();
+        } catch (const runtime_error &e) {
+          g_log<<Logger::Error<<"Unable to read 'max-soa-refresh' value for domain '"<<domain["domain"].as<string>()<<"': "<<e.what()<<endl;
+        }
+      }
     }
   } else {
     g_log<<Logger::Error<<"No domains configured"<<endl;
@@ -1223,6 +1239,9 @@ int main(int argc, char** argv) {
     set<ComboAddress> s;
     s.insert(domain["master"].as<ComboAddress>());
     g_domainConfigs[domain["domain"].as<DNSName>()].masters = s;
+    if (domain["max-soa-refresh"]) {
+      g_domainConfigs[domain["domain"].as<DNSName>()].maxSOARefresh = domain["max-soa-refresh"].as<uint32_t>();
+    }
     g_stats.registerDomain(domain["domain"].as<DNSName>());
   }
 
