@@ -33,10 +33,20 @@ An example of a configuration:
 
 The first line specifies that additional records should be added to the results of ``MX`` queries using the default mode.
 The qtype of the records to be added are ``A`` and ``AAAA``.
-The default mode is ``pdns.AdditionalMode.CacheOnlyRequireAuth``, this mode will only look in the record cache.
+The default mode is ``pdns.AdditionalMode.CacheOnlyRequireAuth``; this mode will only look in the record cache.
 
 The second line specifies that three record types should be added to ``NAPTR`` answers.
 If needed, the Recursor will do an active resolve to retrieve these records.
+
+Note that with record types such as ``NAPTR`` which can return records such as ``SRV``, which may themselves return additional 
+``A`` or ``AAAA`` records, the above example would not be sufficient to return those additional ``A`` and/or ``AAAA`` records. 
+In such a case, you  would need to add an additional line to tell the recursor to fetch the additional records for the ``SRV`` 
+qtype as well. An example configuration for this case is shown below:
+
+.. code-block:: Lua
+
+  addAllowedAdditionalQType(pdns.NAPTR, {pdns.A, pdns.AAAA, pdns.SRV}, {mode=pdns.AdditionalMode.ResolveImmediately})
+  addAllowedAdditionalQType(pdns.SRV, {pdns.A, pdns.AAAA}, {mode=pdns.AdditionalMode.ResolveImmediately})
 
 The modes available are:
 
