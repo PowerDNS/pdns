@@ -35,17 +35,17 @@
 #include "dnspacket.hh"
 #include "responsestats.hh"
 
-/** This is the main class. It opens a socket on udp port 53 and waits for packets. Those packets can 
+/** This is the main class. It opens a socket on udp port 53 and waits for packets. Those packets can
     be retrieved with the receive() member function, which returns a DNSPacket.
 
     Some sample code in main():
     \code
     typedef Distributor<DNSPacket,DNSPacket,PacketHandler> DNSDistributor;
     DNSDistributor D(6); // the big dispatcher!
-    
+
     pthread_t qtid, atid;
     N=new UDPNameserver;
-    
+
     pthread_create(&qtid,0,qthread,static_cast<void *>(&D)); // receives packets
     pthread_create(&atid,0,athread,static_cast<void *>(&D)); // sends packets
     \endcode
@@ -55,9 +55,9 @@
     void *qthread(void *p)
     {
       DNSDistributor *D=static_cast<DNSDistributor *>(p);
-    
+
       DNSPacket *P;
-    
+
       while((P=N->receive())) // receive a packet
       {
          D->question(P); // and give to the distributor, they will delete it
@@ -111,8 +111,8 @@ public:
     AtomicCounter& a_sendLatency,
     AtomicCounter& a_responseLatencyCount,
     AtomicCounter& a_backendLatency,
-    AtomicCounter& a_backendLatencyCount
-    ) : queries(a_queryCounter),
+    AtomicCounter& a_backendLatencyCount) :
+    queries(a_queryCounter),
     doQueries(a_doQueryCounter),
     cookieQueries(a_cookieQueryCounter),
     v4Queries(a_v4QueryCounter),
@@ -143,7 +143,8 @@ public:
 
     if (v4) {
       this->v4Queries++;
-    } else {
+    }
+    else {
       this->v6Queries++;
     }
   }
@@ -166,6 +167,7 @@ public:
     this->cacheLatency += (unsigned long)latency;
     this->cacheLatencyCount++;
   }
+
 private:
   AtomicCounter& queries;
   AtomicCounter& doQueries;
@@ -190,6 +192,7 @@ public:
   {
   }
   virtual void run() = 0;
+
 protected:
   NameserverStats stats;
   /**
@@ -204,6 +207,7 @@ protected:
   bool parseQuery(DNSPacket& packet, std::string& buffer);
   bool tryCache(DNSPacket& question, DNSPacket& cached);
   std::unique_ptr<DNSPacket> processQuery(std::unique_ptr<PacketHandler>& packetHandler, DNSPacket& packet);
+
 private:
   bool isUdpOrTcp;
   bool logDNSQueries;
@@ -233,20 +237,20 @@ public:
 
     s = socket(this->address.sin4.sin_family, SOCK_DGRAM, 0);
 
-    if(s < 0) {
-      if(errno == EAFNOSUPPORT) {
-        g_log<<Logger::Error<<"Binding "<<this->address.toStringWithPort()<<": Address Family is not supported - skipping bind" << endl;
+    if (s < 0) {
+      if (errno == EAFNOSUPPORT) {
+        g_log << Logger::Error << "Binding " << this->address.toStringWithPort() << ": Address Family is not supported - skipping bind" << endl;
         return -1;
       }
-      throw PDNSException("Unable to acquire a UDP socket: "+stringerror());
+      throw PDNSException("Unable to acquire a UDP socket: " + stringerror());
     }
 
     setCloseOnExec(s);
 
-    if(IsAnyAddress(this->address)) {
+    if (IsAnyAddress(this->address)) {
       (void)setsockopt(s, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one));
       if (this->address.isIPv6()) {
-        (void)setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));      // if this fails, we report an error in tcpreceiver too
+        (void)setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)); // if this fails, we report an error in tcpreceiver too
 #ifdef IPV6_RECVPKTINFO
         (void)setsockopt(s, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one));
 #endif
@@ -254,13 +258,13 @@ public:
     }
 
     if (!setSocketTimestamps(s))
-      g_log<<Logger::Warning<<"Unable to enable timestamp reporting for socket "<<address.toStringWithPort()<<endl;
+      g_log << Logger::Warning << "Unable to enable timestamp reporting for socket " << address.toStringWithPort() << endl;
 
     try {
       setSocketIgnorePMTU(s, this->address.sin4.sin_family);
     }
-    catch(const std::exception& e) {
-      g_log<<Logger::Warning<<"Failed to set IP_MTU_DISCOVER on UDP server socket: "<<e.what()<<endl;
+    catch (const std::exception& e) {
+      g_log << Logger::Warning << "Failed to set IP_MTU_DISCOVER on UDP server socket: " << e.what() << endl;
     }
 
 #if defined(SO_REUSEPORT)
@@ -271,24 +275,26 @@ public:
     }
 #endif
 
-    if( this->nonLocalBind )
+    if (this->nonLocalBind)
       Utility::setBindAny(this->address.sin4.sin_family, s);
 
-    if(::bind(s, (sockaddr*)&this->address, this->address.getSocklen()) < 0) {
+    if (::bind(s, (sockaddr*)&this->address, this->address.getSocklen()) < 0) {
       int err = errno;
       close(s);
       if (err == EADDRNOTAVAIL && !this->shouldFailOnNonExistent) {
-        g_log<<Logger::Error<<"Address " << this->address << " does not exist on this server - skipping UDP bind" << endl;
+        g_log << Logger::Error << "Address " << this->address << " does not exist on this server - skipping UDP bind" << endl;
         return -1;
-      } else {
-        g_log<<Logger::Error<<"Unable to bind UDP socket to '"+this->address.toStringWithPort()+"': "<<stringerror(err)<<endl;
+      }
+      else {
+        g_log << Logger::Error << "Unable to bind UDP socket to '" + this->address.toStringWithPort() + "': " << stringerror(err) << endl;
         throw PDNSException("Unable to bind to UDP socket");
       }
     }
     this->mainSocket = s;
-    g_log<<Logger::Error<<"UDP server bound to "<<this->address.toStringWithPort()<<endl;
+    g_log << Logger::Error << "UDP server bound to " << this->address.toStringWithPort() << endl;
     return s;
   }
+
 private:
   ComboAddress address;
   bool canReusePort;
@@ -300,11 +306,13 @@ private:
 class UDPNameserver : Nameserver
 {
 public:
-  UDPNameserver(NameserverStats stats, bool logDnsQueries, UDPBindAddress address);  //!< Opens the socket
+  UDPNameserver(NameserverStats stats, bool logDnsQueries, UDPBindAddress address); //!< Opens the socket
   virtual void run();
+
 private:
   int listeningSocket;
   std::unique_ptr<PacketHandler> handler;
+
 protected:
   void receiveAndProcessPacket(DNSPacket& question, DNSPacket& cached, std::string& buffer);
   virtual void handlePacket(DNSPacket& packet);

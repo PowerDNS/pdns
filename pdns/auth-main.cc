@@ -122,7 +122,7 @@ AuthZoneCache g_zoneCache;
 std::unique_ptr<DNSProxy> DP{nullptr};
 static std::unique_ptr<DynListener> s_dynListener{nullptr};
 CommunicatorClass Communicator;
-//static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
+// static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
 static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
 NetmaskGroup g_proxyProtocolACL;
 size_t g_proxyProtocolMaximumSize;
@@ -357,7 +357,8 @@ static uint64_t getTCPConnectionCount(const std::string& /* str */)
 static uint64_t getQCount(const std::string& /* str */)
 try {
   int totcount = 0;
-/*  for (const auto& d : s_distributors) {
+  /*
+  for (const auto& d : s_distributors) {
     if (!d)
       continue;
     totcount += d->getQueueSize(); // this does locking and other things, so don't get smart
@@ -375,27 +376,27 @@ catch (PDNSException& e) {
 
 static uint64_t getLatency(const std::string& /* str */)
 {
-  return S.read("udp-avg-latency")/S.read("udp-response-latency-count");
+  return S.read("udp-avg-latency") / S.read("udp-response-latency-count");
 }
 
 static uint64_t getReceiveLatency(const std::string& /* str */)
 {
-  return S.read("udp-receive-latency")/S.read("udp-queries");
+  return S.read("udp-receive-latency") / S.read("udp-queries");
 }
 
 static uint64_t getCacheLatency(const std::string& /* str */)
 {
-  return S.read("udp-cache-latency")/S.read("udp-cache-latency-count");
+  return S.read("udp-cache-latency") / S.read("udp-cache-latency-count");
 }
 
 static uint64_t getBackendLatency(const std::string& /* str */)
 {
-  return S.read("udp-backend-latency")/S.read("udp-backend-latency-count");
+  return S.read("udp-backend-latency") / S.read("udp-backend-latency-count");
 }
 
 static uint64_t getSendLatency(const std::string& /* str */)
 {
-  return S.read("udp-send-latency")/S.read("udp-response-latency-count");
+  return S.read("udp-send-latency") / S.read("udp-response-latency-count");
 }
 
 static void declareStats()
@@ -1473,13 +1474,12 @@ int main(int argc, char** argv)
       *S.getPointer("udp-send-latency"),
       *S.getPointer("udp-response-latency-count"),
       *S.getPointer("udp-backend-latency"),
-      *S.getPointer("udp-backend-latency-count")
-      );
+      *S.getPointer("udp-backend-latency-count"));
 
     for (const auto& i : locals) {
       ComboAddress addr(i, ::arg().asNum("local-port"));
       g_localaddresses.push_back(addr);
-      UDPBindAddress udpAddr(addr,::arg().mustDo("reuseport"), ::arg().mustDo("non-local-bind"), ::arg().mustDo("local-address-nonexist-fail"));
+      UDPBindAddress udpAddr(addr, ::arg().mustDo("reuseport"), ::arg().mustDo("non-local-bind"), ::arg().mustDo("local-address-nonexist-fail"));
       auto receiverThreads = ::arg().asNum("receiver-threads", 1);
       for (int j = 0; j < receiverThreads; ++j) {
         udpNameservers[i].push_back(std::make_shared<UDPNameserver>(udpNsStats, ::arg().mustDo("log-dns-queries"), udpAddr));
