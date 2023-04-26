@@ -1982,6 +1982,20 @@ If the webserver should print arguments.
 
 If a PID file should be written.
 
+.. _setting-workaround-11804:
+
+``workaround-11804``
+-------------------
+
+-  Boolean
+-  Default: no
+
+Workaround for issue https://github.com/PowerDNS/pdns/issues/11804.
+
+Default of no implies the pre-4.8 behaviour of up to 100 RRs per AXFR chunk.
+
+If enabled, only a single RR will be put into each AXFR chunk, making some zones transferable when they were not.
+
 .. _setting-xfr-cycle-interval:
 
 ``xfr-cycle-interval``

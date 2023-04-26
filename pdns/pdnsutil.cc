@@ -1842,7 +1842,7 @@ static void testSpeed(const DNSName& zone, const string& /* remote */, int cores
     throw runtime_error("No backends available for DNSSEC key storage");
   }
 
-  ChunkedSigningPipe csp(DNSName(zone), true, cores);
+  ChunkedSigningPipe csp(DNSName(zone), true, cores, 100);
 
   vector<DNSZoneRecord> signatures;
   uint32_t rnd;
