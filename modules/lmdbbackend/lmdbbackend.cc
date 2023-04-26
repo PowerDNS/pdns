@@ -1725,35 +1725,29 @@ void LMDBBackend::setFresh(uint32_t domain_id)
 
 void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
-  DomainInfo di;
   CatalogInfo ci;
-
-  auto txn = d_tdomains->getROTransaction();
-  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-
-    if (!iter->isPrimaryType()) {
-      continue;
+  
+  getAllDomainsFiltered(&(updatedDomains), [this, &catalogs, &catalogHashes, &ci](DomainInfo& di) {
+    if (!di.isPrimaryType()) {
+      return false;
     }
 
-    if (iter->kind == DomainInfo::Producer) {
-      catalogs.insert(iter->zone);
-      catalogHashes[iter->zone].process("\0");
-      continue; // Producer fresness check is performed elsewhere
+    if (di.kind == DomainInfo::Producer) {
+      catalogs.insert(di.zone);
+      catalogHashes[di.zone].process("\0");
+      return false; // Producer fresness check is performed elsewhere
     }
 
-    di = *iter;
-    di.id = iter.getID();
-
-    if (!iter->catalog.empty()) {
-      ci.fromJson(iter->options, CatalogInfo::CatalogType::Producer);
+    if (!di.catalog.empty()) {
+      ci.fromJson(di.options, CatalogInfo::CatalogType::Producer);
       ci.updateHash(catalogHashes, di);
     }
 
     if (getSerial(di) && di.serial != di.notified_serial) {
       di.backend = this;
-      updatedDomains.emplace_back(di);
+      return true;
     }
-  }
+  });
 }
 
 void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
