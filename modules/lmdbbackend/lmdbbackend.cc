@@ -1759,26 +1759,29 @@ void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
 
 bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
 {
-  auto txn = d_tdomains->getROTransaction();
-  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if ((type == CatalogInfo::CatalogType::Producer && iter->kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && iter->kind != DomainInfo::Slave) || iter->catalog != catalog) {
-      continue;
+  vector<DomainInfo> scratch;
+
+  getAllDomainsFiltered(&scratch, [this, &catalog, &members, &type](DomainInfo& di) {
+    if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Slave) || di.catalog != catalog) {
+      return false;
     }
 
     CatalogInfo ci;
-    ci.d_id = iter->id;
-    ci.d_zone = iter->zone;
-    ci.d_primaries = iter->masters;
+    ci.d_id = di.id;
+    ci.d_zone = di.zone;
+    ci.d_primaries = di.masters;
     try {
-      ci.fromJson(iter->options, type);
+      ci.fromJson(di.options, type);
     }
     catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << iter->options << "' for zone '" << iter->zone << "' is no valid JSON: " << e.what() << endl;
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << di.options << "' for zone '" << di.zone << "' is no valid JSON: " << e.what() << endl;
       members.clear();
       return false;
     }
     members.emplace_back(ci);
-  }
+
+    return false;
+  });
   return true;
 }
 
