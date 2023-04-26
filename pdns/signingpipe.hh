@@ -42,7 +42,7 @@ public:
   
   ChunkedSigningPipe(const ChunkedSigningPipe&) = delete;
   void operator=(const ChunkedSigningPipe&) = delete;
-  ChunkedSigningPipe(DNSName  signerName, bool mustSign, unsigned int numWorkers=3);
+  ChunkedSigningPipe(DNSName  signerName, bool mustSign, unsigned int numWorkers, unsigned int maxChunkRecords);
   ~ChunkedSigningPipe();
   bool submit(const DNSZoneRecord& rr);
   chunk_t getChunk(bool final=false);
