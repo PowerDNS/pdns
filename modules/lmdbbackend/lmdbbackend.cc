@@ -1651,22 +1651,31 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
   return true;
 }
 
+void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow) {
+  auto txn = d_tdomains->getROTransaction();
+  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+    DomainInfo di = *iter;
+    di.id = iter.getID();
+    di.backend = this;
+
+    if (allow (di)) {
+      domains->push_back(di);
+    }
+  }
+}
+
 void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */, bool include_disabled)
 {
   domains->clear();
-  auto txn = d_tdomains->getROTransaction();
-  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    // cerr<<"iter"<<endl;
-    DomainInfo di = *iter;
-    di.id = iter.getID();
 
+  getAllDomainsFiltered(domains, [this, include_disabled](DomainInfo& di) {
     if (!getSerial(di) && !include_disabled) {
-      continue;
+      return false;
     }
 
-    di.backend = this;
-    domains->push_back(di);
-  }
+    return true;
+  });
+
 }
 
 void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
