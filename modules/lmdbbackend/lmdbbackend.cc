@@ -1685,20 +1685,19 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
   LMDBResourceRecord lrr;
   soatimes st;
 
-  auto txn = d_tdomains->getROTransaction();
-  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if (!iter->isSecondaryType()) {
-      continue;
+  getAllDomainsFiltered(domains, [this, &lrr, &st, &now, &serial](DomainInfo& di) {
+     if (!di.isSecondaryType()) {
+      return false;
     }
 
-    auto txn2 = getRecordsROTransaction(iter.getID());
+    auto txn2 = getRecordsROTransaction(di.id);
     compoundOrdername co;
     MDBOutVal val;
-    if (!txn2->txn->get(txn2->db->dbi, co(iter.getID(), g_rootdnsname, QType::SOA), val)) {
+    if (!txn2->txn->get(txn2->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
       serFromString(val.get<string_view>(), lrr);
       memcpy(&st, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(soatimes));
-      if ((time_t)(iter->last_check + ntohl(st.refresh)) > now) { // still fresh
-        continue;
+      if ((time_t)(di.last_check + ntohl(st.refresh)) > now) { // still fresh
+        return false;
       }
       serial = ntohl(st.serial);
     }
@@ -1706,13 +1705,8 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
       serial = 0;
     }
 
-    DomainInfo di(*iter);
-    di.id = iter.getID();
-    di.serial = serial;
-    di.backend = this;
-
-    domains->emplace_back(di);
-  }
+    return true;
+  });
 }
 
 void LMDBBackend::setStale(uint32_t domain_id)
