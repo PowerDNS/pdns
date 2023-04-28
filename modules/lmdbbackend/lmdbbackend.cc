@@ -1755,6 +1755,8 @@ void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
       di.backend = this;
       return true;
     }
+
+    return false;
   });
 }
 
@@ -1769,7 +1771,7 @@ bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
 {
   vector<DomainInfo> scratch;
 
-  getAllDomainsFiltered(&scratch, [this, &catalog, &members, &type](DomainInfo& di) {
+  getAllDomainsFiltered(&scratch, [&catalog, &members, &type](DomainInfo& di) {
     if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Slave) || di.catalog != catalog) {
       return false;
     }
