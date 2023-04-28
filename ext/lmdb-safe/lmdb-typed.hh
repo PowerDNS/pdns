@@ -310,7 +310,7 @@ public:
       // auto range = prefix_range<N>(key);
       LMDBIDvec ids;
 
-      get_multi<N>(key, ids);
+      get_multi<N>(key, ids, true);
 
       if (ids.size() == 0) {
         return 0;
@@ -646,7 +646,7 @@ public:
     };
 
     template<int N>
-    void get_multi(const typename std::tuple_element<N, tuple_t>::type::type& key, LMDBIDvec& ids)
+    void get_multi(const typename std::tuple_element<N, tuple_t>::type::type& key, LMDBIDvec& ids, bool onlyOldest=false)
     {
       // std::cerr<<"in get_multi"<<std::endl;
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
@@ -657,6 +657,9 @@ public:
       out.d_mdbval = in.d_mdbval;
 
       int rc = cursor.get(out, id,  MDB_SET_RANGE);
+
+      uint64_t oldestts = UINT64_MAX;
+      uint32_t oldestid = 0;
 
       while (rc == 0) {
         auto sout = out.getNoStripHeader<std::string>(); // FIXME: this (and many others) could probably be string_view
@@ -670,7 +673,19 @@ public:
 
         if (sthiskey == keyString) {
           auto _id = getIDFromCombinedKey(out);
-          ids.push_back(_id.getNoStripHeader<uint32_t>());
+          uint64_t ts = LMDBLS::LSgetTimestamp(id.getNoStripHeader<string_view>());
+          uint32_t __id = _id.getNoStripHeader<uint32_t>();
+
+          if (ts < oldestts) {
+            oldestts = ts;
+            oldestid = __id;
+          }
+          ids.push_back(__id);
+        }
+
+        if (onlyOldest && ids.size() > 1) {
+          ids.clear();
+          ids.push_back(oldestid);
         }
 
         rc = cursor.get(out, id, MDB_NEXT);
