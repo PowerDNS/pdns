@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "ext/lmdb-safe/lmdb-safe.hh"
 #include <lmdb.h>
 #include <utility>
 #ifdef HAVE_CONFIG_H
@@ -665,6 +666,13 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   }
 
   LMDBLS::s_flag_deleted = mustDo("flag-deleted");
+  LMDBLS::s_handle_dups = false;
+
+  if (mustDo("lightning-stream")) {
+    d_random_ids = true;
+    LMDBLS::s_flag_deleted = true;
+    LMDBLS::s_handle_dups = true;
+  }
 
   bool opened = false;
 
@@ -2562,6 +2570,7 @@ public:
     declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
     declare(suffix, "map-size", "LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
     declare(suffix, "flag-deleted", "Flag entries on deletion instead of deleting them", "no");
+    declare(suffix, "lightning-stream", "Run in Lightning Stream compatible mode", "no");
   }
   DNSBackend* make(const string& suffix = "") override
   {

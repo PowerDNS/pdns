@@ -69,6 +69,7 @@ namespace LMDBLS {
   }
 
   bool s_flag_deleted{false};
+  bool s_handle_dups{false};
 }
 
 #endif /* #ifndef DNSDIST */
