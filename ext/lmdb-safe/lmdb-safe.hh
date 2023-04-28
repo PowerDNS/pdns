@@ -160,7 +160,6 @@ namespace LMDBLS {
   uint64_t LSgetTimestamp(std::string_view val);
 
   extern bool s_flag_deleted;
-  extern bool s_handle_dups;
 }
 
 #undef _LMDB_SAFE_BSWAP64MAYBE

@@ -74,7 +74,6 @@ namespace LMDBLS {
     return lsh->getTimestamp();
   }
   bool s_flag_deleted{false};
-  bool s_handle_dups{false};
 }
 
 #endif /* #ifndef DNSDIST */

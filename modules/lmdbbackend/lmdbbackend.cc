@@ -666,12 +666,12 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   }
 
   LMDBLS::s_flag_deleted = mustDo("flag-deleted");
-  LMDBLS::s_handle_dups = false;
+  d_handle_dups = false;
 
   if (mustDo("lightning-stream")) {
     d_random_ids = true;
+    d_handle_dups = true;
     LMDBLS::s_flag_deleted = true;
-    LMDBLS::s_handle_dups = true;
   }
 
   bool opened = false;

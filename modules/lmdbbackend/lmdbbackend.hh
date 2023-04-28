@@ -330,5 +330,6 @@ private:
   uint32_t d_transactiondomainid;
   bool d_dolog;
   bool d_random_ids;
+  bool d_handle_dups;
   DTime d_dtime; // used only for logging
 };
