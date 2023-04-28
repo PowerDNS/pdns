@@ -1660,14 +1660,53 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
 }
 
 void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow) {
-  auto txn = d_tdomains->getROTransaction();
-  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    DomainInfo di = *iter;
-    di.id = iter.getID();
-    di.backend = this;
+  if (d_handle_dups) {
+    cerr<<"handling dups"<<endl;
+    auto txn = d_tdomains->getROTransaction();
 
-    if (allow (di)) {
-      domains->push_back(di);
+    map<DNSName, DomainInfo> zonemap;
+    set<DNSName> dups;
+
+    for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+      DomainInfo di = *iter;
+      di.id = iter.getID();
+      di.backend = this;
+
+      if (zonemap.count(di.zone) == 1) {
+        dups.insert(di.zone);
+      }
+      else {
+        zonemap[di.zone] = di;
+      }
+    }
+
+    for (const auto& zone : dups) {
+      DomainInfo di;
+
+      if (!(di.id = txn.get<0>(zone, di))) {
+       continue;
+      }
+
+      di.backend = this;
+      zonemap[di.zone] = di;
+    }
+
+    for (auto [k,v] : zonemap) {
+      if (allow (v)) {
+        domains->push_back(v);
+      }
+    }
+  }
+  else {
+    auto txn = d_tdomains->getROTransaction();
+    for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+      DomainInfo di = *iter;
+      di.id = iter.getID();
+      di.backend = this;
+
+      if (allow (di)) {
+        domains->push_back(di);
+      }
     }
   }
 }
