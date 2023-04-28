@@ -1659,7 +1659,8 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
   return true;
 }
 
-void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow) {
+void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow)
+{
   if (d_handle_dups) {
     auto txn = d_tdomains->getROTransaction();
 
@@ -1683,15 +1684,15 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
       DomainInfo di;
 
       if (!(di.id = txn.get<0>(zone, di))) {
-       continue;
+        continue;
       }
 
       di.backend = this;
       zonemap[di.zone] = di;
     }
 
-    for (auto [k,v] : zonemap) {
-      if (allow (v)) {
+    for (auto [k, v] : zonemap) {
+      if (allow(v)) {
         domains->push_back(v);
       }
     }
@@ -1703,7 +1704,7 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
       di.id = iter.getID();
       di.backend = this;
 
-      if (allow (di)) {
+      if (allow(di)) {
         domains->push_back(di);
       }
     }
@@ -1721,7 +1722,6 @@ void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */
 
     return true;
   });
-
 }
 
 void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
@@ -1732,7 +1732,7 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
   soatimes st;
 
   getAllDomainsFiltered(domains, [this, &lrr, &st, &now, &serial](DomainInfo& di) {
-     if (!di.isSecondaryType()) {
+    if (!di.isSecondaryType()) {
       return false;
     }
 
@@ -1772,7 +1772,7 @@ void LMDBBackend::setFresh(uint32_t domain_id)
 void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   CatalogInfo ci;
-  
+
   getAllDomainsFiltered(&(updatedDomains), [this, &catalogs, &catalogHashes, &ci](DomainInfo& di) {
     if (!di.isPrimaryType()) {
       return false;
