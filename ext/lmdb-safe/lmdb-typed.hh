@@ -164,6 +164,7 @@ struct LMDBIndexOps
 
     MDBOutVal currentvalue;
 
+    // check if the entry already exists, so we don't uselessly bump the timestamp
     if (txn->get(d_idx, combined, currentvalue) == MDB_NOTFOUND) {
       txn->put(d_idx, combined, empty, flags);
     }
