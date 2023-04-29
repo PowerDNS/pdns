@@ -84,7 +84,7 @@ const map<const string, uint16_t> QType::names = {
   {"EUI48", 108},
   {"EUI64", 109},
   {"TKEY", 249},
-  //      {"TSIG", 250},
+  {"TSIG", 250},
   {"IXFR", 251},
   {"AXFR", 252},
   {"MAILB", 253},
