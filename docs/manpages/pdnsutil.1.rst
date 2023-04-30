@@ -179,7 +179,9 @@ remove-autoprimary *IP* *NAMESERVER*
 list-autoprimaries
     List all autoprimaries.
 create-zone *ZONE*
-    Create an empty zone named *ZONE*.
+    Create an empty zone named *ZONE*. Note that this will create the zone of kind
+    *NATIVE* which will NOT send any NOTIFY messages. Change zone kind with
+    set-kind *ZONE* primary if you want NOTIFY message to be sent.
 create-secondary-zone *ZONE* *PRIMARY* [*PRIMARY*]...
     Create a new secondary zone *ZONE* with primaries *PRIMARY*. All *PRIMARY*\ s
     need to to be space-separated IP addresses with an optional port.
