@@ -111,6 +111,23 @@ We provide two configuration files for `clang-tidy`:
 2. A more complete [.clang-tidy.full](.clang-tidy.full) which enables almost all available checks.
    This configuration can be enabled using `ln -sf .clang-tidy.full .clang-tidy` and is recommended for all new code.
 
+### `clang-tidy` and CI
+
+We run `clang-tidy` using the `.clang-tidy.full` configuration as part of our CI. `clang-tidy` warnings will show up on a pull request if any are introduced.
+
+However, it may happen that existing code could produce warnings and can show up too due to being part of the pull request. In such a case there are two options:
+
+1. Fix the warnings in a separate commit.
+2. If fixing the warning would be too much trouble at this point in time, disabling the specific warning using the `// NOLINTNEXTLINE` or `// NOLINT` directives can be acceptable given the following is adhered to:
+
+Any added `// NOLINTNEXTLINE` or `// NOLINT` directive or others need to have a Github issue title, issue number and link next to them in the description along with the name or Github nickname of the person that wrote it. The Github issue must have an assignee and an accurate description of what needs to be done. As an example:
+
+`// NOLINTNEXTLINE(<warning-name>) <issue-number> <issue-link> <person-name>: <issue-title> + a short comment if needed.`
+
+If the warning cannot be avoided in any way, a good explanation is needed. As an example:
+
+`// NOLINTNEXTLINE(*-cast): Using the OpenSSL C APIs.`
+
 # Development Environment
 
 Information about setting up a development environment using a language server like [`clangd`](https://clangd.llvm.org/) or [`ccls`](https://github.com/MaskRay/ccls) can be found in [DEVELOPMENT.md](DEVELOPMENT.md).
