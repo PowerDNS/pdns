@@ -1679,6 +1679,7 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
     for (const auto& zone : dups) {
       DomainInfo di;
 
+      // this get grabs the oldest item if there are duplicates
       if (!(di.id = txn.get<0>(zone, di))) {
         continue;
       }

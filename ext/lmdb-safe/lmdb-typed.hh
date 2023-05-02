@@ -310,6 +310,7 @@ public:
       // auto range = prefix_range<N>(key);
       LMDBIDvec ids;
 
+      // because we know we only want one item, pass onlyOldest=true to consistently get the same one out of a set of duplicates
       get_multi<N>(key, ids, true);
 
       if (ids.size() == 0) {
