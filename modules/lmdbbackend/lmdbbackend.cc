@@ -1672,11 +1672,8 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
       di.id = iter.getID();
       di.backend = this;
 
-      if (zonemap.count(di.zone) == 1) {
+      if (!zonemap.insert(std::make_pair(di.zone, di)).second) {
         dups.insert(di.zone);
-      }
-      else {
-        zonemap[di.zone] = di;
       }
     }
 
