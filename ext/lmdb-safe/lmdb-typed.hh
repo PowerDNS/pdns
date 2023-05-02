@@ -676,16 +676,17 @@ public:
           uint64_t ts = LMDBLS::LSgetTimestamp(id.getNoStripHeader<string_view>());
           uint32_t __id = _id.getNoStripHeader<uint32_t>();
 
-          if (ts < oldestts) {
-            oldestts = ts;
-            oldestid = __id;
-          }
-          ids.push_back(__id);
-        }
+          if (onlyOldest) {
+            if (ts < oldestts) {
+              oldestts = ts;
+              oldestid = __id;
 
-        if (onlyOldest && ids.size() > 1) {
-          ids.clear();
-          ids.push_back(oldestid);
+              ids.clear();
+              ids.push_back(oldestid);
+            }
+          } else {
+            ids.push_back(__id);
+          }
         }
 
         rc = cursor.get(out, id, MDB_NEXT);
