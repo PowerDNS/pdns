@@ -149,7 +149,6 @@ namespace LMDBLS {
 
   const size_t LS_MIN_HEADER_SIZE = sizeof(LSheader);
   const size_t LS_BLOCK_SIZE = 8;
-  const size_t LS_TIMESTAMP_OFFSET = 0;
   const size_t LS_NUMEXTRA_OFFSET = 22;
   const uint8_t LS_FLAG_DELETED = 0x01;
 
