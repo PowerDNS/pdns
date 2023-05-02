@@ -77,18 +77,18 @@ plus various other directories with `regression-tests.*` names.
 
 ## `clang-format`
 
-We have `clang-format` in place, but not for all files yet.
-This is an incremental process.
-If you're adding new code, adhering to the formatting config is appreciated.
-Formatting breakage in already formatted files will be caught by the CI.
-To format all files that are supposed to be formatted, run `make format-code` in the root of the tree.
+We have `clang-format` in place, but not for all files yet. We are working towards a fully formatted codebase in an incremental fashion.
+
+If you're adding new code, adhering to the formatting configuration available in `.clang-format` is appreciated. If you are touching code that is not yet formatted, it would also be very appreciated to format it in a separate commit first.
+
+Any formatting breakage in already formatted files will be caught by the CI. To format all files that are supposed to be formatted, run `make format-code` in the root of the tree.
 
 ## Additional guidelines
 
-* Don't have end-of-line whitespace
-* Use spaces instead of tabs
-* Although the codebase does not consistently have them, [docblock](https://www.doxygen.nl/manual/docblocks.html)s on functions and classes are appreciated
-* Never hesitate to write comments on anything that might not be immediately clear just from reading the code
+* Don't have end-of-line whitespace.
+* Use spaces instead of tabs.
+* Although the codebase does not consistently have them, [docblock](https://www.doxygen.nl/manual/docblocks.html)s on functions and classes are appreciated.
+* Never hesitate to write comments on anything that might not be immediately clear just from reading the code.
 * When adding whole new things, consider putting them in a `pdns::X` namespace. Look for `namespace pdns` in the codebase for examples.
 
 ## Code Checkers
