@@ -22,6 +22,7 @@
 
 #include "ext/lmdb-safe/lmdb-safe.hh"
 #include <lmdb.h>
+#include <stdexcept>
 #include <utility>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -1804,31 +1805,43 @@ void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
   });
 }
 
+class getCatalogMembersReturnFalseException : std::runtime_error
+{
+public:
+  getCatalogMembersReturnFalseException() :
+    std::runtime_error("getCatalogMembers should return false") {}
+};
+
 bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
 {
   vector<DomainInfo> scratch;
 
-  getAllDomainsFiltered(&scratch, [&catalog, &members, &type](DomainInfo& di) {
-    if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Slave) || di.catalog != catalog) {
-      return false;
-    }
+  try {
+    getAllDomainsFiltered(&scratch, [&catalog, &members, &type](DomainInfo& di) {
+      if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Slave) || di.catalog != catalog) {
+        return false;
+      }
 
-    CatalogInfo ci;
-    ci.d_id = di.id;
-    ci.d_zone = di.zone;
-    ci.d_primaries = di.masters;
-    try {
-      ci.fromJson(di.options, type);
-    }
-    catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << di.options << "' for zone '" << di.zone << "' is no valid JSON: " << e.what() << endl;
-      members.clear();
-      return false;
-    }
-    members.emplace_back(ci);
+      CatalogInfo ci;
+      ci.d_id = di.id;
+      ci.d_zone = di.zone;
+      ci.d_primaries = di.masters;
+      try {
+        ci.fromJson(di.options, type);
+      }
+      catch (const std::runtime_error& e) {
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << di.options << "' for zone '" << di.zone << "' is no valid JSON: " << e.what() << endl;
+        members.clear();
+        throw getCatalogMembersReturnFalseException();
+      }
+      members.emplace_back(ci);
 
+      return false;
+    });
+  }
+  catch (const getCatalogMembersReturnFalseException& e) {
     return false;
-  });
+  }
   return true;
 }
 
