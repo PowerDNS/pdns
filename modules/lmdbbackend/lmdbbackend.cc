@@ -1661,9 +1661,8 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
 
 void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow)
 {
+  auto txn = d_tdomains->getROTransaction();
   if (d_handle_dups) {
-    auto txn = d_tdomains->getROTransaction();
-
     map<DNSName, DomainInfo> zonemap;
     set<DNSName> dups;
 
@@ -1695,7 +1694,6 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
     }
   }
   else {
-    auto txn = d_tdomains->getROTransaction();
     for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
       DomainInfo di = *iter;
       di.id = iter.getID();
