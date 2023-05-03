@@ -328,12 +328,12 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
   pident->remote = fromaddr;
 
   int ret = MT->waitEvent(pident, &packet, g_networkTimeoutMsec, &now);
+  len = 0;
 
   /* -1 means error, 0 means timeout, 1 means a result from handleUDPServerResponse() which might still be an error */
   if (ret > 0) {
     /* handleUDPServerResponse() will close the socket for us no matter what */
     if (packet.empty()) { // means "error"
-      len = 0;
       return LWResult::Result::PermanentError;
     }
 
