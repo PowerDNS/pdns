@@ -976,7 +976,7 @@ public:
     return status;
   }
 
-  bool reconnect();
+  bool reconnect(bool initialAttempt = false);
   void waitUntilConnected();
   void hash();
   void setId(const boost::uuids::uuid& newId);

@@ -37,7 +37,7 @@ bool DownstreamState::passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>
   }
 }
 
-bool DownstreamState::reconnect()
+bool DownstreamState::reconnect(bool initialAttempt)
 {
   std::unique_lock<std::mutex> tl(connectLock, std::try_to_lock);
   if (!tl.owns_lock() || isStopped()) {
@@ -89,7 +89,9 @@ bool DownstreamState::reconnect()
       connected = true;
     }
     catch (const std::runtime_error& error) {
-      infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
+      if (initialAttempt || g_verbose) {
+        infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
+      }
       connected = false;
       break;
     }
@@ -287,7 +289,7 @@ void DownstreamState::connectUDPSockets()
     fd = -1;
   }
 
-  reconnect();
+  reconnect(true);
 }
 
 DownstreamState::~DownstreamState()
