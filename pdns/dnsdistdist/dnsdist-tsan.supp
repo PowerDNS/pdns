@@ -17,3 +17,8 @@ race:DownstreamState::stop
 race:DownstreamState::submitHealthCheckResult
 race:DownstreamState::healthCheckRequired
 race:carbonDumpThread
+# There is a slight race when we detect an error and
+# re-connect a backend, where the UDP responder thread
+# can still be looking at the existing socket descriptors.
+# Actually writing to these is protected by a mutex, though.
+race:DownstreamState::reconnect
