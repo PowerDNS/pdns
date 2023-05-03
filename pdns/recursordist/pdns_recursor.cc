@@ -315,8 +315,8 @@ LWResult::Result asendto(const char* data, size_t len, int /* flags */,
   return LWResult::Result::Success;
 }
 
-LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAddress& fromaddr, size_t* d_len,
-                           uint16_t id, const DNSName& domain, uint16_t qtype, int fd, const struct timeval* now)
+LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAddress& fromaddr, size_t& len,
+                           uint16_t id, const DNSName& domain, uint16_t qtype, int fd, const struct timeval& now)
 {
   static const unsigned int nearMissLimit = ::arg().asNum("spoof-nearmiss-max");
 
@@ -327,7 +327,8 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
   pident->type = qtype;
   pident->remote = fromaddr;
 
-  int ret = MT->waitEvent(pident, &packet, g_networkTimeoutMsec, now);
+  int ret = MT->waitEvent(pident, &packet, g_networkTimeoutMsec, &now);
+  len = 0;
 
   /* -1 means error, 0 means timeout, 1 means a result from handleUDPServerResponse() which might still be an error */
   if (ret > 0) {
@@ -336,7 +337,7 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
       return LWResult::Result::PermanentError;
     }
 
-    *d_len = packet.size();
+    len = packet.size();
 
     if (nearMissLimit > 0 && pident->nearMisses > nearMissLimit) {
       /* we have received more than nearMissLimit answers on the right IP and port, from the right source (we are using connected sockets),
