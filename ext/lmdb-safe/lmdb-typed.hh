@@ -162,7 +162,12 @@ struct LMDBIndexOps
     auto scombined = makeCombinedKey(keyConv(d_parent->getMember(t)), id);
     MDBInVal combined(scombined);
 
-    txn->put(d_idx, combined, empty, flags);
+    MDBOutVal currentvalue;
+
+    // check if the entry already exists, so we don't uselessly bump the timestamp
+    if (txn->get(d_idx, combined, currentvalue) == MDB_NOTFOUND) {
+      txn->put(d_idx, combined, empty, flags);
+    }
   }
 
   void del(MDBRWTransaction& txn, const Class& t, uint32_t id)
@@ -305,7 +310,8 @@ public:
       // auto range = prefix_range<N>(key);
       LMDBIDvec ids;
 
-      get_multi<N>(key, ids);
+      // because we know we only want one item, pass onlyOldest=true to consistently get the same one out of a set of duplicates
+      get_multi<N>(key, ids, true);
 
       if (ids.size() == 0) {
         return 0;
@@ -641,7 +647,7 @@ public:
     };
 
     template<int N>
-    void get_multi(const typename std::tuple_element<N, tuple_t>::type::type& key, LMDBIDvec& ids)
+    void get_multi(const typename std::tuple_element<N, tuple_t>::type::type& key, LMDBIDvec& ids, bool onlyOldest=false)
     {
       // std::cerr<<"in get_multi"<<std::endl;
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
@@ -652,6 +658,9 @@ public:
       out.d_mdbval = in.d_mdbval;
 
       int rc = cursor.get(out, id,  MDB_SET_RANGE);
+
+      uint64_t oldestts = UINT64_MAX;
+      uint32_t oldestid = 0;
 
       while (rc == 0) {
         auto sout = out.getNoStripHeader<std::string>(); // FIXME: this (and many others) could probably be string_view
@@ -665,7 +674,20 @@ public:
 
         if (sthiskey == keyString) {
           auto _id = getIDFromCombinedKey(out);
-          ids.push_back(_id.getNoStripHeader<uint32_t>());
+          uint64_t ts = LMDBLS::LSgetTimestamp(id.getNoStripHeader<string_view>());
+          uint32_t __id = _id.getNoStripHeader<uint32_t>();
+
+          if (onlyOldest) {
+            if (ts < oldestts) {
+              oldestts = ts;
+              oldestid = __id;
+
+              ids.clear();
+              ids.push_back(oldestid);
+            }
+          } else {
+            ids.push_back(__id);
+          }
         }
 
         rc = cursor.get(out, id, MDB_NEXT);

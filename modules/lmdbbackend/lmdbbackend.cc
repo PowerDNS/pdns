@@ -20,7 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "ext/lmdb-safe/lmdb-safe.hh"
 #include <lmdb.h>
+#include <stdexcept>
 #include <utility>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -665,6 +667,13 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   }
 
   LMDBLS::s_flag_deleted = mustDo("flag-deleted");
+  d_handle_dups = false;
+
+  if (mustDo("lightning-stream")) {
+    d_random_ids = true;
+    d_handle_dups = true;
+    LMDBLS::s_flag_deleted = true;
+  }
 
   bool opened = false;
 
@@ -1658,22 +1667,68 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
   return true;
 }
 
+void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow)
+{
+  auto txn = d_tdomains->getROTransaction();
+  if (d_handle_dups) {
+    map<DNSName, DomainInfo> zonemap;
+    set<DNSName> dups;
+
+    for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+      DomainInfo di = *iter;
+      di.id = iter.getID();
+      di.backend = this;
+
+      if (!zonemap.insert(std::make_pair(di.zone, di)).second) {
+        dups.insert(di.zone);
+      }
+    }
+
+    for (const auto& zone : dups) {
+      DomainInfo di;
+
+      // this get grabs the oldest item if there are duplicates
+      di.id = txn.get<0>(zone, di);
+
+      if (di.id == 0) {
+        // .get actually found nothing for us
+        continue;
+      }
+
+      di.backend = this;
+      zonemap[di.zone] = di;
+    }
+
+    for (auto [k, v] : zonemap) {
+      if (allow(v)) {
+        domains->push_back(v);
+      }
+    }
+  }
+  else {
+    for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+      DomainInfo di = *iter;
+      di.id = iter.getID();
+      di.backend = this;
+
+      if (allow(di)) {
+        domains->push_back(di);
+      }
+    }
+  }
+}
+
 void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */, bool include_disabled)
 {
   domains->clear();
-  auto txn = d_tdomains->getROTransaction();
-  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    // cerr<<"iter"<<endl;
-    DomainInfo di = *iter;
-    di.id = iter.getID();
 
+  getAllDomainsFiltered(domains, [this, include_disabled](DomainInfo& di) {
     if (!getSerial(di) && !include_disabled) {
-      continue;
+      return false;
     }
 
-    di.backend = this;
-    domains->push_back(di);
-  }
+    return true;
+  });
 }
 
 void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
@@ -1683,20 +1738,19 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
   LMDBResourceRecord lrr;
   soatimes st;
 
-  auto txn = d_tdomains->getROTransaction();
-  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if (!iter->isSecondaryType()) {
-      continue;
+  getAllDomainsFiltered(domains, [this, &lrr, &st, &now, &serial](DomainInfo& di) {
+    if (!di.isSecondaryType()) {
+      return false;
     }
 
-    auto txn2 = getRecordsROTransaction(iter.getID());
+    auto txn2 = getRecordsROTransaction(di.id);
     compoundOrdername co;
     MDBOutVal val;
-    if (!txn2->txn->get(txn2->db->dbi, co(iter.getID(), g_rootdnsname, QType::SOA), val)) {
+    if (!txn2->txn->get(txn2->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
       serFromString(val.get<string_view>(), lrr);
       memcpy(&st, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(soatimes));
-      if ((time_t)(iter->last_check + ntohl(st.refresh)) > now) { // still fresh
-        continue;
+      if ((time_t)(di.last_check + ntohl(st.refresh)) > now) { // still fresh
+        return false;
       }
       serial = ntohl(st.serial);
     }
@@ -1704,13 +1758,8 @@ void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
       serial = 0;
     }
 
-    DomainInfo di(*iter);
-    di.id = iter.getID();
-    di.serial = serial;
-    di.backend = this;
-
-    domains->emplace_back(di);
-  }
+    return true;
+  });
 }
 
 void LMDBBackend::setStale(uint32_t domain_id)
@@ -1729,35 +1778,31 @@ void LMDBBackend::setFresh(uint32_t domain_id)
 
 void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
-  DomainInfo di;
   CatalogInfo ci;
 
-  auto txn = d_tdomains->getROTransaction();
-  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-
-    if (!iter->isPrimaryType()) {
-      continue;
+  getAllDomainsFiltered(&(updatedDomains), [this, &catalogs, &catalogHashes, &ci](DomainInfo& di) {
+    if (!di.isPrimaryType()) {
+      return false;
     }
 
-    if (iter->kind == DomainInfo::Producer) {
-      catalogs.insert(iter->zone);
-      catalogHashes[iter->zone].process("\0");
-      continue; // Producer fresness check is performed elsewhere
+    if (di.kind == DomainInfo::Producer) {
+      catalogs.insert(di.zone);
+      catalogHashes[di.zone].process("\0");
+      return false; // Producer fresness check is performed elsewhere
     }
 
-    di = *iter;
-    di.id = iter.getID();
-
-    if (!iter->catalog.empty()) {
-      ci.fromJson(iter->options, CatalogInfo::CatalogType::Producer);
+    if (!di.catalog.empty()) {
+      ci.fromJson(di.options, CatalogInfo::CatalogType::Producer);
       ci.updateHash(catalogHashes, di);
     }
 
     if (getSerial(di) && di.serial != di.notified_serial) {
       di.backend = this;
-      updatedDomains.emplace_back(di);
+      return true;
     }
-  }
+
+    return false;
+  });
 }
 
 void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
@@ -1767,27 +1812,42 @@ void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
   });
 }
 
+class getCatalogMembersReturnFalseException : std::runtime_error
+{
+public:
+  getCatalogMembersReturnFalseException() :
+    std::runtime_error("getCatalogMembers should return false") {}
+};
+
 bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
 {
-  auto txn = d_tdomains->getROTransaction();
-  for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-    if ((type == CatalogInfo::CatalogType::Producer && iter->kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && iter->kind != DomainInfo::Slave) || iter->catalog != catalog) {
-      continue;
-    }
+  vector<DomainInfo> scratch;
 
-    CatalogInfo ci;
-    ci.d_id = iter->id;
-    ci.d_zone = iter->zone;
-    ci.d_primaries = iter->masters;
-    try {
-      ci.fromJson(iter->options, type);
-    }
-    catch (const std::runtime_error& e) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << iter->options << "' for zone '" << iter->zone << "' is no valid JSON: " << e.what() << endl;
-      members.clear();
+  try {
+    getAllDomainsFiltered(&scratch, [&catalog, &members, &type](DomainInfo& di) {
+      if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Slave) || di.catalog != catalog) {
+        return false;
+      }
+
+      CatalogInfo ci;
+      ci.d_id = di.id;
+      ci.d_zone = di.zone;
+      ci.d_primaries = di.masters;
+      try {
+        ci.fromJson(di.options, type);
+      }
+      catch (const std::runtime_error& e) {
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " options '" << di.options << "' for zone '" << di.zone << "' is no valid JSON: " << e.what() << endl;
+        members.clear();
+        throw getCatalogMembersReturnFalseException();
+      }
+      members.emplace_back(ci);
+
       return false;
-    }
-    members.emplace_back(ci);
+    });
+  }
+  catch (const getCatalogMembersReturnFalseException& e) {
+    return false;
   }
   return true;
 }
@@ -2569,6 +2629,7 @@ public:
     declare(suffix, "random-ids", "Numeric IDs inside the database are generated randomly instead of sequentially", "no");
     declare(suffix, "map-size", "LMDB map size in megabytes", (sizeof(void*) == 4) ? "100" : "16000");
     declare(suffix, "flag-deleted", "Flag entries on deletion instead of deleting them", "no");
+    declare(suffix, "lightning-stream", "Run in Lightning Stream compatible mode", "no");
   }
   DNSBackend* make(const string& suffix = "") override
   {

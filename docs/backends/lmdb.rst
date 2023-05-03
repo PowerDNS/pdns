@@ -118,8 +118,25 @@ Defaults to 100 on 32 bit systems, and 16000 on 64 bit systems.
 
   .. versionadded:: 4.8.0
 
+-  Boolean
+-  Default: no
+
 Instead of deleting items from the database, flag them as deleted in the item's `Lightning Stream <https://doc.powerdns.com/lightningstream>`_ header.
 Only enable this if you are using Lightning Stream.
+
+``lmdb-lightning-stream``
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  .. versionadded:: 4.8.0
+
+-  Boolean
+-  Default: no
+
+Run in Lightning Stream compatible mode. This:
+
+* forces ``flag-deleted`` on
+* forces ``random-ids`` on
+* handles duplicate entries in databases that can result from domains being added on two Lightning Stream nodes at the same time
 
 LMDB Structure
 --------------

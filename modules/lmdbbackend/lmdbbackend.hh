@@ -310,6 +310,8 @@ private:
   int genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func);
   void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype = QType::ANY);
 
+  void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
+
   bool getSerial(DomainInfo& di);
 
   bool upgradeToSchemav3();
@@ -329,5 +331,6 @@ private:
   uint32_t d_transactiondomainid;
   bool d_dolog;
   bool d_random_ids;
+  bool d_handle_dups;
   DTime d_dtime; // used only for logging
 };

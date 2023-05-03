@@ -68,6 +68,11 @@ namespace LMDBLS {
     return (lsh->d_flags & LS_FLAG_DELETED) != 0;
   }
 
+  uint64_t LSgetTimestamp(std::string_view val) {
+    const LSheader* lsh = LSassertFixedHeaderSize(val);
+
+    return lsh->getTimestamp();
+  }
   bool s_flag_deleted{false};
 }
 
