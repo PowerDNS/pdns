@@ -817,10 +817,10 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.writeFunction("getRespRing", getRespRing);
 
   /* StatNode */
-  luaCtx.registerFunction<StatNode, unsigned int()>("numChildren",
-                                                   [](StatNode& sn) -> unsigned int {
-                                                     return sn.children.size();
-                                                   } );
+  luaCtx.registerFunction<unsigned int(StatNode::*)()const>("numChildren",
+                                                            [](const StatNode& sn) -> unsigned int {
+                                                              return sn.children.size();
+                                                            } );
   luaCtx.registerMember("fullname", &StatNode::fullname);
   luaCtx.registerMember("labelsCount", &StatNode::labelsCount);
   luaCtx.registerMember("servfails", &StatNode::Stat::servfails);
