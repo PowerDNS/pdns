@@ -268,8 +268,9 @@ public:
     return false;
   }
 
-  virtual void feedComment(const Comment& /* comment */)
+  virtual bool feedComment(const Comment& /* comment */)
   {
+    return false;
   }
 
   virtual bool replaceComments(const uint32_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<Comment>& /* comments */)

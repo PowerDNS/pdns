@@ -4131,7 +4131,9 @@ try
         Comment c;
         while(src->getComment(c)) {
           c.domain_id = di_new.id;
-          tgt->feedComment(c);
+          if (!tgt->feedComment(c)) {
+            throw PDNSException("Target backend does not support comments - remove them first");
+          }
           nc++;
         }
       }

@@ -74,6 +74,7 @@ public:
   bool feedEnts(int domain_id, map<DNSName, bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
+  bool replaceComments(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments) override;
 
   void getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled) override;
   void lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;

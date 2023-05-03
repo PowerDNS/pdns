@@ -1171,6 +1171,13 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   return true;
 }
 
+bool LMDBBackend::replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments)
+{
+  // if the vector is empty, good, that's what we do here (LMDB does not store comments)
+  // if it's not, report failure
+  return comments.empty();
+}
+
 // tempting to templatize these two functions but the pain is not worth it
 std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTransaction(uint32_t id)
 {
