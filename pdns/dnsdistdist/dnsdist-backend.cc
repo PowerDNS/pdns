@@ -120,6 +120,12 @@ bool DownstreamState::reconnect(bool initialAttempt)
   if (connected) {
     tl.unlock();
     d_connectedWait.notify_all();
+    if (!initialAttempt) {
+      /* we need to be careful not to start this
+         thread too soon, as the creation should only
+         happen after the configuration has been parsed */
+      start();
+    }
   }
 
   return connected;
@@ -774,7 +780,6 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
 
     if (newState && !isTCPOnly() && (!connected || d_config.reconnectOnUp)) {
       newState = reconnect();
-      start();
     }
 
     setUpStatus(newState);
