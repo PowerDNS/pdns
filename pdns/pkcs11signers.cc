@@ -250,7 +250,9 @@ class Pkcs11Slot {
     }
 
     bool Login(const std::string& pin, CK_USER_TYPE userType=CKU_USER) {
-      if (userType == CKU_USER && d_logged_in) return true;
+      if (userType == CKU_USER && d_logged_in) {
+        return true;
+      }
 
       auto uPin = std::make_unique<unsigned char[]>(pin.size());
       memcpy(uPin.get(), pin.c_str(), pin.size());
