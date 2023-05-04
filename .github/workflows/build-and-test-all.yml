@@ -21,6 +21,8 @@ jobs:
       SANITIZERS: asan+ubsan
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       UNIT_TESTS: yes
+    outputs:
+      clang-tidy-auth-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
@@ -57,11 +59,14 @@ jobs:
             cat clang-tidy-auth.yml
           fi
       - name: Result annotations
+        id: clang-tidy-annotations
         shell: bash
         working-directory: pdns
         run: |
           if [ -f clang-tidy-auth.yml ]; then
+            set +e
             python3 ../.github/scripts/clang-tidy.py --fixes-file clang-tidy-auth.yml
+            echo "failed=$?" >> $GITHUB_OUTPUT
           fi
       - run: inv ci-auth-install-remotebackend-test-deps
       - run: inv ci-auth-run-unit-tests
@@ -89,6 +94,8 @@ jobs:
     defaults:
       run:
         working-directory: ./pdns/recursordist/
+    outputs:
+      clang-tidy-recursor-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
@@ -124,10 +131,13 @@ jobs:
             cat clang-tidy-rec.yml
           fi
       - name: Result annotations
+        id: clang-tidy-annotations
         shell: bash
         run: |
           if [ -f clang-tidy-rec.yml ]; then
+            set +e
             python ../../.github/scripts/clang-tidy.py --fixes-file clang-tidy-rec.yml
+            echo "failed=$?" >> $GITHUB_OUTPUT
           fi
       - run: inv ci-rec-run-unit-tests
       - run: inv ci-make-install
@@ -158,6 +168,8 @@ jobs:
     defaults:
       run:
         working-directory: ./pdns/dnsdistdist/
+    outputs:
+      clang-tidy-dnsdist-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
@@ -193,10 +205,13 @@ jobs:
             cat clang-tidy-dnsdist.yml
           fi
       - name: Result annotations
+        id: clang-tidy-annotations
         shell: bash
         run: |
           if [ -f clang-tidy-dnsdist.yml ]; then
+            set +e
             python ../../.github/scripts/clang-tidy.py --fixes-file clang-tidy-dnsdist.yml
+            echo "failed=$?" >> $GITHUB_OUTPUT
           fi
       - run: inv ci-dnsdist-run-unit-tests
       - run: inv ci-make-install
@@ -517,6 +532,16 @@ jobs:
       - run: inv install-swagger-tools
       - run: inv swagger-syntax-check
 
+  check-clang-tidy:
+    needs: [build-auth, build-dnsdist, build-recursor]
+    runs-on: ubuntu-20.04
+    name: Check whether clang-tidy succeeded
+    steps:
+    - run: |
+        if [ ${{ needs.build-auth.outputs.clang-tidy-auth-failed }} != 0 -o ${{ needs.build-dnsdist.outputs.clang-tidy-dnsdist-failed }} != 0 -o ${{ needs.build-recursor.outputs.clang-tidy-recursor-failed }} != 0 ]; then
+          exit 1
+        fi
+
   collect:
     needs:
       - build-auth
@@ -530,6 +555,7 @@ jobs:
       - test-recursor-api
       - test-recursor-regression
       - test-recursor-bulk
+      - check-clang-tidy
     if: success() || failure()
     runs-on: ubuntu-20.04
     steps:
