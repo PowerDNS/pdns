@@ -2,6 +2,69 @@ Changelogs for 4.8.x
 ====================
 
 .. changelog::
+  :version: 4.8.0-beta1
+  :released: 3rd of May 2023
+
+  This is release 4.8.0-beta1 of the Authoritative Server.
+
+  In 4.8, the LMDB backend gains a new Lightning Stream-compatible schema, which requires a data migration (this is automatic, and there is no migration back to the old schema).
+  LMDB backend users should pay extra attention to the :doc:`Upgrade Notes <../upgrading>`.
+
+  `Lightning Stream <https://doc.powerdns.com/lightningstream>`_ is an `open source <https://github.com/PowerDNS/lightningstream>`_ data syncer that allows multiple nodes to sync LMDB (Lightning Memory-Mapped Database) data to and from an S3 (compatible) bucket. This has particular advantages in distributed and/or large-scale applications (i.e. ~1 million records), making DNS replication much, much easier to manage.
+
+  We are excited about how Lightning Stream simplifies running multiple distributed PowerDNS Authoritative servers, with full support for keeping record data and DNSSEC keys in sync, from multiple writers.
+
+  4.8.0-beta1 adds logic to deal with domains existing twice in the database when two Lightning Stream nodes manage to add it at the same time. It also contains a few other fixes, please see the list below.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12729
+
+    LMDB: handle duplicate domain existence consistently
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12768
+
+    ixfrdist: add a per domain max-soa-refresh option
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12636
+
+    lmdb: handle lack of support for RRset comments better
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12740
+
+    Pick the right signer name when a NSEC name is also a delegation point (Kees Monshouwer)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12669
+
+    LUA records: enhance ifportup() with lists of sets of addresses like ifurlup()
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12721
+
+    calm down the communicator loop (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12706
+
+    Fixes a typo in pdnsutil clear-zone help output (san983)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12664
+
+    DNSRecord: Ensure that the content can be read or replaced, not edited
+
+.. changelog::
   :version: 4.8.0-alpha1
   :released: 21st of March 2023
 
