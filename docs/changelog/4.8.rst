@@ -3,7 +3,7 @@ Changelogs for 4.8.x
 
 .. changelog::
   :version: 4.8.0-beta1
-  :released: 3rd of May 2023
+  :released: 4th of May 2023
 
   This is release 4.8.0-beta1 of the Authoritative Server.
 
