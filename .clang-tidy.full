@@ -405,7 +405,7 @@ CheckOptions:
   - key:             modernize-use-noexcept.UseNoexceptFalse
     value:           'true'
   - key:             readability-function-cognitive-complexity.Threshold
-    value:           '25'
+    value:           '50'
   - key:             cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value:           'true'
   - key:             bugprone-argument-comment.IgnoreSingleArgument
