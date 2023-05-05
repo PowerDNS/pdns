@@ -387,32 +387,32 @@ ssize_t IncomingHTTP2Connection::send_callback(nghttp2_session* session, const u
   return length;
 }
 
-static const std::unordered_map<std::string, std::string> s_constants{
-  {"200-value", "200"},
-  {"method-name", ":method"},
-  {"method-value", "POST"},
-  {"scheme-name", ":scheme"},
-  {"scheme-value", "https"},
-  {"authority-name", ":authority"},
-  {"x-forwarded-for-name", "x-forwarded-for"},
-  {"path-name", ":path"},
-  {"content-length-name", "content-length"},
-  {"status-name", ":status"},
-  {"location-name", "location"},
-  {"accept-name", "accept"},
-  {"accept-value", "application/dns-message"},
-  {"cache-control-name", "cache-control"},
-  {"content-type-name", "content-type"},
-  {"content-type-value", "application/dns-message"},
-  {"user-agent-name", "user-agent"},
-  {"user-agent-value", "nghttp2-" NGHTTP2_VERSION "/dnsdist"},
-  {"x-forwarded-port-name", "x-forwarded-port"},
-  {"x-forwarded-proto-name", "x-forwarded-proto"},
-  {"x-forwarded-proto-value-dns-over-udp", "dns-over-udp"},
-  {"x-forwarded-proto-value-dns-over-tcp", "dns-over-tcp"},
-  {"x-forwarded-proto-value-dns-over-tls", "dns-over-tls"},
-  {"x-forwarded-proto-value-dns-over-http", "dns-over-http"},
-  {"x-forwarded-proto-value-dns-over-https", "dns-over-https"},
+static const std::array<const std::string, static_cast<size_t>(NGHTTP2Headers::HeaderConstantIndexes::COUNT)> s_headerConstants{
+  "200",
+  ":method",
+  "POST",
+  ":scheme",
+  "https",
+  ":authority",
+  "x-forwarded-for",
+  ":path",
+  "content-length",
+  ":status",
+  "location",
+  "accept",
+  "application/dns-message",
+  "cache-control",
+  "content-type",
+  "application/dns-message",
+  "user-agent",
+  "nghttp2-" NGHTTP2_VERSION "/dnsdist",
+  "x-forwarded-port",
+  "x-forwarded-proto",
+  "dns-over-udp",
+  "dns-over-tcp",
+  "dns-over-tls",
+  "dns-over-http",
+  "dns-over-https"
 };
 
 static const std::string s_authorityHeaderName(":authority");
@@ -421,10 +421,10 @@ static const std::string s_methodHeaderName(":method");
 static const std::string s_schemeHeaderName(":scheme");
 static const std::string s_xForwardedForHeaderName("x-forwarded-for");
 
-void NGHTTP2Headers::addStaticHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& valueKey)
+void NGHTTP2Headers::addStaticHeader(std::vector<nghttp2_nv>& headers, NGHTTP2Headers::HeaderConstantIndexes nameKey, NGHTTP2Headers::HeaderConstantIndexes valueKey)
 {
-  const auto& name = s_constants.at(nameKey);
-  const auto& value = s_constants.at(valueKey);
+  const auto& name = s_headerConstants.at(static_cast<size_t>(nameKey));
+  const auto& value = s_headerConstants.at(static_cast<size_t>(valueKey));
 
   headers.push_back({const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.c_str())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.c_str())), name.size(), value.size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE});
 }
@@ -434,9 +434,9 @@ void NGHTTP2Headers::addCustomDynamicHeader(std::vector<nghttp2_nv>& headers, co
   headers.push_back({const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.data())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.data())), name.size(), value.size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE});
 }
 
-void NGHTTP2Headers::addDynamicHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string_view& value)
+void NGHTTP2Headers::addDynamicHeader(std::vector<nghttp2_nv>& headers, NGHTTP2Headers::HeaderConstantIndexes nameKey, const std::string_view& value)
 {
-  const auto& name = s_constants.at(nameKey);
+  const auto& name = s_headerConstants.at(static_cast<size_t>(nameKey));
   NGHTTP2Headers::addCustomDynamicHeader(headers, name, value);
 }
 
@@ -511,18 +511,20 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
   std::string location;
   /* remember that dynamic header values should be kept alive
      until we have called nghttp2_submit_response(), at least */
+  /* status, content-type, cache-control, content-length */
+  headers.reserve(4);
 
   if (responseCode == 200) {
-    NGHTTP2Headers::addStaticHeader(headers, "status-name", "200-value");
+    NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::STATUS_NAME, NGHTTP2Headers::HeaderConstantIndexes::OK_200_VALUE);
     ++df->d_validresponses;
     ++df->d_http2Stats.d_nb200Responses;
 
     if (addContentType) {
       if (contentType.empty()) {
-        NGHTTP2Headers::addStaticHeader(headers, "content-type-name", "content-type-value");
+        NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::CONTENT_TYPE_NAME, NGHTTP2Headers::HeaderConstantIndexes::CONTENT_TYPE_VALUE);
       }
       else {
-        NGHTTP2Headers::addDynamicHeader(headers, "content-type-name", contentType);
+        NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::CONTENT_TYPE_NAME, contentType);
       }
     }
 
@@ -530,18 +532,18 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
       uint32_t minTTL = getDNSPacketMinTTL(reinterpret_cast<const char*>(responseBody.data()), responseBody.size());
       if (minTTL != std::numeric_limits<uint32_t>::max()) {
         cacheControlValue = "max-age=" + std::to_string(minTTL);
-        NGHTTP2Headers::addDynamicHeader(headers, "cache-control-name", cacheControlValue);
+        NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::CACHE_CONTROL_NAME, cacheControlValue);
       }
     }
   }
   else {
     responseCodeStr = std::to_string(responseCode);
-    NGHTTP2Headers::addDynamicHeader(headers, "status-name", responseCodeStr);
+    NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::STATUS_NAME, responseCodeStr);
 
     if (responseCode >= 300 && responseCode < 400) {
       location = std::string(reinterpret_cast<const char*>(responseBody.data()), responseBody.size());
-      NGHTTP2Headers::addDynamicHeader(headers, "content-type-name", "text/html; charset=utf-8");
-      NGHTTP2Headers::addDynamicHeader(headers, "location-name", location);
+      NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::CONTENT_TYPE_NAME, "text/html; charset=utf-8");
+      NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::LOCATION_NAME, location);
       static const std::string s_redirectStart{"<!DOCTYPE html><TITLE>Moved</TITLE><P>The document has moved <A HREF=\""};
       static const std::string s_redirectEnd{"\">here</A>"};
       responseBody.reserve(s_redirectStart.size() + responseBody.size() + s_redirectEnd.size());
@@ -570,7 +572,7 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
       }
 
       if (!responseBody.empty()) {
-        NGHTTP2Headers::addDynamicHeader(headers, "content-type-name", "text/plain; charset=utf-8");
+        NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::CONTENT_TYPE_NAME, "text/plain; charset=utf-8");
       }
       else {
         static const std::string invalid{"invalid DNS query"};
@@ -599,7 +601,7 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
   }
 
   const std::string contentLength = std::to_string(responseBody.size());
-  NGHTTP2Headers::addDynamicHeader(headers, "content-length-name", contentLength);
+  NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::CONTENT_LENGTH_NAME, contentLength);
 
   for (const auto& [key, value] : customResponseHeaders) {
     NGHTTP2Headers::addCustomDynamicHeader(headers, key, value);
@@ -918,7 +920,7 @@ int IncomingHTTP2Connection::on_begin_headers_callback(nghttp2_session* session,
   }
 
   IncomingHTTP2Connection* conn = reinterpret_cast<IncomingHTTP2Connection*>(user_data);
-  auto insertPair = conn->d_currentStreams.insert({frame->hd.stream_id, PendingQuery()});
+  auto insertPair = conn->d_currentStreams.emplace(frame->hd.stream_id, PendingQuery());
   if (!insertPair.second) {
     /* there is a stream ID collision, something is very wrong! */
     vinfolog("Stream ID collision (%d) on connection from %d", frame->hd.stream_id, conn->d_ci.remote.toStringWithPort());

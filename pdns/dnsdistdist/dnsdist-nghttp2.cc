@@ -84,9 +84,6 @@ private:
   static void handleReadableIOCallback(int fd, FDMultiplexer::funcparam_t& param);
   static void handleWritableIOCallback(int fd, FDMultiplexer::funcparam_t& param);
 
-  static void addStaticHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& valueKey);
-  static void addDynamicHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& value);
-
   class PendingRequest
   {
   public:
@@ -251,37 +248,37 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
   headers.reserve(8 + (addXForwarded ? 3 : 0));
 
   /* Pseudo-headers need to come first (rfc7540 8.1.2.1) */
-  NGHTTP2Headers::addStaticHeader(headers, "method-name", "method-value");
-  NGHTTP2Headers::addStaticHeader(headers, "scheme-name", "scheme-value");
-  NGHTTP2Headers::addDynamicHeader(headers, "authority-name", d_ds->d_config.d_tlsSubjectName);
-  NGHTTP2Headers::addDynamicHeader(headers, "path-name", d_ds->d_config.d_dohPath);
-  NGHTTP2Headers::addStaticHeader(headers, "accept-name", "accept-value");
-  NGHTTP2Headers::addStaticHeader(headers, "content-type-name", "content-type-value");
-  NGHTTP2Headers::addStaticHeader(headers, "user-agent-name", "user-agent-value");
-  NGHTTP2Headers::addDynamicHeader(headers, "content-length-name", payloadSize);
+  NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::METHOD_NAME, NGHTTP2Headers::HeaderConstantIndexes::METHOD_VALUE);
+  NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::SCHEME_NAME, NGHTTP2Headers::HeaderConstantIndexes::SCHEME_VALUE);
+  NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::AUTHORITY_NAME, d_ds->d_config.d_tlsSubjectName);
+  NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::PATH_NAME, d_ds->d_config.d_dohPath);
+  NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::ACCEPT_NAME, NGHTTP2Headers::HeaderConstantIndexes::ACCEPT_VALUE);
+  NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::CONTENT_TYPE_NAME, NGHTTP2Headers::HeaderConstantIndexes::CONTENT_TYPE_VALUE);
+  NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::USER_AGENT_NAME, NGHTTP2Headers::HeaderConstantIndexes::USER_AGENT_VALUE);
+  NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::CONTENT_LENGTH_NAME, payloadSize);
   /* no need to add these headers for health-check queries */
   if (addXForwarded && query.d_idstate.origRemote.getPort() != 0) {
     remote = query.d_idstate.origRemote.toString();
     remotePort = std::to_string(query.d_idstate.origRemote.getPort());
-    NGHTTP2Headers::addDynamicHeader(headers, "x-forwarded-for-name", remote);
-    NGHTTP2Headers::addDynamicHeader(headers, "x-forwarded-port-name", remotePort);
+    NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_FOR_NAME, remote);
+    NGHTTP2Headers::addDynamicHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PORT_NAME, remotePort);
     if (query.d_idstate.cs != nullptr) {
       if (query.d_idstate.cs->isUDP()) {
-        NGHTTP2Headers::addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-udp");
+        NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PROTO_NAME, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PROTO_VALUE_DNS_OVER_UDP);
       }
       else if (query.d_idstate.cs->isDoH()) {
         if (query.d_idstate.cs->hasTLS()) {
-          NGHTTP2Headers::addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-https");
+          NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PROTO_NAME, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PROTO_VALUE_DNS_OVER_HTTPS);
         }
         else {
-          NGHTTP2Headers::addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-http");
+          NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PROTO_NAME, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PROTO_VALUE_DNS_OVER_HTTP);
         }
       }
       else if (query.d_idstate.cs->hasTLS()) {
-        NGHTTP2Headers::addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-tls");
+        NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PROTO_NAME, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PROTO_VALUE_DNS_OVER_TLS);
       }
       else {
-        NGHTTP2Headers::addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-tcp");
+        NGHTTP2Headers::addStaticHeader(headers, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PROTO_NAME, NGHTTP2Headers::HeaderConstantIndexes::X_FORWARDED_PROTO_VALUE_DNS_OVER_TCP);
       }
     }
   }

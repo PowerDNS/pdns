@@ -106,8 +106,37 @@ private:
 class NGHTTP2Headers
 {
 public:
-  static void addStaticHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& valueKey);
-  static void addDynamicHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string_view& value);
+  enum class HeaderConstantIndexes {
+    OK_200_VALUE = 0,
+    METHOD_NAME,
+    METHOD_VALUE,
+    SCHEME_NAME,
+    SCHEME_VALUE,
+    AUTHORITY_NAME,
+    X_FORWARDED_FOR_NAME,
+    PATH_NAME,
+    CONTENT_LENGTH_NAME,
+    STATUS_NAME,
+    LOCATION_NAME,
+    ACCEPT_NAME,
+    ACCEPT_VALUE,
+    CACHE_CONTROL_NAME,
+    CONTENT_TYPE_NAME,
+    CONTENT_TYPE_VALUE,
+    USER_AGENT_NAME,
+    USER_AGENT_VALUE,
+    X_FORWARDED_PORT_NAME,
+    X_FORWARDED_PROTO_NAME,
+    X_FORWARDED_PROTO_VALUE_DNS_OVER_UDP,
+    X_FORWARDED_PROTO_VALUE_DNS_OVER_TCP,
+    X_FORWARDED_PROTO_VALUE_DNS_OVER_TLS,
+    X_FORWARDED_PROTO_VALUE_DNS_OVER_HTTP,
+    X_FORWARDED_PROTO_VALUE_DNS_OVER_HTTPS,
+    COUNT
+  };
+
+  static void addStaticHeader(std::vector<nghttp2_nv>& headers, HeaderConstantIndexes nameKey, HeaderConstantIndexes valueKey);
+  static void addDynamicHeader(std::vector<nghttp2_nv>& headers, HeaderConstantIndexes nameKey, const std::string_view& value);
   static void addCustomDynamicHeader(std::vector<nghttp2_nv>& headers, const std::string& name, const std::string_view& value);
 };
 
