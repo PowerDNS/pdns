@@ -1247,28 +1247,29 @@ void broadcastFunction(const pipefunc_t& func)
     func();
   }
 
-  unsigned int n = 0;
+  unsigned int thread = 0;
   for (const auto& threadInfo : RecThreadInfo::infos()) {
-    if (n++ == RecThreadInfo::id()) {
+    if (thread++ == RecThreadInfo::id()) {
       func(); // don't write to ourselves!
       continue;
     }
 
-    ThreadMSG* tmsg = new ThreadMSG();
+    ThreadMSG* tmsg = new ThreadMSG(); // NOLINT: manual onwership handling
     tmsg->func = func;
     tmsg->wantAnswer = true;
-    if (write(threadInfo.pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
-      delete tmsg;
+    if (write(threadInfo.pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT: sizeof correct
+      delete tmsg; // NOLINT: manual ownership handling
 
       unixDie("write to thread pipe returned wrong size or error");
     }
 
     string* resp = nullptr;
-    if (read(threadInfo.pipes.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
+    if (read(threadInfo.pipes.readFromThread, &resp, sizeof(resp)) != sizeof(resp)) { // NOLINT: sizeof correct
       unixDie("read from thread pipe returned wrong size or error");
+    }
 
-    if (resp) {
-      delete resp;
+    if (resp != nullptr) {
+      delete resp; // NOLINT: manual ownership handling
       resp = nullptr;
     }
     // coverity[leaked_storage]
@@ -1324,30 +1325,30 @@ T broadcastAccFunction(const std::function<T*()>& func)
     _exit(1);
   }
 
-  unsigned int n = 0;
+  unsigned int thread = 0;
   T ret = T();
   for (const auto& threadInfo : RecThreadInfo::infos()) {
-    if (n++ == RecThreadInfo::id()) {
+    if (thread++ == RecThreadInfo::id()) {
       continue;
     }
 
     const auto& tps = threadInfo.pipes;
-    ThreadMSG* tmsg = new ThreadMSG();
+    ThreadMSG* tmsg = new ThreadMSG(); // NOLINT: manual ownership handling
     tmsg->func = [func] { return voider<T>(func); };
     tmsg->wantAnswer = true;
 
-    if (write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
-      delete tmsg;
+    if (write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT:: sizeof correct
+      delete tmsg; // NOLINT: manual ownership handling
       unixDie("write to thread pipe returned wrong size or error");
     }
 
     T* resp = nullptr;
-    if (read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp))
+    if (read(tps.readFromThread, &resp, sizeof(resp)) != sizeof(resp)) // NOLINT: sizeof correct
       unixDie("read from thread pipe returned wrong size or error");
 
     if (resp) {
       ret += *resp;
-      delete resp;
+      delete resp; // NOLINT: manual ownershipm handling
       resp = nullptr;
     }
     // coverity[leaked_storage]
@@ -1780,7 +1781,7 @@ static int initControl(Logr::log_t log, uid_t newuid, int forks) // NOLINT(bugpr
   return 0;
 }
 
-static void initSuffixMatchNodes()
+static void initSuffixMatchNodes([[maybe_unused]] Logr::log_t log)
 {
   {
     SuffixMatchNode dontThrottleNames;
@@ -2024,7 +2025,7 @@ static int serviceMain(Logr::log_t log)
   SLOG(g_log << Logger::Debug << "NSEC3 aggressive cache tuning: aggressive-cache-min-nsec3-hit-ratio: " << ::arg().asNum("aggressive-cache-min-nsec3-hit-ratio") << " max common prefix bits: " << std::to_string(AggressiveNSECCache::s_maxNSEC3CommonPrefix) << endl,
        log->info(Logr::Debug, "NSEC3 aggressive cache tuning", "aggressive-cache-min-nsec3-hit-ratio", Logging::Loggable(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio")), "maxCommonPrefixBits", Logging::Loggable(AggressiveNSECCache::s_maxNSEC3CommonPrefix)));
 
-  initSuffixMatchNodes();
+  initSuffixMatchNodes(log);
   initCarbon();
   initDistribution(log);
 
@@ -2105,15 +2106,15 @@ static int serviceMain(Logr::log_t log)
   return RecThreadInfo::runThreads(log);
 }
 
-static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& /* var */)
+static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var */)
 {
   ThreadMSG* tmsg = nullptr;
 
-  if (read(fd, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // fd == readToThread || fd == readQueriesToThread
+  if (read(fileDesc, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // fd == readToThread || fd == readQueriesToThread NOLINT: sizeof correct
     unixDie("read from thread pipe returned wrong size or error");
   }
 
-  void* resp = 0;
+  void* resp = nullptr;
   try {
     resp = tmsg->func();
   }
@@ -2131,12 +2132,12 @@ static void handlePipeRequest(int fd, FDMultiplexer::funcparam_t& /* var */)
   }
   if (tmsg->wantAnswer) {
     if (write(RecThreadInfo::self().pipes.writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
-      delete tmsg;
+      delete tmsg; // NOLINT: manual ownership handling
       unixDie("write to thread pipe returned wrong size or error");
     }
   }
 
-  delete tmsg;
+  delete tmsg; // NOLINT: manual ownership handling
 }
 
 static void handleRCC(int fd, FDMultiplexer::funcparam_t& /* var */)
@@ -2437,11 +2438,15 @@ static void runLuaMaintenance(RecThreadInfo& threadInfo, time_t& last_lua_mainte
     if (threadInfo.isWorker() || threadInfo.isListener()) {
       // Only on threads processing queries
       if (g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
-        struct timeval start{};
+        struct timeval start
+        {
+        };
         Utility::gettimeofday(&start);
         t_pdl->maintenance();
         last_lua_maintenance = g_now.tv_sec;
-        struct timeval stop{};
+        struct timeval stop
+        {
+        };
         Utility::gettimeofday(&stop);
         t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
         ++t_Counters.at(rec::Counter::maintenanceCalls);
@@ -2492,11 +2497,15 @@ static void recLoop()
     // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
     // We want to call handler thread often, it gets scheduled about 2 times per second
     if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % 11 == 0) || s_counter % 499 == 0) {
-      struct timeval start{};
+      struct timeval start
+      {
+      };
       Utility::gettimeofday(&start);
       MT->makeThread(houseKeeping, nullptr);
       if (!threadInfo.isTaskThread()) {
-        struct timeval stop{};
+        struct timeval stop
+        {
+        };
         Utility::gettimeofday(&stop);
         t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
         ++t_Counters.at(rec::Counter::maintenanceCalls);
@@ -2506,7 +2515,7 @@ static void recLoop()
     if (s_counter % 55 == 0) {
       auto expired = t_fdm->getTimeouts(g_now);
 
-      for (const auto & exp : expired) {
+      for (const auto& exp : expired) {
         auto conn = boost::any_cast<shared_ptr<TCPConnection>>(exp.second);
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Warning << "Timeout from remote TCP client " << conn->d_remote.toStringWithPort() << endl, // NOLINT: union access
