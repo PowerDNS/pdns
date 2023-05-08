@@ -2784,7 +2784,7 @@ static void initArgs()
 #ifdef HAVE_SYSTEMD
                 + ". Set to the RUNTIME_DIRECTORY environment variable when that variable has a value (e.g. under systemd).")
     = "";
-  auto runtimeDir = getenv("RUNTIME_DIRECTORY");
+  auto* runtimeDir = getenv("RUNTIME_DIRECTORY"); // NOLINT(concurrency-mt-unsafe,cppcoreguidelines-pro-type-vararg)
   if (runtimeDir != nullptr) {
     ::arg().set("socket-dir") = runtimeDir;
   }
