@@ -253,7 +253,7 @@ CheckOptions:
   - key:             modernize-pass-by-value.ValuesOnly
     value:           'false'
   - key:             readability-function-cognitive-complexity.IgnoreMacros
-    value:           'true'
+    value:           'false'
   - key:             modernize-loop-convert.IncludeStyle
     value:           llvm
   - key:             cert-str34-c.DiagnoseSignedUnsignedCharComparisons

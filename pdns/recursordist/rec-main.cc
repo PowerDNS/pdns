@@ -1734,7 +1734,7 @@ static void initSNMP([[maybe_unused]] Logr::log_t log)
   }
 }
 
-static int initControl(Logr::log_t log, uid_t newuid, int forks) // NOLINT(bugprone-easily-swappable-parameter*)
+static int initControl(Logr::log_t log, uid_t newuid, int forks) // NOLINT(bugprone-easily-swappable-parameter*) #12791 Remove NOLINT(readability-function-cognitive-complexity) omoerbeek
 {
   if (!::arg()["chroot"].empty()) {
 #ifdef HAVE_SYSTEMD
@@ -1864,7 +1864,7 @@ static int initDNS64(Logr::log_t log)
   return 0;
 }
 
-static int serviceMain(Logr::log_t log)
+static int serviceMain(Logr::log_t log) // NOLINT(readability-function-cognitive-complexity) #12791 Remove NOLINT(readability-function-cognitive-complexity) omoerbeek
 {
   g_log.setName(g_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
@@ -2219,7 +2219,7 @@ private:
   const string name;
 };
 
-static void houseKeeping0(Logr::log_t log)
+static void houseKeeping0(Logr::log_t log) // NOLINT(readability-function-cognitive-complexity) #12791 Remove NOLINT(readability-function-cognitive-complexity) omoerbeek
 {
   struct timeval now
   {
@@ -2549,7 +2549,7 @@ static void recLoop()
   }
 }
 
-static void recursorThread()
+static void recursorThread() // NOLINT(readability-function-cognitive-complexity) #12791 Remove NOLINT(readability-function-cognitive-complexity) omoerbeek
 {
   auto log = g_slog->withName("runtime");
   t_Counters.updateSnap(true);
@@ -3030,7 +3030,7 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
   return {0, false};
 }
 
-int main(int argc, char** argv)
+int main(int argc, char** argv) // NOLINT(readability-function-cognitive-complexity) #12791 Remove NOLINT(readability-function-cognitive-complexity) omoerbeek
 {
   g_argc = argc;
   g_argv = argv;
