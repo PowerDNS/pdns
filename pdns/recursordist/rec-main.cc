@@ -1362,7 +1362,7 @@ template ThreadTimes broadcastAccFunction(const std::function<ThreadTimes*()>& f
 template ProxyMappingStats_t broadcastAccFunction(const std::function<ProxyMappingStats_t*()>& fun);
 template RemoteLoggerStats_t broadcastAccFunction(const std::function<RemoteLoggerStats_t*()>& fun);
 
-static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
+static int serviceMain(Logr::log_t log)
 {
   g_log.setName(g_programname);
   g_log.disableSyslog(::arg().mustDo("disable-syslog"));
@@ -1371,9 +1371,9 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
 
   if (!::arg()["logging-facility"].empty()) {
     int val = logFacilityToLOG(::arg().asNum("logging-facility"));
-    if (val >= 0)
+    if (val >= 0) {
       g_log.setFacility(val);
-    else {
+    } else {
       SLOG(g_log << Logger::Error << "Unknown logging facility " << ::arg().asNum("logging-facility") << endl,
            log->info(Logr::Error, "Unknown logging facility", "facility", Logging::Loggable(::arg().asNum("logging-facility"))));
     }
@@ -1390,7 +1390,7 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
   catch (std::exception& e) {
     SLOG(g_log << Logger::Error << "Assigning local query addresses: " << e.what(),
          log->error(Logr::Error, e.what(), "Unable to assign local query address"));
-    exit(99);
+    return 99;
   }
 
   if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
@@ -1416,31 +1416,31 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
   if (!SyncRes::s_doIPv6 && !SyncRes::s_doIPv4) {
     SLOG(g_log << Logger::Error << "No outgoing addresses configured! Can not continue" << endl,
          log->info(Logr::Error, "No outgoing addresses configured! Can not continue"));
-    exit(99);
+    return 99;
   }
 
   // keep this ABOVE loadRecursorLuaConfig!
-  if (::arg()["dnssec"] == "off")
+  if (::arg()["dnssec"] == "off") {
     g_dnssecmode = DNSSECMode::Off;
-  else if (::arg()["dnssec"] == "process-no-validate")
+  } else if (::arg()["dnssec"] == "process-no-validate") {
     g_dnssecmode = DNSSECMode::ProcessNoValidate;
-  else if (::arg()["dnssec"] == "process")
+  } else if (::arg()["dnssec"] == "process") {
     g_dnssecmode = DNSSECMode::Process;
-  else if (::arg()["dnssec"] == "validate")
+  } else if (::arg()["dnssec"] == "validate") {
     g_dnssecmode = DNSSECMode::ValidateAll;
-  else if (::arg()["dnssec"] == "log-fail")
+  } else if (::arg()["dnssec"] == "log-fail {") {
     g_dnssecmode = DNSSECMode::ValidateForLog;
-  else {
+  } else {
     SLOG(g_log << Logger::Error << "Unknown DNSSEC mode " << ::arg()["dnssec"] << endl,
          log->info(Logr::Error, "Unknown DNSSEC mode", "dnssec", Logging::Loggable(::arg()["dnssec"])));
-    exit(1);
+    return 1;
   }
 
   g_signatureInceptionSkew = ::arg().asNum("signature-inception-skew");
   if (g_signatureInceptionSkew < 0) {
     SLOG(g_log << Logger::Error << "A negative value for 'signature-inception-skew' is not allowed" << endl,
          log->info(Logr::Error, "A negative value for 'signature-inception-skew' is not allowed"));
-    exit(1);
+    return 1;
   }
 
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
@@ -1458,7 +1458,7 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
   catch (PDNSException& e) {
     SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
          log->error(Logr::Error, e.reason, "Cannot load Lua configuration"));
-    exit(1);
+    return 1;
   }
 
   parseACLs();
@@ -1467,17 +1467,18 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
   if (!::arg()["dont-query"].empty()) {
     vector<string> ips;
     stringtok(ips, ::arg()["dont-query"], ", ");
-    ips.push_back("0.0.0.0");
-    ips.push_back("::");
+    ips.emplace_back("0.0.0.0");
+    ips.emplace_back("::");
 
-    for (const auto& ip : ips) {
-      SyncRes::addDontQuery(ip);
+    for (const auto& anIP : ips) {
+      SyncRes::addDontQuery(anIP);
     }
     if (!g_slogStructured) {
       g_log << Logger::Warning << "Will not send queries to: ";
-      for (vector<string>::const_iterator i = ips.begin(); i != ips.end(); ++i) {
-        if (i != ips.begin())
+      for (auto i = ips.begin(); i != ips.end(); ++i) {
+        if (i != ips.begin()) {
           g_log << Logger::Warning << ", ";
+        }
         g_log << Logger::Warning << *i;
       }
       g_log << Logger::Warning << endl;
@@ -1547,7 +1548,7 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
     if (sse > std::numeric_limits<uint16_t>::max()) {
       SLOG(g_log << Logger::Error << "Illegal serve-stale-extensions value: " << sse << "; range = 0..65536" << endl,
            log->info(Logr::Error, "Illegal serve-stale-extensions value; range = 0..65536", "value", Logging::Loggable(sse)));
-      exit(1);
+      return 1;
     }
     MemRecursorCache::s_maxServedStaleExtensions = sse;
     NegCache::s_maxServedStaleExtensions = sse;
@@ -1590,7 +1591,7 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
   else if (value != "dnssec") {
     SLOG(g_log << Logger::Error << "Unknown nothing-below-nxdomain mode: " << value << endl,
          log->info(Logr::Error, "Unknown nothing-below-nxdomain mode", "mode", Logging::Loggable(value)));
-    exit(1);
+    return 1;
   }
 
   if (!::arg().isEmpty("ecs-scope-zero-address")) {
@@ -1598,25 +1599,25 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
     SyncRes::setECSScopeZeroAddress(Netmask(scopeZero, scopeZero.isIPv4() ? 32 : 128));
   }
   else {
-    Netmask nm;
+    Netmask netmask;
     bool done = false;
 
     auto addr = pdns::getNonAnyQueryLocalAddress(AF_INET);
-    if (addr.sin4.sin_family != 0) {
-      nm = Netmask(addr, 32);
+    if (addr.sin4.sin_family != 0) { // NOLINT: union access
+      netmask = Netmask(addr, 32);
       done = true;
     }
     if (!done) {
       addr = pdns::getNonAnyQueryLocalAddress(AF_INET6);
-      if (addr.sin4.sin_family != 0) {
-        nm = Netmask(addr, 128);
+      if (addr.sin4.sin_family != 0) { // NOLINT: union access
+        netmask = Netmask(addr, 128);
         done = true;
       }
     }
     if (!done) {
-      nm = Netmask(ComboAddress("127.0.0.1"), 32);
+      netmask = Netmask(ComboAddress("127.0.0.1"), 32);
     }
-    SyncRes::setECSScopeZeroAddress(nm);
+    SyncRes::setECSScopeZeroAddress(netmask);
   }
 
   SyncRes::parseEDNSSubnetAllowlist(::arg()["edns-subnet-whitelist"]);
@@ -1633,7 +1634,7 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
       if (dns64Prefix.getBits() != 96) {
         SLOG(g_log << Logger::Error << "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixes: " << ::arg()["dns64-prefix"] << endl,
              log->info(Logr::Error, "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixes", "prefix", Logging::Loggable(::arg()["dns64-prefix"])));
-        exit(1);
+        return 1;
       }
       g_dns64Prefix = dns64Prefix.getNetwork();
       g_dns64PrefixReverse = reverseNameFromIP(*g_dns64Prefix);
@@ -1645,7 +1646,7 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
     catch (const NetmaskException& ne) {
       SLOG(g_log << Logger::Error << "Invalid prefix '" << ::arg()["dns64-prefix"] << "' for 'dns64-prefix': " << ne.reason << endl,
            log->info(Logr::Error, "Invalid prefix", "dns64-prefix", Logging::Loggable(::arg()["dns64-prefix"])));
-      exit(1);
+      return 1;
     }
   }
 
@@ -1673,7 +1674,7 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
   else {
     SLOG(g_log << Logger::Error << "Unknown edns-padding-mode: " << ::arg()["edns-padding-mode"] << endl,
          log->info(Logr::Error, "Unknown edns-padding-mode", "edns-padding-mode", Logging::Loggable(::arg()["edns-padding-mode"])));
-    exit(1);
+    return 1;
   }
   g_paddingTag = ::arg().asNum("edns-padding-tag");
   g_paddingOutgoing = ::arg().mustDo("edns-padding-out");
@@ -1728,16 +1729,16 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
     SuffixMatchNode dontThrottleNames;
     vector<string> parts;
     stringtok(parts, ::arg()["dont-throttle-names"], " ,");
-    for (const auto& p : parts) {
-      dontThrottleNames.add(DNSName(p));
+    for (const auto& part : parts) {
+      dontThrottleNames.add(DNSName(part));
     }
     g_dontThrottleNames.setState(std::move(dontThrottleNames));
 
     parts.clear();
     NetmaskGroup dontThrottleNetmasks;
     stringtok(parts, ::arg()["dont-throttle-netmasks"], " ,");
-    for (const auto& p : parts) {
-      dontThrottleNetmasks.addMask(Netmask(p));
+    for (const auto& part : parts) {
+      dontThrottleNetmasks.addMask(Netmask(part));
     }
     g_dontThrottleNetmasks.setState(std::move(dontThrottleNetmasks));
   }
@@ -1746,8 +1747,8 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
     SuffixMatchNode xdnssecNames;
     vector<string> parts;
     stringtok(parts, ::arg()["x-dnssec-names"], " ,");
-    for (const auto& p : parts) {
-      xdnssecNames.add(DNSName(p));
+    for (const auto& part : parts) {
+      xdnssecNames.add(DNSName(part));
     }
     g_xdnssec.setState(std::move(xdnssecNames));
   }
@@ -1762,8 +1763,8 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
            log->info(Logr::Error, "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored"));
     }
 #endif
-    for (const auto& p : parts) {
-      dotauthNames.add(DNSName(p));
+    for (const auto& part : parts) {
+      dotauthNames.add(DNSName(part));
     }
     g_DoTToAuthNames.setState(std::move(dotauthNames));
   }
@@ -1840,9 +1841,9 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
   setupNODGlobal();
 #endif /* NOD_ENABLED */
 
-  int forks;
-  for (forks = 0; forks < ::arg().asNum("processes") - 1; ++forks) {
-    if (!fork()) // we are child
+  int forks = 0;
+  for (; forks < ::arg().asNum("processes") - 1; ++forks) {
+    if (fork() == 0) // we are child
       break;
   }
 
@@ -1872,7 +1873,7 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
 
   signal(SIGUSR1, usr1Handler);
   signal(SIGUSR2, usr2Handler);
-  signal(SIGPIPE, SIG_IGN);
+  signal(SIGPIPE, SIG_IGN); // NOLINT: Posix API
 
   checkOrFixFDS(log);
 
@@ -1880,7 +1881,7 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
   if (sodium_init() == -1) {
     SLOG(g_log << Logger::Error << "Unable to initialize sodium crypto library" << endl,
          log->info(Logr::Error, "Unable to initialize sodium crypto library"));
-    exit(99);
+    return 99;
   }
 #endif
 
@@ -1893,12 +1894,14 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
     ::arg().set("server-id") = myHostname.has_value() ? *myHostname : "";
   }
 
-  int newgid = 0;
-  if (!::arg()["setgid"].empty())
+  gid_t newgid = 0;
+  if (!::arg()["setgid"].empty()) {
     newgid = strToGID(::arg()["setgid"]);
-  int newuid = 0;
-  if (!::arg()["setuid"].empty())
+  }
+  uid_t newuid = 0;
+  if (!::arg()["setuid"].empty()) {
     newuid = strToUID(::arg()["setuid"]);
+  }
 
   Utility::dropGroupPrivs(newuid, newgid);
 
@@ -1909,26 +1912,25 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
     if (ns != nullptr) {
       SLOG(g_log << Logger::Error << "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'" << endl,
            log->info(Logr::Error, "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"));
-      exit(1);
+      return 1;
     }
 #endif
     if (chroot(::arg()["chroot"].c_str()) < 0 || chdir("/") < 0) {
       int err = errno;
-      SLOG(g_log << Logger::Error << "Unable to chroot to '" + ::arg()["chroot"] + "': " << strerror(err) << ", exiting" << endl,
+      SLOG(g_log << Logger::Error << "Unable to chroot to '" + ::arg()["chroot"] + "': " << stringerror(err) << ", exiting" << endl,
            log->error(Logr::Error, err, "Unable to chroot", "chroot", Logging::Loggable(::arg()["chroot"])));
-      exit(1);
+      return 1;
     }
-    else {
-      SLOG(g_log << Logger::Info << "Chrooted to '" << ::arg()["chroot"] << "'" << endl,
-           log->info(Logr::Info, "Chrooted", "chroot", Logging::Loggable(::arg()["chroot"])));
-    }
+    SLOG(g_log << Logger::Info << "Chrooted to '" << ::arg()["chroot"] << "'" << endl,
+         log->info(Logr::Info, "Chrooted", "chroot", Logging::Loggable(::arg()["chroot"])));
   }
 
   checkSocketDir(log);
 
   g_pidfname = ::arg()["socket-dir"] + "/" + g_programname + ".pid";
-  if (!g_pidfname.empty())
+  if (!g_pidfname.empty()) {
     unlink(g_pidfname.c_str()); // remove possible old pid file
+  }
   writePid(log);
 
   makeControlChannelSocket(::arg().asNum("processes") > 1 ? forks : -1);
@@ -1990,14 +1992,14 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
   if (port < 1024 || port > 65535) {
     SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-min is not a valid port number" << endl,
          log->info(Logr::Error, "Unable to launch, udp-source-port-min is not a valid port number"));
-    exit(99); // this isn't going to fix itself either
+    return 99; // this isn't going to fix itself either
   }
   g_minUdpSourcePort = port;
   port = ::arg().asNum("udp-source-port-max");
   if (port < 1024 || port > 65535 || port < g_minUdpSourcePort) {
     SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min" << endl,
          log->info(Logr::Error, "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min"));
-    exit(99); // this isn't going to fix itself either
+    return 99; // this isn't going to fix itself either
   }
   g_maxUdpSourcePort = port;
   std::vector<string> parts{};
@@ -2007,7 +2009,7 @@ static int serviceMain(int /* argc */, char* /* argv */[], Logr::log_t log)
     if (port < 1024 || port > 65535) {
       SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-avoid contains an invalid port number: " << part << endl,
            log->info(Logr::Error, "Unable to launch, udp-source-port-avoid contains an invalid port number", "port", Logging::Loggable(part)));
-      exit(99); // this isn't going to fix itself either
+      return 99; // this isn't going to fix itself either
     }
     g_avoidUdpSourcePorts.insert(port);
   }
@@ -3044,7 +3046,7 @@ int main(int argc, char** argv)
       g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum("packetcache-shards"));
     }
 
-    ret = serviceMain(argc, argv, startupLog);
+    ret = serviceMain(startupLog);
   }
   catch (const PDNSException& ae) {
     SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
