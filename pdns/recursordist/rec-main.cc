@@ -2667,19 +2667,9 @@ static void recursorThread()
   }
 }
 
-int main(int argc, char** argv)
+static void initArgs()
 {
-  g_argc = argc;
-  g_argv = argv;
-  Utility::srandom();
-  versionSetProduct(ProductRecursor);
-  reportBasicTypes();
-  reportOtherTypes();
-
-  int ret = EXIT_SUCCESS;
-
-  try {
-#if HAVE_FIBER_SANITIZER
+  #if HAVE_FIBER_SANITIZER
     // Asan needs more stack
     ::arg().set("stack-size", "stack size per mthread") = "600000";
 #else
@@ -2947,18 +2937,79 @@ int main(int argc, char** argv)
     ::arg().setCmd("config", "Output blank configuration. You can use --config=check to test the config file and command line arguments.");
     ::arg().setDefaults();
     g_log.toConsole(Logger::Info);
+}
+
+static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname, int argc, char *argv[]) // NOLINT: Posix API
+{
+  if (::arg().mustDo("config")) {
+    string config = ::arg()["config"];
+    if (config == "check") {
+      try {
+        if (!::arg().file(configname.c_str())) {
+          SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+               startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+          return {1, true};
+        }
+        ::arg().parse(argc, argv);
+        return {0, true};
+      }
+      catch (const ArgException& argException) {
+        SLOG(g_log << Logger::Warning << "Unable to parse configuration file '" << configname << "': " << argException.reason << endl,
+             startupLog->error("Cannot parse configuration", "Unable to parse configuration file", "config_file", Logging::Loggable(configname), "reason", Logging::Loggable(argException.reason)));
+        return {1, true};
+      }
+    }
+    else if (config == "default" || config.empty()) {
+      cout << ::arg().configstring(false, true);
+    }
+    else if (config == "diff") {
+      if (!::arg().laxFile(configname.c_str())) {
+        SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+             startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+        return {1, true};
+      }
+      ::arg().laxParse(argc, argv);
+      cout << ::arg().configstring(true, false);
+    }
+    else {
+      if (!::arg().laxFile(configname.c_str())) {
+        SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+             startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+        return {1, true};
+      }
+      ::arg().laxParse(argc, argv);
+      cout << ::arg().configstring(true, true);
+    }
+    return {0, true};
+  }
+  return {0, false};
+}
+
+int main(int argc, char** argv)
+{
+  g_argc = argc;
+  g_argv = argv;
+  Utility::srandom();
+  versionSetProduct(ProductRecursor);
+  reportBasicTypes();
+  reportOtherTypes();
+
+  int ret = EXIT_SUCCESS;
+
+  try {
+    initArgs();
     ::arg().laxParse(argc, argv); // do a lax parse
 
     if (::arg().mustDo("version")) {
       showProductVersion();
       showBuildConfiguration();
-      exit(0);
+      return 0;
     }
     if (::arg().mustDo("help")) {
       cout << "syntax:" << endl
            << endl;
       cout << ::arg().helpstring(::arg()["help"]) << endl;
-      exit(0);
+      return 0;
     }
 
     // Pick up options given on command line to setup logging asap.
@@ -2990,15 +3041,15 @@ int main(int argc, char** argv)
       }
       cerr << " (";
       bool first = true;
-      for (const auto& c : ::arg().getCommands()) {
+      for (const auto& command : ::arg().getCommands()) {
         if (!first) {
           cerr << ", ";
         }
         first = false;
-        cerr << c;
+        cerr << command;
       }
       cerr << ") on the command line, perhaps a '--setting=123' statement missed the '='?" << endl;
-      exit(99);
+      return 99;
     }
 
     if (s_structured_logger_backend == "systemd-journal") {
@@ -3025,46 +3076,10 @@ int main(int argc, char** argv)
 
     ::arg().setSLog(startupLog);
 
-    if (::arg().mustDo("config")) {
-      string config = ::arg()["config"];
-      if (config == "check") {
-        try {
-          if (!::arg().file(configname.c_str())) {
-            SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
-                 startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
-            exit(1);
-          }
-          ::arg().parse(argc, argv);
-          exit(0);
-        }
-        catch (const ArgException& argException) {
-          SLOG(g_log << Logger::Warning << "Unable to parse configuration file '" << configname << "': " << argException.reason << endl,
-               startupLog->error("Cannot parse configuration", "Unable to parse configuration file", "config_file", Logging::Loggable(configname), "reason", Logging::Loggable(argException.reason)));
-          exit(1);
-        }
-      }
-      else if (config == "default" || config.empty()) {
-        cout << ::arg().configstring(false, true);
-      }
-      else if (config == "diff") {
-        if (!::arg().laxFile(configname.c_str())) {
-          SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
-               startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
-          exit(1);
-        }
-        ::arg().laxParse(argc, argv);
-        cout << ::arg().configstring(true, false);
-      }
-      else {
-        if (!::arg().laxFile(configname.c_str())) {
-          SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
-               startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
-          exit(1);
-        }
-        ::arg().laxParse(argc, argv);
-        cout << ::arg().configstring(true, true);
-      }
-      exit(0);
+    bool mustExit = false;
+    std::tie(ret, mustExit) = doConfig(startupLog, configname, argc, argv);
+    if (ret != 0 || mustExit) {
+      return ret;
     }
 
     if (!::arg().file(configname.c_str())) {
@@ -3091,14 +3106,15 @@ int main(int argc, char** argv)
     if (!::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty()) {
       SLOG(g_log << Logger::Error << "Using chroot and enabling the API is not possible" << endl,
            startupLog->info(Logr::Error, "Cannot use chroot and enable the API at the same time"));
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
 
     if (::arg()["socket-dir"].empty()) {
-      if (::arg()["chroot"].empty())
+      if (::arg()["chroot"].empty()) {
         ::arg().set("socket-dir") = std::string(LOCALSTATEDIR) + "/pdns-recursor";
-      else
+      } else {
         ::arg().set("socket-dir") = "/";
+      }
     }
 
     if (::arg().asNum("threads") == 1) {
