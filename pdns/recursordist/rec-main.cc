@@ -1362,27 +1362,8 @@ template ThreadTimes broadcastAccFunction(const std::function<ThreadTimes*()>& f
 template ProxyMappingStats_t broadcastAccFunction(const std::function<ProxyMappingStats_t*()>& fun);
 template RemoteLoggerStats_t broadcastAccFunction(const std::function<RemoteLoggerStats_t*()>& fun);
 
-static int serviceMain(Logr::log_t log)
+static int initNet(Logr::log_t log)
 {
-  g_log.setName(g_programname);
-  g_log.disableSyslog(::arg().mustDo("disable-syslog"));
-  g_log.setTimestamps(::arg().mustDo("log-timestamp"));
-  g_regressionTestMode = ::arg().mustDo("devonly-regression-test-mode");
-
-  if (!::arg()["logging-facility"].empty()) {
-    int val = logFacilityToLOG(::arg().asNum("logging-facility"));
-    if (val >= 0) {
-      g_log.setFacility(val);
-    } else {
-      SLOG(g_log << Logger::Error << "Unknown logging facility " << ::arg().asNum("logging-facility") << endl,
-           log->info(Logr::Error, "Unknown logging facility", "facility", Logging::Loggable(::arg().asNum("logging-facility"))));
-    }
-  }
-
-  showProductVersion();
-
-  g_disthashseed = dns_random(0xffffffff);
-
   checkLinuxIPv6Limits(log);
   try {
     pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
@@ -1418,8 +1399,11 @@ static int serviceMain(Logr::log_t log)
          log->info(Logr::Error, "No outgoing addresses configured! Can not continue"));
     return 99;
   }
+  return 0;
+}
 
-  // keep this ABOVE loadRecursorLuaConfig!
+static int initDNSSEC(Logr::log_t log)
+{
   if (::arg()["dnssec"] == "off") {
     g_dnssecmode = DNSSECMode::Off;
   } else if (::arg()["dnssec"] == "process-no-validate") {
@@ -1445,25 +1429,11 @@ static int serviceMain(Logr::log_t log)
 
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
   g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
+  return 0;
+}
 
-  g_maxCacheEntries = ::arg().asNum("max-cache-entries");
-
-  luaConfigDelayedThreads delayedLuaThreads;
-  try {
-    ProxyMapping proxyMapping;
-    loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
-    // Initial proxy mapping
-    g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
-  }
-  catch (PDNSException& e) {
-    SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
-         log->error(Logr::Error, e.reason, "Cannot load Lua configuration"));
-    return 1;
-  }
-
-  parseACLs();
-  initPublicSuffixList(::arg()["public-suffix-list-file"]);
-
+static void initDontQuery(Logr::log_t log)
+{
   if (!::arg()["dont-query"].empty()) {
     vector<string> ips;
     stringtok(ips, ::arg()["dont-query"], ", ");
@@ -1487,30 +1457,10 @@ static int serviceMain(Logr::log_t log)
       log->info(Logr::Notice, "Will not send queries to", "addresses", Logging::IterLoggable(ips.begin(), ips.end()));
     }
   }
+}
 
-  /* this needs to be done before parseACLs(), which call broadcastFunction() */
-  RecThreadInfo::setWeDistributeQueries(::arg().mustDo("pdns-distributes-queries"));
-  if (RecThreadInfo::weDistributeQueries()) {
-    SLOG(g_log << Logger::Warning << "PowerDNS Recursor itself will distribute queries over threads" << endl,
-         log->info(Logr::Notice, "PowerDNS Recursor itself will distribute queries over threads"));
-  }
-
-  g_outgoingEDNSBufsize = ::arg().asNum("edns-outgoing-bufsize");
-
-  if (::arg()["trace"] == "fail") {
-    SyncRes::setDefaultLogMode(SyncRes::Store);
-  }
-  else if (::arg().mustDo("trace")) {
-    SyncRes::setDefaultLogMode(SyncRes::Log);
-    ::arg().set("quiet") = "no";
-    g_quiet = false;
-  }
-  auto myHostname = getHostname();
-  if (!myHostname.has_value()) {
-    SLOG(g_log << Logger::Warning << "Unable to get the hostname, NSID and id.server values will be empty" << endl,
-         log->info(Logr::Warning, "Unable to get the hostname, NSID and id.server values will be empty"));
-  }
-
+static int initSyncRes(Logr::log_t log, const std::optional<std::string>& myHostname)
+{
   SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
   SyncRes::s_minimumECSTTL = ::arg().asNum("ecs-minimum-ttl-override");
   SyncRes::s_maxnegttl = ::arg().asNum("max-negative-ttl");
@@ -1624,10 +1574,264 @@ static int serviceMain(Logr::log_t log)
   SyncRes::parseEDNSSubnetAllowlist(::arg()["edns-subnet-allow-list"]);
   SyncRes::parseEDNSSubnetAddFor(::arg()["ecs-add-for"]);
   g_useIncomingECS = ::arg().mustDo("use-incoming-edns-subnet");
+  return 0;
+}
 
-  g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
-  g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
+static void initDistribution(Logr::log_t log)
+{
+  g_balancingFactor = ::arg().asDouble("distribution-load-factor");
+  if (g_balancingFactor != 0.0 && g_balancingFactor < 1.0) {
+    g_balancingFactor = 0.0;
+    SLOG(g_log << Logger::Warning << "Asked to run with a distribution-load-factor below 1.0, disabling it instead" << endl,
+         log->info(Logr::Warning, "Asked to run with a distribution-load-factor below 1.0, disabling it instead"));
+  }
 
+#ifdef SO_REUSEPORT
+  g_reusePort = ::arg().mustDo("reuseport");
+#endif
+
+  RecThreadInfo::infos().resize(RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() + RecThreadInfo::numTaskThreads());
+
+  if (g_reusePort) {
+    if (RecThreadInfo::weDistributeQueries()) {
+      /* first thread is the handler, then distributors */
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numDistributors(); threadId++) {
+        auto& info = RecThreadInfo::info(threadId);
+        auto& deferredAdds = info.deferredAdds;
+        auto& tcpSockets = info.tcpSockets;
+        makeUDPServerSockets(deferredAdds, log);
+        makeTCPServerSockets(deferredAdds, tcpSockets, log);
+      }
+    }
+    else {
+      /* first thread is the handler, there is no distributor here and workers are accepting queries */
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numWorkers(); threadId++) {
+        auto& info = RecThreadInfo::info(threadId);
+        auto& deferredAdds = info.deferredAdds;
+        auto& tcpSockets = info.tcpSockets;
+        makeUDPServerSockets(deferredAdds, log);
+        makeTCPServerSockets(deferredAdds, tcpSockets, log);
+      }
+    }
+  }
+  else {
+    std::set<int> tcpSockets;
+    /* we don't have reuseport so we can only open one socket per
+       listening addr:port and everyone will listen on it */
+    makeUDPServerSockets(g_deferredAdds, log);
+    makeTCPServerSockets(g_deferredAdds, tcpSockets, log);
+
+    /* every listener (so distributor if g_weDistributeQueries, workers otherwise)
+       needs to listen to the shared sockets */
+    if (RecThreadInfo::weDistributeQueries()) {
+      /* first thread is the handler, then distributors */
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numDistributors(); threadId++) {
+        RecThreadInfo::info(threadId).tcpSockets = tcpSockets;
+      }
+    }
+    else {
+      /* first thread is the handler, there is no distributor here and workers are accepting queries */
+      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numWorkers(); threadId++) {
+        RecThreadInfo::info(threadId).tcpSockets = tcpSockets;
+      }
+    }
+  }
+}
+
+static int initForks(Logr::log_t log)
+{
+  int forks = 0;
+  for (; forks < ::arg().asNum("processes") - 1; ++forks) {
+    if (fork() == 0) { // we are child
+      break;
+    }
+  }
+
+  if (::arg().mustDo("daemon")) {
+    SLOG(g_log << Logger::Warning << "Calling daemonize, going to background" << endl,
+         log->info(Logr::Warning, "Calling daemonize, going to background"));
+    g_log.toConsole(Logger::Critical);
+    daemonize(log);
+  }
+
+  if (Utility::getpid() == 1) {
+    /* We are running as pid 1, register sigterm and sigint handler
+
+      The Linux kernel will handle SIGTERM and SIGINT for all processes, except PID 1.
+      It assumes that the processes running as pid 1 is an "init" like system.
+      For years, this was a safe assumption, but containers change that: in
+      most (all?) container implementations, the application itself is running
+      as pid 1. This means that sending signals to those applications, will not
+      be handled by default. Results might be "your container not responding
+      when asking it to stop", or "ctrl-c not working even when the app is
+      running in the foreground inside a container".
+
+      So TL;DR: If we're running pid 1 (container), we should handle SIGTERM and SIGINT ourselves */
+
+    signal(SIGTERM, termIntHandler);
+    signal(SIGINT, termIntHandler);
+  }
+
+  signal(SIGUSR1, usr1Handler);
+  signal(SIGUSR2, usr2Handler);
+  signal(SIGPIPE, SIG_IGN); // NOLINT: Posix API
+  return forks;
+}
+
+static int initPorts(Logr::log_t log)
+{
+  int port = ::arg().asNum("udp-source-port-min");
+  if (port < 1024 || port > 65535) {
+    SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-min is not a valid port number" << endl,
+         log->info(Logr::Error, "Unable to launch, udp-source-port-min is not a valid port number"));
+    return 99; // this isn't going to fix itself either
+  }
+  g_minUdpSourcePort = port;
+  port = ::arg().asNum("udp-source-port-max");
+  if (port < 1024 || port > 65535 || port < g_minUdpSourcePort) {
+    SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min" << endl,
+         log->info(Logr::Error, "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min"));
+    return 99; // this isn't going to fix itself either
+  }
+  g_maxUdpSourcePort = port;
+  std::vector<string> parts{};
+  stringtok(parts, ::arg()["udp-source-port-avoid"], ", ");
+  for (const auto& part : parts) {
+    port = std::stoi(part);
+    if (port < 1024 || port > 65535) {
+      SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-avoid contains an invalid port number: " << part << endl,
+           log->info(Logr::Error, "Unable to launch, udp-source-port-avoid contains an invalid port number", "port", Logging::Loggable(part)));
+      return 99; // this isn't going to fix itself either
+    }
+    g_avoidUdpSourcePorts.insert(port);
+  }
+  return 0;
+}
+
+static void initSNMP([[maybe_unused]] Logr::log_t log)
+{
+  if (::arg().mustDo("snmp-agent")) {
+#ifdef HAVE_NET_SNMP
+    string setting = ::arg()["snmp-daemon-socket"];
+    if (setting.empty()) {
+      setting = ::arg()["snmp-master-socket"];
+    }
+    g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", setting);
+    g_snmpAgent->run();
+#else
+    const std::string msg = "snmp-agent set but SNMP support not compiled in";
+    SLOG(g_log << Logger::Error << msg << endl,
+         log->info(Logr::Error, msg));
+#endif // HAVE_NET_SNMP
+  }
+}
+
+static int initControl(Logr::log_t log, uid_t newuid, int forks) // NOLINT(bugprone-easily-swappable-parameter*)
+{
+  if (!::arg()["chroot"].empty()) {
+#ifdef HAVE_SYSTEMD
+    char* ns;
+    ns = getenv("NOTIFY_SOCKET");
+    if (ns != nullptr) {
+      SLOG(g_log << Logger::Error << "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'" << endl,
+           log->info(Logr::Error, "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"));
+      return 1;
+    }
+#endif
+    if (chroot(::arg()["chroot"].c_str()) < 0 || chdir("/") < 0) {
+      int err = errno;
+      SLOG(g_log << Logger::Error << "Unable to chroot to '" + ::arg()["chroot"] + "': " << stringerror(err) << ", exiting" << endl,
+           log->error(Logr::Error, err, "Unable to chroot", "chroot", Logging::Loggable(::arg()["chroot"])));
+      return 1;
+    }
+    SLOG(g_log << Logger::Info << "Chrooted to '" << ::arg()["chroot"] << "'" << endl,
+         log->info(Logr::Info, "Chrooted", "chroot", Logging::Loggable(::arg()["chroot"])));
+  }
+
+  checkSocketDir(log);
+
+  g_pidfname = ::arg()["socket-dir"] + "/" + g_programname + ".pid";
+  if (!g_pidfname.empty()) {
+    unlink(g_pidfname.c_str()); // remove possible old pid file
+  }
+  writePid(log);
+
+  makeControlChannelSocket(::arg().asNum("processes") > 1 ? forks : -1);
+
+  Utility::dropUserPrivs(newuid);
+  try {
+    /* we might still have capabilities remaining, for example if we have been started as root
+       without --setuid (please don't do that) or as an unprivileged user with ambient capabilities
+       like CAP_NET_BIND_SERVICE.
+    */
+    dropCapabilities();
+  }
+  catch (const std::exception& e) {
+    SLOG(g_log << Logger::Warning << e.what() << endl,
+         log->error(Logr::Warning, e.what(), "Could not drop capabilities"));
+  }
+  return 0;
+}
+
+static void initSuffixMatchNodes()
+{
+  {
+    SuffixMatchNode dontThrottleNames;
+    vector<string> parts;
+    stringtok(parts, ::arg()["dont-throttle-names"], " ,");
+    for (const auto& part : parts) {
+      dontThrottleNames.add(DNSName(part));
+    }
+    g_dontThrottleNames.setState(std::move(dontThrottleNames));
+
+    parts.clear();
+    NetmaskGroup dontThrottleNetmasks;
+    stringtok(parts, ::arg()["dont-throttle-netmasks"], " ,");
+    for (const auto& part : parts) {
+      dontThrottleNetmasks.addMask(Netmask(part));
+    }
+    g_dontThrottleNetmasks.setState(std::move(dontThrottleNetmasks));
+  }
+
+  {
+    SuffixMatchNode xdnssecNames;
+    vector<string> parts;
+    stringtok(parts, ::arg()["x-dnssec-names"], " ,");
+    for (const auto& part : parts) {
+      xdnssecNames.add(DNSName(part));
+    }
+    g_xdnssec.setState(std::move(xdnssecNames));
+  }
+
+  {
+    SuffixMatchNode dotauthNames;
+    vector<string> parts;
+    stringtok(parts, ::arg()["dot-to-auth-names"], " ,");
+#ifndef HAVE_DNS_OVER_TLS
+    if (parts.size()) {
+      SLOG(g_log << Logger::Error << "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored." << endl,
+           log->info(Logr::Error, "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored"));
+    }
+#endif
+    for (const auto& part : parts) {
+      dotauthNames.add(DNSName(part));
+    }
+    g_DoTToAuthNames.setState(std::move(dotauthNames));
+  }
+}
+
+static void initCarbon()
+{
+  CarbonConfig config;
+  stringtok(config.servers, arg()["carbon-server"], ", ");
+  config.hostname = arg()["carbon-ourname"];
+  config.instance_name = arg()["carbon-instance"];
+  config.namespace_name = arg()["carbon-namespace"];
+  g_carbonConfig.setState(std::move(config));
+}
+
+static int initDNS64(Logr::log_t log)
+{
   if (!::arg()["dns64-prefix"].empty()) {
     try {
       auto dns64Prefix = Netmask(::arg()["dns64-prefix"]);
@@ -1649,7 +1853,94 @@ static int serviceMain(Logr::log_t log)
       return 1;
     }
   }
+  return 0;
+}
 
+static int serviceMain(Logr::log_t log)
+{
+  g_log.setName(g_programname);
+  g_log.disableSyslog(::arg().mustDo("disable-syslog"));
+  g_log.setTimestamps(::arg().mustDo("log-timestamp"));
+  g_regressionTestMode = ::arg().mustDo("devonly-regression-test-mode");
+
+  if (!::arg()["logging-facility"].empty()) {
+    int val = logFacilityToLOG(::arg().asNum("logging-facility"));
+    if (val >= 0) {
+      g_log.setFacility(val);
+    } else {
+      SLOG(g_log << Logger::Error << "Unknown logging facility " << ::arg().asNum("logging-facility") << endl,
+           log->info(Logr::Error, "Unknown logging facility", "facility", Logging::Loggable(::arg().asNum("logging-facility"))));
+    }
+  }
+
+  showProductVersion();
+
+  g_disthashseed = dns_random(0xffffffff);
+
+  int ret = initNet(log);
+  if (ret != 0) {
+    return ret;
+  }
+  // keep this ABOVE loadRecursorLuaConfig!
+  ret = initDNSSEC(log);
+  if (ret != 0) {
+    return ret;
+  }
+  g_maxCacheEntries = ::arg().asNum("max-cache-entries");
+
+  luaConfigDelayedThreads delayedLuaThreads;
+  try {
+    ProxyMapping proxyMapping;
+    loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
+    // Initial proxy mapping
+    g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
+  }
+  catch (PDNSException& e) {
+    SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
+         log->error(Logr::Error, e.reason, "Cannot load Lua configuration"));
+    return 1;
+  }
+
+  parseACLs();
+  initPublicSuffixList(::arg()["public-suffix-list-file"]);
+
+  initDontQuery(log);
+
+  /* this needs to be done before parseACLs(), which call broadcastFunction() */
+  RecThreadInfo::setWeDistributeQueries(::arg().mustDo("pdns-distributes-queries"));
+  if (RecThreadInfo::weDistributeQueries()) {
+    SLOG(g_log << Logger::Warning << "PowerDNS Recursor itself will distribute queries over threads" << endl,
+         log->info(Logr::Notice, "PowerDNS Recursor itself will distribute queries over threads"));
+  }
+
+  g_outgoingEDNSBufsize = ::arg().asNum("edns-outgoing-bufsize");
+
+  if (::arg()["trace"] == "fail") {
+    SyncRes::setDefaultLogMode(SyncRes::Store);
+  }
+  else if (::arg().mustDo("trace")) {
+    SyncRes::setDefaultLogMode(SyncRes::Log);
+    ::arg().set("quiet") = "no";
+    g_quiet = false;
+  }
+  auto myHostname = getHostname();
+  if (!myHostname.has_value()) {
+    SLOG(g_log << Logger::Warning << "Unable to get the hostname, NSID and id.server values will be empty" << endl,
+         log->info(Logr::Warning, "Unable to get the hostname, NSID and id.server values will be empty"));
+  }
+
+  ret = initSyncRes(log, myHostname);
+  if (ret != 0) {
+    return ret;
+  }
+
+  g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
+  g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
+
+  ret = initDNS64(log);
+  if (ret != 0) {
+    return ret;
+  }
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
   std::tie(g_initialDomainMap, g_initialAllowNotifyFor) = parseZoneConfiguration();
@@ -1725,155 +2016,16 @@ static int serviceMain(Logr::log_t log)
   SLOG(g_log << Logger::Debug << "NSEC3 aggressive cache tuning: aggressive-cache-min-nsec3-hit-ratio: " << ::arg().asNum("aggressive-cache-min-nsec3-hit-ratio") << " max common prefix bits: " << std::to_string(AggressiveNSECCache::s_maxNSEC3CommonPrefix) << endl,
        log->info(Logr::Debug, "NSEC3 aggressive cache tuning", "aggressive-cache-min-nsec3-hit-ratio", Logging::Loggable(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio")), "maxCommonPrefixBits", Logging::Loggable(AggressiveNSECCache::s_maxNSEC3CommonPrefix)));
 
-  {
-    SuffixMatchNode dontThrottleNames;
-    vector<string> parts;
-    stringtok(parts, ::arg()["dont-throttle-names"], " ,");
-    for (const auto& part : parts) {
-      dontThrottleNames.add(DNSName(part));
-    }
-    g_dontThrottleNames.setState(std::move(dontThrottleNames));
-
-    parts.clear();
-    NetmaskGroup dontThrottleNetmasks;
-    stringtok(parts, ::arg()["dont-throttle-netmasks"], " ,");
-    for (const auto& part : parts) {
-      dontThrottleNetmasks.addMask(Netmask(part));
-    }
-    g_dontThrottleNetmasks.setState(std::move(dontThrottleNetmasks));
-  }
-
-  {
-    SuffixMatchNode xdnssecNames;
-    vector<string> parts;
-    stringtok(parts, ::arg()["x-dnssec-names"], " ,");
-    for (const auto& part : parts) {
-      xdnssecNames.add(DNSName(part));
-    }
-    g_xdnssec.setState(std::move(xdnssecNames));
-  }
-
-  {
-    SuffixMatchNode dotauthNames;
-    vector<string> parts;
-    stringtok(parts, ::arg()["dot-to-auth-names"], " ,");
-#ifndef HAVE_DNS_OVER_TLS
-    if (parts.size()) {
-      SLOG(g_log << Logger::Error << "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored." << endl,
-           log->info(Logr::Error, "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored"));
-    }
-#endif
-    for (const auto& part : parts) {
-      dotauthNames.add(DNSName(part));
-    }
-    g_DoTToAuthNames.setState(std::move(dotauthNames));
-  }
-
-  {
-    CarbonConfig config;
-    stringtok(config.servers, arg()["carbon-server"], ", ");
-    config.hostname = arg()["carbon-ourname"];
-    config.instance_name = arg()["carbon-instance"];
-    config.namespace_name = arg()["carbon-namespace"];
-    g_carbonConfig.setState(std::move(config));
-  }
-
-  g_balancingFactor = ::arg().asDouble("distribution-load-factor");
-  if (g_balancingFactor != 0.0 && g_balancingFactor < 1.0) {
-    g_balancingFactor = 0.0;
-    SLOG(g_log << Logger::Warning << "Asked to run with a distribution-load-factor below 1.0, disabling it instead" << endl,
-         log->info(Logr::Warning, "Asked to run with a distribution-load-factor below 1.0, disabling it instead"));
-  }
-
-#ifdef SO_REUSEPORT
-  g_reusePort = ::arg().mustDo("reuseport");
-#endif
-
-  RecThreadInfo::infos().resize(RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() + RecThreadInfo::numTaskThreads());
-
-  if (g_reusePort) {
-    if (RecThreadInfo::weDistributeQueries()) {
-      /* first thread is the handler, then distributors */
-      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numDistributors(); threadId++) {
-        auto& info = RecThreadInfo::info(threadId);
-        auto& deferredAdds = info.deferredAdds;
-        auto& tcpSockets = info.tcpSockets;
-        makeUDPServerSockets(deferredAdds, log);
-        makeTCPServerSockets(deferredAdds, tcpSockets, log);
-      }
-    }
-    else {
-      /* first thread is the handler, there is no distributor here and workers are accepting queries */
-      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numWorkers(); threadId++) {
-        auto& info = RecThreadInfo::info(threadId);
-        auto& deferredAdds = info.deferredAdds;
-        auto& tcpSockets = info.tcpSockets;
-        makeUDPServerSockets(deferredAdds, log);
-        makeTCPServerSockets(deferredAdds, tcpSockets, log);
-      }
-    }
-  }
-  else {
-    std::set<int> tcpSockets;
-    /* we don't have reuseport so we can only open one socket per
-       listening addr:port and everyone will listen on it */
-    makeUDPServerSockets(g_deferredAdds, log);
-    makeTCPServerSockets(g_deferredAdds, tcpSockets, log);
-
-    /* every listener (so distributor if g_weDistributeQueries, workers otherwise)
-       needs to listen to the shared sockets */
-    if (RecThreadInfo::weDistributeQueries()) {
-      /* first thread is the handler, then distributors */
-      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numDistributors(); threadId++) {
-        RecThreadInfo::info(threadId).tcpSockets = tcpSockets;
-      }
-    }
-    else {
-      /* first thread is the handler, there is no distributor here and workers are accepting queries */
-      for (unsigned int threadId = 1; threadId <= RecThreadInfo::numWorkers(); threadId++) {
-        RecThreadInfo::info(threadId).tcpSockets = tcpSockets;
-      }
-    }
-  }
+  initSuffixMatchNodes();
+  initCarbon();
+  initDistribution(log);
 
 #ifdef NOD_ENABLED
   // Setup newly observed domain globals
   setupNODGlobal();
 #endif /* NOD_ENABLED */
 
-  int forks = 0;
-  for (; forks < ::arg().asNum("processes") - 1; ++forks) {
-    if (fork() == 0) // we are child
-      break;
-  }
-
-  if (::arg().mustDo("daemon")) {
-    SLOG(g_log << Logger::Warning << "Calling daemonize, going to background" << endl,
-         log->info(Logr::Warning, "Calling daemonize, going to background"));
-    g_log.toConsole(Logger::Critical);
-    daemonize(log);
-  }
-  if (Utility::getpid() == 1) {
-    /* We are running as pid 1, register sigterm and sigint handler
-
-      The Linux kernel will handle SIGTERM and SIGINT for all processes, except PID 1.
-      It assumes that the processes running as pid 1 is an "init" like system.
-      For years, this was a safe assumption, but containers change that: in
-      most (all?) container implementations, the application itself is running
-      as pid 1. This means that sending signals to those applications, will not
-      be handled by default. Results might be "your container not responding
-      when asking it to stop", or "ctrl-c not working even when the app is
-      running in the foreground inside a container".
-
-      So TL;DR: If we're running pid 1 (container), we should handle SIGTERM and SIGINT ourselves */
-
-    signal(SIGTERM, termIntHandler);
-    signal(SIGINT, termIntHandler);
-  }
-
-  signal(SIGUSR1, usr1Handler);
-  signal(SIGUSR2, usr2Handler);
-  signal(SIGPIPE, SIG_IGN); // NOLINT: Posix API
+  auto forks = initForks(log);
 
   checkOrFixFDS(log);
 
@@ -1905,47 +2057,9 @@ static int serviceMain(Logr::log_t log)
 
   Utility::dropGroupPrivs(newuid, newgid);
 
-  if (!::arg()["chroot"].empty()) {
-#ifdef HAVE_SYSTEMD
-    char* ns;
-    ns = getenv("NOTIFY_SOCKET");
-    if (ns != nullptr) {
-      SLOG(g_log << Logger::Error << "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'" << endl,
-           log->info(Logr::Error, "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"));
-      return 1;
-    }
-#endif
-    if (chroot(::arg()["chroot"].c_str()) < 0 || chdir("/") < 0) {
-      int err = errno;
-      SLOG(g_log << Logger::Error << "Unable to chroot to '" + ::arg()["chroot"] + "': " << stringerror(err) << ", exiting" << endl,
-           log->error(Logr::Error, err, "Unable to chroot", "chroot", Logging::Loggable(::arg()["chroot"])));
-      return 1;
-    }
-    SLOG(g_log << Logger::Info << "Chrooted to '" << ::arg()["chroot"] << "'" << endl,
-         log->info(Logr::Info, "Chrooted", "chroot", Logging::Loggable(::arg()["chroot"])));
-  }
-
-  checkSocketDir(log);
-
-  g_pidfname = ::arg()["socket-dir"] + "/" + g_programname + ".pid";
-  if (!g_pidfname.empty()) {
-    unlink(g_pidfname.c_str()); // remove possible old pid file
-  }
-  writePid(log);
-
-  makeControlChannelSocket(::arg().asNum("processes") > 1 ? forks : -1);
-
-  Utility::dropUserPrivs(newuid);
-  try {
-    /* we might still have capabilities remaining, for example if we have been started as root
-       without --setuid (please don't do that) or as an unprivileged user with ambient capabilities
-       like CAP_NET_BIND_SERVICE.
-    */
-    dropCapabilities();
-  }
-  catch (const std::exception& e) {
-    SLOG(g_log << Logger::Warning << e.what() << endl,
-         log->error(Logr::Warning, e.what(), "Could not drop capabilities"));
+  ret = initControl(log, newuid, forks);
+  if (ret != 0) {
+    return ret;
   }
 
   startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
@@ -1973,45 +2087,11 @@ static int serviceMain(Logr::log_t log)
   // Run before any thread doing stats related things
   registerAllStats();
 
-  if (::arg().mustDo("snmp-agent")) {
-#ifdef HAVE_NET_SNMP
-    string setting = ::arg()["snmp-daemon-socket"];
-    if (setting.empty()) {
-      setting = ::arg()["snmp-master-socket"];
-    }
-    g_snmpAgent = std::make_shared<RecursorSNMPAgent>("recursor", setting);
-    g_snmpAgent->run();
-#else
-    const std::string msg = "snmp-agent set but SNMP support not compiled in";
-    SLOG(g_log << Logger::Error << msg << endl,
-         log->info(Logr::Error, msg));
-#endif // HAVE_NET_SNMP
-  }
+  initSNMP(log);
 
-  int port = ::arg().asNum("udp-source-port-min");
-  if (port < 1024 || port > 65535) {
-    SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-min is not a valid port number" << endl,
-         log->info(Logr::Error, "Unable to launch, udp-source-port-min is not a valid port number"));
-    return 99; // this isn't going to fix itself either
-  }
-  g_minUdpSourcePort = port;
-  port = ::arg().asNum("udp-source-port-max");
-  if (port < 1024 || port > 65535 || port < g_minUdpSourcePort) {
-    SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min" << endl,
-         log->info(Logr::Error, "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min"));
-    return 99; // this isn't going to fix itself either
-  }
-  g_maxUdpSourcePort = port;
-  std::vector<string> parts{};
-  stringtok(parts, ::arg()["udp-source-port-avoid"], ", ");
-  for (const auto& part : parts) {
-    port = std::stoi(part);
-    if (port < 1024 || port > 65535) {
-      SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-avoid contains an invalid port number: " << part << endl,
-           log->info(Logr::Error, "Unable to launch, udp-source-port-avoid contains an invalid port number", "port", Logging::Loggable(part)));
-      return 99; // this isn't going to fix itself either
-    }
-    g_avoidUdpSourcePorts.insert(port);
+  ret = initPorts(log);
+  if (ret != 0) {
+    return ret;
   }
 
   return RecThreadInfo::runThreads(log);
