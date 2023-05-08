@@ -22,7 +22,7 @@ jobs:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       UNIT_TESTS: yes
     outputs:
-      clang-tidy-auth-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
+      clang-tidy-failed: ${{steps.clang-tidy-annotations.outputs.failed}}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
@@ -95,7 +95,7 @@ jobs:
       run:
         working-directory: ./pdns/recursordist/
     outputs:
-      clang-tidy-recursor-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
+      clang-tidy-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
@@ -169,7 +169,7 @@ jobs:
       run:
         working-directory: ./pdns/dnsdistdist/
     outputs:
-      clang-tidy-dnsdist-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
+      clang-tidy-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
@@ -537,10 +537,10 @@ jobs:
     runs-on: ubuntu-20.04
     name: Check whether clang-tidy succeeded
     steps:
-    - run: |
-        if [ ${{ needs.build-auth.outputs.clang-tidy-auth-failed }} != 0 -o ${{ needs.build-dnsdist.outputs.clang-tidy-dnsdist-failed }} != 0 -o ${{ needs.build-recursor.outputs.clang-tidy-recursor-failed }} != 0 ]; then
-          exit 1
-        fi
+      - run: |
+          if [ "${{needs.build-auth.outputs.clang-tidy-failed}}" != "0" -o "${{needs.build-dnsdist.outputs.clang-tidy-failed}}" != "0" -o "${{needs.build-recursor.outputs.clang-tidy-failed}}" != "0" ]; then
+            exit 1
+          fi
 
   collect:
     needs:
