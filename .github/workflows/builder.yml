@@ -19,7 +19,6 @@ jobs:
         product: ['authoritative', 'recursor', 'dnsdist']
         os:
           - centos-7
-          - ubuntu-bionic
           - el-8
           - centos-8-stream
           - centos-9-stream
