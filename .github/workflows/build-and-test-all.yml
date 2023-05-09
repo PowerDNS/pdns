@@ -544,7 +544,7 @@ jobs:
           if [ "x${{ needs.build-dnsdist.outputs.clang-tidy-failed }}" != "x" -a "${{ needs.build-dnsdist.outputs.clang-tidy-failed }}" != "0" ]; then
             exit 1
           fi
-         if [ "x${{needs.build-recursor.outputs.clang-tidy-failed}}" != "x" -a "${{needs.build-recursor.outputs.clang-tidy-failed}}" != "0" ]; then
+          if [ "x${{needs.build-recursor.outputs.clang-tidy-failed}}" != "x" -a "${{needs.build-recursor.outputs.clang-tidy-failed}}" != "0" ]; then
             exit 1
           fi
 
