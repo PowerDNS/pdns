@@ -762,6 +762,7 @@ int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE
 
 #if OPENSSL_VERSION_MAJOR >= 3
   using ParamsBuilder = std::unique_ptr<OSSL_PARAM_BLD, decltype(&OSSL_PARAM_BLD_free)>;
+  using Params = std::unique_ptr<OSSL_PARAM, decltype(&OSSL_PARAM_free)>;
 
   auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
   if (params_build == nullptr) {
@@ -772,12 +773,12 @@ int OpenSSLTLSTicketKey::encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE
     return -1;
   }
 
-  auto* params = OSSL_PARAM_BLD_to_param(params_build.get());
+  auto params = Params(OSSL_PARAM_BLD_to_param(params_build.get()), OSSL_PARAM_free);
   if (params == nullptr) {
     return -1;
   }
 
-  if (EVP_MAC_CTX_set_params(hctx, params) == 0) {
+  if (EVP_MAC_CTX_set_params(hctx, params.get()) == 0) {
     return -1;
   }
 
@@ -801,6 +802,7 @@ bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx,
 {
 #if OPENSSL_VERSION_MAJOR >= 3
   using ParamsBuilder = std::unique_ptr<OSSL_PARAM_BLD, decltype(&OSSL_PARAM_BLD_free)>;
+  using Params = std::unique_ptr<OSSL_PARAM, decltype(&OSSL_PARAM_free)>;
 
   auto params_build = ParamsBuilder(OSSL_PARAM_BLD_new(), OSSL_PARAM_BLD_free);
   if (params_build == nullptr) {
@@ -811,12 +813,12 @@ bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx,
     return false;
   }
 
-  auto* params = OSSL_PARAM_BLD_to_param(params_build.get());
+  auto params = Params(OSSL_PARAM_BLD_to_param(params_build.get()), OSSL_PARAM_free);
   if (params == nullptr) {
     return false;
   }
 
-  if (EVP_MAC_CTX_set_params(hctx, params) == 0) {
+  if (EVP_MAC_CTX_set_params(hctx, params.get()) == 0) {
     return false;
   }
 
