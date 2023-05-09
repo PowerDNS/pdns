@@ -22,7 +22,7 @@
 #pragma once
 
 #include <cstdint>
-#include <time.h>
+#include <ctime>
 
 class DNSName;
 union ComboAddress;
@@ -36,7 +36,7 @@ void runTasks(size_t max, bool logErrors);
 bool runTaskOnce(bool logErrors);
 void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline, const Netmask& netmask);
 void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline);
-bool pushTryDoTTask(const DNSName& qname, uint16_t qtype, const ComboAddress& ip, time_t deadline, const DNSName& nsname);
+bool pushTryDoTTask(const DNSName& qname, uint16_t qtype, const ComboAddress& ipAddress, time_t deadline, const DNSName& nsname);
 void taskQueueClear();
 pdns::ResolveTask taskQueuePop();
 

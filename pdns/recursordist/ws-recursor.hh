@@ -37,9 +37,9 @@ public:
     d_server_socket.setNonBlocking();
   };
 
-  friend void AsyncServerNewConnectionMT(void* p);
+  friend void AsyncServerNewConnectionMT(void* arg);
 
-  typedef std::function<void(std::shared_ptr<Socket>)> newconnectioncb_t;
+  using newconnectioncb_t = std::function<void (const std::shared_ptr<Socket>&)>;
   void asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback);
 
 private:
@@ -57,10 +57,10 @@ public:
 
 private:
   FDMultiplexer* d_fdm;
-  void serveConnection(std::shared_ptr<Socket> socket) const;
+  void serveConnection(const std::shared_ptr<Socket>& socket) const;
 
 protected:
-  virtual std::shared_ptr<Server> createServer() override
+  std::shared_ptr<Server> createServer() override
   {
     return std::make_shared<AsyncServer>(d_listenaddress, d_port);
   };
@@ -70,7 +70,7 @@ class RecursorWebServer : public boost::noncopyable
 {
 public:
   explicit RecursorWebServer(FDMultiplexer* fdm);
-  void jsonstat(HttpRequest* req, HttpResponse* resp);
+  static void jsonstat(HttpRequest* req, HttpResponse* resp);
 
 private:
   std::unique_ptr<AsyncWebServer> d_ws{nullptr};
