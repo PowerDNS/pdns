@@ -22,7 +22,7 @@ jobs:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       UNIT_TESTS: yes
     outputs:
-      clang-tidy-failed: ${{steps.clang-tidy-annotations.outputs.failed}}
+      clang-tidy-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
