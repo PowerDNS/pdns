@@ -99,16 +99,16 @@ static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, Htt
       }
     }
 
-    ostringstream ss;
+    ostringstream strStream;
 
     // Clear <foo>-from-file if set, so our changes take effect
-    ss << aclType << "-file=" << endl;
+    strStream << aclType << "-file=" << endl;
 
     // Clear ACL setting, and provide a "parent" value
-    ss << aclType << "=" << endl;
-    ss << aclType << "+=" << nmg.toString() << endl;
+    strStream << aclType << "=" << endl;
+    strStream << aclType << "+=" << nmg.toString() << endl;
 
-    apiWriteConfigFile(aclType, ss.str());
+    apiWriteConfigFile(aclType, strStream.str());
 
     parseACLs();
 
@@ -146,23 +146,24 @@ static void apiServerConfigAllowNotifyFrom(HttpRequest* req, HttpResponse* resp)
 static void fillZone(const DNSName& zonename, HttpResponse* resp)
 {
   auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
-  if (iter == SyncRes::t_sstorage.domainmap->end())
+  if (iter == SyncRes::t_sstorage.domainmap->end()) {
     throw ApiException("Could not find domain '" + zonename.toLogString() + "'");
+  }
 
   const SyncRes::AuthDomain& zone = iter->second;
 
   Json::array servers;
   for (const ComboAddress& server : zone.d_servers) {
-    servers.push_back(server.toStringWithPort());
+    servers.push_back(server.toStringWithPort()); // NOLINT: union
   }
 
   Json::array records;
-  for (const SyncRes::AuthDomain::records_t::value_type& dr : zone.d_records) {
+  for (const SyncRes::AuthDomain::records_t::value_type& record : zone.d_records) {
     records.push_back(Json::object{
-      {"name", dr.d_name.toString()},
-      {"type", DNSRecordContent::NumberToType(dr.d_type)},
-      {"ttl", (double)dr.d_ttl},
-      {"content", dr.getContent()->getZoneRepresentation()}});
+      {"name", record.d_name.toString()},
+      {"type", DNSRecordContent::NumberToType(record.d_type)},
+      {"ttl", (double)record.d_ttl},
+      {"content", record.getContent()->getZoneRepresentation()}});
   }
 
   // id is the canonical lookup key, which doesn't actually match the name (in some cases)
@@ -179,7 +180,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
   resp->setJsonBody(doc);
 }
 
-static void doCreateZone(const Json document)
+static void doCreateZone(const Json& document)
 {
   if (::arg()["api-config-dir"].empty()) {
     throw ApiException("Config Option \"api-config-dir\" must be set");
@@ -191,18 +192,20 @@ static void doCreateZone(const Json document)
 
   string singleIPTarget = document["single_target_ip"].string_value();
   string kind = toUpper(stringFromJson(document, "kind"));
-  bool rd = boolFromJson(document, "recursion_desired");
+  bool rdFlag = boolFromJson(document, "recursion_desired");
   string confbasename = "zone-" + apiZoneNameToId(zone);
 
   if (kind == "NATIVE") {
-    if (rd)
+    if (rdFlag) {
       throw ApiException("kind=Native and recursion_desired are mutually exclusive");
+    }
     if (!singleIPTarget.empty()) {
       try {
         ComboAddress rem(singleIPTarget);
-        if (rem.sin4.sin_family != AF_INET)
+        if (rem.sin4.sin_family != AF_INET) { // NOLINT: union
           throw ApiException("");
-        singleIPTarget = rem.toString();
+        }
+        singleIPTarget = rem.toString(); // NOLINT: union
       }
       catch (...) {
         throw ApiException("Single IP target '" + singleIPTarget + "' is invalid");
@@ -226,25 +229,26 @@ static void doCreateZone(const Json document)
   else if (kind == "FORWARDED") {
     string serverlist;
     for (const auto& value : document["servers"].array_items()) {
-      string server = value.string_value();
-      if (server == "") {
+      const string& server = value.string_value();
+      if (server.empty()) {
         throw ApiException("Forwarded-to server must not be an empty string");
       }
       try {
-        ComboAddress ca = parseIPAndPort(server, 53);
+        ComboAddress address = parseIPAndPort(server, 53);
         if (!serverlist.empty()) {
           serverlist += ";";
         }
-        serverlist += ca.toStringWithPort();
+        serverlist += address.toStringWithPort(); // NOLINT: union
       }
       catch (const PDNSException& e) {
         throw ApiException(e.reason);
       }
     }
-    if (serverlist == "")
+    if (serverlist.empty()) {
       throw ApiException("Need at least one upstream server when forwarding");
+    }
 
-    if (rd) {
+    if (rdFlag) {
       apiWriteConfigFile(confbasename, "forward-zones-recurse+=" + zonename + "=" + serverlist);
     }
     else {
@@ -289,8 +293,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
 
     auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
-    if (iter != SyncRes::t_sstorage.domainmap->end())
+    if (iter != SyncRes::t_sstorage.domainmap->end()) {
       throw ApiException("Zone already exists");
+    }
 
     doCreateZone(document);
     reloadZoneConfiguration();
@@ -299,15 +304,16 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     return;
   }
 
-  if (req->method != "GET")
+  if (req->method != "GET") {
     throw HttpMethodNotAllowedException();
+  }
 
   Json::array doc;
   for (const SyncRes::domainmap_t::value_type& val : *SyncRes::t_sstorage.domainmap) {
     const SyncRes::AuthDomain& zone = val.second;
     Json::array servers;
     for (const ComboAddress& server : zone.d_servers) {
-      servers.push_back(server.toStringWithPort());
+      servers.push_back(server.toStringWithPort()); // NOLINT: union
     }
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     string zoneId = apiZoneNameToId(val.first);
@@ -326,9 +332,10 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
 {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
-  SyncRes::domainmap_t::const_iterator iter = SyncRes::t_sstorage.domainmap->find(zonename);
-  if (iter == SyncRes::t_sstorage.domainmap->end())
+  auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
+  if (iter == SyncRes::t_sstorage.domainmap->end()) {
     throw ApiException("Could not find domain '" + zonename.toLogString() + "'");
+  }
 
   if (req->method == "PUT") {
     Json document = req->json();
@@ -359,18 +366,20 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method != "GET")
+  if (req->method != "GET") {
     throw HttpMethodNotAllowedException();
+  }
 
-  string q = req->getvars["q"];
-  if (q.empty())
+  string qVar = req->getvars["q"];
+  if (qVar.empty()) {
     throw ApiException("Query q can't be blank");
+  }
 
   Json::array doc;
   for (const SyncRes::domainmap_t::value_type& val : *SyncRes::t_sstorage.domainmap) {
     string zoneId = apiZoneNameToId(val.first);
     string zoneName = val.first.toString();
-    if (pdns_ci_find(zoneName, q) != string::npos) {
+    if (pdns_ci_find(zoneName, qVar) != string::npos) {
       doc.push_back(Json::object{
         {"type", "zone"},
         {"zone_id", zoneId},
@@ -378,22 +387,23 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
     }
 
     // if zone name is an exact match, don't bother with returning all records/comments in it
-    if (val.first == DNSName(q)) {
+    if (val.first == DNSName(qVar)) {
       continue;
     }
 
     const SyncRes::AuthDomain& zone = val.second;
 
-    for (const SyncRes::AuthDomain::records_t::value_type& rr : zone.d_records) {
-      if (pdns_ci_find(rr.d_name.toString(), q) == string::npos && pdns_ci_find(rr.getContent()->getZoneRepresentation(), q) == string::npos)
+    for (const SyncRes::AuthDomain::records_t::value_type& resourceRec : zone.d_records) {
+      if (pdns_ci_find(resourceRec.d_name.toString(), qVar) == string::npos && pdns_ci_find(resourceRec.getContent()->getZoneRepresentation(), qVar) == string::npos) {
         continue;
+      }
 
       doc.push_back(Json::object{
         {"type", "record"},
         {"zone_id", zoneId},
         {"zone_name", zoneName},
-        {"name", rr.d_name.toString()},
-        {"content", rr.getContent()->getZoneRepresentation()}});
+        {"name", resourceRec.d_name.toString()},
+        {"content", resourceRec.getContent()->getZoneRepresentation()}});
     }
   }
   resp->setJsonBody(doc);
@@ -401,13 +411,14 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method != "PUT")
+  if (req->method != "PUT") {
     throw HttpMethodNotAllowedException();
+  }
 
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
-  bool subtree = (req->getvars.count("subtree") > 0 && req->getvars["subtree"].compare("true") == 0);
+  bool subtree = req->getvars.count("subtree") > 0 && req->getvars["subtree"] == "true";
   uint16_t qtype = 0xffff;
-  if (req->getvars.count("type")) {
+  if (req->getvars.count("type") != 0) {
     qtype = QType::chartocode(req->getvars["type"].c_str());
   }
 
@@ -419,8 +430,9 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method != "GET")
+  if (req->method != "GET") {
     throw HttpMethodNotAllowedException();
+  }
 
   auto luaconf = g_luaconfs.getLocal();
   auto numZones = luaconf->dfe.size();
@@ -429,12 +441,14 @@ static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp)
 
   for (size_t i = 0; i < numZones; i++) {
     auto zone = luaconf->dfe.getZone(i);
-    if (zone == nullptr)
+    if (zone == nullptr) {
       continue;
+    }
     const auto& name = zone->getName();
     auto stats = getRPZZoneStats(name);
-    if (stats == nullptr)
+    if (stats == nullptr) {
       continue;
+    }
     Json::object zoneInfo = {
       {"transfers_failed", (double)stats->d_failedTransfers},
       {"transfers_success", (double)stats->d_successfulTransfers},
@@ -452,8 +466,9 @@ static void prometheusMetrics(HttpRequest* req, HttpResponse* resp)
 {
   static MetricDefinitionStorage s_metricDefinitions;
 
-  if (req->method != "GET")
+  if (req->method != "GET") {
     throw HttpMethodNotAllowedException();
+  }
 
   std::ostringstream output;
 
@@ -467,7 +482,7 @@ static void prometheusMetrics(HttpRequest* req, HttpResponse* resp)
     MetricDefinition metricDetails;
 
     if (s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
-      std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(
+      std::string prometheusTypeName = MetricDefinitionStorage::getPrometheusStringMetricType(
         metricDetails.d_prometheusType);
 
       if (prometheusTypeName.empty()) {
@@ -508,18 +523,20 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
 
-  if (req->url.path == "/")
+  if (req->url.path == "/") {
     req->url.path = "/index.html";
+}
 
   const string charset = "; charset=utf-8";
-  if (boost::ends_with(req->url.path, ".html"))
+  if (boost::ends_with(req->url.path, ".html")) {
     resp->headers["Content-Type"] = "text/html" + charset;
-  else if (boost::ends_with(req->url.path, ".css"))
+  } else if (boost::ends_with(req->url.path, ".css")) {
     resp->headers["Content-Type"] = "text/css" + charset;
-  else if (boost::ends_with(req->url.path, ".js"))
+  } else if (boost::ends_with(req->url.path, ".js")) {
     resp->headers["Content-Type"] = "application/javascript" + charset;
-  else if (boost::ends_with(req->url.path, ".png"))
+  } else if (boost::ends_with(req->url.path, ".png")) {
     resp->headers["Content-Type"] = "image/png";
+  }
 
   resp->headers["X-Content-Type-Options"] = "nosniff";
   resp->headers["X-Frame-Options"] = "deny";
@@ -528,8 +545,8 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
   resp->headers["X-XSS-Protection"] = "1; mode=block";
   //  resp->headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'";
 
-  if (!req->url.path.empty() && g_urlmap.count(req->url.path.c_str() + 1)) {
-    resp->body = g_urlmap.at(req->url.path.c_str() + 1);
+  if (!req->url.path.empty() && (g_urlmap.count(req->url.path.substr(1)) != 0)) {
+    resp->body = g_urlmap.at(req->url.path.substr(1));
     resp->status = 200;
   }
   else {
@@ -1172,9 +1189,8 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
                     "Number of remote logging events")},
 };
 
-#define CHECK_PROMETHEUS_METRICS 0
+constexpr bool CHECK_PROMETHEUS_METRICS = false;
 
-#if CHECK_PROMETHEUS_METRICS
 static void validatePrometheusMetrics()
 {
   MetricDefinitionStorage s_metricDefinitions;
@@ -1196,13 +1212,12 @@ static void validatePrometheusMetrics()
     }
   }
 }
-#endif
 
 RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 {
-#if CHECK_PROMETHEUS_METRICS
-  validatePrometheusMetrics();
-#endif
+  if (CHECK_PROMETHEUS_METRICS) {
+    validatePrometheusMetrics();
+  }
 
   d_ws = make_unique<AsyncWebServer>(fdm, arg()["webserver-address"], arg().asNum("webserver-port"));
   d_ws->setSLog(g_slog->withName("webserver"));
@@ -1219,7 +1234,7 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 
   // legacy dispatch
   d_ws->registerApiHandler(
-    "/jsonstat", [this](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, true);
+    "/jsonstat", [](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, true);
   d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFrom);
   d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", &apiServerConfigAllowNotifyFrom);
@@ -1234,8 +1249,8 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1", apiDiscoveryV1);
   d_ws->registerApiHandler("/api", apiDiscovery);
 
-  for (const auto& u : g_urlmap) {
-    d_ws->registerWebHandler("/" + u.first, serveStuff);
+  for (const auto& url : g_urlmap) {
+    d_ws->registerWebHandler("/" + url.first, serveStuff);
   }
 
   d_ws->registerWebHandler("/", serveStuff);
@@ -1247,7 +1262,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
 {
   string command;
 
-  if (req->getvars.count("command")) {
+  if (req->getvars.count("command") != 0) {
     command = req->getvars["command"];
     req->getvars.erase("command");
   }
@@ -1258,36 +1273,43 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     vector<query_t> queries;
     bool filter = !req->getvars["public-filtered"].empty();
 
-    if (req->getvars["name"] == "servfail-queries")
+    if (req->getvars["name"] == "servfail-queries") {
       queries = broadcastAccFunction<vector<query_t>>(pleaseGetServfailQueryRing);
-    else if (req->getvars["name"] == "bogus-queries")
+    }
+    else if (req->getvars["name"] == "bogus-queries") {
       queries = broadcastAccFunction<vector<query_t>>(pleaseGetBogusQueryRing);
-    else if (req->getvars["name"] == "queries")
+    }
+    else if (req->getvars["name"] == "queries") {
       queries = broadcastAccFunction<vector<query_t>>(pleaseGetQueryRing);
+    }
 
     typedef map<query_t, unsigned int> counts_t;
     counts_t counts;
-    for (const query_t& q : queries) {
-      if (filter)
-        counts[pair(getRegisteredName(q.first), q.second)]++;
-      else
-        counts[pair(q.first, q.second)]++;
+    for (const query_t& count : queries) {
+      if (filter) {
+        counts[pair(getRegisteredName(count.first), count.second)]++;
+      } else {
+        counts[pair(count.first, count.second)]++;
+      }
     }
 
     typedef std::multimap<int, query_t> rcounts_t;
     rcounts_t rcounts;
 
-    for (counts_t::const_iterator i = counts.begin(); i != counts.end(); ++i)
-      rcounts.emplace(-i->second, i->first);
+    for (const auto& count : counts) {
+      rcounts.emplace(-count.second, count.first);
+    }
 
     Json::array entries;
-    unsigned int tot = 0, totIncluded = 0;
-    for (const rcounts_t::value_type& q : rcounts) {
-      totIncluded -= q.first;
+    unsigned int tot = 0;
+    unsigned int totIncluded = 0;
+    for (const rcounts_t::value_type& count : rcounts) {
+      totIncluded -= count.first;
       entries.push_back(Json::array{
-        -q.first, q.second.first.toLogString(), DNSRecordContent::NumberToType(q.second.second)});
-      if (tot++ >= 100)
+        -count.first, count.second.first.toLogString(), DNSRecordContent::NumberToType(count.second.second)});
+      if (tot++ >= 100) {
         break;
+}
     }
     if (queries.size() != totIncluded) {
       entries.push_back(Json::array{
@@ -1296,39 +1318,42 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     resp->setJsonBody(Json::object{{"entries", entries}});
     return;
   }
-  else if (command == "get-remote-ring") {
+  if (command == "get-remote-ring") {
     vector<ComboAddress> queries;
-    if (req->getvars["name"] == "remotes")
+    if (req->getvars["name"] == "remotes") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetRemotes);
-    else if (req->getvars["name"] == "servfail-remotes")
+    } else if (req->getvars["name"] == "servfail-remotes") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetServfailRemotes);
-    else if (req->getvars["name"] == "bogus-remotes")
+    } else if (req->getvars["name"] == "bogus-remotes") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetBogusRemotes);
-    else if (req->getvars["name"] == "large-answer-remotes")
+    } else if (req->getvars["name"] == "large-answer-remotes") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetLargeAnswerRemotes);
-    else if (req->getvars["name"] == "timeouts")
+    } else if (req->getvars["name"] == "timeouts") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetTimeouts);
-
+    }
     typedef map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts_t;
     counts_t counts;
-    for (const ComboAddress& q : queries) {
-      counts[q]++;
+    for (const ComboAddress& query : queries) {
+      counts[query]++;
     }
 
     typedef std::multimap<int, ComboAddress> rcounts_t;
     rcounts_t rcounts;
 
-    for (counts_t::const_iterator i = counts.begin(); i != counts.end(); ++i)
-      rcounts.emplace(-i->second, i->first);
+    for (const auto& count : counts) {
+      rcounts.emplace(-count.second, count.first);
+    }
 
     Json::array entries;
-    unsigned int tot = 0, totIncluded = 0;
-    for (const rcounts_t::value_type& q : rcounts) {
-      totIncluded -= q.first;
+    unsigned int tot = 0;
+    unsigned int totIncluded = 0;
+    for (const rcounts_t::value_type& count : rcounts) {
+      totIncluded -= count.first;
       entries.push_back(Json::array{
-        -q.first, q.second.toString()});
-      if (tot++ >= 100)
+          -count.first, count.second.toString()}); // NOLINT: union
+      if (tot++ >= 100) {
         break;
+      }
     }
     if (queries.size() != totIncluded) {
       entries.push_back(Json::array{
@@ -1338,14 +1363,12 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     resp->setJsonBody(Json::object{{"entries", entries}});
     return;
   }
-  else {
-    resp->setErrorResult("Command '" + command + "' not found", 404);
-  }
+  resp->setErrorResult("Command '" + command + "' not found", 404);
 }
 
-void AsyncServerNewConnectionMT(void* p)
+void AsyncServerNewConnectionMT(void* arg)
 {
-  AsyncServer* server = (AsyncServer*)p;
+  auto* server = static_cast<AsyncServer*>(arg);
 
   try {
     auto socket = server->accept(); // this is actually a shared_ptr
@@ -1379,9 +1402,9 @@ void AsyncServer::newConnection()
 }
 
 // This is an entry point from FDM, so it needs to catch everything.
-void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
+void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) const
 {
-  if (!client->acl(d_acl)) {
+  if (!socket->acl(d_acl)) {
     return;
   }
 
@@ -1402,7 +1425,7 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
   try {
     YaHTTP::AsyncRequestLoader yarl;
     yarl.initialize(&req);
-    client->setNonBlocking();
+    socket->setNonBlocking();
 
     const struct timeval timeout
     {
@@ -1410,16 +1433,16 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
     };
     std::shared_ptr<TLSCtx> tlsCtx{nullptr};
     if (d_loglevel > WebServer::LogLevel::None) {
-      client->getRemote(remote);
+      socket->getRemote(remote);
     }
-    auto handler = std::make_shared<TCPIOHandler>("", false, client->releaseHandle(), timeout, tlsCtx);
+    auto handler = std::make_shared<TCPIOHandler>("", false, socket->releaseHandle(), timeout, tlsCtx);
 
     PacketBuffer data;
     try {
       while (!req.complete) {
         auto ret = arecvtcp(data, 16384, handler, true);
         if (ret == LWResult::Result::Success) {
-          string str(reinterpret_cast<const char*>(data.data()), data.size());
+          string str(reinterpret_cast<const char*>(data.data()), data.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
           req.complete = yarl.feed(str);
         }
         else {
@@ -1438,10 +1461,10 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
     logRequest(req, remote);
 
     WebServer::handleRequest(req, resp);
-    ostringstream ss;
-    resp.write(ss);
-    const string& s = ss.str();
-    reply.insert(reply.end(), s.cbegin(), s.cend());
+    ostringstream stringStream;
+    resp.write(stringStream);
+    const string& str = stringStream.str();
+    reply.insert(reply.end(), str.cbegin(), str.cend());
 
     logResponse(resp, remote, logprefix);
 
@@ -1457,9 +1480,10 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
          req.d_slog->error(Logr::Error, e.reason, "Exception handing request", "exception", Logging::Loggable("PDNSException")));
   }
   catch (std::exception& e) {
-    if (strstr(e.what(), "timeout") == 0)
+    if (strstr(e.what(), "timeout") == nullptr) {
       SLOG(g_log << Logger::Error << logprefix << "STL Exception: " << e.what() << endl,
            req.d_slog->error(Logr::Error, e.what(), "Exception handing request", "exception", Logging::Loggable("std::exception")));
+    }
   }
   catch (...) {
     SLOG(g_log << Logger::Error << logprefix << "Unknown exception" << endl,
@@ -1476,10 +1500,12 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
 
 void AsyncWebServer::go()
 {
-  if (!d_server)
+  if (!d_server) {
     return;
+  }
   auto server = std::dynamic_pointer_cast<AsyncServer>(d_server);
-  if (!server)
+  if (!server) {
     return;
-  server->asyncWaitForConnections(d_fdm, [this](const std::shared_ptr<Socket>& c) { serveConnection(c); });
+  }
+  server->asyncWaitForConnections(d_fdm, [this](const std::shared_ptr<Socket>& socket) { serveConnection(socket); });
 }

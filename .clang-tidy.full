@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,bugprone-*,concurrency-*,modernize-*,performance-*,portability-*,readability-*,-modernize-use-trailing-return-type,-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,bugprone-*,concurrency-*,modernize-*,performance-*,portability-*,readability-*,-modernize-use-trailing-return-type,-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-avoid-non-const-global-variables'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
@@ -113,7 +113,7 @@ CheckOptions:
   - key:             readability-function-size.LineThreshold
     value:           '4294967295'
   - key:             bugprone-easily-swappable-parameters.MinimumLength
-    value:           '2'
+    value:           '4'
   - key:             portability-simd-intrinsics.Suggest
     value:           'false'
   - key:             cppcoreguidelines-pro-bounds-constant-array-index.GslHeader
