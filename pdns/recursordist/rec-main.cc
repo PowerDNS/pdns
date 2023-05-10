@@ -2219,7 +2219,7 @@ private:
   const string name;
 };
 
-static void houseKeeping0(Logr::log_t log) // NOLINT(readability-function-cognitive-complexity) #12791 Remove NOLINT(readability-function-cognitive-complexity) omoerbeek
+static void houseKeepingWork(Logr::log_t log) // NOLINT(readability-function-cognitive-complexity) #12791 Remove NOLINT(readability-function-cognitive-complexity) omoerbeek
 {
   struct timeval now
   {
@@ -2413,7 +2413,7 @@ static void houseKeeping(void* /* ignored */)
       return;
     }
     t_running = true;
-    houseKeeping0(log);
+    houseKeepingWork(log);
     t_running = false;
   }
   catch (const PDNSException& ae) {
