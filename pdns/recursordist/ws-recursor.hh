@@ -39,7 +39,7 @@ public:
 
   friend void AsyncServerNewConnectionMT(void* arg);
 
-  using newconnectioncb_t = std::function<void (const std::shared_ptr<Socket>&)>;
+  using newconnectioncb_t = std::function<void(const std::shared_ptr<Socket>&)>;
   void asyncWaitForConnections(FDMultiplexer* fdm, const newconnectioncb_t& callback);
 
 private:

@@ -525,16 +525,19 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
 
   if (req->url.path == "/") {
     req->url.path = "/index.html";
-}
+  }
 
   const string charset = "; charset=utf-8";
   if (boost::ends_with(req->url.path, ".html")) {
     resp->headers["Content-Type"] = "text/html" + charset;
-  } else if (boost::ends_with(req->url.path, ".css")) {
+  }
+  else if (boost::ends_with(req->url.path, ".css")) {
     resp->headers["Content-Type"] = "text/css" + charset;
-  } else if (boost::ends_with(req->url.path, ".js")) {
+  }
+  else if (boost::ends_with(req->url.path, ".js")) {
     resp->headers["Content-Type"] = "application/javascript" + charset;
-  } else if (boost::ends_with(req->url.path, ".png")) {
+  }
+  else if (boost::ends_with(req->url.path, ".png")) {
     resp->headers["Content-Type"] = "image/png";
   }
 
@@ -1288,7 +1291,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     for (const query_t& count : queries) {
       if (filter) {
         counts[pair(getRegisteredName(count.first), count.second)]++;
-      } else {
+      }
+      else {
         counts[pair(count.first, count.second)]++;
       }
     }
@@ -1309,7 +1313,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
         -count.first, count.second.first.toLogString(), DNSRecordContent::NumberToType(count.second.second)});
       if (tot++ >= 100) {
         break;
-}
+      }
     }
     if (queries.size() != totIncluded) {
       entries.push_back(Json::array{
@@ -1322,13 +1326,17 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     vector<ComboAddress> queries;
     if (req->getvars["name"] == "remotes") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetRemotes);
-    } else if (req->getvars["name"] == "servfail-remotes") {
+    }
+    else if (req->getvars["name"] == "servfail-remotes") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetServfailRemotes);
-    } else if (req->getvars["name"] == "bogus-remotes") {
+    }
+    else if (req->getvars["name"] == "bogus-remotes") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetBogusRemotes);
-    } else if (req->getvars["name"] == "large-answer-remotes") {
+    }
+    else if (req->getvars["name"] == "large-answer-remotes") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetLargeAnswerRemotes);
-    } else if (req->getvars["name"] == "timeouts") {
+    }
+    else if (req->getvars["name"] == "timeouts") {
       queries = broadcastAccFunction<vector<ComboAddress>>(pleaseGetTimeouts);
     }
     typedef map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts_t;
@@ -1350,7 +1358,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     for (const rcounts_t::value_type& count : rcounts) {
       totIncluded -= count.first;
       entries.push_back(Json::array{
-          -count.first, count.second.toString()}); // NOLINT: union
+        -count.first, count.second.toString()}); // NOLINT: union
       if (tot++ >= 100) {
         break;
       }
@@ -1402,7 +1410,7 @@ void AsyncServer::newConnection()
 }
 
 // This is an entry point from FDM, so it needs to catch everything.
-void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) const
+void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) const // NOLINT(readability-function-cognitive-complexity) #12791 Remove NOLINT(readability-function-cognitive-complexity) omoerbeek
 {
   if (!socket->acl(d_acl)) {
     return;
