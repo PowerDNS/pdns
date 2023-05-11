@@ -16,6 +16,7 @@ class TestSpoofingSpoof(DNSDistTest):
     addAction(AndRule{makeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.A)}, SpoofRawAction("\\192\\000\\002\\001"))
     addAction(AndRule{makeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT)}, SpoofRawAction("\\003aaa\\004bbbb\\011ccccccccccc"))
     addAction(AndRule{makeRule("raw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.SRV)}, SpoofRawAction("\\000\\000\\000\\000\\255\\255\\003srv\\008powerdns\\003com\\000", { aa=true, ttl=3600 }))
+    addAction(AndRule{makeRule("rawchaos.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT), QClassRule(DNSClass.CHAOS)}, SpoofRawAction("\\005chaos"))
     addAction(AndRule{makeRule("multiraw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT)}, SpoofRawAction({"\\003aaa\\004bbbb", "\\011ccccccccccc"}))
     addAction(AndRule{makeRule("multiraw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.A)}, SpoofRawAction({"\\192\\000\\002\\001", "\\192\\000\\002\\002"}))
     newServer{address="127.0.0.1:%s"}
@@ -358,6 +359,32 @@ class TestSpoofingSpoof(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
             self.assertEqual(receivedResponse.answer[0].ttl, 3600)
+
+    def testSpoofRawChaosAction(self):
+        """
+        Spoofing: Spoof a response from several raw bytes in QCLass CH
+        """
+        name = 'rawchaos.spoofing.tests.powerdns.com.'
+
+        # TXT CH
+        query = dns.message.make_query(name, 'TXT', 'CH')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.flags &= ~dns.flags.AA
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.CH,
+                                    dns.rdatatype.TXT,
+                                    '"chaos"')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
+
 
     def testSpoofRawActionMulti(self):
         """
