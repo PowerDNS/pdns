@@ -88,7 +88,7 @@ private:
   void updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback);
   void watchForRemoteHostClosingConnection();
   void handleIOError();
-  bool sendResponse(StreamID streamID, uint16_t responseCode, const HeadersMap& customResponseHeaders, const std::string& contentType = "", bool addContentType = true);
+  bool sendResponse(StreamID streamID, PendingQuery& context, uint16_t responseCode, const HeadersMap& customResponseHeaders, const std::string& contentType = "", bool addContentType = true);
   void handleIncomingQuery(PendingQuery&& query, StreamID streamID);
   bool checkALPN();
   void readHTTPData();
