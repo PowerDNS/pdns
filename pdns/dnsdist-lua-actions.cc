@@ -880,12 +880,14 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   dq->getHeader()->arcount = 0; // for now, forget about your EDNS, we're marching over it
 
   uint32_t ttl = htonl(d_responseConfig.ttl);
+  uint16_t qclass = htons(dq->ids.qclass);
   unsigned char recordstart[] = {0xc0, 0x0c,    // compressed name
                                  0, 0,          // QTYPE
-                                 0, QClass::IN,
+                                 0, 0,          // QCLASS
                                  0, 0, 0, 0,    // TTL
                                  0, 0 };        // rdata length
   static_assert(sizeof(recordstart) == 12, "sizeof(recordstart) must be equal to 12, otherwise the above check is invalid");
+  memcpy(&recordstart[4], &qclass, sizeof(qclass));
   memcpy(&recordstart[6], &ttl, sizeof(ttl));
   bool raw = false;
 
