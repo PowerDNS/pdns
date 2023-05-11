@@ -15,4 +15,5 @@ race:DownstreamState::setAuto
 # eventual consistency is fine
 race:DownstreamState::stop
 race:DownstreamState::submitHealthCheckResult
+race:DownstreamState::healthCheckRequired
 race:carbonDumpThread
