@@ -17,12 +17,18 @@ COPY --from=sdist /sdist /sdist
 
 @IF [ -n "$M_authoritative$M_all" ]
 RUN tar xvf /sdist/pdns-${BUILDER_VERSION}.tar.bz2
+# create copy of source tarball with name that dpkg-source requires
+RUN cp /sdist/pdns-${BUILDER_VERSION}.tar.bz2 pdns_${BUILDER_VERSION}.orig.tar.bz2
 @ENDIF
 
 @IF [ -n "$M_recursor$M_all" ]
 RUN tar xvf /sdist/pdns-recursor-${BUILDER_VERSION}.tar.bz2
+# create copy of source tarball with name that dpkg-source requires
+RUN cp /sdist/pdns-recursor-${BUILDER_VERSION}.tar.bz2 pdns-recursor_${BUILDER_VERSION}.orig.tar.bz2
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
 RUN tar xvf /sdist/dnsdist-${BUILDER_VERSION}.tar.bz2
+# create copy of source tarball with name that dpkg-source requires
+RUN cp /sdist/dnsdist-${BUILDER_VERSION}.tar.bz2 dnsdist_${BUILDER_VERSION}.orig.tar.bz2
 @ENDIF
