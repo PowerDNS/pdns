@@ -177,6 +177,7 @@ static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
     data->d_ds->submitHealthCheckResult(data->d_initial, false);
     return;
   }
+  data->d_buffer.resize(static_cast<size_t>(got));
 
   /* we are using a connected socket but hey.. */
   if (from != data->d_ds->d_config.remote) {
