@@ -4,8 +4,6 @@
 ./ext/lmdb-safe/lmdb-typed.hh
 ./ext/probds/murmur3.cc
 ./pdns/anadns.hh
-./pdns/arguments.cc
-./pdns/arguments.hh
 ./pdns/auth-caches.cc
 ./pdns/auth-carbon.cc
 ./pdns/auth-packetcache.cc
