@@ -1985,12 +1985,12 @@ If a PID file should be written.
 .. _setting-workaround-11804:
 
 ``workaround-11804``
--------------------
+--------------------
 
 -  Boolean
 -  Default: no
 
-Workaround for issue https://github.com/PowerDNS/pdns/issues/11804.
+Workaround for `issue #11804 (outgoing AXFR may try to overfill a chunk and fail) <https://github.com/PowerDNS/pdns/issues/11804>`_.
 
 Default of no implies the pre-4.8 behaviour of up to 100 RRs per AXFR chunk.
 
