@@ -268,7 +268,7 @@ public:
     throw runtime_error("Unknown DNS type '"+name+"'");
   }
 
-  static const string NumberToType(uint16_t num, uint16_t classnum=1)
+  static const string NumberToType(uint16_t num, uint16_t classnum = QClass::IN)
   {
     auto iter = getT2Namemap().find(pair(classnum, num));
     if(iter == getT2Namemap().end())
@@ -276,6 +276,11 @@ public:
       //      throw runtime_error("Unknown DNS type with numerical id "+std::to_string(num));
     return iter->second;
   }
+
+  /**
+   * \brief Return whether we have implemented a content representation for this type
+   */
+  static bool isRegisteredType(uint16_t rtype, uint16_t rclass = QClass::IN);
 
   virtual uint16_t getType() const = 0;
 

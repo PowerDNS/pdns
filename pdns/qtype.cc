@@ -119,13 +119,10 @@ bool QType::isSupportedType() const
 
 bool QType::isMetadataType() const
 {
-  if (code == QType::AXFR ||
-      code == QType::MAILA ||
-      code == QType::MAILB ||
-      code == QType::TSIG ||
-      code == QType::IXFR)
+  // rfc6895 section 3.1, note ANY is 255 and falls outside the range
+  if (code == QType::OPT || (code >= rfc6895MetaLowerBound && code <= rfc6895MetaUpperBound)) {
     return true;
-
+  }
   return false;
 }
 
