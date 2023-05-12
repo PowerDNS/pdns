@@ -25,91 +25,91 @@
 namespace pdns::channel
 {
 
-  Notifier::Notifier(FDWrapper&& fd) :
-    d_fd(std::move(fd))
-  {
-  }
+Notifier::Notifier(FDWrapper&& fd) :
+  d_fd(std::move(fd))
+{
+}
 
-  bool Notifier::notify() const
-  {
-    char data = 'a';
-    while (true) {
-      auto sent = write(d_fd.getHandle(), &data, sizeof(data));
-      if (sent == 0) {
-        throw std::runtime_error("Unable to write to channel notifier pipe: remote end has been closed");
+bool Notifier::notify() const
+{
+  char data = 'a';
+  while (true) {
+    auto sent = write(d_fd.getHandle(), &data, sizeof(data));
+    if (sent == 0) {
+      throw std::runtime_error("Unable to write to channel notifier pipe: remote end has been closed");
+    }
+    if (sent != sizeof(data)) {
+      if (errno == EINTR) {
+        continue;
       }
-      if (sent != sizeof(data)) {
-        if (errno == EINTR) {
-          continue;
-        }
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-          return false;
-        }
-        throw std::runtime_error("Unable to write to channel notifier pipe: " + stringerror());
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        return false;
       }
-      return true;
+      throw std::runtime_error("Unable to write to channel notifier pipe: " + stringerror());
     }
+    return true;
   }
+}
 
-  Waiter::Waiter(FDWrapper&& fd, bool throwOnEOF) :
-    d_fd(std::move(fd)), d_throwOnEOF(throwOnEOF)
-  {
-  }
+Waiter::Waiter(FDWrapper&& fd, bool throwOnEOF) :
+  d_fd(std::move(fd)), d_throwOnEOF(throwOnEOF)
+{
+}
 
-  void Waiter::clear()
-  {
-    ssize_t got{0};
-    do {
-      char data{0};
-      got = read(d_fd.getHandle(), &data, sizeof(data));
-      if (got == 0) {
-        d_closed = true;
-        if (!d_throwOnEOF) {
-          return;
-        }
-        throw std::runtime_error("EOF while clearing channel notifier pipe");
+void Waiter::clear()
+{
+  ssize_t got{0};
+  do {
+    char data{0};
+    got = read(d_fd.getHandle(), &data, sizeof(data));
+    if (got == 0) {
+      d_closed = true;
+      if (!d_throwOnEOF) {
+        return;
       }
-      if (got == -1) {
-        if (errno == EINTR) {
-          continue;
-        }
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-          break;
-        }
-        throw std::runtime_error("Error while clearing channel notifier pipe: " + stringerror());
+      throw std::runtime_error("EOF while clearing channel notifier pipe");
+    }
+    if (got == -1) {
+      if (errno == EINTR) {
+        continue;
       }
-    } while (got > 0);
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        break;
+      }
+      throw std::runtime_error("Error while clearing channel notifier pipe: " + stringerror());
+    }
+  } while (got > 0);
+}
+
+int Waiter::getDescriptor() const
+{
+  return d_fd.getHandle();
+}
+
+std::pair<Notifier, Waiter> createNotificationQueue(bool nonBlocking, size_t pipeBufferSize, bool throwOnEOF)
+{
+  std::array<int, 2> fds = {-1, -1};
+  if (pipe(fds.data()) < 0) {
+    throw std::runtime_error("Error creating notification channel pipe: " + stringerror());
   }
 
-  int Waiter::getDescriptor() const
-  {
-    return d_fd.getHandle();
+  FDWrapper sender(fds[1]);
+  FDWrapper receiver(fds[0]);
+
+  if (nonBlocking && !setNonBlocking(receiver.getHandle())) {
+    int err = errno;
+    throw std::runtime_error("Error making notification channel pipe non-blocking: " + stringerror(err));
   }
 
-  std::pair<Notifier, Waiter> createNotificationQueue(bool nonBlocking, size_t pipeBufferSize, bool throwOnEOF)
-  {
-    std::array<int, 2> fds = {-1, -1};
-    if (pipe(fds.data()) < 0) {
-      throw std::runtime_error("Error creating notification channel pipe: " + stringerror());
-    }
-
-    FDWrapper sender(fds[1]);
-    FDWrapper receiver(fds[0]);
-
-    if (nonBlocking && !setNonBlocking(receiver.getHandle())) {
-      int err = errno;
-      throw std::runtime_error("Error making notification channel pipe non-blocking: " + stringerror(err));
-    }
-
-    if (nonBlocking && !setNonBlocking(sender.getHandle())) {
-      int err = errno;
-      throw std::runtime_error("Error making notification channel pipe non-blocking: " + stringerror(err));
-    }
-
-    if (pipeBufferSize > 0 && getPipeBufferSize(receiver.getHandle()) < pipeBufferSize) {
-      setPipeBufferSize(receiver.getHandle(), pipeBufferSize);
-    }
-
-    return std::pair(Notifier(std::move(sender)), Waiter(std::move(receiver), throwOnEOF));
+  if (nonBlocking && !setNonBlocking(sender.getHandle())) {
+    int err = errno;
+    throw std::runtime_error("Error making notification channel pipe non-blocking: " + stringerror(err));
   }
+
+  if (pipeBufferSize > 0 && getPipeBufferSize(receiver.getHandle()) < pipeBufferSize) {
+    setPipeBufferSize(receiver.getHandle(), pipeBufferSize);
+  }
+
+  return std::pair(Notifier(std::move(sender)), Waiter(std::move(receiver), throwOnEOF));
+}
 }
