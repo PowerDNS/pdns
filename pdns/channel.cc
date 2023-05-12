@@ -22,9 +22,7 @@
 
 #include "channel.hh"
 
-namespace pdns
-{
-namespace channel
+namespace pdns::channel
 {
 
   Notifier::Notifier(FDWrapper&& fd) :
@@ -47,9 +45,7 @@ namespace channel
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
           return false;
         }
-        else {
-          throw std::runtime_error("Unable to write to channel notifier pipe: " + stringerror());
-        }
+        throw std::runtime_error("Unable to write to channel notifier pipe: " + stringerror());
       }
       return true;
     }
@@ -62,9 +58,9 @@ namespace channel
 
   void Waiter::clear()
   {
-    ssize_t got;
+    ssize_t got{0};
     do {
-      char data;
+      char data{0};
       got = read(d_fd.getHandle(), &data, sizeof(data));
       if (got == 0) {
         d_closed = true;
@@ -73,7 +69,7 @@ namespace channel
         }
         throw std::runtime_error("EOF while clearing channel notifier pipe");
       }
-      else if (got == -1) {
+      if (got == -1) {
         if (errno == EINTR) {
           continue;
         }
@@ -82,7 +78,7 @@ namespace channel
         }
         throw std::runtime_error("Error while clearing channel notifier pipe: " + stringerror());
       }
-    } while (got);
+    } while (got > 0);
   }
 
   int Waiter::getDescriptor() const
@@ -92,8 +88,8 @@ namespace channel
 
   std::pair<Notifier, Waiter> createNotificationQueue(bool nonBlocking, size_t pipeBufferSize, bool throwOnEOF)
   {
-    int fds[2] = {-1, -1};
-    if (pipe(fds) < 0) {
+    std::array<int, 2> fds = {-1, -1};
+    if (pipe(fds.data()) < 0) {
       throw std::runtime_error("Error creating notification channel pipe: " + stringerror());
     }
 
@@ -116,5 +112,4 @@ namespace channel
 
     return std::pair(Notifier(std::move(sender)), Waiter(std::move(receiver), throwOnEOF));
   }
-}
 }

@@ -1272,7 +1272,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
      for the CPU, the first thing we need to do is to send responses to free slots
      anyway, otherwise queries and responses are piling up in our pipes, consuming
      memory and likely coming up too late after the client has gone away */
-  DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(listener->data);
+  auto* dsc = static_cast<DOHServerConfig*>(listener->data);
   while (true) {
     std::unique_ptr<DOHUnit, void(*)(DOHUnit*)> du{nullptr, DOHUnit::release};
     try {
@@ -1389,7 +1389,7 @@ static void on_accept(h2o_socket_t *listener, const char *err)
 
 static int create_listener(std::shared_ptr<DOHServerConfig>& dsc, int fd)
 {
-  auto sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, fd, H2O_SOCKET_FLAG_DONT_READ);
+  auto* sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, fd, H2O_SOCKET_FLAG_DONT_READ);
   sock->data = dsc.get();
   h2o_socket_read_start(sock, on_accept);
 
@@ -1617,7 +1617,7 @@ void dohThread(ClientState* cs)
     dsc->h2o_ctx.storage.entries[0].data = dsc.get();
     ++dsc->h2o_ctx.storage.size;
 
-    auto sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, dsc->d_responseReceiver.getDescriptor(), H2O_SOCKET_FLAG_DONT_READ);
+    auto* sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, dsc->d_responseReceiver.getDescriptor(), H2O_SOCKET_FLAG_DONT_READ);
     sock->data = dsc.get();
 
     // this listens to responses from dnsdist to turn into http responses

@@ -133,7 +133,11 @@ uint32_t DoHConnectionToBackend::getConcurrentStreamsCount() const
 
 void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
 {
-  struct timeval now;
+  struct timeval now
+  {
+    .tv_sec = 0, .tv_usec = 0
+  };
+
   gettimeofday(&now, nullptr);
   try {
     if (!d_healthCheckQuery) {
@@ -175,7 +179,11 @@ void DoHConnectionToBackend::handleIOError()
   d_connectionDied = true;
   nghttp2_session_terminate_session(d_session.get(), NGHTTP2_PROTOCOL_ERROR);
 
-  struct timeval now;
+  struct timeval now
+  {
+    .tv_sec = 0, .tv_usec = 0
+  };
+
   gettimeofday(&now, nullptr);
   for (auto& request : d_currentStreams) {
     handleResponseError(std::move(request.second), now);
@@ -406,7 +414,11 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
           throw std::runtime_error("Fatal error while passing received data to nghttp2: " + std::string(nghttp2_strerror((int)readlen)));
         }
 
-        struct timeval now;
+        struct timeval now
+        {
+          .tv_sec = 0, .tv_usec = 0
+        };
+
         gettimeofday(&now, nullptr);
         conn->d_lastDataReceivedTime = now;
 
@@ -496,7 +508,11 @@ void DoHConnectionToBackend::stopIO()
 
 void DoHConnectionToBackend::updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback, bool noTTD)
 {
-  struct timeval now;
+  struct timeval now
+  {
+    .tv_sec = 0, .tv_usec = 0
+  };
+
   gettimeofday(&now, nullptr);
   boost::optional<struct timeval> ttd{boost::none};
   if (!noTTD) {
@@ -535,7 +551,11 @@ void DoHConnectionToBackend::watchForRemoteHostClosingConnection()
 
 void DoHConnectionToBackend::addToIOState(IOState state, FDMultiplexer::callbackfunc_t callback)
 {
-  struct timeval now;
+  struct timeval now
+  {
+    .tv_sec = 0, .tv_usec = 0
+  };
+
   gettimeofday(&now, nullptr);
   boost::optional<struct timeval> ttd{boost::none};
   if (state == IOState::NeedRead) {
@@ -649,7 +669,11 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
       }
       else {
         vinfolog("HTTP response has a non-200 status code: %d", request.d_responseCode);
-        struct timeval now;
+        struct timeval now
+        {
+          .tv_sec = 0, .tv_usec = 0
+        };
+
         gettimeofday(&now, nullptr);
 
         conn->handleResponseError(std::move(request), now);
@@ -701,7 +725,11 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
     }
     else {
       vinfolog("HTTP response has a non-200 status code: %d", request.d_responseCode);
-      struct timeval now;
+      struct timeval now
+      {
+        .tv_sec = 0, .tv_usec = 0
+      };
+
       gettimeofday(&now, nullptr);
 
       conn->handleResponseError(std::move(request), now);
@@ -733,7 +761,11 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
     return 0;
   }
 
-  struct timeval now;
+  struct timeval now
+  {
+    .tv_sec = 0, .tv_usec = 0
+  };
+
   gettimeofday(&now, nullptr);
   auto request = std::move(stream->second);
   conn->d_currentStreams.erase(stream->first);
@@ -872,7 +904,10 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
     throw std::runtime_error("Error while reading from the DoH cross-protocol channel:" + std::string(e.what()));
   }
 
-  struct timeval now;
+  struct timeval now
+  {
+    .tv_sec = 0, .tv_usec = 0
+  };
   gettimeofday(&now, nullptr);
 
   std::shared_ptr<TCPQuerySender> tqs = cpq->getTCPQuerySender();
@@ -897,7 +932,11 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
     DoHClientThreadData data(std::move(receiver));
     data.mplexer->addReadFD(data.d_receiver.getDescriptor(), handleCrossProtocolQuery, &data);
 
-    struct timeval now;
+    struct timeval now
+    {
+      .tv_sec = 0, .tv_usec = 0
+    };
+
     gettimeofday(&now, nullptr);
     time_t lastTimeoutScan = now.tv_sec;
 
@@ -1088,7 +1127,10 @@ bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
 bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query, bool healthCheck)
 {
 #ifdef HAVE_NGHTTP2
-  struct timeval now;
+  struct timeval now
+  {
+    .tv_sec = 0, .tv_usec = 0
+  };
   gettimeofday(&now, nullptr);
 
   if (healthCheck) {
