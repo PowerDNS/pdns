@@ -579,20 +579,14 @@ void ArgvMap::gatherIncludes(std::vector<std::string>& extraConfigs)
     throw ArgException(msg);
   }
 
-  struct dirent ent
-  {
-  };
-  struct dirent* result = nullptr;
-  while (readdir_r(dir, &ent, &result) == 0) {
-    if (result == nullptr) {
-      break;
-    }
-    if (ent.d_name[0] == '.') {
+  struct dirent* ent = nullptr;
+  while ((ent = readdir(dir)) != nullptr) { // NOLINT(concurrency-mt-unsafe): see Linux man page
+    if (ent->d_name[0] == '.') {
       continue; // skip any dots
     }
-    if (boost::ends_with(ent.d_name, ".conf")) {
+    if (boost::ends_with(ent->d_name, ".conf")) {
       // build name
-      string name = d_params["include-dir"] + "/" + ent.d_name; // FIXME: Use some path separator NOLINT: Posix API
+      string name = d_params["include-dir"] + "/" + ent->d_name; // NOLINT: Posix API
       // ensure it's readable file
       struct stat statInfo
       {
