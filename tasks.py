@@ -5,6 +5,10 @@ import os
 import sys
 import time
 
+auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
+
+clang_version = os.getenv('CLANG_VERSION', '13')
+
 all_build_deps = [
     'ccache',
     'libboost-all-dev',
@@ -59,7 +63,7 @@ rec_bulk_deps = [
     'libcap2',
     'libfstrm0',
     'libluajit-5.1-2',
-    'libsnmp35',
+    '"libsnmp[1-9]+"',
     'libsodium23',
     'libssl1.1',
     'libsystemd0',
@@ -91,7 +95,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'gawk',
     'krb5-user',
     'ldnsutils',
-    'libboost-serialization1.71.0',
+    '"libboost-serialization1.7[1-9]+"',
     'libcdb1',
     'libcurl4',
     'libgeoip1',
@@ -153,24 +157,24 @@ def apt_fresh(c):
 @task
 def install_clang(c):
     """
-    install clang-12 and llvm-12
+    install clang and llvm
     """
-    c.sudo('apt-get -y --no-install-recommends install clang-12 llvm-12')
+    c.sudo(f'apt-get -y --no-install-recommends install clang-{clang_version} llvm-{clang_version}')
 
 @task
 def install_clang_tidy_tools(c):
-    c.sudo('apt-get -y --no-install-recommends install clang-tidy-12 clang-tools-12 bear python-yaml')
+    c.sudo(f'apt-get -y --no-install-recommends install clang-tidy-{clang_version} clang-tools-{clang_version} bear python3-yaml')
 
 @task
 def install_clang_runtime(c):
     # this gives us the symbolizer, for symbols in asan/ubsan traces
-    c.sudo('apt-get -y --no-install-recommends install clang-12')
+    c.sudo(f'apt-get -y --no-install-recommends install clang-{clang_version}')
 
 def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
     with c.cd('/tmp/libdecaf'):
         c.run('git checkout 41f349')
-        c.run('CC=clang-12 CXX=clang-12 '
+        c.run(f'CC=clang-{clang_version} CXX=clang-{clang_version} '
               'cmake -B build '
               '-DCMAKE_INSTALL_PREFIX=/usr/local '
               '-DCMAKE_INSTALL_LIBDIR=lib '
@@ -221,7 +225,7 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
     extra=[]
     for b in backend:
         extra.extend(auth_backend_test_deps[b])
-    c.sudo('apt-get -y install ' + ' '.join(extra+auth_test_deps))
+    c.sudo('DEBIAN_FRONTEND=noninteractive apt-get -y install ' + ' '.join(extra+auth_test_deps))
 
     c.run('chmod +x /opt/pdns-auth/bin/* /opt/pdns-auth/sbin/*')
     # c.run('''if [ ! -e $HOME/bin/jdnssec-verifyzone ]; then
@@ -256,7 +260,7 @@ def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
     setup_authbind(c)
 
     c.run('sed "s/agentxperms 0700 0755 recursor/agentxperms 0777 0755/g" regression-tests.recursor-dnssec/snmpd.conf | sudo tee /etc/snmp/snmpd.conf')
-    c.sudo('systemctl restart snmpd')
+    c.sudo('/etc/init.d/snmpd restart')
     time.sleep(5)
     c.sudo('chmod 755 /var/agentx')
 
@@ -273,7 +277,7 @@ def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-
               libh2o-evloop0.13 \
               liblmdb0 \
               libnghttp2-14 \
-              libre2-5 \
+              "libre2-[1-9]+" \
               libssl-dev \
               libsystemd0 \
               libsodium23 \
@@ -282,7 +286,7 @@ def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-
               protobuf-compiler \
               python3-venv snmpd prometheus')
     c.run('sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0777 0755/g" regression-tests.dnsdist/snmpd.conf | sudo tee /etc/snmp/snmpd.conf')
-    c.sudo('systemctl restart snmpd')
+    c.sudo('/etc/init.d/snmpd restart')
     time.sleep(5)
     c.sudo('chmod 755 /var/agentx')
 
@@ -361,8 +365,8 @@ def get_base_configure_cmd():
         f'CFLAGS="{get_cflags()}"',
         f'CXXFLAGS="{get_cxxflags()}"',
         './configure',
-        "CC='clang-12'",
-        "CXX='clang++-12'",
+        f"CC='clang-{clang_version}'",
+        f"CXX='clang++-{clang_version}'",
         "--enable-option-checking=fatal",
         "--enable-systemd",
         "--with-libsodium",
@@ -509,13 +513,13 @@ def ci_dnsdist_configure(c, features):
     sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
     cflags = '-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int'
     cxxflags = cflags + ' -Wp,-D_GLIBCXX_ASSERTIONS ' + additional_flags
-    res = c.run('''CFLAGS="%s" \
+    res = c.run(f'''CFLAGS="%s" \
                    CXXFLAGS="%s" \
-                   AR=llvm-ar-12 \
-                   RANLIB=llvm-ranlib-12 \
+                   AR=llvm-ar-{clang_version} \
+                   RANLIB=llvm-ranlib-{clang_version} \
                    ./configure \
-                     CC='clang-12' \
-                     CXX='clang++-12' \
+                     CC='clang-{clang_version}' \
+                     CXX='clang++-{clang_version}' \
                      --enable-option-checking=fatal \
                      --enable-fortify-source=auto \
                      --enable-auto-var-init=pattern \
@@ -533,7 +537,7 @@ def ci_auth_make(c):
 def ci_auth_make_bear(c):
     # Needed for clang-tidy -line-filter vs project structure shenanigans
     with c.cd('pdns'):
-        c.run('bear --append make -j8 -k V=1 -C ..')
+        c.run('bear --append -- make -j8 -k V=1 -C ..')
 
 @task
 def ci_rec_make(c):
@@ -542,7 +546,7 @@ def ci_rec_make(c):
 @task
 def ci_rec_make_bear(c):
     # Assumed to be running under ./pdns/recursordist/
-    c.run('bear --append make -j8 -k V=1')
+    c.run('bear --append -- make -j8 -k V=1')
 
 @task
 def ci_dnsdist_make(c):
@@ -551,7 +555,7 @@ def ci_dnsdist_make(c):
 @task
 def ci_dnsdist_make_bear(c):
     # Assumed to be running under ./pdns/dnsdistdist/
-    c.run('bear --append make -j4 -k V=1')
+    c.run('bear --append -- make -j4 -k V=1')
 
 @task
 def ci_auth_install_remotebackend_test_deps(c):
@@ -587,17 +591,13 @@ def ci_make_install(c):
     res = c.run('make install') # FIXME: this builds auth docs - again
 
 @task
-def add_auth_repo(c):
-    dist = 'ubuntu' # FIXME take these from the caller?
-    release = 'focal'
-    version = '44'
-
+def add_auth_repo(c, dist_name, dist_release_name, pdns_repo_version):
     c.sudo('apt-get install -y curl gnupg2')
-    if version == 'master':
+    if pdns_repo_version == 'master':
         c.sudo('curl -s -o /etc/apt/trusted.gpg.d/pdns-repo.asc https://repo.powerdns.com/CBC8B383-pub.asc')
     else:
         c.sudo('curl -s -o /etc/apt/trusted.gpg.d/pdns-repo.asc https://repo.powerdns.com/FD380FBB-pub.asc')
-    c.run(f"echo 'deb [arch=amd64] http://repo.powerdns.com/{dist} {release}-auth-{version} main' | sudo tee /etc/apt/sources.list.d/pdns.list")
+    c.run(f"echo 'deb [arch=amd64] http://repo.powerdns.com/{dist_name} {dist_release_name}-auth-{pdns_repo_version} main' | sudo tee /etc/apt/sources.list.d/pdns.list")
     c.run("echo 'Package: pdns-*' | sudo tee /etc/apt/preferences.d/pdns")
     c.run("echo 'Pin: origin repo.powerdns.com' | sudo tee -a /etc/apt/preferences.d/pdns")
     c.run("echo 'Pin-Priority: 600' | sudo tee -a /etc/apt/preferences.d/pdns")
@@ -610,7 +610,7 @@ def test_api(c, product, backend=''):
             c.run(f'PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor ./runtests recursor {backend}')
     elif product == 'auth':
         with c.cd('regression-tests.api'):
-            c.run(f'PDNSSERVER=/opt/pdns-auth/sbin/pdns_server PDNSUTIL=/opt/pdns-auth/bin/pdnsutil SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432" ./runtests authoritative {backend}')
+            c.run(f'PDNSSERVER=/opt/pdns-auth/sbin/pdns_server PDNSUTIL=/opt/pdns-auth/bin/pdnsutil SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432 ./runtests authoritative {backend}')
     else:
         raise Failure('unknown product')
 
@@ -687,11 +687,11 @@ backend_regress_tests = dict(
 
 godbc_mssql_credentials = {"username": "sa", "password": "SAsa12%%"}
 
-godbc_config = '''
+godbc_config = f'''
 [pdns-mssql-docker]
 Driver=FreeTDS
 Trace=No
-Server=127.0.0.1
+Server={auth_backend_ip_addr}
 Port=1433
 Database=pdns
 TDS_Version=7.1
@@ -699,7 +699,7 @@ TDS_Version=7.1
 [pdns-mssql-docker-nodb]
 Driver=FreeTDS
 Trace=No
-Server=127.0.0.1
+Server={auth_backend_ip_addr}
 Port=1433
 TDS_Version=7.1
 
@@ -728,16 +728,17 @@ def setup_godbc_sqlite3(c):
 
 def setup_ldap_client(c):
     c.sudo('DEBIAN_FRONTEND=noninteractive apt-get install -y ldap-utils')
-    c.sudo('sh -c \'echo "127.0.0.1 ldapserver" | tee -a /etc/hosts\'')
+    c.sudo(f'sh -c \'echo "{auth_backend_ip_addr} ldapserver" | tee -a /etc/hosts\'')
 
 @task
 def test_auth_backend(c, backend):
-    pdns_auth_env_vars = 'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST=127.0.0.1 GMYSQL2HOST=127.0.0.1 MYSQL_HOST="127.0.0.1" PGHOST="127.0.0.1" PGPORT="5432"'
+    pdns_auth_env_vars = f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST={auth_backend_ip_addr} GMYSQL2HOST={auth_backend_ip_addr} MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432'
 
     if backend == 'remote':
         ci_auth_install_remotebackend_test_deps(c)
 
     if backend == 'authpy':
+        c.sudo(f'sh -c \'echo "{auth_backend_ip_addr} kerberos-server" | tee -a /etc/hosts\'')
         with c.cd('regression-tests.auth-py'):
             c.run(f'{pdns_auth_env_vars} WITHKERBEROS=YES ./runtests')
         return
@@ -772,7 +773,10 @@ def test_auth_backend(c, backend):
             c.run(f'{pdns_auth_env_vars} ./start-test-stop 5300 {variant}')
 
     if backend == 'gsqlite3':
+        if os.getenv('SKIP_IPV6_TESTS'):
+            pdns_auth_env_vars += ' context=noipv6'
         with c.cd('regression-tests.nobackend'):
+            c.run(f'echo {pdns_auth_env_vars}')
             c.run(f'{pdns_auth_env_vars} ./runtests')
         c.run('/opt/pdns-auth/bin/pdnsutil test-algorithms')
         return
@@ -793,7 +797,7 @@ def test_dnsdist(c):
 @task
 def test_regression_recursor(c):
     c.run('/opt/pdns-recursor/sbin/pdns_recursor --version')
-    c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control SKIP_IPV6_TESTS=y ./build-scripts/test-recursor')
+    c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control ./build-scripts/test-recursor')
 
 @task
 def test_bulk_recursor(c, threads, mthreads, shards):
@@ -819,7 +823,7 @@ def install_coverity_tools(c, project):
 
 @task
 def coverity_clang_configure(c):
-    c.sudo('/usr/local/bin/cov-configure --template --comptype clangcc --compiler clang++-12')
+    c.sudo(f'/usr/local/bin/cov-configure --template --comptype clangcc --compiler clang++-{clang_version}')
 
 @task
 def coverity_make(c):

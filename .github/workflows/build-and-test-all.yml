@@ -10,21 +10,28 @@ on:
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
 
+env:
+  CLANG_VERSION: '13'
+  # github.workspace variable points to the Runner home folder. Container home folder defined below.
+  REPO_HOME: '/__w/pdns/pdns'
+
 jobs:
   build-auth:
     name: build auth
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-20.04
-    env:
-      ASAN_OPTIONS: detect_leaks=0
-      FUZZING_TARGETS: yes
-      SANITIZERS: asan+ubsan
-      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
-      UNIT_TESTS: yes
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      env:
+        ASAN_OPTIONS: detect_leaks=0
+        FUZZING_TARGETS: yes
+        SANITIZERS: asan+ubsan
+        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        UNIT_TESTS: yes
+        PDNS_TEST_NO_IPV6: yes
     outputs:
       clang-tidy-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
         with:
           fetch-depth: 5
@@ -34,23 +41,20 @@ jobs:
         run: |
           echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
         shell: bash
+      - run: mkdir -p ~/.ccache
       - name: let GitHub cache our ccache data
         uses: actions/cache@v3
         with:
           path: ~/.ccache
           key: auth-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: auth-ccache-
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
-      - run: inv install-clang
-      - run: inv install-clang-tidy-tools
-      - run: inv install-auth-build-deps
       - run: inv ci-autoconf
       - run: inv ci-auth-configure
       - run: inv ci-auth-make-bear  # This runs under pdns/
       - run: ln -s .clang-tidy.full .clang-tidy
       - name: Run clang-tidy
         working-directory: pdns
-        run: git diff -U0 HEAD^..HEAD | python3 ../.github/scripts/git-filter.py | python3 /usr/bin/clang-tidy-diff-12.py -clang-tidy-binary /usr/bin/clang-tidy-12 -extra-arg=-ferror-limit=0 -p2 -export-fixes clang-tidy-auth.yml
+        run: git diff -U0 HEAD^..HEAD | python3 ../.github/scripts/git-filter.py | python3 /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p2 -export-fixes clang-tidy-auth.yml
       - name: Print clang-tidy fixes YAML
         working-directory: pdns
         shell: bash
@@ -86,18 +90,19 @@ jobs:
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
-    env:
-      ASAN_OPTIONS: detect_leaks=0
-      SANITIZERS: ${{ matrix.sanitizers }}
-      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
-      UNIT_TESTS: yes
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      env:
+        ASAN_OPTIONS: detect_leaks=0
+        SANITIZERS: ${{ matrix.sanitizers }}
+        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        UNIT_TESTS: yes
     defaults:
       run:
         working-directory: ./pdns/recursordist/
     outputs:
       clang-tidy-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
         with:
           fetch-depth: 5
@@ -107,23 +112,19 @@ jobs:
         run: |
           echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
         shell: bash
+      - run: mkdir -p ~/.ccache
       - name: let GitHub cache our ccache data
         uses: actions/cache@v3
         with:
           path: ~/.ccache
           key: recursor-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: recursor-${{ matrix.sanitizers }}-ccache-
-      - run: ../../build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
-      - run: inv apt-fresh
-      - run: inv install-clang
-      - run: inv install-clang-tidy-tools
-      - run: inv install-rec-build-deps
       - run: inv ci-autoconf
       - run: inv ci-rec-configure
       - run: inv ci-rec-make-bear
       - run: ln -s ../../.clang-tidy.full .clang-tidy
       - name: Run clang-tidy
-        run: git diff -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py | python3 /usr/bin/clang-tidy-diff-12.py -clang-tidy-binary /usr/bin/clang-tidy-12 -extra-arg=-ferror-limit=0 -p3 -export-fixes clang-tidy-rec.yml
+        run: git diff -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py | python3 /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p3 -export-fixes clang-tidy-rec.yml
       - name: Print clang-tidy fixes YAML
         shell: bash
         run: |
@@ -160,18 +161,19 @@ jobs:
         exclude:
           - sanitizers: tsan
             features: least
-    env:
-      ASAN_OPTIONS: detect_leaks=0
-      SANITIZERS: ${{ matrix.sanitizers }}
-      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
-      UNIT_TESTS: yes
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      env:
+        ASAN_OPTIONS: detect_leaks=0
+        SANITIZERS: ${{ matrix.sanitizers }}
+        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        UNIT_TESTS: yes
     defaults:
       run:
         working-directory: ./pdns/dnsdistdist/
     outputs:
       clang-tidy-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
         with:
           fetch-depth: 5
@@ -181,23 +183,19 @@ jobs:
         run: |
           echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
         shell: bash
+      - run: mkdir -p ~/.ccache
       - name: let GitHub cache our ccache data
         uses: actions/cache@v3
         with:
           path: ~/.ccache
           key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-
-      - run: ../../build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
-      - run: inv apt-fresh
-      - run: inv install-clang
-      - run: inv install-clang-tidy-tools
-      - run: inv install-dnsdist-build-deps
       - run: inv ci-autoconf
       - run: inv ci-dnsdist-configure ${{ matrix.features }}
       - run: inv ci-dnsdist-make-bear
       - run: ln -s ../../.clang-tidy.full .clang-tidy
       - name: Run clang-tidy
-        run: git diff -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py | python3 /usr/bin/clang-tidy-diff-12.py -clang-tidy-binary /usr/bin/clang-tidy-12 -extra-arg=-ferror-limit=0 -p3 -export-fixes clang-tidy-dnsdist.yml
+        run: git diff -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py | python3 /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p3 -export-fixes clang-tidy-dnsdist.yml
       - name: Print clang-tidy fixes YAML
         shell: bash
         run: |
@@ -226,10 +224,13 @@ jobs:
   test-auth-api:
     needs: build-auth
     runs-on: ubuntu-20.04
-    env:
-      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
-      ASAN_OPTIONS: detect_leaks=0
-      TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/dnsdistdist/dnsdist-tsan.supp"
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      env:
+        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        ASAN_OPTIONS: detect_leaks=0
+        TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/dnsdistdist/dnsdist-tsan.supp"
+        AUTH_BACKEND_IP_ADDR: "172.17.0.1"
     strategy:
       matrix:
         include:
@@ -256,7 +257,6 @@ jobs:
         options: >-
           --restart always
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
         with:
           fetch-depth: 5
@@ -266,9 +266,7 @@ jobs:
         with:
           name: pdns-auth
           path: /opt/pdns-auth
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: inv apt-fresh
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps -b ${{ matrix.backend }}
       - run: inv test-api auth -b ${{ matrix.backend }}
@@ -276,10 +274,15 @@ jobs:
   test-auth-backend:
     needs: build-auth
     runs-on: ubuntu-20.04
-    env:
-      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
-      ASAN_OPTIONS: detect_leaks=0
-      LDAPHOST: ldap://ldapserver/
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      env:
+        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        ASAN_OPTIONS: detect_leaks=0
+        LDAPHOST: ldap://ldapserver/
+        ODBCINI: /github/home/.odbc.ini
+        AUTH_BACKEND_IP_ADDR: "172.17.0.1"
+        SKIP_IPV6_TESTS: yes
     strategy:
       matrix:
         include:
@@ -366,7 +369,6 @@ jobs:
         options: >-
           --restart always
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
         with:
           fetch-depth: 5
@@ -376,10 +378,7 @@ jobs:
         with:
           name: pdns-auth
           path: /opt/pdns-auth
-      # - name: Setup upterm session
-      #   uses: lhotari/action-upterm@v1
       # FIXME: install recursor for backends that have ALIAS
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps -b ${{ matrix.backend }}
       - run: inv test-auth-backend -b ${{ matrix.backend }}
@@ -387,11 +386,12 @@ jobs:
   test-ixfrdist:
     needs: build-auth
     runs-on: ubuntu-20.04
-    env:
-      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
-      ASAN_OPTIONS: detect_leaks=0
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      env:
+        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        ASAN_OPTIONS: detect_leaks=0
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
         with:
           fetch-depth: 5
@@ -401,7 +401,6 @@ jobs:
         with:
           name: pdns-auth
           path: /opt/pdns-auth
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps
       - run: inv test-ixfrdist
@@ -412,12 +411,16 @@ jobs:
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
-    env:
-      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
-      ASAN_OPTIONS: detect_leaks=0
-      TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
+        dist_name: [debian]
+        dist_release_name: [bullseye]
+        pdns_repo_version: ['45']
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      env:
+        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        ASAN_OPTIONS: detect_leaks=0
+        TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
         with:
           fetch-depth: 5
@@ -427,8 +430,8 @@ jobs:
         with:
           name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
-      - run: inv add-auth-repo  # FIXME: do we need this for rec API testing?
+      - run: inv apt-fresh
+      - run: inv add-auth-repo  ${{ matrix.dist_name }} ${{ matrix.dist_release_name }} ${{ matrix.pdns_repo_version }}
       - run: inv install-clang-runtime
       - run: inv install-rec-test-deps
       - run: inv test-api recursor
@@ -439,13 +442,19 @@ jobs:
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
-    env:
-      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp'
-      ASAN_OPTIONS: detect_leaks=0
-      TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
+        dist_name: [debian]
+        dist_release_name: [bullseye]
+        pdns_repo_version: ['45']
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      env:
+        UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
+        ASAN_OPTIONS: detect_leaks=0
+        TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
+        SKIP_IPV6_TESTS: yes
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3
+      # - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
+      - uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 5
           submodules: recursive
@@ -454,8 +463,8 @@ jobs:
         with:
           name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
-      - run: inv add-auth-repo
+      - run: inv apt-fresh
+      - run: inv add-auth-repo ${{ matrix.dist_name }} ${{ matrix.dist_release_name }} ${{ matrix.pdns_repo_version }}
       - run: inv install-clang-runtime
       - run: inv install-rec-test-deps
       - run: inv test-regression-recursor
@@ -470,12 +479,13 @@ jobs:
         threads: [1, 2, 3, 4, 8]
         mthreads: [2048]
         shards: [1, 2, 1024]
-    env:
-      UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp'
-      ASAN_OPTIONS: detect_leaks=0
-      TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      env:
+        UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
+        ASAN_OPTIONS: detect_leaks=0
+        TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
         with:
           fetch-depth: 5
@@ -485,7 +495,6 @@ jobs:
         with:
           name: pdns-recursor-${{ matrix.sanitizers }}
           path: /opt/pdns-recursor
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
       - run: inv install-rec-bulk-deps
       - run: inv test-bulk-recursor ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }}
@@ -496,15 +505,17 @@ jobs:
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
-    env:
-      UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
-      # Disabling (intercept_send=0) the custom send wrappers for ASAN and TSAN because they cause the tools to report a race that doesn't exist on actual implementations of send(), see https://github.com/google/sanitizers/issues/1498
-      ASAN_OPTIONS: detect_leaks=0:intercept_send=0
-      TSAN_OPTIONS: "halt_on_error=1:intercept_send=0:suppressions=${{ github.workspace }}/pdns/dnsdistdist/dnsdist-tsan.supp"
-      # IncludeDir tests are disabled because of a weird interaction between TSAN and these tests which ever only happens on GH actions
-      SKIP_INCLUDEDIR_TESTS: yes
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      env:
+        UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
+        # Disabling (intercept_send=0) the custom send wrappers for ASAN and TSAN because they cause the tools to report a race that doesn't exist on actual implementations of send(), see https://github.com/google/sanitizers/issues/1498
+        ASAN_OPTIONS: detect_leaks=0:intercept_send=0
+        TSAN_OPTIONS: "halt_on_error=1:intercept_send=0:suppressions=${{ env.REPO_HOME }}/pdns/dnsdistdist/dnsdist-tsan.supp"
+        # IncludeDir tests are disabled because of a weird interaction between TSAN and these tests which ever only happens on GH actions
+        SKIP_INCLUDEDIR_TESTS: yes
+        SKIP_IPV6_TESTS: yes
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
         with:
           fetch-depth: 5
@@ -514,7 +525,6 @@ jobs:
         with:
           name: dnsdist-full-${{ matrix.sanitizers }}
           path: /opt/dnsdist
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
       - run: inv install-dnsdist-test-deps
       - run: inv test-dnsdist
@@ -522,13 +532,13 @@ jobs:
   swagger-syntax-check:
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-20.04
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-swagger-tools
       - run: inv swagger-syntax-check
 

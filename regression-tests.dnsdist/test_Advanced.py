@@ -394,6 +394,9 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
         self.assertEqual(receivedQuery, query)
         self.assertEqual(receivedResponse, response)
 
+        if 'SKIP_IPV6_TESTS' in os.environ:
+          return
+
         # a bit more tricky, UDP-only IPv6
         sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
         sock.settimeout(1.0)
