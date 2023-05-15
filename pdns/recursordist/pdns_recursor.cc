@@ -894,7 +894,7 @@ static uint32_t capPacketCacheTTL(const struct dnsheader& hdr, uint32_t ttl, boo
   return ttl;
 }
 
-void startDoResolve(void* p)
+void startDoResolve(void* p) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
   auto dc = std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
   SyncRes sr(dc->d_now);
@@ -1674,7 +1674,8 @@ void startDoResolve(void* p)
 #endif
     }
 
-    if (g_packetCache && !variableAnswer && !sr.wasVariable()) {
+    const bool intoPC = g_packetCache && !variableAnswer && !sr.wasVariable();
+    if (intoPC) {
       minTTL = capPacketCacheTTL(*pw.getHeader(), minTTL, seenAuthSOA);
       g_packetCache->insertResponsePacket(dc->d_tag, dc->d_qhash, std::move(dc->d_query), dc->d_mdp.d_qname,
                                           dc->d_mdp.d_qtype, dc->d_mdp.d_qclass,
@@ -1789,6 +1790,7 @@ void startDoResolve(void* p)
         if (!shouldNotValidate && sr.isDNSSECValidationRequested()) {
           g_log << ", dnssec=" << sr.getValidationState();
         }
+        g_log << " answer-is-variable=" << sr.wasVariable() << ", into-packetcache=" << intoPC;
         g_log << endl;
       }
       else {
@@ -1803,7 +1805,9 @@ void startDoResolve(void* p)
                         "tcpout", Logging::Loggable(sr.d_tcpoutqueries),
                         "dotout", Logging::Loggable(sr.d_dotoutqueries),
                         "rcode", Logging::Loggable(res),
-                        "validationState", Logging::Loggable(sr.getValidationState()));
+                        "validationState", Logging::Loggable(sr.getValidationState()),
+                        "answer-is-variable", Logging::Loggable(sr.wasVariable()),
+                        "into-packetcache", Logging::Loggable(intoPC));
       }
     }
 
