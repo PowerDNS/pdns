@@ -1817,7 +1817,7 @@ unsigned int SyncRes::getAdjustedRecursionBound() const
  * \param stopAtDelegation if non-nullptr and pointed-to value is Stop requests the callee to stop at a delegation, if so pointed-to value is set to Stopped
  * \return DNS RCODE or -1 (Error)
  */
-int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* fromCache, StopAtDelegation* stopAtDelegation)
+int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* fromCache, StopAtDelegation* stopAtDelegation) // NOLINT(readability-function-cognitive-complexity)
 {
   context.extendedError.reset();
   auto prefix = getPrefix(depth);
@@ -2419,7 +2419,7 @@ static pair<bool, unsigned int> scanForCNAMELoop(const DNSName& name, const vect
   return {false, numCNames};
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse)
+bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse) // NOLINT(readability-function-cognitive-complexity)
 {
   vector<DNSRecord> cset;
   vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
