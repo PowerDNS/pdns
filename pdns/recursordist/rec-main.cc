@@ -1254,7 +1254,7 @@ void broadcastFunction(const pipefunc_t& func)
       continue;
     }
 
-    ThreadMSG* tmsg = new ThreadMSG(); // NOLINT: manual onwership handling
+    ThreadMSG* tmsg = new ThreadMSG(); // NOLINT: manual ownership handling
     tmsg->func = func;
     tmsg->wantAnswer = true;
     if (write(threadInfo.pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT: sizeof correct
@@ -1348,7 +1348,7 @@ T broadcastAccFunction(const std::function<T*()>& func)
 
     if (resp) {
       ret += *resp;
-      delete resp; // NOLINT: manual ownershipm handling
+      delete resp; // NOLINT: manual ownership handling
       resp = nullptr;
     }
     // coverity[leaked_storage]
@@ -1915,7 +1915,6 @@ static int serviceMain(Logr::log_t log) // NOLINT(readability-function-cognitive
 
   initDontQuery(log);
 
-  /* this needs to be done before parseACLs(), which call broadcastFunction() */
   RecThreadInfo::setWeDistributeQueries(::arg().mustDo("pdns-distributes-queries"));
   if (RecThreadInfo::weDistributeQueries()) {
     SLOG(g_log << Logger::Warning << "PowerDNS Recursor itself will distribute queries over threads" << endl,
