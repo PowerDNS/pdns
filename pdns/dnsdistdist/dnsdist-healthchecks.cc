@@ -327,7 +327,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
         SSetsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
       }
 #endif
-      sock.bind(ds->d_config.sourceAddr);
+      sock.bind(ds->d_config.sourceAddr, false);
     }
 
     auto data = std::make_shared<HealthCheckData>(*mplexer, ds, std::move(checkName), checkType, checkClass, queryID);
