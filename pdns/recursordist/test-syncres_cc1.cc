@@ -1707,7 +1707,7 @@ BOOST_AUTO_TEST_CASE(test_cname_length)
   size_t length = 0;
   const DNSName target("cname.powerdns.com.");
 
-  sr->setAsyncCallback([target, &length](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([target, &length](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const boost::optional<const ResolveContext&>& /* context */, LWResult* res, bool* /* chained */) {
     if (isRootServer(ip)) {
 
       setLWResult(res, 0, false, false, true);
