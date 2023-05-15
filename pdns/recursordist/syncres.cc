@@ -2626,8 +2626,8 @@ struct CacheEntry
 {
   vector<DNSRecord> records;
   vector<shared_ptr<const RRSIGRecordContent>> signatures;
+  time_t d_ttl_time{0};
   uint32_t signaturesTTL{std::numeric_limits<uint32_t>::max()};
-  uint32_t d_orig_ttl{0};
 };
 struct CacheKey
 {
@@ -4269,7 +4269,7 @@ void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSR
   }
 }
 
-RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery, const ComboAddress& remoteIP)
+RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, const boost::optional<Netmask> ednsmask, vState& state, bool& needWildcardProof, bool& gatherWildcardProof, unsigned int& wildcardLabelsCount, bool rdQuery, const ComboAddress& remoteIP) // NOLINT(readability-function-cognitive-complexity)
 {
   bool wasForwardRecurse = wasForwarded && rdQuery;
   tcache_t tcache;
@@ -4411,7 +4411,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
         rec.d_ttl = min(s_maxcachettl, rec.d_ttl);
 
         DNSRecord dr(rec);
-        tcache[{rec.d_name, rec.d_type, rec.d_place}].d_orig_ttl = dr.d_ttl;
+        tcache[{rec.d_name, rec.d_type, rec.d_place}].d_ttl_time = d_now.tv_sec;
         dr.d_ttl += d_now.tv_sec;
         dr.d_place = DNSResourceRecord::ANSWER;
         tcache[{rec.d_name, rec.d_type, rec.d_place}].records.push_back(dr);
@@ -4426,17 +4426,9 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     if ((entry.second.records.size() + entry.second.signatures.size() + authorityRecs.size()) > 1) { // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
       uint32_t lowestTTD = computeLowestTTD(entry.second.records, entry.second.signatures, entry.second.signaturesTTL, authorityRecs);
 
-      uint32_t compensation = 0;
       for (auto& record : entry.second.records) {
-        compensation = record.d_ttl - lowestTTD;
         record.d_ttl = lowestTTD; // boom
       }
-      entry.second.d_orig_ttl -= compensation;
-#if 0
-      if (compensation != 0) {
-        cerr << entry.first.name << '/' << entry.first.type << " compensated " << compensation << endl;
-      }
-#endif
     }
   }
 
@@ -4543,19 +4535,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     }
 
     if (vStateIsBogus(recordState)) {
-      uint32_t compensation = 0;
       /* this is a TTD by now, be careful */
       for (auto& record : i->second.records) {
         auto newval = std::min(record.d_ttl, static_cast<uint32_t>(s_maxbogusttl + d_now.tv_sec));
-        compensation = record.d_ttl - newval;
         record.d_ttl = newval;
       }
-      i->second.d_orig_ttl -= compensation;
-#if 0
-      if (compensation != 0) {
-        cerr << i->first.name << '/' << i->first.type << " compensated by bogus case " << compensation << endl;
-      }
-#endif
+      i->second.d_ttl_time = d_now.tv_sec;
     }
 
     /* We don't need to store NSEC3 records in the positive cache because:
@@ -4601,7 +4586,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
         if (isAA && i->first.type == QType::NS && s_save_parent_ns_set) {
           rememberParentSetIfNeeded(i->first.name, i->second.records, depth, prefix);
         }
-        g_recCache->replace(d_now.tv_sec, i->first.name, i->first.type, i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, auth, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, i->second.d_orig_ttl);
+        g_recCache->replace(d_now.tv_sec, i->first.name, i->first.type, i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, auth, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, i->second.d_ttl_time);
 
         // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
         // be served, as negcache entries are checked before record cache entries
@@ -4625,7 +4610,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
               content.push_back(std::move(nonExpandedRecord));
             }
 
-            g_recCache->replace(d_now.tv_sec, realOwner, QType(i->first.type), content, i->second.signatures, /* no additional records in that case */ {}, i->first.type == QType::DS ? true : isAA, auth, boost::none, boost::none, recordState, remoteIP, d_refresh, i->second.d_orig_ttl);
+            g_recCache->replace(d_now.tv_sec, realOwner, QType(i->first.type), content, i->second.signatures, /* no additional records in that case */ {}, i->first.type == QType::DS ? true : isAA, auth, boost::none, boost::none, recordState, remoteIP, d_refresh, i->second.d_ttl_time);
           }
         }
       }
