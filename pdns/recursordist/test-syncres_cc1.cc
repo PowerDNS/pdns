@@ -1012,7 +1012,7 @@ BOOST_AUTO_TEST_CASE(test_endless_glueless_referral)
   const DNSName target("powerdns.com.");
 
   size_t count = 0;
-  sr->setAsyncCallback([target, &count](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([target, &count](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const boost::optional<const ResolveContext&>& /* context */, LWResult* res, bool* /* chained */) {
     if (isRootServer(ip)) {
       setLWResult(res, 0, false, false, true);
 
@@ -1642,7 +1642,7 @@ BOOST_AUTO_TEST_CASE(test_cname_long_loop)
   const DNSName target3("cname3.powerdns.com.");
   const DNSName target4("cname4.powerdns.com.");
 
-  sr->setAsyncCallback([target1, target2, target3, target4, &count](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([target1, target2, target3, target4, &count](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const boost::optional<const ResolveContext&>& /* context */, LWResult* res, bool* /* chained */) {
     count++;
 
     if (isRootServer(ip)) {
