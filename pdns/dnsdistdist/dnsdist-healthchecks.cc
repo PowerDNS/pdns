@@ -319,7 +319,9 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
 #endif
 
     if (!IsAnyAddress(ds->d_config.sourceAddr)) {
-      sock.setReuseAddr();
+      if (ds->doHealthcheckOverTCP()) {
+        sock.setReuseAddr();
+      }
 #ifdef IP_BIND_ADDRESS_NO_PORT
       if (ds->d_config.ipBindAddrNoPort) {
         SSetsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
