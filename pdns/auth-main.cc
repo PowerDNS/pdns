@@ -196,6 +196,7 @@ static void declareArguments()
   ::arg().set("log-timestamp", "Print timestamps in log lines") = "yes";
   ::arg().set("distributor-threads", "Default number of Distributor (backend) threads to start") = "3";
   ::arg().set("signing-threads", "Default number of signer threads to start") = "3";
+  ::arg().setSwitch("workaround-11804", "Workaround for issue 11804: send single RR per AXFR chunk") = "no";
   ::arg().set("receiver-threads", "Default number of receiver threads to start") = "1";
   ::arg().set("queue-limit", "Maximum number of milliseconds to queue a query") = "1500";
   ::arg().set("resolver", "Use this resolver for ALIAS and the internal stub resolver") = "no";
