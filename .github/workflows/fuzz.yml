@@ -8,6 +8,11 @@ jobs:
   Fuzzing:
     runs-on: ubuntu-20.04
     steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 5
+        submodules: recursive
+    - run: docker build -t gcr.io/oss-fuzz-base/base-builder:latest -f Dockerfile-cifuzz .
     - name: Build Fuzzers
       uses: google/oss-fuzz/infra/cifuzz/actions/build_fuzzers@master
       with:
