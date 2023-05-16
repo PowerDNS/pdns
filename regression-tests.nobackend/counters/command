@@ -4,11 +4,17 @@ if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
 fi
 
+local_address="127.0.0.1,::1"
+
+if [ -n "${SKIP_IPV6_TESTS}" ]; then
+  local_address="127.0.0.1"
+fi
+
 port=5600
 
 rm -f pdns*.pid
 
-$PDNS --daemon=no --local-address=127.0.0.1,::1 \
+$PDNS --daemon=no --local-address=$local_address \
   --local-port=$port --socket-dir=./ --no-shuffle --launch=bind --no-config \
   --module-dir=../regression-tests/modules --bind-config=counters/named.conf &
 
@@ -20,11 +26,13 @@ $SDIG 127.0.0.1 $port test.com SOA >&2 >/dev/null
 $SDIG 127.0.0.1 $port server1.test.com A tcp >&2 >/dev/null
 $SDIG 127.0.0.1 $port test.com SOA tcp >&2 >/dev/null
 
-$SDIG ::1 $port server1.test.com A >&2 >/dev/null
-$SDIG ::1 $port server1.com A tcp >&2 >/dev/null
+if [ -z "${SKIP_IPV6_TESTS}" ]; then
+  $SDIG ::1 $port server1.test.com A >&2 >/dev/null
+  $SDIG ::1 $port server1.com A tcp >&2 >/dev/null
 
-$SDIG ::1 $port test.com SOA >&2 >/dev/null
-$SDIG ::1 $port test.com SOA tcp >&2 >/dev/null
+  $SDIG ::1 $port test.com SOA >&2 >/dev/null
+  $SDIG ::1 $port test.com SOA tcp >&2 >/dev/null
+fi
 
 # NXDOMAIN
 $SDIG 127.0.0.1 $port nx.test.com A >&2 >/dev/null

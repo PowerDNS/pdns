@@ -764,7 +764,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return result.decode('UTF-8')
 
     @classmethod
-    def sendConsoleCommand(cls, command, timeout=1.0):
+    def sendConsoleCommand(cls, command, timeout=5.0):
         ourNonce = libnacl.utils.rand_nonce()
         theirNonce = None
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
