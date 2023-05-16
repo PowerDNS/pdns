@@ -1419,7 +1419,7 @@ static int initDNSSEC(Logr::log_t log)
   else if (::arg()["dnssec"] == "validate") {
     g_dnssecmode = DNSSECMode::ValidateAll;
   }
-  else if (::arg()["dnssec"] == "log-fail {") {
+  else if (::arg()["dnssec"] == "log-fail") {
     g_dnssecmode = DNSSECMode::ValidateForLog;
   }
   else {
