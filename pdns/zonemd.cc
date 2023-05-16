@@ -160,7 +160,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
   d_resourceRecordSetTTLs[key] = record.d_ttl;
 }
 
-void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK) // NOLINT
+void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
 {
   validationDone = false;
   validationOK = false;

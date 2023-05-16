@@ -154,7 +154,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
 
   Json::array servers;
   for (const ComboAddress& server : zone.d_servers) {
-    servers.push_back(server.toStringWithPort()); // NOLINT: union
+    servers.push_back(server.toStringWithPort());
   }
 
   Json::array records;
@@ -202,10 +202,10 @@ static void doCreateZone(const Json& document)
     if (!singleIPTarget.empty()) {
       try {
         ComboAddress rem(singleIPTarget);
-        if (rem.sin4.sin_family != AF_INET) { // NOLINT: union
+        if (rem.sin4.sin_family != AF_INET) {
           throw ApiException("");
         }
-        singleIPTarget = rem.toString(); // NOLINT: union
+        singleIPTarget = rem.toString();
       }
       catch (...) {
         throw ApiException("Single IP target '" + singleIPTarget + "' is invalid");
@@ -238,7 +238,7 @@ static void doCreateZone(const Json& document)
         if (!serverlist.empty()) {
           serverlist += ";";
         }
-        serverlist += address.toStringWithPort(); // NOLINT: union
+        serverlist += address.toStringWithPort();
       }
       catch (const PDNSException& e) {
         throw ApiException(e.reason);
@@ -313,7 +313,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     const SyncRes::AuthDomain& zone = val.second;
     Json::array servers;
     for (const ComboAddress& server : zone.d_servers) {
-      servers.push_back(server.toStringWithPort()); // NOLINT: union
+      servers.push_back(server.toStringWithPort());
     }
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     string zoneId = apiZoneNameToId(val.first);
@@ -1358,7 +1358,7 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
     for (const rcounts_t::value_type& count : rcounts) {
       totIncluded -= count.first;
       entries.push_back(Json::array{
-        -count.first, count.second.toString()}); // NOLINT: union
+        -count.first, count.second.toString()});
       if (tot++ >= 100) {
         break;
       }
@@ -1450,7 +1450,7 @@ void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) cons
       while (!req.complete) {
         auto ret = arecvtcp(data, 16384, handler, true);
         if (ret == LWResult::Result::Success) {
-          string str(reinterpret_cast<const char*>(data.data()), data.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+          string str(reinterpret_cast<const char*>(data.data()), data.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): safe cast, data.data() returns unsigned char *
           req.complete = yarl.feed(str);
         }
         else {
