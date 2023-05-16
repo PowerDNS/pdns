@@ -221,7 +221,7 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
     extra=[]
     for b in backend:
         extra.extend(auth_backend_test_deps[b])
-    c.sudo('apt-get -y -qq install ' + ' '.join(extra+auth_test_deps))
+    c.sudo('apt-get -y install ' + ' '.join(extra+auth_test_deps))
 
     c.run('chmod +x /opt/pdns-auth/bin/* /opt/pdns-auth/sbin/*')
     # c.run('''if [ ! -e $HOME/bin/jdnssec-verifyzone ]; then
