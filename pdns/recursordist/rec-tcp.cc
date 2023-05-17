@@ -87,7 +87,7 @@ static void terminateTCPConnection(int fileDesc)
 static void sendErrorOverTCP(std::unique_ptr<DNSComboWriter>& comboWriter, int rcode)
 {
   std::vector<uint8_t> packet;
-  if (comboWriter->d_mdp.d_header.qdcount == 0) {
+  if (comboWriter->d_mdp.d_header.qdcount == 0U) {
     /* header-only */
     packet.resize(sizeof(dnsheader));
   }
@@ -370,7 +370,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
       dest.reset();
       dest.sin4.sin_family = conn->d_remote.sin4.sin_family;
       socklen_t len = dest.getSocklen();
-      getsockname(conn->getFD(), reinterpret_cast<sockaddr*>(&dest), &len); // if this fails, we're ok with it
+      getsockname(conn->getFD(), reinterpret_cast<sockaddr*>(&dest), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       comboWriter->setLocal(dest); // the address we received the query on
       comboWriter->setDestination(conn->d_destination); // the address we assume the query is received on, might be set by proxy protocol
       comboWriter->setMappedSource(conn->d_mappedSource); // the address we assume the query is coming from after table based mapping
@@ -402,7 +402,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
       logQuery = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logQueries;
       comboWriter->d_logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
 
-      if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || comboWriter->d_mdp.d_header.opcode == Opcode::Notify) {
+      if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
 
         try {
           EDNSOptionViewMap ednsOptions;
@@ -491,7 +491,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
         }
         return;
       }
-      if (comboWriter->d_mdp.d_header.opcode != Opcode::Query && comboWriter->d_mdp.d_header.opcode != Opcode::Notify) {
+      if (comboWriter->d_mdp.d_header.opcode != static_cast<unsigned>(Opcode::Query) && comboWriter->d_mdp.d_header.opcode != static_cast<unsigned>(Opcode::Notify)) {
         t_Counters.at(rec::Counter::ignoredCount)++;
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(comboWriter->d_mdp.d_header.opcode) << " from TCP client " << comboWriter->getRemote() << " on server socket!" << endl,
@@ -501,7 +501,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
         tcpGuard.keep();
         return;
       }
-      if (dnsheader->qdcount == 0) {
+      if (dnsheader->qdcount == 0U) {
         t_Counters.at(rec::Counter::emptyQueriesCount)++;
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << comboWriter->getRemote() << " on server socket!" << endl,
@@ -517,7 +517,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
         ++t_Counters.at(rec::Counter::qcounter);
         ++t_Counters.at(rec::Counter::tcpqcounter);
 
-        if (comboWriter->d_mdp.d_header.opcode == Opcode::Notify) {
+        if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
           if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(comboWriter->d_mappedSource)) {
             if (!g_quiet) {
               SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
@@ -542,7 +542,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
         string response;
         RecursorPacketCache::OptPBData pbData{boost::none};
 
-        if (comboWriter->d_mdp.d_header.opcode == Opcode::Query) {
+        if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Query)) {
           /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
              but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
              as cacheable we would cache it with a wrong tag, so better safe than sorry. */
@@ -586,7 +586,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
           } // cache hit
         } // query opcode
 
-        if (comboWriter->d_mdp.d_header.opcode == Opcode::Notify) {
+        if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
           if (!g_quiet) {
             SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << endl,
                  g_slogtcpin->info(Logr::Notice, "Got NOTIFY", "qname", Logging::Loggable(qname), "source", Logging::Loggable(comboWriter->d_source), "remote", Logging::Loggable(comboWriter->d_remote)));
@@ -626,7 +626,7 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
 {
   ComboAddress addr;
   socklen_t addrlen = sizeof(addr);
-  int newsock = accept(fileDesc, reinterpret_cast<struct sockaddr*>(&addr), &addrlen);
+  int newsock = accept(fileDesc, reinterpret_cast<struct sockaddr*>(&addr), &addrlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   if (newsock >= 0) {
     if (MT->numProcesses() > g_maxMThreads) {
       t_Counters.at(rec::Counter::overCapacityDrops)++;
@@ -687,7 +687,7 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
     tcpConn->d_destination.reset();
     tcpConn->d_destination.sin4.sin_family = addr.sin4.sin_family;
     socklen_t len = tcpConn->d_destination.getSocklen();
-    getsockname(tcpConn->getFD(), reinterpret_cast<sockaddr*>(&tcpConn->d_destination), &len); // if this fails, we're ok with it
+    getsockname(tcpConn->getFD(), reinterpret_cast<sockaddr*>(&tcpConn->d_destination), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     tcpConn->d_mappedSource = mappedSource;
 
     if (fromProxyProtocolSource) {
@@ -784,8 +784,8 @@ static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::sha
 static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var)
 {
   auto pid = boost::any_cast<std::shared_ptr<PacketID>>(var);
-  assert(pid->tcphandler);
-  assert(fileDesc == pid->tcphandler->getDescriptor());
+  assert(pid->tcphandler); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay): def off assert triggers it
+  assert(fileDesc == pid->tcphandler->getDescriptor()); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay) idem
   IOState newstate = IOState::Done;
 
   TCPLOG(pid->tcpsock, "TCPIOHandlerIO: lowState " << int(pid->lowState) << endl);
@@ -1110,7 +1110,7 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     }
 
     socklen_t socklen = address.sin4.sin_family == AF_INET ? sizeof(address.sin4) : sizeof(address.sin6);
-    if (::bind(socketFd, reinterpret_cast<struct sockaddr*>(&address), socklen) < 0) {
+    if (::bind(socketFd, reinterpret_cast<struct sockaddr*>(&address), socklen) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       throw PDNSException("Binding TCP server socket for " + address.toStringWithPort() + ": " + stringerror());
     }
 
