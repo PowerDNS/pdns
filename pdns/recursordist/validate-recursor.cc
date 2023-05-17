@@ -46,26 +46,26 @@ bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsmap_t>&
 {
   map<DNSName, dsmap_t> newDSAnchors;
   try {
-    auto zp = ZoneParserTNG(fname);
-    zp.disableGenerate();
-    DNSResourceRecord rr;
-    DNSRecord dr;
-    while (zp.get(rr)) {
-      dr = DNSRecord(rr);
-      if (rr.qtype == QType::DS) {
-        auto dsr = getRR<DSRecordContent>(dr);
+    auto zoneParser = ZoneParserTNG(fname);
+    zoneParser.disableGenerate();
+    DNSResourceRecord resourceRecord;
+    DNSRecord dnsrecord;
+    while (zoneParser.get(resourceRecord)) {
+      dnsrecord = DNSRecord(resourceRecord);
+      if (resourceRecord.qtype == QType::DS) {
+        auto dsr = getRR<DSRecordContent>(dnsrecord);
         if (dsr == nullptr) {
-          throw PDNSException("Unable to parse DS record '" + rr.qname.toString() + " " + rr.getZoneRepresentation() + "'");
+          throw PDNSException("Unable to parse DS record '" + resourceRecord.qname.toString() + " " + resourceRecord.getZoneRepresentation() + "'");
         }
-        newDSAnchors[rr.qname].insert(*dsr);
+        newDSAnchors[resourceRecord.qname].insert(*dsr);
       }
-      if (rr.qtype == QType::DNSKEY) {
-        auto dnskeyr = getRR<DNSKEYRecordContent>(dr);
+      if (resourceRecord.qtype == QType::DNSKEY) {
+        auto dnskeyr = getRR<DNSKEYRecordContent>(dnsrecord);
         if (dnskeyr == nullptr) {
-          throw PDNSException("Unable to parse DNSKEY record '" + rr.qname.toString() + " " + rr.getZoneRepresentation() + "'");
+          throw PDNSException("Unable to parse DNSKEY record '" + resourceRecord.qname.toString() + " " + resourceRecord.getZoneRepresentation() + "'");
         }
-        auto dsr = makeDSFromDNSKey(rr.qname, *dnskeyr, DNSSECKeeper::DIGEST_SHA256);
-        newDSAnchors[rr.qname].insert(dsr);
+        auto dsr = makeDSFromDNSKey(resourceRecord.qname, *dnskeyr, DNSSECKeeper::DIGEST_SHA256);
+        newDSAnchors[resourceRecord.qname].insert(dsr);
       }
     }
     if (dsAnchors == newDSAnchors) {

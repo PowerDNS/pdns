@@ -113,7 +113,7 @@ CheckOptions:
   - key:             readability-function-size.LineThreshold
     value:           '4294967295'
   - key:             bugprone-easily-swappable-parameters.MinimumLength
-    value:           '2'
+    value:           '4'
   - key:             portability-simd-intrinsics.Suggest
     value:           'false'
   - key:             cppcoreguidelines-pro-bounds-constant-array-index.GslHeader
