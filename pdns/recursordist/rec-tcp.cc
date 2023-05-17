@@ -180,7 +180,8 @@ public:
   RunningTCPQuestionGuard(RunningTCPQuestionGuard&&) = delete;
   RunningTCPQuestionGuard& operator=(const RunningTCPQuestionGuard&) = default;
   RunningTCPQuestionGuard& operator=(RunningTCPQuestionGuard&&) = delete;
-  RunningTCPQuestionGuard(int fileDesc) : d_fd(fileDesc) {}
+  RunningTCPQuestionGuard(int fileDesc) :
+    d_fd(fileDesc) {}
   ~RunningTCPQuestionGuard()
   {
     if (d_fd != -1) {
@@ -270,7 +271,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
       /* note that if the proxy header used a 'LOCAL' command, the original source and destination are untouched so everything should be fine */
       conn->d_mappedSource = conn->d_source;
       if (t_proxyMapping) {
-        if (const auto *iter = t_proxyMapping->lookup(conn->d_source)) {
+        if (const auto* iter = t_proxyMapping->lookup(conn->d_source)) {
           conn->d_mappedSource = iter->second.address;
           ++iter->second.stats.netmaskMatches;
         }
@@ -377,7 +378,9 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
          all queries sent over this connection */
       comboWriter->d_proxyProtocolValues = conn->proxyProtocolValues;
 
-      struct timeval start{};
+      struct timeval start
+      {
+      };
       Utility::gettimeofday(&start, nullptr);
 
       DNSName qname;
@@ -557,7 +560,9 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
 
             bool hadError = sendResponseOverTCP(comboWriter, response);
             finishTCPReply(comboWriter, hadError, false);
-            struct timeval now{};
+            struct timeval now
+            {
+            };
             Utility::gettimeofday(&now, nullptr);
             uint64_t spentUsec = uSec(now - start);
             t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
@@ -642,7 +647,7 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
     bool fromProxyProtocolSource = expectProxyProtocol(addr);
     ComboAddress mappedSource = addr;
     if (!fromProxyProtocolSource && t_proxyMapping) {
-      if (const auto *iter = t_proxyMapping->lookup(addr)) {
+      if (const auto* iter = t_proxyMapping->lookup(addr)) {
         mappedSource = iter->second.address;
         ++iter->second.stats.netmaskMatches;
       }
@@ -694,7 +699,9 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
       tcpConn->state = TCPConnection::BYTE0;
     }
 
-    struct timeval ttd{};
+    struct timeval ttd
+    {
+    };
     Utility::gettimeofday(&ttd, nullptr);
     ttd.tv_sec += g_tcpTimeout;
 
