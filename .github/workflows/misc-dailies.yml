@@ -7,6 +7,9 @@ on:
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
 
+env:
+  CLANG_VERSION: '12'
+
 jobs:
   el7-devtoolset:
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
