@@ -300,7 +300,7 @@ It is strongly recommended to keep this setting enabled (`yes`).
 
 -  Path
 
-Location of configuration directory (``pdns.conf``). Usually
+Location of configuration directory (the directory containing ``pdns.conf``). Usually
 ``/etc/powerdns``, but this depends on ``SYSCONFDIR`` during
 compile-time.
 
