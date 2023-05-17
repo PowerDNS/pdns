@@ -824,7 +824,7 @@ extern thread_local rec::TCounters t_Counters;
 class TCPConnection : public boost::noncopyable
 {
 public:
-  TCPConnection(int fd, const ComboAddress& addr);
+  TCPConnection(int fileDesc, const ComboAddress& addr);
   ~TCPConnection();
 
   int getFD() const
