@@ -44,7 +44,8 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
     cerr << []() { timeval t; gettimeofday(&t, nullptr); return t.tv_sec % 10  + t.tv_usec/1000000.0; }() << " FD " << (tcpsock) << ' ' << x; \
   } while (0)
 #else
-#define TCPLOG(pid, x)
+// We do not define this as empty since that produces a duplicate case label warning from clang-tidy
+#define TCPLOG(pid, x) while (false) { cerr << x; } // NOLINT(cppcoreguidelines-macro-usage,bugprone-macro-parentheses)
 #endif
 
 std::atomic<uint32_t> TCPConnection::s_currentConnections;
@@ -278,7 +279,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
       }
       if (t_allowFrom && !t_allowFrom->match(&conn->d_mappedSource)) {
         if (!g_quiet) {
-          SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << conn->d_mappedSource.toString() << ", address not matched by allow-from" << endl,
+          SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP query from " << conn->d_mappedSource.toString() << ", address not matched by allow-from" << endl,
                g_slogtcpin->info(Logr::Error, "Dropping TCP query, address not matched by allow-from", "remote", Logging::Loggable(conn->d_remote)));
         }
 
@@ -475,7 +476,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
         bool ipf = t_pdl->ipfilter(comboWriter->d_source, comboWriter->d_destination, *dnsheader, comboWriter->d_eventTrace);
         if (ipf) {
           if (!g_quiet) {
-            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED TCP question from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl,
+            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << g_multiTasker->getTid() << "/" << g_multiTasker->numProcesses() << "] DROPPED TCP question from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl,
                  g_slogtcpin->info(Logr::Info, "Dropped TCP question based on policy", "remote", Logging::Loggable(conn->d_remote), "source", Logging::Loggable(comboWriter->d_source)));
           }
           t_Counters.at(rec::Counter::policyDrops)++;
@@ -520,7 +521,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
         if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
           if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(comboWriter->d_mappedSource)) {
             if (!g_quiet) {
-              SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
+              SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
                    g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY, address not matched by allow-notify-from", "source", Logging::Loggable(comboWriter->d_mappedSource)));
             }
 
@@ -530,7 +531,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
 
           if (!isAllowNotifyForZone(qname)) {
             if (!g_quiet) {
-              SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
+              SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
                    g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(comboWriter->d_mappedSource), "zone", Logging::Loggable(qname)));
             }
 
@@ -612,7 +613,7 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
           t_fdm->setReadTTD(fileDesc, ttd, g_tcpTimeout);
         }
         tcpGuard.keep();
-        MT->makeThread(startDoResolve, comboWriter.release()); // deletes dc
+        g_multiTasker->makeThread(startDoResolve, comboWriter.release()); // deletes dc
       } // good query
     } // read full query
   } // reading query
@@ -628,7 +629,7 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
   socklen_t addrlen = sizeof(addr);
   int newsock = accept(fileDesc, reinterpret_cast<struct sockaddr*>(&addr), &addrlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   if (newsock >= 0) {
-    if (MT->numProcesses() > g_maxMThreads) {
+    if (g_multiTasker->numProcesses() > g_maxMThreads) {
       t_Counters.at(rec::Counter::overCapacityDrops)++;
       try {
         closesocket(newsock);
@@ -654,7 +655,7 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
     }
     if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {
       if (!g_quiet) {
-        SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
+        SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
              g_slogtcpin->info(Logr::Error, "dropping TCP query address neither matched by allow-from nor proxy-protocol-from", "source", Logging::Loggable(mappedSource)));
       }
       t_Counters.at(rec::Counter::unauthorizedTCP)++;
@@ -809,7 +810,7 @@ static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var)
           pid->inMSG.resize(pid->inPos); // old content (if there) + new bytes read, only relevant for the inIncompleteOkay case
           newstate = IOState::Done;
           TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-          MT->sendEvent(pid, &pid->inMSG);
+          g_multiTasker->sendEvent(pid, &pid->inMSG);
           return;
         }
         break;
@@ -825,7 +826,7 @@ static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var)
       TCPLOG(pid->tcpsock, "read exception..." << e.what() << endl);
       PacketBuffer empty;
       TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-      MT->sendEvent(pid, &empty); // this conveys error status
+      g_multiTasker->sendEvent(pid, &empty); // this conveys error status
       return;
     }
     break;
@@ -840,7 +841,7 @@ static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var)
       case IOState::Done: {
         TCPLOG(pid->tcpsock, "tryWrite: Done" << endl);
         TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-        MT->sendEvent(pid, &pid->outMSG); // send back what we sent to convey everything is ok
+        g_multiTasker->sendEvent(pid, &pid->outMSG); // send back what we sent to convey everything is ok
         return;
       }
       case IOState::NeedRead:
@@ -859,7 +860,7 @@ static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var)
       TCPLOG(pid->tcpsock, "write exception..." << e.what() << endl);
       PacketBuffer sent;
       TCPIOHandlerStateChange(pid->lowState, newstate, pid);
-      MT->sendEvent(pid, &sent); // we convey error status by sending empty string
+      g_multiTasker->sendEvent(pid, &sent); // we convey error status by sending empty string
       return;
     }
     break;
@@ -937,7 +938,7 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
   TCPIOHandlerStateChange(IOState::Done, state, pident);
 
   PacketBuffer packet;
-  int ret = MT->waitEvent(pident, &packet, g_networkTimeoutMsec);
+  int ret = g_multiTasker->waitEvent(pident, &packet, g_networkTimeoutMsec);
   TCPLOG(pident->tcpsock, "asendtcp waitEvent returned " << ret << ' ' << packet.size() << '/' << data.size() << ' ');
   if (ret == 0) {
     TCPLOG(pident->tcpsock, "timeout" << endl);
@@ -1007,7 +1008,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   // Will set pident->lowState
   TCPIOHandlerStateChange(IOState::Done, state, pident);
 
-  int ret = MT->waitEvent(pident, &data, g_networkTimeoutMsec);
+  int ret = g_multiTasker->waitEvent(pident, &data, g_networkTimeoutMsec);
   TCPLOG(pident->tcpsock, "arecvtcp " << ret << ' ' << data.size() << ' ');
   if (ret == 0) {
     TCPLOG(pident->tcpsock, "timeout" << endl);

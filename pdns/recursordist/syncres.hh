@@ -905,11 +905,11 @@ extern bool g_lowercaseOutgoing;
 std::string reloadZoneConfiguration();
 typedef std::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func);
-void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
+void distributeAsyncFunction(const std::string& packet, const pipefunc_t& func);
 
 int directResolve(const DNSName& qname, QType qtype, QClass qclass, vector<DNSRecord>& ret, const shared_ptr<RecursorLua4>& pdl, Logr::log_t);
 int directResolve(const DNSName& qname, QType qtype, QClass qclass, vector<DNSRecord>& ret, const shared_ptr<RecursorLua4>& pdl, bool qnamemin, Logr::log_t);
-int followCNAMERecords(std::vector<DNSRecord>& ret, const QType qtype, int oldret);
+int followCNAMERecords(std::vector<DNSRecord>& ret, QType qtype, int rcode);
 int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSRecord>& ret);
 int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret);
 

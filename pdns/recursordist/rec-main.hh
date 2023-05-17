@@ -169,10 +169,10 @@ public:
   {
   }
 
-  LWResult::Result getSocket(const ComboAddress& toaddr, int* fd);
+  LWResult::Result getSocket(const ComboAddress& toaddr, int* fileDesc);
 
   // return a socket to the pool, or simply erase it
-  void returnSocket(int fd);
+  void returnSocket(int fileDesc);
 
 private:
   // returns -1 for errors which might go away, throws for ones that won't
@@ -186,7 +186,7 @@ enum class PaddingMode
 };
 
 typedef MTasker<std::shared_ptr<PacketID>, PacketBuffer, PacketIDCompare> MT_t;
-extern thread_local std::unique_ptr<MT_t> MT; // the big MTasker
+extern thread_local std::unique_ptr<MT_t> g_multiTasker; // the big MTasker
 extern std::unique_ptr<RecursorPacketCache> g_packetCache;
 
 using RemoteLoggerStats_t = std::unordered_map<std::string, RemoteLoggerInterface::Stats>;
@@ -284,7 +284,7 @@ extern thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 
 inline MT_t* getMT()
 {
-  return MT ? MT.get() : nullptr;
+  return g_multiTasker ? g_multiTasker.get() : nullptr;
 }
 
 /* this function is called with both a string and a vector<uint8_t> representing a packet */
@@ -540,7 +540,7 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
                          const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
                          const RecEventTrace& eventTrace);
 void requestWipeCaches(const DNSName& canon);
-void startDoResolve(void* p);
+void startDoResolve(void*);
 bool expectProxyProtocol(const ComboAddress& from);
 void finishTCPReply(std::unique_ptr<DNSComboWriter>&, bool hadError, bool updateInFlight);
 void checkFastOpenSysctl(bool active, Logr::log_t);

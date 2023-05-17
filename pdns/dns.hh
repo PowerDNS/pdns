@@ -193,8 +193,8 @@ class dnsheader_aligned
 public:
   dnsheader_aligned(const void* mem)
   {
-    if (reinterpret_cast<uintptr_t>(mem) % sizeof(uint32_t) == 0) {
-      d_p = reinterpret_cast<const dnsheader*>(mem);
+    if (reinterpret_cast<uintptr_t>(mem) % sizeof(uint32_t) == 0) {  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      d_p = reinterpret_cast<const dnsheader*>(mem);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
     else {
       memcpy(&d_h, mem, sizeof(dnsheader));
@@ -202,14 +202,14 @@ public:
     }
   }
 
-  const dnsheader* get() const
+  [[nodiscard]] const dnsheader* get() const
   {
     return d_p;
   }
 
 private:
-  dnsheader d_h;
-  const dnsheader *d_p;
+  dnsheader d_h{};
+  const dnsheader *d_p{};
 };
 
 inline uint16_t * getFlagsFromDNSHeader(struct dnsheader * dh)
