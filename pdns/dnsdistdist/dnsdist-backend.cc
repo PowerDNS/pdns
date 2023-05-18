@@ -72,7 +72,6 @@ bool DownstreamState::reconnect()
 #endif
 
     if (!IsAnyAddress(d_config.sourceAddr)) {
-      SSetsockopt(fd, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef IP_BIND_ADDRESS_NO_PORT
       if (d_config.ipBindAddrNoPort) {
         SSetsockopt(fd, SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);

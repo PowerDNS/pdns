@@ -319,13 +319,15 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
 #endif
 
     if (!IsAnyAddress(ds->d_config.sourceAddr)) {
-      sock.setReuseAddr();
+      if (ds->doHealthcheckOverTCP()) {
+        sock.setReuseAddr();
+      }
 #ifdef IP_BIND_ADDRESS_NO_PORT
       if (ds->d_config.ipBindAddrNoPort) {
         SSetsockopt(sock.getHandle(), SOL_IP, IP_BIND_ADDRESS_NO_PORT, 1);
       }
 #endif
-      sock.bind(ds->d_config.sourceAddr);
+      sock.bind(ds->d_config.sourceAddr, false);
     }
 
     auto data = std::make_shared<HealthCheckData>(*mplexer, ds, std::move(checkName), checkType, checkClass, queryID);
