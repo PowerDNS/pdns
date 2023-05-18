@@ -1291,7 +1291,7 @@ The following actions exist.
 
   :param int maxqps: The QPS limit
 
-.. function:: QPSPoolAction(maxqps, poolname)
+.. function:: QPSPoolAction(maxqps, poolname [, stop])
 
   .. versionchanged:: 1.8.0
     Added the ``stop`` optional parameter.
