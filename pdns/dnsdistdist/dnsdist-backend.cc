@@ -37,7 +37,7 @@ bool DownstreamState::passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>
   }
 }
 
-bool DownstreamState::reconnect()
+bool DownstreamState::reconnect(bool initialAttempt)
 {
   std::unique_lock<std::mutex> tl(connectLock, std::try_to_lock);
   if (!tl.owns_lock() || isStopped()) {
@@ -88,7 +88,9 @@ bool DownstreamState::reconnect()
       connected = true;
     }
     catch (const std::runtime_error& error) {
-      infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
+      if (initialAttempt || g_verbose) {
+        infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
+      }
       connected = false;
       break;
     }
@@ -115,7 +117,34 @@ bool DownstreamState::reconnect()
     }
   }
 
+  if (connected) {
+    tl.unlock();
+    d_connectedWait.notify_all();
+    if (!initialAttempt) {
+      /* we need to be careful not to start this
+         thread too soon, as the creation should only
+         happen after the configuration has been parsed */
+      start();
+    }
+  }
+
   return connected;
+}
+
+void DownstreamState::waitUntilConnected()
+{
+  if (d_stopped) {
+    return;
+  }
+  if (connected) {
+    return;
+  }
+  {
+    std::unique_lock<std::mutex> lock(connectLock);
+    d_connectedWait.wait(lock, [this]{
+      return connected.load();
+    });
+  }
 }
 
 void DownstreamState::stop()
@@ -265,7 +294,7 @@ void DownstreamState::connectUDPSockets()
     fd = -1;
   }
 
-  reconnect();
+  reconnect(true);
 }
 
 DownstreamState::~DownstreamState()
@@ -751,7 +780,6 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
 
     if (newState && !isTCPOnly() && (!connected || d_config.reconnectOnUp)) {
       newState = reconnect();
-      start();
     }
 
     setUpStatus(newState);

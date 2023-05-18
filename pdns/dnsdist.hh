@@ -23,6 +23,7 @@
 #include "config.h"
 #include "ext/luawrapper/include/LuaContext.hpp"
 
+#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -903,6 +904,7 @@ private:
 
   std::thread tid;
   std::mutex connectLock;
+  std::condition_variable d_connectedWait;
   std::atomic_flag threadStarted;
   bool d_stopped{false};
 public:
@@ -974,7 +976,8 @@ public:
     return status;
   }
 
-  bool reconnect();
+  bool reconnect(bool initialAttempt = false);
+  void waitUntilConnected();
   void hash();
   void setId(const boost::uuids::uuid& newId);
   void setWeight(int newWeight);
