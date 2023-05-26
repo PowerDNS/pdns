@@ -121,7 +121,7 @@ Creating new RRset
 
 .. code-block:: http
 
-  PATCH /api/v1/servers/localhost/example.org. HTTP/1.1
+  PATCH /api/v1/servers/localhost/zones/example.org. HTTP/1.1
   X-API-Key: secret
   Content-Type: application/json
 
@@ -138,7 +138,7 @@ Deleting a RRset
 
 .. code-block:: http
 
-  PATCH /api/v1/servers/localhost/example.org. HTTP/1.1
+  PATCH /api/v1/servers/localhost/zones/example.org. HTTP/1.1
   X-API-Key: secret
   Content-Type: application/json
 
