@@ -776,7 +776,6 @@ def test_auth_backend(c, backend):
         if os.getenv('SKIP_IPV6_TESTS'):
             pdns_auth_env_vars += ' context=noipv6'
         with c.cd('regression-tests.nobackend'):
-            c.run(f'echo {pdns_auth_env_vars}')
             c.run(f'{pdns_auth_env_vars} ./runtests')
         c.run('/opt/pdns-auth/bin/pdnsutil test-algorithms')
         return
