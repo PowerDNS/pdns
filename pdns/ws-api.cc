@@ -391,7 +391,7 @@ string apiZoneNameToId(const DNSName& dname) {
 }
 
 void apiCheckNameAllowedCharacters(const string& name) {
-  if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos)
+  if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-*") != std::string::npos)
     throw ApiException("Name '"+name+"' contains unsupported characters");
 }
 
