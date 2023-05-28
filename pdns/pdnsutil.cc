@@ -1264,16 +1264,17 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
     cerr << col.red() << col.bold() << "There was a problem with your zone" << col.rst() << "\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: " << std::flush;
     int c=read1char();
     cerr<<"\n";
-    if(c!='a')
+    if(c=='e') {
       post.clear();
-    if(c=='e')
       goto editMore;
-    else if(c=='r')
+    } else if(c=='r') {
+      post.clear();
       goto editAgain;
-    else if(c=='q')
+    } else if(c=='q') {
       return EXIT_FAILURE;
-    else if(c!='a')
+    } else if(c!='a') {
       goto reAsk;
+    }
   }
 
 
