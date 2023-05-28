@@ -1,3 +1,4 @@
 #!/bin/sh
 
 cleandig sub.host.sub.example.com a dnssec
+cleandig sub.host.sub.example.com any dnssec tcp
