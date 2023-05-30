@@ -1249,6 +1249,7 @@ void startDoResolve(void* p) // NOLINT(readability-function-cognitive-complexity
       }
       catch (const SendTruncatedAnswerException& e) {
         ret.clear();
+        sr.d_appliedPolicy.addSOAtoRPZResult(ret);
         res = RCode::NoError;
         pw.getHeader()->tc = 1;
       }
