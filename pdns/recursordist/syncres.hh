@@ -917,7 +917,7 @@ T broadcastAccFunction(const std::function<T*()>& func);
 
 typedef std::unordered_set<DNSName> notifyset_t;
 std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> parseZoneConfiguration();
-void* pleaseSupplantAllowNotifyFor(std::shared_ptr<notifyset_t> ns);
+void* pleaseSupplantAllowNotifyFor(std::shared_ptr<notifyset_t> allowNotifyFor);
 
 uint64_t* pleaseGetNsSpeedsSize();
 uint64_t* pleaseGetFailedServersSize();

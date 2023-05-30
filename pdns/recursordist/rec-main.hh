@@ -524,7 +524,7 @@ bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal, con
 #endif
 void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
                        bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options);
-void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta);
+void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, uint16_t queryID, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta);
 bool isAllowNotifyForZone(DNSName qname);
 bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       DNSName& qname, uint16_t& qtype, uint16_t& qclass,
@@ -532,7 +532,7 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       string& response, uint32_t& qhash,
                       RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source, const ComboAddress& mappedSource);
 void protobufLogResponse(pdns::ProtoZero::RecMessage& message);
-void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
+void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
                          const RecursorPacketCache::OptPBData& pbData, const struct timeval& tv,
                          bool tcp, const ComboAddress& source, const ComboAddress& destination,
                          const ComboAddress& mappedSource, const EDNSSubnetOpts& ednssubnet,
