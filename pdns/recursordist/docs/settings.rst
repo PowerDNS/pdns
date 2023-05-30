@@ -110,7 +110,7 @@ Like `allow-notify-for`_, except reading from file. To use this
 feature, supply one domain name per line, with optional comments
 preceded by a "#".
 
-NOTIFY-allowed zones can also be specified using `forward-zones-file`_.
+NOTIFY-allowed zones can also be specified using `forward-zones-file`_ and `forward-zones-catalog`_.
 
 .. _setting-allow-notify-from:
 
@@ -136,7 +136,7 @@ NOTIFY operations received from a client listed in one of these netmasks
 will be accepted and used to wipe any cache entries whose zones match
 the zone specified in the NOTIFY operation, but only if that zone (or
 one of its parents) is included in `allow-notify-for`_,
-`allow-notify-for-file`_, or `forward-zones-file`_ with a '^' prefix.
+`allow-notify-for-file`_, `forward-zones-file`_ with a '^' prefix, or `forward-zones-catalog`_.
 
 .. _setting-allow-notify-from-file:
 
@@ -574,7 +574,7 @@ This can have odd effects, depending on your network, and may even be a security
 Therefore, the PowerDNS Recursor by default does not query private space IP addresses.
 This setting can be used to expand or reduce the limitations.
 
-Queries for names in forward zones and to addresses as configured in any of the settings `forward-zones`_, `forward-zones-file`_ or `forward-zones-recurse`_ are performed regardless of these limitations.
+Queries for names in forward zones and to addresses as configured in any of the settings `forward-zones`_, `forward-zones-file`_, `forward-zones-recurse`_, or `forward-zones-catalog`_ are performed regardless of these limitations.
 
 .. _setting-ecs-add-for:
 
@@ -883,6 +883,43 @@ This allows e.g. a forward to a local authoritative server holding a copy of the
 To prevent this, add a Negative Trust Anchor (NTA) for this zone in the `lua-config-file`_ with ``addNTA("your.zone", "A comment")``.
 If this forwarded zone is signed, instead of adding NTA, add the DS record to the `lua-config-file`_.
 See the :doc:`dnssec` information.
+
+.. _setting-forward-zones-catalog
+
+``forward-zones-catalog``
+-------------------------
+.. versionadded:: 4.10.0
+-  'zonename=IP[:port]'
+
+The contents of the specified ``catalog zone`` will be retrieved from
+the server at the specified IP (or IP:port).  Each entry in the
+catalog zone will be added to the `forward-zones`_ list.
+
+.. code-block:: none
+
+    forward-zones-catalog=catalog1.example.org=203.0.113.210
+    forward-zones-catalog=catalog2.example.org=[2001:DB8::1:3]:5300
+
+The catalog zone itself will be added to the `allow-notify-for`_ list,
+but when NOTIFY queries are received the recursor will not perform any
+cache-clearing operations; instead it will retrieve the SOA record for
+the zone, and if the serial number is higher than the serial number
+last seen, the zone contents will be retrieved. Any zones which have
+been removed from the catalog zone will also be removed from the
+`forward-zones`_ list; any zones which have been added to the catalog
+zone will be added to the `forward-zones`_ list.
+
+Forwarded queries for zones obtained from a catalog zone will be sent
+to the IP/port used to retrieve the contents of the catalog zone.
+
+Forwarded queries for zones obtained from a catalog zone will have the
+``recursion desired (RD)`` bit set to ``0``. See the `forward-zones`_
+setting for more details.
+
+Zones added to the `forward-zones`_ list due to inclusion in the
+catalog zone will also be added to the `allow-notify-for`_ list; the
+recursor's behavior when a NOTIFY query is received for such a zone
+will be the same as described in that setting.
 
 .. _setting-forward-zones-file:
 
