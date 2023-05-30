@@ -673,6 +673,10 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     d_random_ids = true;
     d_handle_dups = true;
     LMDBLS::s_flag_deleted = true;
+
+    if (atoi(getArg("shards").c_str()) != 1) {
+      throw std::runtime_error(std::string("running with Lightning Stream support requires shards=1"));
+    }
   }
 
   bool opened = false;
@@ -724,6 +728,11 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
       MDBOutVal shards;
       if (!txn->get(pdnsdbi, "shards", shards)) {
         s_shards = shards.get<uint32_t>();
+
+        if (mustDo("lightning-stream") && s_shards != 1) {
+          throw std::runtime_error(std::string("running with Lightning Stream support enabled requires a database with exactly 1 shard"));
+        }
+
         if (s_shards != atoi(getArg("shards").c_str())) {
           g_log << Logger::Warning << "Note: configured number of lmdb shards (" << atoi(getArg("shards").c_str()) << ") is different from on-disk (" << s_shards << "). Using on-disk shard number" << endl;
         }
