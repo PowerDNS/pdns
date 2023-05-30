@@ -926,10 +926,14 @@ If set, EDNS options in incoming queries are extracted and passed to the :func:`
 
   Introduced the value ``no`` to disable root-hints processing.
 
+.. versionchanged:: 4.9.0
+
+  Introduced the value ``no-refresh`` to disable both root-hints processing and periodic refresh of the cached root `NS` records.
+
 If set, the root-hints are read from this file. If empty, the default built-in root hints are used.
 
 In some special cases, processing the root hints is not needed, for example when forwarding all queries to another recursor.
-For these special cases, it is possible to disable the processing of root hints by setting the value to ``no``.
+For these special cases, it is possible to disable the processing of root hints by setting the value to ``no`` or ``no-refresh``.
 See :ref:`handling-of-root-hints` for more information on root hints handling.
 
 .. _setting-ignore-unknown-settings:
