@@ -3230,12 +3230,14 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
 
   case DNSFilterEngine::PolicyKind::NXDOMAIN:
     ret.clear();
+    d_appliedPolicy.addSOAtoRPZResult(ret);
     rcode = RCode::NXDomain;
     done = true;
     return;
 
   case DNSFilterEngine::PolicyKind::NODATA:
     ret.clear();
+    d_appliedPolicy.addSOAtoRPZResult(ret);
     rcode = RCode::NoError;
     done = true;
     return;
@@ -3243,6 +3245,7 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
   case DNSFilterEngine::PolicyKind::Truncate:
     if (!d_queryReceivedOverTCP) {
       ret.clear();
+      d_appliedPolicy.addSOAtoRPZResult(ret);
       rcode = RCode::NoError;
       throw SendTruncatedAnswerException();
     }
@@ -3270,6 +3273,7 @@ void SyncRes::handlePolicyHit(const std::string& prefix, const DNSName& qname, c
         }
       }
     }
+    d_appliedPolicy.addSOAtoRPZResult(ret);
   }
   }
 }

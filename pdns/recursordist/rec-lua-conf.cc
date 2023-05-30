@@ -153,6 +153,9 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
       zone->setExtendedErrorExtra(boost::get<std::string>(have["extendedErrorExtra"]));
     }
   }
+  if (have.count("includeSOA")) {
+    zone->setIncludeSOA(boost::get<bool>(have["includeSOA"]));
+  }
 }
 
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>> protobufOptions_t;
