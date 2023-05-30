@@ -1297,55 +1297,61 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     throw DBException(std::string(__PRETTY_FUNCTION__) + " called without a transaction");
   }
 
-  int transactionDomainId = d_transactiondomainid;
-  DNSName transactionDomain = d_transactiondomain;
-
   abortTransaction();
 
-  uint32_t id;
+  LMDBIDvec idvec;
 
-  { // get domain id
+  if (!d_handle_dups) {
+    // get domain id
     auto txn = d_tdomains->getROTransaction();
 
     DomainInfo di;
-    id = txn.get<0>(domain, di);
+    idvec.push_back(txn.get<0>(domain, di));
+  }
+  else {
+    auto txn = d_tdomains->getROTransaction();
+
+    txn.get_multi<0>(domain, idvec);
+    throw std::runtime_error("in LMDBBackend::deleteDomain, domain was not found");
   }
 
-  startTransaction(domain, id);
+  startTransaction(domain, idvec[0]);
+  for (auto id : idvec) {
 
-  { // Remove metadata
-    auto txn = d_tmeta->getRWTransaction();
-    LMDBIDvec ids;
+    { // Remove metadata
+      auto txn = d_tmeta->getRWTransaction();
+      LMDBIDvec ids;
 
-    txn.get_multi<0>(domain, ids);
+      txn.get_multi<0>(domain, ids);
 
-    for (auto& _id : ids) {
-      txn.del(_id);
+      for (auto& _id : ids) {
+        txn.del(_id);
+      }
+
+      txn.commit();
     }
 
-    txn.commit();
-  }
+    { // Remove cryptokeys
+      auto txn = d_tkdb->getRWTransaction();
+      LMDBIDvec ids;
+      txn.get_multi<0>(domain, ids);
 
-  { // Remove cryptokeys
-    auto txn = d_tkdb->getRWTransaction();
-    LMDBIDvec ids;
-    txn.get_multi<0>(domain, ids);
+      for (auto _id : ids) {
+        txn.del(_id);
+      }
 
-    for (auto _id : ids) {
-      txn.del(_id);
+      txn.commit();
     }
 
+    // Remove records
+    commitTransaction();
+    startTransaction(domain, id);
+
+    // Remove zone
+    auto txn = d_tdomains->getRWTransaction();
+    txn.del(id);
     txn.commit();
   }
-
-  // Remove records
-  commitTransaction();
-  startTransaction(transactionDomain, transactionDomainId);
-
-  // Remove zone
-  auto txn = d_tdomains->getRWTransaction();
-  txn.del(id);
-  txn.commit();
 
   return true;
 }
