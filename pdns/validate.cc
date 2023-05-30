@@ -953,7 +953,7 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
     auto keysMatchingTag = getByTag(keys, signature->d_tag, signature->d_algorithm, log);
 
     if (keysMatchingTag.empty()) {
-      VLOG(log, name<<"No key provided for "<<signature->d_tag<<" and algorithm "<<std::to_string(signature->d_algorithm)<<endl;);
+      VLOG(log, name<<": No key provided for "<<signature->d_tag<<" and algorithm "<<std::to_string(signature->d_algorithm)<<endl;);
       continue;
     }
 
