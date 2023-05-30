@@ -2867,7 +2867,7 @@ static void initArgs()
   ::arg().set("max-ns-per-resolve", "Maximum number of NS records to consider to resolve a name, 0 is no limit") = "13";
   ::arg().set("max-ns-address-qperq", "Maximum outgoing NS address queries per query") = "10";
   ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited") = "7000";
-  ::arg().set("max-recursion-depth", "Maximum number of internal recursion calls per query, 0 for unlimited") = "40";
+  ::arg().set("max-recursion-depth", "Maximum number of internal recursion calls per query, 0 for unlimited") = "16";
   ::arg().set("max-udp-queries-per-round", "Maximum number of UDP queries processed per recvmsg() round, before returning back to normal processing") = "10000";
   ::arg().set("protobuf-use-kernel-timestamp", "Compute the latency of queries in protobuf messages by using the timestamp set by the kernel when the query was received (when available)") = "";
   ::arg().set("distribution-pipe-buffer-size", "Size in bytes of the internal buffer of the pipe used by the distributor to pass incoming queries to a worker thread") = "0";

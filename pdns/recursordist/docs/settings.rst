@@ -1292,7 +1292,7 @@ This setting, which defaults to 3600 seconds, puts a maximum on the amount of ti
 ``max-recursion-depth``
 -----------------------
 -  Integer
--  Default: 40
+-  Default: 16
 
 Total maximum number of internal recursion calls the server may use to answer a single query.
 0 means unlimited.
@@ -1303,6 +1303,10 @@ If `qname-minimization`_ is enabled, the fallback code in case of a failing reso
 .. versionchanged:: 4.1.0
 
     Before 4.1.0, this settings was unlimited.
+
+.. versionchanged:: 4.9.0
+
+   Before 4.9.0 this setting's default was 40 and the limit on ``CNAME`` chains (fixed at 16) acted as a bound on he recursion depth.
 
 .. _setting-max-tcp-clients:
 
