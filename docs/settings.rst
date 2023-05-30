@@ -975,7 +975,7 @@ Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilte
 .. _setting-lua-axfr-end-script:
 
 ``lua-axfr-end-script``
--------------------
+-----------------------
 
 -  String
 -  Default: empty
