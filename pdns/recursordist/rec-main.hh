@@ -542,11 +542,11 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
 void requestWipeCaches(const DNSName& canon);
 void startDoResolve(void* p);
 bool expectProxyProtocol(const ComboAddress& from);
-void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool updateInFlight);
+void finishTCPReply(std::unique_ptr<DNSComboWriter>&, bool hadError, bool updateInFlight);
 void checkFastOpenSysctl(bool active, Logr::log_t);
 void checkTFOconnect(Logr::log_t);
 void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t);
-void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&);
+void handleNewTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t&);
 
 void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t);
 string doTraceRegex(FDWrapper file, vector<string>::const_iterator begin, vector<string>::const_iterator end);

@@ -36,7 +36,7 @@ uint16_t TCPConnection::s_maxInFlight;
 
 thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 
-static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
+static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var);
 
 #if 0
 #define TCPLOG(tcpsock, x)                                 \
@@ -49,8 +49,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var);
 
 std::atomic<uint32_t> TCPConnection::s_currentConnections;
 
-TCPConnection::TCPConnection(int fd, const ComboAddress& addr) :
-  data(2, 0), d_remote(addr), d_fd(fd)
+TCPConnection::TCPConnection(int fileDesc, const ComboAddress& addr) :
+  data(2, 0), d_remote(addr), d_fd(fileDesc)
 {
   ++s_currentConnections;
   (*t_tcpClientCounts)[d_remote]++;
@@ -59,68 +59,70 @@ TCPConnection::TCPConnection(int fd, const ComboAddress& addr) :
 TCPConnection::~TCPConnection()
 {
   try {
-    if (closesocket(d_fd) < 0)
+    if (closesocket(d_fd) < 0) {
       SLOG(g_log << Logger::Error << "Error closing socket for TCPConnection" << endl,
            g_slogtcpin->info(Logr::Error, "Error closing socket for TCPConnection"));
+    }
   }
   catch (const PDNSException& e) {
     SLOG(g_log << Logger::Error << "Error closing TCPConnection socket: " << e.reason << endl,
          g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCPConnection socket", "exception", Logging::Loggable("PDNSException")));
   }
 
-  if (t_tcpClientCounts->count(d_remote) && !(*t_tcpClientCounts)[d_remote]--)
+  if (t_tcpClientCounts->count(d_remote) != 0 && (*t_tcpClientCounts)[d_remote]-- == 0) {
     t_tcpClientCounts->erase(d_remote);
+  }
   --s_currentConnections;
 }
 
-static void terminateTCPConnection(int fd)
+static void terminateTCPConnection(int fileDesc)
 {
   try {
-    t_fdm->removeReadFD(fd);
+    t_fdm->removeReadFD(fileDesc);
   }
   catch (const FDMultiplexerException& fde) {
   }
 }
 
-static void sendErrorOverTCP(std::unique_ptr<DNSComboWriter>& dc, int rcode)
+static void sendErrorOverTCP(std::unique_ptr<DNSComboWriter>& comboWriter, int rcode)
 {
   std::vector<uint8_t> packet;
-  if (dc->d_mdp.d_header.qdcount == 0) {
+  if (comboWriter->d_mdp.d_header.qdcount == 0U) {
     /* header-only */
     packet.resize(sizeof(dnsheader));
   }
   else {
-    DNSPacketWriter pw(packet, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_mdp.d_qclass);
-    if (dc->d_mdp.hasEDNS()) {
+    DNSPacketWriter packetWriter(packet, comboWriter->d_mdp.d_qname, comboWriter->d_mdp.d_qtype, comboWriter->d_mdp.d_qclass);
+    if (comboWriter->d_mdp.hasEDNS()) {
       /* we try to add the EDNS OPT RR even for truncated answers,
          as rfc6891 states:
          "The minimal response MUST be the DNS header, question section, and an
          OPT record.  This MUST also occur when a truncated response (using
          the DNS header's TC bit) is returned."
       */
-      pw.addOpt(512, 0, 0);
-      pw.commit();
+      packetWriter.addOpt(512, 0, 0);
+      packetWriter.commit();
     }
   }
 
-  dnsheader& header = reinterpret_cast<dnsheader&>(packet.at(0));
+  auto& header = reinterpret_cast<dnsheader&>(packet.at(0)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast) safe cast
   header.aa = 0;
   header.ra = 1;
   header.qr = 1;
   header.tc = 0;
-  header.id = dc->d_mdp.d_header.id;
-  header.rd = dc->d_mdp.d_header.rd;
-  header.cd = dc->d_mdp.d_header.cd;
+  header.id = comboWriter->d_mdp.d_header.id;
+  header.rd = comboWriter->d_mdp.d_header.rd;
+  header.cd = comboWriter->d_mdp.d_header.cd;
   header.rcode = rcode;
 
-  sendResponseOverTCP(dc, packet);
+  sendResponseOverTCP(comboWriter, packet);
 }
 
-void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool updateInFlight)
+void finishTCPReply(std::unique_ptr<DNSComboWriter>& comboWriter, bool hadError, bool updateInFlight)
 {
   // update tcp connection status, closing if needed and doing the fd multiplexer accounting
-  if (updateInFlight && dc->d_tcpConnection->d_requestsInFlight > 0) {
-    dc->d_tcpConnection->d_requestsInFlight--;
+  if (updateInFlight && comboWriter->d_tcpConnection->d_requestsInFlight > 0) {
+    comboWriter->d_tcpConnection->d_requestsInFlight--;
   }
 
   // In the code below, we try to remove the fd from the set, but
@@ -128,18 +130,18 @@ void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool upd
   // "Tried to remove unlisted fd" exception.  Not that an inflight < limit test
   // will not work since we do not know if the other mthread got an error or not.
   if (hadError) {
-    terminateTCPConnection(dc->d_socket);
-    dc->d_socket = -1;
+    terminateTCPConnection(comboWriter->d_socket);
+    comboWriter->d_socket = -1;
     return;
   }
-  dc->d_tcpConnection->queriesCount++;
-  if ((g_tcpMaxQueriesPerConn && dc->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) || (dc->d_tcpConnection->isDropOnIdle() && dc->d_tcpConnection->d_requestsInFlight == 0)) {
+  comboWriter->d_tcpConnection->queriesCount++;
+  if ((g_tcpMaxQueriesPerConn > 0 && comboWriter->d_tcpConnection->queriesCount >= g_tcpMaxQueriesPerConn) || (comboWriter->d_tcpConnection->isDropOnIdle() && comboWriter->d_tcpConnection->d_requestsInFlight == 0)) {
     try {
-      t_fdm->removeReadFD(dc->d_socket);
+      t_fdm->removeReadFD(comboWriter->d_socket);
     }
     catch (FDMultiplexerException&) {
     }
-    dc->d_socket = -1;
+    comboWriter->d_socket = -1;
     return;
   }
 
@@ -147,23 +149,23 @@ void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool upd
   struct timeval ttd = g_now;
 
   // If we cross from max to max-1 in flight requests, the fd was not listened to, add it back
-  if (updateInFlight && dc->d_tcpConnection->d_requestsInFlight == TCPConnection::s_maxInFlight - 1) {
+  if (updateInFlight && comboWriter->d_tcpConnection->d_requestsInFlight == TCPConnection::s_maxInFlight - 1) {
     // A read error might have happened. If we add the fd back, it will most likely error again.
     // This is not a big issue, the next handleTCPClientReadable() will see another read error
     // and take action.
     ttd.tv_sec += g_tcpTimeout;
-    t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
+    t_fdm->addReadFD(comboWriter->d_socket, handleRunningTCPQuestion, comboWriter->d_tcpConnection, &ttd);
     return;
   }
   // fd might have been removed by read error code, or a read timeout, so expect an exception
   try {
-    t_fdm->setReadTTD(dc->d_socket, ttd, g_tcpTimeout);
+    t_fdm->setReadTTD(comboWriter->d_socket, ttd, g_tcpTimeout);
   }
   catch (const FDMultiplexerException&) {
     // but if the FD was removed because of a timeout while we were sending a response,
     // we need to re-arm it. If it was an error it will error again.
     ttd.tv_sec += g_tcpTimeout;
-    t_fdm->addReadFD(dc->d_socket, handleRunningTCPQuestion, dc->d_tcpConnection, &ttd);
+    t_fdm->addReadFD(comboWriter->d_socket, handleRunningTCPQuestion, comboWriter->d_tcpConnection, &ttd);
   }
 }
 
@@ -174,10 +176,12 @@ void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool upd
 class RunningTCPQuestionGuard
 {
 public:
-  RunningTCPQuestionGuard(int fd)
-  {
-    d_fd = fd;
-  }
+  RunningTCPQuestionGuard(const RunningTCPQuestionGuard&) = default;
+  RunningTCPQuestionGuard(RunningTCPQuestionGuard&&) = delete;
+  RunningTCPQuestionGuard& operator=(const RunningTCPQuestionGuard&) = default;
+  RunningTCPQuestionGuard& operator=(RunningTCPQuestionGuard&&) = delete;
+  RunningTCPQuestionGuard(int fileDesc) :
+    d_fd(fileDesc) {}
   ~RunningTCPQuestionGuard()
   {
     if (d_fd != -1) {
@@ -195,7 +199,7 @@ public:
       /* EOF */
       return false;
     }
-    else if (bytes < 0) {
+    if (bytes < 0) {
       if (errno != EAGAIN && errno != EWOULDBLOCK) {
         return false;
       }
@@ -208,16 +212,16 @@ private:
   int d_fd{-1};
 };
 
-static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
+static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var) // NOLINT(readability-function-cognitive-complexity) https://github.com/PowerDNS/pdns/issues/12791
 {
-  shared_ptr<TCPConnection> conn = boost::any_cast<shared_ptr<TCPConnection>>(var);
+  auto conn = boost::any_cast<shared_ptr<TCPConnection>>(var);
 
-  RunningTCPQuestionGuard tcpGuard{fd};
+  RunningTCPQuestionGuard tcpGuard{fileDesc};
 
   if (conn->state == TCPConnection::PROXYPROTOCOLHEADER) {
     ssize_t bytes = recv(conn->getFD(), &conn->data.at(conn->proxyProtocolGot), conn->proxyProtocolNeed, 0);
     if (bytes <= 0) {
-      tcpGuard.handleTCPReadResult(fd, bytes);
+      tcpGuard.handleTCPReadResult(fileDesc, bytes);
       return;
     }
 
@@ -232,17 +236,17 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       ++t_Counters.at(rec::Counter::proxyProtocolInvalidCount);
       return;
     }
-    else if (remaining < 0) {
+    if (remaining < 0) {
       conn->proxyProtocolNeed = -remaining;
       conn->data.resize(conn->proxyProtocolGot + conn->proxyProtocolNeed);
       tcpGuard.keep();
       return;
     }
-    else {
+    {
       /* proxy header received */
       /* we ignore the TCP field for now, but we could properly set whether
          the connection was received over UDP or TCP if needed */
-      bool tcp;
+      bool tcp = false;
       bool proxy = false;
       size_t used = parseProxyHeader(conn->data, proxy, conn->d_source, conn->d_destination, tcp, conn->proxyProtocolValues);
       if (used <= 0) {
@@ -253,7 +257,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         ++t_Counters.at(rec::Counter::proxyProtocolInvalidCount);
         return;
       }
-      else if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
+      if (static_cast<size_t>(used) > g_proxyProtocolMaximumSize) {
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "Proxy protocol header in packet from TCP client " << conn->d_remote.toStringWithPort() << " is larger than proxy-protocol-maximum-size (" << used << "), dropping" << endl,
                g_slogtcpin->info(Logr::Error, "Proxy protocol header in packet from TCP client is larger than proxy-protocol-maximum-size", "remote", Logging::Loggable(conn->d_remote), "size", Logging::Loggable(used)));
@@ -267,9 +271,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       /* note that if the proxy header used a 'LOCAL' command, the original source and destination are untouched so everything should be fine */
       conn->d_mappedSource = conn->d_source;
       if (t_proxyMapping) {
-        if (auto it = t_proxyMapping->lookup(conn->d_source)) {
-          conn->d_mappedSource = it->second.address;
-          ++it->second.stats.netmaskMatches;
+        if (const auto* iter = t_proxyMapping->lookup(conn->d_source)) {
+          conn->d_mappedSource = iter->second.address;
+          ++iter->second.stats.netmaskMatches;
         }
       }
       if (t_allowFrom && !t_allowFrom->match(&conn->d_mappedSource)) {
@@ -288,9 +292,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   }
 
   if (conn->state == TCPConnection::BYTE0) {
-    ssize_t bytes = recv(conn->getFD(), &conn->data[0], 2, 0);
-    if (bytes == 1)
+    ssize_t bytes = recv(conn->getFD(), conn->data.data(), 2, 0);
+    if (bytes == 1) {
       conn->state = TCPConnection::BYTE1;
+    }
     if (bytes == 2) {
       conn->qlen = (((unsigned char)conn->data[0]) << 8) + (unsigned char)conn->data[1];
       conn->data.resize(conn->qlen);
@@ -298,7 +303,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->state = TCPConnection::GETQUESTION;
     }
     if (bytes <= 0) {
-      tcpGuard.handleTCPReadResult(fd, bytes);
+      tcpGuard.handleTCPReadResult(fileDesc, bytes);
       return;
     }
   }
@@ -312,7 +317,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       conn->bytesread = 0;
     }
     if (bytes <= 0) {
-      if (!tcpGuard.handleTCPReadResult(fd, bytes)) {
+      if (!tcpGuard.handleTCPReadResult(fileDesc, bytes)) {
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " disconnected after first byte" << endl,
                g_slogtcpin->info(Logr::Error, "TCP client disconnected after first byte", "remote", Logging::Loggable(conn->d_remote)));
@@ -325,7 +330,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
   if (conn->state == TCPConnection::GETQUESTION) {
     ssize_t bytes = recv(conn->getFD(), &conn->data[conn->bytesread], conn->qlen - conn->bytesread, 0);
     if (bytes <= 0) {
-      if (!tcpGuard.handleTCPReadResult(fd, bytes)) {
+      if (!tcpGuard.handleTCPReadResult(fileDesc, bytes)) {
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " disconnected while reading question body" << endl,
                g_slogtcpin->info(Logr::Error, "TCP client disconnected while reading question body", "remote", Logging::Loggable(conn->d_remote)));
@@ -333,7 +338,7 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
       return;
     }
-    else if (bytes > std::numeric_limits<std::uint16_t>::max()) {
+    if (bytes > std::numeric_limits<std::uint16_t>::max()) {
       if (g_logCommonErrors) {
         SLOG(g_log << Logger::Error << "TCP client " << conn->d_remote.toStringWithPort() << " sent an invalid question size while reading question body" << endl,
              g_slogtcpin->info(Logr::Error, "TCP client sent an invalid question size while reading question body", "remote", Logging::Loggable(conn->d_remote)));
@@ -343,9 +348,9 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
     conn->bytesread += (uint16_t)bytes;
     if (conn->bytesread == conn->qlen) {
       conn->state = TCPConnection::BYTE0;
-      std::unique_ptr<DNSComboWriter> dc;
+      std::unique_ptr<DNSComboWriter> comboWriter;
       try {
-        dc = std::make_unique<DNSComboWriter>(conn->data, g_now, t_pdl);
+        comboWriter = std::make_unique<DNSComboWriter>(conn->data, g_now, t_pdl);
       }
       catch (const MOADNSException& mde) {
         t_Counters.at(rec::Counter::clientParseError)++;
@@ -356,24 +361,26 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         return;
       }
 
-      dc->d_tcpConnection = conn; // carry the torch
-      dc->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
-      dc->d_tcp = true;
-      dc->setRemote(conn->d_remote); // the address the query was received from
-      dc->setSource(conn->d_source); // the address we assume the query is coming from, might be set by proxy protocol
+      comboWriter->d_tcpConnection = conn; // carry the torch
+      comboWriter->setSocket(conn->getFD()); // this is the only time a copy is made of the actual fd
+      comboWriter->d_tcp = true;
+      comboWriter->setRemote(conn->d_remote); // the address the query was received from
+      comboWriter->setSource(conn->d_source); // the address we assume the query is coming from, might be set by proxy protocol
       ComboAddress dest;
       dest.reset();
       dest.sin4.sin_family = conn->d_remote.sin4.sin_family;
       socklen_t len = dest.getSocklen();
-      getsockname(conn->getFD(), (sockaddr*)&dest, &len); // if this fails, we're ok with it
-      dc->setLocal(dest); // the address we received the query on
-      dc->setDestination(conn->d_destination); // the address we assume the query is received on, might be set by proxy protocol
-      dc->setMappedSource(conn->d_mappedSource); // the address we assume the query is coming from after table based mapping
+      getsockname(conn->getFD(), reinterpret_cast<sockaddr*>(&dest), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      comboWriter->setLocal(dest); // the address we received the query on
+      comboWriter->setDestination(conn->d_destination); // the address we assume the query is received on, might be set by proxy protocol
+      comboWriter->setMappedSource(conn->d_mappedSource); // the address we assume the query is coming from after table based mapping
       /* we can't move this if we want to be able to access the values in
          all queries sent over this connection */
-      dc->d_proxyProtocolValues = conn->proxyProtocolValues;
+      comboWriter->d_proxyProtocolValues = conn->proxyProtocolValues;
 
-      struct timeval start;
+      struct timeval start
+      {
+      };
       Utility::gettimeofday(&start, nullptr);
 
       DNSName qname;
@@ -386,37 +393,37 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       bool logQuery = false;
       bool qnameParsed = false;
 
-      dc->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled);
-      dc->d_eventTrace.add(RecEventTrace::ReqRecv);
+      comboWriter->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
+      comboWriter->d_eventTrace.add(RecEventTrace::ReqRecv);
       auto luaconfsLocal = g_luaconfs.getLocal();
       if (checkProtobufExport(luaconfsLocal)) {
         needECS = true;
       }
       logQuery = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logQueries;
-      dc->d_logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
+      comboWriter->d_logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
 
-      if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || dc->d_mdp.d_header.opcode == Opcode::Notify) {
+      if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
 
         try {
           EDNSOptionViewMap ednsOptions;
-          dc->d_ecsParsed = true;
-          dc->d_ecsFound = false;
+          comboWriter->d_ecsParsed = true;
+          comboWriter->d_ecsFound = false;
           getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
-                            dc->d_ecsFound, &dc->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
+                            comboWriter->d_ecsFound, &comboWriter->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
           qnameParsed = true;
 
           if (t_pdl) {
             try {
               if (t_pdl->d_gettag_ffi) {
-                RecursorLua4::FFIParams params(qname, qtype, dc->d_destination, dc->d_source, dc->d_ednssubnet.source, dc->d_data, dc->d_policyTags, dc->d_records, ednsOptions, dc->d_proxyProtocolValues, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_rcode, dc->d_ttlCap, dc->d_variable, true, logQuery, dc->d_logResponse, dc->d_followCNAMERecords, dc->d_extendedErrorCode, dc->d_extendedErrorExtra, dc->d_responsePaddingDisabled, dc->d_meta);
-                dc->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
-                dc->d_tag = t_pdl->gettag_ffi(params);
-                dc->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, dc->d_tag, false);
+                RecursorLua4::FFIParams params(qname, qtype, comboWriter->d_destination, comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_data, comboWriter->d_policyTags, comboWriter->d_records, ednsOptions, comboWriter->d_proxyProtocolValues, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_rcode, comboWriter->d_ttlCap, comboWriter->d_variable, true, logQuery, comboWriter->d_logResponse, comboWriter->d_followCNAMERecords, comboWriter->d_extendedErrorCode, comboWriter->d_extendedErrorExtra, comboWriter->d_responsePaddingDisabled, comboWriter->d_meta);
+                comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
+                comboWriter->d_tag = t_pdl->gettag_ffi(params);
+                comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, comboWriter->d_tag, false);
               }
               else if (t_pdl->d_gettag) {
-                dc->d_eventTrace.add(RecEventTrace::LuaGetTag);
-                dc->d_tag = t_pdl->gettag(dc->d_source, dc->d_ednssubnet.source, dc->d_destination, qname, qtype, &dc->d_policyTags, dc->d_data, ednsOptions, true, requestorId, deviceId, deviceName, dc->d_routingTag, dc->d_proxyProtocolValues);
-                dc->d_eventTrace.add(RecEventTrace::LuaGetTag, dc->d_tag, false);
+                comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag);
+                comboWriter->d_tag = t_pdl->gettag(comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_destination, qname, qtype, &comboWriter->d_policyTags, comboWriter->d_data, ednsOptions, true, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_proxyProtocolValues);
+                comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag, comboWriter->d_tag, false);
               }
             }
             catch (const std::exception& e) {
@@ -435,25 +442,25 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         }
       }
 
-      if (dc->d_tag == 0 && !dc->d_responsePaddingDisabled && g_paddingFrom.match(dc->d_remote)) {
-        dc->d_tag = g_paddingTag;
+      if (comboWriter->d_tag == 0 && !comboWriter->d_responsePaddingDisabled && g_paddingFrom.match(comboWriter->d_remote)) {
+        comboWriter->d_tag = g_paddingTag;
       }
 
       const dnsheader_aligned headerdata(conn->data.data());
-      const struct dnsheader* dh = headerdata.get();
+      const struct dnsheader* dnsheader = headerdata.get();
 
       if (t_protobufServers.servers || t_outgoingProtobufServers.servers) {
-        dc->d_requestorId = requestorId;
-        dc->d_deviceId = deviceId;
-        dc->d_deviceName = deviceName;
-        dc->d_uuid = getUniqueID();
+        comboWriter->d_requestorId = requestorId;
+        comboWriter->d_deviceId = deviceId;
+        comboWriter->d_deviceName = deviceName;
+        comboWriter->d_uuid = getUniqueID();
       }
 
       if (t_protobufServers.servers) {
         try {
 
-          if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && dc->d_policyTags.empty())) {
-            protobufLogQuery(luaconfsLocal, dc->d_uuid, dc->d_source, dc->d_destination, dc->d_mappedSource, dc->d_ednssubnet.source, true, dh->id, conn->qlen, qname, qtype, qclass, dc->d_policyTags, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta);
+          if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && comboWriter->d_policyTags.empty())) {
+            protobufLogQuery(luaconfsLocal, comboWriter->d_uuid, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet.source, true, dnsheader->id, conn->qlen, qname, qtype, qclass, comboWriter->d_policyTags, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta);
           }
         }
         catch (const std::exception& e) {
@@ -465,56 +472,56 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
       }
 
       if (t_pdl) {
-        bool ipf = t_pdl->ipfilter(dc->d_source, dc->d_destination, *dh, dc->d_eventTrace);
+        bool ipf = t_pdl->ipfilter(comboWriter->d_source, comboWriter->d_destination, *dnsheader, comboWriter->d_eventTrace);
         if (ipf) {
           if (!g_quiet) {
-            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED TCP question from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl,
-                 g_slogtcpin->info(Logr::Info, "Dropped TCP question based on policy", "remote", Logging::Loggable(conn->d_remote), "source", Logging::Loggable(dc->d_source)));
+            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << MT->getTid() << "/" << MT->numProcesses() << "] DROPPED TCP question from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl,
+                 g_slogtcpin->info(Logr::Info, "Dropped TCP question based on policy", "remote", Logging::Loggable(conn->d_remote), "source", Logging::Loggable(comboWriter->d_source)));
           }
           t_Counters.at(rec::Counter::policyDrops)++;
           return;
         }
       }
 
-      if (dc->d_mdp.d_header.qr) {
+      if (comboWriter->d_mdp.d_header.qr) {
         t_Counters.at(rec::Counter::ignoredCount)++;
         if (g_logCommonErrors) {
-          SLOG(g_log << Logger::Error << "Ignoring answer from TCP client " << dc->getRemote() << " on server socket!" << endl,
-               g_slogtcpin->info(Logr::Error, "Ignoring answer from TCP client on server socket", "remote", Logging::Loggable(dc->getRemote())));
+          SLOG(g_log << Logger::Error << "Ignoring answer from TCP client " << comboWriter->getRemote() << " on server socket!" << endl,
+               g_slogtcpin->info(Logr::Error, "Ignoring answer from TCP client on server socket", "remote", Logging::Loggable(comboWriter->getRemote())));
         }
         return;
       }
-      if (dc->d_mdp.d_header.opcode != Opcode::Query && dc->d_mdp.d_header.opcode != Opcode::Notify) {
+      if (comboWriter->d_mdp.d_header.opcode != static_cast<unsigned>(Opcode::Query) && comboWriter->d_mdp.d_header.opcode != static_cast<unsigned>(Opcode::Notify)) {
         t_Counters.at(rec::Counter::ignoredCount)++;
         if (g_logCommonErrors) {
-          SLOG(g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(dc->d_mdp.d_header.opcode) << " from TCP client " << dc->getRemote() << " on server socket!" << endl,
-               g_slogtcpin->info(Logr::Error, "Ignoring unsupported opcode from TCP client", "remote", Logging::Loggable(dc->getRemote()), "opcode", Logging::Loggable(Opcode::to_s(dc->d_mdp.d_header.opcode))));
+          SLOG(g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(comboWriter->d_mdp.d_header.opcode) << " from TCP client " << comboWriter->getRemote() << " on server socket!" << endl,
+               g_slogtcpin->info(Logr::Error, "Ignoring unsupported opcode from TCP client", "remote", Logging::Loggable(comboWriter->getRemote()), "opcode", Logging::Loggable(Opcode::to_s(comboWriter->d_mdp.d_header.opcode))));
         }
-        sendErrorOverTCP(dc, RCode::NotImp);
+        sendErrorOverTCP(comboWriter, RCode::NotImp);
         tcpGuard.keep();
         return;
       }
-      else if (dh->qdcount == 0) {
+      if (dnsheader->qdcount == 0U) {
         t_Counters.at(rec::Counter::emptyQueriesCount)++;
         if (g_logCommonErrors) {
-          SLOG(g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << dc->getRemote() << " on server socket!" << endl,
-               g_slogtcpin->info(Logr::Error, "Ignoring empty (qdcount == 0) query on server socket", "remote", Logging::Loggable(dc->getRemote())));
+          SLOG(g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << comboWriter->getRemote() << " on server socket!" << endl,
+               g_slogtcpin->info(Logr::Error, "Ignoring empty (qdcount == 0) query on server socket", "remote", Logging::Loggable(comboWriter->getRemote())));
         }
-        sendErrorOverTCP(dc, RCode::NotImp);
+        sendErrorOverTCP(comboWriter, RCode::NotImp);
         tcpGuard.keep();
         return;
       }
-      else {
+      {
         // We have read a proper query
         //++t_Counters.at(rec::Counter::qcounter);
         ++t_Counters.at(rec::Counter::qcounter);
         ++t_Counters.at(rec::Counter::tcpqcounter);
 
-        if (dc->d_mdp.d_header.opcode == Opcode::Notify) {
-          if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(dc->d_mappedSource)) {
+        if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
+          if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(comboWriter->d_mappedSource)) {
             if (!g_quiet) {
-              SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
-                   g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY, address not matched by allow-notify-from", "source", Logging::Loggable(dc->d_mappedSource)));
+              SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
+                   g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY, address not matched by allow-notify-from", "source", Logging::Loggable(comboWriter->d_mappedSource)));
             }
 
             t_Counters.at(rec::Counter::sourceDisallowedNotify)++;
@@ -523,8 +530,8 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 
           if (!isAllowNotifyForZone(qname)) {
             if (!g_quiet) {
-              SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << dc->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
-                   g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(dc->d_mappedSource), "zone", Logging::Loggable(qname)));
+              SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
+                   g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(comboWriter->d_mappedSource), "zone", Logging::Loggable(qname)));
             }
 
             t_Counters.at(rec::Counter::zoneDisallowedNotify)++;
@@ -535,41 +542,43 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
         string response;
         RecursorPacketCache::OptPBData pbData{boost::none};
 
-        if (dc->d_mdp.d_header.opcode == Opcode::Query) {
+        if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Query)) {
           /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
              but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
              as cacheable we would cache it with a wrong tag, so better safe than sorry. */
-          dc->d_eventTrace.add(RecEventTrace::PCacheCheck);
-          bool cacheHit = checkForCacheHit(qnameParsed, dc->d_tag, conn->data, qname, qtype, qclass, g_now, response, dc->d_qhash, pbData, true, dc->d_source, dc->d_mappedSource);
-          dc->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
+          comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck);
+          bool cacheHit = checkForCacheHit(qnameParsed, comboWriter->d_tag, conn->data, qname, qtype, qclass, g_now, response, comboWriter->d_qhash, pbData, true, comboWriter->d_source, comboWriter->d_mappedSource);
+          comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
 
           if (cacheHit) {
             if (!g_quiet) {
-              SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " TCP question answered from packet cache tag=" << dc->d_tag << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl,
-                   g_slogtcpin->info(Logr::Notice, "TCP question answered from packet cache", "tag", Logging::Loggable(dc->d_tag),
+              SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " TCP question answered from packet cache tag=" << comboWriter->d_tag << " from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << endl,
+                   g_slogtcpin->info(Logr::Notice, "TCP question answered from packet cache", "tag", Logging::Loggable(comboWriter->d_tag),
                                      "qname", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype)),
-                                     "source", Logging::Loggable(dc->d_source), "remote", Logging::Loggable(dc->d_remote)));
+                                     "source", Logging::Loggable(comboWriter->d_source), "remote", Logging::Loggable(comboWriter->d_remote)));
             }
 
-            bool hadError = sendResponseOverTCP(dc, response);
-            finishTCPReply(dc, hadError, false);
-            struct timeval now;
+            bool hadError = sendResponseOverTCP(comboWriter, response);
+            finishTCPReply(comboWriter, hadError, false);
+            struct timeval now
+            {
+            };
             Utility::gettimeofday(&now, nullptr);
             uint64_t spentUsec = uSec(now - start);
             t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
-            dc->d_eventTrace.add(RecEventTrace::AnswerSent);
+            comboWriter->d_eventTrace.add(RecEventTrace::AnswerSent);
 
-            if (t_protobufServers.servers && dc->d_logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-              struct timeval tv
+            if (t_protobufServers.servers && comboWriter->d_logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbData || pbData->d_tagged)) {
+              struct timeval tval
               {
                 0, 0
               };
-              protobufLogResponse(dh, luaconfsLocal, pbData, tv, true, dc->d_source, dc->d_destination, dc->d_mappedSource, dc->d_ednssubnet, dc->d_uuid, dc->d_requestorId, dc->d_deviceId, dc->d_deviceName, dc->d_meta, dc->d_eventTrace);
+              protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, true, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet, comboWriter->d_uuid, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta, comboWriter->d_eventTrace);
             }
 
-            if (dc->d_eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
-              SLOG(g_log << Logger::Info << dc->d_eventTrace.toString() << endl,
-                   g_slogtcpin->info(Logr::Info, dc->d_eventTrace.toString())); // More fancy?
+            if (comboWriter->d_eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {
+              SLOG(g_log << Logger::Info << comboWriter->d_eventTrace.toString() << endl,
+                   g_slogtcpin->info(Logr::Info, comboWriter->d_eventTrace.toString())); // More fancy?
             }
             tcpGuard.keep();
             t_Counters.updateSnap(g_regressionTestMode);
@@ -577,10 +586,10 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           } // cache hit
         } // query opcode
 
-        if (dc->d_mdp.d_header.opcode == Opcode::Notify) {
+        if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
           if (!g_quiet) {
-            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << dc->d_source.toStringWithPort() << (dc->d_source != dc->d_remote ? " (via " + dc->d_remote.toStringWithPort() + ")" : "") << endl,
-                 g_slogtcpin->info(Logr::Notice, "Got NOTIFY", "qname", Logging::Loggable(qname), "source", Logging::Loggable(dc->d_source), "remote", Logging::Loggable(dc->d_remote)));
+            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << endl,
+                 g_slogtcpin->info(Logr::Notice, "Got NOTIFY", "qname", Logging::Loggable(qname), "source", Logging::Loggable(comboWriter->d_source), "remote", Logging::Loggable(comboWriter->d_remote)));
           }
 
           requestWipeCaches(qname);
@@ -589,21 +598,21 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
           // a normal response, as the rest of the code does not
           // check dh->opcode, but we need to ensure that the response
           // to this request does not get put into the packet cache
-          dc->d_variable = true;
+          comboWriter->d_variable = true;
         }
 
         // setup for startDoResolve() in an mthread
         ++conn->d_requestsInFlight;
         if (conn->d_requestsInFlight >= TCPConnection::s_maxInFlight) {
-          t_fdm->removeReadFD(fd); // should no longer awake ourselves when there is data to read
+          t_fdm->removeReadFD(fileDesc); // should no longer awake ourselves when there is data to read
         }
         else {
           Utility::gettimeofday(&g_now, nullptr); // needed?
           struct timeval ttd = g_now;
-          t_fdm->setReadTTD(fd, ttd, g_tcpTimeout);
+          t_fdm->setReadTTD(fileDesc, ttd, g_tcpTimeout);
         }
         tcpGuard.keep();
-        MT->makeThread(startDoResolve, dc.release()); // deletes dc
+        MT->makeThread(startDoResolve, comboWriter.release()); // deletes dc
       } // good query
     } // read full query
   } // reading query
@@ -613,11 +622,11 @@ static void handleRunningTCPQuestion(int fd, FDMultiplexer::funcparam_t& var)
 }
 
 //! Handle new incoming TCP connection
-void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
+void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcparam_t& var)
 {
   ComboAddress addr;
   socklen_t addrlen = sizeof(addr);
-  int newsock = accept(fd, (struct sockaddr*)&addr, &addrlen);
+  int newsock = accept(fileDesc, reinterpret_cast<struct sockaddr*>(&addr), &addrlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   if (newsock >= 0) {
     if (MT->numProcesses() > g_maxMThreads) {
       t_Counters.at(rec::Counter::overCapacityDrops)++;
@@ -638,16 +647,16 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
     bool fromProxyProtocolSource = expectProxyProtocol(addr);
     ComboAddress mappedSource = addr;
     if (!fromProxyProtocolSource && t_proxyMapping) {
-      if (auto it = t_proxyMapping->lookup(addr)) {
-        mappedSource = it->second.address;
-        ++it->second.stats.netmaskMatches;
+      if (const auto* iter = t_proxyMapping->lookup(addr)) {
+        mappedSource = iter->second.address;
+        ++iter->second.stats.netmaskMatches;
       }
     }
     if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {
-      if (!g_quiet)
+      if (!g_quiet) {
         SLOG(g_log << Logger::Error << "[" << MT->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
              g_slogtcpin->info(Logr::Error, "dropping TCP query address neither matched by allow-from nor proxy-protocol-from", "source", Logging::Loggable(mappedSource)));
-
+      }
       t_Counters.at(rec::Counter::unauthorizedTCP)++;
       try {
         closesocket(newsock);
@@ -659,7 +668,7 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
       return;
     }
 
-    if (g_maxTCPPerClient && t_tcpClientCounts->count(addr) && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
+    if (g_maxTCPPerClient > 0 && t_tcpClientCounts->count(addr) > 0 && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
       t_Counters.at(rec::Counter::tcpClientOverflow)++;
       try {
         closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
@@ -673,32 +682,34 @@ void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&)
 
     setNonBlocking(newsock);
     setTCPNoDelay(newsock);
-    std::shared_ptr<TCPConnection> tc = std::make_shared<TCPConnection>(newsock, addr);
-    tc->d_source = addr;
-    tc->d_destination.reset();
-    tc->d_destination.sin4.sin_family = addr.sin4.sin_family;
-    socklen_t len = tc->d_destination.getSocklen();
-    getsockname(tc->getFD(), reinterpret_cast<sockaddr*>(&tc->d_destination), &len); // if this fails, we're ok with it
-    tc->d_mappedSource = mappedSource;
+    std::shared_ptr<TCPConnection> tcpConn = std::make_shared<TCPConnection>(newsock, addr);
+    tcpConn->d_source = addr;
+    tcpConn->d_destination.reset();
+    tcpConn->d_destination.sin4.sin_family = addr.sin4.sin_family;
+    socklen_t len = tcpConn->d_destination.getSocklen();
+    getsockname(tcpConn->getFD(), reinterpret_cast<sockaddr*>(&tcpConn->d_destination), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    tcpConn->d_mappedSource = mappedSource;
 
     if (fromProxyProtocolSource) {
-      tc->proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
-      tc->data.resize(tc->proxyProtocolNeed);
-      tc->state = TCPConnection::PROXYPROTOCOLHEADER;
+      tcpConn->proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
+      tcpConn->data.resize(tcpConn->proxyProtocolNeed);
+      tcpConn->state = TCPConnection::PROXYPROTOCOLHEADER;
     }
     else {
-      tc->state = TCPConnection::BYTE0;
+      tcpConn->state = TCPConnection::BYTE0;
     }
 
-    struct timeval ttd;
+    struct timeval ttd
+    {
+    };
     Utility::gettimeofday(&ttd, nullptr);
     ttd.tv_sec += g_tcpTimeout;
 
-    t_fdm->addReadFD(tc->getFD(), handleRunningTCPQuestion, tc, &ttd);
+    t_fdm->addReadFD(tcpConn->getFD(), handleRunningTCPQuestion, tcpConn, &ttd);
   }
 }
 
-static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var);
+static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var);
 
 static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::shared_ptr<PacketID>& pid)
 {
@@ -770,11 +781,11 @@ static void TCPIOHandlerStateChange(IOState oldstate, IOState newstate, std::sha
   }
 }
 
-static void TCPIOHandlerIO(int fd, FDMultiplexer::funcparam_t& var)
+static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var)
 {
-  std::shared_ptr<PacketID> pid = boost::any_cast<std::shared_ptr<PacketID>>(var);
-  assert(pid->tcphandler);
-  assert(fd == pid->tcphandler->getDescriptor());
+  auto pid = boost::any_cast<std::shared_ptr<PacketID>>(var);
+  assert(pid->tcphandler); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay): def off assert triggers it
+  assert(fileDesc == pid->tcphandler->getDescriptor()); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay) idem
   IOState newstate = IOState::Done;
 
   TCPLOG(pid->tcpsock, "TCPIOHandlerIO: lowState " << int(pid->lowState) << endl);
@@ -886,9 +897,9 @@ void checkFastOpenSysctl([[maybe_unused]] bool active, [[maybe_unused]] Logr::lo
 void checkTFOconnect(Logr::log_t log)
 {
   try {
-    Socket s(AF_INET, SOCK_STREAM);
-    s.setNonBlocking();
-    s.setFastOpenConnect();
+    Socket socket(AF_INET, SOCK_STREAM);
+    socket.setNonBlocking();
+    socket.setFastOpenConnect();
   }
   catch (const NetworkError& e) {
     SLOG(g_log << Logger::Error << "tcp-fast-open-connect enabled but returned error: " << e.what() << endl,
@@ -906,7 +917,7 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
   pident->outMSG = data;
   pident->highState = TCPAction::DoingWrite;
 
-  IOState state;
+  IOState state = IOState::Done;
   try {
     TCPLOG(pident->tcpsock, "Initial tryWrite: " << pident->outPos << '/' << pident->outMSG.size() << ' ' << " -> ");
     state = handler->tryWrite(pident->outMSG, pident->outPos, pident->outMSG.size());
@@ -933,12 +944,12 @@ LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>& ha
     TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::Timeout;
   }
-  else if (ret == -1) { // error
+  if (ret == -1) { // error
     TCPLOG(pident->tcpsock, "PermanentError" << endl);
     TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::PermanentError;
   }
-  else if (packet.size() != data.size()) { // main loop tells us what it sent out, or empty in case of an error
+  if (packet.size() != data.size()) { // main loop tells us what it sent out, or empty in case of an error
     // fd housekeeping done by TCPIOHandlerIO
     TCPLOG(pident->tcpsock, "PermanentError size mismatch" << endl);
     return LWResult::Result::PermanentError;
@@ -955,7 +966,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
 
   // We might have data already available from the TLS layer, try to get that into the buffer
   size_t pos = 0;
-  IOState state;
+  IOState state = IOState::Done;
   try {
     TCPLOG(handler->getDescriptor(), "calling tryRead() " << len << endl);
     state = handler->tryRead(data, pos, len);
@@ -1003,12 +1014,12 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
     TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::Timeout;
   }
-  else if (ret == -1) {
+  if (ret == -1) {
     TCPLOG(pident->tcpsock, "PermanentError" << endl);
     TCPIOHandlerStateChange(pident->lowState, IOState::Done, pident);
     return LWResult::Result::PermanentError;
   }
-  else if (data.empty()) { // error, EOF or other
+  if (data.empty()) { // error, EOF or other
     // fd housekeeping done by TCPIOHandlerIO
     TCPLOG(pident->tcpsock, "EOF" << endl);
     return LWResult::Result::PermanentError;
@@ -1045,11 +1056,11 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
       int err = errno;
       SLOG(g_log << Logger::Error << "Setsockopt failed for TCP listening socket" << endl,
            log->error(Logr::Critical, err, "Setsockopt failed for TCP listening socket"));
-      exit(1);
+      _exit(1);
     }
     if (address.sin6.sin6_family == AF_INET6 && setsockopt(socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &tmp, sizeof(tmp)) < 0) {
       int err = errno;
-      SLOG(g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << strerror(err) << endl,
+      SLOG(g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << stringerror(err) << endl,
            log->error(Logr::Error, err, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
     }
 
@@ -1089,7 +1100,7 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
 #ifdef TCP_FASTOPEN
       if (setsockopt(socketFd, IPPROTO_TCP, TCP_FASTOPEN, &SyncRes::s_tcp_fast_open, sizeof SyncRes::s_tcp_fast_open) < 0) {
         int err = errno;
-        SLOG(g_log << Logger::Error << "Failed to enable TCP Fast Open for listening socket: " << strerror(err) << endl,
+        SLOG(g_log << Logger::Error << "Failed to enable TCP Fast Open for listening socket: " << stringerror(err) << endl,
              log->error(Logr::Error, err, "Failed to enable TCP Fast Open for listening socket"));
       }
 #else
@@ -1099,7 +1110,7 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     }
 
     socklen_t socklen = address.sin4.sin_family == AF_INET ? sizeof(address.sin4) : sizeof(address.sin6);
-    if (::bind(socketFd, (struct sockaddr*)&address, socklen) < 0) {
+    if (::bind(socketFd, reinterpret_cast<struct sockaddr*>(&address), socklen) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       throw PDNSException("Binding TCP server socket for " + address.toStringWithPort() + ": " + stringerror());
     }
 
