@@ -609,6 +609,12 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
     ce.d_ttd = min(maxTTD, static_cast<time_t>(i.d_ttl)); // XXX this does weird things if TTLs differ in the set
 
     ce.d_orig_ttl = ce.d_ttd - ttl_time;
+    // Even though we record the time the ttd was computed, there still seems to be a case where the computed
+    // d_orig_ttl can wrap.
+    // So santize the computed ce.d_orig_ttl to be on the safe side
+    if (ce.d_orig_ttl < SyncRes::s_minimumTTL || ce.d_orig_ttl > SyncRes::s_maxcachettl) {
+      ce.d_orig_ttl = SyncRes::s_minimumTTL;
+    }
     ce.d_records.push_back(i.getContent());
   }
 
