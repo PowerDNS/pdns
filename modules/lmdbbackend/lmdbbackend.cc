@@ -1306,6 +1306,9 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     throw DBException(std::string(__PRETTY_FUNCTION__) + " called without a transaction");
   }
 
+  int transactionDomainId = d_transactiondomainid;
+  DNSName transactionDomain = d_transactiondomain;
+
   abortTransaction();
 
   LMDBIDvec idvec;
@@ -1327,7 +1330,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     }
   }
 
-  startTransaction(domain, idvec[0]);
+  startTransaction(transactionDomain, transactionDomainId);
   for (auto id : idvec) {
 
     { // Remove metadata
@@ -1357,7 +1360,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
     // Remove records
     commitTransaction();
-    startTransaction(domain, id);
+    startTransaction(transactionDomain, transactionDomainId);
 
     // Remove zone
     auto txn = d_tdomains->getRWTransaction();
