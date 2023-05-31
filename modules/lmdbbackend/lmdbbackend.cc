@@ -1322,7 +1322,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
     txn.get_multi<0>(domain, idvec);
 
-    if (idvec.size() == 0) {
+    if (idvec.empty()) {
       throw std::runtime_error("in LMDBBackend::deleteDomain, domain was not found");
     }
   }
