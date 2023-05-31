@@ -987,7 +987,7 @@ send:
   typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
 
-  ChunkedSigningPipe csp(target, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1));
+  ChunkedSigningPipe csp(target, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1), ::arg().mustDo("workaround-11804") ? 1 : 100);
 
   DNSName keyname;
   unsigned int udiff;
