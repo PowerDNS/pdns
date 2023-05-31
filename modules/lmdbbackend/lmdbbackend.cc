@@ -1326,8 +1326,8 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     txn.get_multi<0>(domain, idvec);
   }
 
-    for (auto id : idvec) {
-  
+  for (auto id : idvec) {
+
     startTransaction(domain, id);
 
     { // Remove metadata
