@@ -170,11 +170,11 @@ std::unique_ptr<DNSPacket> AuthLua4::prequery(const DNSPacket& q) {
   return nullptr;
 }
 
-bool AuthLua4::axfr_end(const DNSName& zone) {
+bool AuthLua4::axfr_end(const DNSName& zone, unsigned int serial) {
   luacall_axfr_end_t::result_type rcode;
 
   if (d_axfr_end == NULL) return false;
-  rcode = d_axfr_end(zone);
+  rcode = d_axfr_end(zone, serial);
   if (rcode < 0) {
     // failed to execute the AFXR end notification
     return false;
