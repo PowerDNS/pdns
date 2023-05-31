@@ -1321,7 +1321,10 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     auto txn = d_tdomains->getROTransaction();
 
     txn.get_multi<0>(domain, idvec);
-    throw std::runtime_error("in LMDBBackend::deleteDomain, domain was not found");
+
+    if (idvec.size() == 0) {
+      throw std::runtime_error("in LMDBBackend::deleteDomain, domain was not found");
+    }
   }
 
   startTransaction(domain, idvec[0]);
