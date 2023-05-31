@@ -1806,12 +1806,12 @@ BOOST_AUTO_TEST_CASE(test_cache_almost_expired_ttl)
   std::vector<shared_ptr<const RRSIGRecordContent>> sigs;
   addRecordToList(records, target, QType::A, "192.0.2.2", DNSResourceRecord::ANSWER, now + 29);
 
-  g_recCache->replace(now - 30, target, QType(QType::A), records, sigs, vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::optional<Netmask>());
+  g_recCache->replace(now - 30, target, QType(QType::A), records, sigs, {}, true, g_rootdnsname, boost::optional<Netmask>(), boost::none, vState::Indeterminate, boost::none, false, now - 31);
 
   /* Same for the NS record */
   std::vector<DNSRecord> ns;
   addRecordToList(ns, target, QType::NS, "pdns-public-ns1.powerdns.com", DNSResourceRecord::ANSWER, now + 29);
-  g_recCache->replace(now - 30, target, QType::NS, ns, sigs, vector<std::shared_ptr<DNSRecord>>(), false, target, boost::optional<Netmask>());
+  g_recCache->replace(now - 30, target, QType::NS, ns, sigs, {}, false, target, boost::optional<Netmask>(), boost::none, vState::Indeterminate, boost::none, false, now - 31);
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
@@ -1823,7 +1823,7 @@ BOOST_AUTO_TEST_CASE(test_cache_almost_expired_ttl)
   BOOST_CHECK_EQUAL(ttl, 29U);
 
   // One task should be submitted
-  BOOST_CHECK_EQUAL(getTaskSize(), 1U);
+  BOOST_REQUIRE_EQUAL(getTaskSize(), 1U);
 
   auto task = taskQueuePop();
 
