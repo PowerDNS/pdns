@@ -137,6 +137,7 @@ Run in Lightning Stream compatible mode. This:
 * forces ``flag-deleted`` on
 * forces ``random-ids`` on
 * handles duplicate entries in databases that can result from domains being added on two Lightning Stream nodes at the same time
+* aborts startup if ``shards`` is not set to ``1``
 
 LMDB Structure
 --------------
