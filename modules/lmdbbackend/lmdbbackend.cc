@@ -1324,14 +1324,11 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     auto txn = d_tdomains->getROTransaction();
 
     txn.get_multi<0>(domain, idvec);
-
-    if (idvec.empty()) {
-      throw std::runtime_error("in LMDBBackend::deleteDomain, domain was not found");
-    }
   }
 
-  startTransaction(transactionDomain, transactionDomainId);
-  for (auto id : idvec) {
+    for (auto id : idvec) {
+  
+    startTransaction(domain, id);
 
     { // Remove metadata
       auto txn = d_tmeta->getRWTransaction();
@@ -1360,13 +1357,14 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
     // Remove records
     commitTransaction();
-    startTransaction(transactionDomain, transactionDomainId);
 
     // Remove zone
     auto txn = d_tdomains->getRWTransaction();
     txn.del(id);
     txn.commit();
   }
+
+  startTransaction(transactionDomain, transactionDomainId);
 
   return true;
 }
