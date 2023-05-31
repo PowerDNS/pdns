@@ -5,3 +5,4 @@ Set 'dns.test' meta ALSO-NOTIFY = 127.0.0.3
 Set 'dns.test' meta LUA-AXFR-END-SCRIPT = axfr-end-script.lua
 Added to queue
 dns.test.
+0

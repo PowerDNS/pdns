@@ -11,7 +11,7 @@ clean_files()
     rm -rf *.sqlite3   
     rm -rf *.lua
     rm -rf *.controlsocket
-    rm -rf *.output
+    #rm -rf *.output
 }
 
 kill_instances()
@@ -43,9 +43,10 @@ module-dir=../regression-tests/modules
 EOF
 
     cat > axfr-end-script.lua<<EOF
-function axfr_end(zone)
+function axfr_end(zone, serial)
         local file = io.open("lua-axfr-end.output", "w")
-        file:write(tostring(zone))
+	file:write(tostring(zone).."\n")
+	file:write(tostring(serial).."\n")
         file:close()
         return 0
 end
