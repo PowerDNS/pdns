@@ -981,9 +981,9 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
     }
 
     if (laes) {
-      g_log<<Logger::Debug << logPrefix << "Initiated LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
-      laes->axfr_end(domain);
-      g_log<<Logger::Debug << logPrefix << "Completed LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
+      g_log<<Logger::Info << logPrefix << "Initiated LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
+      laes->axfr_end(domain, zs.soa_serial);
+      g_log<<Logger::Info << logPrefix << "Completed LUA-AXFR-END-SCRIPT for zone: " << domain << endl;
     }
   }
   catch(DBException &re) {
