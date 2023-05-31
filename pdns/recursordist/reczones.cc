@@ -40,10 +40,10 @@ bool primeHints(time_t now)
   vector<DNSRecord> nsvec;
   bool ret = true;
 
-  if (hintfile == "no") {
+  if (hintfile == "no" || hintfile == "no-refresh") {
     auto log = g_slog->withName("config");
-    SLOG(g_log << Logger::Debug << "Priming root disabled by hint-file=no" << endl,
-         log->info(Logr::Debug, "Priming root disabled by hint-file=no"));
+    SLOG(g_log << Logger::Debug << "Priming root disabled by hint-file setting" << endl,
+         log->info(Logr::Debug, "Priming root disabled by hint-file setting"));
     return ret;
   }
 

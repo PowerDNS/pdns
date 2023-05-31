@@ -5867,6 +5867,9 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
 
 int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t log)
 {
+  if (::arg()["hint-file"] == "no-refresh") {
+    return 0;
+  }
   SyncRes sr(now);
   sr.d_prefix = "[getRootNS]";
   sr.setDoEDNS0(true);
