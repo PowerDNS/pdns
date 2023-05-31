@@ -31,8 +31,9 @@ See :doc:`performance`.
 
 - The :ref:`setting-pdns-distributes-queries` default has been changed to ``no``.
 - The :ref:`setting-reuseport` default has been changed to ``yes``.
-
 - The :ref:`setting-packetcache-ttl` default has been changed to 24 hours.
+- The :ref:`setting-max-recursion-depth` default has been changed to 16. Before it was, 40, but effectively the CNAME length chain limit (fixed at 16) took precedence.
+- The :ref:`setting-hint-file` setting gained a new special value to disable refreshing of root hints completely. See :ref:`handling-of-root-hints`.
 
 :program:`rec_control`
 ^^^^^^^^^^^^^^^^^^^^^^

@@ -69,7 +69,7 @@ This is needed to be able to resolve names, as the recursive algorithm starts at
 If the :ref:`setting-hint-file` is not set, :program:`Recursor` wil use a compiled-in table as root hints.
 
 Periodically, based on the :ref:`setting-max-cache-ttl`, the :program:`Recursor` will refetch the root data using data in its cache by doing a `. NS` query.
-If that does not succeed, it wil fall back to using the root hints to fill the cache with root data.
+If that does not succeed, it will fall back to using the root hints to fill the cache with root data.
 Prior to version 4.7.0, the period for re-fetching root data was :ref:`setting-max-cache-ttl` divided by 12, with a minimum of 10 seconds.
 Starting with version 4.7.0, the period is adaptive, starting at 80% of :ref:`setting-max-cache-ttl`, reducing the interval on failure.
 
@@ -77,7 +77,7 @@ The root hints and resolved root data can differ if the root hints are outdated.
 As long as at least one root server mentioned in the root hints can be contacted, the periodic refresh will produce the desired record sets corresponding to the current up-to-date root server data.
 
 Starting with version 4.6.2, if :ref:`setting-hint-file` is set to ``no``, the :program:`Recursor` will not prime the cache with root data obtained from hints, but will still do the periodic refresh.
-A (recursive) forward configuration is be needed to make the periodic refresh work.
+A (recursive) forward configuration is needed to make the periodic refresh work.
 
 Starting with version 4.9, setting :ref:`setting-hint-file` to ``no-refresh`` disables both the initial reading of the hints and the periodic refresh of cached root data.
 This prevents :program:`Recursor` from resolving names by itself, so it is only useful in cases where all queries are forwarded.
