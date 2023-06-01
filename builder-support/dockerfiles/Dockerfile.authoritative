@@ -1,9 +1,9 @@
-FROM alpine:3.10 as pdns-authoritative
+FROM alpine:3.18 as pdns-authoritative
 ARG BUILDER_CACHE_BUSTER=
 
 RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
                        libtool file boost-dev curl openssl-dev ragel python3 \
-                       flex bison git
+                       flex bison git bash
 
 # the pdns/ dir is a bit broad, but who cares :)
 ADD configure.ac Makefile.am COPYING INSTALL NOTICE README /pdns-authoritative/
