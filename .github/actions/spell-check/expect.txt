@@ -424,6 +424,7 @@ feedrecord
 ffi
 ffipolicy
 filedescriptor
+finalised
 findclientpolicy
 Firefox
 firewalled
