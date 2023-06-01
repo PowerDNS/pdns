@@ -2,6 +2,46 @@ Changelogs for 4.8.x
 ====================
 
 .. changelog::
+  :version: 4.8.0
+  :released: 1st of June 2023
+
+  This is release 4.8.0 of the Authoritative Server.
+
+  In 4.8, the LMDB backend gains a new Lightning Stream-compatible schema, which requires a data migration (this is automatic, and there is no migration back to the old schema).
+  LMDB backend users should pay extra attention to the :doc:`Upgrade Notes <../upgrading>`.
+
+  `Lightning Stream <https://doc.powerdns.com/lightningstream>`_ is an `open source <https://github.com/PowerDNS/lightningstream>`_ data syncer that allows multiple nodes to sync LMDB (Lightning Memory-Mapped Database) data to and from an S3 (compatible) bucket. This has particular advantages in distributed and/or large-scale applications (i.e. ~1 million records), making DNS replication much, much easier to manage.
+
+  We are excited about how Lightning Stream simplifies running multiple distributed PowerDNS Authoritative servers, with full support for keeping record data and DNSSEC keys in sync, from multiple writers.
+
+  4.8.0 improves the handling of accidental duplicate domains -- deleting a zone now deletes all versions of it.
+  This release also contains a few other fixes, please see the list below.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12869
+
+    do not answer with broken TYPE0 data when expanding an ENT wildcard
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12872
+
+    lmdb: delete duplicate domain entries in deleteDomain
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12868
+
+    pdnsutil: if user pushes unknown key in response to "problem with zone" prompt, do not throw away their changes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12828
+
+    add setting workaround-11804-max-chunk-records
+
+.. changelog::
   :version: 4.8.0-beta1
   :released: 4th of May 2023
 
