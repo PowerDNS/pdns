@@ -25,7 +25,7 @@ from jinja2 import Environment, FileSystemLoader
 
 # Globals
 
-g_version = '1.0.2'
+g_version = '1.0.3'
 
 g_verbose = False
 
@@ -181,6 +181,10 @@ def write_release_files (release):
                    'rec-47', 'rec-48', 'rec-49', 'rec-master',
                    'dnsdist-17', 'dnsdist-18', 'dnsdist-master']:
         write_dockerfile('el', '9', release)
+
+    if release in ['auth-48', 'auth-master']:
+        write_dockerfile('debian', 'bookworm', release)
+        write_list_file('debian', 'bookworm', release)
 
 # Test Release Functions
 
