@@ -21,8 +21,11 @@ If you upgrade your database (by starting 4.8.0 without ``lmdb-schema-version=4`
 
 Upgrading is only supported from database schema versions 3 and 4, that is, databases created/upgraded by version 4.4 and up.
 
-4.6.0 to 4.7.0 or master
-------------------------
+In version 4.8.0, schema version 5 is finalised.
+Databases created with -alpha1 or -beta1 work with 4.8.0.
+
+4.6.0 to 4.7.0
+--------------
 
 Schema changes
 ^^^^^^^^^^^^^^
