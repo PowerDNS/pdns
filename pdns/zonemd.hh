@@ -50,30 +50,32 @@ public:
     ValidationFailure
   };
 
-  ZoneMD(const DNSName& zone) :
-    d_zone(zone)
+  ZoneMD(DNSName zone) :
+    d_zone(std::move(zone))
   {}
   void readRecords(ZoneParserTNG& zpt);
   void readRecords(const std::vector<DNSRecord>& records);
   void readRecord(const DNSRecord& record);
+  void processRecord(const DNSRecord& record);
   void verify(bool& validationDone, bool& validationOK);
 
   // Return the zone's apex DNSKEYs
-  const std::set<shared_ptr<const DNSKEYRecordContent>>& getDNSKEYs() const
+  [[nodiscard]] const std::set<shared_ptr<const DNSKEYRecordContent>>& getDNSKEYs() const
   {
     return d_dnskeys;
   }
 
   // Return the zone's apex RRSIGs
-  const std::vector<shared_ptr<const RRSIGRecordContent>>& getRRSIGs() const
+  [[nodiscard]] const std::vector<shared_ptr<const RRSIGRecordContent>>& getRRSIGs() const
   {
     return d_rrsigs;
   }
 
   // Return the zone's apex ZONEMDs
-  std::vector<shared_ptr<const ZONEMDRecordContent>> getZONEMDs() const
+  [[nodiscard]] std::vector<shared_ptr<const ZONEMDRecordContent>> getZONEMDs() const
   {
     std::vector<shared_ptr<const ZONEMDRecordContent>> ret;
+    ret.reserve(d_zonemdRecords.size());
     for (const auto& zonemd : d_zonemdRecords) {
       ret.emplace_back(zonemd.second.record);
     }
@@ -81,24 +83,24 @@ public:
   }
 
   // Return the zone's apex NSECs with signatures
-  const ContentSigPair& getNSECs() const
+  [[nodiscard]] const ContentSigPair& getNSECs() const
   {
     return d_nsecs;
   }
 
   // Return the zone's apex NSEC3s with signatures
-  const ContentSigPair& getNSEC3s() const
+  [[nodiscard]] const ContentSigPair& getNSEC3s() const
   {
-    const auto it = d_nsec3s.find(d_nsec3label);
-    return it == d_nsec3s.end() ? empty : d_nsec3s.at(d_nsec3label);
+    const auto item = d_nsec3s.find(d_nsec3label);
+    return item == d_nsec3s.end() ? empty : d_nsec3s.at(d_nsec3label);
   }
 
-  const DNSName& getNSEC3Label() const
+  [[nodiscard]] const DNSName& getNSEC3Label() const
   {
     return d_nsec3label;
   }
 
-  const std::vector<shared_ptr<const NSEC3PARAMRecordContent>>& getNSEC3Params() const
+  [[nodiscard]] const std::vector<shared_ptr<const NSEC3PARAMRecordContent>>& getNSEC3Params() const
   {
     return d_nsec3params;
   }
@@ -109,16 +111,16 @@ private:
 
   struct CanonRRSetKeyCompare
   {
-    bool operator()(const RRSetKey_t& a, const RRSetKey_t& b) const
+    bool operator()(const RRSetKey_t& lhs, const RRSetKey_t& rhs) const
     {
       // FIXME surely we can be smarter here
-      if (a.first.canonCompare(b.first)) {
+      if (lhs.first.canonCompare(rhs.first)) {
         return true;
       }
-      if (b.first.canonCompare(a.first)) {
+      if (rhs.first.canonCompare(lhs.first)) {
         return false;
       }
-      return a.second < b.second;
+      return lhs.second < rhs.second;
     }
   };
 

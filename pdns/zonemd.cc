@@ -36,20 +36,13 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
 
 void pdns::ZoneMD::readRecords(const vector<DNSRecord>& records)
 {
-  for (auto& record : records) {
+  for (const auto& record : records) {
     readRecord(record);
   }
 }
 
-void pdns::ZoneMD::readRecord(const DNSRecord& record)
+void pdns::ZoneMD::processRecord(const DNSRecord& record)
 {
-  if (!record.d_name.isPartOf(d_zone) && record.d_name != d_zone) {
-    return;
-  }
-  if (record.d_class == QClass::IN && record.d_type == QType::SOA && d_soaRecordContent) {
-    return;
-  }
-
   if (record.d_class == QClass::IN && record.d_name == d_zone) {
     switch (record.d_type) {
     case QType::SOA: {
@@ -107,25 +100,38 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       if (param == nullptr) {
         throw PDNSException("Invalid NSEC3PARAM record");
       }
-      if (g_maxNSEC3Iterations && param->d_iterations > g_maxNSEC3Iterations) {
+      if (g_maxNSEC3Iterations > 0 && param->d_iterations > g_maxNSEC3Iterations) {
         return;
       }
       d_nsec3params.emplace_back(param);
       d_nsec3label = d_zone;
       d_nsec3label.prependRawLabel(toBase32Hex(hashQNameWithSalt(param->d_salt, param->d_iterations, d_zone)));
       // Zap the NSEC3 at labels that we now know are not relevant
-      for (auto it = d_nsec3s.begin(); it != d_nsec3s.end();) {
-        if (it->first != d_nsec3label) {
-          it = d_nsec3s.erase(it);
+      for (auto item = d_nsec3s.begin(); item != d_nsec3s.end();) {
+        if (item->first != d_nsec3label) {
+          item = d_nsec3s.erase(item);
         }
         else {
-          ++it;
+          ++item;
         }
       }
       break;
     }
     }
   }
+}
+
+void pdns::ZoneMD::readRecord(const DNSRecord& record)
+{
+  if (!record.d_name.isPartOf(d_zone) && record.d_name != d_zone) {
+    return;
+  }
+  if (record.d_class == QClass::IN && record.d_type == QType::SOA && d_soaRecordContent) {
+    return;
+  }
+
+  processRecord(record);
+
   // Until we have seen the NSEC3PARAM record, we save all of them, as we do not know the label for the zone yet
   if (record.d_class == QClass::IN && (d_nsec3label.empty() || record.d_name == d_nsec3label)) {
     switch (record.d_type) {
@@ -165,9 +171,10 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
   // Get all records and remember RRSets and TTLs
 
   // Determine which digests to compute based on accepted zonemd records present
-  unique_ptr<pdns::SHADigest> sha384digest{nullptr}, sha512digest{nullptr};
+  unique_ptr<pdns::SHADigest> sha384digest{nullptr};
+  unique_ptr<pdns::SHADigest> sha512digest{nullptr};
 
-  for (const auto& it : d_zonemdRecords) {
+  for (const auto& item : d_zonemdRecords) {
     // The SOA Serial field MUST exactly match the ZONEMD Serial
     // field. If the fields do not match, digest verification MUST
     // NOT be considered successful with this ZONEMD RR.
@@ -179,14 +186,14 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     // The Hash Algorithm field MUST be checked. If the verifier does
     // not support the given hash algorithm, verification MUST NOT be
     // considered successful with this ZONEMD RR.
-    const auto duplicate = it.second.duplicate;
-    const auto& r = it.second.record;
-    if (!duplicate && r->d_serial == d_soaRecordContent->d_st.serial && r->d_scheme == 1 && (r->d_hashalgo == 1 || r->d_hashalgo == 2)) {
+    const auto duplicate = item.second.duplicate;
+    const auto& record = item.second.record;
+    if (!duplicate && record->d_serial == d_soaRecordContent->d_st.serial && record->d_scheme == 1 && (record->d_hashalgo == 1 || record->d_hashalgo == 2)) {
       // A supported ZONEMD record
-      if (r->d_hashalgo == 1) {
+      if (record->d_hashalgo == 1) {
         sha384digest = make_unique<pdns::SHADigest>(384);
       }
-      else if (r->d_hashalgo == 2) {
+      else if (record->d_hashalgo == 2) {
         sha512digest = make_unique<pdns::SHADigest>(512);
       }
     }
@@ -216,14 +223,14 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     }
 
     sortedRecords_t sorted;
-    for (auto& rr : rrset.second) {
+    for (auto& resourceRecord : rrset.second) {
       if (qtype == QType::RRSIG) {
-        const auto rrsig = std::dynamic_pointer_cast<const RRSIGRecordContent>(rr);
+        const auto rrsig = std::dynamic_pointer_cast<const RRSIGRecordContent>(resourceRecord);
         if (rrsig->d_type == QType::ZONEMD && qname == d_zone) {
           continue;
         }
       }
-      sorted.insert(rr);
+      sorted.insert(resourceRecord);
     }
 
     if (sorted.empty()) {
