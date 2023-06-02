@@ -494,7 +494,7 @@ enum class PolicyResult : uint8_t
   Drop
 };
 
-static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw, RunningResolveGuard& tcpGuard)
+static PolicyResult handlePolicyHit(const DNSFilterEngine::AppliedPolicy& appliedPolicy, const std::unique_ptr<DNSComboWriter>& dc, SyncRes& sr, int& res, vector<DNSRecord>& ret, DNSPacketWriter& pw, RunningResolveGuard& tcpGuard)
 {
   /* don't account truncate actions for TCP queries, since they are not applied */
   if (appliedPolicy.d_kind != DNSFilterEngine::PolicyKind::Truncate || !dc->d_tcp) {
@@ -1076,7 +1076,7 @@ void startDoResolve(void* p) // NOLINT(readability-function-cognitive-complexity
     /* preresolve expects res (dq.rcode) to be set to RCode::NoError by default */
     int res = RCode::NoError;
 
-    DNSFilterEngine::Policy appliedPolicy;
+    DNSFilterEngine::AppliedPolicy appliedPolicy;
     RecursorLua4::DNSQuestion dq(dc->d_source, dc->d_destination, dc->d_mdp.d_qname, dc->d_mdp.d_qtype, dc->d_tcp, variableAnswer, wantsRPZ, dc->d_logResponse, addPaddingToResponse, (g_useKernelTimestamp && dc->d_kernelTimestamp.tv_sec != 0) ? dc->d_kernelTimestamp : dc->d_now);
     dq.ednsFlags = &edo.d_extFlags;
     dq.ednsOptions = &ednsOpts;

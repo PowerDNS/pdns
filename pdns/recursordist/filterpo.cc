@@ -44,12 +44,12 @@ DNSFilterEngine::DNSFilterEngine()
 {
 }
 
-bool DNSFilterEngine::Zone::findExactQNamePolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const
+bool DNSFilterEngine::Zone::findExactQNamePolicy(const DNSName& qname, DNSFilterEngine::AppliedPolicy& pol) const
 {
   return findExactNamedPolicy(d_qpolName, qname, pol);
 }
 
-bool DNSFilterEngine::Zone::findExactNSPolicy(const DNSName& qname, DNSFilterEngine::Policy& pol) const
+bool DNSFilterEngine::Zone::findExactNSPolicy(const DNSName& qname, DNSFilterEngine::AppliedPolicy& pol) const
 {
   if (findExactNamedPolicy(d_propolName, qname, pol)) {
     pol.d_trigger = qname;
@@ -59,7 +59,7 @@ bool DNSFilterEngine::Zone::findExactNSPolicy(const DNSName& qname, DNSFilterEng
   return false;
 }
 
-bool DNSFilterEngine::Zone::findNSIPPolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const
+bool DNSFilterEngine::Zone::findNSIPPolicy(const ComboAddress& addr, DNSFilterEngine::AppliedPolicy& pol) const
 {
   if (const auto fnd = d_propolNSAddr.lookup(addr)) {
     pol = fnd->second;
@@ -71,7 +71,7 @@ bool DNSFilterEngine::Zone::findNSIPPolicy(const ComboAddress& addr, DNSFilterEn
   return false;
 }
 
-bool DNSFilterEngine::Zone::findResponsePolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const
+bool DNSFilterEngine::Zone::findResponsePolicy(const ComboAddress& addr, DNSFilterEngine::AppliedPolicy& pol) const
 {
   if (const auto fnd = d_postpolAddr.lookup(addr)) {
     pol = fnd->second;
@@ -83,7 +83,7 @@ bool DNSFilterEngine::Zone::findResponsePolicy(const ComboAddress& addr, DNSFilt
   return false;
 }
 
-bool DNSFilterEngine::Zone::findClientPolicy(const ComboAddress& addr, DNSFilterEngine::Policy& pol) const
+bool DNSFilterEngine::Zone::findClientPolicy(const ComboAddress& addr, DNSFilterEngine::AppliedPolicy& pol) const
 {
   if (const auto fnd = d_qpolAddr.lookup(addr)) {
     pol = fnd->second;
@@ -95,7 +95,7 @@ bool DNSFilterEngine::Zone::findClientPolicy(const ComboAddress& addr, DNSFilter
   return false;
 }
 
-bool DNSFilterEngine::Zone::findNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::Policy& pol)
+bool DNSFilterEngine::Zone::findNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::AppliedPolicy& pol)
 {
   if (polmap.empty()) {
     return false;
@@ -129,7 +129,7 @@ bool DNSFilterEngine::Zone::findNamedPolicy(const std::unordered_map<DNSName, DN
   return false;
 }
 
-bool DNSFilterEngine::Zone::findExactNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::Policy& pol)
+bool DNSFilterEngine::Zone::findExactNamedPolicy(const std::unordered_map<DNSName, DNSFilterEngine::Policy>& polmap, const DNSName& qname, DNSFilterEngine::AppliedPolicy& pol)
 {
   if (polmap.empty()) {
     return false;
@@ -146,7 +146,7 @@ bool DNSFilterEngine::Zone::findExactNamedPolicy(const std::unordered_map<DNSNam
   return false;
 }
 
-bool DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string, bool>& discardedPolicies, Policy& pol) const
+bool DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unordered_map<std::string, bool>& discardedPolicies, AppliedPolicy& pol) const
 {
   // cout<<"Got question for nameserver name "<<qname<<endl;
   std::vector<bool> zoneEnabled(d_zones.size());
@@ -211,7 +211,7 @@ bool DNSFilterEngine::getProcessingPolicy(const DNSName& qname, const std::unord
   return false;
 }
 
-bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string, bool>& discardedPolicies, Policy& pol) const
+bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std::unordered_map<std::string, bool>& discardedPolicies, AppliedPolicy& pol) const
 {
   //  cout<<"Got question for nameserver IP "<<address.toString()<<endl;
   for (const auto& z : d_zones) {
@@ -231,7 +231,7 @@ bool DNSFilterEngine::getProcessingPolicy(const ComboAddress& address, const std
   return false;
 }
 
-bool DNSFilterEngine::getClientPolicy(const ComboAddress& ca, const std::unordered_map<std::string, bool>& discardedPolicies, Policy& pol) const
+bool DNSFilterEngine::getClientPolicy(const ComboAddress& ca, const std::unordered_map<std::string, bool>& discardedPolicies, AppliedPolicy& pol) const
 {
   // cout<<"Got question from "<<ca.toString()<<endl;
   for (const auto& z : d_zones) {
@@ -251,7 +251,7 @@ bool DNSFilterEngine::getClientPolicy(const ComboAddress& ca, const std::unorder
   return false;
 }
 
-bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_map<std::string, bool>& discardedPolicies, Policy& pol) const
+bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_map<std::string, bool>& discardedPolicies, AppliedPolicy& pol) const
 {
   // cerr<<"Got question for "<<qname<<' '<< pol.getPriority()<< endl;
   std::vector<bool> zoneEnabled(d_zones.size());
@@ -320,7 +320,7 @@ bool DNSFilterEngine::getQueryPolicy(const DNSName& qname, const std::unordered_
   return false;
 }
 
-bool DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string, bool>& discardedPolicies, Policy& pol) const
+bool DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records, const std::unordered_map<std::string, bool>& discardedPolicies, AppliedPolicy& pol) const
 {
   for (const auto& record : records) {
     if (getPostPolicy(record, discardedPolicies, pol)) {
@@ -331,7 +331,7 @@ bool DNSFilterEngine::getPostPolicy(const vector<DNSRecord>& records, const std:
   return false;
 }
 
-bool DNSFilterEngine::getPostPolicy(const DNSRecord& record, const std::unordered_map<std::string, bool>& discardedPolicies, Policy& pol) const
+bool DNSFilterEngine::getPostPolicy(const DNSRecord& record, const std::unordered_map<std::string, bool>& discardedPolicies, AppliedPolicy& pol) const
 {
   ComboAddress ca;
   if (record.d_place != DNSResourceRecord::ANSWER) {
@@ -552,12 +552,12 @@ bool DNSFilterEngine::Zone::rmNSIPTrigger(const Netmask& nm, const Policy& pol)
   return rmNetmaskTrigger(d_propolNSAddr, nm, pol);
 }
 
-std::string DNSFilterEngine::Policy::getLogString() const
+std::string DNSFilterEngine::AppliedPolicy::getLogString() const
 {
   return ": RPZ Hit; PolicyName=" + getName() + "; Trigger=" + d_trigger.toLogString() + "; Hit=" + d_hit + "; Type=" + getTypeToString(d_type) + "; Kind=" + getKindToString(d_kind);
 }
 
-void DNSFilterEngine::Policy::info(Logr::Priority prio, const std::shared_ptr<Logr::Logger>& log) const
+void DNSFilterEngine::AppliedPolicy::info(Logr::Priority prio, const std::shared_ptr<Logr::Logger>& log) const
 {
   log->info(prio, "RPZ Hit", "policyName", Logging::Loggable(getName()), "trigger", Logging::Loggable(d_trigger),
             "hit", Logging::Loggable(d_hit), "type", Logging::Loggable(getTypeToString(d_type)),

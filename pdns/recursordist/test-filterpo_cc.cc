@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::NSDName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
 
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findExactNSPolicy(nsName, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
 
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     BOOST_CHECK(notMatchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
 
     /* a direct lookup would not match */
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findExactNSPolicy(DNSName("sub.sub.wildcard.wolf."), zonePolicy) == false);
     /* except if we look exactly for the wildcard */
     BOOST_CHECK(zone->findExactNSPolicy(nsWildcardName, zonePolicy));
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     /* allowed NS name */
     const auto matchingPolicy = dfe.getProcessingPolicy(DNSName("ns.bad.rabbit."), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findExactNSPolicy(DNSName("ns.bad.rabbit."), zonePolicy) == false);
   }
 
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     const auto matchingPolicy = dfe.getProcessingPolicy(nsIP, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::NSIP);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findNSIPPolicy(nsIP, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
     BOOST_CHECK_EQUAL(zonePolicy.d_trigger, DNSName("31.0.2.0.192.rpz-nsip"));
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     /* allowed NS IP */
     const auto matchingPolicy = dfe.getProcessingPolicy(ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findNSIPPolicy(ComboAddress("192.0.2.142"), zonePolicy) == false);
   }
 
@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     auto matchingPolicy = dfe.getQueryPolicy(blockedName, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::QName);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findExactQNamePolicy(blockedName, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
     BOOST_CHECK_EQUAL(zonePolicy.d_trigger, blockedName);
@@ -156,7 +156,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     BOOST_CHECK(notMatchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
 
     /* a direct lookup would not match */
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findExactQNamePolicy(DNSName("sub.sub.wildcard-blocked."), zonePolicy) == false);
     /* except if we look exactly for the wildcard */
     BOOST_CHECK(zone->findExactQNamePolicy(blockedWildcardName, zonePolicy));
@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     const auto matchingPolicy = dfe.getClientPolicy(clientIP, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ClientIP);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findClientPolicy(clientIP, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
     BOOST_CHECK_EQUAL(zonePolicy.d_trigger, DNSName("31.128.2.0.192.rpz-client-ip"));
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     /* not blocked */
     const auto matchingPolicy = dfe.getClientPolicy(ComboAddress("192.0.2.142"), std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findClientPolicy(ComboAddress("192.0.2.142"), zonePolicy) == false);
     BOOST_CHECK(zone->findExactQNamePolicy(DNSName("totally.legit."), zonePolicy) == false);
   }
@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     const auto matchingPolicy = dfe.getPostPolicy({dr}, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::ResponseIP);
     BOOST_CHECK(matchingPolicy.d_kind == DNSFilterEngine::PolicyKind::Drop);
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findResponsePolicy(responseIP, zonePolicy));
     BOOST_CHECK(zonePolicy == matchingPolicy);
     BOOST_CHECK_EQUAL(zonePolicy.d_trigger, DNSName("31.254.2.0.192.rpz-ip"));
@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(test_filter_policies_basic)
     dr.setContent(DNSRecordContent::mastermake(QType::A, QClass::IN, "192.0.2.142"));
     const auto matchingPolicy = dfe.getPostPolicy({dr}, std::unordered_map<std::string, bool>(), DNSFilterEngine::maximumPriority);
     BOOST_CHECK(matchingPolicy.d_type == DNSFilterEngine::PolicyType::None);
-    DNSFilterEngine::Policy zonePolicy;
+    DNSFilterEngine::AppliedPolicy zonePolicy;
     BOOST_CHECK(zone->findResponsePolicy(ComboAddress("192.0.2.142"), zonePolicy) == false);
   }
 
