@@ -451,6 +451,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
   bool skipRefreshDelay = isPreloaded;
 
   for (;;) {
+    oldZone = nullptr; // Do not keep it around, it will be re-assigned after the sleep.
     DNSRecord dr;
     dr.setContent(sr);
 
