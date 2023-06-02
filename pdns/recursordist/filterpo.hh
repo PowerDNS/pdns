@@ -112,16 +112,16 @@ public:
       d_zoneData(data), d_ttl(ttl), d_kind(kind), d_type(type)
     {
       if (!custom.empty()) {
-        allocateCustomRecords();
-        copy(custom.cbegin(), custom.cend(), d_custom->begin());
+        allocateCustomRecords(custom.size());
+        d_custom->insert(d_custom->end(), custom.begin(), custom.end());
       }
     }
 
     Policy(const Policy& pol)
     {
-      if (pol.d_custom != nullptr) {
-        allocateCustomRecords();
-        copy(pol.d_custom->cbegin(), pol.d_custom->cend(), d_custom->begin());
+      if (pol.d_custom) {
+        allocateCustomRecords(pol.d_custom->size());
+        d_custom->insert(d_custom->end(), pol.d_custom->begin(), pol.d_custom->end());
       }
       d_zoneData = pol.d_zoneData;
       d_ttl = pol.d_ttl;
@@ -135,9 +135,9 @@ public:
         return *this;
       }
       this->d_custom = nullptr;
-      if (pol.d_custom != nullptr) {
-        allocateCustomRecords();
-        copy(pol.d_custom->cbegin(), pol.d_custom->cend(), d_custom->begin());
+      if (pol.d_custom) {
+        allocateCustomRecords(pol.d_custom->size());
+        d_custom->insert(d_custom->end(), pol.d_custom->begin(), pol.d_custom->end());
       }
       d_zoneData = pol.d_zoneData;
       d_ttl = pol.d_ttl;
@@ -209,12 +209,14 @@ public:
     std::vector<DNSRecord> getCustomRecords(const DNSName& qname, uint16_t qtype) const;
     std::vector<DNSRecord> getRecords(const DNSName& qname) const;
 
-    void allocateCustomRecords()
+    void allocateCustomRecords(size_t res)
     {
       if (d_custom == nullptr) {
         d_custom = std::make_unique<std::vector<std::shared_ptr<const DNSRecordContent>>>();
       }
+      d_custom->reserve(res);
     }
+
     [[nodiscard]] size_t customRecordsSize() const
     {
       if (d_custom) {

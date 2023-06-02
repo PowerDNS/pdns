@@ -391,8 +391,7 @@ void DNSFilterEngine::Zone::addNameTrigger(std::unordered_map<DNSName, Policy>& 
     }
 
     if (pol.customRecordsSize() > 0) {
-      existingPol.allocateCustomRecords();
-      existingPol.d_custom->reserve(existingPol.customRecordsSize() + pol.customRecordsSize());
+      existingPol.allocateCustomRecords(existingPol.customRecordsSize() + pol.customRecordsSize());
       std::move(pol.d_custom->begin(), pol.d_custom->end(), std::back_inserter(*existingPol.d_custom));
     }
   }
@@ -421,8 +420,7 @@ void DNSFilterEngine::Zone::addNetmaskTrigger(NetmaskTree<Policy>& nmt, const Ne
     }
 
     if (pol.customRecordsSize() > 0) {
-      existingPol.allocateCustomRecords();
-      existingPol.d_custom->reserve(existingPol.customRecordsSize() + pol.customRecordsSize());
+      existingPol.allocateCustomRecords(existingPol.customRecordsSize() + pol.customRecordsSize());
       std::move(pol.d_custom->begin(), pol.d_custom->end(), std::back_inserter(*existingPol.d_custom));
     }
   }

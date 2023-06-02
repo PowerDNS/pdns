@@ -109,9 +109,9 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
     defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have["defpol"]);
     defpol->setName(polName);
     if (defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
-      defpol->allocateCustomRecords();
+      defpol->allocateCustomRecords(1);
       defpol->d_custom->push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN,
-                                                              boost::get<string>(have["defcontent"])));
+                                                               boost::get<string>(have["defcontent"])));
 
       if (have.count("defttl"))
         defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(have["defttl"]));

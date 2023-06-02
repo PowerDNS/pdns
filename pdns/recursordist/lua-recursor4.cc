@@ -242,7 +242,7 @@ void RecursorLua4::postPrepareContext()
       if (pol.d_custom != nullptr) {
         pol.d_custom->clear();
       }
-      pol.allocateCustomRecords();
+      pol.allocateCustomRecords(1);
       pol.d_custom->push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN, content));
     }
   );
