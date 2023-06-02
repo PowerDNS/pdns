@@ -101,10 +101,10 @@ typedef std::unordered_map<std::string, boost::variant<bool, uint32_t, std::stri
 
 static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngine::Zone>& zone, std::string& polName, boost::optional<DNSFilterEngine::Policy>& defpol, bool& defpolOverrideLocal, uint32_t& maxTTL)
 {
-  if (have.count("policyName")) {
+  if (have.count("policyName") != 0) {
     polName = boost::get<std::string>(have["policyName"]);
   }
-  if (have.count("defpol")) {
+  if (have.count("defpol") != 0) {
     defpol = DNSFilterEngine::Policy();
     defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have["defpol"]);
     defpol->setName(polName);
@@ -112,26 +112,28 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
       defpol->d_custom.push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN,
                                                               boost::get<string>(have["defcontent"])));
 
-      if (have.count("defttl"))
+      if (have.count("defttl") != 0) {
         defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(have["defttl"]));
-      else
+      }
+      else {
         defpol->d_ttl = -1; // get it from the zone
+      }
     }
 
-    if (have.count("defpolOverrideLocalData")) {
+    if (have.count("defpolOverrideLocalData") != 0) {
       defpolOverrideLocal = boost::get<bool>(have["defpolOverrideLocalData"]);
     }
   }
-  if (have.count("maxTTL")) {
+  if (have.count("maxTTL") != 0) {
     maxTTL = boost::get<uint32_t>(have["maxTTL"]);
   }
-  if (have.count("zoneSizeHint")) {
+  if (have.count("zoneSizeHint") != 0) {
     auto zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have["zoneSizeHint"]));
     if (zoneSizeHint > 0) {
       zone->reserve(zoneSizeHint);
     }
   }
-  if (have.count("tags")) {
+  if (have.count("tags") != 0) {
     const auto tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have["tags"]);
     std::unordered_set<std::string> tags;
     for (const auto& tag : tagsTable) {
@@ -139,21 +141,21 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
     }
     zone->setTags(std::move(tags));
   }
-  if (have.count("overridesGettag")) {
+  if (have.count("overridesGettag") != 0) {
     zone->setPolicyOverridesGettag(boost::get<bool>(have["overridesGettag"]));
   }
-  if (have.count("extendedErrorCode")) {
+  if (have.count("extendedErrorCode") != 0) {
     auto code = boost::get<uint32_t>(have["extendedErrorCode"]);
     if (code > std::numeric_limits<uint16_t>::max()) {
       throw std::runtime_error("Invalid extendedErrorCode value " + std::to_string(code) + " in RPZ configuration");
     }
 
     zone->setExtendedErrorCode(static_cast<uint16_t>(code));
-    if (have.count("extendedErrorExtra")) {
+    if (have.count("extendedErrorExtra") != 0) {
       zone->setExtendedErrorExtra(boost::get<std::string>(have["extendedErrorExtra"]));
     }
   }
-  if (have.count("includeSOA")) {
+  if (have.count("includeSOA") != 0) {
     zone->setIncludeSOA(boost::get<bool>(have["includeSOA"]));
   }
 }
