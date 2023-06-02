@@ -1,5 +1,46 @@
 Changelogs for 4.9.X
 ====================
+.. changelog::
+  :version: 4.9.0-beta1
+  :released: 2nd of June 2023
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12861
+    :tickets: 12848
+
+    Introduce a way to completely disable root-refresh.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12673
+
+    Sanitize d_orig_ttl stored in record cache.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12838,12837,12836,12790
+
+    Delint some files to make clang-tidy not report any issue.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12829
+    :tickets: 12790
+
+    Fix clang-tidy botch with respect to spelling of "log-fail".
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12779,12862
+
+    Distinguish between recursion depth and CNAME chain length.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12750
+
+    Log if the answer was marked variable by SyncRes and if it was stored into the packet cache (if !quiet).
 
 .. changelog::
   :version: 4.9.0-alpha1
