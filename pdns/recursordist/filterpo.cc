@@ -390,9 +390,11 @@ void DNSFilterEngine::Zone::addNameTrigger(std::unordered_map<DNSName, Policy>& 
       throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following name: " + n.toLogString());
     }
 
-    existingPol.d_custom.reserve(existingPol.d_custom.size() + pol.d_custom.size());
-
-    std::move(pol.d_custom.begin(), pol.d_custom.end(), std::back_inserter(existingPol.d_custom));
+    if (pol.customRecordsSize() > 0) {
+      existingPol.allocateCustomRecords();
+      existingPol.d_custom->reserve(existingPol.customRecordsSize() + pol.customRecordsSize());
+      std::move(pol.d_custom->begin(), pol.d_custom->end(), std::back_inserter(*existingPol.d_custom));
+    }
   }
   else {
     auto& qpol = map.insert({n, std::move(pol)}).first->second;
@@ -418,9 +420,11 @@ void DNSFilterEngine::Zone::addNetmaskTrigger(NetmaskTree<Policy>& nmt, const Ne
       throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following netmask: " + nm.toString());
     }
 
-    existingPol.d_custom.reserve(existingPol.d_custom.size() + pol.d_custom.size());
-
-    std::move(pol.d_custom.begin(), pol.d_custom.end(), std::back_inserter(existingPol.d_custom));
+    if (pol.customRecordsSize() > 0) {
+      existingPol.allocateCustomRecords();
+      existingPol.d_custom->reserve(existingPol.customRecordsSize() + pol.customRecordsSize());
+      std::move(pol.d_custom->begin(), pol.d_custom->end(), std::back_inserter(*existingPol.d_custom));
+    }
   }
   else {
     pol.d_zoneData = d_zoneData;
@@ -445,18 +449,20 @@ bool DNSFilterEngine::Zone::rmNameTrigger(std::unordered_map<DNSName, Policy>& m
   /* for custom types, we might have more than one type,
      and then we need to remove only the right ones. */
   bool result = false;
-  for (auto& toRemove : pol.d_custom) {
-    for (auto it = existing.d_custom.begin(); it != existing.d_custom.end(); ++it) {
-      if (**it == *toRemove) {
-        existing.d_custom.erase(it);
-        result = true;
-        break;
+  if (pol.d_custom && existing.d_custom) {
+    for (auto& toRemove : *pol.d_custom) {
+      for (auto it = existing.d_custom->begin(); it != existing.d_custom->end(); ++it) {
+        if (**it == *toRemove) {
+          existing.d_custom->erase(it);
+          result = true;
+          break;
+        }
       }
     }
   }
 
   // No records left for this trigger?
-  if (existing.d_custom.size() == 0) {
+  if (existing.customRecordsSize() == 0) {
     map.erase(found);
     return true;
   }
@@ -483,18 +489,19 @@ bool DNSFilterEngine::Zone::rmNetmaskTrigger(NetmaskTree<Policy>& nmt, const Net
      and then we need to remove only the right ones. */
 
   bool result = false;
-  for (auto& toRemove : pol.d_custom) {
-    for (auto it = existing.d_custom.begin(); it != existing.d_custom.end(); ++it) {
-      if (**it == *toRemove) {
-        existing.d_custom.erase(it);
-        result = true;
-        break;
+  if (pol.d_custom && existing.d_custom) {
+    for (auto& toRemove : *pol.d_custom) {
+      for (auto it = existing.d_custom->begin(); it != existing.d_custom->end(); ++it) {
+        if (**it == *toRemove) {
+          existing.d_custom->erase(it);
+          result = true;
+          break;
+        }
       }
     }
   }
-
   // No records left for this trigger?
-  if (existing.d_custom.size() == 0) {
+  if (existing.customRecordsSize() == 0) {
     nmt.erase(nm);
     return true;
   }
@@ -596,7 +603,10 @@ std::vector<DNSRecord> DNSFilterEngine::Policy::getCustomRecords(const DNSName& 
 
   std::vector<DNSRecord> result;
 
-  for (const auto& custom : d_custom) {
+  if (customRecordsSize() == 0) {
+    return result;
+  }
+  for (const auto& custom : *d_custom) {
     if (qtype != QType::ANY && qtype != custom->getType() && custom->getType() != QType::CNAME) {
       continue;
     }

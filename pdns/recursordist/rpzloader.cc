@@ -124,7 +124,8 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-      pol.d_custom.emplace_back(dr.getContent());
+      pol.allocateCustomRecords();
+      pol.d_custom->emplace_back(dr.getContent());
       // cerr<<"Wants custom "<<crcTarget<<" for "<<dr.d_name<<": ";
     }
   }
@@ -135,7 +136,8 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-      pol.d_custom.emplace_back(dr.getContent());
+      pol.allocateCustomRecords();
+      pol.d_custom->emplace_back(dr.getContent());
       // cerr<<"Wants custom "<<dr.d_content->getZoneRepresentation()<<" for "<<dr.d_name<<": ";
     }
   }

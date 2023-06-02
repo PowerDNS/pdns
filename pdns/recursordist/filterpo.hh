@@ -109,8 +109,41 @@ public:
     }
 
     Policy(PolicyKind kind, PolicyType type, int32_t ttl = 0, std::shared_ptr<PolicyZoneData> data = nullptr, const std::vector<std::shared_ptr<const DNSRecordContent>>& custom = {}) :
-      d_custom(custom), d_zoneData(data), d_ttl(ttl), d_kind(kind), d_type(type)
+      d_zoneData(data), d_ttl(ttl), d_kind(kind), d_type(type)
     {
+      if (!custom.empty()) {
+        allocateCustomRecords();
+        copy(custom.cbegin(), custom.cend(), d_custom->begin());
+      }
+    }
+
+    Policy(const Policy& pol)
+    {
+      if (pol.d_custom != nullptr) {
+        allocateCustomRecords();
+        copy(pol.d_custom->cbegin(), pol.d_custom->cend(), d_custom->begin());
+      }
+      d_zoneData = pol.d_zoneData;
+      d_ttl = pol.d_ttl;
+      d_kind = pol.d_kind;
+      d_type = pol.d_type;
+    }
+
+    Policy& operator=(const Policy& pol)
+    {
+      if (this == &pol) {
+        return *this;
+      }
+      this->d_custom = nullptr;
+      if (pol.d_custom != nullptr) {
+        allocateCustomRecords();
+        copy(pol.d_custom->cbegin(), pol.d_custom->cend(), d_custom->begin());
+      }
+      d_zoneData = pol.d_zoneData;
+      d_ttl = pol.d_ttl;
+      d_kind = pol.d_kind;
+      d_type = pol.d_type;
+      return *this;
     }
 
     bool operator==(const Policy& rhs) const
@@ -176,7 +209,21 @@ public:
     std::vector<DNSRecord> getCustomRecords(const DNSName& qname, uint16_t qtype) const;
     std::vector<DNSRecord> getRecords(const DNSName& qname) const;
 
-    std::vector<std::shared_ptr<const DNSRecordContent>> d_custom;
+    void allocateCustomRecords()
+    {
+      if (d_custom == nullptr) {
+        d_custom = std::make_unique<std::vector<std::shared_ptr<const DNSRecordContent>>>();
+      }
+    }
+    [[nodiscard]] size_t customRecordsSize() const
+    {
+      if (d_custom) {
+        return d_custom->size();
+      }
+      return 0;
+    }
+
+    std::unique_ptr<std::vector<std::shared_ptr<const DNSRecordContent>>> d_custom{nullptr};
     std::shared_ptr<PolicyZoneData> d_zoneData{nullptr};
     /* Yup, we are currently using the same TTL for every record for a given name */
     int32_t d_ttl;

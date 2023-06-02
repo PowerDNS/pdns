@@ -226,19 +226,24 @@ void RecursorLua4::postPrepareContext()
         return result;
       }
 
-      for (const auto& dr : pol.d_custom) {
-        if (!result.empty()) {
-          result += "\n";
+      if (pol.customRecordsSize() > 0) {
+        for (const auto& dr : *pol.d_custom) {
+          if (!result.empty()) {
+            result += "\n";
+          }
+          result += dr->getZoneRepresentation();
         }
-        result += dr->getZoneRepresentation();
       }
 
       return result;
     },
     [](DNSFilterEngine::Policy& pol, const std::string& content) {
       // Only CNAMES for now, when we ever add a d_custom_type, there will be pain
-      pol.d_custom.clear();
-      pol.d_custom.push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN, content));
+      if (pol.d_custom != nullptr) {
+        pol.d_custom->clear();
+      }
+      pol.allocateCustomRecords();
+      pol.d_custom->push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN, content));
     }
   );
   d_lw->registerFunction("getDH", &DNSQuestion::getDH);
