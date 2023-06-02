@@ -26,8 +26,8 @@
 
 extern bool g_logRPZChanges;
 
-std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL);
-void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t xfrTimeout, const uint32_t reloadFromConf, shared_ptr<const SOARecordContent> sr, const std::string& dumpZoneFileName, uint64_t configGeneration);
+std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, const std::shared_ptr<DNSFilterEngine::Zone>& zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL);
+void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tsigtriplet, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t xfrTimeout, uint32_t refreshFromConf, shared_ptr<const SOARecordContent> soaRecord, const std::string& dumpZoneFileName, uint64_t configGeneration);
 
 struct rpzStats
 {
