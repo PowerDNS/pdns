@@ -428,6 +428,9 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
                  please be aware that you will also need to update the conditions in the code merging
                  the records and comments below */
               if (a.qname == b.qname) {
+                  if (a.qtype == b.qtype) {
+                      return b.content < a.content;
+                  }
                   return b.qtype < a.qtype;
               }
               return b.qname < a.qname;
@@ -446,6 +449,9 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
                  please be aware that you will also need to update the conditions in the code merging
                  the records and comments below */
               if (a.qname == b.qname) {
+                  if (a.qtype == b.qtype) {
+                      return b.content < a.content;
+                  }
                   return b.qtype < a.qtype;
               }
               return b.qname < a.qname;
