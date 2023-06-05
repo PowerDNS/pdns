@@ -828,18 +828,19 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
         int ret1 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::A, ips);
         int ret2 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::AAAA, ips);
         if (ret1 != RCode::NoError || ret2 != RCode::NoError) {
-          if (::arg()["outgoing-axfr-expand-alias"] != "ignore-errors") {
-            g_log<<Logger::Warning<<logPrefix<<zrr.dr.d_name.toLogString()<<": error resolving for ALIAS "<<zrr.dr.getContent()->getZoneRepresentation()<<", aborting AXFR"<<endl;
-            outpacket->setRcode(RCode::ServFail);
-            sendPacket(outpacket,outsock);
-            return 0;
-          } else {
+          if (::arg()["outgoing-axfr-expand-alias"] == "ignore-errors") {
             if (ret1 != RCode::NoError) {
-              g_log<<Logger::Warning<<logPrefix<<zrr.dr.d_name.toLogString()<<": error resolving A record for ALIAS target "<<zrr.dr.getContent()->getZoneRepresentation()<<", continuing AXFR"<<endl;
+              g_log << Logger::Error << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving A record for ALIAS target " << zrr.dr.getContent()->getZoneRepresentation() << ", continuing AXFR" << endl;
             }
             if (ret2 != RCode::NoError) {
-              g_log<<Logger::Warning<<logPrefix<<zrr.dr.d_name.toLogString()<<": error resolving AAAA record for ALIAS target "<<zrr.dr.getContent()->getZoneRepresentation()<<", continuing AXFR"<<endl;
+              g_log << Logger::Error << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving AAAA record for ALIAS target " << zrr.dr.getContent()->getZoneRepresentation() << ", continuing AXFR" << endl;
             }
+          }
+          else {
+            g_log << Logger::Warning << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving for ALIAS " << zrr.dr.getContent()->getZoneRepresentation() << ", aborting AXFR" << endl;
+            outpacket->setRcode(RCode::ServFail);
+            sendPacket(outpacket, outsock);
+            return 0;
           }
         }
         for (auto& ip: ips) {
