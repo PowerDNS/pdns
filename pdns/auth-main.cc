@@ -742,6 +742,9 @@ static void mainthread()
   if (!PC.enabled() && ::arg().mustDo("log-dns-queries")) {
     g_log << Logger::Warning << "Packet cache disabled, logging queries without HIT/MISS" << endl;
   }
+  if (::arg()["outgoing-axfr-expand-alias"] == "ignore-errors") {
+    g_log << Logger::Error << "Ignoring ALIAS resolve failures on outgoing AXFR transfers, see option \"outgoing-axfr-expand-alias\"" << endl;
+  }
 
   stubParseResolveConf();
 
