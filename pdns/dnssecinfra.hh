@@ -166,6 +166,8 @@ class DNSCryptoKeyEngine
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
     static std::unique_ptr<DNSCryptoKeyEngine> make(unsigned int algorithm);
     static bool isAlgorithmSupported(unsigned int algo);
+    static bool isAlgorithmSwitchedOff(unsigned int algo);
+    static void switchOffAlgorithm(unsigned int algo);
     static bool isDigestSupported(uint8_t digest);
 
     using maker_t = std::unique_ptr<DNSCryptoKeyEngine> (unsigned int);
@@ -189,6 +191,7 @@ class DNSCryptoKeyEngine
       static allmakers_t s_allmakers;
       return s_allmakers;
     }
+    static std::unordered_set<unsigned int> s_switchedOff;
 
   protected:
     const unsigned int d_algorithm;

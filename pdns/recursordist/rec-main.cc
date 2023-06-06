@@ -1452,6 +1452,32 @@ static int initDNSSEC(Logr::log_t log)
 
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
   g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
+
+  vector<string> nums;
+  if (!::arg()["dnssec-disabled-algorithms"].empty()) {
+    stringtok(nums, ::arg()["dnssec-disabled-algorithms"], ", ");
+    for (auto num: nums) {
+      DNSCryptoKeyEngine::switchOffAlgorithm(pdns::checked_stoi<unsigned int>(num));
+    }
+  } else {
+    // Auto determine algos to switch off
+  }
+  if (!nums.empty()) {
+    if (!g_slogStructured) {
+      g_log << Logger::Warning << "Disabled DNSSEC algorithm: ";
+      for (auto i = nums.begin(); i != nums.end(); ++i) {
+        if (i != nums.begin()) {
+          g_log << Logger::Warning << ", ";
+        }
+        g_log << Logger::Warning << *i;
+      }
+      g_log << Logger::Warning << endl;
+    }
+    else {
+      log->info(Logr::Notice, "Disabled DNSSEC algorithms", "algorithms", Logging::IterLoggable(nums.begin(), nums.end()));
+    }
+  }
+
   return 0;
 }
 
@@ -2746,6 +2772,7 @@ static void initArgs()
   ::arg().set("dnssec", "DNSSEC mode: off/process-no-validate/process (default)/log-fail/validate") = "process";
   ::arg().set("dnssec-log-bogus", "Log DNSSEC bogus validations") = "no";
   ::arg().set("signature-inception-skew", "Allow the signature inception to be off by this number of seconds") = "60";
+  ::arg().set("dnssec-disabled-algorithms", "List of DNSSEC algorithm numbers that are considered unsupported") = "";
   ::arg().set("daemon", "Operate as a daemon") = "no";
   ::arg().setSwitch("write-pid", "Write a PID file") = "yes";
   ::arg().set("loglevel", "Amount of logging. Higher is more. Do not set below 3") = "6";

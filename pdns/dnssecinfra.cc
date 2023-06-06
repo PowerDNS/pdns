@@ -453,10 +453,25 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, c
   return toHash;
 }
 
+std::unordered_set<unsigned int> DNSCryptoKeyEngine::s_switchedOff;
+
+bool DNSCryptoKeyEngine::isAlgorithmSwitchedOff(unsigned int algo)
+{
+  return s_switchedOff.count(algo) != 0;
+}
+
+void DNSCryptoKeyEngine::switchOffAlgorithm(unsigned int algo)
+{
+  s_switchedOff.insert(algo);
+}
+
 bool DNSCryptoKeyEngine::isAlgorithmSupported(unsigned int algo)
 {
+  if (isAlgorithmSwitchedOff(algo)) {
+    return false;
+  }
   const makers_t& makers = getMakers();
-  makers_t::const_iterator iter = makers.find(algo);
+  auto iter = makers.find(algo);
   return iter != makers.cend();
 }
 
