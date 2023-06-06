@@ -1,0 +1,1 @@
+option('lua', type: 'combo', choices: ['auto', 'luajit', 'lua'], value: 'auto', description: 'Which Lua implementation to use')

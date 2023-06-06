@@ -170,6 +170,34 @@ if cxx.has_function('strerror_r', prefix: '#include <string.h>') == true
   endif
 endif
 
+# Lua ------------------------------------------------------------------------------------
+lua_opt = get_option('lua')
+dep_lua = dependency('', required: false)
+
+if lua_opt == 'auto' or lua_opt == 'luajit'
+  dep_lua = dependency('luajit', version: '>= 2.0.2', required: lua_opt == 'luajit', not_found_message: 'LuaJIT not found')
+endif
+
+if not dep_lua.found() and (lua_opt == 'auto' or lua_opt == 'lua')
+  variants = ['lua5.3', 'lua-5.3', 'lua53', 'lua5.2', 'lua-5.2', 'lua52', 'lua5.1', 'lua-5.1', 'lua51', 'lua']
+  foreach variant: variants
+    dep_lua = dependency(variant, version: '>= 5.1', required: false)
+    if dep_lua.found()
+      break
+    endif
+  endforeach
+endif
+
+if not dep_lua.found()
+  error('No Lua implementation was found')
+endif
+
+conf.set('HAVE_LUA', 1, description: 'Whether we have Lua')
+
+if cxx.has_header('lua.hpp', dependencies: dep_lua)
+  conf.set('HAVE_LUA_HPP', 1, description: 'Whether we have lua.hpp')
+endif
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 
@@ -177,6 +205,7 @@ config_h = configure_file(configuration: conf, output: 'config.h')
 deps = []
 deps += dep_atomics
 deps += dep_threads
+deps += dep_lua
 
 # TODO: Other source files
 auth = executable('pdns', config_h, dependencies: deps, export_dynamic: true)
