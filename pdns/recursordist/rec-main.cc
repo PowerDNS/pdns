@@ -1455,7 +1455,9 @@ static int initDNSSEC(Logr::log_t log)
   g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
 
   vector<string> nums;
+  bool automatic = true;
   if (!::arg()["dnssec-disabled-algorithms"].empty()) {
+    automatic = false;
     stringtok(nums, ::arg()["dnssec-disabled-algorithms"], ", ");
     for (auto num: nums) {
       DNSCryptoKeyEngine::switchOffAlgorithm(pdns::checked_stoi<unsigned int>(num));
@@ -1463,7 +1465,6 @@ static int initDNSSEC(Logr::log_t log)
   } else {
     for (auto algo : { DNSSECKeeper::RSASHA1, DNSSECKeeper::RSASHA1NSEC3SHA1 }) {
       if (!DNSCryptoKeyEngine::verifyOne(algo)) {
-        cerr << "XXXX " << algo << endl;
         DNSCryptoKeyEngine::switchOffAlgorithm(algo);
         nums.push_back(std::to_string(algo));
       }
@@ -1471,7 +1472,7 @@ static int initDNSSEC(Logr::log_t log)
   }
   if (!nums.empty()) {
     if (!g_slogStructured) {
-      g_log << Logger::Warning << "Disabled DNSSEC algorithm: ";
+      g_log << Logger::Warning << (automatic ? "Automatically" : "Manually") << " disabled DNSSEC algorithms: ";
       for (auto i = nums.begin(); i != nums.end(); ++i) {
         if (i != nums.begin()) {
           g_log << Logger::Warning << ", ";
@@ -1481,7 +1482,7 @@ static int initDNSSEC(Logr::log_t log)
       g_log << Logger::Warning << endl;
     }
     else {
-      log->info(Logr::Notice, "Disabled DNSSEC algorithms", "algorithms", Logging::IterLoggable(nums.begin(), nums.end()));
+      log->info(Logr::Notice, "Disabled DNSSEC algorithms", "automatically", Logging::Loggable(automatic), "algorithms", Logging::IterLoggable(nums.begin(), nums.end()));
     }
   }
 
