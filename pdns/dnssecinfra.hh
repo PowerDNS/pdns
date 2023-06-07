@@ -178,7 +178,7 @@ class DNSCryptoKeyEngine
     static bool testAll();
     static bool testOne(int algo);
     static bool verifyOne(unsigned int algo);
-    static void testVerify(unsigned int algo, maker_t* verifier);
+    static bool testVerify(unsigned int algo, maker_t* verifier);
     static string listSupportedAlgoNames();
 
   private:
@@ -194,6 +194,7 @@ class DNSCryptoKeyEngine
       static allmakers_t s_allmakers;
       return s_allmakers;
     }
+    // Must be set before going multi-threaded and not changed after that
     static std::unordered_set<unsigned int> s_switchedOff;
 
   protected:

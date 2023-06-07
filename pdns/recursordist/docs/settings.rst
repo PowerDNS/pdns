@@ -547,6 +547,8 @@ These algorithms will not be used to validate DNSSEC signatures.
 Zones (only) signed with these algorithms will be considered ``Insecure``.
 
 If this setting is empty (the default), :program:`Recursor` will determine which algorithms to disable automatically.
+This is done for specific algorithms only, currently algorithms 5 (``RSASHA1``) and 7 (``RSASHA1NSEC3SHA1``).
+
 This is important on systems that have a default strict crypto policy, like RHEL9 derived systems.
 On such systems not disabling some algorithms (or changing the security policy) will make affected zones to be considered ``Bogus`` as using these algorithms fails.
 

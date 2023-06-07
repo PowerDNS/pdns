@@ -316,7 +316,7 @@ bool DNSCryptoKeyEngine::testOne(int algo)
   return ret;
 }
 
-static map<string, string> ICSStringToMap(const string& argStr)
+static map<string, string> ISCStringtoMap(const string& argStr)
 {
   unsigned int algorithm = 0;
   string sline;
@@ -361,7 +361,7 @@ static map<string, string> ICSStringToMap(const string& argStr)
   return stormap;
 }
 
-void DNSCryptoKeyEngine::testVerify(unsigned int algo, maker_t* verifier)
+bool DNSCryptoKeyEngine::testVerify(unsigned int algo, maker_t* verifier)
 {
   const string message("Hi! How is life?");
   const string pubkey5 = "AwEAAe2srzo8UfPx5WwoRXTRdo0H8U4iYW6qneronwKlRtXrpOqgZWPtYGVZl1Q7JXqbxxH9aVK5iK6aYOVfxbwwGHejaY0NraqrxL60F5FhHGHg+zox1en8kEX2TcQHxoZaiK1iUgPkMrHJlX5yI5+p2V4qap5VPQsR/WfeFVudNsBEF/XRvg0Exh65fPI/e8sYNgAiflzdN9/5RM644r6viBdieuwUNwEV2HPizCBMssYzx2F29CqNseToqCKQlj1tghuGAsiiSKeosfDLlRPDe/uxtij0wqe0FNybj1oL3OG8Lq3xp8yXIG4CF59xmRDKdnGDmVycKzUWkVOZpesCsUU=";
@@ -393,21 +393,22 @@ void DNSCryptoKeyEngine::testVerify(unsigned int algo, maker_t* verifier)
   dckeVerify->fromPublicKeyString(pubkey);
 
   auto ret = dckeVerify->verify(message, sig);
-  if (!ret) {
-    throw runtime_error("Verification of verifier "+dckeVerify->getName() + " failed");
-  }
+  return ret;
 }
 
 bool DNSCryptoKeyEngine::verifyOne(unsigned int algo)
 {
-  bool ret=true;
+  bool ret = false;
 
   for (auto* verifier : getAllMakers()[algo]) {
     try {
-      testVerify(algo, verifier);
+      ret = testVerify(algo, verifier);
     }
     catch (std::exception& e) {
-      ret = false;
+      // Empty
+    }
+    if (!ret) {
+      break;
     }
   }
   return ret;
@@ -440,7 +441,7 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
 
   {
     DNSKEYRecordContent dkrc;
-    auto stormap = ICSStringToMap(dckeCreate->convertToISC());
+    auto stormap = ISCStringtoMap(dckeCreate->convertToISC());
 
     dckeSign->fromISCMap(dkrc, stormap);
     if(!dckeSign->checkKey()) {
@@ -455,15 +456,6 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   for(unsigned int n = 0; n < 100; ++n)
     signature = dckeSign->sign(message);
   unsigned int udiffSign= dt.udiff()/100, udiffVerify;
-
-#if 0
-  if (algo == 7) {
-    auto pubkey = Base64Encode(dckeSign->getPublicKeyString());
-    auto sig = Base64Encode(signature);
-    cerr << "PubKey: " << pubkey << endl;
-    cerr << "Signature: " << sig << endl;
-  }
-#endif
 
   dckeVerify->fromPublicKeyString(dckeSign->getPublicKeyString());
   if (dckeVerify->getPublicKeyString().compare(dckeSign->getPublicKeyString())) {
