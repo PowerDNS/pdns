@@ -2146,7 +2146,8 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
   resp->setSuccessResult("Rectified");
 }
 
-static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
+static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp)  // NOLINT(readability-function-cognitive-complexity)
+{
   bool zone_disabled;
   SOAData sd;
   DomainInfo di;
