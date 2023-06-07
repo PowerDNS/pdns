@@ -1459,11 +1459,12 @@ static int initDNSSEC(Logr::log_t log)
   if (!::arg()["dnssec-disabled-algorithms"].empty()) {
     automatic = false;
     stringtok(nums, ::arg()["dnssec-disabled-algorithms"], ", ");
-    for (const auto& num: nums) {
+    for (const auto& num : nums) {
       DNSCryptoKeyEngine::switchOffAlgorithm(pdns::checked_stoi<unsigned int>(num));
     }
-  } else {
-    for (auto algo : { DNSSECKeeper::RSASHA1, DNSSECKeeper::RSASHA1NSEC3SHA1 }) {
+  }
+  else {
+    for (auto algo : {DNSSECKeeper::RSASHA1, DNSSECKeeper::RSASHA1NSEC3SHA1}) {
       if (!DNSCryptoKeyEngine::verifyOne(algo)) {
         DNSCryptoKeyEngine::switchOffAlgorithm(algo);
         nums.push_back(std::to_string(algo));

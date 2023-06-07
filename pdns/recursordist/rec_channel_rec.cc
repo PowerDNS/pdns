@@ -2312,7 +2312,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return {0, getRemoteLoggerStats()};
   }
   if (cmd == "list-dnssec-algos") {
-    return {0, DNSCryptoKeyEngine::listSupportedAlgoNames() };
+    return {0, DNSCryptoKeyEngine::listSupportedAlgoNames()};
   }
 
   return {1, "Unknown command '" + cmd + "', try 'help'\n"};

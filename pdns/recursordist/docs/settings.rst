@@ -533,6 +533,23 @@ Set the mode for DNSSEC processing, as detailed in :doc:`dnssec`.
 ``validate``
    Full blown DNSSEC validation. Send SERVFAIL to clients on bogus responses.
 
+.. _setting-dnssec-disabled-algorithms:
+
+``dnssec-disabled-algorithms``
+------------------------------
+.. versionadded:: 4.9.0
+
+- Comma separated list of DNSSEC algorithm numbers
+- Default: (none)
+
+A list of DNSSEC algorithm numbers that should be considered disabled.
+These algorithms will not be used to validate DNSSEC signatures.
+Zones (only) signed with these algorithms will be considered ``Insecure``.
+
+If this setting is empty (the default), :program:`Recursor` will determine which algorithms to disable automatically.
+This is important on systems that have a default strict crypto policy, like RHEL9 derived systems.
+On such systems not disabling some algorithms (or changing the security policy) will make affected zones to be considered ``Bogus`` as using these algorithms fails.
+
 .. _setting-dnssec-log-bogus:
 
 ``dnssec-log-bogus``
