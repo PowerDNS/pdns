@@ -1459,7 +1459,7 @@ static int initDNSSEC(Logr::log_t log)
   if (!::arg()["dnssec-disabled-algorithms"].empty()) {
     automatic = false;
     stringtok(nums, ::arg()["dnssec-disabled-algorithms"], ", ");
-    for (auto num: nums) {
+    for (const auto& num: nums) {
       DNSCryptoKeyEngine::switchOffAlgorithm(pdns::checked_stoi<unsigned int>(num));
     }
   } else {

@@ -181,6 +181,9 @@ help
     Shows a list of supported commands understood by the running
     :program:`pdns_recursor`
 
+list-dnssec-algos
+    List supported (and potentially disabled) DNSSEC algorithms.
+
 ping
     Check if server is alive.
 

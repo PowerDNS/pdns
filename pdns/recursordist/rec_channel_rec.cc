@@ -2056,6 +2056,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
             "get-remotelogger-stats           get remote logger statistics\n"
             "hash-password [work-factor]      ask for a password then return the hashed version\n"
             "help                             get this list\n"
+            "list-dnssec-algos                list supported DNSSEC algorithms\n"
             "ping                             check that all threads are alive\n"
             "quit                             stop the recursor daemon\n"
             "quit-nicely                      stop the recursor daemon nicely\n"
@@ -2309,6 +2310,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
   }
   if (cmd == "get-remotelogger-stats") {
     return {0, getRemoteLoggerStats()};
+  }
+  if (cmd == "list-dnssec-algos") {
+    return {0, DNSCryptoKeyEngine::listSupportedAlgoNames() };
   }
 
   return {1, "Unknown command '" + cmd + "', try 'help'\n"};

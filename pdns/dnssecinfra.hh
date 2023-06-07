@@ -179,6 +179,7 @@ class DNSCryptoKeyEngine
     static bool testOne(int algo);
     static bool verifyOne(unsigned int algo);
     static void testVerify(unsigned int algo, maker_t* verifier);
+    static string listSupportedAlgoNames();
 
   private:
     using makers_t = std::map<unsigned int, maker_t *>;

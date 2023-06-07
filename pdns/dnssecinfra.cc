@@ -231,6 +231,31 @@ vector<pair<uint8_t, string>> DNSCryptoKeyEngine::listAllAlgosWithBackend()
   return ret;
 }
 
+string DNSCryptoKeyEngine::listSupportedAlgoNames()
+{
+  set<unsigned int> algos;
+  auto pairs = DNSCryptoKeyEngine::listAllAlgosWithBackend();
+  for (const auto& pair : pairs) {
+    algos.insert(pair.first);
+  }
+  string ret;
+  bool first = true;
+  for (auto algo : algos) {
+    if (!first) {
+      ret.append(" ");
+    }
+    else {
+      first = false;
+    }
+    ret.append(DNSSECKeeper::algorithm2name(algo));
+    if (isAlgorithmSwitchedOff(algo)) {
+      ret.append("(disabled)");
+    }
+  }
+  ret.append("\n");
+  return ret;
+}
+
 void DNSCryptoKeyEngine::report(unsigned int algo, maker_t* maker, bool fallback)
 {
   getAllMakers()[algo].push_back(maker);
