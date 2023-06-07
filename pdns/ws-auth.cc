@@ -1705,7 +1705,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
 
   string zonestring = document["zone"].string_value();
   auto rrsets = document["rrsets"];
-  if (rrsets.is_array() && zonestring != "")
+  if (rrsets.is_array() && !zonestring.empty())
     throw ApiException("You cannot give rrsets AND zone data as text");
 
   auto nameservers = document["nameservers"];
@@ -1736,7 +1736,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
           gatherComments(rrset, qname, qtype, new_comments);
         }
       }
-    } else if (zonestring != "") {
+    } else if (!zonestring.empty()) {
       gatherRecordsFromZone(zonestring, new_records, zonename);
     }
   }
