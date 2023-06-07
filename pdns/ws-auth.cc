@@ -1697,20 +1697,23 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   zonename.makeUsLowerCase();
 
   bool exists = B.getDomainInfo(zonename, di);
-  if(exists)
+  if (exists) {
     throw HttpConflictException();
+  }
 
   // validate 'kind' is set
   DomainInfo::DomainKind zonekind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
 
   string zonestring = document["zone"].string_value();
   auto rrsets = document["rrsets"];
-  if (rrsets.is_array() && !zonestring.empty())
+  if (rrsets.is_array() && !zonestring.empty()) {
     throw ApiException("You cannot give rrsets AND zone data as text");
+  }
 
   auto nameservers = document["nameservers"];
-  if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer)
+  if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer) {
     throw ApiException("Nameservers is not a list");
+  }
 
   // if records/comments are given, load and check them
   bool have_soa = false;
@@ -1746,14 +1749,16 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
 
   for(auto& rr : new_records) {
     rr.qname.makeUsLowerCase();
-    if (!rr.qname.isPartOf(zonename) && rr.qname != zonename)
+    if (!rr.qname.isPartOf(zonename) && rr.qname != zonename) {
       throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
+    }
+
     apiCheckQNameAllowedCharacters(rr.qname.toString());
 
-    if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
+    if (rr.qtype.getCode() == QType::SOA && rr.qname == zonename) {
       have_soa = true;
     }
-    if (rr.qtype.getCode() == QType::NS && rr.qname==zonename) {
+    if (rr.qtype.getCode() == QType::NS && rr.qname == zonename) {
       have_zone_ns = true;
     }
   }
@@ -1780,10 +1785,12 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   // create NS records if nameservers are given
   for (const auto& value : nameservers.array_items()) {
     const string& nameserver = value.string_value();
-    if (nameserver.empty())
+    if (nameserver.empty()) {
       throw ApiException("Nameservers must be non-empty strings");
-    if (!isCanonical(nameserver))
+    }
+    if (!isCanonical(nameserver)) {
       throw ApiException("Nameserver is not canonical: '" + nameserver + "'");
+    }
     try {
       // ensure the name parses
       autorr.content = DNSName(nameserver).toStringRootDot();
@@ -1818,11 +1825,13 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   extractDomainInfoFromDocument(document, kind, masters, catalog, account);
 
   // no going back after this
-  if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or("")))
+  if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or(""))) {
     throw ApiException("Creating domain '"+zonename.toString()+"' failed: backend refused");
+  }
 
-  if(!B.getDomainInfo(zonename, di))
+  if(!B.getDomainInfo(zonename, di)) {
     throw ApiException("Creating domain '"+zonename.toString()+"' failed: lookup of domain ID failed");
+  }
 
   di.backend->startTransaction(zonename, static_cast<int>(di.id));
 
@@ -1959,11 +1968,12 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 
       for(auto& rr : new_records) {
         rr.qname.makeUsLowerCase();
-        if (!rr.qname.isPartOf(zonename) && rr.qname != zonename)
+        if (!rr.qname.isPartOf(zonename) && rr.qname != zonename) {
           throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
+        }
         apiCheckQNameAllowedCharacters(rr.qname.toString());
 
-        if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
+        if (rr.qtype.getCode() == QType::SOA && rr.qname == zonename) {
           haveSoa = true;
         }
       }
@@ -2211,7 +2221,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
 
             for(DNSResourceRecord& rr : new_records) {
               rr.domain_id = static_cast<int>(di.id);
-              if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
+              if (rr.qtype.getCode() == QType::SOA && rr.qname == zonename) {
                 soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
               }
             }
