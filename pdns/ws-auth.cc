@@ -536,7 +536,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
   }
 }
 
-static void gatherRecords(const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
+static void gatherRecords(const Json& container, const DNSName& qname, const QType& qtype, const uint32_t ttl, vector<DNSResourceRecord>& new_records) {
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
@@ -1732,7 +1732,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
           throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
         }
         if (rrset["records"].is_array()) {
-          int ttl = uintFromJson(rrset, "ttl");
+          uint32_t ttl = uintFromJson(rrset, "ttl");
           gatherRecords(rrset, qname, qtype, ttl, new_records);
         }
         if (rrset["comments"].is_array()) {
@@ -1954,7 +1954,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
             throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
           }
           if (rrset["records"].is_array()) {
-            int ttl = uintFromJson(rrset, "ttl");
+            uint32_t ttl = uintFromJson(rrset, "ttl");
             gatherRecords(rrset, qname, qtype, ttl, new_records);
           }
           if (rrset["comments"].is_array()) {
@@ -2216,7 +2216,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
         try {
           if (replace_records) {
             // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
-            int ttl = uintFromJson(rrset, "ttl");
+            uint32_t ttl = uintFromJson(rrset, "ttl");
             gatherRecords(rrset, qname, qtype, ttl, new_records);
 
             for(DNSResourceRecord& rr : new_records) {
