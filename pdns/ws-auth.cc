@@ -1824,17 +1824,17 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     if(!B.getDomainInfo(zonename, di))
       throw ApiException("Creating domain '"+zonename.toString()+"' failed: lookup of domain ID failed");
 
-    di.backend->startTransaction(zonename, di.id);
+    di.backend->startTransaction(zonename, static_cast<int>(di.id));
 
     // will be overridden by updateDomainSettingsFromDocument, if given in document.
     di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
 
     for(auto& rr : new_records) {
-      rr.domain_id = di.id;
+      rr.domain_id = static_cast<int>(di.id);
       di.backend->feedRecord(rr, DNSName());
     }
     for(Comment& c : new_comments) {
-      c.domain_id = di.id;
+      c.domain_id = static_cast<int>(di.id);
       if (!di.backend->feedComment(c)) {
         throw ApiException("Hosting backend does not support editing comments.");
       }
@@ -1844,7 +1844,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     di.backend->commitTransaction();
 
-    g_zoneCache.add(zonename, di.id); // make new zone visible
+    g_zoneCache.add(zonename, static_cast<int>(di.id)); // make new zone visible
 
     fillZone(B, zonename, resp, req);
     resp->status = 201;
@@ -1963,13 +1963,13 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 
       checkNewRecords(new_records, zonename);
 
-      di.backend->startTransaction(zonename, di.id);
+      di.backend->startTransaction(zonename, static_cast<int>(di.id));
       for(auto& rr : new_records) {
-        rr.domain_id = di.id;
+        rr.domain_id = static_cast<int>(di.id);
         di.backend->feedRecord(rr, DNSName());
       }
       for(Comment& c : new_comments) {
-        c.domain_id = di.id;
+        c.domain_id = static_cast<int>(di.id);
         di.backend->feedComment(c);
       }
     } else {
@@ -2196,7 +2196,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
             gatherRecords(rrset, qname, qtype, ttl, new_records);
 
             for(DNSResourceRecord& rr : new_records) {
-              rr.domain_id = di.id;
+              rr.domain_id = static_cast<int>(di.id);
               if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
                 soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
               }
@@ -2208,7 +2208,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
             gatherComments(rrset, qname, qtype, new_comments);
 
             for(Comment& c : new_comments) {
-              c.domain_id = di.id;
+              c.domain_id = static_cast<int>(di.id);
             }
           }
         }
@@ -2434,7 +2434,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
     if (B.getDomainInfo(canon, di, false)) {
       // zone exists (uncached), add/update it in the zone cache.
       // Handle this first, to avoid concurrent queries re-populating the other caches.
-      g_zoneCache.add(di.zone, di.id);
+      g_zoneCache.add(di.zone, static_cast<int>(di.id));
     }
     else {
       g_zoneCache.remove(di.zone);
