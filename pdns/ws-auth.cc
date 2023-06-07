@@ -1811,7 +1811,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
 
     if(document["nsec3param"].string_value().length() > 0) {
       NSEC3PARAMRecordContent ns3pr(document["nsec3param"].string_value());
-      string error_msg = "";
+      string error_msg;
       if (!dk.checkNSEC3PARAM(ns3pr, error_msg)) {
         throw ApiException("NSEC3PARAMs provided for zone '"+zonename.toString()+"' are invalid. " + error_msg);
       }
