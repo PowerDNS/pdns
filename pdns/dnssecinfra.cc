@@ -291,6 +291,103 @@ bool DNSCryptoKeyEngine::testOne(int algo)
   return ret;
 }
 
+static map<string, string> ICSStringToMap(const string& argStr)
+{
+  unsigned int algorithm = 0;
+  string sline;
+  string key;
+  string value;
+  string raw;
+  std::istringstream str(argStr);
+  map<string, string> stormap;
+
+  while(std::getline(str, sline)) {
+    std::tie(key,value)=splitField(sline, ':');
+    boost::trim(value);
+    if(pdns_iequals(key,"algorithm")) {
+      pdns::checked_stoi_into(algorithm, value);
+      stormap["algorithm"] = std::to_string(algorithm);
+      continue;
+    }
+    if (pdns_iequals(key,"pin")) {
+      stormap["pin"] = value;
+      continue;
+    }
+    if (pdns_iequals(key,"engine")) {
+      stormap["engine"] = value;
+      continue;
+    }
+    if (pdns_iequals(key,"slot")) {
+      int slot = std::stoi(value);
+      stormap["slot"]=std::to_string(slot);
+      continue;
+    }
+    if (pdns_iequals(key,"label")) {
+      stormap["label"] = value;
+      continue;
+    }
+    if(pdns_iequals(key, "Private-key-format")) {
+      continue;
+    }
+    raw.clear();
+    B64Decode(value, raw);
+    stormap[toLower(key)] = raw;
+  }
+  return stormap;
+}
+
+void DNSCryptoKeyEngine::testVerify(unsigned int algo, maker_t* verifier)
+{
+  const string message("Hi! How is life?");
+  const string pubkey5 = "AwEAAe2srzo8UfPx5WwoRXTRdo0H8U4iYW6qneronwKlRtXrpOqgZWPtYGVZl1Q7JXqbxxH9aVK5iK6aYOVfxbwwGHejaY0NraqrxL60F5FhHGHg+zox1en8kEX2TcQHxoZaiK1iUgPkMrHJlX5yI5+p2V4qap5VPQsR/WfeFVudNsBEF/XRvg0Exh65fPI/e8sYNgAiflzdN9/5RM644r6viBdieuwUNwEV2HPizCBMssYzx2F29CqNseToqCKQlj1tghuGAsiiSKeosfDLlRPDe/uxtij0wqe0FNybj1oL3OG8Lq3xp8yXIG4CF59xmRDKdnGDmVycKzUWkVOZpesCsUU=";
+  const string sig5 = "nMnMakbQiiCKIYsEiv4R75+8wvjQav2LPGIKucbqUZUz5sy1ovc2Pp7JVcOuyVyzQu5XH+CetDnTlqiEJWFHNU1jqEwwFK83GVOLABtvXSOvgmGwZGnHOouAchkrzgSSBoEh3+UUN3OsFZA21q6TZVRJBNBm7Ch/PxqSBkFS46ko/qLAUJ1p7/ymzwGNhuOfguHO3dAJ+LgcrNGLZQFDJ1aqT3kZ7LtXX2CQdd7EXgUs6VkE4Z3JN1RmPTk8kAJdZ4JLUR6lgu1dRlSPLGzqv+5d1yI7+h+B0LFNuDdQblDlBstO3LEs1KSaQld+TqVExpjj87oEg6wL/G/XOGabmQ==";
+
+  const string pubkey7 = "AwEAAc4n7xPG6yJe6YAsg6oQ+7YjbL7wuDLCP4juOSaDsst2Mehc5eYdT7xJT2H9foTIq7ABkkp8Er1Bh6gDzB/0xvArARdH6DS3P5pUP6w5Zoz4Gu79y3pP6IsR3ZyhiQRSnht1ElnIGZzb1zpi7Y4Y8LZ18NYN2qdLasXx/h6hpRjdcF1s7svZKvfJdvCSgDHHD/JFtDGSOn6qt6i5UFSrObxMUMWbxfOsnqr/eXUQcF/aePdqDXO47yDaSH8sFZoglgvEDiOIkky9DV5VKamvVW8anxE5Vv7y4EPpZKXB3CgUW+NvaoasdgYPFmGM4EcnXh2EFFnSPDL6iwDubiL7s2k=";
+  const string sig7 = "B04Oqmh/nF6BybBGsInauTXH6nlW3VhT2PeSzXVaxQ42QsbbXUgIKuzp2/R7diiEBzbbQ3Eg5vtHOKfEQDkArmOR1oU6yIkyrKHsJkpCvclCyaFiJXrwxkH+A2y8vB+loeDMJKJVwjn7fH9zwBI3Mk7SFuOgYXgzBUNhb5DeQ9RzRbxMcpSc8Cgtjn+QpmTNgL6olpBNsStYz9bSLXBk1EGhmZeBYhliw/2Fse75OoRxIuufKiN6sAD5bKQxp73QQUU+yunVuSeHJizNct8b4f9RXFe49wtZWt5rB0oYXG6zUv0Dq7xJHpUq6v1eB2wf2NucftCKwWu18r4TxkVC5A==";
+
+  string b64pubkey;
+  string b64sig;
+  switch (algo) {
+  case DNSSECKeeper::RSASHA1:
+    b64pubkey = pubkey5;
+    b64sig = sig5;
+    break;
+  case DNSSECKeeper::RSASHA1NSEC3SHA1:
+    b64pubkey = pubkey7;
+    b64sig = sig7;
+    break;
+  default:
+    throw runtime_error("Verification of verifier called for unimplemented case");
+  }
+
+  string pubkey;
+  string sig;
+  B64Decode(b64pubkey, pubkey);
+  B64Decode(b64sig, sig);
+  auto dckeVerify = verifier(algo);
+  dckeVerify->fromPublicKeyString(pubkey);
+
+  auto ret = dckeVerify->verify(message, sig);
+  if (!ret) {
+    throw runtime_error("Verification of verifier "+dckeVerify->getName() + " failed");
+  }
+}
+
+bool DNSCryptoKeyEngine::verifyOne(unsigned int algo)
+{
+  bool ret=true;
+
+  for (auto* verifier : getAllMakers()[algo]) {
+    try {
+      testVerify(algo, verifier);
+    }
+    catch (std::exception& e) {
+      ret = false;
+    }
+  }
+  return ret;
+}
+
 void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t* signer, maker_t* verifier)
 {
   auto dckeCreate = creator(algo);
@@ -316,40 +413,10 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   cout<<"("<<dckeCreate->getBits()<<" bits) ";
   unsigned int udiffCreate = dt.udiff() / 100;
 
-  { // FIXME: this block copy/pasted from makeFromISCString
+  {
     DNSKEYRecordContent dkrc;
-    unsigned int algorithm = 0;
-    string sline, key, value, raw;
-    std::istringstream str(dckeCreate->convertToISC());
-    map<string, string> stormap;
+    auto stormap = ICSStringToMap(dckeCreate->convertToISC());
 
-    while(std::getline(str, sline)) {
-      std::tie(key,value)=splitField(sline, ':');
-      boost::trim(value);
-      if(pdns_iequals(key,"algorithm")) {
-        pdns::checked_stoi_into(algorithm, value);
-        stormap["algorithm"]=std::to_string(algorithm);
-        continue;
-      } else if (pdns_iequals(key,"pin")) {
-        stormap["pin"]=value;
-        continue;
-      } else if (pdns_iequals(key,"engine")) {
-        stormap["engine"]=value;
-        continue;
-      } else if (pdns_iequals(key,"slot")) {
-        int slot = std::stoi(value);
-        stormap["slot"]=std::to_string(slot);
-        continue;
-      }  else if (pdns_iequals(key,"label")) {
-        stormap["label"]=value;
-        continue;
-      }
-      else if(pdns_iequals(key, "Private-key-format"))
-        continue;
-      raw.clear();
-      B64Decode(value, raw);
-      stormap[toLower(key)]=raw;
-    }
     dckeSign->fromISCMap(dkrc, stormap);
     if(!dckeSign->checkKey()) {
       throw runtime_error("Verification of key with creator "+dckeCreate->getName()+" with signer "+dckeSign->getName()+" and verifier "+dckeVerify->getName()+" failed");
@@ -363,6 +430,15 @@ void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t
   for(unsigned int n = 0; n < 100; ++n)
     signature = dckeSign->sign(message);
   unsigned int udiffSign= dt.udiff()/100, udiffVerify;
+
+#if 0
+  if (algo == 7) {
+    auto pubkey = Base64Encode(dckeSign->getPublicKeyString());
+    auto sig = Base64Encode(signature);
+    cerr << "PubKey: " << pubkey << endl;
+    cerr << "Signature: " << sig << endl;
+  }
+#endif
 
   dckeVerify->fromPublicKeyString(dckeSign->getPublicKeyString());
   if (dckeVerify->getPublicKeyString().compare(dckeSign->getPublicKeyString())) {

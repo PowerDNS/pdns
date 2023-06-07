@@ -177,6 +177,8 @@ class DNSCryptoKeyEngine
     static vector<pair<uint8_t, string>> listAllAlgosWithBackend();
     static bool testAll();
     static bool testOne(int algo);
+    static bool verifyOne(unsigned int algo);
+    static void testVerify(unsigned int algo, maker_t* verifier);
 
   private:
     using makers_t = std::map<unsigned int, maker_t *>;

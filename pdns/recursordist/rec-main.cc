@@ -38,6 +38,7 @@
 #include "rec-taskqueue.hh"
 #include "secpoll-recursor.hh"
 #include "logging.hh"
+#include "dnsseckeeper.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -1460,7 +1461,13 @@ static int initDNSSEC(Logr::log_t log)
       DNSCryptoKeyEngine::switchOffAlgorithm(pdns::checked_stoi<unsigned int>(num));
     }
   } else {
-    // Auto determine algos to switch off
+    for (auto algo : { DNSSECKeeper::RSASHA1, DNSSECKeeper::RSASHA1NSEC3SHA1 }) {
+      if (!DNSCryptoKeyEngine::verifyOne(algo)) {
+        cerr << "XXXX " << algo << endl;
+        DNSCryptoKeyEngine::switchOffAlgorithm(algo);
+        nums.push_back(std::to_string(algo));
+      }
+    }
   }
   if (!nums.empty()) {
     if (!g_slogStructured) {
