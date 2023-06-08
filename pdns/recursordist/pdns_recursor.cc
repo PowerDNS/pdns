@@ -590,6 +590,7 @@ static bool nodCheckNewDomain(Logr::log_t nodlogger, const DNSName& dname)
         SLOG(g_log << Logger::Notice << "Newly observed domain nod=" << dname << endl,
              nodlogger->info(Logr::Notice, "New domain observed"));
       }
+      t_Counters.at(rec::Counter::nodCount)++;
       ret = true;
     }
   }
@@ -628,12 +629,13 @@ static bool udrCheckUniqueDNSRecord(Logr::log_t nodlogger, const DNSName& dname,
       if (g_udrLog) {
         // This should also probably log to a dedicated file.
         SLOG(g_log << Logger::Notice << "Unique response observed: qname=" << dname << " qtype=" << QType(qtype) << " rrtype=" << QType(record.d_type) << " rrname=" << record.d_name << " rrcontent=" << record.getContent()->getZoneRepresentation() << endl,
-             nodlogger->info(Logr::Debug, "New response observed",
+             nodlogger->info(Logr::Notice, "New response observed",
                              "qtype", Logging::Loggable(QType(qtype)),
                              "rrtype", Logging::Loggable(QType(record.d_type)),
                              "rrname", Logging::Loggable(record.d_name),
                              "rrcontent", Logging::Loggable(record.getContent()->getZoneRepresentation())););
       }
+      t_Counters.at(rec::Counter::udrCount)++;
       ret = true;
     }
   }
