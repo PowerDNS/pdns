@@ -170,8 +170,8 @@ static const oid rcode15AnswersOID[] = {RECURSOR_STATS_OID, 144};
 static const oid packetCacheContendedOID[] = {RECURSOR_STATS_OID, 145};
 static const oid packetCacheAcquiredOID[] = {RECURSOR_STATS_OID, 146};
 
-static const oid nodCountOID[] = {RECURSOR_STATS_OID, 147};
-static const oid udrCountOID[] = {RECURSOR_STATS_OID, 148};
+static const std::array<oid, 10> nodCountOID = {RECURSOR_STATS_OID, 147};
+static const std::array<oid, 10> udrCountOID = {RECURSOR_STATS_OID, 148};
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -428,8 +428,8 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   RCODE(14);
   RCODE(15);
 
-  registerCounter64Stat("nod-count", nodCountOID, OID_LENGTH(nodCountOID));
-  registerCounter64Stat("udr-count", udrCountOID, OID_LENGTH(udrCountOID));
+  registerCounter64Stat("nod-count", nodCountOID.data(), nodCountOID.size());
+  registerCounter64Stat("udr-count", udrCountOID.data(), udrCountOID.size());
 
 #endif /* HAVE_NET_SNMP */
 }
