@@ -1190,6 +1190,13 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"remote-logger-count-o-0",
    MetricDefinition(PrometheusMetricType::multicounter,
                     "Number of remote logging events")},
+  {"nod-count",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Count of NOD events")},
+
+  {"udr-count",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Count of UDR events")},
 };
 
 constexpr bool CHECK_PROMETHEUS_METRICS = false;
@@ -1205,6 +1212,9 @@ static void validatePrometheusMetrics()
       continue;
     }
     if (metricName.find("cumul-") == 0) {
+      continue;
+    }
+    if (metricName.find("auth-") == 0 && metricName.find("-answers") != string::npos) {
       continue;
     }
     MetricDefinition metricDetails;

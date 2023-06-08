@@ -170,6 +170,9 @@ static const oid rcode15AnswersOID[] = {RECURSOR_STATS_OID, 144};
 static const oid packetCacheContendedOID[] = {RECURSOR_STATS_OID, 145};
 static const oid packetCacheAcquiredOID[] = {RECURSOR_STATS_OID, 146};
 
+static const oid nodCountOID[] = {RECURSOR_STATS_OID, 147};
+static const oid udrCountOID[] = {RECURSOR_STATS_OID, 148};
+
 static std::unordered_map<oid, std::string> s_statsMap;
 
 /* We are never called for a GETNEXT if it's registered as a
@@ -424,6 +427,9 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   RCODE(13);
   RCODE(14);
   RCODE(15);
+
+  registerCounter64Stat("nod-count", nodCountOID, OID_LENGTH(nodCountOID));
+  registerCounter64Stat("udr-count", udrCountOID, OID_LENGTH(udrCountOID));
 
 #endif /* HAVE_NET_SNMP */
 }
