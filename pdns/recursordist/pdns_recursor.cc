@@ -1791,6 +1791,7 @@ void startDoResolve(void* p) // NOLINT(readability-function-cognitive-complexity
           g_log << ", dnssec=" << sr.getValidationState();
         }
         g_log << " answer-is-variable=" << sr.wasVariable() << ", into-packetcache=" << intoPC;
+        g_log << " maxdepth=" << sr.d_maxdepth;
         g_log << endl;
       }
       else {
@@ -1807,7 +1808,8 @@ void startDoResolve(void* p) // NOLINT(readability-function-cognitive-complexity
                         "rcode", Logging::Loggable(res),
                         "validationState", Logging::Loggable(sr.getValidationState()),
                         "answer-is-variable", Logging::Loggable(sr.wasVariable()),
-                        "into-packetcache", Logging::Loggable(intoPC));
+                        "into-packetcache", Logging::Loggable(intoPC),
+                        "maxdepth", Logging::Loggable(sr.d_maxdepth));
       }
     }
 

@@ -1824,6 +1824,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
 
   LOG(prefix << qname << ": Wants " << (d_doDNSSEC ? "" : "NO ") << "DNSSEC processing, " << (d_requireAuthData ? "" : "NO ") << "auth data required by query for " << qtype << endl);
 
+  d_maxdepth = std::max(d_maxdepth, depth);
   if (s_maxdepth > 0) {
     auto bound = getAdjustedRecursionBound();
     // Use a stricter bound if throttling

@@ -570,6 +570,7 @@ public:
   unsigned int d_timeouts;
   unsigned int d_unreachables;
   unsigned int d_totUsec;
+  unsigned int d_maxdepth{0};
   // Initialized ony once, as opposed to d_now which gets updated after outgoing requests
   const struct timeval d_fixednow;
 
