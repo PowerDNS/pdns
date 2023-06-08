@@ -1234,7 +1234,7 @@ packetCacheAcquired OBJECT-TYPE
         "Number of packet cache lock acquisitions"
     ::= { stats 146 }
 
-nodCount OBJECT-TYPE
+nodEvents OBJECT-TYPE
     SYNTAX Counter64
     MAX-ACCESS read-only
     STATUS current
@@ -1242,7 +1242,7 @@ nodCount OBJECT-TYPE
         "Count of NOD events"
     ::= { stats 147 }
 
-udrCount OBJECT-TYPE
+udrEvents OBJECT-TYPE
     SYNTAX Counter64
     MAX-ACCESS read-only
     STATUS current
@@ -1444,8 +1444,8 @@ recGroup OBJECT-GROUP
         authrcode15Count,
         packetCacheContended,
         packetCacheAcquired,
-        nodCount,
-        udrCount
+        nodEvents,
+        udrEvents
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

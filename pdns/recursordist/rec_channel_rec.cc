@@ -1501,8 +1501,8 @@ static void registerAllStats1()
   addGetStat("maintenance-usec", [] { return g_Counters.sum(rec::Counter::maintenanceUsec); });
   addGetStat("maintenance-calls", [] { return g_Counters.sum(rec::Counter::maintenanceCalls); });
 
-  addGetStat("nod-count", [] { return g_Counters.sum(rec::Counter::nodCount); });
-  addGetStat("udr-count", [] { return g_Counters.sum(rec::Counter::udrCount); });
+  addGetStat("nod-events", [] { return g_Counters.sum(rec::Counter::nodCount); });
+  addGetStat("udr-events", [] { return g_Counters.sum(rec::Counter::udrCount); });
 
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();

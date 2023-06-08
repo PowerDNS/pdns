@@ -1190,11 +1190,11 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"remote-logger-count-o-0",
    MetricDefinition(PrometheusMetricType::multicounter,
                     "Number of remote logging events")},
-  {"nod-count",
+  {"nod-events",
    MetricDefinition(PrometheusMetricType::counter,
                     "Count of NOD events")},
 
-  {"udr-count",
+  {"udr-events",
    MetricDefinition(PrometheusMetricType::counter,
                     "Count of UDR events")},
 };
