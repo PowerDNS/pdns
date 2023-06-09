@@ -1733,7 +1733,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
       if (child == qname) {
         LOG(prefix << qname << ": Step3 Going to do final resolve" << endl);
         res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, context);
-        LOG(prefix << qname << ": Step3 Final resolve: " << RCode::to_s(res) << "/" << ret.size() << endl);
+        LOG(prefix << qname << ": Step3 Final resolve: " << (res >= 0 ? RCode::to_s(res) : std::to_string(res)) << "/" << ret.size() << endl);
         return res;
       }
 
@@ -1841,7 +1841,9 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
   for (int loop = 0; loop < iterations; loop++) {
 
     d_serveStale = loop == 1;
-
+    if (d_serveStale) {
+      LOG(prefix << qname << ": Restart, with serve-stale enabled" << endl);
+    }
     // This is a difficult way of expressing "this is a normal query", i.e. not getRootNS.
     if (!(d_updatingRootNS && qtype.getCode() == QType::NS && qname.isRoot())) {
       DNSName authname(qname);
@@ -1879,7 +1881,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
       /* When we are looking for a DS, we want to the non-CNAME cache check first
          because we can actually have a DS (from the parent zone) AND a CNAME (from
          the child zone), and what we really want is the DS */
-      if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
+      if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1)) { // will reroute us if needed
         d_wasOutOfBand = wasAuthZone;
         // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
         // are in QM Step0) we might have a CNAME but not the corresponding target.
@@ -1928,7 +1930,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
       }
 
       /* if we have not found a cached DS (or denial of), now is the time to look for a CNAME */
-      if (qtype == QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse)) { // will reroute us if needed
+      if (qtype == QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1)) { // will reroute us if needed
         d_wasOutOfBand = wasAuthZone;
         // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
         // are in QM Step0) we might have a CNAME but not the corresponding target.
@@ -2420,7 +2422,7 @@ static pair<bool, unsigned int> scanForCNAMELoop(const DNSName& name, const vect
   return {false, numCNames};
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse) // NOLINT(readability-function-cognitive-complexity)
+bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse, bool checkForDups) // NOLINT(readability-function-cognitive-complexity)
 {
   vector<DNSRecord> cset;
   vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
@@ -2504,27 +2506,41 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       LOG(prefix << qname << ": Found cache " << foundQT.toString() << " hit for '" << foundName << "|" << foundQT.toString() << "' to '" << record.getContent()->getZoneRepresentation() << "', validation state is " << context.state << endl);
 
       DNSRecord dr = record;
+      auto alreadyPresent = false;
+
+      if (checkForDups) {
+        // This can happen on the 2nd iteration of the servestale loop, where the first iteration
+        // added a C/DNAME record, but the target resolve failed
+        for (const auto& dnsrec : ret) {
+          if (dnsrec.d_type == foundQT && dnsrec.d_name == record.d_name) {
+            alreadyPresent = true;
+            break;
+          }
+        }
+      }
       dr.d_ttl -= d_now.tv_sec;
       dr.d_ttl = std::min(dr.d_ttl, capTTL);
       const uint32_t ttl = dr.d_ttl;
-      ret.reserve(ret.size() + 2 + signatures.size() + authorityRecs.size());
-      ret.push_back(dr);
+      if (!alreadyPresent) {
+        ret.reserve(ret.size() + 2 + signatures.size() + authorityRecs.size());
+        ret.push_back(dr);
 
-      for (const auto& signature : signatures) {
-        DNSRecord sigdr;
-        sigdr.d_type = QType::RRSIG;
-        sigdr.d_name = foundName;
-        sigdr.d_ttl = ttl;
-        sigdr.setContent(signature);
-        sigdr.d_place = DNSResourceRecord::ANSWER;
-        sigdr.d_class = QClass::IN;
-        ret.push_back(sigdr);
-      }
+        for (const auto& signature : signatures) {
+          DNSRecord sigdr;
+          sigdr.d_type = QType::RRSIG;
+          sigdr.d_name = foundName;
+          sigdr.d_ttl = ttl;
+          sigdr.setContent(signature);
+          sigdr.d_place = DNSResourceRecord::ANSWER;
+          sigdr.d_class = QClass::IN;
+          ret.push_back(sigdr);
+        }
 
-      for (const auto& rec : authorityRecs) {
-        DNSRecord authDR(*rec);
-        authDR.d_ttl = ttl;
-        ret.push_back(authDR);
+        for (const auto& rec : authorityRecs) {
+          DNSRecord authDR(*rec);
+          authDR.d_ttl = ttl;
+          ret.push_back(authDR);
+        }
       }
 
       DNSName newTarget;
