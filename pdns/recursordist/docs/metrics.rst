@@ -552,12 +552,12 @@ no-packet-error
 number of erroneous received packets
 
 nod-events
-^^^^^^^^^
+^^^^^^^^^^
 .. versionadded:: 4.9.0
 Count of NOD events
 
 udr-events
-^^^^^^^^^
+^^^^^^^^^^
 .. versionadded:: 4.9.0
 Count of UDR events
 
