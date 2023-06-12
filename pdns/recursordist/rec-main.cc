@@ -905,9 +905,32 @@ static const char* toTimestampStringMilli(const struct timeval& tval, std::array
   return buf.data();
 }
 
+#define HAVE_SYSTEMD
 #ifdef HAVE_SYSTEMD
 static void loggerSDBackend(const Logging::Entry& entry)
 {
+  static const set<std::string, CIStringComparePOSIX> special = {
+    "message",
+    "message_id",
+    "priority",
+    "code_file",
+    "code_line",
+    "code_func",
+    "errno",
+    "invocation_id",
+    "user_invocation_id",
+    "syslog_facility",
+    "syslog_identifier",
+    "syslog_pid",
+    "syslog_timestamp",
+    "syslog_raw",
+    "documentation",
+    "tid",
+    "unit",
+    "user_unit",
+    "object_pid"
+  };
+
   // First map SL priority to syslog's Urgency
   Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
   if (u > s_logUrgency) {
@@ -931,8 +954,13 @@ static void loggerSDBackend(const Logging::Entry& entry)
   }
   std::array<char, 64> timebuf{};
   appendKeyAndVal("TIMESTAMP", toTimestampStringMilli(entry.d_timestamp, timebuf));
-  for (auto const& v : entry.values) {
-    appendKeyAndVal(toUpper(v.first), v.second);
+  for (const auto& value : entry.values) {
+    if (value.first.at(0) == '_' || special.count(value.first) != 0) {
+      string key{"PDNS"};
+      key.append(value.first);
+      appendKeyAndVal(toUpper(key), value.second);
+    }
+    appendKeyAndVal(toUpper(value.first), value.second);
   }
   // Thread id filled in by backend, since the SL code does not know about RecursorThreads
   // We use the Recursor thread, other threads get id 0. May need to revisit.
