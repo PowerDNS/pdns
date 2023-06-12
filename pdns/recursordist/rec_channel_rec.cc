@@ -2010,86 +2010,138 @@ static void* pleaseSupplantProxyMapping(const ProxyMapping& pm)
   return nullptr;
 }
 
-RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const string& question, RecursorControlParser::func_t** command)
+static RecursorControlChannel::Answer help()
+{
+  return {0,
+          "add-dont-throttle-names [N...]   add names that are not allowed to be throttled\n"
+          "add-dont-throttle-netmasks [N...]\n"
+          "                                 add netmasks that are not allowed to be throttled\n"
+          "add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
+          "add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
+          "current-queries                  show currently active queries\n"
+          "clear-dont-throttle-names [N...] remove names that are not allowed to be throttled. If N is '*', remove all\n"
+          "clear-dont-throttle-netmasks [N...]\n"
+          "                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
+          "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
+          "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
+          "dump-cache <filename>            dump cache contents to the named file\n"
+          "dump-dot-probe-map <filename>    dump the contents of the DoT probe map to the named file\n"
+          "dump-edns [status] <filename>    dump EDNS status to the named file\n"
+          "dump-failedservers <filename>    dump the failed servers to the named file\n"
+          "dump-non-resolving <filename>    dump non-resolving nameservers addresses to the named file\n"
+          "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
+          "dump-saved-parent-ns-sets <filename>\n"
+          "                                 dump saved parent ns sets that were successfully used as fallback\n"
+          "dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
+          "dump-throttlemap <filename>      dump the contents of the throttle map to the named file\n"
+          "get [key1] [key2] ..             get specific statistics\n"
+          "get-all                          get all statistics\n"
+          "get-dont-throttle-names          get the list of names that are not allowed to be throttled\n"
+          "get-dont-throttle-netmasks       get the list of netmasks that are not allowed to be throttled\n"
+          "get-ntas                         get all configured Negative Trust Anchors\n"
+          "get-tas                          get all configured Trust Anchors\n"
+          "get-parameter [key1] [key2] ..   get configuration parameters\n"
+          "get-proxymapping-stats           get proxy mapping statistics\n"
+          "get-qtypelist                    get QType statistics\n"
+          "                                 notice: queries from cache aren't being counted yet\n"
+          "get-remotelogger-stats           get remote logger statistics\n"
+          "hash-password [work-factor]      ask for a password then return the hashed version\n"
+          "help                             get this list\n"
+          "list-dnssec-algos                list supported DNSSEC algorithms\n"
+          "ping                             check that all threads are alive\n"
+          "quit                             stop the recursor daemon\n"
+          "quit-nicely                      stop the recursor daemon nicely\n"
+          "reload-acls                      reload ACLS\n"
+          "reload-lua-script [filename]     (re)load Lua script\n"
+          "reload-lua-config [filename]     (re)load Lua configuration file\n"
+          "reload-zones                     reload all auth and forward zones\n"
+          "set-ecs-minimum-ttl value        set ecs-minimum-ttl-override\n"
+          "set-max-cache-entries value      set new maximum cache size\n"
+          "set-max-packetcache-entries val  set new maximum packet cache size\n"
+          "set-minimum-ttl value            set minimum-ttl-override\n"
+          "set-carbon-server                set a carbon server for telemetry\n"
+          "set-dnssec-log-bogus SETTING     enable (SETTING=yes) or disable (SETTING=no) logging of DNSSEC validation failures\n"
+          "set-event-trace-enabled SETTING  set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 3 = both\n"
+          "trace-regex [regex file]         emit resolution trace for matching queries (no arguments clears tracing)\n"
+          "top-largeanswer-remotes          show top remotes receiving large answers\n"
+          "top-queries                      show top queries\n"
+          "top-pub-queries                  show top queries grouped by public suffix list\n"
+          "top-remotes                      show top remotes\n"
+          "top-timeouts                     show top downstream timeouts\n"
+          "top-servfail-queries             show top queries receiving servfail answers\n"
+          "top-bogus-queries                show top queries validating as bogus\n"
+          "top-pub-servfail-queries         show top queries receiving servfail answers grouped by public suffix list\n"
+          "top-pub-bogus-queries            show top queries validating as bogus grouped by public suffix list\n"
+          "top-servfail-remotes             show top remotes receiving servfail answers\n"
+          "top-bogus-remotes                show top remotes receiving bogus answers\n"
+          "unload-lua-script                unload Lua script\n"
+          "version                          return Recursor version number\n"
+          "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
+          "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"};
+}
+
+template <typename T>
+static RecursorControlChannel::Answer luaconfig(T begin, T end)
+{
+  if (begin != end) {
+    ::arg().set("lua-config-file") = *begin;
+  }
+  try {
+    luaConfigDelayedThreads delayedLuaThreads;
+    ProxyMapping proxyMapping;
+    loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
+    startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
+    broadcastFunction([=] { return pleaseSupplantProxyMapping(proxyMapping); });
+    g_log << Logger::Warning << "Reloaded Lua configuration file '" << ::arg()["lua-config-file"] << "', requested via control channel" << endl;
+    return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};
+  }
+  catch (std::exception& e) {
+    return {1, "Unable to load Lua script from '" + ::arg()["lua-config-file"] + "': " + e.what() + "\n"};
+  }
+  catch (const PDNSException& e) {
+    return {1, "Unable to load Lua script from '" + ::arg()["lua-config-file"] + "': " + e.reason + "\n"};
+  }
+}
+
+static RecursorControlChannel::Answer reloadACLs()
+{
+  if (!::arg()["chroot"].empty()) {
+    g_log << Logger::Error << "Unable to reload ACL when chroot()'ed, requested via control channel" << endl;
+    return {1, "Unable to reload ACL when chroot()'ed, please restart\n"};
+  }
+
+  try {
+    parseACLs();
+  }
+  catch (std::exception& e) {
+    g_log << Logger::Error << "Reloading ACLs failed (Exception: " << e.what() << ")" << endl;
+    return {1, e.what() + string("\n")};
+  }
+  catch (PDNSException& ae) {
+    g_log << Logger::Error << "Reloading ACLs failed (PDNSException: " << ae.reason << ")" << endl;
+    return {1, ae.reason + string("\n")};
+  }
+  return {0, "ok\n"};
+}
+
+RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, const string& question, RecursorControlParser::func_t** command)
 {
   *command = nop;
   vector<string> words;
   stringtok(words, question);
 
-  if (words.empty())
+  if (words.empty()) {
     return {1, "invalid command\n"};
+  }
 
   string cmd = toLower(words[0]);
-  vector<string>::const_iterator begin = words.begin() + 1, end = words.end();
+  auto begin = words.begin() + 1;
+  auto end = words.end();
 
   // should probably have a smart dispatcher here, like auth has
-  if (cmd == "help")
-    return {0,
-            "add-dont-throttle-names [N...]   add names that are not allowed to be throttled\n"
-            "add-dont-throttle-netmasks [N...]\n"
-            "                                 add netmasks that are not allowed to be throttled\n"
-            "add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
-            "add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
-            "current-queries                  show currently active queries\n"
-            "clear-dont-throttle-names [N...] remove names that are not allowed to be throttled. If N is '*', remove all\n"
-            "clear-dont-throttle-netmasks [N...]\n"
-            "                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
-            "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
-            "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
-            "dump-cache <filename>            dump cache contents to the named file\n"
-            "dump-dot-probe-map <filename>    dump the contents of the DoT probe map to the named file\n"
-            "dump-edns [status] <filename>    dump EDNS status to the named file\n"
-            "dump-failedservers <filename>    dump the failed servers to the named file\n"
-            "dump-non-resolving <filename>    dump non-resolving nameservers addresses to the named file\n"
-            "dump-nsspeeds <filename>         dump nsspeeds statistics to the named file\n"
-            "dump-saved-parent-ns-sets <filename>\n"
-            "                                 dump saved parent ns sets that were successfully used as fallback\n"
-            "dump-rpz <zone name> <filename>  dump the content of a RPZ zone to the named file\n"
-            "dump-throttlemap <filename>      dump the contents of the throttle map to the named file\n"
-            "get [key1] [key2] ..             get specific statistics\n"
-            "get-all                          get all statistics\n"
-            "get-dont-throttle-names          get the list of names that are not allowed to be throttled\n"
-            "get-dont-throttle-netmasks       get the list of netmasks that are not allowed to be throttled\n"
-            "get-ntas                         get all configured Negative Trust Anchors\n"
-            "get-tas                          get all configured Trust Anchors\n"
-            "get-parameter [key1] [key2] ..   get configuration parameters\n"
-            "get-proxymapping-stats           get proxy mapping statistics\n"
-            "get-qtypelist                    get QType statistics\n"
-            "                                 notice: queries from cache aren't being counted yet\n"
-            "get-remotelogger-stats           get remote logger statistics\n"
-            "hash-password [work-factor]      ask for a password then return the hashed version\n"
-            "help                             get this list\n"
-            "ping                             check that all threads are alive\n"
-            "quit                             stop the recursor daemon\n"
-            "quit-nicely                      stop the recursor daemon nicely\n"
-            "reload-acls                      reload ACLS\n"
-            "reload-lua-script [filename]     (re)load Lua script\n"
-            "reload-lua-config [filename]     (re)load Lua configuration file\n"
-            "reload-zones                     reload all auth and forward zones\n"
-            "set-ecs-minimum-ttl value        set ecs-minimum-ttl-override\n"
-            "set-max-cache-entries value      set new maximum cache size\n"
-            "set-max-packetcache-entries val  set new maximum packet cache size\n"
-            "set-minimum-ttl value            set minimum-ttl-override\n"
-            "set-carbon-server                set a carbon server for telemetry\n"
-            "set-dnssec-log-bogus SETTING     enable (SETTING=yes) or disable (SETTING=no) logging of DNSSEC validation failures\n"
-            "set-event-trace-enabled SETTING  set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 3 = both\n"
-            "trace-regex [regex file]         emit resolution trace for matching queries (no arguments clears tracing)\n"
-            "top-largeanswer-remotes          show top remotes receiving large answers\n"
-            "top-queries                      show top queries\n"
-            "top-pub-queries                  show top queries grouped by public suffix list\n"
-            "top-remotes                      show top remotes\n"
-            "top-timeouts                     show top downstream timeouts\n"
-            "top-servfail-queries             show top queries receiving servfail answers\n"
-            "top-bogus-queries                show top queries validating as bogus\n"
-            "top-pub-servfail-queries         show top queries receiving servfail answers grouped by public suffix list\n"
-            "top-pub-bogus-queries            show top queries validating as bogus grouped by public suffix list\n"
-            "top-servfail-remotes             show top remotes receiving servfail answers\n"
-            "top-bogus-remotes                show top remotes receiving bogus answers\n"
-            "unload-lua-script                unload Lua script\n"
-            "version                          return Recursor version number\n"
-            "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
-            "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"};
-
+  if (cmd == "help") {
+    return help();
+  }
   if (cmd == "get-all") {
     return {0, getAllStats()};
   }
@@ -2111,31 +2163,31 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return {0, "bye nicely\n"};
   }
   if (cmd == "dump-cache") {
-    return doDumpCache(s);
+    return doDumpCache(socket);
   }
   if (cmd == "dump-dot-probe-map") {
-    return doDumpToFile(s, pleaseDumpDoTProbeMap, cmd, false);
+    return doDumpToFile(socket, pleaseDumpDoTProbeMap, cmd, false);
   }
   if (cmd == "dump-ednsstatus" || cmd == "dump-edns") {
-    return doDumpToFile(s, pleaseDumpEDNSMap, cmd, false);
+    return doDumpToFile(socket, pleaseDumpEDNSMap, cmd, false);
   }
   if (cmd == "dump-nsspeeds") {
-    return doDumpToFile(s, pleaseDumpNSSpeeds, cmd, false);
+    return doDumpToFile(socket, pleaseDumpNSSpeeds, cmd, false);
   }
   if (cmd == "dump-failedservers") {
-    return doDumpToFile(s, pleaseDumpFailedServers, cmd, false);
+    return doDumpToFile(socket, pleaseDumpFailedServers, cmd, false);
   }
   if (cmd == "dump-saved-parent-ns-sets") {
-    return doDumpToFile(s, pleaseDumpSavedParentNSSets, cmd, false);
+    return doDumpToFile(socket, pleaseDumpSavedParentNSSets, cmd, false);
   }
   if (cmd == "dump-rpz") {
-    return doDumpRPZ(s, begin, end);
+    return doDumpRPZ(socket, begin, end);
   }
   if (cmd == "dump-throttlemap") {
-    return doDumpToFile(s, pleaseDumpThrottleMap, cmd, false);
+    return doDumpToFile(socket, pleaseDumpThrottleMap, cmd, false);
   }
   if (cmd == "dump-non-resolving") {
-    return doDumpToFile(s, pleaseDumpNonResolvingNS, cmd, false);
+    return doDumpToFile(socket, pleaseDumpNonResolvingNS, cmd, false);
   }
   if (cmd == "wipe-cache" || cmd == "flushname") {
     return {0, doWipeCache(begin, end, 0xffff)};
@@ -2155,54 +2207,21 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
     return doQueueReloadLuaScript(begin, end);
   }
   if (cmd == "reload-lua-config") {
-    if (begin != end)
-      ::arg().set("lua-config-file") = *begin;
-
-    try {
-      luaConfigDelayedThreads delayedLuaThreads;
-      ProxyMapping proxyMapping;
-      loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
-      startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
-      broadcastFunction([=] { return pleaseSupplantProxyMapping(proxyMapping); });
-      g_log << Logger::Warning << "Reloaded Lua configuration file '" << ::arg()["lua-config-file"] << "', requested via control channel" << endl;
-      return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};
-    }
-    catch (std::exception& e) {
-      return {1, "Unable to load Lua script from '" + ::arg()["lua-config-file"] + "': " + e.what() + "\n"};
-    }
-    catch (const PDNSException& e) {
-      return {1, "Unable to load Lua script from '" + ::arg()["lua-config-file"] + "': " + e.reason + "\n"};
-    }
+    return luaconfig(begin, end);
   }
   if (cmd == "set-carbon-server") {
     return {0, doSetCarbonServer(begin, end)};
   }
   if (cmd == "trace-regex") {
-    return {0, doTraceRegex(begin == end ? FDWrapper(-1) : getfd(s), begin, end)};
+    return {0, doTraceRegex(begin == end ? FDWrapper(-1) : getfd(socket), begin, end)};
   }
   if (cmd == "unload-lua-script") {
     vector<string> empty;
-    empty.push_back(string());
+    empty.emplace_back();
     return doQueueReloadLuaScript(empty.begin(), empty.end());
   }
   if (cmd == "reload-acls") {
-    if (!::arg()["chroot"].empty()) {
-      g_log << Logger::Error << "Unable to reload ACL when chroot()'ed, requested via control channel" << endl;
-      return {1, "Unable to reload ACL when chroot()'ed, please restart\n"};
-    }
-
-    try {
-      parseACLs();
-    }
-    catch (std::exception& e) {
-      g_log << Logger::Error << "Reloading ACLs failed (Exception: " << e.what() << ")" << endl;
-      return {1, e.what() + string("\n")};
-    }
-    catch (PDNSException& ae) {
-      g_log << Logger::Error << "Reloading ACLs failed (PDNSException: " << ae.reason << ")" << endl;
-      return {1, ae.reason + string("\n")};
-    }
-    return {0, "ok\n"};
+    return reloadACLs();
   }
   if (cmd == "top-remotes") {
     return {0, doGenericTopRemotes(pleaseGetRemotes)};
@@ -2312,6 +2331,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int s, const str
   }
   if (cmd == "get-remotelogger-stats") {
     return {0, getRemoteLoggerStats()};
+  }
+  if (cmd == "list-dnssec-algos") {
+    return {0, DNSCryptoKeyEngine::listSupportedAlgoNames()};
   }
 
   return {1, "Unknown command '" + cmd + "', try 'help'\n"};

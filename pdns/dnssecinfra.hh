@@ -166,6 +166,8 @@ class DNSCryptoKeyEngine
     static std::unique_ptr<DNSCryptoKeyEngine> makeFromPublicKeyString(unsigned int algorithm, const std::string& raw);
     static std::unique_ptr<DNSCryptoKeyEngine> make(unsigned int algorithm);
     static bool isAlgorithmSupported(unsigned int algo);
+    static bool isAlgorithmSwitchedOff(unsigned int algo);
+    static void switchOffAlgorithm(unsigned int algo);
     static bool isDigestSupported(uint8_t digest);
 
     using maker_t = std::unique_ptr<DNSCryptoKeyEngine> (unsigned int);
@@ -175,6 +177,9 @@ class DNSCryptoKeyEngine
     static vector<pair<uint8_t, string>> listAllAlgosWithBackend();
     static bool testAll();
     static bool testOne(int algo);
+    static bool verifyOne(unsigned int algo);
+    static bool testVerify(unsigned int algo, maker_t* verifier);
+    static string listSupportedAlgoNames();
 
   private:
     using makers_t = std::map<unsigned int, maker_t *>;
@@ -189,6 +194,8 @@ class DNSCryptoKeyEngine
       static allmakers_t s_allmakers;
       return s_allmakers;
     }
+    // Must be set before going multi-threaded and not changed after that
+    static std::unordered_set<unsigned int> s_switchedOff;
 
   protected:
     const unsigned int d_algorithm;
