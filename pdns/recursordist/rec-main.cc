@@ -683,7 +683,7 @@ static void makeControlChannelSocket(int processNum = -1)
     sockowner = ::arg().asUid("socket-owner");
   }
 
-  if (sockgroup > -1 || sockowner > -1) {
+  if (sockgroup != static_cast<gid_t>(-1) || sockowner != static_cast<uid_t>(-1)) {
     if (chown(sockname.c_str(), sockowner, sockgroup) < 0) {
       unixDie("Failed to chown control socket");
     }
