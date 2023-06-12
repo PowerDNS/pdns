@@ -524,17 +524,20 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
 
   case DNSFilterEngine::PolicyKind::NXDOMAIN:
     ret.clear();
+    appliedPolicy.addSOAtoRPZResult(ret);
     res = RCode::NXDomain;
     return PolicyResult::HaveAnswer;
 
   case DNSFilterEngine::PolicyKind::NODATA:
     ret.clear();
+    appliedPolicy.addSOAtoRPZResult(ret);
     res = RCode::NoError;
     return PolicyResult::HaveAnswer;
 
   case DNSFilterEngine::PolicyKind::Truncate:
     if (!dc->d_tcp) {
       ret.clear();
+      appliedPolicy.addSOAtoRPZResult(ret);
       res = RCode::NoError;
       pw.getHeader()->tc = 1;
       return PolicyResult::HaveAnswer;
@@ -570,6 +573,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
         }
       }
 
+      appliedPolicy.addSOAtoRPZResult(ret);
       return PolicyResult::HaveAnswer;
     }
   }
@@ -1245,6 +1249,7 @@ void startDoResolve(void* p) // NOLINT(readability-function-cognitive-complexity
       }
       catch (const SendTruncatedAnswerException& e) {
         ret.clear();
+        sr.d_appliedPolicy.addSOAtoRPZResult(ret);
         res = RCode::NoError;
         pw.getHeader()->tc = 1;
       }

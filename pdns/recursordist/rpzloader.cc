@@ -226,6 +226,7 @@ static shared_ptr<const SOARecordContent> loadRPZFromServer(Logr::log_t plogger,
       dr.d_name.makeUsRelative(zoneName);
       if (dr.d_type == QType::SOA) {
         sr = getRR<SOARecordContent>(dr);
+        zone->setSOA(dr);
         continue;
       }
 
@@ -293,6 +294,7 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
   DNSResourceRecord drr;
+  DNSRecord soaRecord;
   DNSName domain;
   auto log = g_slog->withName("rpz")->withValues("file", Logging::Loggable(fname), "zone", Logging::Loggable(zone->getName()));
   while (zpt.get(drr)) {
@@ -304,6 +306,7 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
         sr = getRR<SOARecordContent>(dr);
         domain = dr.d_name;
         zone->setDomain(domain);
+        soaRecord = dr;
       }
       else if (dr.d_type == QType::NS) {
         continue;
@@ -320,6 +323,7 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
 
   if (sr != nullptr) {
     zone->setRefresh(sr->d_st.refresh);
+    zone->setSOA(soaRecord);
     setRPZZoneNewState(zone->getName(), sr->d_st.serial, zone->size(), true, false);
   }
   return sr;
