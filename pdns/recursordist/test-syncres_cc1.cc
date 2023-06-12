@@ -1735,22 +1735,22 @@ BOOST_AUTO_TEST_CASE(test_cname_length)
 
 BOOST_AUTO_TEST_CASE(test_cname_target_servfail)
 {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr);
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver);
 
   primeHints();
 
   const DNSName target("cname.powerdns.com.");
   const DNSName cnameTarget("cname-target.powerdns.com");
 
-  sr->setAsyncCallback([target, cnameTarget](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
-    if (isRootServer(ip)) {
+  resolver->setAsyncCallback([target, cnameTarget](const ComboAddress& ipAddress, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const boost::optional<const ResolveContext&>& /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(ipAddress)) {
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
       addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
       return LWResult::Result::Success;
     }
-    if (ip == ComboAddress("192.0.2.1:53")) {
+    if (ipAddress == ComboAddress("192.0.2.1:53")) {
 
       if (domain == target) {
         setLWResult(res, 0, true, false, false);
@@ -1768,7 +1768,7 @@ BOOST_AUTO_TEST_CASE(test_cname_target_servfail)
   });
 
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  int res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
   BOOST_CHECK(ret[0].d_type == QType::CNAME);
@@ -1777,8 +1777,8 @@ BOOST_AUTO_TEST_CASE(test_cname_target_servfail)
 
 BOOST_AUTO_TEST_CASE(test_cname_target_servfail_servestale)
 {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr);
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver);
   MemRecursorCache::s_maxServedStaleExtensions = 1440;
 
   primeHints();
@@ -1786,14 +1786,14 @@ BOOST_AUTO_TEST_CASE(test_cname_target_servfail_servestale)
   const DNSName target("cname.powerdns.com.");
   const DNSName cnameTarget("cname-target.powerdns.com");
 
-  sr->setAsyncCallback([target, cnameTarget](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
-    if (isRootServer(ip)) {
+  resolver->setAsyncCallback([target, cnameTarget](const ComboAddress& ipAddress, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const boost::optional<const ResolveContext&>& /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(ipAddress)) {
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
       addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
       return LWResult::Result::Success;
     }
-    else if (ip == ComboAddress("192.0.2.1:53")) {
+    if (ipAddress == ComboAddress("192.0.2.1:53")) {
 
       if (domain == target) {
         setLWResult(res, 0, true, false, false);
@@ -1811,7 +1811,7 @@ BOOST_AUTO_TEST_CASE(test_cname_target_servfail_servestale)
   });
 
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  int res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
   // different compared no non-servestale case (returns ServFail), handled by pdns_recursor
   BOOST_CHECK_EQUAL(res, -1);
   BOOST_REQUIRE_EQUAL(ret.size(), 1U);
