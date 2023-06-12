@@ -905,7 +905,6 @@ static const char* toTimestampStringMilli(const struct timeval& tval, std::array
   return buf.data();
 }
 
-#define HAVE_SYSTEMD
 #ifdef HAVE_SYSTEMD
 static void loggerSDBackend(const Logging::Entry& entry)
 {
@@ -928,20 +927,19 @@ static void loggerSDBackend(const Logging::Entry& entry)
     "tid",
     "unit",
     "user_unit",
-    "object_pid"
-  };
+    "object_pid"};
 
   // First map SL priority to syslog's Urgency
-  Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
-  if (u > s_logUrgency) {
+  Logger::Urgency urgency = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  if (urgency > s_logUrgency) {
     // We do not log anything if the Urgency of the message is lower than the requested loglevel.
     // Not that lower Urgency means higher number.
     return;
   }
   // We need to keep the string in mem until sd_journal_sendv has ben called
   vector<string> strings;
-  auto appendKeyAndVal = [&strings](const string& k, const string& v) {
-    strings.emplace_back(k + "=" + v);
+  auto appendKeyAndVal = [&strings](const string& key, const string& value) {
+    strings.emplace_back(key + "=" + value);
   };
   appendKeyAndVal("MESSAGE", entry.message);
   if (entry.error) {
@@ -960,7 +958,9 @@ static void loggerSDBackend(const Logging::Entry& entry)
       key.append(value.first);
       appendKeyAndVal(toUpper(key), value.second);
     }
-    appendKeyAndVal(toUpper(value.first), value.second);
+    else {
+      appendKeyAndVal(toUpper(value.first), value.second);
+    }
   }
   // Thread id filled in by backend, since the SL code does not know about RecursorThreads
   // We use the Recursor thread, other threads get id 0. May need to revisit.
@@ -968,9 +968,9 @@ static void loggerSDBackend(const Logging::Entry& entry)
 
   vector<iovec> iov;
   iov.reserve(strings.size());
-  for (const auto& s : strings) {
+  for (const auto& str : strings) {
     // iovec has no 2 arg constructor, so make it explicit
-    iov.emplace_back(iovec{const_cast<void*>(reinterpret_cast<const void*>(s.data())), s.size()});
+    iov.emplace_back(iovec{const_cast<void*>(reinterpret_cast<const void*>(str.data())), str.size()}); // NOLINT: it's the API
   }
   sd_journal_sendv(iov.data(), static_cast<int>(iov.size()));
 }
