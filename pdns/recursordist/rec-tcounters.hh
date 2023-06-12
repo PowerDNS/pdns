@@ -94,6 +94,8 @@ enum class Counter : uint8_t
   dns64prefixanswers,
   maintenanceUsec,
   maintenanceCalls,
+  nodCount,
+  udrCount,
 
   numberOfCounters
 };

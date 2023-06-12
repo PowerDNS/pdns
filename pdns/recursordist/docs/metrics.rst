@@ -551,6 +551,16 @@ no-packet-error
 ^^^^^^^^^^^^^^^
 number of erroneous received packets
 
+nod-events
+^^^^^^^^^^
+.. versionadded:: 4.9.0
+Count of NOD events
+
+udr-events
+^^^^^^^^^^
+.. versionadded:: 4.9.0
+Count of UDR events
+
 nod-lookups-dropped-oversize
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Number of NOD lookups dropped because they would exceed the maximum name length
