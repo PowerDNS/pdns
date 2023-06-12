@@ -414,17 +414,21 @@ struct CIStringCompare
 
 struct CIStringComparePOSIX
 {
-   bool operator() (const std::string& lhs, const std::string& rhs)
+   bool operator() (const std::string& lhs, const std::string& rhs) const
    {
-      std::string::const_iterator a,b;
       const std::locale &loc = std::locale("POSIX");
-      a=lhs.begin();b=rhs.begin();
-      while(a!=lhs.end()) {
-          if (b==rhs.end() || std::tolower(*b,loc)<std::tolower(*a,loc)) return false;
-          else if (std::tolower(*a,loc)<std::tolower(*b,loc)) return true;
-          ++a;++b;
+      auto lhsIter = lhs.begin();
+      auto rhsIter = rhs.begin();
+      while (lhsIter != lhs.end()) {
+        if (rhsIter == rhs.end() || std::tolower(*rhsIter,loc) < std::tolower(*lhsIter,loc)) {
+          return false;
+        }
+        if (std::tolower(*lhsIter,loc) < std::tolower(*rhsIter,loc)) {
+          return true;
+        }
+        ++lhsIter;++rhsIter;
       }
-      return (b!=rhs.end());
+      return rhsIter != rhs.end();
    }
 };
 
