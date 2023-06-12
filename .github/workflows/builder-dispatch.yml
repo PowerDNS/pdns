@@ -20,6 +20,7 @@ on:
           el-9
           debian-buster
           debian-bullseye
+          debian-bookworm
           ubuntu-focal
           ubuntu-jammy
       ref:
