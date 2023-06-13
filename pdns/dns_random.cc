@@ -26,7 +26,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
 #include "dns_random.hh"
 #include "arguments.hh"
@@ -87,8 +87,9 @@ static void dns_random_setup(bool force = false)
   string rdev;
   string rng;
   /* check if selection has been done */
-  if (chosen_rng > RNG_UNINITIALIZED && !force)
+  if (chosen_rng > RNG_UNINITIALIZED && !force) {
     return;
+  }
 
 /* XXX: A horrible hack to allow using dns_random in places where arguments are not available.
         Forces /dev/urandom usage
@@ -99,7 +100,7 @@ static void dns_random_setup(bool force = false)
 #else
   rng = ::arg()["rng"];
   rdev = ::arg()["entropy-source"];
-  if (rng == "auto") {
+  if (rng == "auto") { // NOLINT: I see no way to avoid repeating blocks reported bby clang-tidy
 #if defined(HAVE_GETRANDOM)
     chosen_rng = RNG_GETRANDOM;
 #elif defined(HAVE_ARC4RANDOM)
@@ -147,8 +148,9 @@ static void dns_random_setup(bool force = false)
 
 #if defined(HAVE_RANDOMBYTES_STIR)
   if (chosen_rng == RNG_SODIUM) {
-    if (sodium_init() == -1)
+    if (sodium_init() == -1) {
       throw std::runtime_error("Unable to initialize sodium crypto library");
+    }
     /*  make sure it's set up */
     randombytes_stir();
   }
@@ -156,10 +158,10 @@ static void dns_random_setup(bool force = false)
 
 #if defined(HAVE_GETRANDOM)
   if (chosen_rng == RNG_GETRANDOM) {
-    char buf[1];
+    char buf;
     // some systems define getrandom but it does not really work, e.g. because it's
     // not present in kernel.
-    if (getrandom(buf, sizeof(buf), 0) == -1 && errno != EINTR) {
+    if (getrandom(&buf, sizeof(buf), 0) == -1 && errno != EINTR) {
       g_log << Logger::Warning << "getrandom() failed: " << stringerror() << ", falling back to " + rdev << std::endl;
       chosen_rng = RNG_URANDOM;
     }
@@ -168,19 +170,22 @@ static void dns_random_setup(bool force = false)
 
 #if defined(HAVE_RAND_BYTES)
   if (chosen_rng == RNG_OPENSSL) {
-    int ret;
-    unsigned char buf[1];
-    if ((ret = RAND_bytes(buf, sizeof(buf))) == -1)
+    int ret = 0;
+    unsigned char buf = 0;
+    if ((ret = RAND_bytes(&buf, sizeof(buf))) == -1) {
       throw std::runtime_error("RAND_bytes not supported by current SSL engine");
-    if (ret == 0)
+    }
+    if (ret == 0) {
       throw std::runtime_error("Openssl RNG was not seeded");
+    }
   }
 #endif
 #endif /* USE_URANDOM_ONLY */
   if (chosen_rng == RNG_URANDOM) {
     urandom_fd = open(rdev.c_str(), O_RDONLY);
-    if (urandom_fd == -1)
+    if (urandom_fd == -1) {
       throw std::runtime_error("Cannot open " + rdev + ": " + stringerror());
+    }
   }
 #if defined(HAVE_KISS_RNG)
   if (chosen_rng == RNG_KISS) {
@@ -217,11 +222,13 @@ void dns_random_init(const string& data __attribute__((unused)), bool force)
 
 uint32_t dns_random(uint32_t upper_bound)
 {
-  if (chosen_rng == RNG_UNINITIALIZED)
+  if (chosen_rng == RNG_UNINITIALIZED) {
     dns_random_setup();
+  }
 
-  if (upper_bound < 2)
+  if (upper_bound < 2) {
     return 0;
+  }
 
   unsigned int min = pdns::random_minimum_acceptable_value(upper_bound);
 
@@ -238,8 +245,9 @@ uint32_t dns_random(uint32_t upper_bound)
 #if defined(HAVE_RAND_BYTES) && !defined(USE_URANDOM_ONLY)
     uint32_t num = 0;
     do {
-      if (RAND_bytes(reinterpret_cast<unsigned char*>(&num), sizeof(num)) < 1)
+      if (RAND_bytes(reinterpret_cast<unsigned char*>(&num), sizeof(num)) < 1) { // NOLINT: API
         throw std::runtime_error("Openssl RNG was not seeded");
+      }
     } while (num < min);
 
     return num % upper_bound;
@@ -284,7 +292,7 @@ uint32_t dns_random(uint32_t upper_bound)
         (void)close(urandom_fd);
         throw std::runtime_error("Cannot read random device");
       }
-      else if (static_cast<size_t>(got) != sizeof(num)) {
+      if (static_cast<size_t>(got) != sizeof(num)) {
         /* short read, let's retry */
         if (attempts == 0) {
           throw std::runtime_error("Too many short reads on random device");

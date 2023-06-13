@@ -25,7 +25,7 @@
 #include <string>
 
 void dns_random_init(const std::string& data = "", bool force_reinit = false);
-uint32_t dns_random(uint32_t n);
+uint32_t dns_random(uint32_t upper_bound);
 uint16_t dns_random_uint16();
 
 namespace pdns
@@ -33,7 +33,7 @@ namespace pdns
 struct dns_random_engine
 {
 
-  typedef uint32_t result_type;
+  using result_type = uint32_t;
 
   static constexpr result_type min()
   {
@@ -62,7 +62,7 @@ inline unsigned int random_minimum_acceptable_value(uint32_t upper_bound)
      On applicable rngs, we loop until the rng spews out
      value larger than min, and then take modulo out of that.
   */
-  unsigned int min;
+  unsigned int min = 0;
 #if (ULONG_MAX > 0xffffffffUL)
   min = 0x100000000UL % upper_bound;
 #else
