@@ -2043,11 +2043,24 @@ static void healthChecksThread()
 {
   setThreadName("dnsdist/healthC");
 
-  constexpr int interval = 1;
+  constexpr int intervalUsec = 1000 * 1000;
+  struct timeval lastRound{
+    .tv_sec = 0,
+    .tv_usec = 0
+  };
   auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
 
   for (;;) {
-    sleep(interval);
+    struct timeval now;
+    gettimeofday(&now, nullptr);
+    auto elapsedTimeUsec = uSec(now - lastRound);
+    if (elapsedTimeUsec < intervalUsec) {
+      usleep(intervalUsec - elapsedTimeUsec);
+      gettimeofday(&lastRound, nullptr);
+    }
+    else {
+      lastRound = now;
+    }
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
     for (auto& dss : *states) {
