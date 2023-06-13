@@ -28,6 +28,25 @@ typedef accumulator_set<
 
 BOOST_AUTO_TEST_SUITE(test_dns_random_hh)
 
+BOOST_AUTO_TEST_CASE(test_dns_random_uint32_auto_average)
+{
+
+  ::arg().set("rng") = "auto";
+  ::arg().set("entropy-source") = "/dev/urandom";
+
+  dns_random_init("", true);
+
+  acc_t acc;
+
+  for (unsigned int n = 0; n < 100000; ++n) {
+    acc(dns_random_unint32() / static_cast<double>(pdns::dns_random_engine::max() + 1));
+  }
+  BOOST_CHECK_CLOSE(0.5, median(acc), 2.0); // within 2%
+  BOOST_CHECK_CLOSE(0.5, mean(acc), 2.0);
+
+  // please add covariance tests, chi-square, Kolmogorov-Smirnov
+}
+
 BOOST_AUTO_TEST_CASE(test_dns_random_auto_average)
 {
 
