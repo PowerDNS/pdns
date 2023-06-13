@@ -5,7 +5,7 @@ import sys
 import threading
 import dns
 import dnstap_pb2
-from nose import SkipTest
+from unittest import SkipTest
 from recursortests import RecursorTest
 
 FSTRM_CONTROL_ACCEPT = 0x01
