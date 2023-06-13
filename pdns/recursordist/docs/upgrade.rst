@@ -4,8 +4,8 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.8.0 to master
----------------
+4.8.0 to 4.9.0 and master
+-------------------------
 
 Metrics
 ^^^^^^^
@@ -21,6 +21,11 @@ New settings
 - The :ref:`setting-stack-cache-size` setting to  control the number of allocated mthread stacks has been introduced.
 - The :ref:`setting-packetcache-shards` settings to control the number of shards in the packet cache has been introduced.
 - The :ref:`setting-aggressive-cache-min-nsec3-hit-ratio` setting to control which NSEC3 records are stored in the aggressive NSEC cache has been introduced.
+  This setting can be used to switch off aggressive caching for NSEC3 only.
+- The :ref:`setting-dnssec-disabled-algorithms` has been introduced to not use DNSSEC algorithms disabled by the platform's security policy.
+  This applies specifically to Red Hat Enterprise Linux 9 and derivatives.
+  The default value (automatically determine the algorithms that are disabled) should work for many cases.
+- The setting ``includeSOA`` was added to the :func:`rpzPrimary` and :func:`rpzFile` Lua functions to include the SOA of the RPZ the responses modified by the RPZ.
 
 Changed settings
 ~~~~~~~~~~~~~~~~
