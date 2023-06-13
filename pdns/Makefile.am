@@ -1444,6 +1444,7 @@ testrunner_LDADD = \
 
 if GSS_TSIG
 testrunner_LDADD += $(GSS_LIBS)
+speedtest_LDADD += $(GSS_LIBS)
 endif
 
 if PKCS11
