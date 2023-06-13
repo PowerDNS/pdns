@@ -39,6 +39,11 @@ def main():
     compdb = helpers.index_compdb(compdb)
 
     fixes = helpers.load_fixes_file(args.fixes_file)
+
+    if not fixes:
+        print("No diagnostics or warnings produced by clang-tidy")
+        return 0
+
     fixes = fixes["Diagnostics"]
     have_warnings = False
     for fix in fixes:
