@@ -31,7 +31,6 @@
 #include "dns_random.hh"
 #include "arguments.hh"
 #include "logger.hh"
-#include "boost/lexical_cast.hpp"
 
 #if defined(HAVE_RANDOMBYTES_STIR)
 #include <sodium.h>
@@ -234,12 +233,12 @@ uint32_t dns_random(uint32_t upper_bound)
 
   switch (chosen_rng) {
   case RNG_UNINITIALIZED:
-    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
   case RNG_SODIUM:
 #if defined(HAVE_RANDOMBYTES_STIR) && !defined(USE_URANDOM_ONLY)
     return randombytes_uniform(upper_bound);
 #else
-    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
 #endif /* RND_SODIUM */
   case RNG_OPENSSL: {
 #if defined(HAVE_RAND_BYTES) && !defined(USE_URANDOM_ONLY)
@@ -252,7 +251,7 @@ uint32_t dns_random(uint32_t upper_bound)
 
     return num % upper_bound;
 #else
-    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
 #endif /* RNG_OPENSSL */
   }
   case RNG_GETRANDOM: {
@@ -270,14 +269,14 @@ uint32_t dns_random(uint32_t upper_bound)
 
     return num % upper_bound;
 #else
-    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
 #endif
   }
   case RNG_ARC4RANDOM:
 #if defined(HAVE_ARC4RANDOM) && !defined(USE_URANDOM_ONLY)
     return arc4random_uniform(upper_bound);
 #else
-    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
 #endif
   case RNG_URANDOM: {
     uint32_t num = 0;
@@ -315,7 +314,7 @@ uint32_t dns_random(uint32_t upper_bound)
   }
 #endif
   default:
-    throw std::runtime_error("Unreachable at " __FILE__ ":" + boost::lexical_cast<std::string>(__LINE__)); // cannot be reached
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
   };
 }
 
