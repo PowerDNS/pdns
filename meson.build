@@ -19,7 +19,22 @@ endif
 
 add_global_arguments(['-Wshadow', '-Wmissing-declarations', '-Wredundant-decls'], language: ['c', 'cpp'])
 
+summary('Source Dir', meson.current_source_dir(), section: 'Build')
+summary('Build Dir', meson.current_build_dir(), section: 'Build')
+
 cxx = meson.get_compiler('cpp')
+system = target_machine.system()
+
+summary('System', system, section: 'System')
+summary('C++ Compiler', cxx.get_id(), section: 'System')
+summary('C++ Compiler Version', cxx.version(), section: 'System')
+summary('C++ Compiler Command', cxx.cmd_array(), section: 'System')
+summary('Linker', cxx.get_linker_id(), section: 'System')
+
+summary('Name', meson.project_name(), section: 'PowerDNS')
+summary('Version', meson.project_version(), section: 'PowerDNS')
+# summary('Source Root', meson.project_source_root(), section: 'PowerDNS') # Meson 0.56
+# summary('Build Root', meson.project_build_root(), section: 'PowerDNS') # Meson 0.56
 
 # Create the configuration data object.
 conf = configuration_data()
@@ -29,6 +44,8 @@ timet_size = cxx.sizeof('time_t', prefix: '#include <sys/types.h>')
 if timet_size < 8
   error('size of time_t is', timet_size, 'which is not large enough to fix the y2k38 bug')
 endif
+
+summary('Size of time_t', timet_size, section: 'System')
 
 # Figure out the sign of time_t ----------------------------------------------------------
 prog = '''
@@ -44,27 +61,38 @@ if cxx.compiles(prog, name: 'time_t is signed') == false
   error('time_t is unsigned, PowerDNS code relies on it being signed')
 endif
 
+summary('Signed time_t', true, section: 'System', bool_yn: true)
+
 # Find flex and bison --------------------------------------------------------------------
 flex = find_program('flex', required: true)
+# summary('Flex', flex.full_path(), section: 'System') # Meson 0.55
+# summary('Flex Version', flex.version(), section: 'System') # Meson 0.62
+
 bison = find_program('bison', required: true)
+# summary('Bison', bison.full_path(), section: 'System') # Meson 0.55
+# summary('Bison Version', bison.version(), section: 'System') # Meson 0.62
 
 # Platform stuff -------------------------------------------------------------------------
-system = target_machine.system()
 if system == 'sunos'
   conf.set('NEED_POSIX_TYPEDEF', 1, description: 'POSIX typedefs need to be defined')
   conf.set('NEED_INET_NTOP_PROTO', 1, description: 'OS is so broken that it needs an additional prototype')
   deps += cxx.find_library('posix4', required: true)
   add_project_arguments(['-D_REENTRANT'], language: 'cpp')
   conf.set('HAVE_SOLARIS', 1, description: 'We are on Solaris/SunOS')
+  summary('SunOS defines', 'NEED_POSIX_TYPEDEF NEED_INET_NTOP_PROTO HAVE_SOLARIS _REENTRANT', section: 'System')
 elif system == 'linux'
   conf.set('HAVE_LINUX', 1, description: 'We are on Linux')
+  summary('Linux defines', 'HAVE_LINUX', section: 'System')
 elif system == 'darwin'
   add_project_arguments(['-D__APPLE_USE_RFC_3542', '-D_XOPEN_SOURCE', '-D_DARWIN_C_SOURCE'], language: 'cpp')
   conf.set('HAVE_DARWIN', 1, description: 'We are on Darwin/MacOS')
+  summary('Darwin/MacOS defines', '__APPLE_USE_RFC_3542 _XOPEN_SOURCE _DARWIN_C_SOURCE', section: 'System')
 elif system == 'freebsd'
   conf.set('HAVE_FREEBSD', 1, description: 'We are on FreeBSD')
+  summary('FreeBSD defines', 'HAVE_FREEBSD', section: 'System')
 elif system == 'openbsd'
   conf.set('HAVE_OPENBSD', 1, description: 'We are on OpenBSD')
+  summary('OpenBSD defines', 'HAVE_OPENBSD', section: 'System')
 endif
 
 # Atomics --------------------------------------------------------------------------------
@@ -78,10 +106,13 @@ int main() {
   return 0;
 }
 '''
-if cxx.links(atomic_builtins_prog, name: 'whether -latomic is not needed for using __atomic builtins') == false
+need_latomic = false
+if cxx.links(atomic_builtins_prog, name: '-latomic is not needed for using __atomic builtins') == false
   atomic = cxx.find_library('atomic', disabler: true, required: false)
   if atomic.found()
-    if cxx.links(atomic_builtins_prog, name: 'whether -latomic is needed for using __atomic builtins', dependencies: atomic)
+    if cxx.links(atomic_builtins_prog, name: '-latomic is needed for using __atomic builtins', dependencies: atomic)
+      need_latomic = true
+      summary('Atomics Library', atomic, section: 'System')
       dep_atomics += atomic
     else
       error('libatomic needed but could not be found')
@@ -91,12 +122,17 @@ if cxx.links(atomic_builtins_prog, name: 'whether -latomic is not needed for usi
   endif
 endif
 
+summary('Need -latomic', need_latomic, section: 'System')
+
 # Threads --------------------------------------------------------------------------------
 dep_threads = dependency('threads')
+summary('Threads', dep_threads.name(), section: 'System')
 
 cxx.check_header('pthread.h', dependencies: dep_threads, required: true)
 if cxx.check_header('pthread_np.h', dependencies: dep_threads, prefix: '#include <pthread.h>')
   conf.set('HAVE_PTHREAD_NP_H', 1, description: 'pthread_np.h is available')
+else
+  summary('Have pthread_np.h', false, section: 'System')
 endif
 
 # pthread_setname_np madness -------------------------------------------------------------
@@ -153,7 +189,11 @@ if cxx.has_header_symbol('string.h', 'strerror_r') == true
   conf.set('HAVE_DECL_STRERROR_R', 1, description: 'Whether strerror_r is declared')
 endif
 
+have_strerror_r = false
+strerror_r_returns_charp = false
+
 if cxx.has_function('strerror_r', prefix: '#include <string.h>') == true
+  have_strerror_r = true
   conf.set('HAVE_STRERROR_R', 1, description: 'Whether strerror_r is available')
 
   if cxx.compiles('''
@@ -166,9 +206,13 @@ if cxx.has_function('strerror_r', prefix: '#include <string.h>') == true
                   }
                   ''',
                   name: 'strerror_r() returns char *')
+    strerror_r_returns_charp = true
     conf.set('STRERROR_R_CHAR_P', 1, description: 'Whether strerror_r returns char *')
   endif
 endif
+
+summary('Have strerror_r', have_strerror_r, section: 'System')
+summary('strerror_r returns char *', strerror_r_returns_charp, section: 'System')
 
 # Lua ------------------------------------------------------------------------------------
 lua_opt = get_option('lua')
@@ -193,13 +237,18 @@ if not dep_lua.found()
 endif
 
 conf.set('HAVE_LUA', 1, description: 'Whether we have Lua')
+summary('Lua implementation', dep_lua.name(), section: 'Configuration')
 
+have_luahpp = false
 if cxx.has_header('lua.hpp', dependencies: dep_lua)
+  have_luahpp = true
   conf.set('HAVE_LUA_HPP', 1, description: 'Whether we have lua.hpp')
 endif
 
+summary('Have lua.hpp', have_luahpp, bool_yn: true, section: 'Configuration')
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
+# summary('Defines', conf.keys(), section: 'Build Configuration') # Meson 0.57
 
 # Create the dependencies list -----------------------------------------------------------
 deps = []
