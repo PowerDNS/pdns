@@ -245,6 +245,120 @@ if cxx.has_header('lua.hpp', dependencies: dep_lua)
   conf.set('HAVE_LUA_HPP', 1, description: 'Whether we have lua.hpp')
 endif
 summary('Have lua.hpp', have_luahpp, bool_yn: true, section: 'Configuration')
+
+# Hardening ------------------------------------------------------------------------------
+opt_hardening = get_option('hardening')
+
+if opt_hardening.enabled() or opt_hardening.auto()
+  hardening_features = []
+
+  # PIE
+  pie_prog = '''
+    #include <pthread.h>
+    __thread unsigned int t_id;
+
+    int main() {
+      t_id = 1;
+      return 0;
+    }
+  '''
+
+  found_variant = false
+  if system == 'windows' and system == 'cygwin'
+    # All code is position independent on Win32 targets.
+    found_variant = true
+  else
+    pie_variants = [['-pie'], ['-Wl,-pie']]
+    foreach variant: pie_variants
+      if cxx.links(pie_prog, args: variant)
+        add_global_arguments(['-fPIE'], language: ['c', 'cpp'])
+        add_global_link_arguments(variant, language: ['c', 'cpp'])
+        conf.set('PIE', 1, description: 'Whether we enable building a Position Independent Executable')
+        found_variant = true
+        break
+      endif
+    endforeach
+  endif
+  hardening_features += [[found_variant, 'Building Position Independent Executables']]
+  summary('PIE', found_variant, bool_yn: true, section: 'Hardening')
+
+  # Stack Protector
+  support_stack_protector = false
+  if cxx.has_argument('-fstack-protector')
+    add_global_arguments(['-fstack-protector'], language: ['c', 'cpp'])
+    support_stack_protector = true
+  endif
+  hardening_features += [[support_stack_protector, 'Stack Protector']]
+  summary('Stack Protector', support_stack_protector, bool_yn: true, section: 'Hardening')
+
+  # Stack-smashing Protection
+  support_stack_smashing_protector = false
+  if cxx.has_argument('--param=ssp-buffer-size=4')
+    add_global_arguments(['--param=ssp-buffer-size=4'], language: ['c', 'cpp'])
+    support_stack_smashing_protector = true
+  endif
+  hardening_features += [[support_stack_smashing_protector, 'Stack Smashing Protection']]
+  summary('Stack Smashing Protection', support_stack_smashing_protector, bool_yn: true, section: 'Hardening')
+  if support_stack_smashing_protector
+    summary('SSP Buffer Size', 4, section: 'Hardening')
+  endif
+
+  # Fortify Source
+  fortify_source_opt = get_option('fortify-source')
+  if fortify_source_opt != 'disabled'
+    fortify_source_level = 2
+    if fortify_source_opt == 'auto'
+      fortify_source_level = 3
+    else
+      fortify_source_level = fortify_source_opt.to_int()
+    endif
+
+    variants = [3, 2, 1]
+    foreach variant: variants
+      variant_str = variant.to_string()
+      if fortify_source_level == variant
+        if cxx.has_argument('-D_FORTIFY_SOURCE=' + variant_str)
+          add_global_arguments(['-U_FORTIFY_SOURCE', '-D_FORTIFY_SOURCE=' + variant_str], language: ['c', 'cpp'])
+          break
+        else
+          fortify_source_level = fortify_source_level - 1
+        endif
+      endif
+    endforeach
+
+    if fortify_source_level == 0
+      fortify_source_level = 'no'
+    endif
+    hardening_features += [[fortify_source_level != 0, 'Source Fortification']]
+    summary('Source Fortification Level', fortify_source_level, section: 'Hardening')
+  endif
+
+  # Read-only Global Offset Table
+  ld_help = run_command(cxx, '-Wl,-help', '2>&1', check: true).stdout().strip()
+  variants = ['relro', 'now']
+  found_variant = false
+  foreach variant: variants
+    if ld_help.contains('-z ' + variant)
+      found_variant = true
+      add_global_link_arguments(['-Wl,-z', '-Wl,' + variant], language: ['c', 'cpp'])
+    endif
+  endforeach
+  hardening_features += [[found_variant, 'Read-only Global Offset Table']]
+  summary('Read-only GOT', found_variant, bool_yn: true, section: 'Hardening')
+
+  foreach feature: hardening_features
+    available = feature[0]
+    name = feature[1]
+    if not available
+      if opt_hardening.auto()
+        warning(name + ' is not supported')
+      else
+        error('Failing because ' + name + ' is not supported but hardening was explicitly requested.')
+      endif
+    endif
+  endforeach
+endif
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # Meson 0.57
