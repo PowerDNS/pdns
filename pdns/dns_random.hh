@@ -26,6 +26,7 @@
 
 void dns_random_init(const std::string& data = "", bool force_reinit = false);
 uint32_t dns_random(uint32_t upper_bound);
+uint32_t dns_random_uint32();
 uint16_t dns_random_uint16();
 
 namespace pdns
@@ -42,12 +43,12 @@ struct dns_random_engine
 
   static constexpr result_type max()
   {
-    return std::numeric_limits<result_type>::max() - 1;
+    return std::numeric_limits<result_type>::max();
   }
 
   result_type operator()()
   {
-    return dns_random(std::numeric_limits<result_type>::max());
+    return dns_random_uint32();
   }
 };
 

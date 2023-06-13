@@ -219,6 +219,90 @@ void dns_random_init(const string& data __attribute__((unused)), bool force)
 #endif
 }
 
+uint32_t dns_random_uint32()
+{
+  if (chosen_rng == RNG_UNINITIALIZED) {
+    dns_random_setup();
+  }
+
+  switch (chosen_rng) {
+  case RNG_UNINITIALIZED:
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
+  case RNG_SODIUM:
+#if defined(HAVE_RANDOMBYTES_STIR) && !defined(USE_URANDOM_ONLY)
+    return randombytes_random();
+#else
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
+#endif /* RND_SODIUM */
+  case RNG_OPENSSL: {
+#if defined(HAVE_RAND_BYTES) && !defined(USE_URANDOM_ONLY)
+    uint32_t num = 0;
+    if (RAND_bytes(reinterpret_cast<unsigned char*>(&num), sizeof(num)) < 1) { // NOLINT: API
+      throw std::runtime_error("Openssl RNG was not seeded");
+    }
+    return num;
+#else
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
+#endif /* RNG_OPENSSL */
+  }
+  case RNG_GETRANDOM: {
+#if defined(HAVE_GETRANDOM) && !defined(USE_URANDOM_ONLY)
+    uint32_t num = 0;
+    do {
+      auto got = getrandom(&num, sizeof(num), 0);
+      if (got == -1 && errno == EINTR) {
+        continue;
+      }
+      if (got != sizeof(num)) {
+        throw std::runtime_error("getrandom() failed: " + stringerror());
+      }
+    } while (true);
+    return num;
+#else
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
+#endif
+  }
+  case RNG_ARC4RANDOM:
+#if defined(HAVE_ARC4RANDOM) && !defined(USE_URANDOM_ONLY)
+    return arc4random();
+#else
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
+#endif
+  case RNG_URANDOM: {
+    uint32_t num = 0;
+    size_t attempts = 5;
+    ssize_t got = read(urandom_fd, &num, sizeof(num));
+    do {
+      if (got < 0) {
+        if (errno == EINTR) {
+          continue;
+        }
+
+        (void)close(urandom_fd);
+        throw std::runtime_error("Cannot read random device");
+      }
+      if (static_cast<size_t>(got) != sizeof(num)) {
+        /* short read, let's retry */
+        if (attempts == 0) {
+          throw std::runtime_error("Too many short reads on random device");
+        }
+        attempts--;
+        continue;
+      }
+    } while (true);
+    return num;
+  }
+#if defined(HAVE_KISS_RNG)
+  case RNG_KISS: {
+    uint32_t num = kiss_rand();
+    return num;
+  }
+#endif
+  default:
+    throw std::runtime_error("Unreachable at " __FILE__ ":" + std::to_string(__LINE__)); // cannot be reached
+  };
+}
+
 uint32_t dns_random(uint32_t upper_bound)
 {
   if (chosen_rng == RNG_UNINITIALIZED) {
@@ -320,5 +404,5 @@ uint32_t dns_random(uint32_t upper_bound)
 
 uint16_t dns_random_uint16()
 {
-  return dns_random(0x10000);
+  return dns_random_uint32() & 0xffff;
 }
