@@ -673,7 +673,7 @@ struct ParsePacketTest
       rr.qname=i->first.d_name;
 
       rr.ttl=i->first.d_ttl;
-      rr.content=i->first.d_content->getZoneRepresentation();  // this should be the serialised form
+      rr.content=i->first.getContent()->getZoneRepresentation();  // this should be the serialised form
       lwr.d_result.push_back(rr);
     }
 

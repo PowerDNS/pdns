@@ -1504,8 +1504,10 @@ pdns_control_LDFLAGS = \
        $(AM_LDFLAGS) \
        $(LIBCRYPTO_LDFLAGS)
 
+noinst_PROGRAMS = speedtest
+
 if UNIT_TESTS
-noinst_PROGRAMS = testrunner
+noinst_PROGRAMS += testrunner
 if HAVE_BOOST_GE_148
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
 TESTS=testrunner
