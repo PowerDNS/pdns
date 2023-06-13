@@ -256,6 +256,7 @@ uint32_t dns_random_uint32()
       if (got != sizeof(num)) {
         throw std::runtime_error("getrandom() failed: " + stringerror());
       }
+      break;
     } while (true);
     return num;
 #else
@@ -289,6 +290,7 @@ uint32_t dns_random_uint32()
         attempts--;
         continue;
       }
+      break;
     } while (true);
     return num;
   }

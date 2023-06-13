@@ -18,7 +18,7 @@
 
 using namespace boost::accumulators;
 
-using acc_t = accumulator_set<double, stats<tag::median (with_p_square_quantile), tag::mean (immediate)>>;
+using acc_t = accumulator_set<double, stats<tag::median(with_p_square_quantile), tag::mean(immediate)>>;
 
 BOOST_AUTO_TEST_SUITE(test_dns_random_hh)
 
@@ -28,9 +28,9 @@ const std::vector<string> rndSources = {
 #if defined(HAVE_GETRANDOM)
   "getrandom",
 #endif
-  #if defined(HAVE_ARC4RANDOM)
+#if defined(HAVE_ARC4RANDOM)
   "arc4random",
-  #endif
+#endif
 #if defined(HAVE_RANDOMBYTES_STIR)
   "sodium",
 #endif
@@ -41,7 +41,6 @@ const std::vector<string> rndSources = {
   "kiss",
 #endif
 };
-
 
 BOOST_AUTO_TEST_CASE(test_dns_random_garbage)
 {
@@ -127,7 +126,4 @@ BOOST_AUTO_TEST_CASE(test_dns_random_uint32_average)
   }
 }
 
-
 BOOST_AUTO_TEST_SUITE_END()
-
-
