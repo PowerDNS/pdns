@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(test_object_queue_full)
   while (!blocked) {
     auto obj = std::make_unique<MyObject>();
     obj->a = 42U;
-    blocked = sender.send(std::move(obj)) == false;
+    blocked = !sender.send(std::move(obj));
     if (blocked) {
       BOOST_CHECK(obj);
     }

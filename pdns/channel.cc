@@ -110,6 +110,6 @@ std::pair<Notifier, Waiter> createNotificationQueue(bool nonBlocking, size_t pip
     setPipeBufferSize(receiver.getHandle(), pipeBufferSize);
   }
 
-  return std::pair(Notifier(std::move(sender)), Waiter(std::move(receiver), throwOnEOF));
+  return {Notifier(std::move(sender)), Waiter(std::move(receiver), throwOnEOF)};
 }
 }
