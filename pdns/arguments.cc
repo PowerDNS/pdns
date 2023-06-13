@@ -202,19 +202,19 @@ string ArgvMap::configstring(bool running, bool full)
   // Affects parsing, should come first.
   help += formatOne(running, full, "ignore-unknown-settings", helpmap["ignore-unknown-settings"], defaultmap["ignore-unknown-settings"], d_params["ignore-unknown-settings"]);
 
-  for (const auto& helpietm : helpmap) {
-    if (d_typeMap[helpietm.first] == "Command") {
+  for (const auto& helpitem : helpmap) {
+    if (d_typeMap[helpitem.first] == "Command") {
       continue;
     }
-    if (helpietm.first == "ignore-unknown-settings") {
+    if (helpitem.first == "ignore-unknown-settings") {
       continue;
     }
 
-    if (defaultmap.count(helpietm.first) == 0) {
-      throw ArgException(string("Default for setting '") + helpietm.first + "' not set");
+    if (defaultmap.count(helpitem.first) == 0) {
+      throw ArgException(string("Default for setting '") + helpitem.first + "' not set");
     }
 
-    help += formatOne(running, full, helpietm.first, helpietm.second, defaultmap[helpietm.first], d_params[helpietm.first]);
+    help += formatOne(running, full, helpitem.first, helpitem.second, defaultmap[helpitem.first], d_params[helpitem.first]);
   }
 
   if (running) {
