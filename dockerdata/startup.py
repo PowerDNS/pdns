@@ -36,7 +36,7 @@ webserver-password={{ apikey }}
 elif product == 'dnsdist':
     args = ['--supervised', '--disable-syslog']
     apienvvar = 'DNSDIST_API_KEY'
-    apiconftemplate = """webserver("0.0.0.0:8083", '{{ apikey }}', '{{ apikey }}', {}, '0.0.0.0/0')
+    apiconftemplate = """webserver("0.0.0.0:8083")
 controlSocket('0.0.0.0:5199')
 setKey('{{ apikey }}')
 setConsoleACL('0.0.0.0/0')
