@@ -5,7 +5,7 @@ import xml.etree.ElementTree
 import os.path
 import glob
 
-e = xml.etree.ElementTree.parse('pysetest.xml')
+e = xml.etree.ElementTree.parse('pytest.xml')
 root = e.getroot()
 
 for child in root:
