@@ -211,7 +211,7 @@ static void handleGenUDPQueryResponse(int fileDesc, FDMultiplexer::funcparam_t& 
   ComboAddress fromaddr;
   socklen_t addrlen = sizeof(fromaddr);
 
-  ssize_t ret = recvfrom(fileDesc, resp.data(), resp.size(), 0, reinterpret_cast<sockaddr*>(&fromaddr), &addrlen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  ssize_t ret = recvfrom(fileDesc, resp.data(), resp.size(), 0, reinterpret_cast<sockaddr*>(&fromaddr), &addrlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   if (fromaddr != pident->remote) {
     SLOG(g_log << Logger::Notice << "Response received from the wrong remote host (" << fromaddr.toStringWithPort() << " instead of " << pident->remote.toStringWithPort() << "), discarding" << endl,
          g_slog->withName("lua")->info(Logr::Notice, "Response received from the wrong remote host. discarding", "method", Logging::Loggable("GenUDPQueryResponse"), "fromaddr", Logging::Loggable(fromaddr), "expected", Logging::Loggable(pident->remote)));
@@ -562,7 +562,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
           if (g_logCommonErrors) {
             SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << comboWriter->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << comboWriter->d_mdp.d_qname << "' because: " << e.reason << endl,
                  resolver.d_slog->error(Logr::Notice, e.reason, "Sending SERVFAIL during resolve of the custom filter policy",
-                                  "policyName", Logging::Loggable(appliedPolicy.getName()), "exception", Logging::Loggable("ImmediateServFailException")));
+                                        "policyName", Logging::Loggable(appliedPolicy.getName()), "exception", Logging::Loggable("ImmediateServFailException")));
           }
           res = RCode::ServFail;
           break;
@@ -571,7 +571,7 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
           if (g_logCommonErrors) {
             SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << comboWriter->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << comboWriter->d_mdp.d_qname << "' because another RPZ policy was hit" << endl,
                  resolver.d_slog->info(Logr::Notice, "Sending SERVFAIL during resolve of the custom filter policy because another RPZ policy was hit",
-                                 "policyName", Logging::Loggable(appliedPolicy.getName()), "exception", Logging::Loggable("PolicyHitException")));
+                                       "policyName", Logging::Loggable(appliedPolicy.getName()), "exception", Logging::Loggable("PolicyHitException")));
           }
           res = RCode::ServFail;
           break;
@@ -908,7 +908,7 @@ static uint32_t capPacketCacheTTL(const struct dnsheader& hdr, uint32_t ttl, boo
 
 void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
-  auto comboWriter = std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(arg));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  auto comboWriter = std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(arg)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   SyncRes resolver(comboWriter->d_now);
   try {
     if (t_queryring) {
@@ -1110,11 +1110,11 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     dnsQuestion.fromAuthIP = &resolver.d_fromAuthIP;
 
     resolver.d_slog = resolver.d_slog->withValues("qname", Logging::Loggable(comboWriter->d_mdp.d_qname),
-                                      "qtype", Logging::Loggable(QType(comboWriter->d_mdp.d_qtype)),
-                                      "remote", Logging::Loggable(comboWriter->getRemote()),
-                                      "proto", Logging::Loggable(comboWriter->d_tcp ? "tcp" : "udp"),
-                                      "ecs", Logging::Loggable(comboWriter->d_ednssubnet.source.empty() ? "" : comboWriter->d_ednssubnet.source.toString()),
-                                      "mtid", Logging::Loggable(g_multiTasker->getTid()));
+                                                  "qtype", Logging::Loggable(QType(comboWriter->d_mdp.d_qtype)),
+                                                  "remote", Logging::Loggable(comboWriter->getRemote()),
+                                                  "proto", Logging::Loggable(comboWriter->d_tcp ? "tcp" : "udp"),
+                                                  "ecs", Logging::Loggable(comboWriter->d_ednssubnet.source.empty() ? "" : comboWriter->d_ednssubnet.source.toString()),
+                                                  "mtid", Logging::Loggable(g_multiTasker->getTid()));
     RunningResolveGuard tcpGuard(comboWriter);
 
     if (ednsExtRCode != 0 || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
@@ -1446,7 +1446,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
 
       bool needCommit = false;
-      for (const auto & record : ret) {
+      for (const auto& record : ret) {
         if (!DNSSECOK && (record.d_type == QType::NSEC3 || ((record.d_type == QType::RRSIG || record.d_type == QType::NSEC) && ((comboWriter->d_mdp.d_qtype != record.d_type && comboWriter->d_mdp.d_qtype != QType::ANY) || (record.d_place != DNSResourceRecord::ANSWER && record.d_place != DNSResourceRecord::ADDITIONAL))))) {
           continue;
         }
@@ -1483,7 +1483,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 #ifdef HAVE_FSTRM
       if (hasUDR) {
         if (isEnabledForUDRs(t_nodFrameStreamServersInfo.servers)) {
-          struct timespec timeSpec{};
+          struct timespec timeSpec
+          {
+          };
           std::string str;
           if (g_useKernelTimestamp && comboWriter->d_kernelTimestamp.tv_sec != 0) {
             TIMEVAL_TO_TIMESPEC(&comboWriter->d_kernelTimestamp, &timeSpec); // NOLINT
@@ -1491,7 +1493,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
           else {
             TIMEVAL_TO_TIMESPEC(&comboWriter->d_now, &timeSpec); // NOLINT
           }
-          DnstapMessage message(str, DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &comboWriter->d_source, &comboWriter->d_destination, comboWriter->d_tcp ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoUDP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &timeSpec, nullptr, comboWriter->d_mdp.d_qname);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+          DnstapMessage message(str, DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &comboWriter->d_source, &comboWriter->d_destination, comboWriter->d_tcp ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoUDP, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &timeSpec, nullptr, comboWriter->d_mdp.d_qname); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
           for (auto& logger : *(t_nodFrameStreamServersInfo.servers)) {
             if (logger->logUDRs()) {
@@ -1640,7 +1642,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         nod = true;
 #ifdef HAVE_FSTRM
         if (isEnabledForNODs(t_nodFrameStreamServersInfo.servers)) {
-          struct timespec timeSpec{};
+          struct timespec timeSpec
+          {
+          };
           std::string str;
           if (g_useKernelTimestamp && comboWriter->d_kernelTimestamp.tv_sec != 0) {
             TIMEVAL_TO_TIMESPEC(&comboWriter->d_kernelTimestamp, &timeSpec); // NOLINT
@@ -1695,7 +1699,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       minTTL = capPacketCacheTTL(*packetWriter.getHeader(), minTTL, seenAuthSOA);
       g_packetCache->insertResponsePacket(comboWriter->d_tag, comboWriter->d_qhash, std::move(comboWriter->d_query), comboWriter->d_mdp.d_qname,
                                           comboWriter->d_mdp.d_qtype, comboWriter->d_mdp.d_qclass,
-                                          string(reinterpret_cast<const char*>(&*packet.begin()), packet.size()),  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                                          string(reinterpret_cast<const char*>(&*packet.begin()), packet.size()), // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
                                           g_now.tv_sec,
                                           minTTL,
                                           dnsQuestion.validationState,
@@ -1707,10 +1711,14 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     }
 
     if (!comboWriter->d_tcp) {
-      struct msghdr msgh{};
-      struct iovec iov{};
+      struct msghdr msgh
+      {
+      };
+      struct iovec iov
+      {
+      };
       cmsgbuf_aligned cbuf{};
-      fillMSGHdr(&msgh, &iov, &cbuf, 0, reinterpret_cast<char*>(&*packet.begin()), packet.size(), &comboWriter->d_remote);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      fillMSGHdr(&msgh, &iov, &cbuf, 0, reinterpret_cast<char*>(&*packet.begin()), packet.size(), &comboWriter->d_remote); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       msgh.msg_control = nullptr;
 
       if (g_fromtosockets.count(comboWriter->d_socket) > 0) {
@@ -1812,20 +1820,20 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
       else {
         resolver.d_slog->info(Logr::Info, "Answer", "rd", Logging::Loggable(comboWriter->d_mdp.d_header.rd),
-                        "answers", Logging::Loggable(ntohs(packetWriter.getHeader()->ancount)),
-                        "additional", Logging::Loggable(ntohs(packetWriter.getHeader()->arcount)),
-                        "outqueries", Logging::Loggable(resolver.d_outqueries),
-                        "netms", Logging::Loggable(resolver.d_totUsec / 1000.0),
-                        "totms", Logging::Loggable(static_cast<double>(spentUsec) / 1000.0),
-                        "throttled", Logging::Loggable(resolver.d_throttledqueries),
-                        "timeouts", Logging::Loggable(resolver.d_timeouts),
-                        "tcpout", Logging::Loggable(resolver.d_tcpoutqueries),
-                        "dotout", Logging::Loggable(resolver.d_dotoutqueries),
-                        "rcode", Logging::Loggable(res),
-                        "validationState", Logging::Loggable(resolver.getValidationState()),
-                        "answer-is-variable", Logging::Loggable(resolver.wasVariable()),
-                        "into-packetcache", Logging::Loggable(intoPC),
-                        "maxdepth", Logging::Loggable(resolver.d_maxdepth));
+                              "answers", Logging::Loggable(ntohs(packetWriter.getHeader()->ancount)),
+                              "additional", Logging::Loggable(ntohs(packetWriter.getHeader()->arcount)),
+                              "outqueries", Logging::Loggable(resolver.d_outqueries),
+                              "netms", Logging::Loggable(resolver.d_totUsec / 1000.0),
+                              "totms", Logging::Loggable(static_cast<double>(spentUsec) / 1000.0),
+                              "throttled", Logging::Loggable(resolver.d_throttledqueries),
+                              "timeouts", Logging::Loggable(resolver.d_timeouts),
+                              "tcpout", Logging::Loggable(resolver.d_tcpoutqueries),
+                              "dotout", Logging::Loggable(resolver.d_dotoutqueries),
+                              "rcode", Logging::Loggable(res),
+                              "validationState", Logging::Loggable(resolver.getValidationState()),
+                              "answer-is-variable", Logging::Loggable(resolver.wasVariable()),
+                              "into-packetcache", Logging::Loggable(intoPC),
+                              "maxdepth", Logging::Loggable(resolver.d_maxdepth));
       }
     }
 
@@ -1898,14 +1906,14 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
   if (g_multiTasker->getMaxStackUsage() >= stackSizeThreshold) {
     SLOG(g_log << Logger::Error << "Reached mthread stack usage of 90%: " << g_multiTasker->getMaxStackUsage() << " " << makeLoginfo(comboWriter) << " after " << resolver.d_outqueries << " out queries, " << resolver.d_tcpoutqueries << " TCP out queries, " << resolver.d_dotoutqueries << " DoT out queries" << endl,
          resolver.d_slog->info(Logr::Error, "Reached mthread stack usage of 90%",
-                         "stackUsage", Logging::Loggable(g_multiTasker->getMaxStackUsage()),
-                         "outqueries", Logging::Loggable(resolver.d_outqueries),
-                         "netms", Logging::Loggable(resolver.d_totUsec / 1000.0),
-                         "throttled", Logging::Loggable(resolver.d_throttledqueries),
-                         "timeouts", Logging::Loggable(resolver.d_timeouts),
-                         "tcpout", Logging::Loggable(resolver.d_tcpoutqueries),
-                         "dotout", Logging::Loggable(resolver.d_dotoutqueries),
-                         "validationState", Logging::Loggable(resolver.getValidationState())));
+                               "stackUsage", Logging::Loggable(g_multiTasker->getMaxStackUsage()),
+                               "outqueries", Logging::Loggable(resolver.d_outqueries),
+                               "netms", Logging::Loggable(resolver.d_totUsec / 1000.0),
+                               "throttled", Logging::Loggable(resolver.d_throttledqueries),
+                               "timeouts", Logging::Loggable(resolver.d_timeouts),
+                               "tcpout", Logging::Loggable(resolver.d_tcpoutqueries),
+                               "dotout", Logging::Loggable(resolver.d_dotoutqueries),
+                               "validationState", Logging::Loggable(resolver.getValidationState())));
   }
   t_Counters.at(rec::Counter::maxMThreadStackUsage) = max(g_multiTasker->getMaxStackUsage(), t_Counters.at(rec::Counter::maxMThreadStackUsage));
   t_Counters.updateSnap(g_regressionTestMode);
@@ -1932,7 +1940,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
     }
 
     pos += 1;
-    const auto* drh = reinterpret_cast<const dnsrecordheader*>(&question.at(pos));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    const auto* drh = reinterpret_cast<const dnsrecordheader*>(&question.at(pos)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     pos += sizeof(dnsrecordheader);
 
     if (pos >= questionLen) {
@@ -1945,7 +1953,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
         size_t ecsStartPosition = 0;
         size_t ecsLen = 0;
         /* we need to pass the record len */
-        int res = getEDNSOption(reinterpret_cast<const char*>(&question.at(pos - sizeof(drh->d_clen))), questionLen - pos + sizeof(drh->d_clen), EDNSOptionCode::ECS, &ecsStartPosition, &ecsLen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        int res = getEDNSOption(reinterpret_cast<const char*>(&question.at(pos - sizeof(drh->d_clen))), questionLen - pos + sizeof(drh->d_clen), EDNSOptionCode::ECS, &ecsStartPosition, &ecsLen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         if (res == 0 && ecsLen > 4) {
           EDNSSubnetOpts eso;
           if (getEDNSSubnetOptsFromString(&question.at(pos - sizeof(drh->d_clen) + ecsStartPosition + 4), ecsLen - 4, &eso)) {
@@ -1956,7 +1964,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
       }
       else {
         /* we need to pass the record len */
-        int res = getEDNSOptions(reinterpret_cast<const char*>(&question.at(pos - sizeof(drh->d_clen))), questionLen - pos + (sizeof(drh->d_clen)), *options);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        int res = getEDNSOptions(reinterpret_cast<const char*>(&question.at(pos - sizeof(drh->d_clen))), questionLen - pos + (sizeof(drh->d_clen)), *options); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         if (res == 0) {
           const auto& iter = options->find(EDNSOptionCode::ECS);
           if (iter != options->end() && !iter->second.values.empty() && iter->second.values.at(0).content != nullptr && iter->second.values.at(0).size > 0) {
@@ -2218,10 +2226,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
                                  "qname", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype)),
                                  "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
         }
-        struct msghdr msgh{};
-        struct iovec iov{};
+        struct msghdr msgh
+        {
+        };
+        struct iovec iov
+        {
+        };
         cmsgbuf_aligned cbuf{};
-        fillMSGHdr(&msgh, &iov, &cbuf, 0, reinterpret_cast<char*>(response.data()), response.length(), const_cast<ComboAddress*>(&fromaddr));  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-const-cast)
+        fillMSGHdr(&msgh, &iov, &cbuf, 0, reinterpret_cast<char*>(response.data()), response.length(), const_cast<ComboAddress*>(&fromaddr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-const-cast)
         msgh.msg_control = nullptr;
 
         if (g_fromtosockets.count(fileDesc) != 0) {
@@ -2244,7 +2256,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
                      << stringerror(sendErr) << endl,
                g_slogudpin->error(Logr::Error, sendErr, "Sending UDP reply to client failed", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
         }
-        struct timeval now{};
+        struct timeval now
+        {
+        };
         Utility::gettimeofday(&now, nullptr);
         uint64_t spentUsec = uSec(now - tval);
         t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
@@ -2354,8 +2368,12 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
   ComboAddress fromaddr; // the address the query is coming from
   ComboAddress source; // the address we assume the query is coming from, might be set by proxy protocol
   ComboAddress destination; // the address we assume the query was sent to, might be set by proxy protocol
-  struct msghdr msgh{};
-  struct iovec iov{};
+  struct msghdr msgh
+  {
+  };
+  struct iovec iov
+  {
+  };
   cmsgbuf_aligned cbuf;
   bool firstQuery = true;
   std::vector<ProxyProtocolValue> proxyProtocolValues;
@@ -2435,7 +2453,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
       }
       ComboAddress mappedSource = source;
       if (t_proxyMapping) {
-        if (const auto *iter = t_proxyMapping->lookup(source)) {
+        if (const auto* iter = t_proxyMapping->lookup(source)) {
           mappedSource = iter->second.address;
           ++iter->second.stats.netmaskMatches;
         }
@@ -2508,7 +2526,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
           HarvestTimestamp(&msgh, &tval);
           ComboAddress destaddr; // the address the query was sent to to
           destaddr.reset(); // this makes sure we ignore this address if not returned by recvmsg above
-          const auto *loc = rplookup(g_listenSocketsAddresses, fileDesc);
+          const auto* loc = rplookup(g_listenSocketsAddresses, fileDesc);
           if (HarvestDestinationAddress(&msgh, &destaddr)) {
             // but.. need to get port too
             if (loc != nullptr) {
@@ -2648,7 +2666,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
     }
 
     socklen_t socklen = address.getSocklen();
-    if (::bind(socketFd, reinterpret_cast<struct sockaddr*>(&address), socklen) < 0) {  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    if (::bind(socketFd, reinterpret_cast<struct sockaddr*>(&address), socklen) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       throw PDNSException("Resolver binding to server socket on " + address.toStringWithPort() + ": " + stringerror());
     }
 
@@ -2739,7 +2757,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
   }
 
   bool hashOK = false;
-  unsigned int hash = hashQuestion(reinterpret_cast<const uint8_t*>(packet.data()), packet.length(), g_disthashseed, hashOK);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  unsigned int hash = hashQuestion(reinterpret_cast<const uint8_t*>(packet.data()), packet.length(), g_disthashseed, hashOK); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   if (!hashOK) {
     // hashQuestion does detect invalid names, so we might as well punt here instead of in the worker thread
     t_Counters.at(rec::Counter::ignoredCount)++;
@@ -2793,7 +2811,7 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
   ComboAddress fromaddr;
   socklen_t addrlen = sizeof(fromaddr);
 
-  ssize_t len = recvfrom(fileDesc, &packet.at(0), packet.size(), 0, reinterpret_cast<sockaddr*>(&fromaddr), &addrlen);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  ssize_t len = recvfrom(fileDesc, &packet.at(0), packet.size(), 0, reinterpret_cast<sockaddr*>(&fromaddr), &addrlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
   const ssize_t signed_sizeof_sdnsheader = sizeof(dnsheader);
 
@@ -2875,7 +2893,7 @@ retryWithName:
     /* we did not find a match for this response, something is wrong */
 
     // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
-    for (const auto & d_waiter : g_multiTasker->d_waiters) {
+    for (const auto& d_waiter : g_multiTasker->d_waiters) {
       if (pident->fd == d_waiter.key->fd && d_waiter.key->remote == pident->remote && d_waiter.key->type == pident->type && pident->domain == d_waiter.key->domain) {
         /* we are expecting an answer from that exact source, on that exact port (since we are using connected sockets), for that qname/qtype,
            but with a different message ID. That smells like a spoofing attempt. For now we will just increase the counter and will deal with

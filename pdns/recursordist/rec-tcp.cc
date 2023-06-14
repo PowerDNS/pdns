@@ -45,7 +45,10 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
   } while (0)
 #else
 // We do not define this as empty since that produces a duplicate case label warning from clang-tidy
-#define TCPLOG(pid, x) while (false) { cerr << x; } // NOLINT(cppcoreguidelines-macro-usage,bugprone-macro-parentheses)
+#define TCPLOG(pid, x) /* NOLINT(cppcoreguidelines-macro-usage) */ \
+  while (false) {                                                  \
+    cerr << x; /* NOLINT(bugprone-macro-parentheses) */            \
+  }
 #endif
 
 std::atomic<uint32_t> TCPConnection::s_currentConnections;
