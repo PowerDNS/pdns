@@ -186,7 +186,7 @@ class TestRecursorDNSTap(RecursorTest):
                 fstrm_handle_bidir_connection(conn, lambda data: \
                 param.queue.put(data, True, timeout=2.0))
             except socket.error as e:
-                if e.errno == 9:
+                if e.errno == errno.EBADF or e.errno == errno.EPIPE:
                     break
                 sys.stderr.write("Unexpected socket error %s\n" % str(e))
                 sys.exit(1)
