@@ -2913,6 +2913,7 @@ static void initArgs()
   ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs") = "";
   ::arg().set("forward-zones-recurse", "Zones for which we forward queries with recursion bit, comma separated domain=ip pairs") = "";
   ::arg().set("forward-zones-file", "File with (+)domain=ip pairs for forwarding") = "";
+  ::arg().set("forward-zones-catalogs", "Catalog zones from which we will obtain a list of zones for query forwarding, comma separated zone=ip/port pairs") = "";
   ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts") = "off";
   ::arg().set("export-etc-hosts-search-suffix", "Also serve up the contents of /etc/hosts with this suffix") = "";
   ::arg().set("etc-hosts-file", "Path to 'hosts' file") = "/etc/hosts";
