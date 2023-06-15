@@ -1,6 +1,55 @@
 Changelogs for 4.9.X
 ====================
 .. changelog::
+  :version: 4.9.0-rc1
+  :released: 15nd of June 2023
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12906
+    :tickets: 12468
+
+    Escape key names that are special in the systemd-journal structured logging backend.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12893
+    :tickets: 12890
+
+    Add feature to switch off unsupported DNSSEC algos, either automatically or manually.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12900
+
+    Prevent duplicate C/DNAMEs being included when doing serve-stale.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12896
+    :tickets: 12855
+
+    Expose NOD/UDR metrics.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12883
+    :tickets: 8232
+
+    Add SOA to RPZ modified answers if configured to do so.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12898
+
+    Keep track of max depth reached and report it if !quiet.
+  .. change::
+    :tags: Improvements
+    :pullreq: 12793,12904
+
+    Another set of fixes for clang-tidy reports.
+
+.. changelog::
   :version: 4.9.0-beta1
   :released: 2nd of June 2023
 
