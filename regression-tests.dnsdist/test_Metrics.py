@@ -59,6 +59,18 @@ class TestRuleMetrics(DNSDistTest):
         self.assertIn(name, stats)
         return int(stats[name])
 
+    def getPoolMetric(self, poolName, metricName):
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/pool?name=' + poolName
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        stats = content['stats']
+        self.assertIn(metricName, stats)
+        return int(stats[metricName])
+
     def testRCodeIncreaseMetrics(self):
         """
         Metrics: Check that metrics are correctly updated for RCodeAction
@@ -93,6 +105,7 @@ class TestRuleMetrics(DNSDistTest):
 
         # self-generated responses should not increase this metric
         self.assertEqual(self.getMetric('servfail-responses'), servfailBackendResponses)
+
     def testCacheMetrics(self):
         """
         Metrics: Check that metrics are correctly updated for cache misses and hits
@@ -114,6 +127,8 @@ class TestRuleMetrics(DNSDistTest):
             responsesBefore = self.getMetric('responses')
             cacheHitsBefore = self.getMetric('cache-hits')
             cacheMissesBefore = self.getMetric('cache-misses')
+            poolCacheHitsBefore = self.getPoolMetric('cache', 'cacheHits')
+            poolCacheMissesBefore = self.getPoolMetric('cache', 'cacheMisses')
 
             sender = getattr(self, method)
             # first time, cache miss
@@ -128,6 +143,8 @@ class TestRuleMetrics(DNSDistTest):
             self.assertEqual(self.getMetric('responses'), responsesBefore + 2)
             self.assertEqual(self.getMetric('cache-hits'), cacheHitsBefore + 1)
             self.assertEqual(self.getMetric('cache-misses'), cacheMissesBefore + 1)
+            self.assertEqual(self.getPoolMetric('cache', 'cacheHits'), poolCacheHitsBefore + 1)
+            self.assertEqual(self.getPoolMetric('cache', 'cacheMisses'), poolCacheMissesBefore + 1)
 
     def testServFailMetrics(self):
         """
