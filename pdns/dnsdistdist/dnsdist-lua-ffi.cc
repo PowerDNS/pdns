@@ -1603,25 +1603,37 @@ void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t* packet)
 
 void dnsdist_ffi_metric_inc(const char* metricName, size_t metricNameLen)
 {
-  auto metric = g_stats.customCounters.find(std::string_view(metricName, metricNameLen));
-  if (metric != g_stats.customCounters.end()) {
-    ++metric->second;
+  auto customCounters = g_stats.customCounters.read_lock();
+  auto metric = customCounters->find(std::string_view(metricName, metricNameLen));
+  if (metric != customCounters->end()) {
+    ++metric->second.d_value;
+  }
+}
+
+void dnsdist_ffi_metric_inc_by(const char* metricName, size_t metricNameLen, uint64_t value)
+{
+  auto customCounters = g_stats.customCounters.write_lock();
+  auto metric = customCounters->find(std::string_view(metricName, metricNameLen));
+  if (metric != customCounters->end()) {
+    metric->second.d_value += value;
   }
 }
 
 void dnsdist_ffi_metric_dec(const char* metricName, size_t metricNameLen)
 {
-  auto metric = g_stats.customCounters.find(std::string_view(metricName, metricNameLen));
-  if (metric != g_stats.customCounters.end()) {
-    --metric->second;
+  auto customCounters = g_stats.customCounters.read_lock();
+  auto metric = customCounters->find(std::string_view(metricName, metricNameLen));
+  if (metric != customCounters->end()) {
+    --metric->second.d_value;
   }
 }
 
 void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double value)
 {
-  auto metric = g_stats.customGauges.find(std::string_view(metricName, metricNameLen));
-  if (metric != g_stats.customGauges.end()) {
-    metric->second = value;
+  auto customGauges = g_stats.customGauges.read_lock();
+  auto metric = customGauges->find(std::string_view(metricName, metricNameLen));
+  if (metric != customGauges->end()) {
+    metric->second.d_value = value;
   }
 }
 
@@ -1629,15 +1641,17 @@ double dnsdist_ffi_metric_get(const char* metricName, size_t metricNameLen, bool
 {
   auto name = std::string_view(metricName, metricNameLen);
   if (isCounter) {
-    auto counter = g_stats.customCounters.find(name);
-    if (counter != g_stats.customCounters.end()) {
-      return (double)counter->second.load();
+    auto customCounters = g_stats.customCounters.read_lock();
+    auto counter = customCounters->find(name);
+    if (counter != customCounters->end()) {
+      return (double)counter->second.d_value.load();
     }
   }
   else {
-    auto gauge = g_stats.customGauges.find(name);
-    if (gauge != g_stats.customGauges.end()) {
-      return gauge->second.load();
+    auto customGauges = g_stats.customGauges.read_lock();
+    auto gauge = customGauges->find(name);
+    if (gauge != customGauges->end()) {
+      return gauge->second.d_value.load();
     }
   }
   return 0.;

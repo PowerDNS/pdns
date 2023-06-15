@@ -597,18 +597,19 @@ class TestCustomMetrics(DNSDistTest):
       initialCounter = getMetric("my-custom-counter")
       initialGauge = getMetric("my-custom-counter")
       incMetric("my-custom-counter")
+      incMetric("my-custom-counter", 41)
       setMetric("my-custom-gauge", initialGauge + 1.3)
-      if getMetric("my-custom-counter") ~= (initialCounter + 1) or getMetric("my-custom-gauge") ~= (initialGauge + 1.3) then
+      if getMetric("my-custom-counter") ~= (initialCounter + 42) or getMetric("my-custom-gauge") ~= (initialGauge + 1.3) then
         return DNSAction.Spoof, '1.2.3.5'
       end
       return DNSAction.Spoof, '4.3.2.1'
     end
 
     function declareNewMetric(dq)
-      if declareMetric("new-runtime-metric", "counter", "Metric declaration at runtime should fail") then
-        return DNSAction.Spoof, '1.2.3.4'
+      if declareMetric("new-runtime-metric", "counter", "Metric declaration at runtime should work fine") then
+        return DNSAction.None
       end
-      return DNSAction.None
+      return DNSAction.Spoof, '1.2.3.4'
     end
 
     declareMetric("my-custom-counter", "counter", "Number of tests run")
