@@ -368,10 +368,15 @@ struct DNSDistStats
   double latencyTCPAvg100{0}, latencyTCPAvg1000{0}, latencyTCPAvg10000{0}, latencyTCPAvg1000000{0};
   double latencyDoTAvg100{0}, latencyDoTAvg1000{0}, latencyDoTAvg10000{0}, latencyDoTAvg1000000{0};
   double latencyDoHAvg100{0}, latencyDoHAvg1000{0}, latencyDoHAvg10000{0}, latencyDoHAvg1000000{0};
-  typedef std::function<uint64_t(const std::string&)> statfunction_t;
-  typedef boost::variant<stat_t*, pdns::stat_t_trait<double>*, double*, statfunction_t> entry_t;
+  using statfunction_t =  std::function<uint64_t(const std::string&)>;
+  using entry_t = boost::variant<stat_t*, pdns::stat_t_trait<double>*, double*, statfunction_t>;
+  struct EntryPair
+  {
+    std::string d_name;
+    entry_t d_value;
+  };
 
-  std::vector<std::pair<std::string, entry_t>> entries{
+  SharedLockGuarded<std::vector<EntryPair>> entries{std::vector<EntryPair>{
     {"responses", &responses},
     {"servfail-responses", &servfailResponses},
     {"queries", &queries},
@@ -449,9 +454,27 @@ struct DNSDistStats
     // Latency histogram
     {"latency-sum", &latencySum},
     {"latency-count", &latencyCount},
+  }};
+  struct MutableCounter
+  {
+    MutableCounter() = default;
+    MutableCounter(MutableCounter&& rhs): d_value(rhs.d_value.load())
+    {
+    }
+
+    mutable stat_t d_value{0};
   };
-  std::map<std::string, stat_t, std::less<>> customCounters;
-  std::map<std::string, pdns::stat_t_trait<double>, std::less<>> customGauges;
+  struct MutableGauge
+  {
+    MutableGauge() = default;
+    MutableGauge(MutableGauge&& rhs): d_value(rhs.d_value.load())
+    {
+    }
+
+    mutable pdns::stat_t_trait<double> d_value{0};
+  };
+  SharedLockGuarded<std::map<std::string, MutableCounter, std::less<>>> customCounters;
+  SharedLockGuarded<std::map<std::string, MutableGauge, std::less<>>> customGauges;
 };
 
 extern struct DNSDistStats g_stats;

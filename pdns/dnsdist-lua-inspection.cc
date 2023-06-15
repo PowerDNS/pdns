@@ -700,32 +700,32 @@ void setupLuaInspection(LuaContext& luaCtx)
 
       boost::format fmt("%-35s\t%+11s");
       g_outputBuffer.clear();
-      auto entries = g_stats.entries;
+      auto entries = *g_stats.entries.read_lock();
       sort(entries.begin(), entries.end(),
-	   [](const decltype(entries)::value_type& a, const decltype(entries)::value_type& b) {
-	     return a.first < b.first;
-	   });
+           [](const decltype(entries)::value_type& a, const decltype(entries)::value_type& b) {
+             return a.d_name < b.d_name;
+           });
       boost::format flt("    %9.1f");
-      for (const auto& e : entries) {
+      for (const auto& entry : entries) {
         string second;
-        if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
+        if (const auto& val = boost::get<pdns::stat_t*>(&entry.d_value)) {
           second = std::to_string((*val)->load());
         }
-        else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
+        else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&entry.d_value)) {
           second = (flt % (*adval)->load()).str();
         }
-        else if (const auto& dval = boost::get<double*>(&e.second)) {
+        else if (const auto& dval = boost::get<double*>(&entry.d_value)) {
           second = (flt % (**dval)).str();
         }
-        else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&e.second)) {
-          second = std::to_string((*func)(e.first));
+        else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&entry.d_value)) {
+          second = std::to_string((*func)(entry.d_name));
         }
 
-        if (leftcolumn.size() < g_stats.entries.size()/2) {
-          leftcolumn.push_back((fmt % e.first % second).str());
+        if (leftcolumn.size() < entries.size() / 2) {
+          leftcolumn.push_back((fmt % entry.d_name % second).str());
         }
         else {
-          rightcolumn.push_back((fmt % e.first % second).str());
+          rightcolumn.push_back((fmt % entry.d_name % second).str());
         }
       }
 
