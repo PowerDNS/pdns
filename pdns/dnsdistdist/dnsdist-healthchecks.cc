@@ -69,7 +69,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     const dnsheader * responseHeader = reinterpret_cast<const dnsheader*>(data->d_buffer.data());
     if (responseHeader->id != data->d_queryID) {
       if (g_verboseHealthChecks) {
-        infolog("Invalid health check response id %d from backend %s, expecting %d", data->d_queryID, ds->getNameWithAddr(), data->d_queryID);
+        infolog("Invalid health check response id %d from backend %s, expecting %d", responseHeader->id, ds->getNameWithAddr(), data->d_queryID);
       }
       return false;
     }
