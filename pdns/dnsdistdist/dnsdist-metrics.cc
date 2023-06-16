@@ -27,6 +27,113 @@
 
 namespace dnsdist::metrics {
 
+struct MutableCounter
+{
+  MutableCounter() = default;
+  MutableCounter(MutableCounter&& rhs): d_value(rhs.d_value.load())
+  {
+  }
+
+  mutable stat_t d_value{0};
+};
+
+struct MutableGauge
+{
+  MutableGauge() = default;
+  MutableGauge(MutableGauge&& rhs): d_value(rhs.d_value.load())
+  {
+  }
+
+  mutable pdns::stat_t_trait<double> d_value{0};
+};
+
+static SharedLockGuarded<std::map<std::string, MutableCounter, std::less<>>> s_customCounters;
+static SharedLockGuarded<std::map<std::string, MutableGauge, std::less<>>> s_customGauges;
+
+Stats::Stats(): entries{std::vector<EntryPair>{
+    {"responses", &responses},
+    {"servfail-responses", &servfailResponses},
+    {"queries", &queries},
+    {"frontend-nxdomain", &frontendNXDomain},
+    {"frontend-servfail", &frontendServFail},
+    {"frontend-noerror", &frontendNoError},
+    {"acl-drops", &aclDrops},
+    {"rule-drop", &ruleDrop},
+    {"rule-nxdomain", &ruleNXDomain},
+    {"rule-refused", &ruleRefused},
+    {"rule-servfail", &ruleServFail},
+    {"rule-truncated", &ruleTruncated},
+    {"self-answered", &selfAnswered},
+    {"downstream-timeouts", &downstreamTimeouts},
+    {"downstream-send-errors", &downstreamSendErrors},
+    {"trunc-failures", &truncFail},
+    {"no-policy", &noPolicy},
+    {"latency0-1", &latency0_1},
+    {"latency1-10", &latency1_10},
+    {"latency10-50", &latency10_50},
+    {"latency50-100", &latency50_100},
+    {"latency100-1000", &latency100_1000},
+    {"latency-slow", &latencySlow},
+    {"latency-avg100", &latencyAvg100},
+    {"latency-avg1000", &latencyAvg1000},
+    {"latency-avg10000", &latencyAvg10000},
+    {"latency-avg1000000", &latencyAvg1000000},
+    {"latency-tcp-avg100", &latencyTCPAvg100},
+    {"latency-tcp-avg1000", &latencyTCPAvg1000},
+    {"latency-tcp-avg10000", &latencyTCPAvg10000},
+    {"latency-tcp-avg1000000", &latencyTCPAvg1000000},
+    {"latency-dot-avg100", &latencyDoTAvg100},
+    {"latency-dot-avg1000", &latencyDoTAvg1000},
+    {"latency-dot-avg10000", &latencyDoTAvg10000},
+    {"latency-dot-avg1000000", &latencyDoTAvg1000000},
+    {"latency-doh-avg100", &latencyDoHAvg100},
+    {"latency-doh-avg1000", &latencyDoHAvg1000},
+    {"latency-doh-avg10000", &latencyDoHAvg10000},
+    {"latency-doh-avg1000000", &latencyDoHAvg1000000},
+    {"uptime", uptimeOfProcess},
+    {"real-memory-usage", getRealMemoryUsage},
+    {"special-memory-usage", getSpecialMemoryUsage},
+    {"udp-in-errors", std::bind(udpErrorStats, "udp-in-errors")},
+    {"udp-noport-errors", std::bind(udpErrorStats, "udp-noport-errors")},
+    {"udp-recvbuf-errors", std::bind(udpErrorStats, "udp-recvbuf-errors")},
+    {"udp-sndbuf-errors", std::bind(udpErrorStats, "udp-sndbuf-errors")},
+    {"udp-in-csum-errors", std::bind(udpErrorStats, "udp-in-csum-errors")},
+    {"udp6-in-errors", std::bind(udp6ErrorStats, "udp6-in-errors")},
+    {"udp6-recvbuf-errors", std::bind(udp6ErrorStats, "udp6-recvbuf-errors")},
+    {"udp6-sndbuf-errors", std::bind(udp6ErrorStats, "udp6-sndbuf-errors")},
+    {"udp6-noport-errors", std::bind(udp6ErrorStats, "udp6-noport-errors")},
+    {"udp6-in-csum-errors", std::bind(udp6ErrorStats, "udp6-in-csum-errors")},
+    {"tcp-listen-overflows", std::bind(tcpErrorStats, "ListenOverflows")},
+    {"noncompliant-queries", &nonCompliantQueries},
+    {"noncompliant-responses", &nonCompliantResponses},
+    {"proxy-protocol-invalid", &proxyProtocolInvalid},
+    {"rdqueries", &rdQueries},
+    {"empty-queries", &emptyQueries},
+    {"cache-hits", &cacheHits},
+    {"cache-misses", &cacheMisses},
+    {"cpu-iowait", getCPUIOWait},
+    {"cpu-steal", getCPUSteal},
+    {"cpu-sys-msec", getCPUTimeSystem},
+    {"cpu-user-msec", getCPUTimeUser},
+    {"fd-usage", getOpenFileDescriptors},
+    {"dyn-blocked", &dynBlocked},
+    {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }},
+    {"security-status", &securityStatus},
+    {"doh-query-pipe-full", &dohQueryPipeFull},
+    {"doh-response-pipe-full", &dohResponsePipeFull},
+    {"outgoing-doh-query-pipe-full", &outgoingDoHQueryPipeFull},
+    {"tcp-query-pipe-full", &tcpQueryPipeFull},
+    {"tcp-cross-protocol-query-pipe-full", &tcpCrossProtocolQueryPipeFull},
+    {"tcp-cross-protocol-response-pipe-full", &tcpCrossProtocolResponsePipeFull},
+    // Latency histogram
+    {"latency-sum", &latencySum},
+    {"latency-count", &latencyCount},
+  }}
+{
+}
+
+struct Stats g_stats;
+
 std::optional<std::string> declareCustomMetric(const std::string& name, const std::string& type, const std::string& description, std::optional<std::string> customName)
 {
   if (!std::regex_match(name, std::regex("^[a-z0-9-]+$"))) {
@@ -34,18 +141,18 @@ std::optional<std::string> declareCustomMetric(const std::string& name, const st
   }
 
   if (type == "counter") {
-    auto customCounters = g_stats.customCounters.write_lock();
-    auto itp = customCounters->insert({name, DNSDistStats::MutableCounter()});
+    auto customCounters = s_customCounters.write_lock();
+    auto itp = customCounters->insert({name, MutableCounter()});
     if (itp.second) {
-      g_stats.entries.write_lock()->emplace_back(DNSDistStats::EntryPair{name, &(*customCounters)[name].d_value});
+      g_stats.entries.write_lock()->emplace_back(Stats::EntryPair{name, &(*customCounters)[name].d_value});
       addMetricDefinition(name, "counter", description, customName ? *customName : "");
     }
   }
   else if (type == "gauge") {
-    auto customGauges = g_stats.customGauges.write_lock();
-    auto itp = customGauges->insert({name, DNSDistStats::MutableGauge()});
+    auto customGauges = s_customGauges.write_lock();
+    auto itp = customGauges->insert({name, MutableGauge()});
     if (itp.second) {
-      g_stats.entries.write_lock()->emplace_back(DNSDistStats::EntryPair{name, &(*customGauges)[name].d_value});
+      g_stats.entries.write_lock()->emplace_back(Stats::EntryPair{name, &(*customGauges)[name].d_value});
       addMetricDefinition(name, "gauge", description, customName ? *customName : "");
     }
   }
@@ -57,7 +164,7 @@ std::optional<std::string> declareCustomMetric(const std::string& name, const st
 
 std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& name, uint64_t step)
 {
-  auto customCounters = g_stats.customCounters.read_lock();
+  auto customCounters = s_customCounters.read_lock();
   auto metric = customCounters->find(name);
   if (metric != customCounters->end()) {
     if (step) {
@@ -71,7 +178,7 @@ std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& nam
 
 std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& name, uint64_t step)
 {
-  auto customCounters = g_stats.customCounters.read_lock();
+  auto customCounters = s_customCounters.read_lock();
   auto metric = customCounters->find(name);
   if (metric != customCounters->end()) {
     if (step) {
@@ -85,7 +192,7 @@ std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& nam
 
 std::variant<double, Error> setCustomGauge(const std::string_view& name, const double value)
 {
-  auto customGauges = g_stats.customGauges.read_lock();
+  auto customGauges = s_customGauges.read_lock();
   auto metric = customGauges->find(name);
   if (metric != customGauges->end()) {
     metric->second.d_value = value;
@@ -98,14 +205,14 @@ std::variant<double, Error> setCustomGauge(const std::string_view& name, const d
 std::variant<double, Error> getCustomMetric(const std::string_view& name)
 {
   {
-    auto customCounters = g_stats.customCounters.read_lock();
+    auto customCounters = s_customCounters.read_lock();
     auto counter = customCounters->find(name);
     if (counter != customCounters->end()) {
       return static_cast<double>(counter->second.d_value.load());
     }
   }
   {
-    auto customGauges = g_stats.customGauges.read_lock();
+    auto customGauges = s_customGauges.read_lock();
     auto gauge = customGauges->find(name);
     if (gauge != customGauges->end()) {
       return gauge->second.d_value.load();
@@ -113,4 +220,5 @@ std::variant<double, Error> getCustomMetric(const std::string_view& name)
   }
   return std::string("Unable to get metric '") + std::string(name) + "': no such metric";
 }
+
 }

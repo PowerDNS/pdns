@@ -737,7 +737,7 @@ void setupLuaInspection(LuaContext& luaCtx)
 
       boost::format fmt("%-35s\t%+11s");
       g_outputBuffer.clear();
-      auto entries = *g_stats.entries.read_lock();
+      auto entries = *dnsdist::metrics::g_stats.entries.read_lock();
       sort(entries.begin(), entries.end(),
            [](const decltype(entries)::value_type& a, const decltype(entries)::value_type& b) {
              return a.d_name < b.d_name;
@@ -745,16 +745,16 @@ void setupLuaInspection(LuaContext& luaCtx)
       boost::format flt("    %9.1f");
       for (const auto& entry : entries) {
         string second;
-        if (const auto& val = boost::get<pdns::stat_t*>(&entry.d_value)) {
+        if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
           second = std::to_string((*val)->load());
         }
-        else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+        else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
           second = (flt % (*adval)->load()).str();
         }
-        else if (const auto& dval = boost::get<double*>(&entry.d_value)) {
+        else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
           second = (flt % (**dval)).str();
         }
-        else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&entry.d_value)) {
+        else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
           second = std::to_string((*func)(entry.d_name));
         }
 

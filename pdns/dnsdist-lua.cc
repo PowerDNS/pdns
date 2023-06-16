@@ -1830,10 +1830,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaNoSideEffect();
     std::unordered_map<string, uint64_t> res;
     {
-      auto entries = g_stats.entries.read_lock();
+      auto entries = dnsdist::metrics::g_stats.entries.read_lock();
       res.reserve(entries->size());
       for (const auto& entry : *entries) {
-        if (const auto& val = boost::get<pdns::stat_t*>(&entry.d_value)) {
+        if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
           res[entry.d_name] = (*val)->load();
         }
       }
@@ -2221,7 +2221,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifndef DISABLE_SECPOLL
   luaCtx.writeFunction("showSecurityStatus", []() {
     setLuaNoSideEffect();
-    g_outputBuffer = std::to_string(g_stats.securityStatus) + "\n";
+    g_outputBuffer = std::to_string(dnsdist::metrics::g_stats.securityStatus) + "\n";
   });
 
   luaCtx.writeFunction("setSecurityPollSuffix", [](const std::string& suffix) {

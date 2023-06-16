@@ -21,6 +21,7 @@
  */
 #include "dolog.hh"
 #include "dnsdist.hh"
+#include "dnsdist-metrics.hh"
 #include "dnscrypt.hh"
 
 #ifdef HAVE_DNSCRYPT
@@ -40,7 +41,7 @@ int handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, ti
   }
 
   if (packet.size() < static_cast<uint16_t>(sizeof(struct dnsheader))) {
-    ++g_stats.nonCompliantQueries;
+    ++dnsdist::metrics::g_stats.nonCompliantQueries;
     return false;
   }
 

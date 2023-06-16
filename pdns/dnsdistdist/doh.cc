@@ -26,6 +26,7 @@
 #include "dolog.hh"
 #include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-metrics.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rules.hh"
 #include "dnsdist-xpf.hh"
@@ -223,7 +224,7 @@ static void sendDoHUnitToTheMainThread(DOHUnitUniquePtr&& du, const char* descri
   }
   try {
     if (!du->responseSender->send(std::move(du))) {
-      ++g_stats.dohResponsePipeFull;
+      ++dnsdist::metrics::g_stats.dohResponsePipeFull;
       vinfolog("Unable to pass a %s to the DoH worker thread because the pipe is full", description);
     }
   } catch (const std::exception& e) {
@@ -463,7 +464,7 @@ public:
       handleResponseSent(du->ids, udiff, du->ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, backendProtocol, true);
     }
 
-    ++g_stats.responses;
+    ++dnsdist::metrics::g_stats.responses;
     if (du->ids.cs) {
       ++du->ids.cs->responses;
     }
@@ -643,7 +644,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     ClientState& cs = *dsc->cs;
 
     if (du->query.size() < sizeof(dnsheader)) {
-      ++g_stats.nonCompliantQueries;
+      ++dnsdist::metrics::g_stats.nonCompliantQueries;
       ++cs.nonCompliantQueries;
       du->status_code = 400;
       handleImmediateResponse(std::move(du), "DoH non-compliant query");
@@ -651,7 +652,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     }
 
     ++cs.queries;
-    ++g_stats.queries;
+    ++dnsdist::metrics::g_stats.queries;
     du->ids.queryRealTime.start();
 
     {
@@ -872,7 +873,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
 #else /* USE_SINGLE_ACCEPTOR_THREAD */
     try {
       if (!dsc->d_querySender.send(std::move(du))) {
-        ++g_stats.dohQueryPipeFull;
+        ++dnsdist::metrics::g_stats.dohQueryPipeFull;
         vinfolog("Unable to pass a DoH query to the DoH worker thread because the pipe is full");
         h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
       }
@@ -976,7 +977,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 
     auto& holders = dsc->holders;
     if (!holders.acl->match(conn.d_remote)) {
-      ++g_stats.aclDrops;
+      ++dnsdist::metrics::g_stats.aclDrops;
       vinfolog("Query from %s (DoH) dropped because of ACL", conn.d_remote.toStringWithPort());
       h2o_send_error_403(req, "Forbidden", "dns query not allowed because of ACL", 0);
       return 0;
@@ -1688,7 +1689,7 @@ void handleUDPResponseForDoH(DOHUnitUniquePtr&& du, PacketBuffer&& udpResponse, 
 
     handleResponseSent(du->ids, udiff, dr.ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, du->downstream->getProtocol(), true);
 
-    ++g_stats.responses;
+    ++dnsdist::metrics::g_stats.responses;
     if (du->ids.cs) {
       ++du->ids.cs->responses;
     }

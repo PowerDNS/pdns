@@ -25,6 +25,7 @@
 
 #include "dnsdist-carbon.hh"
 #include "dnsdist.hh"
+#include "dnsdist-metrics.hh"
 
 #ifndef DISABLE_CARBON
 #include "dolog.hh"
@@ -52,19 +53,19 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
     const time_t now = time(nullptr);
 
     {
-      auto entries = g_stats.entries.read_lock();
+      auto entries = dnsdist::metrics::g_stats.entries.read_lock();
       for (const auto& entry : *entries) {
         str << namespace_name << "." << hostname << "." << instance_name << "." << entry.d_name << ' ';
-        if (const auto& val = boost::get<pdns::stat_t*>(&entry.d_value)) {
+        if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
           str << (*val)->load();
         }
-        else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+        else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
           str << (*adval)->load();
         }
-        else if (const auto& dval = boost::get<double*>(&entry.d_value)) {
+        else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
           str << **dval;
         }
-        else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&entry.d_value)) {
+        else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
           str << (*func)(entry.d_name);
         }
         str << ' ' << now << "\r\n";

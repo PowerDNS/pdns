@@ -1,5 +1,6 @@
 
 #include "dnsdist-snmp.hh"
+#include "dnsdist-metrics.hh"
 #include "dolog.hh"
 
 bool g_snmpEnabled{false};
@@ -55,7 +56,7 @@ static const oid securityStatusOID[] = { DNSDIST_STATS_OID, 38 };
 static const oid specialMemoryUsageOID[] = { DNSDIST_STATS_OID, 39 };
 static const oid ruleTruncatedOID[] = { DNSDIST_STATS_OID, 40 };
 
-static std::unordered_map<oid, DNSDistStats::entry_t> s_statsMap;
+static std::unordered_map<oid, dnsdist::metrics::Stats::entry_t> s_statsMap;
 
 /* We are never called for a GETNEXT if it's registered as a
    "instance", as it's "magically" handled for us.  */
@@ -80,7 +81,7 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
     return SNMP_ERR_GENERR;
   }
 
-  if (const auto& val = boost::get<pdns::stat_t*>(&it->second)) {
+  if (const auto& val = std::get_if<pdns::stat_t*>(&it->second)) {
     return DNSDistSNMPAgent::setCounter64Value(requests, (*val)->load());
   }
 
@@ -125,7 +126,7 @@ static int handleFloatStats(netsnmp_mib_handler* handler,
     return SNMP_ERR_GENERR;
   }
 
-  if (const auto& val = boost::get<double*>(&it->second)) {
+  if (const auto& val = std::get_if<double*>(&it->second)) {
     std::string str(std::to_string(**val));
     snmp_set_var_typed_value(requests->requestvb,
                              ASN_OCTET_STR,
@@ -176,11 +177,11 @@ static int handleGauge64Stats(netsnmp_mib_handler* handler,
   }
 
   std::string str;
-  uint64_t value = (*boost::get<DNSDistStats::statfunction_t>(&it->second))(str);
+  uint64_t value = (*std::get_if<dnsdist::metrics::Stats::statfunction_t>(&it->second))(str);
   return DNSDistSNMPAgent::setCounter64Value(requests, value);
 }
 
-static void registerGauge64Stat(const char* name, const oid statOID[], size_t statOIDLength, DNSDistStats::statfunction_t ptr)
+static void registerGauge64Stat(const char* name, const oid statOID[], size_t statOIDLength, dnsdist::metrics::Stats::statfunction_t ptr)
 {
   if (statOIDLength != OID_LENGTH(queriesOID)) {
     errlog("Invalid OID for SNMP Gauge64 statistic %s", name);
@@ -552,44 +553,44 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& d
 {
 #ifdef HAVE_NET_SNMP
 
-  registerCounter64Stat("queries", queriesOID, OID_LENGTH(queriesOID), &g_stats.queries);
-  registerCounter64Stat("responses", responsesOID, OID_LENGTH(responsesOID), &g_stats.responses);
-  registerCounter64Stat("servfailResponses", servfailResponsesOID, OID_LENGTH(servfailResponsesOID), &g_stats.servfailResponses);
-  registerCounter64Stat("aclDrops", aclDropsOID, OID_LENGTH(aclDropsOID), &g_stats.aclDrops);
-  registerCounter64Stat("ruleDrop", ruleDropOID, OID_LENGTH(ruleDropOID), &g_stats.ruleDrop);
-  registerCounter64Stat("ruleNXDomain", ruleNXDomainOID, OID_LENGTH(ruleNXDomainOID), &g_stats.ruleNXDomain);
-  registerCounter64Stat("ruleRefused", ruleRefusedOID, OID_LENGTH(ruleRefusedOID), &g_stats.ruleRefused);
-  registerCounter64Stat("ruleServFail", ruleServFailOID, OID_LENGTH(ruleServFailOID), &g_stats.ruleServFail);
-  registerCounter64Stat("ruleTruncated", ruleTruncatedOID, OID_LENGTH(ruleTruncatedOID), &g_stats.ruleTruncated);
-  registerCounter64Stat("selfAnswered", selfAnsweredOID, OID_LENGTH(selfAnsweredOID), &g_stats.selfAnswered);
-  registerCounter64Stat("downstreamTimeouts", downstreamTimeoutsOID, OID_LENGTH(downstreamTimeoutsOID), &g_stats.downstreamTimeouts);
-  registerCounter64Stat("downstreamSendErrors", downstreamSendErrorsOID, OID_LENGTH(downstreamSendErrorsOID), &g_stats.downstreamSendErrors);
-  registerCounter64Stat("truncFail", truncFailOID, OID_LENGTH(truncFailOID), &g_stats.truncFail);
-  registerCounter64Stat("noPolicy", noPolicyOID, OID_LENGTH(noPolicyOID), &g_stats.noPolicy);
-  registerCounter64Stat("latency0_1", latency0_1OID, OID_LENGTH(latency0_1OID), &g_stats.latency0_1);
-  registerCounter64Stat("latency1_10", latency1_10OID, OID_LENGTH(latency1_10OID), &g_stats.latency1_10);
-  registerCounter64Stat("latency10_50", latency10_50OID, OID_LENGTH(latency10_50OID), &g_stats.latency10_50);
-  registerCounter64Stat("latency50_100", latency50_100OID, OID_LENGTH(latency50_100OID), &g_stats.latency50_100);
-  registerCounter64Stat("latency100_1000", latency100_1000OID, OID_LENGTH(latency100_1000OID), &g_stats.latency100_1000);
-  registerCounter64Stat("latencySlow", latencySlowOID, OID_LENGTH(latencySlowOID), &g_stats.latencySlow);
-  registerCounter64Stat("nonCompliantQueries", nonCompliantQueriesOID, OID_LENGTH(nonCompliantQueriesOID), &g_stats.nonCompliantQueries);
-  registerCounter64Stat("nonCompliantResponses", nonCompliantResponsesOID, OID_LENGTH(nonCompliantResponsesOID), &g_stats.nonCompliantResponses);
-  registerCounter64Stat("rdQueries", rdQueriesOID, OID_LENGTH(rdQueriesOID), &g_stats.rdQueries);
-  registerCounter64Stat("emptyQueries", emptyQueriesOID, OID_LENGTH(emptyQueriesOID), &g_stats.emptyQueries);
-  registerCounter64Stat("cacheHits", cacheHitsOID, OID_LENGTH(cacheHitsOID), &g_stats.cacheHits);
-  registerCounter64Stat("cacheMisses", cacheMissesOID, OID_LENGTH(cacheMissesOID), &g_stats.cacheMisses);
-  registerCounter64Stat("dynBlocked", dynBlockedOID, OID_LENGTH(dynBlockedOID), &g_stats.dynBlocked);
-  registerFloatStat("latencyAvg100", latencyAvg100OID, OID_LENGTH(latencyAvg100OID), &g_stats.latencyAvg100);
-  registerFloatStat("latencyAvg1000", latencyAvg1000OID, OID_LENGTH(latencyAvg1000OID), &g_stats.latencyAvg1000);
-  registerFloatStat("latencyAvg10000", latencyAvg10000OID, OID_LENGTH(latencyAvg10000OID), &g_stats.latencyAvg10000);
-  registerFloatStat("latencyAvg1000000", latencyAvg1000000OID, OID_LENGTH(latencyAvg1000000OID), &g_stats.latencyAvg1000000);
+  registerCounter64Stat("queries", queriesOID, OID_LENGTH(queriesOID), &dnsdist::metrics::g_stats.queries);
+  registerCounter64Stat("responses", responsesOID, OID_LENGTH(responsesOID), &dnsdist::metrics::g_stats.responses);
+  registerCounter64Stat("servfailResponses", servfailResponsesOID, OID_LENGTH(servfailResponsesOID), &dnsdist::metrics::g_stats.servfailResponses);
+  registerCounter64Stat("aclDrops", aclDropsOID, OID_LENGTH(aclDropsOID), &dnsdist::metrics::g_stats.aclDrops);
+  registerCounter64Stat("ruleDrop", ruleDropOID, OID_LENGTH(ruleDropOID), &dnsdist::metrics::g_stats.ruleDrop);
+  registerCounter64Stat("ruleNXDomain", ruleNXDomainOID, OID_LENGTH(ruleNXDomainOID), &dnsdist::metrics::g_stats.ruleNXDomain);
+  registerCounter64Stat("ruleRefused", ruleRefusedOID, OID_LENGTH(ruleRefusedOID), &dnsdist::metrics::g_stats.ruleRefused);
+  registerCounter64Stat("ruleServFail", ruleServFailOID, OID_LENGTH(ruleServFailOID), &dnsdist::metrics::g_stats.ruleServFail);
+  registerCounter64Stat("ruleTruncated", ruleTruncatedOID, OID_LENGTH(ruleTruncatedOID), &dnsdist::metrics::g_stats.ruleTruncated);
+  registerCounter64Stat("selfAnswered", selfAnsweredOID, OID_LENGTH(selfAnsweredOID), &dnsdist::metrics::g_stats.selfAnswered);
+  registerCounter64Stat("downstreamTimeouts", downstreamTimeoutsOID, OID_LENGTH(downstreamTimeoutsOID), &dnsdist::metrics::g_stats.downstreamTimeouts);
+  registerCounter64Stat("downstreamSendErrors", downstreamSendErrorsOID, OID_LENGTH(downstreamSendErrorsOID), &dnsdist::metrics::g_stats.downstreamSendErrors);
+  registerCounter64Stat("truncFail", truncFailOID, OID_LENGTH(truncFailOID), &dnsdist::metrics::g_stats.truncFail);
+  registerCounter64Stat("noPolicy", noPolicyOID, OID_LENGTH(noPolicyOID), &dnsdist::metrics::g_stats.noPolicy);
+  registerCounter64Stat("latency0_1", latency0_1OID, OID_LENGTH(latency0_1OID), &dnsdist::metrics::g_stats.latency0_1);
+  registerCounter64Stat("latency1_10", latency1_10OID, OID_LENGTH(latency1_10OID), &dnsdist::metrics::g_stats.latency1_10);
+  registerCounter64Stat("latency10_50", latency10_50OID, OID_LENGTH(latency10_50OID), &dnsdist::metrics::g_stats.latency10_50);
+  registerCounter64Stat("latency50_100", latency50_100OID, OID_LENGTH(latency50_100OID), &dnsdist::metrics::g_stats.latency50_100);
+  registerCounter64Stat("latency100_1000", latency100_1000OID, OID_LENGTH(latency100_1000OID), &dnsdist::metrics::g_stats.latency100_1000);
+  registerCounter64Stat("latencySlow", latencySlowOID, OID_LENGTH(latencySlowOID), &dnsdist::metrics::g_stats.latencySlow);
+  registerCounter64Stat("nonCompliantQueries", nonCompliantQueriesOID, OID_LENGTH(nonCompliantQueriesOID), &dnsdist::metrics::g_stats.nonCompliantQueries);
+  registerCounter64Stat("nonCompliantResponses", nonCompliantResponsesOID, OID_LENGTH(nonCompliantResponsesOID), &dnsdist::metrics::g_stats.nonCompliantResponses);
+  registerCounter64Stat("rdQueries", rdQueriesOID, OID_LENGTH(rdQueriesOID), &dnsdist::metrics::g_stats.rdQueries);
+  registerCounter64Stat("emptyQueries", emptyQueriesOID, OID_LENGTH(emptyQueriesOID), &dnsdist::metrics::g_stats.emptyQueries);
+  registerCounter64Stat("cacheHits", cacheHitsOID, OID_LENGTH(cacheHitsOID), &dnsdist::metrics::g_stats.cacheHits);
+  registerCounter64Stat("cacheMisses", cacheMissesOID, OID_LENGTH(cacheMissesOID), &dnsdist::metrics::g_stats.cacheMisses);
+  registerCounter64Stat("dynBlocked", dynBlockedOID, OID_LENGTH(dynBlockedOID), &dnsdist::metrics::g_stats.dynBlocked);
+  registerFloatStat("latencyAvg100", latencyAvg100OID, OID_LENGTH(latencyAvg100OID), &dnsdist::metrics::g_stats.latencyAvg100);
+  registerFloatStat("latencyAvg1000", latencyAvg1000OID, OID_LENGTH(latencyAvg1000OID), &dnsdist::metrics::g_stats.latencyAvg1000);
+  registerFloatStat("latencyAvg10000", latencyAvg10000OID, OID_LENGTH(latencyAvg10000OID), &dnsdist::metrics::g_stats.latencyAvg10000);
+  registerFloatStat("latencyAvg1000000", latencyAvg1000000OID, OID_LENGTH(latencyAvg1000000OID), &dnsdist::metrics::g_stats.latencyAvg1000000);
   registerGauge64Stat("uptime", uptimeOID, OID_LENGTH(uptimeOID), &uptimeOfProcess);
   registerGauge64Stat("specialMemoryUsage", specialMemoryUsageOID, OID_LENGTH(specialMemoryUsageOID), &getSpecialMemoryUsage);
   registerGauge64Stat("cpuUserMSec", cpuUserMSecOID, OID_LENGTH(cpuUserMSecOID), &getCPUTimeUser);
   registerGauge64Stat("cpuSysMSec", cpuSysMSecOID, OID_LENGTH(cpuSysMSecOID), &getCPUTimeSystem);
   registerGauge64Stat("fdUsage", fdUsageOID, OID_LENGTH(fdUsageOID), &getOpenFileDescriptors);
   registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, OID_LENGTH(dynBlockedNMGSizeOID), [](const std::string&) { return g_dynblockNMG.getLocal()->size(); });
-  registerGauge64Stat("securityStatus", securityStatusOID, OID_LENGTH(securityStatusOID), [](const std::string&) { return g_stats.securityStatus.load(); });
+  registerGauge64Stat("securityStatus", securityStatusOID, OID_LENGTH(securityStatusOID), [](const std::string&) { return dnsdist::metrics::g_stats.securityStatus.load(); });
   registerGauge64Stat("realMemoryUsage", realMemoryUsageOID, OID_LENGTH(realMemoryUsageOID), &getRealMemoryUsage);
 
 

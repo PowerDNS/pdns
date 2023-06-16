@@ -36,6 +36,7 @@
 #include "sstuff.hh"
 
 #include "dnsdist.hh"
+#include "dnsdist-metrics.hh"
 #include "dnsdist-random.hh"
 
 #ifndef PACKAGEVERSION
@@ -220,7 +221,7 @@ void doSecPoll(const std::string& suffix)
       errlog("PowerDNS DNSDist Security Update Mandatory: %s", securityMessage);
     }
 
-    g_stats.securityStatus = securityStatus;
+    dnsdist::metrics::g_stats.securityStatus = securityStatus;
     g_secPollDone = true;
     return;
   }

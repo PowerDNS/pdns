@@ -34,6 +34,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-healthchecks.hh"
+#include "dnsdist-metrics.hh"
 #include "dnsdist-prometheus.hh"
 #include "dnsdist-web.hh"
 #include "dolog.hh"
@@ -468,7 +469,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   std::ostringstream output;
   static const std::set<std::string> metricBlacklist = { "special-memory-usage", "latency-count", "latency-sum" };
   {
-    auto entries = g_stats.entries.read_lock();
+    auto entries = dnsdist::metrics::g_stats.entries.read_lock();
     for (const auto& entry : *entries) {
       const auto& metricName = entry.d_name;
 
@@ -504,16 +505,16 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       output << "# TYPE " << helpName << " " << prometheusTypeName << "\n";
       output << prometheusMetricName << " ";
 
-      if (const auto& val = boost::get<pdns::stat_t*>(&entry.d_value)) {
+      if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
         output << (*val)->load();
       }
-      else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+      else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
         output << (*adval)->load();
       }
-      else if (const auto& dval = boost::get<double*>(&entry.d_value)) {
+      else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
         output << **dval;
       }
-      else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&entry.d_value)) {
+      else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
         output << (*func)(entry.d_name);
       }
 
@@ -524,20 +525,20 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   // Latency histogram buckets
   output << "# HELP dnsdist_latency Histogram of responses by latency (in milliseconds)\n";
   output << "# TYPE dnsdist_latency histogram\n";
-  uint64_t latency_amounts = g_stats.latency0_1;
+  uint64_t latency_amounts = dnsdist::metrics::g_stats.latency0_1;
   output << "dnsdist_latency_bucket{le=\"1\"} " << latency_amounts << "\n";
-  latency_amounts += g_stats.latency1_10;
+  latency_amounts += dnsdist::metrics::g_stats.latency1_10;
   output << "dnsdist_latency_bucket{le=\"10\"} " << latency_amounts << "\n";
-  latency_amounts += g_stats.latency10_50;
+  latency_amounts += dnsdist::metrics::g_stats.latency10_50;
   output << "dnsdist_latency_bucket{le=\"50\"} " << latency_amounts << "\n";
-  latency_amounts += g_stats.latency50_100;
+  latency_amounts += dnsdist::metrics::g_stats.latency50_100;
   output << "dnsdist_latency_bucket{le=\"100\"} " << latency_amounts << "\n";
-  latency_amounts += g_stats.latency100_1000;
+  latency_amounts += dnsdist::metrics::g_stats.latency100_1000;
   output << "dnsdist_latency_bucket{le=\"1000\"} " << latency_amounts << "\n";
-  latency_amounts += g_stats.latencySlow; // Should be the same as latency_count
+  latency_amounts += dnsdist::metrics::g_stats.latencySlow; // Should be the same as latency_count
   output << "dnsdist_latency_bucket{le=\"+Inf\"} " << latency_amounts << "\n";
-  output << "dnsdist_latency_sum " << g_stats.latencySum << "\n";
-  output << "dnsdist_latency_count " << g_stats.latencyCount << "\n";
+  output << "dnsdist_latency_sum " << dnsdist::metrics::g_stats.latencySum << "\n";
+  output << "dnsdist_latency_count " << dnsdist::metrics::g_stats.latencyCount << "\n";
 
   auto states = g_dstates.getLocal();
   const string statesbase = "dnsdist_server_";
@@ -895,18 +896,18 @@ using namespace json11;
 
 static void addStatsToJSONObject(Json::object& obj)
 {
-  auto entries = g_stats.entries.read_lock();
+  auto entries = dnsdist::metrics::g_stats.entries.read_lock();
   for (const auto& entry : *entries) {
     if (entry.d_name == "special-memory-usage") {
       continue; // Too expensive for get-all
     }
-    if (const auto& val = boost::get<pdns::stat_t*>(&entry.d_value)) {
+    if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
       obj.emplace(entry.d_name, (double)(*val)->load());
-    } else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+    } else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
       obj.emplace(entry.d_name, (*adval)->load());
-    } else if (const auto& dval = boost::get<double*>(&entry.d_value)) {
+    } else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
       obj.emplace(entry.d_name, (**dval));
-    } else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&entry.d_value)) {
+    } else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
       obj.emplace(entry.d_name, (double)(*func)(entry.d_name));
     }
   }
@@ -1336,34 +1337,34 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   Json::array doc;
   {
-    auto entries = g_stats.entries.read_lock();
+    auto entries = dnsdist::metrics::g_stats.entries.read_lock();
     for (const auto& item : *entries) {
       if (item.d_name == "special-memory-usage") {
         continue; // Too expensive for get-all
       }
 
-      if (const auto& val = boost::get<pdns::stat_t*>(&item.d_value)) {
+      if (const auto& val = std::get_if<pdns::stat_t*>(&item.d_value)) {
         doc.push_back(Json::object {
             { "type", "StatisticItem" },
             { "name", item.d_name },
             { "value", (double)(*val)->load() }
           });
       }
-      else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&item.d_value)) {
+      else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&item.d_value)) {
         doc.push_back(Json::object {
             { "type", "StatisticItem" },
             { "name", item.d_name },
             { "value", (*adval)->load() }
           });
       }
-      else if (const auto& dval = boost::get<double*>(&item.d_value)) {
+      else if (const auto& dval = std::get_if<double*>(&item.d_value)) {
         doc.push_back(Json::object {
             { "type", "StatisticItem" },
             { "name", item.d_name },
             { "value", (**dval) }
           });
       }
-      else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&item.d_value)) {
+      else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&item.d_value)) {
         doc.push_back(Json::object {
             { "type", "StatisticItem" },
             { "name", item.d_name },
