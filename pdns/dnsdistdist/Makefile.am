@@ -34,9 +34,9 @@ htmlfiles.h: $(srcdir)/html/* $(srcdir)/incfiles
 	$(AM_V_GEN)$(srcdir)/incfiles $(srcdir) > $@.tmp
 	@mv $@.tmp $@
 
-dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h
+dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h dnsdist-lua-inspection-ffi.h
 	$(AM_V_GEN)echo 'R"FFIContent(' > $@
-	@cat $< >> $@
+	@cat $^ >> $@
 	@echo ')FFIContent"' >> $@
 SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
@@ -166,7 +166,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-bindings.cc \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
-	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
+	dnsdist-lua-inspection-ffi.cc \
 	dnsdist-lua-inspection.cc \
 	dnsdist-lua-network.cc dnsdist-lua-network.hh \
 	dnsdist-lua-rules.cc \
