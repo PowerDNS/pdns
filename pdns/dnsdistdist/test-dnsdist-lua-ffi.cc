@@ -26,10 +26,11 @@
 
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-web.hh"
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 
-bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description, const std::string& customPrometheusName)
+bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
 {
   return true;
 }

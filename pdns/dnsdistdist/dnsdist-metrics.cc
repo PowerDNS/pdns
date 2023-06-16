@@ -31,10 +31,18 @@ namespace dnsdist::metrics
 struct MutableCounter
 {
   MutableCounter() = default;
-  MutableCounter(MutableCounter&& rhs) :
+  MutableCounter(const MutableCounter&) = delete;
+  MutableCounter(MutableCounter&& rhs) noexcept :
     d_value(rhs.d_value.load())
   {
   }
+  MutableCounter& operator=(const MutableCounter&) = delete;
+  MutableCounter& operator=(MutableCounter&& rhs) noexcept
+  {
+    d_value = rhs.d_value.load();
+    return *this;
+  }
+  ~MutableCounter() = default;
 
   mutable stat_t d_value{0};
 };
@@ -42,10 +50,18 @@ struct MutableCounter
 struct MutableGauge
 {
   MutableGauge() = default;
-  MutableGauge(MutableGauge&& rhs) :
+  MutableGauge(const MutableGauge&) = delete;
+  MutableGauge(MutableGauge&& rhs) noexcept :
     d_value(rhs.d_value.load())
   {
   }
+  MutableGauge& operator=(const MutableGauge&) = delete;
+  MutableGauge& operator=(MutableGauge&& rhs) noexcept
+  {
+    d_value = rhs.d_value.load();
+    return *this;
+  }
+  ~MutableGauge() = default;
 
   mutable pdns::stat_t_trait<double> d_value{0};
 };
@@ -97,17 +113,17 @@ Stats::Stats() :
     {"uptime", uptimeOfProcess},
     {"real-memory-usage", getRealMemoryUsage},
     {"special-memory-usage", getSpecialMemoryUsage},
-    {"udp-in-errors", std::bind(udpErrorStats, "udp-in-errors")},
-    {"udp-noport-errors", std::bind(udpErrorStats, "udp-noport-errors")},
-    {"udp-recvbuf-errors", std::bind(udpErrorStats, "udp-recvbuf-errors")},
-    {"udp-sndbuf-errors", std::bind(udpErrorStats, "udp-sndbuf-errors")},
-    {"udp-in-csum-errors", std::bind(udpErrorStats, "udp-in-csum-errors")},
-    {"udp6-in-errors", std::bind(udp6ErrorStats, "udp6-in-errors")},
-    {"udp6-recvbuf-errors", std::bind(udp6ErrorStats, "udp6-recvbuf-errors")},
-    {"udp6-sndbuf-errors", std::bind(udp6ErrorStats, "udp6-sndbuf-errors")},
-    {"udp6-noport-errors", std::bind(udp6ErrorStats, "udp6-noport-errors")},
-    {"udp6-in-csum-errors", std::bind(udp6ErrorStats, "udp6-in-csum-errors")},
-    {"tcp-listen-overflows", std::bind(tcpErrorStats, "ListenOverflows")},
+    {"udp-in-errors", [](const std::string&) { return udpErrorStats("udp-in-errors"); }},
+    {"udp-noport-errors", [](const std::string&) { return udpErrorStats("udp-noport-errors"); }},
+    {"udp-recvbuf-errors", [](const std::string&) { return udpErrorStats("udp-recvbuf-errors"); }},
+    {"udp-sndbuf-errors", [](const std::string&) { return udpErrorStats("udp-sndbuf-errors"); }},
+    {"udp-in-csum-errors", [](const std::string&) { return udpErrorStats("udp-in-csum-errors"); }},
+    {"udp6-in-errors", [](const std::string&) { return udp6ErrorStats("udp6-in-errors"); }},
+    {"udp6-recvbuf-errors", [](const std::string&) { return udp6ErrorStats("udp6-recvbuf-errors"); }},
+    {"udp6-sndbuf-errors", [](const std::string&) { return udp6ErrorStats("udp6-sndbuf-errors"); }},
+    {"udp6-noport-errors", [](const std::string&) { return udp6ErrorStats("udp6-noport-errors"); }},
+    {"udp6-in-csum-errors", [](const std::string&) { return udp6ErrorStats("udp6-in-csum-errors"); }},
+    {"tcp-listen-overflows", [](const std::string&) { return tcpErrorStats("ListenOverflows"); }},
     {"noncompliant-queries", &nonCompliantQueries},
     {"noncompliant-responses", &nonCompliantResponses},
     {"proxy-protocol-invalid", &proxyProtocolInvalid},
@@ -149,7 +165,8 @@ std::optional<std::string> declareCustomMetric(const std::string& name, const st
     auto itp = customCounters->insert({name, MutableCounter()});
     if (itp.second) {
       g_stats.entries.write_lock()->emplace_back(Stats::EntryPair{name, &(*customCounters)[name].d_value});
-      addMetricDefinition(name, "counter", description, customName ? *customName : "");
+      dnsdist::prometheus::PrometheusMetricDefinition def{name, "counter", description, customName ? *customName : ""};
+      addMetricDefinition(def);
     }
   }
   else if (type == "gauge") {
@@ -157,7 +174,8 @@ std::optional<std::string> declareCustomMetric(const std::string& name, const st
     auto itp = customGauges->insert({name, MutableGauge()});
     if (itp.second) {
       g_stats.entries.write_lock()->emplace_back(Stats::EntryPair{name, &(*customGauges)[name].d_value});
-      addMetricDefinition(name, "gauge", description, customName ? *customName : "");
+      dnsdist::prometheus::PrometheusMetricDefinition def{name, "gauge", description, customName ? *customName : ""};
+      addMetricDefinition(def);
     }
   }
   else {
@@ -171,11 +189,8 @@ std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& nam
   auto customCounters = s_customCounters.read_lock();
   auto metric = customCounters->find(name);
   if (metric != customCounters->end()) {
-    if (step) {
-      metric->second.d_value += step;
-      return metric->second.d_value.load();
-    }
-    return ++(metric->second.d_value);
+    metric->second.d_value += step;
+    return metric->second.d_value.load();
   }
   return std::string("Unable to increment custom metric '") + std::string(name) + "': no such metric";
 }
@@ -185,11 +200,8 @@ std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& nam
   auto customCounters = s_customCounters.read_lock();
   auto metric = customCounters->find(name);
   if (metric != customCounters->end()) {
-    if (step) {
-      metric->second.d_value -= step;
-      return metric->second.d_value.load();
-    }
-    return --(metric->second.d_value);
+    metric->second.d_value -= step;
+    return metric->second.d_value.load();
   }
   return std::string("Unable to decrement custom metric '") + std::string(name) + "': no such metric";
 }

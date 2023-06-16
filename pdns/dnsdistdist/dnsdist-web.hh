@@ -1,6 +1,7 @@
 #pragma once
 
 #include "credentials.hh"
+#include "dnsdist-prometheus.hh"
 
 void setWebserverAPIKey(std::unique_ptr<CredentialsHolder>&& apiKey);
 void setWebserverPassword(std::unique_ptr<CredentialsHolder>&& password);
@@ -16,6 +17,6 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local);
 void registerBuiltInWebHandlers();
 void clearWebHandlers();
 
-bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description, const std::string& customPrometheusName);
-
 std::string getWebserverConfig();
+
+bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def);
