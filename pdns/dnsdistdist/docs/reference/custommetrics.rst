@@ -41,10 +41,14 @@ Then you can update those at runtime using the following functions, depending on
 
   .. versionadded:: 1.8.0
 
-  Decrement counter by one, will issue an error if the metric is not declared or not a ``counter``
+  .. versionchanged:: 1.8.1
+    Optional ``step`` parameter added.
+
+  Decrement counter by one (or more, see the ``step`` parameter), will issue an error if the metric is not declared or not a ``counter``
   Return the new value
 
   :param str name: The name of the metric
+  :param int step: By how much the counter should be decremented, default to 1.
 
 .. function:: getMetric(name) -> double
 

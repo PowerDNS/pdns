@@ -25,6 +25,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-mac-address.hh"
+#include "dnsdist-metrics.hh"
 #include "dnsdist-lua-network.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-ecs.hh"
@@ -1601,60 +1602,57 @@ void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t* packet)
   }
 }
 
+bool dnsdist_ffi_metric_declare(const char* name, size_t nameLen, const char* type, const char* description, const char* customName)
+{
+  if (name == nullptr || nameLen == 0 || type == nullptr || description == nullptr) {
+    return false;
+  }
+  auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName ? std::optional<std::string>(customName) : std::nullopt);
+  if (result) {
+    return false;
+  }
+  return true;
+}
+
 void dnsdist_ffi_metric_inc(const char* metricName, size_t metricNameLen)
 {
-  auto customCounters = g_stats.customCounters.read_lock();
-  auto metric = customCounters->find(std::string_view(metricName, metricNameLen));
-  if (metric != customCounters->end()) {
-    ++metric->second.d_value;
+  auto result = dnsdist::metrics::incrementCustomCounter(std::string_view(metricName, metricNameLen), 1U);
+  if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+    return;
   }
 }
 
 void dnsdist_ffi_metric_inc_by(const char* metricName, size_t metricNameLen, uint64_t value)
 {
-  auto customCounters = g_stats.customCounters.write_lock();
-  auto metric = customCounters->find(std::string_view(metricName, metricNameLen));
-  if (metric != customCounters->end()) {
-    metric->second.d_value += value;
+  auto result = dnsdist::metrics::incrementCustomCounter(std::string_view(metricName, metricNameLen), value);
+  if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+    return;
   }
 }
 
 void dnsdist_ffi_metric_dec(const char* metricName, size_t metricNameLen)
 {
-  auto customCounters = g_stats.customCounters.read_lock();
-  auto metric = customCounters->find(std::string_view(metricName, metricNameLen));
-  if (metric != customCounters->end()) {
-    --metric->second.d_value;
+  auto result = dnsdist::metrics::decrementCustomCounter(std::string_view(metricName, metricNameLen), 1U);
+  if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+    return;
   }
 }
 
 void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double value)
 {
-  auto customGauges = g_stats.customGauges.read_lock();
-  auto metric = customGauges->find(std::string_view(metricName, metricNameLen));
-  if (metric != customGauges->end()) {
-    metric->second.d_value = value;
+  auto result = dnsdist::metrics::setCustomGauge(std::string_view(metricName, metricNameLen), value);
+  if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+    return;
   }
 }
 
 double dnsdist_ffi_metric_get(const char* metricName, size_t metricNameLen, bool isCounter)
 {
-  auto name = std::string_view(metricName, metricNameLen);
-  if (isCounter) {
-    auto customCounters = g_stats.customCounters.read_lock();
-    auto counter = customCounters->find(name);
-    if (counter != customCounters->end()) {
-      return (double)counter->second.d_value.load();
-    }
+  auto result = dnsdist::metrics::getCustomMetric(std::string_view(metricName, metricNameLen));
+  if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+    return 0.;
   }
-  else {
-    auto customGauges = g_stats.customGauges.read_lock();
-    auto gauge = customGauges->find(name);
-    if (gauge != customGauges->end()) {
-      return gauge->second.d_value.load();
-    }
-  }
-  return 0.;
+  return std::get<double>(result);
 }
 
 const char* dnsdist_ffi_network_message_get_payload(const dnsdist_ffi_network_message_t* msg)
