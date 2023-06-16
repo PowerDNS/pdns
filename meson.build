@@ -359,6 +359,13 @@ if opt_hardening.enabled() or opt_hardening.auto()
   endforeach
 endif
 
+# Unsafe KISS RNG ------------------------------------------------------------------------
+opt_kiss_rng = get_option('kiss-rng')
+if opt_kiss_rng
+  conf.set('HAVE_KISS_RNG', 1, 'Use the unsafe KISS RNG')
+endif
+summary('Unsafe KISS RNG', opt_kiss_rng, section: 'Configuration')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # Meson 0.57
