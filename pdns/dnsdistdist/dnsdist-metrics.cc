@@ -25,12 +25,14 @@
 #include "dnsdist.hh"
 #include "dnsdist-web.hh"
 
-namespace dnsdist::metrics {
+namespace dnsdist::metrics
+{
 
 struct MutableCounter
 {
   MutableCounter() = default;
-  MutableCounter(MutableCounter&& rhs): d_value(rhs.d_value.load())
+  MutableCounter(MutableCounter&& rhs) :
+    d_value(rhs.d_value.load())
   {
   }
 
@@ -40,7 +42,8 @@ struct MutableCounter
 struct MutableGauge
 {
   MutableGauge() = default;
-  MutableGauge(MutableGauge&& rhs): d_value(rhs.d_value.load())
+  MutableGauge(MutableGauge&& rhs) :
+    d_value(rhs.d_value.load())
   {
   }
 
@@ -50,7 +53,8 @@ struct MutableGauge
 static SharedLockGuarded<std::map<std::string, MutableCounter, std::less<>>> s_customCounters;
 static SharedLockGuarded<std::map<std::string, MutableGauge, std::less<>>> s_customGauges;
 
-Stats::Stats(): entries{std::vector<EntryPair>{
+Stats::Stats() :
+  entries{std::vector<EntryPair>{
     {"responses", &responses},
     {"servfail-responses", &servfailResponses},
     {"queries", &queries},
