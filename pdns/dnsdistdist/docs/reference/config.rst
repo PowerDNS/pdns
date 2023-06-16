@@ -469,11 +469,11 @@ Access Control Lists
 
   .. versionadded:: 1.6.0
 
-  Set the list of netmasks from which a Proxy Protocol header will be accepted, over UDP, TCP and DNS over TLS. The default is empty. Note that, if :func:`setProxyProtocolApplyACLToProxiedClients` is set (default is false), the general ACL will be applied to the source IP address as seen by dnsdist first, but also to the source IP address provided in the Proxy Protocol header.
+  Set the list of netmasks from which a Proxy Protocol header will be required, over UDP, TCP and DNS over TLS. The default is empty. Note that a proxy protocol payload will be required from these clients, regular DNS queries will no longer be accepted if they are not preceded by a proxy protocol payload. Be also aware that, if :func:`setProxyProtocolApplyACLToProxiedClients` is set (default is false), the general ACL will be applied to the source IP address as seen by dnsdist first, but also to the source IP address provided in the Proxy Protocol header.
 
   :param {str} netmasks: A table of CIDR netmask, e.g. ``{"192.0.2.0/24", "2001:DB8:14::/56"}``. Without a subnetmask, only the specific address is allowed.
 
-.. function:: setProxyProtocolApplyACL(apply)
+.. function:: setProxyProtocolApplyACLToProxiedClients(apply)
 
   .. versionadded:: 1.6.0
 
