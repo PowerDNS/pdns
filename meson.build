@@ -417,6 +417,19 @@ if has
 endif
 summary('tm_gmtoff', has, bool_yn: true, section: 'System')
 
+# Check for mmap -------------------------------------------------------------------------
+mman_h = false
+have_mmap = false
+if cxx.has_header('sys/mman.h', required: false)
+  mman_h = true
+  if cxx.has_function('mmap', prefix: '''#include <sys/mman.h>''')
+    have_mmap = true
+    conf.set('HAVE_MMAP', 1, description: 'Whether we have mmap')
+  endif
+endif
+summary('sys/mman.h', mman_h, bool_yn: true, section: 'System')
+summary('Have mmap', have_mmap, bool_yn: true, section: 'System')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # Meson 0.57
