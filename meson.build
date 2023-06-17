@@ -406,6 +406,17 @@ if cxx.has_header_symbol('ifaddrs.h', 'getifaddrs')
 endif
 summary('getifaddrs', declared, bool_yn: true, section: 'Network Functions')
 
+# Check for the tm_gmtoff field in struct tm ---------------------------------------------
+prefix = '''
+#include <sys/types.h>
+#include <time.h>
+'''
+has = cxx.has_member('struct tm', 'tm_gmtoff', prefix: prefix)
+if has
+  conf.set('HAVE_TM_GMTOFF', 1, description: 'Whether tm_gmtoff is available')
+endif
+summary('tm_gmtoff', has, bool_yn: true, section: 'System')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # Meson 0.57
