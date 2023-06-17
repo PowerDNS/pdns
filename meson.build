@@ -430,6 +430,23 @@ endif
 summary('sys/mman.h', mman_h, bool_yn: true, section: 'System')
 summary('Have mmap', have_mmap, bool_yn: true, section: 'System')
 
+# libsodium signers ----------------------------------------------------------------------
+opt_libsodium = get_option('libsodium')
+dep_libsodium = dependency('libsodium', required: opt_libsodium, not_found_message: 'libsodium not found')
+if dep_libsodium.found()
+  conf.set('HAVE_LIBSODIUM', 1, description: 'Whether we build libsodium-based signers')
+  funcs = ['crypto_box_easy_afternm', 'crypto_box_curve25519xchacha20poly1305_easy', 'randombytes_stir', 'sodium_memcmp', 'crypto_shorthash']
+  foreach func: funcs
+    define = false
+    if cxx.has_function(func, dependencies: dep_libsodium)
+      define = 'HAVE_' + func.to_upper()
+      conf.set(define, 1, description: 'Whether we have ' + func)
+    endif
+    summary(func, define, bool_yn: true, section: 'Libsodium Functions')
+  endforeach
+endif
+summary('libsodium', dep_libsodium.found(), bool_yn: true, section: 'Configuration')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # Meson 0.57
@@ -440,6 +457,7 @@ deps += dep_atomics
 deps += dep_threads
 deps += dep_lua
 deps += dep_net
+deps += dep_libsodium
 
 # TODO: Other source files
 auth = executable('pdns', config_h, dependencies: deps, export_dynamic: true)

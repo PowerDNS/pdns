@@ -2,3 +2,4 @@ option('lua', type: 'combo', choices: ['auto', 'luajit', 'lua'], value: 'auto', 
 option('hardening', type: 'feature', value: 'auto', description: 'Compiler security checks')
 option('fortify-source', type: 'combo', choices: ['auto', 'disabled', '1', '2', '3'], value: '2', description: 'Source fortification level')
 option('kiss-rng', type: 'boolean', value: false, description: 'Use the unsafe KISS RNG')
+option('libsodium', type: 'feature', value: 'auto', description: 'Build support for libsodium-based signers')
