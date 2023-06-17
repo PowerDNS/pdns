@@ -447,6 +447,44 @@ if dep_libsodium.found()
 endif
 summary('libsodium', dep_libsodium.found(), bool_yn: true, section: 'Configuration')
 
+# libdecaf signers -----------------------------------------------------------------------
+opt_libdecaf = get_option('libdecaf')
+dep_libdecaf = []
+if not opt_libdecaf.disabled()
+  dep_libdecaf = dependency('libdecaf', required: false)
+  if not dep_libdecaf.found()
+    dep_libdecaf = cxx.find_library('decaf', dirs: ['/usr', '/usr/local'], required: opt_libdecaf)
+  endif
+
+  found_header = false
+  if dep_libdecaf.found()
+    include_dirs = ['/usr/include', '/usr/local/include']
+    headers = ['decaf.hxx', 'decaf/decaf.hxx']
+    do_break = false
+    foreach dirname: include_dirs
+      dir = include_directories(dirname, is_system: true)
+      foreach header: headers
+        message(dirname / header)
+        if cxx.has_header(header, dependencies: dep_libdecaf, required: false, include_directories: dir)
+          conf.set('HAVE_LIBDECAF', 1, description: 'Whether we build libdecaf-based signers')
+          found_header = '-I' + dirname / header
+          add_global_arguments([found_header], language: ['c', 'cpp'])
+          do_break = true
+          break
+        endif
+      endforeach
+
+      if do_break
+        break
+      endif
+    endforeach
+  endif
+
+  show_colors = dep_libdecaf.found() or not opt_libdecaf.auto()
+  summary('libdecaf', dep_libdecaf.found(), bool_yn: show_colors, section: 'Configuration')
+  summary('libdecaf headers', found_header, bool_yn: show_colors, section: 'Configuration')
+endif
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # Meson 0.57
@@ -458,6 +496,7 @@ deps += dep_threads
 deps += dep_lua
 deps += dep_net
 deps += dep_libsodium
+deps += dep_libdecaf
 
 # TODO: Other source files
 auth = executable('pdns', config_h, dependencies: deps, export_dynamic: true)

@@ -3,3 +3,4 @@ option('hardening', type: 'feature', value: 'auto', description: 'Compiler secur
 option('fortify-source', type: 'combo', choices: ['auto', 'disabled', '1', '2', '3'], value: '2', description: 'Source fortification level')
 option('kiss-rng', type: 'boolean', value: false, description: 'Use the unsafe KISS RNG')
 option('libsodium', type: 'feature', value: 'auto', description: 'Build support for libsodium-based signers')
+option('libdecaf', type: 'feature', value: 'auto', description: 'Build support for libdecaf-based signers')
