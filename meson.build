@@ -366,15 +366,56 @@ if opt_kiss_rng
 endif
 summary('Unsafe KISS RNG', opt_kiss_rng, section: 'Configuration')
 
+# Network Libraries ----------------------------------------------------------------------
+dep_net = []
+variants = [
+  ['inet_aton', 'resolv'],
+  ['gethostbyname', 'nsl'],
+  ['socket', 'socket'],
+  ['gethostent', 'nsl'],
+]
+foreach variant: variants
+  funcname = variant[0]
+  libname = variant[1]
+  if not cxx.has_function(funcname)
+    lib = cxx.find_library(libname, required: true)
+    if not cxx.has_function(funcname)
+      error('Cannot find function ' + funcname)
+    endif
+    dep_net += lib
+    summary(funcname, lib.name() + ' ' + lib.version(), bool_yn: true, section: 'Network Functions')
+  else
+    summary(funcname, true, bool_yn: true, section: 'Network Functions')
+  endif
+endforeach
+
+variants = ['recvmmsg', 'sendmmsg', 'accept4']
+foreach variant: variants
+  define = false
+  if cxx.has_function(variant)
+    define = 'HAVE_' + variant.to_upper()
+    conf.set(define, 1, description: 'Whether we have ' + variant)
+  endif
+  summary(variant, define, bool_yn: true, section: 'Network Functions')
+endforeach
+
+declared = false
+if cxx.has_header_symbol('ifaddrs.h', 'getifaddrs')
+  declared = 'HAVE_GETIFADDRS'
+  conf.set(declared, 1, description: 'Whether we have getifaddrs')
+endif
+summary('getifaddrs', declared, bool_yn: true, section: 'Network Functions')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # Meson 0.57
 
 # Create the dependencies list -----------------------------------------------------------
-deps = []
+deps  = []
 deps += dep_atomics
 deps += dep_threads
 deps += dep_lua
+deps += dep_net
 
 # TODO: Other source files
 auth = executable('pdns', config_h, dependencies: deps, export_dynamic: true)
