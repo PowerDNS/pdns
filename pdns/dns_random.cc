@@ -99,7 +99,7 @@ static void dns_random_setup(bool force = false)
 #else
   rng = ::arg()["rng"];
   rdev = ::arg()["entropy-source"];
-  if (rng == "auto") { // NOLINT: I see no way to avoid repeating blocks reported bby clang-tidy
+  if (rng == "auto") { // NOLINT: I see no way to avoid repeating blocks reported by clang-tidy
 #if defined(HAVE_GETRANDOM)
     chosen_rng = RNG_GETRANDOM;
 #elif defined(HAVE_ARC4RANDOM)
@@ -188,16 +188,17 @@ static void dns_random_setup(bool force = false)
   }
 #if defined(HAVE_KISS_RNG)
   if (chosen_rng == RNG_KISS) {
-    unsigned int seed;
-    urandom_fd = open(rdev.c_str(), O_RDONLY);
-    if (urandom_fd == -1)
+    int fileDesc = open(rdev.c_str(), O_RDONLY);
+    if (fileDesc == -1) {
       throw std::runtime_error("Cannot open " + rdev + ": " + stringerror());
+    }
+    unsigned int seed = 0;
     if (read(urandom_fd, &seed, sizeof(seed)) < 0) {
-      (void)close(urandom_fd);
+      (void)close(fileDesc);
       throw std::runtime_error("Cannot read random device");
     }
     kiss_init(seed);
-    (void)close(urandom_fd);
+    (void)close(fileDesc);
   }
 #endif
 }
@@ -278,8 +279,6 @@ uint32_t dns_random_uint32()
         if (errno == EINTR) {
           continue;
         }
-
-        (void)close(urandom_fd);
         throw std::runtime_error("Cannot read random device");
       }
       if (static_cast<size_t>(got) != sizeof(num)) {
@@ -373,8 +372,6 @@ uint32_t dns_random(uint32_t upper_bound)
         if (errno == EINTR) {
           continue;
         }
-
-        (void)close(urandom_fd);
         throw std::runtime_error("Cannot read random device");
       }
       if (static_cast<size_t>(got) != sizeof(num)) {
