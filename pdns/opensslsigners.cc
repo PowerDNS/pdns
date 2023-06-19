@@ -180,7 +180,7 @@ void openssl_seed()
 
   unsigned int r;
   for (int i = 0; i < 1024; i += 4) {
-    r = dns_random(0xffffffff);
+    r = dns_random_uint32();
     entropy.append((const char*)&r, 4);
   }
 

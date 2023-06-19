@@ -1852,7 +1852,7 @@ static void testSpeed(const DNSName& zone, const string& /* remote */, int cores
   DTime dt;
   dt.set();
   for(unsigned int n=0; n < 100000; ++n) {
-    rnd = dns_random(UINT32_MAX);
+    rnd = dns_random_uint32();
     snprintf(tmp, sizeof(tmp), "%d.%d.%d.%d",
       octets[0], octets[1], octets[2], octets[3]);
     rr.content=tmp;
