@@ -1,8 +1,6 @@
-#include "config.h"
+#pragma once
 
-//#ifdef HAVE_SYS_RANDOM_H
-//#include <sys/random.h>
-//#endif
+#include "config.h"
 
 #include <inttypes.h>
 #include <stdlib.h>
