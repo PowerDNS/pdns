@@ -95,7 +95,7 @@ inline std::string keyConv(const T& t)
 
 
 namespace {
-  MDBOutVal getKeyFromCombinedKey(MDBInVal combined) {
+  inline MDBOutVal getKeyFromCombinedKey(MDBInVal combined) {
     if (combined.d_mdbval.mv_size < sizeof(uint32_t)) {
       throw std::runtime_error("combined key too short to get ID from");
     }
@@ -107,7 +107,7 @@ namespace {
     return ret;
   }
 
-  MDBOutVal getIDFromCombinedKey(MDBInVal combined) {
+  inline MDBOutVal getIDFromCombinedKey(MDBInVal combined) {
     if (combined.d_mdbval.mv_size < sizeof(uint32_t)) {
       throw std::runtime_error("combined key too short to get ID from");
     }
@@ -119,7 +119,7 @@ namespace {
     return ret;
   }
 
-  std::string makeCombinedKey(MDBInVal key, MDBInVal val)
+  inline std::string makeCombinedKey(MDBInVal key, MDBInVal val)
   {
     std::string lenprefix(sizeof(uint16_t), '\0');
     std::string skey((char*) key.d_mdbval.mv_data, key.d_mdbval.mv_size);

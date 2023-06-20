@@ -427,8 +427,8 @@ BOOST_AUTO_TEST_CASE(test_Server)
   BOOST_CHECK_EQUAL(dnsdist_ffi_server_is_up(&server), false);
   BOOST_CHECK_EQUAL(dnsdist_ffi_server_get_name(&server), "");
   BOOST_CHECK_EQUAL(dnsdist_ffi_server_get_name_with_addr(&server), dsAddr.toStringWithPort());
-  BOOST_CHECK_EQUAL(dnsdist_ffi_server_get_weight(&server), 1U);
-  BOOST_CHECK_EQUAL(dnsdist_ffi_server_get_order(&server), 1U);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_server_get_weight(&server), 1);
+  BOOST_CHECK_EQUAL(dnsdist_ffi_server_get_order(&server), 1);
   BOOST_CHECK_EQUAL(dnsdist_ffi_server_get_latency(&server), 0.0);
 }
 

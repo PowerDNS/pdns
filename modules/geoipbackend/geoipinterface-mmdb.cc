@@ -288,7 +288,7 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(const string& fname
 
 #else
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface(const string& fname, const map<string, string>& opts)
+unique_ptr<GeoIPInterface> GeoIPInterface::makeMMDBInterface([[maybe_unused]] const string& fname, [[maybe_unused]] const map<string, string>& opts)
 {
   throw PDNSException("libmaxminddb support not compiled in");
 }

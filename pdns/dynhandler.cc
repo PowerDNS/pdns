@@ -410,7 +410,7 @@ string DLListZones(const vector<string>& parts, Utility::pid_t /* ppid */)
 extern bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin);
 #endif
 
-string DLTokenLogin(const vector<string>& parts, Utility::pid_t /* ppid */)
+string DLTokenLogin([[maybe_unused]] const vector<string>& parts, [[maybe_unused]] Utility::pid_t /* ppid */)
 {
 #ifndef HAVE_P11KIT1
   return "PKCS#11 support not compiled in";

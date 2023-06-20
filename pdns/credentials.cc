@@ -96,7 +96,7 @@ void SensitiveData::clear()
   d_data.clear();
 }
 
-static std::string hashPasswordInternal(const std::string& password, const std::string& salt, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize)
+static std::string hashPasswordInternal([[maybe_unused]] const std::string& password, [[maybe_unused]] const std::string& salt, [[maybe_unused]] uint64_t workFactor, [[maybe_unused]] uint64_t parallelFactor, [[maybe_unused]] uint64_t blockSize)
 {
 #if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   auto pctx = std::unique_ptr<EVP_PKEY_CTX, void (*)(EVP_PKEY_CTX*)>(EVP_PKEY_CTX_new_id(EVP_PKEY_SCRYPT, nullptr), EVP_PKEY_CTX_free);
@@ -165,7 +165,7 @@ static std::string generateRandomSalt()
 #endif
 }
 
-std::string hashPassword(const std::string& password, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize)
+std::string hashPassword([[maybe_unused]] const std::string& password, [[maybe_unused]] uint64_t workFactor, [[maybe_unused]] uint64_t parallelFactor, [[maybe_unused]] uint64_t blockSize)
 {
 #if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   if (workFactor == 0) {
@@ -197,7 +197,7 @@ std::string hashPassword(const std::string& password, uint64_t workFactor, uint6
 #endif
 }
 
-std::string hashPassword(const std::string& password)
+std::string hashPassword([[maybe_unused]] const std::string& password)
 {
 #if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   return hashPassword(password, CredentialsHolder::s_defaultWorkFactor, CredentialsHolder::s_defaultParallelFactor, CredentialsHolder::s_defaultBlockSize);
@@ -206,7 +206,7 @@ std::string hashPassword(const std::string& password)
 #endif
 }
 
-bool verifyPassword(const std::string& binaryHash, const std::string& salt, uint64_t workFactor, uint64_t parallelFactor, uint64_t blockSize, const std::string& binaryPassword)
+bool verifyPassword([[maybe_unused]] const std::string& binaryHash, [[maybe_unused]] const std::string& salt, [[maybe_unused]] uint64_t workFactor, [[maybe_unused]] uint64_t parallelFactor, [[maybe_unused]] uint64_t blockSize, [[maybe_unused]] const std::string& binaryPassword)
 {
 #if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   auto expected = hashPasswordInternal(binaryPassword, salt, workFactor, parallelFactor, blockSize);
@@ -217,7 +217,7 @@ bool verifyPassword(const std::string& binaryHash, const std::string& salt, uint
 }
 
 /* parse a hashed password in PHC string format */
-static void parseHashed(const std::string& hash, std::string& salt, std::string& hashedPassword, uint64_t& workFactor, uint64_t& parallelFactor, uint64_t& blockSize)
+static void parseHashed([[maybe_unused]] const std::string& hash, [[maybe_unused]] std::string& salt, [[maybe_unused]] std::string& hashedPassword, [[maybe_unused]] uint64_t& workFactor, [[maybe_unused]] uint64_t& parallelFactor, [[maybe_unused]] uint64_t& blockSize)
 {
 #if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   auto parametersEnd = hash.find('$', pwhash_prefix.size());
@@ -282,7 +282,7 @@ static void parseHashed(const std::string& hash, std::string& salt, std::string&
 #endif
 }
 
-bool verifyPassword(const std::string& hash, const std::string& password)
+bool verifyPassword(const std::string& hash, [[maybe_unused]] const std::string& password)
 {
   if (!isPasswordHashed(hash)) {
     return false;
@@ -304,7 +304,7 @@ bool verifyPassword(const std::string& hash, const std::string& password)
 #endif
 }
 
-bool isPasswordHashed(const std::string& password)
+bool isPasswordHashed([[maybe_unused]] const std::string& password)
 {
 #if !defined(DISABLE_HASHED_CREDENTIALS) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
   if (password.size() < pwhash_prefix_size || password.size() > pwhash_max_size) {

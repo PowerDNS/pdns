@@ -249,7 +249,7 @@ static void registerCounter64Stat(const std::string& name, const oid statOID[], 
 
 std::shared_ptr<RecursorSNMPAgent> g_snmpAgent{nullptr};
 
-bool RecursorSNMPAgent::sendCustomTrap(const std::string& reason)
+bool RecursorSNMPAgent::sendCustomTrap([[maybe_unused]] const std::string& reason)
 {
 #ifdef HAVE_NET_SNMP
   netsnmp_variable_list* varList = nullptr;

@@ -161,7 +161,7 @@ void SNMPAgent::worker()
 #endif /* HAVE_NET_SNMP */
 }
 
-SNMPAgent::SNMPAgent(const std::string& name, const std::string& daemonSocket)
+SNMPAgent::SNMPAgent([[maybe_unused]] const std::string& name, [[maybe_unused]] const std::string& daemonSocket)
 {
 #ifdef HAVE_NET_SNMP
   netsnmp_enable_subagent();
