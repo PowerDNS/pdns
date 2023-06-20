@@ -1536,7 +1536,7 @@ fuzz_targets_programs =  \
 	fuzz_target_yahttp \
 	fuzz_target_zoneparsertng
 
-fuzz_targets: $(fuzz_targets_programs)
+fuzz_targets: $(ARC4RANDOM_LIBS) $(fuzz_targets_programs)
 
 bin_PROGRAMS += \
 	$(fuzz_targets_programs)
