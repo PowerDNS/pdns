@@ -25,8 +25,8 @@
 namespace pdns::channel
 {
 
-Notifier::Notifier(FDWrapper&& fd) :
-  d_fd(std::move(fd))
+Notifier::Notifier(FDWrapper&& descriptor) :
+  d_fd(std::move(descriptor))
 {
 }
 
@@ -51,8 +51,8 @@ bool Notifier::notify() const
   }
 }
 
-Waiter::Waiter(FDWrapper&& fd, bool throwOnEOF) :
-  d_fd(std::move(fd)), d_throwOnEOF(throwOnEOF)
+Waiter::Waiter(FDWrapper&& descriptor, bool throwOnEOF) :
+  d_fd(std::move(descriptor)), d_throwOnEOF(throwOnEOF)
 {
 }
 

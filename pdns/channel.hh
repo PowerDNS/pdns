@@ -55,8 +55,8 @@ namespace channel
     Sender()
     {
     }
-    Sender(FDWrapper&& fd) :
-      d_fd(std::move(fd))
+    Sender(FDWrapper&& descriptor) :
+      d_fd(std::move(descriptor))
     {
     }
     Sender(const Sender&) = delete;
@@ -89,8 +89,8 @@ namespace channel
     Receiver()
     {
     }
-    Receiver(FDWrapper&& fd, bool throwOnEOF = true) :
-      d_fd(std::move(fd)), d_throwOnEOF(throwOnEOF)
+    Receiver(FDWrapper&& descriptor, bool throwOnEOF = true) :
+      d_fd(std::move(descriptor)), d_throwOnEOF(throwOnEOF)
     {
     }
     Receiver(const Receiver&) = delete;
