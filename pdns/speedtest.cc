@@ -1182,166 +1182,169 @@ private:
 };
 #endif
 
-int main(int argc, char** argv)
-try
+int main()
 {
-  reportAllTypes();
+  try {
+    reportAllTypes();
 
-  doRun(NOPTest());
+    doRun(NOPTest());
 
-  doRun(IEqualsTest());
-  doRun(MyIEqualsTest());
-  doRun(StrcasecmpTest());
-  doRun(Base64EncodeTest());
-  doRun(B64DecodeTest());
+    doRun(IEqualsTest());
+    doRun(MyIEqualsTest());
+    doRun(StrcasecmpTest());
+    doRun(Base64EncodeTest());
+    doRun(B64DecodeTest());
 
-  doRun(StackMallocTest());
+    doRun(StackMallocTest());
 
-  doRun(EmptyQueryTest());
-  doRun(TypicalRefTest());
-  doRun(BigRefTest());
-  doRun(BigDNSPacketRefTest());
+    doRun(EmptyQueryTest());
+    doRun(TypicalRefTest());
+    doRun(BigRefTest());
+    doRun(BigDNSPacketRefTest());
 
-  auto packet = makeEmptyQuery();
-  doRun(ParsePacketTest(packet, "empty-query"));
+    auto packet = makeEmptyQuery();
+    doRun(ParsePacketTest(packet, "empty-query"));
 
-  packet = makeTypicalReferral();
-  cerr<<"typical referral size: "<<packet.size()<<endl;
-  doRun(ParsePacketBareTest(packet, "typical-referral"));
+    packet = makeTypicalReferral();
+    cerr<<"typical referral size: "<<packet.size()<<endl;
+    doRun(ParsePacketBareTest(packet, "typical-referral"));
 
-  doRun(ParsePacketTest(packet, "typical-referral"));
+    doRun(ParsePacketTest(packet, "typical-referral"));
 
-  doRun(SimpleCompressTest("www.france.ds9a.nl"));
+    doRun(SimpleCompressTest("www.france.ds9a.nl"));
 
 
-  doRun(VectorExpandTest());
+    doRun(VectorExpandTest());
 
-  doRun(GetTimeTest());
+    doRun(GetTimeTest());
 
-  doRun(GetLockUncontendedTest());
-  doRun(GetUniqueLockUncontendedTest());
-  doRun(GetLockGuardUncontendedTest());
-  doRun(GetLockGuardedUncontendedTest());
-  doRun(SharedLockTest());
+    doRun(GetLockUncontendedTest());
+    doRun(GetUniqueLockUncontendedTest());
+    doRun(GetLockGuardUncontendedTest());
+    doRun(GetLockGuardedUncontendedTest());
+    doRun(SharedLockTest());
 
-  {
-    ReadWriteLock rwlock;
-    doRun(ReadWriteLockSharedTest(rwlock));
-    doRun(ReadWriteLockExclusiveTest(rwlock));
-    doRun(ReadWriteLockExclusiveTryTest(rwlock, false));
     {
-      ReadLock rl(rwlock);
-      doRun(ReadWriteLockExclusiveTryTest(rwlock, true));
-      doRun(ReadWriteLockSharedTryTest(rwlock, false));
+      ReadWriteLock rwlock;
+      doRun(ReadWriteLockSharedTest(rwlock));
+      doRun(ReadWriteLockExclusiveTest(rwlock));
+      doRun(ReadWriteLockExclusiveTryTest(rwlock, false));
+      {
+        ReadLock rl(rwlock);
+        doRun(ReadWriteLockExclusiveTryTest(rwlock, true));
+        doRun(ReadWriteLockSharedTryTest(rwlock, false));
+      }
+      {
+        WriteLock wl(rwlock);
+        doRun(ReadWriteLockSharedTryTest(rwlock, true));
+      }
     }
-    {
-      WriteLock wl(rwlock);
-      doRun(ReadWriteLockSharedTryTest(rwlock, true));
-    }
-  }
 
-  doRun(StaticMemberTest());
+    doRun(StaticMemberTest());
 
-  doRun(ARecordTest(1));
-  doRun(ARecordTest(2));
-  doRun(ARecordTest(4));
-  doRun(ARecordTest(64));
+    doRun(ARecordTest(1));
+    doRun(ARecordTest(2));
+    doRun(ARecordTest(4));
+    doRun(ARecordTest(64));
 
-  doRun(A2RecordTest(1));
-  doRun(A2RecordTest(2));
-  doRun(A2RecordTest(4));
-  doRun(A2RecordTest(64));
+    doRun(A2RecordTest(1));
+    doRun(A2RecordTest(2));
+    doRun(A2RecordTest(4));
+    doRun(A2RecordTest(64));
 
-  doRun(MakeStringFromCharStarTest());
-  doRun(MakeARecordTest());
-  doRun(MakeARecordTestMM());
+    doRun(MakeStringFromCharStarTest());
+    doRun(MakeARecordTest());
+    doRun(MakeARecordTestMM());
 
-  doRun(AAAARecordTest(1));
-  doRun(AAAARecordTest(2));
-  doRun(AAAARecordTest(4));
-  doRun(AAAARecordTest(64));
+    doRun(AAAARecordTest(1));
+    doRun(AAAARecordTest(2));
+    doRun(AAAARecordTest(4));
+    doRun(AAAARecordTest(64));
 
-  doRun(TXTRecordTest(1));
-  doRun(TXTRecordTest(2));
-  doRun(TXTRecordTest(4));
-  doRun(TXTRecordTest(64));
+    doRun(TXTRecordTest(1));
+    doRun(TXTRecordTest(2));
+    doRun(TXTRecordTest(4));
+    doRun(TXTRecordTest(64));
 
-  doRun(GenericRecordTest(1, QType::NS, "powerdnssec1.ds9a.nl"));
-  doRun(GenericRecordTest(2, QType::NS, "powerdnssec1.ds9a.nl"));
-  doRun(GenericRecordTest(4, QType::NS, "powerdnssec1.ds9a.nl"));
-  doRun(GenericRecordTest(64, QType::NS, "powerdnssec1.ds9a.nl"));
+    doRun(GenericRecordTest(1, QType::NS, "powerdnssec1.ds9a.nl"));
+    doRun(GenericRecordTest(2, QType::NS, "powerdnssec1.ds9a.nl"));
+    doRun(GenericRecordTest(4, QType::NS, "powerdnssec1.ds9a.nl"));
+    doRun(GenericRecordTest(64, QType::NS, "powerdnssec1.ds9a.nl"));
 
-  doRun(SOARecordTest(1));
-  doRun(SOARecordTest(2));
-  doRun(SOARecordTest(4));
-  doRun(SOARecordTest(64));
+    doRun(SOARecordTest(1));
+    doRun(SOARecordTest(2));
+    doRun(SOARecordTest(4));
+    doRun(SOARecordTest(64));
 
-  doRun(StringtokTest());
-  doRun(VStringtokTest());
-  doRun(StringAppendTest());
-  doRun(BoostStringAppendTest());
+    doRun(StringtokTest());
+    doRun(VStringtokTest());
+    doRun(StringAppendTest());
+    doRun(BoostStringAppendTest());
 
-  doRun(DNSNameParseTest());
-  doRun(DNSNameRootTest());
+    doRun(DNSNameParseTest());
+    doRun(DNSNameRootTest());
 
-  doRun(SuffixMatchNodeTest());
+    doRun(SuffixMatchNodeTest());
 
-  doRun(NetmaskTreeTest());
+    doRun(NetmaskTreeTest());
 
-  doRun(UUIDGenTest());
+    doRun(UUIDGenTest());
 
 #if defined(HAVE_GETRANDOM)
-  doRun(RndSpeedTest("getrandom"));
+    doRun(RndSpeedTest("getrandom"));
 #endif
 #if defined(HAVE_ARC4RANDOM)
-  doRun(RndSpeedTest("arc4random"));
+    doRun(RndSpeedTest("arc4random"));
 #endif
 #if defined(HAVE_RANDOMBYTES_STIR)
-  doRun(RndSpeedTest("sodium"));
+    doRun(RndSpeedTest("sodium"));
 #endif
 #if defined(HAVE_RAND_BYTES)
-  doRun(RndSpeedTest("openssl"));
+    doRun(RndSpeedTest("openssl"));
 #endif
-  doRun(RndSpeedTest("urandom"));
+    doRun(RndSpeedTest("urandom"));
 
-  doRun(NSEC3HashTest(1, "ABCD"));
-  doRun(NSEC3HashTest(10, "ABCD"));
-  doRun(NSEC3HashTest(50, "ABCD"));
-  doRun(NSEC3HashTest(150, "ABCD"));
-  doRun(NSEC3HashTest(500, "ABCD"));
+    doRun(NSEC3HashTest(1, "ABCD"));
+    doRun(NSEC3HashTest(10, "ABCD"));
+    doRun(NSEC3HashTest(50, "ABCD"));
+    doRun(NSEC3HashTest(150, "ABCD"));
+    doRun(NSEC3HashTest(500, "ABCD"));
 
-  doRun(NSEC3HashTest(1, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
-  doRun(NSEC3HashTest(10, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
-  doRun(NSEC3HashTest(50, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
-  doRun(NSEC3HashTest(150, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
-  doRun(NSEC3HashTest(500, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+    doRun(NSEC3HashTest(1, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+    doRun(NSEC3HashTest(10, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+    doRun(NSEC3HashTest(50, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+    doRun(NSEC3HashTest(150, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
+    doRun(NSEC3HashTest(500, "ABCDABCDABCDABCDABCDABCDABCDABCD"));
 
 #if defined(HAVE_LIBSODIUM) && defined(HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT)
-  doRun(CredentialsHashTest());
-  doRun(CredentialsVerifyTest());
+    doRun(CredentialsHashTest());
+    doRun(CredentialsVerifyTest());
 #endif
 
 #ifndef RECURSOR
-  S.doRings();
+    S.doRings();
 
-  S.declareRing("testring", "Just some ring where we'll account things");
-  doRun(StatRingDNSNameQTypeToStringTest(DNSName("example.com"), QType(1)));
+    S.declareRing("testring", "Just some ring where we'll account things");
+    doRun(StatRingDNSNameQTypeToStringTest(DNSName("example.com"), QType(1)));
 
-  S.declareDNSNameQTypeRing("testringdnsname", "Just some ring where we'll account things");
-  doRun(StatRingDNSNameQTypeTest(DNSName("example.com"), QType(1)));
+    S.declareDNSNameQTypeRing("testringdnsname", "Just some ring where we'll account things");
+    doRun(StatRingDNSNameQTypeTest(DNSName("example.com"), QType(1)));
 #endif
 
-  doRun(BurtleHashTest("a string of chars"));
-  doRun(BurtleHashCITest("A String Of Chars"));
+    doRun(BurtleHashTest("a string of chars"));
+    doRun(BurtleHashCITest("A String Of Chars"));
 #ifdef HAVE_LIBSODIUM
-  doRun(SipHashTest("a string of chars"));
+    doRun(SipHashTest("a string of chars"));
 #endif
 
-  cerr<<"Total runs: " << g_totalRuns<<endl;
-}
-catch(std::exception &e)
-{
-  cerr<<"Fatal: "<<e.what()<<endl;
+    cerr<<"Total runs: " << g_totalRuns<<endl;
+  }
+  catch (std::exception &e) {
+    cerr<<"Fatal: "<<e.what()<<endl;
+  }
+  catch (...) {
+    cerr<<"Fatal: unexpected exception"<<endl;
+  }
 }
 
 ArgvMap& arg()

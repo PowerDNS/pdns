@@ -337,7 +337,7 @@ void DynListener::theListener()
   try {
     signal(SIGPIPE,SIG_IGN);
 
-    for(int n=0;;++n) {
+    for(;;) {
       string line=getLine();
       boost::trim_right(line);
 

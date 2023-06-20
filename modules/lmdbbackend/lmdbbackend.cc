@@ -1189,7 +1189,7 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   return true;
 }
 
-bool LMDBBackend::replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments)
+bool LMDBBackend::replaceComments([[maybe_unused]] const uint32_t domain_id, [[maybe_unused]] const DNSName& qname, [[maybe_unused]] const QType& qt, const vector<Comment>& comments)
 {
   // if the vector is empty, good, that's what we do here (LMDB does not store comments)
   // if it's not, report failure

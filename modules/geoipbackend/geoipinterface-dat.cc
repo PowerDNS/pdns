@@ -481,7 +481,7 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeDATInterface(const string& fname,
 
 #else
 
-unique_ptr<GeoIPInterface> GeoIPInterface::makeDATInterface(const string& fname, const map<string, string>& opts)
+unique_ptr<GeoIPInterface> GeoIPInterface::makeDATInterface([[maybe_unused]] const string& fname, [[maybe_unused]] const map<string, string>& opts)
 {
   throw PDNSException("libGeoIP support not compiled in");
 }

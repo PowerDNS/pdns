@@ -1854,7 +1854,7 @@ bool TLSFrontend::setupTLS()
   return true;
 }
 
-std::shared_ptr<TLSCtx> getTLSContext(const TLSContextParameters& params)
+std::shared_ptr<TLSCtx> getTLSContext([[maybe_unused]] const TLSContextParameters& params)
 {
 #ifdef HAVE_DNS_OVER_TLS
   /* get the "best" available provider */

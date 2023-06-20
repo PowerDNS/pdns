@@ -378,7 +378,7 @@ std::string Logging::IterLoggable<YaHTTP::strstr_map_t::const_iterator>::to_stri
 }
 #endif
 
-void WebServer::logRequest(const HttpRequest& req, const ComboAddress& remote) const {
+void WebServer::logRequest(const HttpRequest& req, [[maybe_unused]] const ComboAddress& remote) const {
   if (d_loglevel >= WebServer::LogLevel::Detailed) {
 #ifdef RECURSOR
     if (!g_slogStructured) {

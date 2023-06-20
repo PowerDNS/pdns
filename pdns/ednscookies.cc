@@ -74,7 +74,7 @@ void EDNSCookiesOpt::getEDNSCookiesOptFromString(const char* option, unsigned in
   }
 }
 
-bool EDNSCookiesOpt::isValid(const string& secret, const ComboAddress& source) const
+bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source) const
 {
 #ifdef HAVE_CRYPTO_SHORTHASH
   if (server.length() != 16 || client.length() != 8) {
@@ -139,7 +139,7 @@ bool EDNSCookiesOpt::shouldRefresh() const
   return rfc1982LessThan(ts + 1800, now);
 }
 
-bool EDNSCookiesOpt::makeServerCookie(const string& secret, const ComboAddress& source)
+bool EDNSCookiesOpt::makeServerCookie([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source)
 {
 #ifdef HAVE_CRYPTO_SHORTHASH
   static_assert(EDNSCookieSecretSize == crypto_shorthash_KEYBYTES * 2, "The EDNSCookieSecretSize is not twice crypto_shorthash_KEYBYTES");

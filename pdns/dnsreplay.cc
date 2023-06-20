@@ -595,7 +595,7 @@ static bool checkIPTransparentUsability()
 static bool g_rdSelector;
 static uint16_t g_pcapDnsPort;
 
-static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp, bool usePCAPSourceIP)
+static bool sendPacketFromPR(PcapPacketReader& pr, const ComboAddress& remote, int stamp, [[maybe_unused]] bool usePCAPSourceIP)
 {
   bool sent=false;
   if (pr.d_len <= sizeof(dnsheader)) {
