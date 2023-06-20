@@ -33,6 +33,7 @@
 #include "dnsdist-lua-ffi.hh"
 #include "dolog.hh"
 #include "dnsparser.hh"
+#include "dns_random.hh"
 
 class MaxQPSIPRule : public DNSRule
 {
@@ -1055,7 +1056,7 @@ public:
   {
     if(d_proba == 1.0)
       return true;
-    double rnd = 1.0*random() / RAND_MAX;
+    double rnd = 1.0*dns_random_uint32() / UINT32_MAX;
     return rnd > (1.0 - d_proba);
   }
   string toString() const override

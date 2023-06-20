@@ -25,6 +25,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dolog.hh"
+#include "dns_random.hh"
 
 GlobalStateHolder<ServerPolicy> g_policy;
 bool g_roundrobinFailOnNoServer{false};
@@ -153,7 +154,7 @@ static shared_ptr<DownstreamState> valrandom(const unsigned int val, const Serve
 
 shared_ptr<DownstreamState> wrandom(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return valrandom(random(), servers);
+  return valrandom(dns_random_uint32(), servers);
 }
 
 uint32_t g_hashperturb;

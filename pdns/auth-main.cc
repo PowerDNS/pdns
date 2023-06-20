@@ -685,8 +685,6 @@ static void triggerLoadOfLibraries()
 
 static void mainthread()
 {
-  Utility::srandom();
-
   gid_t newgid = 0;
   if (!::arg()["setgid"].empty())
     newgid = strToGID(::arg()["setgid"]);

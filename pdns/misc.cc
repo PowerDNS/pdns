@@ -56,6 +56,7 @@
 #include <boost/format.hpp>
 #include "iputils.hh"
 #include "dnsparser.hh"
+#include "dns_random.hh"
 #include <pwd.h>
 #include <grp.h>
 #include <climits>
@@ -432,7 +433,7 @@ int waitForMultiData(const set<int>& fds, const int seconds, const int useconds,
     }
   }
   set<int>::const_iterator it(pollinFDs.begin());
-  advance(it, random() % pollinFDs.size());
+  advance(it, dns_random(pollinFDs.size()));
   *fdOut = *it;
   return 1;
 }
@@ -463,7 +464,7 @@ int waitFor2Data(int fd1, int fd2, int seconds, int useconds, int*fd)
   else if((pfds[1].revents & POLLIN) && !(pfds[0].revents & POLLIN))
     *fd = pfds[1].fd;
   else if(ret == 2) {
-    *fd = pfds[random()%2].fd;
+    *fd = pfds[dns_random_uint32()%2].fd;
   }
   else
     *fd = -1; // should never happen
