@@ -36,8 +36,6 @@
 ./pdns/distributor.hh
 ./pdns/dns.cc
 ./pdns/dns.hh
-./pdns/dns_random.cc
-./pdns/dns_random.hh
 ./pdns/dnsbackend.cc
 ./pdns/dnsbackend.hh
 ./pdns/dnsbulktest.cc
@@ -268,7 +266,6 @@
 ./pdns/test-common.hh
 ./pdns/test-digests_hh.cc
 ./pdns/test-distributor_hh.cc
-./pdns/test-dns_random_hh.cc
 ./pdns/test-dnscrypt_cc.cc
 ./pdns/test-dnsdist_cc.cc
 ./pdns/test-dnsdistpacketcache_cc.cc

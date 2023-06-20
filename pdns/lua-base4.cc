@@ -239,7 +239,9 @@ void BaseLua4::prepareContext() {
     SLOG(g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl,
          g_slog->withName("lua")->info(static_cast<Logr::Priority>(loglevel.get_value_or(Logr::Warning)), msg));
   });
-  d_lw->writeFunction("pdnsrandom", [](boost::optional<uint32_t> maximum) { return dns_random(maximum.get_value_or(0xffffffff)); });
+  d_lw->writeFunction("pdnsrandom", [](boost::optional<uint32_t> maximum) {
+    return maximum ? dns_random(*maximum) : dns_random_uint32();
+  });
 
   // certain constants
 

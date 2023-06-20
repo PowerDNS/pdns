@@ -1962,7 +1962,7 @@ static int serviceMain(Logr::log_t log)
 
   showProductVersion();
 
-  g_disthashseed = dns_random(0xffffffff);
+  g_disthashseed = dns_random_uint32();
 
   int ret = initNet(log);
   if (ret != 0) {
