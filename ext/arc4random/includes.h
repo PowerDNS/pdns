@@ -1,8 +1,8 @@
 #include "config.h"
 
-#ifdef HAVE_GETRANDOM
-#include <sys/random.h>
-#endif
+//#ifdef HAVE_SYS_RANDOM_H
+//#include <sys/random.h>
+//#endif
 
 #include <inttypes.h>
 #include <stdlib.h>

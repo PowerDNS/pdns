@@ -115,6 +115,10 @@ dnl using the defines.
 AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r strcasestr])
 AC_CHECK_FUNCS_ONCE([getrandom getentropy arc4random arc4random_uniform arc4random_buf])
 
+AC_CHECK_HEADERS([
+	sys/random.h
+])
+
 PDNS_CHECK_PTHREAD_NP
 
 AC_SUBST([socketdir])

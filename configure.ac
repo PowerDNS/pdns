@@ -84,6 +84,9 @@ AC_CHECK_HEADERS(
 	)],
 	[have_mmap=no]
 )
+AC_CHECK_HEADERS([
+	sys/random.h
+])
 
 PDNS_WITH_LIBSODIUM
 PDNS_WITH_LIBDECAF
