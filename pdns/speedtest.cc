@@ -1084,7 +1084,6 @@ struct RndSpeedTest
   explicit RndSpeedTest(std::string which) : name(which){
     ::arg().set("entropy-source", "If set, read entropy from this file")="/dev/urandom";
     ::arg().set("rng", "") = which;
-    dns_random_init("", true);
   }
   string getName() const
   {

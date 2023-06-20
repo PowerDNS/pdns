@@ -156,8 +156,6 @@ static void loadMainConfig(const std::string& configdir)
   }
 #endif
   openssl_seed();
-  /* init rng before chroot */
-  dns_random_init();
 
   if (!::arg()["chroot"].empty()) {
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {

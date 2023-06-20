@@ -1382,8 +1382,6 @@ int main(int argc, char** argv) {
   // Init the things we need
   reportAllTypes();
 
-  dns_random_init();
-
   std::thread ut(updateThread,
       config["work-dir"].as<string>(),
       config["keep"].as<uint16_t>(),

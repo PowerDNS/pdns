@@ -44,19 +44,14 @@ const std::vector<string> rndSources = {
 
 BOOST_AUTO_TEST_CASE(test_dns_random_garbage)
 {
-
   ::arg().set("rng") = "garbage";
   ::arg().set("entropy-source") = "/dev/urandom";
-
-  BOOST_CHECK_THROW(dns_random_init("", true), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_CASE(test_dns_random_upper_bound)
 {
   ::arg().set("rng") = "auto";
   ::arg().set("entropy-source") = "/dev/urandom";
-
-  dns_random_init("", true);
 
   map<unsigned int, bool> seen;
   for (unsigned int iteration = 0; iteration < 100000; ++iteration) {
@@ -81,8 +76,6 @@ static void test_dns_random_avg(const string& source)
   ::arg().set("rng") = source;
   ::arg().set("entropy-source") = "/dev/urandom";
 
-  dns_random_init("", true);
-
   acc_t acc;
 
   for (unsigned int iteration = 0; iteration < 100000; ++iteration) {
@@ -98,8 +91,6 @@ static void test_dns_random_uint32_avg(const string& source)
 {
   ::arg().set("rng") = source;
   ::arg().set("entropy-source") = "/dev/urandom";
-
-  dns_random_init("", true);
 
   acc_t acc;
 

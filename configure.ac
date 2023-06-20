@@ -152,7 +152,8 @@ PDNS_FROM_GIT
 dnl Checks for library functions.
 dnl the *_r functions are in posix so we can use them unconditionally, but the ext/yahttp code is
 dnl using the defines.
-AC_CHECK_FUNCS_ONCE([strcasestr localtime_r gmtime_r recvmmsg sched_setscheduler getrandom arc4random])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r gmtime_r recvmmsg sched_setscheduler])
+AC_CHECK_FUNCS_ONCE([getrandom getentropy arc4random arc4random_uniform arc4random_buf])
 
 AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
 
@@ -345,6 +346,7 @@ AC_CONFIG_FILES([
   docs/Makefile
   pdns/pdns.init
   ext/Makefile
+  ext/arc4random/Makefile
   ext/ipcrypt/Makefile
   ext/yahttp/Makefile
   ext/yahttp/yahttp/Makefile

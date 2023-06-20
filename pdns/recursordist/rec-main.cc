@@ -2131,8 +2131,6 @@ static int serviceMain(Logr::log_t log)
 
   openssl_thread_setup();
   openssl_seed();
-  /* setup rng before chroot */
-  dns_random_init();
 
   if (::arg()["server-id"].empty()) {
     ::arg().set("server-id") = myHostname.has_value() ? *myHostname : "";

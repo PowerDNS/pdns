@@ -24,10 +24,22 @@
 #include <limits>
 #include <string>
 
-void dns_random_init(const std::string& data = "", bool force_reinit = false);
-uint32_t dns_random(uint32_t upper_bound);
-uint32_t dns_random_uint32();
-uint16_t dns_random_uint16();
+#include <ext/arc4random/arc4random.hh>
+
+inline uint32_t dns_random(uint32_t upper_bound)
+{
+  return arc4random_uniform(upper_bound);
+}
+
+inline uint32_t dns_random_uint32()
+{
+  return arc4random();
+}
+
+inline uint16_t dns_random_uint16()
+{
+  return arc4random() & 0xffff;
+}
 
 namespace pdns
 {

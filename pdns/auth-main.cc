@@ -1303,8 +1303,6 @@ int main(int argc, char** argv)
 
     openssl_thread_setup();
     openssl_seed();
-    /* setup rng */
-    dns_random_init();
 
 #ifdef HAVE_LUA_RECORDS
     MiniCurl::init();

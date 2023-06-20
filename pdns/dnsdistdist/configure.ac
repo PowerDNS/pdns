@@ -48,11 +48,13 @@ PDNS_WITH_SERVICE_USER([dnsdist])
 
 dnl the *_r functions are in posix so we can use them unconditionally, but the ext/yahttp code is
 dnl using the defines.
-AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r getrandom])
+AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r])
+AC_CHECK_FUNCS_ONCE([getrandom getentropy arc4random arc4random_uniform arc4random_buf])
 AC_SUBST([YAHTTP_CFLAGS], ['-I$(top_srcdir)/ext/yahttp'])
 AC_SUBST([YAHTTP_LIBS], ['$(top_builddir)/ext/yahttp/yahttp/libyahttp.la'])
 AC_SUBST([IPCRYPT_CFLAGS], ['-I$(top_srcdir)/ext/ipcrypt'])
 AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
+AC_SUBST([ARC4RANDOM_LIBS], ['$(top_builddir)/ext/arc4random/libarc4random.la'])
 
 PDNS_WITH_LUA([mandatory])
 AS_IF([test "x$LUAPC" = "xluajit"], [
@@ -156,6 +158,7 @@ AS_IF([test "x$PACKAGEVERSION" != "x"],
 )
 
 AC_CONFIG_FILES([Makefile
+        ext/arc4random/Makefile
         ext/yahttp/Makefile
         ext/yahttp/yahttp/Makefile
         ext/ipcrypt/Makefile])
