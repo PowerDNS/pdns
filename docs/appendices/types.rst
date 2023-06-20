@@ -372,7 +372,7 @@ mappings from hostnames to URIs.
 ZONEMD
 ------
 
-The ZONEMD record, specified in :rfc:`8796`, is used to validate zones.
+The ZONEMD record, specified in :rfc:`8976`, is used to validate zones.
 
 Other types
 -----------
