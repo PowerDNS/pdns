@@ -814,9 +814,9 @@ static void daemonize(Logr::log_t log)
       int err = errno;
       SLOG(g_log << Logger::Critical << "Fork failed: " << stringerror(err) << endl,
            log->error(Logr::Critical, err, "Fork failed"));
-      exit(1); // NOLINT(concurrency-mt-unsafe
+      exit(1); // NOLINT(concurrency-mt-unsafe)
     }
-    exit(0); // NOLINT(concurrency-mt-unsafe
+    exit(0); // NOLINT(concurrency-mt-unsafe)
   }
 
   setsid();
