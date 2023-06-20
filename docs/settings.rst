@@ -1278,8 +1278,11 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
 ``outgoing-axfr-expand-alias``
 ------------------------------
 
--  Boolean
+-  One of ``no``, ``yes``, or ``ignore-errors``, String
 -  Default: no
+
+.. versionchanged:: 4.9.0
+  Option `ignore-errors` added.
 
 If this is enabled, ALIAS records are expanded (synthesized to their
 A/AAAA) during outgoing AXFR. This means slaves will not automatically
@@ -1288,6 +1291,12 @@ follow changes in those A/AAAA records unless you AXFR regularly!
 If this is disabled (the default), ALIAS records are sent verbatim
 during outgoing AXFR. Note that if your slaves do not support ALIAS,
 they will return NODATA for A/AAAA queries for such names.
+
+If the ALIAS target can not be resolved during AXFR the AXFR will fail.
+To allow outgoing AXFR also if the ALIAS targets are broken set this
+setting to `ignore-errors`.
+Be warned, this will lead to inconsistent zones between Primary and
+Secondary name servers.
 
 .. _setting-overload-queue-length:
 

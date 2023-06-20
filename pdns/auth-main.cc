@@ -304,7 +304,7 @@ static void declareArguments()
   ::arg().set("security-poll-suffix", "Zone name from which to query security update notifications") = "secpoll.powerdns.com.";
 
   ::arg().setSwitch("expand-alias", "Expand ALIAS records") = "no";
-  ::arg().setSwitch("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR") = "no";
+  ::arg().set("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR") = "no";
   ::arg().setSwitch("8bit-dns", "Allow 8bit dns queries") = "no";
 #ifdef HAVE_LUA_RECORDS
   ::arg().setSwitch("enable-lua-records", "Process LUA records for all zones (metadata overrides this)") = "no";
@@ -741,6 +741,9 @@ static void mainthread()
 
   if (!PC.enabled() && ::arg().mustDo("log-dns-queries")) {
     g_log << Logger::Warning << "Packet cache disabled, logging queries without HIT/MISS" << endl;
+  }
+  if (::arg()["outgoing-axfr-expand-alias"] == "ignore-errors") {
+    g_log << Logger::Error << "Ignoring ALIAS resolve failures on outgoing AXFR transfers, see option \"outgoing-axfr-expand-alias\"" << endl;
   }
 
   stubParseResolveConf();
