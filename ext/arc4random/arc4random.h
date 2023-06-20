@@ -28,8 +28,8 @@
 #include <signal.h>
 
 /* OpenSSH isn't multithreaded */
-#define _ARC4_LOCK()
-#define _ARC4_UNLOCK()
+#define _ARC4_LOCK() pthread_mutex_lock(&arc4mutex);
+#define _ARC4_UNLOCK() pthread_mutex_unlock(&arc4mutex);
 #define _ARC4_ATFORK(f)
 
 static inline void

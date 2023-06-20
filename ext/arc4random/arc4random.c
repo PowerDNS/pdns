@@ -205,6 +205,9 @@ _rs_random_u32(uint32_t *val)
 	rs->rs_have -= sizeof(*val);
 }
 
+#include <pthread.h>
+static pthread_mutex_t arc4mutex = PTHREAD_MUTEX_INITIALIZER;
+
 uint32_t
 arc4random(void)
 {
