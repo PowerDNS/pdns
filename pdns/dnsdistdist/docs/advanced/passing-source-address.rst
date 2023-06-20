@@ -70,7 +70,8 @@ It works by pre-pending a small header at the very beginning of a UDP datagram o
 
 In order to use it in dnsdist, the ``useProxyProtocol`` parameter can be used when creating a :func:`new server <newServer>`.
 This parameter indicates whether a Proxy Protocol version 2 (binary) header should be prepended to the query before forwarding it to the backend, over UDP or TCP.
-Such a Proxy Protocol header can also be passed from the client to dnsdist, using :func:`setProxyProtocolACL` to specify which clients to accept it from.
+Such a Proxy Protocol header can also be passed from the client to dnsdist, using :func:`setProxyProtocolACL` to specify which clients to accept it from. Note that a proxy protocol payload will be required from these clients, regular DNS queries will no longer be accepted if they are not preceded by a proxy protocol payload.
+
 If :func:`setProxyProtocolApplyACLToProxiedClients` is set (default is false), the general ACL will be applied to the source IP address as seen by dnsdist first, but also to the source IP address provided in the Proxy Protocol header.
 
 Custom values can be added to the header via :meth:`DNSQuestion:addProxyProtocolValue`, :meth:`DNSQuestion:setProxyProtocolValues`, :func:`SetAdditionalProxyProtocolValueAction` and :func:`SetProxyProtocolValuesAction`.
