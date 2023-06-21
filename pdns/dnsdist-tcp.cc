@@ -375,7 +375,7 @@ void IncomingTCPConnectionState::terminateClientConnection()
 void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response)
 {
   // queue response
-  state->d_queuedResponses.push_back(std::move(response));
+  state->d_queuedResponses.emplace_back(std::move(response));
   DEBUGLOG("queueing response, state is "<<(int)state->d_state<<", queue size is now "<<state->d_queuedResponses.size());
 
   // when the response comes from a backend, there is a real possibility that we are currently

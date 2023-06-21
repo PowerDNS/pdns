@@ -629,6 +629,10 @@ public:
     }
 #endif /* DISABLE_OCSP_STAPLING */
 
+    if (fe.d_tlsConfig.d_readAhead) {
+      SSL_CTX_set_read_ahead(d_feContext->d_tlsCtx.get(), 1);
+    }
+
     libssl_set_error_counters_callback(d_feContext->d_tlsCtx, &fe.d_tlsCounters);
 
     if (!fe.d_tlsConfig.d_keyLogFile.empty()) {

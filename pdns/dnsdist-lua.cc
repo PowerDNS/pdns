@@ -226,6 +226,7 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
   getOptionalValue<bool>(vars, "enableRenegotiation", config.d_enableRenegotiation);
   getOptionalValue<bool>(vars, "tlsAsyncMode", config.d_asyncMode);
   getOptionalValue<bool>(vars, "ktls", config.d_ktls);
+  getOptionalValue<bool>(vars, "readAhead", config.d_readAhead);
 }
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)

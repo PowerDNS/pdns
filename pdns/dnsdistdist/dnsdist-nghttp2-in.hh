@@ -101,12 +101,14 @@ private:
   PacketBuffer d_in;
   size_t d_outPos{0};
   bool d_connectionDied{false};
+  bool d_needFlush{false};
 };
 
 class NGHTTP2Headers
 {
 public:
-  enum class HeaderConstantIndexes {
+  enum class HeaderConstantIndexes
+  {
     OK_200_VALUE = 0,
     METHOD_NAME,
     METHOD_VALUE,

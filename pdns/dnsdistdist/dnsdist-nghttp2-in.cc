@@ -274,6 +274,7 @@ void IncomingHTTP2Connection::handleConnectionReady()
   if (ret != 0) {
     throw std::runtime_error("Fatal error: " + std::string(nghttp2_strerror(ret)));
   }
+  d_needFlush = true;
   ret = nghttp2_session_send(d_session.get());
   if (ret != 0) {
     throw std::runtime_error("Fatal error: " + std::string(nghttp2_strerror(ret)));
@@ -334,7 +335,7 @@ void IncomingHTTP2Connection::handleIO()
       }
     }
 
-    if (d_state == State::waitingForQuery) {
+    if (d_state == State::waitingForQuery || d_state == State::idle) {
       readHTTPData();
     }
 
@@ -358,11 +359,11 @@ void IncomingHTTP2Connection::handleIO()
 ssize_t IncomingHTTP2Connection::send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
 {
   IncomingHTTP2Connection* conn = reinterpret_cast<IncomingHTTP2Connection*>(user_data);
-  bool bufferWasEmpty = conn->d_out.empty();
   conn->d_out.insert(conn->d_out.end(), data, data + length);
 
-  if (bufferWasEmpty) {
+  if (conn->d_connectionDied || conn->d_needFlush) {
     try {
+      conn->d_needFlush = false;
       auto state = conn->d_handler.tryWrite(conn->d_out, conn->d_outPos, conn->d_out.size());
       if (state == IOState::Done) {
         conn->d_out.clear();
@@ -379,7 +380,7 @@ ssize_t IncomingHTTP2Connection::send_callback(nghttp2_session* session, const u
       }
     }
     catch (const std::exception& e) {
-      vinfolog("Exception while trying to write (send) to incoming HTTP connection: %s", e.what());
+      vinfolog("Exception while trying to write (send) to incoming HTTP connection to %s: %s", conn->d_ci.remote.toStringWithPort(), e.what());
       conn->handleIOError();
     }
   }
@@ -412,8 +413,7 @@ static const std::array<const std::string, static_cast<size_t>(NGHTTP2Headers::H
   "dns-over-tcp",
   "dns-over-tls",
   "dns-over-http",
-  "dns-over-https"
-};
+  "dns-over-https"};
 
 static const std::string s_authorityHeaderName(":authority");
 static const std::string s_pathHeaderName(":path");
@@ -500,6 +500,7 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
     if (obj.d_queryPos >= obj.d_buffer.size()) {
       *data_flags |= NGHTTP2_DATA_FLAG_EOF;
       obj.d_buffer.clear();
+      connection->d_needFlush = true;
     }
     return toCopy;
   };
@@ -691,7 +692,7 @@ static std::optional<PacketBuffer> getPayloadFromPath(const std::string_view& pa
   }
   sdns.reserve(payloadSize + neededPadding);
   sdns = path.substr(pos + 5);
-  for (auto &entry : sdns) {
+  for (auto& entry : sdns) {
     switch (entry) {
     case '-':
       entry = '+';
@@ -1079,12 +1080,15 @@ int IncomingHTTP2Connection::on_error_callback(nghttp2_session* session, int lib
 
 void IncomingHTTP2Connection::readHTTPData()
 {
+  IOState newState;
   IOStateGuard ioGuard(d_ioState);
   do {
     size_t got = 0;
-    d_in.resize(d_in.size() + 512);
+    if (d_in.size() < 128) {
+      d_in.resize(std::max(static_cast<size_t>(128U), d_in.capacity()));
+    }
     try {
-      IOState newState = d_handler.tryRead(d_in, got, d_in.size(), true);
+      newState = d_handler.tryRead(d_in, got, d_in.size(), true);
       d_in.resize(got);
 
       if (got > 0) {
@@ -1100,6 +1104,9 @@ void IncomingHTTP2Connection::readHTTPData()
       }
 
       if (newState == IOState::Done) {
+        if (nghttp2_session_want_read(d_session.get())) {
+          continue;
+        }
         if (isIdle()) {
           watchForRemoteHostClosingConnection();
           ioGuard.release();
@@ -1115,11 +1122,11 @@ void IncomingHTTP2Connection::readHTTPData()
       }
     }
     catch (const std::exception& e) {
-      vinfolog("Exception while trying to read from HTTP backend connection: %s", e.what());
+      vinfolog("Exception while trying to read from HTTP client connection to %s: %s", d_ci.remote.toStringWithPort(), e.what());
       handleIOError();
       break;
     }
-  } while (getConcurrentStreamsCount() > 0);
+  } while (newState == IOState::Done || !isIdle());
 }
 
 void IncomingHTTP2Connection::handleReadableIOCallback(int fd, FDMultiplexer::funcparam_t& param)
@@ -1151,7 +1158,7 @@ void IncomingHTTP2Connection::handleWritableIOCallback(int fd, FDMultiplexer::fu
     ioGuard.release();
   }
   catch (const std::exception& e) {
-    vinfolog("Exception while trying to write (ready) to HTTP backend connection: %s", e.what());
+    vinfolog("Exception while trying to write (ready) to HTTP client connection to %s: %s", conn->d_ci.remote.toStringWithPort(), e.what());
     conn->handleIOError();
   }
 }
