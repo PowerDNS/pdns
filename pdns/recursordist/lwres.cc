@@ -486,7 +486,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       if (fstrmQEnabled || fstrmREnabled) {
         localip.sin4.sin_family = ip.sin4.sin_family;
         socklen_t slen = ip.getSocklen();
-        getsockname(queryfd, reinterpret_cast<sockaddr*>(&localip), &slen);
+        (void)getsockname(queryfd, reinterpret_cast<sockaddr*>(&localip), &slen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast))
       }
       if (fstrmQEnabled) {
         logFstreamQuery(fstrmLoggers, queryTime, localip, ip, DnstapMessage::ProtocolType::DoUDP, context ? context->d_auth : boost::none, vpacket);
