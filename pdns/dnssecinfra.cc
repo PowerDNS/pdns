@@ -400,7 +400,7 @@ bool DNSCryptoKeyEngine::verifyOne(unsigned int algo)
 {
   const auto& makers = getAllMakers();
   auto iter = makers.find(algo);
-  // No algo foound
+  // No algo found
   if (iter == makers.cend()) {
     return false;
   }
