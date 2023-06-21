@@ -108,7 +108,7 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO], [
     LIBS="$LIBCRYPTO_LIBS $LIBS"
     CPPFLAGS="$LIBCRYPTO_INCLUDES $CPPFLAGS"
     AC_LINK_IFELSE(
-        [AC_LANG_PROGRAM([#include <openssl/crypto.h>], [ERR_load_CRYPTO_strings()])],
+        [AC_LANG_PROGRAM([#include <openssl/bn.h>], [BN_new()])],
         [
             AC_MSG_RESULT([yes])
             AC_CHECK_FUNCS([RAND_bytes RAND_pseudo_bytes CRYPTO_memcmp OPENSSL_init_crypto EVP_MD_CTX_new EVP_MD_CTX_free RSA_get0_key])
