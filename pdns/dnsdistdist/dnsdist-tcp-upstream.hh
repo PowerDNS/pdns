@@ -3,6 +3,8 @@
 #include "dolog.hh"
 #include "dnsdist-tcp.hh"
 
+struct TCPCrossProtocolResponse;
+
 class TCPClientThreadData
 {
 public:
@@ -15,7 +17,10 @@ public:
   LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions;
   LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
-  int crossProtocolResponsesPipe{-1};
+  pdns::channel::Receiver<ConnectionInfo> queryReceiver;
+  pdns::channel::Receiver<CrossProtocolQuery> crossProtocolQueryReceiver;
+  pdns::channel::Receiver<TCPCrossProtocolResponse> crossProtocolResponseReceiver;
+  pdns::channel::Sender<TCPCrossProtocolResponse> crossProtocolResponseSender;
 };
 
 class IncomingTCPConnectionState : public TCPQuerySender, public std::enable_shared_from_this<IncomingTCPConnectionState>

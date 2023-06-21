@@ -22,6 +22,7 @@
 #pragma once
 
 #include <unistd.h>
+#include "channel.hh"
 #include "iputils.hh"
 #include "dnsdist.hh"
 
@@ -213,20 +214,16 @@ public:
     }
 
     uint64_t pos = d_pos++;
-    auto pipe = d_tcpclientthreads.at(pos % d_numthreads).d_newConnectionPipe.getHandle();
-    auto tmp = conn.release();
-
     /* we need to increment this counter _before_ writing to the pipe,
        otherwise there is a very real possiblity that the other end
        decrement the counter before we can increment it, leading to an underflow */
     ++d_queued;
-    if (write(pipe, &tmp, sizeof(tmp)) != sizeof(tmp)) {
+    if (!d_tcpclientthreads.at(pos % d_numthreads).d_querySender.send(std::move(conn))) {
       --d_queued;
       ++g_stats.tcpQueryPipeFull;
-      delete tmp;
-      tmp = nullptr;
       return false;
     }
+
     return true;
   }
 
@@ -237,13 +234,8 @@ public:
     }
 
     uint64_t pos = d_pos++;
-    auto pipe = d_tcpclientthreads.at(pos % d_numthreads).d_crossProtocolQueriesPipe.getHandle();
-    auto tmp = cpq.release();
-
-    if (write(pipe, &tmp, sizeof(tmp)) != sizeof(tmp)) {
+    if (!d_tcpclientthreads.at(pos % d_numthreads).d_crossProtocolQuerySender.send(std::move(cpq))) {
       ++g_stats.tcpCrossProtocolQueryPipeFull;
-      delete tmp;
-      tmp = nullptr;
       return false;
     }
 
@@ -279,8 +271,8 @@ private:
     {
     }
 
-    TCPWorkerThread(int newConnPipe, int crossProtocolQueriesPipe, int crossProtocolResponsesPipe) :
-      d_newConnectionPipe(newConnPipe), d_crossProtocolQueriesPipe(crossProtocolQueriesPipe), d_crossProtocolResponsesPipe(crossProtocolResponsesPipe)
+    TCPWorkerThread(pdns::channel::Sender<ConnectionInfo>&& querySender, pdns::channel::Sender<CrossProtocolQuery>&& crossProtocolQuerySender) :
+      d_querySender(std::move(querySender)), d_crossProtocolQuerySender(std::move(crossProtocolQuerySender))
     {
     }
 
@@ -289,9 +281,8 @@ private:
     TCPWorkerThread(const TCPWorkerThread& rhs) = delete;
     TCPWorkerThread& operator=(const TCPWorkerThread&) = delete;
 
-    FDWrapper d_newConnectionPipe;
-    FDWrapper d_crossProtocolQueriesPipe;
-    FDWrapper d_crossProtocolResponsesPipe;
+    pdns::channel::Sender<ConnectionInfo> d_querySender;
+    pdns::channel::Sender<CrossProtocolQuery> d_crossProtocolQuerySender;
   };
 
   std::vector<TCPWorkerThread> d_tcpclientthreads;

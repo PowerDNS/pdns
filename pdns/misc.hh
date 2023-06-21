@@ -794,10 +794,7 @@ struct FDWrapper
 
   ~FDWrapper()
   {
-    if (d_fd != -1) {
-      close(d_fd);
-      d_fd = -1;
-    }
+    reset();
   }
 
   FDWrapper(FDWrapper&& rhs) noexcept : d_fd(rhs.d_fd)
@@ -823,6 +820,14 @@ struct FDWrapper
   operator int() const
   {
     return d_fd;
+  }
+
+  void reset()
+  {
+    if (d_fd != -1) {
+      ::close(d_fd);
+      d_fd = -1;
+    }
   }
 
 private:

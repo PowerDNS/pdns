@@ -411,7 +411,7 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const DownstreamState& dss)
                             backendStatus.c_str(),
                             backendStatus.size());
 
-  return sendTrap(d_trapPipe[1], varList);
+  return sendTrap(d_sender, varList);
 #else
   return true;
 #endif /* HAVE_NET_SNMP */
@@ -436,7 +436,7 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
                             reason.c_str(),
                             reason.size());
 
-  return sendTrap(d_trapPipe[1], varList);
+  return sendTrap(d_sender, varList);
 #else
   return true;
 #endif /* HAVE_NET_SNMP */
@@ -542,7 +542,7 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
                             reason.c_str(),
                             reason.size());
 
-  return sendTrap(d_trapPipe[1], varList);
+  return sendTrap(d_sender, varList);
 #else
   return true;
 #endif /* HAVE_NET_SNMP */

@@ -20,9 +20,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <map>
 #include <time.h>
 #include <thread>
+
+#include "channel.hh"
 
 /**
    General idea: many threads submit work to this class, but only one executes it. The work should therefore be entirely trivial.
@@ -41,12 +42,12 @@ class ObjectPipe
 {
 public:
   ObjectPipe();
-  ~ObjectPipe();
   void write(T& t);
   int readTimeout(T* t, double msec); //!< -1 is timeout, 0 is no data, 1 is data. msec<0 waits infinitely long. msec==0 = undefined
   void close(); 
 private:
-  int d_fds[2];
+  pdns::channel::Sender<T> d_sender;
+  pdns::channel::Receiver<T> d_receiver;
 };
 
 template<class T>

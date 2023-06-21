@@ -21,8 +21,11 @@
  */
 #pragma once
 
+#pragma once
+
 #include <unordered_map>
 
+#include "channel.hh"
 #include "iputils.hh"
 #include "libssl.hh"
 #include "noinitvector.hh"
@@ -247,6 +250,7 @@ struct DOHUnit
   st_h2o_req_t* req{nullptr};
   DOHUnit** self{nullptr};
   DOHServerConfig* dsc{nullptr};
+  pdns::channel::Sender<DOHUnit, void(*)(DOHUnit*)>* responseSender{nullptr};
   std::atomic<uint64_t> d_refcnt{1};
   size_t query_at{0};
   size_t proxyProtocolPayloadSize{0};

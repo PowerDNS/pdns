@@ -130,6 +130,7 @@ dnsdist_SOURCES = \
 	burtle.hh \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
+	channel.cc channel.hh \
 	circular_buffer.hh \
 	connection-management.hh \
 	credentials.cc credentials.hh \
@@ -242,6 +243,7 @@ testrunner_SOURCES = \
 	base64.hh \
 	bpf-filter.cc bpf-filter.hh \
 	cachecleaner.hh \
+	channel.cc channel.hh \
 	circular_buffer.hh \
 	connection-management.hh \
 	credentials.cc credentials.hh \
@@ -304,6 +306,7 @@ testrunner_SOURCES = \
 	statnode.cc statnode.hh \
 	svc-records.cc svc-records.hh \
 	test-base64_cc.cc \
+	test-channel.cc \
 	test-connectionmanagement_hh.cc \
 	test-credentials_cc.cc \
 	test-delaypipe_hh.cc \
