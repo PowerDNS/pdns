@@ -28,7 +28,9 @@
 #include "dnsdist-rings.hh"
 #include "statnode.hh"
 
-#include "dnsdist-lua-inspection-ffi.hh"
+extern "C" {
+#include "dnsdist-lua-inspection-ffi.h"
+}
 
 // dnsdist_ffi_stat_node_t is a lightuserdata
 template<>
