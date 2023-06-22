@@ -232,6 +232,7 @@ namespace channel
       ssize_t sent = write(d_fd.getHandle(), &ptr, sizeof(ptr));
 
       if (sent == sizeof(ptr)) {
+        // coverity[leaked_storage]
         localObj.release();
         return true;
       }
