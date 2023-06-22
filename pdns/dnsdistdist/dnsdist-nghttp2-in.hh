@@ -56,12 +56,11 @@ public:
     Method d_method{Method::Unknown};
   };
 
-  IncomingHTTP2Connection(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now);
+  IncomingHTTP2Connection(ConnectionInfo&& connectionInfo, TCPClientThreadData& threadData, const struct timeval& now);
   ~IncomingHTTP2Connection() = default;
   void handleIO() override;
   void handleResponse(const struct timeval& now, TCPResponse&& response) override;
   void notifyIOError(const struct timeval& now, TCPResponse&& response) override;
-  void restoreContext(uint32_t streamID, PendingQuery&& context);
 
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data);
@@ -71,8 +70,8 @@ private:
   static int on_header_callback(nghttp2_session* session, const nghttp2_frame* frame, const uint8_t* name, size_t namelen, const uint8_t* value, size_t valuelen, uint8_t flags, void* user_data);
   static int on_begin_headers_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data);
   static int on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data);
-  static void handleReadableIOCallback(int fd, FDMultiplexer::funcparam_t& param);
-  static void handleWritableIOCallback(int fd, FDMultiplexer::funcparam_t& param);
+  static void handleReadableIOCallback(int descriptor, FDMultiplexer::funcparam_t& param);
+  static void handleWritableIOCallback(int descriptor, FDMultiplexer::funcparam_t& param);
 
   IOState sendResponse(const struct timeval& now, TCPResponse&& response) override;
   bool forwardViaUDPFirst() const override
@@ -85,7 +84,7 @@ private:
   void stopIO();
   bool isIdle() const;
   uint32_t getConcurrentStreamsCount() const;
-  void updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback);
+  void updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback);
   void watchForRemoteHostClosingConnection();
   void handleIOError();
   bool sendResponse(StreamID streamID, PendingQuery& context, uint16_t responseCode, const HeadersMap& customResponseHeaders, const std::string& contentType = "", bool addContentType = true);

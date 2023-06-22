@@ -34,6 +34,7 @@ std::vector<std::unique_ptr<ClientState>> g_frontends;
 /* add stub implementations, we don't want to include the corresponding object files
    and their dependencies */
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static): this is a stub, the real one is not that simple..
 bool TLSFrontend::setupTLS()
 {
   return true;

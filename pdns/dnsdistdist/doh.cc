@@ -57,7 +57,7 @@
 */
 
 /* 'Intermediate' compatibility from https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29 */
-#define DOH_DEFAULT_CIPHERS "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS"
+static constexpr string_view DOH_DEFAULT_CIPHERS = "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS";
 
 class DOHAcceptContext
 {
@@ -68,7 +68,9 @@ public:
     d_rotatingTicketsKey.clear();
   }
   DOHAcceptContext(const DOHAcceptContext&) = delete;
+  DOHAcceptContext(DOHAcceptContext&&) = delete;
   DOHAcceptContext& operator=(const DOHAcceptContext&) = delete;
+  DOHAcceptContext& operator=(DOHAcceptContext&&) = delete;
 
   h2o_accept_ctx_t* get()
   {
@@ -81,19 +83,19 @@ public:
     d_h2o_accept_ctx.ssl_ctx = nullptr;
   }
 
-  void decrementConcurrentConnections()
+  void decrementConcurrentConnections() const
   {
     if (d_cs != nullptr) {
       --d_cs->tcpCurrentConnections;
     }
   }
 
-  time_t getNextTicketsKeyRotation() const
+  [[nodiscard]] time_t getNextTicketsKeyRotation() const
   {
     return d_ticketsKeyNextRotation;
   }
 
-  size_t getTicketsKeysCount() const
+  [[nodiscard]] size_t getTicketsKeysCount() const
   {
     size_t res = 0;
     if (d_ticketKeys) {
@@ -162,7 +164,7 @@ public:
   time_t d_ticketsKeyRotationDelay{0};
 
 private:
-  h2o_accept_ctx_t d_h2o_accept_ctx;
+  h2o_accept_ctx_t d_h2o_accept_ctx{};
   time_t d_ticketsKeyNextRotation{0};
   std::atomic_flag d_rotatingTicketsKey;
 };
@@ -190,7 +192,7 @@ struct DOHServerConfig
     }
 
     h2o_config_init(&h2o_config);
-    h2o_config.http2.idle_timeout = idleTimeout * 1000;
+    h2o_config.http2.idle_timeout = static_cast<uint64_t>(idleTimeout) * 1000;
     /* if you came here for a way to make the number of concurrent streams (concurrent requests per connection)
        configurable, or even just bigger, I have bad news for you.
        h2o_config.http2.max_concurrent_requests_per_connection (default of 100) is capped by
@@ -200,15 +202,18 @@ struct DOHServerConfig
     */
   }
   DOHServerConfig(const DOHServerConfig&) = delete;
+  DOHServerConfig(DOHServerConfig&&) = delete;
   DOHServerConfig& operator=(const DOHServerConfig&) = delete;
+  DOHServerConfig& operator=(DOHServerConfig&&) = delete;
+  ~DOHServerConfig() = default;
 
   LocalHolders holders;
   std::set<std::string, std::less<>> paths;
-  h2o_globalconf_t h2o_config;
-  h2o_context_t h2o_ctx;
+  h2o_globalconf_t h2o_config{};
+  h2o_context_t h2o_ctx{};
   std::shared_ptr<DOHAcceptContext> accept_ctx{nullptr};
-  ClientState* cs{nullptr};
-  std::shared_ptr<DOHFrontend> df{nullptr};
+  ClientState* clientState{nullptr};
+  std::shared_ptr<DOHFrontend> dohFrontend{nullptr};
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
   pdns::channel::Sender<DOHUnit> d_querySender;
   pdns::channel::Receiver<DOHUnit> d_queryReceiver;
@@ -219,19 +224,21 @@ struct DOHServerConfig
 
 struct DOHUnit : public DOHUnitInterface
 {
-  DOHUnit(PacketBuffer&& q, std::string&& p, std::string&& h): path(std::move(p)), host(std::move(h)), query(std::move(q))
+  DOHUnit(PacketBuffer&& query_, std::string&& path_, std::string&& host_): path(std::move(path_)), host(std::move(host_)), query(std::move(query_))
   {
     ids.ednsAdded = false;
   }
-  ~DOHUnit()
+  ~DOHUnit() override
   {
-    if (self) {
+    if (self != nullptr) {
       *self = nullptr;
     }
   }
 
   DOHUnit(const DOHUnit&) = delete;
+  DOHUnit(DOHUnit&&) = delete;
   DOHUnit& operator=(const DOHUnit&) = delete;
+  DOHUnit& operator=(DOHUnit&&) = delete;
 
   InternalQueryState ids;
   std::string sni;
@@ -261,26 +268,26 @@ struct DOHUnit : public DOHUnitInterface
   bool tcp{false};
   bool truncated{false};
 
-  std::string getHTTPPath() const override;
-  std::string getHTTPQueryString() const override;
-  const std::string& getHTTPHost() const override;
-  const std::string& getHTTPScheme() const override;
-  const std::unordered_map<std::string, std::string>& getHTTPHeaders() const override;
+  [[nodiscard]] std::string getHTTPPath() const override;
+  [[nodiscard]] std::string getHTTPQueryString() const override;
+  [[nodiscard]] const std::string& getHTTPHost() const override;
+  [[nodiscard]] const std::string& getHTTPScheme() const override;
+  [[nodiscard]] const std::unordered_map<std::string, std::string>& getHTTPHeaders() const override;
   void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType="") override;
-  virtual void handleTimeout() override;
-  virtual void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, const std::shared_ptr<DownstreamState>&) override;
+  void handleTimeout() override;
+  void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, [[maybe_unused]] const std::shared_ptr<DownstreamState>& downstream) override;
 };
 using DOHUnitUniquePtr = std::unique_ptr<DOHUnit>;
 
 /* This internal function sends back the object to the main thread to send a reply.
    The caller should NOT release or touch the unit after calling this function */
-static void sendDoHUnitToTheMainThread(DOHUnitUniquePtr&& du, const char* description)
+static void sendDoHUnitToTheMainThread(DOHUnitUniquePtr&& dohUnit, const char* description)
 {
-  if (du->responseSender == nullptr) {
+  if (dohUnit->responseSender == nullptr) {
     return;
   }
   try {
-    if (!du->responseSender->send(std::move(du))) {
+    if (!dohUnit->responseSender->send(std::move(dohUnit))) {
       ++dnsdist::metrics::g_stats.dohResponsePipeFull;
       vinfolog("Unable to pass a %s to the DoH worker thread because the pipe is full", description);
     }
@@ -311,10 +318,10 @@ static thread_local std::unordered_map<int, DOHConnection> t_conns;
 
 static void on_socketclose(void *data)
 {
-  auto conn = reinterpret_cast<DOHConnection*>(data);
+  auto* conn = static_cast<DOHConnection*>(data);
   if (conn != nullptr) {
     if (conn->d_acceptCtx) {
-      struct timeval now;
+      struct timeval now{};
       gettimeofday(&now, nullptr);
 
       auto diff = now - conn->d_connectionStartTime;
@@ -371,17 +378,15 @@ static const std::string& getReasonFromStatusCode(uint16_t statusCode)
   };
   static const std::string unknown = "Unknown";
 
-  const auto it = reasons.find(statusCode);
-  if (it == reasons.end()) {
+  const auto reasonIt = reasons.find(statusCode);
+  if (reasonIt == reasons.end()) {
     return unknown;
   }
-  else {
-    return it->second;
-  }
+  return reasonIt->second;
 }
 
 /* Always called from the main DoH thread */
-static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCode, const PacketBuffer& response, const std::unordered_map<std::string, std::string>& customResponseHeaders, const std::string& contentType, bool addContentType)
+static void handleResponse(DOHFrontend& dohFrontend, st_h2o_req_t* req, uint16_t statusCode, const PacketBuffer& response, const std::unordered_map<std::string, std::string>& customResponseHeaders, const std::string& contentType, bool addContentType)
 {
   constexpr int overwrite_if_exists = 1;
   constexpr int maybe_token = 1;
@@ -390,7 +395,7 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
   }
 
   if (statusCode == 200) {
-    ++df.d_validresponses;
+    ++dohFrontend.d_validresponses;
     req->res.status = 200;
 
     if (addContentType) {
@@ -399,12 +404,14 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
       }
       else {
         /* we need to duplicate the header content because h2o keeps a pointer and we will be deleted before the response has been sent */
-        h2o_iovec_t ct = h2o_strdup(&req->pool, contentType.c_str(), contentType.size());
-        h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, ct.base, ct.len);
+        h2o_iovec_t contentTypeVect = h2o_strdup(&req->pool, contentType.c_str(), contentType.size());
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic): h2o API
+        h2o_add_header(&req->pool, &req->res.headers, H2O_TOKEN_CONTENT_TYPE, nullptr, contentTypeVect.base, contentTypeVect.len);
       }
     }
 
-    if (df.d_sendCacheControlHeaders && response.size() > sizeof(dnsheader)) {
+    if (dohFrontend.d_sendCacheControlHeaders && response.size() > sizeof(dnsheader)) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       uint32_t minTTL = getDNSPacketMinTTL(reinterpret_cast<const char*>(response.data()), response.size());
       if (minTTL != std::numeric_limits<uint32_t>::max()) {
         std::string cacheControlValue = "max-age=" + std::to_string(minTTL);
@@ -415,18 +422,21 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
     }
 
     req->res.content_length = response.size();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): h2o API
     h2o_send_inline(req, reinterpret_cast<const char*>(response.data()), response.size());
   }
   else if (statusCode >= 300 && statusCode < 400) {
     /* in that case the response is actually a URL */
     /* we need to duplicate the URL because h2o uses it for the location header, keeping a pointer, and we will be deleted before the response has been sent */
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): h2o API
     h2o_iovec_t url = h2o_strdup(&req->pool, reinterpret_cast<const char*>(response.data()), response.size());
     h2o_send_redirect(req, statusCode, getReasonFromStatusCode(statusCode).c_str(), url.base, url.len);
-    ++df.d_redirectresponses;
+    ++dohFrontend.d_redirectresponses;
   }
   else {
     // we need to make sure it's null-terminated */
     if (!response.empty() && response.at(response.size() - 1) == 0) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): h2o API
       h2o_send_error_generic(req, statusCode, getReasonFromStatusCode(statusCode).c_str(), reinterpret_cast<const char*>(response.data()), H2O_SEND_ERROR_KEEP_HEADERS);
     }
     else {
@@ -448,24 +458,27 @@ static void handleResponse(DOHFrontend& df, st_h2o_req_t* req, uint16_t statusCo
       }
     }
 
-    ++df.d_errorresponses;
+    ++dohFrontend.d_errorresponses;
   }
 }
 
 static std::unique_ptr<DOHUnit> getDUFromIDS(InternalQueryState& ids)
 {
-  auto du = std::unique_ptr<DOHUnit>(dynamic_cast<DOHUnit*>(ids.du.release()));
-  return du;
+  auto dohUnit = std::unique_ptr<DOHUnit>(dynamic_cast<DOHUnit*>(ids.du.release()));
+  return dohUnit;
 }
 
-class DoHTCPCrossQuerySender : public TCPQuerySender
+class DoHTCPCrossQuerySender final : public TCPQuerySender
 {
 public:
-  DoHTCPCrossQuerySender()
-  {
-  }
+  DoHTCPCrossQuerySender() = default;
+  DoHTCPCrossQuerySender(const DoHTCPCrossQuerySender&) = delete;
+  DoHTCPCrossQuerySender(DoHTCPCrossQuerySender&&) = delete;
+  DoHTCPCrossQuerySender& operator=(const DoHTCPCrossQuerySender&) = delete;
+  DoHTCPCrossQuerySender& operator=(DoHTCPCrossQuerySender&&) = delete;
+  ~DoHTCPCrossQuerySender() final = default;
 
-  bool active() const override
+  [[nodiscard]] bool active() const override
   {
     return true;
   }
@@ -476,29 +489,29 @@ public:
       return;
     }
 
-    auto du = getDUFromIDS(response.d_idstate);
-    if (du->responseSender == nullptr) {
+    auto dohUnit = getDUFromIDS(response.d_idstate);
+    if (dohUnit->responseSender == nullptr) {
       return;
     }
 
-    du->response = std::move(response.d_buffer);
-    du->ids = std::move(response.d_idstate);
-    DNSResponse dr(du->ids, du->response, du->downstream);
+    dohUnit->response = std::move(response.d_buffer);
+    dohUnit->ids = std::move(response.d_idstate);
+    DNSResponse dr(dohUnit->ids, dohUnit->response, dohUnit->downstream);
 
-    dnsheader cleartextDH;
+    dnsheader cleartextDH{};
     memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
       static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
       static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
 
-      dr.ids.du = std::move(du);
+      dr.ids.du = std::move(dohUnit);
 
       if (!processResponse(dynamic_cast<DOHUnit*>(dr.ids.du.get())->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false)) {
         if (dr.ids.du) {
-          du = getDUFromIDS(dr.ids);
-          du->status_code = 503;
-          sendDoHUnitToTheMainThread(std::move(du), "Response dropped by rules");
+          dohUnit = getDUFromIDS(dr.ids);
+          dohUnit->status_code = 503;
+          sendDoHUnitToTheMainThread(std::move(dohUnit), "Response dropped by rules");
         }
         return;
       }
@@ -507,26 +520,26 @@ public:
         return;
       }
 
-      du = getDUFromIDS(dr.ids);
+      dohUnit = getDUFromIDS(dr.ids);
     }
 
-    if (!du->ids.selfGenerated) {
-      double udiff = du->ids.queryRealTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s (https), took %f us", du->downstream->d_config.remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
+    if (!dohUnit->ids.selfGenerated) {
+      double udiff = dohUnit->ids.queryRealTime.udiff();
+      vinfolog("Got answer from %s, relayed to %s (https), took %f us", dohUnit->downstream->d_config.remote.toStringWithPort(), dohUnit->ids.origRemote.toStringWithPort(), udiff);
 
-      auto backendProtocol = du->downstream->getProtocol();
-      if (backendProtocol == dnsdist::Protocol::DoUDP && du->tcp) {
+      auto backendProtocol = dohUnit->downstream->getProtocol();
+      if (backendProtocol == dnsdist::Protocol::DoUDP && dohUnit->tcp) {
         backendProtocol = dnsdist::Protocol::DoTCP;
       }
-      handleResponseSent(du->ids, udiff, du->ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, backendProtocol, true);
+      handleResponseSent(dohUnit->ids, udiff, dohUnit->ids.origRemote, dohUnit->downstream->d_config.remote, dohUnit->response.size(), cleartextDH, backendProtocol, true);
     }
 
     ++dnsdist::metrics::g_stats.responses;
-    if (du->ids.cs) {
-      ++du->ids.cs->responses;
+    if (dohUnit->ids.cs != nullptr) {
+      ++dohUnit->ids.cs->responses;
     }
 
-    sendDoHUnitToTheMainThread(std::move(du), "cross-protocol response");
+    sendDoHUnitToTheMainThread(std::move(dohUnit), "cross-protocol response");
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
@@ -541,39 +554,39 @@ public:
       return;
     }
 
-    auto du = getDUFromIDS(query);
-    if (du->responseSender == nullptr) {
+    auto dohUnit = getDUFromIDS(query);
+    if (dohUnit->responseSender == nullptr) {
       return;
     }
 
-    du->ids = std::move(query);
-    du->status_code = 502;
-    sendDoHUnitToTheMainThread(std::move(du), "cross-protocol error response");
+    dohUnit->ids = std::move(query);
+    dohUnit->status_code = 502;
+    sendDoHUnitToTheMainThread(std::move(dohUnit), "cross-protocol error response");
   }
 };
 
 class DoHCrossProtocolQuery : public CrossProtocolQuery
 {
 public:
-  DoHCrossProtocolQuery(DOHUnitUniquePtr&& du, bool isResponse)
+  DoHCrossProtocolQuery(DOHUnitUniquePtr&& dohUnit, bool isResponse)
   {
     if (isResponse) {
       /* happens when a response becomes async */
-      query = InternalQuery(std::move(du->response), std::move(du->ids));
+      query = InternalQuery(std::move(dohUnit->response), std::move(dohUnit->ids));
     }
     else {
       /* we need to duplicate the query here because we might need
          the existing query later if we get a truncated answer */
-      query = InternalQuery(PacketBuffer(du->query), std::move(du->ids));
+      query = InternalQuery(PacketBuffer(dohUnit->query), std::move(dohUnit->ids));
     }
 
-    /* it might have been moved when we moved du->ids */
-    if (du) {
-      query.d_idstate.du = std::move(du);
+    /* it might have been moved when we moved dohUnit->ids */
+    if (dohUnit) {
+      query.d_idstate.du = std::move(dohUnit);
     }
 
     /* we _could_ remove it from the query buffer and put in query's d_proxyProtocolPayload,
-       clearing query.d_proxyProtocolPayloadAdded and du->proxyProtocolPayloadSize.
+       clearing query.d_proxyProtocolPayloadAdded and dohUnit->proxyProtocolPayloadSize.
        Leave it for now because we know that the onky case where the payload has been
        added is when we tried over UDP, got a TC=1 answer and retried over TCP/DoT,
        and we know the TCP/DoT code can handle it. */
@@ -583,12 +596,12 @@ public:
 
   void handleInternalError()
   {
-    auto du = getDUFromIDS(query.d_idstate);
-    if (!du) {
+    auto dohUnit = getDUFromIDS(query.d_idstate);
+    if (dohUnit == nullptr) {
       return;
     }
-    du->status_code = 502;
-    sendDoHUnitToTheMainThread(std::move(du), "DoH internal error");
+    dohUnit->status_code = 502;
+    sendDoHUnitToTheMainThread(std::move(dohUnit), "DoH internal error");
   }
 
   std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
@@ -628,25 +641,25 @@ std::unique_ptr<CrossProtocolQuery> getDoHCrossProtocolQueryFromDQ(DNSQuestion& 
     throw std::runtime_error("Trying to create a DoH cross protocol query without a valid DoH unit");
   }
 
-  auto du = getDUFromIDS(dq.ids);
-  if (&dq.ids != &du->ids) {
-   du->ids = std::move(dq.ids);
+  auto dohUnit = getDUFromIDS(dq.ids);
+  if (&dq.ids != &dohUnit->ids) {
+   dohUnit->ids = std::move(dq.ids);
   }
 
-  du->ids.origID = dq.getHeader()->id;
+  dohUnit->ids.origID = dq.getHeader()->id;
 
   if (!isResponse) {
-    if (du->query.data() != dq.getMutableData().data()) {
-      du->query = std::move(dq.getMutableData());
+    if (dohUnit->query.data() != dq.getMutableData().data()) {
+      dohUnit->query = std::move(dq.getMutableData());
     }
   }
   else {
-    if (du->response.data() != dq.getMutableData().data()) {
-      du->response = std::move(dq.getMutableData());
+    if (dohUnit->response.data() != dq.getMutableData().data()) {
+      dohUnit->response = std::move(dq.getMutableData());
     }
   }
 
-  return std::make_unique<DoHCrossProtocolQuery>(std::move(du), isResponse);
+  return std::make_unique<DoHCrossProtocolQuery>(std::move(dohUnit), isResponse);
 }
 
 /*
@@ -654,15 +667,15 @@ std::unique_ptr<CrossProtocolQuery> getDoHCrossProtocolQueryFromDQ(DNSQuestion& 
 */
 static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
 {
-  const auto handleImmediateResponse = [inMainThread](DOHUnitUniquePtr&& du, const char* reason) {
+  const auto handleImmediateResponse = [inMainThread](DOHUnitUniquePtr&& dohUnit, const char* reason) {
     if (inMainThread) {
-      handleResponse(*du->dsc->df, du->req, du->status_code, du->response, du->dsc->df->d_customResponseHeaders, du->contentType, true);
+      handleResponse(*dohUnit->dsc->dohFrontend, dohUnit->req, dohUnit->status_code, dohUnit->response, dohUnit->dsc->dohFrontend->d_customResponseHeaders, dohUnit->contentType, true);
       /* so the unique pointer is stored in the InternalState which itself is stored in the unique pointer itself. We likely need
          a better design, but for now let's just reset the internal one since we know it is no longer needed. */
-      du->ids.du.reset();
+      dohUnit->ids.du.reset();
     }
     else {
-      sendDoHUnitToTheMainThread(std::move(du), reason);
+      sendDoHUnitToTheMainThread(std::move(dohUnit), reason);
     }
   };
 
@@ -671,9 +684,9 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
   ComboAddress remote;
 
   try {
-    if (!unit->req) {
+    if (unit->req == nullptr) {
       // we got closed meanwhile. XXX small race condition here
-      // but we should be fine as long as we don't touch du->req
+      // but we should be fine as long as we don't touch dohUnit->req
       // outside of the main DoH thread
       unit->status_code = 500;
       handleImmediateResponse(std::move(unit), "DoH killed in flight");
@@ -683,47 +696,48 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     remote = ids.origRemote;
     DOHServerConfig* dsc = unit->dsc;
     auto& holders = dsc->holders;
-    ClientState& cs = *dsc->cs;
+    ClientState& clientState = *dsc->clientState;
 
-    if (unit->query.size() < sizeof(dnsheader)) {
+    if (unit->query.size() < sizeof(dnsheader) || unit->query.size() > std::numeric_limits<uint16_t>::max()) {
       ++dnsdist::metrics::g_stats.nonCompliantQueries;
-      ++cs.nonCompliantQueries;
+      ++clientState.nonCompliantQueries;
       unit->status_code = 400;
       handleImmediateResponse(std::move(unit), "DoH non-compliant query");
       return;
     }
 
-    ++cs.queries;
+    ++clientState.queries;
     ++dnsdist::metrics::g_stats.queries;
     ids.queryRealTime.start();
 
     {
       /* don't keep that pointer around, it will be invalidated if the buffer is ever resized */
-      struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(unit->query.data());
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      auto* dnsHeader = reinterpret_cast<struct dnsheader*>(unit->query.data());
 
-      if (!checkQueryHeaders(dh, cs)) {
+      if (!checkQueryHeaders(dnsHeader, clientState)) {
         unit->status_code = 400;
         handleImmediateResponse(std::move(unit), "DoH invalid headers");
         return;
       }
 
-      if (dh->qdcount == 0) {
-        dh->rcode = RCode::NotImp;
-        dh->qr = true;
+      if (dnsHeader->qdcount == 0U) {
+        dnsHeader->rcode = RCode::NotImp;
+        dnsHeader->qr = true;
         unit->response = std::move(unit->query);
 
         handleImmediateResponse(std::move(unit), "DoH empty query");
         return;
       }
 
-      queryId = ntohs(dh->id);
+      queryId = ntohs(dnsHeader->id);
     }
 
     {
       // if there was no EDNS, we add it with a large buffer size
       // so we can use UDP to talk to the backend.
-      auto dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(unit->query.data()));
-      if (!dh->arcount) {
+      dnsheader_aligned dnsHeader(unit->query.data());
+      if (dnsHeader.get()->arcount == 0U) {
         if (addEDNS(unit->query, 4096, false, 4096, 0)) {
           ids.ednsAdded = true;
         }
@@ -731,14 +745,15 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     }
 
     auto downstream = unit->downstream;
-    ids.qname = DNSName(reinterpret_cast<const char*>(unit->query.data()), unit->query.size(), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
-    DNSQuestion dq(ids, unit->query);
-    const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader());
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    ids.qname = DNSName(reinterpret_cast<const char*>(unit->query.data()), static_cast<int>(unit->query.size()), static_cast<int>(sizeof(dnsheader)), false, &ids.qtype, &ids.qclass);
+    DNSQuestion dnsQuestion(ids, unit->query);
+    const uint16_t* flags = getFlagsFromDNSHeader(dnsQuestion.getHeader());
     ids.origFlags = *flags;
-    ids.cs = &cs;
-    dq.sni = std::move(unit->sni);
+    ids.cs = &clientState;
+    dnsQuestion.sni = std::move(unit->sni);
     ids.du = std::move(unit);
-    auto result = processQuery(dq, holders, downstream);
+    auto result = processQuery(dnsQuestion, holders, downstream);
 
     if (result == ProcessQueryResult::Drop) {
       unit = getDUFromIDS(ids);
@@ -746,18 +761,17 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       handleImmediateResponse(std::move(unit), "DoH dropped query");
       return;
     }
-    else if (result == ProcessQueryResult::Asynchronous) {
+    if (result == ProcessQueryResult::Asynchronous) {
       return;
     }
-    else if (result == ProcessQueryResult::SendAnswer) {
+    if (result == ProcessQueryResult::SendAnswer) {
       unit = getDUFromIDS(ids);
       if (unit->response.empty()) {
         unit->response = std::move(unit->query);
       }
       if (unit->response.size() >= sizeof(dnsheader) && unit->contentType.empty()) {
-        auto dh = reinterpret_cast<const struct dnsheader*>(unit->response.data());
-
-        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0., unit->ids.origDest, ComboAddress(), unit->response.size(), *dh, dnsdist::Protocol::DoH, dnsdist::Protocol::DoH, false);
+        dnsheader_aligned dnsHeader(unit->response.data());
+        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0., unit->ids.origDest, ComboAddress(), unit->response.size(), *(dnsHeader.get()), dnsdist::Protocol::DoH, dnsdist::Protocol::DoH, false);
       }
       handleImmediateResponse(std::move(unit), "DoH self-answered response");
       return;
@@ -783,7 +797,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       /* we need to do this _before_ creating the cross protocol query because
          after that the buffer will have been moved */
       if (downstream->d_config.useProxyProtocol) {
-        proxyProtocolPayload = getProxyProtocolPayload(dq);
+        proxyProtocolPayload = getProxyProtocolPayload(dnsQuestion);
       }
 
       unit->ids.origID = htons(queryId);
@@ -796,22 +810,22 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       if (downstream->passCrossProtocolQuery(std::move(cpq))) {
         return;
       }
-      else {
-        if (inMainThread) {
-          unit = cpq->releaseDU();
-          unit->status_code = 502;
-          handleImmediateResponse(std::move(unit), "DoH internal error");
-        }
-        else {
-          cpq->handleInternalError();
-        }
-        return;
+
+      if (inMainThread) {
+        // NOLINTNEXTLINE(bugprone-use-after-move): cpq is not altered if the call fails
+        unit = cpq->releaseDU();
+        unit->status_code = 502;
+        handleImmediateResponse(std::move(unit), "DoH internal error");
       }
+      else {
+        cpq->handleInternalError();
+      }
+      return;
     }
 
     auto& query = unit->query;
     ids.du = std::move(unit);
-    if (!assignOutgoingUDPQueryToBackend(downstream, htons(queryId), dq, query)) {
+    if (!assignOutgoingUDPQueryToBackend(downstream, htons(queryId), dnsQuestion, query)) {
       unit = getDUFromIDS(ids);
       unit->status_code = 502;
       handleImmediateResponse(std::move(unit), "DoH internal error");
@@ -824,8 +838,6 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     handleImmediateResponse(std::move(unit), "DoH internal error");
     return;
   }
-
-  return;
 }
 
 /* called when a HTTP response is about to be sent, from the main DoH thread */
@@ -835,16 +847,17 @@ static void on_response_ready_cb(struct st_h2o_filter_t *self, h2o_req_t *req, h
     return;
   }
 
-  DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): h2o API
+  auto* dsc = static_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
 
   DOHFrontend::HTTPVersionStats* stats = nullptr;
   if (req->version < 0x200) {
     /* HTTP 1.x */
-    stats = &dsc->df->d_http1Stats;
+    stats = &dsc->dohFrontend->d_http1Stats;
   }
   else {
     /* HTTP 2.0 */
-    stats = &dsc->df->d_http2Stats;
+    stats = &dsc->dohFrontend->d_http2Stats;
   }
 
   switch (req->res.status) {
@@ -875,10 +888,10 @@ static void on_response_ready_cb(struct st_h2o_filter_t *self, h2o_req_t *req, h
    We use this to signal to the 'du' that this req is no longer alive */
 static void on_generator_dispose(void *_self)
 {
-  DOHUnit** du = reinterpret_cast<DOHUnit**>(_self);
-  if (*du) { // if 0, on_dnsdist cleaned up du already
-    (*du)->self = nullptr;
-    (*du)->req = nullptr;
+  auto* dohUnit = static_cast<DOHUnit**>(_self);
+  if (*dohUnit != nullptr) { // if nullptr, on_dnsdist cleaned up dohUnit already
+    (*dohUnit)->self = nullptr;
+    (*dohUnit)->req = nullptr;
   }
 }
 
@@ -889,6 +902,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
 {
   try {
     /* we only parse it there as a sanity check, we will parse it again later */
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     DNSPacketMangler mangler(reinterpret_cast<char*>(query.data()), query.size());
     mangler.skipDomainName();
     mangler.skipBytes(4);
@@ -896,23 +910,24 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     /* we are doing quite some copies here, sorry about that,
        but we can't keep accessing the req object once we are in a different thread
        because the request might get killed by h2o at pretty much any time */
-    auto du = DOHUnitUniquePtr(new DOHUnit(std::move(query), std::move(path), std::string(req->authority.base, req->authority.len)));
-    du->dsc = dsc;
-    du->req = req;
-    du->ids.origDest = local;
-    du->ids.origRemote = remote;
-    du->ids.protocol = dnsdist::Protocol::DoH;
-    du->responseSender = &dsc->d_responseSender;
+    auto dohUnit = std::make_unique<DOHUnit>(std::move(query), std::move(path), std::string(req->authority.base, req->authority.len));
+    dohUnit->dsc = dsc;
+    dohUnit->req = req;
+    dohUnit->ids.origDest = local;
+    dohUnit->ids.origRemote = remote;
+    dohUnit->ids.protocol = dnsdist::Protocol::DoH;
+    dohUnit->responseSender = &dsc->d_responseSender;
     if (req->scheme != nullptr) {
-      du->scheme = std::string(req->scheme->name.base, req->scheme->name.len);
+      dohUnit->scheme = std::string(req->scheme->name.base, req->scheme->name.len);
     }
-    du->query_at = req->query_at;
+    dohUnit->query_at = req->query_at;
 
-    if (dsc->df->d_keepIncomingHeaders) {
-      du->headers = std::make_unique<std::unordered_map<std::string, std::string>>();
-      du->headers->reserve(req->headers.size);
+    if (dsc->dohFrontend->d_keepIncomingHeaders) {
+      dohUnit->headers = std::make_unique<std::unordered_map<std::string, std::string>>();
+      dohUnit->headers->reserve(req->headers.size);
       for (size_t i = 0; i < req->headers.size; ++i) {
-        (*du->headers)[std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len)] = std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): h2o API
+        (*dohUnit->headers)[std::string(req->headers.entries[i].name->base, req->headers.entries[i].name->len)] = std::string(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
       }
     }
 
@@ -920,17 +935,17 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
     const char * sni = h2o_socket_get_ssl_server_name(sock);
     if (sni != nullptr) {
-      du->sni = sni;
+      dohUnit->sni = sni;
     }
 #endif /* HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME */
-    du->self = reinterpret_cast<DOHUnit**>(h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose));
-    *(du->self) = du.get();
+    dohUnit->self = static_cast<DOHUnit**>(h2o_mem_alloc_shared(&req->pool, sizeof(*self), on_generator_dispose));
+    *(dohUnit->self) = dohUnit.get();
 
 #ifdef USE_SINGLE_ACCEPTOR_THREAD
-    processDOHQuery(std::move(du), true);
+    processDOHQuery(std::move(dohUnit), true);
 #else /* USE_SINGLE_ACCEPTOR_THREAD */
     try {
-      if (!dsc->d_querySender.send(std::move(du))) {
+      if (!dsc->d_querySender.send(std::move(dohUnit))) {
         ++dnsdist::metrics::g_stats.dohQueryPipeFull;
         vinfolog("Unable to pass a DoH query to the DoH worker thread because the pipe is full");
         h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
@@ -956,7 +971,9 @@ static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerNa
   std::string_view headerNameView(headerName);
 
   for (size_t i = 0; i < req->headers.size; ++i) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): h2o API
     if (std::string_view(req->headers.entries[i].name->base, req->headers.entries[i].name->len) == headerNameView) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): h2o API
       value = std::string_view(req->headers.entries[i].value.base, req->headers.entries[i].value.len);
       /* don't stop there, we might have more than one header with the same name, and we want the last one */
       found = true;
@@ -1006,10 +1023,11 @@ static std::optional<ComboAddress> processForwardedForHeader(const h2o_req_t* re
 static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
 {
   try {
-    if (!req->conn->ctx->storage.size) {
+    if (req->conn->ctx->storage.size == 0) {
       return 0; // although we might was well crash on this
     }
-    DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): h2o API
+    auto* dsc = static_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
     h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
 
     const int descriptor = h2o_socket_get_fd(sock);
@@ -1021,17 +1039,18 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     ++conn.d_nbQueries;
     if (conn.d_nbQueries == 1) {
       if (h2o_socket_get_ssl_session_reused(sock) == 0) {
-        ++dsc->cs->tlsNewSessions;
+        ++dsc->clientState->tlsNewSessions;
       }
       else {
-        ++dsc->cs->tlsResumptions;
+        ++dsc->clientState->tlsResumptions;
       }
 
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): h2o API
       h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&conn.d_local));
     }
 
     auto remote = conn.d_remote;
-    if (dsc->df->d_trustForwardedForHeader) {
+    if (dsc->dohFrontend->d_trustForwardedForHeader) {
       auto newRemote = processForwardedForHeader(req, remote);
       if (newRemote) {
         remote = *newRemote;
@@ -1046,20 +1065,25 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       return 0;
     }
 
-    if (auto tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
-      if(!strcmp(tlsversion, "TLSv1.0"))
-        ++dsc->cs->tls10queries;
-      else if(!strcmp(tlsversion, "TLSv1.1"))
-        ++dsc->cs->tls11queries;
-      else if(!strcmp(tlsversion, "TLSv1.2"))
-        ++dsc->cs->tls12queries;
-      else if(!strcmp(tlsversion, "TLSv1.3"))
-        ++dsc->cs->tls13queries;
-      else
-        ++dsc->cs->tlsUnknownqueries;
+    if (const auto* tlsversion = h2o_socket_get_ssl_protocol_version(sock)) {
+      if (strcmp(tlsversion, "TLSv1.0") == 0) {
+        ++dsc->clientState->tls10queries;
+      }
+      else if (strcmp(tlsversion, "TLSv1.1") == 0) {
+        ++dsc->clientState->tls11queries;
+      }
+      else if (strcmp(tlsversion, "TLSv1.2") == 0) {
+        ++dsc->clientState->tls12queries;
+      }
+      else if (strcmp(tlsversion, "TLSv1.3") == 0) {
+        ++dsc->clientState->tls13queries;
+      }
+      else {
+        ++dsc->clientState->tlsUnknownqueries;
+      }
     }
 
-    if (dsc->df->d_exactPathMatching) {
+    if (dsc->dohFrontend->d_exactPathMatching) {
       const std::string_view pathOnly(req->path_normalized.base, req->path_normalized.len);
       if (dsc->paths.count(pathOnly) == 0) {
         h2o_send_error_404(req, "Not Found", "there is no endpoint configured for this path", 0);
@@ -1072,25 +1096,27 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     string path(req->path.base, req->path.len);
     /* the responses map can be updated at runtime, so we need to take a copy of
        the shared pointer, increasing the reference counter */
-    auto responsesMap = dsc->df->d_responsesMap;
+    auto responsesMap = dsc->dohFrontend->d_responsesMap;
     /* 1 byte for the root label, 2 type, 2 class, 4 TTL (fake), 2 record length, 2 option length, 2 option code, 2 family, 1 source, 1 scope, 16 max for a full v6 */
     const size_t maxAdditionalSizeForEDNS = 35U;
     if (responsesMap) {
       for (const auto& entry : *responsesMap) {
         if (entry->matches(path)) {
           const auto& customHeaders = entry->getHeaders();
-          handleResponse(*dsc->df, req, entry->getStatusCode(), entry->getContent(), customHeaders ? *customHeaders : dsc->df->d_customResponseHeaders, std::string(), false);
+          handleResponse(*dsc->dohFrontend, req, entry->getStatusCode(), entry->getContent(), customHeaders ? *customHeaders : dsc->dohFrontend->d_customResponseHeaders, std::string(), false);
           return 0;
         }
       }
     }
 
-    if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST"))) {
-      ++dsc->df->d_postqueries;
-      if(req->version >= 0x0200)
-        ++dsc->df->d_http2Stats.d_nbQueries;
-      else
-        ++dsc->df->d_http1Stats.d_nbQueries;
+    if (h2o_memis(req->method.base, req->method.len, H2O_STRLIT("POST")) != 0) {
+      ++dsc->dohFrontend->d_postqueries;
+      if (req->version >= 0x0200) {
+        ++dsc->dohFrontend->d_http2Stats.d_nbQueries;
+      }
+      else {
+        ++dsc->dohFrontend->d_http1Stats.d_nbQueries;
+      }
 
       PacketBuffer query;
       /* We reserve a few additional bytes to be able to add EDNS later */
@@ -1101,9 +1127,10 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     }
     else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
       auto pos = path.find("?dns=");
-      if(pos == string::npos)
+      if (pos == string::npos) {
         pos = path.find("&dns=");
-      if(pos != string::npos) {
+      }
+      if (pos != string::npos) {
         // need to base64url decode this
         string sdns(path.substr(pos+5));
         boost::replace_all(sdns,"-", "+");
@@ -1126,35 +1153,35 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
         decoded.reserve(estimate + maxAdditionalSizeForEDNS);
         if(B64Decode(sdns, decoded) < 0) {
           h2o_send_error_400(req, "Bad Request", "Unable to decode BASE64-URL", 0);
-          ++dsc->df->d_badrequests;
+          ++dsc->dohFrontend->d_badrequests;
           return 0;
         }
-        else {
-          ++dsc->df->d_getqueries;
-          if(req->version >= 0x0200)
-            ++dsc->df->d_http2Stats.d_nbQueries;
-          else
-            ++dsc->df->d_http1Stats.d_nbQueries;
 
-          doh_dispatch_query(dsc, self, req, std::move(decoded), conn.d_local, remote, std::move(path));
+        ++dsc->dohFrontend->d_getqueries;
+        if (req->version >= 0x0200) {
+          ++dsc->dohFrontend->d_http2Stats.d_nbQueries;
         }
+        else {
+          ++dsc->dohFrontend->d_http1Stats.d_nbQueries;
+        }
+
+        doh_dispatch_query(dsc, self, req, std::move(decoded), conn.d_local, remote, std::move(path));
       }
       else
       {
         vinfolog("HTTP request without DNS parameter: %s", req->path.base);
         h2o_send_error_400(req, "Bad Request", "Unable to find the DNS parameter", 0);
-        ++dsc->df->d_badrequests;
+        ++dsc->dohFrontend->d_badrequests;
         return 0;
       }
     }
     else {
       h2o_send_error_400(req, "Bad Request", "Unable to parse the request", 0);
-      ++dsc->df->d_badrequests;
+      ++dsc->dohFrontend->d_badrequests;
     }
     return 0;
   }
-  catch(const std::exception& e)
-  {
+  catch (const std::exception& e) {
     errlog("DOH Handler function failed with error %s", e.what());
     return 0;
   }
@@ -1174,9 +1201,7 @@ std::string DOHUnit::getHTTPPath() const
   if (query_at == SIZE_MAX) {
     return path;
   }
-  else {
-    return std::string(path, 0, query_at);
-  }
+  return {path, 0, query_at};
 }
 
 const std::string& DOHUnit::getHTTPHost() const
@@ -1192,11 +1217,9 @@ const std::string& DOHUnit::getHTTPScheme() const
 std::string DOHUnit::getHTTPQueryString() const
 {
   if (query_at == SIZE_MAX) {
-    return std::string();
+    return {};
   }
-  else {
-    return path.substr(query_at);
-  }
+  return path.substr(query_at);
 }
 
 void DOHUnit::setHTTPResponse(uint16_t statusCode, PacketBuffer&& body_, const std::string& contentType_)
@@ -1227,18 +1250,18 @@ static void dnsdistclient(pdns::channel::Receiver<DOHUnit>&& receiver)
       if (!tmp) {
         continue;
       }
-      auto du = std::move(*tmp);
+      auto dohUnit = std::move(*tmp);
       /* we are not in the main DoH thread anymore, so there is a real risk of
          a race condition where h2o kills the query while we are processing it,
-         so we can't touch the content of du->req until we are back into the
+         so we can't touch the content of dohUnit->req until we are back into the
          main DoH thread */
-      if (!du->req) {
+      if (dohUnit->req == nullptr) {
         // it got killed in flight already
-        du->self = nullptr;
+        dohUnit->self = nullptr;
         continue;
       }
 
-      processDOHQuery(std::move(du), false);
+      processDOHQuery(std::move(dohUnit), false);
     }
     catch (const std::exception& e) {
       errlog("Error while processing query received over DoH: %s", e.what());
@@ -1266,69 +1289,68 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
      memory and likely coming up too late after the client has gone away */
   auto* dsc = static_cast<DOHServerConfig*>(listener->data);
   while (true) {
-    DOHUnitUniquePtr du{nullptr};
+    DOHUnitUniquePtr dohUnit{nullptr};
     try {
       auto tmp = dsc->d_responseReceiver.receive();
       if (!tmp) {
         return;
       }
-      du = std::move(*tmp);
+      dohUnit = std::move(*tmp);
     }
     catch (const std::exception& e) {
       errlog("Error reading a DOH internal response: %s", e.what());
       return;
     }
 
-    if (!du->req) { // it got killed in flight
-      du->self = nullptr;
+    if (dohUnit->req == nullptr) { // it got killed in flight
+      dohUnit->self = nullptr;
       continue;
     }
 
-    if (!du->tcp &&
-        du->truncated &&
-        du->query.size() > du->ids.d_proxyProtocolPayloadSize &&
-        (du->query.size() - du->ids.d_proxyProtocolPayloadSize) > sizeof(dnsheader)) {
+    if (!dohUnit->tcp &&
+        dohUnit->truncated &&
+        dohUnit->query.size() > dohUnit->ids.d_proxyProtocolPayloadSize &&
+        (dohUnit->query.size() - dohUnit->ids.d_proxyProtocolPayloadSize) > sizeof(dnsheader)) {
       /* restoring the original ID */
-      dnsheader* queryDH = reinterpret_cast<struct dnsheader*>(du->query.data() + du->ids.d_proxyProtocolPayloadSize);
-      queryDH->id = du->ids.origID;
-      du->ids.forwardedOverUDP = false;
-      du->tcp = true;
-      du->truncated = false;
-      du->response.clear();
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      auto* queryDH = reinterpret_cast<struct dnsheader*>(&dohUnit->query.at(dohUnit->ids.d_proxyProtocolPayloadSize));
+      queryDH->id = dohUnit->ids.origID;
+      dohUnit->ids.forwardedOverUDP = false;
+      dohUnit->tcp = true;
+      dohUnit->truncated = false;
+      dohUnit->response.clear();
 
-      auto cpq = std::make_unique<DoHCrossProtocolQuery>(std::move(du), false);
+      auto cpq = std::make_unique<DoHCrossProtocolQuery>(std::move(dohUnit), false);
 
       if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
         continue;
       }
-      else {
-        vinfolog("Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP");
-        continue;
-      }
+      vinfolog("Unable to pass DoH query to a TCP worker thread after getting a TC response over UDP");
+      continue;
     }
 
-    if (du->self) {
+    if (dohUnit->self != nullptr) {
       // we are back in the h2o main thread now, so we don't risk
-      // a race (h2o killing the query) when accessing du->req anymore
-      *du->self = nullptr; // so we don't clean up again in on_generator_dispose
-      du->self = nullptr;
+      // a race (h2o killing the query) when accessing dohUnit->req anymore
+      *dohUnit->self = nullptr; // so we don't clean up again in on_generator_dispose
+      dohUnit->self = nullptr;
     }
 
-    handleResponse(*dsc->df, du->req, du->status_code, du->response, dsc->df->d_customResponseHeaders, du->contentType, true);
+    handleResponse(*dsc->dohFrontend, dohUnit->req, dohUnit->status_code, dohUnit->response, dsc->dohFrontend->d_customResponseHeaders, dohUnit->contentType, true);
   }
 }
 
 /* called when a TCP connection has been accepted, the TLS session has not been established */
 static void on_accept(h2o_socket_t *listener, const char *err)
 {
-  DOHServerConfig* dsc = reinterpret_cast<DOHServerConfig*>(listener->data);
-  h2o_socket_t *sock = nullptr;
+  auto* dsc = static_cast<DOHServerConfig*>(listener->data);
 
   if (err != nullptr) {
     return;
   }
 
-  if ((sock = h2o_evloop_socket_accept(listener)) == nullptr) {
+  h2o_socket_t* sock = h2o_evloop_socket_accept(listener);
+  if (sock == nullptr) {
     return;
   }
 
@@ -1339,18 +1361,19 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   }
 
   ComboAddress remote;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): h2o API
   if (h2o_socket_getpeername(sock, reinterpret_cast<struct sockaddr*>(&remote)) == 0) {
     vinfolog("Dropping DoH connection because we could not retrieve the remote host");
     h2o_socket_close(sock);
     return;
   }
 
-  if (dsc->df->d_earlyACLDrop && !dsc->df->d_trustForwardedForHeader && !dsc->holders.acl->match(remote)) {
+  if (dsc->dohFrontend->d_earlyACLDrop && !dsc->dohFrontend->d_trustForwardedForHeader && !dsc->holders.acl->match(remote)) {
     ++dnsdist::metrics::g_stats.aclDrops;
-      vinfolog("Dropping DoH connection from %s because of ACL", remote.toStringWithPort());
-      h2o_socket_close(sock);
-      return;
-    }
+    vinfolog("Dropping DoH connection from %s because of ACL", remote.toStringWithPort());
+    h2o_socket_close(sock);
+    return;
+  }
 
   if (!dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(remote)) {
     vinfolog("Dropping DoH connection from %s because we have too many from this client already", remote.toStringWithPort());
@@ -1358,15 +1381,15 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     return;
   }
 
-  auto concurrentConnections = ++dsc->cs->tcpCurrentConnections;
-  if (dsc->cs->d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > dsc->cs->d_tcpConcurrentConnectionsLimit) {
-    --dsc->cs->tcpCurrentConnections;
+  auto concurrentConnections = ++dsc->clientState->tcpCurrentConnections;
+  if (dsc->clientState->d_tcpConcurrentConnectionsLimit > 0 && concurrentConnections > dsc->clientState->d_tcpConcurrentConnectionsLimit) {
+    --dsc->clientState->tcpCurrentConnections;
     h2o_socket_close(sock);
     return;
   }
 
-  if (concurrentConnections > dsc->cs->tcpMaxConcurrentConnections.load()) {
-    dsc->cs->tcpMaxConcurrentConnections.store(concurrentConnections);
+  if (concurrentConnections > dsc->clientState->tcpMaxConcurrentConnections.load()) {
+    dsc->clientState->tcpMaxConcurrentConnections.store(concurrentConnections);
   }
 
   auto& conn = t_conns[descriptor];
@@ -1381,14 +1404,14 @@ static void on_accept(h2o_socket_t *listener, const char *err)
   sock->on_close.data = &conn;
   sock->data = dsc;
 
-  ++dsc->df->d_httpconnects;
+  ++dsc->dohFrontend->d_httpconnects;
 
   h2o_accept(conn.d_acceptCtx->get(), sock);
 }
 
-static int create_listener(std::shared_ptr<DOHServerConfig>& dsc, int fd)
+static int create_listener(std::shared_ptr<DOHServerConfig>& dsc, int descriptor)
 {
-  auto* sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, fd, H2O_SOCKET_FLAG_DONT_READ);
+  auto* sock = h2o_evloop_socket_create(dsc->h2o_ctx.loop, descriptor, H2O_SOCKET_FLAG_DONT_READ);
   sock->data = dsc.get();
   h2o_socket_read_start(sock, on_accept);
 
@@ -1401,25 +1424,27 @@ static int ocsp_stapling_callback(SSL* ssl, void* arg)
   if (ssl == nullptr || arg == nullptr) {
     return SSL_TLSEXT_ERR_NOACK;
   }
-  const auto ocspMap = reinterpret_cast<std::map<int, std::string>*>(arg);
+  const auto* ocspMap = static_cast<std::map<int, std::string>*>(arg);
   return libssl_ocsp_stapling_callback(ssl, *ocspMap);
 }
 #endif /* DISABLE_OCSP_STAPLING */
 
 #if OPENSSL_VERSION_MAJOR >= 3
-static int ticket_key_callback(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, EVP_MAC_CTX *hctx, int enc)
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays): OpenSSL API
+static int ticket_key_callback(SSL* sslContext, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* ivector, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx, int enc)
 #else
-static int ticket_key_callback(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays): OpenSSL API
+static int ticket_key_callback(SSL *sslContext, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* ivector, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
 #endif
 {
-  DOHAcceptContext* ctx = reinterpret_cast<DOHAcceptContext*>(libssl_get_ticket_key_callback_data(s));
+  auto* ctx = static_cast<DOHAcceptContext*>(libssl_get_ticket_key_callback_data(sslContext));
   if (ctx == nullptr || !ctx->d_ticketKeys) {
     return -1;
   }
 
   ctx->handleTicketsKeyRotation();
 
-  auto ret = libssl_ticket_key_callback(s, *ctx->d_ticketKeys, keyName, iv, ectx, hctx, enc);
+  auto ret = libssl_ticket_key_callback(sslContext, *ctx->d_ticketKeys, keyName, ivector, ectx, hctx, enc);
   if (enc == 0) {
     if (ret == 0) {
       ++ctx->d_cs->tlsUnknownTicketKey;
@@ -1437,7 +1462,7 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
                             TLSErrorCounters& counters)
 {
   if (tlsConfig.d_ciphers.empty()) {
-    tlsConfig.d_ciphers = DOH_DEFAULT_CIPHERS;
+    tlsConfig.d_ciphers = DOH_DEFAULT_CIPHERS.data();
   }
 
   auto [ctx, warnings] = libssl_init_server_context(tlsConfig, acceptCtx.d_ocspResponses);
@@ -1478,29 +1503,29 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
     acceptCtx.loadTicketsKeys(tlsConfig.d_ticketKeyFile);
   }
 
-  auto nativeCtx = acceptCtx.get();
+  auto* nativeCtx = acceptCtx.get();
   nativeCtx->ssl_ctx = ctx.release();
 }
 
 static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool setupTLS)
 {
-  auto nativeCtx = ctx.get();
+  auto* nativeCtx = ctx.get();
   nativeCtx->ctx = &dsc.h2o_ctx;
   nativeCtx->hosts = dsc.h2o_config.hosts;
-  auto df = std::atomic_load_explicit(&dsc.df, std::memory_order_acquire);
-  ctx.d_ticketsKeyRotationDelay = df->d_tlsContext.d_tlsConfig.d_ticketsKeyRotationDelay;
+  auto dohFrontend = std::atomic_load_explicit(&dsc.dohFrontend, std::memory_order_acquire);
+  ctx.d_ticketsKeyRotationDelay = dohFrontend->d_tlsContext.d_tlsConfig.d_ticketsKeyRotationDelay;
 
-  if (setupTLS && df->isHTTPS()) {
+  if (setupTLS && dohFrontend->isHTTPS()) {
     try {
       setupTLSContext(ctx,
-                      df->d_tlsContext.d_tlsConfig,
-                      df->d_tlsContext.d_tlsCounters);
+                      dohFrontend->d_tlsContext.d_tlsConfig,
+                      dohFrontend->d_tlsContext.d_tlsCounters);
     }
     catch (const std::runtime_error& e) {
-      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + df->d_tlsContext.d_addr.toStringWithPort() + "': " + e.what());
+      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + dohFrontend->d_tlsContext.d_addr.toStringWithPort() + "': " + e.what());
     }
   }
-  ctx.d_cs = dsc.cs;
+  ctx.d_cs = dsc.clientState;
 }
 
 static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *path, int (*on_req)(h2o_handler_t *, h2o_req_t *))
@@ -1510,7 +1535,7 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
     return pathconf;
   }
   h2o_filter_t *filter = h2o_create_filter(pathconf, sizeof(*filter));
-  if (filter) {
+  if (filter != nullptr) {
     filter->on_setup_ostream = on_response_ready_cb;
   }
 
@@ -1523,14 +1548,14 @@ static h2o_pathconf_t *register_handler(h2o_hostconf_t *hostconf, const char *pa
 }
 
 // this is the entrypoint from dnsdist.cc
-void dohThread(ClientState* cs)
+void dohThread(ClientState* clientState)
 {
   try {
-    std::shared_ptr<DOHFrontend>& df = cs->dohFrontend;
-    auto& dsc = df->d_dsc;
-    dsc->cs = cs;
-    std::atomic_store_explicit(&dsc->df, cs->dohFrontend, std::memory_order_release);
-    dsc->h2o_config.server_name = h2o_iovec_init(df->d_serverTokens.c_str(), df->d_serverTokens.size());
+    std::shared_ptr<DOHFrontend>& dohFrontend = clientState->dohFrontend;
+    auto& dsc = dohFrontend->d_dsc;
+    dsc->clientState = clientState;
+    std::atomic_store_explicit(&dsc->dohFrontend, clientState->dohFrontend, std::memory_order_release);
+    dsc->h2o_config.server_name = h2o_iovec_init(dohFrontend->d_serverTokens.c_str(), dohFrontend->d_serverTokens.size());
 
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
     std::thread dnsdistThread(dnsdistclient, std::move(dsc->d_queryReceiver));
@@ -1540,9 +1565,9 @@ void dohThread(ClientState* cs)
     setThreadName("dnsdist/doh");
     // I wonder if this registers an IP address.. I think it does
     // this may mean we need to actually register a site "name" here and not the IP address
-    h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(df->d_tlsContext.d_addr.toString().c_str(), df->d_tlsContext.d_addr.toString().size()), 65535);
+    h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(dohFrontend->d_tlsContext.d_addr.toString().c_str(), dohFrontend->d_tlsContext.d_addr.toString().size()), 65535);
 
-    dsc->paths = df->d_urls;
+    dsc->paths = dohFrontend->d_urls;
     for (const auto& url : dsc->paths) {
       register_handler(hostconf, url.c_str(), doh_handler);
     }
@@ -1551,6 +1576,7 @@ void dohThread(ClientState* cs)
 
     // in this complicated way we insert the DOHServerConfig pointer in there
     h2o_vector_reserve(nullptr, &dsc->h2o_ctx.storage, 1);
+    // NOLINTNEXTLINE: h2o API
     dsc->h2o_ctx.storage.entries[0].data = dsc.get();
     ++dsc->h2o_ctx.storage.size;
 
@@ -1562,12 +1588,12 @@ void dohThread(ClientState* cs)
 
     setupAcceptContext(*dsc->accept_ctx, *dsc, false);
 
-    if (create_listener(dsc, cs->tcpFD) != 0) {
-      throw std::runtime_error("DOH server failed to listen on " + df->d_tlsContext.d_addr.toStringWithPort() + ": " + strerror(errno));
+    if (create_listener(dsc, clientState->tcpFD) != 0) {
+      throw std::runtime_error("DOH server failed to listen on " + dohFrontend->d_tlsContext.d_addr.toStringWithPort() + ": " + stringerror(errno));
     }
-    for (const auto& [addr, fd] : cs->d_additionalAddresses) {
-      if (create_listener(dsc, fd) != 0) {
-        throw std::runtime_error("DOH server failed to listen on additional address " + addr.toStringWithPort() + " for DOH local" + df->d_tlsContext.d_addr.toStringWithPort() + ": " + strerror(errno));
+    for (const auto& [addr, descriptor] : clientState->d_additionalAddresses) {
+      if (create_listener(dsc, descriptor) != 0) {
+        throw std::runtime_error("DOH server failed to listen on additional address " + addr.toStringWithPort() + " for DOH local" + dohFrontend->d_tlsContext.d_addr.toStringWithPort() + ": " + stringerror(errno));
       }
     }
 
@@ -1576,12 +1602,12 @@ void dohThread(ClientState* cs)
       int result = h2o_evloop_run(dsc->h2o_ctx.loop, INT32_MAX);
       if (result == -1) {
         if (errno != EINTR) {
-          errlog("Error in the DoH event loop: %s", strerror(errno));
+          errlog("Error in the DoH event loop: %s", stringerror(errno));
           stop = true;
         }
       }
     }
-    while (stop == false);
+    while (!stop);
 
   }
   catch (const std::exception& e) {
@@ -1592,53 +1618,53 @@ void dohThread(ClientState* cs)
   }
 }
 
-void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&& state, const std::shared_ptr<DownstreamState>&)
+void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&& state, [[maybe_unused]] const std::shared_ptr<DownstreamState>& downstream)
 {
-  auto du = std::unique_ptr<DOHUnit>(this);
-  du->ids = std::move(state);
+  auto dohUnit = std::unique_ptr<DOHUnit>(this);
+  dohUnit->ids = std::move(state);
 
   {
-    const dnsheader* dh = reinterpret_cast<const struct dnsheader*>(udpResponse.data());
-    if (dh->tc) {
-      du->truncated = true;
+    dnsheader_aligned dnsHeader(udpResponse.data());
+    if (dnsHeader.get()->tc) {
+      dohUnit->truncated = true;
     }
   }
-  if (!du->truncated) {
+  if (!dohUnit->truncated) {
     static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
     static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
 
-    DNSResponse dr(du->ids, udpResponse, du->downstream);
-    dnsheader cleartextDH;
-    memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
+    DNSResponse dnsResponse(dohUnit->ids, udpResponse, dohUnit->downstream);
+    dnsheader cleartextDH{};
+    memcpy(&cleartextDH, dnsResponse.getHeader(), sizeof(cleartextDH));
 
-    dr.ids.du = std::move(du);
-    if (!processResponse(udpResponse, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false)) {
-      if (dr.ids.du) {
-        du = getDUFromIDS(dr.ids);
-        du->status_code = 503;
-        sendDoHUnitToTheMainThread(std::move(du), "Response dropped by rules");
+    dnsResponse.ids.du = std::move(dohUnit);
+    if (!processResponse(udpResponse, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
+      if (dnsResponse.ids.du) {
+        dohUnit = getDUFromIDS(dnsResponse.ids);
+        dohUnit->status_code = 503;
+        sendDoHUnitToTheMainThread(std::move(dohUnit), "Response dropped by rules");
       }
       return;
     }
 
-    if (dr.isAsynchronous()) {
+    if (dnsResponse.isAsynchronous()) {
       return;
     }
 
-    du = getDUFromIDS(dr.ids);
-    du->response = std::move(udpResponse);
-    double udiff = du->ids.queryRealTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (https), took %f us", du->downstream->d_config.remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
+    dohUnit = getDUFromIDS(dnsResponse.ids);
+    dohUnit->response = std::move(udpResponse);
+    double udiff = dohUnit->ids.queryRealTime.udiff();
+    vinfolog("Got answer from %s, relayed to %s (https), took %f us", dohUnit->downstream->d_config.remote.toStringWithPort(), dohUnit->ids.origRemote.toStringWithPort(), udiff);
 
-    handleResponseSent(du->ids, udiff, dr.ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, du->downstream->getProtocol(), true);
+    handleResponseSent(dohUnit->ids, udiff, dnsResponse.ids.origRemote, dohUnit->downstream->d_config.remote, dohUnit->response.size(), cleartextDH, dohUnit->downstream->getProtocol(), true);
 
     ++dnsdist::metrics::g_stats.responses;
-    if (du->ids.cs) {
-      ++du->ids.cs->responses;
+    if (dohUnit->ids.cs != nullptr) {
+      ++dohUnit->ids.cs->responses;
     }
   }
 
-  sendDoHUnitToTheMainThread(std::move(du), "DoH response");
+  sendDoHUnitToTheMainThread(std::move(dohUnit), "DoH response");
 }
 
 void H2ODOHFrontend::rotateTicketsKey(time_t now)
@@ -1667,7 +1693,7 @@ std::string H2ODOHFrontend::getNextTicketsKeyRotation() const
   if (d_dsc && d_dsc->accept_ctx) {
     return std::to_string(d_dsc->accept_ctx->getNextTicketsKeyRotation());
   }
-  return 0;
+  return {};
 }
 
 size_t H2ODOHFrontend::getTicketsKeysCount()

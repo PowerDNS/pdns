@@ -49,8 +49,8 @@ string HTTPHeaderRule::toString() const
   return d_visual;
 }
 
-HTTPPathRule::HTTPPathRule(const std::string& path) :
-  d_path(path)
+HTTPPathRule::HTTPPathRule(std::string path) :
+  d_path(std::move(path))
 {
 }
 

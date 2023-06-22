@@ -36,15 +36,15 @@ public:
     return true;
   }
 
-  void handleResponse(const struct timeval&, TCPResponse&&) override
+  void handleResponse([[maybe_unused]] const struct timeval& now, [[maybe_unused]] TCPResponse&& response) override
   {
   }
 
-  void handleXFRResponse(const struct timeval&, TCPResponse&&) override
+  void handleXFRResponse([[maybe_unused]] const struct timeval& now, [[maybe_unused]] TCPResponse&& response) override
   {
   }
 
-  void notifyIOError(const struct timeval&, TCPResponse&&) override
+  void notifyIOError([[maybe_unused]] const struct timeval& now, [[maybe_unused]] TCPResponse&& response) override
   {
     errorRaised = true;
   }

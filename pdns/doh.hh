@@ -51,7 +51,7 @@ public:
   size_t getTicketsKeysCount() override;
 };
 
-void dohThread(ClientState* cs);
+void dohThread(ClientState* clientState);
 
 #endif /* HAVE_LIBH2OEVLOOP */
 #endif /* HAVE_DNS_OVER_HTTPS  */
