@@ -167,7 +167,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-bindings.cc \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
-	dnsdist-lua-inspection-ffi.cc \
+	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.h \
 	dnsdist-lua-inspection.cc \
 	dnsdist-lua-network.cc dnsdist-lua-network.hh \
 	dnsdist-lua-rules.cc \
