@@ -1028,7 +1028,7 @@ BOOST_AUTO_TEST_CASE(test_getcommonlabels) {
   BOOST_CHECK_EQUAL(name3.getCommonLabels(name4), name3);
   BOOST_CHECK_EQUAL(name4.getCommonLabels(name3), name4);
 
-  const DNSName(name5);
+  const DNSName name5;
   BOOST_CHECK_EQUAL(name1.getCommonLabels(name5), DNSName());
   BOOST_CHECK_EQUAL(name5.getCommonLabels(name1), DNSName());
 }
