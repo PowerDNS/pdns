@@ -148,7 +148,7 @@ static void statNodeRespRing(statvisitor_t visitor, uint64_t seconds)
   }
 
   StatNode::Stat node;
-  root.visit([visitor](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
+  root.visit([visitor = std::move(visitor)](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
       visitor(*node_, self, children);},  node);
 }
 
@@ -832,7 +832,7 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.registerMember("hits", &StatNode::Stat::hits);
 
   luaCtx.writeFunction("statNodeRespRing", [](statvisitor_t visitor, boost::optional<uint64_t> seconds) {
-      statNodeRespRing(visitor, seconds ? *seconds : 0U);
+      statNodeRespRing(std::move(visitor), seconds ? *seconds : 0U);
     });
 #endif /* DISABLE_DEPRECATED_DYNBLOCK */
 
@@ -850,12 +850,12 @@ void setupLuaInspection(LuaContext& luaCtx)
     });
   luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, DynBlockRulesGroup::smtVisitor_t)>("setSuffixMatchRule", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, DynBlockRulesGroup::smtVisitor_t visitor) {
       if (group) {
-        group->setSuffixMatchRule(seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, visitor);
+        group->setSuffixMatchRule(seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, std::move(visitor));
       }
     });
   luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, dnsdist_ffi_stat_node_visitor_t)>("setSuffixMatchRuleFFI", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, dnsdist_ffi_stat_node_visitor_t visitor) {
       if (group) {
-        group->setSuffixMatchRuleFFI(seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, visitor);
+        group->setSuffixMatchRuleFFI(seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, std::move(visitor));
       }
     });
   luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setRCodeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {

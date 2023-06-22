@@ -631,9 +631,9 @@ OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing()
 {
 }
 
-void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey> newKey)
+void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& newKey)
 {
-  d_ticketKeys.write_lock()->push_front(newKey);
+  d_ticketKeys.write_lock()->push_front(std::move(newKey));
 }
 
 std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getEncryptionKey()
@@ -665,7 +665,7 @@ void OpenSSLTLSTicketKeysRing::loadTicketsKeys(const std::string& keyFile)
   try {
     do {
       auto newKey = std::make_shared<OpenSSLTLSTicketKey>(file);
-      addKey(newKey);
+      addKey(std::move(newKey));
       keyLoaded = true;
     }
     while (!file.fail());
@@ -683,7 +683,7 @@ void OpenSSLTLSTicketKeysRing::loadTicketsKeys(const std::string& keyFile)
 void OpenSSLTLSTicketKeysRing::rotateTicketsKey(time_t /* now */)
 {
   auto newKey = std::make_shared<OpenSSLTLSTicketKey>();
-  addKey(newKey);
+  addKey(std::move(newKey));
 }
 
 OpenSSLTLSTicketKey::OpenSSLTLSTicketKey()

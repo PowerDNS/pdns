@@ -106,7 +106,7 @@ public:
     }
 
     /* do the addition _after_ so the entry is not added if there is an error */
-    accountingAddFD(d_readCallbacks, fd, toDo, parameter, ttd);
+    accountingAddFD(d_readCallbacks, fd, std::move(toDo), parameter, ttd);
   }
 
   //! Add an fd to the write watch list - currently an fd can only be on one list at a time!
@@ -122,7 +122,7 @@ public:
     }
 
     /* do the addition _after_ so the entry is not added if there is an error */
-    accountingAddFD(d_writeCallbacks, fd, toDo, parameter, ttd);
+    accountingAddFD(d_writeCallbacks, fd, std::move(toDo), parameter, ttd);
   }
 
   //! Remove an fd from the read watch list. You can't call this function on an fd that is closed already!
@@ -185,14 +185,14 @@ public:
   {
     accountingRemoveFD(d_writeCallbacks, fd);
     this->alterFD(fd, EventKind::Write, EventKind::Read);
-    accountingAddFD(d_readCallbacks, fd, toDo, parameter, ttd);
+    accountingAddFD(d_readCallbacks, fd, std::move(toDo), parameter, ttd);
   }
 
   void alterFDToWrite(int fd, callbackfunc_t toDo, const funcparam_t& parameter = funcparam_t(), const struct timeval* ttd = nullptr)
   {
     accountingRemoveFD(d_readCallbacks, fd);
     this->alterFD(fd, EventKind::Read, EventKind::Write);
-    accountingAddFD(d_writeCallbacks, fd, toDo, parameter, ttd);
+    accountingAddFD(d_writeCallbacks, fd, std::move(toDo), parameter, ttd);
   }
 
   std::vector<std::pair<int, funcparam_t>> getTimeouts(const struct timeval& tv, bool writes = false)
@@ -282,7 +282,7 @@ protected:
   {
     Callback cb;
     cb.d_fd = fd;
-    cb.d_callback = toDo;
+    cb.d_callback = std::move(toDo);
     cb.d_parameter = parameter;
     memset(&cb.d_ttd, 0, sizeof(cb.d_ttd));
     if (ttd) {

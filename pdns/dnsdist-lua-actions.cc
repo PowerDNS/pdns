@@ -1453,7 +1453,7 @@ class DnstapLogAction : public DNSAction, public boost::noncopyable
 {
 public:
   // this action does not stop the processing
-  DnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
+  DnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(std::move(alterFunc))
   {
   }
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
@@ -1515,7 +1515,7 @@ class RemoteLogAction : public DNSAction, public boost::noncopyable
 {
 public:
   // this action does not stop the processing
-  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, std::vector<std::pair<std::string, ProtoBufMetaKey>>&& metas, std::optional<std::unordered_set<std::string>>&& tagsToExport): d_tagsToExport(std::move(tagsToExport)), d_metas(std::move(metas)), d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey)
+  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, std::vector<std::pair<std::string, ProtoBufMetaKey>>&& metas, std::optional<std::unordered_set<std::string>>&& tagsToExport): d_tagsToExport(std::move(tagsToExport)), d_metas(std::move(metas)), d_logger(logger), d_alterFunc(std::move(alterFunc)), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey)
   {
   }
 
@@ -1623,7 +1623,7 @@ class DnstapLogResponseAction : public DNSResponseAction, public boost::noncopya
 {
 public:
   // this action does not stop the processing
-  DnstapLogResponseAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(alterFunc)
+  DnstapLogResponseAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc): d_identity(identity), d_logger(logger), d_alterFunc(std::move(alterFunc))
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
@@ -1660,7 +1660,7 @@ class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopya
 {
 public:
   // this action does not stop the processing
-  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, bool includeCNAME, std::vector<std::pair<std::string, ProtoBufMetaKey>>&& metas, std::optional<std::unordered_set<std::string>>&& tagsToExport): d_tagsToExport(std::move(tagsToExport)), d_metas(std::move(metas)), d_logger(logger), d_alterFunc(alterFunc), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey), d_includeCNAME(includeCNAME)
+  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, bool includeCNAME, std::vector<std::pair<std::string, ProtoBufMetaKey>>&& metas, std::optional<std::unordered_set<std::string>>&& tagsToExport): d_tagsToExport(std::move(tagsToExport)), d_metas(std::move(metas)), d_logger(logger), d_alterFunc(std::move(alterFunc)), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey), d_includeCNAME(includeCNAME)
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
@@ -2198,7 +2198,7 @@ void setupLuaActions(LuaContext& luaCtx)
       checkAllParametersConsumed("newRuleAction", params);
 
       auto rule = makeRule(dnsrule);
-      DNSDistRuleAction ra({std::move(rule), action, std::move(name), uuid, creationOrder});
+      DNSDistRuleAction ra({std::move(rule), std::move(action), std::move(name), uuid, creationOrder});
       return std::make_shared<DNSDistRuleAction>(ra);
     });
 
@@ -2538,7 +2538,7 @@ void setupLuaActions(LuaContext& luaCtx)
 
       checkAllParametersConsumed("RemoteLogAction", vars);
 
-      return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, alterFunc, serverID, ipEncryptKey, std::move(metaOptions), std::move(tagsToExport)));
+      return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, std::move(alterFunc), serverID, ipEncryptKey, std::move(metaOptions), std::move(tagsToExport)));
     });
 
   luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas) {
@@ -2579,15 +2579,15 @@ void setupLuaActions(LuaContext& luaCtx)
 
       checkAllParametersConsumed("RemoteLogResponseAction", vars);
 
-      return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, alterFunc, serverID, ipEncryptKey, includeCNAME ? *includeCNAME : false, std::move(metaOptions), std::move(tagsToExport)));
+      return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, std::move(alterFunc), serverID, ipEncryptKey, includeCNAME ? *includeCNAME : false, std::move(metaOptions), std::move(tagsToExport)));
     });
 
   luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc) {
-      return std::shared_ptr<DNSAction>(new DnstapLogAction(identity, logger, alterFunc));
+      return std::shared_ptr<DNSAction>(new DnstapLogAction(identity, logger, std::move(alterFunc)));
     });
 
   luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)> > alterFunc) {
-      return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, alterFunc));
+      return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, std::move(alterFunc)));
     });
 #endif /* DISABLE_PROTOBUF */
 

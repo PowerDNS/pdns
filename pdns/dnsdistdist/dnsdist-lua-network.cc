@@ -113,7 +113,7 @@ bool NetworkListener::addUnixListeningEndpoint(const std::string& path, NetworkL
 
   auto cbData = std::make_shared<CBData>();
   cbData->d_endpoint = id;
-  cbData->d_cb = cb;
+  cbData->d_cb = std::move(cb);
   d_mplexer->addReadFD(sock.getHandle(), readCB, cbData);
 
   d_sockets.insert({path, std::move(sock)});

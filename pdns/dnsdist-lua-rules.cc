@@ -83,7 +83,7 @@ void parseRuleParams(boost::optional<luaruleparams_t>& params, boost::uuids::uui
 typedef LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int> > > ruleparams_t;
 
 template<typename T>
-static std::string rulesToString(const std::vector<T>& rules, boost::optional<ruleparams_t> vars)
+static std::string rulesToString(const std::vector<T>& rules, boost::optional<ruleparams_t>& vars)
 {
   int num = 0;
   bool showUUIDs = false;
@@ -116,7 +116,7 @@ static std::string rulesToString(const std::vector<T>& rules, boost::optional<ru
 }
 
 template<typename T>
-static void showRules(GlobalStateHolder<vector<T> > *someRuleActions, boost::optional<ruleparams_t> vars) {
+static void showRules(GlobalStateHolder<vector<T> > *someRuleActions, boost::optional<ruleparams_t>& vars) {
   setLuaNoSideEffect();
 
   auto rules = someRuleActions->getLocal();
@@ -124,7 +124,7 @@ static void showRules(GlobalStateHolder<vector<T> > *someRuleActions, boost::opt
 }
 
 template<typename T>
-static void rmRule(GlobalStateHolder<vector<T> > *someRuleActions, boost::variant<unsigned int, std::string> id) {
+static void rmRule(GlobalStateHolder<vector<T> > *someRuleActions, const boost::variant<unsigned int, std::string>& id) {
   setLuaSideEffect();
   auto rules = someRuleActions->getCopy();
   if (auto str = boost::get<std::string>(&id)) {
@@ -592,7 +592,7 @@ void setupLuaRules(LuaContext& luaCtx)
     });
 
   luaCtx.writeFunction("TagRule", [](const std::string& tag, boost::optional<std::string> value) {
-      return std::shared_ptr<DNSRule>(new TagRule(tag, value));
+      return std::shared_ptr<DNSRule>(new TagRule(tag, std::move(value)));
     });
 
   luaCtx.writeFunction("TimedIPSetRule", []() {
@@ -649,10 +649,10 @@ void setupLuaRules(LuaContext& luaCtx)
     });
 
   luaCtx.writeFunction("LuaFFIPerThreadRule", [](const std::string& code) {
-    return std::shared_ptr<DNSRule>(new LuaFFIPerThreadRule(code));
+      return std::shared_ptr<DNSRule>(new LuaFFIPerThreadRule(code));
   });
 
   luaCtx.writeFunction("ProxyProtocolValueRule", [](uint8_t type, boost::optional<std::string> value) {
-      return std::shared_ptr<DNSRule>(new ProxyProtocolValueRule(type, value));
+      return std::shared_ptr<DNSRule>(new ProxyProtocolValueRule(type, std::move(value)));
     });
 }

@@ -37,11 +37,11 @@ public:
   typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const DNSQuestion*)> policyfunc_t;
   typedef std::function<unsigned int(dnsdist_ffi_servers_list_t* servers, dnsdist_ffi_dnsquestion_t* dq)> ffipolicyfunc_t;
 
-  ServerPolicy(const std::string& name_, policyfunc_t policy_, bool isLua_): d_name(name_), d_policy(policy_), d_isLua(isLua_)
+  ServerPolicy(const std::string& name_, policyfunc_t policy_, bool isLua_): d_name(name_), d_policy(std::move(policy_)), d_isLua(isLua_)
   {
   }
 
-  ServerPolicy(const std::string& name_, ffipolicyfunc_t policy_): d_name(name_), d_ffipolicy(policy_), d_isLua(true), d_isFFI(true)
+  ServerPolicy(const std::string& name_, ffipolicyfunc_t policy_): d_name(name_), d_ffipolicy(std::move(policy_)), d_isLua(true), d_isFFI(true)
   {
   }
 
