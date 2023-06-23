@@ -96,8 +96,8 @@ private:
   bool notify() const;
 };
 
-bool suspendQuery(DNSQuestion& dq, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs);
-bool suspendResponse(DNSResponse& dr, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs);
+bool suspendQuery(DNSQuestion& dnsQuestion, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs);
+bool suspendResponse(DNSResponse& dnsResponse, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs);
 bool queueQueryResumptionEvent(std::unique_ptr<CrossProtocolQuery>&& query);
 bool resumeQuery(std::unique_ptr<CrossProtocolQuery>&& query);
 void handleQueuedAsynchronousEvents();
