@@ -27,28 +27,17 @@
 namespace dnsdist
 {
 
-AsynchronousHolder::AsynchronousHolder(bool failOpen) :
-  d_data(std::make_shared<Data>())
+AsynchronousHolder::Data::Data(bool failOpen) :
+  d_failOpen(failOpen)
 {
-  d_data->d_failOpen = failOpen;
+  auto [notifier, waiter] = pdns::channel::createNotificationQueue(true);
+  d_waiter = std::move(waiter);
+  d_notifier = std::move(notifier);
+}
 
-  int fds[2] = {-1, -1};
-  if (pipe(fds) < 0) {
-    throw std::runtime_error("Error creating the AsynchronousHolder pipe: " + stringerror());
-  }
-
-  for (size_t idx = 0; idx < (sizeof(fds) / sizeof(*fds)); idx++) {
-    if (!setNonBlocking(fds[idx])) {
-      int err = errno;
-      close(fds[0]);
-      close(fds[1]);
-      throw std::runtime_error("Error setting the AsynchronousHolder pipe non-blocking: " + stringerror(err));
-    }
-  }
-
-  d_data->d_notifyPipe = FDWrapper(fds[1]);
-  d_data->d_watchPipe = FDWrapper(fds[0]);
-
+AsynchronousHolder::AsynchronousHolder(bool failOpen) :
+  d_data(std::make_shared<Data>(failOpen))
+{
   std::thread main([data = this->d_data] { mainThread(data); });
   main.detach();
 }
@@ -64,25 +53,10 @@ AsynchronousHolder::~AsynchronousHolder()
 
 bool AsynchronousHolder::notify() const
 {
-  const char data = 0;
-  bool failed = false;
-  do {
-    auto written = write(d_data->d_notifyPipe.getHandle(), &data, sizeof(data));
-    if (written == 0) {
-      break;
-    }
-    if (written > 0 && static_cast<size_t>(written) == sizeof(data)) {
-      return true;
-    }
-    if (errno != EINTR) {
-      failed = true;
-    }
-  } while (!failed);
-
-  return false;
+  return d_data->d_notifier.notify();
 }
 
-bool AsynchronousHolder::wait(const AsynchronousHolder::Data& data, FDMultiplexer& mplexer, std::vector<int>& readyFDs, int atMostMs)
+bool AsynchronousHolder::wait(AsynchronousHolder::Data& data, FDMultiplexer& mplexer, std::vector<int>& readyFDs, int atMostMs)
 {
   readyFDs.clear();
   mplexer.getAvailableFDs(readyFDs, atMostMs);
@@ -91,22 +65,7 @@ bool AsynchronousHolder::wait(const AsynchronousHolder::Data& data, FDMultiplexe
     return true;
   }
 
-  while (true) {
-    /* we might have been notified several times, let's read
-       as much as possible before returning */
-    char dummy = 0;
-    auto got = read(data.d_watchPipe.getHandle(), &dummy, sizeof(dummy));
-    if (got == 0) {
-      break;
-    }
-    if (got > 0 && static_cast<size_t>(got) != sizeof(dummy)) {
-      continue;
-    }
-    if (got == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-      break;
-    }
-  }
-
+  data.d_waiter.clear();
   return false;
 }
 
@@ -127,7 +86,7 @@ void AsynchronousHolder::mainThread(std::shared_ptr<Data> data)
   std::list<std::pair<uint16_t, std::unique_ptr<CrossProtocolQuery>>> expiredEvents;
 
   auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(1));
-  mplexer->addReadFD(data->d_watchPipe.getHandle(), [](int, FDMultiplexer::funcparam_t&) {});
+  mplexer->addReadFD(data->d_waiter.getDescriptor(), [](int, FDMultiplexer::funcparam_t&) {});
   std::vector<int> readyFDs;
 
   while (true) {

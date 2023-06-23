@@ -52,9 +52,7 @@ namespace channel
   class Sender
   {
   public:
-    Sender()
-    {
-    }
+    Sender() = default;
     Sender(FDWrapper&& descriptor) :
       d_fd(std::move(descriptor))
     {
@@ -63,6 +61,7 @@ namespace channel
     Sender& operator=(const Sender&) = delete;
     Sender(Sender&&) = default;
     Sender& operator=(Sender&&) = default;
+    ~Sender() = default;
     /**
      * \brief Try to send the supplied object to the other end of that channel. Might block if the channel was created in blocking mode.
      *
@@ -86,9 +85,7 @@ namespace channel
   class Receiver
   {
   public:
-    Receiver()
-    {
-    }
+    Receiver() = default;
     Receiver(FDWrapper&& descriptor, bool throwOnEOF = true) :
       d_fd(std::move(descriptor)), d_throwOnEOF(throwOnEOF)
     {
@@ -97,6 +94,7 @@ namespace channel
     Receiver& operator=(const Receiver&) = delete;
     Receiver(Receiver&&) = default;
     Receiver& operator=(Receiver&&) = default;
+    ~Receiver() = default;
     /**
      * \brief Try to read an object sent by the other end of that channel. Might block if the channel was created in blocking mode.
      *
@@ -148,14 +146,13 @@ namespace channel
   class Notifier
   {
   public:
-    Notifier()
-    {
-    }
+    Notifier() = default;
     Notifier(FDWrapper&&);
     Notifier(const Notifier&) = delete;
     Notifier& operator=(const Notifier&) = delete;
     Notifier(Notifier&&) = default;
     Notifier& operator=(Notifier&&) = default;
+    ~Notifier() = default;
 
     /**
      * \brief Queue a notification to wake up the other end of the channel.
@@ -178,11 +175,13 @@ namespace channel
   class Waiter
   {
   public:
+    Waiter() = default;
     Waiter(FDWrapper&&, bool throwOnEOF = true);
     Waiter(const Waiter&) = delete;
     Waiter& operator=(const Waiter&) = delete;
     Waiter(Waiter&&) = default;
     Waiter& operator=(Waiter&&) = default;
+    ~Waiter() = default;
 
     /**
      * \brief Clear all notifications queued on that channel, if any.
