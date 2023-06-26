@@ -398,20 +398,28 @@ bool DNSCryptoKeyEngine::testVerify(unsigned int algo, maker_t* verifier)
 
 bool DNSCryptoKeyEngine::verifyOne(unsigned int algo)
 {
-  bool ret = false;
-
-  for (auto* verifier : getAllMakers()[algo]) {
+  const auto& makers = getAllMakers();
+  auto iter = makers.find(algo);
+  // No algo found
+  if (iter == makers.cend()) {
+    return false;
+  }
+  // Algo found, but maker empty? Should not happen
+  if (iter->second.empty()) {
+    return false;
+  }
+  // Check that all maker->verify return true
+  return std::all_of(iter->second.begin(), iter->second.end(), [algo](maker_t* verifier) {
     try {
-      ret = testVerify(algo, verifier);
+      if (!testVerify(algo, verifier)) {
+        return false;
+      }
     }
     catch (std::exception& e) {
-      // Empty
+      return false;
     }
-    if (!ret) {
-      break;
-    }
-  }
-  return ret;
+    return true;
+  });
 }
 
 void DNSCryptoKeyEngine::testMakers(unsigned int algo, maker_t* creator, maker_t* signer, maker_t* verifier)
