@@ -27,6 +27,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 
+#include "channel.hh"
 #include "dnsdist-tcp.hh"
 
 namespace dnsdist
@@ -75,21 +76,28 @@ private:
 
   struct Data
   {
+    Data(bool failOpen);
+    Data(const Data&) = delete;
+    Data(Data&&) = delete;
+    Data& operator=(const Data&) = delete;
+    Data& operator=(Data&&) = delete;
+    ~Data() = default;
+
     LockGuarded<content_t> d_content;
-    FDWrapper d_notifyPipe;
-    FDWrapper d_watchPipe;
+    pdns::channel::Notifier d_notifier;
+    pdns::channel::Waiter d_waiter;
     bool d_failOpen{true};
     bool d_done{false};
   };
   std::shared_ptr<Data> d_data{nullptr};
 
   static void mainThread(std::shared_ptr<Data> data);
-  static bool wait(const Data& data, FDMultiplexer& mplexer, std::vector<int>& readyFDs, int atMostMs);
+  static bool wait(Data& data, FDMultiplexer& mplexer, std::vector<int>& readyFDs, int atMostMs);
   bool notify() const;
 };
 
-bool suspendQuery(DNSQuestion& dq, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs);
-bool suspendResponse(DNSResponse& dr, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs);
+bool suspendQuery(DNSQuestion& dnsQuestion, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs);
+bool suspendResponse(DNSResponse& dnsResponse, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs);
 bool queueQueryResumptionEvent(std::unique_ptr<CrossProtocolQuery>&& query);
 bool resumeQuery(std::unique_ptr<CrossProtocolQuery>&& query);
 void handleQueuedAsynchronousEvents();
