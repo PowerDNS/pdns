@@ -134,7 +134,7 @@ Tuning related functions
   See also :func:`setRandomizedOutgoingSockets`.
   The default is to use a linearly increasing counter from 0 to 65535, wrapping back to 0 when necessary.
 
-.. function:: setRandomizedOutgoingSockets(val):
+.. function:: setRandomizedOutgoingSockets(val)
 
   .. versionadded:: 1.8.0
 
