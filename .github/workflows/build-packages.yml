@@ -12,6 +12,8 @@ on:
         required: false
         description: OSes to build for, space separated
         type: string
+        # please remember to update the pkghashes below when you
+        # update this list, as well as the one in builder-dispatch.yml
         default: >
           el-7
           el-8
