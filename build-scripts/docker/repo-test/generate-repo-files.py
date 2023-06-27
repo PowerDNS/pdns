@@ -224,7 +224,7 @@ def run (tag):
     if cp.returncode != 0 and cp.returncode != 99:
         # FIXME write failed output to log
         print('Error running {}: {}'.format(tag, repr(cp.returncode)))
-        return cp.returncode
+        return cp.returncode, None
     if version and version.group(2):
         return cp.returncode, version.group(2)
     else:
