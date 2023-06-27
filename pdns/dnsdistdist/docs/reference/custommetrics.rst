@@ -1,7 +1,7 @@
 Custom Metrics
 =====================================
 
-You can define at your own metrics that can be updated using Lua.
+You can define your own metrics that can be updated using Lua.
 
 The first step is to declare a new metric using :func:`declareMetric`. In 1.8.0 the declaration had to be done at configuration time, but since 1.8.1 it can be done at any point.
 
