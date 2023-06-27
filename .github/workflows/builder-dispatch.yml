@@ -14,6 +14,8 @@ on:
       os:
         description: OSes to build for, space separated
         type: string
+        # please remember to update the pkghashes below when you
+        # update this list
         default: >
           el-7
           el-8
@@ -67,7 +69,7 @@ jobs:
       pkghashes-el-9: ${{ steps.pkghashes.outputs.pkghashes-el-9 }}
       pkghashes-debian-buster: ${{ steps.pkghashes.outputs.pkghashes-debian-buster }}
       pkghashes-debian-bullseye: ${{ steps.pkghashes.outputs.pkghashes-debian-bullseye }}
-      pkghashes-ubuntu-bionic: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-bionic }}
+      pkghashes-debian-bookworm: ${{ steps.pkghashes.outputs.pkghashes-debian-bookworm }}
       pkghashes-ubuntu-focal: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-focal }}
       pkghashes-ubuntu-jammy: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-jammy }}
       srchashes: ${{ steps.srchashes.outputs.srchashes }}
