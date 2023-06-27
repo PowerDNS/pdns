@@ -219,7 +219,7 @@ public:
       if (d_custom == nullptr) {
         d_custom = std::make_unique<std::vector<std::shared_ptr<const DNSRecordContent>>>();
       }
-      d_custom->reserve(res);
+      d_custom->reserve(d_custom->size() + res);
     }
 
     [[nodiscard]] size_t customRecordsSize() const

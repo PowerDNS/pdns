@@ -221,9 +221,9 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
     [](DNSFilterEngine::Policy& pol, const std::string& name) {
       pol.setName(name);
     });
-  d_lw->registerMember("policyKind", &DNSFilterEngine::Policy::d_kind);
-  d_lw->registerMember("policyType", &DNSFilterEngine::Policy::d_type);
-  d_lw->registerMember("policyTTL", &DNSFilterEngine::Policy::d_ttl);
+  d_lw->registerMember("policyKind", &DNSFilterEngine::AppliedPolicy::d_kind);
+  d_lw->registerMember("policyType", &DNSFilterEngine::AppliedPolicy::d_type);
+  d_lw->registerMember("policyTTL", &DNSFilterEngine::AppliedPolicy::d_ttl);
   d_lw->registerMember("policyTrigger", &DNSFilterEngine::AppliedPolicy::d_trigger);
   d_lw->registerMember("policyHit", &DNSFilterEngine::AppliedPolicy::d_hit);
   d_lw->registerMember<DNSFilterEngine::Policy, std::string>("policyCustom",
