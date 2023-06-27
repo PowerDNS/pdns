@@ -2600,7 +2600,7 @@ int main(int argc, char** argv)
         cout<<"ipcipher ";
 #endif
 #ifdef HAVE_LIBEDIT
-        cout<<"libeditr ";
+        cout<<"libedit ";
 #endif
 #ifdef HAVE_LIBSODIUM
         cout<<"libsodium ";
