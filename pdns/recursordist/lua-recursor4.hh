@@ -100,7 +100,7 @@ public:
     const std::vector<pair<uint16_t, string>>* ednsOptions{nullptr};
     const uint16_t* ednsFlags{nullptr};
     vector<DNSRecord>* currentRecords{nullptr};
-    DNSFilterEngine::Policy* appliedPolicy{nullptr};
+    DNSFilterEngine::AppliedPolicy* appliedPolicy{nullptr};
     std::unordered_set<std::string>* policyTags{nullptr};
     const std::vector<ProxyProtocolValue>* proxyProtocolValues{nullptr};
     std::unordered_map<std::string, bool>* discardedPolicies{nullptr};
@@ -156,7 +156,7 @@ public:
     const QType qtype;
     const ComboAddress& remote;
     const bool isTcp;
-    DNSFilterEngine::Policy* appliedPolicy{nullptr};
+    DNSFilterEngine::AppliedPolicy* appliedPolicy{nullptr};
     std::unordered_set<std::string>* policyTags{nullptr};
     std::unordered_map<std::string, bool>* discardedPolicies{nullptr};
   };
@@ -212,17 +212,17 @@ public:
   bool preoutquery(const ComboAddress& address, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& eventtrace, const struct timeval& tval) const;
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&, RecEventTrace&) const;
 
-  bool policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::Policy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string, bool>& discardedPolicies) const;
+  bool policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::AppliedPolicy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string, bool>& discardedPolicies) const;
 
   [[nodiscard]] bool needDQ() const
   {
     return (d_prerpz || d_preresolve || d_nxdomain || d_nodata || d_postresolve);
   }
 
-  using gettag_t = std::function<std::tuple<unsigned int, boost::optional<std::unordered_map<int, string>>, boost::optional<LuaContext::LuaObject>, boost::optional<std::string>, boost::optional<std::string>, boost::optional<std::string>, boost::optional<string>> (ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const EDNSOptionViewMap &, bool, const std::vector<std::pair<int, const ProxyProtocolValue *>> &)>;
+  using gettag_t = std::function<std::tuple<unsigned int, boost::optional<std::unordered_map<int, string>>, boost::optional<LuaContext::LuaObject>, boost::optional<std::string>, boost::optional<std::string>, boost::optional<std::string>, boost::optional<string>>(ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const EDNSOptionViewMap&, bool, const std::vector<std::pair<int, const ProxyProtocolValue*>>&)>;
   gettag_t d_gettag; // NOLINT: public so you can query if we have this hooked
 
-  using gettag_ffi_t = std::function<boost::optional<LuaContext::LuaObject> (pdns_ffi_param_t *)>;
+  using gettag_ffi_t = std::function<boost::optional<LuaContext::LuaObject>(pdns_ffi_param_t*)>;
   gettag_ffi_t d_gettag_ffi; // NOLINT
 
   struct PostResolveFFIHandle
@@ -235,22 +235,22 @@ public:
     bool d_ret{false};
   };
   bool postresolve_ffi(PostResolveFFIHandle&) const;
-  using postresolve_ffi_t = std::function<bool (pdns_postresolve_ffi_handle_t *)>;
+  using postresolve_ffi_t = std::function<bool(pdns_postresolve_ffi_handle_t*)>;
   postresolve_ffi_t d_postresolve_ffi; // NOLINT
 
 protected:
-   void postPrepareContext() override;
-   void postLoad() override;
-   void getFeatures(Features& features) override;
+  void postPrepareContext() override;
+  void postLoad() override;
+  void getFeatures(Features& features) override;
 
 private:
-  using luamaintenance_t = std::function<void ()>;
+  using luamaintenance_t = std::function<void()>;
   luamaintenance_t d_maintenance;
-  using luacall_t = std::function<bool (DNSQuestion *)>;
+  using luacall_t = std::function<bool(DNSQuestion*)>;
   luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
   bool genhook(const luacall_t& func, DNSQuestion& dnsq, int& ret) const;
-  using ipfilter_t = std::function<bool (ComboAddress, ComboAddress, struct dnsheader)>;
+  using ipfilter_t = std::function<bool(ComboAddress, ComboAddress, struct dnsheader)>;
   ipfilter_t d_ipfilter;
-  using policyEventFilter_t = std::function<bool (PolicyEvent &)>;
+  using policyEventFilter_t = std::function<bool(PolicyEvent&)>;
   policyEventFilter_t d_policyHitEventFilter;
 };

@@ -120,7 +120,7 @@ The DNSQuestion object contains at least the following fields:
 
     .. attribute:: DNSQuestion.appliedPolicy.policyTrigger
 
-        The trigger (left-hand) part of the RPZ rule that was matched
+        The trigger (left-hand) part of the RPZ rule that was matched. This is a :class:`DNSName` object.
 
     .. attribute:: DNSQuestion.appliedPolicy.policyHit
 

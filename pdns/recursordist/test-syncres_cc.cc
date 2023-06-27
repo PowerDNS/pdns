@@ -41,7 +41,7 @@ bool RecursorLua4::preoutquery(const ComboAddress& /* ns */, const ComboAddress&
   return false;
 }
 
-bool RecursorLua4::policyHitEventFilter(const ComboAddress& /* remote */, const DNSName& /* qname */, const QType& /* qtype */, bool /* tcp */, DNSFilterEngine::Policy& /* policy */, std::unordered_set<std::string>& /* tags */, std::unordered_map<std::string, bool>& /* discardedPolicies */) const
+bool RecursorLua4::policyHitEventFilter(const ComboAddress& /* remote */, const DNSName& /* qname */, const QType& /* qtype */, bool /* tcp */, DNSFilterEngine::AppliedPolicy& /* policy */, std::unordered_set<std::string>& /* tags */, std::unordered_map<std::string, bool>& /* discardedPolicies */) const
 {
   return false;
 }

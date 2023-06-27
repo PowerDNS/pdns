@@ -214,11 +214,11 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
   d_lw->registerMember("appliedPolicy", &DNSQuestion::appliedPolicy);
   d_lw->registerMember("queryTime", &DNSQuestion::queryTime);
 
-  d_lw->registerMember<DNSFilterEngine::Policy, std::string>("policyName",
-    [](const DNSFilterEngine::Policy& pol) -> std::string {
+  d_lw->registerMember<DNSFilterEngine::AppliedPolicy, std::string>("policyName",
+    [](const DNSFilterEngine::AppliedPolicy& pol) -> std::string {
       return pol.getName();
     },
-    [](DNSFilterEngine::Policy& pol, const std::string& name) {
+    [](DNSFilterEngine::AppliedPolicy& pol, const std::string& name) {
       pol.setName(name);
     });
   d_lw->registerMember("policyKind", &DNSFilterEngine::AppliedPolicy::d_kind);
@@ -226,8 +226,8 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
   d_lw->registerMember("policyTTL", &DNSFilterEngine::AppliedPolicy::d_ttl);
   d_lw->registerMember("policyTrigger", &DNSFilterEngine::AppliedPolicy::d_trigger);
   d_lw->registerMember("policyHit", &DNSFilterEngine::AppliedPolicy::d_hit);
-  d_lw->registerMember<DNSFilterEngine::Policy, std::string>("policyCustom",
-    [](const DNSFilterEngine::Policy& pol) -> std::string {
+  d_lw->registerMember<DNSFilterEngine::AppliedPolicy, std::string>("policyCustom",
+    [](const DNSFilterEngine::AppliedPolicy& pol) -> std::string {
       std::string result;
       if (pol.d_kind != DNSFilterEngine::PolicyKind::Custom) {
         return result;
@@ -244,7 +244,7 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
 
       return result;
     },
-    [](DNSFilterEngine::Policy& pol, const std::string& content) {
+    [](DNSFilterEngine::AppliedPolicy& pol, const std::string& content) {
       // Only CNAMES for now, when we ever add a d_custom_type, there will be pain
       if (pol.d_custom != nullptr) {
         pol.d_custom->clear();
@@ -619,7 +619,7 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   return isok;
 }
 
-bool RecursorLua4::policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::Policy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string, bool>& discardedPolicies) const
+bool RecursorLua4::policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::AppliedPolicy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string, bool>& discardedPolicies) const
 {
   if (!d_policyHitEventFilter) {
     return false;
@@ -1080,6 +1080,7 @@ public:
   {
     return handle;
   }
+
 private:
   std::unordered_set<std::string> pool;
   RecursorLua4::PostResolveFFIHandle& handle;

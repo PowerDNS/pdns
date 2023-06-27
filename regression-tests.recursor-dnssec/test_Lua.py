@@ -747,6 +747,77 @@ dnssec=validate
         self.assertEqual(len(res.answer), 0)
         self.assertEqual(len(res.authority), 0)
 
+class AppliedPolicyFieldsTest(RecursorTest):
+    """Tests of the fields of appliedPolicy are set
+    """
+
+    _confdir = 'LuaAppliedPolicy'
+    _config_template = """
+    """
+    _lua_config_file = """
+    rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz." })
+    """ % (_confdir)
+
+    _lua_dns_script_file = """
+    function postresolve(dq)
+      pdnslog("START")
+      if dq.appliedPolicy.policyName ~= 'zone.rpz.' then
+        dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        return true
+      end
+      if dq.appliedPolicy.policyType ~= pdns.policytypes.QName then
+        dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        return true
+      end
+      if dq.appliedPolicy.policyCustom ~= '192.0.2.42' then
+        dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        return true
+      end
+      if dq.appliedPolicy.policyKind ~= pdns.policykinds.Custom then
+        dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        return true
+      end
+      if dq.appliedPolicy.policyTTL ~= 60 then
+        dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        return true
+      end
+      if dq.appliedPolicy.policyTrigger:toString() ~= 'secure.example.' then
+        dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        return true
+      end
+      if dq.appliedPolicy.policyHit ~= 'secure.example' then
+        dq.appliedPolicy.policyKind = pdns.policykinds.Drop
+        return true;
+      end
+      return false
+    end
+    """
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        rpzFilePath = os.path.join(confdir, 'zone.rpz')
+        with open(rpzFilePath, 'w') as rpzZone:
+            rpzZone.write("""$ORIGIN zone.rpz.
+@ 3600 IN SOA {soa}
+secure.example.zone.rpz. 60 IN A 192.0.2.42
+""".format(soa=cls._SOA))
+        super(AppliedPolicyFieldsTest, cls).generateRecursorConfig(confdir)
+
+    def testA(self):
+        expected = [
+            dns.rrset.from_text('secure.example.', 60, dns.rdataclass.IN, 'A', '192.0.2.42')
+        ]
+        query = dns.message.make_query('secure.example.', 'A')
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertEqual(len(res.answer), 1)
+            self.assertEqual(len(res.authority), 0)
+            self.assertResponseMatches(query, expected, res)
+
 class PolicyEventFilterOnFollowUpTest(RecursorTest):
     """Tests the interaction between RPZ and followup queries (dns64, followCNAME)
     """
