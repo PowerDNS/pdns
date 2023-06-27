@@ -32,9 +32,32 @@ This prevents a single thread from having to handle every incoming queries, but 
 
 If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to ``yes``, which is the
 default since version 4.9.0, separate listening sockets are opened for each worker thread and the query distributions is handled by the kernel, avoiding any thundering herd issue as well as preventing the distributor thread from becoming the bottleneck.
+The next section discusses how to determine if the mechanism is working properly.
 
-On some systems setting :ref:`setting-reuseport` to ``yes`` does not have the desired effect.
-If your systems shows imbalance in the number of queries processed per thread (as reported by the periodic statistics report), try switching :ref:`setting-reuseport` to ``no`` and/or setting  :ref:`setting-pdns-distributes-queries` to ``yes``.
+Imbalance
+^^^^^^^^^
+Due to the nature of the distribution method used by the kernel imbalance with the new default settings of :ref:`setting-reuseport` and :ref:`setting-pdns-distributes-queries` may occur if you have very few clients.
+Imbalance can be observed by reading the periodic statistics reported by :program:`Recursor`::
+
+  Jun 26 11:06:41 pepper pdns-recursor[10502]: msg="Queries handled by thread" subsystem="stats" level="0" prio="Info" tid="0" ts="1687770401.359" count="7" thread="0"
+  Jun 26 11:06:41 pepper pdns-recursor[10502]: msg="Queries handled by thread" subsystem=" stats" level="0" prio="Info" tid="0" ts="1687770401.359" count="535167" thread="1"
+  Jun 26 11:06:41 pepper pdns-recursor[10502]: msg="Queries handled by thread" subsystem=" stats" level="0" prio="Info" tid="0" ts="1687770401.359" count="5" thread="2"
+
+In the above log lines we see that almost all queries are processed by thread 1.
+This can typically be observed when using ``dnsdist`` in front of :program:`Recursor`.
+
+When using ``dnsdist`` with a single ``newServer`` to a recursor instance in its configuration, the kernel will regard ``dnsdist`` as a single client unless you use the ``sockets`` parameter to ``newServer`` to increase the number of source ports used by ``dnsdist``.
+The following guideline applies for the ``dnsdist`` case:
+
+- Be generous with the ``sockets`` setting of ``newServer``.
+  A starting points is to configure twice as many sockets as :program:`Recursor` threads.
+- As long as the threads of the :program:`Recursor` as not overloaded, some imbalance will not impact performance significantly.
+- If you want to reduce imbalance, increase the value of ``sockets`` even more.
+
+Non-Linux systems
+^^^^^^^^^^^^^^^^^
+On some systems setting :ref:`setting-reuseport` to ``yes`` does not have the desired effect at all.
+If your systems shows great imbalance in the number of queries processed per thread (as reported by the periodic statistics report), try switching :ref:`setting-reuseport` to ``no`` and/or setting  :ref:`setting-pdns-distributes-queries` to ``yes``.
 
 .. versionadded:: 4.1.0
    The :ref:`setting-cpu-map` parameter can be used to pin worker threads to specific CPUs, in order to keep caches as warm as possible and optimize memory access on NUMA systems.
