@@ -100,7 +100,7 @@ static void convertServersForAD(const std::string& zone, const std::string& inpu
 
 static void* pleaseUseNewSDomainsMap(std::shared_ptr<SyncRes::domainmap_t> newmap)
 {
-  SyncRes::setDomainMap(newmap);
+  SyncRes::setDomainMap(std::move(newmap));
   return 0;
 }
 

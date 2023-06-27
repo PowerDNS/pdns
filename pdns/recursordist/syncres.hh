@@ -282,7 +282,7 @@ public:
 
   static void setDomainMap(std::shared_ptr<domainmap_t> newMap)
   {
-    t_sstorage.domainmap = newMap;
+    t_sstorage.domainmap = std::move(newMap);
   }
   static const std::shared_ptr<domainmap_t> getDomainMap()
   {
@@ -417,7 +417,7 @@ public:
 
   void setLuaEngine(shared_ptr<RecursorLua4> pdl)
   {
-    d_pdl = pdl;
+    d_pdl = std::move(pdl);
   }
 
   bool wasVariable() const
@@ -463,7 +463,7 @@ public:
 
   void setAsyncCallback(asyncresolve_t func)
   {
-    d_asyncResolve = func;
+    d_asyncResolve = std::move(func);
   }
 
   vState getValidationState() const
@@ -873,8 +873,8 @@ private:
 class ImmediateServFailException
 {
 public:
-  ImmediateServFailException(string r) :
-    reason(r){};
+  ImmediateServFailException(string reason_) :
+    reason(std::move(reason_)){};
 
   string reason; //! Print this to tell the user what went wrong
 };
@@ -907,8 +907,8 @@ typedef std::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& question, const pipefunc_t& func);
 
-int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, Logr::log_t);
-int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, bool qm, Logr::log_t);
+int directResolve(const DNSName& qname, QType qtype, QClass qclass, vector<DNSRecord>& ret, const shared_ptr<RecursorLua4>& pdl, Logr::log_t);
+int directResolve(const DNSName& qname, QType qtype, QClass qclass, vector<DNSRecord>& ret, const shared_ptr<RecursorLua4>& pdl, bool qnamemin, Logr::log_t);
 int followCNAMERecords(std::vector<DNSRecord>& ret, const QType qtype, int oldret);
 int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSRecord>& ret);
 int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret);

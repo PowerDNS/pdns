@@ -324,7 +324,7 @@ static LockGuarded<Throttle<std::tuple<ComboAddress, DNSName, QType>>> s_throttl
 struct SavedParentEntry
 {
   SavedParentEntry(const DNSName& name, map<DNSName, vector<ComboAddress>>&& nsAddresses, time_t ttd) :
-    d_domain(name), d_nsAddresses(nsAddresses), d_ttd(ttd)
+    d_domain(name), d_nsAddresses(std::move(nsAddresses)), d_ttd(ttd)
   {
   }
   DNSName d_domain;
@@ -1779,7 +1779,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
         else {
           // as doResolveNoQNameMinimization clears the EDE, we put it back here, it is relevant but might not be set by the last effort attempt
           if (!context.extendedError) {
-            context.extendedError = oldEDE;
+            context.extendedError = std::move(oldEDE);
           }
         }
 
@@ -5835,12 +5835,12 @@ void SyncRes::parseEDNSSubnetAddFor(const std::string& subnetlist)
 }
 
 // used by PowerDNSLua - note that this neglects to add the packet count & statistics back to pdns_recursor.cc
-int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, Logr::log_t log)
+int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, const shared_ptr<RecursorLua4>& pdl, Logr::log_t log)
 {
   return directResolve(qname, qtype, qclass, ret, pdl, SyncRes::s_qnameminimization, log);
 }
 
-int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, shared_ptr<RecursorLua4> pdl, bool qm, Logr::log_t slog)
+int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, vector<DNSRecord>& ret, const shared_ptr<RecursorLua4>& pdl, bool qnamemin, Logr::log_t slog)
 {
   auto log = slog->withValues("qname", Logging::Loggable(qname), "qtype", Logging::Loggable(qtype));
 
@@ -5848,7 +5848,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
   gettimeofday(&now, 0);
 
   SyncRes sr(now);
-  sr.setQNameMinimization(qm);
+  sr.setQNameMinimization(qnamemin);
   if (pdl) {
     sr.setLuaEngine(pdl);
   }
@@ -5898,7 +5898,7 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
   sr.setUpdatingRootNS();
   sr.setDoDNSSEC(g_dnssecmode != DNSSECMode::Off);
   sr.setDNSSECValidationRequested(g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate);
-  sr.setAsyncCallback(asyncCallback);
+  sr.setAsyncCallback(std::move(asyncCallback));
   sr.setRefreshAlmostExpired(true);
 
   const string msg = "Failed to update . records";
