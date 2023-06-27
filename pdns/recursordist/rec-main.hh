@@ -54,12 +54,12 @@ extern std::shared_ptr<Logr::Logger> g_slogudpin;
 struct DNSComboWriter
 {
   DNSComboWriter(const std::string& query, const struct timeval& now, shared_ptr<RecursorLua4> luaContext) :
-    d_mdp(true, query), d_now(now), d_query(query), d_luaContext(luaContext)
+    d_mdp(true, query), d_now(now), d_query(query), d_luaContext(std::move(luaContext))
   {
   }
 
   DNSComboWriter(const std::string& query, const struct timeval& now, std::unordered_set<std::string>&& policyTags, shared_ptr<RecursorLua4> luaContext, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records) :
-    d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_luaContext(luaContext), d_data(std::move(data))
+    d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_luaContext(std::move(luaContext)), d_data(std::move(data))
   {
   }
 

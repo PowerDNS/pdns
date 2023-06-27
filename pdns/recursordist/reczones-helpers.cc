@@ -191,7 +191,7 @@ static SyncRes::AuthDomain makeSOAAndNSNodes(DNSRecord& dr, T content)
 
 static void addToDomainMap(SyncRes::domainmap_t& newMap,
                            SyncRes::AuthDomain ad,
-                           DNSName& name,
+                           const DNSName& name,
                            Logr::log_t log,
                            const bool partial = false,
                            const bool reverse = false)
@@ -250,7 +250,7 @@ static void makeIPToNamesZone(SyncRes::domainmap_t& newMap,
   dr.setContent(DNSRecordContent::mastermake(QType::PTR, 1, DNSName(canonicalHostname).toString()));
   ad.d_records.insert(dr);
 
-  addToDomainMap(newMap, ad, dr.d_name, log, false, true);
+  addToDomainMap(newMap, std::move(ad), dr.d_name, log, false, true);
 }
 
 void makePartialIPZone(SyncRes::domainmap_t& newMap,
@@ -266,7 +266,7 @@ void makePartialIPZone(SyncRes::domainmap_t& newMap,
 
   SyncRes::AuthDomain ad = makeSOAAndNSNodes(dr, DNSName("localhost."));
 
-  addToDomainMap(newMap, ad, dr.d_name, log, true, true);
+  addToDomainMap(newMap, std::move(ad), dr.d_name, log, true, true);
 }
 
 void addForwardAndReverseLookupEntries(SyncRes::domainmap_t& newMap,

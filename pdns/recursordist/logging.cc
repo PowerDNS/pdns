@@ -49,7 +49,7 @@ void Logger::info(Logr::Priority p, const std::string& msg) const
 
 void Logger::logMessage(const std::string& msg, boost::optional<const std::string> err) const
 {
-  return logMessage(msg, Logr::Absent, err);
+  return logMessage(msg, Logr::Absent, std::move(err));
 }
 
 void Logger::logMessage(const std::string& msg, Logr::Priority p, boost::optional<const std::string> err) const
@@ -142,11 +142,11 @@ Logger::Logger(EntryLogger callback) :
 {
 }
 Logger::Logger(EntryLogger callback, boost::optional<std::string> name) :
-  _callback(callback), _name(name)
+  _callback(callback), _name(std::move(name))
 {
 }
 Logger::Logger(std::shared_ptr<const Logger> parent, boost::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback) :
-  _parent(parent), _callback(callback), _name(name), _level(lvl), _verbosity(verbosity)
+  _parent(std::move(parent)), _callback(callback), _name(std::move(name)), _level(lvl), _verbosity(verbosity)
 {
 }
 

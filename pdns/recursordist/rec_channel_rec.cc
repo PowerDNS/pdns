@@ -117,12 +117,12 @@ static void addGetStat(const string& name, const pdns::stat_t* place)
 
 static void addGetStat(const string& name, std::function<uint64_t()> f)
 {
-  d_get64bitmembers[name] = f;
+  d_get64bitmembers[name] = std::move(f);
 }
 
 static void addGetStat(const string& name, std::function<StatsMap()> f)
 {
-  d_getmultimembers[name] = f;
+  d_getmultimembers[name] = std::move(f);
 }
 
 static std::string getPrometheusName(const std::string& arg)
@@ -1094,7 +1094,7 @@ static StatsMap toStatsMap(const string& name, const pdns::Histogram& histogram)
   for (const auto& bucket : data) {
     snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
     std::string pname = pbasename + "seconds_bucket{" + "le=\"" + (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
-    entries.emplace(bucket.d_name, StatsMapEntry{pname, std::to_string(bucket.d_count)});
+    entries.emplace(bucket.d_name, StatsMapEntry{std::move(pname), std::to_string(bucket.d_count)});
   }
 
   snprintf(buf, sizeof(buf), "%g", histogram.getSum() / 1e6);
@@ -1144,7 +1144,7 @@ static StatsMap toAuthRCodeStatsMap(const string& name)
   for (const auto& entry : rcodes) {
     const auto key = RCode::to_short_s(n);
     std::string pname = pbasename + "{rcode=\"" + key + "\"}";
-    entries.emplace("auth-" + key + "-answers", StatsMapEntry{pname, std::to_string(entry)});
+    entries.emplace("auth-" + key + "-answers", StatsMapEntry{std::move(pname), std::to_string(entry)});
     n++;
   }
   return entries;
@@ -1159,7 +1159,7 @@ static StatsMap toCPUStatsMap(const string& name)
   for (unsigned int n = 0; n < RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers(); ++n) {
     uint64_t tm = doGetThreadCPUMsec(n);
     std::string pname = pbasename + "{thread=\"" + std::to_string(n) + "\"}";
-    entries.emplace(name + "-thread-" + std::to_string(n), StatsMapEntry{pname, std::to_string(tm)});
+    entries.emplace(name + "-thread-" + std::to_string(n), StatsMapEntry{std::move(pname), std::to_string(tm)});
   }
   return entries;
 }
@@ -1200,10 +1200,10 @@ static StatsMap toProxyMappingStatsMap(const string& name)
     auto keyname = pbasename + "{netmask=\"" + key.toString() + "\",count=\"";
     auto sname1 = name + "-n-" + std::to_string(count);
     auto pname1 = keyname + "netmaskmatches\"}";
-    entries.emplace(sname1, StatsMapEntry{pname1, std::to_string(entry.netmaskMatches)});
+    entries.emplace(sname1, StatsMapEntry{std::move(pname1), std::to_string(entry.netmaskMatches)});
     auto sname2 = name + "-s-" + std::to_string(count);
     auto pname2 = keyname + "suffixmatches\"}";
-    entries.emplace(sname2, StatsMapEntry{pname2, std::to_string(entry.suffixMatches)});
+    entries.emplace(sname2, StatsMapEntry{std::move(pname2), std::to_string(entry.suffixMatches)});
     count++;
   }
   return entries;
@@ -1231,16 +1231,16 @@ static StatsMap toRemoteLoggerStatsMap(const string& name)
       auto keyname = pbasename + "{address=\"" + key + "\",type=\"" + type + "\",count=\"";
       auto sname1 = name + "-q-" + std::to_string(count);
       auto pname1 = keyname + "queued\"}";
-      entries.emplace(sname1, StatsMapEntry{pname1, std::to_string(entry.d_queued)});
+      entries.emplace(sname1, StatsMapEntry{std::move(pname1), std::to_string(entry.d_queued)});
       auto sname2 = name + "-p-" + std::to_string(count);
       auto pname2 = keyname + "pipeFull\"}";
-      entries.emplace(sname2, StatsMapEntry{pname2, std::to_string(entry.d_pipeFull)});
+      entries.emplace(sname2, StatsMapEntry{std::move(pname2), std::to_string(entry.d_pipeFull)});
       auto sname3 = name + "-t-" + std::to_string(count);
       auto pname3 = keyname + "tooLarge\"}";
-      entries.emplace(sname3, StatsMapEntry{pname3, std::to_string(entry.d_tooLarge)});
+      entries.emplace(sname3, StatsMapEntry{std::move(pname3), std::to_string(entry.d_tooLarge)});
       auto sname4 = name + "-o-" + std::to_string(count);
       auto pname4 = keyname + "otherError\"}";
-      entries.emplace(sname4, StatsMapEntry{pname4, std::to_string(entry.d_otherError)});
+      entries.emplace(sname4, StatsMapEntry{std::move(pname4), std::to_string(entry.d_otherError)});
       ++count;
     }
   }
