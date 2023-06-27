@@ -60,6 +60,8 @@ This parameter indicates whether an XPF record shall be added to the query. Sinc
 If the incoming request already contains a XPF record, it will not be overwritten. Instead a new one will be added to the query and the existing one will be preserved.
 That might be an issue by allowing clients to spoof their source address by adding a forged XPF record to their query. That can be prevented by using a rule to drop incoming queries containing a XPF record (in that example the 65280 option code has been assigned to XPF):
 
+.. code-block:: lua
+
   addAction(RecordsTypeCountRule(DNSSection.Additional, 65280, 1, 65535), DropAction())
 
 Proxy Protocol
