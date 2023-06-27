@@ -150,3 +150,37 @@ jobs:
       base64-subjects: "${{ needs.build.outputs.srchashes }}"
       upload-assets: false
       provenance-name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-src.intoto.jsonl"
+
+  upload-provenance:
+    needs: [prepare, build, provenance-src, provenance-pkgs]
+    name: Upload the provenance artifacts to downloads.powerdns.com
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        os: ${{fromJson(needs.prepare.outputs.oslist)}}
+    steps:
+      - name: Download source tarball provenance for ${{ inputs.product }} (${{ inputs.ref }})
+        id: download-src-provenance
+        uses: actions/download-artifact@v3
+        with:
+          name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-src.intoto.jsonl"
+      - name: Download provenance for ${{ inputs.product }} (${{ inputs.ref }}) for ${{ matrix.os }}
+        id: download-provenance
+        uses: actions/download-artifact@v3
+        with:
+          name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-${{ matrix.os}}.intoto.jsonl"
+      - name: Upload provenance artifacts to downloads.powerdns.com
+        id: upload-provenance
+        env:
+          SSHKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
+          RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
+          HOSTKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_HOSTKEY }}
+        if:
+          "${{ env.SSHKEY != '' }}"
+        shell: bash
+        run: |
+          mkdir -m 700 -p ~/.ssh
+          echo "$SSHKEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "$HOSTKEY" > ~/.ssh/known_hosts
+          rsync -4rlptD ${{steps.download-src-provenance.outputs.download-path}}/*.jsonl ${{steps.download-provenance.outputs.download-path}}/*.jsonl "${RSYNCTARGET}/${{ inputs.product }}/${{ needs.build.outputs.version }}/"
