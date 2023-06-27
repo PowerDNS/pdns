@@ -9,7 +9,7 @@
 (?:^|/)m4/
 (?:^|/)m4/
 (?:^|/)package(?:-lock|)\.json$
-(?:^|/)requirements\.txt$
+(?:^|/)requirements\.(?:txt|in)$
 (?:^|/)vendor/
 /expected_result
 /test-base64_cc\.cc$
