@@ -595,7 +595,7 @@ class TestCustomMetrics(DNSDistTest):
     _config_template = """
     function custommetrics(dq)
       initialCounter = getMetric("my-custom-counter")
-      initialGauge = getMetric("my-custom-counter")
+      initialGauge = getMetric("my-custom-gauge")
       incMetric("my-custom-counter")
       incMetric("my-custom-counter", 41)
       setMetric("my-custom-gauge", initialGauge + 1.3)
