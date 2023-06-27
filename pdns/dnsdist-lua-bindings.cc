@@ -90,7 +90,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   /* ServerPool */
   luaCtx.registerFunction<void(std::shared_ptr<ServerPool>::*)(std::shared_ptr<DNSDistPacketCache>)>("setCache", [](std::shared_ptr<ServerPool> pool, std::shared_ptr<DNSDistPacketCache> cache) {
       if (pool) {
-        pool->packetCache = cache;
+        pool->packetCache = std::move(cache);
       }
     });
   luaCtx.registerFunction("getCache", &ServerPool::getCache);

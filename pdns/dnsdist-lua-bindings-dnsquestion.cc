@@ -187,7 +187,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
     }
 
-    dq.proxyProtocolValues->push_back({value, static_cast<uint8_t>(type)});
+    dq.proxyProtocolValues->push_back({std::move(value), static_cast<uint8_t>(type)});
   });
 
   luaCtx.registerFunction<LuaArray<std::string>(DNSQuestion::*)()>("getProxyProtocolValues", [](const DNSQuestion& dq) {

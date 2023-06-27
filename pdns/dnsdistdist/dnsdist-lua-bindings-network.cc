@@ -67,7 +67,7 @@ void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client)
       return false;
     }
 
-    return listener->addUnixListeningEndpoint(path, endpointID, [cb](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+    return listener->addUnixListeningEndpoint(path, endpointID, [cb = std::move(cb)](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
       {
         auto lock = g_lua.lock();
         cb(endpoint, dgram, from);

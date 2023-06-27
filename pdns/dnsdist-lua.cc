@@ -128,7 +128,7 @@ static void parseLocalBindVars(boost::optional<localbind_t>& vars, bool& reusePo
 }
 
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
-static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TLSCertKeyPair>& pairs, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, LuaTypeOrArrayOf<std::string> keyFiles)
+static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TLSCertKeyPair>& pairs, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const LuaTypeOrArrayOf<std::string>& keyFiles)
 {
   if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
     auto certFile = boost::get<std::string>(certFiles);
@@ -255,7 +255,7 @@ static void LuaThread(const std::string& code)
     // maybe offer more than `void`
     auto func = lua->readVariable<boost::optional<std::function<void(std::string cmd, LuaAssociativeTable<std::string> data)>>>("threadmessage");
     if (func) {
-      func.get()(cmd, data);
+      func.get()(std::move(cmd), std::move(data));
     }
     else {
       errlog("Lua thread called submitToMainThread but no threadmessage receiver is defined");
@@ -1211,7 +1211,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setQueryCount", [](bool enabled) { g_qcount.enabled = enabled; });
 
   luaCtx.writeFunction("setQueryCountFilter", [](QueryCountFilter func) {
-    g_qcount.filter = func;
+    g_qcount.filter = std::move(func);
   });
 
   luaCtx.writeFunction("makeKey", []() {
@@ -1546,7 +1546,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
       auto certFile = boost::get<std::string>(certFiles);
       auto keyFile = boost::get<std::string>(keyFiles);
-      certKeys.push_back({certFile, keyFile});
+      certKeys.push_back({std::move(certFile), std::move(keyFile)});
     }
     else if (certFiles.type() == typeid(LuaArray<std::string>) && keyFiles.type() == typeid(LuaArray<std::string>)) {
       auto certFilesVect = boost::get<LuaArray<std::string>>(certFiles);
@@ -1782,12 +1782,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (!checkConfigurationTime("setDefaultBPFFilter")) {
       return;
     }
-    g_defaultBPFFilter = bpf;
+    g_defaultBPFFilter = std::move(bpf);
   });
 
   luaCtx.writeFunction("registerDynBPFFilter", [](std::shared_ptr<DynBPFFilter> dbpf) {
     if (dbpf) {
-      g_dynBPFFilters.push_back(dbpf);
+      g_dynBPFFilters.push_back(std::move(dbpf));
     }
   });
 
@@ -2075,21 +2075,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setPoolServerPolicy", [](ServerPolicy policy, const string& pool) {
     setLuaSideEffect();
     auto localPools = g_pools.getCopy();
-    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(policy));
+    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(std::move(policy)));
     g_pools.setState(localPools);
   });
 
   luaCtx.writeFunction("setPoolServerPolicyLua", [](const string& name, ServerPolicy::policyfunc_t policy, const string& pool) {
     setLuaSideEffect();
     auto localPools = g_pools.getCopy();
-    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy, true}));
+    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, std::move(policy), true}));
     g_pools.setState(localPools);
   });
 
   luaCtx.writeFunction("setPoolServerPolicyLuaFFI", [](const string& name, ServerPolicy::ffipolicyfunc_t policy, const string& pool) {
     setLuaSideEffect();
     auto localPools = g_pools.getCopy();
-    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policy}));
+    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, std::move(policy)}));
     g_pools.setState(localPools);
   });
 

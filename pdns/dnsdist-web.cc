@@ -1570,7 +1570,7 @@ void registerWebHandler(const std::string& endpoint, std::function<void(const Ya
 
 void registerWebHandler(const std::string& endpoint, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)> handler)
 {
-  s_webHandlers[endpoint] = handler;
+  s_webHandlers[endpoint] = std::move(handler);
 }
 
 void clearWebHandlers()

@@ -272,8 +272,8 @@ void MOADNSParser::init(bool query, const std::string_view& packet)
       dr.d_type=ah.d_type;
       dr.d_class=ah.d_class;
 
-      dr.d_name=name;
-      dr.d_clen=ah.d_clen;
+      dr.d_name = std::move(name);
+      dr.d_clen = ah.d_clen;
 
       if (query &&
           !(d_qtype == QType::IXFR && dr.d_place == DNSResourceRecord::AUTHORITY && dr.d_type == QType::SOA) && // IXFR queries have a SOA in their AUTHORITY section

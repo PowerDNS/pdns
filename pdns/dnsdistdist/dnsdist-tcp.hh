@@ -122,7 +122,7 @@ struct TCPResponse : public TCPQuery
   }
 
   TCPResponse(PacketBuffer&& buffer, InternalQueryState&& state, std::shared_ptr<ConnectionToBackend> conn, std::shared_ptr<DownstreamState> ds) :
-    TCPQuery(std::move(buffer), std::move(state)), d_connection(conn), d_ds(ds)
+    TCPQuery(std::move(buffer), std::move(state)), d_connection(std::move(conn)), d_ds(std::move(ds))
   {
     if (d_buffer.size() >= sizeof(dnsheader)) {
       memcpy(&d_cleartextDH, reinterpret_cast<const dnsheader*>(d_buffer.data()), sizeof(d_cleartextDH));

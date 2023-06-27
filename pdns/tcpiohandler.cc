@@ -79,7 +79,7 @@ class OpenSSLTLSConnection: public TLSConnection
 {
 public:
   /* server side connection */
-  OpenSSLTLSConnection(int socket, const struct timeval& timeout, std::shared_ptr<OpenSSLFrontendContext> feContext): d_feContext(feContext), d_conn(std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(d_feContext->d_tlsCtx.get()), SSL_free)), d_timeout(timeout)
+  OpenSSLTLSConnection(int socket, const struct timeval& timeout, std::shared_ptr<OpenSSLFrontendContext> feContext): d_feContext(std::move(feContext)), d_conn(std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(d_feContext->d_tlsCtx.get()), SSL_free)), d_timeout(timeout)
   {
     d_socket = socket;
 
@@ -1747,7 +1747,7 @@ public:
     auto newKey = std::make_shared<GnuTLSTicketsKey>();
 
     {
-      *(d_ticketsKey.write_lock()) = newKey;
+      *(d_ticketsKey.write_lock()) = std::move(newKey);
     }
 
     if (d_ticketsKeyRotationDelay > 0) {
@@ -1763,7 +1763,7 @@ public:
 
     auto newKey = std::make_shared<GnuTLSTicketsKey>(file);
     {
-      *(d_ticketsKey.write_lock()) = newKey;
+      *(d_ticketsKey.write_lock()) = std::move(newKey);
     }
 
     if (d_ticketsKeyRotationDelay > 0) {
