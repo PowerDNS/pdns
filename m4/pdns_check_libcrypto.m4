@@ -112,7 +112,15 @@ AC_DEFUN([PDNS_CHECK_LIBCRYPTO], [
         [
             AC_MSG_RESULT([yes])
             AC_CHECK_FUNCS([RAND_bytes RAND_pseudo_bytes CRYPTO_memcmp OPENSSL_init_crypto EVP_MD_CTX_new EVP_MD_CTX_free RSA_get0_key])
-            AC_CHECK_DECL(EVP_PKEY_CTX_set1_scrypt_salt, [AC_DEFINE([HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT], [1], [Define to 1 if you have EVP_PKEY_CTX_set1_scrypt_salt])], [], [#include <openssl/kdf.h>])
+            # you might be wondering why the stdarg.h and stddef.h includes,
+            # in which case please have a look at https://github.com/PowerDNS/pdns/issues/12926
+            # and weep, yelling at Red Hat
+            AC_CHECK_DECL(EVP_PKEY_CTX_set1_scrypt_salt,
+                          [AC_DEFINE([HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT], [1], [Define to 1 if you have EVP_PKEY_CTX_set1_scrypt_salt])],
+                          [],
+                          [#include <stdarg.h>
+                           #include <stddef.h>
+                           #include <openssl/kdf.h>])
             $1
         ], [
             AC_MSG_RESULT([no])
