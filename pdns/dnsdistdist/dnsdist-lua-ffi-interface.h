@@ -228,7 +228,9 @@ uint16_t dnsdist_ffi_dnspacket_get_record_content_offset(const dnsdist_ffi_dnspa
 size_t dnsdist_ffi_dnspacket_get_name_at_offset_raw(const char* packet, size_t packetSize, size_t offset, char* name, size_t nameSize) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnspacket_free(dnsdist_ffi_dnspacket_t*) __attribute__ ((visibility ("default")));
 
+bool dnsdist_ffi_metric_declare(const char* name, size_t nameLen, const char* type, const char* description, const char* customName) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_metric_inc(const char* metricName, size_t metricNameLen) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_metric_inc_by(const char* metricName, size_t metricNameLen, uint64_t value) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_metric_dec(const char* metricName, size_t metricNameLen) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double value) __attribute__ ((visibility ("default")));
 double dnsdist_ffi_metric_get(const char* metricName, size_t metricNameLen, bool isCounter) __attribute__ ((visibility ("default")));

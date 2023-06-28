@@ -21,6 +21,7 @@
  */
 
 #include "dnsdist.hh"
+#include "dnsdist-metrics.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
@@ -362,7 +363,7 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
   handleDOHTimeout(std::move(ids.internal.du));
   ++reuseds;
   --outstanding;
-  ++g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
+  ++dnsdist::metrics::g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
   vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
            d_config.remote.toStringWithPort(), getName(),
            ids.internal.qname.toLogString(), QType(ids.internal.qtype).toString(), ids.internal.origRemote.toStringWithPort());
@@ -461,7 +462,7 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
 
         auto oldDU = std::move(it->second.internal.du);
         ++reuseds;
-        ++g_stats.downstreamTimeouts;
+        ++dnsdist::metrics::g_stats.downstreamTimeouts;
         handleDOHTimeout(std::move(oldDU));
       }
       else {
@@ -488,7 +489,7 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
          to handle it because it's about to be overwritten. */
       auto oldDU = std::move(ids.internal.du);
       ++reuseds;
-      ++g_stats.downstreamTimeouts;
+      ++dnsdist::metrics::g_stats.downstreamTimeouts;
       handleDOHTimeout(std::move(oldDU));
     }
     else {
@@ -511,7 +512,7 @@ void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
     if (!inserted) {
       /* already used */
       ++reuseds;
-      ++g_stats.downstreamTimeouts;
+      ++dnsdist::metrics::g_stats.downstreamTimeouts;
       handleDOHTimeout(std::move(state.du));
     }
     else {
@@ -526,14 +527,14 @@ void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
   if (!guard) {
     /* already used */
     ++reuseds;
-    ++g_stats.downstreamTimeouts;
+    ++dnsdist::metrics::g_stats.downstreamTimeouts;
     handleDOHTimeout(std::move(state.du));
     return;
   }
   if (ids.isInUse()) {
     /* already used */
     ++reuseds;
-    ++g_stats.downstreamTimeouts;
+    ++dnsdist::metrics::g_stats.downstreamTimeouts;
     handleDOHTimeout(std::move(state.du));
     return;
   }

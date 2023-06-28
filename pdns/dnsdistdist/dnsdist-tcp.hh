@@ -25,6 +25,7 @@
 #include "channel.hh"
 #include "iputils.hh"
 #include "dnsdist.hh"
+#include "dnsdist-metrics.hh"
 
 struct ConnectionInfo
 {
@@ -220,7 +221,7 @@ public:
     ++d_queued;
     if (!d_tcpclientthreads.at(pos % d_numthreads).d_querySender.send(std::move(conn))) {
       --d_queued;
-      ++g_stats.tcpQueryPipeFull;
+      ++dnsdist::metrics::g_stats.tcpQueryPipeFull;
       return false;
     }
 
@@ -235,7 +236,7 @@ public:
 
     uint64_t pos = d_pos++;
     if (!d_tcpclientthreads.at(pos % d_numthreads).d_crossProtocolQuerySender.send(std::move(cpq))) {
-      ++g_stats.tcpCrossProtocolQueryPipeFull;
+      ++dnsdist::metrics::g_stats.tcpCrossProtocolQueryPipeFull;
       return false;
     }
 

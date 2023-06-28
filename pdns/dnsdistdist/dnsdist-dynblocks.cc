@@ -1,6 +1,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-metrics.hh"
 
 GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
 GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
@@ -462,7 +463,7 @@ void DynBlockMaintenance::purgeExpired(const struct timespec& now)
         updated.erase(entry);
       }
       g_dynblockNMG.setState(std::move(updated));
-      g_stats.dynBlocked += bpfBlocked;
+      dnsdist::metrics::g_stats.dynBlocked += bpfBlocked;
     }
   }
 

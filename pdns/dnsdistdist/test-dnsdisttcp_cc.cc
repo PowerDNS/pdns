@@ -31,7 +31,6 @@
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
 
-struct DNSDistStats g_stats;
 GlobalStateHolder<NetmaskGroup> g_ACL;
 GlobalStateHolder<vector<DNSDistRuleAction> > g_ruleactions;
 GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_respruleactions;

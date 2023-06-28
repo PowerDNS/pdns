@@ -26,8 +26,14 @@
 
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-web.hh"
 #include "dnsparser.hh"
 #include "dnswriter.hh"
+
+bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
+{
+  return true;
+}
 
 BOOST_AUTO_TEST_SUITE(test_dnsdist_lua_ffi)
 

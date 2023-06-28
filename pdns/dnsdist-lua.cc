@@ -47,6 +47,7 @@
 #ifdef LUAJIT_VERSION
 #include "dnsdist-lua-ffi.hh"
 #endif /* LUAJIT_VERSION */
+#include "dnsdist-metrics.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
@@ -1828,9 +1829,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction<LuaAssociativeTable<uint64_t>()>("getStatisticsCounters", []() {
     setLuaNoSideEffect();
     std::unordered_map<string, uint64_t> res;
-    for (const auto& entry : g_stats.entries) {
-      if (const auto& val = boost::get<pdns::stat_t*>(&entry.second))
-        res[entry.first] = (*val)->load();
+    {
+      auto entries = dnsdist::metrics::g_stats.entries.read_lock();
+      res.reserve(entries->size());
+      for (const auto& entry : *entries) {
+        if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
+          res[entry.d_name] = (*val)->load();
+        }
+      }
     }
     return res;
   });
@@ -2215,7 +2221,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifndef DISABLE_SECPOLL
   luaCtx.writeFunction("showSecurityStatus", []() {
     setLuaNoSideEffect();
-    g_outputBuffer = std::to_string(g_stats.securityStatus) + "\n";
+    g_outputBuffer = std::to_string(dnsdist::metrics::g_stats.securityStatus) + "\n";
   });
 
   luaCtx.writeFunction("setSecurityPollSuffix", [](const std::string& suffix) {
@@ -2909,77 +2915,49 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type, const std::string& description, boost::optional<std::string> customName) {
-    if (!checkConfigurationTime("declareMetric")) {
-      return false;
-    }
-    if (!std::regex_match(name, std::regex("^[a-z0-9-]+$"))) {
-      g_outputBuffer = "Unable to declare metric '" + name + "': invalid name\n";
-      errlog("Unable to declare metric '%s': invalid name", name);
-      return false;
-    }
-    if (type == "counter") {
-      auto itp = g_stats.customCounters.emplace(name, 0);
-      if (itp.second) {
-        g_stats.entries.emplace_back(name, &g_stats.customCounters[name]);
-        addMetricDefinition(name, "counter", description, customName ? *customName : "");
-      }
-    }
-    else if (type == "gauge") {
-      auto itp = g_stats.customGauges.emplace(name, 0.);
-      if (itp.second) {
-        g_stats.entries.emplace_back(name, &g_stats.customGauges[name]);
-        addMetricDefinition(name, "gauge", description, customName ? *customName : "");
-      }
-    }
-    else {
-      g_outputBuffer = "declareMetric unknown type '" + type + "'\n";
-      errlog("Unable to declareMetric '%s': no such type '%s'", name, type);
+    auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName ? std::optional<std::string>(*customName) : std::nullopt);
+    if (result) {
+      g_outputBuffer += *result + "\n";
+      errlog("%s", *result);
       return false;
     }
     return true;
   });
-  luaCtx.writeFunction("incMetric", [](const std::string& name) {
-    auto metric = g_stats.customCounters.find(name);
-    if (metric != g_stats.customCounters.end()) {
-      return ++(metric->second);
+  luaCtx.writeFunction("incMetric", [](const std::string& name, boost::optional<uint64_t> step) {
+    auto result = dnsdist::metrics::incrementCustomCounter(name, step ? *step : 1);
+    if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+      g_outputBuffer = *errorStr + "'\n";
+      errlog("%s", *errorStr);
+      return static_cast<uint64_t>(0);
     }
-    g_outputBuffer = "incMetric no such metric '" + name + "'\n";
-    errlog("Unable to incMetric: no such name '%s'", name);
-    return (uint64_t)0;
+    return std::get<uint64_t>(result);
   });
-  luaCtx.writeFunction("decMetric", [](const std::string& name) {
-    auto metric = g_stats.customCounters.find(name);
-    if (metric != g_stats.customCounters.end()) {
-      return --(metric->second);
+  luaCtx.writeFunction("decMetric", [](const std::string& name, boost::optional<uint64_t> step) {
+    auto result = dnsdist::metrics::decrementCustomCounter(name, step ? *step : 1);
+    if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+      g_outputBuffer = *errorStr + "'\n";
+      errlog("%s", *errorStr);
+      return static_cast<uint64_t>(0);
     }
-    g_outputBuffer = "decMetric no such metric '" + name + "'\n";
-    errlog("Unable to decMetric: no such name '%s'", name);
-    return (uint64_t)0;
+    return std::get<uint64_t>(result);
   });
-  luaCtx.writeFunction("setMetric", [](const std::string& name, const double& value) {
-    auto metric = g_stats.customGauges.find(name);
-    if (metric != g_stats.customGauges.end()) {
-      metric->second = value;
-      return value;
+  luaCtx.writeFunction("setMetric", [](const std::string& name, const double value) -> double {
+    auto result = dnsdist::metrics::setCustomGauge(name, value);
+    if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+      g_outputBuffer = *errorStr + "'\n";
+      errlog("%s", *errorStr);
+      return 0.;
     }
-    g_outputBuffer = "setMetric no such metric '" + name + "'\n";
-    errlog("Unable to setMetric: no such name '%s'", name);
-    return 0.;
+    return std::get<double>(result);
   });
   luaCtx.writeFunction("getMetric", [](const std::string& name) {
-    auto counter = g_stats.customCounters.find(name);
-    if (counter != g_stats.customCounters.end()) {
-      return (double)counter->second.load();
+    auto result = dnsdist::metrics::getCustomMetric(name);
+    if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+      g_outputBuffer = *errorStr + "'\n";
+      errlog("%s", *errorStr);
+      return 0.;
     }
-    else {
-      auto gauge = g_stats.customGauges.find(name);
-      if (gauge != g_stats.customGauges.end()) {
-        return gauge->second.load();
-      }
-    }
-    g_outputBuffer = "getMetric no such metric '" + name + "'\n";
-    errlog("Unable to getMetric: no such name '%s'", name);
-    return 0.;
+    return std::get<double>(result);
   });
 }
 

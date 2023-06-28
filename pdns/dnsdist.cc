@@ -96,8 +96,6 @@ using std::thread;
 bool g_verbose;
 std::optional<std::ofstream> g_verboseStream{std::nullopt};
 
-struct DNSDistStats g_stats;
-
 uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
 uint32_t g_staleCacheEntriesTTL{0};
 bool g_syslog{true};
@@ -205,7 +203,7 @@ static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qn
   }
   catch(...)
   {
-    ++g_stats.truncFail;
+    ++dnsdist::metrics::g_stats.truncFail;
   }
 }
 
@@ -258,49 +256,49 @@ static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
 
   if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
     if (udiff < 1000) {
-      ++g_stats.latency0_1;
+      ++dnsdist::metrics::g_stats.latency0_1;
     }
     else if (udiff < 10000) {
-      ++g_stats.latency1_10;
+      ++dnsdist::metrics::g_stats.latency1_10;
     }
     else if (udiff < 50000) {
-      ++g_stats.latency10_50;
+      ++dnsdist::metrics::g_stats.latency10_50;
     }
     else if (udiff < 100000) {
-      ++g_stats.latency50_100;
+      ++dnsdist::metrics::g_stats.latency50_100;
     }
     else if (udiff < 1000000) {
-      ++g_stats.latency100_1000;
+      ++dnsdist::metrics::g_stats.latency100_1000;
     }
     else {
-      ++g_stats.latencySlow;
+      ++dnsdist::metrics::g_stats.latencySlow;
     }
 
-    g_stats.latencySum += udiff / 1000;
-    ++g_stats.latencyCount;
+    dnsdist::metrics::g_stats.latencySum += udiff / 1000;
+    ++dnsdist::metrics::g_stats.latencyCount;
 
-    doAvg(g_stats.latencyAvg100,     udiff,     100);
-    doAvg(g_stats.latencyAvg1000,    udiff,    1000);
-    doAvg(g_stats.latencyAvg10000,   udiff,   10000);
-    doAvg(g_stats.latencyAvg1000000, udiff, 1000000);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg100,     udiff,     100);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg1000,    udiff,    1000);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg10000,   udiff,   10000);
+    doAvg(dnsdist::metrics::g_stats.latencyAvg1000000, udiff, 1000000);
   }
   else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP) {
-    doAvg(g_stats.latencyTCPAvg100,     udiff,     100);
-    doAvg(g_stats.latencyTCPAvg1000,    udiff,    1000);
-    doAvg(g_stats.latencyTCPAvg10000,   udiff,   10000);
-    doAvg(g_stats.latencyTCPAvg1000000, udiff, 1000000);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg100,     udiff,     100);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000,    udiff,    1000);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg10000,   udiff,   10000);
+    doAvg(dnsdist::metrics::g_stats.latencyTCPAvg1000000, udiff, 1000000);
   }
   else if (protocol == dnsdist::Protocol::DoT) {
-    doAvg(g_stats.latencyDoTAvg100,     udiff,     100);
-    doAvg(g_stats.latencyDoTAvg1000,    udiff,    1000);
-    doAvg(g_stats.latencyDoTAvg10000,   udiff,   10000);
-    doAvg(g_stats.latencyDoTAvg1000000, udiff, 1000000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg100,     udiff,     100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000,    udiff,    1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg10000,   udiff,   10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoTAvg1000000, udiff, 1000000);
   }
   else if (protocol == dnsdist::Protocol::DoH) {
-    doAvg(g_stats.latencyDoHAvg100,     udiff,     100);
-    doAvg(g_stats.latencyDoHAvg1000,    udiff,    1000);
-    doAvg(g_stats.latencyDoHAvg10000,   udiff,   10000);
-    doAvg(g_stats.latencyDoHAvg1000000, udiff, 1000000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg100,     udiff,     100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000,    udiff,    1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg10000,   udiff,   10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000000, udiff, 1000000);
   }
 }
 
@@ -312,7 +310,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
 
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(response.data());
   if (dh->qr == 0) {
-    ++g_stats.nonCompliantResponses;
+    ++dnsdist::metrics::g_stats.nonCompliantResponses;
     if (remote) {
       ++remote->nonCompliantResponses;
     }
@@ -324,7 +322,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
       return true;
     }
     else {
-      ++g_stats.nonCompliantResponses;
+      ++dnsdist::metrics::g_stats.nonCompliantResponses;
       if (remote) {
         ++remote->nonCompliantResponses;
       }
@@ -341,7 +339,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
     if (remote && response.size() > 0 && static_cast<size_t>(response.size()) > sizeof(dnsheader)) {
       infolog("Backend %s sent us a response with id %d that did not parse: %s", remote->d_config.remote.toStringWithPort(), ntohs(dh->id), e.what());
     }
-    ++g_stats.nonCompliantResponses;
+    ++dnsdist::metrics::g_stats.nonCompliantResponses;
     if (remote) {
       ++remote->nonCompliantResponses;
     }
@@ -636,16 +634,16 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
 
   switch (cleartextDH.rcode) {
   case RCode::NXDomain:
-    ++g_stats.frontendNXDomain;
+    ++dnsdist::metrics::g_stats.frontendNXDomain;
     break;
   case RCode::ServFail:
     if (fromBackend) {
-      ++g_stats.servfailResponses;
+      ++dnsdist::metrics::g_stats.servfailResponses;
     }
-    ++g_stats.frontendServFail;
+    ++dnsdist::metrics::g_stats.frontendServFail;
     break;
   case RCode::NoError:
-    ++g_stats.frontendNoError;
+    ++dnsdist::metrics::g_stats.frontendNoError;
     break;
   }
 
@@ -680,7 +678,7 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
     }
   }
 
-  ++g_stats.responses;
+  ++dnsdist::metrics::g_stats.responses;
   if (ids.cs) {
     ++ids.cs->responses;
   }
@@ -873,7 +871,7 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return true;
     break;
   case DNSAction::Action::Drop:
-    ++g_stats.ruleDrop;
+    ++dnsdist::metrics::g_stats.ruleDrop;
     drop = true;
     return true;
     break;
@@ -911,7 +909,7 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
       dq.getHeader()->ra = dq.getHeader()->rd;
       dq.getHeader()->aa = false;
       dq.getHeader()->ad = false;
-      ++g_stats.ruleTruncated;
+      ++dnsdist::metrics::g_stats.ruleTruncated;
       return true;
     }
     break;
@@ -970,7 +968,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
   /* the Dynamic Block mechanism supports address and port ranges, so we need to pass the full address and port */
   if (auto got = holders.dynNMGBlock->lookup(AddressAndPortRange(dq.ids.origRemote, dq.ids.origRemote.isIPv4() ? 32 : 128, 16))) {
     auto updateBlockStats = [&got]() {
-      ++g_stats.dynBlocked;
+      ++dnsdist::metrics::g_stats.dynBlocked;
       got->second.blocks++;
     };
 
@@ -1030,7 +1028,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
 
   if (auto got = holders.dynSMTBlock->lookup(dq.ids.qname)) {
     auto updateBlockStats = [&got]() {
-      ++g_stats.dynBlocked;
+      ++dnsdist::metrics::g_stats.dynBlocked;
       got->blocks++;
     };
 
@@ -1147,14 +1145,14 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
     /* message was too large for our buffer */
     vinfolog("Dropping message too large for our buffer");
     ++cs.nonCompliantQueries;
-    ++g_stats.nonCompliantQueries;
+    ++dnsdist::metrics::g_stats.nonCompliantQueries;
     return false;
   }
 
   expectProxyProtocol = expectProxyProtocolFrom(remote);
   if (!holders.acl->match(remote) && !expectProxyProtocol) {
     vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
-    ++g_stats.aclDrops;
+    ++dnsdist::metrics::g_stats.aclDrops;
     return false;
   }
 
@@ -1184,7 +1182,7 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
   }
 
   ++cs.queries;
-  ++g_stats.queries;
+  ++dnsdist::metrics::g_stats.queries;
 
   return true;
 }
@@ -1213,20 +1211,20 @@ bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_
 bool checkQueryHeaders(const struct dnsheader* dh, ClientState& cs)
 {
   if (dh->qr) {   // don't respond to responses
-    ++g_stats.nonCompliantQueries;
+    ++dnsdist::metrics::g_stats.nonCompliantQueries;
     ++cs.nonCompliantQueries;
     return false;
   }
 
   if (dh->qdcount == 0) {
-    ++g_stats.emptyQueries;
+    ++dnsdist::metrics::g_stats.emptyQueries;
     if (g_dropEmptyQueries) {
       return false;
     }
   }
 
   if (dh->rd) {
-    ++g_stats.rdQueries;
+    ++dnsdist::metrics::g_stats.rdQueries;
   }
 
   return true;
@@ -1268,7 +1266,7 @@ static bool prepareOutgoingResponse(LocalHolders& holders, const ClientState& cs
   }
 
   if (cacheHit) {
-    ++g_stats.cacheHits;
+    ++dnsdist::metrics::g_stats.cacheHits;
   }
 
   if (dr.isAsynchronous()) {
@@ -1300,16 +1298,16 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
 
       const auto rcode = dq.getHeader()->rcode;
       if (rcode == RCode::NXDomain) {
-        ++g_stats.ruleNXDomain;
+        ++dnsdist::metrics::g_stats.ruleNXDomain;
       }
       else if (rcode == RCode::Refused) {
-        ++g_stats.ruleRefused;
+        ++dnsdist::metrics::g_stats.ruleRefused;
       }
       else if (rcode == RCode::ServFail) {
-        ++g_stats.ruleServFail;
+        ++dnsdist::metrics::g_stats.ruleServFail;
       }
 
-      ++g_stats.selfAnswered;
+      ++dnsdist::metrics::g_stats.selfAnswered;
       ++dq.ids.cs->responses;
       return ProcessQueryResult::SendAnswer;
     }
@@ -1340,7 +1338,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
             return ProcessQueryResult::Drop;
           }
 
-          ++g_stats.responses;
+          ++dnsdist::metrics::g_stats.responses;
           ++dq.ids.cs->responses;
           return ProcessQueryResult::SendAnswer;
         }
@@ -1375,7 +1373,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
           return ProcessQueryResult::Drop;
         }
 
-        ++g_stats.responses;
+        ++dnsdist::metrics::g_stats.responses;
         ++dq.ids.cs->responses;
         return ProcessQueryResult::SendAnswer;
       }
@@ -1386,7 +1384,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
             return ProcessQueryResult::Drop;
           }
 
-          ++g_stats.responses;
+          ++dnsdist::metrics::g_stats.responses;
           ++dq.ids.cs->responses;
           return ProcessQueryResult::SendAnswer;
         }
@@ -1394,11 +1392,11 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
 
       vinfolog("Packet cache miss for query for %s|%s from %s (%s, %d bytes)", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), dq.ids.protocol.toString(), dq.getData().size());
 
-      ++g_stats.cacheMisses;
+      ++dnsdist::metrics::g_stats.cacheMisses;
     }
 
     if (!selectedBackend) {
-      ++g_stats.noPolicy;
+      ++dnsdist::metrics::g_stats.noPolicy;
 
       vinfolog("%s query for %s|%s from %s, no downstream server available", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort());
       if (g_servFailOnNoPolicy) {
@@ -1410,7 +1408,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
         if (!prepareOutgoingResponse(holders, *dq.ids.cs, dq, false)) {
           return ProcessQueryResult::Drop;
         }
-        ++g_stats.responses;
+        ++dnsdist::metrics::g_stats.responses;
         ++dq.ids.cs->responses;
         // no response-only statistics counter to update.
         return ProcessQueryResult::SendAnswer;
@@ -1591,7 +1589,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint1
           dq.ids.du->status_code = 502;
         }
       }
-      ++g_stats.downstreamSendErrors;
+      ++dnsdist::metrics::g_stats.downstreamSendErrors;
       ++ds->sendErrors;
       return false;
     }
@@ -1795,7 +1793,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
       const ComboAddress& remote = recvData[msgIdx].remote;
 
       if (static_cast<size_t>(got) < sizeof(struct dnsheader)) {
-        ++g_stats.nonCompliantQueries;
+        ++dnsdist::metrics::g_stats.nonCompliantQueries;
         ++cs->nonCompliantQueries;
         continue;
       }
@@ -1862,7 +1860,7 @@ static void udpClientThread(std::vector<ClientState*> states)
         ssize_t got = recvmsg(param.socket, &msgh, 0);
 
         if (got < 0 || static_cast<size_t>(got) < sizeof(struct dnsheader)) {
-          ++g_stats.nonCompliantQueries;
+          ++dnsdist::metrics::g_stats.nonCompliantQueries;
           ++param.cs->nonCompliantQueries;
           return;
         }

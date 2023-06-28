@@ -507,7 +507,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
     }
   }
 
-  ++g_stats.responses;
+  ++dnsdist::metrics::g_stats.responses;
   ++state->d_ci.cs->responses;
 
   queueResponse(state, now, std::move(response));
@@ -578,7 +578,7 @@ void IncomingTCPConnectionState::handleCrossProtocolResponse(const struct timeva
   try {
     auto ptr = std::make_unique<TCPCrossProtocolResponse>(std::move(response), state, now);
     if (!state->d_threadData.crossProtocolResponseSender.send(std::move(ptr))) {
-      ++g_stats.tcpCrossProtocolResponsePipeFull;
+      ++dnsdist::metrics::g_stats.tcpCrossProtocolResponsePipeFull;
       vinfolog("Unable to pass a cross-protocol response to the TCP worker thread because the pipe is full");
     }
   }
@@ -590,7 +590,7 @@ void IncomingTCPConnectionState::handleCrossProtocolResponse(const struct timeva
 static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now)
 {
   if (state->d_querySize < sizeof(dnsheader)) {
-    ++g_stats.nonCompliantQueries;
+    ++dnsdist::metrics::g_stats.nonCompliantQueries;
     ++state->d_ci.cs->nonCompliantQueries;
     state->terminateClientConnection();
     return;
@@ -598,7 +598,7 @@ static void handleQuery(std::shared_ptr<IncomingTCPConnectionState>& state, cons
 
   ++state->d_queriesCount;
   ++state->d_ci.cs->queries;
-  ++g_stats.queries;
+  ++dnsdist::metrics::g_stats.queries;
 
   if (state->d_handler.isTLS()) {
     auto tlsVersion = state->d_handler.getTLSVersion();
@@ -837,7 +837,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
             ssize_t remaining = isProxyHeaderComplete(state->d_buffer);
             if (remaining == 0) {
               vinfolog("Unable to consume proxy protocol header in packet from TCP client %s", state->d_ci.remote.toStringWithPort());
-              ++g_stats.proxyProtocolInvalid;
+              ++dnsdist::metrics::g_stats.proxyProtocolInvalid;
               break;
             }
             else if (remaining < 0) {
@@ -1358,7 +1358,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
     }
 
     if (!acl->match(remote)) {
-      ++g_stats.aclDrops;
+      ++dnsdist::metrics::g_stats.aclDrops;
       vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
       return;
     }

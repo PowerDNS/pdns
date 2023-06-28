@@ -1043,7 +1043,7 @@ bool DoHClientCollection::passCrossProtocolQueryToThread(std::unique_ptr<CrossPr
 
   uint64_t pos = d_pos++;
   if (!d_clientThreads.at(pos % d_numberOfThreads).d_sender.send(std::move(cpq))) {
-    ++g_stats.outgoingDoHQueryPipeFull;
+    ++dnsdist::metrics::g_stats.outgoingDoHQueryPipeFull;
     return false;
   }
 
