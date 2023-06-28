@@ -485,6 +485,85 @@ if not opt_libdecaf.disabled()
   summary('libdecaf headers', found_header, bool_yn: show_colors, section: 'Configuration')
 endif
 
+# libcrypto ------------------------------------------------------------------------------
+opt_libcrypto = get_option('libcrypto')
+dep_libcrypto = []
+ssldirs = []
+found = false
+if opt_libcrypto == ''
+  error('Invalid value for libcrypto option, either use `auto` or a directory where the library can be found')
+endif
+if opt_libcrypto == 'auto'
+  dep_libcrypto = dependency('libcrypto', required: false)
+  found = dep_libcrypto.found()
+else
+  ssldirs = [opt_libcrypto]
+endif
+
+libdir = ''
+if not found
+  warning('Could not find the libcrypto dependency, going to try to find it manually')
+  if ssldirs.length() == 0
+    ssldirs = ['/usr/local/ssl', '/usr/lib/ssl', '/usr/ssl', '/usr/pkg', '/usr/local', '/usr']
+  endif
+
+  foreach dir: ssldirs
+    if cxx.has_header(dir / 'include/openssl/crypto.h')
+      libdir = dir
+      found = true
+      break
+    endif
+  endforeach
+endif
+
+if not found
+  error('Cannot find libcrypto')
+endif
+
+args = []
+deps = []
+incs = []
+if libdir == ''
+  deps += dep_libcrypto
+else
+  args = ['-L' + libdir / 'lib', '-lcrypto']
+  incs = include_directories(libdir / 'include', is_system: false)
+endif
+
+prog = '''
+#include <openssl/bn.h>
+
+int main() {
+  BN_new();
+  return 0;
+}
+'''
+if not cxx.links(prog, name: 'libcrypto test program', args: args, dependencies: deps, include_directories: incs)
+  error('Cannot link against libcrypto')
+endif
+
+funcs = ['RAND_bytes', 'RAND_pseudo_bytes', 'CRYPTO_memcmp', 'OPENSSL_init_crypto', 'EVP_MD_CTX_new', 'EVP_MD_CTX_free', 'RSA_get0_key']
+foreach func: funcs
+  if not cxx.has_function(func, args: args, dependencies: deps, include_directories: incs)
+    error('libcrypto function ' + func + ' could not be found')
+  endif
+endforeach
+
+prefix = '''
+#include <stdarg.h>
+#include <stddef.h>
+'''
+if cxx.has_header_symbol('openssl/kdf.h', 'EVP_PKEY_CTX_set1_scrypt_salt', args: args, dependencies: deps, include_directories: incs, prefix: prefix, required: true)
+  conf.set('HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT', 1, description: 'Whether we have EVP_PKEY_CTX_set1_scrypt_salt')
+endif
+
+if libdir != ''
+  add_global_arguments(args + ['-I' + libdir / 'include'])
+endif
+
+conf.set('HAVE_LIBCRYPTO', 1, description: 'Whether we build libcrypto-based signers')
+summary('libcrypto', found, bool_yn: true, section: 'Configuration')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # Meson 0.57
@@ -497,6 +576,7 @@ deps += dep_lua
 deps += dep_net
 deps += dep_libsodium
 deps += dep_libdecaf
+deps += dep_libcrypto
 
 # TODO: Other source files
 auth = executable('pdns', config_h, dependencies: deps, export_dynamic: true)
