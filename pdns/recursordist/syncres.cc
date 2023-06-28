@@ -1746,7 +1746,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
         }
       }
       if (skipStep4) {
-        LOG(prefix << ": Step4 Being skipped as visited this child name already" << endl);
+        LOG(prefix << qname << ": Step4 Being skipped as visited this child name already" << endl);
         continue;
       }
 
