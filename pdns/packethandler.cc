@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "misc.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -517,9 +518,17 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
         case QType::SRV:
           content=getRR<SRVRecordContent>(rr.dr)->d_target;
           break;
-        case QType::NAPTR:
-          content=getRR<NAPTRRecordContent>(rr.dr)->d_replacement;
+        case QType::NAPTR: {
+          auto naptrcontent = getRR<NAPTRRecordContent>(rr.dr);
+          auto flags = naptrcontent->getFlags();
+          toLowerInPlace(flags);
+          if (flags.find('a') != string::npos) {
+            content = naptrcontent->d_replacement;
+          } else {
+            content.clear();
+          }
           break;
+        }
         case QType::SVCB: /* fall-through */
         case QType::HTTPS: {
           auto rrc = getRR<SVCBBaseRecordContent>(rr.dr);
