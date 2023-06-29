@@ -517,6 +517,9 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
         case QType::SRV:
           content=getRR<SRVRecordContent>(rr.dr)->d_target;
           break;
+        case QType::NAPTR:
+          content=getRR<NAPTRRecordContent>(rr.dr)->d_replacement;
+          break;
         case QType::SVCB: /* fall-through */
         case QType::HTTPS: {
           auto rrc = getRR<SVCBBaseRecordContent>(rr.dr);
