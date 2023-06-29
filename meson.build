@@ -97,7 +97,7 @@ endif
 
 # Atomics --------------------------------------------------------------------------------
 dep_atomics = []
-atomic_builtins_prog = '''
+prog = '''
 #include <stdint.h>
 
 int main() {
@@ -107,10 +107,10 @@ int main() {
 }
 '''
 need_latomic = false
-if cxx.links(atomic_builtins_prog, name: '-latomic is not needed for using __atomic builtins') == false
+if cxx.links(prog, name: '-latomic is not needed for using __atomic builtins') == false
   atomic = cxx.find_library('atomic', disabler: true, required: false)
   if atomic.found()
-    if cxx.links(atomic_builtins_prog, name: '-latomic is needed for using __atomic builtins', dependencies: atomic)
+    if cxx.links(prog, name: '-latomic is needed for using __atomic builtins', dependencies: atomic)
       need_latomic = true
       summary('Atomics Library', atomic, section: 'System')
       dep_atomics += atomic
@@ -253,7 +253,7 @@ if opt_hardening.enabled() or opt_hardening.auto()
   hardening_features = []
 
   # PIE
-  pie_prog = '''
+  prog = '''
     #include <pthread.h>
     __thread unsigned int t_id;
 
@@ -270,7 +270,7 @@ if opt_hardening.enabled() or opt_hardening.auto()
   else
     pie_variants = [['-pie'], ['-Wl,-pie']]
     foreach variant: pie_variants
-      if cxx.links(pie_prog, args: variant)
+      if cxx.links(prog, args: variant)
         add_global_arguments(['-fPIE'], language: ['c', 'cpp'])
         add_global_link_arguments(variant, language: ['c', 'cpp'])
         conf.set('PIE', 1, description: 'Whether we enable building a Position Independent Executable')
