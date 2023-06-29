@@ -42,7 +42,7 @@ jobs:
   coverity-auth:
     name: coverity scan of the auth
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       COVERITY_TOKEN: ${{ secrets.coverity_auth_token }}
       FUZZING_TARGETS: no
@@ -54,7 +54,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-clang
       - run: inv install-auth-build-deps
       - run: inv install-coverity-tools PowerDNS
@@ -68,7 +68,7 @@ jobs:
   coverity-dnsdist:
     name: coverity scan of dnsdist
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       COVERITY_TOKEN: ${{ secrets.coverity_dnsdist_token }}
       SANITIZERS:
@@ -79,7 +79,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-clang
       - run: inv install-dnsdist-build-deps
       - run: inv install-coverity-tools dnsdist
@@ -98,7 +98,7 @@ jobs:
   coverity-rec:
     name: coverity scan of the rec
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       COVERITY_TOKEN: ${{ secrets.coverity_rec_token }}
       SANITIZERS:
@@ -109,7 +109,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
+      - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-clang
       - run: inv install-rec-build-deps
       - run: inv install-coverity-tools 'PowerDNS+Recursor'
