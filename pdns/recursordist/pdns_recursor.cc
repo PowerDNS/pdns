@@ -908,7 +908,7 @@ static uint32_t capPacketCacheTTL(const struct dnsheader& hdr, uint32_t ttl, boo
 
 void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
-  auto comboWriter = std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(arg)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  auto comboWriter = std::unique_ptr<DNSComboWriter>(static_cast<DNSComboWriter*>(arg));
   SyncRes resolver(comboWriter->d_now);
   try {
     if (t_queryring) {
