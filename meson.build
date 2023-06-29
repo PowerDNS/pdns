@@ -564,6 +564,37 @@ endif
 conf.set('HAVE_LIBCRYPTO', 1, description: 'Whether we build libcrypto-based signers')
 summary('libcrypto', found, bool_yn: true, section: 'Configuration')
 
+# libcrypto ECDSA ------------------------------------------------------------------------
+found = false
+if cxx.has_header('openssl/ecdsa.h', args: args, dependencies: deps, include_directories: incs, prefix: prefix, required: false)
+  found = true
+endif
+if found
+  syms = ['NID_X9_62_prime256v1', 'NID_secp384r1']
+  foreach sym: syms
+    if not cxx.has_header_symbol('openssl/evp.h', sym, args: args, dependencies: deps, include_directories: incs, required: false)
+      found = false
+      break
+    endif
+  endforeach
+endif
+conf.set10('HAVE_LIBCRYPTO_ECDSA', found, description: 'Whether we have OpenSSL ECDSA support')
+summary('OpenSSL ECDSA', found, bool_yn: true, section: 'Configuration')
+
+# libcrypto EdDSA ------------------------------------------------------------------------
+syms = ['ED25519', 'ED448']
+found = false
+foreach sym: syms
+  res = cxx.has_header_symbol('openssl/evp.h', 'NID_' + sym, args: args, dependencies: deps, include_directories: incs, required: false)
+  if res
+    found = true
+    conf.set10('HAVE_LIBCRYPTO_' + sym, true, description: 'Whether we have OpenSSL ' + sym + ' support')
+  endif
+  summary('OpenSSL ' + sym, res, bool_yn: true, section: 'Configuration')
+endforeach
+conf.set10('HAVE_LIBCRYPTO_EDDSA', found, description: 'Whether we have OpenSSL EdDSA support')
+summary('OpenSSL EdDSA', found, bool_yn: true, section: 'Configuration')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # Meson 0.57
