@@ -605,6 +605,7 @@ private:
     Stopped
   };
 
+  unsigned int qmStepLen(const string& prefix, const DNSName& qname, unsigned int labels, unsigned int qnamelen, unsigned int iteration);
   void resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMode, std::vector<DNSRecord>& additionals, unsigned int depth, bool& pushed);
   void addAdditionals(QType qtype, const vector<DNSRecord>& start, vector<DNSRecord>& addditionals, std::set<std::pair<DNSName, QType>>& uniqueCalls, std::set<std::tuple<DNSName, QType, QType>>& uniqueResults, unsigned int depth, unsigned int adddepth, bool& pushed);
   bool addAdditionals(QType qtype, vector<DNSRecord>& ret, unsigned int depth);

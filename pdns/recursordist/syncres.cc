@@ -1582,24 +1582,35 @@ static const unsigned int s_max_minimise_count = 10;
 /* number of queries that should only have one label appended */
 static const unsigned int s_minimise_one_lab = 4;
 
-static unsigned int qmStepLen(unsigned int labels, unsigned int qnamelen, unsigned int i)
+unsigned int SyncRes::qmStepLen(const string& prefix, const DNSName& qname, unsigned int labels, unsigned int qnamelen, unsigned int iteration)
 {
   unsigned int step;
 
-  if (i < s_minimise_one_lab) {
+  if (iteration < s_minimise_one_lab) {
     step = 1;
   }
-  else if (i < s_max_minimise_count) {
-    step = std::max(1U, (qnamelen - labels) / (10 - i));
+  else if (iteration < s_max_minimise_count) {
+    step = std::max(1U, (qnamelen - labels) / (10 - iteration));
   }
   else {
     step = qnamelen - labels;
   }
   unsigned int targetlen = std::min(labels + step, qnamelen);
+  if (targetlen < iteration) {
+    // This can happen on expiry of infrastructure records, or when they were not inserted into the cache for other reasons
+    // Resulting in us being told there is new delegation in Step4, but not finding it in Step1
+    LOG(prefix << qname << ": Increasing targetlen as if falls behind iteration count: " << targetlen << " -> " << iteration << endl);
+    targetlen = iteration;
+  }
   return targetlen;
 }
 
-int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context)
+static string resToString(int res)
+{
+  return res >= 0 ? RCode::to_s(res) : std::to_string(res);
+}
+
+int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context) // NOLINT(readability-function-cognitive-complexity)
 {
   auto prefix = getPrefix(depth);
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -1711,7 +1722,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
     for (; i <= qnamelen; i++) {
       // Step 2
       unsigned int labels = child.countLabels();
-      unsigned int targetlen = qmStepLen(labels, qnamelen, i);
+      unsigned int targetlen = qmStepLen(prefix, qname, labels, qnamelen, i);
 
       while (labels < targetlen) {
         child.prependRawLabel(qname.getRawLabel(qnamelen - labels - 1));
@@ -1733,7 +1744,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
       if (child == qname) {
         LOG(prefix << qname << ": Step3 Going to do final resolve" << endl);
         res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, context);
-        LOG(prefix << qname << ": Step3 Final resolve: " << (res >= 0 ? RCode::to_s(res) : std::to_string(res)) << "/" << ret.size() << endl);
+        LOG(prefix << qname << ": Step3 Final resolve: " << resToString(res) << "/" << ret.size() << endl);
         return res;
       }
 
@@ -1758,7 +1769,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
       StopAtDelegation stopAtDelegation = Stop;
       res = doResolveNoQNameMinimization(child, QType::A, retq, depth, beenthere, context, nullptr, &stopAtDelegation);
       d_followCNAME = oldFollowCNAME;
-      LOG(prefix << qname << ": Step4 Resolve " << child << "|A result is " << RCode::to_s(res) << "/" << retq.size() << "/" << stopAtDelegation << endl);
+      LOG(prefix << qname << ": Step4 Resolve " << child << "|A result is " << resToString(res) << "/" << retq.size() << "/" << stopAtDelegation << endl);
       if (stopAtDelegation == Stopped) {
         LOG(prefix << qname << ": Delegation seen, continue at step 1" << endl);
         break;
@@ -1783,7 +1794,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
           }
         }
 
-        LOG(prefix << qname << ": Step5 End resolve: " << RCode::to_s(res) << "/" << ret.size() << endl);
+        LOG(prefix << qname << ": Step5 End resolve: " << resToString(res) << "/" << ret.size() << endl);
         return res;
       }
     }
