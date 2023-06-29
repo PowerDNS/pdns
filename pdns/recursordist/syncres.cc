@@ -1599,7 +1599,12 @@ static unsigned int qmStepLen(unsigned int labels, unsigned int qnamelen, unsign
   return targetlen;
 }
 
-int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context)
+static string resToString(int res)
+{
+  return res >= 0 ? RCode::to_s(res) : std::to_string(res);
+}
+
+int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context) // NOLINT(readability-function-cognitive-complexity)
 {
   auto prefix = getPrefix(depth);
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -1733,21 +1738,24 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
       if (child == qname) {
         LOG(prefix << qname << ": Step3 Going to do final resolve" << endl);
         res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, context);
-        LOG(prefix << qname << ": Step3 Final resolve: " << (res >= 0 ? RCode::to_s(res) : std::to_string(res)) << "/" << ret.size() << endl);
+        LOG(prefix << qname << ": Step3 Final resolve: " << resToString(res) << "/" << ret.size() << endl);
         return res;
       }
 
-      // If we have seen this child during resolution already; just skip it. We tried to QM it already or otherwise broken.
-      bool skipStep4 = false;
+      // If we have seen this child during resolution already; we tried to QM it already or otherwise broken.
+      // fall back to no-QM
+      bool qmLoopDetected = false;
       for (const auto& visitedNS : beenthere) {
         if (visitedNS.qname == child) {
-          skipStep4 = true;
+          qmLoopDetected = true;
           break;
         }
       }
-      if (skipStep4) {
-        LOG(prefix << ": Step4 Being skipped as visited this child name already" << endl);
-        continue;
+      if (qmLoopDetected) {
+        LOG(prefix << qname << ": Step4 loop detected as visited this child name already, fallback to no QM" << endl);
+        res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, context);
+        LOG(prefix << qname << ": Step4 Final resolve: " << resToString(res) << "/" << ret.size() << endl);
+        return res;
       }
 
       // Step 4
@@ -1783,7 +1791,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
           }
         }
 
-        LOG(prefix << qname << ": Step5 End resolve: " << RCode::to_s(res) << "/" << ret.size() << endl);
+        LOG(prefix << qname << ": Step5 End resolve: " << resToString(res) << "/" << ret.size() << endl);
         return res;
       }
     }
