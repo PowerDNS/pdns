@@ -2573,7 +2573,7 @@ static void recLoop()
   auto& threadInfo = RecThreadInfo::self();
 
   while (!RecursorControlChannel::stop) {
-    while (MT->schedule(&g_now)) {
+    while (g_multiTasker->schedule(&g_now)) {
       ; // MTasker letting the mthreads do their thing
     }
 
@@ -2584,7 +2584,7 @@ static void recLoop()
       {
       };
       Utility::gettimeofday(&start);
-      MT->makeThread(houseKeeping, nullptr);
+      g_multiTasker->makeThread(houseKeeping, nullptr);
       if (!threadInfo.isTaskThread()) {
         struct timeval stop
         {
@@ -2619,7 +2619,7 @@ static void recLoop()
       Utility::gettimeofday(&g_now, nullptr);
 
       if ((g_now.tv_sec - last_carbon) >= carbonInterval) {
-        MT->makeThread(doCarbonDump, nullptr);
+        g_multiTasker->makeThread(doCarbonDump, nullptr);
         last_carbon = g_now.tv_sec;
       }
     }
@@ -2713,8 +2713,8 @@ static void recursorThread()
       t_bogusqueryring = std::make_unique<boost::circular_buffer<pair<DNSName, uint16_t>>>();
       t_bogusqueryring->set_capacity(ringsize);
     }
-    MT = std::make_unique<MT_t>(::arg().asNum("stack-size"), ::arg().asNum("stack-cache-size"));
-    threadInfo.mt = MT.get();
+    g_multiTasker = std::make_unique<MT_t>(::arg().asNum("stack-size"), ::arg().asNum("stack-cache-size"));
+    threadInfo.mt = g_multiTasker.get();
 
     /* start protobuf export threads if needed */
     auto luaconfsLocal = g_luaconfs.getLocal();
