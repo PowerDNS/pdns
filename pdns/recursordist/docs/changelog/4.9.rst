@@ -1,6 +1,31 @@
 Changelogs for 4.9.X
 ====================
 .. changelog::
+  :version: 4.9.0
+  :released: 30th of June 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12968
+    :tickets: 12963
+
+    Fix qname length getting out-of-sync with qname-minimization iteration count.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12936
+    :tickets: 12933
+
+    Rewrite and fix loop that checks if algorithms are available.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12932
+    :tickets: 12928
+
+    Fix daemonize() to properly background the process.
+
+.. changelog::
   :version: 4.9.0-rc1
   :released: 15nd of June 2023
 

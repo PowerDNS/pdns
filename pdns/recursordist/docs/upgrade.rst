@@ -30,9 +30,8 @@ New settings
 Changed settings
 ~~~~~~~~~~~~~~~~
 The first two settings below have effect on the way the recursor distributes queries over threads.
-In some rare cases, this can have negative performance impact.
-In those cases it might be needed to change these settings.
-See :doc:`performance`.
+In some cases, this can lead to imbalance of the number of queries process per thread.
+See :doc:`performance`, in particular the :ref:`worker_imbalance` section.
 
 - The :ref:`setting-pdns-distributes-queries` default has been changed to ``no``.
 - The :ref:`setting-reuseport` default has been changed to ``yes``.
