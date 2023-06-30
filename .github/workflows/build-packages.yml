@@ -97,7 +97,9 @@ jobs:
       - name: Normalize package name
         id: normalize-name
         run: |
-          if [ "x${{ inputs.product }}" = "xrecursor" ]; then
+          if [ "x${{ inputs.product }}" = "xauthoritative" ]; then
+            echo "normalized-package-name=pdns" >> $GITHUB_OUTPUT
+          elif [ "x${{ inputs.product }}" = "xrecursor" ]; then
             echo "normalized-package-name=pdns-recursor" >> $GITHUB_OUTPUT
           else
             echo "normalized-package-name=${{ inputs.product }}" >> $GITHUB_OUTPUT
