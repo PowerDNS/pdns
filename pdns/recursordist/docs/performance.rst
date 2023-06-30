@@ -34,6 +34,8 @@ If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to 
 default since version 4.9.0, separate listening sockets are opened for each worker thread and the query distributions is handled by the kernel, avoiding any thundering herd issue as well as preventing the distributor thread from becoming the bottleneck.
 The next section discusses how to determine if the mechanism is working properly.
 
+.. _worker_imbalance:
+
 Imbalance
 ^^^^^^^^^
 Due to the nature of the distribution method used by the kernel imbalance with the new default settings of :ref:`setting-reuseport` and :ref:`setting-pdns-distributes-queries` may occur if you have very few clients.
