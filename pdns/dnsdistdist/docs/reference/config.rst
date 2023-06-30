@@ -1661,6 +1661,12 @@ StatNode
 
     The number of No Error answers returned for that node.
 
+  .. attribute:: StatNodeStats.hits
+  
+    .. versionadded:: 1.8.0
+
+    The number of cache hits for that node.
+
   .. attribute:: StatNodeStats.nxdomains
 
     The number of NXDomain answers returned for that node.
