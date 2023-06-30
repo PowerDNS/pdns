@@ -1635,11 +1635,11 @@ StatNode
 
   .. attribute:: StatNode.fullname
 
-    The complete name of that node, ie 'www.powerdns.com'.
+    The complete name of that node, ie 'www.powerdns.com.'.
 
   .. attribute:: StatNode.labelsCount
 
-    The number of labels in that node, for example 3 for 'www.powerdns.com'.
+    The number of labels in that node, for example 3 for 'www.powerdns.com.'.
 
   .. method:: StatNode:numChildren
 
@@ -1662,7 +1662,7 @@ StatNode
     The number of No Error answers returned for that node.
 
   .. attribute:: StatNodeStats.hits
-  
+
     .. versionadded:: 1.8.0
 
     The number of cache hits for that node.
