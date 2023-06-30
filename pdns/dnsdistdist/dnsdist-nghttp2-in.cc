@@ -142,7 +142,7 @@ public:
     d_query.d_contentTypeOut = contentType;
   }
 
-  void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, const std::shared_ptr<DownstreamState>& downstream) override
+  void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, const std::shared_ptr<DownstreamState>& downstream_) override
   {
     std::unique_ptr<DOHUnitInterface> unit(this);
     auto conn = d_connection.lock();
@@ -153,7 +153,7 @@ public:
 
     state.du = std::move(unit);
     TCPResponse resp(std::move(response), std::move(state), nullptr, nullptr);
-    resp.d_ds = downstream;
+    resp.d_ds = downstream_;
     struct timeval now
     {
     };
@@ -263,7 +263,7 @@ IncomingHTTP2Connection::IncomingHTTP2Connection(ConnectionInfo&& connectionInfo
 bool IncomingHTTP2Connection::checkALPN()
 {
   constexpr std::array<uint8_t, 2> h2ALPN{'h', '2'};
-  auto protocols = d_handler.getNextProtocol();
+  const auto protocols = d_handler.getNextProtocol();
   if (protocols.size() == h2ALPN.size() && memcmp(protocols.data(), h2ALPN.data(), h2ALPN.size()) == 0) {
     return true;
   }
@@ -285,6 +285,11 @@ void IncomingHTTP2Connection::handleConnectionReady()
   }
 }
 
+bool IncomingHTTP2Connection::hasPendingWrite() const
+{
+  return d_pendingWrite;
+}
+
 void IncomingHTTP2Connection::handleIO()
 {
   IOState iostate = IOState::Done;
@@ -297,7 +302,7 @@ void IncomingHTTP2Connection::handleIO()
     if (maxConnectionDurationReached(g_maxTCPConnectionDuration, now)) {
       vinfolog("Terminating DoH connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
       stopIO();
-      d_connectionDied = true;
+      d_connectionClosing = true;
       return;
     }
 
@@ -341,55 +346,93 @@ void IncomingHTTP2Connection::handleIO()
       }
     }
 
-    if (d_state == State::waitingForQuery || d_state == State::idle) {
-      readHTTPData();
+    if (active() && !d_connectionClosing && (d_state == State::waitingForQuery || d_state == State::idle)) {
+      do {
+        iostate = readHTTPData();
+      } while (active() && !d_connectionClosing && iostate == IOState::Done);
     }
 
-    if (!d_connectionDied) {
-      auto shared = std::dynamic_pointer_cast<IncomingHTTP2Connection>(shared_from_this());
+    if (!active()) {
+      stopIO();
+      return;
+    }
+    /*
+      So:
+      - if we have a pending write, we need to wait until the socket becomes writable
+        and then call handleWritableCallback
+      - if we have NeedWrite but no pending write, we need to wait until the socket
+        becomes writable but for handleReadableIOCallback
+      - if we have NeedRead, or nghttp2_session_want_read, wait until the socket
+        becomes readable and call handleReadableIOCallback
+    */
+    if (hasPendingWrite()) {
+      updateIO(IOState::NeedWrite, handleWritableIOCallback);
+    }
+    else if (iostate == IOState::NeedWrite) {
+      updateIO(IOState::NeedWrite, handleReadableIOCallback);
+    }
+    else if (!d_connectionClosing) {
       if (nghttp2_session_want_read(d_session.get()) != 0) {
-        d_ioState->add(IOState::NeedRead, &handleReadableIOCallback, shared, boost::none);
+        updateIO(IOState::NeedRead, handleReadableIOCallback);
       }
-      if (nghttp2_session_want_write(d_session.get()) != 0) {
-        d_ioState->add(IOState::NeedWrite, &handleWritableIOCallback, shared, boost::none);
+      else {
+        if (isIdle()) {
+          watchForRemoteHostClosingConnection();
+        }
       }
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Exception when processing IO for incoming DoH connection from %s: %s", d_ci.remote.toStringWithPort(), e.what());
+    infolog("Exception when processing IO for incoming DoH connection from %s: %s", d_ci.remote.toStringWithPort(), e.what());
     d_connectionDied = true;
     stopIO();
+  }
+}
+
+void IncomingHTTP2Connection::writeToSocket(bool socketReady)
+{
+  try {
+    d_needFlush = false;
+    IOState newState = d_handler.tryWrite(d_out, d_outPos, d_out.size());
+
+    if (newState == IOState::Done) {
+      d_pendingWrite = false;
+      d_out.clear();
+      d_outPos = 0;
+      if (active() && !d_connectionClosing) {
+        if (!isIdle()) {
+          updateIO(IOState::NeedRead, handleReadableIOCallback);
+        }
+        else {
+          watchForRemoteHostClosingConnection();
+        }
+      }
+      else {
+        stopIO();
+      }
+    }
+    else {
+      updateIO(newState, handleWritableIOCallback);
+      d_pendingWrite = true;
+    }
+  }
+  catch (const std::exception& e) {
+    vinfolog("Exception while trying to write (%s) to HTTP client connection to %s: %s", (socketReady ? "ready" : "send"), d_ci.remote.toStringWithPort(), e.what());
+    handleIOError();
   }
 }
 
 ssize_t IncomingHTTP2Connection::send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
 {
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
+  if (conn->d_connectionDied) {
+    return static_cast<ssize_t>(length);
+  }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
   conn->d_out.insert(conn->d_out.end(), data, data + length);
 
-  if (conn->d_connectionDied || conn->d_needFlush) {
-    try {
-      conn->d_needFlush = false;
-      auto state = conn->d_handler.tryWrite(conn->d_out, conn->d_outPos, conn->d_out.size());
-      if (state == IOState::Done) {
-        conn->d_out.clear();
-        conn->d_outPos = 0;
-        if (!conn->isIdle()) {
-          conn->updateIO(IOState::NeedRead, handleReadableIOCallback);
-        }
-        else {
-          conn->watchForRemoteHostClosingConnection();
-        }
-      }
-      else {
-        conn->updateIO(state, handleWritableIOCallback);
-      }
-    }
-    catch (const std::exception& e) {
-      vinfolog("Exception while trying to write (send) to incoming HTTP connection to %s: %s", conn->d_ci.remote.toStringWithPort(), e.what());
-      conn->handleIOError();
-    }
+  if (conn->d_connectionClosing || conn->d_needFlush) {
+    conn->writeToSocket(false);
   }
 
   return static_cast<ssize_t>(length);
@@ -471,7 +514,7 @@ IOState IncomingHTTP2Connection::sendResponse(const struct timeval& now, TCPResp
   sendResponse(response.d_idstate.d_streamID, context, statusCode, d_ci.cs->dohFrontend->d_customResponseHeaders, contentType, sendContentType);
   handleResponseSent(response);
 
-  return IOState::Done;
+  return hasPendingWrite() ? IOState::NeedWrite : IOState::Done;
 }
 
 void IncomingHTTP2Connection::notifyIOError(const struct timeval& now, TCPResponse&& response)
@@ -748,6 +791,12 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
     sendResponse(streamID, query, code, d_ci.cs->dohFrontend->d_customResponseHeaders);
   };
 
+  if (query.d_method == PendingQuery::Method::Unknown ||
+      query.d_method == PendingQuery::Method::Unsupported) {
+    handleImmediateResponse(400, "DoH query not allowed because of unsupported HTTP method");
+    return;
+  }
+
   ++d_ci.cs->dohFrontend->d_http2Stats.d_nbQueries;
 
   if (d_ci.cs->dohFrontend->d_trustForwardedForHeader) {
@@ -864,44 +913,8 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
 int IncomingHTTP2Connection::on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
 {
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
-#if 0
-  switch (frame->hd.type) {
-  case NGHTTP2_HEADERS:
-    cerr<<"got headers"<<endl;
-    if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
-      cerr<<"All headers received"<<endl;
-    }
-    if (frame->headers.cat == NGHTTP2_HCAT_REQUEST) {
-      cerr<<"All headers received - query"<<endl;
-    }
-    break;
-  case NGHTTP2_WINDOW_UPDATE:
-    cerr<<"got window update"<<endl;
-    break;
-  case NGHTTP2_SETTINGS:
-    cerr<<"got settings"<<endl;
-    cerr<<frame->settings.niv<<endl;
-    for (size_t idx = 0; idx < frame->settings.niv; idx++) {
-      cerr<<"- "<<frame->settings.iv[idx].settings_id<<" "<<frame->settings.iv[idx].value<<endl;
-    }
-    break;
-  case NGHTTP2_DATA:
-    cerr<<"got data"<<endl;
-    break;
-  }
-#endif
-
-  if (frame->hd.type == NGHTTP2_GOAWAY) {
-    conn->stopIO();
-    if (conn->isIdle()) {
-      if (nghttp2_session_want_write(conn->d_session.get()) != 0) {
-        conn->d_ioState->add(IOState::NeedWrite, &handleWritableIOCallback, conn, boost::none);
-      }
-    }
-  }
-
   /* is this the last frame for this stream? */
-  else if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) != 0) {
+  if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) != 0) {
     auto streamID = frame->hd.stream_id;
     auto stream = conn->d_currentStreams.find(streamID);
     if (stream != conn->d_currentStreams.end()) {
@@ -959,7 +972,8 @@ int IncomingHTTP2Connection::on_begin_headers_callback(nghttp2_session* session,
   if (!insertPair.second) {
     /* there is a stream ID collision, something is very wrong! */
     vinfolog("Stream ID collision (%d) on connection from %d", frame->hd.stream_id, conn->d_ci.remote.toStringWithPort());
-    conn->d_connectionDied = true;
+    conn->d_connectionClosing = true;
+    conn->d_needFlush = true;
     nghttp2_session_terminate_session(conn->d_session.get(), NGHTTP2_NO_ERROR);
     auto ret = nghttp2_session_send(conn->d_session.get());
     if (ret != 0) {
@@ -1047,8 +1061,9 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
         query.d_method = PendingQuery::Method::Post;
       }
       else {
+        query.d_method = PendingQuery::Method::Unsupported;
         vinfolog("Unsupported method value");
-        return NGHTTP2_ERR_CALLBACK_FAILURE;
+        return 0;
       }
     }
 
@@ -1087,7 +1102,8 @@ int IncomingHTTP2Connection::on_error_callback(nghttp2_session* session, int lib
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
 
   vinfolog("Error in HTTP/2 connection from %d: %s", conn->d_ci.remote.toStringWithPort(), std::string(msg, len));
-  conn->d_connectionDied = true;
+  conn->d_connectionClosing = true;
+  conn->d_needFlush = true;
   nghttp2_session_terminate_session(conn->d_session.get(), NGHTTP2_NO_ERROR);
   auto ret = nghttp2_session_send(conn->d_session.get());
   if (ret != 0) {
@@ -1098,55 +1114,35 @@ int IncomingHTTP2Connection::on_error_callback(nghttp2_session* session, int lib
   return 0;
 }
 
-void IncomingHTTP2Connection::readHTTPData()
+IOState IncomingHTTP2Connection::readHTTPData()
 {
   IOState newState = IOState::Done;
-  IOStateGuard ioGuard(d_ioState);
-  do {
-    size_t got = 0;
-    if (d_in.size() < 128) {
-      d_in.resize(std::max(static_cast<size_t>(128U), d_in.capacity()));
-    }
-    try {
-      newState = d_handler.tryRead(d_in, got, d_in.size(), true);
-      d_in.resize(got);
+  size_t got = 0;
+  if (d_in.size() < s_initialReceiveBufferSize) {
+    d_in.resize(std::max(s_initialReceiveBufferSize, d_in.capacity()));
+  }
+  try {
+    newState = d_handler.tryRead(d_in, got, d_in.size(), true);
+    d_in.resize(got);
 
-      if (got > 0) {
-        /* we got something */
-        auto readlen = nghttp2_session_mem_recv(d_session.get(), d_in.data(), d_in.size());
-        /* as long as we don't require a pause by returning nghttp2_error.NGHTTP2_ERR_PAUSE from a CB,
-           all data should be consumed before returning */
-        if (readlen < 0 || static_cast<size_t>(readlen) < d_in.size()) {
-          throw std::runtime_error("Fatal error while passing received data to nghttp2: " + std::string(nghttp2_strerror((int)readlen)));
-        }
-
-        nghttp2_session_send(d_session.get());
+    if (got > 0) {
+      /* we got something */
+      auto readlen = nghttp2_session_mem_recv(d_session.get(), d_in.data(), d_in.size());
+      /* as long as we don't require a pause by returning nghttp2_error.NGHTTP2_ERR_PAUSE from a CB,
+         all data should be consumed before returning */
+      if (readlen < 0 || static_cast<size_t>(readlen) < d_in.size()) {
+        throw std::runtime_error("Fatal error while passing received data to nghttp2: " + std::string(nghttp2_strerror((int)readlen)));
       }
 
-      if (newState == IOState::Done) {
-        if (nghttp2_session_want_read(d_session.get()) != 0) {
-          continue;
-        }
-        if (isIdle()) {
-          watchForRemoteHostClosingConnection();
-          ioGuard.release();
-          break;
-        }
-      }
-      else {
-        if (newState == IOState::NeedWrite) {
-          updateIO(IOState::NeedWrite, handleReadableIOCallback);
-        }
-        ioGuard.release();
-        break;
-      }
+      nghttp2_session_send(d_session.get());
     }
-    catch (const std::exception& e) {
-      vinfolog("Exception while trying to read from HTTP client connection to %s: %s", d_ci.remote.toStringWithPort(), e.what());
-      handleIOError();
-      break;
-    }
-  } while (newState == IOState::Done || !isIdle());
+  }
+  catch (const std::exception& e) {
+    vinfolog("Exception while trying to read from HTTP client connection to %s: %s", d_ci.remote.toStringWithPort(), e.what());
+    handleIOError();
+    return IOState::Done;
+  }
+  return newState;
 }
 
 void IncomingHTTP2Connection::handleReadableIOCallback([[maybe_unused]] int descriptor, FDMultiplexer::funcparam_t& param)
@@ -1158,29 +1154,7 @@ void IncomingHTTP2Connection::handleReadableIOCallback([[maybe_unused]] int desc
 void IncomingHTTP2Connection::handleWritableIOCallback([[maybe_unused]] int descriptor, FDMultiplexer::funcparam_t& param)
 {
   auto conn = boost::any_cast<std::shared_ptr<IncomingHTTP2Connection>>(param);
-  IOStateGuard ioGuard(conn->d_ioState);
-
-  try {
-    IOState newState = conn->d_handler.tryWrite(conn->d_out, conn->d_outPos, conn->d_out.size());
-    if (newState == IOState::NeedRead) {
-      conn->updateIO(IOState::NeedRead, handleWritableIOCallback);
-    }
-    else if (newState == IOState::Done) {
-      conn->d_out.clear();
-      conn->d_outPos = 0;
-      if (!conn->isIdle()) {
-        conn->updateIO(IOState::NeedRead, handleReadableIOCallback);
-      }
-      else {
-        conn->watchForRemoteHostClosingConnection();
-      }
-    }
-    ioGuard.release();
-  }
-  catch (const std::exception& e) {
-    vinfolog("Exception while trying to write (ready) to HTTP client connection to %s: %s", conn->d_ci.remote.toStringWithPort(), e.what());
-    conn->handleIOError();
-  }
+  conn->writeToSocket(true);
 }
 
 bool IncomingHTTP2Connection::isIdle() const
@@ -1250,14 +1224,31 @@ void IncomingHTTP2Connection::updateIO(IOState newState, const FDMultiplexer::ca
 
 void IncomingHTTP2Connection::watchForRemoteHostClosingConnection()
 {
-  updateIO(IOState::NeedRead, handleReadableIOCallback);
+  if (d_connectionDied) {
+    return;
+  }
+
+  if (hasPendingWrite()) {
+    updateIO(IOState::NeedWrite, &handleWritableIOCallback);
+  }
+  else if (!d_connectionClosing) {
+    updateIO(IOState::NeedRead, handleReadableIOCallback);
+  }
 }
 
 void IncomingHTTP2Connection::handleIOError()
 {
   d_connectionDied = true;
+  d_out.clear();
+  d_outPos = 0;
   nghttp2_session_terminate_session(d_session.get(), NGHTTP2_PROTOCOL_ERROR);
   d_currentStreams.clear();
   stopIO();
 }
+
+bool IncomingHTTP2Connection::active() const
+{
+  return !d_connectionDied && d_ioState != nullptr;
+}
+
 #endif /* HAVE_NGHTTP2 */

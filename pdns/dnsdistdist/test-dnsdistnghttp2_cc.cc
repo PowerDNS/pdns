@@ -486,110 +486,7 @@ private:
   bool d_client{false};
 };
 
-class MockupTLSCtx : public TLSCtx
-{
-public:
-  ~MockupTLSCtx()
-  {
-  }
-
-  std::unique_ptr<TLSConnection> getConnection(int socket, const struct timeval& timeout, time_t now) override
-  {
-    return std::make_unique<MockupTLSConnection>(socket);
-  }
-
-  std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout) override
-  {
-    return std::make_unique<MockupTLSConnection>(socket, true, d_needProxyProtocol);
-  }
-
-  void rotateTicketsKey(time_t now) override
-  {
-  }
-
-  size_t getTicketsKeysCount() override
-  {
-    return 0;
-  }
-
-  std::string getName() const override
-  {
-    return "Mockup TLS";
-  }
-
-  bool d_needProxyProtocol{false};
-};
-
-class MockupFDMultiplexer : public FDMultiplexer
-{
-public:
-  MockupFDMultiplexer()
-  {
-  }
-
-  ~MockupFDMultiplexer()
-  {
-  }
-
-  int run(struct timeval* tv, int timeout = 500) override
-  {
-    int ret = 0;
-
-    gettimeofday(tv, nullptr); // MANDATORY
-
-    /* 'ready' might be altered by a callback while we are iterating */
-    const auto readyFDs = ready;
-    for (const auto fd : readyFDs) {
-      {
-        const auto& it = d_readCallbacks.find(fd);
-
-        if (it != d_readCallbacks.end()) {
-          it->d_callback(it->d_fd, it->d_parameter);
-        }
-      }
-
-      {
-        const auto& it = d_writeCallbacks.find(fd);
-
-        if (it != d_writeCallbacks.end()) {
-          it->d_callback(it->d_fd, it->d_parameter);
-        }
-      }
-    }
-
-    return ret;
-  }
-
-  void getAvailableFDs(std::vector<int>& fds, int timeout) override
-  {
-  }
-
-  void addFD(int fd, FDMultiplexer::EventKind kind) override
-  {
-  }
-
-  void removeFD(int fd, FDMultiplexer::EventKind) override
-  {
-  }
-
-  string getName() const override
-  {
-    return "mockup";
-  }
-
-  void setReady(int fd)
-  {
-    ready.insert(fd);
-  }
-
-  void setNotReady(int fd)
-  {
-    ready.erase(fd);
-  }
-
-private:
-  std::set<int> ready;
-};
+#include "test-dnsdistnghttp2_common.hh"
 
 class MockupQuerySender : public TCPQuerySender
 {
@@ -640,36 +537,6 @@ public:
   bool d_valid{false};
   bool d_error{false};
 };
-
-static bool isIPv6Supported()
-{
-  try {
-    ComboAddress addr("[2001:db8:53::1]:53");
-    auto socket = std::make_unique<Socket>(addr.sin4.sin_family, SOCK_STREAM, 0);
-    socket->setNonBlocking();
-    int res = SConnectWithTimeout(socket->getHandle(), addr, timeval{0, 0});
-    if (res == 0 || res == EINPROGRESS) {
-      return true;
-    }
-    return false;
-  }
-  catch (const std::exception& e) {
-    return false;
-  }
-}
-
-static ComboAddress getBackendAddress(const std::string& lastDigit, uint16_t port)
-{
-  static const bool useV6 = isIPv6Supported();
-
-  if (useV6) {
-    return ComboAddress("2001:db8:53::" + lastDigit, port);
-  }
-
-  return ComboAddress("192.0.2." + lastDigit, port);
-}
-
-static std::unique_ptr<FDMultiplexer> s_mplexer;
 
 struct TestFixture
 {

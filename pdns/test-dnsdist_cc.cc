@@ -56,7 +56,7 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMs
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query)
 {
-  return false;
+  return true;
 }
 
 namespace dnsdist {

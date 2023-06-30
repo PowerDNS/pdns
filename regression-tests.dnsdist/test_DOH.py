@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import base64
 import dns
 import os
 import time
@@ -32,6 +33,7 @@ class DOHTests(object):
     addAction(HTTPPathRegexRule("^/PowerDNS-[0-9]"), SpoofAction("6.7.8.9"))
     addAction("http-status-action.doh.tests.powerdns.com.", HTTPStatusAction(200, "Plaintext answer", "text/plain"))
     addAction("http-status-action-redirect.doh.tests.powerdns.com.", HTTPStatusAction(307, "https://doh.powerdns.org"))
+    addAction("no-backend.doh.tests.powerdns.com.", PoolAction('this-pool-has-no-backend'))
 
     function dohHandler(dq)
       if dq:getHTTPScheme() == 'https' and dq:getHTTPHost() == '%s:%d' and dq:getHTTPPath() == '/' and dq:getHTTPQueryString() == '' then
@@ -235,9 +237,133 @@ class DOHTests(object):
         (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, caFile=self._caCert, query=query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, expectedResponse)
 
+    def testDOHWithoutQuery(self):
+        """
+        DOH: Empty GET query
+        """
+        name = 'empty-get.doh.tests.powerdns.com.'
+        url = self._dohBaseURL
+        conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEqual(rcode, 400)
+
+    def testDOHShortPath(self):
+        """
+        DOH: Short path in GET query
+        """
+        name = 'short-path-get.doh.tests.powerdns.com.'
+        url = self._dohBaseURL + '/AA'
+        conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEqual(rcode, 404)
+
+    def testDOHQueryNoParameter(self):
+        """
+        DOH: No parameter GET query
+        """
+        name = 'no-parameter-get.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        wire = query.to_wire()
+        b64 = base64.urlsafe_b64encode(wire).decode('UTF8').rstrip('=')
+        url = self._dohBaseURL + '?not-dns=' + b64
+        conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEqual(rcode, 400)
+
+    def testDOHQueryInvalidBase64(self):
+        """
+        DOH: Invalid Base64 GET query
+        """
+        name = 'invalid-b64-get.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        wire = query.to_wire()
+        url = self._dohBaseURL + '?dns=' + '_-~~~~-_'
+        conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEqual(rcode, 400)
+
+    def testDOHInvalidDNSHeaders(self):
+        """
+        DOH: Invalid DNS headers
+        """
+        name = 'invalid-dns-headers.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.flags |= dns.flags.QR
+        wire = query.to_wire()
+        b64 = base64.urlsafe_b64encode(wire).decode('UTF8').rstrip('=')
+        url = self._dohBaseURL + '?dns=' + b64
+        conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEqual(rcode, 400)
+
+    def testDOHQueryInvalidMethod(self):
+        """
+        DOH: Invalid method
+        """
+        if self._dohLibrary == 'h2o':
+            raise unittest.SkipTest('h2o does not check the HTTP method')
+        name = 'invalid-method.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        wire = query.to_wire()
+        b64 = base64.urlsafe_b64encode(wire).decode('UTF8').rstrip('=')
+        url = self._dohBaseURL + '?dns=' + b64
+        conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        conn.setopt(pycurl.CUSTOMREQUEST, 'PATCH')
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEqual(rcode, 400)
+
+    def testDOHQueryInvalidALPN(self):
+        """
+        DOH: Invalid ALPN
+        """
+        alpn = ['bogus-alpn']
+        conn = self.openTLSConnection(self._dohServerPort, self._serverName, self._caCert, alpn=alpn)
+        try:
+            conn.send('AAAA')
+            response = conn.recv(65535)
+            self.assertFalse(response)
+        except:
+            pass
+
     def testDOHInvalid(self):
         """
-        DOH: Invalid query
+        DOH: Invalid DNS query
         """
         name = 'invalid.doh.tests.powerdns.com.'
         invalidQuery = dns.message.make_query(name, 'A', 'IN', use_edns=False)
@@ -268,13 +394,43 @@ class DOHTests(object):
         self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-    def testDOHWithoutQuery(self):
+    def testDOHInvalidHeaderName(self):
         """
-        DOH: Empty GET query
+        DOH: Invalid HTTP header name query
         """
-        name = 'empty-get.doh.tests.powerdns.com.'
-        url = self._dohBaseURL
-        conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2.0)
+        name = 'invalid-header-name.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+        # this header is invalid, see rfc9113 section 8.2.1. Field Validity
+        customHeaders = ['{}: test']
+        try:
+            (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, customHeaders=customHeaders)
+            self.assertFalse(receivedQuery)
+            self.assertFalse(receivedResponse)
+        except pycurl.error:
+            pass
+
+    def testDOHNoBackend(self):
+        """
+        DOH: No backend
+        """
+        if self._dohLibrary == 'h2o':
+            raise unittest.SkipTest('h2o does not check the HTTP method')
+        name = 'no-backend.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        wire = query.to_wire()
+        b64 = base64.urlsafe_b64encode(wire).decode('UTF8').rstrip('=')
+        url = self._dohBaseURL + '?dns=' + b64
+        conn = self.openDOHConnection(self._dohServerPort, self._caCert, timeout=2)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
         conn.setopt(pycurl.SSL_VERIFYPEER, 1)
@@ -282,7 +438,7 @@ class DOHTests(object):
         conn.setopt(pycurl.CAINFO, self._caCert)
         data = conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
-        self.assertEqual(rcode, 400)
+        self.assertEqual(rcode, 403)
 
     def testDOHEmptyPOST(self):
         """

@@ -332,7 +332,9 @@ testrunner_SOURCES = \
 	test-dnsdistkvs_cc.cc \
 	test-dnsdistlbpolicies_cc.cc \
 	test-dnsdistluanetwork.cc \
+	test-dnsdistnghttp2-in_cc.cc \
 	test-dnsdistnghttp2_cc.cc \
+	test-dnsdistnghttp2_common.hh \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
 	test-dnsdistrules_cc.cc \

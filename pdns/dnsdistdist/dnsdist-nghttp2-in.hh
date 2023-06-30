@@ -39,7 +39,8 @@ public:
     {
       Unknown,
       Get,
-      Post
+      Post,
+      Unsupported
     };
 
     PacketBuffer d_buffer;
@@ -61,6 +62,7 @@ public:
   void handleIO() override;
   void handleResponse(const struct timeval& now, TCPResponse&& response) override;
   void notifyIOError(const struct timeval& now, TCPResponse&& response) override;
+  bool active() const override;
 
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data);
@@ -72,6 +74,8 @@ private:
   static int on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data);
   static void handleReadableIOCallback(int descriptor, FDMultiplexer::funcparam_t& param);
   static void handleWritableIOCallback(int descriptor, FDMultiplexer::funcparam_t& param);
+
+  static constexpr size_t s_initialReceiveBufferSize{256U};
 
   IOState sendResponse(const struct timeval& now, TCPResponse&& response) override;
   bool forwardViaUDPFirst() const override
@@ -90,8 +94,10 @@ private:
   bool sendResponse(StreamID streamID, PendingQuery& context, uint16_t responseCode, const HeadersMap& customResponseHeaders, const std::string& contentType = "", bool addContentType = true);
   void handleIncomingQuery(PendingQuery&& query, StreamID streamID);
   bool checkALPN();
-  void readHTTPData();
+  IOState readHTTPData();
   void handleConnectionReady();
+  bool hasPendingWrite() const;
+  void writeToSocket(bool socketReady);
   boost::optional<struct timeval> getIdleClientReadTTD(struct timeval now) const;
 
   std::unique_ptr<nghttp2_session, decltype(&nghttp2_session_del)> d_session{nullptr, nghttp2_session_del};
@@ -99,8 +105,18 @@ private:
   PacketBuffer d_out;
   PacketBuffer d_in;
   size_t d_outPos{0};
+  /* this connection is done, the remote end has closed the connection
+     or something like that. We do not want to try to write to it. */
   bool d_connectionDied{false};
+  /* we are done reading from this connection, but we might still want to
+     write to it to close it properly */
+  bool d_connectionClosing{false};
+  /* Whether we are still waiting for more data to be buffered
+     before writing to the socket (false) or not. */
   bool d_needFlush{false};
+  /* Whether we have data that we want to write to the socket,
+     but the socket is full. */
+  bool d_pendingWrite{false};
 };
 
 class NGHTTP2Headers
