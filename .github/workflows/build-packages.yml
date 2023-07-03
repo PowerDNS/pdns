@@ -94,12 +94,23 @@ jobs:
           name: ${{ inputs.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
           path: built_pkgs/
           retention-days: 7
+      - name: Normalize package name
+        id: normalize-name
+        run: |
+          if [ "x${{ inputs.product }}" = "xauthoritative" ]; then
+            echo "normalized-package-name=pdns" >> $GITHUB_OUTPUT
+          elif [ "x${{ inputs.product }}" = "xrecursor" ]; then
+            echo "normalized-package-name=pdns-recursor" >> $GITHUB_OUTPUT
+          else
+            echo "normalized-package-name=${{ inputs.product }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Extract packages from the tarball
         # so we get provenance for individual packages (and the JSON package manifests from the builder)
         id: extract
         run: |
           mkdir -m 700 -p ./packages/
-          tar xvf ./built_pkgs/*/*/${{ inputs.product }}-${{ steps.getversion.outputs.version }}-${{ matrix.os }}.tar.bz2 -C ./packages/ --transform='s/.*\///'
+          tar xvf ./built_pkgs/*/*/${{ steps.normalize-name.outputs.normalized-package-name }}-${{ steps.getversion.outputs.version }}-${{ matrix.os }}.tar.bz2 -C ./packages/ --transform='s/.*\///'
       - name: Generate package hashes for provenance
         shell: bash
         id: pkghashes

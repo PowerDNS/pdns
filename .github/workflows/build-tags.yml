@@ -14,7 +14,7 @@ jobs:
     if: startsWith(github.ref_name, 'auth')
     with:
       is_release: 'YES'
-      product: 'auth'
+      product: 'authoritative'
       ref: ${{ github.ref_name }}
     secrets:
       DOWNLOADS_AUTOBUILT_SECRET: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
@@ -38,7 +38,7 @@ jobs:
     if: startsWith(github.ref_name, 'rec')
     with:
       is_release: 'YES'
-      product: 'auth'
+      product: 'recursor'
       ref: ${{ github.ref_name }}
     secrets:
       DOWNLOADS_AUTOBUILT_SECRET: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
