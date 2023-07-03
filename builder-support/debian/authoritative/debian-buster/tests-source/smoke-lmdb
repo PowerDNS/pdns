@@ -23,7 +23,7 @@ EOF
 
 ./launch-pdns
 
-dig -p 5301 @127.0.0.1 smoke.lmdb.example.org SOA 2>&1 | tee "$TMPFILE"
+../../pdns/sdig 127.0.0.1 5301 smoke.lmdb.example.org SOA 2>&1 | tee "$TMPFILE"
 
 if grep -c 'a.misconfigured' "$TMPFILE"; then
     echo success
