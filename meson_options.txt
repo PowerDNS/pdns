@@ -4,4 +4,4 @@ option('fortify-source', type: 'combo', choices: ['auto', 'disabled', '1', '2', 
 option('kiss-rng', type: 'boolean', value: false, description: 'Use the unsafe KISS RNG')
 option('libsodium', type: 'feature', value: 'auto', description: 'Build support for libsodium-based signers')
 option('libdecaf', type: 'feature', value: 'auto', description: 'Build support for libdecaf-based signers')
-option('libcrypto', type: 'string', value: 'auto', description: 'Build support for libcrypto-based signers')
+option('libcrypto', type: 'string', value: 'auto', description: 'Build support for libcrypto-based signers (auto, yes, no, or a path)')
