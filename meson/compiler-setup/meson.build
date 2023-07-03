@@ -1,0 +1,13 @@
+# Common compiler setup
+# Outputs: cxx system
+
+# Don't limit the number of errors when using clang. This is useful to not cut out the
+# error output when using an LSP server like clangd.
+if meson.get_compiler('cpp').get_id() == 'clang'
+  add_global_arguments(['-ferror-limit=0'], language: 'cpp')
+endif
+
+add_global_arguments(['-Wshadow', '-Wmissing-declarations', '-Wredundant-decls'], language: 'cpp')
+
+cxx = meson.get_compiler('cpp')
+system = target_machine.system()
