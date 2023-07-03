@@ -976,7 +976,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     if (dsc->df->d_trustForwardedForHeader) {
       auto newRemote = processForwardedForHeader(req, remote);
       if (newRemote) {
-        remote = std::move(*newRemote);
+        remote = *newRemote;
       }
     }
 
