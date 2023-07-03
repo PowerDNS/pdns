@@ -35,6 +35,11 @@ on:
         - 'NO'
         - 'YES'
 
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  actions: read
+  contents: write # To be able to upload assets as release artifacts
+  id-token: write # To sign the provenance in the build packages reusable workflow.
+
 jobs:
   call-build-packages:
     uses: PowerDNS/pdns/.github/workflows/build-packages.yml@master
