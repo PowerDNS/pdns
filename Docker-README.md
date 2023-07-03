@@ -2,7 +2,7 @@
 
 https://hub.docker.com/u/powerdns offers automatic builds of dnsdist, Auth and Recursor, from the pdns.git master branch.
 
-The images are based on Debian Buster (slim).
+The images are based on Debian Bullseye (slim).
 
 The Dockerfiles:
 
@@ -57,4 +57,4 @@ There are multiple ways of dealing with these restrictions if you encounter them
     * dnsdist: `setLocal()`
     * Auth & Recursor: `local-address` and/or `local-port`
 
-Note: Docker Engine 20.10.0 (released december 2020) removed the need to set the `NET_BIND_SERVICE` capability when attempting to bind to a privileged port. 
+Note: Docker Engine 20.10.0 (released december 2020) removed the need to set the `NET_BIND_SERVICE` capability when attempting to bind to a privileged port.
