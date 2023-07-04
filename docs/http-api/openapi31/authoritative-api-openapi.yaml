@@ -1,0 +1,1277 @@
+openapi: 3.1.0
+info:
+  version: "0.0.15"
+  title: PowerDNS Authoritative HTTP API
+  license:
+    name: MIT
+
+servers:
+  - url: /api/v1
+
+security:
+  - APIKeyHeader: []
+
+# Overall TODOS:
+# TODO: Return types are not consistent across documentation
+#       We need to look at the code and figure out the default HTTP response
+#       codes and adjust docs accordingly.
+paths:
+  '/error':
+    get:
+      summary: Will always generate an error
+      operationId: error
+      responses: &commonErrors
+        '400':
+          description: The supplied request was not valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Requested item was not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: The input to the operation was not valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  '/servers':
+    get:
+      summary: List all servers
+      operationId: listServers
+      tags:
+        - servers
+      responses:
+        '200':
+          description: An array of servers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Server'
+        <<: *commonErrors
+
+  '/servers/{server_id}':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: List a server
+      operationId: listServer
+      tags:
+        - servers
+      responses:
+        '200':
+          description: An server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Server'
+        <<: *commonErrors
+
+  '/servers/{server_id}/cache/flush':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    put:
+      summary: Flush a cache-entry by name
+      operationId: cacheFlushByName
+      tags:
+        - servers
+      parameters:
+        - name: domain
+          in: query
+          required: true
+          description: The domain name to flush from the cache
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Flush successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheFlushResult'
+        <<: *commonErrors
+
+  '/servers/{server_id}/zones':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: List all Zones in a server
+      operationId: listZones
+      tags:
+        - zones
+      parameters:
+        - name: zone
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            When set to the name of a zone, only this zone is returned.
+            If no zone with that name exists, the response is an empty array.
+            This can e.g. be used to check if a zone exists in the database without having to guess/encode the zone's id or to check if a zone exists.
+        - name: dnssec
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: '“true” (default) or “false”, whether to include the “dnssec” and ”edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster.'
+      responses:
+        '200':
+          description: An array of Zones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Zone'
+        <<: *commonErrors
+    post:
+      summary: Creates a new domain, returns the Zone on creation.
+      operationId: createZone
+      tags:
+        - zones
+      parameters:
+        - name: rrsets
+          in: query
+          description: '“true” (default) or “false”, whether to include the “rrsets” in the response Zone object.'
+          schema:
+            type: boolean
+            default: true
+      requestBody:
+        required: true
+        description: The zone struct to patch with
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Zone'
+      responses:
+        '201':
+          description: A zone
+          content:
+            application/json:
+              schema:
+                  $ref: '#/components/schemas/Zone'
+        <<: *commonErrors
+
+  '/servers/{server_id}/zones/{zone_id}':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    get:
+      summary: zone managed by a server
+      operationId: listZone
+      tags:
+        - zones
+      parameters:
+        - name: rrsets
+          in: query
+          description: '“true” (default) or “false”, whether to include the “rrsets” in the response Zone object.'
+          schema:
+            type: boolean
+            default: true
+        - name: rrset_name
+          in: query
+          description: Limit output to RRsets for this name.
+          schema:
+            type: string
+        - name: rrset_type
+          in: query
+          description: Limit output to the RRset of this type. Can only be used together with rrset_name.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A Zone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Zone'
+        <<: *commonErrors
+    delete:
+      summary: Deletes this zone, all attached metadata and rrsets.
+      operationId: deleteZone
+      tags:
+        - zones
+      responses:
+        '204':
+          description: 'Returns 204 No Content on success.'
+        <<: *commonErrors
+    patch:
+      summary: 'Creates/modifies/deletes RRsets present in the payload and their comments. Returns 204 No Content on success.'
+      operationId: patchZone
+      tags:
+        - zones
+      requestBody:
+        required: true
+        description: The zone struct to patch with
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Zone'
+      responses:
+        '204':
+          description: 'Returns 204 No Content on success.'
+        <<: *commonErrors
+
+    put:
+      summary: Modifies basic zone data.
+      description: 'The only fields in the zone structure which can be modified are: kind, masters, catalog, account, soa_edit, soa_edit_api, api_rectify, dnssec, and nsec3param. All other fields are ignored.'
+      operationId: putZone
+      tags:
+        - zones
+      requestBody:
+        required: true
+        description: The zone struct to patch with
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Zone'
+      responses:
+        '204':
+          description: 'Returns 204 No Content on success.'
+        <<: *commonErrors
+
+  '/servers/{server_id}/zones/{zone_id}/notify':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    put:
+      summary: Send a DNS NOTIFY to all slaves.
+      description: 'Fails when zone kind is not Master or Slave, or master and slave are disabled in the configuration. Only works for Slave if renotify is on. Clients MUST NOT send a body.'
+      operationId: notifyZone
+      tags:
+        - zones
+      responses:
+        '200':
+          description: OK
+        <<: *commonErrors
+
+  '/servers/{server_id}/zones/{zone_id}/axfr-retrieve':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    put:
+      summary: Retrieve slave zone from its master.
+      description: 'Fails when zone kind is not Slave, or slave is disabled in the configuration. Clients MUST NOT send a body.'
+      operationId: axfrRetrieveZone
+      tags:
+        - zones
+      responses:
+        '200':
+          description: OK
+        <<: *commonErrors
+
+  '/servers/{server_id}/zones/{zone_id}/export':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    get:
+      summary: 'Returns the zone in AXFR format.'
+      operationId: axfrExportZone
+      tags:
+        - zones
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+        <<: *commonErrors
+
+  '/servers/{server_id}/zones/{zone_id}/rectify':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    put:
+      summary: 'Rectify the zone data.'
+      description: 'This does not take into account the API-RECTIFY metadata. Fails on slave zones and zones that do not have DNSSEC.'
+      operationId: rectifyZone
+      tags:
+        - zones
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+        <<: *commonErrors
+
+  '/servers/{server_id}/config':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: 'Returns all ConfigSettings for a single server'
+      operationId: getConfig
+      tags:
+        - config
+      responses:
+        '200':
+          description: List of config values
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConfigSetting'
+        <<: *commonErrors
+
+  '/servers/{server_id}/config/{config_setting_name}':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: config_setting_name
+        in: path
+        required: true
+        description: The name of the setting to retrieve
+        schema:
+          type: string
+    get:
+      summary: 'Returns a specific ConfigSetting for a single server'
+      description: 'NOT IMPLEMENTED'
+      operationId: getConfigSetting
+      tags:
+        - config
+      responses:
+        '200':
+          description: List of config values
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigSetting'
+        <<: *commonErrors
+
+  '/servers/{server_id}/statistics':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: 'Query statistics.'
+      description: 'Query PowerDNS internal statistics.'
+      operationId: getStats
+      tags:
+        - stats
+      parameters:
+        - name: statistic
+          in: query
+          required: false
+          schema:
+            type: string
+          description: |
+            When set to the name of a specific statistic, only this value is returned.
+            If no statistic with that name exists, the response has a 422 status and an error message.
+        - name: includerings
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: '“true” (default) or “false”, whether to include the Ring items, which can contain thousands of log messages or queried domains. Setting this to ”false” may make the response a lot smaller.'
+      responses:
+        '200':
+          description: List of Statistic Items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  - $ref: '#/components/schemas/StatisticItem'
+                  - $ref: '#/components/schemas/MapStatisticItem'
+                  - $ref: '#/components/schemas/RingStatisticItem'
+        '422':
+          description: 'Returned when a non-existing statistic name has been requested. Contains an error message'
+        <<: *commonErrors
+
+  '/servers/{server_id}/search-data':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: 'Search the data inside PowerDNS'
+      description: 'Search the data inside PowerDNS for search_term and return at most max_results. This includes zones, records and comments. The * character can be used in search_term as a wildcard character and the ? character can be used as a wildcard for a single character.'
+      operationId: searchData
+      tags:
+        - search
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: 'The string to search for'
+          schema:
+            type: string
+        - name: max
+          in: query
+          required: true
+          description: 'Maximum number of entries to return'
+          schema:
+            type: integer
+        - name: object_type
+          in: query
+          required: false
+          description: 'Type of data to search for, one of “all”, “zone”, “record”, “comment”'
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Returns a JSON array with results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResults'
+        <<: *commonErrors
+
+  '/servers/{server_id}/zones/{zone_id}/metadata':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    get:
+      summary: 'Get all the Metadata associated with the zone.'
+      operationId: listMetadata
+      tags:
+        - zonemetadata
+      responses:
+        '200':
+          description: List of Metadata objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Metadata'
+        <<: *commonErrors
+    post:
+      summary: 'Creates a set of metadata entries'
+      description: 'Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are not overwritten.'
+      operationId: createMetadata
+      tags:
+        - zonemetadata
+
+      requestBody:
+        required: true
+        description: Metadata object with list of values to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Metadata'
+      responses:
+        '204':
+          description: OK
+        <<: *commonErrors
+
+  '/servers/{server_id}/zones/{zone_id}/metadata/{metadata_kind}':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+      - name: metadata_kind
+        schema:
+          type: string
+        in: path
+        required: true
+        description: The kind of metadata
+    get:
+      summary: 'Get the content of a single kind of domain metadata as a Metadata object.'
+      operationId: getMetadata
+      tags:
+        - zonemetadata
+      responses:
+        '200':
+          description: Metadata object with list of values
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        <<: *commonErrors
+    put:
+      summary: 'Replace the content of a single kind of domain metadata.'
+      description: 'Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are removed.'
+      operationId: modifyMetadata
+      tags:
+        - zonemetadata
+      responses:
+        '200':
+          description: Metadata object with list of values
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Metadata'
+        <<: *commonErrors
+    delete:
+      summary: 'Delete all items of a single kind of domain metadata.'
+      operationId: deleteMetadata
+      tags:
+        - zonemetadata
+      responses:
+        '200':
+          description: OK
+        <<: *commonErrors
+
+  '/servers/{server_id}/zones/{zone_id}/cryptokeys':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+    get:
+      summary: 'Get all CryptoKeys for a zone, except the privatekey'
+      operationId: listCryptokeys
+      tags:
+        - zonecryptokey
+      responses:
+        '200':
+          description: List of Cryptokey objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Cryptokey'
+        <<: *commonErrors
+    post:
+      summary: 'Creates a Cryptokey'
+      description: 'This method adds a new key to a zone. The key can either be generated or imported by supplying the content parameter. if content, bits and algo are null, a key will be generated based on the default-ksk-algorithm and default-ksk-size settings for a KSK and the default-zsk-algorithm and default-zsk-size options for a ZSK.'
+      operationId: createCryptokey
+      tags:
+        - zonecryptokey
+
+      requestBody:
+        required: true
+        description: Add a Cryptokey
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cryptokey'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cryptokey'
+        <<: *commonErrors
+
+  '/servers/{server_id}/zones/{zone_id}/cryptokeys/{cryptokey_id}':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - $ref: "#/components/parameters/zone_id"
+      - name: cryptokey_id
+        schema:
+          type: string
+        in: path
+        required: true
+        description: 'The id value of the CryptoKey'
+    get:
+      summary: 'Returns all data about the CryptoKey, including the privatekey.'
+      operationId: getCryptokey
+      tags:
+        - zonecryptokey
+      responses:
+        '200':
+          description: Cryptokey
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cryptokey'
+        <<: *commonErrors
+    put:
+      summary: 'This method (de)activates a key from zone_name specified by cryptokey_id'
+      operationId: modifyCryptokey
+      tags:
+        - zonecryptokey
+      responses:
+        '204':
+          description: OK
+        <<: *commonErrors
+    delete:
+      summary: 'This method deletes a key specified by cryptokey_id.'
+      operationId: deleteCryptokey
+      tags:
+        - zonecryptokey
+      responses:
+        '204':
+          description: OK
+        <<: *commonErrors
+
+  '/servers/{server_id}/tsigkeys':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: 'Get all TSIGKeys on the server, except the actual key'
+      operationId: listTSIGKeys
+      tags:
+        - tsigkey
+      responses:
+        '200':
+          description: List of TSIGKey objects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TSIGKey'
+        <<: *commonErrors
+    post:
+      summary: 'Add a TSIG key'
+      description: 'This methods add a new TSIGKey. The actual key can be generated by the server or be provided by the client'
+      operationId: createTSIGKey
+      tags:
+        - tsigkey
+      requestBody:
+        required: true
+        description: The TSIGKey to add
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TSIGKey'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TSIGKey'
+        '409':
+          description: An item with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        <<: *commonErrors
+
+  '/servers/{server_id}/tsigkeys/{tsigkey_id}':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: tsigkey_id
+        in: path
+        required: true
+        description: 'The id of the TSIGkey. Should match the "id" field in the TSIGKey object'
+        schema:
+          type: string
+    get:
+      summary: 'Get a specific TSIGKeys on the server, including the actual key'
+      operationId: getTSIGKey
+      tags:
+        - tsigkey
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TSIGKey'
+        <<: *commonErrors
+    put:
+      description: |
+        The TSIGKey at tsigkey_id can be changed in multiple ways:
+         * Changing the Name, this will remove the key with tsigkey_id after adding.
+         * Changing the Algorithm
+         * Changing the Key
+
+        Only the relevant fields have to be provided in the request body.
+      operationId: putTSIGKey
+      tags:
+        - tsigkey
+      requestBody:
+        required: true
+        description: A (possibly stripped down) TSIGKey object with the new values
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TSIGKey'
+      responses:
+        '200':
+          description: OK. TSIGKey is changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TSIGKey'
+        '409':
+          description: An item with this name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        <<: *commonErrors
+    delete:
+      summary: 'Delete the TSIGKey with tsigkey_id'
+      operationId: deleteTSIGKey
+      tags:
+        - tsigkey
+      responses:
+        '204':
+          description: 'OK, key was deleted'
+        <<: *commonErrors
+
+  '/servers/{server_id}/autoprimaries':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+    get:
+      summary: 'Get a list of autoprimaries'
+      operationId: getAutoprimaries
+      tags:
+        - autoprimary
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Autoprimary'
+        <<: *commonErrors
+    post:
+      summary: 'Add an autoprimary'
+      description: 'This methods add a new autoprimary server.'
+      operationId: createAutoprimary
+      tags:
+        - autoprimary
+      requestBody:
+        required: true
+        description: autoprimary entry to add
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Autoprimary'
+      responses:
+        '201':
+          description: Created
+        <<: *commonErrors
+
+  '/servers/{server_id}/autoprimaries/{ip}/{nameserver}':
+    parameters:
+      - $ref: "#/components/parameters/server_id"
+      - name: ip
+        in: path
+        required: true
+        description: 'IP address of autoprimary'
+        schema:
+          type: string
+      - name: nameserver
+        in: path
+        required: true
+        description: 'DNS name of the autoprimary'
+        schema:
+          type: string
+    delete:
+      summary: 'Delete the autoprimary entry'
+      operationId: deleteAutoprimary
+      tags:
+        - autoprimary
+      responses:
+        '204':
+          description: 'OK, key was deleted'
+        <<: *commonErrors
+
+components:
+  securitySchemes:
+    # X-API-Key: abcdef12345
+    APIKeyHeader:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  parameters:
+    server_id:
+      name: server_id
+      in: path
+      required: true
+      description: The id of the server to retrieve
+      schema:
+        type: string
+    zone_id:
+      name: zone_id
+      schema:
+        type: string
+      in: path
+      required: true
+      description: The id of the zone to retrieve
+
+  schemas:
+    Server:
+      title: Server
+      type: object
+      additionalProperties: False
+      properties:
+        type:
+          type: string
+          description: 'Set to “Server”'
+        id:
+          type: string
+          description: 'The id of the server, “localhost”'
+        daemon_type:
+          type: string
+          description: '“recursor” for the PowerDNS Recursor and “authoritative” for the Authoritative Server'
+        version:
+          type: string
+          description: 'The version of the server software'
+        url:
+          type: string
+          description: 'The API endpoint for this server'
+        config_url:
+          type: string
+          description: 'The API endpoint for this server’s configuration'
+        zones_url:
+          type: string
+          description: 'The API endpoint for this server’s zones'
+
+    Servers:
+      type: array
+      items:
+        $ref: '#/components/schemas/Server'
+
+    Zone:
+      title: Zone
+      description: This represents an authoritative DNS Zone.
+      type: object
+      additionalProperties: False
+      properties:
+        id:
+          type: string
+          description: 'Opaque zone id (string), assigned by the server, should not be interpreted by the application. Guaranteed to be safe for embedding in URLs.'
+        name:
+          type: string
+          description: 'Name of the zone (e.g. “example.com.”) MUST have a trailing dot'
+        type:
+          type: string
+          description: 'Set to “Zone”'
+        url:
+          type: string
+          description: 'API endpoint for this zone'
+        kind:
+          type: string
+          enum:
+            - 'Native'
+            - 'Master'
+            - 'Slave'
+            - 'Producer'
+            - 'Consumer'
+          description: 'Zone kind, one of “Native”, “Master”, “Slave”, “Producer”, “Consumer”'
+        rrsets:
+          type: array
+          items:
+            $ref: '#/components/schemas/RRSet'
+          description: 'RRSets in this zone (for zones/{zone_id} endpoint only; omitted during GET on the .../zones list endpoint)'
+        serial:
+          type: integer
+          description: 'The SOA serial number'
+        notified_serial:
+          type: integer
+          description: 'The SOA serial notifications have been sent out for'
+        edited_serial:
+          type: integer
+          description: 'The SOA serial as seen in query responses. Calculated using the SOA-EDIT metadata, default-soa-edit and default-soa-edit-signed settings'
+        masters:
+          type: array
+          items:
+            type: string
+          description: ' List of IP addresses configured as a master for this zone (“Slave” type zones only)'
+        dnssec:
+          type: boolean
+          description: 'Whether or not this zone is DNSSEC signed (inferred from presigned being true XOR presence of at least one cryptokey with active being true)'
+        nsec3param:
+          type: string
+          description: 'The NSEC3PARAM record'
+        nsec3narrow:
+          type: boolean
+          description: 'Whether or not the zone uses NSEC3 narrow'
+        presigned:
+          type: boolean
+          description: 'Whether or not the zone is pre-signed'
+        soa_edit:
+          type: string
+          description: 'The SOA-EDIT metadata item'
+        soa_edit_api:
+          type: string
+          description: 'The SOA-EDIT-API metadata item'
+        api_rectify:
+          type: boolean
+          description: 'Whether or not the zone will be rectified on data changes via the API'
+        zone:
+          type: string
+          description: 'MAY contain a BIND-style zone file when creating a zone'
+        catalog:
+          type: string
+          description: 'The catalog this zone is a member of'
+        account:
+          type: string
+          description: 'MAY be set. Its value is defined by local policy'
+        nameservers:
+          type: array
+          items:
+            type: string
+          description: 'MAY be sent in client bodies during creation, and MUST NOT be sent by the server. Simple list of strings of nameserver names, including the trailing dot. Not required for slave zones.'
+        master_tsig_key_ids:
+          type: array
+          items:
+            type: string
+          description: 'The id of the TSIG keys used for master operation in this zone'
+          externalDocs:
+            url: 'https://doc.powerdns.com/authoritative/tsig.html#provisioning-outbound-axfr-access'
+        slave_tsig_key_ids:
+          type: array
+          items:
+            type: string
+          description: 'The id of the TSIG keys used for slave operation in this zone'
+          externalDocs:
+            url: 'https://doc.powerdns.com/authoritative/tsig.html#provisioning-signed-notification-and-axfr-requests'
+
+    Zones:
+      type: array
+      items:
+        $ref: '#/components/schemas/Zone'
+
+    RRSet:
+      title: RRSet
+      description: This represents a Resource Record Set (all records with the same name and type).
+      type: object
+      additionalProperties: False
+      required:
+        - name
+        - type
+        - ttl
+  #      - changetype
+        - records
+      properties:
+        name:
+          type: string
+          description: 'Name for record set (e.g. “www.powerdns.com.”)'
+        type:
+          type: string
+          description: 'Type of this record (e.g. “A”, “PTR”, “MX”)'
+        ttl:
+          type: integer
+          description: 'DNS TTL of the records, in seconds. MUST NOT be included when changetype is set to “DELETE”.'
+        changetype:
+          type: string
+          description: 'MUST be added when updating the RRSet. Must be REPLACE or DELETE. With DELETE, all existing RRs matching name and type will be deleted, including all comments. With REPLACE: when records is present, all existing RRs matching name and type will be deleted, and then new records given in records will be created. If no records are left, any existing comments will be deleted as well. When comments is present, all existing comments for the RRs matching name and type will be deleted, and then new comments given in comments will be created.'
+        records:
+          type: array
+          description: 'All records in this RRSet. When updating Records, this is the list of new records (replacing the old ones). Must be empty when changetype is set to DELETE. An empty list results in deletion of all records (and comments).'
+          items:
+            $ref: '#/components/schemas/Record'
+        comments:
+          type: array
+          description: 'List of Comment. Must be empty when changetype is set to DELETE. An empty list results in deletion of all comments. modified_at is optional and defaults to the current server time.'
+          items:
+            $ref: '#/components/schemas/Comment'
+
+    Record:
+      title: Record
+      description: The RREntry object represents a single record.
+      type: object
+      additionalProperties: False
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: 'The content of this record'
+        disabled:
+          type: boolean
+          description: 'Whether or not this record is disabled. When unset, the record is not disabled'
+
+    Comment:
+      title: Comment
+      description: A comment about an RRSet.
+      type: object
+      additionalProperties: False
+      properties:
+        content:
+          type: string
+          description: 'The actual comment'
+        account:
+          type: string
+          description: 'Name of an account that added the comment'
+        modified_at:
+          type: integer
+          description: 'Timestamp of the last change to the comment'
+
+    TSIGKey:
+      title: TSIGKey
+      description: A TSIG key that can be used to authenticate NOTIFY, AXFR, and DNSUPDATE queries.
+      type: object
+      additionalProperties: False
+      properties:
+        name:
+          type: string
+          description: 'The name of the key'
+        id:
+          type: string
+          description: 'The ID for this key, used in the TSIGkey URL endpoint.'
+          readOnly: true
+        algorithm:
+          type: string
+          description: 'The algorithm of the TSIG key'
+        key:
+          type: string
+          description: 'The Base64 encoded secret key, empty when listing keys. MAY be empty when POSTing to have the server generate the key material'
+        type:
+          type: string
+          description: 'Set to "TSIGKey"'
+          readOnly: true
+
+    Autoprimary:
+      title: Autoprimary server
+      description: An autoprimary server that can provision new domains.
+      type: object
+      additionalProperties: False
+
+      properties:
+        ip:
+          type: string
+          description: "IP address of the autoprimary server"
+        nameserver:
+          type: string
+          description: "DNS name of the autoprimary server"
+        account:
+          type: string
+          description: "Account name for the autoprimary server"
+
+    ConfigSetting:
+      title: ConfigSetting
+      type: object
+      additionalProperties: False
+      properties:
+        name:
+          type: string
+          description: 'set to "ConfigSetting"'
+        type:
+          type: string
+          description: 'The name of this setting (e.g. ‘webserver-port’)'
+        value:
+          type: string
+          description: 'The value of setting name'
+
+    SimpleStatisticItem:
+      title: SimpleStatisticItem
+      type: object
+      additionalProperties: False
+      properties:
+        name:
+            type: string
+            description: 'Item name'
+        value:
+            type: string
+            description: 'Item value'
+
+    StatisticItem:
+      title: StatisticItem
+      type: object
+      additionalProperties: False
+      properties:
+        name:
+          type: string
+          description: 'Item name'
+        type:
+          type: string
+          description: 'set to "StatisticItem"'
+        value:
+          type: string
+          description: 'Item value'
+
+    MapStatisticItem:
+      title: MapStatisticItem
+      type: object
+      additionalProperties: False
+      properties:
+        name:
+          type: string
+          description: 'Item name'
+        type:
+          type: string
+          description: 'Set to "MapStatisticItem"'
+        value:
+          type: array
+          description: 'Named values'
+          items:
+            $ref: '#/components/schemas/SimpleStatisticItem'
+
+    RingStatisticItem:
+      title: RingStatisticItem
+      type: object
+      additionalProperties: False
+      properties:
+        name:
+          type: string
+          description: 'Item name'
+        type:
+          type: string
+          description: 'Set to "RingStatisticItem"'
+        size:
+          type: integer
+          description: 'Ring size'
+        value:
+          type: array
+          description: 'Named values'
+          items:
+            $ref: '#/components/schemas/SimpleStatisticItem'
+
+    SearchResultZone:
+      title: SearchResultZone
+      type: object
+      additionalProperties: False
+      properties:
+        name:
+          type: string
+        object_type:
+          type: string
+          description: 'set to "zone"'
+        zone_id:
+          type: string
+
+    SearchResultRecord:
+      title: SearchResultRecord
+      type: object
+      additionalProperties: False
+      properties:
+        content:
+          type: string
+        disabled:
+          type: boolean
+        name:
+          type: string
+        object_type:
+          type: string
+          description: 'set to "record"'
+        zone_id:
+          type: string
+        zone:
+          type: string
+        type:
+          type: string
+        ttl:
+          type: integer
+
+    SearchResultComment:
+      title: SearchResultComment
+      type: object
+      additionalProperties: False
+      properties:
+        content:
+          type: string
+        name:
+          type: string
+        object_type:
+          type: string
+          description: 'set to "comment"'
+        zone_id:
+          type: string
+        zone:
+          type: string
+
+    SearchResult:
+      title: SearchResult
+      type: object
+      additionalProperties: False
+      oneOf:
+        - $ref: '#/components/schemas/SearchResultZone'
+        - $ref: '#/components/schemas/SearchResultRecord'
+        - $ref: '#/components/schemas/SearchResultComment'
+      discriminator:
+        propertyName: object_type
+        mapping:
+          zone: '#/components/schemas/SearchResultZone'
+          record: '#/components/schemas/SearchResultRecord'
+          comment: '#/components/schemas/SearchResultComment'
+
+    SearchResults:
+      type: array
+      items:
+        $ref: '#/components/schemas/SearchResult'
+
+    Metadata:
+      title: Metadata
+      description: Represents zone metadata
+      type: object
+      additionalProperties: False
+      properties:
+        kind:
+          type: string
+          description: 'Name of the metadata'
+        metadata:
+          type: array
+          items:
+            type: string
+          description: 'Array with all values for this metadata kind.'
+
+    Cryptokey:
+      title: Cryptokey
+      description: 'Describes a DNSSEC cryptographic key'
+      type: object
+      additionalProperties: False
+      properties:
+        type:
+          type: string
+          description: 'set to "Cryptokey"'
+        id:
+          type: integer
+          description: 'The internal identifier, read only'
+        keytype:
+          type: string
+          enum: [ksk, zsk, csk]
+        active:
+          type: boolean
+          description: 'Whether or not the key is in active use'
+        published:
+          type: boolean
+          description: 'Whether or not the DNSKEY record is published in the zone'
+        dnskey:
+          type: string
+          description: 'The DNSKEY record for this key'
+        ds:
+          type: array
+          items:
+            type: string
+          description: 'An array of DS records for this key'
+        cds:
+          type: array
+          items:
+            type: string
+          description: 'An array of DS records for this key, filtered by CDS publication settings'
+        privatekey:
+          type: string
+          description: 'The private key in ISC format'
+        algorithm:
+          type: string
+          description: 'The name of the algorithm of the key, should be a mnemonic'
+        bits:
+          type: integer
+          description: 'The size of the key'
+
+    Error:
+      title: Error
+      description: 'Returned when the server encounters an error, either in client input or internally'
+      type: object
+      additionalProperties: False
+      properties:
+        error:
+          type: string
+          description: 'A human readable error message'
+        errors:
+          type: array
+          items:
+            type: string
+          description: 'Optional array of multiple errors encountered during processing'
+      required:
+        - error
+
+    CacheFlushResult:
+      title: CacheFlushResult
+      description: 'The result of a cache-flush'
+      type: object
+      additionalProperties: False
+      properties:
+        count:
+          type: number
+          description: 'Amount of entries flushed'
+        result:
+          type: string
+          description: 'A message about the result like "Flushed cache"'
