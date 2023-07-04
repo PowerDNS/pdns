@@ -34,6 +34,7 @@ subdir('meson/mmap')            # Check for mmap
 subdir('meson/libsodium')       # Libsodium-based signers
 subdir('meson/libdecaf')        # Libdecaf-based signers
 subdir('meson/libcrypto')       # OpenSSL-based signers
+subdir('meson/libssl')          # OpenSSL libssl
 
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
