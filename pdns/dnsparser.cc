@@ -195,6 +195,11 @@ DNSRecordContent::zmakermap_t& DNSRecordContent::getZmakermap()
   return zmakermap;
 }
 
+bool DNSRecordContent::isRegisteredType(uint16_t rtype, uint16_t rclass)
+{
+  return getTypemap().count(pair(rclass, rtype)) != 0;
+}
+
 DNSRecord::DNSRecord(const DNSResourceRecord& rr): d_name(rr.qname)
 {
   d_type = rr.qtype.getCode();

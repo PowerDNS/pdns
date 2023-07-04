@@ -57,7 +57,18 @@ public:
     return code;
   }
 
+  /**
+   * \brief Return whether we know the name of this type.
+   *
+   * This does not presume that we have an implemented a content representation for this type,
+   * for that please see DNSRecordContent::isRegisteredType().
+   */
   bool isSupportedType() const;
+  /**
+   * \brief Whether the type is either a QTYPE or Meta-Type as defined by rfc6895 section 3.1.
+   *
+   * Note that ANY is 255 and falls outside the range.
+   */
   bool isMetadataType() const;
 
   static uint16_t chartocode(const char* p);
