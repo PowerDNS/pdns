@@ -43,6 +43,7 @@ subdir('meson/dot')             # DNS over TLS
 subdir('meson/ipcipher')        # IPCipher
 subdir('meson/ragel')           # Find Ragel
 subdir('meson/clock-gettime')   # Clock_gettime
+subdir('meson/boost')           # Boost
 
 # Find or generate pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
