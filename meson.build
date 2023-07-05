@@ -37,6 +37,7 @@ subdir('meson/libcrypto')       # OpenSSL-based signers
 subdir('meson/libssl')          # OpenSSL libssl
 subdir('meson/gnutls')          # GnuTLS
 subdir('meson/dot')             # DNS over TLS
+subdir('meson/ipcipher')        # IPCipher
 
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
