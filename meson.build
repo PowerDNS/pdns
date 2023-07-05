@@ -45,6 +45,10 @@ subdir('meson/ragel')           # Find Ragel
 subdir('meson/clock-gettime')   # Clock_gettime
 subdir('meson/boost')           # Boost
 
+# Boost Program Options library
+dep_boost_program_options = dependency('boost', modules: ['program_options'], required: true)
+summary('Boost Program Options', dep_boost_program_options.found(), bool_yn: true, section: 'Boost')
+
 # Find or generate pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
   error('Ragel is missing and `pdns/dnslabeltext.cc` cannot be found. ' +
