@@ -45,6 +45,7 @@
 #include "uuid-utils.hh"
 #include "tcpiohandler.hh"
 #include "rec-main.hh"
+#include "settings/cxxsettings.hh"
 
 using json11::Json;
 
@@ -69,8 +70,14 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
     throw ApiException("Config Option \"api-config-dir\" must be set");
   }
 
-  string filename = ::arg()["api-config-dir"] + "/" + filebasename + ".conf";
-  ofstream ofconf(filename.c_str());
+  string filename = ::arg()["api-config-dir"] + "/" + filebasename;
+  if (g_yamlSettings) {
+    filename += ".yml";
+  }
+  else {
+    filename += ".conf";
+  }
+  ofstream ofconf(filename);
   if (!ofconf) {
     throw ApiException("Could not open config fragment file '" + filename + "' for writing: " + stringerror());
   }
@@ -89,26 +96,49 @@ static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, Htt
       throw ApiException("'value' must be an array");
     }
 
-    NetmaskGroup nmg;
-    for (const auto& value : jlist.array_items()) {
+    if (g_yamlSettings) {
+      ::rust::Vec<::rust::String> vec;
+      for (const auto& value : jlist.array_items()) {
+        vec.emplace_back(value.string_value());
+      }
+
       try {
-        nmg.addMask(value.string_value());
+        ::pdns::rust::settings::rec::validate_allow_from(aclType, vec);
       }
-      catch (const NetmaskException& e) {
-        throw ApiException(e.reason);
+      catch (const ::rust::Error& e) {
+        throw ApiException(string("Unable to convert: ") + e.what());
       }
+      ::rust::String yaml;
+      if (aclType == "allow-from") {
+        yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_from", "allow_from_file", vec);
+      }
+      else {
+        yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_notify_from", "allow_notify_from_file", vec);
+      }
+      apiWriteConfigFile(aclType, string(yaml));
     }
+    else {
+      NetmaskGroup nmg;
+      for (const auto& value : jlist.array_items()) {
+        try {
+          nmg.addMask(value.string_value());
+        }
+        catch (const NetmaskException& e) {
+          throw ApiException(e.reason);
+        }
+      }
 
-    ostringstream strStream;
+      ostringstream strStream;
 
-    // Clear <foo>-from-file if set, so our changes take effect
-    strStream << aclType << "-file=" << endl;
+      // Clear <foo>-from-file if set, so our changes take effect
+      strStream << aclType << "-file=" << endl;
 
-    // Clear ACL setting, and provide a "parent" value
-    strStream << aclType << "=" << endl;
-    strStream << aclType << "+=" << nmg.toString() << endl;
+      // Clear ACL setting, and provide a "parent" value
+      strStream << aclType << "=" << endl;
+      strStream << aclType << "+=" << nmg.toString() << endl;
 
-    apiWriteConfigFile(aclType, strStream.str());
+      apiWriteConfigFile(aclType, strStream.str());
+    }
 
     parseACLs();
 
@@ -195,6 +225,8 @@ static void doCreateZone(const Json& document)
   bool rdFlag = boolFromJson(document, "recursion_desired");
   string confbasename = "zone-" + apiZoneNameToId(zone);
 
+  const string yamlAPiZonesFile = ::arg()["api-config-dir"] + "/apizones";
+
   if (kind == "NATIVE") {
     if (rdFlag) {
       throw ApiException("kind=Native and recursion_desired are mutually exclusive");
@@ -224,35 +256,55 @@ static void doCreateZone(const Json& document)
     }
     ofzone.close();
 
-    apiWriteConfigFile(confbasename, "auth-zones+=" + zonename + "=" + zonefilename);
-  }
-  else if (kind == "FORWARDED") {
-    string serverlist;
-    for (const auto& value : document["servers"].array_items()) {
-      const string& server = value.string_value();
-      if (server.empty()) {
-        throw ApiException("Forwarded-to server must not be an empty string");
-      }
-      try {
-        ComboAddress address = parseIPAndPort(server, 53);
-        if (!serverlist.empty()) {
-          serverlist += ";";
-        }
-        serverlist += address.toStringWithPort();
-      }
-      catch (const PDNSException& e) {
-        throw ApiException(e.reason);
-      }
-    }
-    if (serverlist.empty()) {
-      throw ApiException("Need at least one upstream server when forwarding");
-    }
-
-    if (rdFlag) {
-      apiWriteConfigFile(confbasename, "forward-zones-recurse+=" + zonename + "=" + serverlist);
+    if (g_yamlSettings) {
+      pdns::rust::settings::rec::AuthZone authzone;
+      authzone.zone = zonename;
+      authzone.file = zonefilename;
+      pdns::rust::settings::rec::api_add_auth_zone(yamlAPiZonesFile, authzone);
     }
     else {
-      apiWriteConfigFile(confbasename, "forward-zones+=" + zonename + "=" + serverlist);
+      apiWriteConfigFile(confbasename, "auth-zones+=" + zonename + "=" + zonefilename);
+    }
+  }
+  else if (kind == "FORWARDED") {
+    if (g_yamlSettings) {
+      pdns::rust::settings::rec::ForwardZone forward;
+      forward.zone = zonename;
+      forward.recurse = rdFlag;
+      forward.notify_allowed = false;
+      for (const auto& value : document["servers"].array_items()) {
+        forward.forwarders.emplace_back(value.string_value());
+      }
+      pdns::rust::settings::rec::api_add_forward_zone(yamlAPiZonesFile, forward);
+    }
+    else {
+      string serverlist;
+      for (const auto& value : document["servers"].array_items()) {
+        const string& server = value.string_value();
+        if (server.empty()) {
+          throw ApiException("Forwarded-to server must not be an empty string");
+        }
+        try {
+          ComboAddress address = parseIPAndPort(server, 53);
+          if (!serverlist.empty()) {
+            serverlist += ";";
+          }
+          serverlist += address.toStringWithPort();
+        }
+        catch (const PDNSException& e) {
+          throw ApiException(e.reason);
+        }
+      }
+      if (serverlist.empty()) {
+        throw ApiException("Need at least one upstream server when forwarding");
+      }
+
+      if (rdFlag) {
+        apiWriteConfigFile(confbasename, "forward-zones-recurse+=" + zonename + "=" + serverlist);
+      }
+      else {
+        apiWriteConfigFile(confbasename, "forward-zones+=" + zonename + "=" + serverlist);
+      }
     }
   }
   else {
@@ -267,13 +319,17 @@ static bool doDeleteZone(const DNSName& zonename)
   }
 
   string filename;
-
-  // this one must exist
-  filename = ::arg()["api-config-dir"] + "/zone-" + apiZoneNameToId(zonename) + ".conf";
-  if (unlink(filename.c_str()) != 0) {
-    return false;
+  if (g_yamlSettings) {
+    const string yamlAPiZonesFile = ::arg()["api-config-dir"] + "/apizones";
+    pdns::rust::settings::rec::api_delete_zone(yamlAPiZonesFile, zonename.toString());
   }
-
+  else {
+    // this one must exist
+    filename = ::arg()["api-config-dir"] + "/zone-" + apiZoneNameToId(zonename) + ".conf";
+    if (unlink(filename.c_str()) != 0) {
+      return false;
+    }
+  }
   // .zone file is optional
   filename = ::arg()["api-config-dir"] + "/zone-" + apiZoneNameToId(zonename) + ".zone";
   unlink(filename.c_str());
@@ -298,7 +354,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
     }
 
     doCreateZone(document);
-    reloadZoneConfiguration();
+    reloadZoneConfiguration(g_yamlSettings);
     fillZone(zonename, resp);
     resp->status = 201;
     return;
@@ -342,7 +398,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
 
     doDeleteZone(zonename);
     doCreateZone(document);
-    reloadZoneConfiguration();
+    reloadZoneConfiguration(g_yamlSettings);
     resp->body = "";
     resp->status = 204; // No Content, but indicate success
   }
@@ -351,7 +407,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Deleting domain failed");
     }
 
-    reloadZoneConfiguration();
+    reloadZoneConfiguration(g_yamlSettings);
     // empty body on success
     resp->body = "";
     resp->status = 204; // No Content: declare that the zone is gone now

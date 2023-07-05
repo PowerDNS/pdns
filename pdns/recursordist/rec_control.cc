@@ -31,6 +31,7 @@
 #include "credentials.hh"
 #include "namespaces.hh"
 #include "rec_channel.hh"
+#include "settings/cxxsettings.hh"
 
 ArgvMap& arg()
 {
@@ -63,24 +64,175 @@ static void initArguments(int argc, char** argv)
     exit(arg().mustDo("help") ? 0 : 99);
   }
 
-  string configname = ::arg()["config-dir"] + "/recursor.conf";
-  if (::arg()["config-name"] != "")
-    configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"] + ".conf";
+  string configname = ::arg()["config-dir"] + "/recursor";
+  if (!::arg()["config-name"].empty()) {
+    configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"];
+  }
 
   cleanSlashes(configname);
 
-  arg().laxFile(configname.c_str());
+  const string yamlconfigname = configname + ".yml";
+  string msg;
+  pdns::rust::settings::rec::Recursorsettings settings;
 
+  auto yamlstatus = pdns::settings::rec::readYamlSettings(yamlconfigname, "", settings, msg, g_slog);
+
+  switch (yamlstatus) {
+  case pdns::settings::rec::YamlSettingsStatus::CannotOpen:
+    break;
+  case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
+    cerr << "YAML config found for configname '" << yamlconfigname << "' but error ocurred processing it" << endl;
+    exit(1); // NOLINT(concurrency-mt-unsafe)
+    break;
+  case pdns::settings::rec::YamlSettingsStatus::OK:
+    cerr << "YAML config found and processed for configname '" << yamlconfigname << "'" << endl;
+    pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
+    break;
+  }
+
+  if (yamlstatus == pdns::settings::rec::YamlSettingsStatus::CannotOpen) {
+    configname += ".conf";
+    arg().laxFile(configname);
+  }
   arg().laxParse(argc, argv); // make sure the commandline wins
-
   if (::arg()["socket-dir"].empty()) {
-    if (::arg()["chroot"].empty())
+    if (::arg()["chroot"].empty()) {
       ::arg().set("socket-dir") = std::string(LOCALSTATEDIR) + "/pdns-recursor";
-    else
+    }
+    else {
       ::arg().set("socket-dir") = ::arg()["chroot"] + "/";
+    }
   }
   else if (!::arg()["chroot"].empty()) {
     ::arg().set("socket-dir") = ::arg()["chroot"] + "/" + ::arg()["socket-dir"];
+  }
+}
+
+static std::string showIncludeYAML(::rust::String& rdirname)
+{
+  std::string msg;
+  if (rdirname.empty()) {
+    return msg;
+  }
+  const auto dirname = string(rdirname);
+
+  std::vector<std::string> confFiles;
+  ::arg().gatherIncludes(dirname, ".conf", confFiles);
+  msg += "# Found " + std::to_string(confFiles.size()) + " .conf file" + addS(confFiles.size()) + " in " + dirname + "\n";
+  for (const auto& confFile : confFiles) {
+    auto converted = pdns::settings::rec::oldStyleSettingsFileToYaml(confFile, false);
+    msg += "# Converted include-dir " + confFile + " to YAML format:\n";
+    msg += converted;
+    msg += "# Validation result: ";
+    try {
+      // Parse back and validate
+      auto settings = pdns::rust::settings::rec::parse_yaml_string(converted);
+      settings.validate();
+      msg += "OK";
+    }
+    catch (const rust::Error& err) {
+      msg += err.what();
+    }
+    msg += "\n# End of converted " + confFile + "\n#\n";
+  }
+  return msg;
+}
+
+static std::string showForwardFileYAML(const ::rust::string& rfilename)
+{
+  std::string msg;
+  if (rfilename.empty() || boost::ends_with(rfilename, ".yml")) {
+    return msg;
+  }
+  const std::string filename = string(rfilename);
+
+  msg += "# Converted " + filename + " to YAML format for recursor.forward_zones_file: \n";
+  rust::Vec<pdns::rust::settings::rec::ForwardZone> forwards;
+  pdns::settings::rec::oldStyleForwardsFileToBridgeStruct(filename, forwards);
+  auto yaml = pdns::rust::settings::rec::forward_zones_to_yaml_string(forwards);
+  msg += std::string(yaml);
+  msg += "# Validation result: ";
+  try {
+    pdns::rust::settings::rec::validate_forward_zones("forward_zones", forwards);
+    msg += "OK";
+  }
+  catch (const rust::Error& err) {
+    msg += err.what();
+  }
+  msg += "\n# End of converted " + filename + "\n#\n";
+  return msg;
+}
+
+static std::string showAllowYAML(const ::rust::String& rfilename, const string& section, const string& key, const std::function<void(const ::rust::String&, const ::rust::Vec<::rust::String>&)>& func)
+{
+  std::string msg;
+  if (rfilename.empty() || boost::ends_with(rfilename, ".yml")) {
+    return msg;
+  }
+  const std::string filename = string(rfilename);
+
+  msg += "# Converted " + filename + " to YAML format for " + section + "." + key + ": \n";
+  rust::Vec<::rust::String> allows;
+  pdns::settings::rec::oldStyleAllowFileToBridgeStruct(filename, allows);
+  auto yaml = pdns::rust::settings::rec::allow_from_to_yaml_string(allows);
+  msg += std::string(yaml);
+  msg += "# Validation result: ";
+  try {
+    func(key, allows);
+    msg += "OK";
+  }
+  catch (const rust::Error& err) {
+    msg += err.what();
+  }
+  msg += "\n# End of converted " + filename + "\n#\n";
+  return msg;
+}
+
+static RecursorControlChannel::Answer showYAML(const std::string& path)
+{
+  string configName = ::arg()["config-dir"] + "/recursor.conf";
+  if (!::arg()["config-name"].empty()) {
+    configName = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"] + ".conf";
+  }
+  if (!path.empty()) {
+    configName = path;
+  }
+  cleanSlashes(configName);
+
+  try {
+    std::string msg;
+    auto converted = pdns::settings::rec::oldStyleSettingsFileToYaml(configName, true);
+    msg += "# THIS IS A PROOF OF CONCEPT! STRUCTURE, TYPES AND NAMES ARE SUBJECT TO CHANGE\n";
+    msg += "# Start of converted recursor.yml based on " + configName + "\n";
+    msg += converted;
+    msg += "# Validation result: ";
+    pdns::rust::settings::rec::Recursorsettings mainsettings;
+    try {
+      // Parse back and validate
+      mainsettings = pdns::rust::settings::rec::parse_yaml_string(converted);
+      mainsettings.validate();
+      msg += "OK";
+    }
+    catch (const rust::Error& err) {
+      msg += err.what();
+    }
+    msg += "\n# End of converted " + configName + "\n#\n";
+
+    msg += showIncludeYAML(mainsettings.recursor.include_dir);
+    msg += showForwardFileYAML(mainsettings.recursor.forward_zones_file);
+    msg += showAllowYAML(mainsettings.incoming.allow_from_file, "incoming", "allow_from_file", pdns::rust::settings::rec::validate_allow_from);
+    msg += showAllowYAML(mainsettings.incoming.allow_notify_from_file, "incoming", "allow_notify_from_file", pdns::rust::settings::rec::validate_allow_from);
+    msg += showAllowYAML(mainsettings.incoming.allow_notify_for_file, "incoming", "allow_notify_for_file", pdns::rust::settings::rec::validate_allow_for);
+    return {0, msg};
+  }
+  catch (const rust::Error& err) {
+    return {1, std::string(err.what())};
+  }
+  catch (const PDNSException& err) {
+    return {1, std::string(err.reason)};
+  }
+  catch (const std::exception& err) {
+    return {1, std::string(err.what())};
   }
 }
 
@@ -114,7 +266,13 @@ int main(int argc, char** argv)
 
     const vector<string>& commands = arg().getCommands();
 
-    if (commands.size() >= 1 && commands.at(0) == "hash-password") {
+    if (!commands.empty() && commands.at(0) == "show-yaml") {
+      auto [ret, str] = showYAML(commands.size() > 1 ? commands.at(1) : "");
+      cout << str << endl;
+      return ret;
+    }
+
+    if (!commands.empty() && commands.at(0) == "hash-password") {
       uint64_t workFactor = CredentialsHolder::s_defaultWorkFactor;
       if (commands.size() > 1) {
         try {

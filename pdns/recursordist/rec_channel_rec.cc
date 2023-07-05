@@ -38,6 +38,8 @@
 #include "rec-tcpout.hh"
 #include "rec-main.hh"
 
+#include "settings/cxxsettings.hh"
+
 std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNum(const std::string& a)
 {
   auto i = a.length();
@@ -2077,7 +2079,8 @@ static RecursorControlChannel::Answer help()
           "unload-lua-script                unload Lua script\n"
           "version                          return Recursor version number\n"
           "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
-          "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"};
+          "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"
+          "show-yaml [file]                 EXPERIMENTAL command to show yaml config derived from old-style config\n"};
 }
 
 template <typename T>
@@ -2267,7 +2270,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
       g_log << Logger::Error << "Unable to reload zones and forwards when chroot()'ed, requested via control channel" << endl;
       return {1, "Unable to reload zones and forwards when chroot()'ed, please restart\n"};
     }
-    return {0, reloadZoneConfiguration()};
+    return {0, reloadZoneConfiguration(g_yamlSettings)};
   }
   if (cmd == "set-ecs-minimum-ttl") {
     return {0, setMinimumECSTTL(begin, end)};

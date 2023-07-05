@@ -8,6 +8,7 @@ import time
 auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
 
 clang_version = os.getenv('CLANG_VERSION', '13')
+rust_version = 'rust-1.72.0-x86_64-unknown-linux-gnu'
 
 all_build_deps = [
     'ccache',
@@ -169,6 +170,10 @@ def install_clang_tidy_tools(c):
 def install_clang_runtime(c):
     # this gives us the symbolizer, for symbols in asan/ubsan traces
     c.sudo(f'apt-get -y --no-install-recommends install clang-{clang_version}')
+
+@task
+def ci_install_rust(c, repo):
+    c.sudo(f'{repo}/builder-support/helpers/install_rust.sh {rust_version}')
 
 def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')

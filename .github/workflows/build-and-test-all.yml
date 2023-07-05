@@ -120,6 +120,7 @@ jobs:
           path: ~/.ccache
           key: recursor-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: recursor-${{ matrix.sanitizers }}-ccache-
+      - run: inv ci-install-rust ${{ env.REPO_HOME }}
       - run: inv ci-autoconf
       - run: inv ci-rec-configure
       - run: inv ci-rec-make-bear
