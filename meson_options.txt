@@ -7,3 +7,4 @@ option('libdecaf', type: 'feature', value: 'auto', description: 'Build support f
 option('libcrypto', type: 'string', value: 'auto', description: 'Build support for libcrypto-based signers (auto, yes, no, or a path)')
 option('libssl', type: 'feature', value: 'auto', description: 'Build support for libssl')
 option('gnutls', type: 'feature', value: 'auto', description: 'Build support for GnuTLS')
+option('dns-over-tls', type: 'boolean', value: false, description: 'Enable DNS over TLS (requires GnuTLS or OpenSSL)')
