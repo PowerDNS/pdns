@@ -11,6 +11,9 @@ project(
   ],
 )
 
+# Setup some modules
+fs = import('fs')
+
 # Create the configuration object and dependencies list.
 conf = configuration_data()
 deps = []
@@ -38,6 +41,13 @@ subdir('meson/libssl')          # OpenSSL libssl
 subdir('meson/gnutls')          # GnuTLS
 subdir('meson/dot')             # DNS over TLS
 subdir('meson/ipcipher')        # IPCipher
+subdir('meson/ragel')           # Find Ragel
+
+# Find or generate pdns/dnslabeltext.cc
+if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
+  error('Ragel is missing and `pdns/dnslabeltext.cc` cannot be found. ' +
+        'Install Ragel or download the sources from www.powerdns.com')
+endif
 
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
