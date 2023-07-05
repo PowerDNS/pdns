@@ -9,7 +9,7 @@ Logging
 In a production environment, you will want to be able to monitor PowerDNS performance.
 Furthermore, PowerDNS can perform a configurable amount of operational logging.
 
-On modern Linux distributions, the PowerDNS recursor logs to stdout, which is consumed by ``systemd-journald``.
+On modern Linux distributions, the PowerDNS recursor logs to stderr, which is consumed by ``systemd-journald``.
 This means that looking into the logs that are produced, `journalctl <https://www.freedesktop.org/software/systemd/man/journalctl.html>`_ can be used::
 
     # journalctl -u pdns-recursor -n 100

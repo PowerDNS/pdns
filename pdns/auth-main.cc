@@ -195,7 +195,7 @@ static void declareArguments()
   ::arg().set("control-console", "Debugging switch - don't use") = "no"; // but I know you will!
   ::arg().set("loglevel", "Amount of logging. Higher is more. Do not set below 3") = "4";
   ::arg().setSwitch("loglevel-show", "Include log level indicator in log output") = "no";
-  ::arg().set("disable-syslog", "Disable logging to syslog, useful when running inside a supervisor that logs stdout") = "no";
+  ::arg().set("disable-syslog", "Disable logging to syslog, useful when running inside a supervisor that logs stderr") = "no";
   ::arg().set("log-timestamp", "Print timestamps in log lines") = "yes";
   ::arg().set("distributor-threads", "Default number of Distributor (backend) threads to start") = "3";
   ::arg().set("signing-threads", "Default number of signer threads to start") = "3";
