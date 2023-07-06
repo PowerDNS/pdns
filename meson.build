@@ -46,6 +46,7 @@ subdir('meson/clock-gettime')   # Clock_gettime
 subdir('meson/boost')           # Boost
 subdir('meson/unit-tests')      # Unit Tests
 subdir('meson/reproducible')    # Reproducible Builds
+subdir('meson/fuzz-targets')    # Fuzzing Targets
 
 # Boost Program Options library
 dep_boost_program_options = dependency('boost', modules: ['program_options'], required: true)

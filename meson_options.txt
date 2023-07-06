@@ -12,3 +12,4 @@ option('ipcipher', type: 'feature', value: 'auto', description: 'Enable ipcipher
 option('unit-tests', type: 'boolean', value: false, description: 'Enable building unit tests')
 option('backend-unit-tests', type: 'boolean', value: false, description: 'Enable building backend unit tests')
 option('reproducible', type: 'boolean', value: false, description: 'Create reproducible builds. Use this only if you are a distribution maintainer and need reproducible builds. If you compile PowerDNS yourself, leave this disabled, as it might make debugging harder')
+option('fuzz-targets', type: 'boolean', value: false, description: 'Enable fuzzing targets')
