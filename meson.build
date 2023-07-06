@@ -50,6 +50,13 @@ subdir('meson/unit-tests')      # Unit Tests
 dep_boost_program_options = dependency('boost', modules: ['program_options'], required: true)
 summary('Boost Program Options', dep_boost_program_options.found(), bool_yn: true, section: 'Boost')
 
+# Backend Unit Tests
+opt_backend_unittests = get_option('backend-unit-tests')
+dep_boost_test = dependency('boost', modules: ['unit_test_framework'], required: opt_backend_unittests)
+conf.set10('BACKEND_UNIT_TESTS', dep_boost_test.found(), description: 'Whether backend unit tests are enabled')
+# There's no need for a summary() here because the summary regarding the Boost.Test
+# framework was already printed as part of the meson/unit-tests subdir.
+
 # Find or generate pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
   error('Ragel is missing and `pdns/dnslabeltext.cc` cannot be found. ' +
