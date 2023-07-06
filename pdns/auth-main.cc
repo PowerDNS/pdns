@@ -122,13 +122,11 @@ AuthZoneCache g_zoneCache;
 std::unique_ptr<DNSProxy> DP{nullptr};
 static std::unique_ptr<DynListener> s_dynListener{nullptr};
 CommunicatorClass Communicator;
-static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
+// static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
 static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
-static vector<DNSDistributor*> s_distributors;
-static shared_ptr<UDPNameserver> s_udpNameserver{nullptr};
-static vector<std::shared_ptr<UDPNameserver>> s_udpReceivers;
 NetmaskGroup g_proxyProtocolACL;
 size_t g_proxyProtocolMaximumSize;
+std::map<std::string, std::vector<std::shared_ptr<UDPNameserver>>> udpNameservers;
 
 ArgvMap& arg()
 {
@@ -360,11 +358,12 @@ static uint64_t getTCPConnectionCount(const std::string& /* str */)
 static uint64_t getQCount(const std::string& /* str */)
 try {
   int totcount = 0;
+  /*
   for (const auto& d : s_distributors) {
     if (!d)
       continue;
     totcount += d->getQueueSize(); // this does locking and other things, so don't get smart
-  }
+  }*/
   return totcount;
 }
 catch (std::exception& e) {
@@ -378,27 +377,27 @@ catch (PDNSException& e) {
 
 static uint64_t getLatency(const std::string& /* str */)
 {
-  return round(avg_latency);
+  return S.read("udp-avg-latency") / S.read("udp-response-latency-count");
 }
 
 static uint64_t getReceiveLatency(const std::string& /* str */)
 {
-  return round(receive_latency);
+  return S.read("udp-receive-latency") / S.read("udp-queries");
 }
 
 static uint64_t getCacheLatency(const std::string& /* str */)
 {
-  return round(cache_latency);
+  return S.read("udp-cache-latency") / S.read("udp-cache-latency-count");
 }
 
 static uint64_t getBackendLatency(const std::string& /* str */)
 {
-  return round(backend_latency);
+  return S.read("udp-backend-latency") / S.read("udp-backend-latency-count");
 }
 
 static uint64_t getSendLatency(const std::string& /* str */)
 {
-  return round(send_latency);
+  return S.read("udp-send-latency") / S.read("udp-response-latency-count");
 }
 
 static void declareStats()
@@ -416,6 +415,15 @@ static void declareStats()
   S.declare("udp6-answers", "Number of IPv6 answers sent out over UDP");
   S.declare("udp6-queries", "Number of IPv6 UDP queries received");
   S.declare("overload-drops", "Queries dropped because backends overloaded");
+
+  S.declare("udp-receive-latency", "Total latency for receiving UDP packets");
+  S.declare("udp-cache-latency", "Total latency for answers from cache for UDP packets");
+  S.declare("udp-cache-latency-count", "Total count of answers from cache for UDP packets");
+  S.declare("udp-backend-latency", "Total latency for answers from backend for UDP packets");
+  S.declare("udp-backend-latency-count", "Total count of answers from backend for UDP packets");
+  S.declare("udp-avg-latency", "Total latency of answering for UDP packets");
+  S.declare("udp-send-latency", "Total latency for sending answers for UDP packets");
+  S.declare("udp-response-latency-count", "Total count of answers for avg and send latency for UDP packets");
 
   S.declare("rd-queries", "Number of recursion desired questions");
   S.declare("recursion-unanswered", "Number of packets unanswered by configured recursor");
@@ -507,7 +515,7 @@ static int isGuarded(char** argv)
   return !!p;
 }
 
-static void sendout(std::unique_ptr<DNSPacket>& a, int start)
+/*static void sendout(shared_ptr<UDPNameserver> nameserver, std::unique_ptr<DNSPacket>& a, int start)
 {
   if (!a)
     return;
@@ -517,7 +525,7 @@ static void sendout(std::unique_ptr<DNSPacket>& a, int start)
     backend_latency = 0.999 * backend_latency + 0.001 * std::max(diff - start, 0);
     start = diff;
 
-    s_udpNameserver->send(*a);
+    nameserver->send(*a);
 
     diff = a->d_dt.udiff();
     send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
@@ -527,12 +535,18 @@ static void sendout(std::unique_ptr<DNSPacket>& a, int start)
   catch (const std::exception& e) {
     g_log << Logger::Error << "Caught unhandled exception while sending a response: " << e.what() << endl;
   }
-}
+}*/
 
 //! The qthread receives questions over the internet via the Nameserver class, and hands them to the Distributor for further processing
-static void qthread(unsigned int num)
-try {
+static void qthread(std::shared_ptr<UDPNameserver> NS)
+{
   setThreadName("pdns/receiver");
+  NS->run();
+}
+
+/*
+try {
+  setThreadName("pdns/udphandler");
 
   s_distributors[num] = DNSDistributor::Create(::arg().asNum("distributor-threads", 1));
   DNSDistributor* distributor = s_distributors[num]; // the big dispatcher!
@@ -550,21 +564,8 @@ try {
 
   int diff, start;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
-  shared_ptr<UDPNameserver> NS;
   std::string buffer;
   ComboAddress accountremote;
-
-  // If we have SO_REUSEPORT then create a new port for all receiver threads
-  // other than the first one.
-  if (s_udpNameserver->canReusePort()) {
-    NS = s_udpReceivers[num];
-    if (NS == nullptr) {
-      NS = s_udpNameserver;
-    }
-  }
-  else {
-    NS = s_udpNameserver;
-  }
 
   for (;;) {
     try {
@@ -657,7 +658,7 @@ try {
       }
 
       try {
-        distributor->question(question, &sendout); // otherwise, give to the distributor
+        distributor->question(question, std::bind(&sendout, NS, std::placeholders::_1, std::placeholders::_2)); // otherwise, give to the distributor
       }
       catch (DistributorFatal& df) { // when this happens, we have leaked loads of memory. Bailing out time.
         _exit(1);
@@ -672,7 +673,7 @@ catch (PDNSException& pe) {
   g_log << Logger::Error << "Fatal error in question thread: " << pe.reason << endl;
   _exit(1);
 }
-
+*/
 static void dummyThread()
 {
 }
@@ -856,11 +857,11 @@ static void mainthread()
 
   s_tcpNameserver->go(); // tcp nameserver launch
 
-  unsigned int max_rthreads = ::arg().asNum("receiver-threads", 1);
-  s_distributors.resize(max_rthreads);
-  for (unsigned int n = 0; n < max_rthreads; ++n) {
-    std::thread t(qthread, n);
-    t.detach();
+  for (auto& addressNameservers : udpNameservers) {
+    for (auto& nameserver : addressNameservers.second) {
+      std::thread t(qthread, nameserver);
+      t.detach();
+    }
   }
 
   std::thread carbonThread(carbonDumpThread); // runs even w/o carbon, might change @ runtime
@@ -1450,21 +1451,42 @@ int main(int argc, char** argv)
       }
     }
 
-    s_udpNameserver = std::make_shared<UDPNameserver>(); // this fails when we are not root, throws exception
-    s_udpReceivers.push_back(s_udpNameserver);
+    try {
+      declareStats();
+    }
+    catch (PDNSException& PE) {
+      g_log << Logger::Error << "Exiting because: " << PE.reason << endl;
+      exit(1);
+    }
 
-    size_t rthreads = ::arg().asNum("receiver-threads", 1);
-    if (rthreads > 1 && s_udpNameserver->canReusePort()) {
-      s_udpReceivers.resize(rthreads);
+    if (::arg()["local-address"].empty())
+      g_log << Logger::Critical << "PDNS is deaf and mute! Not listening on any interfaces" << endl;
 
-      for (size_t idx = 1; idx < rthreads; idx++) {
-        try {
-          s_udpReceivers[idx] = std::make_shared<UDPNameserver>(true);
-        }
-        catch (const PDNSException& e) {
-          g_log << Logger::Error << "Unable to reuse port, falling back to original bind" << endl;
-          break;
-        }
+    std::vector<string> locals;
+    stringtok(locals, ::arg()["local-address"], " ,");
+
+    NameserverStats udpNsStats(
+      *S.getPointer("udp-queries"),
+      *S.getPointer("udp-do-queries"),
+      *S.getPointer("udp-cookie-queries"),
+      *S.getPointer("udp4-queries"),
+      *S.getPointer("udp6-queries"),
+      *S.getPointer("udp-receive-latency"),
+      *S.getPointer("udp-cache-latency"),
+      *S.getPointer("udp-cache-latency-count"),
+      *S.getPointer("udp-avg-latency"),
+      *S.getPointer("udp-send-latency"),
+      *S.getPointer("udp-response-latency-count"),
+      *S.getPointer("udp-backend-latency"),
+      *S.getPointer("udp-backend-latency-count"));
+
+    for (const auto& i : locals) {
+      ComboAddress addr(i, ::arg().asNum("local-port"));
+      g_localaddresses.push_back(addr);
+      UDPBindAddress udpAddr(addr, ::arg().mustDo("reuseport"), ::arg().mustDo("non-local-bind"), ::arg().mustDo("local-address-nonexist-fail"));
+      auto receiverThreads = ::arg().asNum("receiver-threads", 1);
+      for (int j = 0; j < receiverThreads; ++j) {
+        udpNameservers[i].push_back(std::make_shared<UDPNameserver>(udpNsStats, ::arg().mustDo("log-dns-queries"), udpAddr));
       }
     }
 
@@ -1475,13 +1497,6 @@ int main(int argc, char** argv)
     exit(1);
   }
 
-  try {
-    declareStats();
-  }
-  catch (PDNSException& PE) {
-    g_log << Logger::Error << "Exiting because: " << PE.reason << endl;
-    exit(1);
-  }
   S.blacklist("special-memory-usage");
 
   DLOG(g_log << Logger::Warning << "Verbose logging in effect" << endl);
