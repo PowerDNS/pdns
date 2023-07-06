@@ -58,6 +58,14 @@ if not fs.exists('pdns/api-swagger.json') and not python_have_venv
 endif
 # TODO Generate api-swagger.json
 
+# Manpages
+if not fs.exists('docs/pdns_server.1') and not python_have_venv
+  warning('Python3 and/or its venv module is not available and ' +
+          '`docs/pdns_server.1` cannot be found. ' +
+          'Documentation will not be built.')
+endif
+# TODO Generate pdns_server.1 manpage
+
 # Sqlite3
 opt_sqlite3 = get_option('sqlite3')
 # TODO Use Sqlite3
