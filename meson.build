@@ -50,6 +50,14 @@ subdir('meson/fuzz-targets')    # Fuzzing Targets
 subdir('meson/python-venv')     # Python Venv
 subdir('meson/from-git')        # From Git
 
+# Swagger
+if not fs.exists('pdns/api-swagger.json') and not python_have_venv
+  error('Python3 and/or its venv module is not available and ' +
+        '`pdns/api-swagger.json` cannot be found. ' +
+        'The Authoritative Server cannot be built.')
+endif
+# TODO Generate api-swagger.json
+
 # Sqlite3
 opt_sqlite3 = get_option('sqlite3')
 # TODO Use Sqlite3
