@@ -9,3 +9,4 @@ option('libssl', type: 'feature', value: 'auto', description: 'Build support for
 option('gnutls', type: 'feature', value: 'auto', description: 'Build support for GnuTLS')
 option('dns-over-tls', type: 'boolean', value: false, description: 'Enable DNS over TLS (requires GnuTLS or OpenSSL)')
 option('ipcipher', type: 'feature', value: 'auto', description: 'Enable ipcipher support (requires libcrypto)')
+option('unit-tests', type: 'boolean', value: false, description: 'Enable building unit tests')
