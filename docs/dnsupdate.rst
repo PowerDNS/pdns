@@ -1,5 +1,5 @@
-Dynamic DNS Update (RFC2136)
-============================
+Dynamic DNS Update (RFC 2136)
+=============================
 
 Starting with the PowerDNS Authoritative Server 3.4.0, DNS update
 support is available. There are a number of items NOT supported:
