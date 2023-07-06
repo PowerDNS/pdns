@@ -48,6 +48,7 @@ subdir('meson/unit-tests')      # Unit Tests
 subdir('meson/reproducible')    # Reproducible Builds
 subdir('meson/fuzz-targets')    # Fuzzing Targets
 subdir('meson/python-venv')     # Python Venv
+subdir('meson/from-git')        # From Git
 
 # Sqlite3
 opt_sqlite3 = get_option('sqlite3')
