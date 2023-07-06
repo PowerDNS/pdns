@@ -2624,17 +2624,133 @@ bool LMDBBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
 
 string LMDBBackend::directBackendCmd(const string& query)
 {
-  if (query == "info") {
-    ostringstream ret;
+  ostringstream ret, usage;
 
+  usage << "info                               show some information about the database" << endl;
+  usage << "index check domains                check zone<>ID indexes" << endl;
+  usage << "index refresh domains <ID>         refresh index for zone with this ID" << endl;
+  usage << "index refresh-all domains          refresh index for all zones with disconnected indexes" << endl;
+  vector<string> argv;
+  stringtok(argv, query);
+
+  if (argv.empty()) {
+    return usage.str();
+  }
+
+  string& cmd = argv[0];
+
+  if (cmd == "help") {
+    return usage.str();
+  }
+
+  if (cmd == "info") {
     ret << "shards: " << s_shards << endl;
     ret << "schemaversion: " << SCHEMAVERSION << endl;
 
     return ret.str();
   }
-  else {
-    return "unknown lmdbbackend command\n";
+
+  if (cmd == "index") {
+    if (argv.size() < 2) {
+      return "need an index subcommand\n";
+    }
+
+    string& subcmd = argv[1];
+
+    if (subcmd == "check" || subcmd == "refresh-all") {
+      bool refresh = false;
+
+      if (subcmd == "refresh-all") {
+        refresh = true;
+      }
+
+      if (argv.size() < 3) {
+        return "need an index name\n";
+      }
+
+      if (argv[2] != "domains") {
+        return "can only check the domains index\n";
+      }
+
+      vector<uint32_t> refreshQueue;
+
+      {
+        auto txn = d_tdomains->getROTransaction();
+
+        for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+          DomainInfo di = *iter;
+
+          auto id = iter.getID();
+
+          LMDBIDvec ids;
+          txn.get_multi<0>(di.zone, ids);
+
+          if (ids.size() != 1) {
+            ret << "ID->zone index has " << id << "->" << di.zone << ", ";
+
+            if (ids.empty()) {
+              ret << "zone->ID index has no entry for " << di.zone << endl;
+              if (refresh) {
+                refreshQueue.push_back(id);
+              }
+              else {
+                ret << "  suggested remedy: index refresh domains " << id << endl;
+              }
+            }
+            else {
+              // ids.size() > 1
+              ret << "zone->ID index has multiple entries for " << di.zone << ": ";
+              for (auto id_ : ids) {
+                ret << id_ << " ";
+              }
+              ret << endl;
+            }
+          }
+        }
+      }
+
+      if (refresh) {
+        for (const auto& id : refreshQueue) {
+          if (genChangeDomain(id, [](DomainInfo& /* di */) {})) {
+            ret << "refreshed " << id << endl;
+          }
+          else {
+            ret << "failed to refresh " << id << endl;
+          }
+        }
+      }
+      return ret.str();
+    }
+    if (subcmd == "refresh") {
+      // index refresh domains 12345
+      if (argv.size() < 4) {
+        return "usage: index refresh domains <ID>\n";
+      }
+
+      if (argv[2] != "domains") {
+        return "can only refresh in the domains index\n";
+      }
+
+      uint32_t id = 0;
+
+      try {
+        id = pdns::checked_stoi<uint32_t>(argv[3]);
+      }
+      catch (const std::out_of_range& e) {
+        return "ID out of range\n";
+      }
+
+      if (genChangeDomain(id, [](DomainInfo& /* di */) {})) {
+        ret << "refreshed" << endl;
+      }
+      else {
+        ret << "failed" << endl;
+      }
+      return ret.str();
+    }
   }
+
+  return "unknown lmdbbackend command\n";
 }
 
 class LMDBFactory : public BackendFactory
