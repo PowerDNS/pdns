@@ -59,14 +59,17 @@ endif
 
 # Boost Program Options library
 dep_boost_program_options = dependency('boost', modules: ['program_options'], required: true)
-summary('Boost Program Options', dep_boost_program_options.found(), bool_yn: true, section: 'Boost')
+deps += dep_boost_program_options
+summary('Program Options', dep_boost_program_options.found(), bool_yn: true, section: 'Boost')
 
 # Backend Unit Tests
 opt_backend_unittests = get_option('backend-unit-tests')
 dep_boost_test = dependency('boost', modules: ['unit_test_framework'], required: opt_backend_unittests)
-conf.set10('BACKEND_UNIT_TESTS', dep_boost_test.found(), description: 'Whether backend unit tests are enabled')
-# There's no need for a summary() here because the summary regarding the Boost.Test
-# framework was already printed as part of the meson/unit-tests subdir.
+deps += dep_boost_test
+conf.set10('BACKEND_UNIT_TESTS', opt_backend_unittests, description: 'Whether backend unit tests are enabled')
+if not opt_unittests
+  summary('Test', dep_boost_test.found(), bool_yn: true, section: 'Boost')
+endif
 
 # Sqlite3
 opt_sqlite3 = get_option('sqlite3')
