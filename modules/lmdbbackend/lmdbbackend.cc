@@ -2625,7 +2625,7 @@ string LMDBBackend::directBackendCmd(const string& query)
   usage << "info                               show some information about the database" << endl;
   usage << "index check domains                check zone<>ID indexes" << endl;
   usage << "index refresh domains <ID>         refresh index for zone with this ID" << endl;
-
+  usage << "index refresh-all domains          refresh index for all zones with disconnected indexes" << endl;
   vector<string> argv;
   stringtok(argv, query);
 
@@ -2653,7 +2653,13 @@ string LMDBBackend::directBackendCmd(const string& query)
 
     string& subcmd = argv[1];
 
-    if (subcmd == "check") {
+    if (subcmd == "check" || subcmd == "refresh-all") {
+      bool refresh = false;
+
+      if (subcmd == "refresh-all") {
+        refresh = true;
+      }
+
       if (argv.size() < 3) {
         return "need an index name\n";
       }
@@ -2662,30 +2668,50 @@ string LMDBBackend::directBackendCmd(const string& query)
         return "can only check the domains index\n";
       }
 
-      auto txn = d_tdomains->getROTransaction();
+      vector<uint32_t> refreshQueue;
 
-      for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
-        DomainInfo di = *iter;
+      {
+        auto txn = d_tdomains->getROTransaction();
 
-        auto id = iter.getID();
+        for (auto iter = txn.begin(); iter != txn.end(); ++iter) {
+          DomainInfo di = *iter;
 
-        LMDBIDvec ids;
-        txn.get_multi<0>(di.zone, ids);
+          auto id = iter.getID();
 
-        if (ids.size() != 1) {
-          ret << "ID->zone index has " << id << "->" << di.zone << ", ";
+          LMDBIDvec ids;
+          txn.get_multi<0>(di.zone, ids);
 
-          if (ids.empty()) {
-            ret << "zone->ID index has no entry for " << di.zone << endl;
-            ret << "  suggested remedy: index refresh domains " << id << endl;
+          if (ids.size() != 1) {
+            ret << "ID->zone index has " << id << "->" << di.zone << ", ";
+
+            if (ids.empty()) {
+              ret << "zone->ID index has no entry for " << di.zone << endl;
+              if (refresh) {
+                refreshQueue.push_back(id);
+              }
+              else {
+                ret << "  suggested remedy: index refresh domains " << id << endl;
+              }
+            }
+            else {
+              // ids.size() > 1
+              ret << "zone->ID index has multiple entries for " << di.zone << ": ";
+              for (auto id_ : ids) {
+                ret << id_ << " ";
+              }
+              ret << endl;
+            }
+          }
+        }
+      }
+
+      if (refresh) {
+        for (const auto& id : refreshQueue) {
+          if (genChangeDomain(id, [](DomainInfo& /* di */) {})) {
+            ret << "refreshed " << id << endl;
           }
           else {
-            // ids.size() > 1
-            ret << "zone->ID index has multiple entries for " << di.zone << ": ";
-            for (auto id_ : ids) {
-              ret << id_ << " ";
-            }
-            ret << endl;
+            ret << "failed to refresh " << id << endl;
           }
         }
       }
