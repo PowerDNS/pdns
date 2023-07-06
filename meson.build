@@ -91,6 +91,23 @@ if not fs.exists('docs/pdns_server.1') and not python_have_venv
 endif
 # TODO Generate pdns_server.1 manpage
 
+# Various Functions
+funcs = [
+  'strcasestr',
+  'localtime_r',
+  'gmtime_r',
+  'recvmmsg',
+  'sched_setscheduler',
+  'getrandom',
+  'arc4random',
+]
+foreach func: funcs
+  found = cxx.has_function(func)
+  define = 'HAVE_' + func.to_upper()
+  conf.set10(define, found, description: 'Whether we have ' + func)
+  # summary(func, found, bool_yn: true, section: 'Various Functions')
+endforeach
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # TODO Meson 0.57
