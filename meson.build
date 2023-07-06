@@ -49,6 +49,10 @@ subdir('meson/reproducible')    # Reproducible Builds
 subdir('meson/fuzz-targets')    # Fuzzing Targets
 subdir('meson/python-venv')     # Python Venv
 
+# Sqlite3
+opt_sqlite3 = get_option('sqlite3')
+# TODO Use Sqlite3
+
 # Boost Program Options library
 dep_boost_program_options = dependency('boost', modules: ['program_options'], required: true)
 summary('Boost Program Options', dep_boost_program_options.found(), bool_yn: true, section: 'Boost')
