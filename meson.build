@@ -50,6 +50,27 @@ subdir('meson/fuzz-targets')    # Fuzzing Targets
 subdir('meson/python-venv')     # Python Venv
 subdir('meson/from-git')        # From Git
 
+# Find or generate pdns/dnslabeltext.cc
+if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
+  error('Ragel is missing and `pdns/dnslabeltext.cc` cannot be found. ' +
+        'Install Ragel or download the sources from www.powerdns.com')
+endif
+
+# Boost Program Options library
+dep_boost_program_options = dependency('boost', modules: ['program_options'], required: true)
+summary('Boost Program Options', dep_boost_program_options.found(), bool_yn: true, section: 'Boost')
+
+# Backend Unit Tests
+opt_backend_unittests = get_option('backend-unit-tests')
+dep_boost_test = dependency('boost', modules: ['unit_test_framework'], required: opt_backend_unittests)
+conf.set10('BACKEND_UNIT_TESTS', dep_boost_test.found(), description: 'Whether backend unit tests are enabled')
+# There's no need for a summary() here because the summary regarding the Boost.Test
+# framework was already printed as part of the meson/unit-tests subdir.
+
+# Sqlite3
+opt_sqlite3 = get_option('sqlite3')
+# TODO Use Sqlite3
+
 # Swagger
 if not fs.exists('pdns/api-swagger.json') and not python_have_venv
   error('Python3 and/or its venv module is not available and ' +
@@ -65,27 +86,6 @@ if not fs.exists('docs/pdns_server.1') and not python_have_venv
           'Documentation will not be built.')
 endif
 # TODO Generate pdns_server.1 manpage
-
-# Sqlite3
-opt_sqlite3 = get_option('sqlite3')
-# TODO Use Sqlite3
-
-# Boost Program Options library
-dep_boost_program_options = dependency('boost', modules: ['program_options'], required: true)
-summary('Boost Program Options', dep_boost_program_options.found(), bool_yn: true, section: 'Boost')
-
-# Backend Unit Tests
-opt_backend_unittests = get_option('backend-unit-tests')
-dep_boost_test = dependency('boost', modules: ['unit_test_framework'], required: opt_backend_unittests)
-conf.set10('BACKEND_UNIT_TESTS', dep_boost_test.found(), description: 'Whether backend unit tests are enabled')
-# There's no need for a summary() here because the summary regarding the Boost.Test
-# framework was already printed as part of the meson/unit-tests subdir.
-
-# Find or generate pdns/dnslabeltext.cc
-if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
-  error('Ragel is missing and `pdns/dnslabeltext.cc` cannot be found. ' +
-        'Install Ragel or download the sources from www.powerdns.com')
-endif
 
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
