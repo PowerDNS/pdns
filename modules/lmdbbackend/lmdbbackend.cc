@@ -1321,7 +1321,11 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
     idvec.push_back(txn.get<0>(domain, di));
   }
   else {
-    auto txn = d_tdomains->getROTransaction();
+    // this transaction used to be RO.
+    // it is now RW to narrow a race window between PowerDNS and Lightning Stream
+    // FIXME: turn the entire delete, including this ID scan, into one RW transaction
+    // when doing that, first do a short RO check to see if we actually have anything to delete
+    auto txn = d_tdomains->getRWTransaction();
 
     txn.get_multi<0>(domain, idvec);
   }
