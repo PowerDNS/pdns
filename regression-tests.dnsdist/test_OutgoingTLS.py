@@ -5,12 +5,12 @@ import ssl
 import threading
 import time
 
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class OutgoingTLSTests(object):
 
     _webTimeout = 2.0
-    _webServerPort = 8083
+    _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = 'secret'
     _webServerAPIKey = 'apisecret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
@@ -96,7 +96,7 @@ class OutgoingTLSTests(object):
 class BrokenOutgoingTLSTests(object):
 
     _webTimeout = 2.0
-    _webServerPort = 8083
+    _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = 'secret'
     _webServerAPIKey = 'apisecret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
@@ -137,7 +137,7 @@ class BrokenOutgoingTLSTests(object):
         self.checkNoResponderHit()
 
 class TestOutgoingTLSOpenSSL(DNSDistTest, OutgoingTLSTests):
-    _tlsBackendPort = 10443
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -161,11 +161,11 @@ class TestOutgoingTLSOpenSSL(DNSDistTest, OutgoingTLSTests):
 
         print("Launching TLS responder..")
         cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._TLSResponder.setDaemon(True)
+        cls._TLSResponder.daemon = True
         cls._TLSResponder.start()
 
 class TestOutgoingTLSGnuTLS(DNSDistTest, OutgoingTLSTests):
-    _tlsBackendPort = 10444
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -182,11 +182,11 @@ class TestOutgoingTLSGnuTLS(DNSDistTest, OutgoingTLSTests):
 
         print("Launching TLS responder..")
         cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._TLSResponder.setDaemon(True)
+        cls._TLSResponder.daemon = True
         cls._TLSResponder.start()
 
 class TestOutgoingTLSOpenSSLWrongCertName(DNSDistTest, BrokenOutgoingTLSTests):
-    _tlsBackendPort = 10445
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -202,11 +202,11 @@ class TestOutgoingTLSOpenSSLWrongCertName(DNSDistTest, BrokenOutgoingTLSTests):
 
         print("Launching TLS responder..")
         cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._TLSResponder.setDaemon(True)
+        cls._TLSResponder.daemon = True
         cls._TLSResponder.start()
 
 class TestOutgoingTLSGnuTLSWrongCertName(DNSDistTest, BrokenOutgoingTLSTests):
-    _tlsBackendPort = 10446
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -222,11 +222,11 @@ class TestOutgoingTLSGnuTLSWrongCertName(DNSDistTest, BrokenOutgoingTLSTests):
 
         print("Launching TLS responder..")
         cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._TLSResponder.setDaemon(True)
+        cls._TLSResponder.daemon = True
         cls._TLSResponder.start()
 
 class TestOutgoingTLSOpenSSLWrongCertNameButNoCheck(DNSDistTest, OutgoingTLSTests):
-    _tlsBackendPort = 10447
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -242,11 +242,11 @@ class TestOutgoingTLSOpenSSLWrongCertNameButNoCheck(DNSDistTest, OutgoingTLSTest
 
         print("Launching TLS responder..")
         cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._TLSResponder.setDaemon(True)
+        cls._TLSResponder.daemon = True
         cls._TLSResponder.start()
 
 class TestOutgoingTLSGnuTLSWrongCertNameButNoCheck(DNSDistTest, OutgoingTLSTests):
-    _tlsBackendPort = 10448
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -262,5 +262,5 @@ class TestOutgoingTLSGnuTLSWrongCertNameButNoCheck(DNSDistTest, OutgoingTLSTests
 
         print("Launching TLS responder..")
         cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._TLSResponder.setDaemon(True)
+        cls._TLSResponder.daemon = True
         cls._TLSResponder.start()

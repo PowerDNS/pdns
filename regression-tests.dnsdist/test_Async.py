@@ -5,7 +5,7 @@ import socket
 import threading
 import unittest
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 def AsyncResponder(listenPath, responsePath):
     # Make sure the socket does not already exist
@@ -81,7 +81,7 @@ def AsyncResponder(listenPath, responsePath):
 asyncResponderSocketPath = '/tmp/async-responder.sock'
 dnsdistSocketPath = '/tmp/dnsdist.sock'
 asyncResponder = threading.Thread(name='Asynchronous Responder', target=AsyncResponder, args=[asyncResponderSocketPath, dnsdistSocketPath])
-asyncResponder.setDaemon(True)
+asyncResponder.daemon = True
 asyncResponder.start()
 
 class AsyncTests(object):
@@ -439,8 +439,8 @@ class TestAsyncFFI(DNSDistTest, AsyncTests):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = 8453
-    _dohServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
 
     _config_template = """
@@ -549,8 +549,8 @@ class TestAsyncLua(DNSDistTest, AsyncTests):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = 8453
-    _dohServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
 
     _config_template = """

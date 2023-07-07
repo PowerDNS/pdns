@@ -2,7 +2,7 @@
 import struct
 import time
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 try:
   range = xrange
@@ -13,7 +13,7 @@ class TestTCPLimits(DNSDistTest):
 
     # this test suite uses a different responder port
     # because it uses a different health check configuration
-    _testServerPort = 5395
+    _testServerPort = pickAvailablePort()
     _answerUnexpected = True
 
     _tcpIdleTimeout = 2
@@ -134,7 +134,7 @@ class TestTCPFrontendLimits(DNSDistTest):
 
     # this test suite uses a different responder port
     # because it uses a different health check configuration
-    _testServerPort = 5395
+    _testServerPort = pickAvailablePort()
     _answerUnexpected = True
 
     _skipListeningOnCL = True

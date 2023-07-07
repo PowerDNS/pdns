@@ -5,7 +5,7 @@ import socket
 import struct
 import sys
 import time
-from dnsdisttests import DNSDistTest, Queue
+from dnsdisttests import DNSDistTest, Queue, pickAvailablePort
 
 import dns
 import dnstap_pb2
@@ -78,7 +78,7 @@ def checkDnstapResponse(testinstance, dnstap, protocol, response, initiator='127
 
 
 class TestDnstapOverRemoteLogger(DNSDistTest):
-    _remoteLoggerServerPort = 4243
+    _remoteLoggerServerPort = pickAvailablePort()
     _remoteLoggerQueue = Queue()
     _remoteLoggerCounter = 0
     _config_params = ['_testServerPort', '_remoteLoggerServerPort']
@@ -151,7 +151,7 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
         DNSDistTest.startResponders()
 
         cls._remoteLoggerListener = threading.Thread(name='RemoteLogger Listener', target=cls.RemoteLoggerListener, args=[cls._remoteLoggerServerPort])
-        cls._remoteLoggerListener.setDaemon(True)
+        cls._remoteLoggerListener.daemon = True
         cls._remoteLoggerListener.start()
 
     def getFirstDnstap(self):
@@ -384,7 +384,7 @@ class TestDnstapOverFrameStreamUnixLogger(DNSDistTest):
         DNSDistTest.startResponders()
 
         cls._fstrmLoggerListener = threading.Thread(name='FrameStreamUnixListener', target=cls.FrameStreamUnixListener, args=[cls._fstrmLoggerAddress])
-        cls._fstrmLoggerListener.setDaemon(True)
+        cls._fstrmLoggerListener.daemon = True
         cls._fstrmLoggerListener.start()
 
     def getFirstDnstap(self):
@@ -433,7 +433,7 @@ class TestDnstapOverFrameStreamUnixLogger(DNSDistTest):
 
 
 class TestDnstapOverFrameStreamTcpLogger(DNSDistTest):
-    _fstrmLoggerPort = 4000
+    _fstrmLoggerPort = pickAvailablePort()
     _fstrmLoggerQueue = Queue()
     _fstrmLoggerCounter = 0
     _config_params = ['_testServerPort', '_fstrmLoggerPort']
@@ -466,7 +466,7 @@ class TestDnstapOverFrameStreamTcpLogger(DNSDistTest):
         DNSDistTest.startResponders()
 
         cls._fstrmLoggerListener = threading.Thread(name='FrameStreamUnixListener', target=cls.FrameStreamUnixListener, args=[cls._fstrmLoggerPort])
-        cls._fstrmLoggerListener.setDaemon(True)
+        cls._fstrmLoggerListener.daemon = True
         cls._fstrmLoggerListener.start()
 
     def getFirstDnstap(self):

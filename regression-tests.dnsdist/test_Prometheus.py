@@ -3,13 +3,13 @@ import os
 import requests
 import subprocess
 import unittest
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 @unittest.skipIf('SKIP_PROMETHEUS_TESTS' in os.environ, 'Prometheus tests are disabled')
 class TestPrometheus(DNSDistTest):
 
     _webTimeout = 2.0
-    _webServerPort = 8083
+    _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = 'secret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
     _webServerAPIKey = 'apisecret'

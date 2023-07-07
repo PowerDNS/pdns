@@ -4,7 +4,7 @@ import dns
 import os
 import subprocess
 import unittest
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class DNSDistOCSPStaplingTest(DNSDistTest):
 
@@ -46,7 +46,7 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
     _ocspFile = 'server.ocsp'
     _caCert = 'ca.pem'
     _caKey = 'ca.key'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     setKey("%s")
@@ -101,7 +101,7 @@ class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
     _caCert = 'ca.pem'
     # invalid OCSP file!
     _ocspFile = '/dev/null'
-    _tlsServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     setKey("%s")
@@ -128,7 +128,7 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
     _ocspFile = 'server.ocsp'
     _caCert = 'ca.pem'
     _caKey = 'ca.key'
-    _tlsServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     setKey("%s")
@@ -146,7 +146,7 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         """
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
         self.assertIn('OCSP Response Status: successful (0x0)', output)
-        self.assertEquals(self.getTLSProvider(), "gnutls")
+        self.assertEqual(self.getTLSProvider(), "gnutls")
 
         serialNumber = self.getOCSPSerial(output)
         self.assertTrue(serialNumber)
@@ -171,7 +171,7 @@ class TestBrokenOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
     _caCert = 'ca.pem'
     # invalid OCSP file!
     _ocspFile = '/dev/null'
-    _tlsServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     setKey("%s")
@@ -187,7 +187,7 @@ class TestBrokenOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         """
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
         self.assertNotIn('OCSP Response Status: successful (0x0)', output)
-        self.assertEquals(self.getTLSProvider(), "gnutls")
+        self.assertEqual(self.getTLSProvider(), "gnutls")
 
 class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
 
@@ -199,7 +199,7 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
     _ocspFile = 'server.ocsp'
     _caCert = 'ca.pem'
     _caKey = 'ca.key'
-    _tlsServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     setKey("%s")
@@ -217,7 +217,7 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         """
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
         self.assertIn('OCSP Response Status: successful (0x0)', output)
-        self.assertEquals(self.getTLSProvider(), "openssl")
+        self.assertEqual(self.getTLSProvider(), "openssl")
 
         serialNumber = self.getOCSPSerial(output)
         self.assertTrue(serialNumber)
@@ -242,7 +242,7 @@ class TestBrokenOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
     _caCert = 'ca.pem'
     # invalid OCSP file!
     _ocspFile = '/dev/null'
-    _tlsServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     setKey("%s")
@@ -258,4 +258,4 @@ class TestBrokenOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         """
         output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
         self.assertNotIn('OCSP Response Status: successful (0x0)', output)
-        self.assertEquals(self.getTLSProvider(), "openssl")
+        self.assertEqual(self.getTLSProvider(), "openssl")

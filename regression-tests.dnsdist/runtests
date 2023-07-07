@@ -45,15 +45,15 @@ make certs
 
 out=$(mktemp)
 set -o pipefail
-if ! nosetests --with-xunit $@ 2>&1 | tee "${out}" ; then
+if ! pytest --junitxml=pytest.xml --dist=loadfile -n auto $@ 2>&1 | tee "${out}" ; then
     for log in configs/*.log; do
         echo "=== ${log} ==="
         cat "${log}"
         echo
     done
-    echo "=== nosetests log ==="
+    echo "=== pytest log ==="
     cat "${out}"
-    echo "=== end of nosetests log ==="
+    echo "=== end of pytest log ==="
     false
 fi
 rm -f "${out}"
