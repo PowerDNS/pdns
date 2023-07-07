@@ -154,7 +154,7 @@ dnl Checks for library functions.
 dnl the *_r functions are in posix so we can use them unconditionally, but the ext/yahttp code is
 dnl using the defines.
 AC_CHECK_FUNCS_ONCE([strcasestr localtime_r gmtime_r recvmmsg sched_setscheduler])
-AC_CHECK_FUNCS_ONCE([getrandom getentropy arc4random arc4random_uniform arc4random_buf])
+AC_CHECK_FUNCS_ONCE([explicit_bzero memset_s getrandom getentropy arc4random arc4random_uniform arc4random_buf])
 
 AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
 

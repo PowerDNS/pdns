@@ -6,5 +6,6 @@ libarc4random_la_SOURCES = \
 	arc4random_uniform.c \
 	bsd-getentropy.c \
 	chacha_private.h \
+	explicit_bzero.c \
 	includes.h \
 	log.h
