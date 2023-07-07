@@ -15,3 +15,4 @@ option('reproducible', type: 'boolean', value: false, description: 'Create repro
 option('fuzz-targets', type: 'boolean', value: false, description: 'Enable fuzzing targets')
 option('sqlite3', type: 'boolean', value: false, description: 'Include the sqlite3 driver')
 option('verbose-logging', type: 'boolean', value: false, description: 'Enable verbose logging')
+option('pkcs11', type: 'boolean', value: false, description: 'Enable PKCS11 support (experimental)')
