@@ -2,6 +2,44 @@ Changelogs for 4.8.x
 ====================
 
 .. changelog::
+  :version: 4.8.1
+  :released: 7th of July 2023
+
+  This is release 4.8.1 of the Authoritative Server.
+
+  This release contains a small collection of fixes:
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12996
+
+    lmdb: in Lightning Stream mode, during deleteDomain, use RW transaction to get ID list
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12997
+
+    lmdb: add backend commands for checking & refreshing indexes
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12993
+
+    Stop using the now deprecated ERR_load_CRYPTO_strings() to detect OpenSSL
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12992
+
+    YaHTTP: Prevent integer overflow on very large chunks
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12991
+
+    Work around Red Hat 8 pooping the bed in OpenSSL's headers
+
+.. changelog::
   :version: 4.8.0
   :released: 1st of June 2023
 
