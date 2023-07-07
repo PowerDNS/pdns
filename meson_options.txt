@@ -14,3 +14,4 @@ option('backend-unit-tests', type: 'boolean', value: false, description: 'Enable
 option('reproducible', type: 'boolean', value: false, description: 'Create reproducible builds. Use this only if you are a distribution maintainer and need reproducible builds. If you compile PowerDNS yourself, leave this disabled, as it might make debugging harder')
 option('fuzz-targets', type: 'boolean', value: false, description: 'Enable fuzzing targets')
 option('sqlite3', type: 'boolean', value: false, description: 'Include the sqlite3 driver')
+option('verbose-logging', type: 'boolean', value: false, description: 'Enable verbose logging')

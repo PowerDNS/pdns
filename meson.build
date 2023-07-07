@@ -50,6 +50,7 @@ subdir('meson/fuzz-targets')    # Fuzzing Targets
 subdir('meson/python-venv')     # Python Venv
 subdir('meson/from-git')        # From Git
 subdir('meson/dlopen')          # dlopen
+subdir('meson/verbose-logging') # Verbose Logging
 
 # Find or generate pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
