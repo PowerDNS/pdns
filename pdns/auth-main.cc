@@ -685,8 +685,6 @@ static void triggerLoadOfLibraries()
 
 static void mainthread()
 {
-  Utility::srandom();
-
   gid_t newgid = 0;
   if (!::arg()["setgid"].empty())
     newgid = strToGID(::arg()["setgid"]);
@@ -1303,8 +1301,6 @@ int main(int argc, char** argv)
 
     openssl_thread_setup();
     openssl_seed();
-    /* setup rng */
-    dns_random_init();
 
 #ifdef HAVE_LUA_RECORDS
     MiniCurl::init();

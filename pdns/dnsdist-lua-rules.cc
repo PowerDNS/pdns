@@ -22,6 +22,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-rules.hh"
+#include "dns_random.hh"
 
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
 {
@@ -443,9 +444,9 @@ void setupLuaRules(LuaContext& luaCtx)
       items.reserve(1000);
       for (int n = 0; n < 1000; ++n) {
         struct item i;
-        i.ids.qname = DNSName(std::to_string(random()));
+        i.ids.qname = DNSName(std::to_string(dns_random_uint32()));
         i.ids.qname += suffix;
-        i.ids.qtype = random() % 0xff;
+        i.ids.qtype = dns_random(0xff);
         i.ids.qclass = QClass::IN;
         i.ids.protocol = dnsdist::Protocol::DoUDP;
         i.ids.origRemote = ComboAddress("127.0.0.1");

@@ -204,14 +204,6 @@ int Utility::gettimeofday( struct timeval *tv, void * /* tz */)
   return ::gettimeofday(tv, nullptr);
 }
 
-// Sets the random seed.
-void Utility::srandom()
-{
-  struct timeval tv;
-  gettimeofday(&tv, nullptr);
-  ::srandom(tv.tv_sec ^ tv.tv_usec ^ getpid());
-}
-
 // Writes a vector.
 int Utility::writev(int socket, const iovec *vector, size_t count )
 {

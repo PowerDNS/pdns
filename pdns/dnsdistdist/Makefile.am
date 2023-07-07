@@ -13,7 +13,8 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS=ext/ipcrypt \
+SUBDIRS=ext/arc4random \
+	ext/ipcrypt \
 	ext/yahttp
 
 CLEANFILES = \
@@ -354,7 +355,8 @@ dnsdist_LDADD = \
 	$(SYSTEMD_LIBS) \
 	$(NET_SNMP_LIBS) \
 	$(LIBCAP_LIBS) \
-	$(IPCRYPT_LIBS)
+	$(IPCRYPT_LIBS) \
+	$(ARC4RANDOM_LIBS)
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -368,7 +370,8 @@ testrunner_LDADD = \
 	$(LIBSODIUM_LIBS) \
 	$(LUA_LIBS) \
 	$(RT_LIBS) \
-	$(LIBCAP_LIBS)
+	$(LIBCAP_LIBS) \
+	$(ARC4RANDOM_LIBS)
 
 if HAVE_CDB
 dnsdist_LDADD += $(CDB_LDFLAGS) $(CDB_LIBS)

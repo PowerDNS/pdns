@@ -112,7 +112,10 @@ PDNS_CHECK_CURL
 
 dnl the *_r functions are in posix so we can use them unconditionally, but the ext/yahttp code is
 dnl using the defines.
-AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r strcasestr getrandom arc4random])
+AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r strcasestr])
+AC_CHECK_FUNCS_ONCE([getrandom getentropy arc4random arc4random_uniform arc4random_buf])
+
+AC_CHECK_HEADERS([sys/random.h])
 
 PDNS_CHECK_PTHREAD_NP
 
@@ -190,6 +193,7 @@ CXXVERSION=`$CXX --version | head -1`
 
 AC_CONFIG_FILES([Makefile
 	ext/Makefile
+	ext/arc4random/Makefile
 	ext/json11/Makefile
 	ext/probds/Makefile
 	ext/yahttp/Makefile

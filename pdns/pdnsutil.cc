@@ -156,8 +156,6 @@ static void loadMainConfig(const std::string& configdir)
   }
 #endif
   openssl_seed();
-  /* init rng before chroot */
-  dns_random_init();
 
   if (!::arg()["chroot"].empty()) {
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
@@ -218,7 +216,7 @@ static void dbBench(const std::string& fname)
     while(B.get(rr)) {
       hits++;
     }
-    B.lookup(QType(QType::A), DNSName(std::to_string(random()))+domain, -1);
+    B.lookup(QType(QType::A), DNSName(std::to_string(dns_random_uint32()))+domain, -1);
     while(B.get(rr)) {
     }
     misses++;

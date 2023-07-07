@@ -40,6 +40,7 @@
 #include <unistd.h>
 
 #include "base64.hh"
+#include "dns_random.hh"
 #include "credentials.hh"
 #include "misc.hh"
 
@@ -373,7 +374,7 @@ CredentialsHolder::CredentialsHolder(std::string&& password, bool hashPlaintext)
   }
 
   if (!d_isHashed) {
-    d_fallbackHashPerturb = random();
+    d_fallbackHashPerturb = dns_random_uint32();
     d_fallbackHash = burtle(reinterpret_cast<const unsigned char*>(d_credentials.getString().data()), d_credentials.getString().size(), d_fallbackHashPerturb);
   }
 }
