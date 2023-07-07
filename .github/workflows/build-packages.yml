@@ -120,7 +120,7 @@ jobs:
         shell: bash
         id: srchashes
         run: |
-          echo "srchashes=$(sha256sum ./built_pkgs/*/*/${{ inputs.product }}-${{ steps.getversion.outputs.version }}.tar.bz2 ./packages/*.json | base64 -w0)" >> $GITHUB_OUTPUT
+          echo "srchashes=$(sha256sum ./built_pkgs/*/*/${{ steps.normalize-name.outputs.normalized-package-name }}-${{ steps.getversion.outputs.version }}.tar.bz2 ./packages/*.json | base64 -w0)" >> $GITHUB_OUTPUT
       - name: Upload packages to downloads.powerdns.com
         env:
           SSHKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
