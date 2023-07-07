@@ -349,7 +349,7 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
             query = query.to_wire()
             sock.send(query)
             (data, remote) = sock.recvfrom(4096)
-            self.assertEquals(remote[0], '127.0.0.2')
+            self.assertEqual(remote[0], '127.0.0.2')
         except socket.timeout:
             data = None
 
@@ -383,7 +383,7 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
             data = query.to_wire()
             sock.send(data)
             (data, remote) = sock.recvfrom(4096)
-            self.assertEquals(remote[0], '127.0.0.2')
+            self.assertEqual(remote[0], '127.0.0.2')
         except socket.timeout:
             data = None
 
@@ -403,7 +403,7 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
             data = query.to_wire()
             sock.send(data)
             (data, remote) = sock.recvfrom(4096)
-            self.assertEquals(remote[0], '::1')
+            self.assertEqual(remote[0], '::1')
         except socket.timeout:
             data = None
 
@@ -451,7 +451,7 @@ class TestAdvancedGetLocalAddressOnNonDefaultLoopbackBind(DNSDistTest):
             data = query.to_wire()
             sock.send(data)
             (data, remote) = sock.recvfrom(4096)
-            self.assertEquals(remote[0], '127.0.1.19')
+            self.assertEqual(remote[0], '127.0.1.19')
         except socket.timeout:
             data = None
 

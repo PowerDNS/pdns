@@ -7,6 +7,7 @@ import unittest
 import clientsubnetoption
 
 from dnsdistdohtests import DNSDistDOHTest
+from dnsdisttests import pickAvailablePort
 
 import pycurl
 from io import BytesIO
@@ -17,7 +18,7 @@ class TestDOH(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _customResponseHeader1 = 'access-control-allow-origin: *'
     _customResponseHeader2 = 'user-agent: derp'
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
@@ -527,7 +528,7 @@ class TestDOHSubPaths(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
@@ -585,7 +586,7 @@ class TestDOHAddingECS(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
@@ -676,7 +677,7 @@ class TestDOHAddingECS(DNSDistDOHTest):
 
 class TestDOHOverHTTP(DNSDistDOHTest):
 
-    _dohServerPort = 8480
+    _dohServerPort = pickAvailablePort()
     _serverName = 'tls.tests.dnsdist.org'
     _dohBaseURL = ("http://%s:%d/dns-query" % (_serverName, _dohServerPort))
     _config_template = """
@@ -684,9 +685,9 @@ class TestDOHOverHTTP(DNSDistDOHTest):
     addDOHLocal("127.0.0.1:%s")
     """
     _config_params = ['_testServerPort', '_dohServerPort']
-    _checkConfigExpectedOutput = b"""No certificate provided for DoH endpoint 127.0.0.1:8480, running in DNS over HTTP mode instead of DNS over HTTPS
+    _checkConfigExpectedOutput = b"""No certificate provided for DoH endpoint 127.0.0.1:%d, running in DNS over HTTP mode instead of DNS over HTTPS
 Configuration 'configs/dnsdist_TestDOHOverHTTP.conf' OK!
-"""
+""" % (_dohServerPort)
 
     def testDOHSimple(self):
         """
@@ -745,7 +746,7 @@ class TestDOHWithCache(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
@@ -954,7 +955,7 @@ class TestDOHWithoutCacheControl(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
@@ -995,7 +996,7 @@ class TestDOHFFI(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _customResponseHeader1 = 'access-control-allow-origin: *'
     _customResponseHeader2 = 'user-agent: derp'
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
@@ -1057,7 +1058,7 @@ class TestDOHForwardedFor(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
@@ -1123,7 +1124,7 @@ class TestDOHForwardedForNoTrusted(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
@@ -1159,14 +1160,14 @@ class TestDOHFrontendLimits(DNSDistDOHTest):
 
     # this test suite uses a different responder port
     # because it uses a different health check configuration
-    _testServerPort = 5395
+    _testServerPort = pickAvailablePort()
     _answerUnexpected = True
 
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
 
     _skipListeningOnCL = True
@@ -1227,7 +1228,7 @@ class TestProtocols(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _customResponseHeader1 = 'access-control-allow-origin: *'
     _customResponseHeader2 = 'user-agent: derp'
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
@@ -1268,7 +1269,7 @@ class TestDOHWithPCKS12Cert(DNSDistDOHTest):
     _pkcs12Password = 'passw0rd'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s"}
@@ -1305,7 +1306,7 @@ class TestDOHForwardedToTCPOnly(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%s", tcpOnly=true}
@@ -1338,7 +1339,7 @@ class TestDOHForwardedToTCPOnly(DNSDistDOHTest):
 class TestDOHLimits(DNSDistDOHTest):
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _serverKey = 'server.key'
     _serverCert = 'server.chain'

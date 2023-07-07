@@ -7,12 +7,12 @@ import ssl
 import threading
 import time
 
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class OutgoingDOHTests(object):
 
     _webTimeout = 2.0
-    _webServerPort = 8083
+    _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = 'secret'
     _webServerAPIKey = 'apisecret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
@@ -148,7 +148,7 @@ class OutgoingDOHTests(object):
 class BrokenOutgoingDOHTests(object):
 
     _webTimeout = 2.0
-    _webServerPort = 8083
+    _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = 'secret'
     _webServerAPIKey = 'apisecret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
@@ -192,7 +192,7 @@ class BrokenOutgoingDOHTests(object):
 class OutgoingDOHBrokenResponsesTests(object):
 
     _webTimeout = 2.0
-    _webServerPort = 8083
+    _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = 'secret'
     _webServerAPIKey = 'apisecret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
@@ -263,7 +263,7 @@ class OutgoingDOHBrokenResponsesTests(object):
         self.assertEqual(response, receivedResponse)
 
 class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
-    _tlsBackendPort = 10543
+    _tlsBackendPort = pickAvailablePort()
     _tlsProvider = 'openssl'
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
@@ -299,11 +299,11 @@ class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
 
         print("Launching DOH responder..")
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
 class TestOutgoingDOHGnuTLS(DNSDistTest, OutgoingDOHTests):
-    _tlsBackendPort = 10544
+    _tlsBackendPort = pickAvailablePort()
     _tlsProvider = 'gnutls'
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
@@ -331,11 +331,11 @@ class TestOutgoingDOHGnuTLS(DNSDistTest, OutgoingDOHTests):
 
         print("Launching DOH responder..")
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
 class TestOutgoingDOHOpenSSLWrongCertName(DNSDistTest, BrokenOutgoingDOHTests):
-    _tlsBackendPort = 10545
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -351,11 +351,11 @@ class TestOutgoingDOHOpenSSLWrongCertName(DNSDistTest, BrokenOutgoingDOHTests):
 
         print("Launching DOH responder..")
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
 class TestOutgoingDOHGnuTLSWrongCertName(DNSDistTest, BrokenOutgoingDOHTests):
-    _tlsBackendPort = 10546
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -371,11 +371,11 @@ class TestOutgoingDOHGnuTLSWrongCertName(DNSDistTest, BrokenOutgoingDOHTests):
 
         print("Launching DOH responder..")
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
 class TestOutgoingDOHOpenSSLWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTests):
-    _tlsBackendPort = 10547
+    _tlsBackendPort = pickAvailablePort()
     _tlsProvider = 'openssl'
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
@@ -402,11 +402,11 @@ class TestOutgoingDOHOpenSSLWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTest
 
         print("Launching DOH responder..")
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
 class TestOutgoingDOHGnuTLSWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTests):
-    _tlsBackendPort = 10548
+    _tlsBackendPort = pickAvailablePort()
     _tlsProvider = 'gnutls'
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
@@ -433,11 +433,11 @@ class TestOutgoingDOHGnuTLSWrongCertNameButNoCheck(DNSDistTest, OutgoingDOHTests
 
         print("Launching DOH responder..")
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
-        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
 class TestOutgoingDOHBrokenResponsesOpenSSL(DNSDistTest, OutgoingDOHBrokenResponsesTests):
-    _tlsBackendPort = 10549
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -475,11 +475,11 @@ class TestOutgoingDOHBrokenResponsesOpenSSL(DNSDistTest, OutgoingDOHBrokenRespon
 
         print("Launching DOH responder..")
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.callback, tlsContext])
-        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
 class TestOutgoingDOHBrokenResponsesGnuTLS(DNSDistTest, OutgoingDOHBrokenResponsesTests):
-    _tlsBackendPort = 10550
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -512,12 +512,12 @@ class TestOutgoingDOHBrokenResponsesGnuTLS(DNSDistTest, OutgoingDOHBrokenRespons
 
         print("Launching DOH responder..")
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.callback, tlsContext])
-        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
 class TestOutgoingDOHProxyProtocol(DNSDistTest):
 
-    _tlsBackendPort = 10551
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -533,7 +533,7 @@ class TestOutgoingDOHProxyProtocol(DNSDistTest):
 
         print("Launching DOH woth Proxy Protocol responder..")
         cls._DOHResponder = threading.Thread(name='DOH with Proxy Protocol Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext, True])
-        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
     def testPP(self):
@@ -563,7 +563,7 @@ class TestOutgoingDOHProxyProtocol(DNSDistTest):
         self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True)
 
 class TestOutgoingDOHXForwarded(DNSDistTest):
-    _tlsBackendPort = 10560
+    _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort']
     _config_template = """
     setMaxTCPClientThreads(1)
@@ -608,7 +608,7 @@ class TestOutgoingDOHXForwarded(DNSDistTest):
 
         print("Launching DOH responder..")
         cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.callback, tlsContext])
-        cls._DOHResponder.setDaemon(True)
+        cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
     def testXForwarded(self):

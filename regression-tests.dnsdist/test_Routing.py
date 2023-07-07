@@ -3,7 +3,7 @@ import base64
 import threading
 import time
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class TestRoutingPoolRouting(DNSDistTest):
 
@@ -132,7 +132,7 @@ class TestRoutingQPSPoolRouting(DNSDistTest):
 
 class TestRoutingRoundRobinLB(DNSDistTest):
 
-    _testServer2Port = 5351
+    _testServer2Port = pickAvailablePort()
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(roundrobin)
@@ -146,18 +146,18 @@ class TestRoutingRoundRobinLB(DNSDistTest):
     def startResponders(cls):
         print("Launching responders..")
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
         cls._UDPResponder2 = threading.Thread(name='UDP Responder 2', target=cls.UDPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder2.setDaemon(True)
+        cls._UDPResponder2.daemon = True
         cls._UDPResponder2.start()
 
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
         cls._TCPResponder2 = threading.Thread(name='TCP Responder 2', target=cls.TCPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder2.setDaemon(True)
+        cls._TCPResponder2.daemon = True
         cls._TCPResponder2.start()
 
     def testRR(self):
@@ -198,7 +198,7 @@ class TestRoutingRoundRobinLB(DNSDistTest):
 
 class TestRoutingRoundRobinLBOneDown(DNSDistTest):
 
-    _testServer2Port = 5351
+    _testServer2Port = pickAvailablePort()
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(roundrobin)
@@ -250,7 +250,7 @@ class TestRoutingRoundRobinLBOneDown(DNSDistTest):
 
 class TestRoutingRoundRobinLBAllDown(DNSDistTest):
 
-    _testServer2Port = 5351
+    _testServer2Port = pickAvailablePort()
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(roundrobin)
@@ -283,7 +283,7 @@ class TestRoutingRoundRobinLBAllDown(DNSDistTest):
 
 class TestRoutingLuaFFIPerThreadRoundRobinLB(DNSDistTest):
 
-    _testServer2Port = 5351
+    _testServer2Port = pickAvailablePort()
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     -- otherwise we start too many TCP workers, and as each thread
@@ -310,18 +310,18 @@ class TestRoutingLuaFFIPerThreadRoundRobinLB(DNSDistTest):
     def startResponders(cls):
         print("Launching responders..")
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
         cls._UDPResponder2 = threading.Thread(name='UDP Responder 2', target=cls.UDPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder2.setDaemon(True)
+        cls._UDPResponder2.daemon = True
         cls._UDPResponder2.start()
 
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
         cls._TCPResponder2 = threading.Thread(name='TCP Responder 2', target=cls.TCPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder2.setDaemon(True)
+        cls._TCPResponder2.daemon = True
         cls._TCPResponder2.start()
 
     def testRR(self):
@@ -362,7 +362,7 @@ class TestRoutingLuaFFIPerThreadRoundRobinLB(DNSDistTest):
 
 class TestRoutingOrder(DNSDistTest):
 
-    _testServer2Port = 5351
+    _testServer2Port = pickAvailablePort()
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(firstAvailable)
@@ -376,18 +376,18 @@ class TestRoutingOrder(DNSDistTest):
     def startResponders(cls):
         print("Launching responders..")
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
         cls._UDPResponder2 = threading.Thread(name='UDP Responder 2', target=cls.UDPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder2.setDaemon(True)
+        cls._UDPResponder2.daemon = True
         cls._UDPResponder2.start()
 
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
         cls._TCPResponder2 = threading.Thread(name='TCP Responder 2', target=cls.TCPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder2.setDaemon(True)
+        cls._TCPResponder2.daemon = True
         cls._TCPResponder2.start()
 
     def testOrder(self):
@@ -428,7 +428,7 @@ class TestRoutingOrder(DNSDistTest):
 class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
 
     _verboseMode = True
-    _testServer2Port = 5351
+    _testServer2Port = pickAvailablePort()
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(firstAvailable)
@@ -444,18 +444,18 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
     def startResponders(cls):
         print("Launching responders..")
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
         cls._UDPResponder2 = threading.Thread(name='UDP Responder 2', target=cls.UDPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder2.setDaemon(True)
+        cls._UDPResponder2.daemon = True
         cls._UDPResponder2.start()
 
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
         cls._TCPResponder2 = threading.Thread(name='TCP Responder 2', target=cls.TCPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder2.setDaemon(True)
+        cls._TCPResponder2.daemon = True
         cls._TCPResponder2.start()
 
     def testOrderQPSCacheHits(self):
@@ -577,7 +577,7 @@ class TestRoutingNoServer(DNSDistTest):
 
 class TestRoutingWRandom(DNSDistTest):
 
-    _testServer2Port = 5351
+    _testServer2Port = pickAvailablePort()
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(wrandom)
@@ -591,18 +591,18 @@ class TestRoutingWRandom(DNSDistTest):
     def startResponders(cls):
         print("Launching responders..")
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
         cls._UDPResponder2 = threading.Thread(name='UDP Responder 2', target=cls.UDPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder2.setDaemon(True)
+        cls._UDPResponder2.daemon = True
         cls._UDPResponder2.start()
 
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
         cls._TCPResponder2 = threading.Thread(name='TCP Responder 2', target=cls.TCPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder2.setDaemon(True)
+        cls._TCPResponder2.daemon = True
         cls._TCPResponder2.start()
 
     def testWRandom(self):
@@ -648,7 +648,7 @@ class TestRoutingWRandom(DNSDistTest):
 
 class TestRoutingHighValueWRandom(DNSDistTest):
 
-    _testServer2Port = 5351
+    _testServer2Port = pickAvailablePort()
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_testServer2Port']
@@ -666,18 +666,18 @@ class TestRoutingHighValueWRandom(DNSDistTest):
     def startResponders(cls):
         print("Launching responders..")
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
         cls._UDPResponder2 = threading.Thread(name='UDP Responder 2', target=cls.UDPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder2.setDaemon(True)
+        cls._UDPResponder2.daemon = True
         cls._UDPResponder2.start()
 
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
         cls._TCPResponder2 = threading.Thread(name='TCP Responder 2', target=cls.TCPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder2.setDaemon(True)
+        cls._TCPResponder2.daemon = True
         cls._TCPResponder2.start()
 
     def testHighValueWRandom(self):
