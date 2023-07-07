@@ -155,6 +155,7 @@ dnl the *_r functions are in posix so we can use them unconditionally, but the e
 dnl using the defines.
 AC_CHECK_FUNCS_ONCE([strcasestr localtime_r gmtime_r recvmmsg sched_setscheduler])
 AC_CHECK_FUNCS_ONCE([getrandom getentropy arc4random arc4random_uniform arc4random_buf])
+PDNS_CHECK_SECURE_MEMSET
 
 AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
 
