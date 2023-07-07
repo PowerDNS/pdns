@@ -1,6 +1,7 @@
 #pragma once
 
-#include <inttypes.h>
+#include <cstddef>
+#include <cinttypes>
 
 extern "C"
 {
