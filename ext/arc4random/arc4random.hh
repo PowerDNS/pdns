@@ -15,6 +15,6 @@ extern "C"
   uint32_t arc4random_uniform(uint32_t upper_bound);
 #endif
 #ifndef HAVE_EXPLICIT_BZERO
-  void explicit_bzero(void *, size_t len);
+  void explicit_bzero(void*, size_t len);
 #endif
 }
