@@ -94,7 +94,6 @@ private:
     uint16_t d_responseCode{0};
     bool d_finished{false};
   };
-  void addToIOState(IOState state, FDMultiplexer::callbackfunc_t callback);
   void updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback, bool noTTD = false);
   void watchForRemoteHostClosingConnection();
   void handleResponse(PendingRequest&& request);
@@ -509,37 +508,6 @@ void DoHConnectionToBackend::watchForRemoteHostClosingConnection()
 {
   if (willBeReusable(false) && !d_healthCheckQuery) {
     updateIO(IOState::NeedRead, handleReadableIOCallback, false);
-  }
-}
-
-void DoHConnectionToBackend::addToIOState(IOState state, FDMultiplexer::callbackfunc_t callback)
-{
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
-
-  gettimeofday(&now, nullptr);
-  boost::optional<struct timeval> ttd{boost::none};
-  if (state == IOState::NeedRead) {
-    ttd = getBackendReadTTD(now);
-  }
-  else if (isFresh() && d_firstWrite == 0) {
-    /* first write just after the non-blocking connect */
-    ttd = getBackendConnectTTD(now);
-  }
-  else {
-    ttd = getBackendWriteTTD(now);
-  }
-
-  auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
-  if (shared) {
-    if (state == IOState::NeedRead) {
-      d_ioState->add(state, callback, shared, ttd);
-    }
-    else if (state == IOState::NeedWrite) {
-      d_ioState->add(state, callback, shared, ttd);
-    }
   }
 }
 
