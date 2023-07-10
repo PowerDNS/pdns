@@ -200,7 +200,6 @@ extern NetmaskGroup g_paddingFrom;
 extern unsigned int g_paddingTag;
 extern PaddingMode g_paddingMode;
 extern unsigned int g_maxMThreads;
-extern unsigned int g_dns64CNameTTL;
 extern bool g_reusePort;
 extern bool g_anyToTcp;
 extern size_t g_tcpMaxQueriesPerConn;
