@@ -836,7 +836,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         data = r.json()
         print("status for axfr-retrieve:", data)
         self.assertEqual(data['result'], u'Added retrieval request for \'' + payload['name'] +
-                         '\' from master 127.0.0.2')
+                         '\' from primary 127.0.0.2')
 
     def test_notify_master_zone(self):
         name, payload, data = self.create_zone(kind='Master')
