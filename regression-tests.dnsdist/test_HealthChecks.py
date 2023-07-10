@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import base64
+import requests
+import ssl
 import threading
 import time
-import ssl
 import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
@@ -17,11 +18,26 @@ class HealthCheckTest(DNSDistTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
     newServer{address="127.0.0.1:%d"}
     """
 
     def getBackendStatus(self):
         return self.sendConsoleCommand("if getServer(0):isUp() then return 'up' else return 'down' end").strip("\n")
+
+    def getBackendMetric(self, backendID, metricName):
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        self.assertIn('servers', content)
+        servers = content['servers']
+        server = servers[backendID]
+        return int(server[metricName])
 
 class TestDefaultHealthCheck(HealthCheckTest):
     # this test suite uses a different responder port
@@ -35,6 +51,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
         self.assertEqual(self.getBackendStatus(), 'up')
 
         self.sendConsoleCommand("getServer(0):setUp()")
@@ -68,6 +85,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
         time.sleep(1.5)
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
 
 class TestHealthCheckForcedUP(HealthCheckTest):
     # this test suite uses a different responder port
@@ -77,6 +95,8 @@ class TestHealthCheckForcedUP(HealthCheckTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d"}
     srv:setUp()
     """
@@ -89,6 +109,7 @@ class TestHealthCheckForcedUP(HealthCheckTest):
         time.sleep(1.5)
         self.assertEqual(TestHealthCheckForcedUP._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
 
 class TestHealthCheckForcedDown(HealthCheckTest):
     # this test suite uses a different responder port
@@ -98,6 +119,8 @@ class TestHealthCheckForcedDown(HealthCheckTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d"}
     srv:setDown()
     """
@@ -109,6 +132,7 @@ class TestHealthCheckForcedDown(HealthCheckTest):
         before = TestHealthCheckForcedDown._healthCheckCounter
         time.sleep(1.5)
         self.assertEqual(TestHealthCheckForcedDown._healthCheckCounter, before)
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
 
 class TestHealthCheckCustomName(HealthCheckTest):
     # this test suite uses a different responder port
@@ -116,10 +140,12 @@ class TestHealthCheckCustomName(HealthCheckTest):
     _testServerPort = pickAvailablePort()
 
     _healthCheckName = 'powerdns.com.'
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_healthCheckName']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_webServerPort', '_webServerAPIKeyHashed', '_testServerPort', '_healthCheckName']
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d", checkName='%s'}
     """
 
@@ -131,6 +157,7 @@ class TestHealthCheckCustomName(HealthCheckTest):
         time.sleep(1.5)
         self.assertGreater(TestHealthCheckCustomName._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
 
 class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
     # this test suite uses a different responder port
@@ -141,6 +168,8 @@ class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d", checkName='powerdns.com.'}
     """
 
@@ -152,6 +181,8 @@ class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
         time.sleep(1.5)
         self.assertEqual(TestHealthCheckCustomNameNoAnswer._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'down')
+        self.assertGreater(self.getBackendMetric(0, 'healthCheckFailures'), 0)
+        self.assertGreater(self.getBackendMetric(0, 'healthCheckFailuresTimeout'), 0)
 
 class TestHealthCheckCustomFunction(HealthCheckTest):
     # this test suite uses a different responder port
@@ -163,6 +194,8 @@ class TestHealthCheckCustomFunction(HealthCheckTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
 
     function myHealthCheckFunction(qname, qtype, qclass, dh)
       dh:setCD(true)

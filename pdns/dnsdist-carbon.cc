@@ -98,6 +98,12 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       str << base << "tcpavgqueriesperconnection" << ' ' << state->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
       str << base << "tcpavgconnectionduration" << ' ' << state->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
       str << base << "tcptoomanyconcurrentconnections" << ' ' << state->tcpTooManyConcurrentConnections.load() << " " << now << "\r\n";
+      str << base << "healthcheckfailures" << ' ' << state->d_healthCheckMetrics.d_failures << " " << now << "\r\n";
+      str << base << "healthcheckfailuresparsing" << ' ' << state->d_healthCheckMetrics.d_parseErrors << " " << now << "\r\n";
+      str << base << "healthcheckfailurestimeout" << ' ' << state->d_healthCheckMetrics.d_timeOuts << " " << now << "\r\n";
+      str << base << "healthcheckfailuresnetwork" << ' ' << state->d_healthCheckMetrics.d_networkErrors << " " << now << "\r\n";
+      str << base << "healthcheckfailuresmismatch" << ' ' << state->d_healthCheckMetrics.d_mismatchErrors << " " << now << "\r\n";
+      str << base << "healthcheckfailuresinvalid" << ' ' << state->d_healthCheckMetrics.d_invalidResponseErrors << " " << now << "\r\n";
     }
 
     std::map<std::string, uint64_t> frontendDuplicates;
