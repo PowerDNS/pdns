@@ -1064,6 +1064,9 @@ class TestDOHForwardedFor(DNSDistDOHTest):
 
     setACL('192.0.2.1/32')
     addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {trustForwardedForHeader=true})
+    -- Set a maximum number of TCP connections per client, to exercise
+    -- that code along with X-Forwarded-For support
+    setMaxTCPConnectionsPerClient(2)
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey']
 

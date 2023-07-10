@@ -951,7 +951,7 @@ static bool getHTTPHeaderValue(const h2o_req_t* req, const std::string& headerNa
 }
 
 /* can only be called from the main DoH thread */
-static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote)
+static std::optional<ComboAddress> processForwardedForHeader(const h2o_req_t* req, const ComboAddress& remote)
 {
   static const std::string headerName = "x-forwarded-for";
   std::string_view value;
@@ -969,8 +969,7 @@ static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote
           value = value.substr(pos);
         }
       }
-      auto newRemote = ComboAddress(std::string(value));
-      remote = newRemote;
+      return ComboAddress(std::string(value));
     }
     catch (const std::exception& e) {
       vinfolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.what());
@@ -979,6 +978,8 @@ static void processForwardedForHeader(const h2o_req_t* req, ComboAddress& remote
       vinfolog("Invalid X-Forwarded-For header ('%s') received from %s : %s", std::string(value), remote.toStringWithPort(), e.reason);
     }
   }
+
+  return std::nullopt;
 }
 
 /*
@@ -1013,14 +1014,18 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       h2o_socket_getsockname(sock, reinterpret_cast<struct sockaddr*>(&conn.d_local));
     }
 
+    auto remote = conn.d_remote;
     if (dsc->df->d_trustForwardedForHeader) {
-      processForwardedForHeader(req, conn.d_remote);
+      auto newRemote = processForwardedForHeader(req, remote);
+      if (newRemote) {
+        remote = std::move(*newRemote);
+      }
     }
 
     auto& holders = dsc->holders;
-    if (!holders.acl->match(conn.d_remote)) {
+    if (!holders.acl->match(remote)) {
       ++g_stats.aclDrops;
-      vinfolog("Query from %s (DoH) dropped because of ACL", conn.d_remote.toStringWithPort());
+      vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
       h2o_send_error_403(req, "Forbidden", "dns query not allowed because of ACL", 0);
       return 0;
     }
@@ -1076,7 +1081,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       query.reserve(req->entity.len + maxAdditionalSizeForEDNS);
       query.resize(req->entity.len);
       memcpy(query.data(), req->entity.base, req->entity.len);
-      doh_dispatch_query(dsc, self, req, std::move(query), conn.d_local, conn.d_remote, std::move(path));
+      doh_dispatch_query(dsc, self, req, std::move(query), conn.d_local, remote, std::move(path));
     }
     else if(req->query_at != SIZE_MAX && (req->path.len - req->query_at > 5)) {
       auto pos = path.find("?dns=");
@@ -1115,7 +1120,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
           else
             ++dsc->df->d_http1Stats.d_nbQueries;
 
-          doh_dispatch_query(dsc, self, req, std::move(decoded), conn.d_local, conn.d_remote, std::move(path));
+          doh_dispatch_query(dsc, self, req, std::move(decoded), conn.d_local, remote, std::move(path));
         }
       }
       else
