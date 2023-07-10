@@ -3115,14 +3115,14 @@ try
     }
     return createZone(DNSName(cmds.at(1)), cmds.size() > 2 ? DNSName(cmds.at(2)) : DNSName());
   }
-  else if (cmds.at(0) == "create-secondary-zone" || cmds.at(0) == "create-slave-zone") {
+  else if (cmds.at(0) == "create-secondary-zone") {
     if(cmds.size() < 3 ) {
       cerr << "Syntax: pdnsutil create-secondary-zone ZONE primary-ip [primary-ip..]" << endl;
       return 0;
     }
     return createSecondaryZone(cmds);
   }
-  else if (cmds.at(0) == "change-secondary-zone-primary" || cmds.at(0) == "change-slave-zone-master") {
+  else if (cmds.at(0) == "change-secondary-zone-primary") {
     if(cmds.size() < 3 ) {
       cerr << "Syntax: pdnsutil change-secondary-zone-primary ZONE primary-ip [primary-ip..]" << endl;
       return 0;
@@ -3799,9 +3799,9 @@ try
     }
     DNSName zname(cmds.at(1));
     string name = cmds.at(2);
-    if (cmds.at(3) == "primary" || cmds.at(3) == "master" || cmds.at(3) == "producer")
+    if (cmds.at(3) == "primary" || cmds.at(3) == "producer")
       metaKey = "TSIG-ALLOW-AXFR";
-    else if (cmds.at(3) == "secondary" || cmds.at(3) == "consumer" || cmds.at(3) == "slave")
+    else if (cmds.at(3) == "secondary" || cmds.at(3) == "consumer")
       metaKey = "AXFR-MASTER-TSIG";
     else {
       cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary type" << endl;
@@ -3844,9 +3844,9 @@ try
     }
     DNSName zname(cmds.at(1));
     string name = cmds.at(2);
-    if (cmds.at(3) == "primary" || cmds.at(3) == "producer" || cmds.at(3) == "master")
+    if (cmds.at(3) == "primary" || cmds.at(3) == "producer")
       metaKey = "TSIG-ALLOW-AXFR";
-    else if (cmds.at(3) == "secondary" || cmds.at(3) == "consumer" || cmds.at(3) == "slave")
+    else if (cmds.at(3) == "secondary" || cmds.at(3) == "consumer")
       metaKey = "AXFR-MASTER-TSIG";
     else {
       cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary type" << endl;

@@ -41,7 +41,7 @@ gsql_master()
         fi
         if [ "$zone" = "tsig.com" ]; then
             $PDNSUTIL --config-dir=. --config-name=$backend import-tsig-key test $ALGORITHM $KEY
-            $PDNSUTIL --config-dir=. --config-name=$backend activate-tsig-key tsig.com test master
+            $PDNSUTIL --config-dir=. --config-name=$backend activate-tsig-key tsig.com test primary
         fi
     done
 

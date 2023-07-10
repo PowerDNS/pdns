@@ -82,7 +82,7 @@ __EOF__
             fi
             if [ "$zone" = "tsig.com" ]; then
                 $PDNSUTIL --config-dir=. --config-name=bind import-tsig-key test $ALGORITHM $KEY
-                $PDNSUTIL --config-dir=. --config-name=bind activate-tsig-key tsig.com test master
+                $PDNSUTIL --config-dir=. --config-name=bind activate-tsig-key tsig.com test primary
             fi
         done
 

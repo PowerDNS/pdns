@@ -63,8 +63,8 @@ class TestIXFR(AuthTest):
 launch=gsqlite3 bind
 gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-dnssec
-slave
-slave-cycle-interval=1
+secondary
+xfr-cycle-interval=1
 query-cache-ttl=20
 negquery-cache-ttl=60
 """
@@ -76,7 +76,7 @@ negquery-cache-ttl=60
     @classmethod
     def setUpClass(cls):
         super(TestIXFR, cls).setUpClass()
-        os.system("$PDNSUTIL --config-dir=configs/auth create-slave-zone example. 127.0.0.1:%s" % (xfrServerPort,))
+        os.system("$PDNSUTIL --config-dir=configs/auth create-secondary-zone example. 127.0.0.1:%s" % (xfrServerPort,))
         os.system("$PDNSUTIL --config-dir=configs/auth set-meta example. IXFR 1")
 
     def waitUntilCorrectSerialIsLoaded(self, serial, timeout=10):

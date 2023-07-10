@@ -165,7 +165,6 @@ static void declareArguments()
   ::arg().set("proxy-protocol-maximum-size", "The maximum size of a proxy protocol payload, including the TLV values") = "512";
   ::arg().setSwitch("send-signed-notify", "Send TSIG secured NOTIFY if TSIG key is configured for a zone") = "yes";
   ::arg().set("allow-unsigned-notify", "Allow unsigned notifications for TSIG secured zones") = "yes"; // FIXME: change to 'no' later
-  ::arg().set("allow-unsigned-supermaster", "Allow supermasters to create zones without TSIG signed NOTIFY") = "yes";
   ::arg().set("allow-unsigned-autoprimary", "Allow autoprimaries to create zones without TSIG signed NOTIFY") = "yes";
   ::arg().setSwitch("forward-dnsupdate", "A global setting to allow DNS update packages that are for a Secondary zone, to be forwarded to the primary.") = "yes";
   ::arg().setSwitch("log-dns-details", "If PDNS should log DNS non-erroneous details") = "no";
@@ -212,7 +211,6 @@ static void declareArguments()
   ::arg().set("only-notify", "Only send AXFR NOTIFY to these IP addresses or netmasks") = "0.0.0.0/0,::/0";
   ::arg().set("also-notify", "When notifying a zone, also notify these nameservers") = "";
   ::arg().set("allow-notify-from", "Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.") = "0.0.0.0/0,::/0";
-  ::arg().set("slave-cycle-interval", "Schedule secondary freshness checks once every .. seconds") = "";
   ::arg().set("xfr-cycle-interval", "Schedule primary/secondary SOA freshness checks once every .. seconds") = "60";
   ::arg().set("secondary-check-signature-freshness", "Check signatures in SOA freshness check. Sets DO flag on SOA queries. Outside some very problematic scenarios, say yes here.") = "yes";
 
@@ -221,12 +219,9 @@ static void declareArguments()
   ::arg().set("tcp-control-secret", "If set, PowerDNS can be controlled over TCP after passing this secret") = "";
   ::arg().set("tcp-control-range", "If set, remote control of PowerDNS is possible over these networks only") = "127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10";
 
-  ::arg().setSwitch("slave", "Act as a secondary") = "no";
   ::arg().setSwitch("secondary", "Act as a secondary") = "no";
-  ::arg().setSwitch("master", "Act as a primary") = "no";
   ::arg().setSwitch("primary", "Act as a primary") = "no";
-  ::arg().setSwitch("superslave", "Act as a autosecondary") = "no";
-  ::arg().setSwitch("autosecondary", "Act as an autosecondary (formerly superslave)") = "no";
+  ::arg().setSwitch("autosecondary", "Act as an autosecondary") = "no";
   ::arg().setSwitch("disable-axfr-rectify", "Disable the rectify step during an outgoing AXFR. Only required for regression testing.") = "no";
   ::arg().setSwitch("guardian", "Run within a guardian process") = "no";
   ::arg().setSwitch("prevent-self-notification", "Don't send notifications to what we think is ourself") = "yes";
@@ -266,7 +261,6 @@ static void declareArguments()
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy") = "";
-  ::arg().set("slave-renotify", "If we should send out notifications for secondaried updates") = "no";
   ::arg().set("secondary-do-renotify", "If this secondary should send out notifications after receiving zone transfers from a primary") = "no";
   ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of primary or secondary settings") = "";
 
@@ -1242,34 +1236,11 @@ int main(int argc, char** argv)
         g_log << Logger::Error << "Unknown logging facility " << ::arg().asNum("logging-facility") << endl;
     }
 
-    if (::arg().mustDo("master"))
-      ::arg().set("primary") = "yes";
-    if (::arg().mustDo("slave"))
-      ::arg().set("secondary") = "yes";
-    if (::arg().mustDo("slave-renotify"))
-      ::arg().set("secondary-do-renotify") = "yes";
-    if (::arg().mustDo("superslave"))
-      ::arg().set("autosecondary") = "yes";
-    if (::arg().mustDo("allow-unsigned-supermaster"))
-      ::arg().set("allow-unsigned-autoprimary") = "yes";
     if (!::arg().isEmpty("domain-metadata-cache-ttl"))
       ::arg().set("zone-metadata-cache-ttl") = ::arg()["domain-metadata-cache-ttl"];
-    if (!::arg().isEmpty("slave-cycle-interval"))
-      ::arg().set("xfr-cycle-interval") = ::arg()["slave-cycle-interval"];
 
     // this mirroring back is on purpose, so that config dumps reflect the actual setting on both names
-    if (::arg().mustDo("primary"))
-      ::arg().set("master") = "yes";
-    if (::arg().mustDo("secondary"))
-      ::arg().set("slave") = "yes";
-    if (::arg().mustDo("secondary-do-renotify"))
-      ::arg().set("slave-renotify") = "yes";
-    if (::arg().mustDo("autosecondary"))
-      ::arg().set("superslave") = "yes";
-    if (::arg().mustDo("allow-unsigned-autoprimary"))
-      ::arg().set("allow-unsigned-supermaster") = "yes";
     ::arg().set("domain-metadata-cache-ttl") = ::arg()["zone-metadata-cache-ttl"];
-    ::arg().set("slave-cycle-interval") = ::arg()["xfr-cycle-interval"];
 
     g_log.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
     g_log.disableSyslog(::arg().mustDo("disable-syslog"));

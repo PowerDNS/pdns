@@ -22,7 +22,7 @@ __EOF__
 		sqlite3 pdns.sqlite32 "INSERT INTO domains (name, type, master) VALUES('$zone','SLAVE','127.0.0.1:$port');"
 		if [ "$zone" = "tsig.com" ]; then
 			$PDNSUTIL --config-dir=. --config-name=gsqlite32 import-tsig-key test $ALGORITHM $KEY
-			$PDNSUTIL --config-dir=. --config-name=gsqlite32 activate-tsig-key tsig.com test slave
+			$PDNSUTIL --config-dir=. --config-name=gsqlite32 activate-tsig-key tsig.com test secondary
 		fi
 		if [ "$zone" = "stest.com" ]; then
 			if [[ $skipreasons != *nolua* ]]; then

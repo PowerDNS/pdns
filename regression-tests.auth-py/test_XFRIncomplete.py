@@ -144,12 +144,12 @@ class XFRIncompleteAuthTest(AuthTest):
 launch=gsqlite3 bind
 gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-dnssec
-slave
+secondary
 cache-ttl=0
 query-cache-ttl=0
 domain-metadata-cache-ttl=0
 negquery-cache-ttl=0
-slave-cycle-interval=1
+xfr-cycle-interval=1
 #loglevel=9
 #axfr-fetch-timeout=20
 """
@@ -157,7 +157,7 @@ slave-cycle-interval=1
     @classmethod
     def setUpClass(cls):
         super(XFRIncompleteAuthTest, cls).setUpClass()
-        os.system("$PDNSUTIL --config-dir=configs/auth create-slave-zone zone.rpz. 127.0.0.1:%s" % (badxfrServerPort,))
+        os.system("$PDNSUTIL --config-dir=configs/auth create-secondary-zone zone.rpz. 127.0.0.1:%s" % (badxfrServerPort,))
         os.system("$PDNSUTIL --config-dir=configs/auth set-meta zone.rpz. IXFR 1")
     
     def waitUntilCorrectSerialIsLoaded(self, serial, timeout=20):

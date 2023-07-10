@@ -27,7 +27,7 @@ __EOF__
 		"$GPGSQL2DB"
 		if [ "$zone" = "tsig.com" ]; then
 			$PDNSUTIL --config-dir=. --config-name=gpgsql2 import-tsig-key test $ALGORITHM $KEY
-			$PDNSUTIL --config-dir=. --config-name=gpgsql2 activate-tsig-key tsig.com test slave
+			$PDNSUTIL --config-dir=. --config-name=gpgsql2 activate-tsig-key tsig.com test secondary
 		fi
 		if [ "$zone" = "stest.com" ]; then
 			if [[ $skipreasons != *nolua* ]]; then
@@ -40,8 +40,8 @@ __EOF__
 
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
 		--config-name=gpgsql2 --socket-dir=./ --no-shuffle \
-		--slave --retrieval-threads=4 \
-		--slave-cycle-interval=300 --dname-processing &
+		--secondary --retrieval-threads=4 \
+		--xfr-cycle-interval=300 --dname-processing &
 
 	echo 'waiting for zones to be slaved'
 	loopcount=0

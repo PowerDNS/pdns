@@ -114,7 +114,7 @@ static void startNewTransaction()
 static void emitDomain(const DNSName& domain, const vector<ComboAddress>* primaries = nullptr)
 {
   string iDomain = domain.toStringRootDot();
-  if(!::arg().mustDo("slave")) {
+  if (!::arg().mustDo("secondary")) {
     cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(iDomain))<<",'NATIVE');"<<endl;
   }
   else
@@ -204,7 +204,7 @@ try
     ::arg().setSwitch("gmysql","Output in format suitable for default gmysqlbackend")="no";
     ::arg().setSwitch("gsqlite","Output in format suitable for default gsqlitebackend")="no";
     ::arg().setSwitch("verbose","Verbose comments on operation")="no";
-    ::arg().setSwitch("slave", "Keep BIND secondaries as secondaries. Only works with named-conf.") = "no";
+    ::arg().setSwitch("secondary", "Keep BIND secondaries as secondaries. Only works with named-conf.") = "no";
     ::arg().setSwitch("json-comments","Parse json={} field for disabled & comments")="no";
     ::arg().setSwitch("transactions","If target SQL supports it, use transactions")="no";
     ::arg().setSwitch("on-error-resume-next","Continue after errors")="no";
