@@ -68,6 +68,7 @@ size_t g_proxyProtocolMaximumSize;
 size_t g_maxUDPQueriesPerRound;
 unsigned int g_maxMThreads;
 unsigned int g_paddingTag;
+unsigned int g_dns64CNameTTL;
 PaddingMode g_paddingMode;
 uint16_t g_udpTruncationThreshold;
 std::atomic<bool> g_quiet;
@@ -770,6 +771,7 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
 
   DNSRecord record;
   record.d_name = qname;
+  record.d_ttl = g_dns64CNameTTL;
   record.d_type = QType::CNAME;
   record.setContent(std::make_shared<CNAMERecordContent>(newquery));
   ret.push_back(record);
