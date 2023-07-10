@@ -2038,7 +2038,7 @@ static int serviceMain(Logr::log_t log)
   std::tie(g_initialDomainMap, g_initialAllowNotifyFor) = parseZoneConfiguration();
 
   g_latencyStatSize = ::arg().asNum("latency-statistic-size");
-
+  g_dns64CNameTTL = ::arg().asNum("dns64-ptr-cname-ttl");
   g_logCommonErrors = ::arg().mustDo("log-common-errors");
   g_logRPZChanges = ::arg().mustDo("log-rpz-changes");
 
@@ -2885,6 +2885,7 @@ static void initArgs()
   ::arg().set("dont-throttle-netmasks", "Do not throttle nameservers with this IP netmask") = "";
   ::arg().set("non-resolving-ns-max-fails", "Number of failed address resolves of a nameserver to start throttling it, 0 is disabled") = "5";
   ::arg().set("non-resolving-ns-throttle-time", "Number of seconds to throttle a nameserver with a name failing to resolve") = "60";
+  ::arg().set("dns64-ptr-cname-ttl", "dns64 addr query ptr cname ttl") = "3600";
 
   ::arg().set("hint-file", "If set, load root hints from this file") = "";
   ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache") = "1000000";
