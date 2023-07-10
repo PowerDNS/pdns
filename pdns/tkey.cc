@@ -31,6 +31,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   tkey_out->d_error = 0;
   tkey_out->d_mode = tkey_in.d_mode;
   tkey_out->d_algo = tkey_in.d_algo;
+  // coverity[store_truncates_time_t]
   tkey_out->d_inception = inception;
   tkey_out->d_expiration = tkey_out->d_inception+15;
 

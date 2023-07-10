@@ -583,6 +583,7 @@ static void gatherComments(const Json& container, const DNSName& qname, const QT
 
   time_t now = time(nullptr);
   for (const auto& comment : container["comments"].array_items()) {
+    // FIXME this is converting to a *signed* int, 2036 issue
     c.modified_at = intFromJson(comment, "modified_at", now);
     c.content = stringFromJson(comment, "content");
     c.account = stringFromJson(comment, "account");

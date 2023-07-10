@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
       shared_ptr<const SOARecordContent> sr;
       uint32_t serial = getSerialFromMaster(master, zone, sr, tt);
       if(ourSerial == serial) {
-        time_t sleepTime = sr ? sr->d_st.refresh : 60;
+        unsigned int sleepTime = sr ? sr->d_st.refresh : 60;
         cout<<"still up to date, their serial is "<<serial<<", sleeping "<<sleepTime<<" seconds"<<endl;
         sleep(sleepTime);
         continue;
