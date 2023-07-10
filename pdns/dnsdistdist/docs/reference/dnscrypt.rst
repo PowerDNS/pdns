@@ -139,7 +139,7 @@ Context
 
   .. method:: DNSCryptContext:addNewCertificate(cert, key[, active])
 
-    Add a new certificate to the the given context. Active certificates are advertised to
+    Add a new certificate to the given context. Active certificates are advertised to
     clients, inactive ones are not.
 
     :param DNSCryptCert cert: The certificate to add to the context

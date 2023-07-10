@@ -1,4 +1,5 @@
-AM_CPPFLAGS += $(PGSQL_CFLAGS)
+AM_CPPFLAGS += $(PGSQL_CFLAGS) \
+	$(LIBCRYPTO_INCLUDES)
 pkglib_LTLIBRARIES = libgpgsqlbackend.la
 
 EXTRA_DIST = \

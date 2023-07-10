@@ -45,14 +45,16 @@ ResolveTask TaskQueue::pop()
   return ret;
 }
 
-bool ResolveTask::run(bool logErrors)
+bool ResolveTask::run(bool logErrors) const
 {
   if (d_func == nullptr) {
     auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(d_qname), "qtype", Logging::Loggable(QType(d_qtype).toString()));
     log->error(Logr::Debug, "null task");
     return false;
   }
-  struct timeval now;
+  struct timeval now
+  {
+  };
   Utility::gettimeofday(&now);
   if (d_deadline >= now.tv_sec) {
     d_func(now, logErrors, *this);
@@ -70,8 +72,8 @@ bool ResolveTask::run(bool logErrors)
 
 namespace boost
 {
-size_t hash_value(const ComboAddress& a)
+size_t hash_value(const ComboAddress& address)
 {
-  return ComboAddress::addressOnlyHash()(a);
+  return ComboAddress::addressOnlyHash()(address);
 }
 }

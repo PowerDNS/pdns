@@ -421,8 +421,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   return catalogDiff(di, fromXFR, fromDB, logPrefix);
 }
 
-void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, unique_ptr<AuthLua4>& pdl,
-                                 ZoneStatus& zs, vector<DNSRecord>* axfr)
+void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr)
 {
   string logPrefix="IXFR-in zone '"+domain.toLogString()+"', primary '"+remote.toString()+"', ";
 
@@ -450,31 +449,31 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
     st.serial=di.serial;
 
     DNSRecord drsoa;
-    drsoa.d_content = std::make_shared<SOARecordContent>(g_rootdnsname, g_rootdnsname, st);
+    drsoa.setContent(std::make_shared<SOARecordContent>(g_rootdnsname, g_rootdnsname, st));
     auto deltas = getIXFRDeltas(remote, domain, drsoa, xfrTimeout, false, tt, laddr.sin4.sin_family ? &laddr : nullptr, ((size_t) ::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
     zs.numDeltas=deltas.size();
     //    cout<<"Got "<<deltas.size()<<" deltas from serial "<<di.serial<<", applying.."<<endl;
-    
+
     for(const auto& d : deltas) {
       const auto& remove = d.first;
       const auto& add = d.second;
       //      cout<<"Delta sizes: "<<remove.size()<<", "<<add.size()<<endl;
-      
+
       if(remove.empty()) { // we got passed an AXFR!
         *axfr = add;
         return;
       }
-        
+
 
       // our hammer is 'replaceRRSet(domain_id, qname, qt, vector<DNSResourceRecord>& rrset)
       // which thinks in terms of RRSETs
       // however, IXFR does not, and removes and adds *records* (bummer)
       // this means that we must group updates by {qname,qtype}, retrieve the RRSET, apply
-      // the add/remove updates, and replaceRRSet the whole thing. 
-      
-      
+      // the add/remove updates, and replaceRRSet the whole thing.
+
+
       map<pair<DNSName,uint16_t>, pair<vector<DNSRecord>, vector<DNSRecord> > > grouped;
-      
+
       for(const auto& x: remove)
         grouped[{x.d_name, x.d_type}].first.push_back(x);
       for(const auto& x: add)
@@ -492,9 +491,9 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
           }
         }
         // O(N^2)!
-        rrset.erase(remove_if(rrset.begin(), rrset.end(), 
+        rrset.erase(remove_if(rrset.begin(), rrset.end(),
                               [&g](const DNSRecord& dr) {
-                                return count(g.second.first.cbegin(), 
+                                return count(g.second.first.cbegin(),
                                              g.second.first.cend(), dr);
                               }), rrset.end());
         // the DNSRecord== operator compares on name, type, class and lowercase content representation
@@ -513,7 +512,7 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
             auto sr = getRR<SOARecordContent>(dr);
             zs.soa_serial=sr->d_st.serial;
           }
-          
+
           replacement.push_back(rr);
         }
 
@@ -529,14 +528,13 @@ void CommunicatorClass::ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, c
   catch(PDNSException& p) {
     g_log<<Logger::Error<<logPrefix<<"got exception (PDNSException): "<<p.reason<<endl;
     throw;
-  }  
+  }
 }
-
 
 static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResourceRecord& rr, ZoneStatus& zs)
 {
   switch(rr.qtype.getCode()) {
-  case QType::NSEC3PARAM: 
+  case QType::NSEC3PARAM:
     zs.ns3pr = NSEC3PARAMRecordContent(rr.content);
     zs.isDnssecZone = zs.isNSEC3 = true;
     zs.isNarrow = false;
@@ -555,12 +553,12 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
     }
     return false;
   }
-  
-  case QType::NSEC: 
+
+  case QType::NSEC:
     zs.isDnssecZone = zs.isPresigned = true;
     return false;
-  
-  case QType::NS: 
+
+  case QType::NS:
     if(rr.qname!=domain)
       zs.nsset.insert(rr.qname);
     break;
@@ -572,7 +570,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
   return true;
 }
 
-/* So this code does a number of things. 
+/* So this code does a number of things.
    1) It will AXFR a domain from a master
       The code can retrieve the current serial number in the database itself.
       It may attempt an IXFR
@@ -636,7 +634,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
     }
   }
   return rrs;
-}   
+}
 
 
 void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, bool force)
@@ -644,7 +642,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
   {
     auto data = d_data.lock();
     if (data->d_inprogress.count(domain)) {
-      return; 
+      return;
     }
     data->d_inprogress.insert(domain);
   }
@@ -756,7 +754,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
         logPrefix = "I" + logPrefix; // XFR -> IXFR
         vector<DNSRecord> axfr;
         g_log<<Logger::Notice<<logPrefix<<"starting IXFR"<<endl;
-        ixfrSuck(domain, tt, laddr, remote, pdl, zs, &axfr);
+        ixfrSuck(domain, tt, laddr, remote, zs, &axfr);
         if(!axfr.empty()) {
           g_log<<Logger::Notice<<logPrefix<<"IXFR turned into an AXFR"<<endl;
           logPrefix[0]='A'; // IXFR -> AXFR
@@ -1046,7 +1044,7 @@ struct SlaveSenderReceiver
   {
   }
 
-  void deliverTimeout(const Identifier& i)
+  void deliverTimeout(const Identifier& /* i */)
   {
   }
 
@@ -1074,7 +1072,7 @@ struct SlaveSenderReceiver
     return d_resolver.tryGetSOASerial(&(std::get<0>(id)), &(std::get<1>(id)), &a.theirSerial, &a.theirInception, &a.theirExpire, &(std::get<2>(id)));
   }
 
-  void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int usec)
+  void deliverAnswer(const DomainNotificationInfo& dni, const Answer& a, unsigned int /* usec */)
   {
     d_freshness[dni.di.id]=a;
   }

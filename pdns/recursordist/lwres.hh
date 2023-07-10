@@ -83,9 +83,9 @@ public:
   bool d_haveEDNS{false};
 };
 
-LWResult::Result asendto(const char* data, size_t len, int flags, const ComboAddress& ip, uint16_t id,
-                         const DNSName& domain, uint16_t qtype, int* fd);
-LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& ip, size_t* d_len, uint16_t id,
-                           const DNSName& domain, uint16_t qtype, int fd, const struct timeval* now);
+LWResult::Result asendto(const char* data, size_t len, int flags, const ComboAddress& toAddress, uint16_t qid,
+                         const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc);
+LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& fromAddr, size_t& len, uint16_t qid,
+                           const DNSName& domain, uint16_t qtype, int fileDesc, const struct timeval& now);
 
 LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* res, bool* chained);

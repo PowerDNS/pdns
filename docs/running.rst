@@ -1,13 +1,14 @@
 Running and Operating
 =====================
 
-PowerDNS is normally controlled via a SysV-style init.d script, often
-located in ``/etc/init.d`` or ``/etc/rc.d/init.d``. For Linux
-distributions with systemd, a service file is provided (either in the
-package or in the contrib directory of the tarball).
+On Linux, PowerDNS is controlled by a systemd service called ``pdns.service``.
+The service definition file should be installed by the binary package, and can also be found in the tarball (``pdns.service.in`` template file).
 
-Furthermore, PowerDNS can be run on the foreground for testing or in
-other init- systems that supervise processes.
+On non-Linux systems, a SysV-style init script can be used, and should be supplied by the operating system packages.
+
+Furthermore, PowerDNS can be run on the foreground for testing or for use with other init-systems that supervise processes.
+
+Also see :doc:`guides/virtual-instances`.
 
 .. _running-guardian:
 
@@ -31,7 +32,7 @@ inner process as well.
 Logging to syslog on systemd-based operating systems
 ----------------------------------------------------
 
-By default, logging to syslog is disabled in the the systemd unit file
+By default, logging to syslog is disabled in the systemd unit file
 to prevent the service logging twice, as the systemd journal picks up
 the output from the process itself.
 

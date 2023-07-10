@@ -2,6 +2,16 @@ Changelogs for 4.6.X
 ====================
 
 .. changelog::
+  :version: 4.6.6
+  :released: 29th of March 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12702
+
+    PowerDNS Security Advisory 2023-02: Deterred spoofing attempts can lead to authoritative servers being marked unavailable.
+
+.. changelog::
   :version: 4.6.5
   :released: 25th of November 2022
 

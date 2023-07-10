@@ -135,6 +135,7 @@ Our ``configure`` script provides a fair number of options with regard to which 
 * ``DISABLE_RECVMMSG`` for ``recvmmsg`` support
 * ``DISABLE_RULES_ALTERING_QUERIES`` to remove rules altering the content of queries
 * ``DISABLE_SECPOLL`` for security polling
+* ``DISABLE_WEB_CACHE_MANAGEMENT`` to disable cache management via the API
 * ``DISABLE_WEB_CONFIG`` to disable accessing the configuration via the web interface
 
 Additionally several Lua bindings can be removed when they are not needed, as they increase the memory required during compilation and the size of the final binary:

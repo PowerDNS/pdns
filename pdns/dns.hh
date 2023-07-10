@@ -32,7 +32,7 @@ struct DNSRecord;
 class RCode
 {
 public:
-  enum rcodes_ { NoError=0, FormErr=1, ServFail=2, NXDomain=3, NotImp=4, Refused=5, YXDomain=6, YXRRSet=7, NXRRSet=8, NotAuth=9, NotZone=10};
+  enum rcodes_ : uint8_t { NoError=0, FormErr=1, ServFail=2, NXDomain=3, NotImp=4, Refused=5, YXDomain=6, YXRRSet=7, NXRRSet=8, NotAuth=9, NotZone=10};
   static std::string to_s(uint8_t rcode);
   static std::string to_short_s(uint8_t rcode);
   const static std::array<std::string, 24> rcodes_s;
@@ -41,8 +41,8 @@ public:
 class ERCode
 {
 public:
-  enum rcodes_ { BADVERS=16, BADSIG=16, BADKEY=17, BADTIME=18, BADMODE=19, BADNAME=20, BADALG=21, BADTRUNC=22, BADCOOKIE=23 };
-  static std::string to_s(uint8_t rcode);
+  enum rcodes_ : uint16_t { BADVERS=16, BADSIG=16, BADKEY=17, BADTIME=18, BADMODE=19, BADNAME=20, BADALG=21, BADTRUNC=22, BADCOOKIE=23 };
+  static std::string to_s(uint16_t rcode);
 };
 
 class Opcode
@@ -193,8 +193,8 @@ class dnsheader_aligned
 public:
   dnsheader_aligned(const void* mem)
   {
-    if (reinterpret_cast<uintptr_t>(mem) % sizeof(uint32_t) == 0) {
-      d_p = reinterpret_cast<const dnsheader*>(mem);
+    if (reinterpret_cast<uintptr_t>(mem) % sizeof(uint32_t) == 0) {  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      d_p = reinterpret_cast<const dnsheader*>(mem);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
     else {
       memcpy(&d_h, mem, sizeof(dnsheader));
@@ -202,14 +202,14 @@ public:
     }
   }
 
-  const dnsheader* get() const
+  [[nodiscard]] const dnsheader* get() const
   {
     return d_p;
   }
 
 private:
-  dnsheader d_h;
-  const dnsheader *d_p;
+  dnsheader d_h{};
+  const dnsheader *d_p{};
 };
 
 inline uint16_t * getFlagsFromDNSHeader(struct dnsheader * dh)

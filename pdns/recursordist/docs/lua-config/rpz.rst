@@ -151,6 +151,13 @@ extendedErrorExtra
 
 An extended error extra text (:rfc:`8914`) to set on RPZ hits. See :ref:`setting-extended-resolution-errors`.
 
+includeSOA
+^^^^^^^^^^
+.. versionadded:: 4.9.0
+
+Include the RPZ's SOA record to the reply's additional section if modified by a policy hit.
+Defaults to ``no``.
+
 maxTTL
 ^^^^^^
 The maximum TTL value of the synthesized records, overriding a higher value from ``defttl`` or the zone. Default is unlimited.

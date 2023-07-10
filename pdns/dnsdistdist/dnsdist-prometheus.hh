@@ -21,6 +21,17 @@
  */
 #pragma once
 
+namespace dnsdist::prometheus
+{
+struct PrometheusMetricDefinition
+{
+  const std::string& name;
+  const std::string& type;
+  const std::string& description;
+  const std::string& customName;
+};
+}
+
 #ifndef DISABLE_PROMETHEUS
 // Metric types for Prometheus
 enum class PrometheusMetricType: uint8_t {
@@ -30,13 +41,15 @@ enum class PrometheusMetricType: uint8_t {
 
 // Keeps additional information about metrics
 struct MetricDefinition {
-  MetricDefinition(PrometheusMetricType _prometheusType, const std::string& _description): description(_description), prometheusType(_prometheusType) {
+  MetricDefinition(PrometheusMetricType _prometheusType, const std::string& _description, const std::string& customName_ = ""): description(_description), customName(customName_), prometheusType(_prometheusType) {
   }
 
   MetricDefinition() = default;
 
   // Metric description
   std::string description;
+  // Custom name, if any
+  std::string customName;
   // Metric type for Prometheus
   PrometheusMetricType prometheusType{PrometheusMetricType::counter};
 };
@@ -54,16 +67,16 @@ struct MetricDefinitionStorage {
     return true;
   };
 
-  static bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description) {
+  static bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def) {
     static const std::map<std::string, PrometheusMetricType> namesToTypes = {
       {"counter", PrometheusMetricType::counter},
       {"gauge",   PrometheusMetricType::gauge},
     };
-    auto realtype = namesToTypes.find(type);
+    auto realtype = namesToTypes.find(def.type);
     if (realtype == namesToTypes.end()) {
       return false;
     }
-    metrics.emplace(name, MetricDefinition{realtype->second, description});
+    metrics.emplace(def.name, MetricDefinition{realtype->second, def.description, def.customName});
     return true;
   }
 

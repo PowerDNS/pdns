@@ -34,10 +34,6 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
     PKCS11DNSCryptoKeyEngine(unsigned int algorithm);
     ~PKCS11DNSCryptoKeyEngine();
 
-    bool operator<(const PKCS11DNSCryptoKeyEngine& rhs) const
-    {
-      return false;
-    }
     PKCS11DNSCryptoKeyEngine(const PKCS11DNSCryptoKeyEngine& orig);
 
     string getName() const override { return "P11 Kit PKCS#11"; };
@@ -52,14 +48,12 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 
     bool verify(const std::string& msg, const std::string& signature) const override;
 
-    std::string getPubKeyHash() const override;
-
     std::string getPublicKeyString() const override;
     int getBits() const override;
 
     void fromISCMap(DNSKEYRecordContent& drc, stormap_t& stormap) override;
 
-    void fromPublicKeyString(const std::string& content) override { throw "Unimplemented"; };
+    void fromPublicKeyString(const std::string& /* content */) override { throw "Unimplemented"; };
 
     static std::unique_ptr<DNSCryptoKeyEngine> maker(unsigned int algorithm);
 };

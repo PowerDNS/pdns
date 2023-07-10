@@ -91,7 +91,8 @@ The default value of 0 means no restriction.
 localAddress
 ~~~~~~~~~~~~
 The source IP address to use when transferring using the ``axfr`` or ``url`` methods.
-When unset, :ref:`setting-query-local-address` is used.
+For the ``axfr`` method :ref:`setting-query-local-address` is used by default.
+The default used for ``url`` method is system dependent.
 
 zonemd
 ~~~~~~

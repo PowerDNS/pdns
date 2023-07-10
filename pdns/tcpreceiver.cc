@@ -582,7 +582,7 @@ namespace {
 
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
-int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock)
+int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock)  // NOLINT(readability-function-cognitive-complexity)
 {
   string logPrefix="AXFR-out zone '"+target.toLogString()+"', client '"+q->getRemoteString()+"', ";
 
@@ -720,7 +720,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
         continue;
       }
       zrr.dr.d_type = QType::DNSKEY;
-      zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
+      zrr.dr.setContent(std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY()));
       DNSName keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name))) : zrr.dr.d_name;
       zrrs.push_back(zrr);
 
@@ -730,10 +730,10 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
           zrr.dr.d_type=QType::CDNSKEY;
           if (publishCDNSKEY == "0") {
             doCDNSKEY = false;
-            zrr.dr.d_content=PacketHandler::s_deleteCDNSKEYContent;
+            zrr.dr.setContent(PacketHandler::s_deleteCDNSKEYContent);
             zrrs.push_back(zrr);
           } else {
-            zrr.dr.d_content = std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY());
+            zrr.dr.setContent(std::make_shared<DNSKEYRecordContent>(value.first.getDNSKEY()));
             zrrs.push_back(zrr);
           }
         }
@@ -744,11 +744,11 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
           stringtok(digestAlgos, publishCDS, ", ");
           if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) {
             doCDS = false;
-            zrr.dr.d_content=PacketHandler::s_deleteCDSContent;
+            zrr.dr.setContent(PacketHandler::s_deleteCDSContent);
             zrrs.push_back(zrr);
           } else {
             for(auto const &digestAlgo : digestAlgos) {
-              zrr.dr.d_content=std::make_shared<DSRecordContent>(makeDSFromDNSKey(target, value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo)));
+              zrr.dr.setContent(std::make_shared<DSRecordContent>(makeDSFromDNSKey(target, value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo))));
               zrrs.push_back(zrr);
             }
           }
@@ -762,7 +762,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     uint8_t flags = ns3pr.d_flags;
     zrr.dr.d_type = QType::NSEC3PARAM;
     ns3pr.d_flags = 0;
-    zrr.dr.d_content = std::make_shared<NSEC3PARAMRecordContent>(ns3pr);
+    zrr.dr.setContent(std::make_shared<NSEC3PARAMRecordContent>(ns3pr));
     ns3pr.d_flags = flags;
     DNSName keyname = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name)));
     zrrs.push_back(zrr);
@@ -782,7 +782,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       zrr.dr.d_name = target;
       zrr.dr.d_ttl = 0;
       zrr.dr.d_type = QType::NS;
-      zrr.dr.d_content = std::make_shared<NSRecordContent>("invalid.");
+      zrr.dr.setContent(std::make_shared<NSRecordContent>("invalid."));
       zrrs.emplace_back(zrr);
     }
 
@@ -823,19 +823,29 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     }
     zrr.dr.d_name.makeUsLowerCase();
     if(zrr.dr.d_name.isPartOf(target)) {
-      if (zrr.dr.d_type == QType::ALIAS && ::arg().mustDo("outgoing-axfr-expand-alias")) {
+      if (zrr.dr.d_type == QType::ALIAS && (::arg().mustDo("outgoing-axfr-expand-alias") || ::arg()["outgoing-axfr-expand-alias"] == "ignore-errors")) {
         vector<DNSZoneRecord> ips;
-        int ret1 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->d_content, QType::A, ips);
-        int ret2 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->d_content, QType::AAAA, ips);
-        if(ret1 != RCode::NoError || ret2 != RCode::NoError) {
-          g_log<<Logger::Warning<<logPrefix<<"error resolving for ALIAS "<<zrr.dr.d_content->getZoneRepresentation()<<", aborting AXFR"<<endl;
-          outpacket->setRcode(RCode::ServFail);
-          sendPacket(outpacket,outsock);
-          return 0;
+        int ret1 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::A, ips);
+        int ret2 = stubDoResolve(getRR<ALIASRecordContent>(zrr.dr)->getContent(), QType::AAAA, ips);
+        if (ret1 != RCode::NoError || ret2 != RCode::NoError) {
+          if (::arg()["outgoing-axfr-expand-alias"] == "ignore-errors") {
+            if (ret1 != RCode::NoError) {
+              g_log << Logger::Error << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving A record for ALIAS target " << zrr.dr.getContent()->getZoneRepresentation() << ", continuing AXFR" << endl;
+            }
+            if (ret2 != RCode::NoError) {
+              g_log << Logger::Error << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving AAAA record for ALIAS target " << zrr.dr.getContent()->getZoneRepresentation() << ", continuing AXFR" << endl;
+            }
+          }
+          else {
+            g_log << Logger::Warning << logPrefix << zrr.dr.d_name.toLogString() << ": error resolving for ALIAS " << zrr.dr.getContent()->getZoneRepresentation() << ", aborting AXFR" << endl;
+            outpacket->setRcode(RCode::ServFail);
+            sendPacket(outpacket, outsock);
+            return 0;
+          }
         }
-        for(const auto& ip: ips) {
+        for (auto& ip: ips) {
           zrr.dr.d_type = ip.dr.d_type;
-          zrr.dr.d_content = ip.dr.d_content;
+          zrr.dr.setContent(ip.dr.getContent());
           zrrs.push_back(zrr);
         }
         continue;
@@ -858,7 +868,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     }
   }
 
-  for (auto loopRR : zrrs) {
+  for (auto& loopRR : zrrs) {
     if ((loopRR.dr.d_type == QType::SVCB || loopRR.dr.d_type == QType::HTTPS)) {
       // Process auto hints
       // TODO this is an almost copy of the code in the packethandler
@@ -866,8 +876,12 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
       if (rrc == nullptr) {
         continue;
       }
-      DNSName svcTarget = rrc->getTarget().isRoot() ? loopRR.dr.d_name : rrc->getTarget();
-      if (rrc->autoHint(SvcParam::ipv4hint)) {
+      auto newRRC = rrc->clone();
+      if (!newRRC) {
+        continue;
+      }
+      DNSName svcTarget = newRRC->getTarget().isRoot() ? loopRR.dr.d_name : newRRC->getTarget();
+      if (newRRC->autoHint(SvcParam::ipv4hint)) {
         sd.db->lookup(QType::A, svcTarget, sd.domain_id);
         vector<ComboAddress> hints;
         DNSZoneRecord rr;
@@ -876,13 +890,13 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
           hints.push_back(arrc->getCA());
         }
         if (hints.size() == 0) {
-          rrc->removeParam(SvcParam::ipv4hint);
+          newRRC->removeParam(SvcParam::ipv4hint);
         } else {
-          rrc->setHints(SvcParam::ipv4hint, hints);
+          newRRC->setHints(SvcParam::ipv4hint, hints);
         }
       }
 
-      if (rrc->autoHint(SvcParam::ipv6hint)) {
+      if (newRRC->autoHint(SvcParam::ipv6hint)) {
         sd.db->lookup(QType::AAAA, svcTarget, sd.domain_id);
         vector<ComboAddress> hints;
         DNSZoneRecord rr;
@@ -891,11 +905,13 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
           hints.push_back(arrc->getCA());
         }
         if (hints.size() == 0) {
-          rrc->removeParam(SvcParam::ipv6hint);
+          newRRC->removeParam(SvcParam::ipv6hint);
         } else {
-          rrc->setHints(SvcParam::ipv6hint, hints);
+          newRRC->setHints(SvcParam::ipv6hint, hints);
         }
       }
+
+      loopRR.dr.setContent(std::move(newRRC));
     }
   }
 
@@ -981,15 +997,13 @@ send:
   typedef map<DNSName, NSECXEntry, CanonDNSNameCompare> nsecxrepo_t;
   nsecxrepo_t nsecxrepo;
 
-  ChunkedSigningPipe csp(target, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1));
+  ChunkedSigningPipe csp(target, (securedZone && !presignedZone), ::arg().asNum("signing-threads", 1), ::arg().mustDo("workaround-11804") ? 1 : 100);
 
   DNSName keyname;
   unsigned int udiff;
   DTime dt;
   dt.set();
-  int records=0;
   for(DNSZoneRecord &loopZRR :  zrrs) {
-    records++;
     if(securedZone && (loopZRR.auth || loopZRR.dr.d_type == QType::NS)) {
       if (NSEC3Zone || loopZRR.dr.d_type) {
         if (presignedZone && NSEC3Zone && loopZRR.dr.d_type == QType::RRSIG && getRR<RRSIGRecordContent>(loopZRR.dr)->d_type == QType::NSEC3) {
@@ -1061,7 +1075,7 @@ send:
           zrr.dr.d_name = iter->first+sd.qname;
 
           zrr.dr.d_ttl = sd.getNegativeTTL();
-          zrr.dr.d_content = std::make_shared<NSEC3RecordContent>(std::move(n3rc));
+          zrr.dr.setContent(std::make_shared<NSEC3RecordContent>(std::move(n3rc)));
           zrr.dr.d_type = QType::NSEC3;
           zrr.dr.d_place = DNSResourceRecord::ANSWER;
           zrr.auth=true;
@@ -1095,7 +1109,7 @@ send:
       zrr.dr.d_name = iter->first;
 
       zrr.dr.d_ttl = sd.getNegativeTTL();
-      zrr.dr.d_content = std::make_shared<NSECRecordContent>(std::move(nrc));
+      zrr.dr.setContent(std::make_shared<NSECRecordContent>(std::move(nrc)));
       zrr.dr.d_type = QType::NSEC;
       zrr.dr.d_place = DNSResourceRecord::ANSWER;
       zrr.auth=true;
@@ -1172,7 +1186,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     const DNSRecord *rr = &answer.first;
     if (rr->d_type == QType::SOA && rr->d_place == DNSResourceRecord::AUTHORITY) {
       vector<string>parts;
-      stringtok(parts, rr->d_content->getZoneRepresentation());
+      stringtok(parts, rr->getContent()->getZoneRepresentation());
       if (parts.size() >= 3) {
         try {
           pdns::checked_stoi_into(serial, parts[2]);

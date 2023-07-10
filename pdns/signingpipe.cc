@@ -57,9 +57,9 @@ catch(...) {
   return nullptr;
 }
 
-ChunkedSigningPipe::ChunkedSigningPipe(DNSName  signerName, bool mustSign, unsigned int workers)
+ChunkedSigningPipe::ChunkedSigningPipe(DNSName  signerName, bool mustSign, unsigned int workers, unsigned int maxChunkRecords)
   : d_signed(0), d_queued(0), d_outstanding(0), d_numworkers(workers), d_submitted(0), d_signer(std::move(signerName)),
-    d_maxchunkrecords(100), d_threads(d_numworkers), d_mustSign(mustSign), d_final(false)
+    d_maxchunkrecords(maxChunkRecords), d_threads(d_numworkers), d_mustSign(mustSign), d_final(false)
 {
   d_rrsetToSign = make_unique<rrset_t>();
   d_chunks.push_back(vector<DNSZoneRecord>()); // load an empty chunk
@@ -100,12 +100,12 @@ namespace {
 bool
 dedupLessThan(const DNSZoneRecord& a, const DNSZoneRecord &b)
 {
-  return std::make_tuple(a.dr.d_content->getZoneRepresentation(), a.dr.d_ttl) < std::make_tuple(b.dr.d_content->getZoneRepresentation(), b.dr.d_ttl);  // XXX SLOW SLOW SLOW
+  return std::make_tuple(a.dr.getContent()->getZoneRepresentation(), a.dr.d_ttl) < std::make_tuple(b.dr.getContent()->getZoneRepresentation(), b.dr.d_ttl);  // XXX SLOW SLOW SLOW
 }
 
 bool dedupEqual(const DNSZoneRecord& a, const DNSZoneRecord &b)
 {
-  return std::make_tuple(a.dr.d_content->getZoneRepresentation(), a.dr.d_ttl) == std::make_tuple(b.dr.d_content->getZoneRepresentation(), b.dr.d_ttl);  // XXX SLOW SLOW SLOW
+  return std::make_tuple(a.dr.getContent()->getZoneRepresentation(), a.dr.d_ttl) == std::make_tuple(b.dr.getContent()->getZoneRepresentation(), b.dr.d_ttl);  // XXX SLOW SLOW SLOW
 }
 }
 

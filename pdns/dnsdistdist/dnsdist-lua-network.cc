@@ -24,11 +24,12 @@
 
 #include "dnsdist-lua-network.hh"
 #include "dolog.hh"
+#include "threadname.hh"
 
 namespace dnsdist
 {
 NetworkListener::NetworkListener() :
-  d_mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
+  d_mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(10)))
 {
 }
 
@@ -112,7 +113,7 @@ bool NetworkListener::addUnixListeningEndpoint(const std::string& path, NetworkL
 
   auto cbData = std::make_shared<CBData>();
   cbData->d_endpoint = id;
-  cbData->d_cb = cb;
+  cbData->d_cb = std::move(cb);
   d_mplexer->addReadFD(sock.getHandle(), readCB, cbData);
 
   d_sockets.insert({path, std::move(sock)});
@@ -131,6 +132,7 @@ void NetworkListener::runOnce(struct timeval& now, uint32_t timeout)
 
 void NetworkListener::mainThread()
 {
+  setThreadName("dnsdist/lua-net");
   struct timeval now;
 
   while (true) {

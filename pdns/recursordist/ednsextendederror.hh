@@ -50,7 +50,12 @@ struct EDNSExtendedError
     NotSupported = 21,
     NoReachableAuthority = 22,
     NetworkError = 23,
-    InvalidData = 24
+    InvalidData = 24,
+    SignatureExpiredBeforeValid = 25,
+    TooEarly = 26,
+    UnsupportedNSEC3IterationsValue = 27,
+    UnableToConformToPolicy = 28,
+    Synthesized = 29,
   };
   uint16_t infoCode;
   std::string extraText;

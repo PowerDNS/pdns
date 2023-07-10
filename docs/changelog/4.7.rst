@@ -2,6 +2,79 @@ Changelogs for 4.7.x
 ====================
 
 .. changelog::
+  :version: 4.7.4
+  :released: 17th of April 2023
+
+  This is release 4.7.4 of the Authoritative Server.
+  It contains various bug fixes, some performance improvements, and one new feature (``pdnsutil list-member-zones``).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12742
+
+    Properly encode json string containing binary data
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12741
+
+    Prevent a race during the processing of SVC auto-hints
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12676
+
+    pdnsutil, implement list-member-zones (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12675
+
+    lmdb delete fixes and tests (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12429
+
+    minicurl: stop leaking hostlist memory
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12521
+
+    ixfrdist fixes and improvements
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12458
+
+    lock.hh: include <stdexcept>
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12746
+
+    Pick the right signer name when a NSEC name is also a delegation point
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12745
+
+    calm down the communicator loop
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12744
+
+    Fix multiple-version IXFR request handling in ixfrdist
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12743
+
+    timeout handling for IXFRs as a client
+
+.. changelog::
   :version: 4.7.3
   :released: 9th of December 2022
 

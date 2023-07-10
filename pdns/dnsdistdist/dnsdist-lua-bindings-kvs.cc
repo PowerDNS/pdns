@@ -30,7 +30,7 @@ void setupLuaBindingsKVS(LuaContext& luaCtx, bool client)
     if (client) {
       return std::shared_ptr<KeyValueStore>(nullptr);
     }
-    return std::shared_ptr<KeyValueStore>(new LMDBKVStore(fname, dbName, noLock.get_value_or(false)));
+    return std::shared_ptr<KeyValueStore>(new LMDBKVStore(fname, dbName, noLock ? *noLock : false));
   });
 #endif /* HAVE_LMDB */
 
@@ -46,7 +46,7 @@ void setupLuaBindingsKVS(LuaContext& luaCtx, bool client)
 #if defined(HAVE_LMDB) || defined(HAVE_CDB)
   /* Key Value Store objects */
   luaCtx.writeFunction("KeyValueLookupKeySourceIP", [](boost::optional<uint8_t> v4Mask, boost::optional<uint8_t> v6Mask, boost::optional<bool> includePort) {
-    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP(v4Mask.get_value_or(32), v6Mask.get_value_or(128), includePort.get_value_or(false)));
+    return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeySourceIP(v4Mask ? *v4Mask : 32, v6Mask ? *v6Mask : 128, includePort ? *includePort : false));
   });
   luaCtx.writeFunction("KeyValueLookupKeyQName", [](boost::optional<bool> wireFormat) {
     return std::shared_ptr<KeyValueLookupKey>(new KeyValueLookupKeyQName(wireFormat ? *wireFormat : true));

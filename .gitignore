@@ -56,6 +56,7 @@ __pycache__
 .circleci/config.yml-local
 .env
 compile_commands.*
-/.cache
+.cache
 /.clang-tidy
 .gdb_history
+.venv

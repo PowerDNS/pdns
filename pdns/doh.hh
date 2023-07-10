@@ -21,8 +21,11 @@
  */
 #pragma once
 
+#pragma once
+
 #include <unordered_map>
 
+#include "channel.hh"
 #include "iputils.hh"
 #include "libssl.hh"
 #include "noinitvector.hh"
@@ -139,11 +142,11 @@ struct DOHFrontend
   {
   }
 
-  void rotateTicketsKey(time_t now)
+  void rotateTicketsKey(time_t /* now */)
   {
   }
 
-  void loadTicketsKeys(const std::string& keyFile)
+  void loadTicketsKeys(const std::string& /* keyFile */)
   {
   }
 
@@ -188,6 +191,7 @@ struct DOHUnit
   void release()
   {
   }
+
   size_t proxyProtocolPayloadSize{0};
   uint16_t status_code{200};
 };
@@ -246,6 +250,7 @@ struct DOHUnit
   st_h2o_req_t* req{nullptr};
   DOHUnit** self{nullptr};
   DOHServerConfig* dsc{nullptr};
+  pdns::channel::Sender<DOHUnit, void(*)(DOHUnit*)>* responseSender{nullptr};
   std::atomic<uint64_t> d_refcnt{1};
   size_t query_at{0};
   size_t proxyProtocolPayloadSize{0};
@@ -272,6 +277,11 @@ struct DOHUnit
 };
 
 void handleUDPResponseForDoH(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&&, PacketBuffer&& response, InternalQueryState&& state);
+
+struct CrossProtocolQuery;
+struct DNSQuestion;
+
+std::unique_ptr<CrossProtocolQuery> getDoHCrossProtocolQueryFromDQ(DNSQuestion& dq, bool isResponse);
 
 #endif /* HAVE_DNS_OVER_HTTPS  */
 

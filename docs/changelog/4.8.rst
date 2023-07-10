@@ -1,0 +1,269 @@
+Changelogs for 4.8.x
+====================
+
+.. changelog::
+  :version: 4.8.1
+  :released: 7th of July 2023
+
+  This is release 4.8.1 of the Authoritative Server.
+
+  This release contains a small collection of fixes:
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12996
+
+    lmdb: in Lightning Stream mode, during deleteDomain, use RW transaction to get ID list
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12997
+
+    lmdb: add backend commands for checking & refreshing indexes
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12993
+
+    Stop using the now deprecated ERR_load_CRYPTO_strings() to detect OpenSSL
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12992
+
+    YaHTTP: Prevent integer overflow on very large chunks
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12991
+
+    Work around Red Hat 8 pooping the bed in OpenSSL's headers
+
+.. changelog::
+  :version: 4.8.0
+  :released: 1st of June 2023
+
+  This is release 4.8.0 of the Authoritative Server.
+
+  In 4.8, the LMDB backend gains a new Lightning Stream-compatible schema, which requires a data migration (this is automatic, and there is no migration back to the old schema).
+  LMDB backend users should pay extra attention to the :doc:`Upgrade Notes <../upgrading>`.
+
+  `Lightning Stream <https://doc.powerdns.com/lightningstream>`_ is an `open source <https://github.com/PowerDNS/lightningstream>`_ data syncer that allows multiple nodes to sync LMDB (Lightning Memory-Mapped Database) data to and from an S3 (compatible) bucket. This has particular advantages in distributed and/or large-scale applications (i.e. ~1 million records), making DNS replication much, much easier to manage.
+
+  We are excited about how Lightning Stream simplifies running multiple distributed PowerDNS Authoritative servers, with full support for keeping record data and DNSSEC keys in sync, from multiple writers.
+
+  4.8.0 improves the handling of accidental duplicate domains -- deleting a zone now deletes all versions of it.
+  This release also contains a few other fixes, please see the list below.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12869
+
+    do not answer with broken TYPE0 data when expanding an ENT wildcard
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12872
+
+    lmdb: delete duplicate domain entries in deleteDomain
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12868
+
+    pdnsutil: if user pushes unknown key in response to "problem with zone" prompt, do not throw away their changes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12828
+
+    add setting workaround-11804-max-chunk-records
+
+.. changelog::
+  :version: 4.8.0-beta1
+  :released: 4th of May 2023
+
+  This is release 4.8.0-beta1 of the Authoritative Server.
+
+  In 4.8, the LMDB backend gains a new Lightning Stream-compatible schema, which requires a data migration (this is automatic, and there is no migration back to the old schema).
+  LMDB backend users should pay extra attention to the :doc:`Upgrade Notes <../upgrading>`.
+
+  `Lightning Stream <https://doc.powerdns.com/lightningstream>`_ is an `open source <https://github.com/PowerDNS/lightningstream>`_ data syncer that allows multiple nodes to sync LMDB (Lightning Memory-Mapped Database) data to and from an S3 (compatible) bucket. This has particular advantages in distributed and/or large-scale applications (i.e. ~1 million records), making DNS replication much, much easier to manage.
+
+  We are excited about how Lightning Stream simplifies running multiple distributed PowerDNS Authoritative servers, with full support for keeping record data and DNSSEC keys in sync, from multiple writers.
+
+  4.8.0-beta1 adds logic to deal with domains existing twice in the database when two Lightning Stream nodes manage to add it at the same time. It also contains a few other fixes, please see the list below.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12729
+
+    LMDB: handle duplicate domain existence consistently
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12768
+
+    ixfrdist: add a per domain max-soa-refresh option
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12636
+
+    lmdb: handle lack of support for RRset comments better
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12740
+
+    Pick the right signer name when a NSEC name is also a delegation point (Kees Monshouwer)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12669
+
+    LUA records: enhance ifportup() with lists of sets of addresses like ifurlup()
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12721
+
+    calm down the communicator loop (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12706
+
+    Fixes a typo in pdnsutil clear-zone help output (san983)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12664
+
+    DNSRecord: Ensure that the content can be read or replaced, not edited
+
+.. changelog::
+  :version: 4.8.0-alpha1
+  :released: 21st of March 2023
+
+  This is release 4.8.0-alpha1 of the Authoritative Server.
+
+  In this release, the LMDB backend gains a new Lightning Stream-compatible schema, which requires a data migration (this is automatic, and there is no migration back to the old schema).
+  LMDB backend users should pay extra attention to the :doc:`Upgrade Notes <../upgrading>`.
+
+  `Lightning Stream <https://doc.powerdns.com/lightningstream>`_ is an `open source <https://github.com/PowerDNS/lightningstream>`_ data syncer that allows multiple nodes to sync LMDB (Lightning Memory-Mapped Database) data to and from an S3 (compatible) bucket. This has particular advantages in distributed and/or large-scale applications (i.e. ~1 million records), making DNS replication much, much easier to manage.
+
+  We are excited about how Lightning Stream simplifies running multiple distributed PowerDNS Authoritative servers, with full support for keeping record data and DNSSEC keys in sync, from multiple writers.
+
+  This version also contains various other small fixes and improvements.
+  Except for very minor ones, they are listed below.
+
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12546
+
+    new lmdbbackend storage schema that is compatible with Lightning Stream
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11101
+
+    save errno value as close(2) might clobber it
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11600, 12401, 12414, 12423, 12462, 12501, 12502, 12513, 12515, 12516, 12524, 12527, 12540, 12550
+
+    cleanup for OpenSSL 3.0 API    
+
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12127
+
+    Fix multiple-version IXFR request handling in ixfrdist (Håkan Lindqvist)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12260
+
+    Properly encode json strings containing binary data
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12322
+
+    lmdb, fix TSIG key removal (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11065
+
+    service files: Add more sandboxing options
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12277
+
+    add byteslimit support to lua ifurlup() function
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12265
+
+    move alsoNotifies up into DNSBackend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12252
+
+    Update supported record types: remove A6 MAILA MAILB SIG and WKS, add ZONEMD
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11346
+
+    Basic abstraction for handling colored terminal output, respecting isatty(), --no-colors and NO_COLOR
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12066
+
+    Detect invalid bytes in `makeBytesFromHex()`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11858
+
+    change sdig output order (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11908
+
+    initialize zone cache after dropping privileges (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12659
+
+    Prevent a race during the processing of SVC auf-hints
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12406
+
+    pdnsutil, implement list-member-zones (Kees Monshouwer)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12349
+
+    LUA: accept more hex formats in createForward[6]
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12331
+
+    fix ColumnSize argument in SQLBindParameter #12324 (v1shnya)

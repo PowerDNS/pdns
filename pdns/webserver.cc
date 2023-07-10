@@ -237,7 +237,7 @@ void WebServer::registerWebHandler(const string& url, const HandlerFunction& han
 }
 
 static void *WebServerConnectionThreadStart(const WebServer* webServer, std::shared_ptr<Socket> client) {
-  setThreadName("pdns-r/webhndlr");
+  setThreadName("rec/webhndlr");
   const std::string msg = "Exception while serving a connection in main webserver thread";
   try {
     webServer->serveConnection(client);
@@ -378,7 +378,7 @@ std::string Logging::IterLoggable<YaHTTP::strstr_map_t::const_iterator>::to_stri
 }
 #endif
 
-void WebServer::logRequest(const HttpRequest& req, const ComboAddress& remote) const {
+void WebServer::logRequest(const HttpRequest& req, [[maybe_unused]] const ComboAddress& remote) const {
   if (d_loglevel >= WebServer::LogLevel::Detailed) {
 #ifdef RECURSOR
     if (!g_slogStructured) {
@@ -431,7 +431,7 @@ void WebServer::logRequest(const HttpRequest& req, const ComboAddress& remote) c
   }
 }
 
-void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& remote, const string& logprefix) const {
+void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& /* remote */, const string& logprefix) const {
   if (d_loglevel >= WebServer::LogLevel::Detailed) {
 #ifdef RECURSOR
     if (!g_slogStructured) {

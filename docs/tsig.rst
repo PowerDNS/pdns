@@ -124,7 +124,7 @@ GSS-TSIG allows authentication and authorization of DNS updates or AXFR
 using Kerberos with TSIG signatures.
 
 .. note::
-  This feature is experimental and subject to change in future releases.
+  This is an experimental feature and subject to change in future releases.
 
 Prerequisites
 ~~~~~~~~~~~~~

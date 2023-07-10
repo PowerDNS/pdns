@@ -181,13 +181,13 @@ string LUARecordContent::getCode() const
 }
 #endif
 
-void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options)
+void OPTRecordContent::getData(vector<pair<uint16_t, string> >& options) const
 {
   string::size_type pos=0;
   uint16_t code, len;
   while(d_data.size() >= 4 + pos) {
-    code = 256 * (unsigned char)d_data[pos] + (unsigned char)d_data[pos+1];
-    len = 256 * (unsigned char)d_data[pos+2] + (unsigned char)d_data[pos+3];
+    code = 256 * (unsigned char)d_data.at(pos) + (unsigned char)d_data.at(pos+1);
+    len = 256 * (unsigned char)d_data.at(pos+2) + (unsigned char)d_data.at(pos+3);
     pos+=4;
 
     if(pos + len > d_data.size())
@@ -471,12 +471,13 @@ std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const string& zone)
     }
     return ret;
 }
-void EUI48RecordContent::toPacket(DNSPacketWriter& pw)
+void EUI48RecordContent::toPacket(DNSPacketWriter& pw) const
 {
     string blob(d_eui48, d_eui48+6);
     pw.xfrBlob(blob);
 }
-string EUI48RecordContent::getZoneRepresentation(bool noDot) const
+
+string EUI48RecordContent::getZoneRepresentation(bool /* noDot */) const
 {
     char tmp[18];
     snprintf(tmp,sizeof(tmp),"%02x-%02x-%02x-%02x-%02x-%02x",
@@ -515,12 +516,13 @@ std::shared_ptr<DNSRecordContent> EUI64RecordContent::make(const string& zone)
     }
     return ret;
 }
-void EUI64RecordContent::toPacket(DNSPacketWriter& pw)
+void EUI64RecordContent::toPacket(DNSPacketWriter& pw) const
 {
     string blob(d_eui64, d_eui64+8);
     pw.xfrBlob(blob);
 }
-string EUI64RecordContent::getZoneRepresentation(bool noDot) const
+
+string EUI64RecordContent::getZoneRepresentation(bool /* noDot */) const
 {
     char tmp[24];
     snprintf(tmp,sizeof(tmp),"%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
@@ -685,7 +687,7 @@ std::shared_ptr<DNSRecordContent> APLRecordContent::make(const string& zone) {
 
 
 // DNSRecord to Packet conversion
-void APLRecordContent::toPacket(DNSPacketWriter& pw) {
+void APLRecordContent::toPacket(DNSPacketWriter& pw) const {
   for (auto & ard : aplrdata) {
     pw.xfr16BitInt(ard.d_family);
     pw.xfr8BitInt(ard.d_prefix);
@@ -703,7 +705,7 @@ void APLRecordContent::toPacket(DNSPacketWriter& pw) {
 }
 
 // Decode record into string
-string APLRecordContent::getZoneRepresentation(bool noDot) const {
+string APLRecordContent::getZoneRepresentation(bool /* noDot */) const {
   string s_n, s_family, output;
   ComboAddress ca;
   Netmask nm;
@@ -758,14 +760,16 @@ void SVCBBaseRecordContent::setHints(const SvcParam::SvcParamKey &key, const std
   if (p == d_params.end()) {
     return;
   }
+
   std::vector<ComboAddress> h;
   h.reserve(h.size() + addresses.size());
   h.insert(h.end(), addresses.begin(), addresses.end());
+
   try {
     auto newParam = SvcParam(key, std::move(h));
     d_params.erase(p);
     d_params.insert(newParam);
-  } catch(...) {
+  } catch (...) {
     // XXX maybe we should SERVFAIL instead?
     return;
   }
@@ -801,6 +805,16 @@ set<SvcParam>::const_iterator SVCBBaseRecordContent::getParamIt(const SvcParam::
         return param.getKey() == key;
       });
   return p;
+}
+
+std::shared_ptr<SVCBBaseRecordContent> SVCBRecordContent::clone() const
+{
+  return std::shared_ptr<SVCBBaseRecordContent>(std::make_shared<SVCBRecordContent>(*this));
+}
+
+std::shared_ptr<SVCBBaseRecordContent> HTTPSRecordContent::clone() const
+{
+  return std::shared_ptr<SVCBBaseRecordContent>(std::make_shared<HTTPSRecordContent>(*this));
 }
 
 /* SVCB end */
@@ -846,12 +860,6 @@ static uint16_t makeTag(const std::string& data)
 
 uint16_t DNSKEYRecordContent::getTag() const
 {
-  DNSKEYRecordContent tmp(*this);
-  return makeTag(tmp.serialize(DNSName()));  // this can't be const for some reason
-}
-
-uint16_t DNSKEYRecordContent::getTag()
-{
   return makeTag(this->serialize(DNSName()));
 }
 
@@ -884,25 +892,6 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
     }
   }
   return false;
-}
-
-DNSRecord makeOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t extFlags)
-{
-  EDNS0Record stuff;
-  stuff.extRCode=0;
-  stuff.version=0;
-  stuff.extFlags=htons(extFlags);
-  DNSRecord dr;
-  static_assert(sizeof(EDNS0Record) == sizeof(dr.d_ttl), "sizeof(EDNS0Record) must match sizeof(DNSRecord.d_ttl)");
-  memcpy(&dr.d_ttl, &stuff, sizeof(stuff));
-  dr.d_ttl=ntohl(dr.d_ttl);
-  dr.d_name=g_rootdnsname;
-  dr.d_type = QType::OPT;
-  dr.d_class=udpsize;
-  dr.d_place=DNSResourceRecord::ADDITIONAL;
-  dr.d_content = std::make_shared<OPTRecordContent>();
-  // if we ever do options, I think we stuff them into OPTRecordContent::data
-  return dr;
 }
 
 void reportBasicTypes()

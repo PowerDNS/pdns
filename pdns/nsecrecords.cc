@@ -72,7 +72,7 @@ private:
   string tmp;
 };
 
-void NSECBitmap::toPacket(DNSPacketWriter& pw)
+void NSECBitmap::toPacket(DNSPacketWriter& pw) const
 {
   NSECBitmapGenerator nbg(pw);
   if (d_bitset) {
@@ -108,7 +108,7 @@ void NSECBitmap::fromPacket(PacketReader& pr)
   if(bitmap.size() < 2) {
     throw MOADNSException("NSEC record with impossibly small bitmap");
   }
-  
+
   for(unsigned int n = 0; n+1 < bitmap.size();) {
     uint8_t window=static_cast<uint8_t>(bitmap[n++]);
     uint8_t blen=static_cast<uint8_t>(bitmap[n++]);
@@ -186,13 +186,13 @@ NSECRecordContent::NSECRecordContent(const string& content, const DNSName& zone)
   }
 }
 
-void NSECRecordContent::toPacket(DNSPacketWriter& pw)
+void NSECRecordContent::toPacket(DNSPacketWriter& pw) const
 {
   pw.xfrName(d_next);
   d_bitmap.toPacket(pw);
 }
 
-std::shared_ptr<NSECRecordContent::DNSRecordContent> NSECRecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<NSECRecordContent::DNSRecordContent> NSECRecordContent::make(const DNSRecord & /* dr */, PacketReader& pr)
 {
   auto ret=std::make_shared<NSECRecordContent>();
   pr.xfrName(ret->d_next);
@@ -202,7 +202,7 @@ std::shared_ptr<NSECRecordContent::DNSRecordContent> NSECRecordContent::make(con
   return ret;
 }
 
-string NSECRecordContent::getZoneRepresentation(bool noDot) const
+string NSECRecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   string ret;
   RecordTextWriter rtw(ret);
@@ -232,7 +232,7 @@ NSEC3RecordContent::NSEC3RecordContent(const string& content, const DNSName& zon
 
   rtr.xfrHexBlob(d_salt);
   rtr.xfrBase32HexBlob(d_nexthash);
-  
+
   while(!rtr.eof()) {
     uint16_t type;
     rtr.xfrType(type);
@@ -240,7 +240,7 @@ NSEC3RecordContent::NSEC3RecordContent(const string& content, const DNSName& zon
   }
 }
 
-void NSEC3RecordContent::toPacket(DNSPacketWriter& pw) 
+void NSEC3RecordContent::toPacket(DNSPacketWriter& pw) const
 {
   pw.xfr8BitInt(d_algorithm);
   pw.xfr8BitInt(d_flags);
@@ -254,7 +254,7 @@ void NSEC3RecordContent::toPacket(DNSPacketWriter& pw)
   d_bitmap.toPacket(pw);
 }
 
-std::shared_ptr<NSEC3RecordContent::DNSRecordContent> NSEC3RecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<NSEC3RecordContent::DNSRecordContent> NSEC3RecordContent::make(const DNSRecord& /* dr */, PacketReader& pr)
 {
   auto ret=std::make_shared<NSEC3RecordContent>();
   pr.xfr8BitInt(ret->d_algorithm);
@@ -271,7 +271,7 @@ std::shared_ptr<NSEC3RecordContent::DNSRecordContent> NSEC3RecordContent::make(c
   return ret;
 }
 
-string NSEC3RecordContent::getZoneRepresentation(bool noDot) const
+string NSEC3RecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   string ret;
   RecordTextWriter rtw(ret);
@@ -300,41 +300,41 @@ std::shared_ptr<DNSRecordContent> NSEC3PARAMRecordContent::make(const string& co
 NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const DNSName& zone)
 {
   RecordTextReader rtr(content, zone);
-  rtr.xfr8BitInt(d_algorithm); 
-  rtr.xfr8BitInt(d_flags); 
-  rtr.xfr16BitInt(d_iterations); 
+  rtr.xfr8BitInt(d_algorithm);
+  rtr.xfr8BitInt(d_flags);
+  rtr.xfr16BitInt(d_iterations);
   rtr.xfrHexBlob(d_salt);
 }
 
-void NSEC3PARAMRecordContent::toPacket(DNSPacketWriter& pw) 
+void NSEC3PARAMRecordContent::toPacket(DNSPacketWriter& pw) const
 {
-  pw.xfr8BitInt(d_algorithm); 
-        pw.xfr8BitInt(d_flags); 
-        pw.xfr16BitInt(d_iterations); 
+  pw.xfr8BitInt(d_algorithm);
+        pw.xfr8BitInt(d_flags);
+        pw.xfr16BitInt(d_iterations);
   pw.xfr8BitInt(d_salt.length());
   // cerr<<"salt: '"<<makeHexDump(d_salt)<<"', "<<d_salt.length()<<endl;
   pw.xfrBlob(d_salt);
 }
 
-std::shared_ptr<NSEC3PARAMRecordContent::DNSRecordContent> NSEC3PARAMRecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<NSEC3PARAMRecordContent::DNSRecordContent> NSEC3PARAMRecordContent::make(const DNSRecord& /* dr */, PacketReader& pr)
 {
   auto ret=std::make_shared<NSEC3PARAMRecordContent>();
-  pr.xfr8BitInt(ret->d_algorithm); 
-        pr.xfr8BitInt(ret->d_flags); 
-        pr.xfr16BitInt(ret->d_iterations); 
+  pr.xfr8BitInt(ret->d_algorithm);
+        pr.xfr8BitInt(ret->d_flags);
+        pr.xfr16BitInt(ret->d_iterations);
   uint8_t len;
   pr.xfr8BitInt(len);
   pr.xfrHexBlob(ret->d_salt, len);
   return ret;
 }
 
-string NSEC3PARAMRecordContent::getZoneRepresentation(bool noDot) const
+string NSEC3PARAMRecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   string ret;
   RecordTextWriter rtw(ret);
-  rtw.xfr8BitInt(d_algorithm); 
-        rtw.xfr8BitInt(d_flags); 
-        rtw.xfr16BitInt(d_iterations); 
+  rtw.xfr8BitInt(d_algorithm);
+        rtw.xfr8BitInt(d_flags);
+        rtw.xfr16BitInt(d_iterations);
   rtw.xfrHexBlob(d_salt);
   return ret;
 }
@@ -366,7 +366,7 @@ CSYNCRecordContent::CSYNCRecordContent(const string& content, const DNSName& zon
   }
 }
 
-void CSYNCRecordContent::toPacket(DNSPacketWriter& pw)
+void CSYNCRecordContent::toPacket(DNSPacketWriter& pw) const
 {
   pw.xfr32BitInt(d_serial);
   pw.xfr16BitInt(d_flags);
@@ -374,7 +374,7 @@ void CSYNCRecordContent::toPacket(DNSPacketWriter& pw)
   d_bitmap.toPacket(pw);
 }
 
-std::shared_ptr<CSYNCRecordContent::DNSRecordContent> CSYNCRecordContent::make(const DNSRecord &dr, PacketReader& pr)
+std::shared_ptr<CSYNCRecordContent::DNSRecordContent> CSYNCRecordContent::make(const DNSRecord& /* dr */, PacketReader& pr)
 {
   auto ret=std::make_shared<CSYNCRecordContent>();
   pr.xfr32BitInt(ret->d_serial);
@@ -384,7 +384,7 @@ std::shared_ptr<CSYNCRecordContent::DNSRecordContent> CSYNCRecordContent::make(c
   return ret;
 }
 
-string CSYNCRecordContent::getZoneRepresentation(bool noDot) const
+string CSYNCRecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   string ret;
   RecordTextWriter rtw(ret);

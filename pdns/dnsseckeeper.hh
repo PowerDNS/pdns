@@ -171,13 +171,13 @@ private:
 public:
   DNSSECKeeper() : d_keymetadb( new UeberBackend("key-only")), d_ourDB(true)
   {
-    
+
   }
-  
+
   DNSSECKeeper(UeberBackend* db) : d_keymetadb(db), d_ourDB(false)
   {
   }
-  
+
   ~DNSSECKeeper()
   {
     if(d_ourDB)
@@ -202,7 +202,7 @@ public:
   bool deactivateKey(const DNSName& zname, unsigned int id);
   bool publishKey(const DNSName& zname, unsigned int id);
   bool unpublishKey(const DNSName& zname, unsigned int id);
-  bool checkKeys(const DNSName& zname, vector<string>* errorMessages = nullptr);
+  bool checkKeys(const DNSName& zname, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages);
 
   bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=nullptr, bool* narrow=nullptr, bool useCache=true);
   bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg);
@@ -221,21 +221,21 @@ public:
 
   bool TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname);
   bool getTSIGForAccess(const DNSName& zone, const ComboAddress& master, DNSName* keyname);
-  
+
   void startTransaction(const DNSName& zone, int zone_id)
   {
     (*d_keymetadb->backends.begin())->startTransaction(zone, zone_id);
   }
-  
+
   void commitTransaction()
   {
     (*d_keymetadb->backends.begin())->commitTransaction();
   }
-  
+
   void getFromMetaOrDefault(const DNSName& zname, const std::string& key, std::string& value, const std::string& defaultvalue);
   bool getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
   void getSoaEdit(const DNSName& zname, std::string& value, bool useCache=true);
-  bool unSecureZone(const DNSName& zone, std::string& error, std::string& info);
+  bool unSecureZone(const DNSName& zone, std::string& error);
   bool rectifyZone(const DNSName& zone, std::string& error, std::string& info, bool doTransaction);
 
   static void setMaxEntries(size_t maxEntries);
@@ -250,17 +250,17 @@ private:
   struct KeyCacheEntry
   {
     typedef vector<DNSSECKeeper::keymeta_t> keys_t;
-  
+
     uint32_t isStale(time_t now) const
     {
       return d_ttd < now;
     }
-  
+
     DNSName d_domain;
     mutable keys_t d_keys;
     unsigned int d_ttd;
   };
-  
+
   struct METACacheEntry
   {
     time_t isStale(time_t now) const
@@ -272,11 +272,11 @@ private:
     mutable METAValues d_value;
     time_t d_ttd;
   };
-  
+
   struct KeyCacheTag{};
   struct CompositeTag{};
   struct SequencedTag{};
-  
+
   typedef multi_index_container<
     KeyCacheEntry,
     indexed_by<

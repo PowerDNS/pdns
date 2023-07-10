@@ -23,13 +23,16 @@ if [ ! -z "$1" ]; then
   numdomains="$1"
 fi
 
+if false; then
 set +x
 for prefix in 'www' 'wildcard'; do
+  rm -f ${prefix}.csv
   for num in $(seq 0 1000000); do
     echo "${num},${prefix}.powerdnssec.org" >> ${prefix}.csv
   done
 done
 set -x
+fi
 
 EXIT=0
 

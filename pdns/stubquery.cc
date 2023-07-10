@@ -56,7 +56,7 @@ try
 
   cout<<"res: "<<res<<endl;
   for(const auto& r : ret) {
-    cout<<r.dr.d_content->getZoneRepresentation()<<endl;
+    cout<<r.dr.getContent()->getZoneRepresentation()<<endl;
   }
 }
 catch(std::exception &e)

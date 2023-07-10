@@ -1,9 +1,11 @@
 SUBDIRS = \
+	arc4random \
 	yahttp \
 	json11 \
 	probds
 
 DIST_SUBDIRS = \
+	arc4random \
 	yahttp \
 	json11 \
 	probds

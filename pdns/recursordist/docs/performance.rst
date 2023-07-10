@@ -15,27 +15,75 @@ See below for more information about the various caches.
 When deploying (large scale) IPv6, please be aware some Linux distributions leave IPv6 routing cache tables at very small default values.
 Please check and if necessary raise ``sysctl net.ipv6.route.max_size``.
 
-Set :ref:`setting-threads` to your number of CPU cores minus the number of distributor threads (but values above 8 rarely improve performance).
+Set :ref:`setting-threads` to your number of CPU cores minus the number of distributor threads.
 
 Threading and distribution of queries
 -------------------------------------
 
-When running with several threads, you can either ask PowerDNS to start one or more special threads to dispatch the incoming queries to the workers by setting :ref:`setting-pdns-distributes-queries` to true, or let the worker threads handle the incoming queries themselves.
+When running with several threads, you can either ask PowerDNS to start one or more special threads to dispatch the incoming queries to the workers by setting :ref:`setting-pdns-distributes-queries` to ``yes``, or let the worker threads handle the incoming queries themselves.
+The latter is the default since version 4.9.0.
 
 The dispatch thread enabled by :ref:`setting-pdns-distributes-queries` tries to send the same queries to the same thread to maximize the cache-hit ratio.
 If the incoming query rate is so high that the dispatch thread becomes a bottleneck, you can increase :ref:`setting-distributor-threads` to use more than one.
 
-If :ref:`setting-pdns-distributes-queries` is set to false and either ``SO_REUSEPORT`` support is not available or the :ref:`setting-reuseport` directive is set to false, all worker threads share the same listening sockets.
+If :ref:`setting-pdns-distributes-queries` is set to ``no`` and either ``SO_REUSEPORT`` support is not available or the :ref:`setting-reuseport` directive is set to ``no``, all worker threads share the same listening sockets.
 
 This prevents a single thread from having to handle every incoming queries, but can lead to thundering herd issues where all threads are awoken at once when a query arrives.
 
-If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to true, separate listening sockets are opened for each worker thread and the query distributions is handled by the kernel, avoiding any thundering herd issue as well as preventing the distributor thread from becoming the bottleneck.
+If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to ``yes``, which is the
+default since version 4.9.0, separate listening sockets are opened for each worker thread and the query distributions is handled by the kernel, avoiding any thundering herd issue as well as preventing the distributor thread from becoming the bottleneck.
+The next section discusses how to determine if the mechanism is working properly.
+
+.. _worker_imbalance:
+
+Imbalance
+^^^^^^^^^
+Due to the nature of the distribution method used by the kernel imbalance with the new default settings of :ref:`setting-reuseport` and :ref:`setting-pdns-distributes-queries` may occur if you have very few clients.
+Imbalance can be observed by reading the periodic statistics reported by :program:`Recursor`::
+
+  Jun 26 11:06:41 pepper pdns-recursor[10502]: msg="Queries handled by thread" subsystem="stats" level="0" prio="Info" tid="0" ts="1687770401.359" count="7" thread="0"
+  Jun 26 11:06:41 pepper pdns-recursor[10502]: msg="Queries handled by thread" subsystem=" stats" level="0" prio="Info" tid="0" ts="1687770401.359" count="535167" thread="1"
+  Jun 26 11:06:41 pepper pdns-recursor[10502]: msg="Queries handled by thread" subsystem=" stats" level="0" prio="Info" tid="0" ts="1687770401.359" count="5" thread="2"
+
+In the above log lines we see that almost all queries are processed by thread 1.
+This can typically be observed when using ``dnsdist`` in front of :program:`Recursor`.
+
+When using ``dnsdist`` with a single ``newServer`` to a recursor instance in its configuration, the kernel will regard ``dnsdist`` as a single client unless you use the ``sockets`` parameter to ``newServer`` to increase the number of source ports used by ``dnsdist``.
+The following guideline applies for the ``dnsdist`` case:
+
+- Be generous with the ``sockets`` setting of ``newServer``.
+  A starting points is to configure twice as many sockets as :program:`Recursor` threads.
+- As long as the threads of the :program:`Recursor` as not overloaded, some imbalance will not impact performance significantly.
+- If you want to reduce imbalance, increase the value of ``sockets`` even more.
+
+Non-Linux systems
+^^^^^^^^^^^^^^^^^
+On some systems setting :ref:`setting-reuseport` to ``yes`` does not have the desired effect at all.
+If your systems shows great imbalance in the number of queries processed per thread (as reported by the periodic statistics report), try switching :ref:`setting-reuseport` to ``no`` and/or setting  :ref:`setting-pdns-distributes-queries` to ``yes``.
 
 .. versionadded:: 4.1.0
    The :ref:`setting-cpu-map` parameter can be used to pin worker threads to specific CPUs, in order to keep caches as warm as possible and optimize memory access on NUMA systems.
 
 .. versionadded:: 4.2.0
    The :ref:`setting-distributor-threads` parameter can be used to run more than one distributor thread.
+
+.. versionchanged:: 4.9.0
+   The :ref:`setting-reuseport` parameter now defaults to ``yes``.
+
+.. versionchanged:: 4.9.0
+   The :ref:`setting-pdns-distributes-queries` parameter now defaults to ``no``.
+
+
+MTasker and MThreads
+--------------------
+
+PowerDNS Recursor uses a cooperative multitasking in userspace called ``MTasker``, based either on ``boost::context`` if available, or on ``System V ucontexts`` otherwise. For maximum performance, please make sure that your system supports ``boost::context``, as the alternative has been known to be quite slower.
+
+The maximum number of simultaneous MTasker threads, called ``MThreads``, can be tuned via :ref:`setting-max-mthreads`, as the default value of 2048 might not be enough for large-scale installations.
+
+When a ``MThread`` is started, a new stack is dynamically allocated for it on the heap. The size of that stack can be configured via the :ref:`setting-stack-size` parameter, whose default value is 200 kB which should be enough in most cases.
+
+To reduce the cost of allocating a new stack for every query, the recursor can cache a small amount of stacks to make sure that the allocation stays cheap. This can be configured via the :ref:`setting-stack-cache-size` setting. The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equals to the number of stacks specified by :ref:`setting-stack-cache-size` multiplied by the size of one stack, itself specified via :ref:`setting-stack-size`.
 
 Performance tips
 ----------------
@@ -63,6 +111,7 @@ For high load operation (thousands of queries/second), It is advised to either t
 Sample Linux command lines would be::
 
     ## IPv4
+    ## NOTRACK rules for 53/udp, keep in mind that you also need your regular rules for 53/tcp
     iptables -t raw -I OUTPUT -p udp --dport 53 -j CT --notrack
     iptables -t raw -I OUTPUT -p udp --sport 53 -j CT --notrack
     iptables -t raw -I PREROUTING -p udp --dport 53 -j CT --notrack
@@ -73,6 +122,7 @@ Sample Linux command lines would be::
     iptables -I OUTPUT -p udp --sport 53 -j ACCEPT
 
     ## IPv6
+    ## NOTRACK rules for 53/udp, keep in mind that you also need your regular rules for 53/tcp
     ip6tables -t raw -I OUTPUT -p udp --dport 53 -j CT --notrack
     ip6tables -t raw -I OUTPUT -p udp --sport 53 -j CT --notrack
     ip6tables -t raw -I PREROUTING -p udp --sport 53 -j CT --notrack
@@ -86,6 +136,7 @@ When using FirewallD (Centos 7+ / Red Hat 7+ / Fedora 21+), connection tracking 
 The settings can be made permanent by using the ``--permanent`` flag::
 
     ## IPv4
+    ## NOTRACK rules for 53/udp, keep in mind that you also need your regular rules for 53/tcp
     firewall-cmd --direct --add-rule ipv4 raw OUTPUT 0 -p udp --dport 53 -j CT --notrack
     firewall-cmd --direct --add-rule ipv4 raw OUTPUT 0 -p udp --sport 53 -j CT --notrack
     firewall-cmd --direct --add-rule ipv4 raw PREROUTING 0 -p udp --dport 53 -j CT --notrack
@@ -96,6 +147,7 @@ The settings can be made permanent by using the ``--permanent`` flag::
     firewall-cmd --direct --add-rule ipv4 filter OUTPUT 0 -p udp --sport 53 -j ACCEPT
 
     ## IPv6
+    ## NOTRACK rules for 53/udp, keep in mind that you also need your regular rules for 53/tcp
     firewall-cmd --direct --add-rule ipv6 raw OUTPUT 0 -p udp --dport 53 -j CT --notrack
     firewall-cmd --direct --add-rule ipv6 raw OUTPUT 0 -p udp --sport 53 -j CT --notrack
     firewall-cmd --direct --add-rule ipv6 raw PREROUTING 0 -p udp --dport 53 -j CT --notrack

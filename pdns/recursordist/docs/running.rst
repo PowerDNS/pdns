@@ -76,21 +76,39 @@ When debugging resolving issues, it can be advantageous to have a dump of all th
 
   rec_control dump-cache /tmp/cache
 
+.. _tracing:
+
 Tracing Queries
 ---------------
-To investigate failures with resolving certain domain names, the PowerDNS Recursor features a "tracing" infrastructure.
-This infrastructure will log every step the Recursor takes to resolve a name and will log all DNSSEC related information as well.
+To investigate failures with resolving certain domain names, the PowerDNS :program:`Recursor` features a tracing infrastructure.
+This infrastructure will log every step the :program:`Recursor` takes to resolve a name and will log all DNSSEC related information as well.
 
 To enable tracing for all queries, enable the :ref:`setting-trace` setting.
+Trace information will be written to the log.
 
 .. warning::
 
   Enabling tracing for all queries on a system with a high query rate can severely impact performance.
 
-Tracing can also be enabled at runtime, without restarting the Recursor, for specific domains.
+Tracing can also be enabled at runtime, without restarting the :program:`Recursor`, for specific domains.
 These specific domains can be specified as a regular expression.
 This can be done using :doc:`rec_control trace-regex <manpages/rec_control.1>`::
 
-    rec_control trace-regex '.*\.example.com\.$'
+  rec_control trace-regex '.*\.example.com\.$'
 
 Will enable tracing for any query *in* the example.com domain (but not example.com itself).
+
+Since version 4.9.0 ``trace_regex`` takes an extra file argument.
+Trace information will be written to the file and not to the log.
+If the file argument is a hyphen (``-``), trace information will be written to the standard output stream.
+For example::
+
+  rec_control trace-regex 'example\.com\.$' - | grep asking
+
+will show which authoritative servers were consulted.
+
+Do not forget to disable tracing after diagnosis is done::
+
+  rec_control trace-regex
+
+

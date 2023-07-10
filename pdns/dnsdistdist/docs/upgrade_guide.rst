@@ -1,6 +1,22 @@
 Upgrade Guide
 =============
 
+1.7.x to 1.8.0
+--------------
+
+Responses to AXFR and IXFR queries are no longer cached.
+
+Cache-hits are now counted as responses in our metrics.
+
+The :func:`setMaxTCPConnectionsPerClient` limit is now properly applied to DNS over HTTPS connections, in addition to DNS over TCP and DNS over TLS ones.
+
+The configuration check will now fail if the configuration file does not exist. For this reason we now create a default configuration file, based on the file previously called ``dnsdistconf.lua``, which contains commented-out examples of how to set up dnsdist.
+
+Latency metrics have been broken down:
+
+* per incoming protocol (Do53 UDP, Do53 TCP, DoT, DoH) for global latency metrics
+* between UDP (Do53) and TCP (Do53 TCP, DoT, DoH) for backend latency metrics
+
 1.7.0 to 1.7.1
 --------------
 
@@ -26,7 +42,7 @@ The packet cache no longer hashes EDNS Cookies by default, which means that two 
 
 All TCP worker threads are now created at startup, instead of being created on-demand. The existing behaviour was useful for very small setups but did not scale quickly to a large amount of TCP connections.
 The new behaviour can cause a noticeable increase of TCP connections between dnsdist and its backends, as the TCP connections are not shared between TCP worker threads.
-This is especially true for setups with a large number of frontends (:func:`addLocal`, :func:`addTLSLocal`, and :func:`addDNSCryptBind` directives), as 1.6.0 sets the number of TCP workers to the number of TCP-enabled binds (with a minimum of 10), unless that number has been set explicitely via :func:`setMaxTCPClientThreads`.
+This is especially true for setups with a large number of frontends (:func:`addLocal`, :func:`addTLSLocal`, and :func:`addDNSCryptBind` directives), as 1.6.0 sets the number of TCP workers to the number of TCP-enabled binds (with a minimum of 10), unless that number has been set explicitly via :func:`setMaxTCPClientThreads`.
 
 Several actions have been renamed so that almost all actions that allow further processing of rules start with 'Set', to prevent mistakes:
 

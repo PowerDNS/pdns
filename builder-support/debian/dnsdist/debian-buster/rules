@@ -47,6 +47,7 @@ override_dh_auto_configure:
 	  --infodir=\$${prefix}/share/info \
 	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
 	  --libexecdir='$${prefix}/lib' \
+	  --enable-lto=thin \
 	  --enable-dns-over-https \
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
@@ -74,7 +75,7 @@ else
 endif
 
 override_dh_installexamples:
-	cp dnsdistconf.lua dnsdist.conf
+	cp dnsdist.conf-dist dnsdist.conf
 	dh_installexamples
 	rm -f dnsdist.conf
 

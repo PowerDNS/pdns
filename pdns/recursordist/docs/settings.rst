@@ -42,6 +42,23 @@ In this case the address ``128.66.1.2`` is excluded from the addresses allowed a
 The number of records to cache in the aggressive cache. If set to a value greater than 0, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in :rfc:`8198`.
 To use this, DNSSEC processing or validation must be enabled by setting `dnssec`_ to ``process``, ``log-fail`` or ``validate``.
 
+.. _setting-aggressive-cache-min-nsec3-hit-ratio:
+
+``aggressive-cache-min-nsec3-hit-ratio``
+----------------------------------------
+.. versionadded:: 4.9.0
+
+- Integer
+- Default: 2000
+
+The limit for which to put NSEC3 records into the aggressive cache.
+A value of ``n`` means that an NSEC3 record is only put into the aggressive cache if the estimated probability of a random name hitting the NSEC3 record is higher than ``1/n``.
+A higher ``n`` will cause more records to be put into the aggressive cache, e.g. a value of 4000 will cause records to be put in the aggressive cache even if the estimated probability of hitting them is twice as low as would be the case for ``n=2000``.
+A value of 0 means no NSEC3 records will be put into the aggressive cache.
+
+For large zones the effectiveness of the NSEC3 cache is reduced since each NSEC3 record only covers a randomly distributed subset of all possible names.
+This setting avoids doing unnecessary work for such large zones.
+
 .. _setting-allow-from:
 
 ``allow-from``
@@ -448,8 +465,7 @@ overloaded, but it will be at the cost of an increased latency.
 -  Default: 1 if `pdns-distributes-queries`_ is set, 0 otherwise
 
 If `pdns-distributes-queries`_ is set, spawn this number of distributor threads on startup. Distributor threads
-handle incoming queries and distribute them to other threads based on a hash of the query, to maximize the cache hit
-ratio.
+handle incoming queries and distribute them to other threads based on a hash of the query.
 
 .. _setting-dot-to-auth-names:
 
@@ -516,6 +532,25 @@ Set the mode for DNSSEC processing, as detailed in :doc:`dnssec`.
    Similar behaviour to ``process``, but validate RRSIGs on responses and log bogus responses.
 ``validate``
    Full blown DNSSEC validation. Send SERVFAIL to clients on bogus responses.
+
+.. _setting-dnssec-disabled-algorithms:
+
+``dnssec-disabled-algorithms``
+------------------------------
+.. versionadded:: 4.9.0
+
+- Comma separated list of DNSSEC algorithm numbers
+- Default: (none)
+
+A list of DNSSEC algorithm numbers that should be considered disabled.
+These algorithms will not be used to validate DNSSEC signatures.
+Zones (only) signed with these algorithms will be considered ``Insecure``.
+
+If this setting is empty (the default), :program:`Recursor` will determine which algorithms to disable automatically.
+This is done for specific algorithms only, currently algorithms 5 (``RSASHA1``) and 7 (``RSASHA1NSEC3SHA1``).
+
+This is important on systems that have a default strict crypto policy, like RHEL9 derived systems.
+On such systems not disabling some algorithms (or changing the security policy) will make affected zones to be considered ``Bogus`` as using these algorithms fails.
 
 .. _setting-dnssec-log-bogus:
 
@@ -789,7 +824,7 @@ This file can be used to serve data authoritatively using `export-etc-hosts`_.
 - Integer
 - Default: 0
 
-Enable the recording and logging of ref:`event traces`. This is an experimental feature subject to change.
+Enable the recording and logging of ref:`event traces`. This is an experimental feature and subject to change.
 Possible values are 0: (disabled), 1 (add information to protobuf logging messages) and 2 (write to log) and 3 (both).
 
 .. _setting-export-etc-hosts:
@@ -910,10 +945,14 @@ If set, EDNS options in incoming queries are extracted and passed to the :func:`
 
   Introduced the value ``no`` to disable root-hints processing.
 
+.. versionchanged:: 4.9.0
+
+  Introduced the value ``no-refresh`` to disable both root-hints processing and periodic refresh of the cached root `NS` records.
+
 If set, the root-hints are read from this file. If empty, the default built-in root hints are used.
 
 In some special cases, processing the root hints is not needed, for example when forwarding all queries to another recursor.
-For these special cases, it is possible to disable the processing of root hints by setting the value to ``no``.
+For these special cases, it is possible to disable the processing of root hints by setting the value to ``no`` or ``no-refresh``.
 See :ref:`handling-of-root-hints` for more information on root hints handling.
 
 .. _setting-ignore-unknown-settings:
@@ -1276,7 +1315,7 @@ This setting, which defaults to 3600 seconds, puts a maximum on the amount of ti
 ``max-recursion-depth``
 -----------------------
 -  Integer
--  Default: 40
+-  Default: 16
 
 Total maximum number of internal recursion calls the server may use to answer a single query.
 0 means unlimited.
@@ -1287,6 +1326,10 @@ If `qname-minimization`_ is enabled, the fallback code in case of a failing reso
 .. versionchanged:: 4.1.0
 
     Before 4.1.0, this settings was unlimited.
+
+.. versionchanged:: 4.9.0
+
+   Before 4.9.0 this setting's default was 40 and the limit on ``CNAME`` chains (fixed at 16) acted as a bound on he recursion depth.
 
 .. _setting-max-tcp-clients:
 
@@ -1564,9 +1607,26 @@ If an answer containing an NSEC3 record with more iterations is received, its DN
 ``packetcache-ttl``
 -------------------
 -  Integer
--  Default: 3600
+-  Default: 86400
 
 Maximum number of seconds to cache an item in the packet cache, no matter what the original TTL specified.
+
+.. versionchanged:: 4.9.0
+
+   The default was changed from 3600 (1 hour) to 86400 (24 hours).
+
+.. _setting-packetcache-negative-ttl:
+
+``packetcache-negative-ttl``
+----------------------------
+.. versionadded:: 4.9.0
+
+-  Integer
+-  Default: 60
+
+Maximum number of seconds to cache an ``NxDomain`` or ``NoData`` answer in the packetcache.
+This setting's maximum is capped to `packetcache-ttl`_.
+i.e. setting ``packetcache-ttl=15`` and keeping ``packetcache-negative-ttl`` at the default will lower ``packetcache-negative-ttl`` to ``15``.
 
 .. _setting-packetcache-servfail-ttl:
 
@@ -1577,23 +1637,42 @@ Maximum number of seconds to cache an item in the packet cache, no matter what t
 
 Maximum number of seconds to cache an answer indicating a failure to resolve in the packet cache.
 Before version 4.6.0 only ``ServFail`` answers were considered as such. Starting with 4.6.0, all responses with a code other than ``NoError`` and ``NXDomain``, or without records in the answer and authority sections, are considered as a failure to resolve.
+Since 4.9.0, negative answers are handled separately from resolving failures.
 
 .. versionchanged:: 4.0.0
 
     This setting's maximum is capped to `packetcache-ttl`_.
     i.e. setting ``packetcache-ttl=15`` and keeping ``packetcache-servfail-ttl`` at the default will lower ``packetcache-servfail-ttl`` to ``15``.
 
+
+.. _setting-packetcache-shards:
+
+``packetcache-shards``
+------------------------
+.. versionadded:: 4.9.0
+
+-  Integer
+-  Default: 1024
+
+Sets the number of shards in the packet cache. If you have high contention as reported by ``packetcache-contented/packetcache-acquired``,
+you can try to enlarge this value or run with fewer threads.
+
 .. _setting-pdns-distributes-queries:
 
 ``pdns-distributes-queries``
 ----------------------------
 -  Boolean
--  Default: yes
+-  Default: no
 
 If set, PowerDNS will use distinct threads to listen to client sockets and distribute that work to worker-threads using a hash of the query.
-This feature should maximize the cache hit ratio.
-To use more than one thread set `distributor-threads` in version 4.2.0 or newer.
-Enabling should improve performance for medium sized resolvers.
+This feature should maximize the cache hit ratio on versions before 4.9.0.
+To use more than one thread set `distributor-threads`_ in version 4.2.0 or newer.
+Enabling should improve performance on systems where `reuseport`_ does not have the effect of
+balancing the queries evenly over multiple worker threads.
+
+.. versionchanged:: 4.9.0
+
+   Default changed to ``no``, previously it was ``yes``.
 
 .. _setting-protobuf-use-kernel-timestamp:
 
@@ -1753,11 +1832,16 @@ A typical value is 10. If the value is zero, this functionality is disabled.
 ``reuseport``
 -------------
 -  Boolean
--  Default: no
+-  Default: yes
 
 If ``SO_REUSEPORT`` support is available, allows multiple threads and processes to open listening sockets for the same port.
 
-Since 4.1.0, when ``pdns-distributes-queries`` is set to false and ``reuseport`` is enabled, every worker-thread will open a separate listening socket to let the kernel distribute the incoming queries instead of running a distributor thread (which could otherwise be a bottleneck) and avoiding thundering herd issues, thus leading to much higher performance on multi-core boxes.
+Since 4.1.0, when `pdns-distributes-queries`_ is disabled and `reuseport`_ is enabled, every worker-thread will open a separate listening socket to let the kernel distribute the incoming queries instead of running a distributor thread (which could otherwise be a bottleneck) and avoiding thundering herd issues, thus leading to much higher performance on multi-core boxes.
+
+.. versionchanged:: 4.9.0
+
+   The default is changed to ``yes``, previously it was ``no``.
+   If ``SO_REUSEPORT`` support is not available, the setting defaults to ``no``.
 
 .. _setting-rng:
 
@@ -1837,7 +1921,7 @@ Individual parts of these zones can still be loaded or forwarded.
 Maximum number of times an expired record's TTL is extended by 30s when serving stale.
 Extension only occurs if a record cannot be refreshed.
 A value of 0 means the ``Serve Stale`` mechanism is not used.
-To allow records becoming stale to be served for an hour, use a value of 200.
+To allow records becoming stale to be served for an hour, use a value of 120.
 See :ref:`serve-stale` for a description of the Serve Stale mechanism.
 
 .. _setting-server-down-max-fails:
@@ -1971,6 +2055,18 @@ Owner and group can be specified by name, mode is in octal.
 
 If set to non-zero, PowerDNS will assume it is being spoofed after seeing this many answers with the wrong id.
 
+.. _setting-stack-cache-size:
+
+``stack-cache-size``
+--------------------
+.. versionadded:: 4.9.0
+
+-  Integer
+-  Default: 100
+
+Maximum number of mthread stacks that can be cached for later reuse, per thread. Caching these stacks reduces the CPU load at the cost of a slightly higher memory usage, each cached stack consuming `stack-size` bytes of memory.
+It makes no sense to cache more stacks than the value of `max-mthreads`, since there will never be more stacks than that in use at a given time.
+
 .. _setting-stack-size:
 
 ``stack-size``
@@ -1978,7 +2074,7 @@ If set to non-zero, PowerDNS will assume it is being spoofed after seeing this m
 -  Integer
 -  Default: 200000
 
-Size of the stack of each mthread.
+Size in bytes of the stack of each mthread.
 
 .. _setting-statistics-interval:
 

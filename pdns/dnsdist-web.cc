@@ -34,6 +34,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-healthchecks.hh"
+#include "dnsdist-metrics.hh"
 #include "dnsdist-prometheus.hh"
 #include "dnsdist-web.hh"
 #include "dolog.hh"
@@ -53,6 +54,7 @@ struct WebserverConfig
   std::unique_ptr<CredentialsHolder> apiKey;
   boost::optional<std::unordered_map<std::string, std::string> > customHeaders;
   bool apiRequiresAuthentication{true};
+  bool dashboardRequiresAuthentication{true};
   bool statsRequireAuthentication{true};
 };
 
@@ -81,6 +83,7 @@ std::string getWebserverConfig()
       out << "None" << endl;
     }
     out << "API requires authentication: " << (config->apiRequiresAuthentication ? "yes" : "no") << endl;
+    out << "Dashboard requires authentication: " << (config->dashboardRequiresAuthentication ? "yes" : "no") << endl;
     out << "Statistics require authentication: " << (config->statsRequireAuthentication ? "yes" : "no") << endl;
     out << "Password: " << (config->password ? "set" : "unset") << endl;
     out << "API key: " << (config->apiKey ? "set" : "unset") << endl;
@@ -210,9 +213,9 @@ std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
 };
 #endif /* DISABLE_PROMETHEUS */
 
-bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description) {
+bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def) {
 #ifndef DISABLE_PROMETHEUS
-  return MetricDefinitionStorage::addMetricDefinition(name, type, description);
+  return MetricDefinitionStorage::addMetricDefinition(def);
 #else
   return true;
 #endif /* DISABLE_PROMETHEUS */
@@ -275,8 +278,12 @@ static bool checkAPIKey(const YaHTTP::Request& req, const std::unique_ptr<Creden
   return false;
 }
 
-static bool checkWebPassword(const YaHTTP::Request& req, const std::unique_ptr<CredentialsHolder>& password)
+static bool checkWebPassword(const YaHTTP::Request& req, const std::unique_ptr<CredentialsHolder>& password, bool dashboardRequiresAuthentication)
 {
+  if (!dashboardRequiresAuthentication) {
+    return true;
+  }
+
   static const char basicStr[] = "basic ";
 
   const auto header = req.headers.find("authorization");
@@ -323,7 +330,7 @@ static bool handleAuthorization(const YaHTTP::Request& req)
   if (isAStatsRequest(req)) {
     if (config->statsRequireAuthentication) {
       /* Access to the stats is allowed for both API and Web users */
-      return checkAPIKey(req, config->apiKey) || checkWebPassword(req, config->password);
+      return checkAPIKey(req, config->apiKey) || checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
     }
     return true;
   }
@@ -334,10 +341,10 @@ static bool handleAuthorization(const YaHTTP::Request& req)
       return true;
     }
 
-    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, config->password);
+    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
   }
 
-  return checkWebPassword(req, config->password);
+  return checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
 }
 
 static bool isMethodAllowed(const YaHTTP::Request& req)
@@ -350,6 +357,13 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
       return true;
     }
   }
+#ifndef DISABLE_WEB_CACHE_MANAGEMENT
+  if (req.method == "DELETE") {
+    if (req.url.path == "/api/v1/cache") {
+      return true;
+    }
+  }
+#endif /* DISABLE_WEB_CACHE_MANAGEMENT */
   return false;
 }
 
@@ -454,66 +468,77 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   std::ostringstream output;
   static const std::set<std::string> metricBlacklist = { "special-memory-usage", "latency-count", "latency-sum" };
-  for (const auto& e : g_stats.entries) {
-    const auto& metricName = std::get<0>(e);
+  {
+    auto entries = dnsdist::metrics::g_stats.entries.read_lock();
+    for (const auto& entry : *entries) {
+      const auto& metricName = entry.d_name;
 
-    if (metricBlacklist.count(metricName) != 0) {
-      continue;
-    }
+      if (metricBlacklist.count(metricName) != 0) {
+        continue;
+      }
 
-    MetricDefinition metricDetails;
-    if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
-      vinfolog("Do not have metric details for %s", metricName);
-      continue;
-    }
+      MetricDefinition metricDetails;
+      if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
+        vinfolog("Do not have metric details for %s", metricName);
+        continue;
+      }
 
-    // Prometheus suggest using '_' instead of '-'
-    std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
+      const std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
+      if (prometheusTypeName.empty()) {
+        vinfolog("Unknown Prometheus type for %s", metricName);
+        continue;
+      }
 
-    if (prometheusTypeName == "") {
-      vinfolog("Unknown Prometheus type for %s", metricName);
-      continue;
-    }
-    std::string prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
+      // Prometheus suggest using '_' instead of '-'
+      std::string prometheusMetricName;
+      if (metricDetails.customName.empty()) {
+        prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
+      }
+      else {
+        prometheusMetricName = metricDetails.customName;
+      }
 
-    // for these we have the help and types encoded in the sources:
-    output << "# HELP " << prometheusMetricName << " " << metricDetails.description    << "\n";
-    output << "# TYPE " << prometheusMetricName << " " << prometheusTypeName << "\n";
-    output << prometheusMetricName << " ";
+      // for these we have the help and types encoded in the sources
+      // but we need to be careful about labels in custom metrics
+      std::string helpName = prometheusMetricName.substr(0, prometheusMetricName.find('{'));
+      output << "# HELP " << helpName << " " << metricDetails.description    << "\n";
+      output << "# TYPE " << helpName << " " << prometheusTypeName << "\n";
+      output << prometheusMetricName << " ";
 
-    if (const auto& val = boost::get<pdns::stat_t*>(&std::get<1>(e))) {
-      output << (*val)->load();
-    }
-    else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&std::get<1>(e))) {
-      output << (*adval)->load();
-    }
-    else if (const auto& dval = boost::get<double*>(&std::get<1>(e))) {
-      output << **dval;
-    }
-    else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e))) {
-      output << (*func)(std::get<0>(e));
-    }
+      if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
+        output << (*val)->load();
+      }
+      else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+        output << (*adval)->load();
+      }
+      else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
+        output << **dval;
+      }
+      else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
+        output << (*func)(entry.d_name);
+      }
 
-    output << "\n";
+      output << "\n";
+    }
   }
 
   // Latency histogram buckets
   output << "# HELP dnsdist_latency Histogram of responses by latency (in milliseconds)\n";
   output << "# TYPE dnsdist_latency histogram\n";
-  uint64_t latency_amounts = g_stats.latency0_1;
+  uint64_t latency_amounts = dnsdist::metrics::g_stats.latency0_1;
   output << "dnsdist_latency_bucket{le=\"1\"} " << latency_amounts << "\n";
-  latency_amounts += g_stats.latency1_10;
+  latency_amounts += dnsdist::metrics::g_stats.latency1_10;
   output << "dnsdist_latency_bucket{le=\"10\"} " << latency_amounts << "\n";
-  latency_amounts += g_stats.latency10_50;
+  latency_amounts += dnsdist::metrics::g_stats.latency10_50;
   output << "dnsdist_latency_bucket{le=\"50\"} " << latency_amounts << "\n";
-  latency_amounts += g_stats.latency50_100;
+  latency_amounts += dnsdist::metrics::g_stats.latency50_100;
   output << "dnsdist_latency_bucket{le=\"100\"} " << latency_amounts << "\n";
-  latency_amounts += g_stats.latency100_1000;
+  latency_amounts += dnsdist::metrics::g_stats.latency100_1000;
   output << "dnsdist_latency_bucket{le=\"1000\"} " << latency_amounts << "\n";
-  latency_amounts += g_stats.latencySlow; // Should be the same as latency_count
+  latency_amounts += dnsdist::metrics::g_stats.latencySlow; // Should be the same as latency_count
   output << "dnsdist_latency_bucket{le=\"+Inf\"} " << latency_amounts << "\n";
-  output << "dnsdist_latency_sum " << g_stats.latencySum << "\n";
-  output << "dnsdist_latency_count " << g_stats.latencyCount << "\n";
+  output << "dnsdist_latency_sum " << dnsdist::metrics::g_stats.latencySum << "\n";
+  output << "dnsdist_latency_count " << dnsdist::metrics::g_stats.latencyCount << "\n";
 
   auto states = g_dstates.getLocal();
   const string statesbase = "dnsdist_server_";
@@ -565,7 +590,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# HELP " << statesbase << "tcpavgconnduration "              << "The average duration of a TCP connection (ms)"                                        << "\n";
   output << "# TYPE " << statesbase << "tcpavgconnduration "              << "gauge"                                                                                << "\n";
   output << "# HELP " << statesbase << "tlsresumptions "                  << "The number of times a TLS session has been resumed"                                   << "\n";
-  output << "# TYPE " << statesbase << "tlsersumptions "                  << "counter"                                                                              << "\n";
+  output << "# TYPE " << statesbase << "tlsresumptions "                  << "counter"                                                                              << "\n";
   output << "# HELP " << statesbase << "tcplatency "                      << "Server's latency when answering TCP questions in milliseconds"                        << "\n";
   output << "# TYPE " << statesbase << "tcplatency "                      << "gauge"                                                                                << "\n";
 
@@ -800,6 +825,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE dnsdist_pool_cache_insert_collisions " << "counter" << "\n";
   output << "# HELP dnsdist_pool_cache_ttl_too_shorts " << "Number of insertions into that cache skipped because the TTL of the answer was not long enough" << "\n";
   output << "# TYPE dnsdist_pool_cache_ttl_too_shorts " << "counter" << "\n";
+  output << "# HELP dnsdist_pool_cache_cleanup_count_total " << "Number of times the cache has been scanned to remove expired entries, if any" << "\n";
+  output << "# TYPE dnsdist_pool_cache_cleanup_count_total " << "counter" << "\n";
 
   for (const auto& entry : *localPools) {
     string poolName = entry.first;
@@ -824,7 +851,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       output << cachebase << "cache_lookup_collisions" <<label << " " << cache->getLookupCollisions() << "\n";
       output << cachebase << "cache_insert_collisions" <<label << " " << cache->getInsertCollisions() << "\n";
       output << cachebase << "cache_ttl_too_shorts"    <<label << " " << cache->getTTLTooShorts()     << "\n";
-      output << cachebase << "cache_cleanup_count"     <<label << " " << cache->getCleanupCount()     << "\n";
+      output << cachebase << "cache_cleanup_count_total"     <<label << " " << cache->getCleanupCount()     << "\n";
     }
   }
 
@@ -869,18 +896,19 @@ using namespace json11;
 
 static void addStatsToJSONObject(Json::object& obj)
 {
-  for (const auto& e : g_stats.entries) {
-    if (e.first == "special-memory-usage") {
+  auto entries = dnsdist::metrics::g_stats.entries.read_lock();
+  for (const auto& entry : *entries) {
+    if (entry.d_name == "special-memory-usage") {
       continue; // Too expensive for get-all
     }
-    if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
-      obj.emplace(e.first, (double)(*val)->load());
-    } else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
-      obj.emplace(e.first, (*adval)->load());
-    } else if (const auto& dval = boost::get<double*>(&e.second)) {
-      obj.emplace(e.first, (**dval));
-    } else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&e.second)) {
-      obj.emplace(e.first, (double)(*func)(e.first));
+    if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
+      obj.emplace(entry.d_name, (double)(*val)->load());
+    } else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+      obj.emplace(entry.d_name, (*adval)->load());
+    } else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
+      obj.emplace(entry.d_name, (**dval));
+    } else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
+      obj.emplace(entry.d_name, (double)(*func)(entry.d_name));
     }
   }
 }
@@ -1308,37 +1336,41 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.status = 200;
 
   Json::array doc;
-  for(const auto& item : g_stats.entries) {
-    if (item.first == "special-memory-usage")
-      continue; // Too expensive for get-all
+  {
+    auto entries = dnsdist::metrics::g_stats.entries.read_lock();
+    for (const auto& item : *entries) {
+      if (item.d_name == "special-memory-usage") {
+        continue; // Too expensive for get-all
+      }
 
-    if (const auto& val = boost::get<pdns::stat_t*>(&item.second)) {
-      doc.push_back(Json::object {
-          { "type", "StatisticItem" },
-          { "name", item.first },
-          { "value", (double)(*val)->load() }
-        });
-    }
-    else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&item.second)) {
-      doc.push_back(Json::object {
-          { "type", "StatisticItem" },
-          { "name", item.first },
-          { "value", (*adval)->load() }
-        });
-    }
-    else if (const auto& dval = boost::get<double*>(&item.second)) {
-      doc.push_back(Json::object {
-          { "type", "StatisticItem" },
-          { "name", item.first },
-          { "value", (**dval) }
-        });
-    }
-    else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&item.second)) {
-      doc.push_back(Json::object {
-          { "type", "StatisticItem" },
-          { "name", item.first },
-          { "value", (double)(*func)(item.first) }
-        });
+      if (const auto& val = std::get_if<pdns::stat_t*>(&item.d_value)) {
+        doc.push_back(Json::object {
+            { "type", "StatisticItem" },
+            { "name", item.d_name },
+            { "value", (double)(*val)->load() }
+          });
+      }
+      else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&item.d_value)) {
+        doc.push_back(Json::object {
+            { "type", "StatisticItem" },
+            { "name", item.d_name },
+            { "value", (*adval)->load() }
+          });
+      }
+      else if (const auto& dval = std::get_if<double*>(&item.d_value)) {
+        doc.push_back(Json::object {
+            { "type", "StatisticItem" },
+            { "name", item.d_name },
+            { "value", (**dval) }
+          });
+      }
+      else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&item.d_value)) {
+        doc.push_back(Json::object {
+            { "type", "StatisticItem" },
+            { "name", item.d_name },
+            { "value", (double)(*func)(item.d_name) }
+          });
+      }
     }
   }
   Json my_json = doc;
@@ -1458,13 +1490,98 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
 }
 #endif /* DISABLE_WEB_CONFIG */
 
+#ifndef DISABLE_WEB_CACHE_MANAGEMENT
+static void handleCacheManagement(const YaHTTP::Request& req, YaHTTP::Response& resp)
+{
+  handleCORS(req, resp);
+
+  resp.headers["Content-Type"] = "application/json";
+  resp.status = 200;
+
+  if (req.method != "DELETE") {
+    resp.status = 400;
+    Json::object obj{
+      { "status", "denied" },
+      { "error", "invalid method" }
+    };
+    resp.body = Json(obj).dump();
+    return;
+  }
+
+  const auto poolName = req.getvars.find("pool");
+  const auto expungeName = req.getvars.find("name");
+  const auto expungeType = req.getvars.find("type");
+  const auto suffix = req.getvars.find("suffix");
+  if (poolName == req.getvars.end() || expungeName == req.getvars.end()) {
+    resp.status = 400;
+    Json::object obj{
+      { "status", "denied" },
+      { "error", "missing 'pool' or 'name' parameter" },
+    };
+    resp.body = Json(obj).dump();
+    return;
+  }
+
+  DNSName name;
+  QType type(QType::ANY);
+  try {
+    name = DNSName(expungeName->second);
+  }
+  catch (const std::exception& e) {
+    resp.status = 400;
+    Json::object obj{
+      { "status", "error" },
+      { "error", "unable to parse the requested name" },
+    };
+    resp.body = Json(obj).dump();
+    return;
+  }
+  if (expungeType != req.getvars.end()) {
+    type = QType::chartocode(expungeType->second.c_str());
+  }
+
+  std::shared_ptr<ServerPool> pool;
+  try {
+    pool = getPool(g_pools.getCopy(), poolName->second);
+  }
+  catch (const std::exception& e) {
+    resp.status = 404;
+    Json::object obj{
+      { "status", "not found" },
+      { "error", "the requested pool does not exist" },
+    };
+    resp.body = Json(obj).dump();
+    return;
+  }
+
+  auto cache = pool->getCache();
+  if (cache == nullptr) {
+    resp.status = 404;
+    Json::object obj{
+      { "status", "not found" },
+      { "error", "there is no cache associated with the requested pool" },
+    };
+    resp.body = Json(obj).dump();
+    return;
+  }
+
+  auto removed = cache->expungeByName(name, type.getCode(), suffix != req.getvars.end());
+
+  Json::object obj{
+      { "status", "purged" },
+      { "count", std::to_string(removed) }
+    };
+  resp.body = Json(obj).dump();
+}
+#endif /* DISABLE_WEB_CACHE_MANAGEMENT */
+
 static std::unordered_map<std::string, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)>> s_webHandlers;
 
 void registerWebHandler(const std::string& endpoint, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)> handler);
 
 void registerWebHandler(const std::string& endpoint, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)> handler)
 {
-  s_webHandlers[endpoint] = handler;
+  s_webHandlers[endpoint] = std::move(handler);
 }
 
 void clearWebHandlers()
@@ -1526,6 +1643,9 @@ void registerBuiltInWebHandlers()
   registerWebHandler("/api/v1/servers/localhost/config", handleConfigDump);
   registerWebHandler("/api/v1/servers/localhost/config/allow-from", handleAllowFrom);
 #endif /* DISABLE_WEB_CONFIG */
+#ifndef DISABLE_WEB_CACHE_MANAGEMENT
+  registerWebHandler("/api/v1/cache", handleCacheManagement);
+#endif /* DISABLE_WEB_CACHE_MANAGEMENT */
 #ifndef DISABLE_BUILTIN_HTML
   registerWebHandler("/", redirectToIndex);
 
@@ -1586,7 +1706,7 @@ static void connectionThread(WebClientConnection&& conn)
     else if (!handleAuthorization(req)) {
       YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
       if (header != req.headers.end()) {
-        errlog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, conn.getClient().toStringWithPort());
+        vinfolog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, conn.getClient().toStringWithPort());
       }
       resp.status = 401;
       resp.body = "<h1>Unauthorized</h1>";
@@ -1660,6 +1780,11 @@ void setWebserverAPIRequiresAuthentication(bool require)
   g_webserverConfig.lock()->apiRequiresAuthentication = require;
 }
 
+void setWebserverDashboardRequiresAuthentication(bool require)
+{
+  g_webserverConfig.lock()->dashboardRequiresAuthentication = require;
+}
+
 void setWebserverMaxConcurrentConnections(size_t max)
 {
   s_connManager.setMaxConcurrentConnections(max);
@@ -1668,13 +1793,16 @@ void setWebserverMaxConcurrentConnections(size_t max)
 void dnsdistWebserverThread(int sock, const ComboAddress& local)
 {
   setThreadName("dnsdist/webserv");
-  warnlog("Webserver launched on %s", local.toStringWithPort());
+  infolog("Webserver launched on %s", local.toStringWithPort());
 
-  if (!g_webserverConfig.lock()->password) {
-    warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
+  {
+    auto config = g_webserverConfig.lock();
+    if (!config->password && config->dashboardRequiresAuthentication) {
+      warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
+    }
   }
 
-  for(;;) {
+  for (;;) {
     try {
       ComboAddress remote(local);
       int fd = SAccept(sock, remote);

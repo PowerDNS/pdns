@@ -184,7 +184,7 @@ public:
     return true;
   }
 
-  bool list(const DNSName& target, int zoneId, bool include_disabled = false) override
+  bool list(const DNSName& target, int zoneId, bool /* include_disabled */ = false) override
   {
     findZone(target, zoneId, d_records, d_currentZone);
 
@@ -283,12 +283,12 @@ public:
   {
   }
 
-  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override
+  bool getDomainMetadata(const DNSName& /* name */, const std::string& /* kind */, std::vector<std::string>& /* meta */) override
   {
     return false;
   }
 
-  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override
+  bool setDomainMetadata(const DNSName& /* name */, const std::string& /* kind */, const std::vector<std::string>& /* meta */) override
   {
     return false;
   }

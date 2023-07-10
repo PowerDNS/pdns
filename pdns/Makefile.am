@@ -1,4 +1,5 @@
 JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
+ARC4RANDOM_LIBS = $(top_builddir)/ext/arc4random/libarc4random.la
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
@@ -18,6 +19,7 @@ AM_CXXFLAGS = \
 AM_LDFLAGS = \
 	$(PROGRAM_LDFLAGS) \
 	$(LIBCRYPTO_LIBS) \
+	$(ARC4RANDOM_LIBS) \
 	$(THREADFLAGS)
 
 AM_LFLAGS = -i
@@ -214,7 +216,7 @@ pdns_server_SOURCES = \
 	digests.hh \
 	distributor.hh \
 	dns.cc dns.hh \
-	dns_random.cc dns_random.hh \
+	dns_random.hh \
 	dnsbackend.cc dnsbackend.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -232,6 +234,7 @@ pdns_server_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	histogram.hh \
 	iputils.cc iputils.hh \
@@ -354,7 +357,6 @@ pdnsutil_SOURCES = \
 	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
 	dns.cc \
-	dns_random.cc \
 	dnsbackend.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -368,6 +370,7 @@ pdnsutil_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
+	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc iputils.hh \
@@ -452,7 +455,6 @@ zone2sql_SOURCES = \
 	bindparser.yy \
 	bindparserclasses.hh \
 	dns.cc \
-	dns_random_urandom.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc \
@@ -518,7 +520,6 @@ zone2ldap_SOURCES = \
 	bindlexer.l \
 	bindparser.yy \
 	bindparserclasses.hh \
-	dns_random_urandom.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc \
@@ -601,7 +602,7 @@ calidns_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	calidns.cc \
-	dns_random_urandom.cc dns_random.hh \
+	dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -652,7 +653,6 @@ stubquery_SOURCES = \
 	arguments.cc arguments.hh \
 	base32.cc \
 	base64.cc \
-	dns_random_urandom.cc \
 	dnslabeltext.cc \
 	dnsname.cc \
 	dnsparser.cc \
@@ -677,7 +677,7 @@ stubquery_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 saxfr_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
-	dns_random_urandom.cc dns_random.hh \
+	dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -717,7 +717,7 @@ ixfrdist_SOURCES = \
 	base64.cc base64.hh \
 	credentials.cc credentials.hh \
 	dns.cc \
-	dns_random_urandom.cc dns_random.hh \
+	dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -783,7 +783,7 @@ ixplore_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc \
-	dns_random_urandom.cc dns_random.hh \
+	dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -894,7 +894,7 @@ tsig_tests_SOURCES = \
 	base64.cc base64.hh \
 	digests.hh \
 	dns.cc \
-	dns_random_urandom.cc dns_random.hh \
+	dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -931,7 +931,7 @@ speedtest_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	credentials.cc credentials.hh \
-	dns_random.cc dns_random.hh \
+	dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -978,7 +978,7 @@ dnsbulktest_SOURCES = \
 	arguments.cc arguments.hh \
 	base32.cc \
 	base64.cc \
-	dns_random.cc dns_random.hh \
+	dns_random.hh \
 	dnsbulktest.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -1132,7 +1132,6 @@ pdns_notify_SOURCES = \
 	base32.cc \
 	base64.cc base64.hh \
 	dns.cc \
-	dns_random.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.cc dnsparser.hh \
@@ -1335,10 +1334,10 @@ testrunner_SOURCES = \
 	base64.cc \
 	bindlexer.l \
 	bindparser.yy \
+	channel.cc channel.hh \
 	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
 	dns.cc \
-	dns_random.cc \
 	dnsbackend.cc \
 	dnslabeltext.cc \
 	dnsname.cc \
@@ -1382,6 +1381,7 @@ testrunner_SOURCES = \
 	test-base32_cc.cc \
 	test-base64_cc.cc \
 	test-bindparser_cc.cc \
+	test-channel.cc \
 	test-common.hh \
 	test-communicator_hh.cc \
 	test-credentials_cc.cc \
@@ -1442,6 +1442,7 @@ testrunner_LDADD = \
 
 if GSS_TSIG
 testrunner_LDADD += $(GSS_LIBS)
+speedtest_LDADD += $(GSS_LIBS)
 endif
 
 if PKCS11
@@ -1502,8 +1503,10 @@ pdns_control_LDFLAGS = \
        $(AM_LDFLAGS) \
        $(LIBCRYPTO_LDFLAGS)
 
+noinst_PROGRAMS = speedtest
+
 if UNIT_TESTS
-noinst_PROGRAMS = testrunner
+noinst_PROGRAMS += testrunner
 if HAVE_BOOST_GE_148
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
 TESTS=testrunner
@@ -1533,7 +1536,7 @@ fuzz_targets_programs =  \
 	fuzz_target_yahttp \
 	fuzz_target_zoneparsertng
 
-fuzz_targets: $(fuzz_targets_programs)
+fuzz_targets: $(ARC4RANDOM_LIBS) $(fuzz_targets_programs)
 
 bin_PROGRAMS += \
 	$(fuzz_targets_programs)
@@ -1600,6 +1603,7 @@ fuzz_target_proxyprotocol_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_proxyprotocol_LDADD = $(fuzz_targets_libs)
 
 fuzz_target_dnsdistcache_SOURCES = \
+	channel.hh channel.cc \
 	dns.cc dns.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \

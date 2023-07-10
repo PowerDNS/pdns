@@ -30,7 +30,12 @@ public:
   {
     registerOpenSSLUser();
 
-    d_tlsCtx = libssl_init_server_context(tlsConfig, d_ocspResponses);
+    auto [ctx, warnings] = libssl_init_server_context(tlsConfig, d_ocspResponses);
+    for (const auto& warning : warnings) {
+      warnlog("%s", warning);
+    }
+    d_tlsCtx = std::move(ctx);
+
     if (!d_tlsCtx) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("Error creating TLS context on " + addr.toStringWithPort());
@@ -74,7 +79,7 @@ class OpenSSLTLSConnection: public TLSConnection
 {
 public:
   /* server side connection */
-  OpenSSLTLSConnection(int socket, const struct timeval& timeout, std::shared_ptr<OpenSSLFrontendContext> feContext): d_feContext(feContext), d_conn(std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(d_feContext->d_tlsCtx.get()), SSL_free)), d_timeout(timeout)
+  OpenSSLTLSConnection(int socket, const struct timeval& timeout, std::shared_ptr<OpenSSLFrontendContext> feContext): d_feContext(std::move(feContext)), d_conn(std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(d_feContext->d_tlsCtx.get()), SSL_free)), d_timeout(timeout)
   {
     d_socket = socket;
 
@@ -346,6 +351,13 @@ public:
 
   IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) override
   {
+    if (!d_feContext && !d_connected) {
+      if (d_ktls) {
+        /* work-around to get kTLS to be started, as we cannot do that until after the socket has been connected */
+        SSL_set_fd(d_conn.get(), SSL_get_fd(d_conn.get()));
+      }
+    }
+
     do {
       int res = SSL_write(d_conn.get(), reinterpret_cast<const char *>(&buffer.at(pos)), static_cast<int>(toWrite - pos));
       if (res <= 0) {
@@ -356,6 +368,11 @@ public:
       }
     }
     while (pos < toWrite);
+
+    if (!d_connected) {
+      d_connected = true;
+    }
+
     return IOState::Done;
   }
 
@@ -557,6 +574,11 @@ public:
     d_tlsSessions.push_back(std::make_unique<OpenSSLSession>(std::unique_ptr<SSL_SESSION, void (*)(SSL_SESSION*)>(session, SSL_SESSION_free)));
   }
 
+  void enableKTLS()
+  {
+    d_ktls = true;
+  }
+
   static int s_tlsConnIndex;
 
 private:
@@ -570,6 +592,8 @@ private:
   std::unique_ptr<SSL, void(*)(SSL*)> d_conn;
   std::string d_hostname;
   struct timeval d_timeout;
+  bool d_connected{false};
+  bool d_ktls{false};
 };
 
 std::atomic_flag OpenSSLTLSConnection::s_initTLSConnIndex = ATOMIC_FLAG_INIT;
@@ -585,7 +609,11 @@ public:
 
     if (fe.d_tlsConfig.d_enableTickets && fe.d_tlsConfig.d_numberOfTicketsKeys > 0) {
       /* use our own ticket keys handler so we can rotate them */
+#if OPENSSL_VERSION_MAJOR >= 3
+      SSL_CTX_set_tlsext_ticket_key_evp_cb(d_feContext->d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
+#else
       SSL_CTX_set_tlsext_ticket_key_cb(d_feContext->d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
+#endif
       libssl_set_ticket_key_callback_data(d_feContext->d_tlsCtx.get(), d_feContext.get());
     }
 
@@ -635,6 +663,13 @@ public:
 #elif defined(SSL_OP_NO_CLIENT_RENEGOTIATION)
       sslOptions |= SSL_OP_NO_CLIENT_RENEGOTIATION;
 #endif
+    }
+
+    if (params.d_ktls) {
+#ifdef SSL_OP_ENABLE_KTLS
+      sslOptions |= SSL_OP_ENABLE_KTLS;
+      d_ktls = true;
+#endif /* SSL_OP_ENABLE_KTLS */
     }
 
     registerOpenSSLUser();
@@ -704,9 +739,13 @@ public:
     unregisterOpenSSLUser();
   }
 
-  static int ticketKeyCb(SSL *s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char *iv, EVP_CIPHER_CTX *ectx, HMAC_CTX *hctx, int enc)
+#if OPENSSL_VERSION_MAJOR >= 3
+  static int ticketKeyCb(SSL* s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx, int enc)
+#else
+  static int ticketKeyCb(SSL* s, unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx, int enc)
+#endif
   {
-    OpenSSLFrontendContext* ctx = reinterpret_cast<OpenSSLFrontendContext*>(libssl_get_ticket_key_callback_data(s));
+    auto* ctx = reinterpret_cast<OpenSSLFrontendContext*>(libssl_get_ticket_key_callback_data(s));
     if (ctx == nullptr) {
       return -1;
     }
@@ -714,8 +753,8 @@ public:
     int ret = libssl_ticket_key_callback(s, ctx->d_ticketKeys, keyName, iv, ectx, hctx, enc);
     if (enc == 0) {
       if (ret == 0 || ret == 2) {
-        OpenSSLTLSConnection* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(s, OpenSSLTLSConnection::s_tlsConnIndex));
-        if (conn) {
+        auto* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(s, OpenSSLTLSConnection::s_tlsConnIndex));
+        if (conn != nullptr) {
           if (ret == 0) {
             conn->setUnknownTicketKey();
           }
@@ -760,7 +799,11 @@ public:
 
   std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout) override
   {
-    return std::make_unique<OpenSSLTLSConnection>(host, hostIsAddr, socket, timeout, d_tlsCtx);
+    auto conn = std::make_unique<OpenSSLTLSConnection>(host, hostIsAddr, socket, timeout, d_tlsCtx);
+    if (d_ktls) {
+      conn->enableKTLS();
+    }
+    return conn;
   }
 
   void rotateTicketsKey(time_t now) override
@@ -816,7 +859,7 @@ public:
 private:
   /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
 #ifndef DISABLE_NPN
-  static int npnSelectCallback(SSL* s, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
+  static int npnSelectCallback(SSL* /* s */, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
   {
     if (!arg) {
       return SSL_TLSEXT_ERR_ALERT_WARNING;
@@ -863,6 +906,7 @@ private:
   std::shared_ptr<OpenSSLFrontendContext> d_feContext{nullptr};
   std::shared_ptr<SSL_CTX> d_tlsCtx{nullptr}; // client context, on a server-side the context is stored in d_feContext->d_tlsCtx
   bool (*d_nextProtocolSelectCallback)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen){nullptr};
+  bool d_ktls{false};
 };
 
 #endif /* HAVE_LIBSSL */
@@ -1557,7 +1601,7 @@ public:
     for (const auto& file : fe.d_tlsConfig.d_ocspFiles) {
       rc = gnutls_certificate_set_ocsp_status_request_file(d_creds.get(), file.c_str(), count);
       if (rc != GNUTLS_E_SUCCESS) {
-        throw std::runtime_error("Error loading OCSP response from file '" + file + "' for certificate ('" + fe.d_tlsConfig.d_certKeyPairs.at(count).d_cert + "') and key ('" + fe.d_tlsConfig.d_certKeyPairs.at(count).d_key.value() + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+        warnlog("Error loading OCSP response from file '%s' for certificate ('%s') and key ('%s') for TLS context on %s: %s", file, fe.d_tlsConfig.d_certKeyPairs.at(count).d_cert, fe.d_tlsConfig.d_certKeyPairs.at(count).d_key.value(), fe.d_addr.toStringWithPort(), gnutls_strerror(rc));
       }
       ++count;
     }
@@ -1703,7 +1747,7 @@ public:
     auto newKey = std::make_shared<GnuTLSTicketsKey>();
 
     {
-      *(d_ticketsKey.write_lock()) = newKey;
+      *(d_ticketsKey.write_lock()) = std::move(newKey);
     }
 
     if (d_ticketsKeyRotationDelay > 0) {
@@ -1719,7 +1763,7 @@ public:
 
     auto newKey = std::make_shared<GnuTLSTicketsKey>(file);
     {
-      *(d_ticketsKey.write_lock()) = newKey;
+      *(d_ticketsKey.write_lock()) = std::move(newKey);
     }
 
     if (d_ticketsKeyRotationDelay > 0) {
@@ -1810,7 +1854,7 @@ bool TLSFrontend::setupTLS()
   return true;
 }
 
-std::shared_ptr<TLSCtx> getTLSContext(const TLSContextParameters& params)
+std::shared_ptr<TLSCtx> getTLSContext([[maybe_unused]] const TLSContextParameters& params)
 {
 #ifdef HAVE_DNS_OVER_TLS
   /* get the "best" available provider */

@@ -4,8 +4,6 @@
 ./ext/lmdb-safe/lmdb-typed.hh
 ./ext/probds/murmur3.cc
 ./pdns/anadns.hh
-./pdns/arguments.cc
-./pdns/arguments.hh
 ./pdns/auth-caches.cc
 ./pdns/auth-carbon.cc
 ./pdns/auth-packetcache.cc
@@ -38,8 +36,6 @@
 ./pdns/distributor.hh
 ./pdns/dns.cc
 ./pdns/dns.hh
-./pdns/dns_random.cc
-./pdns/dns_random.hh
 ./pdns/dnsbackend.cc
 ./pdns/dnsbackend.hh
 ./pdns/dnsbulktest.cc
@@ -48,7 +44,6 @@
 ./pdns/dnsdemog.cc
 ./pdns/dnsdist-cache.cc
 ./pdns/dnsdist-cache.hh
-./pdns/dnsdist-carbon.cc
 ./pdns/dnsdist-console.cc
 ./pdns/dnsdist-console.hh
 ./pdns/dnsdist-dynblocks.hh
@@ -165,7 +160,6 @@
 ./pdns/gettime.hh
 ./pdns/histog.hh
 ./pdns/inflighter.cc
-./pdns/ipcipher.cc
 ./pdns/iputils.cc
 ./pdns/iputils.hh
 ./pdns/ixfr.cc
@@ -206,7 +200,6 @@
 ./pdns/nproxy.cc
 ./pdns/nsec3dig.cc
 ./pdns/nsecrecords.cc
-./pdns/opensslsigners.cc
 ./pdns/packetcache.hh
 ./pdns/packethandler.cc
 ./pdns/packethandler.hh
@@ -247,7 +240,6 @@
 ./pdns/snmp-agent.hh
 ./pdns/sodcrypto.cc
 ./pdns/sodcrypto.hh
-./pdns/sodiumsigners.cc
 ./pdns/sortlist.cc
 ./pdns/sortlist.hh
 ./pdns/speedtest.cc
@@ -274,7 +266,6 @@
 ./pdns/test-common.hh
 ./pdns/test-digests_hh.cc
 ./pdns/test-distributor_hh.cc
-./pdns/test-dns_random_hh.cc
 ./pdns/test-dnscrypt_cc.cc
 ./pdns/test-dnsdist_cc.cc
 ./pdns/test-dnsdistpacketcache_cc.cc
@@ -284,7 +275,6 @@
 ./pdns/test-dnsrecordcontent.cc
 ./pdns/test-dnsrecords_cc.cc
 ./pdns/test-dnswriter_cc.cc
-./pdns/test-ipcrypt_cc.cc
 ./pdns/test-iputils_hh.cc
 ./pdns/test-ixfr_cc.cc
 ./pdns/test-lock_hh.cc
@@ -297,14 +287,12 @@
 ./pdns/test-rcpgenerator_cc.cc
 ./pdns/test-sha_hh.cc
 ./pdns/test-sholder_hh.cc
-./pdns/test-signers.cc
 ./pdns/test-statbag_cc.cc
 ./pdns/test-svc_records_cc.cc
 ./pdns/test-trusted-notification-proxy_cc.cc
 ./pdns/test-tsig.cc
 ./pdns/test-ueberbackend_cc.cc
 ./pdns/test-zoneparser_tng_cc.cc
-./pdns/testrunner.cc
 ./pdns/threadname.cc
 ./pdns/tkey.cc
 ./pdns/trusted-notification-proxy.cc

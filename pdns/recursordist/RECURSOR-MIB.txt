@@ -54,6 +54,12 @@ rec MODULE-IDENTITY
     REVISION "202209120000Z"
     DESCRIPTION "Added metrics for answers from auths by rcode"
 
+    REVISION "202302240000Z"
+    DESCRIPTION "Added metrics for sharded packet cache contention"
+
+    REVISION "202306080000Z"
+    DESCRIPTION "Added metrics for NOD and UDR events"
+
     ::= { powerdns 2 }
 
 powerdns		OBJECT IDENTIFIER ::= { enterprises 43315 }
@@ -1212,6 +1218,37 @@ authrcode15Count OBJECT-TYPE
         "Number of rcode 15 answers received"
     ::= { stats 144 }
 
+packetCacheContended OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of contended packet cache lock acquisitions"
+    ::= { stats 145 }
+
+packetCacheAcquired OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of packet cache lock acquisitions"
+    ::= { stats 146 }
+
+nodEvents OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Count of NOD events"
+    ::= { stats 147 }
+
+udrEvents OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Count of UDR events"
+    ::= { stats 148 }
 
 ---
 --- Traps / Notifications
@@ -1404,7 +1441,11 @@ recGroup OBJECT-GROUP
         authrcode12Count,
         authrcode13Count,
         authrcode14Count,
-        authrcode15Count
+        authrcode15Count,
+        packetCacheContended,
+        packetCacheAcquired,
+        nodEvents,
+        udrEvents
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

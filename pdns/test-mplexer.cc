@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(test_MPlexer)
     ttd.tv_sec -= 5;
 
     bool writeCBCalled = false;
-    auto writeCB = [](int fd, FDMultiplexer::funcparam_t& param) {
+    auto writeCB = [](int /* fd */, FDMultiplexer::funcparam_t& param) {
       auto calledPtr = boost::any_cast<bool*>(param);
       BOOST_REQUIRE(calledPtr != nullptr);
       *calledPtr = true;
@@ -72,7 +72,8 @@ BOOST_AUTO_TEST_CASE(test_MPlexer)
     BOOST_REQUIRE_EQUAL(readyFDs.size(), 1U);
     BOOST_CHECK_EQUAL(readyFDs.at(0), pipes[1]);
 
-    ready = mplexer->run(&now, 100);
+    /* wait until we have at least one descriptor ready */
+    ready = mplexer->run(&now, -1);
     BOOST_CHECK_EQUAL(ready, 1);
     BOOST_CHECK_EQUAL(writeCBCalled, true);
 
@@ -99,7 +100,7 @@ BOOST_AUTO_TEST_CASE(test_MPlexer)
     BOOST_CHECK_EQUAL(ready, 0);
 
     bool readCBCalled = false;
-    auto readCB = [](int fd, FDMultiplexer::funcparam_t& param) {
+    auto readCB = [](int /* fd */, FDMultiplexer::funcparam_t& param) {
       auto calledPtr = boost::any_cast<bool*>(param);
       BOOST_REQUIRE(calledPtr != nullptr);
       *calledPtr = true;
@@ -242,12 +243,12 @@ BOOST_AUTO_TEST_CASE(test_MPlexer_ReadAndWrite)
 
     bool readCBCalled = false;
     bool writeCBCalled = false;
-    auto readCB = [](int fd, FDMultiplexer::funcparam_t& param) {
+    auto readCB = [](int /* fd */, FDMultiplexer::funcparam_t& param) {
       auto calledPtr = boost::any_cast<bool*>(param);
       BOOST_REQUIRE(calledPtr != nullptr);
       *calledPtr = true;
     };
-    auto writeCB = [](int fd, FDMultiplexer::funcparam_t& param) {
+    auto writeCB = [](int /* fd */, FDMultiplexer::funcparam_t& param) {
       auto calledPtr = boost::any_cast<bool*>(param);
       BOOST_REQUIRE(calledPtr != nullptr);
       *calledPtr = true;

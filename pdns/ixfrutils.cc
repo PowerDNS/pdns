@@ -29,7 +29,7 @@
 #include "zoneparser-tng.hh"
 #include "dnsparser.hh"
 
-uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
+uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<const SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, zone, QType::SOA);
@@ -97,7 +97,7 @@ uint32_t getSerialFromRecords(const records_t& records, DNSRecord& soaret)
   auto found = records.equal_range(std::tie(g_rootdnsname, t));
 
   for(auto iter = found.first; iter != found.second; ++iter) {
-    auto soa = std::dynamic_pointer_cast<SOARecordContent>(iter->d_content);
+    auto soa = getRR<SOARecordContent>(*iter);
     if (soa) {
       soaret = *iter;
       return soa->d_st.serial;
@@ -113,7 +113,7 @@ static void writeRecords(FILE* fp, const records_t& records)
             r.d_name.isRoot() ? "@" :  r.d_name.toStringNoDot().c_str(),
             r.d_ttl,
             DNSRecordContent::NumberToType(r.d_type).c_str(),
-            r.d_content->getZoneRepresentation().c_str()) < 0) {
+            r.getContent()->getZoneRepresentation().c_str()) < 0) {
       throw runtime_error(stringerror());
     }
   }
@@ -187,7 +187,7 @@ void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zo
  * Load the zone `zone` from `fname` and put the first found SOA into `soa`
  * Does NOT check for nullptr
  */
-void loadSOAFromDisk(const DNSName& zone, const string& fname, shared_ptr<SOARecordContent>& soa, uint32_t& soaTTL)
+void loadSOAFromDisk(const DNSName& zone, const string& fname, shared_ptr<const SOARecordContent>& soa, uint32_t& soaTTL)
 {
   ZoneParserTNG zpt(fname, zone);
   zpt.disableGenerate();

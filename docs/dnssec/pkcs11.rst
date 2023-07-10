@@ -2,7 +2,7 @@ PKCS#11 support
 ===============
 
 .. note::
-  This feature is experimental, use at your own risk!
+  This is an experimental feature, use at your own risk!
 
 To enable it, compile PowerDNS Authoritative Server using ``--enable-experimental-pkcs11`` flag on configure.
 This requires you to have the p11-kit libraries and headers.

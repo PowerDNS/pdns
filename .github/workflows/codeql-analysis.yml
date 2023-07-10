@@ -12,6 +12,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   analyze:
     name: Analyze
+    if: ${{ !github.event.schedule || vars.SCHEDULED_CODEQL_ANALYSIS }}
     runs-on: ubuntu-20.04
 
     permissions:
@@ -30,8 +31,9 @@ jobs:
         # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
 
     steps:
+    - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
     - name: Checkout repository
-      uses: actions/checkout@v3.1.0
+      uses: actions/checkout@v3
       with:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.
@@ -72,7 +74,7 @@ jobs:
         sudo apt-get update
     - name: Install dependencies
       run: |
-        sudo apt-get -qq -y --no-install-recommends install \
+        sudo apt-get -qq -y --no-install-recommends --allow-downgrades install \
                 bison \
                 default-libmysqlclient-dev \
                 flex \
@@ -119,6 +121,7 @@ jobs:
         cd pdns/dnsdistdist
         autoreconf -vfi
         ./configure --enable-unit-tests --enable-dnstap --enable-dnscrypt --enable-dns-over-tls --enable-dns-over-https LIBS=-lwslay CFLAGS='-O0' CXXFLAGS='-O0'
+        make -j8 -C ext/arc4random
         make -j8 -C ext/ipcrypt
         make -j8 -C ext/yahttp
         make -j4 dnsdist

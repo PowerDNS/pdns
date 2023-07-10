@@ -47,7 +47,7 @@ void ResponseStats::submitResponse(uint16_t qtype, uint16_t respsize, uint8_t rc
   submitResponse(qtype, respsize, udpOrTCP);
 }
 
-void ResponseStats::submitResponse(uint16_t qtype, uint16_t respsize, bool udpOrTCP) const
+void ResponseStats::submitResponse(uint16_t qtype, uint16_t respsize, bool /* udpOrTCP */) const
 {
   d_qtypecounters.at(qtype).value++;
   d_sizecounters(respsize);

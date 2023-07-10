@@ -133,7 +133,7 @@ The only difference is the type, which is now set to CONSUMER.
 
 .. code-block:: shell
 
-  pdnsutil create-secondary-zone catalog.example 127.0.0.1
+  pdnsutil create-secondary-zone catalog.example 192.0.2.42
   pdnsutil set-kind catalog.example consumer
 
 Creating consumer zones is supported in the :doc:`API <http-api/zone>`, using type ``CONSUMER``.

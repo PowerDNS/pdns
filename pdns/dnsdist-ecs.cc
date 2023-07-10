@@ -52,7 +52,7 @@ int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& 
   if (ntohs(dh->qdcount) == 0)
     return ENOENT;
 
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -165,7 +165,7 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
   optionAdded = false;
   ednsAdded = true;
 
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -263,7 +263,7 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
   return true;
 }
 
-static bool slowParseEDNSOptions(const PacketBuffer& packet, std::shared_ptr<std::map<uint16_t, EDNSOptionView> >& options)
+static bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options)
 {
   if (packet.size() < sizeof(dnsheader)) {
     return false;
@@ -304,7 +304,7 @@ static bool slowParseEDNSOptions(const PacketBuffer& packet, std::shared_ptr<std
         }
         /* if we survive this call, we can parse it safely */
         dpm.skipRData();
-        return getEDNSOptions(reinterpret_cast<const char*>(&packet.at(offset)), packet.size() - offset, *options) == 0;
+        return getEDNSOptions(reinterpret_cast<const char*>(&packet.at(offset)), packet.size() - offset, options) == 0;
       }
       else {
         dpm.skipRData();
@@ -329,7 +329,7 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t * optStart, size_t * op
   if (ntohs(dh->arcount) == 0)
     return ENOENT;
 
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(packet.data()), packet.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -515,7 +515,8 @@ bool parseEDNSOptions(const DNSQuestion& dq)
     return true;
   }
 
-  dq.ednsOptions = std::make_shared<std::map<uint16_t, EDNSOptionView> >();
+  // dq.ednsOptions is mutable
+  dq.ednsOptions = std::make_unique<EDNSOptionViewMap>();
 
   if (ntohs(dh->arcount) == 0) {
     /* nothing in additional so no EDNS */
@@ -523,7 +524,7 @@ bool parseEDNSOptions(const DNSQuestion& dq)
   }
 
   if (ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || ntohs(dh->arcount) > 1) {
-    return slowParseEDNSOptions(dq.getData(), dq.ednsOptions);
+    return slowParseEDNSOptions(dq.getData(), *dq.ednsOptions);
   }
 
   size_t remaining = 0;
@@ -759,7 +760,7 @@ int rewriteResponseWithoutEDNSOption(const PacketBuffer& initialPacket, const ui
   if (ntohs(dh->qdcount) == 0)
     return ENOENT;
 
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size()));
 
   size_t idx = 0;
   DNSName rrname;
@@ -1051,12 +1052,11 @@ bool queryHasEDNS(const DNSQuestion& dq)
   return false;
 }
 
-bool getEDNS0Record(const DNSQuestion& dq, EDNS0Record& edns0)
+bool getEDNS0Record(const PacketBuffer& packet, EDNS0Record& edns0)
 {
   uint16_t optStart;
   size_t optLen = 0;
   bool last = false;
-  const auto& packet = dq.getData();
   int res = locateEDNSOptRR(packet, &optStart, &optLen, &last);
   if (res != 0) {
     // no EDNS OPT RR
@@ -1113,4 +1113,42 @@ bool setEDNSOption(DNSQuestion& dq, uint16_t ednsCode, const std::string& ednsDa
   }
 
   return true;
+}
+
+namespace dnsdist {
+bool setInternalQueryRCode(InternalQueryState& state, PacketBuffer& buffer,  uint8_t rcode, bool clearAnswers)
+{
+  const auto qnameLength = state.qname.wirelength();
+  if (buffer.size() < sizeof(dnsheader) + qnameLength + sizeof(uint16_t) + sizeof(uint16_t)) {
+    return false;
+  }
+
+  EDNS0Record edns0;
+  bool hadEDNS = false;
+  if (clearAnswers) {
+    hadEDNS = getEDNS0Record(buffer, edns0);
+  }
+
+  auto dh = reinterpret_cast<dnsheader*>(buffer.data());
+  dh->rcode = rcode;
+  dh->ad = false;
+  dh->aa = false;
+  dh->ra = dh->rd;
+  dh->qr = true;
+
+  if (clearAnswers) {
+    dh->ancount = 0;
+    dh->nscount = 0;
+    dh->arcount = 0;
+    buffer.resize(sizeof(dnsheader) + qnameLength + sizeof(uint16_t) + sizeof(uint16_t));
+    if (hadEDNS) {
+      DNSQuestion dq(state, buffer);
+      if (!addEDNS(buffer, dq.getMaximumSize(), edns0.extFlags & htons(EDNS_HEADER_FLAG_DO), g_PayloadSizeSelfGenAnswers, 0)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
 }

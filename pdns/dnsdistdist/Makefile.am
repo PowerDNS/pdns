@@ -13,13 +13,16 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS=ext/ipcrypt \
+SUBDIRS=ext/arc4random \
+	ext/ipcrypt \
 	ext/yahttp
 
 CLEANFILES = \
 	htmlfiles.h.tmp \
 	htmlfiles.h \
 	dnsdist-lua-ffi-interface.inc
+
+sysconf_DATA = dnsdist.conf-dist
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
@@ -32,9 +35,9 @@ htmlfiles.h: $(srcdir)/html/* $(srcdir)/incfiles
 	$(AM_V_GEN)$(srcdir)/incfiles $(srcdir) > $@.tmp
 	@mv $@.tmp $@
 
-dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h
+dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h dnsdist-lua-inspection-ffi.h
 	$(AM_V_GEN)echo 'R"FFIContent(' > $@
-	@cat $< >> $@
+	@cat $^ >> $@
 	@echo ')FFIContent"' >> $@
 SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
@@ -84,7 +87,7 @@ endif
 
 EXTRA_DIST=COPYING \
 	   dnslabeltext.rl \
-	   dnsdistconf.lua \
+	   dnsdist.conf-dist \
 	   dnsmessage.proto \
 	   dnstap.proto \
 	   README.md \
@@ -128,15 +131,18 @@ dnsdist_SOURCES = \
 	burtle.hh \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
+	channel.cc channel.hh \
 	circular_buffer.hh \
 	connection-management.hh \
 	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
+	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
+	dnsdist-concurrent-connections.hh \
 	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-discovery.cc dnsdist-discovery.hh \
 	dnsdist-dnscrypt.cc \
@@ -147,6 +153,7 @@ dnsdist_SOURCES = \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-healthchecks.cc dnsdist-healthchecks.hh \
 	dnsdist-idstate.hh \
+	dnsdist-internal-queries.cc dnsdist-internal-queries.hh \
 	dnsdist-kvs.hh dnsdist-kvs.cc \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-actions.cc \
@@ -161,7 +168,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-bindings.cc \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
-	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.hh \
+	dnsdist-lua-inspection-ffi.cc dnsdist-lua-inspection-ffi.h \
 	dnsdist-lua-inspection.cc \
 	dnsdist-lua-network.cc dnsdist-lua-network.hh \
 	dnsdist-lua-rules.cc \
@@ -169,6 +176,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-web.cc \
 	dnsdist-lua.cc dnsdist-lua.hh \
 	dnsdist-mac-address.cc dnsdist-mac-address.hh \
+	dnsdist-metrics.cc dnsdist-metrics.hh \
 	dnsdist-nghttp2.cc dnsdist-nghttp2.hh \
 	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
@@ -237,13 +245,16 @@ testrunner_SOURCES = \
 	base64.hh \
 	bpf-filter.cc bpf-filter.hh \
 	cachecleaner.hh \
+	channel.cc channel.hh \
 	circular_buffer.hh \
 	connection-management.hh \
 	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
+	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc \
 	dnsdist-cache.cc dnsdist-cache.hh \
+	dnsdist-concurrent-connections.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
 	dnsdist-downstream-connection.hh \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
@@ -260,6 +271,7 @@ testrunner_SOURCES = \
 	dnsdist-lua-network.cc dnsdist-lua-network.hh \
 	dnsdist-lua-vars.cc \
 	dnsdist-mac-address.cc dnsdist-mac-address.hh \
+	dnsdist-metrics.cc dnsdist-metrics.hh \
 	dnsdist-nghttp2.cc dnsdist-nghttp2.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
@@ -297,13 +309,16 @@ testrunner_SOURCES = \
 	statnode.cc statnode.hh \
 	svc-records.cc svc-records.hh \
 	test-base64_cc.cc \
+	test-channel.cc \
 	test-connectionmanagement_hh.cc \
 	test-credentials_cc.cc \
 	test-delaypipe_hh.cc \
 	test-dnscrypt_cc.cc \
 	test-dnsdist-connections-cache.cc \
 	test-dnsdist-dnsparser.cc \
+	test-dnsdist-lua-ffi.cc \
 	test-dnsdist_cc.cc \
+	test-dnsdistasync.cc \
 	test-dnsdistbackend_cc.cc \
 	test-dnsdistdynblocks_hh.cc \
 	test-dnsdistkvs_cc.cc \
@@ -340,7 +355,8 @@ dnsdist_LDADD = \
 	$(SYSTEMD_LIBS) \
 	$(NET_SNMP_LIBS) \
 	$(LIBCAP_LIBS) \
-	$(IPCRYPT_LIBS)
+	$(IPCRYPT_LIBS) \
+	$(ARC4RANDOM_LIBS)
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -354,7 +370,8 @@ testrunner_LDADD = \
 	$(LIBSODIUM_LIBS) \
 	$(LUA_LIBS) \
 	$(RT_LIBS) \
-	$(LIBCAP_LIBS)
+	$(LIBCAP_LIBS) \
+	$(ARC4RANDOM_LIBS)
 
 if HAVE_CDB
 dnsdist_LDADD += $(CDB_LDFLAGS) $(CDB_LIBS)

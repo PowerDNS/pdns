@@ -21,6 +21,7 @@ class PacketCacheRecursorTest(RecursorTest):
     _apiKey = 'secretapikey'
     _config_template = """
     packetcache-ttl=10
+    packetcache-negative-ttl=8
     packetcache-servfail-ttl=5
     auth-zones=example=configs/%s/example.zone
     webserver=yes
@@ -46,6 +47,7 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
         super(PacketCacheRecursorTest, cls).generateRecursorConfig(confdir)
 
     def checkPacketCacheMetrics(self, expectedHits, expectedMisses):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
         headers = {'x-api-key': self._apiKey}
         url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
         r = requests.get(url, headers=headers, timeout=self._wsTimeout)
@@ -67,6 +69,7 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
         self.assertTrue(foundMisses)
 
     def testPacketCache(self):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
         # first query, no cookie
         qname = 'a.example.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -140,13 +143,13 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
         self.assertRRsetInAnswer(res, expected)
         self.checkPacketCacheMetrics(6, 4)
 
-        # NXDomain should get default packetcache TTL (10)
+        # NXDomain should get negative packetcache TTL (8)
         query = dns.message.make_query('nxdomain.example.', 'A', want_dnssec=True)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
         self.checkPacketCacheMetrics(6, 5)
 
-        # NoData should get default packetcache TTL (10)
+        # NoData should get negative packetcache TTL (8)
         query = dns.message.make_query('a.example.', 'AAAA', want_dnssec=True)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -165,8 +168,8 @@ f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an a
         try:
             ret = subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
             self.assertTrue((b"a.example. 10 A  ; tag 0 udp\n" in ret) or (b"a.example. 9 A  ; tag 0 udp\n" in ret))
-            self.assertTrue((b"nxdomain.example. 10 A  ; tag 0 udp\n" in ret) or (b"nxdomain.example. 9 A  ; tag 0 udp\n" in ret))
-            self.assertTrue((b"a.example. 10 AAAA  ; tag 0 udp\n" in ret) or (b"a.example. 9 AAAA  ; tag 0 udp\n" in ret))
+            self.assertTrue((b"nxdomain.example. 8 A  ; tag 0 udp\n" in ret) or (b"nxdomain.example. 7 A  ; tag 0 udp\n" in ret))
+            self.assertTrue((b"a.example. 8 AAAA  ; tag 0 udp\n" in ret) or (b"a.example. 7 AAAA  ; tag 0 udp\n" in ret))
             self.assertTrue((b"f.example. 5 A  ; tag 0 udp\n" in ret) or (b"f.example. 4 A  ; tag 0 udp\n" in ret))
 
         except subprocess.CalledProcessError as e:

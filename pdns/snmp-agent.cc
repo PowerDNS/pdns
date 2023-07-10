@@ -41,32 +41,31 @@ int SNMPAgent::setCounter64Value(netsnmp_request_info* request,
   return SNMP_ERR_NOERROR;
 }
 
-bool SNMPAgent::sendTrap(int fd,
+bool SNMPAgent::sendTrap(pdns::channel::Sender<netsnmp_variable_list, void(*)(netsnmp_variable_list*)>& sender,
                          netsnmp_variable_list* varList)
 {
-  ssize_t written = write(fd, &varList, sizeof(varList));
-
-  if (written != sizeof(varList)) {
-    snmp_free_varbind(varList);
+  try  {
+    auto obj = std::unique_ptr<netsnmp_variable_list, void(*)(netsnmp_variable_list*)>(varList, snmp_free_varbind);
+    return sender.send(std::move(obj));
+  }
+  catch (...) {
     return false;
   }
-  return true;
 }
 
 void SNMPAgent::handleTrapsEvent()
 {
-  netsnmp_variable_list* varList = nullptr;
-  ssize_t got = 0;
-
-  do {
-    got = read(d_trapPipe[0], &varList, sizeof(varList));
-
-    if (got == sizeof(varList)) {
-      send_v2trap(varList);
-      snmp_free_varbind(varList);
+  try {
+    while (true) {
+      auto obj = d_receiver.receive(snmp_free_varbind);
+      if (!obj) {
+        break;
+      }
+      send_v2trap(obj->get());
     }
   }
-  while (got > 0);
+  catch (const std::exception& e) {
+  }
 }
 
 void SNMPAgent::handleSNMPQueryEvent(int fd)
@@ -78,7 +77,7 @@ void SNMPAgent::handleSNMPQueryEvent(int fd)
   snmp_read2(&fdset);
 }
 
-void SNMPAgent::handleTrapsCB(int fd, FDMultiplexer::funcparam_t& var)
+void SNMPAgent::handleTrapsCB(int /* fd */, FDMultiplexer::funcparam_t& var)
 {
   SNMPAgent** agent = boost::any_cast<SNMPAgent*>(&var);
   if (!agent || !*agent)
@@ -107,7 +106,7 @@ void SNMPAgent::worker()
   }
 
 #ifdef RECURSOR
-  string threadName = "pdns-r/SNMP";
+  string threadName = "rec/snmp";
 #else
   string threadName = "dnsdist/SNMP";
 #endif
@@ -121,7 +120,7 @@ void SNMPAgent::worker()
 
   /* we want to be notified if a trap is waiting
    to be sent */
-  mplexer->addReadFD(d_trapPipe[0], &handleTrapsCB, this);
+  mplexer->addReadFD(d_receiver.getDescriptor(), &handleTrapsCB, this);
 
   while(true) {
     netsnmp_large_fd_set_init(&fdset, FD_SETSIZE);
@@ -161,7 +160,7 @@ void SNMPAgent::worker()
 #endif /* HAVE_NET_SNMP */
 }
 
-SNMPAgent::SNMPAgent(const std::string& name, const std::string& daemonSocket)
+SNMPAgent::SNMPAgent([[maybe_unused]] const std::string& name, [[maybe_unused]] const std::string& daemonSocket)
 {
 #ifdef HAVE_NET_SNMP
   netsnmp_enable_subagent();
@@ -187,20 +186,8 @@ SNMPAgent::SNMPAgent(const std::string& name, const std::string& daemonSocket)
 
   init_snmp(name.c_str());
 
-  if (pipe(d_trapPipe) < 0)
-    unixDie("Creating pipe");
-
-  if (!setNonBlocking(d_trapPipe[0])) {
-    close(d_trapPipe[0]);
-    close(d_trapPipe[1]);
-    unixDie("Setting pipe non-blocking");
-  }
-
-  if (!setNonBlocking(d_trapPipe[1])) {
-    close(d_trapPipe[0]);
-    close(d_trapPipe[1]);
-    unixDie("Setting pipe non-blocking");
-  }
-
+  auto [sender, receiver] = pdns::channel::createObjectQueue<netsnmp_variable_list, void(*)(netsnmp_variable_list*)>(true, true);
+  d_sender = std::move(sender);
+  d_receiver = std::move(receiver);
 #endif /* HAVE_NET_SNMP */
 }

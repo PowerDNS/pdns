@@ -87,12 +87,12 @@ int main(int argc, char** argv) {
 
       set_difference(before.cbegin(), before.cend(), after.cbegin(), after.cend(), back_inserter(diff), before.value_comp());
       for(const auto& d : diff) {
-        cout<<'-'<< (d.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation()<<endl;
+        cout<<'-'<< (d.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.getContent()->getZoneRepresentation()<<endl;
       }
       diff.clear();
       set_difference(after.cbegin(), after.cend(), before.cbegin(), before.cend(), back_inserter(diff), before.value_comp());
       for(const auto& d : diff) {
-        cout<<'+'<< (d.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.d_content->getZoneRepresentation()<<endl;
+        cout<<'+'<< (d.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.getContent()->getZoneRepresentation()<<endl;
       }
       exit(1);
     }
@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
 
       cout<<"Checking for update, our serial number is "<<ourSerial<<".. ";
       cout.flush();
-      shared_ptr<SOARecordContent> sr;
+      shared_ptr<const SOARecordContent> sr;
       uint32_t serial = getSerialFromMaster(master, zone, sr, tt);
       if(ourSerial == serial) {
         time_t sleepTime = sr ? sr->d_st.refresh : 60;
@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
         uint32_t newserial=0;
         for(const auto& rr : add) {
           if(rr.d_type == QType::SOA) {
-            newserial=std::dynamic_pointer_cast<SOARecordContent>(rr.d_content)->d_st.serial;
+            newserial=getRR<SOARecordContent>(rr)->d_st.serial;
           }
         }
 
@@ -214,8 +214,8 @@ int main(int argc, char** argv) {
         bool stop=false;
 
         for(const auto& rr : remove) {
-          report<<'-'<< (rr.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.d_content->getZoneRepresentation()<<endl;
-          auto range = records.equal_range(std::tie(rr.d_name, rr.d_type, rr.d_class, rr.d_content));
+          report<<'-'<< (rr.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.getContent()->getZoneRepresentation()<<endl;
+          auto range = records.equal_range(std::tie(rr.d_name, rr.d_type, rr.d_class, rr.getContent()));
           if(range.first == range.second) {
             cout<<endl<<" !! Could not find record "<<rr.d_name<<" to remove!!"<<endl;
             //	  stop=true;
@@ -225,7 +225,7 @@ int main(int argc, char** argv) {
         }
 
         for(const auto& rr : add) {
-          report<<'+'<< (rr.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.d_content->getZoneRepresentation()<<endl;
+          report<<'+'<< (rr.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.getContent()->getZoneRepresentation()<<endl;
           records.insert(rr);
         }
         if(stop) {

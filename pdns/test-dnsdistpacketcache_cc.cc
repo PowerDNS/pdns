@@ -1039,4 +1039,45 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheInspection) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_PacketCacheXFR) {
+  const size_t maxEntries = 150000;
+  DNSDistPacketCache PC(maxEntries, 86400, 1);
+  BOOST_CHECK_EQUAL(PC.getSize(), 0U);
+
+  const std::set<QType> xfrTypes = { QType::AXFR, QType::IXFR };
+  for (const auto& type : xfrTypes) {
+    bool dnssecOK = false;
+    InternalQueryState ids;
+    ids.qtype = type;
+    ids.qclass = QClass::IN;
+    ids.protocol = dnsdist::Protocol::DoUDP;
+    ids.qname = DNSName("powerdns.com.");
+
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, ids.qtype, ids.qclass, 0);
+    pwQ.getHeader()->rd = 1;
+
+    PacketBuffer response;
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, ids.qname, ids.qtype, ids.qclass, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->id = pwQ.getHeader()->id;
+    pwR.startRecord(ids.qname, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+    pwR.xfr32BitInt(0x01020304);
+    pwR.commit();
+
+    uint32_t key = 0;
+    boost::optional<Netmask> subnet;
+    DNSQuestion dq(ids, query);
+    bool found = PC.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
+    BOOST_CHECK_EQUAL(found, false);
+    BOOST_CHECK(!subnet);
+
+    PC.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, ids.qname, ids.qtype, ids.qclass, response, receivedOverUDP, 0, boost::none);
+    found = PC.get(dq, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
+    BOOST_CHECK_EQUAL(found, false);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

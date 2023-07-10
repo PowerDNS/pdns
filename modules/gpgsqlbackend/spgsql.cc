@@ -51,7 +51,7 @@ public:
   SSqlStatement* bind(const string& name, unsigned long value) { return bind(name, std::to_string(value)); }
   SSqlStatement* bind(const string& name, long long value) { return bind(name, std::to_string(value)); }
   SSqlStatement* bind(const string& name, unsigned long long value) { return bind(name, std::to_string(value)); }
-  SSqlStatement* bind(const string& name, const std::string& value)
+  SSqlStatement* bind(const string& /* name */, const std::string& value)
   {
     prepareStatement();
     allocate();
@@ -66,7 +66,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bindNull(const string& name)
+  SSqlStatement* bindNull(const string& /* name */)
   {
     prepareStatement();
     d_paridx++;
@@ -112,7 +112,7 @@ public:
     d_cur_set = 0;
     if (d_dolog) {
       auto diff = d_dtime.udiffNoReset();
-      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << diff << " usec to execute" << endl;
+      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << diff << " us to execute" << endl;
     }
 
     nextResult();
@@ -143,7 +143,7 @@ public:
   bool hasNextRow()
   {
     if (d_dolog && d_residx == d_resnum) {
-      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiff() << " total usec to last row" << endl;
+      g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiff() << " us total to last row" << endl;
     }
 
     return d_residx < d_resnum;

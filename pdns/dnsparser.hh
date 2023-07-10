@@ -24,6 +24,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <iostream>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 #include <cerrno>
@@ -66,7 +67,7 @@ class MOADNSParser;
 class PacketReader
 {
 public:
-  PacketReader(const pdns_string_view& content, uint16_t initialPos=sizeof(dnsheader))
+  PacketReader(const std::string_view& content, uint16_t initialPos=sizeof(dnsheader))
     : d_pos(initialPos), d_startrecordpos(initialPos), d_content(content)
   {
     if(content.size() > std::numeric_limits<uint16_t>::max())
@@ -134,10 +135,9 @@ public:
     val=get8BitInt();
   }
 
-
-  void xfrName(DNSName &name, bool compress=false, bool noDot=false)
+  void xfrName(DNSName& name, bool /* compress */ = false, bool /* noDot */ = false)
   {
-    name=getName();
+    name = getName();
   }
 
   void xfrText(string &text, bool multi=false, bool lenField=true)
@@ -184,7 +184,7 @@ private:
   uint16_t d_startrecordpos; // needed for getBlob later on
   uint16_t d_recordlen;      // ditto
   uint16_t not_used; // Aligns the whole class on 8-byte boundaries
-  const pdns_string_view d_content;
+  const std::string_view d_content;
 };
 
 struct DNSRecord;
@@ -199,8 +199,9 @@ public:
 
   virtual std::string getZoneRepresentation(bool noDot=false) const = 0;
   virtual ~DNSRecordContent() {}
-  virtual void toPacket(DNSPacketWriter& pw)=0;
-  virtual string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) // it would rock if this were const, but it is too hard
+  virtual void toPacket(DNSPacketWriter& pw) const = 0;
+  // returns the wire format of the content, possibly including compressed pointers pointing to the owner name (unless canonic or lowerCase are set)
+  string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) const
   {
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, g_rootdnsname, 1);
@@ -223,6 +224,7 @@ public:
     return typeid(*this)==typeid(rhs) && this->getZoneRepresentation() == rhs.getZoneRepresentation();
   }
 
+  // parse the content in wire format, possibly including compressed pointers pointing to the owner name
   static shared_ptr<DNSRecordContent> deserialize(const DNSName& qname, uint16_t qtype, const string& serialized);
 
   void doRecordCheck(const struct DNSRecord&){}
@@ -266,7 +268,7 @@ public:
     throw runtime_error("Unknown DNS type '"+name+"'");
   }
 
-  static const string NumberToType(uint16_t num, uint16_t classnum=1)
+  static const string NumberToType(uint16_t num, uint16_t classnum = QClass::IN)
   {
     auto iter = getT2Namemap().find(pair(classnum, num));
     if(iter == getT2Namemap().end())
@@ -274,6 +276,11 @@ public:
       //      throw runtime_error("Unknown DNS type with numerical id "+std::to_string(num));
     return iter->second;
   }
+
+  /**
+   * \brief Return whether we have implemented a content representation for this type
+   */
+  static bool isRegisteredType(uint16_t rtype, uint16_t rclass = QClass::IN);
 
   virtual uint16_t getType() const = 0;
 
@@ -310,7 +317,9 @@ struct DNSRecord
     d_place(place) {}
 
   DNSName d_name;
-  std::shared_ptr<DNSRecordContent> d_content;
+private:
+  std::shared_ptr<const DNSRecordContent> d_content;
+public:
   uint16_t d_type{};
   uint16_t d_class{};
   uint32_t d_ttl{};
@@ -327,6 +336,21 @@ struct DNSRecord
     s << indent << "clen = " << d_clen << std::endl;
     s << indent << "Place = " << std::to_string(d_place) << std::endl;
     return s.str();
+  }
+
+  void setContent(const std::shared_ptr<const DNSRecordContent>& content)
+  {
+    d_content = content;
+  }
+
+  void setContent(std::shared_ptr<const DNSRecordContent>&& content)
+  {
+    d_content = std::move(content);
+  }
+
+  [[nodiscard]] const std::shared_ptr<const DNSRecordContent>& getContent() const
+  {
+    return d_content;
   }
 
   bool operator<(const DNSRecord& rhs) const
@@ -414,7 +438,7 @@ public:
   UnknownRecordContent(const string& zone);
 
   string getZoneRepresentation(bool noDot) const override;
-  void toPacket(DNSPacketWriter& pw) override;
+  void toPacket(DNSPacketWriter& pw) const override;
   uint16_t getType() const override
   {
     return d_dr.d_type;
@@ -443,7 +467,7 @@ public:
   //! Parse from a pointer and length
   MOADNSParser(bool query, const char *packet, unsigned int len) : d_tsigPos(0)
   {
-    init(query, pdns_string_view(packet, len));
+    init(query, std::string_view(packet, len));
   }
 
   DNSName d_qname;
@@ -464,17 +488,17 @@ public:
   bool hasEDNS() const;
 
 private:
-  void init(bool query, const pdns_string_view& packet);
+  void init(bool query, const std::string_view& packet);
   uint16_t d_tsigPos;
 };
 
 string simpleCompress(const string& label, const string& root="");
-void ageDNSPacket(char* packet, size_t length, uint32_t seconds);
-void ageDNSPacket(std::string& packet, uint32_t seconds);
+void ageDNSPacket(char* packet, size_t length, uint32_t seconds, const dnsheader_aligned&);
+void ageDNSPacket(std::string& packet, uint32_t seconds, const dnsheader_aligned&);
 void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(uint8_t, uint16_t, uint16_t, uint32_t)>& visitor);
-void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::set<QType>& qtypes);
-void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::set<QType>& qtypes);
-void clearDNSPacketRecordTypes(char* packet, size_t& length, const std::set<QType>& qtypes);
+void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::unordered_set<QType>& qtypes);
+void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::unordered_set<QType>& qtypes);
+void clearDNSPacketRecordTypes(char* packet, size_t& length, const std::unordered_set<QType>& qtypes);
 uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA=nullptr);
 uint32_t getDNSPacketLength(const char* packet, size_t length);
 uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t section, uint16_t type);
@@ -484,9 +508,9 @@ bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payl
 bool visitDNSPacket(const std::string_view& packet, const std::function<bool(uint8_t, uint16_t, uint16_t, uint32_t, uint16_t, const char*)>& visitor);
 
 template<typename T>
-std::shared_ptr<T> getRR(const DNSRecord& dr)
+std::shared_ptr<const T> getRR(const DNSRecord& dr)
 {
-  return std::dynamic_pointer_cast<T>(dr.d_content);
+  return std::dynamic_pointer_cast<const T>(dr.getContent());
 }
 
 /** Simple DNSPacketMangler. Ritual is: get a pointer into the packet and moveOffset() to beyond your needs

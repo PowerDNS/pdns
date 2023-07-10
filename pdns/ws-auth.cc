@@ -536,7 +536,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
   }
 }
 
-static void gatherRecords(UeberBackend& B, const string& logprefix, const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
+static void gatherRecords(const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
@@ -752,7 +752,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
       // "dnssec": false in json
       if (isDNSSECZone) {
         string info, error;
-        if (!dk.unSecureZone(zonename, error, info)) {
+        if (!dk.unSecureZone(zonename, error)) {
           throw ApiException("Error while un-securing zone '"+ zonename.toString()+"': " + error);
         }
         isDNSSECZone = dk.isSecuredZone(zonename, false);
@@ -1130,9 +1130,9 @@ static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, Http
         { "active", value.second.active },
         { "published", value.second.published },
         { "keytype", keyType },
-        { "flags", (uint16_t)value.first.d_flags },
+        { "flags", (uint16_t)value.first.getFlags() },
         { "dnskey", value.first.getDNSKEY().getZoneRepresentation() },
-        { "algorithm", DNSSECKeeper::algorithm2name(value.first.d_algorithm) },
+        { "algorithm", DNSSECKeeper::algorithm2name(value.first.getAlgorithm()) },
         { "bits", value.first.getKey()->getBits() }
     };
 
@@ -1298,17 +1298,20 @@ static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, Htt
     DNSSECPrivateKey dpk;
     try {
       shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(dkrc, keyData));
-      dpk.d_algorithm = dkrc.d_algorithm;
+      uint16_t flags = 0;
+      if (keyOrZone) {
+        flags = 257;
+      }
+      else {
+        flags = 256;
+      }
+
+      uint8_t algorithm = dkrc.d_algorithm;
       // TODO remove in 4.2.0
-      if(dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1)
-        dpk.d_algorithm = DNSSECKeeper::RSASHA1;
-
-      if (keyOrZone)
-        dpk.d_flags = 257;
-      else
-        dpk.d_flags = 256;
-
-      dpk.setKey(dke);
+      if (algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
+        algorithm = DNSSECKeeper::RSASHA1;
+      }
+      dpk.setKey(dke, flags, algorithm);
     }
     catch (std::runtime_error& error) {
       throw ApiException("Key could not be parsed. Make sure your key format is correct.");
@@ -1725,7 +1728,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
         }
         if (rrset["records"].is_array()) {
           int ttl = intFromJson(rrset, "ttl");
-          gatherRecords(B, req->logprefix, rrset, qname, qtype, ttl, new_records);
+          gatherRecords(rrset, qname, qtype, ttl, new_records);
         }
         if (rrset["comments"].is_array()) {
           gatherComments(rrset, qname, qtype, new_comments);
@@ -1826,7 +1829,9 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     }
     for(Comment& c : new_comments) {
       c.domain_id = di.id;
-      di.backend->feedComment(c);
+      if (!di.backend->feedComment(c)) {
+        throw ApiException("Hosting backend does not support editing comments.");
+      }
     }
 
     updateDomainSettingsFromDocument(B, di, zonename, document, !new_records.empty());
@@ -2109,7 +2114,7 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
           // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
           int ttl = intFromJson(rrset, "ttl");
 
-          gatherRecords(B, req->logprefix, rrset, qname, qtype, ttl, new_records);
+          gatherRecords(rrset, qname, qtype, ttl, new_records);
 
           for(DNSResourceRecord& rr : new_records) {
             rr.domain_id = di.id;
@@ -2394,7 +2399,7 @@ static void prometheusMetrics(HttpRequest* req, HttpResponse* resp) {
   resp->status = 200;
 }
 
-void AuthWebServer::cssfunction(HttpRequest* req, HttpResponse* resp)
+void AuthWebServer::cssfunction(HttpRequest* /* req */, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
   resp->headers["Content-Type"] = "text/css";

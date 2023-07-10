@@ -19,10 +19,45 @@ dnl <http://www.gnu.org/licenses/>.
 dnl
 
 AC_DEFUN([AC_CC_D_FORTIFY_SOURCE],[
-      OLD_CXXFLAGS="$CXXFLAGS"
-      CXXFLAGS="-Wall -W -Werror $CXXFLAGS"
+  AC_ARG_ENABLE([fortify-source],
+    AS_HELP_STRING([--enable-fortify-source], [enable FORTIFY_SOURCE support @<:@default=2@:>@]),
+    [enable_fortify_source=$enableval],
+    [enable_fortify_source=2]
+  )
+
+  AS_IF([test "x$enable_fortify_source" != "xno"], [
+
+    dnl Auto means the highest version we support, which is currently 3
+    AS_IF([test "x$enable_fortify_source" == "xauto"],
+      [enable_fortify_source=3],
+      []
+    )
+
+    dnl If 3 is not supported, we try to fallback to 2
+    AS_IF([test "x$enable_fortify_source" == "x3"], [
+      gl_COMPILER_OPTION_IF([-D_FORTIFY_SOURCE=3], [
+        CFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 $CFLAGS"
+        CXXFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 $CXXFLAGS"
+      ], [enable_fortify_source=2])
+    ])
+
+    dnl If 2 is not supported, we try to fallback to 1
+    AS_IF([test "x$enable_fortify_source" == "x2"], [
       gl_COMPILER_OPTION_IF([-D_FORTIFY_SOURCE=2], [
         CFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 $CFLAGS"
-        CXXFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 $OLD_CXXFLAGS"
-      ], [CXXFLAGS="$OLD_CXXFLAGS"], [AC_LANG_PROGRAM([[#include <stdio.h>]],[])])
-]) 
+        CXXFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 $CXXFLAGS"
+      ], [enable_fortify_source=1])
+    ])
+
+    AS_IF([test "x$enable_fortify_source" == "x1"], [
+      gl_COMPILER_OPTION_IF([-D_FORTIFY_SOURCE=1], [
+        CFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1 $CFLAGS"
+        CXXFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1 $CXXFLAGS"
+      ], [enable_fortify_source=no])
+    ])
+
+  ])
+
+  AC_MSG_CHECKING([whether FORTIFY_SOURCE is supported])
+  AC_MSG_RESULT([$enable_fortify_source])
+])

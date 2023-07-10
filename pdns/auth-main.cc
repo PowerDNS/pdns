@@ -196,6 +196,7 @@ static void declareArguments()
   ::arg().set("log-timestamp", "Print timestamps in log lines") = "yes";
   ::arg().set("distributor-threads", "Default number of Distributor (backend) threads to start") = "3";
   ::arg().set("signing-threads", "Default number of signer threads to start") = "3";
+  ::arg().setSwitch("workaround-11804", "Workaround for issue 11804: send single RR per AXFR chunk") = "no";
   ::arg().set("receiver-threads", "Default number of receiver threads to start") = "1";
   ::arg().set("queue-limit", "Maximum number of milliseconds to queue a query") = "1500";
   ::arg().set("resolver", "Use this resolver for ALIAS and the internal stub resolver") = "no";
@@ -210,7 +211,7 @@ static void declareArguments()
   ::arg().set("only-notify", "Only send AXFR NOTIFY to these IP addresses or netmasks") = "0.0.0.0/0,::/0";
   ::arg().set("also-notify", "When notifying a zone, also notify these nameservers") = "";
   ::arg().set("allow-notify-from", "Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.") = "0.0.0.0/0,::/0";
-  ::arg().set("slave-cycle-interval", "Schedule slave freshness checks once every .. seconds") = "60";
+  ::arg().set("slave-cycle-interval", "Schedule slave freshness checks once every .. seconds") = "";
   ::arg().set("xfr-cycle-interval", "Schedule primary/secondary SOA freshness checks once every .. seconds") = "60";
   ::arg().set("secondary-check-signature-freshness", "Check signatures in SOA freshness check. Sets DO flag on SOA queries. Outside some very problematic scenarios, say yes here.") = "yes";
 
@@ -303,7 +304,7 @@ static void declareArguments()
   ::arg().set("security-poll-suffix", "Zone name from which to query security update notifications") = "secpoll.powerdns.com.";
 
   ::arg().setSwitch("expand-alias", "Expand ALIAS records") = "no";
-  ::arg().setSwitch("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR") = "no";
+  ::arg().set("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR") = "no";
   ::arg().setSwitch("8bit-dns", "Allow 8bit dns queries") = "no";
 #ifdef HAVE_LUA_RECORDS
   ::arg().setSwitch("enable-lua-records", "Process LUA records for all zones (metadata overrides this)") = "no";
@@ -334,7 +335,7 @@ static void declareArguments()
 }
 
 static time_t s_start = time(nullptr);
-static uint64_t uptimeOfProcess(const std::string& str)
+static uint64_t uptimeOfProcess(const std::string& /* str */)
 {
   return time(nullptr) - s_start;
 }
@@ -351,12 +352,12 @@ static uint64_t getSysUserTimeMsec(const std::string& str)
     return (ru.ru_utime.tv_sec * 1000ULL + ru.ru_utime.tv_usec / 1000);
 }
 
-static uint64_t getTCPConnectionCount(const std::string& str)
+static uint64_t getTCPConnectionCount(const std::string& /* str */)
 {
   return s_tcpNameserver->numTCPConnections();
 }
 
-static uint64_t getQCount(const std::string& str)
+static uint64_t getQCount(const std::string& /* str */)
 try {
   int totcount = 0;
   for (const auto& d : s_distributors) {
@@ -375,27 +376,27 @@ catch (PDNSException& e) {
   return 0;
 }
 
-static uint64_t getLatency(const std::string& str)
+static uint64_t getLatency(const std::string& /* str */)
 {
   return round(avg_latency);
 }
 
-static uint64_t getReceiveLatency(const std::string& str)
+static uint64_t getReceiveLatency(const std::string& /* str */)
 {
   return round(receive_latency);
 }
 
-static uint64_t getCacheLatency(const std::string& str)
+static uint64_t getCacheLatency(const std::string& /* str */)
 {
   return round(cache_latency);
 }
 
-static uint64_t getBackendLatency(const std::string& str)
+static uint64_t getBackendLatency(const std::string& /* str */)
 {
   return round(backend_latency);
 }
 
-static uint64_t getSendLatency(const std::string& str)
+static uint64_t getSendLatency(const std::string& /* str */)
 {
   return round(send_latency);
 }
@@ -489,7 +490,7 @@ static void declareStats()
   S.declare(
     "xfr-queue", "Size of the queue of zones to be XFRd", [](const string&) { return Communicator.getSuckRequestsWaiting(); }, StatType::gauge);
   S.declareDNSNameQTypeRing("queries", "UDP Queries Received");
-  S.declareDNSNameQTypeRing("nxdomain-queries", "Queries for non-existent records within existent zones");
+  S.declareDNSNameQTypeRing("nxdomain-queries", "Queries for nonexistent records within existent zones");
   S.declareDNSNameQTypeRing("noerror-queries", "Queries for existing records, but for type we don't have");
   S.declareDNSNameQTypeRing("servfail-queries", "Queries that could not be answered due to backend errors");
   S.declareDNSNameQTypeRing("unauth-queries", "Queries for zones that we are not authoritative for");
@@ -684,8 +685,6 @@ static void triggerLoadOfLibraries()
 
 static void mainthread()
 {
-  Utility::srandom();
-
   gid_t newgid = 0;
   if (!::arg()["setgid"].empty())
     newgid = strToGID(::arg()["setgid"]);
@@ -740,6 +739,9 @@ static void mainthread()
 
   if (!PC.enabled() && ::arg().mustDo("log-dns-queries")) {
     g_log << Logger::Warning << "Packet cache disabled, logging queries without HIT/MISS" << endl;
+  }
+  if (::arg()["outgoing-axfr-expand-alias"] == "ignore-errors") {
+    g_log << Logger::Error << "Ignoring ALIAS resolve failures on outgoing AXFR transfers, see option \"outgoing-axfr-expand-alias\"" << endl;
   }
 
   stubParseResolveConf();
@@ -925,7 +927,7 @@ static void daemonize()
 }
 
 static int cpid;
-static void takedown(int i)
+static void takedown(int /* i */)
 {
   if (cpid) {
     g_log << Logger::Error << "Guardian is killed, taking down children with us" << endl;
@@ -963,7 +965,7 @@ static FILE* g_fp;
 static std::mutex g_guardian_lock;
 
 // The next two methods are not in dynhandler.cc because they use a few items declared in this file.
-static string DLCycleHandler(const vector<string>& parts, pid_t ppid)
+static string DLCycleHandler(const vector<string>& /* parts */, pid_t /* ppid */)
 {
   kill(cpid, SIGKILL); // why?
   kill(cpid, SIGKILL); // why?
@@ -971,7 +973,7 @@ static string DLCycleHandler(const vector<string>& parts, pid_t ppid)
   return "ok";
 }
 
-static string DLRestHandler(const vector<string>& parts, pid_t ppid)
+static string DLRestHandler(const vector<string>& parts, pid_t /* ppid */)
 {
   string line;
 
@@ -1241,6 +1243,8 @@ int main(int argc, char** argv)
       ::arg().set("allow-unsigned-autoprimary") = "yes";
     if (!::arg().isEmpty("domain-metadata-cache-ttl"))
       ::arg().set("zone-metadata-cache-ttl") = ::arg()["domain-metadata-cache-ttl"];
+    if (!::arg().isEmpty("slave-cycle-interval"))
+      ::arg().set("xfr-cycle-interval") = ::arg()["slave-cycle-interval"];
 
     // this mirroring back is on purpose, so that config dumps reflect the actual setting on both names
     if (::arg().mustDo("primary"))
@@ -1254,6 +1258,7 @@ int main(int argc, char** argv)
     if (::arg().mustDo("allow-unsigned-autoprimary"))
       ::arg().set("allow-unsigned-supermaster") = "yes";
     ::arg().set("domain-metadata-cache-ttl") = ::arg()["zone-metadata-cache-ttl"];
+    ::arg().set("slave-cycle-interval") = ::arg()["xfr-cycle-interval"];
 
     g_log.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
     g_log.disableSyslog(::arg().mustDo("disable-syslog"));
@@ -1296,8 +1301,6 @@ int main(int argc, char** argv)
 
     openssl_thread_setup();
     openssl_seed();
-    /* setup rng */
-    dns_random_init();
 
 #ifdef HAVE_LUA_RECORDS
     MiniCurl::init();

@@ -35,17 +35,26 @@ using namespace ::boost::multi_index;
 #include "dnsrecords.hh"
 #include "lock.hh"
 #include "stat_t.hh"
+#include "logger.hh"
 
 class AggressiveNSECCache
 {
 public:
+  static const uint8_t s_default_maxNSEC3CommonPrefix = 10;
+  static uint8_t s_maxNSEC3CommonPrefix;
+
   AggressiveNSECCache(uint64_t entries) :
     d_maxEntries(entries)
   {
   }
 
-  void insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<RRSIGRecordContent>>& signatures, bool nsec3);
-  bool getDenial(time_t, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC);
+  static bool nsec3Disabled()
+  {
+    return s_maxNSEC3CommonPrefix == 0;
+  }
+
+  void insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, bool nsec3);
+  bool getDenial(time_t, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, const ComboAddress& who, const boost::optional<std::string>& routingTag, bool doDNSSEC, const OptLog& log = std::nullopt);
 
   void removeZoneInfo(const DNSName& zone, bool subzones);
 
@@ -73,6 +82,9 @@ public:
   {
     return d_nsec3WildcardHits;
   }
+
+  // exported for unit test purposes
+  static bool isSmallCoveringNSEC3(const DNSName& owner, const std::string& nextHash);
 
   void prune(time_t now);
   size_t dumpToFile(std::unique_ptr<FILE, int (*)(FILE*)>& fp, const struct timeval& now);
@@ -102,8 +114,8 @@ private:
 
     struct CacheEntry
     {
-      std::shared_ptr<DNSRecordContent> d_record;
-      std::vector<std::shared_ptr<RRSIGRecordContent>> d_signatures;
+      std::shared_ptr<const DNSRecordContent> d_record;
+      std::vector<std::shared_ptr<const RRSIGRecordContent>> d_signatures;
 
       DNSName d_owner;
       DNSName d_next;
@@ -132,9 +144,9 @@ private:
   std::shared_ptr<LockGuarded<ZoneEntry>> getBestZone(const DNSName& zone);
   bool getNSECBefore(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry);
   bool getNSEC3(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry);
-  bool getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC);
-  bool synthesizeFromNSEC3Wildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nextCloser, const DNSName& wildcardName);
-  bool synthesizeFromNSECWildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nsec, const DNSName& wildcardName);
+  bool getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<const RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, const OptLog&);
+  bool synthesizeFromNSEC3Wildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nextCloser, const DNSName& wildcardName, const OptLog&);
+  bool synthesizeFromNSECWildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nsec, const DNSName& wildcardName, const OptLog&);
 
   /* slowly updates d_entriesCount */
   void updateEntriesCount(SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& zones);

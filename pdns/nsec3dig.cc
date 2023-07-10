@@ -171,7 +171,7 @@ try
     {
       // cerr<<"got nsec3 ["<<i->first.d_name<<"]"<<endl;
       // cerr<<i->first.d_content->getZoneRepresentation()<<endl;
-      const auto r = std::dynamic_pointer_cast<NSEC3RecordContent>(i->first.d_content);
+      const auto r = getRR<NSEC3RecordContent>(i->first);
       if (!r) {
         continue;
       }
@@ -191,11 +191,11 @@ try
 
     if(i->first.d_type == QType::CNAME)
     {
-      namesseen.insert(DNSName(i->first.d_content->getZoneRepresentation()));
+      namesseen.insert(DNSName(i->first.getContent()->getZoneRepresentation()));
     }
 
     cout << i->first.d_place - 1 << "\t" << i->first.d_name.toString() << "\t" << i->first.d_ttl << "\tIN\t" << DNSRecordContent::NumberToType(i->first.d_type);
-    cout << "\t" << i->first.d_content->getZoneRepresentation() << "\n";
+    cout << "\t" << i->first.getContent()->getZoneRepresentation() << "\n";
   }
 
 #if 0

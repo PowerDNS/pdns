@@ -95,7 +95,7 @@ void pdns::ProtoZero::Message::addRRsFromPacket(const char* packet, const size_t
     return;
   }
 
-  PacketReader pr(pdns_string_view(packet, len));
+  PacketReader pr(std::string_view(packet, len));
 
   size_t idx = 0;
   DNSName rrname;

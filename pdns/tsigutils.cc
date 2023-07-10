@@ -51,7 +51,7 @@ std::string makeTSIGKey(const DNSName& algorithm) {
 
   // Fill out the key
   for (size_t i = 0; i < klen; i += sizeof(uint32_t)) {
-    uint32_t t = dns_random(std::numeric_limits<uint32_t>::max());
+    uint32_t t = dns_random_uint32();
     memcpy(&tmpkey.at(i), &t, sizeof(uint32_t));
   }
 

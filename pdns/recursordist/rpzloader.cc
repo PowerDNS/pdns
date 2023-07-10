@@ -124,7 +124,7 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-      pol.d_custom.emplace_back(dr.d_content);
+      pol.d_custom.emplace_back(dr.getContent());
       // cerr<<"Wants custom "<<crcTarget<<" for "<<dr.d_name<<": ";
     }
   }
@@ -135,7 +135,7 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
     }
     else {
       pol.d_kind = DNSFilterEngine::PolicyKind::Custom;
-      pol.d_custom.emplace_back(dr.d_content);
+      pol.d_custom.emplace_back(dr.getContent());
       // cerr<<"Wants custom "<<dr.d_content->getZoneRepresentation()<<" for "<<dr.d_name<<": ";
     }
   }
@@ -194,7 +194,7 @@ static void RPZRecordToPolicy(const DNSRecord& dr, std::shared_ptr<DNSFilterEngi
   }
 }
 
-static shared_ptr<SOARecordContent> loadRPZFromServer(Logr::log_t plogger, const ComboAddress& primary, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
+static shared_ptr<const SOARecordContent> loadRPZFromServer(Logr::log_t plogger, const ComboAddress& primary, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
 {
 
   auto logger = plogger->withValues("primary", Logging::Loggable(primary));
@@ -216,7 +216,7 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(Logr::log_t plogger, const
   time_t last = 0;
   time_t axfrStart = time(nullptr);
   time_t axfrNow = time(nullptr);
-  shared_ptr<SOARecordContent> sr;
+  shared_ptr<const SOARecordContent> sr;
   while (axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow))) {
     for (auto& dr : chunk) {
       if (dr.d_type == QType::NS || dr.d_type == QType::TSIG) {
@@ -226,6 +226,7 @@ static shared_ptr<SOARecordContent> loadRPZFromServer(Logr::log_t plogger, const
       dr.d_name.makeUsRelative(zoneName);
       if (dr.d_type == QType::SOA) {
         sr = getRR<SOARecordContent>(dr);
+        zone->setSOA(dr);
         continue;
       }
 
@@ -286,13 +287,14 @@ static void setRPZZoneNewState(const std::string& zone, uint32_t serial, uint64_
 }
 
 // this function is silent - you do the logging
-std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL)
+std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL)
 {
-  shared_ptr<SOARecordContent> sr = nullptr;
+  shared_ptr<const SOARecordContent> sr = nullptr;
   ZoneParserTNG zpt(fname);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
   DNSResourceRecord drr;
+  DNSRecord soaRecord;
   DNSName domain;
   auto log = g_slog->withName("rpz")->withValues("file", Logging::Loggable(fname), "zone", Logging::Loggable(zone->getName()));
   while (zpt.get(drr)) {
@@ -304,6 +306,7 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
         sr = getRR<SOARecordContent>(dr);
         domain = dr.d_name;
         zone->setDomain(domain);
+        soaRecord = dr;
       }
       else if (dr.d_type == QType::NS) {
         continue;
@@ -320,6 +323,7 @@ std::shared_ptr<SOARecordContent> loadRPZFromFile(const std::string& fname, std:
 
   if (sr != nullptr) {
     zone->setRefresh(sr->d_st.refresh);
+    zone->setSOA(soaRecord);
     setRPZZoneNewState(zone->getName(), sr->d_st.serial, zone->size(), true, false);
   }
   return sr;
@@ -381,9 +385,9 @@ static bool dumpZoneToDisk(Logr::log_t logger, const DNSName& zoneName, const st
   return true;
 }
 
-void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t xfrTimeout, const uint32_t refreshFromConf, std::shared_ptr<SOARecordContent> sr, const std::string& dumpZoneFileName, uint64_t configGeneration)
+void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t xfrTimeout, const uint32_t refreshFromConf, std::shared_ptr<const SOARecordContent> sr, const std::string& dumpZoneFileName, uint64_t configGeneration)
 {
-  setThreadName("pdns-r/RPZIXFR");
+  setThreadName("rec/rpzixfr");
   bool isPreloaded = sr != nullptr;
   auto luaconfsLocal = g_luaconfs.getLocal();
 
@@ -450,7 +454,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
 
   for (;;) {
     DNSRecord dr;
-    dr.d_content = sr;
+    dr.setContent(sr);
 
     if (skipRefreshDelay) {
       skipRefreshDelay = false;
@@ -516,7 +520,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
       /* we need to make a _full copy_ of the zone we are going to work on */
       std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
       /* initialize the current serial to the last one */
-      std::shared_ptr<SOARecordContent> currentSR = sr;
+      std::shared_ptr<const SOARecordContent> currentSR = sr;
 
       int totremove = 0, totadd = 0;
       bool fullUpdate = false;

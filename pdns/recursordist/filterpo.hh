@@ -28,6 +28,7 @@
 #include <map>
 #include <unordered_map>
 #include <limits>
+#include <utility>
 
 /* This class implements a filtering policy that is able to fully implement RPZ, but is not bound to it.
    In other words, it is generic enough to support RPZ, but could get its data from other places.
@@ -96,9 +97,11 @@ public:
     std::unordered_set<std::string> d_tags;
     std::string d_name;
     std::string d_extendedErrorExtra;
+    DNSRecord d_soa{};
     boost::optional<uint16_t> d_extendedErrorCode{boost::none};
     Priority d_priority{maximumPriority};
     bool d_policyOverridesGettag{true};
+    bool d_includeSOA{false};
   };
 
   struct Policy
@@ -108,7 +111,7 @@ public:
     {
     }
 
-    Policy(PolicyKind kind, PolicyType type, int32_t ttl = 0, std::shared_ptr<PolicyZoneData> data = nullptr, const std::vector<std::shared_ptr<DNSRecordContent>>& custom = {}) :
+    Policy(PolicyKind kind, PolicyType type, int32_t ttl = 0, std::shared_ptr<PolicyZoneData> data = nullptr, const std::vector<std::shared_ptr<const DNSRecordContent>>& custom = {}) :
       d_custom(custom), d_zoneData(data), d_ttl(ttl), d_kind(kind), d_type(type)
     {
     }
@@ -168,6 +171,23 @@ public:
       return true;
     }
 
+    [[nodiscard]] bool getSOA(DNSRecord& rec) const
+    {
+      if (d_zoneData) {
+        rec = d_zoneData->d_soa;
+        return true;
+      }
+      return false;
+    }
+
+    [[nodiscard]] bool includeSOA() const
+    {
+      if (d_zoneData) {
+        return d_zoneData->d_includeSOA;
+      }
+      return false;
+    }
+
     bool wasHit() const
     {
       return (d_type != DNSFilterEngine::PolicyType::None && d_kind != DNSFilterEngine::PolicyKind::NoAction);
@@ -178,7 +198,7 @@ public:
     std::vector<DNSRecord> getCustomRecords(const DNSName& qname, uint16_t qtype) const;
     std::vector<DNSRecord> getRecords(const DNSName& qname) const;
 
-    std::vector<std::shared_ptr<DNSRecordContent>> d_custom;
+    std::vector<std::shared_ptr<const DNSRecordContent>> d_custom;
     std::shared_ptr<PolicyZoneData> d_zoneData{nullptr};
     DNSName d_trigger;
     string d_hit;
@@ -187,8 +207,17 @@ public:
     PolicyKind d_kind;
     PolicyType d_type;
 
+    void addSOAtoRPZResult(vector<DNSRecord>& ret) const
+    {
+      DNSRecord soa{};
+      if (includeSOA() && getSOA(soa)) {
+        soa.d_place = DNSResourceRecord::ADDITIONAL;
+        ret.emplace_back(soa);
+      }
+    }
+
   private:
-    DNSRecord getRecordFromCustom(const DNSName& qname, const std::shared_ptr<DNSRecordContent>& custom) const;
+    DNSRecord getRecordFromCustom(const DNSName& qname, const std::shared_ptr<const DNSRecordContent>& custom) const;
   };
 
   class Zone
@@ -243,7 +272,10 @@ public:
     {
       d_zoneData->d_extendedErrorExtra = extra;
     }
-
+    void setSOA(DNSRecord soa)
+    {
+      d_zoneData->d_soa = std::move(soa);
+    }
     const std::string& getName() const
     {
       return d_zoneData->d_name;
@@ -267,6 +299,11 @@ public:
     size_t size() const
     {
       return d_qpolAddr.size() + d_postpolAddr.size() + d_propolName.size() + d_propolNSAddr.size() + d_qpolName.size();
+    }
+
+    void setIncludeSOA(bool flag)
+    {
+      d_zoneData->d_includeSOA = flag;
     }
 
     void dump(FILE* fp) const;

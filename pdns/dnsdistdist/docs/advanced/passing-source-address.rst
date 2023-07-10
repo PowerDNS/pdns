@@ -60,6 +60,8 @@ This parameter indicates whether an XPF record shall be added to the query. Sinc
 If the incoming request already contains a XPF record, it will not be overwritten. Instead a new one will be added to the query and the existing one will be preserved.
 That might be an issue by allowing clients to spoof their source address by adding a forged XPF record to their query. That can be prevented by using a rule to drop incoming queries containing a XPF record (in that example the 65280 option code has been assigned to XPF):
 
+.. code-block:: lua
+
   addAction(RecordsTypeCountRule(DNSSection.Additional, 65280, 1, 65535), DropAction())
 
 Proxy Protocol
@@ -70,7 +72,8 @@ It works by pre-pending a small header at the very beginning of a UDP datagram o
 
 In order to use it in dnsdist, the ``useProxyProtocol`` parameter can be used when creating a :func:`new server <newServer>`.
 This parameter indicates whether a Proxy Protocol version 2 (binary) header should be prepended to the query before forwarding it to the backend, over UDP or TCP.
-Such a Proxy Protocol header can also be passed from the client to dnsdist, using :func:`setProxyProtocolACL` to specify which clients to accept it from.
+Such a Proxy Protocol header can also be passed from the client to dnsdist, using :func:`setProxyProtocolACL` to specify which clients to accept it from. Note that a proxy protocol payload will be required from these clients, regular DNS queries will no longer be accepted if they are not preceded by a proxy protocol payload.
+
 If :func:`setProxyProtocolApplyACLToProxiedClients` is set (default is false), the general ACL will be applied to the source IP address as seen by dnsdist first, but also to the source IP address provided in the Proxy Protocol header.
 
 Custom values can be added to the header via :meth:`DNSQuestion:addProxyProtocolValue`, :meth:`DNSQuestion:setProxyProtocolValues`, :func:`SetAdditionalProxyProtocolValueAction` and :func:`SetProxyProtocolValuesAction`.
@@ -94,7 +97,7 @@ For that feature to work, dnsdist will look up twice into the packet cache when 
 That feature is enabled by setting ``disableZeroScope=false`` on :func:`newServer` (default) and ``parseECS=true`` on :func:`newPacketCache` (not the default).
 
 
-Things are different for XPF and the proxy protocol, because dnsdist then does the cache lookup **before** adding the payload. It means that caching can still be enabled as long as the response is not source-dependant, but should be disabled otherwise.
+Things are different for XPF and the proxy protocol, because dnsdist then does the cache lookup **before** adding the payload. It means that caching can still be enabled as long as the response is not source-dependent, but should be disabled otherwise.
 
 +------------------+----------+---------------------+----------------+------------------------+
 | Protocol         | Standard | Require DNS parsing | Contains ports | Caching                |

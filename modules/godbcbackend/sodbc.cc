@@ -89,17 +89,18 @@ public:
 
   vector<ODBCParam> d_req_bind;
 
-  SSqlStatement* bind(const string& name, ODBCParam& p)
+  SSqlStatement* bind(const string& /* name */, ODBCParam& p)
   {
     prepareStatement();
     d_req_bind.push_back(p);
+    SQLLEN ColumnSize = (p.ParameterType == SQL_VARCHAR) ? *(p.LenPtr) : 0;
     SQLRETURN result = SQLBindParameter(
       d_statement, // StatementHandle,
       d_paridx + 1, // ParameterNumber,
       SQL_PARAM_INPUT, // InputOutputType,
       p.ValueType, // ValueType,
       p.ParameterType, // ParameterType,
-      0, // ColumnSize,
+      ColumnSize, // ColumnSize,
       0, // DecimalDigits,
       p.ParameterValuePtr, // ParameterValuePtr,
       0, // BufferLength,

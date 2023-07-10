@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ $(ldd pdns_recursor | grep -c libcrypto) -gt 1 ]; then
+if [ $(ldd pdns_recursor | grep -Fc libcrypto.) -gt 1 ]; then
   echo "Error! pdns_recursor is linked against multiple OpenSSL versions!"
   echo "This happens when one dependency is linked to OpenSSL 1.0, while"
   echo "pdns_recursor is linked against OpenSSL 1.1. Please set --with-libcrypto"

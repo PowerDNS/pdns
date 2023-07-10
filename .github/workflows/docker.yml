@@ -11,13 +11,14 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   build:
     name: docker build
+    if: ${{ vars.SCHEDULED_DOCKER }}
     # on a ubuntu-20.04 VM
     runs-on: ubuntu-20.04
     strategy:
       matrix:
         product: ['auth', 'recursor', 'dnsdist']
     steps:
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive

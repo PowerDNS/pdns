@@ -1,0 +1,1 @@
+../../../m4/pdns_init_auto_vars.m4

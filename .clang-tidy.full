@@ -1,5 +1,5 @@
 ---
-Checks:          'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,bugprone-*,concurrency-*,modernize-*,performance-*,portability-*,readability-*,-modernize-use-trailing-return-type'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,bugprone-*,concurrency-*,modernize-*,performance-*,portability-*,readability-*,-modernize-use-trailing-return-type,-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-pro-type-union-access,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-pro-type-vararg'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
@@ -113,7 +113,7 @@ CheckOptions:
   - key:             readability-function-size.LineThreshold
     value:           '4294967295'
   - key:             bugprone-easily-swappable-parameters.MinimumLength
-    value:           '2'
+    value:           '4'
   - key:             portability-simd-intrinsics.Suggest
     value:           'false'
   - key:             cppcoreguidelines-pro-bounds-constant-array-index.GslHeader
@@ -253,7 +253,7 @@ CheckOptions:
   - key:             modernize-pass-by-value.ValuesOnly
     value:           'false'
   - key:             readability-function-cognitive-complexity.IgnoreMacros
-    value:           'false'
+    value:           'true'
   - key:             modernize-loop-convert.IncludeStyle
     value:           llvm
   - key:             cert-str34-c.DiagnoseSignedUnsignedCharComparisons
@@ -405,7 +405,7 @@ CheckOptions:
   - key:             modernize-use-noexcept.UseNoexceptFalse
     value:           'true'
   - key:             readability-function-cognitive-complexity.Threshold
-    value:           '25'
+    value:           '75'
   - key:             cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value:           'true'
   - key:             bugprone-argument-comment.IgnoreSingleArgument

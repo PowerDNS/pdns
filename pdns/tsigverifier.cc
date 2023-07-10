@@ -28,7 +28,7 @@ bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
     }
 
     if(answer.first.d_type == QType::TSIG) {
-      shared_ptr<TSIGRecordContent> trc = getRR<TSIGRecordContent>(answer.first);
+      auto trc = getRR<TSIGRecordContent>(answer.first);
       if(trc) {
         theirMac = trc->d_mac;
         d_trc.d_time = trc->d_time;

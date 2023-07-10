@@ -2,6 +2,7 @@ AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_CFLAGS) \
+	$(LIBCRYPTO_INCLUDES) \
 	$(LIBZMQ_CFLAGS)
 
 if LUA
@@ -15,6 +16,7 @@ endif
 AM_LDFLAGS = $(THREADFLAGS)
 
 JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
+ARC4RANDOM_LIBS = $(top_builddir)/ext/arc4random/libarc4random.la
 
 EXTRA_DIST = \
 	OBJECTFILES \
@@ -109,7 +111,6 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/base32.cc \
 	../../pdns/base64.cc \
 	../../pdns/dns.hh ../../pdns/dns.cc \
-	../../pdns/dns_random_urandom.cc \
 	../../pdns/dnsbackend.hh ../../pdns/dnsbackend.cc \
 	../../pdns/dnslabeltext.cc \
 	../../pdns/dnsname.cc ../../pdns/dnsname.hh \
@@ -188,39 +189,39 @@ remotebackend_http_test_SOURCES = \
 	test-remotebackend-keys.hh \
 	test-remotebackend.cc
 
-remotebackend_http_test_LDADD = libtestremotebackend.la
+remotebackend_http_test_LDADD = libtestremotebackend.la $(ARC4RANDOM_LIBS)
 
 remotebackend_json_test_SOURCES = \
 	test-remotebackend-json.cc \
 	test-remotebackend-keys.hh \
 	test-remotebackend.cc
 
-remotebackend_json_test_LDADD = libtestremotebackend.la
+remotebackend_json_test_LDADD = libtestremotebackend.la $(ARC4RANDOM_LIBS)
 
 remotebackend_pipe_test_SOURCES = \
 	test-remotebackend-keys.hh \
 	test-remotebackend-pipe.cc \
 	test-remotebackend.cc
 
-remotebackend_pipe_test_LDADD = libtestremotebackend.la
+remotebackend_pipe_test_LDADD = libtestremotebackend.la $(ARC4RANDOM_LIBS)
 
 remotebackend_post_test_SOURCES = \
 	test-remotebackend-keys.hh \
 	test-remotebackend-post.cc \
 	test-remotebackend.cc
 
-remotebackend_post_test_LDADD = libtestremotebackend.la
+remotebackend_post_test_LDADD = libtestremotebackend.la $(ARC4RANDOM_LIBS)
 
 remotebackend_unix_test_SOURCES = \
 	test-remotebackend-keys.hh \
 	test-remotebackend-unix.cc \
 	test-remotebackend.cc
 
-remotebackend_unix_test_LDADD = libtestremotebackend.la
+remotebackend_unix_test_LDADD = libtestremotebackend.la  $(ARC4RANDOM_LIBS)
 
 remotebackend_zeromq_test_SOURCES = \
 	test-remotebackend-keys.hh \
 	test-remotebackend-zeromq.cc \
 	test-remotebackend.cc
 
-remotebackend_zeromq_test_LDADD = libtestremotebackend.la
+remotebackend_zeromq_test_LDADD = libtestremotebackend.la $(ARC4RANDOM_LIBS)

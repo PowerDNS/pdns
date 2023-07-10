@@ -1,4 +1,4 @@
-#ifdef HAVE_CXX11
+#if __cplusplus >= 201103L
 #include <functional>
 #define HAVE_CPP_FUNC_PTR
 namespace funcptr = std;
@@ -72,7 +72,7 @@ namespace YaHTTP {
       size_t operator()(const HTTPBase *doc __attribute__((unused)), std::ostream& os, bool chunked) const {
         char buf[4096];
         size_t n,k;
-#ifdef HAVE_CXX11
+#if __cplusplus >= 201103L
         std::ifstream ifs(path, std::ifstream::binary);
 #else
         std::ifstream ifs(path.c_str(), std::ifstream::binary);

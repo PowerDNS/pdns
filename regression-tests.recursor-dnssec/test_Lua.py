@@ -579,6 +579,7 @@ class PDNSRandomTest(RecursorTest):
     function preresolve (dq)
       dq.rcode = pdns.NOERROR
       dq:addAnswer(pdns.TXT, pdnsrandom())
+      dq.variable = true
       return true
     end
     """

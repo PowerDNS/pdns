@@ -167,6 +167,12 @@ static const oid rcode13AnswersOID[] = {RECURSOR_STATS_OID, 142};
 static const oid rcode14AnswersOID[] = {RECURSOR_STATS_OID, 143};
 static const oid rcode15AnswersOID[] = {RECURSOR_STATS_OID, 144};
 
+static const oid packetCacheContendedOID[] = {RECURSOR_STATS_OID, 145};
+static const oid packetCacheAcquiredOID[] = {RECURSOR_STATS_OID, 146};
+
+static const std::array<oid, 10> nodEventsOID = {RECURSOR_STATS_OID, 147};
+static const std::array<oid, 10> udrEventsOID = {RECURSOR_STATS_OID, 148};
+
 static std::unordered_map<oid, std::string> s_statsMap;
 
 /* We are never called for a GETNEXT if it's registered as a
@@ -174,7 +180,7 @@ static std::unordered_map<oid, std::string> s_statsMap;
 /* a instance handler also only hands us one request at a time, so
    we don't need to loop over a list of requests; we'll only get one. */
 
-static int handleCounter64Stats(netsnmp_mib_handler* handler,
+static int handleCounter64Stats(netsnmp_mib_handler* /* handler */,
                                 netsnmp_handler_registration* reginfo,
                                 netsnmp_agent_request_info* reqinfo,
                                 netsnmp_request_info* requests)
@@ -201,7 +207,7 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
   }
 }
 
-static int handleDisabledCounter64Stats(netsnmp_mib_handler* handler,
+static int handleDisabledCounter64Stats(netsnmp_mib_handler* /* handler */,
                                         netsnmp_handler_registration* reginfo,
                                         netsnmp_agent_request_info* reqinfo,
                                         netsnmp_request_info* requests)
@@ -243,7 +249,7 @@ static void registerCounter64Stat(const std::string& name, const oid statOID[], 
 
 std::shared_ptr<RecursorSNMPAgent> g_snmpAgent{nullptr};
 
-bool RecursorSNMPAgent::sendCustomTrap(const std::string& reason)
+bool RecursorSNMPAgent::sendCustomTrap([[maybe_unused]] const std::string& reason)
 {
 #ifdef HAVE_NET_SNMP
   netsnmp_variable_list* varList = nullptr;
@@ -262,7 +268,7 @@ bool RecursorSNMPAgent::sendCustomTrap(const std::string& reason)
                             reason.c_str(),
                             reason.size());
 
-  return sendTrap(d_trapPipe[1], varList);
+  return sendTrap(d_sender, varList);
 #endif /* HAVE_NET_SNMP */
   return true;
 }
@@ -401,6 +407,8 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("non-resolving-nameserver-entries", nonResolvingNameserverEntriesOID, OID_LENGTH(nonResolvingNameserverEntriesOID));
   registerCounter64Stat("maintenance-usec", maintenanceUSecOID, OID_LENGTH(maintenanceUSecOID));
   registerCounter64Stat("maintenance-calls", maintenanceCallsOID, OID_LENGTH(maintenanceCallsOID));
+  registerCounter64Stat("packetcache-contended", packetCacheContendedOID, OID_LENGTH(packetCacheContendedOID));
+  registerCounter64Stat("packetcache-acquired", packetCacheAcquiredOID, OID_LENGTH(packetCacheAcquiredOID));
 
 #define RCODE(num) registerCounter64Stat("auth-" + RCode::to_short_s(num) + "-answers", rcode##num##AnswersOID, OID_LENGTH(rcode##num##AnswersOID))
   RCODE(0);
@@ -419,6 +427,9 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   RCODE(13);
   RCODE(14);
   RCODE(15);
+
+  registerCounter64Stat("nod-events", nodEventsOID.data(), nodEventsOID.size());
+  registerCounter64Stat("udr-events", udrEventsOID.data(), udrEventsOID.size());
 
 #endif /* HAVE_NET_SNMP */
 }

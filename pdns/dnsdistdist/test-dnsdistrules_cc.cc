@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   auto removed = rule.cleanup(notExpiredTime, &scanned);
   BOOST_CHECK_EQUAL(removed, 0U);
   /* the first entry should still have been valid, we should not have scanned more */
-  BOOST_CHECK_EQUAL(scanned, 1U);
+  BOOST_CHECK_EQUAL(scanned, rule.getNumberOfShards());
   BOOST_CHECK_EQUAL(rule.getEntriesCount(), total);
 
   /* make sure all entries are _not_ valid anymore */
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(test_MaxQPSIPRule) {
   expiredTime.tv_sec += 1;
 
   removed = rule.cleanup(expiredTime, &scanned);
-  BOOST_CHECK_EQUAL(removed, (total / scanFraction) + 1);
+  BOOST_CHECK_EQUAL(removed, (total / scanFraction) + 1 + rule.getNumberOfShards());
   /* we should not have scanned more than scanFraction */
   BOOST_CHECK_EQUAL(scanned, removed);
   BOOST_CHECK_EQUAL(rule.getEntriesCount(), total - removed);

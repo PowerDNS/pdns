@@ -25,6 +25,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dolog.hh"
+#include "dns_random.hh"
 
 GlobalStateHolder<ServerPolicy> g_policy;
 bool g_roundrobinFailOnNoServer{false};
@@ -40,7 +41,7 @@ template <class T> static std::shared_ptr<DownstreamState> getLeastOutstanding(c
   size_t usableServers = 0;
   for (const auto& d : servers) {
     if (d.second->isUp()) {
-      poss[usableServers] = std::make_pair(std::make_tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->latencyUsec), d.first);
+      poss[usableServers] = std::make_pair(std::make_tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->getRelevantLatencyUsec()), d.first);
       usableServers++;
     }
   }
@@ -153,7 +154,7 @@ static shared_ptr<DownstreamState> valrandom(const unsigned int val, const Serve
 
 shared_ptr<DownstreamState> wrandom(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return valrandom(random(), servers);
+  return valrandom(dns_random_uint32(), servers);
 }
 
 uint32_t g_hashperturb;

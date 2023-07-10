@@ -607,7 +607,10 @@ These ``DNSRule``\ s be one of the following items:
 
   :param string function: the name of a Lua function
 
-.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction]]]]]])
+.. function:: MaxQPSIPRule(qps[, v4Mask[, v6Mask[, burst[, expiration[, cleanupDelay[, scanFraction [, shards]]]]]]])
+
+  .. versionchanged:: 1.8.0
+    ``shards`` parameter added
 
   Matches traffic for a subnet specified by ``v4Mask`` or ``v6Mask`` exceeding ``qps`` queries per second up to ``burst`` allowed.
   This rule keeps track of QPS by netmask or source IP. This state is cleaned up regularly if  ``cleanupDelay`` is greater than zero,
@@ -620,6 +623,7 @@ These ``DNSRule``\ s be one of the following items:
   :param int expiration: How long to keep netmask or IP addresses after they have last been seen, in seconds. Default is 300
   :param int cleanupDelay: The number of seconds between two cleanups. Default is 60
   :param int scanFraction: The maximum fraction of the store to scan for expired entries, for example 5 would scan at most 20% of it. Default is 10 so 10%
+  :param int shards: How many shards to use, to decrease lock contention between threads. Default is 10 and is a safe default unless a very high number of threads are used to process incoming queries
 
 .. function:: MaxQPSRule(qps)
 
@@ -853,7 +857,7 @@ Combining Rules
 
 .. function:: OrRule(selectors)
 
-  Matches the traffic if one or more of the the ``selectors`` Rules does match.
+  Matches the traffic if one or more of the ``selectors`` Rules does match.
 
   :param {Rule} selector: A table of Rules
 
@@ -883,6 +887,10 @@ Some actions allow further processing of rules, this is noted in their descripti
 - :func:`NoneAction`
 - :func:`RemoteLogAction`
 - :func:`RemoteLogResponseAction`
+- :func:`SetMaxReturnedTTLResponseAction`
+- :func:`SetMaxReturnedTTLAction`
+- :func:`SetMinTTLResponseAction`
+- :func:`SetMaxTTLResponseAction`
 - :func:`SNMPTrapAction`
 - :func:`SNMPTrapResponseAction`
 - :func:`TeeAction`
@@ -966,7 +974,7 @@ The following actions exist.
 
 .. function:: DnstapLogAction(identity, logger[, alterFunction])
 
-  Send the the current query to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
+  Send the current query to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
   Subsequent rules are processed after this action.
 
@@ -976,7 +984,7 @@ The following actions exist.
 
 .. function:: DnstapLogResponseAction(identity, logger[, alterFunction])
 
-  Send the the current response to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
+  Send the current response to a remote logger as a :doc:`dnstap <reference/dnstap>` message.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message.
   Subsequent rules are processed after this action.
 
@@ -1085,7 +1093,7 @@ The following actions exist.
   :param KeyValueLookupKey lookupKey: The key to use for the lookup
   :param string destinationTag: The name of the tag to store the result into
 
-.. function:: LimitTTLResponseAction(min[, max])
+.. function:: LimitTTLResponseAction(min[, max [, types]])
 
   .. versionadded:: 1.8.0
 
@@ -1093,6 +1101,7 @@ The following actions exist.
 
   :param int min: The minimum allowed value
   :param int max: The maximum allowed value
+  :param list of int: The record types to cap the TTL for. Default is empty which means all records will be capped.
 
 .. function:: LogAction([filename[, binary[, append[, buffered[, verboseOnly[, includeTimestamp]]]]]])
 
@@ -1282,7 +1291,7 @@ The following actions exist.
 
   :param int maxqps: The QPS limit
 
-.. function:: QPSPoolAction(maxqps, poolname)
+.. function:: QPSPoolAction(maxqps, poolname [, stop])
 
   .. versionchanged:: 1.8.0
     Added the ``stop`` optional parameter.
@@ -1311,44 +1320,73 @@ The following actions exist.
   * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
 
-.. function:: RemoteLogAction(remoteLogger[, alterFunction [, options]])
+.. function:: RemoteLogAction(remoteLogger[, alterFunction [, options [, metas]]])
 
   .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
 
+  .. versionchanged:: 1.8.0
+    ``metas`` optional parameter added.
+    ``exportTags`` optional key added to the options table.
+
   Send the content of this query to a remote logger via Protocol Buffer.
   ``alterFunction`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
+  Since 1.8.0 it is possible to add configurable meta-data fields to the Protocol Buffer message via the ``metas`` parameter, which takes a list of ``name``=``key`` pairs. For each entry in the list, a new value named ``name``
+  will be added to the message with the value corresponding to the ``key``. Available keys are:
+
+  * ``doh-header:<HEADER>``: the content of the corresponding ``<HEADER>`` HTTP header for DoH queries, empty otherwise
+  * ``doh-host``: the ``Host`` header for DoH queries, empty otherwise
+  * ``doh-path``: the HTTP path for DoH queries, empty otherwise
+  * ``doh-query-string``: the HTTP query string for DoH queries, empty otherwise
+  * ``doh-scheme``: the HTTP scheme for DoH queries, empty otherwise
+  * ``pool``: the currently selected pool of servers
+  * ``proxy-protocol-value:<TYPE>``: the content of the proxy protocol value of type ``<TYPE>``, if any
+  * ``proxy-protocol-values``: the content of all proxy protocol values as a "<type1>:<value1>", ..., "<typeN>:<valueN>" strings
+  * ``b64-content``: the base64-encoded DNS payload of the current query
+  * ``sni``: the Server Name Indication value for queries received over DoT or DoH. Empty otherwise.
+  * ``tag:<TAG>``: the content of the corresponding ``<TAG>`` if any
+  * ``tags``: the list of all tags, and their values, as a "<key1>:<value1>", ..., "<keyN>:<valueN>" strings. Note that a tag with an empty value will be exported as "<key>", not "<key>:".
+
   Subsequent rules are processed after this action.
 
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param table options: A table with key: value pairs.
+  :param table metas: A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message.
 
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
   * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
+  * ``exportTags=""``: str - The comma-separated list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as "key:value" strings. Note that a tag with an empty value will be exported as "<key>", not "<key>:". An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported.
 
-.. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options]]])
+.. function:: RemoteLogResponseAction(remoteLogger[, alterFunction[, includeCNAME [, options [, metas]]]])
 
   .. versionchanged:: 1.4.0
     ``ipEncryptKey`` optional key added to the options table.
+
+  .. versionchanged:: 1.8.0
+    ``metas`` optional parameter added.
+    ``exportTags`` optional key added to the options table.
 
   Send the content of this response to a remote logger via Protocol Buffer.
   ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
   ``includeCNAME`` indicates whether CNAME records inside the response should be parsed and exported.
   The default is to only exports A and AAAA records.
+  Since 1.8.0 it is possible to add configurable meta-data fields to the Protocol Buffer message via the ``metas`` parameter, which takes a list of ``name``=``key`` pairs. See :func:`RemoteLogAction` for the list of available keys.
   Subsequent rules are processed after this action.
 
   :param string remoteLogger: The :func:`remoteLogger <newRemoteLogger>` object to write to
   :param string alterFunction: Name of a function to modify the contents of the logs before sending
   :param bool includeCNAME: Whether or not to parse and export CNAMEs. Default false
   :param table options: A table with key: value pairs.
+  :param table metas: A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message.
 
   Options:
 
   * ``serverID=""``: str - Set the Server Identity field.
   * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
+  * ``exportTags=""``: str - The comma-separated list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as "key:value" strings. Note that a tag with an empty value will be exported as "<key>", not "<key>:". An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported.
 
 .. function:: SetAdditionalProxyProtocolValueAction(type, value)
 
@@ -1433,6 +1471,22 @@ The following actions exist.
 
   :param int option: The EDNS0 option number
 
+.. function:: SetMaxReturnedTTLAction(max)
+
+  .. versionadded:: 1.8.0
+
+  Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values.
+
+  :param int max: The maximum allowed value
+
+.. function:: SetMaxReturnedTTLResponseAction(max)
+
+  .. versionadded:: 1.8.0
+
+  Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values.
+
+  :param int max: The maximum allowed value
+
 .. function:: SetMaxTTLResponseAction(max)
 
   .. versionadded:: 1.8.0
@@ -1493,6 +1547,16 @@ The following actions exist.
   Subsequent rules are processed after this action.
 
   :param table values: A table of types and values to send, for example: ``{ [0] = foo", [42] = "bar" }``
+
+.. function:: SetReducedTTLResponseAction(percentage)
+
+  .. versionadded:: 1.8.0
+
+  Reduce the TTL of records in a response to a percentage of the original TTL. For example,
+  passing 50 means that the original TTL will be cut in half.
+  Subsequent rules are processed after this action.
+
+  :param int percentage: The percentage to use
 
 .. function:: SetSkipCacheAction()
 

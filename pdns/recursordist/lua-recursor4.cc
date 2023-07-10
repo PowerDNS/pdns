@@ -134,7 +134,7 @@ void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& cont
   dr.d_ttl = ttl.get_value_or(3600);
   dr.d_type = type;
   dr.d_place = place;
-  dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, content);
+  dr.setContent(DNSRecordContent::mastermake(type, QClass::IN, content));
   records.push_back(dr);
 }
 
@@ -156,13 +156,13 @@ struct DynMetric
 
 void RecursorLua4::postPrepareContext()
 {
-  d_lw->registerMember<const DNSName (DNSQuestion::*)>("qname", [](const DNSQuestion& dq) -> const DNSName& { return dq.qname; }, [](DNSQuestion& dq, const DNSName& newName) { (void) newName; });
-  d_lw->registerMember<uint16_t (DNSQuestion::*)>("qtype", [](const DNSQuestion& dq) -> uint16_t { return dq.qtype; }, [](DNSQuestion& dq, uint16_t newType) { (void) newType; });
-  d_lw->registerMember<bool (DNSQuestion::*)>("isTcp", [](const DNSQuestion& dq) -> bool { return dq.isTcp; }, [](DNSQuestion& dq, bool newTcp) { (void) newTcp; });
-  d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress& { return dq.local; }, [](DNSQuestion& dq, const ComboAddress& newLocal) { (void) newLocal; });
-  d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dq) -> const ComboAddress& { return dq.remote; }, [](DNSQuestion& dq, const ComboAddress& newRemote) { (void) newRemote; });
-  d_lw->registerMember<uint8_t (DNSQuestion::*)>("validationState", [](const DNSQuestion& dq) -> uint8_t { return (vStateIsBogus(dq.validationState) ? /* in order not to break older scripts */ static_cast<uint8_t>(255) : static_cast<uint8_t>(dq.validationState)); }, [](DNSQuestion& dq, uint8_t newState) { (void) newState; });
-  d_lw->registerMember<vState (DNSQuestion::*)>("detailedValidationState", [](const DNSQuestion& dq) -> vState { return dq.validationState; }, [](DNSQuestion& dq, vState newState) { (void) newState; });
+  d_lw->registerMember<const DNSName (DNSQuestion::*)>("qname", [](const DNSQuestion& dq) -> const DNSName& { return dq.qname; }, [](DNSQuestion& /* dq */, const DNSName& newName) { (void) newName; });
+  d_lw->registerMember<uint16_t (DNSQuestion::*)>("qtype", [](const DNSQuestion& dq) -> uint16_t { return dq.qtype; }, [](DNSQuestion& /* dq */, uint16_t newType) { (void) newType; });
+  d_lw->registerMember<bool (DNSQuestion::*)>("isTcp", [](const DNSQuestion& dq) -> bool { return dq.isTcp; }, [](DNSQuestion& /* dq */, bool newTcp) { (void) newTcp; });
+  d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dq) -> const ComboAddress& { return dq.local; }, [](DNSQuestion& /* dq */, const ComboAddress& newLocal) { (void) newLocal; });
+  d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dq) -> const ComboAddress& { return dq.remote; }, [](DNSQuestion& /* dq */, const ComboAddress& newRemote) { (void) newRemote; });
+  d_lw->registerMember<uint8_t (DNSQuestion::*)>("validationState", [](const DNSQuestion& dq) -> uint8_t { return (vStateIsBogus(dq.validationState) ? /* in order not to break older scripts */ static_cast<uint8_t>(255) : static_cast<uint8_t>(dq.validationState)); }, [](DNSQuestion& /* dq */, uint8_t newState) { (void) newState; });
+  d_lw->registerMember<vState (DNSQuestion::*)>("detailedValidationState", [](const DNSQuestion& dq) -> vState { return dq.validationState; }, [](DNSQuestion& /* dq */, vState newState) { (void) newState; });
 
   d_lw->registerMember<bool (DNSQuestion::*)>("variable", [](const DNSQuestion& dq) -> bool { return dq.variable; }, [](DNSQuestion& dq, bool newVariable) { dq.variable = newVariable; });
   d_lw->registerMember<bool (DNSQuestion::*)>("wantsRPZ", [](const DNSQuestion& dq) -> bool { return dq.wantsRPZ; }, [](DNSQuestion& dq, bool newWantsRPZ) { dq.wantsRPZ = newWantsRPZ; });
@@ -274,20 +274,20 @@ void RecursorLua4::postPrepareContext()
       }
       return result;
     },
-    [](EDNSOptionView& option, uint16_t newSize) { (void) newSize; });
+    [](EDNSOptionView& /* option */, uint16_t newSize) { (void) newSize; });
   d_lw->registerFunction<std::string(EDNSOptionView::*)()>("getContent", [](const EDNSOptionView& option) {
       if (option.values.empty()) {
         return std::string();
       }
       return std::string(option.values.at(0).content, option.values.at(0).size); });
 
-  d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.d_content->getZoneRepresentation(); });
+  d_lw->registerFunction<string(DNSRecord::*)()>("getContent", [](const DNSRecord& dr) { return dr.getContent()->getZoneRepresentation(); });
   d_lw->registerFunction<boost::optional<ComboAddress>(DNSRecord::*)()>("getCA", [](const DNSRecord& dr) { 
       boost::optional<ComboAddress> ret;
 
-      if(auto rec = std::dynamic_pointer_cast<ARecordContent>(dr.d_content))
+      if(auto rec = getRR<ARecordContent>(dr))
         ret=rec->getCA(53);
-      else if(auto aaaarec = std::dynamic_pointer_cast<AAAARecordContent>(dr.d_content))
+      else if(auto aaaarec = getRR<AAAARecordContent>(dr))
         ret=aaaarec->getCA(53);
       return ret;
     });
@@ -295,7 +295,7 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerFunction<const ProxyProtocolValue, std::string()>("getContent", [](const ProxyProtocolValue& value) { return value.content; });
   d_lw->registerFunction<const ProxyProtocolValue, uint8_t()>("getType", [](const ProxyProtocolValue& value) { return value.type; });
 
-  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.d_content = DNSRecordContent::mastermake(dr.d_type, QClass::IN, newContent); });
+  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.setContent(DNSRecordContent::mastermake(dr.d_type, QClass::IN, newContent)); });
   d_lw->registerFunction("addAnswer", &DNSQuestion::addAnswer);
   d_lw->registerFunction("addRecord", &DNSQuestion::addRecord);
   d_lw->registerFunction("getRecords", &DNSQuestion::getRecords);
@@ -436,10 +436,10 @@ void RecursorLua4::postPrepareContext()
       return getRegisteredName(dname);
   });
 
-  d_lw->registerMember<const DNSName (PolicyEvent::*)>("qname", [](const PolicyEvent& event) -> const DNSName& { return event.qname; }, [](PolicyEvent& event, const DNSName& newName) { (void) newName; });
-  d_lw->registerMember<uint16_t (PolicyEvent::*)>("qtype", [](const PolicyEvent& event) -> uint16_t { return event.qtype.getCode(); }, [](PolicyEvent& event, uint16_t newType) { (void) newType; });
-  d_lw->registerMember<bool (PolicyEvent::*)>("isTcp", [](const PolicyEvent& event) -> bool { return event.isTcp; }, [](PolicyEvent& event, bool newTcp) { (void) newTcp; });
-  d_lw->registerMember<const ComboAddress (PolicyEvent::*)>("remote", [](const PolicyEvent& event) -> const ComboAddress& { return event.remote; }, [](PolicyEvent& event, const ComboAddress& newRemote) { (void) newRemote; });
+  d_lw->registerMember<const DNSName (PolicyEvent::*)>("qname", [](const PolicyEvent& event) -> const DNSName& { return event.qname; }, [](PolicyEvent& /* event */, const DNSName& newName) { (void) newName; });
+  d_lw->registerMember<uint16_t (PolicyEvent::*)>("qtype", [](const PolicyEvent& event) -> uint16_t { return event.qtype.getCode(); }, [](PolicyEvent& /* event */, uint16_t newType) { (void) newType; });
+  d_lw->registerMember<bool (PolicyEvent::*)>("isTcp", [](const PolicyEvent& event) -> bool { return event.isTcp; }, [](PolicyEvent& /* event */, bool newTcp) { (void) newTcp; });
+  d_lw->registerMember<const ComboAddress (PolicyEvent::*)>("remote", [](const PolicyEvent& event) -> const ComboAddress& { return event.remote; }, [](PolicyEvent& /* event */, const ComboAddress& newRemote) { (void) newRemote; });
   d_lw->registerMember("appliedPolicy", &PolicyEvent::appliedPolicy);
   d_lw->registerFunction<void(PolicyEvent::*)(const std::string&)>("addPolicyTag", [](PolicyEvent& event, const std::string& tag) { if (event.policyTags) { event.policyTags->insert(tag); } });
   d_lw->registerFunction<void(PolicyEvent::*)(const std::vector<std::pair<int, std::string> >&)>("setPolicyTags", [](PolicyEvent& event, const std::vector<std::pair<int, std::string> >& tags) {
@@ -1026,7 +1026,7 @@ bool pdns_ffi_param_add_record(pdns_ffi_param_t* ref, const char* name, uint16_t
     dr.d_type = type;
     dr.d_class = QClass::IN;
     dr.d_place = DNSResourceRecord::Place(place);
-    dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, std::string(content, contentSize));
+    dr.setContent(DNSRecordContent::mastermake(type, QClass::IN, std::string(content, contentSize)));
     ref->params.records.push_back(std::move(dr));
 
     return true;
@@ -1137,12 +1137,12 @@ bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, 
       record->name = ref->insert(std::move(name))->c_str();
     }
     if (raw) {
-      auto content = ref->insert(r.d_content->serialize(r.d_name, true));
+      auto content = ref->insert(r.getContent()->serialize(r.d_name, true));
       record->content = content->data();
       record->content_len = content->size();
     }
     else {
-      auto content = ref->insert(r.d_content->getZoneRepresentation());
+      auto content = ref->insert(r.getContent()->getZoneRepresentation());
       record->content = content->data();
       record->content_len = content->size();
     }
@@ -1166,10 +1166,10 @@ bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, 
   try {
     DNSRecord& r = ref->handle.d_dq.currentRecords->at(i);
     if (raw) {
-      r.d_content = DNSRecordContent::deserialize(r.d_name, r.d_type, string(content, contentLen));
+      r.setContent(DNSRecordContent::deserialize(r.d_name, r.d_type, string(content, contentLen)));
     }
     else {
-      r.d_content = DNSRecordContent::mastermake(r.d_type, QClass::IN, string(content, contentLen));
+      r.setContent(DNSRecordContent::mastermake(r.d_type, QClass::IN, string(content, contentLen)));
     }
 
     return true;
@@ -1195,10 +1195,10 @@ bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, 
     dr.d_class = QClass::IN;
     dr.d_place = DNSResourceRecord::Place(place);
     if (raw) {
-      dr.d_content = DNSRecordContent::deserialize(dr.d_name, dr.d_type, string(content, contentLen));
+      dr.setContent(DNSRecordContent::deserialize(dr.d_name, dr.d_type, string(content, contentLen)));
     }
     else {
-      dr.d_content = DNSRecordContent::mastermake(type, QClass::IN, string(content, contentLen));
+      dr.setContent(DNSRecordContent::mastermake(type, QClass::IN, string(content, contentLen)));
     }
     ref->handle.d_dq.currentRecords->push_back(std::move(dr));
 

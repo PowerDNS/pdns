@@ -308,6 +308,8 @@ Reverse DNS functions
     $ dig +short A 127.0.0.5.static.example.com @ns1.example.com
     127.0.0.5
   
+  Since 4.8.0: the hex format can be prefixed by any number of characters (within DNS label length limits), including zero characters (so no prefix).
+
 .. function:: createReverse6(format[, exceptions])
 
   Used for generating default hostnames from IPv6 wildcard reverse DNS records, e.g. ``*.1.0.0.2.ip6.arpa``
@@ -374,6 +376,8 @@ Reverse DNS functions
   
     $ dig +short AAAA 2001-a-b--1.static6.example.com @ns1.example.com
     2001:a:b::1
+
+  Since 4.8.0: a non-split full length format (``20010002000300040005000600070db8.example.com``) is also supported, optionally prefixed, in which case the last 32 characters will be considered.
 
 .. function:: filterForward(address, masks[, fallback])
 

@@ -2,6 +2,1072 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.7.4
+  :released: 14th of April 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12183
+    :tickets: 12177
+
+    Fix building with boost < 1.56
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12460
+    :tickets: 12453
+
+    lock.hh: include <stdexcept>
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12569
+
+    dnsdist-protocols.hh: include <cstdint> (Sander Hoentjen)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12621
+    :tickets: 12074
+
+    Add getPoolNames() function, returning a list of pool names (Christof Chen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12535
+
+    Fix the formatting of 'showServers'
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12529
+    :tickets: 11905
+
+    Properly record the incoming flags on a timeout
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 12484
+    :tickets: 11498
+
+    Properly update rcode-related metrics on RCodeAction hits
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 12421
+    :tickets: 12341
+
+    Skip invalid OCSP files after issuing a warning
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12365
+    :tickets: 12357
+
+    Prevent an underflow of the TCP d_queued counter
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 12327
+
+    Fix the health-check timeout computation for DoH backend
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 12260
+    :tickets: 9349
+
+    Properly encode json strings containing binary data
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS
+    :pullreq: 12237
+    :tickets: 12236
+
+    Ignore unclean TLS session shutdown
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12100
+    :tickets: 12099
+
+    Properly handle single-SOA XFR responses
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11830
+    :tickets: 4155
+
+    Also reconnect on ENETUNREACH. (Asgeir Storesund Nilsen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11729
+    :tickets: 11728
+
+    Fix a bug in SetEDNSOptionAction
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11718
+
+    Fix the number of concurrent queries on a backend TCP conn
+
+.. changelog::
+  :version: 1.8.0
+  :released: 30th of March 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12687
+
+    Fix 'Unknown key' issue for actions and rules parameters
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12672
+
+    Fix a dnsheader unaligned case
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12654
+
+    secpoll: explicitly include necessary ctime header for time_t
+
+.. changelog::
+  :version: 1.8.0-rc3
+  :released: 16th of March 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12641
+
+    Use the correct source address when harvesting failed
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12639
+
+    Fix a race when a cross-protocol query triggers an IO error
+
+  .. change::
+    :tags: Improvements, Metrics, Webserver
+    :pullreq: 12638
+
+    Report per-incoming transport latencies in the web interface
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 12648
+
+    Report the TCP latency for TCP-only Do53, DoT and DoH backends
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12626
+
+    Count hits in the StatNode
+
+.. changelog::
+  :version: 1.8.0-rc2
+  :released: 9th of March 2023
+
+  .. change::
+    :tags: Improvements, Protobuf
+    :pullreq: 12615
+
+    Add Lua bindings for PB requestorID, deviceName and deviceID
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12593
+
+    Clean up the fortify and LTO m4 by not directly editing flags
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12592
+
+    Only increment the 'servfail-responses' metric on backend responses (phonedph1)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12586
+
+    Fix the harvesting of destination addresses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12589
+
+    YaHTTP: Better detection of whether C++11 features are available
+
+  .. change::
+    :tags: Bug Fixes, Protobuf
+    :pullreq: 12588
+
+    Fix compilation with DoH disabled (Adam Majer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12587
+
+    Skip signal-unsafe logging when we are about to exit, with TSAN
+
+.. changelog::
+  :version: 1.8.0-rc1
+  :released: 23rd of February 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12569
+
+    Include <cstdint> in dnsdist-protocols.hh (Sander Hoentjen)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12543
+
+    Enable Link-Time Optimization for our packages
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 12553
+
+    Add support for custom prometheus names in custom metrics
+
+  .. change::
+    :tags: Improvements, Protobuf
+    :pullreq: 12520
+
+    Add support for metadata in protobuf messages
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS, Performance
+    :pullreq: 12545
+
+    Enable experimental kTLS support with OpenSSL on Linux
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 12537
+
+    Improve the scalability of MaxQPSIPRule()
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12538
+
+    Stop using the deprecated `boost::optional::get_value_or`
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12535
+
+    Fix the formatting of 'showServers'
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12529
+    :tickets: 11905
+
+    Properly record the incoming flags on a timeout
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12530
+    :tickets: 10932
+
+    List version number early
+
+  .. change::
+    :tags: Improvements, DNS over TLS, DNS over HTTPS
+    :pullreq: 12423
+
+    OpenSSL 3.0: Offer TLS providers as an alternative to TLS engines
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12518
+
+    Remove duplicate code in xdp (Y7n05h)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10115
+
+    Warn on unsupported parameters (Aki Tuomi)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12469
+    :tickets: 12417
+
+    Add unit tests for the Lua FFI interface
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12492
+
+    Refactor 'cannot be used at runtime' handling
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12417
+
+    Add the ability to change the qname and owner names in DNS packets
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12481
+    :tickets: 7611
+
+    Fail if we can't check the configuration file
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 12483
+    :tickets: 12019
+
+    Apply the max number of concurrent conns per client to DoH
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12484
+    :tickets: 11498
+
+    Properly update rcode-related metrics on RCodeAction hits
+
+  .. change::
+    :tags: New Features, Webserver
+    :pullreq: 12473
+    :tickets: 6154, 10468
+
+    Add an API endpoint to remove entries from caches
+
+  .. change::
+    :tags: Improvements, Webserver
+    :pullreq: 12474
+    :tickets: 10360
+
+    Add an option for unauthenticated access to the dashboard
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12388
+
+    Implement async processing of queries and responses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12441
+
+    Add a configure option to enable LTO
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 12424
+    :tickets: 10517, 11216
+
+    Better handling of multiple carbon servers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12427
+
+    Add a new configure option to initialize automatic variables
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 12421
+    :tickets: 12341
+
+    Skip invalid OCSP files after issuing a warning
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 12435
+
+    Gracefully handle a failure to create a TLS server context
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12381
+
+    Enable FORTIFY_SOURCE=3 when supported by the compiler
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12405
+
+    Proper accounting of response and cache hits
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 12386
+
+    Merge the 'main' and 'client' DoH threads in single acceptor mode
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12384
+
+    Add the ability to cap the TTL of records after insertion into the cache
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12411
+
+    Support OpenSSL 3.0 for ipcipher CA6 encryption/decryption
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12383
+
+    Stronger guarantees against data race in the UDP path
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12402
+
+    Add bindings for the current and query times in DQ/DR
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12400
+
+    Add SetReducedTTLResponseAction
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12385
+
+    Add a Lua FFI interface for metrics
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12387
+
+    Handle out-of-memory exceptions in the UDP receiver thread
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12365
+    :tickets: 12357
+
+    Prevent an underflow of the TCP d_queued counter
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12100
+    :tickets: 12099
+
+    Properly handle single-SOA XFR responses
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 12327
+
+    Fix the health-check timeout computation for DoH backend
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12280
+
+    Add a new chain of rules triggered after cache insertion
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11554
+
+    Raise RLIMIT_MEMLOCK automatically when eBPF is requested (Yogesh Singh)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12248
+    :tickets: 11153
+
+    Systemd: Add "After" dependency on time-sync.target (Kevin P. Fleming)
+
+  .. change::
+    :tags: Improvements, DNS over TLS
+    :pullreq: 12237
+    :tickets: 12236
+
+    Ignore unclean TLS session shutdown
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 12276
+
+    Reduce useless wake-ups from the event loop
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11020
+
+    Added XDP middleware for dropped/redirected queries logging (Mini Pierre)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11863
+
+    DNSName constructor use memchr instead of strchr and cleanup with string_view (Axel Viala)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12177
+    :tickets: 12142
+
+    Fix building with boost < 1.56
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12065
+
+    Implement a 'lazy' health-checking mode
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 11675
+
+    Skip DoT/DoH frontend when a tls configuration error occurs
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12074
+    :tickets: 12073
+
+    Add getPoolNames() function, returning a list of pool names (Christof Chen)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12082
+
+    Cleaner way of getting the IP/masks associated to a network interface
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12077
+    :tickets: 12075
+
+    Retain output when expunging from multiple caches (Christof Chen)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12022
+
+    Add Lua helpers to look into the content of DNS payloads
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11994
+
+    Add more Lua bindings for network-related operations
+
+  .. change::
+    :tags: Improvements, Performance, DNS over HTTPS
+    :pullreq: 11901
+
+    Faster cache-lookups for DNS over HTTPS queries
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 12003
+
+    Add a 'single acceptor thread' build option, reducing the number of threads
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12008
+
+    Add Lua binding for inspecting the in-memory ring buffers
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11729
+    :tickets: 11728
+
+    Fix a bug in SetEDNSOptionAction
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12007
+
+    Add Lua bindings to look up domain and IP addresses from the cache
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 12000
+
+    Speed up DoH handling by preventing allocations and copies
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 11987
+
+    Slightly reduce the number of allocations in API calls
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11993
+
+    Add build-time options to disable the dynamic blocks and UDP response delay
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11992
+
+    Add missing thread names
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11988
+
+    Add a build option (define) to prevent loading OpenSSL's errors
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11862
+    :tickets: 11853
+
+    Properly load ciphers and digests with OpenSSL 3.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11889
+
+    Add local ComboAddress parameter for SBind() at TeeAction() (@FredericDT)
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11883
+
+    Make recording queries/responses in the ringbuffers optional
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11852
+
+    Slightly reduce contention around a pool's servers
+
+  .. change::
+    :tags: Improvements, Performance, DNS over HTTPS
+    :pullreq: 11851
+
+    Only call getsockname() once per incoming DoH connection
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11844
+
+    Do not keep the mplexer created for the initial health-check around
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11830
+    :tickets: 4155
+
+    Also reconnect on ENETUNREACH. (Asgeir Storesund Nilsen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11761
+
+    Keep retained capabilities even when switching user/group
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11734
+
+    Set TCP_NODELAY on the TCP connection to backends
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11723
+
+    Use getrandom() if available
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11713
+
+    Implement a limit of concurrent connections to a backend
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 11716
+
+    Add more detailed metrics
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11718
+
+    Fix the number of concurrent queries on a backend TCP conn
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11712
+    :tickets: 11585
+
+    Fill ringbuffers with responses served from the cache
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11696
+
+    Bind to the requested src interface without a src address
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11689
+
+    Avoid allocating memory in LB policies for small number of servers
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 11707
+
+    Compute backend latency earlier, to avoid internal latency
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11698
+
+    Implement `SuffixMatchTree::getBestMatch()` to get the name that matched
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11711
+
+    Log listening addresses and version at the 'info' level
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11651
+
+    Refactor sendfromto (Y7n05h)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11526
+
+    Use BPF_MAP_TYPE_LPM_TRIE for range matching (Y7n05h)
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11624
+
+    SuffixMatchTree: Improve lookup performance
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 11659
+
+    Add 'statistics' to the general API endpoint
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11668
+
+    Optionally send 'verbose' messages to a file, and log them at 'DEBUG' level otherwise
+
+  .. change::
+    :tags: New Features, Metrics
+    :pullreq: 11674
+
+    Add support for user defined metrics
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11669
+
+    Log when exiting due to a SIGTERM signal
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11673
+
+    Add the protocol (Do53, DoT, DoH, ...) of backends in the API
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 11656
+
+    Add a counter for the number of cache cleanups
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11655
+
+    Change dns_tolower() and dns_toupper() to use a table
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11637
+
+    Add getVerbose() function
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11606
+
+    Add Lua bindings to access the DNS payload as a string
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11620
+    :tickets: 11619
+
+    Remove implicit type conversion (Y7n05h)
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 11621
+    :tickets: 11604
+
+    Fix a crash on a invalid protocol in DoH forwarded-for header
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11604
+
+    Fix invalid proxy protocol payload on a DoH TC to TCP retry
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11567
+
+    Add setVerbose() to switch the verbose mode at runtime
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11577
+    :tickets: 11576
+
+    Scan the UDP buckets only when we have outstanding queries
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11543
+    :tickets: 11488
+
+   Log when a console message exceeds the maximum size
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11578
+
+    Include the address of the backend in 'relayed to' messages
+
+  .. change::
+    :tags: Improvements, Webserver, Metrics
+    :pullreq: 11514
+
+    Add an option for unauthenticated access to the API
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11573
+
+    Better log message when no downstream server are available
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11547
+    :tickets: 11434
+
+    Add a 'getAddressAndPort()' method to DOHFrontend and TLSFrontend objects
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 11545
+    :tickets: 11501
+
+    Use the correct outgoing protocol in our ring buffers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11546
+    :tickets: 11383
+
+    Raise the number of entries in a packet cache to at least 1
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11535
+    :tickets: 11526
+
+    Merge multiple parameters in newBPFFilter (Y7n05h)
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11531
+
+    Prevent allocations in two corner cases
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11523
+
+    Reject BPFFilter::attachToAllBinds() at configuration time (Y7n05h)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11515
+
+    Add more build-time options to select features
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11517
+
+    Multiplexer: Take the maximum number of events as a hint
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11497
+    :tickets: 9994
+
+    Add setTCPFastOpenKey() (Y7n05h)
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11437
+    :tickets: 11422
+
+    Only allocate the health-check mplexer when needed
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 11415
+
+    More useful default ports for DoT/DoH backends
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11388
+
+    Add --log-timestamps flag
+
+  .. change::
+    :tags: New Features, DNS over HTTPS, DNS over TLS
+    :pullreq: 11293
+
+    Dynamic discovery and upgrade of backends
+
+  .. change::
+    :tags: New Features, Security
+    :pullreq: 11163
+
+    Allow randomly selecting a backend UDP socket and query ID
+
+  .. change::
+    :tags: Removals
+    :pullreq: 11324
+    :tickets: 11201
+
+    Remove the leak warning with GnuTLS >= 3.7.3
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11174
+
+    Add a parameter to PoolAction to keep processing rules
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11173
+
+    Add Lua FFI helpers for protocol and MAC address access, proxy protocol payload generation
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11196
+
+    Fix build with OpenSSL 3.0.0
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 11171
+
+    Defer the actual allocation of the ring buffer entries
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS, DNS over TLS
+    :pullreq: 11166
+
+    Libssl: Load only the ciphers and digests needed for TLS, not all of them
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11184
+
+    Add support to store mac address in query rings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11178
+
+    Build with `-fvisibility=hidden` by default
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11126
+
+    Add newThread() function
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10950
+
+    Add a lot more of build-time options to select features
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11098
+
+    Lua support to remove resource records from a response
+
+  .. change::
+    :tags: New Features, DNS over HTTPS, DNS over TLS
+    :pullreq: 11027
+
+    Add support for password protected PKCS12 files for TLS configuration
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11051
+
+     Add support to spoof a full self-generated response from lua
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10949
+
+    Add a Lua FFI helper to generate proxy protocol payloads
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11017
+
+    Add Lua bindings to get the list of network interfaces, addresses
+
+  .. change::
+    :tags: New Features, DNS over TLS
+    :pullreq: 10734
+
+    Add experimental support for TLS asynchronous engines
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11059
+
+    Add lua support to limit TTL values of responses
+
+.. changelog::
   :version: 1.7.3
   :released: 2nd of November 2022
 

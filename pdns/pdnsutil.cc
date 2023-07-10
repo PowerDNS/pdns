@@ -156,8 +156,6 @@ static void loadMainConfig(const std::string& configdir)
   }
 #endif
   openssl_seed();
-  /* init rng before chroot */
-  dns_random_init();
 
   if (!::arg()["chroot"].empty()) {
     if (chroot(::arg()["chroot"].c_str())<0 || chdir("/") < 0) {
@@ -218,7 +216,7 @@ static void dbBench(const std::string& fname)
     while(B.get(rr)) {
       hits++;
     }
-    B.lookup(QType(QType::A), DNSName(std::to_string(random()))+domain, -1);
+    B.lookup(QType(QType::A), DNSName(std::to_string(dns_random_uint32()))+domain, -1);
     while(B.get(rr)) {
     }
     misses++;
@@ -299,7 +297,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
   vector<string> checkKeyErrors;
-  bool validKeys=dk.checkKeys(zone, &checkKeyErrors);
+  bool validKeys=dk.checkKeys(zone, checkKeyErrors);
 
   if (haveNSEC3) {
     if(isSecure && zone.wirelength() > 222) {
@@ -1013,7 +1011,7 @@ static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = t
       cout<<key.first.getKey()->getBits()<<string(spacelen, ' ');
     }
 
-    string algname = DNSSECKeeper::algorithm2name(key.first.d_algorithm);
+    string algname = DNSSECKeeper::algorithm2name(key.first.getAlgorithm());
     spacelen = (algname.length() >= 16) ? 1 : 16 - algname.length();
     cout<<algname<<string(spacelen, ' ');
 
@@ -1120,7 +1118,7 @@ static int read1char(){
     return c;
 }
 
-static int clearZone(DNSSECKeeper& dk, const DNSName &zone) {
+static int clearZone(const DNSName &zone) {
   UeberBackend B;
   DomainInfo di;
 
@@ -1208,7 +1206,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
     sort(pre.begin(), pre.end(), DNSRecord::prettyCompare);
     for(const auto& dr : pre) {
       ostringstream os;
-      os<<dr.d_name<<"\t"<<dr.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(dr.d_type)<<"\t"<<dr.d_content->getZoneRepresentation(true)<<endl;
+      os<<dr.d_name<<"\t"<<dr.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(dr.d_type)<<"\t"<<dr.getContent()->getZoneRepresentation(true)<<endl;
       if(write(tmpfd, os.str().c_str(), os.str().length()) < 0)
         unixDie("Writing zone to temporary file");
     }
@@ -1264,16 +1262,17 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
     cerr << col.red() << col.bold() << "There was a problem with your zone" << col.rst() << "\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: " << std::flush;
     int c=read1char();
     cerr<<"\n";
-    if(c!='a')
+    if(c=='e') {
       post.clear();
-    if(c=='e')
       goto editMore;
-    else if(c=='r')
+    } else if(c=='r') {
+      post.clear();
       goto editAgain;
-    else if(c=='q')
+    } else if(c=='q') {
       return EXIT_FAILURE;
-    else if(c!='a')
+    } else if(c!='a') {
       goto reAsk;
+    }
   }
 
 
@@ -1283,7 +1282,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
   set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diff), DNSRecord::prettyCompare);
   for(const auto& d : diff) {
     ostringstream str;
-    str << col.red() << "-" << d.d_name << " " << d.d_ttl << " IN " << DNSRecordContent::NumberToType(d.d_type) << " " <<d.d_content->getZoneRepresentation(true) << col.rst() <<endl;
+    str << col.red() << "-" << d.d_name << " " << d.d_ttl << " IN " << DNSRecordContent::NumberToType(d.d_type) << " " <<d.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
     changed[{d.d_name,d.d_type}] += str.str();
 
   }
@@ -1292,7 +1291,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
   for(const auto& d : diff) {
     ostringstream str;
 
-    str<<col.green() << "+" << d.d_name << " " << d.d_ttl << " IN " <<DNSRecordContent::NumberToType(d.d_type) << " " << d.d_content->getZoneRepresentation(true) << col.rst() <<endl;
+    str<<col.green() << "+" << d.d_name << " " << d.d_ttl << " IN " <<DNSRecordContent::NumberToType(d.d_type) << " " << d.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
     changed[{d.d_name,d.d_type}]+=str.str();
   }
   cout<<"Detected the following changes:"<<endl;
@@ -1310,7 +1309,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
           {
             DNSRecord oldSoaDR = grouped[{zone, QType::SOA}].at(0); // there should be only one SOA record, so we can use .at(0);
             ostringstream str;
-            str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.d_content->getZoneRepresentation(true) << col.rst() <<endl;
+            str<< col.red() << "-" << oldSoaDR.d_name << " " << oldSoaDR.d_ttl << " IN " << DNSRecordContent::NumberToType(oldSoaDR.d_type) << " " <<oldSoaDR.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
 
             SOAData sd;
             B.getSOAUncached(zone, sd);
@@ -1322,7 +1321,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
             DNSResourceRecord rr;
             makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr);
             DNSRecord dr(rr);
-            str << col.green() << "+" << dr.d_name << " " << dr.d_ttl<< " IN " <<DNSRecordContent::NumberToType(dr.d_type) << " " <<dr.d_content->getZoneRepresentation(true) << col.rst() <<endl;
+            str << col.green() << "+" << dr.d_name << " " << dr.d_ttl<< " IN " <<DNSRecordContent::NumberToType(dr.d_type) << " " <<dr.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
 
             changed[{dr.d_name, dr.d_type}]+=str.str();
             grouped[{dr.d_name, dr.d_type}].at(0) = dr;
@@ -1775,6 +1774,47 @@ static int listAllZones(const string &type="") {
   return 0;
 }
 
+static int listMemberZones(const string& catalog)
+{
+
+  UeberBackend B("default");
+
+  DNSName catz(catalog);
+  DomainInfo di;
+  if (!B.getDomainInfo(catz, di)) {
+    cerr << "Zone '" << catz << "' not found" << endl;
+    return EXIT_FAILURE;
+  }
+  if (!di.isCatalogType()) {
+    cerr << "Zone '" << catz << "' is not a catalog zone" << endl;
+    return EXIT_FAILURE;
+  }
+
+  CatalogInfo::CatalogType type;
+  if (di.kind == DomainInfo::Producer) {
+    type = CatalogInfo::Producer;
+  }
+  else {
+    type = CatalogInfo::Consumer;
+  }
+
+  vector<CatalogInfo> members;
+  if (!di.backend->getCatalogMembers(catz, members, type)) {
+    cerr << "Backend does not support catalog zones" << endl;
+    return EXIT_FAILURE;
+  }
+
+  for (const auto& ci : members) {
+    cout << ci.d_zone << endl;
+  }
+
+  if (g_verbose) {
+    cout << "All zonecount: " << members.size() << endl;
+  }
+
+  return EXIT_SUCCESS;
+}
+
 static bool testAlgorithm(int algo)
 {
   return DNSCryptoKeyEngine::testOne(algo);
@@ -1785,7 +1825,7 @@ static bool testAlgorithms()
   return DNSCryptoKeyEngine::testAll();
 }
 
-static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remote, int cores)
+static void testSpeed(const DNSName& zone, const string& /* remote */, int cores)
 {
   DNSResourceRecord rr;
   rr.qname=DNSName("blah")+zone;
@@ -1801,7 +1841,7 @@ static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remot
     throw runtime_error("No backends available for DNSSEC key storage");
   }
 
-  ChunkedSigningPipe csp(DNSName(zone), true, cores);
+  ChunkedSigningPipe csp(DNSName(zone), true, cores, 100);
 
   vector<DNSZoneRecord> signatures;
   uint32_t rnd;
@@ -1810,7 +1850,7 @@ static void testSpeed(DNSSECKeeper& dk, const DNSName& zone, const string& remot
   DTime dt;
   dt.set();
   for(unsigned int n=0; n < 100000; ++n) {
-    rnd = dns_random(UINT32_MAX);
+    rnd = dns_random_uint32();
     snprintf(tmp, sizeof(tmp), "%d.%d.%d.%d",
       octets[0], octets[1], octets[2], octets[3]);
     rr.content=tmp;
@@ -1881,7 +1921,7 @@ static bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
   }
 
   string error, info;
-  bool ret = dk.unSecureZone(zone, error, info);
+  bool ret = dk.unSecureZone(zone, error);
   if (!ret) {
     cerr << error << endl;
   }
@@ -2161,7 +2201,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
     }
 
     for(const DNSSECKeeper::keyset_t::value_type& value :  keyset) {
-      string algname = DNSSECKeeper::algorithm2name(value.first.d_algorithm);
+      string algname = DNSSECKeeper::algorithm2name(value.first.getAlgorithm());
       if (!exportDS) {
         cout<<"ID = "<<value.second.id<<" ("<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<")";
       }
@@ -2170,9 +2210,9 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
         continue;
       }
       if (!exportDS) {
-        cout<<", flags = "<<std::to_string(value.first.d_flags);
+        cout<<", flags = "<<std::to_string(value.first.getFlags());
         cout<<", tag = "<<value.first.getDNSKEY().getTag();
-        cout<<", algo = "<<(int)value.first.d_algorithm<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive\t"<<(value.second.published ? " Published" : " Unpublished")<<"  ( " + algname + " ) "<<endl;
+        cout<<", algo = "<<(int)value.first.getAlgorithm()<<", bits = "<<value.first.getKey()->getBits()<<"\t"<<((int)value.second.active == 1 ? "  A" : "Ina")<<"ctive\t"<<(value.second.published ? " Published" : " Unpublished")<<"  ( " + algname + " ) "<<endl;
       }
 
       if (!exportDS) {
@@ -2563,6 +2603,7 @@ try
     cout << "list-zone ZONE                     List zone contents" << endl;
     cout << "list-all-zones [primary|secondary|native|producer|consumer]" << endl;
     cout << "                                   List all active zone names. --verbose or -v will also include disabled or empty zones" << endl;
+    cout << "list-member-zones CATALOG          List all members of catalog zone CATALOG" << endl;
 
     cout << "list-tsig-keys                     List all TSIG keys" << endl;
     cout << "publish-zone-key ZONE KEY-ID       Publish the zone key with key id KEY-ID in ZONE" << endl;
@@ -2600,6 +2641,7 @@ try
     cout << "test-schema ZONE                   Test DB schema - will create ZONE" << endl;
     cout << "raw-lua-from-content TYPE CONTENT  Display record contents in a form suitable for dnsdist's `SpoofRawAction`" << endl;
     cout << "zonemd-verify-file ZONE FILE       Validate ZONEMD for ZONE" << endl;
+    cout << "lmdb-get-backend-version           Get schema version supported by backend" << endl;
     cout << desc << endl;
 
     return 0;
@@ -2607,6 +2649,10 @@ try
 
   loadMainConfig(g_vm["config-dir"].as<string>());
 
+  if (cmds.at(0) == "lmdb-get-backend-version") {
+    cout << "5" << endl; // FIXME this should reuse the constant from lmdbbackend but that is currently a #define in a .cc
+    return 0;
+  }
   if (cmds.at(0) == "test-algorithm") {
     if(cmds.size() != 2) {
       cerr << "Syntax: pdnsutil test-algorithm algonum"<<endl;
@@ -2791,6 +2837,13 @@ try
       return listAllZones(cmds.at(1));
     return listAllZones();
   }
+  else if (cmds.at(0) == "list-member-zones") {
+    if (cmds.size() != 2) {
+      cerr << "Syntax: pdnsutil list-member-zones CATALOG" << endl;
+      return 0;
+    }
+    return listMemberZones(cmds.at(1));
+  }
   else if (cmds.at(0) == "test-zone") {
     cerr << "Did you mean check-zone?"<<endl;
     return 0;
@@ -2814,7 +2867,7 @@ try
       cerr << "Syntax: pdnsutil test-speed numcores [signing-server]"<<endl;
       return 0;
     }
-    testSpeed(dk, DNSName(cmds.at(1)), (cmds.size() > 3) ? cmds.at(3) : "", pdns::checked_stoi<int>(cmds.at(2)));
+    testSpeed(DNSName(cmds.at(1)), (cmds.size() > 3) ? cmds.at(3) : "", pdns::checked_stoi<int>(cmds.at(2)));
   }
   else if (cmds.at(0) == "verify-crypto") {
     if(cmds.size() != 2) {
@@ -3125,13 +3178,13 @@ try
   }
   else if (cmds.at(0) == "clear-zone") {
     if(cmds.size() != 2) {
-      cerr<<"Syntax: pdnsutil edit-zone ZONE"<<endl;
+      cerr<<"Syntax: pdnsutil clear-zone ZONE"<<endl;
       return 0;
     }
     if (cmds.at(1) == ".")
       cmds.at(1).clear();
 
-    return clearZone(dk, DNSName(cmds.at(1)));
+    return clearZone(DNSName(cmds.at(1)));
   }
   else if (cmds.at(0) == "list-keys") {
     if(cmds.size() > 2) {
@@ -3454,7 +3507,7 @@ try
     string zone = cmds.at(1);
     auto id = pdns::checked_stoi<unsigned int>(cmds.at(2));
     DNSSECPrivateKey dpk = dk.getKeyById(DNSName(zone), id);
-    dpk.getKey()->convertToPEM(*stdout);
+    dpk.getKey()->convertToPEMFile(*stdout);
   }
   else if (cmds.at(0) == "increase-serial") {
     if (cmds.size() < 2) {
@@ -3481,28 +3534,29 @@ try
     }
 
     DNSKEYRecordContent drc;
-    shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(drc, filename, *fp, algorithm)};
+    shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(drc, algorithm, *fp, filename)};
     if (!key) {
       cerr << "Could not convert key from PEM to internal format" << endl;
       return 1;
     }
 
     DNSSECPrivateKey dpk;
-    dpk.setKey(key);
 
-    pdns::checked_stoi_into(dpk.d_algorithm, cmds.at(3));
-    if (dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1) {
-      dpk.d_algorithm = DNSSECKeeper::RSASHA1;
+    uint8_t algo = 0;
+    pdns::checked_stoi_into(algo, cmds.at(3));
+    if (algo == DNSSECKeeper::RSASHA1NSEC3SHA1) {
+      algo = DNSSECKeeper::RSASHA1;
     }
 
-    cerr << (int)dpk.d_algorithm << endl;
+    cerr << std::to_string(algo) << endl;
 
+    uint16_t flags = 0;
     if (cmds.size() > 4) {
       if (pdns_iequals(cmds.at(4), "ZSK")) {
-        dpk.d_flags = 256;
+        flags = 256;
       }
       else if (pdns_iequals(cmds.at(4), "KSK")) {
-        dpk.d_flags = 257;
+        flags = 257;
       }
       else {
         cerr << "Unknown key flag '" << cmds.at(4) << "'" << endl;
@@ -3510,8 +3564,9 @@ try
       }
     }
     else {
-      dpk.d_flags = 257; // ksk
+      flags = 257; // ksk
     }
+    dpk.setKey(key, flags, algo);
 
     int64_t id;
     if (!dk.addKey(DNSName(zone), dpk, id)) {
@@ -3536,24 +3591,18 @@ try
     }
     string zone = cmds.at(1);
     string fname = cmds.at(2);
-    DNSSECPrivateKey dpk;
     DNSKEYRecordContent drc;
     shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromISCFile(drc, fname.c_str()));
-    dpk.setKey(key);
-    dpk.d_algorithm = drc.d_algorithm;
 
-    if(dpk.d_algorithm == DNSSECKeeper::RSASHA1NSEC3SHA1)
-      dpk.d_algorithm = DNSSECKeeper::RSASHA1;
-
-    dpk.d_flags = 257;
+    uint16_t flags = 257;
     bool active=true;
     bool published=true;
 
     for(unsigned int n = 3; n < cmds.size(); ++n) {
       if (pdns_iequals(cmds.at(n), "ZSK"))
-        dpk.d_flags = 256;
+        flags = 256;
       else if (pdns_iequals(cmds.at(n), "KSK"))
-        dpk.d_flags = 257;
+        flags = 257;
       else if (pdns_iequals(cmds.at(n), "active"))
         active = true;
       else if (pdns_iequals(cmds.at(n), "passive") || pdns_iequals(cmds.at(n), "inactive")) // passive eventually needs to be removed
@@ -3567,6 +3616,14 @@ try
         return 1;
       }
     }
+
+    DNSSECPrivateKey dpk;
+    uint8_t algo = key->getAlgorithm();
+    if (algo == DNSSECKeeper::RSASHA1NSEC3SHA1) {
+      algo = DNSSECKeeper::RSASHA1;
+    }
+    dpk.setKey(key, flags, algo);
+
     int64_t id;
     if (!dk.addKey(DNSName(zone), dpk, id, active, published)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
@@ -3627,7 +3684,6 @@ try
     if(bits)
       cerr<<"Requesting specific key size of "<<bits<<" bits"<<endl;
 
-    DNSSECPrivateKey dspk;
     shared_ptr<DNSCryptoKeyEngine> dpk(DNSCryptoKeyEngine::make(algorithm));
     if(!bits) {
       if(algorithm <= 10)
@@ -3645,12 +3701,11 @@ try
       }
     }
     dpk->create(bits);
-    dspk.setKey(dpk);
-    dspk.d_algorithm = algorithm;
-    dspk.d_flags = keyOrZone ? 257 : 256;
+    DNSSECPrivateKey dspk;
+    dspk.setKey(dpk, keyOrZone ? 257 : 256, algorithm);
 
     // print key to stdout
-    cout << "Flags: " << dspk.d_flags << endl <<
+    cout << "Flags: " << dspk.getFlags() << endl <<
              dspk.getKey()->convertToISC() << endl;
   }
   else if (cmds.at(0) == "generate-tsig-key") {
@@ -3921,15 +3976,14 @@ try
         "PubLabel: " << pub_label << std::endl;
 
       DNSKEYRecordContent drc;
-      DNSSECPrivateKey dpk;
-      dpk.d_flags = (keyOrZone ? 257 : 256);
 
       shared_ptr<DNSCryptoKeyEngine> dke(DNSCryptoKeyEngine::makeFromISCString(drc, iscString.str()));
       if(!dke->checkKey()) {
         cerr << "Invalid DNS Private Key in engine " << module << " slot " << slot << std::endl;
         return 1;
       }
-      dpk.setKey(dke);
+      DNSSECPrivateKey dpk;
+      dpk.setKey(dke, keyOrZone ? 257 : 256);
 
       // make sure this key isn't being reused.
       B.getDomainKeys(zone, keys);
@@ -4076,7 +4130,9 @@ try
         Comment c;
         while(src->getComment(c)) {
           c.domain_id = di_new.id;
-          tgt->feedComment(c);
+          if (!tgt->feedComment(c)) {
+            throw PDNSException("Target backend does not support comments - remove them first");
+          }
           nc++;
         }
       }

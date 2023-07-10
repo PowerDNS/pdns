@@ -157,14 +157,14 @@ struct SendReceive
       dr.rcode = mdp.d_header.rcode;
       for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
         if(i->first.d_place == 1 && i->first.d_type == mdp.d_qtype)
-          dr.ips.push_back(ComboAddress(i->first.d_content->getZoneRepresentation()));
+          dr.ips.push_back(ComboAddress(i->first.getContent()->getZoneRepresentation()));
         if(i->first.d_place == 2 && i->first.d_type == QType::SOA) {
           dr.seenauthsoa = true;
         }
         if(!g_quiet)
         {
           cout<<i->first.d_place-1<<"\t"<<i->first.d_name<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-          cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.d_content->getZoneRepresentation()<<"\n";
+          cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.getContent()->getZoneRepresentation()<<"\n";
         }
       }
       
@@ -188,9 +188,9 @@ struct SendReceive
   {
     (*d_acc)(usec/1000.0);
 //    if(usec > 1000000)
-  //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" msec)\n";
+  //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" ms)\n";
     if(!g_quiet) {
-      cout<<domain.name<<"|"<<DNSRecordContent::NumberToType(domain.type)<<": ("<<usec/1000.0<<"msec) rcode: "<<dr.rcode;
+      cout<<domain.name<<"|"<<DNSRecordContent::NumberToType(domain.type)<<": ("<<usec/1000.0<<" ms) rcode: "<<dr.rcode;
       for(const ComboAddress& ca :  dr.ips) {
         cout<<", "<<ca.toString();
       }
@@ -351,9 +351,9 @@ try
   cerr<< datafmt % "Total " % (sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns + inflighter.getTimeouts()) % "" % "";
   
   cerr<<"\n";
-  cerr<< "Mean response time: "<<mean(*sr.d_acc) << " msec"<<", median: "<<median(*sr.d_acc)<< " msec\n";
+  cerr<< "Mean response time: "<<mean(*sr.d_acc) << " ms"<<", median: "<<median(*sr.d_acc)<< " ms\n";
   
-  boost::format statfmt("Time < %6.03f msec %|30t|%6.03f%% cumulative\n");
+  boost::format statfmt("Time < %6.03f ms %|30t|%6.03f%% cumulative\n");
   
   for (unsigned int i = 0; i < sr.d_probs.size(); ++i) {
         cerr << statfmt % extended_p_square(*sr.d_acc)[i] % (100*sr.d_probs[i]);

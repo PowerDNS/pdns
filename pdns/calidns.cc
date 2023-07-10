@@ -299,7 +299,6 @@ try
 
   Netmask ecsRange;
   if (g_vm.count("ecs")) {
-    dns_random_init("0123456789abcdef");
 
     try {
       ecsRange = Netmask(g_vm["ecs"].as<string>());

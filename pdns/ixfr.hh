@@ -32,4 +32,4 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>>   getIXFRDeltas(const ComboAd
                                                                    const ComboAddress* laddr=0, size_t maxReceivedBytes=0);
 
 vector<pair<vector<DNSRecord>, vector<DNSRecord>>> processIXFRRecords(const ComboAddress& primary, const DNSName& zone,
-                                                                      const vector<DNSRecord>& records, const std::shared_ptr<SOARecordContent>& primarySOA);
+                                                                      const vector<DNSRecord>& records, const std::shared_ptr<const SOARecordContent>& primarySOA);

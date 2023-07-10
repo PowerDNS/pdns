@@ -10,7 +10,7 @@ from dnsdisttests import DNSDistTest
 
 class APITestsBase(DNSDistTest):
     __test__ = False
-    _webTimeout = 2.0
+    _webTimeout = 5.0
     _webServerPort = 8083
     _webServerBasicAuthPassword = 'secret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
@@ -41,6 +41,15 @@ class APITestsBase(DNSDistTest):
                         'doh-query-pipe-full', 'doh-response-pipe-full', 'proxy-protocol-invalid', 'tcp-listen-overflows',
                         'outgoing-doh-query-pipe-full', 'tcp-query-pipe-full', 'tcp-cross-protocol-query-pipe-full',
                         'tcp-cross-protocol-response-pipe-full']
+    _verboseMode = True
+
+    @classmethod
+    def setUpClass(cls):
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+        cls.waitForTCPSocket('127.0.0.1', cls._webServerPort)
+        print("Launching tests..")
 
 class TestAPIBasics(APITestsBase):
 
@@ -677,6 +686,30 @@ class TestAPIWithoutAuthentication(APITestsBase):
             self.assertTrue(r)
             self.assertEqual(r.status_code, 200)
 
+class TestDashboardWithoutAuthentication(APITestsBase):
+    __test__ = True
+    _basicPath = '/'
+    _config_params = ['_testServerPort', '_webServerPort']
+    _config_template = """
+    setACL({"127.0.0.1/32", "::1/128"})
+    newServer({address="127.0.0.1:%d"})
+    webserver("127.0.0.1:%d")
+    setWebserverConfig({ dashboardRequiresAuthentication=false })
+    """
+    _verboseMode=True
+
+    def testDashboard(self):
+        """
+        API: Dashboard do not require authentication
+        """
+
+        for path in [self._basicPath]:
+            url = 'http://127.0.0.1:' + str(self._webServerPort) + path
+
+            r = requests.get(url, timeout=self._webTimeout)
+            self.assertTrue(r)
+            self.assertEqual(r.status_code, 200)
+
 class TestCustomLuaEndpoint(APITestsBase):
     __test__ = True
     _config_template = """
@@ -743,6 +776,14 @@ class TestWebConcurrentConnections(APITestsBase):
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s", maxConcurrentConnections=%d})
     """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+        # do no check if the web server socket is up, because this
+        # might mess up the concurrent connections counter
 
     def testConcurrentConnections(self):
         """

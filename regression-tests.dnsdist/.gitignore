@@ -17,3 +17,5 @@
 /server.ocsp
 /server.p12
 /configs
+/dnsdist.log
+/dnsdist_test.conf

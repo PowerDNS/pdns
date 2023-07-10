@@ -1,9 +1,9 @@
-FROM alpine:3.10 as pdns-recursor
+FROM alpine:3.18 as pdns-recursor
 ARG BUILDER_CACHE_BUSTER=
 
 RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
                        libtool file boost-dev curl openssl-dev ragel python3 \
-                       flex bison git
+                       flex bison git bash
 
 ADD COPYING NOTICE /pdns-recursor/
 @EXEC sdist_dirs=(build-aux m4 pdns ext docs)

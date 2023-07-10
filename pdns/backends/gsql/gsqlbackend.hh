@@ -251,7 +251,7 @@ public:
 
   bool listComments(const uint32_t domain_id) override;
   bool getComment(Comment& comment) override;
-  void feedComment(const Comment& comment) override;
+  bool feedComment(const Comment& comment) override;
   bool replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments) override;
   string directBackendCmd(const string &query) override;
   bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result) override;

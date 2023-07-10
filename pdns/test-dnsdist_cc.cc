@@ -27,6 +27,8 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-internal-queries.hh"
+#include "dnsdist-tcp.hh"
 #include "dnsdist-xpf.hh"
 
 #include "dolog.hh"
@@ -37,12 +39,34 @@
 #include "ednscookies.hh"
 #include "ednssubnet.hh"
 
-bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(DownstreamState const&)
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+{
+  return ProcessQueryResult::Drop;
+}
+
+bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dr, bool muted)
 {
   return false;
 }
 
-bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer&& query, ComboAddress& dest)
+bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
+{
+  return false;
+}
+
+bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query, ComboAddress& dest)
+{
+  return false;
+}
+
+namespace dnsdist {
+std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dq, bool isResponse)
+{
+  return nullptr;
+}
+}
+
+bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(DownstreamState const&)
 {
   return false;
 }
@@ -2215,7 +2239,7 @@ BOOST_AUTO_TEST_CASE(test_setEDNSOption)
   BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, g_rootdnsname);
 
   EDNS0Record edns0;
-  BOOST_REQUIRE(getEDNS0Record(dq, edns0));
+  BOOST_REQUIRE(getEDNS0Record(dq.getData(), edns0));
   BOOST_CHECK_EQUAL(edns0.version, 0U);
   BOOST_CHECK_EQUAL(edns0.extRCode, 0U);
   BOOST_CHECK_EQUAL(edns0.extFlags, EDNS_HEADER_FLAG_DO);

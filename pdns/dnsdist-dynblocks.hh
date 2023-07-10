@@ -28,7 +28,9 @@
 #include "dnsdist-rings.hh"
 #include "statnode.hh"
 
-#include "dnsdist-lua-inspection-ffi.hh"
+extern "C" {
+#include "dnsdist-lua-inspection-ffi.h"
+}
 
 // dnsdist_ffi_stat_node_t is a lightuserdata
 template<>
@@ -228,30 +230,30 @@ public:
   {
   }
 
-  void setQueryRate(unsigned int rate, unsigned int warningRate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
+  void setQueryRate(unsigned int rate, unsigned int warningRate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action)
   {
     d_queryRateRule = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
   }
 
   /* rate is in bytes per second */
-  void setResponseByteRate(unsigned int rate, unsigned int warningRate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
+  void setResponseByteRate(unsigned int rate, unsigned int warningRate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action)
   {
     d_respRateRule = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
   }
 
-  void setRCodeRate(uint8_t rcode, unsigned int rate, unsigned int warningRate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
+  void setRCodeRate(uint8_t rcode, unsigned int rate, unsigned int warningRate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action)
   {
     auto& entry = d_rcodeRules[rcode];
     entry = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
   }
 
-  void setRCodeRatio(uint8_t rcode, double ratio, double warningRatio, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action, size_t minimumNumberOfResponses)
+  void setRCodeRatio(uint8_t rcode, double ratio, double warningRatio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action, size_t minimumNumberOfResponses)
   {
     auto& entry = d_rcodeRatioRules[rcode];
     entry = DynBlockRatioRule(reason, blockDuration, ratio, warningRatio, seconds, action, minimumNumberOfResponses);
   }
 
-  void setQTypeRate(uint16_t qtype, unsigned int rate, unsigned int warningRate, unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action)
+  void setQTypeRate(uint16_t qtype, unsigned int rate, unsigned int warningRate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action)
   {
     auto& entry = d_qtypeRules[qtype];
     entry = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
@@ -259,16 +261,16 @@ public:
 
   typedef std::function<std::tuple<bool, boost::optional<std::string>>(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)> smtVisitor_t;
 
-  void setSuffixMatchRule(unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action, smtVisitor_t visitor)
+  void setSuffixMatchRule(unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action, smtVisitor_t visitor)
   {
     d_suffixMatchRule = DynBlockRule(reason, blockDuration, 0, 0, seconds, action);
-    d_smtVisitor = visitor;
+    d_smtVisitor = std::move(visitor);
   }
 
-  void setSuffixMatchRuleFFI(unsigned int seconds, std::string reason, unsigned int blockDuration, DNSAction::Action action, dnsdist_ffi_stat_node_visitor_t visitor)
+  void setSuffixMatchRuleFFI(unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action, dnsdist_ffi_stat_node_visitor_t visitor)
   {
     d_suffixMatchRule = DynBlockRule(reason, blockDuration, 0, 0, seconds, action);
-    d_smtVisitorFFI = visitor;
+    d_smtVisitorFFI = std::move(visitor);
   }
 
   void setMasks(uint8_t v4, uint8_t v6, uint8_t port)

@@ -1,5 +1,6 @@
 JSON11_LIBS = $(top_srcdir)/ext/json11/libjson11.la
 PROBDS_LIBS = $(top_srcdir)/ext/probds/libprobds.la
+ARC4RANDOM_LIBS = $(top_srcdir)/ext/arc4random/libarc4random.la
 
 AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
@@ -108,11 +109,12 @@ pdns_recursor_SOURCES = \
 	burtle.hh \
 	cachecleaner.hh \
 	capabilities.cc capabilities.hh \
+	channel.cc channel.hh \
 	circular_buffer.hh \
 	comment.hh \
 	credentials.cc credentials.hh \
 	dns.hh dns.cc \
-	dns_random.hh dns_random.cc \
+	dns_random.hh \
 	dnsbackend.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -235,7 +237,8 @@ pdns_recursor_LDADD = \
 	$(RT_LIBS) \
 	$(BOOST_SYSTEM_LIBS) \
 	$(PROBDS_LIBS) \
-	$(LIBCAP_LIBS)
+	$(LIBCAP_LIBS) \
+	$(ARC4RANDOM_LIBS)
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS) \
@@ -263,7 +266,7 @@ testrunner_SOURCES = \
 	circular_buffer.hh \
 	credentials.cc credentials.hh \
 	dns.cc dns.hh \
-	dns_random.cc dns_random.hh \
+	dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
@@ -381,7 +384,8 @@ testrunner_LDADD = \
 	$(RT_LIBS) \
 	$(BOOST_SYSTEM_LIBS) \
 	$(PROBDS_LIBS) \
-	$(LIBCAP_LIBS)
+	$(LIBCAP_LIBS) \
+	$(ARC4RANDOM_LIBS)
 
 if NOD_ENABLED
 testrunner_SOURCES +=   nod.hh nod.cc \
@@ -398,7 +402,7 @@ pdns_recursor_SOURCES += \
 	sodiumsigners.cc
 pdns_recursor_LDADD += $(LIBSODIUM_LIBS)
 
-rec_control_LDADD += $(LIBSODIUM_LIBS)
+rec_control_LDADD += $(LIBSODIUM_LIBS) $(ARC4RANDOM_LIBS)
 
 testrunner_SOURCES += \
 	sodiumsigners.cc

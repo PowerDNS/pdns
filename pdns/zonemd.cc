@@ -25,7 +25,7 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
     }
     DNSRecord rec;
     rec.d_name = dnsResourceRecord.qname;
-    rec.d_content = drc;
+    rec.setContent(std::move(drc));
     rec.d_type = dnsResourceRecord.qtype;
     rec.d_class = dnsResourceRecord.qclass;
     rec.d_ttl = dnsResourceRecord.ttl;
@@ -36,8 +36,88 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
 
 void pdns::ZoneMD::readRecords(const vector<DNSRecord>& records)
 {
-  for (auto& record : records) {
+  for (const auto& record : records) {
     readRecord(record);
+  }
+}
+
+void pdns::ZoneMD::processRecord(const DNSRecord& record)
+{
+  if (record.d_class == QClass::IN && record.d_name == d_zone) {
+    switch (record.d_type) {
+    case QType::SOA: {
+      d_soaRecordContent = getRR<SOARecordContent>(record);
+      if (d_soaRecordContent == nullptr) {
+        throw PDNSException("Invalid SOA record");
+      }
+      break;
+    }
+    case QType::DNSKEY: {
+      auto dnskey = getRR<DNSKEYRecordContent>(record);
+      if (dnskey == nullptr) {
+        throw PDNSException("Invalid DNSKEY record");
+      }
+      d_dnskeys.emplace(dnskey);
+      break;
+    }
+    case QType::ZONEMD: {
+      auto zonemd = getRR<ZONEMDRecordContent>(record);
+      if (zonemd == nullptr) {
+        throw PDNSException("Invalid ZONEMD record");
+      }
+      auto inserted = d_zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
+      if (!inserted.second) {
+        // Mark as duplicate
+        inserted.first->second.duplicate = true;
+      }
+      break;
+    }
+    case QType::RRSIG: {
+      auto rrsig = getRR<RRSIGRecordContent>(record);
+      if (rrsig == nullptr) {
+        throw PDNSException("Invalid RRSIG record");
+      }
+      d_rrsigs.emplace_back(rrsig);
+      if (rrsig->d_type == QType::NSEC) {
+        d_nsecs.signatures.emplace_back(rrsig);
+      }
+      // RRSIG on NEC3 handled below
+      break;
+    }
+    case QType::NSEC: {
+      auto nsec = getRR<NSECRecordContent>(record);
+      if (nsec == nullptr) {
+        throw PDNSException("Invalid NSEC record");
+      }
+      d_nsecs.records.emplace(nsec);
+      break;
+    }
+    case QType::NSEC3:
+      // Handled below
+      break;
+    case QType::NSEC3PARAM: {
+      auto param = getRR<NSEC3PARAMRecordContent>(record);
+      if (param == nullptr) {
+        throw PDNSException("Invalid NSEC3PARAM record");
+      }
+      if (g_maxNSEC3Iterations > 0 && param->d_iterations > g_maxNSEC3Iterations) {
+        return;
+      }
+      d_nsec3params.emplace_back(param);
+      d_nsec3label = d_zone;
+      d_nsec3label.prependRawLabel(toBase32Hex(hashQNameWithSalt(param->d_salt, param->d_iterations, d_zone)));
+      // Zap the NSEC3 at labels that we now know are not relevant
+      for (auto item = d_nsec3s.begin(); item != d_nsec3s.end();) {
+        if (item->first != d_nsec3label) {
+          item = d_nsec3s.erase(item);
+        }
+        else {
+          ++item;
+        }
+      }
+      break;
+    }
+    }
   }
 }
 
@@ -50,87 +130,13 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
     return;
   }
 
-  if (record.d_class == QClass::IN && record.d_name == d_zone) {
-    switch (record.d_type) {
-    case QType::SOA: {
-      d_soaRecordContent = std::dynamic_pointer_cast<SOARecordContent>(record.d_content);
-      if (d_soaRecordContent == nullptr) {
-        throw PDNSException("Invalid SOA record");
-      }
-      break;
-    }
-    case QType::DNSKEY: {
-      auto dnskey = std::dynamic_pointer_cast<DNSKEYRecordContent>(record.d_content);
-      if (dnskey == nullptr) {
-        throw PDNSException("Invalid DNSKEY record");
-      }
-      d_dnskeys.emplace(dnskey);
-      break;
-    }
-    case QType::ZONEMD: {
-      auto zonemd = std::dynamic_pointer_cast<ZONEMDRecordContent>(record.d_content);
-      if (zonemd == nullptr) {
-        throw PDNSException("Invalid ZONEMD record");
-      }
-      auto inserted = d_zonemdRecords.insert({pair(zonemd->d_scheme, zonemd->d_hashalgo), {zonemd, false}});
-      if (!inserted.second) {
-        // Mark as duplicate
-        inserted.first->second.duplicate = true;
-      }
-      break;
-    }
-    case QType::RRSIG: {
-      auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(record.d_content);
-      if (rrsig == nullptr) {
-        throw PDNSException("Invalid RRSIG record");
-      }
-      d_rrsigs.emplace_back(rrsig);
-      if (rrsig->d_type == QType::NSEC) {
-        d_nsecs.signatures.emplace_back(rrsig);
-      }
-      // RRSIG on NEC3 handled below
-      break;
-    }
-    case QType::NSEC: {
-      auto nsec = std::dynamic_pointer_cast<NSECRecordContent>(record.d_content);
-      if (nsec == nullptr) {
-        throw PDNSException("Invalid NSEC record");
-      }
-      d_nsecs.records.emplace(nsec);
-      break;
-    }
-    case QType::NSEC3:
-      // Handled below
-      break;
-    case QType::NSEC3PARAM: {
-      auto param = std::dynamic_pointer_cast<NSEC3PARAMRecordContent>(record.d_content);
-      if (param == nullptr) {
-        throw PDNSException("Invalid NSEC3PARAM record");
-      }
-      if (g_maxNSEC3Iterations && param->d_iterations > g_maxNSEC3Iterations) {
-        return;
-      }
-      d_nsec3params.emplace_back(param);
-      d_nsec3label = d_zone;
-      d_nsec3label.prependRawLabel(toBase32Hex(hashQNameWithSalt(param->d_salt, param->d_iterations, d_zone)));
-      // Zap the NSEC3 at labels that we now know are not relevant
-      for (auto it = d_nsec3s.begin(); it != d_nsec3s.end();) {
-        if (it->first != d_nsec3label) {
-          it = d_nsec3s.erase(it);
-        }
-        else {
-          ++it;
-        }
-      }
-      break;
-    }
-    }
-  }
+  processRecord(record);
+
   // Until we have seen the NSEC3PARAM record, we save all of them, as we do not know the label for the zone yet
   if (record.d_class == QClass::IN && (d_nsec3label.empty() || record.d_name == d_nsec3label)) {
     switch (record.d_type) {
     case QType::NSEC3: {
-      auto nsec3 = std::dynamic_pointer_cast<NSEC3RecordContent>(record.d_content);
+      auto nsec3 = getRR<NSEC3RecordContent>(record);
       if (nsec3 == nullptr) {
         throw PDNSException("Invalid NSEC3 record");
       }
@@ -138,7 +144,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
       break;
     }
     case QType::RRSIG: {
-      auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(record.d_content);
+      auto rrsig = getRR<RRSIGRecordContent>(record);
       if (rrsig == nullptr) {
         throw PDNSException("Invalid RRSIG record");
       }
@@ -150,7 +156,7 @@ void pdns::ZoneMD::readRecord(const DNSRecord& record)
     }
   }
   RRSetKey_t key = std::pair(record.d_name, record.d_type);
-  d_resourceRecordSets[key].push_back(record.d_content);
+  d_resourceRecordSets[key].push_back(record.getContent());
   d_resourceRecordSetTTLs[key] = record.d_ttl;
 }
 
@@ -165,9 +171,10 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
   // Get all records and remember RRSets and TTLs
 
   // Determine which digests to compute based on accepted zonemd records present
-  unique_ptr<pdns::SHADigest> sha384digest{nullptr}, sha512digest{nullptr};
+  unique_ptr<pdns::SHADigest> sha384digest{nullptr};
+  unique_ptr<pdns::SHADigest> sha512digest{nullptr};
 
-  for (const auto& it : d_zonemdRecords) {
+  for (const auto& item : d_zonemdRecords) {
     // The SOA Serial field MUST exactly match the ZONEMD Serial
     // field. If the fields do not match, digest verification MUST
     // NOT be considered successful with this ZONEMD RR.
@@ -179,14 +186,14 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     // The Hash Algorithm field MUST be checked. If the verifier does
     // not support the given hash algorithm, verification MUST NOT be
     // considered successful with this ZONEMD RR.
-    const auto duplicate = it.second.duplicate;
-    const auto& r = it.second.record;
-    if (!duplicate && r->d_serial == d_soaRecordContent->d_st.serial && r->d_scheme == 1 && (r->d_hashalgo == 1 || r->d_hashalgo == 2)) {
+    const auto duplicate = item.second.duplicate;
+    const auto& record = item.second.record;
+    if (!duplicate && record->d_serial == d_soaRecordContent->d_st.serial && record->d_scheme == 1 && (record->d_hashalgo == 1 || record->d_hashalgo == 2)) {
       // A supported ZONEMD record
-      if (r->d_hashalgo == 1) {
+      if (record->d_hashalgo == 1) {
         sha384digest = make_unique<pdns::SHADigest>(384);
       }
-      else if (r->d_hashalgo == 2) {
+      else if (record->d_hashalgo == 2) {
         sha512digest = make_unique<pdns::SHADigest>(512);
       }
     }
@@ -216,14 +223,14 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     }
 
     sortedRecords_t sorted;
-    for (auto& rr : rrset.second) {
+    for (auto& resourceRecord : rrset.second) {
       if (qtype == QType::RRSIG) {
-        const auto rrsig = std::dynamic_pointer_cast<RRSIGRecordContent>(rr);
+        const auto rrsig = std::dynamic_pointer_cast<const RRSIGRecordContent>(resourceRecord);
         if (rrsig->d_type == QType::ZONEMD && qname == d_zone) {
           continue;
         }
       }
-      sorted.insert(rr);
+      sorted.insert(resourceRecord);
     }
 
     if (sorted.empty()) {
@@ -241,7 +248,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
       // RRSIG is special, since  original TTL depends on qtype covered by RRSIG
       // which can be different per record
       for (const auto& rrsig : sorted) {
-        auto rrsigc = std::dynamic_pointer_cast<RRSIGRecordContent>(rrsig);
+        auto rrsigc = std::dynamic_pointer_cast<const RRSIGRecordContent>(rrsig);
         RRSIGRecordContent rrc;
         rrc.d_originalttl = d_resourceRecordSetTTLs[pair(rrset.first.first, rrsigc->d_type)];
         rrc.d_type = qtype;

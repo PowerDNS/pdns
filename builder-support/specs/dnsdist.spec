@@ -17,18 +17,17 @@ BuildRequires: systemd-units
 BuildRequires: systemd-devel
 %endif
 
-%if 0%{?rhel} < 8
+%if 0%{?rhel} < 8 && 0%{?amzn} != 2023
 BuildRequires: boost169-devel
 %else
 BuildRequires: boost-devel
 %endif
 
-%if 0%{?rhel} >= 7
+%if 0%{?rhel} >= 7 || 0%{?amzn} == 2023
 BuildRequires: gnutls-devel
 BuildRequires: libcap-devel
 BuildRequires: libnghttp2-devel
 BuildRequires: lmdb-devel
-BuildRequires: libsodium-devel
 %ifarch aarch64
 BuildRequires: lua-devel
 %define lua_implementation lua
@@ -36,19 +35,22 @@ BuildRequires: lua-devel
 BuildRequires: luajit-devel
 %define lua_implementation luajit
 %endif
-BuildRequires: net-snmp-devel
 BuildRequires: re2-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
 BuildRequires: systemd-units
 BuildRequires: tinycdb-devel
+%if 0%{?amzn} != 2023
+BuildRequires: libsodium-devel
+BuildRequires: net-snmp-devel
+%endif
 %endif
 
 %if 0%{?suse_version}
 Requires(pre): shadow
 %systemd_requires
 %endif
-%if 0%{?rhel} >= 7
+%if 0%{?rhel} >= 7 || 0%{?amzn} == 2023
 Requires(pre): shadow-utils
 BuildRequires: fstrm-devel
 %systemd_requires
@@ -69,6 +71,9 @@ export CPPFLAGS=-I/usr/include/boost169
 export LDFLAGS=-L/usr/lib64/boost169
 %endif
 
+export AR=gcc-ar
+export RANLIB=gcc-ranlib
+
 %configure \
   --enable-option-checking=fatal \
   --sysconfdir=/etc/dnsdist \
@@ -76,12 +81,13 @@ export LDFLAGS=-L/usr/lib64/boost169
   --disable-dependency-tracking \
   --disable-silent-rules \
   --enable-unit-tests \
+  --enable-lto=thin \
   --enable-dns-over-tls \
 %if 0%{?suse_version}
   --disable-dnscrypt \
   --without-libsodium \
   --without-re2 \
-  --enable-systemd --with-systemd=/lib/systemd/system \
+  --enable-systemd --with-systemd=%{_unitdir} \
   --without-net-snmp
 %endif
 %if 0%{?rhel} >= 7
@@ -92,14 +98,13 @@ export LDFLAGS=-L/usr/lib64/boost169
   --with-libsodium \
   --enable-dnscrypt \
   --enable-dns-over-https \
-  --enable-systemd --with-systemd=/lib/systemd/system \
+  --enable-systemd --with-systemd=%{_unitdir} \
   --with-re2 \
   --with-net-snmp \
   PKG_CONFIG_PATH=/opt/lib64/pkgconfig
 %endif
 
 make %{?_smp_mflags}
-mv dnsdistconf.lua dnsdist.conf.sample
 
 %check
 make %{?_smp_mflags} check || (cat test-suite.log && false)
@@ -107,8 +112,10 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 %install
 %make_install
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
-sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/lib/systemd/system/dnsdist.service
-sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/lib/systemd/system/dnsdist@.service
+%{__mv} %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf-dist %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf
+chmod 0640 %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.conf
+sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/%{_unitdir}/dnsdist.service
+sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/%{_unitdir}/dnsdist@.service
 
 %pre
 getent group dnsdist >/dev/null || groupadd -r dnsdist
@@ -144,9 +151,9 @@ systemctl daemon-reload ||:
 
 %files
 %{!?_licensedir:%global license %%doc}
-%doc dnsdist.conf.sample
 %doc README.md
 %{_bindir}/*
 %{_mandir}/man1/*
 %dir %{_sysconfdir}/dnsdist
-/lib/systemd/system/dnsdist*
+%config(noreplace) %{_sysconfdir}/%{name}/dnsdist.conf
+%{_unitdir}/dnsdist*

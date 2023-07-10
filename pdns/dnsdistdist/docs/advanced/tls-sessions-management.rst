@@ -69,7 +69,7 @@ For GnuTLS:
 Sessions management for outgoing connections
 --------------------------------------------
 
-Since 1.7, dnsdist supports securing the connection toward backends using DNS over TLS. For these connections, it keeps a cache of TLS tickets to be able to resume a TLS session quickly. By default that cache contains up to 20 TLS tickets per-backend, is cleaned up every every 60s, and TLS tickets expire if they have not been used after 600 seconds.
+Since 1.7, dnsdist supports securing the connection toward backends using DNS over TLS. For these connections, it keeps a cache of TLS tickets to be able to resume a TLS session quickly. By default that cache contains up to 20 TLS tickets per-backend, is cleaned up every 60s, and TLS tickets expire if they have not been used after 600 seconds.
 These values can be set at configuration time via:
 
  * :func:`setOutgoingTLSSessionsCacheMaxTicketsPerBackend`

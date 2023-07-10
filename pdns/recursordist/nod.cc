@@ -40,7 +40,7 @@ namespace filesystem = boost::filesystem;
 
 std::mutex PersistentSBF::d_cachedir_mutex;
 
-void PersistentSBF::remove_tmp_files(const filesystem::path& p, std::lock_guard<std::mutex>& lock)
+void PersistentSBF::remove_tmp_files(const filesystem::path& p, std::lock_guard<std::mutex>& /* lock */)
 {
   Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\..{8}$");
   for (filesystem::directory_iterator i(p); i != filesystem::directory_iterator(); ++i) {
@@ -120,7 +120,7 @@ void PersistentSBF::setCacheDir(const std::string& cachedir)
   if (!d_init) {
     filesystem::path p(cachedir);
     if (!exists(p))
-      throw PDNSException("NODDB setCacheDir specified non-existent directory: " + cachedir);
+      throw PDNSException("NODDB setCacheDir specified nonexistent directory: " + cachedir);
     else if (!is_directory(p))
       throw PDNSException("NODDB setCacheDir specified a file not a directory: " + cachedir);
     d_cachedir = cachedir;
@@ -193,7 +193,7 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
 
 void NODDB::housekeepingThread(std::thread::id tid)
 {
-  setThreadName("pdns-r/NOD-hk");
+  setThreadName("rec/nod-hk");
   for (;;) {
     sleep(d_snapshot_interval);
     {
@@ -263,7 +263,7 @@ void UniqueResponseDB::addResponse(const std::string& response)
 
 void UniqueResponseDB::housekeepingThread(std::thread::id tid)
 {
-  setThreadName("pdns-r/UDR-hk");
+  setThreadName("rec/udr-hk");
   for (;;) {
     sleep(d_snapshot_interval);
     {

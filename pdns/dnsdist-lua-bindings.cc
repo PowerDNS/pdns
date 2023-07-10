@@ -90,7 +90,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   /* ServerPool */
   luaCtx.registerFunction<void(std::shared_ptr<ServerPool>::*)(std::shared_ptr<DNSDistPacketCache>)>("setCache", [](std::shared_ptr<ServerPool> pool, std::shared_ptr<DNSDistPacketCache> cache) {
       if (pool) {
-        pool->packetCache = cache;
+        pool->packetCache = std::move(cache);
       }
     });
   luaCtx.registerFunction("getCache", &ServerPool::getCache);
@@ -119,7 +119,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
     });
   luaCtx.registerFunction<uint64_t(DownstreamState::*)()const>("getOutstanding", [](const DownstreamState& s) { return s.outstanding.load(); });
   luaCtx.registerFunction<uint64_t(DownstreamState::*)()const>("getDrops", [](const DownstreamState& s) { return s.reuseds.load(); });
-  luaCtx.registerFunction<double(DownstreamState::*)()const>("getLatency", [](const DownstreamState& s) { return s.latencyUsec; });
+  luaCtx.registerFunction<double(DownstreamState::*)()const>("getLatency", [](const DownstreamState& s) { return s.getRelevantLatencyUsec(); });
   luaCtx.registerFunction("isUp", &DownstreamState::isUp);
   luaCtx.registerFunction("setDown", &DownstreamState::setDown);
   luaCtx.registerFunction("setUp", &DownstreamState::setUp);
@@ -156,7 +156,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       dh.rd=v;
     });
 
-  luaCtx.registerFunction<bool(dnsheader::*)()>("getRD", [](dnsheader& dh) {
+  luaCtx.registerFunction<bool(dnsheader::*)()const>("getRD", [](const dnsheader& dh) {
       return (bool)dh.rd;
     });
 
@@ -164,7 +164,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       dh.ra=v;
     });
 
-  luaCtx.registerFunction<bool(dnsheader::*)()>("getRA", [](dnsheader& dh) {
+  luaCtx.registerFunction<bool(dnsheader::*)()const>("getRA", [](const dnsheader& dh) {
       return (bool)dh.ra;
     });
 
@@ -172,7 +172,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       dh.ad=v;
     });
 
-  luaCtx.registerFunction<bool(dnsheader::*)()>("getAD", [](dnsheader& dh) {
+  luaCtx.registerFunction<bool(dnsheader::*)()const>("getAD", [](const dnsheader& dh) {
       return (bool)dh.ad;
     });
 
@@ -180,7 +180,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       dh.aa=v;
     });
 
-  luaCtx.registerFunction<bool(dnsheader::*)()>("getAA", [](dnsheader& dh) {
+  luaCtx.registerFunction<bool(dnsheader::*)()const>("getAA", [](const dnsheader& dh) {
       return (bool)dh.aa;
     });
 
@@ -188,8 +188,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       dh.cd=v;
     });
 
-  luaCtx.registerFunction<bool(dnsheader::*)()>("getCD", [](dnsheader& dh) {
+  luaCtx.registerFunction<bool(dnsheader::*)()const >("getCD", [](const dnsheader& dh) {
       return (bool)dh.cd;
+    });
+
+    luaCtx.registerFunction<uint16_t(dnsheader::*)()const>("getID", [](const dnsheader& dh) {
+      return ntohs(dh.id);
     });
 
   luaCtx.registerFunction<void(dnsheader::*)(bool)>("setTC", [](dnsheader& dh, bool v) {
@@ -451,7 +455,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
       std::unordered_map<std::string, BPFFilter::MapConfiguration> mapsConfig;
 
-      const auto convertParamsToConfig = [&](const std::string name, BPFFilter::MapType type) {
+      const auto convertParamsToConfig = [&](const std::string& name, BPFFilter::MapType type) {
         BPFFilter::MapConfiguration config;
         config.d_type = type;
         if (const string key = name + "MaxItems"; opts.count(key)) {
@@ -767,5 +771,13 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 
   luaCtx.writeFunction("getMACAddress", [](const std::string& ip) {
     return getMACAddress(ComboAddress(ip));
+  });
+
+  luaCtx.writeFunction("getCurrentTime", []() -> timespec {
+    timespec now;
+    if (gettime(&now, true) < 0) {
+      unixDie("Getting timestamp");
+    }
+    return now;
   });
 }

@@ -21,7 +21,7 @@ have pdnsutil && {
                               hash-zone-record increase-serial import-tsig-key import-zone-key load-zone list-algorithms list-keys list-zone list-all-zones
                               list-tsig-keys rectify-zone rectify-all-zones remove-zone-key replace-rrset secure-all-zones secure-zone set-kind set-nsec3 set-presigned
                               set-publish-cdnskey set-publish-cds set-meta show-zone unset-nsec3 unset-presigned unset-publish-cdnskey unset-publish-cds test-schema
-                              import-zone-key-pem export-zone-key-pem"
+                              import-zone-key-pem export-zone-key-pem list-member-zones"
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"

@@ -97,12 +97,12 @@ public:
       throw SSqlException(string("Error while retrieving SQLite query results: ")+SSQLite3ErrorString(d_db->db()));
     }
     if(d_dolog) 
-      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" usec to execute"<<endl;
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" us to execute"<<endl;
     return this;
   }
   bool hasNextRow() {
     if(d_dolog && d_rc != SQLITE_ROW) {
-      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" total usec to last row"<<endl;
+      g_log<<Logger::Warning<< "Query "<<((long)(void*)this)<<": "<<d_dtime.udiffNoReset()<<" us total to last row"<<endl;
     }
     return d_rc == SQLITE_ROW;
   }

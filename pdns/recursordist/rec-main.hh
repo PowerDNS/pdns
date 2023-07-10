@@ -54,12 +54,12 @@ extern std::shared_ptr<Logr::Logger> g_slogudpin;
 struct DNSComboWriter
 {
   DNSComboWriter(const std::string& query, const struct timeval& now, shared_ptr<RecursorLua4> luaContext) :
-    d_mdp(true, query), d_now(now), d_query(query), d_luaContext(luaContext)
+    d_mdp(true, query), d_now(now), d_query(query), d_luaContext(std::move(luaContext))
   {
   }
 
   DNSComboWriter(const std::string& query, const struct timeval& now, std::unordered_set<std::string>&& policyTags, shared_ptr<RecursorLua4> luaContext, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records) :
-    d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_luaContext(luaContext), d_data(std::move(data))
+    d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_luaContext(std::move(luaContext)), d_data(std::move(data))
   {
   }
 
@@ -169,10 +169,10 @@ public:
   {
   }
 
-  LWResult::Result getSocket(const ComboAddress& toaddr, int* fd);
+  LWResult::Result getSocket(const ComboAddress& toaddr, int* fileDesc);
 
   // return a socket to the pool, or simply erase it
-  void returnSocket(int fd);
+  void returnSocket(int fileDesc);
 
 private:
   // returns -1 for errors which might go away, throws for ones that won't
@@ -186,8 +186,8 @@ enum class PaddingMode
 };
 
 typedef MTasker<std::shared_ptr<PacketID>, PacketBuffer, PacketIDCompare> MT_t;
-extern thread_local std::unique_ptr<MT_t> MT; // the big MTasker
-extern thread_local std::unique_ptr<RecursorPacketCache> t_packetCache;
+extern thread_local std::unique_ptr<MT_t> g_multiTasker; // the big MTasker
+extern std::unique_ptr<RecursorPacketCache> g_packetCache;
 
 using RemoteLoggerStats_t = std::unordered_map<std::string, RemoteLoggerInterface::Stats>;
 
@@ -227,6 +227,7 @@ extern std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to 
 extern std::shared_ptr<NetmaskGroup> g_initialAllowNotifyFrom; // new threads need this to be setup
 extern std::shared_ptr<notifyset_t> g_initialAllowNotifyFor; // new threads need this to be setup
 extern thread_local std::shared_ptr<Regex> t_traceRegex;
+extern thread_local FDWrapper t_tracefd;
 extern string g_programname;
 extern string g_pidfname;
 extern RecursorControlChannel g_rcc; // only active in the handler thread
@@ -283,7 +284,7 @@ extern thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
 
 inline MT_t* getMT()
 {
-  return MT ? MT.get() : nullptr;
+  return g_multiTasker ? g_multiTasker.get() : nullptr;
 }
 
 /* this function is called with both a string and a vector<uint8_t> representing a packet */
@@ -523,7 +524,7 @@ bool checkFrameStreamExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal, con
 #endif
 void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
                        bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options);
-void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, uint16_t id, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta);
+void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, uint16_t queryID, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta);
 bool isAllowNotifyForZone(DNSName qname);
 bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       DNSName& qname, uint16_t& qtype, uint16_t& qclass,
@@ -531,7 +532,7 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       string& response, uint32_t& qhash,
                       RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source, const ComboAddress& mappedSource);
 void protobufLogResponse(pdns::ProtoZero::RecMessage& message);
-void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
+void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
                          const RecursorPacketCache::OptPBData& pbData, const struct timeval& tv,
                          bool tcp, const ComboAddress& source, const ComboAddress& destination,
                          const ComboAddress& mappedSource, const EDNSSubnetOpts& ednssubnet,
@@ -539,15 +540,16 @@ void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigI
                          const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
                          const RecEventTrace& eventTrace);
 void requestWipeCaches(const DNSName& canon);
-void startDoResolve(void* p);
+void startDoResolve(void*);
 bool expectProxyProtocol(const ComboAddress& from);
-void finishTCPReply(std::unique_ptr<DNSComboWriter>& dc, bool hadError, bool updateInFlight);
+void finishTCPReply(std::unique_ptr<DNSComboWriter>&, bool hadError, bool updateInFlight);
 void checkFastOpenSysctl(bool active, Logr::log_t);
 void checkTFOconnect(Logr::log_t);
 void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t);
-void handleNewTCPQuestion(int fd, FDMultiplexer::funcparam_t&);
+void handleNewTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t&);
 
 void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t);
+string doTraceRegex(FDWrapper file, vector<string>::const_iterator begin, vector<string>::const_iterator end);
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 #define LOCAL_NETS_INVERSE "!127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10"

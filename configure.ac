@@ -12,8 +12,8 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_CANONICAL_HOST
 # Add some default CFLAGS and CXXFLAGS, can be appended to using the environment variables
-CFLAGS="-g -O2 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CFLAGS"
-CXXFLAGS="-g -O2 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls $CXXFLAGS"
+CFLAGS="-g -O2 -Wall -Wextra -Wshadow -Wmissing-declarations -Wredundant-decls $CFLAGS"
+CXXFLAGS="-g -O2 -Wall -Wextra -Wshadow -Wmissing-declarations -Wredundant-decls $CXXFLAGS"
 
 AC_SUBST([pdns_configure_args], ["$ac_configure_args"])
 AC_DEFINE_UNQUOTED([PDNS_CONFIG_ARGS],
@@ -84,6 +84,7 @@ AC_CHECK_HEADERS(
 	)],
 	[have_mmap=no]
 )
+AC_CHECK_HEADERS([sys/random.h])
 
 PDNS_WITH_LIBSODIUM
 PDNS_WITH_LIBDECAF
@@ -152,7 +153,9 @@ PDNS_FROM_GIT
 dnl Checks for library functions.
 dnl the *_r functions are in posix so we can use them unconditionally, but the ext/yahttp code is
 dnl using the defines.
-AC_CHECK_FUNCS_ONCE([strcasestr localtime_r gmtime_r recvmmsg sched_setscheduler getrandom arc4random])
+AC_CHECK_FUNCS_ONCE([strcasestr localtime_r gmtime_r recvmmsg sched_setscheduler])
+AC_CHECK_FUNCS_ONCE([getrandom getentropy arc4random arc4random_uniform arc4random_buf])
+PDNS_CHECK_SECURE_MEMSET
 
 AM_CONDITIONAL([HAVE_RECVMMSG], [test "x$ac_cv_func_recvmmsg" = "xyes"])
 
@@ -308,8 +311,10 @@ PROGRAM_LDFLAGS="$PIE_LDFLAGS $PROGRAM_LDFLAGS"
 AC_SUBST([PROGRAM_LDFLAGS])
 
 PDNS_ENABLE_COVERAGE
+PDNS_INIT_AUTO_VARS
 PDNS_ENABLE_SANITIZERS
 PDNS_ENABLE_MALLOC_TRACE
+PDNS_ENABLE_LTO
 
 AC_SUBST(LIBS)
 
@@ -324,6 +329,9 @@ AC_SUBST([IPCRYPT_LIBS], ['$(top_builddir)/ext/ipcrypt/libipcrypt.la'])
 
 CFLAGS="$SANITIZER_FLAGS $CFLAGS"
 CXXFLAGS="$SANITIZER_FLAGS $CXXFLAGS"
+
+CCVERSION=`$CC --version | head -1`
+CXXVERSION=`$CXX --version | head -1`
 
 AC_ARG_VAR(PACKAGEVERSION, [The version used in secpoll queries])
 AS_IF([test "x$PACKAGEVERSION" != "x"],
@@ -340,6 +348,7 @@ AC_CONFIG_FILES([
   docs/Makefile
   pdns/pdns.init
   ext/Makefile
+  ext/arc4random/Makefile
   ext/ipcrypt/Makefile
   ext/yahttp/Makefile
   ext/yahttp/yahttp/Makefile
@@ -365,8 +374,8 @@ AC_MSG_NOTICE([=====================])
 AC_MSG_NOTICE([])
 AC_MSG_NOTICE([Configured with: $pdns_configure_args])
 AC_MSG_NOTICE([])
-AC_MSG_NOTICE([CC: $CC])
-AC_MSG_NOTICE([CXX: $CXX])
+AC_MSG_NOTICE([CC: $CC ($CCVERSION)])
+AC_MSG_NOTICE([CXX: $CXX ($CXXVERSION)])
 AC_MSG_NOTICE([LD: $LD])
 AC_MSG_NOTICE([CFLAGS: $CFLAGS])
 AC_MSG_NOTICE([CPPFLAGS: $CPPFLAGS])

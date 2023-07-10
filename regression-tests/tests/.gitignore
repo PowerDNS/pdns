@@ -3,3 +3,4 @@ real_result
 *.out
 start
 step.*
+verify-dnssec-zone/allow-missing

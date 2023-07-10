@@ -1,9 +1,11 @@
 SUBDIRS = \
+	arc4random \
 	ipcrypt \
 	json11 \
 	yahttp
 
 DIST_SUBDIRS = \
+	arc4random \
 	ipcrypt \
 	json11 \
 	yahttp

@@ -179,8 +179,7 @@ private:
   LockGuarded<map<pair<DNSName,string>,time_t>> d_holes;
 
   void suck(const DNSName &domain, const ComboAddress& remote, bool force=false);
-  void ixfrSuck(const DNSName &domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, std::unique_ptr<AuthLua4>& pdl,
-                ZoneStatus& zs, vector<DNSRecord>* axfr);
+  void ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr);
 
   void slaveRefresh(PacketHandler *P);
   void masterUpdateCheck(PacketHandler *P);
@@ -254,7 +253,7 @@ public:
         DNSZoneRecord rr;
         while(b->get(rr))
           if(rr.dr.d_type == QType::A || rr.dr.d_type==QType::AAAA)
-            addresses.push_back(rr.dr.d_content->getZoneRepresentation());   // SOL if you have a CNAME for an NS
+            addresses.push_back(rr.dr.getContent()->getZoneRepresentation());   // SOL if you have a CNAME for an NS
     }
     return addresses;
   }

@@ -66,19 +66,23 @@ Handling of root hints
 On startup, the :program:`Recursor` uses root hints to resolve the names and addresses of the root name servers and puts the record sets found into the record cache.
 This is needed to be able to resolve names, as the recursive algorithm starts at the root (using cached data) and then tries to resolve delegations until it finds the name servers that are authoritative for the domain in question.
 
-If the :ref:`setting-hint-file` is not set, it wil use a compiled-in table as root hints.
-Starting with version 4.6.2, if :ref:`setting-hint-file` is set to ``no``, the :program:`Recursor` will not fill the cache with root data.
-This can be used in special cases, e.g. when all queries are forwarded.
+If the :ref:`setting-hint-file` is not set, :program:`Recursor` wil use a compiled-in table as root hints.
 
-Note that the root hints and resolved root data can differ if the root hints are outdated.
-As long as at least one root server mentioned in the root hints can be contacted, this mechanism will produce the desired record sets corresponding to the actual root server data.
-
-Periodically, based on the :ref:`setting-max-cache-ttl`, the :program:`Recursor` will refetch the root data using data in its cache.
-If that does not succeed, it wil fall back to using the root hints to fill the cache with root data.
+Periodically, based on the :ref:`setting-max-cache-ttl`, the :program:`Recursor` will refetch the root data using data in its cache by doing a `. NS` query.
+If that does not succeed, it will fall back to using the root hints to fill the cache with root data.
 Prior to version 4.7.0, the period for re-fetching root data was :ref:`setting-max-cache-ttl` divided by 12, with a minimum of 10 seconds.
 Starting with version 4.7.0, the period is adaptive, starting at 80% of :ref:`setting-max-cache-ttl`, reducing the interval on failure.
 
-There is another detail: after refreshing the root records, the :program:`Recursor` will resolve the ``NS`` records for the top level domain of the root servers.
+The root hints and resolved root data can differ if the root hints are outdated.
+As long as at least one root server mentioned in the root hints can be contacted, the periodic refresh will produce the desired record sets corresponding to the current up-to-date root server data.
+
+Starting with version 4.6.2, if :ref:`setting-hint-file` is set to ``no``, the :program:`Recursor` will not prime the cache with root data obtained from hints, but will still do the periodic refresh.
+A (recursive) forward configuration is needed to make the periodic refresh work.
+
+Starting with version 4.9, setting :ref:`setting-hint-file` to ``no-refresh`` disables both the initial reading of the hints and the periodic refresh of cached root data.
+This prevents :program:`Recursor` from resolving names by itself, so it is only useful in cases where all queries are forwarded.
+
+With versions older than 4.8, there is another detail: after refreshing the root records, the :program:`Recursor` will resolve the ``NS`` records for the top level domain of the root servers.
 For example, in the default setup the root name servers are called ``[a-m].root-servers.net``, so the :program:`Recursor` will resolve the name servers of the ``.net`` domain.
-This is needed to correctly determine zone cuts to be able to decide if the ``.root-servers.net`` domain is DNSSEC protected.
+This is needed to correctly determine zone cuts to be able to decide if the ``.root-servers.net`` domain is DNSSEC protected. Newer versions solve this by querying the needed information top-down.
 

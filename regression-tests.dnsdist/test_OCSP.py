@@ -91,6 +91,33 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
         self.assertTrue(serialNumber2)
         self.assertNotEqual(serialNumber, serialNumber2)
 
+class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    # invalid OCSP file!
+    _ocspFile = '/dev/null'
+    _tlsServerPort = 8443
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { ocspResponses={"%s"}})
+    """
+    _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
+
+    def testBrokenOCSPStapling(self):
+        """
+        OCSP Stapling: Broken (DoH)
+        """
+        output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
+        self.assertNotIn('OCSP Response Status: successful (0x0)', output)
+
 class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
@@ -134,6 +161,34 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         self.assertTrue(serialNumber2)
         self.assertNotEqual(serialNumber, serialNumber2)
 
+class TestBrokenOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    # invalid OCSP file!
+    _ocspFile = '/dev/null'
+    _tlsServerPort = 8443
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="gnutls", ocspResponses={"%s"}})
+    """
+    _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
+
+    def testBrokenOCSPStapling(self):
+        """
+        OCSP Stapling: Broken (GnuTLS)
+        """
+        output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
+        self.assertNotIn('OCSP Response Status: successful (0x0)', output)
+        self.assertEquals(self.getTLSProvider(), "gnutls")
+
 class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
@@ -176,3 +231,31 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         serialNumber2 = self.getOCSPSerial(output)
         self.assertTrue(serialNumber2)
         self.assertNotEqual(serialNumber, serialNumber2)
+
+class TestBrokenOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    # invalid OCSP file!
+    _ocspFile = '/dev/null'
+    _tlsServerPort = 8443
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl", ocspResponses={"%s"}})
+    """
+    _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
+
+    def testBrokenOCSPStapling(self):
+        """
+        OCSP Stapling: Broken (OpenSSL)
+        """
+        output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
+        self.assertNotIn('OCSP Response Status: successful (0x0)', output)
+        self.assertEquals(self.getTLSProvider(), "openssl")

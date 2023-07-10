@@ -25,6 +25,7 @@
 #include <boost/format.hpp>
 
 #include "namespaces.hh"
+#include "noinitvector.hh"
 
 UnknownRecordContent::UnknownRecordContent(const string& zone)
 {
@@ -60,7 +61,7 @@ UnknownRecordContent::UnknownRecordContent(const string& zone)
   d_record.insert(d_record.end(), out.begin(), out.end());
 }
 
-string UnknownRecordContent::getZoneRepresentation(bool noDot) const
+string UnknownRecordContent::getZoneRepresentation(bool /* noDot */) const
 {
   ostringstream str;
   str<<"\\# "<<(unsigned int)d_record.size()<<" ";
@@ -72,7 +73,7 @@ string UnknownRecordContent::getZoneRepresentation(bool noDot) const
   return str.str();
 }
 
-void UnknownRecordContent::toPacket(DNSPacketWriter& pw)
+void UnknownRecordContent::toPacket(DNSPacketWriter& pw) const
 {
   pw.xfrBlob(string(d_record.begin(),d_record.end()));
 }
@@ -84,16 +85,12 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
   dnsheader.qdcount=htons(1);
   dnsheader.ancount=htons(1);
 
-  vector<uint8_t> packet; // build pseudo packet
-
+  PacketBuffer packet; // build pseudo packet
   /* will look like: dnsheader, 5 bytes, encoded qname, dns record header, serialized data */
-
   const auto& encoded = qname.getStorage();
-
   packet.resize(sizeof(dnsheader) + 5 + encoded.size() + sizeof(struct dnsrecordheader) + serialized.size());
 
   uint16_t pos=0;
-
   memcpy(&packet[0], &dnsheader, sizeof(dnsheader)); pos+=sizeof(dnsheader);
 
   constexpr std::array<uint8_t, 5> tmp= {'\x0', '\x0', '\x1', '\x0', '\x1' }; // root question for ns_t_a
@@ -114,9 +111,16 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
     (void) pos;
   }
 
-  MOADNSParser mdp(false, reinterpret_cast<const char *>(packet.data()), packet.size());
-  shared_ptr<DNSRecordContent> ret= mdp.d_answers.begin()->first.d_content;
-  return ret;
+  DNSRecord dr;
+  dr.d_class = QClass::IN;
+  dr.d_type = qtype;
+  dr.d_name = qname;
+  dr.d_clen = serialized.size();
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), packet.size() - serialized.size() - sizeof(dnsrecordheader));
+  /* needed to get the record boundaries right */
+  pr.getDnsrecordheader(drh);
+  auto content = DNSRecordContent::mastermake(dr, pr, Opcode::Query);
+  return content;
 }
 
 std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &dr,
@@ -191,6 +195,11 @@ DNSRecordContent::zmakermap_t& DNSRecordContent::getZmakermap()
   return zmakermap;
 }
 
+bool DNSRecordContent::isRegisteredType(uint16_t rtype, uint16_t rclass)
+{
+  return getTypemap().count(pair(rclass, rtype)) != 0;
+}
+
 DNSRecord::DNSRecord(const DNSResourceRecord& rr): d_name(rr.qname)
 {
   d_type = rr.qtype.getCode();
@@ -207,13 +216,13 @@ DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& d) {
   rr.qname = d.d_name;
   rr.qtype = QType(d.d_type);
   rr.ttl = d.d_ttl;
-  rr.content = d.d_content->getZoneRepresentation(true);
+  rr.content = d.getContent()->getZoneRepresentation(true);
   rr.auth = false;
   rr.qclass = d.d_class;
   return rr;
 }
 
-void MOADNSParser::init(bool query, const pdns_string_view& packet)
+void MOADNSParser::init(bool query, const std::string_view& packet)
 {
   if (packet.size() < sizeof(dnsheader))
     throw MOADNSException("Packet shorter than minimal header");
@@ -268,18 +277,18 @@ void MOADNSParser::init(bool query, const pdns_string_view& packet)
       dr.d_type=ah.d_type;
       dr.d_class=ah.d_class;
 
-      dr.d_name=name;
-      dr.d_clen=ah.d_clen;
+      dr.d_name = std::move(name);
+      dr.d_clen = ah.d_clen;
 
       if (query &&
           !(d_qtype == QType::IXFR && dr.d_place == DNSResourceRecord::AUTHORITY && dr.d_type == QType::SOA) && // IXFR queries have a SOA in their AUTHORITY section
           (dr.d_place == DNSResourceRecord::ANSWER || dr.d_place == DNSResourceRecord::AUTHORITY || (dr.d_type != QType::OPT && dr.d_type != QType::TSIG && dr.d_type != QType::SIG && dr.d_type != QType::TKEY) || ((dr.d_type == QType::TSIG || dr.d_type == QType::SIG || dr.d_type == QType::TKEY) && dr.d_class != QClass::ANY))) {
 //        cerr<<"discarding RR, query is "<<query<<", place is "<<dr.d_place<<", type is "<<dr.d_type<<", class is "<<dr.d_class<<endl;
-        dr.d_content=std::make_shared<UnknownRecordContent>(dr, pr);
+        dr.setContent(std::make_shared<UnknownRecordContent>(dr, pr));
       }
       else {
 //        cerr<<"parsing RR, query is "<<query<<", place is "<<dr.d_place<<", type is "<<dr.d_type<<", class is "<<dr.d_class<<endl;
-        dr.d_content=DNSRecordContent::mastermake(dr, pr, d_header.opcode);
+        dr.setContent(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
       }
 
       /* XXX: XPF records should be allowed after TSIG as soon as the actual XPF option code has been assigned:
@@ -345,40 +354,46 @@ bool MOADNSParser::hasEDNS() const
 
 void PacketReader::getDnsrecordheader(struct dnsrecordheader &ah)
 {
-  unsigned int n;
-  unsigned char *p=reinterpret_cast<unsigned char*>(&ah);
+  unsigned char *p = reinterpret_cast<unsigned char*>(&ah);
 
-  for(n=0; n < sizeof(dnsrecordheader); ++n)
-    p[n]=d_content.at(d_pos++);
+  for(unsigned int n = 0; n < sizeof(dnsrecordheader); ++n) {
+    p[n] = d_content.at(d_pos++);
+  }
 
-  ah.d_type=ntohs(ah.d_type);
-  ah.d_class=ntohs(ah.d_class);
-  ah.d_clen=ntohs(ah.d_clen);
-  ah.d_ttl=ntohl(ah.d_ttl);
+  ah.d_type = ntohs(ah.d_type);
+  ah.d_class = ntohs(ah.d_class);
+  ah.d_clen = ntohs(ah.d_clen);
+  ah.d_ttl = ntohl(ah.d_ttl);
 
-  d_startrecordpos=d_pos; // needed for getBlob later on
-  d_recordlen=ah.d_clen;
+  d_startrecordpos = d_pos; // needed for getBlob later on
+  d_recordlen = ah.d_clen;
 }
 
 
 void PacketReader::copyRecord(vector<unsigned char>& dest, uint16_t len)
 {
-  dest.resize(len);
-  if(!len)
+  if (len == 0) {
     return;
+  }
+  if ((d_pos + len) > d_content.size()) {
+    throw std::out_of_range("Attempt to copy outside of packet");
+  }
 
-  for(uint16_t n=0;n<len;++n) {
-    dest.at(n)=d_content.at(d_pos++);
+  dest.resize(len);
+
+  for (uint16_t n = 0; n < len; ++n) {
+    dest.at(n) = d_content.at(d_pos++);
   }
 }
 
 void PacketReader::copyRecord(unsigned char* dest, uint16_t len)
 {
-  if(d_pos + len > d_content.size())
+  if (d_pos + len > d_content.size()) {
     throw std::out_of_range("Attempt to copy outside of packet");
+  }
 
   memcpy(dest, &d_content.at(d_pos), len);
-  d_pos+=len;
+  d_pos += len;
 }
 
 void PacketReader::xfrNodeOrLocatorID(NodeOrLocatorID& ret)
@@ -668,7 +683,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
 }
 
 
-void PacketReader::xfrHexBlob(string& blob, bool keepReading)
+void PacketReader::xfrHexBlob(string& blob, bool /* keepReading */)
 {
   xfrBlob(blob);
 }
@@ -745,7 +760,7 @@ void editDNSPacketTTL(char* packet, size_t length, const std::function<uint32_t(
   }
 }
 
-static bool checkIfPacketContainsRecords(const PacketBuffer& packet, const std::set<QType>& qtypes)
+static bool checkIfPacketContainsRecords(const PacketBuffer& packet, const std::unordered_set<QType>& qtypes)
 {
   auto length = packet.size();
   if (length < sizeof(dnsheader)) {
@@ -781,9 +796,9 @@ static bool checkIfPacketContainsRecords(const PacketBuffer& packet, const std::
   return false;
 }
 
-static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, PacketBuffer& newContent, const std::set<QType>& qtypes)
+static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, PacketBuffer& newContent, const std::unordered_set<QType>& qtypes)
 {
-  static const std::set<QType>& safeTypes{QType::A, QType::AAAA, QType::DHCID, QType::TXT, QType::OPT, QType::HINFO, QType::DNSKEY, QType::CDNSKEY, QType::DS, QType::CDS, QType::DLV, QType::SSHFP, QType::KEY, QType::CERT, QType::TLSA, QType::SMIMEA, QType::OPENPGPKEY, QType::SVCB, QType::HTTPS, QType::NSEC3, QType::CSYNC, QType::NSEC3PARAM, QType::LOC, QType::NID, QType::L32, QType::L64, QType::EUI48, QType::EUI64, QType::URI, QType::CAA};
+  static const std::unordered_set<QType>& safeTypes{QType::A, QType::AAAA, QType::DHCID, QType::TXT, QType::OPT, QType::HINFO, QType::DNSKEY, QType::CDNSKEY, QType::DS, QType::CDS, QType::DLV, QType::SSHFP, QType::KEY, QType::CERT, QType::TLSA, QType::SMIMEA, QType::OPENPGPKEY, QType::SVCB, QType::HTTPS, QType::NSEC3, QType::CSYNC, QType::NSEC3PARAM, QType::LOC, QType::NID, QType::L32, QType::L64, QType::EUI48, QType::EUI64, QType::URI, QType::CAA};
 
   if (initialPacket.size() < sizeof(dnsheader)) {
     return EINVAL;
@@ -793,7 +808,7 @@ static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, Pa
 
     if (ntohs(dh->qdcount) == 0)
       return ENOENT;
-    auto packetView = pdns_string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size());
+    auto packetView = std::string_view(reinterpret_cast<const char*>(initialPacket.data()), initialPacket.size());
 
     PacketReader pr(packetView);
 
@@ -895,12 +910,12 @@ static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, Pa
   return 0;
 }
 
-void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::set<QType>& qtypes)
+void clearDNSPacketRecordTypes(vector<uint8_t>& packet, const std::unordered_set<QType>& qtypes)
 {
   return clearDNSPacketRecordTypes(reinterpret_cast<PacketBuffer&>(packet), qtypes);
 }
 
-void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::set<QType>& qtypes)
+void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::unordered_set<QType>& qtypes)
 {
   if (!checkIfPacketContainsRecords(packet, qtypes)) {
     return;
@@ -915,47 +930,45 @@ void clearDNSPacketRecordTypes(PacketBuffer& packet, const std::set<QType>& qtyp
 }
 
 // method of operation: silently fail if it doesn't work - we're only trying to be nice, don't fall over on it
-void ageDNSPacket(char* packet, size_t length, uint32_t seconds)
+void ageDNSPacket(char* packet, size_t length, uint32_t seconds, const dnsheader_aligned& aligned_dh)
 {
-  if(length < sizeof(dnsheader))
+  if (length < sizeof(dnsheader)) {
     return;
-  try
-  {
-    const dnsheader* dh = reinterpret_cast<const dnsheader*>(packet);
-    const uint64_t dqcount = ntohs(dh->qdcount);
-    const uint64_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
+  }
+  try {
+    const dnsheader* dhp = aligned_dh.get();
+    const uint64_t dqcount = ntohs(dhp->qdcount);
+    const uint64_t numrecords = ntohs(dhp->ancount) + ntohs(dhp->nscount) + ntohs(dhp->arcount);
     DNSPacketMangler dpm(packet, length);
 
-    uint64_t n;
-    for(n=0; n < dqcount; ++n) {
+    for (uint64_t rec = 0; rec < dqcount; ++rec) {
       dpm.skipDomainName();
       /* type and class */
       dpm.skipBytes(4);
     }
-   // cerr<<"Skipped "<<n<<" questions, now parsing "<<numrecords<<" records"<<endl;
-    for(n=0; n < numrecords; ++n) {
+
+    for(uint64_t rec = 0; rec < numrecords; ++rec) {
       dpm.skipDomainName();
 
       uint16_t dnstype = dpm.get16BitInt();
       /* class */
       dpm.skipBytes(2);
 
-      if(dnstype == QType::OPT) // not aging that one with a stick
-        break;
-
-      dpm.decreaseAndSkip32BitInt(seconds);
+      if (dnstype != QType::OPT) { // not aging that one with a stick
+        dpm.decreaseAndSkip32BitInt(seconds);
+      } else {
+        dpm.skipBytes(4);
+      }
       dpm.skipRData();
     }
   }
-  catch(...)
-  {
-    return;
+  catch(...) {
   }
 }
 
-void ageDNSPacket(std::string& packet, uint32_t seconds)
+void ageDNSPacket(std::string& packet, uint32_t seconds, const dnsheader_aligned& aligned_dh)
 {
-  ageDNSPacket((char*)packet.c_str(), packet.length(), seconds);
+  ageDNSPacket(packet.data(), packet.length(), seconds, aligned_dh);
 }
 
 uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA)

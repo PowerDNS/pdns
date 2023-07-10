@@ -26,7 +26,7 @@
 #include "lwres.hh"
 #include <iostream>
 #include "dnsrecords.hh"
-#include <errno.h>
+#include <cerrno>
 #include "misc.hh"
 #include <algorithm>
 #include <sstream>
@@ -282,7 +282,7 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
   }
 }
 
-static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName)
+static bool tcpconnect(const ComboAddress& ip, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName)
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && ip.getPort() == 853;
 
@@ -314,7 +314,7 @@ static bool tcpconnect(const struct timeval& now, const ComboAddress& ip, TCPOut
       dnsOverTLS = false;
     }
   }
-  connection.d_handler = std::make_shared<TCPIOHandler>(nsName, false, s.releaseHandle(), timeout, tlsCtx, now.tv_sec);
+  connection.d_handler = std::make_shared<TCPIOHandler>(nsName, false, s.releaseHandle(), timeout, tlsCtx);
   // Returned state ignored
   // This can throw an exception, retry will need to happen at higher level
   connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
@@ -422,7 +422,6 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       eo.source = *srcmask;
       outgoingECSBits = srcmask->getBits();
       outgoingECSAddr = srcmask->getNetwork();
-      //      cout<<"Adding request mask: "<<eo.source.toString()<<endl;
       opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo));
       weWantEDNSSubnet = true;
     }
@@ -472,7 +471,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       t_Counters.at(rec::Counter::ipv6queries)++;
     }
 
-    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, &queryfd);
+    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, weWantEDNSSubnet, &queryfd);
 
     if (ret != LWResult::Result::Success) {
       return ret;
@@ -487,7 +486,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
       if (fstrmQEnabled || fstrmREnabled) {
         localip.sin4.sin_family = ip.sin4.sin_family;
         socklen_t slen = ip.getSocklen();
-        getsockname(queryfd, reinterpret_cast<sockaddr*>(&localip), &slen);
+        (void)getsockname(queryfd, reinterpret_cast<sockaddr*>(&localip), &slen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast))
       }
       if (fstrmQEnabled) {
         logFstreamQuery(fstrmLoggers, queryTime, localip, ip, DnstapMessage::ProtocolType::DoUDP, context ? context->d_auth : boost::none, vpacket);
@@ -496,7 +495,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 #endif /* HAVE_FSTRM */
 
     // sleep until we see an answer to this, interface to mtasker
-    ret = arecvfrom(buf, 0, ip, &len, qid, domain, type, queryfd, now);
+    ret = arecvfrom(buf, 0, ip, len, qid, domain, type, queryfd, *now);
   }
   else {
     bool isNew;
@@ -511,7 +510,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
         if (context && !context->d_nsName.empty()) {
           nsName = context->d_nsName.toStringNoDot();
         }
-        isNew = tcpconnect(*now, ip, connection, dnsOverTLS, nsName);
+        isNew = tcpconnect(ip, connection, dnsOverTLS, nsName);
         ret = tcpsendrecv(ip, connection, localip, vpacket, len, buf);
 #ifdef HAVE_FSTRM
         if (fstrmQEnabled) {
@@ -595,7 +594,6 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
           if (opt.first == EDNSOptionCode::ECS) {
             EDNSSubnetOpts reso;
             if (getEDNSSubnetOptsFromString(opt.second, &reso)) {
-              //	    cerr<<"EDNS Subnet response: "<<reso.source.toString()<<", scope: "<<reso.scope.toString()<<", family = "<<reso.scope.getNetwork().sin4.sin_family<<endl;
               /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
                  so we might want to still pass the information along to be able to differentiate between
                  IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate

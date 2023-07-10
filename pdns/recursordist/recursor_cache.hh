@@ -67,9 +67,9 @@ public:
   static constexpr Flags Refresh = 1 << 1;
   static constexpr Flags ServeStale = 1 << 2;
 
-  time_t get(time_t, const DNSName& qname, const QType qt, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, vector<std::shared_ptr<RRSIGRecordContent>>* signatures = nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr);
+  time_t get(time_t, const DNSName& qname, const QType qt, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures = nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr);
 
-  void replace(time_t, const DNSName& qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, boost::optional<ComboAddress> from = boost::none, bool refresh = false);
+  void replace(time_t, const DNSName& qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<const RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, boost::optional<ComboAddress> from = boost::none, bool refresh = false, time_t ttl_time = time(nullptr));
 
   void doPrune(size_t keep);
   uint64_t doDump(int fd, size_t maxCacheEntries);
@@ -88,7 +88,7 @@ private:
     {
     }
 
-    typedef vector<std::shared_ptr<DNSRecordContent>> records_t;
+    typedef vector<std::shared_ptr<const DNSRecordContent>> records_t;
 
     bool isStale(time_t now) const
     {
@@ -110,7 +110,7 @@ private:
     bool shouldReplace(time_t now, bool auth, vState state, bool refresh);
 
     records_t d_records;
-    std::vector<std::shared_ptr<RRSIGRecordContent>> d_signatures;
+    std::vector<std::shared_ptr<const RRSIGRecordContent>> d_signatures;
     std::vector<std::shared_ptr<DNSRecord>> d_authorityRecs;
     DNSName d_qname;
     DNSName d_authZone;
@@ -278,7 +278,7 @@ private:
   Entries getEntries(MapCombo::LockedContent& content, const DNSName& qname, const QType qt, const OptTag& rtag);
   cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& content, time_t now, const DNSName& qname, QType qtype, bool requireAuth, const ComboAddress& who, bool serveStale);
 
-  time_t handleHit(MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone, ComboAddress* fromAuthIP);
+  time_t handleHit(MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone, ComboAddress* fromAuthIP);
   void updateStaleEntry(time_t now, OrderedTagIterator_t& entry);
   void handleServeStaleBookkeeping(time_t, bool, OrderedTagIterator_t&);
 

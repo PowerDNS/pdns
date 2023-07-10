@@ -83,6 +83,16 @@ class TestAdvancedLuaFFI(DNSDistTest):
         print(ffi.string(tag))
         return false
       end
+
+      local raw_tag_buf_size = 255
+      local raw_tag_buf = ffi.new("char [?]", raw_tag_buf_size)
+      local raw_tag_size = ffi.C.dnsdist_ffi_dnsquestion_get_tag_raw(dq, 'raw-tag', raw_tag_buf, raw_tag_buf_size)
+      if ffi.string(raw_tag_buf, raw_tag_size) ~= 'a\0b' then
+        print('invalid raw tag value')
+        print(ffi.string(raw_tag_buf,  raw_tag_size))
+        return false
+      end
+
       return true
     end
 
@@ -105,7 +115,14 @@ class TestAdvancedLuaFFI(DNSDistTest):
       return DNSAction.None
     end
 
+    function luaffiactionsettagraw(dq)
+      local value = "a\0b"
+      ffi.C.dnsdist_ffi_dnsquestion_set_tag_raw(dq, 'raw-tag', value, #value)
+      return DNSAction.None
+    end
+
     addAction(AllRule(), LuaFFIAction(luaffiactionsettag))
+    addAction(AllRule(), LuaFFIAction(luaffiactionsettagraw))
     addAction(LuaFFIRule(luaffirulefunction), LuaFFIAction(luaffiactionfunction))
     -- newServer{address="127.0.0.1:%s"}
     """

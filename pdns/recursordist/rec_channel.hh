@@ -78,13 +78,11 @@ private:
 class RecursorControlParser
 {
 public:
-  RecursorControlParser()
-  {
-  }
-  static void nop(void) {}
-  typedef void func_t(void);
+  RecursorControlParser() = default;
+  static void nop() {}
+  using func_t = void();
 
-  RecursorControlChannel::Answer getAnswer(int s, const std::string& question, func_t** func);
+  static RecursorControlChannel::Answer getAnswer(int socket, const std::string& question, func_t** command);
 };
 
 enum class StatComponent

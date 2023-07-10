@@ -30,45 +30,53 @@ public:
 
   struct Stat
   {
-    Stat(): queries(0), noerrors(0), nxdomains(0), servfails(0), drops(0), bytes(0)
+    Stat()
     {
     }
-    uint64_t queries, noerrors, nxdomains, servfails, drops, bytes;
+
+    uint64_t queries{0};
+    uint64_t noerrors{0};
+    uint64_t nxdomains{0};
+    uint64_t servfails{0};
+    uint64_t drops{0};
+    uint64_t bytes{0};
+    uint64_t hits{0};
+    using remotes_t = std::map<ComboAddress,int,ComboAddress::addressOnlyLessThan>;
+    remotes_t remotes;
 
     Stat& operator+=(const Stat& rhs) {
-      queries+=rhs.queries;
-      noerrors+=rhs.noerrors;
-      nxdomains+=rhs.nxdomains;
-      servfails+=rhs.servfails;
-      drops+=rhs.drops;
-      bytes+=rhs.bytes;
+      queries += rhs.queries;
+      noerrors += rhs.noerrors;
+      nxdomains += rhs.nxdomains;
+      servfails += rhs.servfails;
+      drops += rhs.drops;
+      bytes += rhs.bytes;
+      hits += rhs.hits;
 
-      for(const remotes_t::value_type& rem : rhs.remotes) {
-        remotes[rem.first]+=rem.second;
+      for (const remotes_t::value_type& rem : rhs.remotes) {
+        remotes[rem.first] += rem.second;
       }
       return *this;
     }
-    typedef std::map<ComboAddress,int,ComboAddress::addressOnlyLessThan> remotes_t;
-    remotes_t remotes;
   };
+
+  using visitor_t = std::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)>;
+  using children_t = std::map<std::string, StatNode, CIStringCompare>;
 
   Stat s;
   std::string name;
   std::string fullname;
   uint8_t labelsCount{0};
 
-  void submit(const DNSName& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote);
-
+  void submit(const DNSName& domain, int rcode, unsigned int bytes, bool hit, boost::optional<const ComboAddress&> remote);
   Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
-  typedef std::function<void(const StatNode*, const Stat& selfstat, const Stat& childstat)> visitor_t;
   void visit(visitor_t visitor, Stat& newstat, unsigned int depth=0) const;
   bool empty() const
   {
     return children.empty() && s.remotes.empty();
   }
-  typedef std::map<std::string,StatNode, CIStringCompare> children_t;
   children_t children;
 
 private:
-  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote, unsigned int count);
+  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote, unsigned int count, bool hit);
 };

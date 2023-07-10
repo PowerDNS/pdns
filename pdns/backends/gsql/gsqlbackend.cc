@@ -1326,7 +1326,7 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
   return true;
 }
 
-void GSQLBackend::lookup(const QType &qtype,const DNSName &qname, int domain_id, DNSPacket *pkt_p)
+void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* /* pkt_p */)
 {
   try {
     reconnectIfNeeded();
@@ -1790,7 +1790,7 @@ bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   return true;
 }
 
-bool GSQLBackend::feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3)
+bool GSQLBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool /* ordernameIsNSEC3 */)
 {
   int prio=0;
   string content(r.content);
@@ -1856,7 +1856,7 @@ bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
   return true;
 }
 
-bool GSQLBackend::feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
+bool GSQLBackend::feedEnts3(int domain_id, const DNSName& /* domain */, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 {
   if(!d_dnssecQueries)
       return false;
@@ -1989,7 +1989,7 @@ bool GSQLBackend::getComment(Comment& comment)
   }
 }
 
-void GSQLBackend::feedComment(const Comment& comment)
+bool GSQLBackend::feedComment(const Comment& comment)
 {
   try {
     reconnectIfNeeded();
@@ -2007,6 +2007,8 @@ void GSQLBackend::feedComment(const Comment& comment)
   catch (SSqlException &e) {
     throw PDNSException("GSQLBackend unable to feed comment for RRSet '" + comment.qname.toLogString() + "|" + comment.qtype.toString() + "': "+e.txtReason());
   }
+
+  return true;
 }
 
 bool GSQLBackend::replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments)
@@ -2156,7 +2158,7 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
 
   r.qtype=row[3];
 
-  if (d_upgradeContent && DNSRecordContent::isUnknownType(row[3]) && r.qtype.isSupportedType()) {
+  if (d_upgradeContent && DNSRecordContent::isUnknownType(row[3]) && DNSRecordContent::isRegisteredType(r.qtype, r.qclass)) {
     r.content = DNSRecordContent::upgradeContent(r.qname, r.qtype, row[0]);
   }
   else if (r.qtype==QType::MX || r.qtype==QType::SRV) {

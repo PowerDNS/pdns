@@ -600,7 +600,7 @@ void RemoteBackend::parseDomainInfo(const Json& obj, DomainInfo& di)
   di.backend = this;
 }
 
-bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial)
+bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* getSerial */)
 {
   if (domain.empty())
     return false;
@@ -705,7 +705,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const
   return true;
 }
 
-bool RemoteBackend::feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3)
+bool RemoteBackend::feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool /* ordernameIsNSEC3 */)
 {
   Json query = Json::object{
     {"method", "feedRecord"},
@@ -852,13 +852,13 @@ bool RemoteBackend::searchRecords(const string& pattern, int maxResults, vector<
   return true;
 }
 
-bool RemoteBackend::searchComments(const string& pattern, int maxResults, vector<Comment>& result)
+bool RemoteBackend::searchComments(const string& /* pattern */, int /* maxResults */, vector<Comment>& /* result */)
 {
   // FIXME: Implement Comment API
   return false;
 }
 
-void RemoteBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
+void RemoteBackend::getAllDomains(vector<DomainInfo>* domains, bool /* getSerial */, bool include_disabled)
 {
   Json query = Json::object{
     {"method", "getAllDomains"},
@@ -878,7 +878,7 @@ void RemoteBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, b
   }
 }
 
-void RemoteBackend::getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
+void RemoteBackend::getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
 {
   Json query = Json::object{
     {"method", "getUpdatedMasters"},

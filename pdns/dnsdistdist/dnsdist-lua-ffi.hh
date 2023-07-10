@@ -128,5 +128,28 @@ struct dnsdist_ffi_servers_list_t
   const ServerPolicy::NumberedServerVector& servers;
 };
 
+// dnsdist_ffi_network_message_t is a lightuserdata
+template<>
+struct LuaContext::Pusher<dnsdist_ffi_network_message_t*> {
+    static const int minSize = 1;
+    static const int maxSize = 1;
+
+    static PushedObject push(lua_State* state, dnsdist_ffi_network_message_t* ptr) noexcept {
+        lua_pushlightuserdata(state, ptr);
+        return PushedObject{state, 1};
+    }
+};
+
+struct dnsdist_ffi_network_message_t
+{
+  dnsdist_ffi_network_message_t(const std::string& payload_ ,const std::string& from_, uint16_t endpointID_): payload(payload_), from(from_), endpointID(endpointID_)
+  {
+  }
+
+  const std::string& payload;
+  const std::string& from;
+  uint16_t endpointID;
+};
+
 const char* getLuaFFIWrappers();
 void setupLuaFFIPerThreadContext(LuaContext& luaCtx);

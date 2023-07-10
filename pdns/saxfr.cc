@@ -145,7 +145,7 @@ try
        for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
          if(i->first.d_type != QType::TKEY) continue;
          // recover TKEY record
-         tkrc = TKEYRecordContent(i->first.d_content->getZoneRepresentation());
+         tkrc = TKEYRecordContent(i->first.getContent()->getZoneRepresentation());
          input = tkrc.d_key;
        }
     }
@@ -213,7 +213,7 @@ try
         if (!tsig) {
           std::cerr<<"Unexpected TSIG signature in data"<<endl;
         }
-        trc = TSIGRecordContent(i->first.d_content->getZoneRepresentation());
+        trc = TSIGRecordContent(i->first.getContent()->getZoneRepresentation());
         continue;
       }
       if(i->first.d_type == QType::SOA)
@@ -221,26 +221,26 @@ try
         ++soacount;
       }
       else if (i->first.d_type == QType::NSEC3PARAM) {
-          ns3pr = NSEC3PARAMRecordContent(i->first.d_content->getZoneRepresentation());
-          isNSEC3 = true;
+        ns3pr = NSEC3PARAMRecordContent(i->first.getContent()->getZoneRepresentation());
+        isNSEC3 = true;
       }
 
       ostringstream o;
       o<<"\t"<<i->first.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
       if(showdetails)
       {
-        o<<"\t"<<i->first.d_content->getZoneRepresentation();
+        o<<"\t"<<i->first.getContent()->getZoneRepresentation();
       }
       else if(i->first.d_type == QType::RRSIG)
       {
-        string zoneRep = i->first.d_content->getZoneRepresentation();
+        string zoneRep = i->first.getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         o<<"\t"<<parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...";
       }
       else if(i->first.d_type == QType::NSEC3)
       {
-        string zoneRep = i->first.d_content->getZoneRepresentation();
+        string zoneRep = i->first.getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         o<<"\t"<<parts[0]<<" ";
@@ -254,14 +254,14 @@ try
       }
       else if(i->first.d_type == QType::DNSKEY)
       {
-        string zoneRep = i->first.d_content->getZoneRepresentation();
+        string zoneRep = i->first.getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         o<<"\t"<<parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...";
       }
       else
       {
-        o<<"\t"<<i->first.d_content->getZoneRepresentation();
+        o<<"\t"<<i->first.getContent()->getZoneRepresentation();
       }
 
       records.emplace_back(i->first.d_name, o.str());

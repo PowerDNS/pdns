@@ -119,27 +119,32 @@ bool NegCache::get(const DNSName& qname, QType qtype, const struct timeval& now,
 
   const auto& idx = content->d_map.get<NegCacheEntry>();
   auto range = idx.equal_range(qname);
-  auto ni = range.first;
 
-  while (ni != range.second) {
+  for (auto ni = range.first; ni != range.second; ++ni) {
     // We have an entry
     if ((!typeMustMatch && ni->d_qtype == QType::ENT) || ni->d_qtype == qtype) {
       // We match the QType or the whole name is denied
       auto firstIndexIterator = content->d_map.project<CompositeKey>(ni);
 
-      if (!refresh && (serveStale || ni->d_servedStale > 0) && ni->d_ttd <= now.tv_sec && ni->d_servedStale < s_maxServedStaleExtensions) {
+      // this checks ttd, but also takes into account serve-stale
+      if (!ni->isEntryUsable(now.tv_sec, serveStale)) {
+        // Outdated
+        moveCacheItemToFront<SequenceTag>(content->d_map, firstIndexIterator);
+        continue;
+      }
+      // If we are serving this record stale (or *should*) and the ttd has passed increase ttd to
+      // the future and remember that we did. Also push a refresh task.
+      if ((serveStale || ni->d_servedStale > 0) && ni->d_ttd <= now.tv_sec && ni->d_servedStale < s_maxServedStaleExtensions) {
         updateStaleEntry(now.tv_sec, firstIndexIterator, qtype);
       }
-      if (now.tv_sec < ni->d_ttd && !(refresh && ni->d_servedStale > 0)) {
+      if (now.tv_sec < ni->d_ttd) {
         // Not expired
         ne = *ni;
         moveCacheItemToBack<SequenceTag>(content->d_map, firstIndexIterator);
-        return true;
+        // when refreshing, we consider served-stale entries outdated
+        return !(refresh && ni->d_servedStale > 0);
       }
-      // expired
-      moveCacheItemToFront<SequenceTag>(content->d_map, firstIndexIterator);
     }
-    ++ni;
   }
   return false;
 }
@@ -242,6 +247,26 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
   return ret;
 }
 
+size_t NegCache::wipeTyped(const DNSName& qname, QType qtype)
+{
+  size_t ret = 0;
+  auto& map = getMap(qname);
+  auto content = map.lock();
+  auto range = content->d_map.equal_range(std::tie(qname));
+  auto i = range.first;
+  while (i != range.second) {
+    if (i->d_qtype == QType::ENT || i->d_qtype == qtype) {
+      i = content->d_map.erase(i);
+      ++ret;
+      --map.d_entriesCount;
+    }
+    else {
+      ++i;
+    }
+  }
+  return ret;
+}
+
 /*!
  * Clear the negative cache
  */
@@ -270,7 +295,7 @@ void NegCache::prune(size_t maxEntries)
  *
  * \param fp A pointer to an open FILE object
  */
-size_t NegCache::doDump(int fd, size_t maxCacheEntries)
+size_t NegCache::doDump(int fd, size_t maxCacheEntries, time_t now)
 {
   int newfd = dup(fd);
   if (newfd == -1) {
@@ -278,12 +303,10 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries)
   }
   auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
   if (!fp) {
+    close(newfd);
     return 0;
   }
   fprintf(fp.get(), "; negcache dump follows\n;\n");
-
-  struct timeval now;
-  Utility::gettimeofday(&now, nullptr);
 
   size_t ret = 0;
 
@@ -300,19 +323,19 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries)
     auto& sidx = m->d_map.get<SequenceTag>();
     for (const NegCacheEntry& ne : sidx) {
       ret++;
-      int64_t ttl = ne.d_ttd - now.tv_sec;
+      int64_t ttl = ne.d_ttd - now;
       fprintf(fp.get(), "%s %" PRId64 " IN %s VIA %s ; (%s) origttl=%" PRIu32 " ss=%hu\n", ne.d_name.toString().c_str(), ttl, ne.d_qtype.toString().c_str(), ne.d_auth.toString().c_str(), vStateToString(ne.d_validationState).c_str(), ne.d_orig_ttl, ne.d_servedStale);
       for (const auto& rec : ne.authoritySOA.records) {
-        fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
       }
       for (const auto& sig : ne.authoritySOA.signatures) {
-        fprintf(fp.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.d_content->getZoneRepresentation().c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.getContent()->getZoneRepresentation().c_str());
       }
       for (const auto& rec : ne.DNSSECRecords.records) {
-        fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.d_content->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
       }
       for (const auto& sig : ne.DNSSECRecords.signatures) {
-        fprintf(fp.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.d_content->getZoneRepresentation().c_str());
+        fprintf(fp.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.getContent()->getZoneRepresentation().c_str());
       }
     }
   }

@@ -40,7 +40,7 @@ static int g_cacheweekno;
 const static std::set<uint16_t> g_KSKSignedQTypes {QType::DNSKEY, QType::CDS, QType::CDNSKEY};
 AtomicCounter* g_signatureCount;
 
-static std::string getLookupKey(const std::string& msg)
+static std::string getLookupKeyFromMessage(const std::string& msg)
 {
   try {
     return pdns_md5(msg);
@@ -48,6 +48,17 @@ static std::string getLookupKey(const std::string& msg)
   catch(const std::runtime_error& e) {
     return pdns_sha1(msg);
   }
+}
+
+static std::string getLookupKeyFromPublicKey(const std::string& pubKey)
+{
+  /* arbitrarily cut off at 64 bytes, the main idea is to save space
+     for very large keys like RSA ones (1024+ bits so 128+ bytes) by storing a 20 bytes hash
+     instead */
+  if (pubKey.size() <= 64) {
+    return pubKey;
+  }
+  return pdns_sha1sum(pubKey);
 }
 
 static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, const sortedRecords_t& toSign)
@@ -60,12 +71,11 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
 
-  string msg=getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
-  pair<string, string> lookup(rc->getPubKeyHash(), getLookupKey(msg));  // this hash is a memory saving exercise
+  string msg = getMessageForRRSET(signQName, rrc, toSign); // this is what we will hash & sign
+  pair<string, string> lookup(getLookupKeyFromPublicKey(drc.d_key), getLookupKeyFromMessage(msg));  // this hash is a memory saving exercise
 
-  bool doCache=true;
-  if(doCache)
-  {
+  bool doCache = true;
+  if (doCache) {
     auto signatures = g_signatures.read_lock();
     signaturecache_t::const_iterator iter = signatures->find(lookup);
     if (iter != signatures->end()) {
@@ -104,7 +114,7 @@ static int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSN
   rrc.d_type=signQType;
 
   rrc.d_labels=signQName.countLabels()-signQName.isWildcard();
-  rrc.d_originalttl=signTTL; 
+  rrc.d_originalttl=signTTL;
   rrc.d_siginception=startOfWeek - 7*86400; // XXX should come from zone metadata
   rrc.d_sigexpire=startOfWeek + 14*86400;
   rrc.d_signer = signer;
@@ -147,8 +157,8 @@ static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& sign
     if(getRRSIGsForRRSET(dk, signer, wildcardname.countLabels() ? wildcardname : signQName, signQType, signTTL, toSign, rrcs) < 0)  {
       // cerr<<"Error signing a record!"<<endl;
       return;
-    } 
-  
+    }
+
     DNSZoneRecord rr;
     rr.dr.d_name=signQName;
     rr.dr.d_type=QType::RRSIG;
@@ -159,14 +169,14 @@ static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& sign
     rr.auth=false;
     rr.dr.d_place = signPlace;
     for(RRSIGRecordContent& rrc :  rrcs) {
-      rr.dr.d_content = std::make_shared<RRSIGRecordContent>(rrc);
+      rr.dr.setContent(std::make_shared<RRSIGRecordContent>(rrc));
       outsigned.push_back(rr);
     }
   }
   toSign.clear();
 }
 
-uint64_t signatureCacheSize(const std::string& str)
+uint64_t signatureCacheSize(const std::string& /* str */)
 {
   return g_signatures.read_lock()->size();
 }
@@ -187,19 +197,19 @@ static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name,
     }
   }
   while(sname.chopOff());
-  
+
   return false;
 }
 
 void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, vector<DNSZoneRecord>& rrs)
 {
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
-  
-  DNSName signQName, wildcardQName;
+
+  DNSName authQName, signQName, wildcardQName;
   uint16_t signQType=0;
   uint32_t signTTL=0;
   uint32_t origTTL=0;
-  
+
   DNSResourceRecord::Place signPlace=DNSResourceRecord::ANSWER;
   sortedRecords_t toSign;
 
@@ -209,11 +219,17 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
   DNSName signer;
   for(auto pos = rrs.cbegin(); pos != rrs.cend(); ++pos) {
     if(pos != rrs.cbegin() && (signQType != pos->dr.d_type  || signQName != pos->dr.d_name)) {
-      if(getBestAuthFromSet(authSet, signQName, signer))
+      if (getBestAuthFromSet(authSet, authQName, signer))
         addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL);
     }
     signedRecords.push_back(*pos);
-    signQName= pos->dr.d_name.makeLowerCase();
+    signQName = pos->dr.d_name.makeLowerCase();
+    if (pos->dr.d_type == QType::NSEC) {
+      authQName = signQName.getCommonLabels(getRR<NSECRecordContent>(pos->dr)->d_next);
+    }
+    else {
+      authQName = signQName;
+    }
     if(!pos->wildcardname.empty())
       wildcardQName = pos->wildcardname.makeLowerCase();
     else
@@ -226,10 +242,10 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
     origTTL = pos->dr.d_ttl;
     signPlace = pos->dr.d_place;
     if(pos->auth || pos->dr.d_type == QType::DS) {
-      toSign.insert(pos->dr.d_content); // so ponder.. should this be a deep copy perhaps?
+      toSign.insert(pos->dr.getContent()); // so ponder.. should this be a deep copy perhaps?
     }
   }
-  if(getBestAuthFromSet(authSet, signQName, signer))
+  if (getBestAuthFromSet(authSet, authQName, signer))
     addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL);
   rrs.swap(signedRecords);
 }

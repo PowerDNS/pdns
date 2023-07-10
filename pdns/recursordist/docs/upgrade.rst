@@ -4,16 +4,56 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.8.0 to master
----------------
+4.8.0 to 4.9.0 and master
+-------------------------
 
 Metrics
--------
+^^^^^^^
 The way metrics are collected has been changed to increase performance, especially when many thread are used.
 This allows for solving a long standing issue that some statistics were not updated on packet cache hits.
 This is now resolved, but has the consequence that some metrics (in particular response related ones) changed behaviour as they now also reflect packet cache hits, while they did not before.
 This affects the results shown by ``rec_control get-qtypelist`` and the ``response-by-qtype``, ``response-sizes`` and ``response-by-rcode`` items returned by the ``/api/v1/servers/localhost/statistics`` API endpoint.
 Additionally, most ``RCodes`` and ``QTypes`` that are marked ``Unassigned``, ``Reserved`` or ``Obsolete`` by IANA are not accounted, to reduce the memory consumed by these metrics.
+
+New settings
+~~~~~~~~~~~~
+- The :ref:`setting-packetcache-negative-ttl` settings to control the TTL of negative (NxDomain or NoData) answers in the packet cache has been introduced.
+- The :ref:`setting-stack-cache-size` setting to  control the number of allocated mthread stacks has been introduced.
+- The :ref:`setting-packetcache-shards` settings to control the number of shards in the packet cache has been introduced.
+- The :ref:`setting-aggressive-cache-min-nsec3-hit-ratio` setting to control which NSEC3 records are stored in the aggressive NSEC cache has been introduced.
+  This setting can be used to switch off aggressive caching for NSEC3 only.
+- The :ref:`setting-dnssec-disabled-algorithms` has been introduced to not use DNSSEC algorithms disabled by the platform's security policy.
+  This applies specifically to Red Hat Enterprise Linux 9 and derivatives.
+  The default value (automatically determine the algorithms that are disabled) should work for many cases.
+- The setting ``includeSOA`` was added to the :func:`rpzPrimary` and :func:`rpzFile` Lua functions to include the SOA of the RPZ the responses modified by the RPZ.
+
+Changed settings
+~~~~~~~~~~~~~~~~
+The first two settings below have effect on the way the recursor distributes queries over threads.
+In some cases, this can lead to imbalance of the number of queries process per thread.
+See :doc:`performance`, in particular the :ref:`worker_imbalance` section.
+
+- The :ref:`setting-pdns-distributes-queries` default has been changed to ``no``.
+- The :ref:`setting-reuseport` default has been changed to ``yes``.
+- The :ref:`setting-packetcache-ttl` default has been changed to 24 hours.
+- The :ref:`setting-max-recursion-depth` default has been changed to 16. Before it was, 40, but effectively the CNAME length chain limit (fixed at 16) took precedence.
+- The :ref:`setting-hint-file` setting gained a new special value to disable refreshing of root hints completely. See :ref:`handling-of-root-hints`.
+
+:program:`rec_control`
+^^^^^^^^^^^^^^^^^^^^^^
+The ``trace_regex`` subcommand has been changed to take a file argument.
+Refer to :doc:`rec_control trace-regex <manpages/rec_control.1>` and :ref:`tracing` for details and example use.
+
+4.8.1 to 4.8.2
+--------------
+
+Cache eviction policy
+^^^^^^^^^^^^^^^^^^^^^
+The cache eviction policy for the record and the negative caches has been improved to reduce imbalance between shards.
+The maximum size of the negative cache is now 1/8th of the size of the record cache and its number of shards is 1/8th of the :ref:`setting-record-cache-shards` setting.
+Previously the size was 1/10th of the record cache size and the number of shards was equal to the
+number of shards of the record cache.
+The ``rec_control dump-cache`` command now prints more information about shards.
 
 
 4.7.0 to 4.8.0
@@ -44,7 +84,6 @@ The ``dump-throttle`` and ``dump-edns`` subcommands no longer produces a table p
 Additionally, the ``dump-edns`` command  now only lists IPs that have a not OK status.
 The ``dump-nsspeeds`` command has changed format to make it more readable and lists the last round trip time recorded for each address.
 The ``get-proxymapping-stats`` and ``get-remotelogger-stats`` subcommands have been added.
-
 
 4.7.2 to 4.7.3
 --------------

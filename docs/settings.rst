@@ -300,7 +300,7 @@ It is strongly recommended to keep this setting enabled (`yes`).
 
 -  Path
 
-Location of configuration directory (``pdns.conf``). Usually
+Location of configuration directory (the directory containing ``pdns.conf``). Usually
 ``/etc/powerdns``, but this depends on ``SYSCONFDIR`` during
 compile-time.
 
@@ -723,7 +723,7 @@ If this is enabled, ALIAS records are expanded (synthesized to their
 A/AAAA).
 
 If this is disabled (the default), ALIAS records will not be expanded and
-the server will will return NODATA for A/AAAA queries for such names.
+the server will return NODATA for A/AAAA queries for such names.
 
 .. note::
   :ref:`setting-resolver` must also be set for ALIAS expansion to work!
@@ -1278,8 +1278,11 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
 ``outgoing-axfr-expand-alias``
 ------------------------------
 
--  Boolean
+-  One of ``no``, ``yes``, or ``ignore-errors``, String
 -  Default: no
+
+.. versionchanged:: 4.9.0
+  Option `ignore-errors` added.
 
 If this is enabled, ALIAS records are expanded (synthesized to their
 A/AAAA) during outgoing AXFR. This means slaves will not automatically
@@ -1288,6 +1291,12 @@ follow changes in those A/AAAA records unless you AXFR regularly!
 If this is disabled (the default), ALIAS records are sent verbatim
 during outgoing AXFR. Note that if your slaves do not support ALIAS,
 they will return NODATA for A/AAAA queries for such names.
+
+If the ALIAS target can not be resolved during AXFR the AXFR will fail.
+To allow outgoing AXFR also if the ALIAS targets are broken set this
+setting to `ignore-errors`.
+Be warned, this will lead to inconsistent zones between Primary and
+Secondary name servers.
 
 .. _setting-overload-queue-length:
 
@@ -1981,6 +1990,20 @@ If the webserver should print arguments.
 -  Default: yes
 
 If a PID file should be written.
+
+.. _setting-workaround-11804:
+
+``workaround-11804``
+--------------------
+
+-  Boolean
+-  Default: no
+
+Workaround for `issue #11804 (outgoing AXFR may try to overfill a chunk and fail) <https://github.com/PowerDNS/pdns/issues/11804>`_.
+
+Default of no implies the pre-4.8 behaviour of up to 100 RRs per AXFR chunk.
+
+If enabled, only a single RR will be put into each AXFR chunk, making some zones transferable when they were not.
 
 .. _setting-xfr-cycle-interval:
 

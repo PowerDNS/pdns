@@ -1,0 +1,5 @@
+FROM gcr.io/oss-fuzz-base/base-builder:latest
+
+RUN sed -i 's/[a-z]*\.ubuntu\.com/mirror\.leaseweb\.net/' /etc/apt/sources.list
+RUN apt-get update
+

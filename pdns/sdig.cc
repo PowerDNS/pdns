@@ -124,12 +124,12 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
          << ttl(i->first.d_ttl) << "\t" << nameForClass(i->first.d_class, i->first.d_type) << "\t"
          << DNSRecordContent::NumberToType(i->first.d_type);
     if (dumpluaraw) {
-      cout<<"\t"<< makeLuaString(i->first.d_content->serialize(DNSName(), true))<<endl;
+      cout<<"\t"<< makeLuaString(i->first.getContent()->serialize(DNSName(), true))<<endl;
       continue;
     }
     if (i->first.d_class == QClass::IN) {
       if (i->first.d_type == QType::RRSIG) {
-        string zoneRep = i->first.d_content->getZoneRepresentation();
+        string zoneRep = i->first.getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         cout << "\t" << parts[0] << " "
@@ -138,7 +138,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         continue;
       }
       if (!showflags && i->first.d_type == QType::NSEC3) {
-        string zoneRep = i->first.d_content->getZoneRepresentation();
+        string zoneRep = i->first.getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         cout << "\t" << parts[0] << " [flags] "
@@ -150,7 +150,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         continue;
       }
       if (i->first.d_type == QType::DNSKEY) {
-        string zoneRep = i->first.d_content->getZoneRepresentation();
+        string zoneRep = i->first.getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         cout << "\t" << parts[0] << " "
@@ -158,7 +158,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         continue;
       }
       if (i->first.d_type == QType::SOA && hidesoadetails) {
-        string zoneRep = i->first.d_content->getZoneRepresentation();
+        string zoneRep = i->first.getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         cout << "\t" << parts[0] << " "
@@ -167,7 +167,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         continue;
       }
     }
-    cout << "\t" << i->first.d_content->getZoneRepresentation() << "\n";
+    cout << "\t" << i->first.getContent()->getZoneRepresentation() << "\n";
   }
 
   EDNSOpts edo;
@@ -417,7 +417,7 @@ try {
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
     sock.setNonBlocking();
     setTCPNoDelay(sock.getHandle()); // disable NAGLE, which does not play nicely with delayed ACKs
-    TCPIOHandler handler(subjectName, false, sock.releaseHandle(), timeout, tlsCtx, time(nullptr));
+    TCPIOHandler handler(subjectName, false, sock.releaseHandle(), timeout, tlsCtx);
     handler.connect(fastOpen, dest, timeout);
     // we are writing the proxyheader inside the TLS connection. Is that right?
     if (proxyheader.size() > 0 && handler.write(proxyheader.data(), proxyheader.size(), timeout) != proxyheader.size()) {

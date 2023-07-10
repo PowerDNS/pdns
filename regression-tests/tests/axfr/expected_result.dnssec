@@ -1,3 +1,7 @@
+*.dnssec-parent.com.	3600	IN	CNAME	secure-delegated.dnssec-parent.com.
+*.dnssec-parent.com.	3600	IN	NSEC	insecure-delegated.ent.ent.auth-ent.dnssec-parent.com. CNAME RRSIG NSEC
+*.dnssec-parent.com.	3600	IN	RRSIG	CNAME 13 2 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
+*.dnssec-parent.com.	3600	IN	RRSIG	NSEC 13 2 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
 delegated.dnssec-parent.com.	3600	IN	NS	ns1.delegated.dnssec-parent.com.
 delegated.dnssec-parent.com.	3600	IN	NS	ns2.delegated.dnssec-parent.com.
 delegated.dnssec-parent.com.	3600	IN	NSEC	insecure.dnssec-parent.com. NS RRSIG NSEC
@@ -5,7 +9,7 @@ delegated.dnssec-parent.com.	3600	IN	RRSIG	NSEC 13 3 3600 [expiry] [inception] [
 dnssec-parent.com.	3600	IN	A	9.9.9.9
 dnssec-parent.com.	3600	IN	NS	ns1.dnssec-parent.com.
 dnssec-parent.com.	3600	IN	NS	ns2.dnssec-parent.com.
-dnssec-parent.com.	3600	IN	NSEC	insecure-delegated.ent.ent.auth-ent.dnssec-parent.com. A NS SOA RRSIG NSEC DNSKEY CDS CDNSKEY
+dnssec-parent.com.	3600	IN	NSEC	*.dnssec-parent.com. A NS SOA RRSIG NSEC DNSKEY CDS CDNSKEY
 dnssec-parent.com.	3600	IN	RRSIG	A 13 2 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
 dnssec-parent.com.	3600	IN	RRSIG	NS 13 2 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...
 dnssec-parent.com.	3600	IN	RRSIG	NSEC 13 2 3600 [expiry] [inception] [keytag] dnssec-parent.com. ...

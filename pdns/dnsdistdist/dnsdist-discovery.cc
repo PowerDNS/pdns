@@ -38,7 +38,7 @@ const uint16_t ServiceDiscovery::s_defaultDoHSVCKey{7};
 
 bool ServiceDiscovery::addUpgradeableServer(std::shared_ptr<DownstreamState>& server, uint32_t interval, std::string poolAfterUpgrade, uint16_t dohSVCKey, bool keepAfterUpgrade)
 {
-  s_upgradeableBackends.lock()->push_back(std::make_shared<UpgradeableBackend>(UpgradeableBackend{server, poolAfterUpgrade, 0, interval, dohSVCKey, keepAfterUpgrade}));
+  s_upgradeableBackends.lock()->push_back(std::make_shared<UpgradeableBackend>(UpgradeableBackend{server, std::move(poolAfterUpgrade), 0, interval, dohSVCKey, keepAfterUpgrade}));
   return true;
 }
 
@@ -53,7 +53,7 @@ static bool parseSVCParams(const PacketBuffer& answer, std::map<uint16_t, Design
 {
   std::map<DNSName, std::vector<ComboAddress>> hints;
   const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(answer.data());
-  PacketReader pr(pdns_string_view(reinterpret_cast<const char*>(answer.data()), answer.size()));
+  PacketReader pr(std::string_view(reinterpret_cast<const char*>(answer.data()), answer.size()));
   uint16_t qdcount = ntohs(dh->qdcount);
   uint16_t ancount = ntohs(dh->ancount);
   uint16_t nscount = ntohs(dh->nscount);
@@ -147,6 +147,7 @@ static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& exis
   }
 
   for (const auto& [priority, resolver] : resolvers) {
+    (void)priority;
     /* do not compare the ports */
     std::set<ComboAddress, ComboAddress::addressOnlyLessThan> tentativeAddresses;
     ServiceDiscovery::DiscoveredResolverConfig tempConfig;
@@ -366,8 +367,7 @@ static bool checkBackendUsability(std::shared_ptr<DownstreamState>& ds)
       sock.bind(ds->d_config.sourceAddr);
     }
 
-    time_t now = time(nullptr);
-    auto handler = std::make_unique<TCPIOHandler>(ds->d_config.d_tlsSubjectName, ds->d_config.d_tlsSubjectIsAddr, sock.releaseHandle(), timeval{ds->d_config.checkTimeout, 0}, ds->d_tlsCtx, now);
+    auto handler = std::make_unique<TCPIOHandler>(ds->d_config.d_tlsSubjectName, ds->d_config.d_tlsSubjectIsAddr, sock.releaseHandle(), timeval{ds->d_config.checkTimeout, 0}, ds->d_tlsCtx);
     handler->connect(ds->d_config.tcpFastOpen, ds->d_config.remote, timeval{ds->d_config.checkTimeout, 0});
     return true;
   }

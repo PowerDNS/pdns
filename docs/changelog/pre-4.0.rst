@@ -3288,7 +3288,7 @@ New features
 -  Added support for DHCID, IPSECKEY and KX records, thanks Norbert
    Sendetzky for the hint. Implemented in `commit
    1144 <http://wiki.powerdns.com/projects/trac/changeset/1144>`__.
--  Norbert Sendetzky has has added support for all record types
+-  Norbert Sendetzky has added support for all record types
    supported by PowerDNS to the LDAPBackend. Furthermore, the detection
    of OpenLDAP in autoconf has been improved. Finally, debian has
    supplied some fixes to PowerLDAP. Implemented in `commit
@@ -5246,7 +5246,7 @@ Changes
 ^^^^^^^
 
 -  The monitor command **set** no longer allows the changing of
-   non-existent variables.
+   nonexistent variables.
 -  IBM Universal Database DB2 backend now included in source
    distribution (untested!)
 -  Oracle backend now included in source distribution (slightly tested!)
@@ -5916,7 +5916,7 @@ Bugs fixed
 -  PostgreSQL backend was case sensitive and returned only answers in
    case an exact match was found. The Generic PostgreSQL backend is now
    officially all lower case and zone2sql in PostgreSQL mode enforces
-   this. Documentation has been been updated to reflect the case change.
+   this. Documentation has been updated to reflect the case change.
    Thanks to Maikel Verheijen of Ladot for spotting this!
 -  Documentation bug - postgresql create/index statements created a
    duplicate index. If you've previously copy pasted the commands and

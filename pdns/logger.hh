@@ -24,7 +24,9 @@
 #include <string>
 #include <ctime>
 #include <iostream>
+#include <optional>
 #include <sstream>
+#include <variant>
 #include <syslog.h>
 
 #include "namespaces.hh"
@@ -166,3 +168,41 @@ Logger& getLogger();
 #else
 #define DLOG(x) ((void)0)
 #endif
+
+// The types below are used by rec, which can log to g_log (general logging) or a string stream
+// (trace-regexp). We pass an OptLog object to the code that should not know anything about this
+// That code should then log using VLOG
+
+struct LogVariant
+{
+  string prefix;
+  timeval start;
+  // variant cannot hold references
+  std::variant<Logger*, ostringstream*> v;
+};
+
+using OptLog = std::optional<LogVariant>;
+
+void addTraceTS(const timeval& start, ostringstream& str);
+
+#define VLOG(log, x)                                                       \
+  if (log) {                                                               \
+    if (std::holds_alternative<Logger*>((log)->v)) {                       \
+      *std::get<Logger*>(log->v) << Logger::Warning << (log)->prefix << x; \
+    }                                                                      \
+    else if (std::holds_alternative<ostringstream*>((log)->v)) {           \
+      addTraceTS((log)->start, *std::get<ostringstream*>((log)->v));       \
+      *std::get<ostringstream*>((log)->v) << (log)->prefix << x;           \
+    }                                                                      \
+  }
+
+#define VLOG_NO_PREFIX(log, x)                                       \
+  if (log) {                                                         \
+    if (std::holds_alternative<Logger*>((log)->v)) {                 \
+      *std::get<Logger*>(log->v) << Logger::Warning << x;            \
+    }                                                                \
+    else if (std::holds_alternative<ostringstream*>((log)->v)) {     \
+      addTraceTS((log)->start, *std::get<ostringstream*>((log)->v)); \
+      *std::get<ostringstream*>((log)->v) << x;                      \
+    }                                                                \
+  }
