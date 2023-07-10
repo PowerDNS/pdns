@@ -169,22 +169,37 @@ private:
 static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
 {
   auto data = boost::any_cast<std::shared_ptr<HealthCheckData>>(param);
-  data->d_mplexer.removeReadFD(fd);
 
+  ssize_t got = 0;
   ComboAddress from;
-  from.sin4.sin_family = data->d_ds->d_config.remote.sin4.sin_family;
-  auto fromlen = from.getSocklen();
-  data->d_buffer.resize(512);
-  auto got = recvfrom(data->d_udpSocket.getHandle(), &data->d_buffer.at(0), data->d_buffer.size(), 0, reinterpret_cast<sockaddr *>(&from), &fromlen);
-  if (got < 0) {
-    int savederrno = errno;
-    if (g_verboseHealthChecks) {
-      infolog("Error receiving health check response from %s: %s", data->d_ds->d_config.remote.toStringWithPort(), stringerror(savederrno));
+  do {
+    from.sin4.sin_family = data->d_ds->d_config.remote.sin4.sin_family;
+    auto fromlen = from.getSocklen();
+    data->d_buffer.resize(512);
+
+    got = recvfrom(data->d_udpSocket.getHandle(), &data->d_buffer.at(0), data->d_buffer.size(), 0, reinterpret_cast<sockaddr *>(&from), &fromlen);
+    if (got < 0) {
+      int savederrno = errno;
+      if (savederrno == EINTR) {
+        /* interrupted, let's try again */
+        continue;
+      }
+      if (savederrno == EWOULDBLOCK || savederrno == EAGAIN) {
+        /* spurious wake-up, let's return to sleep */
+        return;
+      }
+
+      if (g_verboseHealthChecks) {
+        infolog("Error receiving health check response from %s: %s", data->d_ds->d_config.remote.toStringWithPort(), stringerror(savederrno));
+      }
+      ++data->d_ds->d_healthCheckMetrics.d_networkErrors;
+      data->d_ds->submitHealthCheckResult(data->d_initial, false);
+      data->d_mplexer.removeReadFD(fd);
+      return;
     }
-    ++data->d_ds->d_healthCheckMetrics.d_networkErrors;
-    data->d_ds->submitHealthCheckResult(data->d_initial, false);
-    return;
   }
+  while (got < 0);
+
   data->d_buffer.resize(static_cast<size_t>(got));
 
   /* we are using a connected socket but hey.. */
@@ -197,6 +212,7 @@ static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
     return;
   }
 
+  data->d_mplexer.removeReadFD(fd);
   data->d_ds->submitHealthCheckResult(data->d_initial, handleResponse(data));
 }
 
