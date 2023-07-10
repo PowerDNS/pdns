@@ -144,7 +144,7 @@ class TestAPIBasics(APITestsBase):
                         'dropRate', 'responses', 'nonCompliantResponses', 'tcpDiedSendingQuery', 'tcpDiedReadingResponse',
                         'tcpGaveUp', 'tcpReadTimeouts', 'tcpWriteTimeouts', 'tcpCurrentConnections',
                         'tcpNewConnections', 'tcpReusedConnections', 'tlsResumptions', 'tcpAvgQueriesPerConnection',
-                        'tcpAvgConnectionDuration', 'tcpLatency', 'protocol']:
+                        'tcpAvgConnectionDuration', 'tcpLatency', 'protocol', 'healthCheckFailures', 'healthCheckFailuresParsing', 'healthCheckFailuresTimeout', 'healthCheckFailuresNetwork', 'healthCheckFailuresMismatch', 'healthCheckFailuresInvalid']:
                 self.assertIn(key, server)
 
             for key in ['id', 'latency', 'weight', 'outstanding', 'qpsLimit', 'reuseds',
