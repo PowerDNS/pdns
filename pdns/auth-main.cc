@@ -165,6 +165,7 @@ static void declareArguments()
   ::arg().set("proxy-protocol-maximum-size", "The maximum size of a proxy protocol payload, including the TLV values") = "512";
   ::arg().setSwitch("send-signed-notify", "Send TSIG secured NOTIFY if TSIG key is configured for a zone") = "yes";
   ::arg().set("allow-unsigned-notify", "Allow unsigned notifications for TSIG secured zones") = "yes"; // FIXME: change to 'no' later
+  ::arg().set("allow-unsigned-supermaster", "Allow supermasters to create zones without TSIG signed NOTIFY") = "yes";
   ::arg().set("allow-unsigned-autoprimary", "Allow autoprimaries to create zones without TSIG signed NOTIFY") = "yes";
   ::arg().setSwitch("forward-dnsupdate", "A global setting to allow DNS update packages that are for a Slave zone, to be forwarded to the primary.") = "yes";
   ::arg().setSwitch("log-dns-details", "If PDNS should log DNS non-erroneous details") = "no";
@@ -222,6 +223,7 @@ static void declareArguments()
 
   ::arg().setSwitch("slave", "Act as a secondary") = "no";
   ::arg().setSwitch("secondary", "Act as a secondary") = "no";
+  ::arg().setSwitch("master", "Act as a primary") = "no";
   ::arg().setSwitch("primary", "Act as a primary") = "no";
   ::arg().setSwitch("superslave", "Act as a autosecondary") = "no";
   ::arg().setSwitch("autosecondary", "Act as an autosecondary (formerly superslave)") = "no";
@@ -1240,24 +1242,32 @@ int main(int argc, char** argv)
         g_log << Logger::Error << "Unknown logging facility " << ::arg().asNum("logging-facility") << endl;
     }
 
+    if (::arg().mustDo("master"))
+      ::arg().set("primary") = "yes";
     if (::arg().mustDo("slave"))
       ::arg().set("secondary") = "yes";
     if (::arg().mustDo("slave-renotify"))
       ::arg().set("secondary-do-renotify") = "yes";
     if (::arg().mustDo("superslave"))
       ::arg().set("autosecondary") = "yes";
+    if (::arg().mustDo("allow-unsigned-supermaster"))
+      ::arg().set("allow-unsigned-autoprimary") = "yes";
     if (!::arg().isEmpty("domain-metadata-cache-ttl"))
       ::arg().set("zone-metadata-cache-ttl") = ::arg()["domain-metadata-cache-ttl"];
     if (!::arg().isEmpty("slave-cycle-interval"))
       ::arg().set("xfr-cycle-interval") = ::arg()["slave-cycle-interval"];
 
     // this mirroring back is on purpose, so that config dumps reflect the actual setting on both names
+    if (::arg().mustDo("primary"))
+      ::arg().set("master") = "yes";
     if (::arg().mustDo("secondary"))
       ::arg().set("slave") = "yes";
     if (::arg().mustDo("secondary-do-renotify"))
       ::arg().set("slave-renotify") = "yes";
     if (::arg().mustDo("autosecondary"))
       ::arg().set("superslave") = "yes";
+    if (::arg().mustDo("allow-unsigned-autoprimary"))
+      ::arg().set("allow-unsigned-supermaster") = "yes";
     ::arg().set("domain-metadata-cache-ttl") = ::arg()["zone-metadata-cache-ttl"];
     ::arg().set("slave-cycle-interval") = ::arg()["xfr-cycle-interval"];
 
