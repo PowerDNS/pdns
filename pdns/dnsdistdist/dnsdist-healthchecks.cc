@@ -33,9 +33,15 @@ bool g_verboseHealthChecks{false};
 
 struct HealthCheckData
 {
-  enum class TCPState : uint8_t { WritingQuery, ReadingResponseSize, ReadingResponse };
+  enum class TCPState : uint8_t
+  {
+    WritingQuery,
+    ReadingResponseSize,
+    ReadingResponse
+  };
 
-  HealthCheckData(FDMultiplexer& mplexer, std::shared_ptr<DownstreamState> downstream, DNSName&& checkName, uint16_t checkType, uint16_t checkClass, uint16_t queryID): d_ds(std::move(downstream)), d_mplexer(mplexer), d_udpSocket(-1), d_checkName(std::move(checkName)), d_checkType(checkType), d_checkClass(checkClass), d_queryID(queryID)
+  HealthCheckData(FDMultiplexer& mplexer, std::shared_ptr<DownstreamState> downstream, DNSName&& checkName, uint16_t checkType, uint16_t checkClass, uint16_t queryID) :
+    d_ds(std::move(downstream)), d_mplexer(mplexer), d_udpSocket(-1), d_checkName(std::move(checkName)), d_checkType(checkType), d_checkClass(checkClass), d_queryID(queryID)
   {
   }
 
@@ -46,7 +52,10 @@ struct HealthCheckData
   PacketBuffer d_buffer;
   Socket d_udpSocket;
   DNSName d_checkName;
-  struct timeval d_ttd{0, 0};
+  struct timeval d_ttd
+  {
+    0, 0
+  };
   size_t d_bufferPos{0};
   uint16_t d_checkType;
   uint16_t d_checkClass;
@@ -133,7 +142,8 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
 class HealthCheckQuerySender : public TCPQuerySender
 {
 public:
-  HealthCheckQuerySender(std::shared_ptr<HealthCheckData>& data): d_data(data)
+  HealthCheckQuerySender(std::shared_ptr<HealthCheckData>& data) :
+    d_data(data)
   {
   }
   HealthCheckQuerySender(const HealthCheckQuerySender&) = default;
@@ -180,7 +190,7 @@ static void healthCheckUDPCallback(int descriptor, FDMultiplexer::funcparam_t& p
     data->d_buffer.resize(512);
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    got = recvfrom(data->d_udpSocket.getHandle(), &data->d_buffer.at(0), data->d_buffer.size(), 0, reinterpret_cast<sockaddr *>(&from), &fromlen);
+    got = recvfrom(data->d_udpSocket.getHandle(), &data->d_buffer.at(0), data->d_buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromlen);
     if (got < 0) {
       int savederrno = errno;
       if (savederrno == EINTR) {
@@ -200,8 +210,7 @@ static void healthCheckUDPCallback(int descriptor, FDMultiplexer::funcparam_t& p
       data->d_mplexer.removeReadFD(descriptor);
       return;
     }
-  }
-  while (got < 0);
+  } while (got < 0);
 
   data->d_buffer.resize(static_cast<size_t>(got));
 
@@ -390,7 +399,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
       }
     }
     else {
-      data->d_tcpHandler = std::make_unique<TCPIOHandler>(downstream->d_config.d_tlsSubjectName, downstream->d_config.d_tlsSubjectIsAddr, sock.releaseHandle(), timeval{downstream->d_config.checkTimeout,0}, downstream->d_tlsCtx);
+      data->d_tcpHandler = std::make_unique<TCPIOHandler>(downstream->d_config.d_tlsSubjectName, downstream->d_config.d_tlsSubjectIsAddr, sock.releaseHandle(), timeval{downstream->d_config.checkTimeout, 0}, downstream->d_tlsCtx);
       data->d_ioState = std::make_unique<IOStateHandler>(*mplexer, data->d_tcpHandler->getDescriptor());
       if (downstream->d_tlsCtx) {
         try {
@@ -406,7 +415,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
       }
       data->d_tcpHandler->tryConnect(downstream->d_config.tcpFastOpen, downstream->d_config.remote);
 
-      const std::array<uint8_t,2> sizeBytes = { static_cast<uint8_t>(packetSize / 256), static_cast<uint8_t>(packetSize % 256) };
+      const std::array<uint8_t, 2> sizeBytes = {static_cast<uint8_t>(packetSize / 256), static_cast<uint8_t>(packetSize % 256)};
       packet.insert(packet.begin() + static_cast<ssize_t>(proxyProtocolPayloadSize), sizeBytes.begin(), sizeBytes.end());
       data->d_buffer = std::move(packet);
 
@@ -440,7 +449,9 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
 void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
 {
   while (mplexer.getWatchedFDCount(false) > 0 || mplexer.getWatchedFDCount(true) > 0) {
-    struct timeval now{};
+    struct timeval now
+    {
+    };
     int ret = mplexer.run(&now, 100);
     if (ret == -1) {
       if (g_verboseHealthChecks) {
