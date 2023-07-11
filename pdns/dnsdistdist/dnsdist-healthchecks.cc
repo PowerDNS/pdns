@@ -459,11 +459,15 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
         data->d_ds->submitHealthCheckResult(initial, false);
       }
       catch (const std::exception& e) {
+        /* this is not supposed to happen as the file descriptor has to be
+           there for us to reach that code, and the submission code should not throw,
+           but let's provide a nice error message if it ever does. */
         if (g_verboseHealthChecks) {
           infolog("Error while dealing with a timeout for the health check response (ID %d) from backend %s: %s", data->d_queryID, data->d_ds->getNameWithAddr(), e.what());
         }
       }
       catch (...) {
+        /* this is even less likely to happen */
         if (g_verboseHealthChecks) {
           infolog("Error while dealing with a timeout for the health check response (ID %d) from backend %s", data->d_queryID, data->d_ds->getNameWithAddr());
         }
@@ -487,11 +491,14 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
         data->d_ds->submitHealthCheckResult(initial, false);
       }
       catch (const std::exception& e) {
+        /* this is not supposed to happen as the submission code should not throw,
+           but let's provide a nice error message if it ever does. */
         if (g_verboseHealthChecks) {
           infolog("Error while dealing with a timeout for the health check response (ID %d) from backend %s: %s", data->d_queryID, data->d_ds->getNameWithAddr(), e.what());
         }
       }
       catch (...) {
+        /* this is even less likely to happen */
         if (g_verboseHealthChecks) {
           infolog("Error while dealing with a timeout for the health check response (ID %d) from backend %s", data->d_queryID, data->d_ds->getNameWithAddr());
         }
