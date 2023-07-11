@@ -178,7 +178,7 @@
 ./pdns/lua-record.cc
 ./pdns/malloctrace.cc
 ./pdns/malloctrace.hh
-./pdns/mastercommunicator.cc
+./pdns/auth-primarycommunicator.cc
 ./pdns/minicurl.cc
 ./pdns/minicurl.hh
 ./pdns/misc.cc
@@ -228,7 +228,6 @@
 ./pdns/signingpipe.cc
 ./pdns/signingpipe.hh
 ./pdns/sillyrecords.cc
-./pdns/slavecommunicator.cc
 ./pdns/snmp-agent.cc
 ./pdns/snmp-agent.hh
 ./pdns/sodcrypto.cc

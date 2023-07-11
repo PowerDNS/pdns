@@ -17,9 +17,9 @@ libldapbackend_la_SOURCES = \
 	ldapauthenticator.hh ldapauthenticator_p.hh ldapauthenticator.cc \
 	ldapbackend.cc ldapbackend.hh \
 	ldaputils.hh ldaputils.cc \
-	master.cc \
 	native.cc \
 	powerldap.cc powerldap.hh \
+	primary.cc \
 	utils.hh
 
 libldapbackend_la_LDFLAGS = -module -avoid-version

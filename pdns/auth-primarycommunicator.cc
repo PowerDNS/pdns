@@ -43,82 +43,79 @@
 #include "namespaces.hh"
 #include "query-local-address.hh"
 
-
 void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 {
-  bool hasQueuedItem=false;
+  bool hasQueuedItem = false;
   set<string> ips;
   set<DNSName> nsset;
   DNSZoneRecord rr;
   FindNS fns;
 
   try {
-  if (d_onlyNotify.size()) {
-    B->lookup(QType(QType::NS), di.zone, di.id);
-    while(B->get(rr))
-      nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS());
+    if (d_onlyNotify.size()) {
+      B->lookup(QType(QType::NS), di.zone, di.id);
+      while (B->get(rr))
+        nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS());
 
-    for(const auto & ns : nsset) {
-      vector<string> nsips=fns.lookup(ns, B);
-      if(nsips.empty())
-        g_log<<Logger::Warning<<"Unable to queue notification of domain '"<<di.zone<<"' to nameserver '"<<ns<<"': nameserver does not resolve!"<<endl;
-      else
-        for(const auto & nsip : nsips) {
-          const ComboAddress caIp(nsip, 53);
-          if(!d_preventSelfNotification || !AddressIsUs(caIp)) {
-            if(!d_onlyNotify.match(&caIp))
-              g_log<<Logger::Notice<<"Skipped notification of domain '"<<di.zone<<"' to "<<ns<<" because "<<caIp<<" does not match only-notify."<<endl;
-            else
-              ips.insert(caIp.toStringWithPort());
+      for (const auto& ns : nsset) {
+        vector<string> nsips = fns.lookup(ns, B);
+        if (nsips.empty())
+          g_log << Logger::Warning << "Unable to queue notification of domain '" << di.zone << "' to nameserver '" << ns << "': nameserver does not resolve!" << endl;
+        else
+          for (const auto& nsip : nsips) {
+            const ComboAddress caIp(nsip, 53);
+            if (!d_preventSelfNotification || !AddressIsUs(caIp)) {
+              if (!d_onlyNotify.match(&caIp))
+                g_log << Logger::Notice << "Skipped notification of domain '" << di.zone << "' to " << ns << " because " << caIp << " does not match only-notify." << endl;
+              else
+                ips.insert(caIp.toStringWithPort());
+            }
           }
-        }
-    }
+      }
 
-    for(const auto & ip : ips) {
-      g_log<<Logger::Notice<<"Queued notification of domain '"<<di.zone<<"' to "<<ip<<endl;
-      d_nq.add(di.zone,ip);
-      hasQueuedItem=true;
+      for (const auto& ip : ips) {
+        g_log << Logger::Notice << "Queued notification of domain '" << di.zone << "' to " << ip << endl;
+        d_nq.add(di.zone, ip);
+        hasQueuedItem = true;
+      }
     }
   }
-  }
-  catch (PDNSException &ae) {
+  catch (PDNSException& ae) {
     g_log << Logger::Error << "Error looking up name servers for " << di.zone << ", cannot notify: " << ae.reason << endl;
     return;
   }
-  catch (std::exception &e) {
+  catch (std::exception& e) {
     g_log << Logger::Error << "Error looking up name servers for " << di.zone << ", cannot notify: " << e.what() << endl;
     return;
   }
 
-
   set<string> alsoNotify(d_alsoNotify);
   B->alsoNotifies(di.zone, &alsoNotify);
 
-  for(const auto & j : alsoNotify) {
+  for (const auto& j : alsoNotify) {
     try {
       const ComboAddress caIp(j, 53);
-      g_log<<Logger::Notice<<"Queued also-notification of domain '"<<di.zone<<"' to "<<caIp.toStringWithPort()<<endl;
+      g_log << Logger::Notice << "Queued also-notification of domain '" << di.zone << "' to " << caIp.toStringWithPort() << endl;
       if (!ips.count(caIp.toStringWithPort())) {
         ips.insert(caIp.toStringWithPort());
         d_nq.add(di.zone, caIp.toStringWithPort());
       }
-      hasQueuedItem=true;
+      hasQueuedItem = true;
     }
-    catch(PDNSException &e) {
-      g_log<<Logger::Warning<<"Unparseable IP in ALSO-NOTIFY metadata of domain '"<<di.zone<<"'. Warning: "<<e.reason<<endl;
+    catch (PDNSException& e) {
+      g_log << Logger::Warning << "Unparseable IP in ALSO-NOTIFY metadata of domain '" << di.zone << "'. Warning: " << e.reason << endl;
     }
   }
 
   if (!hasQueuedItem)
-    g_log<<Logger::Warning<<"Request to queue notification for domain '"<<di.zone<<"' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!"<<endl;
+    g_log << Logger::Warning << "Request to queue notification for domain '" << di.zone << "' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!" << endl;
 }
 
-
-bool CommunicatorClass::notifyDomain(const DNSName &domain, UeberBackend* B)
+bool CommunicatorClass::notifyDomain(const DNSName& domain, UeberBackend* B)
 {
   DomainInfo di;
-  if(!B->getDomainInfo(domain, di)) {
-    g_log<<Logger::Warning<<"No such domain '"<<domain<<"' in our database"<<endl;
+  if (!B->getDomainInfo(domain, di)) {
+    g_log << Logger::Warning << "No such domain '" << domain << "' in our database" << endl;
     return false;
   }
   queueNotifyDomain(di, B);
@@ -131,9 +128,9 @@ bool CommunicatorClass::notifyDomain(const DNSName &domain, UeberBackend* B)
 
 void NotificationQueue::dump()
 {
-  cerr<<"Waiting for notification responses: "<<endl;
-  for(NotificationRequest& nr :  d_nqueue) {
-    cerr<<nr.domain<<", "<<nr.ip<<endl;
+  cerr << "Waiting for notification responses: " << endl;
+  for (NotificationRequest& nr : d_nqueue) {
+    cerr << nr.domain << ", " << nr.ip << endl;
   }
 }
 
@@ -187,24 +184,24 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
 
 void CommunicatorClass::primaryUpdateCheck(PacketHandler* P)
 {
-  if(!::arg().mustDo("primary"))
+  if (!::arg().mustDo("primary"))
     return;
 
-  UeberBackend *B=P->getBackend();
+  UeberBackend* B = P->getBackend();
   vector<DomainInfo> cmdomains;
   std::unordered_set<DNSName> catalogs;
   CatalogHashMap catalogHashes;
   B->getUpdatedPrimaries(cmdomains, catalogs, catalogHashes);
   getUpdatedProducers(B, cmdomains, catalogs, catalogHashes);
 
-  if(cmdomains.empty()) {
+  if (cmdomains.empty()) {
     g_log << Logger::Info << "no primary or producer domains need notifications" << endl;
   }
   else {
     g_log << Logger::Info << cmdomains.size() << " domain" << addS(cmdomains.size()) << " for which we are primary or consumer need" << addS(cmdomains.size()) << " notifications" << endl;
   }
 
-  for(auto& di : cmdomains) {
+  for (auto& di : cmdomains) {
     purgeAuthCachesExact(di.zone);
     g_zoneCache.add(di.zone, di.id);
     queueNotifyDomain(di, B);
@@ -283,7 +280,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
   return d_nq.earliest();
 }
 
-void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t id, UeberBackend *B)
+void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t id, UeberBackend* B)
 {
   vector<string> meta;
   DNSName tsigkeyname;
@@ -312,35 +309,35 @@ void CommunicatorClass::sendNotification(int sock, const DNSName& domain, const 
       trc.d_algoName = tsigalgorithm;
     trc.d_time = time(nullptr);
     trc.d_fudge = 300;
-    trc.d_origID=ntohs(id);
-    trc.d_eRcode=0;
+    trc.d_origID = ntohs(id);
+    trc.d_eRcode = 0;
     if (B64Decode(tsigsecret64, tsigsecret) == -1) {
-      g_log<<Logger::Error<<"Unable to Base-64 decode TSIG key '"<<tsigkeyname<<"' for domain '"<<domain<<"'"<<endl;
+      g_log << Logger::Error << "Unable to Base-64 decode TSIG key '" << tsigkeyname << "' for domain '" << domain << "'" << endl;
       return;
     }
     addTSIG(pw, trc, tsigkeyname, tsigsecret, "", false);
   }
 
-  if(sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
-    throw ResolverException("Unable to send notify to "+remote.toStringWithPort()+": "+stringerror());
+  if (sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
+    throw ResolverException("Unable to send notify to " + remote.toStringWithPort() + ": " + stringerror());
   }
 }
 
-void CommunicatorClass::drillHole(const DNSName &domain, const string &ip)
+void CommunicatorClass::drillHole(const DNSName& domain, const string& ip)
 {
-  (*d_holes.lock())[pair(domain,ip)]=time(nullptr);
+  (*d_holes.lock())[pair(domain, ip)] = time(nullptr);
 }
 
-bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
+bool CommunicatorClass::justNotified(const DNSName& domain, const string& ip)
 {
   auto holes = d_holes.lock();
-  auto it = holes->find(pair(domain,ip));
+  auto it = holes->find(pair(domain, ip));
   if (it == holes->end()) {
     // no hole
     return false;
   }
 
-  if (it->second > time(nullptr)-900) {
+  if (it->second > time(nullptr) - 900) {
     // recent hole
     return true;
   }
@@ -351,19 +348,21 @@ bool CommunicatorClass::justNotified(const DNSName &domain, const string &ip)
 
 void CommunicatorClass::makeNotifySockets()
 {
-  if(pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
+  if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
     d_nsock4 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true, ::arg().mustDo("non-local-bind"));
-  } else {
+  }
+  else {
     d_nsock4 = -1;
   }
-  if(pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
+  if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
     d_nsock6 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true, ::arg().mustDo("non-local-bind"));
-  } else {
+  }
+  else {
     d_nsock6 = -1;
   }
 }
 
-void CommunicatorClass::notify(const DNSName &domain, const string &ip)
+void CommunicatorClass::notify(const DNSName& domain, const string& ip)
 {
   d_nq.add(domain, ip);
 }
