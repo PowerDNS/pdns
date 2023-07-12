@@ -29,3 +29,5 @@ option('module-ldap', type: 'boolean', value: false, description: 'Build the LDA
 option('module-ldap-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable LDAP backend')
 option('module-remote', type: 'boolean', value: false, description: 'Build the remote backend')
 option('module-remote-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable remote backend')
+option('module-tinydns', type: 'boolean', value: false, description: 'Build the tinyDNS backend')
+option('module-tinydns-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable tinyDNS backend')

@@ -121,6 +121,7 @@ all_modules = [
   ['gsqlite3', 'sqlite3'],
   ['ldap', 'ldap'],
   ['remote', 'curl'],
+  ['tinydns', 'cdb'],
 ]
 selected_modules = []
 foreach module: all_modules
