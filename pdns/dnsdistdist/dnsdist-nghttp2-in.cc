@@ -290,6 +290,32 @@ bool IncomingHTTP2Connection::hasPendingWrite() const
   return d_pendingWrite;
 }
 
+IOState IncomingHTTP2Connection::handleHandshake(const struct timeval& now)
+{
+  auto iostate = d_handler.tryHandshake();
+  if (iostate == IOState::Done) {
+    handleHandshakeDone(now);
+    if (d_handler.isTLS()) {
+      if (!checkALPN()) {
+        d_connectionDied = true;
+        stopIO();
+        return iostate;
+      }
+    }
+
+    if (!isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
+      d_state = State::readingProxyProtocolHeader;
+      d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
+      d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
+    }
+    else {
+      d_state = State::waitingForQuery;
+      handleConnectionReady();
+    }
+  }
+  return iostate;
+}
+
 void IncomingHTTP2Connection::handleIO()
 {
   IOState iostate = IOState::Done;
@@ -306,38 +332,41 @@ void IncomingHTTP2Connection::handleIO()
       return;
     }
 
-    if (d_state == State::doingHandshake) {
-      iostate = d_handler.tryHandshake();
-      if (iostate == IOState::Done) {
-        handleHandshakeDone(now);
-        if (d_handler.isTLS()) {
-          if (!checkALPN()) {
-            d_connectionDied = true;
-            stopIO();
-            return;
-          }
-        }
-
-        if (expectProxyProtocolFrom(d_ci.remote)) {
-          d_state = IncomingTCPConnectionState::State::readingProxyProtocolHeader;
-          d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
-          d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
-        }
-        else {
-          d_state = State::waitingForQuery;
-          handleConnectionReady();
-        }
+    if (d_state == State::starting) {
+      if (isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
+        d_state = State::readingProxyProtocolHeader;
+        d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
+        d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
+      }
+      else {
+        d_state = State::doingHandshake;
       }
     }
 
-    if (d_state == IncomingTCPConnectionState::State::readingProxyProtocolHeader) {
+    if (d_state == State::doingHandshake) {
+      iostate = handleHandshake(now);
+      if (d_connectionDied) {
+        return;
+      }
+    }
+
+    if (d_state == State::readingProxyProtocolHeader) {
       auto status = handleProxyProtocolPayload();
       if (status == ProxyProtocolResult::Done) {
-        d_currentPos = 0;
-        d_proxyProtocolNeed = 0;
-        d_buffer.clear();
-        d_state = State::waitingForQuery;
-        handleConnectionReady();
+        if (isProxyPayloadOutsideTLS()) {
+          d_state = State::doingHandshake;
+          iostate = handleHandshake(now);
+          if (d_connectionDied) {
+            return;
+          }
+        }
+        else {
+          d_currentPos = 0;
+          d_proxyProtocolNeed = 0;
+          d_buffer.clear();
+          d_state = State::waitingForQuery;
+          handleConnectionReady();
+        }
       }
       else if (status == ProxyProtocolResult::Error) {
         d_connectionDied = true;

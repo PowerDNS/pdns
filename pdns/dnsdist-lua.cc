@@ -2409,6 +2409,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       getOptionalValue<std::string>(vars, "serverTokens", frontend->d_serverTokens);
       getOptionalValue<std::string>(vars, "provider", frontend->d_tlsContext.d_provider);
       boost::algorithm::to_lower(frontend->d_tlsContext.d_provider);
+      getOptionalValue<bool>(vars, "proxyProtocolOutsideTLS", frontend->d_tlsContext.d_proxyProtocolOutsideTLS);
 
       LuaAssociativeTable<std::string> customResponseHeaders;
       if (getOptionalValue<decltype(customResponseHeaders)>(vars, "customResponseHeaders", customResponseHeaders) > 0) {
@@ -2647,6 +2648,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       getOptionalValue<std::string>(vars, "provider", frontend->d_provider);
       boost::algorithm::to_lower(frontend->d_provider);
+      getOptionalValue<bool>(vars, "proxyProtocolOutsideTLS", frontend->d_proxyProtocolOutsideTLS);
 
       LuaArray<std::string> addresses;
       if (getOptionalValue<decltype(addresses)>(vars, "additionalAddresses", addresses) > 0) {

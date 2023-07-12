@@ -299,7 +299,7 @@ void IncomingTCPConnectionState::registerOwnedDownstreamConnection(std::shared_p
 /* called when the buffer has been set and the rules have been processed, and only from handleIO (sometimes indirectly via handleQuery) */
 IOState IncomingTCPConnectionState::sendResponse(const struct timeval& now, TCPResponse&& response)
 {
-  d_state = IncomingTCPConnectionState::State::sendingResponse;
+  d_state = State::sendingResponse;
 
   uint16_t responseSize = static_cast<uint16_t>(response.d_buffer.size());
   const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
@@ -382,18 +382,18 @@ void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnec
   // idle, and thus not trying to send the response right away would make our ref count go to 0.
   // Even if we are waiting for a query, we will not wake up before the new query arrives or a
   // timeout occurs
-  if (state->d_state == IncomingTCPConnectionState::State::idle ||
-      state->d_state == IncomingTCPConnectionState::State::waitingForQuery) {
+  if (state->d_state == State::idle ||
+      state->d_state == State::waitingForQuery) {
     auto iostate = sendQueuedResponses(state, now);
 
     if (iostate == IOState::Done && state->active()) {
       if (state->canAcceptNewQueries(now)) {
         state->resetForNewQuery();
-        state->d_state = IncomingTCPConnectionState::State::waitingForQuery;
+        state->d_state = State::waitingForQuery;
         iostate = IOState::NeedRead;
       }
       else {
-        state->d_state = IncomingTCPConnectionState::State::idle;
+        state->d_state = State::idle;
       }
     }
 
@@ -649,7 +649,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
   auto dnsCryptResponse = checkDNSCryptQuery(*d_ci.cs, query, ids.dnsCryptQuery, ids.queryRealTime.d_start.tv_sec, true);
   if (dnsCryptResponse) {
     TCPResponse response;
-    d_state = IncomingTCPConnectionState::State::idle;
+    d_state = State::idle;
     ++d_currentQueriesCount;
     queueResponse(state, now, std::move(response));
     return QueryProcessingResult::SelfAnswered;
@@ -668,7 +668,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
       dh->qr = true;
       response.d_idstate.selfGenerated = true;
       response.d_buffer = std::move(query);
-      d_state = IncomingTCPConnectionState::State::idle;
+      d_state = State::idle;
       ++d_currentQueriesCount;
       queueResponse(state, now, std::move(response));
       return QueryProcessingResult::Empty;
@@ -749,7 +749,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     response.d_idstate.cs = d_ci.cs;
     response.d_buffer = std::move(query);
 
-    d_state = IncomingTCPConnectionState::State::idle;
+    d_state = State::idle;
     ++d_currentQueriesCount;
     queueResponse(state, now, std::move(response));
     return QueryProcessingResult::SelfAnswered;
@@ -849,7 +849,7 @@ IncomingTCPConnectionState::ProxyProtocolResult IncomingTCPConnectionState::hand
 {
   do {
     DEBUGLOG("reading proxy protocol header");
-    auto iostate = d_handler.tryRead(d_buffer, d_currentPos, d_proxyProtocolNeed);
+    auto iostate = d_handler.tryRead(d_buffer, d_currentPos, d_proxyProtocolNeed, false, isProxyPayloadOutsideTLS());
     if (iostate == IOState::Done) {
       d_buffer.resize(d_currentPos);
       ssize_t remaining = isProxyHeaderComplete(d_buffer);
@@ -887,6 +887,30 @@ IncomingTCPConnectionState::ProxyProtocolResult IncomingTCPConnectionState::hand
   return ProxyProtocolResult::Reading;
 }
 
+IOState IncomingTCPConnectionState::handleHandshake(const struct timeval& now)
+{
+  DEBUGLOG("doing handshake");
+  auto iostate = d_handler.tryHandshake();
+  if (iostate == IOState::Done) {
+    DEBUGLOG("handshake done");
+    handleHandshakeDone(now);
+
+    if (!isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
+      d_state = State::readingProxyProtocolHeader;
+      d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
+      d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
+    }
+    else {
+      d_state = State::readingQuerySize;
+    }
+  }
+  else {
+    d_lastIOBlocked = true;
+  }
+
+  return iostate;
+}
+
 void IncomingTCPConnectionState::handleIO()
 {
   // why do we loop? Because the TLS layer does buffering, and thus can have data ready to read
@@ -909,34 +933,34 @@ void IncomingTCPConnectionState::handleIO()
     d_lastIOBlocked = false;
 
     try {
-      if (d_state == IncomingTCPConnectionState::State::doingHandshake) {
-        DEBUGLOG("doing handshake");
-        iostate = d_handler.tryHandshake();
-        if (iostate == IOState::Done) {
-          DEBUGLOG("handshake done");
-          handleHandshakeDone(now);
-
-          if (expectProxyProtocolFrom(d_ci.remote)) {
-            d_state = IncomingTCPConnectionState::State::readingProxyProtocolHeader;
-            d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
-            d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
-          }
-          else {
-            d_state = IncomingTCPConnectionState::State::readingQuerySize;
-          }
+      if (d_state == State::starting) {
+        if (isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
+          d_state = State::readingProxyProtocolHeader;
+          d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
+          d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
         }
         else {
-          d_lastIOBlocked = true;
+          d_state = State::doingHandshake;
         }
       }
 
-      if (!d_lastIOBlocked && d_state == IncomingTCPConnectionState::State::readingProxyProtocolHeader) {
+      if (d_state == State::doingHandshake) {
+        iostate = handleHandshake(now);
+      }
+
+      if (!d_lastIOBlocked && d_state == State::readingProxyProtocolHeader) {
         auto status = handleProxyProtocolPayload();
         if (status == ProxyProtocolResult::Done) {
-          d_state = IncomingTCPConnectionState::State::readingQuerySize;
-          d_buffer.resize(sizeof(uint16_t));
-          d_currentPos = 0;
-          d_proxyProtocolNeed = 0;
+          if (isProxyPayloadOutsideTLS()) {
+            d_state = State::doingHandshake;
+            iostate = handleHandshake(now);
+          }
+          else {
+            d_state = State::readingQuerySize;
+            d_buffer.resize(sizeof(uint16_t));
+            d_currentPos = 0;
+            d_proxyProtocolNeed = 0;
+          }
         }
         else if (status == ProxyProtocolResult::Error) {
           iostate = IOState::Done;
@@ -946,19 +970,19 @@ void IncomingTCPConnectionState::handleIO()
         }
       }
 
-      if (!d_lastIOBlocked && (d_state == IncomingTCPConnectionState::State::waitingForQuery ||
-                                      d_state == IncomingTCPConnectionState::State::readingQuerySize)) {
+      if (!d_lastIOBlocked && (d_state == State::waitingForQuery ||
+                                      d_state == State::readingQuerySize)) {
         DEBUGLOG("reading query size");
         d_buffer.resize(sizeof(uint16_t));
         iostate = d_handler.tryRead(d_buffer, d_currentPos, sizeof(uint16_t));
         if (d_currentPos > 0) {
           /* if we got at least one byte, we can't go around sending responses */
-          d_state = IncomingTCPConnectionState::State::readingQuerySize;
+          d_state = State::readingQuerySize;
         }
 
         if (iostate == IOState::Done) {
           DEBUGLOG("query size received");
-          d_state = IncomingTCPConnectionState::State::readingQuery;
+          d_state = State::readingQuery;
           d_querySizeReadTime = now;
           if (d_queriesCount == 0) {
             d_firstQuerySizeReadTime = now;
@@ -980,14 +1004,14 @@ void IncomingTCPConnectionState::handleIO()
         }
       }
 
-      if (!d_lastIOBlocked && d_state == IncomingTCPConnectionState::State::readingQuery) {
+      if (!d_lastIOBlocked && d_state == State::readingQuery) {
         DEBUGLOG("reading query");
         iostate = d_handler.tryRead(d_buffer, d_currentPos, d_querySize);
         if (iostate == IOState::Done) {
           DEBUGLOG("query received");
           d_buffer.resize(d_querySize);
 
-          d_state = IncomingTCPConnectionState::State::idle;
+          d_state = State::idle;
           auto processingResult = handleQuery(std::move(d_buffer), now, std::nullopt);
           switch (processingResult) {
           case QueryProcessingResult::TooSmall:
@@ -1005,7 +1029,7 @@ void IncomingTCPConnectionState::handleIO()
 
           /* the state might have been updated in the meantime, we don't want to override it
              in that case */
-          if (active() && d_state != IncomingTCPConnectionState::State::idle) {
+          if (active() && d_state != State::idle) {
             if (d_ioState->isWaitingForRead()) {
               iostate = IOState::NeedRead;
             }
@@ -1022,13 +1046,13 @@ void IncomingTCPConnectionState::handleIO()
         }
       }
 
-      if (!d_lastIOBlocked && d_state == IncomingTCPConnectionState::State::sendingResponse) {
+      if (!d_lastIOBlocked && d_state == State::sendingResponse) {
         DEBUGLOG("sending response");
         iostate = d_handler.tryWrite(d_currentResponse.d_buffer, d_currentPos, d_currentResponse.d_buffer.size());
         if (iostate == IOState::Done) {
           DEBUGLOG("response sent from "<<__PRETTY_FUNCTION__);
           handleResponseSent(d_currentResponse);
-          d_state = IncomingTCPConnectionState::State::idle;
+          d_state = State::idle;
         }
         else {
           d_lastIOBlocked = true;
@@ -1038,8 +1062,8 @@ void IncomingTCPConnectionState::handleIO()
       if (active() &&
           !d_lastIOBlocked &&
           iostate == IOState::Done &&
-          (d_state == IncomingTCPConnectionState::State::idle ||
-           d_state == IncomingTCPConnectionState::State::waitingForQuery))
+          (d_state == State::idle ||
+           d_state == State::waitingForQuery))
       {
         // try sending queued responses
         DEBUGLOG("send responses, if any");
@@ -1054,19 +1078,19 @@ void IncomingTCPConnectionState::handleIO()
             iostate = IOState::NeedRead;
           }
           else {
-            d_state = IncomingTCPConnectionState::State::idle;
+            d_state = State::idle;
             iostate = IOState::Done;
           }
         }
       }
 
-      if (d_state != IncomingTCPConnectionState::State::idle &&
-          d_state != IncomingTCPConnectionState::State::doingHandshake &&
-          d_state != IncomingTCPConnectionState::State::readingProxyProtocolHeader &&
-          d_state != IncomingTCPConnectionState::State::waitingForQuery &&
-          d_state != IncomingTCPConnectionState::State::readingQuerySize &&
-          d_state != IncomingTCPConnectionState::State::readingQuery &&
-          d_state != IncomingTCPConnectionState::State::sendingResponse) {
+      if (d_state != State::idle &&
+          d_state != State::doingHandshake &&
+          d_state != State::readingProxyProtocolHeader &&
+          d_state != State::waitingForQuery &&
+          d_state != State::readingQuerySize &&
+          d_state != State::readingQuery &&
+          d_state != State::sendingResponse) {
         vinfolog("Unexpected state %d in handleIOCallback", static_cast<int>(d_state));
       }
     }
@@ -1075,18 +1099,18 @@ void IncomingTCPConnectionState::handleIO()
          but it might also be a real IO error or something else.
          Let's just drop the connection
       */
-      if (d_state == IncomingTCPConnectionState::State::idle ||
-          d_state == IncomingTCPConnectionState::State::waitingForQuery) {
+      if (d_state == State::idle ||
+          d_state == State::waitingForQuery) {
         /* no need to increase any counters in that case, the client is simply done with us */
       }
-      else if (d_state == IncomingTCPConnectionState::State::doingHandshake ||
-               d_state != IncomingTCPConnectionState::State::readingProxyProtocolHeader ||
-               d_state == IncomingTCPConnectionState::State::waitingForQuery ||
-               d_state == IncomingTCPConnectionState::State::readingQuerySize ||
-               d_state == IncomingTCPConnectionState::State::readingQuery) {
+      else if (d_state == State::doingHandshake ||
+               d_state != State::readingProxyProtocolHeader ||
+               d_state == State::waitingForQuery ||
+               d_state == State::readingQuerySize ||
+               d_state == State::readingQuery) {
         ++d_ci.cs->tcpDiedReadingQuery;
       }
-      else if (d_state == IncomingTCPConnectionState::State::sendingResponse) {
+      else if (d_state == State::sendingResponse) {
         /* unlikely to happen here, the exception should be handled in sendResponse() */
         ++d_ci.cs->tcpDiedSendingResponse;
       }
@@ -1180,7 +1204,7 @@ void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnec
   else {
     DEBUGLOG("Going idle");
     /* we still have some queries in flight, let's just stop reading for now */
-    state->d_state = IncomingTCPConnectionState::State::idle;
+    state->d_state = State::idle;
     state->d_ioState->update(IOState::Done, handleIOCallback, state);
   }
 }

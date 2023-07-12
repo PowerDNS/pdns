@@ -529,6 +529,17 @@ struct ClientState
     return tlsFrontend != nullptr || (dohFrontend != nullptr && dohFrontend->isHTTPS());
   }
 
+  const TLSFrontend& getTLSFrontend() const
+  {
+    if (tlsFrontend != nullptr) {
+      return *tlsFrontend;
+    }
+    if (dohFrontend) {
+      return dohFrontend->d_tlsContext;
+    }
+    throw std::runtime_error("Trying to get a TLS frontend from a non-TLS ClientState");
+  }
+
   dnsdist::Protocol getProtocol() const
   {
     if (dnscryptCtx) {

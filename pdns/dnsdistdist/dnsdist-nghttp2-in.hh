@@ -95,6 +95,7 @@ private:
   bool checkALPN();
   IOState readHTTPData();
   void handleConnectionReady();
+  IOState handleHandshake(const struct timeval& now) override;
   bool hasPendingWrite() const;
   void writeToSocket(bool socketReady);
   boost::optional<struct timeval> getIdleClientReadTTD(struct timeval now) const;

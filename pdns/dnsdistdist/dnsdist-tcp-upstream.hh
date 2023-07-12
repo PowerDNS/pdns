@@ -138,6 +138,7 @@ public:
 
   virtual IOState sendResponse(const struct timeval& now, TCPResponse&& response);
   void handleResponseSent(TCPResponse& currentResponse);
+  virtual IOState handleHandshake(const struct timeval& now);
   void handleHandshakeDone(const struct timeval& now);
   ProxyProtocolResult handleProxyProtocolPayload();
   void handleCrossProtocolResponse(const struct timeval& now, TCPResponse&& response);
@@ -150,6 +151,14 @@ public:
   {
     return d_ioState != nullptr;
   }
+  bool isProxyPayloadOutsideTLS() const
+  {
+    if (!d_ci.cs->hasTLS()) {
+      return false;
+    }
+    return d_ci.cs->getTLSFrontend().d_proxyProtocolOutsideTLS;
+  }
+
   virtual bool forwardViaUDPFirst() const
   {
     return false;
@@ -174,7 +183,7 @@ public:
 
   dnsdist::Protocol getProtocol() const;
 
-  enum class State : uint8_t { doingHandshake, readingProxyProtocolHeader, waitingForQuery, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
+  enum class State : uint8_t { starting, doingHandshake, readingProxyProtocolHeader, waitingForQuery, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
 
   TCPResponse d_currentResponse;
   std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>> d_ownedConnectionsToBackend;
@@ -199,7 +208,7 @@ public:
   size_t d_currentQueriesCount{0};
   std::thread::id d_creatorThreadID;
   uint16_t d_querySize{0};
-  State d_state{State::doingHandshake};
+  State d_state{State::starting};
   bool d_isXFR{false};
   bool d_proxyProtocolPayloadHasTLV{false};
   bool d_lastIOBlocked{false};

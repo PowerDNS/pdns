@@ -226,6 +226,8 @@ public:
   ComboAddress d_addr;
   std::string d_provider;
   ALPN d_alpn{ALPN::Unset};
+  /* whether the proxy protocol is inside or outside the TLS layer */
+  bool d_proxyProtocolOutsideTLS{false};
 protected:
   std::shared_ptr<TLSCtx> d_ctx{nullptr};
 };
@@ -365,13 +367,13 @@ public:
      return Done when toRead bytes have been read, needRead or needWrite if the IO operation
      would block.
   */
-  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false)
+  IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false, bool bypassFilters=false)
   {
     if (buffer.size() < toRead || pos >= toRead) {
       throw std::out_of_range("Calling tryRead() with a too small buffer (" + std::to_string(buffer.size()) + ") for a read of " + std::to_string(toRead - pos) + " bytes starting at " + std::to_string(pos));
     }
 
-    if (d_conn) {
+    if (!bypassFilters && d_conn) {
       return d_conn->tryRead(buffer, pos, toRead, allowIncomplete);
     }
 
