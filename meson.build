@@ -11,6 +11,9 @@ project(
   ],
 )
 
+summary('Source Dir', meson.current_source_dir(), section: 'Build')
+summary('Build Dir', meson.current_build_dir(), section: 'Build')
+
 # Setup some modules
 fs = import('fs')
 

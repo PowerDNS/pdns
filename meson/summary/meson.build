@@ -1,8 +1,5 @@
 # Print a system/project summary
 
-summary('Source Dir', meson.project_source_root(), section: 'Build')
-summary('Build Dir', meson.project_build_root(), section: 'Build')
-
 summary('System', system, section: 'System')
 summary('C++ Compiler', cxx.get_id(), section: 'System')
 summary('C++ Compiler Version', cxx.version(), section: 'System')
