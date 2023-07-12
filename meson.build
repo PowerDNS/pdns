@@ -114,6 +114,9 @@ foreach func: funcs
   # summary(func, found, bool_yn: true, section: 'Various Functions')
 endforeach
 
+# Socket Dir
+opt_socket_dir = get_option('socket-dir')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # TODO Meson 0.57

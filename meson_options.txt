@@ -17,3 +17,4 @@ option('sqlite3', type: 'boolean', value: false, description: 'Include the sqlit
 option('verbose-logging', type: 'boolean', value: false, description: 'Enable verbose logging')
 option('pkcs11', type: 'boolean', value: false, description: 'Enable PKCS11 support (experimental)')
 option('gss-tsig', type: 'boolean', value: false, description: 'Enable GSS-TSIG support (experimental)')
+option('socket-dir', type: 'string', value: '/var/run', description: 'Where the control socket lives')
