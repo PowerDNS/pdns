@@ -55,6 +55,7 @@ static po::variables_map g_vm;
 
 static bool g_quiet;
 
+//NOLINTNEXTLINE(performance-unnecessary-value-param): we do want a copy to increase the reference count, thank you very much
 static void recvThread(const std::shared_ptr<std::vector<std::unique_ptr<Socket>>> sockets)
 {
   vector<pollfd> rfds, fds;
@@ -142,7 +143,7 @@ static void replaceEDNSClientSubnet(vector<uint8_t>* packet, const Netmask& ecsR
   memcpy(&packet->at(packetSize - sizeof(addr)), &addr, sizeof(addr));
 }
 
-static void sendPackets(const vector<std::unique_ptr<Socket>>& sockets, const vector<vector<uint8_t>* >& packets, int qps, ComboAddress dest, const Netmask& ecsRange)
+static void sendPackets(const vector<std::unique_ptr<Socket>>& sockets, const vector<vector<uint8_t>* >& packets, uint32_t qps, ComboAddress dest, const Netmask& ecsRange)
 {
   unsigned int burst=100;
   const auto nsecPerBurst=1*(unsigned long)(burst*1000000000.0/qps);
