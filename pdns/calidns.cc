@@ -55,10 +55,13 @@ static po::variables_map g_vm;
 
 static bool g_quiet;
 
-static void* recvThread(const vector<std::unique_ptr<Socket>>* sockets)
+static void recvThread(const std::shared_ptr<std::vector<std::unique_ptr<Socket>>> sockets)
 {
   vector<pollfd> rfds, fds;
-  for(const auto& s : *sockets) {
+  for (const auto& s : *sockets) {
+    if (s == nullptr) {
+      continue;
+    }
     struct pollfd pfd;
     pfd.fd = s->getHandle();
     pfd.events = POLLIN;
@@ -114,7 +117,6 @@ static void* recvThread(const vector<std::unique_ptr<Socket>>* sockets)
       }
     }
   }
-  return 0;
 }
 
 static ComboAddress getRandomAddressFromRange(const Netmask& ecsRange)
@@ -383,7 +385,7 @@ try
     cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
   }
   
-  vector<std::unique_ptr<Socket>> sockets;
+  auto sockets = std::make_shared<std::vector<std::unique_ptr<Socket>>>();
   ComboAddress dest;
   try {
     dest = ComboAddress(g_vm["destination"].as<string>(), 53);
@@ -412,9 +414,14 @@ try
       }
     }
 
-    sockets.push_back(std::move(sock));
+    sockets->push_back(std::move(sock));
   }
-  new thread(recvThread, &sockets);
+
+  {
+    std::thread receiver(recvThread, sockets);
+    receiver.detach();
+  }
+
   uint32_t qps;
 
   ofstream plot;
@@ -465,7 +472,7 @@ try
     DTime dt;
     dt.set();
 
-    sendPackets(sockets, toSend, qps, dest, ecsRange);
+    sendPackets(*sockets, toSend, qps, dest, ecsRange);
     
     const auto udiff = dt.udiffNoReset();
     const auto realqps=toSend.size()/(udiff/1000000.0);
