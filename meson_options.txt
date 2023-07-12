@@ -20,3 +20,5 @@ option('gss-tsig', type: 'boolean', value: false, description: 'Enable GSS-TSIG 
 option('socket-dir', type: 'string', value: '/var/run', description: 'Where the control socket lives')
 option('module-gmysql', type: 'boolean', value: true, description: 'Build the gmysql backend')
 option('module-gmysql-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable gmysql backend')
+option('module-godbc', type: 'boolean', value: false, description: 'Build the godbc backend')
+option('module-godbc-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable godbc backend')
