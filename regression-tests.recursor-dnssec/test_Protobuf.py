@@ -972,11 +972,11 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
     protobufServer({"127.0.0.1:%d", "127.0.0.1:%d"}, { logQueries=false, logResponses=true } )
     """ % (protobufServersParameters[0].port, protobufServersParameters[1].port)
     _lua_dns_script_file = """
-    function preresolve(dq)
-      if dq.qname:equal('tagged.example.') then
-        dq:addPolicyTag(''.. math.random())
+    function gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp)
+      if qname:equal('tagged.example.') then
+        return 0, { '' .. math.random() }
       end
-      return false
+      return 0
     end
     """
 
@@ -998,7 +998,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.checkNoRemainingMessage()
         self.assertEqual(len(msg.response.tags), 1)
         ts1 = msg.response.tags[0]
-        print(ts1)
+        #print(ts1)
         # Again
         res = self.sendUDPQuery(query)
         self.assertRRsetInAnswer(res, expected)
@@ -1013,7 +1013,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.checkNoRemainingMessage()
         self.assertEqual(len(msg.response.tags), 1)
         ts2 = msg.response.tags[0]
-        print(ts2)
+        #print(ts2)
         self.assertNotEqual(ts1, ts2)
 
 class ProtobufSelectedFromLuaTest(TestRecursorProtobuf):
