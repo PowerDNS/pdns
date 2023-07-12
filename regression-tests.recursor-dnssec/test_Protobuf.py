@@ -94,19 +94,19 @@ class TestRecursorProtobuf(RecursorTest):
     def getFirstProtobufMessage(self, retries=1, waitTime=1):
         msg = None
 
-        print("in getFirstProtobufMessage")
+        #print("in getFirstProtobufMessage")
         for param in protobufServersParameters:
           print(param.port)
           failed = 0
 
           while param.queue.empty:
-            print(failed)
-            print(retries)
+            #print(failed)
+            #print(retries)
             if failed >= retries:
               break
 
             failed = failed + 1
-            print("waiting")
+            #print("waiting")
             time.sleep(waitTime)
 
           self.assertFalse(param.queue.empty())
@@ -118,7 +118,7 @@ class TestRecursorProtobuf(RecursorTest):
           if oldmsg is not None:
             self.assertEqual(msg, oldmsg)
 
-        print(msg)
+        #print(msg)
         return msg
 
     def emptyProtoBufQueue(self):
@@ -232,17 +232,17 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEqual(msg.response.appliedPolicyKind, kind)
 
     def checkProtobufTags(self, msg, tags):
-        print(tags)
-        print('---')
-        print(msg.response.tags)
+        #print(tags)
+        #print('---')
+        #print(msg.response.tags)
         self.assertEqual(len(msg.response.tags), len(tags))
         for tag in msg.response.tags:
             self.assertTrue(tag in tags)
 
     def checkProtobufMetas(self, msg, metas):
-        print(metas)
-        print('---')
-        print(msg.meta)
+        #print(metas)
+        #print('---')
+        #print(msg.meta)
         self.assertEqual(len(msg.meta), len(metas))
         for m in msg.meta:
             self.assertTrue(m.HasField('key'))
@@ -277,7 +277,7 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEqual(msg.response.rcode, 65536)
 
     def checkProtobufIdentity(self, msg, requestorId, deviceId, deviceName):
-        print(msg)
+        #print(msg)
         self.assertTrue((requestorId == '') == (not msg.HasField('requestorId')))
         self.assertTrue((deviceId == b'') == (not msg.HasField('deviceId')))
         self.assertTrue((deviceName == '') == (not msg.HasField('deviceName')))

@@ -538,7 +538,8 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
                          const ComboAddress& mappedSource, const EDNSSubnetOpts& ednssubnet,
                          const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
                          const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
-                         const RecEventTrace& eventTrace);
+                         const RecEventTrace& eventTrace,
+                         const std::unordered_set<std::string>& policyTags);
 void requestWipeCaches(const DNSName& canon);
 void startDoResolve(void*);
 bool expectProxyProtocol(const ComboAddress& from);

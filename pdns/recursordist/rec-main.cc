@@ -493,7 +493,7 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   msg.setRequestorId(requestorId);
   msg.setDeviceId(deviceId);
   msg.setDeviceName(deviceName);
-  
+
   if (!policyTags.empty()) {
     msg.addPolicyTags(policyTags);
   }
@@ -526,7 +526,8 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
                          const EDNSSubnetOpts& ednssubnet,
                          const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
                          const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
-                         const RecEventTrace& eventTrace)
+                         const RecEventTrace& eventTrace,
+                         const std::unordered_set<std::string>& policyTags)
 {
   pdns::ProtoZero::RecMessage pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
   // Normally we take the immutable string from the cache and append a few values, but if it's not there (can this happen?)
@@ -581,6 +582,8 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
   if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) != 0) {
     pbMessage.addEvents(eventTrace);
   }
+  pbMessage.addPolicyTags(policyTags);
+
   protobufLogResponse(pbMessage);
 }
 
