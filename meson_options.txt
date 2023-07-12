@@ -22,3 +22,5 @@ option('module-gmysql', type: 'boolean', value: true, description: 'Build the gm
 option('module-gmysql-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable gmysql backend')
 option('module-godbc', type: 'boolean', value: false, description: 'Build the godbc backend')
 option('module-godbc-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable godbc backend')
+option('module-gpgsql', type: 'boolean', value: false, description: 'Build the gpgsql backend')
+option('module-gpgsql-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable gpgsql backend')
