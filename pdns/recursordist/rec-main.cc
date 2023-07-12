@@ -493,7 +493,7 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   msg.setRequestorId(requestorId);
   msg.setDeviceId(deviceId);
   msg.setDeviceName(deviceName);
-
+  
   if (!policyTags.empty()) {
     msg.addPolicyTags(policyTags);
   }
@@ -546,12 +546,14 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
 
   // In message part
   if (!luaconfsLocal->protobufExportConfig.logMappedFrom) {
+    pbMessage.setSocketFamily(source.sin4.sin_family);
     Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
     auto requestor = requestorNM.getMaskedNetwork();
     pbMessage.setFrom(requestor);
     pbMessage.setFromPort(source.getPort());
   }
   else {
+    pbMessage.setSocketFamily(mappedSource.sin4.sin_family);
     Netmask requestorNM(mappedSource, mappedSource.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
     auto requestor = requestorNM.getMaskedNetwork();
     pbMessage.setFrom(requestor);
