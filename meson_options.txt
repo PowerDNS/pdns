@@ -27,3 +27,5 @@ option('module-gsqlite3', type: 'boolean', value: false, description: 'Build the
 option('module-gsqlite3-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable gsqlite3 backend')
 option('module-ldap', type: 'boolean', value: false, description: 'Build the LDAP backend')
 option('module-ldap-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable LDAP backend')
+option('module-remote', type: 'boolean', value: false, description: 'Build the remote backend')
+option('module-remote-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable remote backend')

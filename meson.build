@@ -120,6 +120,7 @@ all_modules = [
   ['gpgsql', 'pgsql'],
   ['gsqlite3', 'sqlite3'],
   ['ldap', 'ldap'],
+  ['remote', 'curl'],
 ]
 selected_modules = []
 foreach module: all_modules
@@ -129,12 +130,16 @@ foreach module: all_modules
   opt_dyn = get_option('module-' + name + '-dyn')
 
   if opt or opt_dyn
-    subdir('meson' / dep)
-    # TODO Also build the actual backend.
-
     if opt
       selected_modules += name
     endif
+
+    if name == 'remote' and not opt_unittests
+      continue                  # We only need cURL for unit tests.
+    endif
+
+    subdir('meson' / dep)
+    # TODO Also build the actual backend.
   endif
 endforeach
 conf.set_quoted('PDNS_MODULES', ' '.join(selected_modules), description: 'Built-in modules')
