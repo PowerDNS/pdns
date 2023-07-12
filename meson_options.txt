@@ -25,3 +25,5 @@ option('module-gpgsql', type: 'boolean', value: false, description: 'Build the g
 option('module-gpgsql-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable gpgsql backend')
 option('module-gsqlite3', type: 'boolean', value: false, description: 'Build the gsqlite3 backend')
 option('module-gsqlite3-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable gsqlite3 backend')
+option('module-ldap', type: 'boolean', value: false, description: 'Build the LDAP backend')
+option('module-ldap-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable LDAP backend')

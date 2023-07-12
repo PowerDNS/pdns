@@ -119,6 +119,7 @@ all_modules = [
   ['godbc', 'odbc'],
   ['gpgsql', 'pgsql'],
   ['gsqlite3', 'sqlite3'],
+  ['ldap', 'ldap'],
 ]
 selected_modules = []
 foreach module: all_modules
