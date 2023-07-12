@@ -121,8 +121,14 @@ static ComboAddress getRandomAddressFromRange(const Netmask& ecsRange)
 {
   ComboAddress result = ecsRange.getMaskedNetwork();
   uint8_t bits = ecsRange.getBits();
-  uint32_t mod = (bits > 0) ? (1 << (32 - bits)) : std::numeric_limits<uint32_t>::max();
-  result.sin4.sin_addr.s_addr = result.sin4.sin_addr.s_addr + ntohl(dns_random(mod));
+  if (bits > 0) {
+    uint32_t mod = 1 << (32 - bits);
+    result.sin4.sin_addr.s_addr = result.sin4.sin_addr.s_addr + ntohl(dns_random(mod));
+  }
+  else {
+    result.sin4.sin_addr.s_addr = dns_random_uint32();
+  }
+
   return result;
 }
 
