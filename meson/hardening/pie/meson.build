@@ -1,5 +1,5 @@
 # PIE
-# Inputs: hardening_features conf
+# Inputs: hardening_features conf deps
 
 prog = '''
 #include <pthread.h>
@@ -23,10 +23,11 @@ else
   foreach variant: pie_variants
     cflags = variant[0]
     ldflags = variant[1]
+    dep_pie = declare_dependency(compile_args: cflags, link_args: ldflags)
 
+    # if cxx.links(prog, dependencies: dep_pie, name: 'compiler can build Position Independent Executables')   # TODO Meson 0.57
     if cxx.links(prog, args: cflags + ldflags, name: 'compiler can build Position Independent Executables')
-      add_project_arguments(cflags, language: 'cpp')
-      add_project_link_arguments(ldflags, language: 'cpp')
+      deps += dep_pie
       found_variant = true
       break
     endif
