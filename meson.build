@@ -77,10 +77,6 @@ if not opt_unittests
   summary('Test', dep_boost_test.found(), bool_yn: true, section: 'Boost')
 endif
 
-# Sqlite3
-opt_sqlite3 = get_option('sqlite3')
-# TODO Use Sqlite3
-
 # Swagger
 if not fs.exists('pdns/api-swagger.json') and not python_have_venv
   error('Python3 and/or its venv module is not available and ' +

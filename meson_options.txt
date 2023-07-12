@@ -13,7 +13,6 @@ option('unit-tests', type: 'boolean', value: false, description: 'Enable buildin
 option('backend-unit-tests', type: 'boolean', value: false, description: 'Enable building backend unit tests')
 option('reproducible', type: 'boolean', value: false, description: 'Create reproducible builds. Use this only if you are a distribution maintainer and need reproducible builds. If you compile PowerDNS yourself, leave this disabled, as it might make debugging harder')
 option('fuzz-targets', type: 'boolean', value: false, description: 'Enable fuzzing targets')
-option('sqlite3', type: 'boolean', value: false, description: 'Include the sqlite3 driver')
 option('verbose-logging', type: 'boolean', value: false, description: 'Enable verbose logging')
 option('pkcs11', type: 'boolean', value: false, description: 'Enable PKCS11 support (experimental)')
 option('gss-tsig', type: 'boolean', value: false, description: 'Enable GSS-TSIG support (experimental)')
@@ -24,3 +23,5 @@ option('module-godbc', type: 'boolean', value: false, description: 'Build the go
 option('module-godbc-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable godbc backend')
 option('module-gpgsql', type: 'boolean', value: false, description: 'Build the gpgsql backend')
 option('module-gpgsql-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable gpgsql backend')
+option('module-gsqlite3', type: 'boolean', value: false, description: 'Build the gsqlite3 backend')
+option('module-gsqlite3-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable gsqlite3 backend')
