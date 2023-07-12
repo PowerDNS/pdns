@@ -89,7 +89,6 @@ private:
   bool isIdle() const;
   uint32_t getConcurrentStreamsCount() const;
   void updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback);
-  void watchForRemoteHostClosingConnection();
   void handleIOError();
   bool sendResponse(StreamID streamID, PendingQuery& context, uint16_t responseCode, const HeadersMap& customResponseHeaders, const std::string& contentType = "", bool addContentType = true);
   void handleIncomingQuery(PendingQuery&& query, StreamID streamID);

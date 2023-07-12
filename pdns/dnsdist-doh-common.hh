@@ -77,7 +77,7 @@ struct DOHFrontend
   DOHFrontend()
   {
   }
-  DOHFrontend(std::shared_ptr<TLSCtx> tlsCtx):
+  DOHFrontend(std::shared_ptr<TLSCtx> tlsCtx) :
     d_tlsContext(std::move(tlsCtx))
   {
   }

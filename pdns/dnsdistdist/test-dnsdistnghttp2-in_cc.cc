@@ -90,7 +90,7 @@ public:
   {
     const auto& context = s_connectionContexts.at(connectionID);
     d_clientOutBuffer.insert(d_clientOutBuffer.begin(), context.d_proxyProtocolPayload.begin(), context.d_proxyProtocolPayload.end());
-    
+
     nghttp2_session_callbacks* cbs = nullptr;
     nghttp2_session_callbacks_new(&cbs);
     std::unique_ptr<nghttp2_session_callbacks, void (*)(nghttp2_session_callbacks*)> callbacks(cbs, nghttp2_session_callbacks_del);
@@ -499,19 +499,19 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     s_connectionContexts[counter++] = ExpectedData{{}, {query}, {response}, {403U}};
     s_steps = {
       /* opening */
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* settings server -> client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15},
       /* settings + headers + data client -> server.. */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 128 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 128},
       /* .. continued */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 60 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 60},
       /* headers + data */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, std::numeric_limits<size_t>::max() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, std::numeric_limits<size_t>::max()},
       /* wait for next query, but the client closes the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* server close */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
 
     auto state = std::make_shared<IncomingHTTP2Connection>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
@@ -520,18 +520,18 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 
   {
     /* client closes the connection right in the middle of sending the query */
-    s_connectionContexts[counter++] = ExpectedData{{}, {query}, {response}, { 403U }};
+    s_connectionContexts[counter++] = ExpectedData{{}, {query}, {response}, {403U}};
     s_steps = {
       /* opening */
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* settings server -> client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15},
       /* client sends one byte */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 1 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 1},
       /* then closes the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* server close */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
 
     /* mark the incoming FD as always ready */
@@ -556,19 +556,19 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 
     s_steps = {
       /* opening */
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* settings server -> client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15},
       /* settings + headers + data client -> server.. */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 128 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 128},
       /* .. continued */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 60 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 60},
       /* headers + data */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, std::numeric_limits<size_t>::max() },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, std::numeric_limits<size_t>::max()},
       /* wait for next query, but the client closes the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* server close */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
 
     auto state = std::make_shared<IncomingHTTP2Connection>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
@@ -587,17 +587,17 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 
     s_steps = {
       /* opening */
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* settings server -> client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15},
       /* settings + headers + data client -> server.. */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 128 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 128},
       /* .. continued */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 60 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 60},
       /* we want to send the response but the client closes the connection */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 0},
       /* server close */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
 
     /* mark the incoming FD as always ready */
@@ -622,21 +622,21 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 
     s_steps = {
       /* opening */
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* settings server -> client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15},
       /* settings + headers + data client -> server.. */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 128 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 128},
       /* .. continued */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 60 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 60},
       /* headers + data (partial write) */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 1 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::NeedWrite, 1},
       /* nothing to read after that */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0},
       /* then the client closes the connection before we are done  */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 0},
       /* server close */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
 
     /* mark the incoming FD as always ready */
@@ -691,25 +691,24 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
     s_connectionContexts[counter++] = ExpectedData{{}, {query}, {response}, {502U}};
     s_steps = {
       /* opening */
-      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
       /* settings server -> client */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15 },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 15},
       /* settings + headers + data client -> server.. */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 128 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 128},
       /* .. continued */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 60 },
-        /* trying to read a new request while processing the first one */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 60},
+      /* trying to read a new request while processing the first one */
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead},
       /* headers + data */
-      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, std::numeric_limits<size_t>::max(), [&threadData](int desc) {
-          /* set the incoming descriptor as ready */
-          dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
-        }
-      },
+      {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, std::numeric_limits<size_t>::max(), [&threadData](int desc) {
+         /* set the incoming descriptor as ready */
+         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(desc);
+       }},
       /* wait for next query, but the client closes the connection */
-      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0 },
+      {ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0},
       /* server close */
-      { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
+      {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
     };
 
     auto state = std::make_shared<IncomingHTTP2Connection>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
