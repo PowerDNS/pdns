@@ -117,6 +117,31 @@ endforeach
 # Socket Dir
 opt_socket_dir = get_option('socket-dir')
 
+# Modules
+all_modules = [
+  ['gmysql', 'mysql'],
+  ['godbc', 'odbc'],
+  ['gpgsql', 'pgsql'],
+  ['gsqlite3', 'sqlite3'],
+]
+selected_modules = []
+foreach module: all_modules
+  name = module[0]
+  dep = module[1]
+  opt = get_option('module-' + name)
+  opt_dyn = get_option('module-' + name + '-dyn')
+
+  if opt or opt_dyn
+    subdir('meson' / dep)
+    # TODO Also build the actual backend.
+
+    if opt
+      selected_modules += name
+    endif
+  endif
+endforeach
+conf.set_quoted('PDNS_MODULES', ' '.join(selected_modules), description: 'Built-in modules')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # TODO Meson 0.57
