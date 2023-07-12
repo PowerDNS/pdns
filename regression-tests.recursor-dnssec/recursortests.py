@@ -474,7 +474,7 @@ options {
 
                 namedconf.write("""
         zone "%s" {
-            type master;
+            type primary;
             file "%s.zone";
         };""" % (zone, zonename))
 

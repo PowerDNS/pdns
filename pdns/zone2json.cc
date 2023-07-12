@@ -162,10 +162,10 @@ try
           i!=domains.end();
           ++i)
         {
-          if(i->type!="master" && i->type!="slave") {
-            cerr<<" Warning! Skipping '"<<i->type<<"' zone '"<<i->name<<"'"<<endl;
-            continue;
-          }
+        if (i->type != "primary" && i->type != "secondary" && !i->type.empty() && i->type != "master" && i->type != "slave") {
+          cerr << " Warning! Skipping '" << i->type << "' zone '" << i->name << "'" << endl;
+          continue;
+        }
           lines.clear();
           try {
             Json::object obj;

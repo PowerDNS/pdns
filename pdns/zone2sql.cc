@@ -285,10 +285,10 @@ try
 
       for(const auto & domain : domains)
         {
-          if(domain.type!="master" && domain.type!="slave") {
-            cerr<<" Warning! Skipping '"<<domain.type<<"' zone '"<<domain.name<<"'"<<endl;
-            continue;
-          }
+        if (domain.type != "primary" && domain.type != "secondary" && !domain.type.empty() && domain.type != "master" && domain.type != "slave") {
+          cerr << " Warning! Skipping '" << domain.type << "' zone '" << domain.name << "'" << endl;
+          continue;
+        }
           try {
             startNewTransaction();
 

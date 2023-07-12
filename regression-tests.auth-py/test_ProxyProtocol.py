@@ -142,7 +142,7 @@ options {
 
                 namedconf.write("""
         zone "%s" {
-            type slave;
+            type secondary;
             file "%s.zone";
             masters { %s; };
         };""" % (zone, zonename, cls._zones[zone]))
