@@ -657,7 +657,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def recvTCPResponseOverConnection(cls, sock, useQueue=False, timeout=2.0):
-        print("reading data")
         message = None
         data = sock.recv(2)
         if data:
@@ -671,7 +670,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         print(useQueue)
         if useQueue and not cls._fromResponderQueue.empty():
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
-            print("Got from queue")
             print(receivedQuery)
             return (receivedQuery, message)
         else:
@@ -707,7 +705,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         receivedQuery = None
         print(useQueue)
         if useQueue and not cls._fromResponderQueue.empty():
-            print("Got from queue")
             print(receivedQuery)
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
         else:
@@ -991,13 +988,11 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         url = cls.getDOHGetURL(baseurl, query, rawQuery)
 
         if not conn:
-            print('creating a new connection')
             conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
             # this means "really do HTTP/2, not HTTP/1 with Upgrade headers"
             conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE)
 
         if useHTTPS:
-            print("disabling verify")
             conn.setopt(pycurl.SSL_VERIFYPEER, 1)
             conn.setopt(pycurl.SSL_VERIFYHOST, 2)
             if caFile:
@@ -1020,7 +1015,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         receivedQuery = None
         message = None
         cls._response_headers = ''
-        print('performing')
         data = conn.perform_rb()
         cls._rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         if cls._rcode == 200 and not rawResponse:
