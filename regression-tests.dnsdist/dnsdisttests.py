@@ -987,7 +987,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return conn
 
     @classmethod
-    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[], useHTTPS=True, fromQueue=None, toQueue=None, useProxyProtocol=False, conn=None):
+    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[], useHTTPS=True, fromQueue=None, toQueue=None, conn=None):
         url = cls.getDOHGetURL(baseurl, query, rawQuery)
 
         if not conn:
@@ -1002,11 +1002,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             conn.setopt(pycurl.SSL_VERIFYHOST, 2)
             if caFile:
                 conn.setopt(pycurl.CAINFO, caFile)
-
-        if useProxyProtocol:
-            print('enabling PP')
-            # 274 is CURLOPT_HAPROXYPROTOCOL
-            conn.setopt(274, 1)
 
         response_headers = BytesIO()
         #conn.setopt(pycurl.VERBOSE, True)
@@ -1088,8 +1083,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         cls._response_headers = response_headers.getvalue()
         return (receivedQuery, message)
 
-    def sendDOHQueryWrapper(self, query, response, useQueue=True, useProxyProtocol=False):
-        return self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, useProxyProtocol=useProxyProtocol)
+    def sendDOHQueryWrapper(self, query, response, useQueue=True):
+        return self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
 
     def sendDOHWithNGHTTP2QueryWrapper(self, query, response, useQueue=True):
         return self.sendDOHQuery(self._dohWithNGHTTP2ServerPort, self._serverName, self._dohWithNGHTTP2BaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
