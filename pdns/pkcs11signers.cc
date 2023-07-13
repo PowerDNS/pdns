@@ -371,9 +371,8 @@ class Pkcs11Token {
       auto slot = d_slot->lock();
       std::vector<P11KitAttribute> attr;
       std::vector<CK_OBJECT_HANDLE> key;
-      attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
-//      attr.push_back(P11KitAttribute(CKA_SIGN, (char)CK_TRUE));
-      attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
+      attr.emplace_back(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY);
+      attr.emplace_back(CKA_LABEL, d_label);
       FindObjects2(*slot, attr, key, 1);
       if (key.size() == 0) {
         g_log<<Logger::Warning<<"Cannot load PKCS#11 private key "<<d_label<<std::endl;;
@@ -381,9 +380,8 @@ class Pkcs11Token {
       }
       d_private_key = key[0];
       attr.clear();
-      attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY));
-//      attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
-      attr.push_back(P11KitAttribute(CKA_LABEL, d_pub_label));
+      attr.emplace_back(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY);
+      attr.emplace_back(CKA_LABEL, d_pub_label);
       FindObjects2(*slot, attr, key, 1);
       if (key.size() == 0) {
         g_log<<Logger::Warning<<"Cannot load PKCS#11 public key "<<d_pub_label<<std::endl;
@@ -392,15 +390,15 @@ class Pkcs11Token {
       d_public_key = key[0];
 
       attr.clear();
-      attr.push_back(P11KitAttribute(CKA_KEY_TYPE, 0UL));
+      attr.emplace_back(CKA_KEY_TYPE, 0UL);
 
       if (GetAttributeValue2(*slot, d_public_key, attr)==0) {
         d_key_type = attr[0].ulong();
         if (d_key_type == CKK_RSA) {
           attr.clear();
-          attr.push_back(P11KitAttribute(CKA_MODULUS, ""));
-          attr.push_back(P11KitAttribute(CKA_PUBLIC_EXPONENT, ""));
-          attr.push_back(P11KitAttribute(CKA_MODULUS_BITS, 0UL));
+          attr.emplace_back(CKA_MODULUS, "");
+          attr.emplace_back(CKA_PUBLIC_EXPONENT, "");
+          attr.emplace_back(CKA_MODULUS_BITS, 0UL);
 
           if (!GetAttributeValue2(*slot, d_public_key, attr)) {
             d_modulus = attr[0].str();
@@ -411,8 +409,8 @@ class Pkcs11Token {
           }
         } else if (d_key_type == CKK_EC || d_key_type == CKK_ECDSA) {
           attr.clear();
-          attr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, ""));
-          attr.push_back(P11KitAttribute(CKA_EC_POINT, ""));
+          attr.emplace_back(CKA_ECDSA_PARAMS, "");
+          attr.emplace_back(CKA_EC_POINT, "");
           if (!GetAttributeValue2(*slot, d_public_key, attr)) {
             d_ecdsa_params = attr[0].str();
             d_bits = ecparam2bits(d_ecdsa_params);
