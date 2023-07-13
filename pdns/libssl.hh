@@ -54,7 +54,7 @@ public:
   /* enable kTLS mode, if supported */
   bool d_ktls{false};
   /* set read ahead mode, if supported */
-  bool d_readAhead{false};
+  bool d_readAhead{true};
 };
 
 struct TLSErrorCounters
