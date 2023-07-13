@@ -541,7 +541,7 @@ EOF
         fi
         cat >> $dir/named.conf <<EOF
 zone "$realzone"{
-    type primary;
+    type master;
     file "./$zone.zone";
 };
 EOF
