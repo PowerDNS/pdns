@@ -59,7 +59,7 @@ struct DNSComboWriter
   }
 
   DNSComboWriter(const std::string& query, const struct timeval& now, std::unordered_set<std::string>&& policyTags, shared_ptr<RecursorLua4> luaContext, LuaContext::LuaObject&& data, std::vector<DNSRecord>&& records) :
-    d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_records(std::move(records)), d_luaContext(std::move(luaContext)), d_data(std::move(data))
+    d_mdp(true, query), d_now(now), d_query(query), d_policyTags(std::move(policyTags)), d_gettagPolicyTags(d_policyTags), d_records(std::move(records)), d_luaContext(std::move(luaContext)), d_data(std::move(data))
   {
   }
 
@@ -125,6 +125,7 @@ struct DNSComboWriter
   };
   std::string d_query;
   std::unordered_set<std::string> d_policyTags;
+  const std::unordered_set<std::string> d_gettagPolicyTags;
   std::string d_routingTag;
   std::vector<DNSRecord> d_records;
 

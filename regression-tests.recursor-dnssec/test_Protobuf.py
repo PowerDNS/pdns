@@ -96,7 +96,7 @@ class TestRecursorProtobuf(RecursorTest):
 
         #print("in getFirstProtobufMessage")
         for param in protobufServersParameters:
-          print(param.port)
+          #print(param.port)
           failed = 0
 
           while param.queue.empty:
@@ -957,6 +957,27 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
         tags = [ self._tag_from_gettag ] + self._tags
+        #print(msg)
+        self.checkProtobufTags(msg, tags)
+        self.checkNoRemainingMessage()
+
+        # Again to check PC case
+        res = self.sendUDPQuery(query)
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        self.checkProtobufTags(msg, [ self._tag_from_gettag ])
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
+        self.assertEqual(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
+        tags = [ self._tag_from_gettag ] + self._tags
         self.checkProtobufTags(msg, tags)
         self.checkNoRemainingMessage()
 
@@ -998,8 +1019,8 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.checkNoRemainingMessage()
         self.assertEqual(len(msg.response.tags), 1)
         ts1 = msg.response.tags[0]
-        #print(ts1)
-        # Again
+
+        # Again to check PC case
         res = self.sendUDPQuery(query)
         self.assertRRsetInAnswer(res, expected)
 
@@ -1013,7 +1034,6 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.checkNoRemainingMessage()
         self.assertEqual(len(msg.response.tags), 1)
         ts2 = msg.response.tags[0]
-        #print(ts2)
         self.assertNotEqual(ts1, ts2)
 
 class ProtobufSelectedFromLuaTest(TestRecursorProtobuf):

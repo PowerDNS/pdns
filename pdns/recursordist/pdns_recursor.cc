@@ -906,6 +906,18 @@ static uint32_t capPacketCacheTTL(const struct dnsheader& hdr, uint32_t ttl, boo
   return ttl;
 }
 
+static void addPolicyTagsToPBMessageIfNeeded(DNSComboWriter& comboWriter, pdns::ProtoZero::RecMessage& pbMessage)
+{
+  if (!comboWriter.d_gettagPolicyTags.empty()) {
+    for (const auto& tag : comboWriter.d_gettagPolicyTags) {
+      comboWriter.d_policyTags.erase(tag);
+    }
+  }
+  if (!comboWriter.d_policyTags.empty()) {
+    pbMessage.addPolicyTags(comboWriter.d_policyTags);
+  }
+}
+
 void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
   auto comboWriter = std::unique_ptr<DNSComboWriter>(static_cast<DNSComboWriter*>(arg));
@@ -1681,6 +1693,8 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
       pbMessage.setInBytes(packet.size());
       pbMessage.setValidationState(resolver.getValidationState());
+      // See if we want to store the policyTags into th PC
+      addPolicyTagsToPBMessageIfNeeded(*comboWriter, pbMessage);
 
       // Take s snap of the current protobuf buffer state to store in the PC
       pbDataForCache = boost::make_optional(RecursorPacketCache::PBData{
@@ -1774,7 +1788,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       pbMessage.setDeviceId(dnsQuestion.deviceId);
       pbMessage.setDeviceName(dnsQuestion.deviceName);
       pbMessage.setToPort(comboWriter->d_destination.getPort());
-      pbMessage.addPolicyTags(comboWriter->d_policyTags);
+      pbMessage.addPolicyTags(comboWriter->d_gettagPolicyTags);
 
       for (const auto& metaValue : dnsQuestion.meta) {
         pbMessage.setMeta(metaValue.first, metaValue.second.stringVal, metaValue.second.intVal);
