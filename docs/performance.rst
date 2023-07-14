@@ -260,7 +260,7 @@ Amount of packets in the packetcache
 
 qsize-q
 ^^^^^^^
-Number of packets waiting for database attention
+Number of packets waiting for database attention, only available if :ref:`setting-receiver-threads` > 1
 
 .. _stat-query-cache-hit:
 
