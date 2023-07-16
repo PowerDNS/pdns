@@ -5,6 +5,8 @@ Changelog
   :version: 1.7.4
   :released: 14th of April 2023
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
+
   .. change::
     :tags: Bug Fixes
     :pullreq: 12183
@@ -117,6 +119,8 @@ Changelog
   :version: 1.8.0
   :released: 30th of March 2023
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
+
   .. change::
     :tags: Bug Fixes
     :pullreq: 12687
@@ -138,6 +142,8 @@ Changelog
 .. changelog::
   :version: 1.8.0-rc3
   :released: 16th of March 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
 
   .. change::
     :tags: Bug Fixes
@@ -172,6 +178,8 @@ Changelog
 .. changelog::
   :version: 1.8.0-rc2
   :released: 9th of March 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
 
   .. change::
     :tags: Improvements, Protobuf
@@ -218,6 +226,8 @@ Changelog
 .. changelog::
   :version: 1.8.0-rc1
   :released: 23rd of February 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
 
   .. change::
     :tags: Bug Fixes
