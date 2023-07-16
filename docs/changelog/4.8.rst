@@ -45,6 +45,8 @@ Changelogs for 4.8.x
 
   This is release 4.8.0 of the Authoritative Server.
 
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.8.x
+
   In 4.8, the LMDB backend gains a new Lightning Stream-compatible schema, which requires a data migration (this is automatic, and there is no migration back to the old schema).
   LMDB backend users should pay extra attention to the :doc:`Upgrade Notes <../upgrading>`.
 
@@ -84,6 +86,8 @@ Changelogs for 4.8.x
   :released: 4th of May 2023
 
   This is release 4.8.0-beta1 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.8.x
 
   In 4.8, the LMDB backend gains a new Lightning Stream-compatible schema, which requires a data migration (this is automatic, and there is no migration back to the old schema).
   LMDB backend users should pay extra attention to the :doc:`Upgrade Notes <../upgrading>`.
@@ -147,6 +151,8 @@ Changelogs for 4.8.x
   :released: 21st of March 2023
 
   This is release 4.8.0-alpha1 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.8.x
 
   In this release, the LMDB backend gains a new Lightning Stream-compatible schema, which requires a data migration (this is automatic, and there is no migration back to the old schema).
   LMDB backend users should pay extra attention to the :doc:`Upgrade Notes <../upgrading>`.
