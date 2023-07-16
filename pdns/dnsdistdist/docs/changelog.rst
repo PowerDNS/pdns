@@ -5,7 +5,7 @@ Changelog
   :version: 1.7.4
   :released: 14th of April 2023
 
-  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.7.x.
 
   .. change::
     :tags: Bug Fixes
@@ -1081,6 +1081,8 @@ Changelog
   :version: 1.7.3
   :released: 2nd of November 2022
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.7.x.
+
   dnsdist 1.7.3 contains no functional changes or bugfixes.
   This release strictly serves to bring dnsdist packages to our EL9 and Ubuntu Jammy repositories, and upgrades the dnsdist Docker image from Debian buster to Debian bullseye, as buster is officially EOL.
 
@@ -1105,6 +1107,8 @@ Changelog
 .. changelog::
   :version: 1.7.2
   :released: 14th of June 2022
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.7.x.
 
   .. change::
     :tags: Improvements
@@ -1151,6 +1155,8 @@ Changelog
 .. changelog::
   :version: 1.7.1
   :released: 25th of April 2022
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.7.x.
 
   .. change::
     :tags: Improvements
@@ -1272,6 +1278,8 @@ Changelog
   :version: 1.7.0
   :released: 17th of January 2022
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.7.x.
+
   .. change::
     :tags: Bug Fixes
     :pullreq: 11156
@@ -1282,6 +1290,8 @@ Changelog
 .. changelog::
   :version: 1.7.0-rc1
   :released: 22nd of December 2021
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.7.x.
 
   .. change::
     :tags: Improvements, DNS over TLS, Performance
@@ -1359,6 +1369,8 @@ Changelog
 .. changelog::
   :version: 1.7.0-beta1
   :released: 16th of November 2021
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.7.x.
 
   .. change::
     :tags: Improvements
@@ -1483,6 +1495,8 @@ Changelog
   :version: 1.7.0-alpha2
   :released: 19th of October 2021
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.7.x.
+
   .. change::
     :tags: Improvements
     :pullreq: 10760
@@ -1585,6 +1599,8 @@ Changelog
 .. changelog::
   :version: 1.7.0-alpha1
   :released: 23rd of September 2021
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.7.x.
 
   .. change::
     :tags: Improvements
@@ -1749,6 +1765,8 @@ Changelog
   :version: 1.6.1
   :released: 15th of September 2021
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.6.x.
+
   .. change::
     :tags: Bug Fixes
     :pullreq: 10438
@@ -1800,9 +1818,13 @@ Changelog
   :version: 1.6.0
   :released: 11th of May 2021
 
-.. changelog::
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.6.x.
+
+  .. changelog::
   :version: 1.5.2
   :released: 10th of May 2021
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.5.x.
 
   .. change::
     :tags: Bug Fixes
@@ -1881,6 +1903,8 @@ Changelog
   :version: 1.6.0-rc2
   :released: 4th of May 2021
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.6.x.
+
   .. change::
     :tags: Improvements, Metrics
     :pullreq: 10323
@@ -1903,6 +1927,8 @@ Changelog
 .. changelog::
   :version: 1.6.0-rc1
   :released: 20th of April 2021
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.6.x.
 
   .. change::
     :tags: Bug Fixes
@@ -1939,6 +1965,8 @@ Changelog
 .. changelog::
   :version: 1.6.0-alpha3
   :released: 29th of March 2021
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.6.x.
 
   .. change::
     :tags: Improvements
@@ -2004,6 +2032,8 @@ Changelog
 .. changelog::
   :version: 1.6.0-alpha2
   :released: 4th of March 2021
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.6.x.
 
  .. change::
     :tags: Improvements
@@ -2077,6 +2107,8 @@ Changelog
 .. changelog::
   :version: 1.6.0-alpha1
   :released: 2nd of February 2021
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.6.x.
 
   .. change::
     :tags: Improvements
@@ -2472,6 +2504,8 @@ Changelog
   :version: 1.5.1
   :released: 1st of October 2020
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.5.x.
+
   .. change::
     :tags: Improvements
     :pullreq: 9540
@@ -2507,6 +2541,8 @@ Changelog
 .. changelog::
   :version: 1.5.0
   :released: 30th of July 2020
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.5.x.
 
   .. change::
     :tags: Improvements
@@ -2561,6 +2597,8 @@ Changelog
   :version: 1.5.0-rc4
   :released: 7th of July 2020
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.5.x.
+
   .. change::
     :tags: Bug Fixes
     :pullreq: 9278
@@ -2570,6 +2608,8 @@ Changelog
 .. changelog::
   :version: 1.5.0-rc3
   :released: 18th of June 2020
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.5.x.
 
   .. change::
     :tags: Improvements
@@ -2625,6 +2665,8 @@ Changelog
 .. changelog::
   :version: 1.5.0-rc2
   :released: 13th of May 2020
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.5.x.
 
   .. change::
     :tags: Bug Fixes
@@ -2698,6 +2740,8 @@ Changelog
   :version: 1.5.0-rc1
   :released: 16th of April 2020
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.5.x.
+
   .. change::
     :tags: Bug Fixes
     :pullreq: 8955
@@ -2745,6 +2789,8 @@ Changelog
 .. changelog::
   :version: 1.5.0-alpha1
   :released: 20th of March 2020
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.5.x.
 
   .. change::
     :tags: Improvements
@@ -3047,6 +3093,8 @@ Changelog
   :version: 1.4.0
   :released: 20th of November 2019
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.4.x.
+
   .. change::
     :tags: Bug Fixes
     :pullreq: 8524
@@ -3087,6 +3135,8 @@ Changelog
   :version: 1.4.0-rc5
   :released: 30th of October 2019
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.4.x.
+
   .. change::
     :tags: Improvements, DNS over HTTPS, Metrics
     :pullreq: 8465
@@ -3102,6 +3152,8 @@ Changelog
 .. changelog::
   :version: 1.4.0-rc4
   :released: 25th of October 2019
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.4.x.
 
   .. change::
     :tags: New Features, DNS over HTTPS, DNS over TLS
@@ -3243,6 +3295,9 @@ Changelog
   :version: 1.4.0-rc3
   :released: 30th of September 2019
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.4.x.
+
+
   .. change::
     :tags: Improvements
     :pullreq: 8083
@@ -3322,6 +3377,9 @@ Changelog
   :version: 1.4.0-rc2
   :released: 2nd of September 2019
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.4.x.
+
+
   .. change::
     :tags: New Features
     :pullreq: 8139
@@ -3362,6 +3420,8 @@ Changelog
 .. changelog::
   :version: 1.4.0-rc1
   :released: 12th of August 2019
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.4.x.
 
   .. change::
     :tags: Improvements
@@ -3648,6 +3708,8 @@ Changelog
   :version: 1.4.0-beta1
   :released: 6th of June 2019
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.4.x.
+
   .. change::
     :tags: Bug Fixes, DoH
     :pullreq: 7814
@@ -3685,6 +3747,8 @@ Changelog
   :version: 1.4.0-alpha2
   :released: 26th of April 2019
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.4.x.
+
   .. change::
     :tags: Improvements
     :pullreq: 7410
@@ -3713,6 +3777,8 @@ Changelog
 .. changelog::
   :version: 1.4.0-alpha1
   :released: 12th of April 2019
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.4.x.
 
  .. change::
     :tags: New Features
@@ -3984,6 +4050,8 @@ Changelog
   :version: 1.3.3
   :released: 8th of November 2018
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.3.x.
+
   .. change::
     :tags: New Features
     :pullreq: 6737, 6939
@@ -4170,6 +4238,8 @@ Changelog
   :version: 1.3.2
   :released: 10th of July 2018
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.3.x.
+
   .. change::
     :tags: Bug Fixes
     :pullreq: 6785
@@ -4179,6 +4249,8 @@ Changelog
 .. changelog::
   :version: 1.3.1
   :released: 10th of July 2018
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.3.x.
 
   .. change::
     :tags: Improvements
@@ -4493,6 +4565,8 @@ Changelog
   :version: 1.3.0
   :released: 30th of March 2018
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.3.x.
+
   .. change::
     :tags: Improvements, New Features
     :pullreq: 5576, 5860
@@ -4738,6 +4812,8 @@ Changelog
   :version: 1.2.1
   :released: 16th of February 2018
 
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.2.x.
+
   .. change::
     :tags: New Features
     :pullreq: 5880
@@ -4815,6 +4891,8 @@ Changelog
 .. changelog::
   :version: 1.2.0
   :released: 21st of August 2017
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.2.x.
 
   .. change::
     :tags: Improvements
