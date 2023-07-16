@@ -1820,7 +1820,7 @@ Changelog
 
   Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.6.x.
 
-  .. changelog::
+.. changelog::
   :version: 1.5.2
   :released: 10th of May 2021
 
