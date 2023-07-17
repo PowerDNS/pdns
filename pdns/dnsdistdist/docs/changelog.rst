@@ -1041,7 +1041,7 @@ Changelog
     :tags: New Features
     :pullreq: 11051
 
-     Add support to spoof a full self-generated response from lua
+    Add support to spoof a full self-generated response from lua
 
   .. change::
     :tags: New Features
