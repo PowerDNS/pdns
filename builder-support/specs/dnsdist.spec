@@ -113,6 +113,7 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 %make_install
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
 %{__mv} %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf-dist %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf
+chgrp dnsdist %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.conf
 chmod 0640 %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.conf
 sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/%{_unitdir}/dnsdist.service
 sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/%{_unitdir}/dnsdist@.service
