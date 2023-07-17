@@ -55,7 +55,6 @@ public:
   bool completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask);
 
   void mainloop();                  //!< this is the main loop that receives reply packets and sends them out again
-  bool recurseFor(DNSPacket* p);
 private:
   struct ConntrackEntry
   {
