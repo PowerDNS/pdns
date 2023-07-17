@@ -908,6 +908,8 @@ static uint32_t capPacketCacheTTL(const struct dnsheader& hdr, uint32_t ttl, boo
 
 static void addPolicyTagsToPBMessageIfNeeded(DNSComboWriter& comboWriter, pdns::ProtoZero::RecMessage& pbMessage)
 {
+  /* we do _not_ want to store policy tags set by the gettag hook into the packet cache,
+     since the call to gettag for subsequent queries could yield the same PC tag but different policy tags */
   if (!comboWriter.d_gettagPolicyTags.empty()) {
     for (const auto& tag : comboWriter.d_gettagPolicyTags) {
       comboWriter.d_policyTags.erase(tag);
@@ -1693,7 +1695,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
       pbMessage.setInBytes(packet.size());
       pbMessage.setValidationState(resolver.getValidationState());
-      // See if we want to store the policyTags into th PC
+      // See if we want to store the policyTags into the PC
       addPolicyTagsToPBMessageIfNeeded(*comboWriter, pbMessage);
 
       // Take s snap of the current protobuf buffer state to store in the PC
