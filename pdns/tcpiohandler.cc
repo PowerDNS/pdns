@@ -432,16 +432,6 @@ public:
     return got;
   }
 
-  bool hasBufferedData() const override
-  {
-    if (d_conn) {
-      /* this is broken when read-ahead is set, unfortunately */
-      return SSL_pending(d_conn.get()) > 0;
-    }
-
-    return false;
-  }
-
   bool isUsable() const override
   {
     if (!d_conn) {
@@ -1443,15 +1433,6 @@ public:
     while (got < bufferSize);
 
     return got;
-  }
-
-  bool hasBufferedData() const override
-  {
-    if (d_conn) {
-      return gnutls_record_check_pending(d_conn.get()) > 0;
-    }
-
-    return false;
   }
 
   bool isUsable() const override

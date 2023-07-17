@@ -362,11 +362,6 @@ public:
     BOOST_REQUIRE_EQUAL(step.request, ExpectedStep::ExpectedRequest::closeClient);
   }
 
-  bool hasBufferedData() const override
-  {
-    return false;
-  }
-
   bool isUsable() const override
   {
     return true;

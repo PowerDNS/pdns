@@ -405,11 +405,6 @@ public:
     BOOST_REQUIRE_EQUAL(step.request, !d_client ? ExpectedStep::ExpectedRequest::closeClient : ExpectedStep::ExpectedRequest::closeBackend);
   }
 
-  bool hasBufferedData() const override
-  {
-    return false;
-  }
-
   bool isUsable() const override
   {
     return true;

@@ -32,7 +32,6 @@ public:
   virtual size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) = 0;
   virtual IOState tryWrite(const PacketBuffer& buffer, size_t& pos, size_t toWrite) = 0;
   virtual IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false) = 0;
-  virtual bool hasBufferedData() const = 0;
   virtual std::string getServerNameIndication() const = 0;
   virtual std::vector<uint8_t> getNextProtocol() const = 0;
   virtual LibsslTLSVersion getTLSVersion() const = 0;
@@ -474,14 +473,6 @@ public:
 #endif /* MSG_FASTOPEN */
 
     return writen2WithTimeout(d_socket, buffer, bufferSize, writeTimeout);
-  }
-
-  bool hasBufferedData() const
-  {
-    if (d_conn) {
-      return d_conn->hasBufferedData();
-    }
-    return false;
   }
 
   std::string getServerNameIndication() const
