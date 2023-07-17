@@ -1824,7 +1824,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     // will be overridden by updateDomainSettingsFromDocument, if given in document.
     di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
 
-    for(auto rr : new_records) {
+    for(auto& rr : new_records) {
       rr.domain_id = di.id;
       di.backend->feedRecord(rr, DNSName());
     }

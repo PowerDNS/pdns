@@ -872,7 +872,7 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 
   B.getAllDomains(&domainInfo, true, true);
   int errors=0;
-  for(auto di : domainInfo) {
+  for (auto& di : domainInfo) {
     if (checkZone(dk, B, di.zone) > 0) {
       errors++;
     }
