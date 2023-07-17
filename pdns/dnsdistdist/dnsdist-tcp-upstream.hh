@@ -126,7 +126,7 @@ public:
   static void handleAsyncReady(int fd, FDMultiplexer::funcparam_t& param);
   static void updateIO(std::shared_ptr<IncomingTCPConnectionState>& state, IOState newState, const struct timeval& now);
 
-  static void queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response);
+  static void queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response, bool fromBackend);
   static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write);
 
   virtual void handleIO();

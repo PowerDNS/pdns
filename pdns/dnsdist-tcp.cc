@@ -372,7 +372,7 @@ void IncomingTCPConnectionState::terminateClientConnection()
   }
 }
 
-void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response)
+void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response, bool fromBackend)
 {
   // queue response
   state->d_queuedResponses.emplace_back(std::move(response));
@@ -400,6 +400,17 @@ void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnec
     // for the same reason we need to update the state right away, nobody will do that for us
     if (state->active()) {
       updateIO(state, iostate, now);
+      // if we have not finished reading every available byte, we _need_ to do an actual read
+      // attempt before waiting for the socket to become readable again, because if there is
+      // buffered data available the socket might never become readable again.
+      // This is true as soon as we deal with TLS because TLS records are processed one by
+      // one and might not match what we see at the application layer, so data might already
+      // be available in the TLS library's buffers. This is especially true when OpenSSL's
+      // read-ahead mode is enabled because then it buffers even more than one SSL record
+      // for performance reasons.
+      if (fromBackend && !state->d_lastIOBlocked) {
+        state->handleIO();
+      }
     }
   }
 }
@@ -522,7 +533,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
   ++dnsdist::metrics::g_stats.responses;
   ++state->d_ci.cs->responses;
 
-  queueResponse(state, now, std::move(response));
+  queueResponse(state, now, std::move(response), true);
 }
 
 struct TCPCrossProtocolResponse
@@ -651,7 +662,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     TCPResponse response;
     d_state = State::idle;
     ++d_currentQueriesCount;
-    queueResponse(state, now, std::move(response));
+    queueResponse(state, now, std::move(response), false);
     return QueryProcessingResult::SelfAnswered;
   }
 
@@ -670,7 +681,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
       response.d_buffer = std::move(query);
       d_state = State::idle;
       ++d_currentQueriesCount;
-      queueResponse(state, now, std::move(response));
+      queueResponse(state, now, std::move(response), false);
       return QueryProcessingResult::Empty;
     }
   }
@@ -751,7 +762,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
 
     d_state = State::idle;
     ++d_currentQueriesCount;
-    queueResponse(state, now, std::move(response));
+    queueResponse(state, now, std::move(response), false);
     return QueryProcessingResult::SelfAnswered;
   }
 
@@ -1188,7 +1199,7 @@ void IncomingTCPConnectionState::handleXFRResponse(const struct timeval& now, TC
   }
 
   std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
-  queueResponse(state, now, std::move(response));
+  queueResponse(state, now, std::move(response), true);
 }
 
 void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write)

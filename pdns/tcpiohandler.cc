@@ -435,6 +435,7 @@ public:
   bool hasBufferedData() const override
   {
     if (d_conn) {
+      /* this is broken when read-ahead is set, unfortunately */
       return SSL_pending(d_conn.get()) > 0;
     }
 

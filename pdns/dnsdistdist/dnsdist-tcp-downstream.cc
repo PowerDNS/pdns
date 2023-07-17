@@ -362,7 +362,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
             iostate = conn->handleResponse(conn, now);
           }
           catch (const std::exception& e) {
-            vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getName() : "unknown", conn->d_currentQuery.d_query.d_idstate.origRemote.toStringWithPort(), e.what());
+            vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getNameWithAddr() : "unknown", conn->d_currentQuery.d_query.d_idstate.origRemote.toStringWithPort(), e.what());
             ioGuard.release();
             conn->release();
             return;
@@ -726,7 +726,14 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     d_state = State::idle;
     t_downstreamTCPConnectionsManager.moveToIdle(conn);
   }
+  else if (!d_pendingResponses.empty()) {
+    d_currentPos = 0;
+    d_state = State::waitingForResponseFromBackend;
+  }
 
+  // be very careful that handleResponse() might trigger new queries being assigned to us,
+  // which may reset our d_currentPos, d_state and/or d_responseBuffer, so we cannot assume
+  // anything without checking first
   auto shared = conn;
   if (sender->active()) {
     DEBUGLOG("passing response to client connection for "<<ids.qname);
@@ -741,9 +748,6 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   }
   else if (!d_pendingResponses.empty()) {
     DEBUGLOG("still have some responses to read");
-    d_state = State::waitingForResponseFromBackend;
-    d_currentPos = 0;
-    d_responseBuffer.resize(sizeof(uint16_t));
     return IOState::NeedRead;
   }
   else {
