@@ -79,8 +79,8 @@ using CkaValueType = enum { Attribute_Byte, Attribute_Long, Attribute_String };
 class P11KitAttribute {
 private:
   CK_ATTRIBUTE_TYPE type;
-  CK_BYTE ckByte;
-  CK_ULONG ckLong;
+  CK_BYTE ckByte{0};
+  CK_ULONG ckLong{0};
   std::string ckString;
   CkaValueType ckType;
   std::unique_ptr<unsigned char[]> buffer;
