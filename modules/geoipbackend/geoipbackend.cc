@@ -194,7 +194,7 @@ void GeoIPBackend::initialize()
             string attr = iter->first.as<string>();
             if (attr == "content") {
               string content = iter->second.as<string>();
-              rr.content = content;
+              rr.content = std::move(content);
             }
             else if (attr == "weight") {
               rr.weight = iter->second.as<int>();
@@ -215,7 +215,7 @@ void GeoIPBackend::initialize()
         }
         else {
           string content = rec->second.as<string>();
-          rr.content = content;
+          rr.content = std::move(content);
           rr.weight = 100;
         }
         rr.auth = 1;

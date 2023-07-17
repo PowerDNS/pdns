@@ -117,7 +117,7 @@ void apiDiscovery(HttpRequest* req, HttpResponse* resp) {
     { "version", 1 },
     { "url", "/api/v1" }
   };
-  Json doc = Json::array { version1 };
+  Json doc = Json::array { std::move(version1) };
 
   resp->setJsonBody(doc);
 }
@@ -130,7 +130,7 @@ void apiDiscoveryV1(HttpRequest* req, HttpResponse* resp) {
     { "server_url", "/api/v1/servers{/server}" },
     { "api_features", Json::array {} }
   };
-  Json doc = Json::array { version1 };
+  Json doc = Json::array { std::move(version1) };
 
   resp->setJsonBody(doc);
 

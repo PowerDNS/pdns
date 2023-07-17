@@ -2440,7 +2440,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
           lrr.ordername = hasOrderName;
           changed = true;
         }
-        newRRs.push_back(lrr);
+        newRRs.push_back(std::move(lrr));
       }
       if (changed) {
         cursor.put(key, serToString(newRRs));
