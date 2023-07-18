@@ -531,8 +531,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPPOutsidePort = 8443
-    _dohServerPPInsidePort = 9443
+    _dohServerPPOutsidePort = pickAvailablePort()
+    _dohServerPPInsidePort = pickAvailablePort()
     _config_params = ['_dohServerPPOutsidePort', '_serverCert', '_serverKey', '_dohServerPPInsidePort', '_serverCert', '_serverKey', '_proxyResponderPort']
 
     def testNoHeader(self):
@@ -769,9 +769,10 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
 
         wire = query.to_wire()
 
-        reverseProxyPort = 13053
+        reverseProxyPort = pickAvailablePort()
         reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dohServerPPOutsidePort])
         reverseProxy.start()
+        time.sleep(1)
 
         receivedResponse = None
         conn = self.openDOHConnection(reverseProxyPort, self._caCert, timeout=2.0)
@@ -818,7 +819,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
 
         wire = query.to_wire()
 
-        reverseProxyPort = 14053
+        reverseProxyPort = pickAvailablePort()
         tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         tlsContext.load_cert_chain(self._serverCert, self._serverKey)
         tlsContext.set_alpn_protocols(['h2'])
