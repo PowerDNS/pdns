@@ -1,3 +1,4 @@
+import errno
 import os
 import socket
 import struct
@@ -216,7 +217,7 @@ class TestRecursorDNSTap(RecursorTest):
                 listener.setDaemon(True)
                 listener.start()
             except socket.error as e:
-                if e.errno != 9:
+                if e.errno != errno.EBADF:
                     sys.stderr.write("Socket error on accept: %s\n" % str(e))
                 else:
                     break
