@@ -29,9 +29,9 @@ dot-to-auth-names=powerdns.com
         cls.generateRecursorConfig(confdir)
         cls.startRecursor(confdir, cls._recursorPort)
 
-    def testA(self):
-        expected = dns.rrset.from_text('www.powerdns.com.', 0, dns.rdataclass.IN, 'A', '188.166.104.92')
-        query = dns.message.make_query('www.powerdns.com', 'A', want_dnssec=True)
+    def testTXT(self):
+        expected = dns.rrset.from_text('dot-test-target.powerdns.org.', 0, dns.rdataclass.IN, 'TXT', 'https://github.com/PowerDNS/pdns/pull/12825')
+        query = dns.message.make_query('dot-test-target.powerdns.org', 'TXT', want_dnssec=True)
         query.flags |= dns.flags.AD
 
         res = self.sendUDPQuery(query)
