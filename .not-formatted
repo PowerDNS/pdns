@@ -74,8 +74,6 @@
 ./pdns/dnsdistdist/connection-management.hh
 ./pdns/dnsdistdist/dnsdist-backend.cc
 ./pdns/dnsdistdist/dnsdist-dynblocks.cc
-./pdns/dnsdistdist/dnsdist-healthchecks.cc
-./pdns/dnsdistdist/dnsdist-healthchecks.hh
 ./pdns/dnsdistdist/dnsdist-kvs.cc
 ./pdns/dnsdistdist/dnsdist-kvs.hh
 ./pdns/dnsdistdist/dnsdist-lbpolicies.cc
