@@ -1470,11 +1470,15 @@ int main(int argc, char** argv)
     g_log << Logger::Error << "Fatal error: " << A.reason << endl;
     exit(1);
   }
+  catch (const std::exception& e) {
+    g_log << Logger::Error << "Fatal error: " << e.what() << endl;
+    exit(1);
+  }
 
   try {
     declareStats();
   }
-  catch (PDNSException& PE) {
+  catch (const PDNSException& PE) {
     g_log << Logger::Error << "Exiting because: " << PE.reason << endl;
     exit(1);
   }
@@ -1487,14 +1491,24 @@ int main(int argc, char** argv)
   try {
     mainthread();
   }
-  catch (PDNSException& e) {
-    if (!::arg().mustDo("daemon"))
-      cerr << "Exiting because: " << e.reason << endl;
+  catch (const PDNSException& e) {
+    try {
+      if (!::arg().mustDo("daemon")) {
+        cerr << "Exiting because: " << e.reason << endl;
+      }
+    }
+    catch (const ArgException& A) {
+    }
     g_log << Logger::Error << "Exiting because: " << e.reason << endl;
   }
-  catch (std::exception& e) {
-    if (!::arg().mustDo("daemon"))
-      cerr << "Exiting because of STL error: " << e.what() << endl;
+  catch (const std::exception& e) {
+    try {
+      if (!::arg().mustDo("daemon")) {
+        cerr << "Exiting because of STL error: " << e.what() << endl;
+      }
+    }
+    catch (const ArgException& A) {
+    }
     g_log << Logger::Error << "Exiting because of STL error: " << e.what() << endl;
   }
   catch (...) {

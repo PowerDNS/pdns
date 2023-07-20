@@ -872,7 +872,7 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 
   B.getAllDomains(&domainInfo, true, true);
   int errors=0;
-  for(auto di : domainInfo) {
+  for (auto& di : domainInfo) {
     if (checkZone(dk, B, di.zone) > 0) {
       errors++;
     }
@@ -889,10 +889,11 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
       errors++;
     }
 
-    seenInfos.insert(di);
+    seenInfos.insert(std::move(di));
 
-    if(errors && exitOnError)
+    if (errors && exitOnError) {
       return EXIT_FAILURE;
+    }
   }
   cout<<"Checked "<<domainInfo.size()<<" zones, "<<errors<<" had errors."<<endl;
   if(!errors)

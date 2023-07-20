@@ -426,8 +426,8 @@ public:
 
 private:
   std::list<DNSResourceRecord> d_result;
-  bool d_debug_log;
-  bool d_dnssec;
+  bool d_debug_log{false};
+  bool d_dnssec{false};
 
   lookup_call_t f_lookup;
   list_call_t f_list;

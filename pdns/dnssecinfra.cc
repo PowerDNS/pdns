@@ -526,8 +526,9 @@ string getMessageForRRSET(const DNSName& qname, const RRSIGRecordContent& rrc, c
 
     if (rrsig_labels < fqdn_labels) {
       DNSName choppedQname(qname);
-      while (choppedQname.countLabels() > rrsig_labels)
+      while (choppedQname.countLabels() > rrsig_labels) {
         choppedQname.chopOff();
+      }
       nameToHash = "\x01*" + choppedQname.toDNSStringLC();
     } else if (rrsig_labels > fqdn_labels) {
       // The RRSIG Labels field is a lie (or the qname is wrong) and the RRSIG

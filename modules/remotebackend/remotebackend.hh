@@ -129,7 +129,7 @@ private:
   void connect();
   std::string d_endpoint;
   int d_timeout;
-  int d_timespent;
+  int d_timespent{0};
   std::map<std::string, std::string> d_options;
   std::unique_ptr<void, int (*)(void*)> d_ctx;
   std::unique_ptr<void, int (*)(void*)> d_sock;

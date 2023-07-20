@@ -242,7 +242,7 @@ class TypedDBI
 {
 public:
   TypedDBI(std::shared_ptr<MDBEnv> env, string_view name)
-    : d_env(env), d_name(name)
+    : d_env(std::move(env)), d_name(name)
   {
     d_main = d_env->openDB(name, MDB_CREATE);
 
