@@ -190,11 +190,11 @@ static void healthCheckUDPCallback(int descriptor, FDMultiplexer::funcparam_t& p
     data->d_buffer.resize(512);
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    got = recvfrom(data->d_udpSocket.getHandle(), &data->d_buffer.at(0), data->d_buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromlen);
+    got = recvfrom(data->d_udpSocket.getHandle(), data->d_buffer.data(), data->d_buffer.size(), 0, reinterpret_cast<sockaddr*>(&from), &fromlen);
     if (got < 0) {
       int savederrno = errno;
       if (savederrno == EINTR) {
-        /* interrupted, let's try again */
+        /* interrupted before any data was available, let's try again */
         continue;
       }
       if (savederrno == EWOULDBLOCK || savederrno == EAGAIN) {
@@ -250,7 +250,7 @@ static void healthCheckTCPCallback(int descriptor, FDMultiplexer::funcparam_t& p
       if (ioState == IOState::Done) {
         data->d_bufferPos = 0;
         uint16_t responseSize{0};
-        memcpy(&responseSize, &data->d_buffer.at(0), sizeof(responseSize));
+        memcpy(&responseSize, data->d_buffer.data(), sizeof(responseSize));
         data->d_buffer.resize(ntohs(responseSize));
         data->d_tcpState = HealthCheckData::TCPState::ReadingResponse;
       }
