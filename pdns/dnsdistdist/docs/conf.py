@@ -49,7 +49,7 @@ master_doc = 'index_TOC'
 
 # General information about the project.
 project = 'dnsdist'
-copyright = '2015-' + str(datetime.date.today().year) + ', PowerDNS.COM BV and its contributors'
+copyright = 'PowerDNS.COM BV and its contributors'
 author = 'PowerDNS.COM BV and its contributors'
 
 # The version info for the project you're documenting, acts as replacement for

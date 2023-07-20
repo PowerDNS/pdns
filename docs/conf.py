@@ -52,7 +52,7 @@ master_doc = 'indexTOC'
 
 # General information about the project.
 project = 'PowerDNS Authoritative Server'
-copyright = '2001-' + str(datetime.date.today().year) + ', PowerDNS.COM BV'
+copyright = 'PowerDNS.COM BV'
 author = 'PowerDNS.COM BV'
 
 # The version info for the project you're documenting, acts as replacement for
