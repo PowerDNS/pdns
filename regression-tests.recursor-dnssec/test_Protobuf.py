@@ -974,8 +974,8 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
         self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
-        # we have max-cache-ttl set to 15
-        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        # time may have passed, so do not check TTL
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
         tags = [ self._tag_from_gettag ] + self._tags
         self.checkProtobufTags(msg, tags)
@@ -1028,8 +1028,8 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
         self.assertEqual(len(msg.response.rrs), 1)
         rr = msg.response.rrs[0]
-        # we have max-cache-ttl set to 15
-        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        # time may have passed, so do not check TTL
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
         self.checkNoRemainingMessage()
         self.assertEqual(len(msg.response.tags), 1)
