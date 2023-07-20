@@ -204,7 +204,7 @@ logic to change the SOA is not executed.
 
 .. note::
   Powerdns will always use :ref:`metadata-soa-edit` when serving SOA
-  records, thus a query for the SOA record of the recently update domain,
+  records, thus a query for the SOA record of the recently updated domain,
   might have an unexpected result due to a SOA-EDIT setting.
 
 An example::
