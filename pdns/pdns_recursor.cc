@@ -835,6 +835,20 @@ static bool isEnabledForUDRs(const std::shared_ptr<std::vector<std::unique_ptr<F
 }
 #endif // HAVE_FSTRM
 
+static void addPolicyTagsToPBMessageIfNeeded(DNSComboWriter& comboWriter, pdns::ProtoZero::RecMessage& pbMessage)
+{
+  /* we do _not_ want to store policy tags set by the gettag hook into the packet cache,
+     since the call to gettag for subsequent queries could yield the same PC tag but different policy tags */
+  if (!comboWriter.d_gettagPolicyTags.empty()) {
+    for (const auto& tag : comboWriter.d_gettagPolicyTags) {
+      comboWriter.d_policyTags.erase(tag);
+    }
+  }
+  if (!comboWriter.d_policyTags.empty()) {
+    pbMessage.addPolicyTags(comboWriter.d_policyTags);
+  }
+}
+
 void startDoResolve(void* p)
 {
   auto dc = std::unique_ptr<DNSComboWriter>(reinterpret_cast<DNSComboWriter*>(p));
@@ -1603,9 +1617,10 @@ void startDoResolve(void* p)
         pbMessage.setAppliedPolicyHit(appliedPolicy.d_hit);
         pbMessage.setAppliedPolicyKind(appliedPolicy.d_kind);
       }
-      pbMessage.addPolicyTags(dc->d_policyTags);
       pbMessage.setInBytes(packet.size());
       pbMessage.setValidationState(sr.getValidationState());
+      // See if we want to store the policyTags into the PC
+      addPolicyTagsToPBMessageIfNeeded(*dc, pbMessage);
 
       // Take s snap of the current protobuf buffer state to store in the PC
       pbDataForCache = boost::make_optional(RecursorPacketCache::PBData{
@@ -1693,6 +1708,7 @@ void startDoResolve(void* p)
       pbMessage.setDeviceId(dq.deviceId);
       pbMessage.setDeviceName(dq.deviceName);
       pbMessage.setToPort(dc->d_destination.getPort());
+      pbMessage.addPolicyTags(dc->d_gettagPolicyTags);
 
       for (const auto& m : dq.meta) {
         pbMessage.setMeta(m.first, m.second.stringVal, m.second.intVal);
@@ -2132,7 +2148,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         eventTrace.add(RecEventTrace::AnswerSent);
 
         if (t_protobufServers.servers && logResponse && !(luaconfsLocal->protobufExportConfig.taggedOnly && pbData && !pbData->d_tagged)) {
-          protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
+          protobufLogResponse(dh, luaconfsLocal, pbData, tv, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, policyTags);
         }
 
         if (eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) {
