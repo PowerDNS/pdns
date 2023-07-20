@@ -49,7 +49,6 @@ class DNSName;
 typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512, TSIG_GSS } TSIGHashEnum;
 namespace pdns
 {
-#if defined(HAVE_LIBCRYPTO)
 /**
  * \brief Retrieves the errno-based error message in a reentrant way.
  *
@@ -63,6 +62,7 @@ namespace pdns
  */
 auto getMessageFromErrno(int errnum) -> std::string;
 
+#if defined(HAVE_LIBCRYPTO)
 namespace OpenSSL
 {
   /**
