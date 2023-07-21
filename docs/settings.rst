@@ -974,6 +974,18 @@ Corresponds to "syslog" level values (e.g. 0 = emergency, 1 = alert, 2 = critica
 Each level includes itself plus the lower levels before it.
 Not recommended to set this below 3.
 
+.. _setting-loglevel-show:
+
+``loglevel-show``
+-------------------
+
+-  Bool
+-  Default: no
+
+.. versionadded:: 4.9.0
+
+When enabled, log messages are formatted like structured logs, including their log level/priority: ``msg="Unable to launch, no backends configured for querying" prio="Error"``
+
 .. _setting-lua-axfr-script:
 
 ``lua-axfr-script``

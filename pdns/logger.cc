@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 
+#include <iomanip>
 #include <mutex>
 
 #include "logger.hh"
@@ -67,42 +68,47 @@ void Logger::log(const string& msg, Urgency u) noexcept
       }
     }
 
-    string prefix;
+    string severity;
     if (d_prefixed) {
       switch (u) {
       case All:
-        prefix = "[all] ";
+        severity = "All";
         break;
       case Alert:
-        prefix = "[ALERT] ";
+        severity = "Alert";
         break;
       case Critical:
-        prefix = "[CRITICAL] ";
+        severity = "Critical";
         break;
       case Error:
-        prefix = "[ERROR] ";
+        severity = "Error";
         break;
       case Warning:
-        prefix = "[WARNING] ";
+        severity = "Warning";
         break;
       case Notice:
-        prefix = "[NOTICE] ";
+        severity = "Notice";
         break;
       case Info:
-        prefix = "[INFO] ";
+        severity = "Info";
         break;
       case Debug:
-        prefix = "[DEBUG] ";
+        severity = "Debug";
         break;
       case None:
-        prefix = "[none] ";
+        severity = "None";
         break;
       }
     }
 
     static std::mutex m;
     std::lock_guard<std::mutex> l(m); // the C++-2011 spec says we need this, and OSX actually does
-    clog << string(buffer) + prefix + msg << endl;
+    if (d_prefixed) {
+      clog << string(static_cast<char*>(&buffer[0])) << "msg=" << std::quoted(msg) << " prio=" << std::quoted(severity) << endl;
+    }
+    else {
+      clog << string(static_cast<char*>(&buffer[0])) << msg << endl;
+    }
 #ifndef RECURSOR
     mustAccount = true;
 #endif
