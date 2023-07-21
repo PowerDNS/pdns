@@ -768,14 +768,19 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   }
   newquery += "in-addr.arpa.";
 
+  auto log = g_slog->withName("dns64")->withValues("method", Logging::Loggable("getPTR"));
+  vector<DNSRecord> answers;
+  int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, answers, t_pdl, log);
+
   DNSRecord record;
   record.d_name = qname;
   record.d_type = QType::CNAME;
   record.setContent(std::make_shared<CNAMERecordContent>(newquery));
+  // Copy the TTL of the synthesized CNAME from the actual answer
+  record.d_ttl = (rcode == RCode::NoError && !answers.empty()) ? answers.at(0).d_ttl : SyncRes::s_minimumTTL;
   ret.push_back(record);
 
-  auto log = g_slog->withName("dns64")->withValues("method", Logging::Loggable("getPTR"));
-  int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, ret, t_pdl, log);
+  ret.insert(ret.end(), answers.begin(), answers.end());
 
   t_Counters.at(rec::Counter::dns64prefixanswers)++;
   return rcode;
