@@ -93,10 +93,18 @@ static void dump(const string &value, string &out) {
             out += "\\r";
         } else if (ch == '\t') {
             out += "\\t";
-        } else if (static_cast<uint8_t>(ch) <= 0x1f || static_cast<uint8_t>(ch) >= 0x7f) {
+        } else if (static_cast<uint8_t>(ch) <= 0x1f) {
             char buf[8];
             snprintf(buf, sizeof buf, "\\u%04x", ch);
             out += buf;
+        } else if (static_cast<uint8_t>(ch) == 0xe2 && static_cast<uint8_t>(value[i+1]) == 0x80
+                   && static_cast<uint8_t>(value[i+2]) == 0xa8) {
+            out += "\\u2028";
+            i += 2;
+        } else if (static_cast<uint8_t>(ch) == 0xe2 && static_cast<uint8_t>(value[i+1]) == 0x80
+                   && static_cast<uint8_t>(value[i+2]) == 0xa9) {
+            out += "\\u2029";
+            i += 2;
         } else {
             out += ch;
         }

@@ -535,7 +535,7 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
   }
 
   if (d_loglevel >= WebServer::LogLevel::Normal) {
-    SLOG(g_log<<Logger::Notice<<logprefix<<remote<<" \""<<req.method<<" "<<YaHTTP::Utility::encodeURL(req.url.path)<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl,
+    SLOG(g_log<<Logger::Notice<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl,
          d_slog->info(Logr::Info, "Request", "remote", Logging::Loggable(remote), "method", Logging::Loggable(req.method),
                       "urlpath", Logging::Loggable(req.url.path), "HTTPVersion", Logging::Loggable(req.versionStr(req.version)),
                       "status", Logging::Loggable(resp.status), "respsize",  Logging::Loggable(reply.size())));
