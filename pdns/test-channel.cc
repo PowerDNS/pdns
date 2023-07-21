@@ -77,6 +77,11 @@ BOOST_AUTO_TEST_CASE(test_object_queue_full)
   auto obj = std::make_unique<MyObject>();
   obj->a = 42U;
   BOOST_CHECK(sender.send(std::move(obj)));
+  /* and to get it */
+  {
+    auto got = receiver.receive();
+    BOOST_CHECK(got);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_object_queue_throw_on_eof)
