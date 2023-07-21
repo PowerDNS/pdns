@@ -213,6 +213,8 @@ public:
     d_acl = nmg;
   }
 
+  static bool validURL(const YaHTTP::URL& url);
+
   void bind();
   void go();
 
