@@ -511,6 +511,7 @@ gpgsqlbackend
 gprof
 gpsqlbackend
 grepq
+grpc
 GSQ
 gsql
 gsqlite

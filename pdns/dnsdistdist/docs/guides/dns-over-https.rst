@@ -62,7 +62,7 @@ preferred library for incoming DoH support, because ``h2o`` has unfortunately re
 (see https://github.com/h2o/h2o/issues/3230). While we took great care to make the migration as painless as possible, ``h2o`` supported HTTP/1 while ``nghttp2``
 does not. This is not an issue for actual DNS over HTTPS clients that support HTTP/2, but might be one in setups running dnsdist behind a reverse-proxy that
 does not support HTTP/1, like nginx. We do not plan on implementing HTTP/1, and recommend using HTTP/2 between the reverse-proxy and dnsdist for performance reasons.
-For nginx in particular, a possible work-around is to use the `gprc_pass <http://nginx.org/r/grpc_pass>`_ directive as suggested in their `bugtracker <https://trac.nginx.org/nginx/ticket/1875>`_.
+For nginx in particular, a possible work-around is to use the `grpc_pass <http://nginx.org/r/grpc_pass>`_ directive as suggested in their `bug tracker <https://trac.nginx.org/nginx/ticket/1875>`_.
 
 Internal design
 ^^^^^^^^^^^^^^^
