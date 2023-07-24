@@ -69,14 +69,14 @@ current-queries
     Shows the currently active queries.
 
 clear-dont-throttle-names NAME [NAME...]
-    Remove names that are not allowed to be throttled. If *NAME* is '*', remove all
+    Remove names that are not allowed to be throttled. If *NAME* is ``*``, remove all
 
 clear-dont-throttle-netmasks NETMASK [NETMASK...]
-    Remove netmasks that are not allowed to be throttled. If *NETMASK* is '*', remove all
+    Remove netmasks that are not allowed to be throttled. If *NETMASK* is ``*``, remove all
 
 clear-nta *DOMAIN*...
     Remove Negative Trust Anchor for one or more *DOMAIN*\ s. Set domain to
-    '*' to remove all NTA's.
+    ``*`` to remove all NTA's.
 
 clear-ta [*DOMAIN*]...
     Remove Trust Anchor for one or more *DOMAIN*\ s. Note that removing the
@@ -220,8 +220,8 @@ set-carbon-server *CARBON SERVER* [*CARBON OURNAME*]
     not empty, also set the carbon-ourname setting to *CARBON OURNAME*.
 
 set-dnssec-log-bogus *SETTING*
-    Set dnssec-log-bogus setting to *SETTING*. Set to 'on' or 'yes' to log
-    DNSSEC validation failures and to 'no' or 'off' to disable logging these
+    Set dnssec-log-bogus setting to *SETTING*. Set to ``on`` or ``yes`` to log
+    DNSSEC validation failures and to ``no`` or ``off`` to disable logging these
     failures.
 
 set-ecs-minimum-ttl *NUM*
@@ -241,7 +241,8 @@ set-minimum-ttl *NUM*
     Set minimum-ttl-override to *NUM*.
 
 set-event-trace-enabled *NUM*
-    Set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 3 = both.
+    Set logging of event trace messages, ``0`` = disabled, ``1`` = protobuf,
+    ``2`` = log file, ``3`` = protobuf and log file.
 
 top-queries
     Shows the top-20 queries. Statistics are over the last
@@ -325,8 +326,8 @@ wipe-cache *DOMAIN* [*DOMAIN*] [...]
     Wipe entries for *DOMAIN* (exact name match) from the cache. This is useful
     if, for example, an important server has a new IP address, but the TTL has
     not yet expired. Multiple domain names can be passed.
-    *DOMAIN* can be suffixed with a '$'. to delete the whole tree from the
-    cache. i.e. 'powerdns.com$' will remove all cached entries under and
+    *DOMAIN* can be suffixed with a ``$``. to delete the whole tree from the
+    cache. i.e. ``powerdns.com$`` will remove all cached entries under and
     including the powerdns.com name.
 
     **Note**: this command also wipes the negative cache.
