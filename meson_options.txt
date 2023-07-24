@@ -31,3 +31,5 @@ option('module-remote', type: 'boolean', value: false, description: 'Build the r
 option('module-remote-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable remote backend')
 option('module-tinydns', type: 'boolean', value: false, description: 'Build the tinyDNS backend')
 option('module-tinydns-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable tinyDNS backend')
+option('module-geoip', type: 'boolean', value: false, description: 'Build the GeoIP backend')
+option('module-geoip-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable GeoIP backend')

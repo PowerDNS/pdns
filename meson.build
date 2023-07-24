@@ -122,6 +122,7 @@ all_modules = [
   ['ldap', 'ldap'],
   ['remote', 'curl'],
   ['tinydns', 'cdb'],
+  ['geoip', 'geoip'],
 ]
 selected_modules = []
 foreach module: all_modules
