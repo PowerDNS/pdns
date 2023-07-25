@@ -85,11 +85,12 @@ touch failed_tests passed_tests
 
 ANANSWER=$[(100*(${DBT_QUEUED}-${DBT_ERRORS}-${DBT_TIMEOUTS}) )/${DBT_QUEUED}]
 
-if [ "$ANANSWER" -ge $THRESHOLD ]
+if [ $ANANSWER -ge $THRESHOLD ]
 then
-        echo recursor-bulktest >> passed_tests
-        RETVAL=0
+    echo recursor-bulktest >> passed_tests
+    RETVAL=0
 else
+    echo "::error ::title=Recursor-bulktest::Bulk test failed: less than ${THRESHOLD}% of queries answered successfully"
     echo recursor-bulktest >> failed_tests
     RETVAL=1
 fi
