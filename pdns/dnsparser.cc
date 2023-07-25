@@ -516,6 +516,10 @@ string PacketReader::getText(bool multi, bool lenField)
       break;
   }
 
+  if (ret.empty() && !lenField) {
+    // all lenField == false cases (CAA and URI at the time of this writing) want that emptiness to be explicit
+    return "\"\"";
+  }
   return ret;
 }
 
@@ -536,7 +540,7 @@ string PacketReader::getUnquotedText(bool lenField)
     return "";
 
   d_pos++;
-  string ret(&d_content.at(d_pos), &d_content.at(stop_at));
+  string ret(d_content.substr(d_pos, stop_at-d_pos));
   d_pos = stop_at;
   return ret;
 }
