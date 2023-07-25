@@ -33,7 +33,8 @@ jobs:
       # this builds packages and runs our unit test (make check)
       - run: builder/build.sh -v -m ${{ matrix.product }} ${{ matrix.os }}
       - name: Get version number
-        run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
+        run: |
+          echo "version=$(readlink builder/tmp/latest)" >> $GITHUB_OUTPUT
         id: getversion
       - name: Upload packages
         uses: actions/upload-artifact@v3
