@@ -22,7 +22,8 @@ jobs:
       - run: inv install-doc-deps-pdf
 
       - id: get-version
-        run: echo "pdns_version=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: |
+          echo "pdns_version=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - id: setup-ssh
         run: |-

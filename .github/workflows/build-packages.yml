@@ -86,7 +86,8 @@ jobs:
       # this builds packages and runs our unit tests (make check)
       - run: IS_RELEASE=${{ inputs.is_release}} builder/build.sh -v -m ${{ inputs.product }} ${{ matrix.os }}
       - name: Get version number
-        run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
+        run: |
+          echo "version=$(readlink builder/tmp/latest)" >> $GITHUB_OUTPUT
         id: getversion
       - name: Upload packages as GH artifacts
         uses: actions/upload-artifact@v3
