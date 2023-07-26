@@ -63,6 +63,7 @@ if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
   error('Ragel is missing and `pdns/dnslabeltext.cc` cannot be found. ' +
         'Install Ragel or download the sources from www.powerdns.com')
 endif
+# TODO Generate pdns/dnslabeltext.cc
 
 # Backend Unit Tests
 opt_backend_unittests = get_option('backend-unit-tests')
