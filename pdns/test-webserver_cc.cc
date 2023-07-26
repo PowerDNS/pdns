@@ -18,10 +18,16 @@ BOOST_AUTO_TEST_CASE(test_validURL)
     {"http://www.powerdns.com/\x7f?foo=123", false},
     {"http://www.powerdns.com/\x80?foo=123", false},
     {"http://www.powerdns.com/?\xff", false},
+    {"/?foo=123&bar", true},
+    {"/?foo=%ff&bar", true},
+    {"/?\x01foo=123", false},
+    {"/?foo=123\x01", false},
+    {"/\x7f?foo=123", false},
+    {"/\x80?foo=123", false},
+    {"/?\xff", false},
   };
 
   for (const auto& testcase : urls) {
-    cerr << testcase.first << endl;
     BOOST_CHECK_EQUAL(WebServer::validURL(testcase.first), testcase.second);
   }
 }
