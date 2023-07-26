@@ -33,3 +33,5 @@ option('module-tinydns', type: 'boolean', value: false, description: 'Build the 
 option('module-tinydns-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable tinyDNS backend')
 option('module-geoip', type: 'boolean', value: false, description: 'Build the GeoIP backend')
 option('module-geoip-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable GeoIP backend')
+option('module-lmdb', type: 'boolean', value: false, description: 'Build the LMDB backend')
+option('module-lmdb-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable LMDB backend')

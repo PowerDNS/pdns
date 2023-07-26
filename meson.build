@@ -112,19 +112,21 @@ opt_socket_dir = get_option('socket-dir')
 
 # Modules
 all_modules = [
-  ['gmysql', 'mysql'],
-  ['godbc', 'odbc'],
-  ['gpgsql', 'pgsql'],
-  ['gsqlite3', 'sqlite3'],
-  ['ldap', 'ldap'],
-  ['remote', 'curl'],
-  ['tinydns', 'cdb'],
-  ['geoip', 'geoip'],
+  ['gmysql',   ['mysql']],
+  ['godbc',    ['odbc']],
+  ['gpgsql',   ['pgsql']],
+  ['gsqlite3', ['sqlite3']],
+  ['ldap',     ['ldap']],
+  ['remote',   ['curl']],
+  ['tinydns',  ['cdb']],
+  ['geoip',    ['geoip']],
+  ['lmdb',     ['lmdb', 'boost-serialization']],
 ]
 selected_modules = []
+selected_dyn_modules = []
 foreach module: all_modules
   name = module[0]
-  dep = module[1]
+  module_deps = module[1]
   opt = get_option('module-' + name)
   opt_dyn = get_option('module-' + name + '-dyn')
 
@@ -133,11 +135,18 @@ foreach module: all_modules
       selected_modules += name
     endif
 
-    if name == 'remote' and not opt_unittests
-      continue                  # We only need cURL for unit tests.
+    if opt_dyn
+      selected_dyn_modules += name
     endif
 
-    subdir('meson' / dep)
+    foreach dep: module_deps
+      if name == 'remote' and dep == 'curl' and not opt_unittests
+        continue                  # We only need cURL for unit tests.
+      endif
+
+      subdir('meson' / dep)
+    endforeach
+
     # TODO Also build the actual backend.
   endif
 endforeach
