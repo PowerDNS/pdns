@@ -58,53 +58,53 @@ EXITCODE=0
 
 if [ -z "$context" ]; then
 	export geoipregion=oc geoipregionip=1.2.3.4
-	./timestamp ./start-test-stop 5300 bind-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 bind-dnssec-both || EXITCODE=1
+	./start-test-stop 5300 bind-both || EXITCODE=1
+	./start-test-stop 5300 bind-dnssec-both || EXITCODE=1
 
 	# No PKCS#11 in packages
-	#SETUP_SOFTHSM=y ./timestamp ./start-test-stop 5300 bind-dnssec-pkcs11 || EXITCODE=1
-	./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-optout-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 bind-dnssec-nsec3-narrow || EXITCODE=1
-	./timestamp ./start-test-stop 5300 bind-hybrid-nsec3 || EXITCODE=1
+	#SETUP_SOFTHSM=y ./start-test-stop 5300 bind-dnssec-pkcs11 || EXITCODE=1
+	./start-test-stop 5300 bind-dnssec-nsec3-both || EXITCODE=1
+	./start-test-stop 5300 bind-dnssec-nsec3-optout-both || EXITCODE=1
+	./start-test-stop 5300 bind-dnssec-nsec3-narrow || EXITCODE=1
+	./start-test-stop 5300 bind-hybrid-nsec3 || EXITCODE=1
 
 	# Adding extra IPs to docker containers in not supported :(
-	#./timestamp ./start-test-stop 5300 geoipbackend || EXITCODE=1
-	#./timestamp ./start-test-stop 5300 geoipbackend-nsec3-narrow || EXITCODE=1
+	#./start-test-stop 5300 geoipbackend || EXITCODE=1
+	#./start-test-stop 5300 geoipbackend-nsec3-narrow || EXITCODE=1
 
-	./timestamp ./start-test-stop 5300 gmysql-nodnssec-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gmysql-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gmysql-nsec3-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gmysql-nsec3-optout-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gmysql-nsec3-narrow || EXITCODE=1
+	./start-test-stop 5300 gmysql-nodnssec-both || EXITCODE=1
+	./start-test-stop 5300 gmysql-both || EXITCODE=1
+	./start-test-stop 5300 gmysql-nsec3-both || EXITCODE=1
+	./start-test-stop 5300 gmysql-nsec3-optout-both || EXITCODE=1
+	./start-test-stop 5300 gmysql-nsec3-narrow || EXITCODE=1
 
-	./timestamp ./start-test-stop 5300 gpgsql-nodnssec-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gpgsql-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gpgsql-nsec3-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gpgsql-nsec3-optout-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gpgsql-nsec3-narrow || EXITCODE=1
+	./start-test-stop 5300 gpgsql-nodnssec-both || EXITCODE=1
+	./start-test-stop 5300 gpgsql-both || EXITCODE=1
+	./start-test-stop 5300 gpgsql-nsec3-both || EXITCODE=1
+	./start-test-stop 5300 gpgsql-nsec3-optout-both || EXITCODE=1
+	./start-test-stop 5300 gpgsql-nsec3-narrow || EXITCODE=1
 
-	./timestamp ./start-test-stop 5300 gsqlite3-nodnssec-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gsqlite3-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gsqlite3-nsec3-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gsqlite3-nsec3-optout-both || EXITCODE=1
-	./timestamp ./start-test-stop 5300 gsqlite3-nsec3-narrow || EXITCODE=1
+	./start-test-stop 5300 gsqlite3-nodnssec-both || EXITCODE=1
+	./start-test-stop 5300 gsqlite3-both || EXITCODE=1
+	./start-test-stop 5300 gsqlite3-nsec3-both || EXITCODE=1
+	./start-test-stop 5300 gsqlite3-nsec3-optout-both || EXITCODE=1
+	./start-test-stop 5300 gsqlite3-nsec3-narrow || EXITCODE=1
 
-	./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe || EXITCODE=1
-	./timestamp timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec || EXITCODE=1
-	./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix || EXITCODE=1
-	./timestamp timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec || EXITCODE=1
-	./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http || EXITCODE=1
-	./timestamp timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec || EXITCODE=1
+	timeout 120s ./start-test-stop 5300 remotebackend-pipe || EXITCODE=1
+	timeout 120s ./start-test-stop 5300 remotebackend-pipe-dnssec || EXITCODE=1
+	timeout 120s ./start-test-stop 5300 remotebackend-unix || EXITCODE=1
+	timeout 120s ./start-test-stop 5300 remotebackend-unix-dnssec || EXITCODE=1
+	timeout 120s ./start-test-stop 5300 remotebackend-http || EXITCODE=1
+	timeout 120s ./start-test-stop 5300 remotebackend-http-dnssec || EXITCODE=1
 
-	./timestamp timeout 120s ./start-test-stop 5300 lua2
-	./timestamp timeout 120s ./start-test-stop 5300 lua2-dnssec
+	timeout 120s ./start-test-stop 5300 lua2
+	timeout 120s ./start-test-stop 5300 lua2-dnssec
 
 	# No 0MQ in the PowerDNS packages
-	#./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq || EXITCODE=1
-	#./timestamp timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec || EXITCODE=1
+	#timeout 120s ./start-test-stop 5300 remotebackend-zeromq || EXITCODE=1
+	#timeout 120s ./start-test-stop 5300 remotebackend-zeromq-dnssec || EXITCODE=1
 
-	./timestamp ./start-test-stop 5300 tinydns || EXITCODE=1
+	./start-test-stop 5300 tinydns || EXITCODE=1
 
 	cd ../regression-tests.nobackend/
 
@@ -133,15 +133,15 @@ __EOF__
 	. ~/.mssql-credentials
 	set -x
 	export GODBC_SQLITE3_DSN=pdns-sqlite3-1
-	./timestamp timeout 120s ./start-test-stop 5300 godbc_sqlite3-nodnssec || EXITCODE=1
+	timeout 120s ./start-test-stop 5300 godbc_sqlite3-nodnssec || EXITCODE=1
 	export GODBC_MSSQL_DSN=pdns-mssql
 	export GODBC_MSSQL_USERNAME
 	export GODBC_MSSQL_PASSWORD
-	./timestamp timeout 3600s ./start-test-stop 5300 godbc_mssql-nodnssec || EXITCODE=1
-	./timestamp timeout 3600s ./start-test-stop 5300 godbc_mssql || EXITCODE=1
-	./timestamp timeout 3600s ./start-test-stop 5300 godbc_mssql-nsec3 || EXITCODE=1
-	./timestamp timeout 3600s ./start-test-stop 5300 godbc_mssql-nsec3-optout || EXITCODE=1
-	./timestamp timeout 3600s ./start-test-stop 5300 godbc_mssql-nsec3-narrow || EXITCODE=1
+	timeout 3600s ./start-test-stop 5300 godbc_mssql-nodnssec || EXITCODE=1
+	timeout 3600s ./start-test-stop 5300 godbc_mssql || EXITCODE=1
+	timeout 3600s ./start-test-stop 5300 godbc_mssql-nsec3 || EXITCODE=1
+	timeout 3600s ./start-test-stop 5300 godbc_mssql-nsec3-optout || EXITCODE=1
+	timeout 3600s ./start-test-stop 5300 godbc_mssql-nsec3-narrow || EXITCODE=1
 fi
 
 exit $EXITCODE
