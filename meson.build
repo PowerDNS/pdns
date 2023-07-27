@@ -58,6 +58,7 @@ subdir('meson/verbose-logging')          # Verbose Logging
 subdir('meson/pkcs11')                   # PKCS11
 subdir('meson/gss-tsig')                 # GSS-TSIG
 subdir('meson/auth-tools')               # Tools
+subdir('meson/ixfrdist')                 # Ixfrdist
 
 # Find or generate pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
