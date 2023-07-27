@@ -117,7 +117,7 @@ all_modules = [
   ['gpgsql',   ['pgsql']],
   ['gsqlite3', ['sqlite3']],
   ['ldap',     ['ldap']],
-  ['remote',   ['curl']],
+  ['remote',   ['prog-curl', 'zeromq']],
   ['tinydns',  ['cdb']],
   ['geoip',    ['geoip']],
   ['lmdb',     ['lmdb', 'boost-serialization']],
@@ -130,7 +130,31 @@ foreach module: all_modules
   opt = get_option('module-' + name)
   opt_dyn = get_option('module-' + name + '-dyn')
 
-  if opt or opt_dyn
+  if name == 'remote' and (opt != 'disabled' or opt_dyn != 'disabled')
+    if opt != 'disabled'
+      selected_modules += name
+    endif
+
+    if opt_dyn != 'disabled'
+      selected_dyn_modules += name
+    endif
+
+    foreach dep: module_deps
+      if dep == 'prog-curl'
+        if not opt_unittests
+          continue                # We only need cURL for unit tests.
+        endif
+      elif dep == 'zeromq'
+        if opt != 'with-zeromq' and opt_dyn != 'with-zeromq'
+          continue
+        endif
+      endif
+
+      subdir('meson' / dep)
+    endforeach
+
+    # TODO Also build the actual backend.
+  elif opt or opt_dyn
     if opt
       selected_modules += name
     endif
@@ -140,10 +164,6 @@ foreach module: all_modules
     endif
 
     foreach dep: module_deps
-      if name == 'remote' and dep == 'curl' and not opt_unittests
-        continue                  # We only need cURL for unit tests.
-      endif
-
       subdir('meson' / dep)
     endforeach
 
