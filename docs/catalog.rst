@@ -1,4 +1,4 @@
-Catalog Zones (RFC  TBD)
+Catalog Zones (RFC 9432)
 ========================
 
 Starting with the PowerDNS Authoritative Server 4.7.0, catalog zone support is available.
@@ -11,7 +11,7 @@ Supported catalog versions
 +=================+==========+==========+
 | 1 (ISC)         | No       | Yes      |
 +-----------------+----------+----------+
-| 2 (RFC TBD)     | Yes      | Yes      |
+| 2 (:rfc:`9432`) | Yes      | Yes      |
 +-----------------+----------+----------+
 
 All the important features of catalog zones version "2" are supported.
@@ -54,7 +54,7 @@ Setting up catalog zones
 ------------------------
 
 .. note::
-  Catalog zone specification and operation is described in `DNS Catalog Zones <https://datatracker.ietf.org/doc/draft-ietf-dnsop-dns-catalog-zones/>`__.
+  Catalog zone specification and operation is described in :rfc:`9432`.
 
 Setting up a producer zone
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
