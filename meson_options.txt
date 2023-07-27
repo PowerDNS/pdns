@@ -35,3 +35,4 @@ option('module-geoip', type: 'boolean', value: false, description: 'Build the Ge
 option('module-geoip-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable GeoIP backend')
 option('module-lmdb', type: 'boolean', value: false, description: 'Build the LMDB backend')
 option('module-lmdb-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable LMDB backend')
+option('tools', type: 'boolean', value: false, description: 'Build the extra tools')
