@@ -17,6 +17,8 @@ option('verbose-logging', type: 'boolean', value: false, description: 'Enable ve
 option('pkcs11', type: 'boolean', value: false, description: 'Enable PKCS11 support (experimental)')
 option('gss-tsig', type: 'boolean', value: false, description: 'Enable GSS-TSIG support (experimental)')
 option('socket-dir', type: 'string', value: '/var/run', description: 'Where the control socket lives')
+option('module-bind', type: 'boolean', value: true, description: 'Build the bind backend')
+option('module-bind-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable bind backend')
 option('module-gmysql', type: 'boolean', value: true, description: 'Build the gmysql backend')
 option('module-gmysql-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable gmysql backend')
 option('module-godbc', type: 'boolean', value: false, description: 'Build the godbc backend')
