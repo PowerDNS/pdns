@@ -116,6 +116,7 @@ opt_socket_dir = get_option('socket-dir')
 # Modules
 all_modules = [
   ['bind',     []],
+  ['pipe',     []],
   ['gmysql',   ['mysql']],
   ['godbc',    ['odbc']],
   ['gpgsql',   ['pgsql']],
