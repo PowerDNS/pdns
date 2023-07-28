@@ -37,3 +37,4 @@ option('module-lmdb', type: 'boolean', value: false, description: 'Build the LMD
 option('module-lmdb-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable LMDB backend')
 option('tools', type: 'boolean', value: false, description: 'Build the extra tools')
 option('ixfrdist', type: 'boolean', value: false, description: 'Build ixfrdist')
+option('lua-records', type: 'boolean', value: true, description: 'Build support for Lua records')
