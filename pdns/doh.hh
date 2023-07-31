@@ -180,18 +180,6 @@ struct DOHFrontend
 #ifndef HAVE_DNS_OVER_HTTPS
 struct DOHUnit
 {
-  static void release(DOHUnit*)
-  {
-  }
-
-  void get()
-  {
-  }
-
-  void release()
-  {
-  }
-
   size_t proxyProtocolPayloadSize{0};
   uint16_t status_code{200};
 };
@@ -215,29 +203,6 @@ struct DOHUnit
   DOHUnit(const DOHUnit&) = delete;
   DOHUnit& operator=(const DOHUnit&) = delete;
 
-  void get()
-  {
-    ++d_refcnt;
-  }
-
-  void release()
-  {
-    if (--d_refcnt == 0) {
-      if (self) {
-        *self = nullptr;
-      }
-
-      delete this;
-    }
-  }
-
-  static void release(DOHUnit* ptr)
-  {
-    if (ptr) {
-      ptr->release();
-    }
-  }
-
   InternalQueryState ids;
   std::string sni;
   std::string path;
@@ -251,8 +216,7 @@ struct DOHUnit
   st_h2o_req_t* req{nullptr};
   DOHUnit** self{nullptr};
   DOHServerConfig* dsc{nullptr};
-  pdns::channel::Sender<DOHUnit, void(*)(DOHUnit*)>* responseSender{nullptr};
-  std::atomic<uint64_t> d_refcnt{1};
+  pdns::channel::Sender<DOHUnit>* responseSender{nullptr};
   size_t query_at{0};
   size_t proxyProtocolPayloadSize{0};
   int rsock{-1};
@@ -277,7 +241,7 @@ struct DOHUnit
   void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType="");
 };
 
-void handleUDPResponseForDoH(std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>&&, PacketBuffer&& response, InternalQueryState&& state);
+void handleUDPResponseForDoH(std::unique_ptr<DOHUnit>&&, PacketBuffer&& response, InternalQueryState&& state);
 
 struct CrossProtocolQuery;
 struct DNSQuestion;
@@ -287,6 +251,6 @@ std::unique_ptr<CrossProtocolQuery> getDoHCrossProtocolQueryFromDQ(DNSQuestion& 
 #endif /* HAVE_LIBH2OEVLOOP */
 #endif /* HAVE_DNS_OVER_HTTPS  */
 
-using DOHUnitUniquePtr = std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>;
+using DOHUnitUniquePtr = std::unique_ptr<DOHUnit>;
 
 void handleDOHTimeout(DOHUnitUniquePtr&& oldDU);

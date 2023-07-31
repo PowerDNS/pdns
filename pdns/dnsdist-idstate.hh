@@ -99,12 +99,7 @@ struct InternalQueryState
     std::string d_requestorID;
   };
 
-  static void DeleterPlaceHolder(DOHUnit*)
-  {
-  }
-
-  InternalQueryState() :
-    du(std::unique_ptr<DOHUnit, void (*)(DOHUnit*)>(nullptr, DeleterPlaceHolder))
+  InternalQueryState()
   {
     origDest.sin4.sin_family = 0;
   }
@@ -130,7 +125,7 @@ struct InternalQueryState
   std::unique_ptr<ProtoBufData> d_protoBufData{nullptr};
   boost::optional<uint32_t> tempFailureTTL{boost::none}; // 8
   ClientState* cs{nullptr}; // 8
-  std::unique_ptr<DOHUnit, void (*)(DOHUnit*)> du; // 8
+  std::unique_ptr<DOHUnit> du{nullptr}; // 8
   uint32_t cacheKey{0}; // 4
   uint32_t cacheKeyNoECS{0}; // 4
   // DoH-only */

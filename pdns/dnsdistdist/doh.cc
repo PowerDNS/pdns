@@ -163,7 +163,6 @@ public:
 
 private:
   h2o_accept_ctx_t d_h2o_accept_ctx;
-  std::atomic<uint64_t> d_refcnt{1};
   time_t d_ticketsKeyNextRotation{0};
   std::atomic_flag d_rotatingTicketsKey;
 };
@@ -176,14 +175,14 @@ struct DOHServerConfig
   {
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
     {
-      auto [sender, receiver] = pdns::channel::createObjectQueue<DOHUnit, void(*)(DOHUnit*)>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverBlocking, internalPipeBufferSize);
+      auto [sender, receiver] = pdns::channel::createObjectQueue<DOHUnit>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverBlocking, internalPipeBufferSize);
       d_querySender = std::move(sender);
       d_queryReceiver = std::move(receiver);
     }
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
 
     {
-      auto [sender, receiver] = pdns::channel::createObjectQueue<DOHUnit, void(*)(DOHUnit*)>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
+      auto [sender, receiver] = pdns::channel::createObjectQueue<DOHUnit>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
       d_responseSender = std::move(sender);
       d_responseReceiver = std::move(receiver);
     }
@@ -209,11 +208,11 @@ struct DOHServerConfig
   ClientState* cs{nullptr};
   std::shared_ptr<DOHFrontend> df{nullptr};
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
-  pdns::channel::Sender<DOHUnit, void(*)(DOHUnit*)> d_querySender;
-  pdns::channel::Receiver<DOHUnit, void(*)(DOHUnit*)> d_queryReceiver;
+  pdns::channel::Sender<DOHUnit> d_querySender;
+  pdns::channel::Receiver<DOHUnit> d_queryReceiver;
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
-  pdns::channel::Sender<DOHUnit, void(*)(DOHUnit*)> d_responseSender;
-  pdns::channel::Receiver<DOHUnit, void(*)(DOHUnit*)> d_responseReceiver;
+  pdns::channel::Sender<DOHUnit> d_responseSender;
+  pdns::channel::Receiver<DOHUnit> d_responseReceiver;
 };
 
 /* This internal function sends back the object to the main thread to send a reply.
@@ -839,7 +838,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     /* we are doing quite some copies here, sorry about that,
        but we can't keep accessing the req object once we are in a different thread
        because the request might get killed by h2o at pretty much any time */
-    auto du = std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>(new DOHUnit(std::move(query), std::move(path), std::string(req->authority.base, req->authority.len)), DOHUnit::release);
+    auto du = std::make_unique<DOHUnit>(std::move(query), std::move(path), std::string(req->authority.base, req->authority.len));
     du->dsc = dsc;
     du->req = req;
     du->ids.origDest = local;
@@ -870,7 +869,7 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
     *(du->self) = du.get();
 
 #ifdef USE_SINGLE_ACCEPTOR_THREAD
-    processDOHQuery(DOHUnitUniquePtr(du.release(), DOHUnit::release), true);
+    processDOHQuery(du, true);
 #else /* USE_SINGLE_ACCEPTOR_THREAD */
     try {
       if (!dsc->d_querySender.send(std::move(du))) {
@@ -1232,13 +1231,13 @@ void DOHUnit::setHTTPResponse(uint16_t statusCode, PacketBuffer&& body_, const s
 /* query has been parsed by h2o, which called doh_handler() in the main DoH thread.
    In order not to block for long, doh_handler() called doh_dispatch_query() which allocated
    a DOHUnit object and passed it to us */
-static void dnsdistclient(pdns::channel::Receiver<DOHUnit, void(*)(DOHUnit*)>&& receiver)
+static void dnsdistclient(pdns::channel::Receiver<DOHUnit>&& receiver)
 {
   setThreadName("dnsdist/doh-cli");
 
   for(;;) {
     try {
-      auto tmp = receiver.receive(DOHUnit::release);
+      auto tmp = receiver.receive();
       if (!tmp) {
         continue;
       }
@@ -1281,9 +1280,9 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
      memory and likely coming up too late after the client has gone away */
   auto* dsc = static_cast<DOHServerConfig*>(listener->data);
   while (true) {
-    std::unique_ptr<DOHUnit, void(*)(DOHUnit*)> du{nullptr, DOHUnit::release};
+    std::unique_ptr<DOHUnit> du{nullptr};
     try {
-      auto tmp = dsc->d_responseReceiver.receive(DOHUnit::release);
+      auto tmp = dsc->d_responseReceiver.receive();
       if (!tmp) {
         return;
       }
