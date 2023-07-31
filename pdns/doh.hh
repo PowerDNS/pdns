@@ -197,6 +197,7 @@ struct DOHUnit
 };
 
 #else /* HAVE_DNS_OVER_HTTPS */
+#ifdef HAVE_LIBH2OEVLOOP
 #include <unordered_map>
 
 #include "dnsdist-idstate.hh"
@@ -283,6 +284,7 @@ struct DNSQuestion;
 
 std::unique_ptr<CrossProtocolQuery> getDoHCrossProtocolQueryFromDQ(DNSQuestion& dq, bool isResponse);
 
+#endif /* HAVE_LIBH2OEVLOOP */
 #endif /* HAVE_DNS_OVER_HTTPS  */
 
 using DOHUnitUniquePtr = std::unique_ptr<DOHUnit, void(*)(DOHUnit*)>;

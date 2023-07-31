@@ -2,6 +2,7 @@
 #include "doh.hh"
 
 #ifdef HAVE_DNS_OVER_HTTPS
+#ifdef HAVE_LIBH2OEVLOOP
 #define H2O_USE_EPOLL 1
 
 #include <cerrno>
@@ -1705,7 +1706,7 @@ void handleUDPResponseForDoH(DOHUnitUniquePtr&& du, PacketBuffer&& udpResponse, 
 
   sendDoHUnitToTheMainThread(std::move(du), "DoH response");
 }
-
+#endif /* HAVE_LIBH2OEVLOOP */
 #else /* HAVE_DNS_OVER_HTTPS */
 
 void handleDOHTimeout(DOHUnitUniquePtr&& oldDU)

@@ -2576,16 +2576,20 @@ int main(int argc, char** argv)
         cout<<"gnutls";
 #ifdef HAVE_LIBSSL
         cout<<" ";
-#endif
-#endif
+#endif /* HAVE_LIBSSL */
+#endif /* HAVE_GNUTLS */
 #ifdef HAVE_LIBSSL
         cout<<"openssl";
-#endif
+#endif /* HAVE_LIBSSL */
         cout<<") ";
-#endif
+#endif /* HAVE_DNS_OVER_TLS */
 #ifdef HAVE_DNS_OVER_HTTPS
-        cout<<"dns-over-https(DOH) ";
-#endif
+        cout<<"dns-over-https(";
+#ifdef HAVE_LIBH2OEVLOOP
+        cout<<"h2o";
+#endif /* HAVE_LIBH2OEVLOOP */
+        cout<<") ";
+#endif /* HAVE_DNS_OVER_HTTPS */
 #ifdef HAVE_DNSCRYPT
         cout<<"dnscrypt ";
 #endif
@@ -2916,11 +2920,13 @@ int main(int argc, char** argv)
     for(auto& cs : g_frontends) {
       if (cs->dohFrontend != nullptr) {
 #ifdef HAVE_DNS_OVER_HTTPS
+#ifdef HAVE_LIBH2OEVLOOP
         std::thread t1(dohThread, cs.get());
         if (!cs->cpus.empty()) {
           mapThreadToCPUList(t1.native_handle(), cs->cpus);
         }
         t1.detach();
+#endif /* HAVE_LIBH2OEVLOOP */
 #endif /* HAVE_DNS_OVER_HTTPS */
         continue;
       }
