@@ -69,6 +69,7 @@
 #include "base64.hh"
 #include "capabilities.hh"
 #include "delaypipe.hh"
+#include "doh.hh"
 #include "dolog.hh"
 #include "dnsname.hh"
 #include "dnsparser.hh"
@@ -784,7 +785,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
           // DoH query, we cannot touch du after that
-          handleUDPResponseForDoH(std::move(du), std::move(response), std::move(*ids));
+          DOHUnitInterface::handleUDPResponse(std::move(du), std::move(response), std::move(*ids), dss);
 #endif
           continue;
         }
@@ -1539,24 +1540,23 @@ ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::sha
   return ProcessQueryResult::Drop;
 }
 
-bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query, ComboAddress& dest)
+bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query)
 {
   bool doh = dq.ids.du != nullptr;
 
   bool failed = false;
-  size_t proxyPayloadSize = 0;
   if (ds->d_config.useProxyProtocol) {
     try {
-      if (addProxyProtocol(dq, &proxyPayloadSize)) {
-        if (dq.ids.du) {
-          dq.ids.du->proxyProtocolPayloadSize = proxyPayloadSize;
-        }
-      }
+      addProxyProtocol(dq, &dq.ids.d_proxyProtocolPayloadSize);
     }
     catch (const std::exception& e) {
       vinfolog("Adding proxy protocol payload to %s query from %s failed: %s", (dq.ids.du ? "DoH" : ""), dq.ids.origDest.toStringWithPort(), e.what());
       return false;
     }
+  }
+
+  if (doh && !dq.ids.d_packet) {
+    dq.ids.d_packet = std::make_unique<PacketBuffer>(query);
   }
 
   try {
@@ -1569,7 +1569,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint1
 
     auto idOffset = ds->saveState(std::move(dq.ids));
     /* set the correct ID */
-    memcpy(query.data() + proxyPayloadSize, &idOffset, sizeof(idOffset));
+    memcpy(query.data() + dq.ids.d_proxyProtocolPayloadSize, &idOffset, sizeof(idOffset));
 
     /* you can't touch ids or du after this line, unless the call returned a non-negative value,
        because it might already have been freed */
@@ -1585,9 +1585,6 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint1
       auto cleared = ds->getState(idOffset);
       if (cleared) {
         dq.ids.du = std::move(cleared->du);
-        if (dq.ids.du) {
-          dq.ids.du->status_code = 502;
-        }
       }
       ++dnsdist::metrics::g_stats.downstreamSendErrors;
       ++ds->sendErrors;
@@ -1720,7 +1717,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query, dest);
+    assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query);
   }
   catch(const std::exception& e){
     vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", ids.origRemote.toStringWithPort(), queryId, e.what());
