@@ -346,7 +346,6 @@ AC_CONFIG_FILES([
   pdns/Makefile
   codedocs/Makefile
   docs/Makefile
-  pdns/pdns.init
   ext/Makefile
   ext/arc4random/Makefile
   ext/ipcrypt/Makefile

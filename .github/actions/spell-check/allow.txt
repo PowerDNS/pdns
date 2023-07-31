@@ -427,7 +427,6 @@ checkrr
 checkzone
 chgrp
 childstat
-chkconfig
 chmod
 chown
 chr
