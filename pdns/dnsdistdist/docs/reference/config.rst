@@ -171,6 +171,26 @@ Listen Sockets
   * ``readAhead``: bool - When the TLS provider is set to OpenSSL, whether we tell the library to read as many input bytes as possible, which leads to better performance by reducing the number of syscalls. Default is true.
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
 
+.. function:: addDOQLocal(address, [certFile(s) [, keyFile(s) [, urls [, options]]]])
+
+  .. versionadded:: 1.9.0
+
+  Listen on the specified address and UDP port for incoming DNS over QUIC connections, presenting the specified X.509 certificate.
+
+  :param str address: The IP Address with an optional port to listen on.
+                      The default port is 853.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains TLSCertificate objects.
+  :param table options: A table with key: value pairs with listen options.
+
+  Options:
+
+  * ``reusePort=false``: bool - Set the ``SO_REUSEPORT`` socket option.
+  * ``interface=""``: str - Set the network interface to use.
+  * ``cpus={}``: table - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the pthread_setaffinity_np() function.
+  * ``idleTimeout=30``: int - Set the idle timeout, in seconds.
+  * ``internalPipeBufferSize=0``: int - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used. The default value is 0, except on Linux where it is 1048576 since 1.6.0.
+
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
   .. versionchanged:: 1.4.0
@@ -1219,6 +1239,12 @@ Status, Statistics and More
   .. versionadded:: 1.4.0
 
   Print the HTTP response codes statistics for all available DNS over HTTPS frontends.
+
+.. function:: showDOQFrontends()
+
+  .. versionadded:: 1.9.0
+
+  Print the list of all available DNS over QUIC frontends.
 
 .. function:: showResponseLatency()
 

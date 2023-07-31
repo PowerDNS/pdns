@@ -109,6 +109,7 @@ string g_outputBuffer;
 
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
 std::vector<std::shared_ptr<DOHFrontend>> g_dohlocals;
+std::vector<std::shared_ptr<DOQFrontend>> g_doqlocals;
 std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
@@ -2317,6 +2318,10 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
       else {
         infolog("Listening on %s", addr.toStringWithPort());
       }
+    } else {
+      if (cs.doqFrontend != nullptr) {
+        infolog("Listening on %s for DoQ", addr.toStringWithPort());
+      }
     }
   };
 
@@ -2340,6 +2345,9 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
 
   if (cstate->dohFrontend != nullptr) {
     cstate->dohFrontend->setup();
+  }
+  if (cstate->doqFrontend != nullptr) {
+    cstate->doqFrontend->setup();
   }
 
   cstate->ready = true;
@@ -2728,7 +2736,7 @@ int main(int argc, char** argv)
     if (!g_cmdLine.locals.empty()) {
       for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
         /* DoH, DoT and DNSCrypt frontends are separate */
-        if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
+        if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->doqFrontend == nullptr) {
           it = g_frontends.erase(it);
         }
         else {
@@ -2925,6 +2933,16 @@ int main(int argc, char** argv)
         t1.detach();
 #endif /* HAVE_LIBH2OEVLOOP */
 #endif /* HAVE_DNS_OVER_HTTPS */
+        continue;
+      }
+      if (cs->doqFrontend != nullptr) {
+#ifdef HAVE_DNS_OVER_QUIC
+        std::thread t1(doqThread, cs.get());
+        if (!cs->cpus.empty()) {
+          mapThreadToCPUList(t1.native_handle(), cs->cpus);
+        }
+        t1.detach();
+#endif /* HAVE_DNS_OVER_QUIC */
         continue;
       }
       if (cs->udpFD >= 0) {

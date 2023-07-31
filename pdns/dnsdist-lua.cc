@@ -2483,6 +2483,89 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_DNS_OVER_HTTPS */
   });
 
+  luaCtx.writeFunction("addDOQLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::optional<boost::variant<std::string, LuaArray<std::string>>> keyFiles, boost::optional<localbind_t> vars) {
+    if (client) {
+      return;
+    }
+#ifdef HAVE_DNS_OVER_QUIC
+    if (!checkConfigurationTime("addDOQLocal")) {
+      return;
+    }
+    setLuaSideEffect();
+
+    auto frontend = std::make_shared<DOQFrontend>();
+    if (!loadTLSCertificateAndKeys("addDOQLocal", frontend->d_tlsConfig.d_certKeyPairs, *certFiles, *keyFiles)) {
+      return;
+    }
+    frontend->d_local = ComboAddress(addr, 853);
+
+    bool reusePort = false;
+    int tcpFastOpenQueueSize = 0;
+    int tcpListenQueueSize = 0;
+    uint64_t maxInFlightQueriesPerConn = 0;
+    uint64_t tcpMaxConcurrentConnections = 0;
+    std::string interface;
+    std::set<int> cpus;
+    std::vector<std::pair<ComboAddress, int>> additionalAddresses;
+
+    if (vars) {
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+//      getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
+
+      getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
+
+      parseTLSConfig(frontend->d_tlsConfig, "addDOQLocal", vars);
+
+      bool ignoreTLSConfigurationErrors = false;
+      if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
+        // we are asked to try to load the certificates so we can return a potential error
+        // and properly ignore the frontend before actually launching it
+        try {
+          std::map<int, std::string> ocspResponses = {};
+          auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
+        }
+        catch (const std::runtime_error& e) {
+          errlog("Ignoring DoQ frontend: '%s'", e.what());
+          return;
+        }
+      }
+
+      checkAllParametersConsumed("addDOQLocal", vars);
+    }
+    g_doqlocals.push_back(frontend);
+    auto cs = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus);
+    cs->doqFrontend = frontend;
+    cs->d_additionalAddresses = std::move(additionalAddresses);
+
+    g_frontends.push_back(std::move(cs));
+#else
+      throw std::runtime_error("addDOQLocal() called but DNS over QUIC support is not present!");
+#endif
+  });
+
+  luaCtx.writeFunction("showDOQFrontends", []() {
+#ifdef HAVE_DNS_OVER_QUIC
+    setLuaNoSideEffect();
+    try {
+      ostringstream ret;
+      boost::format fmt("%-3d %-20.20s");
+      ret << (fmt % "#" % "Address") << endl;
+      size_t counter = 0;
+      for (const auto& ctx : g_doqlocals) {
+        ret << (fmt % counter % ctx->d_local.toStringWithPort()) << endl;
+        counter++;
+      }
+      g_outputBuffer = ret.str();
+    }
+    catch (const std::exception& e) {
+      g_outputBuffer = e.what();
+      throw;
+    }
+#else
+      g_outputBuffer = "DNS over QUIC support is not present!\n";
+#endif
+  });
+
   luaCtx.writeFunction("showDOHFrontends", []() {
 #ifdef HAVE_DNS_OVER_HTTPS
     setLuaNoSideEffect();

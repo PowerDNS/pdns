@@ -23,6 +23,7 @@
 #include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-tcp.hh"
 #include "doh.hh"
+#include "doq.hh"
 
 std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& dq);
 
@@ -42,6 +43,11 @@ std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dq, bool
     }
 #endif /* HAVE_LIBH2OEVLOOP */
     return getTCPCrossProtocolQueryFromDQ(dq);
+  }
+#endif
+#ifdef HAVE_DNS_OVER_QUIC
+  else if (protocol == dnsdist::Protocol::DoQ) {
+    return getDOQCrossProtocolQueryFromDQ(dq, isResponse);
   }
 #endif
   else {
