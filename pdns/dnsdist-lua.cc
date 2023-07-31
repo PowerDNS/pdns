@@ -2579,7 +2579,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     setLuaSideEffect();
 
-    shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
+    shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>(TLSFrontend::ALPN::DoT);
     if (!loadTLSCertificateAndKeys("addTLSLocal", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
       return;
     }
