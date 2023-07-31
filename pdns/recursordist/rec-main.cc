@@ -518,7 +518,8 @@ void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigI
                          const EDNSSubnetOpts& ednssubnet,
                          const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
                          const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
-                         const RecEventTrace& eventTrace)
+                         const RecEventTrace& eventTrace,
+                         const std::unordered_set<std::string>& policyTags)
 {
   pdns::ProtoZero::RecMessage pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
   // Normally we take the immutable string from the cache and append a few values, but if it's not there (can this happen?)
@@ -538,12 +539,14 @@ void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigI
 
   // In message part
   if (!luaconfsLocal->protobufExportConfig.logMappedFrom) {
+    pbMessage.setSocketFamily(source.sin4.sin_family);
     Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
     auto requestor = requestorNM.getMaskedNetwork();
     pbMessage.setFrom(requestor);
     pbMessage.setFromPort(source.getPort());
   }
   else {
+    pbMessage.setSocketFamily(mappedSource.sin4.sin_family);
     Netmask requestorNM(mappedSource, mappedSource.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
     auto requestor = requestorNM.getMaskedNetwork();
     pbMessage.setFrom(requestor);
@@ -571,6 +574,8 @@ void protobufLogResponse(const struct dnsheader* dh, LocalStateHolder<LuaConfigI
   if (eventTrace.enabled() && SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) {
     pbMessage.addEvents(eventTrace);
   }
+  pbMessage.addPolicyTags(policyTags);
+
   protobufLogResponse(pbMessage);
 }
 
