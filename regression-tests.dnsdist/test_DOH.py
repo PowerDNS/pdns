@@ -573,7 +573,7 @@ class TestDOHSubPaths(DNSDistDOHTest):
         # this path is not in the URLs map and should lead to a 404
         (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL + "NotPowerDNS", query, caFile=self._caCert, useQueue=False, rawResponse=True)
         self.assertTrue(receivedResponse)
-        self.assertEqual(receivedResponse, b'not found')
+        self.assertIn(receivedResponse, [b'there is no endpoint configured for this path', b'not found'])
         self.assertEqual(self._rcode, 404)
 
         # this path is below one in the URLs map and exactPathMatching is false, so we should be good
@@ -1116,7 +1116,7 @@ class TestDOHForwardedFor(DNSDistDOHTest):
         (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=False, rawResponse=True, customHeaders=['x-forwarded-for: 127.0.0.1:42, 127.0.0.1'])
 
         self.assertEqual(self._rcode, 403)
-        self.assertEqual(receivedResponse, b'dns query not allowed because of ACL')
+        self.assertEqual(receivedResponse, b'DoH query not allowed because of ACL')
 
 class TestDOHForwardedForNoTrusted(DNSDistDOHTest):
 
@@ -1130,7 +1130,7 @@ class TestDOHForwardedForNoTrusted(DNSDistDOHTest):
     newServer{address="127.0.0.1:%s"}
 
     setACL('192.0.2.1/32')
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" })
+    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, {earlyACLDrop=true})
     """
     _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey']
 
@@ -1151,10 +1151,15 @@ class TestDOHForwardedForNoTrusted(DNSDistDOHTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=False, rawResponse=True, customHeaders=['x-forwarded-for: 192.0.2.1:4200'])
+        dropped = False
+        try:
+            (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=False, rawResponse=True, customHeaders=['x-forwarded-for: 192.0.2.1:4200'])
+            self.assertEqual(self._rcode, 403)
+            self.assertEqual(receivedResponse, b'DoH query not allowed because of ACL')
+        except pycurl.error as e:
+            dropped = True
 
-        self.assertEqual(self._rcode, 403)
-        self.assertEqual(receivedResponse, b'dns query not allowed because of ACL')
+        self.assertTrue(dropped)
 
 class TestDOHFrontendLimits(DNSDistDOHTest):
 
@@ -1190,7 +1195,7 @@ class TestDOHFrontendLimits(DNSDistDOHTest):
 
         for idx in range(self._maxTCPConnsPerDOHFrontend + 1):
             try:
-                conns.append(self.openTLSConnection(self._dohServerPort, self._serverName, self._caCert))
+                conns.append(self.openTLSConnection(self._dohServerPort, self._serverName, self._caCert, alpn=['h2']))
             except:
                 conns.append(None)
 

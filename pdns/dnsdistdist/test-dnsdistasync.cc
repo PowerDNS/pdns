@@ -44,7 +44,7 @@ public:
   {
   }
 
-  void notifyIOError(InternalQueryState&&, const struct timeval&) override
+  void notifyIOError(const struct timeval&, TCPResponse&&) override
   {
     errorRaised = true;
   }

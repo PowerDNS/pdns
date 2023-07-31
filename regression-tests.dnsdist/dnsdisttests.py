@@ -624,7 +624,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return sock
 
     @classmethod
-    def openTLSConnection(cls, port, serverName, caCert=None, timeout=None):
+    def openTLSConnection(cls, port, serverName, caCert=None, timeout=None, alpn=[]):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
@@ -633,6 +633,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         # 2.7.9+
         if hasattr(ssl, 'create_default_context'):
             sslctx = ssl.create_default_context(cafile=caCert)
+            if len(alpn)> 0 and hasattr(sslctx, 'set_alpn_protocols'):
+              sslctx.set_alpn_protocols(alpn)
             sslsock = sslctx.wrap_socket(sock, server_hostname=serverName)
         else:
             sslsock = ssl.wrap_socket(sock, ca_certs=caCert, cert_reqs=ssl.CERT_REQUIRED)
@@ -992,6 +994,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         #conn.setopt(pycurl.VERBOSE, True)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
+        # this means "really do HTTP/2, not HTTP/1 with Upgrade headers"
+        conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE)
         if useHTTPS:
             conn.setopt(pycurl.SSL_VERIFYPEER, 1)
             conn.setopt(pycurl.SSL_VERIFYHOST, 2)
@@ -1036,6 +1040,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         #conn.setopt(pycurl.VERBOSE, True)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
+        # this means "really do HTTP/2, not HTTP/1 with Upgrade headers"
+        conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE)
         if useHTTPS:
             conn.setopt(pycurl.SSL_VERIFYPEER, 1)
             conn.setopt(pycurl.SSL_VERIFYHOST, 2)

@@ -77,10 +77,6 @@ struct DOHFrontend
   DOHFrontend()
   {
   }
-  DOHFrontend(std::shared_ptr<TLSCtx> tlsCtx) :
-    d_tlsContext(std::move(tlsCtx))
-  {
-  }
 
   virtual ~DOHFrontend()
   {
@@ -126,6 +122,7 @@ struct DOHFrontend
 #endif
   bool d_sendCacheControlHeaders{true};
   bool d_trustForwardedForHeader{false};
+  bool d_earlyACLDrop{true};
   /* whether we require tue query path to exactly match one of configured ones,
      or accept everything below these paths. */
   bool d_exactPathMatching{true};

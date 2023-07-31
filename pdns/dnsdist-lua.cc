@@ -2337,14 +2337,34 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaSideEffect();
 
     auto frontend = std::make_shared<DOHFrontend>();
+    if (getOptionalValue<std::string>(vars, "library", frontend->d_library) == 0) {
+#ifdef HAVE_NGHTTP2
+      frontend->d_library = "nghttp2";
+#else /* HAVE_NGHTTP2 */
+        frontend->d_library = "h2o";
+#endif /* HAVE_NGHTTP2 */
+    }
+    if (frontend->d_library == "h2o") {
 #ifdef HAVE_LIBH2OEVLOOP
-    frontend = std::make_shared<H2ODOHFrontend>();
-    frontend->d_library = "h2o";
+      frontend = std::make_shared<H2ODOHFrontend>();
+      frontend->d_library = "h2o";
 #else /* HAVE_LIBH2OEVLOOP */
-    errlog("DOH bind %s is configured to use libh2o but the library is not available", addr);
-    return;
+        errlog("DOH bind %s is configured to use libh2o but the library is not available", addr);
+        return;
 #endif /* HAVE_LIBH2OEVLOOP */
+    }
+    else if (frontend->d_library == "nghttp2") {
+#ifndef HAVE_NGHTTP2
+      errlog("DOH bind %s is configured to use nghttp2 but the library is not available", addr);
+      return;
+#endif /* HAVE_NGHTTP2 */
+    }
+    else {
+      errlog("DOH bind %s is configured to use an unknown library ('%s')", addr, frontend->d_library);
+      return;
+    }
 
+    bool useTLS = true;
     if (certFiles && !certFiles->empty()) {
       if (!loadTLSCertificateAndKeys("addDOHLocal", frontend->d_tlsContext.d_tlsConfig.d_certKeyPairs, *certFiles, *keyFiles)) {
         return;
@@ -2355,6 +2375,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     else {
       frontend->d_tlsContext.d_addr = ComboAddress(addr, 80);
       infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", frontend->d_tlsContext.d_addr.toStringWithPort());
+      useTLS = false;
     }
 
     if (urls) {
@@ -2385,6 +2406,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
       getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
       getOptionalValue<std::string>(vars, "serverTokens", frontend->d_serverTokens);
+      getOptionalValue<std::string>(vars, "provider", frontend->d_tlsContext.d_provider);
+      boost::algorithm::to_lower(frontend->d_tlsContext.d_provider);
 
       LuaAssociativeTable<std::string> customResponseHeaders;
       if (getOptionalValue<decltype(customResponseHeaders)>(vars, "customResponseHeaders", customResponseHeaders) > 0) {
@@ -2397,6 +2420,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       getOptionalValue<bool>(vars, "sendCacheControlHeaders", frontend->d_sendCacheControlHeaders);
       getOptionalValue<bool>(vars, "keepIncomingHeaders", frontend->d_keepIncomingHeaders);
       getOptionalValue<bool>(vars, "trustForwardedForHeader", frontend->d_trustForwardedForHeader);
+      getOptionalValue<bool>(vars, "earlyACLDrop", frontend->d_earlyACLDrop);
       getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
       getOptionalValue<bool>(vars, "exactPathMatching", frontend->d_exactPathMatching);
 
@@ -2432,6 +2456,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       checkAllParametersConsumed("addDOHLocal", vars);
     }
+
+    if (useTLS && frontend->d_library == "nghttp2") {
+      if (!frontend->d_tlsContext.d_provider.empty()) {
+        vinfolog("Loading TLS provider '%s'", frontend->d_tlsContext.d_provider);
+      }
+      else {
+#ifdef HAVE_LIBSSL
+        const std::string provider("openssl");
+#else
+          const std::string provider("gnutls");
+#endif
+        vinfolog("Loading default TLS provider '%s'", provider);
+      }
+    }
+
     g_dohlocals.push_back(frontend);
     auto cs = std::make_unique<ClientState>(frontend->d_tlsContext.d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
     cs->dohFrontend = frontend;
@@ -2648,10 +2687,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
       else {
 #ifdef HAVE_LIBSSL
-        vinfolog("Loading default TLS provider 'openssl'");
+        const std::string provider("openssl");
 #else
-          vinfolog("Loading default TLS provider 'gnutls'");
+          const std::string provider("gnutls");
 #endif
+        vinfolog("Loading default TLS provider '%s'", provider);
       }
       // only works pre-startup, so no sync necessary
       auto cs = std::make_unique<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus);

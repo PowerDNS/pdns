@@ -27,6 +27,7 @@
 #endif /* HAVE_NGHTTP2 */
 
 #include "dnsdist-nghttp2.hh"
+#include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-downstream-connection.hh"
@@ -153,7 +154,11 @@ void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
       }
     }
 
-    request.d_sender->handleResponse(now, TCPResponse(std::move(request.d_buffer), std::move(request.d_query.d_idstate), shared_from_this(), d_ds));
+    TCPResponse response(std::move(request.d_query));
+    response.d_buffer = std::move(request.d_buffer);
+    response.d_connection = shared_from_this();
+    response.d_ds = d_ds;
+    request.d_sender->handleResponse(now, std::move(response));
   }
   catch (const std::exception& e) {
     vinfolog("Got exception while handling response for cross-protocol DoH: %s", e.what());
@@ -167,7 +172,8 @@ void DoHConnectionToBackend::handleResponseError(PendingRequest&& request, const
       d_ds->reportTimeoutOrError();
     }
 
-    request.d_sender->notifyIOError(std::move(request.d_query.d_idstate), now);
+    TCPResponse response(PacketBuffer(), std::move(request.d_query.d_idstate), nullptr, nullptr);
+    request.d_sender->notifyIOError(now, std::move(response));
   }
   catch (const std::exception& e) {
     vinfolog("Got exception while handling response for cross-protocol DoH: %s", e.what());
@@ -230,45 +236,6 @@ bool DoHConnectionToBackend::isIdle() const
   return getConcurrentStreamsCount() == 0;
 }
 
-const std::unordered_map<std::string, std::string> DoHConnectionToBackend::s_constants = {
-  {"method-name", ":method"},
-  {"method-value", "POST"},
-  {"scheme-name", ":scheme"},
-  {"scheme-value", "https"},
-  {"accept-name", "accept"},
-  {"accept-value", "application/dns-message"},
-  {"content-type-name", "content-type"},
-  {"content-type-value", "application/dns-message"},
-  {"user-agent-name", "user-agent"},
-  {"user-agent-value", "nghttp2-" NGHTTP2_VERSION "/dnsdist"},
-  {"authority-name", ":authority"},
-  {"path-name", ":path"},
-  {"content-length-name", "content-length"},
-  {"x-forwarded-for-name", "x-forwarded-for"},
-  {"x-forwarded-port-name", "x-forwarded-port"},
-  {"x-forwarded-proto-name", "x-forwarded-proto"},
-  {"x-forwarded-proto-value-dns-over-udp", "dns-over-udp"},
-  {"x-forwarded-proto-value-dns-over-tcp", "dns-over-tcp"},
-  {"x-forwarded-proto-value-dns-over-tls", "dns-over-tls"},
-  {"x-forwarded-proto-value-dns-over-http", "dns-over-http"},
-  {"x-forwarded-proto-value-dns-over-https", "dns-over-https"},
-};
-
-void DoHConnectionToBackend::addStaticHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& valueKey)
-{
-  const auto& name = s_constants.at(nameKey);
-  const auto& value = s_constants.at(valueKey);
-
-  headers.push_back({const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.c_str())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.c_str())), name.size(), value.size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE});
-}
-
-void DoHConnectionToBackend::addDynamicHeader(std::vector<nghttp2_nv>& headers, const std::string& nameKey, const std::string& value)
-{
-  const auto& name = s_constants.at(nameKey);
-
-  headers.push_back({const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(name.c_str())), const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(value.c_str())), name.size(), value.size(), NGHTTP2_NV_FLAG_NO_COPY_NAME | NGHTTP2_NV_FLAG_NO_COPY_VALUE});
-}
-
 void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query)
 {
   auto payloadSize = std::to_string(query.d_buffer.size());
@@ -284,37 +251,37 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
   headers.reserve(8 + (addXForwarded ? 3 : 0));
 
   /* Pseudo-headers need to come first (rfc7540 8.1.2.1) */
-  addStaticHeader(headers, "method-name", "method-value");
-  addStaticHeader(headers, "scheme-name", "scheme-value");
-  addDynamicHeader(headers, "authority-name", d_ds->d_config.d_tlsSubjectName);
-  addDynamicHeader(headers, "path-name", d_ds->d_config.d_dohPath);
-  addStaticHeader(headers, "accept-name", "accept-value");
-  addStaticHeader(headers, "content-type-name", "content-type-value");
-  addStaticHeader(headers, "user-agent-name", "user-agent-value");
-  addDynamicHeader(headers, "content-length-name", payloadSize);
+  NGHTTP2Headers::addStaticHeader(headers, "method-name", "method-value");
+  NGHTTP2Headers::addStaticHeader(headers, "scheme-name", "scheme-value");
+  NGHTTP2Headers::addDynamicHeader(headers, "authority-name", d_ds->d_config.d_tlsSubjectName);
+  NGHTTP2Headers::addDynamicHeader(headers, "path-name", d_ds->d_config.d_dohPath);
+  NGHTTP2Headers::addStaticHeader(headers, "accept-name", "accept-value");
+  NGHTTP2Headers::addStaticHeader(headers, "content-type-name", "content-type-value");
+  NGHTTP2Headers::addStaticHeader(headers, "user-agent-name", "user-agent-value");
+  NGHTTP2Headers::addDynamicHeader(headers, "content-length-name", payloadSize);
   /* no need to add these headers for health-check queries */
   if (addXForwarded && query.d_idstate.origRemote.getPort() != 0) {
     remote = query.d_idstate.origRemote.toString();
     remotePort = std::to_string(query.d_idstate.origRemote.getPort());
-    addDynamicHeader(headers, "x-forwarded-for-name", remote);
-    addDynamicHeader(headers, "x-forwarded-port-name", remotePort);
+    NGHTTP2Headers::addDynamicHeader(headers, "x-forwarded-for-name", remote);
+    NGHTTP2Headers::addDynamicHeader(headers, "x-forwarded-port-name", remotePort);
     if (query.d_idstate.cs != nullptr) {
       if (query.d_idstate.cs->isUDP()) {
-        addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-udp");
+        NGHTTP2Headers::addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-udp");
       }
       else if (query.d_idstate.cs->isDoH()) {
         if (query.d_idstate.cs->hasTLS()) {
-          addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-https");
+          NGHTTP2Headers::addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-https");
         }
         else {
-          addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-http");
+          NGHTTP2Headers::addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-http");
         }
       }
       else if (query.d_idstate.cs->hasTLS()) {
-        addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-tls");
+        NGHTTP2Headers::addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-tls");
       }
       else {
-        addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-tcp");
+        NGHTTP2Headers::addStaticHeader(headers, "x-forwarded-proto-name", "x-forwarded-proto-value-dns-over-tcp");
       }
     }
   }
@@ -920,7 +887,8 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
     downstream->queueQuery(tqs, std::move(query));
   }
   catch (...) {
-    tqs->notifyIOError(std::move(query.d_idstate), now);
+    TCPResponse response(std::move(query));
+    tqs->notifyIOError(now, std::move(response));
   }
 }
 

@@ -1850,6 +1850,7 @@ bool TLSFrontend::setupTLS()
     newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
   }
 #endif /* HAVE_LIBSSL */
+
   if (!newCtx) {
 #ifdef HAVE_LIBSSL
     newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
@@ -1874,7 +1875,7 @@ bool TLSFrontend::setupTLS()
 
 std::shared_ptr<TLSCtx> getTLSContext([[maybe_unused]] const TLSContextParameters& params)
 {
-#if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
+#ifdef HAVE_DNS_OVER_TLS
   /* get the "best" available provider */
   if (!params.d_provider.empty()) {
 #ifdef HAVE_GNUTLS
@@ -1897,6 +1898,6 @@ std::shared_ptr<TLSCtx> getTLSContext([[maybe_unused]] const TLSContextParameter
 #endif /* HAVE_GNUTLS */
 #endif /* HAVE_LIBSSL */
 
-#endif /* HAVE_DNS_OVER_TLS || HAVE_DNS_OVER_HTTPS */
+#endif /* HAVE_DNS_OVER_TLS */
   return nullptr;
 }

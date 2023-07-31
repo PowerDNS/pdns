@@ -71,6 +71,7 @@ AM_CONDITIONAL([HAVE_GNUTLS], [false])
 AM_CONDITIONAL([HAVE_LIBH2OEVLOOP], [false])
 AM_CONDITIONAL([HAVE_LIBSSL], [false])
 AM_CONDITIONAL([HAVE_LMDB], [false])
+AM_CONDITIONAL([HAVE_NGHTTP2], [false])
 
 PDNS_CHECK_LIBCRYPTO
 
@@ -81,29 +82,27 @@ DNSDIST_ENABLE_DNS_OVER_HTTPS
 
 AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xno"], [
   PDNS_WITH_LIBSSL
+  PDNS_WITH_GNUTLS
 ])
 
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
-  PDNS_WITH_GNUTLS
-
   AS_IF([test "x$HAVE_GNUTLS" != "x1" -a "x$HAVE_LIBSSL" != "x1"], [
     AC_MSG_ERROR([DNS over TLS support requested but neither GnuTLS nor OpenSSL are available])
   ])
 ])
 
 AS_IF([test "x$enable_dns_over_https" != "xno"], [
+  PDNS_WITH_NGHTTP2
   PDNS_WITH_LIBH2OEVLOOP
 
-  AS_IF([test "x$HAVE_LIBH2OEVLOOP" != "x1"], [
-    AC_MSG_ERROR([DNS over HTTPS support requested but libh2o-evloop was not found])
+  AS_IF([test "x$HAVE_LIBH2OEVLOOP" != "x1" -a "x$HAVE_NGHTTP2" != "x1" ], [
+    AC_MSG_ERROR([DNS over HTTPS support requested but neither libh2o-evloop nor nghttp2 was not found])
   ])
 
-  AS_IF([test "x$HAVE_LIBSSL" != "x1"], [
-    AC_MSG_ERROR([DNS over HTTPS support requested but OpenSSL was not found])
+  AS_IF([test "x$HAVE_GNUTLS" != "x1" -a "x$HAVE_LIBSSL" != "x1"], [
+    AC_MSG_ERROR([DNS over HTTPS support requested but neither GnuTLS nor OpenSSL are available])
   ])
 ])
-
-PDNS_WITH_NGHTTP2
 
 DNSDIST_WITH_CDB
 PDNS_CHECK_LMDB

@@ -534,8 +534,9 @@ public:
     return handleResponse(now, std::move(response));
   }
 
-  void notifyIOError(InternalQueryState&& query, const struct timeval& now) override
+  void notifyIOError(const struct timeval& now, TCPResponse&& response) override
   {
+    auto& query = response.d_idstate;
     if (!query.du) {
       return;
     }
@@ -1041,7 +1042,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     if (!holders.acl->match(remote)) {
       ++dnsdist::metrics::g_stats.aclDrops;
       vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
-      h2o_send_error_403(req, "Forbidden", "dns query not allowed because of ACL", 0);
+      h2o_send_error_403(req, "Forbidden", "DoH query not allowed because of ACL", 0);
       return 0;
     }
 
@@ -1343,6 +1344,13 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     h2o_socket_close(sock);
     return;
   }
+
+  if (dsc->df->d_earlyACLDrop && !dsc->df->d_trustForwardedForHeader && !dsc->holders.acl->match(remote)) {
+    ++dnsdist::metrics::g_stats.aclDrops;
+      vinfolog("Dropping DoH connection from %s because of ACL", remote.toStringWithPort());
+      h2o_socket_close(sock);
+      return;
+    }
 
   if (!dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(remote)) {
     vinfolog("Dropping DoH connection from %s because we have too many from this client already", remote.toStringWithPort());

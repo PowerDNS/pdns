@@ -626,11 +626,11 @@ public:
     d_valid = true;
   }
 
-  void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
+  void handleXFRResponse(const struct timeval&, TCPResponse&&) override
   {
   }
 
-  void notifyIOError(InternalQueryState&& query, const struct timeval& now) override
+  void notifyIOError(const struct timeval&, TCPResponse&&) override
   {
     d_error = true;
   }

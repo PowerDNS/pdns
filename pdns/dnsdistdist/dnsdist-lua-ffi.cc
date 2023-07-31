@@ -929,7 +929,8 @@ bool dnsdist_ffi_drop_from_async(uint16_t asyncID, uint16_t queryID)
 
   struct timeval now;
   gettimeofday(&now, nullptr);
-  sender->notifyIOError(std::move(query->query.d_idstate), now);
+  TCPResponse tresponse(std::move(query->query));
+  sender->notifyIOError(now, std::move(tresponse));
 
   return true;
 }

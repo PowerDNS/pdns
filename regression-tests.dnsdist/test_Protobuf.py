@@ -546,7 +546,6 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
             elif method == "sendDOHQueryWrapper":
                 pbMessageType = dnsmessage_pb2.PBDNSMessage.DOH
 
-            print(method)
             self.checkProtobufQuery(msg, pbMessageType, query, dns.rdataclass.IN, dns.rdatatype.A, name)
             self.assertEqual(len(msg.meta), 5)
             tags = {}

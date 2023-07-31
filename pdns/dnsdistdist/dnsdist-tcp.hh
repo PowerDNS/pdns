@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <optional>
 #include <unistd.h>
 #include "channel.hh"
 #include "iputils.hh"
@@ -100,7 +101,6 @@ public:
   InternalQueryState d_idstate;
   std::string d_proxyProtocolPayload;
   PacketBuffer d_buffer;
-  uint32_t d_proxyProtocolPayloadAddedSize{0};
   uint32_t d_ixfrQuerySerial{0};
   uint32_t d_xfrMasterSerial{0};
   uint32_t d_xfrSerialCount{0};
@@ -133,6 +133,17 @@ struct TCPResponse : public TCPQuery
     }
   }
 
+  TCPResponse(TCPQuery&& query) :
+    TCPQuery(std::move(query))
+  {
+    if (d_buffer.size() >= sizeof(dnsheader)) {
+      memcpy(&d_cleartextDH, reinterpret_cast<const dnsheader*>(d_buffer.data()), sizeof(d_cleartextDH));
+    }
+    else {
+      memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
+    }
+  }
+
   bool isAsync() const
   {
     return d_async;
@@ -154,7 +165,7 @@ public:
   virtual bool active() const = 0;
   virtual void handleResponse(const struct timeval& now, TCPResponse&& response) = 0;
   virtual void handleXFRResponse(const struct timeval& now, TCPResponse&& response) = 0;
-  virtual void notifyIOError(InternalQueryState&& query, const struct timeval& now) = 0;
+  virtual void notifyIOError(const struct timeval& now, TCPResponse&& response) = 0;
 
   /* whether the connection should be automatically released to the pool after handleResponse()
      has been called */
@@ -199,7 +210,6 @@ struct CrossProtocolQuery
 
   InternalQuery query;
   std::shared_ptr<DownstreamState> downstream{nullptr};
-  size_t proxyProtocolPayloadSize{0};
   bool d_isResponse{false};
 };
 

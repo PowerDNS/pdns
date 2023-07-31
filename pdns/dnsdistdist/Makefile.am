@@ -80,6 +80,10 @@ if HAVE_LIBSSL
 AM_CPPFLAGS += $(LIBSSL_CFLAGS)
 endif
 
+if HAVE_GNUTLS
+AM_CPPFLAGS += $(GNUTLS_CFLAGS)
+endif
+
 if HAVE_LIBH2OEVLOOP
 AM_CPPFLAGS += $(LIBH2OEVLOOP_CFLAGS)
 endif
@@ -178,6 +182,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua.cc dnsdist-lua.hh \
 	dnsdist-mac-address.cc dnsdist-mac-address.hh \
 	dnsdist-metrics.cc dnsdist-metrics.hh \
+	dnsdist-nghttp2-in.cc dnsdist-nghttp2-in.hh \
 	dnsdist-nghttp2.cc dnsdist-nghttp2.hh \
 	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
@@ -274,6 +279,7 @@ testrunner_SOURCES = \
 	dnsdist-lua-vars.cc \
 	dnsdist-mac-address.cc dnsdist-mac-address.hh \
 	dnsdist-metrics.cc dnsdist-metrics.hh \
+	dnsdist-nghttp2-in.cc dnsdist-nghttp2-in.hh \
 	dnsdist-nghttp2.cc dnsdist-nghttp2.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
@@ -410,6 +416,10 @@ endif
 endif
 
 if HAVE_DNS_OVER_HTTPS
+
+if HAVE_GNUTLS
+dnsdist_LDADD += -lgnutls
+endif
 
 if HAVE_LIBH2OEVLOOP
 dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)

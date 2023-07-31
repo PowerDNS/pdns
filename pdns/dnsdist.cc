@@ -1469,7 +1469,7 @@ public:
     return handleResponse(now, std::move(response));
   }
 
-  void notifyIOError(InternalQueryState&& query, const struct timeval& now) override
+  void notifyIOError(const struct timeval&, TCPResponse&&) override
   {
     // nothing to do
   }
@@ -2573,18 +2573,24 @@ int main(int argc, char** argv)
         cout<<"gnutls";
 #ifdef HAVE_LIBSSL
         cout<<" ";
-#endif /* HAVE_LIBSSL */
+#endif
 #endif /* HAVE_GNUTLS */
 #ifdef HAVE_LIBSSL
         cout<<"openssl";
-#endif /* HAVE_LIBSSL */
+#endif
         cout<<") ";
 #endif /* HAVE_DNS_OVER_TLS */
 #ifdef HAVE_DNS_OVER_HTTPS
         cout<<"dns-over-https(";
 #ifdef HAVE_LIBH2OEVLOOP
         cout<<"h2o";
+#ifdef HAVE_NGHTTP2
+        cout<<" ";
+#endif
 #endif /* HAVE_LIBH2OEVLOOP */
+#ifdef HAVE_NGHTTP2
+        cout<<"nghttp2";
+#endif
         cout<<") ";
 #endif /* HAVE_DNS_OVER_HTTPS */
 #ifdef HAVE_DNSCRYPT
@@ -2607,9 +2613,6 @@ int main(int argc, char** argv)
 #endif
 #ifdef HAVE_LMDB
         cout<<"lmdb ";
-#endif
-#ifdef HAVE_NGHTTP2
-        cout<<"outgoing-dns-over-https(nghttp2) ";
 #endif
 #ifndef DISABLE_PROTOBUF
         cout<<"protobuf ";
@@ -2914,8 +2917,8 @@ int main(int argc, char** argv)
 
     std::vector<ClientState*> tcpStates;
     std::vector<ClientState*> udpStates;
-    for(auto& cs : g_frontends) {
-      if (cs->dohFrontend != nullptr) {
+    for (auto& cs : g_frontends) {
+      if (cs->dohFrontend != nullptr && cs->dohFrontend->d_library == "h2o") {
 #ifdef HAVE_DNS_OVER_HTTPS
 #ifdef HAVE_LIBH2OEVLOOP
         std::thread t1(dohThread, cs.get());

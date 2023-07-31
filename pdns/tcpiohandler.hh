@@ -138,7 +138,7 @@ class TLSFrontend
 public:
   enum class ALPN : uint8_t { Unset, DoT, DoH };
 
-  TLSFrontend(ALPN alpn) : d_alpn(alpn)
+  TLSFrontend(ALPN alpn): d_alpn(alpn)
   {
   }
 
@@ -233,7 +233,6 @@ protected:
 class TCPIOHandler
 {
 public:
-  enum class Type : uint8_t { Client, Server };
 
   TCPIOHandler(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout, std::shared_ptr<TLSCtx> ctx): d_socket(socket)
   {
