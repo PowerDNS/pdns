@@ -46,7 +46,7 @@ subdir('meson/libssl')                   # OpenSSL libssl
 subdir('meson/gnutls')                   # GnuTLS
 subdir('meson/dot')                      # DNS over TLS
 subdir('meson/ipcipher')                 # IPCipher
-subdir('meson/ragel')                    # Find Ragel
+subdir('meson/prog-ragel')               # Find Ragel
 subdir('meson/clock-gettime')            # Clock_gettime
 subdir('meson/boost')                    # Boost
 subdir('meson/boost-program-options')    # Boost Program Options Library
