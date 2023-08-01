@@ -155,5 +155,5 @@ systemctl daemon-reload ||:
 %{_bindir}/*
 %{_mandir}/man1/*
 %dir %{_sysconfdir}/dnsdist
-%config(noreplace) %{_sysconfdir}/%{name}/dnsdist.conf
+%attr(-, root, dnsdist) %config(noreplace) %{_sysconfdir}/%{name}/dnsdist.conf
 %{_unitdir}/dnsdist*
