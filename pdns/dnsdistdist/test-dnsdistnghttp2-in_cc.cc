@@ -104,7 +104,7 @@ public:
     nghttp2_session_client_new(&sess, callbacks.get(), this);
     d_session = std::unique_ptr<nghttp2_session, void (*)(nghttp2_session*)>(sess, nghttp2_session_del);
 
-    std::array<nghttp2_settings_entry,3> settings{
+    std::array<nghttp2_settings_entry, 3> settings{
       /* rfc7540 section-8.2.2:
          "Advertising a SETTINGS_MAX_CONCURRENT_STREAMS value of zero disables
          server push by preventing the server from creating the necessary
