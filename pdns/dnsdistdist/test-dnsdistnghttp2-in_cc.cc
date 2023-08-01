@@ -32,7 +32,7 @@
 #ifdef HAVE_NGHTTP2
 #include <nghttp2/nghttp2.h>
 
-extern std::function<ProcessQueryResult(DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend)> s_processQuery;
+extern std::function<ProcessQueryResult(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)> s_processQuery;
 
 BOOST_AUTO_TEST_SUITE(test_dnsdistnghttp2_in_cc)
 
@@ -47,8 +47,8 @@ public:
     closeClient,
   };
 
-  ExpectedStep(ExpectedRequest r, IOState n, size_t b = 0, std::function<void(int descriptor)> fn = nullptr) :
-    cb(fn), request(r), nextState(n), bytes(b)
+  ExpectedStep(ExpectedRequest req, IOState next, size_t bytes_ = 0, std::function<void(int descriptor)> func = nullptr) :
+    cb(std::move(func)), request(req), nextState(next), bytes(bytes_)
   {
   }
 
@@ -73,13 +73,13 @@ static std::map<uint64_t, ExpectedData> s_connectionContexts;
 static std::map<int, std::unique_ptr<DOHConnection>> s_connectionBuffers;
 static uint64_t s_connectionID{0};
 
-std::ostream& operator<<(std::ostream& os, const ExpectedStep::ExpectedRequest d);
+std::ostream& operator<<(std::ostream& outs, ExpectedStep::ExpectedRequest step);
 
-std::ostream& operator<<(std::ostream& os, const ExpectedStep::ExpectedRequest d)
+std::ostream& operator<<(std::ostream& outs, ExpectedStep::ExpectedRequest step)
 {
   static const std::vector<std::string> requests = {"handshake with client", "read from client", "write to client", "close connection to client", "connect to the backend", "read from the backend", "write to the backend", "close connection to backend"};
-  os << requests.at(static_cast<size_t>(d));
-  return os;
+  outs << requests.at(static_cast<size_t>(step));
+  return outs;
 }
 
 class DOHConnection
@@ -104,18 +104,18 @@ public:
     nghttp2_session_client_new(&sess, callbacks.get(), this);
     d_session = std::unique_ptr<nghttp2_session, void (*)(nghttp2_session*)>(sess, nghttp2_session_del);
 
-    nghttp2_settings_entry iv[] = {
+    std::array<nghttp2_settings_entry,3> settings{
       /* rfc7540 section-8.2.2:
          "Advertising a SETTINGS_MAX_CONCURRENT_STREAMS value of zero disables
          server push by preventing the server from creating the necessary
          streams."
       */
-      {NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 0},
-      {NGHTTP2_SETTINGS_ENABLE_PUSH, 0},
+      nghttp2_settings_entry{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 0},
+      nghttp2_settings_entry{NGHTTP2_SETTINGS_ENABLE_PUSH, 0},
       /* we might want to make the initial window size configurable, but 16M is a large enough default */
-      {NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, 16 * 1024 * 1024}};
+      nghttp2_settings_entry{NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, 16 * 1024 * 1024}};
     /* client 24 bytes magic string will be sent by nghttp2 library */
-    auto result = nghttp2_submit_settings(d_session.get(), NGHTTP2_FLAG_NONE, iv, sizeof(iv) / sizeof(*iv));
+    auto result = nghttp2_submit_settings(d_session.get(), NGHTTP2_FLAG_NONE, settings.data(), settings.size());
     if (result != 0) {
       throw std::runtime_error("Error submitting settings:" + std::string(nghttp2_strerror(result)));
     }
@@ -154,7 +154,7 @@ public:
         if (pos >= currentQuery.size()) {
           *data_flags |= NGHTTP2_DATA_FLAG_EOF;
         }
-        return toCopy;
+        return static_cast<ssize_t>(toCopy);
       };
 
       auto newStreamId = nghttp2_submit_request(d_session.get(), nullptr, headers.data(), headers.size(), &data_provider, this);
@@ -177,7 +177,7 @@ public:
   uint64_t d_connectionID{0};
   size_t d_position{0};
 
-  size_t submitIncoming(const PacketBuffer& data, size_t pos, size_t toWrite)
+  void submitIncoming(const PacketBuffer& data, size_t pos, size_t toWrite) const
   {
     ssize_t readlen = nghttp2_session_mem_recv(d_session.get(), &data.at(pos), toWrite);
     if (readlen < 0) {
@@ -185,36 +185,35 @@ public:
     }
 
     /* just in case, see if we have anything to send */
-    int rv = nghttp2_session_send(d_session.get());
-    if (rv != 0) {
-      throw("Fatal error while sending: " + std::string(nghttp2_strerror(rv)));
+    int got = nghttp2_session_send(d_session.get());
+    if (got != 0) {
+      throw("Fatal error while sending: " + std::string(nghttp2_strerror(got)));
     }
-
-    return readlen;
   }
 
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
   {
-    DOHConnection* conn = static_cast<DOHConnection*>(user_data);
+    auto* conn = static_cast<DOHConnection*>(user_data);
+    //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
     conn->d_clientOutBuffer.insert(conn->d_clientOutBuffer.end(), data, data + length);
     return static_cast<ssize_t>(length);
   }
 
   static int on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
   {
-    DOHConnection* conn = static_cast<DOHConnection*>(user_data);
-    if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+    auto* conn = static_cast<DOHConnection*>(user_data);
+    if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) != 0) {
       const auto& response = conn->d_responses.at(frame->hd.stream_id);
       if (conn->d_responseCodes.at(frame->hd.stream_id) != 200U) {
         return 0;
       }
 
       BOOST_REQUIRE_GT(response.size(), sizeof(dnsheader));
-      const auto* dh = reinterpret_cast<const dnsheader*>(response.data());
-      uint16_t id = ntohs(dh->id);
+      const dnsheader_aligned dnsHeader(response.data());
+      uint16_t queryID = ntohs(dnsHeader.get()->id);
 
-      const auto& expected = s_connectionContexts.at(conn->d_connectionID).d_responses.at(id);
+      const auto& expected = s_connectionContexts.at(conn->d_connectionID).d_responses.at(queryID);
       BOOST_REQUIRE_EQUAL(expected.size(), response.size());
       for (size_t idx = 0; idx < response.size(); idx++) {
         if (expected.at(idx) != response.at(idx)) {
@@ -229,22 +228,23 @@ private:
 
   static int on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data)
   {
-    DOHConnection* conn = static_cast<DOHConnection*>(user_data);
+    auto* conn = static_cast<DOHConnection*>(user_data);
     auto& response = conn->d_responses[stream_id];
+    //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
     response.insert(response.end(), data, data + len);
     return 0;
   }
 
   static int on_header_callback(nghttp2_session* session, const nghttp2_frame* frame, const uint8_t* name, size_t namelen, const uint8_t* value, size_t valuelen, uint8_t flags, void* user_data)
   {
-    DOHConnection* conn = static_cast<DOHConnection*>(user_data);
-
+    auto* conn = static_cast<DOHConnection*>(user_data);
     const std::string status(":status");
     if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
       if (namelen == status.size() && memcmp(status.data(), name, status.size()) == 0) {
         try {
           uint16_t responseCode{0};
           auto expected = s_connectionContexts.at(conn->d_connectionID).d_responseCodes.at((frame->hd.stream_id - 1) / 2);
+          //NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
           pdns::checked_stoi_into(responseCode, std::string(reinterpret_cast<const char*>(value), valuelen));
           conn->d_responseCodes[frame->hd.stream_id] = responseCode;
           if (responseCode != expected) {
@@ -277,8 +277,11 @@ public:
     auto conn = std::make_unique<DOHConnection>(connectionID);
     s_connectionBuffers[d_descriptor] = std::move(conn);
   }
-
-  ~MockupTLSConnection() {}
+  MockupTLSConnection(const MockupTLSConnection&) = delete;
+  MockupTLSConnection(MockupTLSConnection&&) = delete;
+  MockupTLSConnection& operator=(const MockupTLSConnection&) = delete;
+  MockupTLSConnection& operator=(MockupTLSConnection&&) = delete;
+  ~MockupTLSConnection() override = default;
 
   IOState tryHandshake() override
   {
@@ -344,8 +347,10 @@ public:
 
     BOOST_REQUIRE_GE(buffer.size(), toRead);
 
+    //NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     std::copy(externalBuffer.begin(), externalBuffer.begin() + toRead, buffer.begin() + pos);
     pos += toRead;
+    //NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     externalBuffer.erase(externalBuffer.begin(), externalBuffer.begin() + toRead);
 
     return step.nextState;
@@ -362,32 +367,32 @@ public:
     BOOST_REQUIRE_EQUAL(step.request, ExpectedStep::ExpectedRequest::closeClient);
   }
 
-  bool isUsable() const override
+  [[nodiscard]] bool isUsable() const override
   {
     return true;
   }
 
-  std::string getServerNameIndication() const override
+  [[nodiscard]] std::string getServerNameIndication() const override
   {
     return "";
   }
 
-  std::vector<uint8_t> getNextProtocol() const override
+  [[nodiscard]] std::vector<uint8_t> getNextProtocol() const override
   {
     return std::vector<uint8_t>{'h', '2'};
   }
 
-  LibsslTLSVersion getTLSVersion() const override
+  [[nodiscard]] LibsslTLSVersion getTLSVersion() const override
   {
     return LibsslTLSVersion::TLS13;
   }
 
-  bool hasSessionBeenResumed() const override
+  [[nodiscard]] bool hasSessionBeenResumed() const override
   {
     return false;
   }
 
-  std::vector<std::unique_ptr<TLSSession>> getSessions() override
+  [[nodiscard]] std::vector<std::unique_ptr<TLSSession>> getSessions() override
   {
     return {};
   }
@@ -396,7 +401,7 @@ public:
   {
   }
 
-  std::vector<int> getAsyncFDs() override
+  [[nodiscard]] std::vector<int> getAsyncFDs() override
   {
     return {};
   }
@@ -421,7 +426,7 @@ public:
   }
 
 private:
-  ExpectedStep getStep() const
+  [[nodiscard]] ExpectedStep getStep() const
   {
     BOOST_REQUIRE(!s_steps.empty());
     auto step = s_steps.front();
@@ -449,6 +454,10 @@ struct TestFixture
     s_connectionID = 0;
     s_mplexer = std::make_unique<MockupFDMultiplexer>();
   }
+  TestFixture(const TestFixture&) = delete;
+  TestFixture(TestFixture&&) = delete;
+  TestFixture& operator=(const TestFixture&) = delete;
+  TestFixture& operator=(TestFixture&&) = delete;
   ~TestFixture()
   {
     s_steps.clear();
@@ -462,14 +471,16 @@ struct TestFixture
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, false, "", {});
+  ClientState localCS(local, true, false, 0, "", {});
   localCS.dohFrontend = std::make_shared<DOHFrontend>(std::make_shared<MockupTLSCtx>());
   localCS.dohFrontend->d_urls.insert("/dns-query");
 
   TCPClientThreadData threadData;
   threadData.mplexer = std::make_unique<MockupFDMultiplexer>();
 
-  struct timeval now;
+  struct timeval now
+  {
+  };
   gettimeofday(&now, nullptr);
 
   size_t counter = 0;
@@ -541,9 +552,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 
   {
     /* dnsdist sends a response right away, client closes the connection after getting the response */
-    s_processQuery = [response](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [response](DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       /* self answered */
-      dq.getMutableData() = response;
+      dnsQuestion.getMutableData() = response;
       return ProcessQueryResult::SendAnswer;
     };
 
@@ -572,9 +583,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 
   {
     /* dnsdist sends a response right away, but the client closes the connection without even reading the response */
-    s_processQuery = [response](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [response](DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       /* self answered */
-      dq.getMutableData() = response;
+      dnsQuestion.getMutableData() = response;
       return ProcessQueryResult::SendAnswer;
     };
 
@@ -607,9 +618,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 
   {
     /* dnsdist sends a response right away, client closes the connection while getting the response */
-    s_processQuery = [response](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [response](DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       /* self answered */
-      dq.getMutableData() = response;
+      dnsQuestion.getMutableData() = response;
       return ProcessQueryResult::SendAnswer;
     };
 
@@ -648,7 +659,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, false, "", {});
+  ClientState localCS(local, true, false, 0, "", {});
   localCS.dohFrontend = std::make_shared<DOHFrontend>(std::make_shared<MockupTLSCtx>());
   localCS.dohFrontend->d_urls.insert("/dns-query");
 
@@ -657,7 +668,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
 
   auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
 
-  struct timeval now;
+  struct timeval now
+  {
+  };
   gettimeofday(&now, nullptr);
 
   size_t counter = 0;
@@ -679,7 +692,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
 
   {
     /* dnsdist forwards the query to the backend, which does not answer -> timeout */
-    s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+    s_processQuery = [backend](DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
