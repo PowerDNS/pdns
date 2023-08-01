@@ -189,7 +189,7 @@ For Rules related to the incoming query:
 
   .. versionadded:: 1.9.0
 
-  Return the cache-hit response rule corresponding to the selector, if any.
+  Return the cache-inserted response rule corresponding to the selector, if any.
   The selector can be the position of the rule in the list, as an integer,
   its name as a string or its UUID as a string as well.
 
@@ -219,7 +219,7 @@ For Rules related to the incoming query:
 
   .. versionadded:: 1.9.0
 
-  Return the cache-hit response rule corresponding to the selector, if any.
+  Return the self-answered response rule corresponding to the selector, if any.
   The selector can be the position of the rule in the list, as an integer,
   its name as a string or its UUID as a string as well.
 
