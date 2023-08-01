@@ -169,11 +169,61 @@ For Rules related to the incoming query:
 
   Remove all current rules.
 
-.. function:: getAction(n) -> Action
+.. function:: getAction(n) -> DNSDistRuleAction
 
-  Returns the Action associated with rule ``n``.
+  Returns the :class:`DNSDistRuleAction` associated with rule ``n``.
 
   :param int n: The rule number
+
+.. function:: getCacheHitResponseRule(selector) -> DNSDistResponseRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Return the cache-hit response rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
+
+.. function:: getCacheInsertedResponseRule(selector) -> DNSDistResponseRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Return the cache-inserted response rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
+
+.. function:: getResponseRule(selector) -> DNSDistResponseRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Return the response rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
+
+.. function:: getRule(selector) -> DNSDistRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Return the rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
+
+.. function:: getSelfAnsweredResponseRule(selector) -> DNSDistResponseRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Return the self-answered response rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
 
 .. function:: mvRule(from, to)
 
@@ -1802,3 +1852,45 @@ The following actions exist.
   Subsequent rules are processed after this action.
 
   :param int ttl: Cache TTL for temporary failure replies
+
+Objects
+-------
+
+.. class:: DNSDistRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Represents a rule composed of a :class:`DNSRule` selector, to select the queries this applies to,
+  and a :class:`DNSAction` action to apply when the selector matches.
+
+  .. method:: DNSDistRuleAction:getAction()
+
+    Return the :class:`DNSAction` action of this rule.
+
+  .. method:: DNSDistRuleAction:getSelector()
+
+    Return the :class:`DNSRule` selector of this rule.
+
+.. class:: DNSDistResponseRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Represents a rule composed of a :class:`DNSRule` selector, to select the responses this applies to,
+  and a :class:`DNSResponseAction` action to apply when the selector matches.
+
+  .. method:: DNSDistResponseRuleAction:getAction()
+
+    Return the :class:`DNSResponseAction` action of this rule.
+
+  .. method:: DNSDistResponseRuleAction:getSelector()
+
+    Return the :class:`DNSRule` selector of this rule.
+
+.. class:: DNSRule
+
+  .. versionadded:: 1.9.0
+
+  .. method:: DNSRule:getMatches() -> int
+
+    Return the number of times this selector matched a query or a response. Note that if the same selector is reused for different ``DNSDistRuleAction``
+    objects, the counter will be common to all these objects.

@@ -961,7 +961,7 @@ public:
   virtual ~DNSRule ()
   {
   }
-  virtual bool matches(const DNSQuestion* dq) const =0;
+  virtual bool matches(const DNSQuestion* dq) const = 0;
   virtual string toString() const = 0;
   mutable stat_t d_matches{0};
 };
