@@ -1369,7 +1369,7 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
     }
 
     if (config["uid"].IsDefined()) {
-      string uid = config["uid"].as<string>();
+      auto uid = config["uid"].as<string>();
       try {
         configuration.uid = pdns::checked_stoi<uid_t>(uid);
       }
@@ -1409,30 +1409,38 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
 }
 
 int main(int argc, char** argv) {
-  g_log.setLoglevel(Logger::Notice);
-  g_log.toConsole(Logger::Notice);
-  g_log.setPrefixed(true);
-  g_log.disableSyslog(true);
-  g_log.setTimestamps(false);
-
-  auto fdm = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
-  if (!fdm) {
-    g_log<<Logger::Error<<"Could not enable a multiplexer for the listen sockets!"<<endl;
-    return EXIT_FAILURE;
-  }
-
-  auto configuration = parseConfiguration(argc, argv, *fdm);
-
-  if (!configuration) {
-    // We have already sent the errors to stderr, just die
-    return EXIT_FAILURE;
-  }
-
-  if (configuration->done) {
-    return EXIT_SUCCESS;
-  }
-
   bool had_error = false;
+  std::optional<IXFRDistConfiguration> configuration{std::nullopt};
+  std::unique_ptr<FDMultiplexer> fdm{nullptr};
+
+  try {
+    g_log.setLoglevel(Logger::Notice);
+    g_log.toConsole(Logger::Notice);
+    g_log.setPrefixed(true);
+    g_log.disableSyslog(true);
+    g_log.setTimestamps(false);
+
+    fdm = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    if (!fdm) {
+      g_log<<Logger::Error<<"Could not enable a multiplexer for the listen sockets!"<<endl;
+      return EXIT_FAILURE;
+    }
+
+    configuration = parseConfiguration(argc, argv, *fdm);
+    if (!configuration) {
+      // We have already sent the errors to stderr, just die
+      return EXIT_FAILURE;
+    }
+
+    if (configuration->done) {
+      return EXIT_SUCCESS;
+    }
+  }
+  catch (const YAML::Exception& exp) {
+    had_error = true;
+    g_log<<Logger::Error<<"Got an exception while processing our configuration: "<<exp.msg<<endl;
+  }
+
   try {
     if (configuration->gid != 0) {
       g_log<<Logger::Notice<<"Dropping effective group-id to "<<configuration->gid<<endl;
@@ -1445,6 +1453,7 @@ int main(int argc, char** argv) {
     // It all starts here
     signal(SIGTERM, handleSignal);
     signal(SIGINT, handleSignal);
+    //NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     signal(SIGPIPE, SIG_IGN);
 
     // Launch the webserver!
@@ -1483,7 +1492,13 @@ int main(int argc, char** argv) {
     if (had_error) {
       return EXIT_FAILURE;
     }
+  }
+  catch (const YAML::Exception& exp) {
+    had_error = true;
+    g_log<<Logger::Error<<"Got an exception while applying our configuration: "<<exp.msg<<endl;
+  }
 
+  try {
     // Init the things we need
     reportAllTypes();
 
@@ -1527,7 +1542,7 @@ int main(int argc, char** argv) {
   }
   catch (const YAML::Exception& exp) {
     had_error = true;
-    g_log<<Logger::Error<<"Got an exception while applying our configuration: "<<exp.msg<<endl;
+    g_log<<Logger::Error<<"Got an exception: "<<exp.msg<<endl;
   }
 
   return had_error ? EXIT_FAILURE : EXIT_SUCCESS;
