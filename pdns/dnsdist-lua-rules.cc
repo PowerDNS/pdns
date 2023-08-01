@@ -258,7 +258,7 @@ static boost::optional<T> getRuleFromSelector(const std::vector<T>& rules, const
         if (rule.d_name == *str) {
           return rule;
         }
-        }
+      }
     }
   }
   else if (auto pos = boost::get<int>(&selector)) {
