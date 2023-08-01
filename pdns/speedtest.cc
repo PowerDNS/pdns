@@ -939,7 +939,7 @@ struct UUIDGenTest
 
 struct NSEC3HashTest
 {
-  explicit NSEC3HashTest(int iterations, string salt) : d_iterations(iterations), d_salt(salt) {}
+  explicit NSEC3HashTest(int iterations, string salt) : d_iterations(iterations), d_salt(std::move(salt)) {}
 
   string getName() const
   {
