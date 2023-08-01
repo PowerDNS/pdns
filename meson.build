@@ -131,18 +131,22 @@ all_modules = [
 selected_modules = []
 selected_dyn_modules = []
 foreach module: all_modules
-  name = module[0]
+  module_name = module[0]
+  module_dir = module_name + 'backend'
   module_deps = module[1]
-  opt = get_option('module-' + name)
-  opt_dyn = get_option('module-' + name + '-dyn')
+  module_opt = get_option('module-' + module_name)
+  module_opt_dyn = get_option('module-' + module_name + '-dyn')
 
-  if name == 'remote' and (opt != 'disabled' or opt_dyn != 'disabled')
-    if opt != 'disabled'
-      selected_modules += name
+  if module_name == 'remote' and (module_opt != 'disabled' or module_opt_dyn != 'disabled')
+    set_variable(module_name + '_module', module_opt != 'disabled')
+    set_variable(module_name + '_dyn_module', module_opt_dyn != 'disabled')
+
+    if module_opt != 'disabled'
+      selected_modules += module_name
     endif
 
-    if opt_dyn != 'disabled'
-      selected_dyn_modules += name
+    if module_opt_dyn != 'disabled'
+      selected_dyn_modules += module_name
     endif
 
     foreach dep: module_deps
@@ -151,32 +155,37 @@ foreach module: all_modules
           continue                # We only need cURL for unit tests.
         endif
       elif dep == 'zeromq'
-        if opt != 'with-zeromq' and opt_dyn != 'with-zeromq'
+        if module_opt != 'with-zeromq' and module_opt_dyn != 'with-zeromq'
           continue
         endif
       endif
 
       subdir('meson' / dep)
     endforeach
+  elif module_opt or module_opt_dyn
+    set_variable(module_name + '_module', module_opt)
+    set_variable(module_name + '_dyn_module', module_opt_dyn)
 
-    # TODO Also build the actual backend.
-  elif opt or opt_dyn
-    if opt
-      selected_modules += name
+    if module_opt
+      selected_modules += module_name
     endif
 
-    if opt_dyn
-      selected_dyn_modules += name
+    if module_opt_dyn
+      selected_dyn_modules += module_name
     endif
 
     foreach dep: module_deps
       subdir('meson' / dep)
     endforeach
-
-    # TODO Also build the actual backend.
+  else
+    continue
   endif
+
+  subdir('modules' / module_dir)
 endforeach
+
 conf.set_quoted('PDNS_MODULES', ' '.join(selected_modules), description: 'Built-in modules')
+conf.set_quoted('PDNS_DYN_MODULES', ' '.join(selected_dyn_modules), description: 'Dynamically loadable modules that were built along with pdns')
 
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
