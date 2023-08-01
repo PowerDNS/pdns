@@ -57,13 +57,14 @@ void Logger::log(const string& msg, Urgency u) noexcept
   bool mustAccount(false);
 #endif
   if (u <= consoleUrgency) {
-    char buffer[50] = "";
+    std::array<char, 50> buffer{};
+    buffer[0] = '\0';
     if (d_timestamps) {
       struct tm tm;
       time_t t;
       time(&t);
       localtime_r(&t, &tm);
-      if (strftime(buffer, sizeof(buffer), "%b %d %H:%M:%S ", &tm) == 0) {
+      if (strftime(buffer.data(), buffer.size(), "%b %d %H:%M:%S ", &tm) == 0) {
         buffer[0] = '\0';
       }
     }
@@ -101,14 +102,20 @@ void Logger::log(const string& msg, Urgency u) noexcept
       }
     }
 
-    static std::mutex m;
-    std::lock_guard<std::mutex> l(m); // the C++-2011 spec says we need this, and OSX actually does
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex); // the C++-2011 spec says we need this, and OSX actually does
+
+    // To avoid issuing multiple syscalls, we write the complete line to clog with a single << call.
+    // For that we need a buffer allocated, we might want to use writev(2) one day to avoid that.
+    ostringstream line;
+    line << buffer.data();
     if (d_prefixed) {
-      clog << string(static_cast<char*>(&buffer[0])) << "msg=" << std::quoted(msg) << " prio=" << std::quoted(severity) << endl;
+      line << "msg=" << std::quoted(msg) << " prio=" << std::quoted(severity) << endl;
     }
     else {
-      clog << string(static_cast<char*>(&buffer[0])) << msg << endl;
+      line << msg << endl;
     }
+    clog << line.str();
 #ifndef RECURSOR
     mustAccount = true;
 #endif
