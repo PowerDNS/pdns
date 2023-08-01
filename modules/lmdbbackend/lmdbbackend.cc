@@ -1722,9 +1722,9 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
       zonemap[di.zone] = di;
     }
 
-    for (auto [k, v] : zonemap) {
+    for (auto& [k, v] : zonemap) {
       if (allow(v)) {
-        domains->push_back(v);
+        domains->push_back(std::move(v));
       }
     }
   }
