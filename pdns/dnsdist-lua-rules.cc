@@ -262,6 +262,8 @@ static boost::optional<T> getRuleFromSelector(const std::vector<T>& rules, const
     }
   }
   else if (auto pos = boost::get<int>(&selector)) {
+    /* this will throw a std::out_of_range exception if the
+       supplied position is out of bounds, this is fine */
     return rules.at(*pos);
   }
   return boost::none;
