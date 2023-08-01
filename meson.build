@@ -25,7 +25,8 @@ subdir('meson/compiler-setup')           # Common compiler setup (cxx is the C++
 subdir('meson/summary')                  # Print a system/project summary
 subdir('meson/timet-size')               # Check the size of time_t
 subdir('meson/timet-sign')               # Check the sign of time_t
-subdir('meson/flex-bison')               # Find flex and bison
+subdir('meson/prog-flex')                # Find flex
+subdir('meson/prog-bison')               # Find bison
 subdir('meson/platform')                 # Platform detection
 subdir('meson/atomics')                  # Check atomics support
 subdir('meson/pthread-headers')          # Check pthread headers
