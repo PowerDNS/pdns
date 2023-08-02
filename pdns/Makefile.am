@@ -115,7 +115,6 @@ endif
 apidocfiles.h: api-swagger.yaml api-swagger.json
 	./incfiles $^ > $@
 
-noinst_SCRIPTS = pdns.init
 sysconf_DATA = pdns.conf-dist
 
 sbin_PROGRAMS = pdns_server
