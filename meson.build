@@ -18,6 +18,7 @@ summary('Build Dir', meson.current_build_dir(), section: 'Build')
 fs = import('fs')
 
 # Create the configuration object and dependencies list.
+add_global_arguments('-DHAVE_CONFIG_H')
 conf = configuration_data()
 deps = []
 
