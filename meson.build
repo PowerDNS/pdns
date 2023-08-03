@@ -26,8 +26,8 @@ subdir('meson/compiler-setup')           # Common compiler setup (cxx is the C++
 subdir('meson/summary')                  # Print a system/project summary
 subdir('meson/timet-size')               # Check the size of time_t
 subdir('meson/timet-sign')               # Check the sign of time_t
-subdir('meson/prog-flex')                # Find flex
-subdir('meson/prog-bison')               # Find bison
+subdir('meson/flex')                     # Find flex and create generator
+subdir('meson/bison')                    # Find bison and create generator
 subdir('meson/platform')                 # Platform detection
 subdir('meson/atomics')                  # Check atomics support
 subdir('meson/pthread-headers')          # Check pthread headers
@@ -194,7 +194,3 @@ config_h = configure_file(configuration: conf, output: 'config.h')
 
 # TODO: Add source files
 auth = executable('pdns', config_h, dependencies: deps, export_dynamic: true)
-
-# TODO Generate bindlexer.c and bindparser.cc.
-# bindlexer_c = generator(flex, ...)
-# bindparser_cc = generator(bison, ...)
