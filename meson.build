@@ -134,10 +134,11 @@ selected_modules = []
 selected_dyn_modules = []
 foreach module: all_modules
   module_name = module[0]
-  module_dir = module_name + 'backend'
+  module_backend_name = module_name + 'backend'
   module_deps = module[1]
   module_opt = get_option('module-' + module_name)
   module_opt_dyn = get_option('module-' + module_name + '-dyn')
+  module_includes = include_directories('.', 'pdns')
 
   if module_name == 'remote' and (module_opt != 'disabled' or module_opt_dyn != 'disabled')
     set_variable(module_name + '_module', module_opt != 'disabled')
@@ -183,7 +184,7 @@ foreach module: all_modules
     continue
   endif
 
-  subdir('modules' / module_dir)
+  subdir('modules' / module_backend_name)
 endforeach
 
 conf.set_quoted('PDNS_MODULES', ' '.join(selected_modules), description: 'Built-in modules')
