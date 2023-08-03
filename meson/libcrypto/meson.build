@@ -8,17 +8,18 @@ dep_libcrypto = dependency('', required: false)
 ssldirs = []
 have_libcrypto = false
 if opt_libcrypto == ''
-  error('Invalid value for libcrypto option, either use auto, yes, no, ' +
-        'or pass a directory where the library can be found')
+  error('Invalid value for libcrypto option, either use auto, enabled, disabled, ' +
+        'or pass a directory where the library can be found. ' +
+        'See `meson configure` for more info.')
 endif
 
-if opt_libcrypto == 'no'
+if opt_libcrypto == 'disabled'
   subdir_done()
 endif
 
 # Generally, try to find libcrypto using the mechanisms provided by meson
 # (e.g. pkg-config). If an explicit directory for libcrypto was passed, use that instead.
-if opt_libcrypto == 'auto' or opt_libcrypto == 'yes'
+if opt_libcrypto == 'auto' or opt_libcrypto == 'enabled'
   dep_libcrypto = dependency('libcrypto', required: false)
   have_libcrypto = dep_libcrypto.found()
 else

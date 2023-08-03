@@ -4,7 +4,7 @@ option('fortify-source', type: 'combo', choices: ['auto', 'disabled', '1', '2', 
 option('kiss-rng', type: 'boolean', value: false, description: 'Use the unsafe KISS RNG')
 option('libsodium', type: 'feature', value: 'auto', description: 'Build support for libsodium-based signers')
 option('libdecaf', type: 'feature', value: 'auto', description: 'Build support for libdecaf-based signers')
-option('libcrypto', type: 'string', value: 'auto', description: 'Build support for libcrypto-based signers (auto, yes, no, or a path)')
+option('libcrypto', type: 'string', value: 'auto', description: 'Build support for libcrypto-based signers (auto, enabled, disabled, or a path)')
 option('libssl', type: 'feature', value: 'auto', description: 'Build support for libssl')
 option('gnutls', type: 'feature', value: 'auto', description: 'Build support for GnuTLS')
 option('dns-over-tls', type: 'boolean', value: false, description: 'Enable DNS over TLS (requires GnuTLS or OpenSSL)')
