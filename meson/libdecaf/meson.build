@@ -24,7 +24,7 @@ if not opt_libdecaf.disabled()
         message('Libdecaf: Checking for ' + header_path)
         found_header = cxx.has_header(header, dependencies: dep_libdecaf, required: false, include_directories: dir)
         if found_header
-          add_global_arguments('-I' + header_path, language: 'cpp')
+          add_global_arguments('-I' + dirname, language: 'cpp')
           do_break = true
           break
         endif
