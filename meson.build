@@ -2,7 +2,7 @@ project(
   'pdns',
   ['c', 'cpp'],
   # version: 4.7.0,             # TODO This should call builder-support/gen-version
-  # license_files: 'LICENse',   # TODO Meson 1.1.0
+  # license_files: 'LICENSE',   # TODO Meson 1.1.0
   meson_version: '>= 0.53',
   default_options: [
     'buildtype=debugoptimized',
@@ -21,6 +21,7 @@ fs = import('fs')
 conf = configuration_data()
 deps = []
 
+subdir('meson/version')                  # Generate version define
 subdir('meson/compiler-setup')           # Common compiler setup (cxx is the C++ compiler)
 subdir('meson/summary')                  # Print a system/project summary
 subdir('meson/timet-size')               # Check the size of time_t
