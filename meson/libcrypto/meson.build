@@ -1,6 +1,6 @@
 # OpenSSL-based signers
 # Inputs: deps conf
-# Outputs: have_libcrypto
+# Outputs: have_libcrypto dep_libcrypto
 
 opt_libcrypto = get_option('libcrypto')
 dep_libcrypto = dependency('', required: false)
