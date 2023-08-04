@@ -498,6 +498,8 @@ public:
     return false;
   }
 
+  static bool answerIsNOData(uint16_t requestedType, int rcode, const std::vector<DNSRecord>& records);
+
   static thread_local ThreadLocalStorage t_sstorage;
 
   static pdns::stat_t s_ecsqueries;
