@@ -39,6 +39,8 @@ option('module-geoip', type: 'boolean', value: false, description: 'Build the Ge
 option('module-geoip-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable GeoIP backend')
 option('module-lmdb', type: 'boolean', value: false, description: 'Build the LMDB backend')
 option('module-lmdb-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable LMDB backend')
+option('module-lua2', type: 'boolean', value: false, description: 'Build the Lua2 backend')
+option('module-lua2-dyn', type: 'boolean', value: false, description: 'Build the dynamically loadable Lua2 backend')
 option('tools', type: 'boolean', value: false, description: 'Build the extra tools')
 option('ixfrdist', type: 'boolean', value: false, description: 'Build ixfrdist')
 option('lua-records', type: 'boolean', value: true, description: 'Build support for Lua records')
