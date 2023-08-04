@@ -11,8 +11,10 @@ project(
   ],
 )
 
-summary('Source Dir', meson.current_source_dir(), section: 'Build')
-summary('Build Dir', meson.current_build_dir(), section: 'Build')
+product_source_dir = meson.current_source_dir()
+product_build_dir = meson.current_build_dir()
+summary('Source Dir', product_source_dir, section: 'Build')
+summary('Build Dir', product_build_dir, section: 'Build')
 
 # Setup some modules
 fs = import('fs')
