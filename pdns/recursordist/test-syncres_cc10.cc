@@ -1958,4 +1958,39 @@ BOOST_AUTO_TEST_CASE(test_locked_nonauth_update_to_auth)
   BOOST_CHECK_GT(secondTTL, 0);
 }
 
+BOOST_AUTO_TEST_CASE(test_nodata_ok)
+{
+  vector<DNSRecord> vec;
+  vec.emplace_back("nz.compass.com", nullptr, QType::CNAME, QClass::IN, 60, 0, DNSResourceRecord::ANSWER);
+  vec.emplace_back("nz.compass.com", nullptr, QType::RRSIG, QClass::IN, 60, 0, DNSResourceRecord::ANSWER);
+  vec.emplace_back("kslicmitv6qe1behk70g8q7e572vabp0.kompass.com", nullptr, QType::NSEC3, QClass::IN, 60, 0, DNSResourceRecord::AUTHORITY);
+  vec.emplace_back("kslicmitv6qe1behk70g8q7e572vabp0.kompass.com", nullptr, QType::RRSIG, QClass::IN, 60, 0, DNSResourceRecord::AUTHORITY);
+
+  BOOST_CHECK(SyncRes::answerIsNOData(QType::A, RCode::NoError, vec));
+}
+
+BOOST_AUTO_TEST_CASE(test_nodata_not)
+{
+  vector<DNSRecord> vec;
+  vec.emplace_back("kc-pro.westeurope.cloudapp.azure.com", nullptr, QType::A, QClass::IN, 60, 0, DNSResourceRecord::ANSWER);
+  vec.emplace_back("nz.compass.com", nullptr, QType::CNAME, QClass::IN, 60, 0, DNSResourceRecord::ANSWER);
+  vec.emplace_back("nz.compass.com", nullptr, QType::RRSIG, QClass::IN, 60, 0, DNSResourceRecord::ANSWER);
+  vec.emplace_back("kslicmitv6qe1behk70g8q7e572vabp0.kompass.com", nullptr, QType::NSEC3, QClass::IN, 60, 0, DNSResourceRecord::AUTHORITY);
+  vec.emplace_back("kslicmitv6qe1behk70g8q7e572vabp0.kompass.com", nullptr, QType::RRSIG, QClass::IN, 60, 0, DNSResourceRecord::AUTHORITY);
+
+  BOOST_CHECK(!SyncRes::answerIsNOData(QType::A, RCode::NoError, vec));
+}
+
+BOOST_AUTO_TEST_CASE(test_nodata_out_of_order)
+{
+  vector<DNSRecord> vec;
+  vec.emplace_back("nz.compass.com", nullptr, QType::CNAME, QClass::IN, 60, 0, DNSResourceRecord::ANSWER);
+  vec.emplace_back("nz.compass.com", nullptr, QType::RRSIG, QClass::IN, 60, 0, DNSResourceRecord::ANSWER);
+  vec.emplace_back("kslicmitv6qe1behk70g8q7e572vabp0.kompass.com", nullptr, QType::NSEC3, QClass::IN, 60, 0, DNSResourceRecord::AUTHORITY);
+  vec.emplace_back("kslicmitv6qe1behk70g8q7e572vabp0.kompass.com", nullptr, QType::RRSIG, QClass::IN, 60, 0, DNSResourceRecord::AUTHORITY);
+  vec.emplace_back("kc-pro.westeurope.cloudapp.azure.com", nullptr, QType::A, QClass::IN, 60, 0, DNSResourceRecord::ANSWER);
+
+  BOOST_CHECK(!SyncRes::answerIsNOData(QType::A, RCode::NoError, vec));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
