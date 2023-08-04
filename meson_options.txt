@@ -44,3 +44,5 @@ option('module-lua2-dyn', type: 'boolean', value: false, description: 'Build the
 option('tools', type: 'boolean', value: false, description: 'Build the extra tools')
 option('ixfrdist', type: 'boolean', value: false, description: 'Build ixfrdist')
 option('lua-records', type: 'boolean', value: true, description: 'Build support for Lua records')
+option('systemd-service-user', type: 'string', value: 'pdns', description: 'User to run the systemd pdns service as. Only the setuid setting and User field in the systemd unit file are affected, the user is not created')
+option('systemd-service-group', type: 'string', value: 'pdns', description: 'Group to run the systemd pdns service under. Only the setgid setting and Group field in the systemd unit file are affected, the group is not created')
