@@ -119,25 +119,24 @@ endforeach
 opt_socket_dir = get_option('socket-dir')
 
 # Modules
-all_modules = [
-  ['bind',     []],
-  ['pipe',     []],
-  ['gmysql',   ['mysql']],
-  ['godbc',    ['odbc']],
-  ['gpgsql',   ['pgsql']],
-  ['gsqlite3', ['sqlite3']],
-  ['ldap',     ['ldap']],
-  ['remote',   ['prog-curl', 'zeromq']],
-  ['tinydns',  ['cdb']],
-  ['geoip',    ['geoip']],
-  ['lmdb',     ['lmdb', 'boost-serialization']],
-]
+all_modules = {
+  'bind':     [],
+  'pipe':     [],
+  'gmysql':   ['mysql'],
+  'godbc':    ['odbc'],
+  'gpgsql':   ['pgsql'],
+  'gsqlite3': ['sqlite3'],
+  'ldap':     ['ldap'],
+  'lua2':     [],
+  'remote':   ['prog-curl', 'zeromq'],
+  'tinydns':  ['cdb'],
+  'geoip':    ['geoip'],
+  'lmdb':     ['lmdb', 'boost-serialization'],
+}
 selected_modules = []
 selected_dyn_modules = []
-foreach module: all_modules
-  module_name = module[0]
+foreach module_name, module_deps: all_modules
   module_backend_name = module_name + 'backend'
-  module_deps = module[1]
   module_opt = get_option('module-' + module_name)
   module_opt_dyn = get_option('module-' + module_name + '-dyn')
   module_includes = include_directories('.', 'pdns')
@@ -146,13 +145,8 @@ foreach module: all_modules
     set_variable(module_name + '_module', module_opt != 'disabled')
     set_variable(module_name + '_dyn_module', module_opt_dyn != 'disabled')
 
-    if module_opt != 'disabled'
-      selected_modules += module_name
-    endif
-
-    if module_opt_dyn != 'disabled'
-      selected_dyn_modules += module_name
-    endif
+    selected_modules += module_opt != 'disabled' ? module_name : []
+    selected_dyn_modules += module_opt_dyn != 'disabled' ? module_name : []
 
     foreach dep: module_deps
       if dep == 'prog-curl'
@@ -171,13 +165,8 @@ foreach module: all_modules
     set_variable(module_name + '_module', module_opt)
     set_variable(module_name + '_dyn_module', module_opt_dyn)
 
-    if module_opt
-      selected_modules += module_name
-    endif
-
-    if module_opt_dyn
-      selected_dyn_modules += module_name
-    endif
+    selected_modules += module_opt ? module_name : []
+    selected_dyn_modules += module_opt_dyn ? module_name : []
 
     foreach dep: module_deps
       subdir('meson' / dep)
