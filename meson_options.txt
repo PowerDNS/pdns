@@ -47,3 +47,4 @@ option('lua-records', type: 'boolean', value: true, description: 'Build support 
 option('systemd-service-user', type: 'string', value: 'pdns', description: 'User to run the systemd pdns service as. Only the setuid setting and User field in the systemd unit file are affected, the user is not created')
 option('systemd-service-group', type: 'string', value: 'pdns', description: 'Group to run the systemd pdns service under. Only the setgid setting and Group field in the systemd unit file are affected, the group is not created')
 option('code-coverage', type: 'boolean', value: false, description: 'Enable code coverage')
+option('auto-var-init', type: 'combo', value: 'disabled', choices: ['zero', 'pattern', 'disabled'], description: 'Enable initialization of automatic variables')
