@@ -185,7 +185,12 @@ class RPZServer(object):
                 break
 
             wire = answer.to_wire()
-            conn.send(struct.pack("!H", len(wire)))
+            lenprefix = struct.pack("!H", len(wire))
+
+            for b in lenprefix:
+                conn.send(bytes([b]))
+                time.sleep(0.5)
+
             conn.send(wire)
             self._currentSerial = serial
             break

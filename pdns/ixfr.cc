@@ -123,6 +123,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord> > > processIXFRRecords(const Co
 }
 
 // Returns pairs of "remove & add" vectors. If you get an empty remove, it means you got an AXFR!
+ // NOLINTNEXTLINE(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddress& primary, const DNSName& zone, const DNSRecord& oursr,
                                                                  uint16_t xfrTimeout, bool totalTimeout,
                                                                  const TSIGTriplet& tt, const ComboAddress* laddr, size_t maxReceivedBytes)
@@ -203,24 +204,36 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
   const unsigned int expectedSOAForIXFR = 3;
   unsigned int primarySOACount = 0;
 
+  std::string state;
   for (;;) {
+    state = "start";
     // IXFR or AXFR style end reached? We don't want to process trailing data after the closing SOA
     if (style == AXFR && primarySOACount == expectedSOAForAXFR) {
+      state = "AXFRdone";
       break;
     }
-    else if (style == IXFR && primarySOACount == expectedSOAForIXFR) {
+    if (style == IXFR && primarySOACount == expectedSOAForIXFR) {
+      state = "IXFRdone";
       break;
     }
 
     elapsed = timeoutChecker();
-    if (s.readWithTimeout(reinterpret_cast<char*>(&len), sizeof(len), static_cast<int>(xfrTimeout - elapsed)) != sizeof(len)) {
+    try {
+      const struct timeval remainingTime = { .tv_sec = xfrTimeout - elapsed, .tv_usec = 0 };
+      const struct timeval idleTime = remainingTime;
+      readn2WithTimeout(s.getHandle(), &len, sizeof(len), idleTime, remainingTime, false);
+    }
+    catch (const runtime_error& ex) {
+      state = ex.what();
       break;
     }
 
     len = ntohs(len);
     if (len == 0) {
+      state = "zeroLen";
       break;
     }
+    // Currently no more break statements after this
 
     if (maxReceivedBytes > 0 && (maxReceivedBytes - receivedBytes) < (size_t) len) {
       throw std::runtime_error("Reached the maximum number of received bytes in an IXFR delta for zone '"+zone.toLogString()+"' from primary "+primary.toStringWithPort());
@@ -229,9 +242,9 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
     reply.resize(len);
 
     elapsed = timeoutChecker();
-    const struct timeval remainingTime =  { .tv_sec = xfrTimeout - elapsed, .tv_usec = 0 };
+    const struct timeval remainingTime = { .tv_sec = xfrTimeout - elapsed, .tv_usec = 0 };
     const struct timeval idleTime = remainingTime;
-    readn2WithTimeout(s.getHandle(), &reply.at(0), len, idleTime, remainingTime, false);
+    readn2WithTimeout(s.getHandle(), reply.data(), len, idleTime, remainingTime, false);
     receivedBytes += len;
 
     MOADNSParser mdp(false, reply);
@@ -306,16 +319,16 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
   switch (style) {
   case IXFR:
     if (primarySOACount != expectedSOAForIXFR) {
-      throw std::runtime_error("Incomplete IXFR transfer for '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort());
+      throw std::runtime_error("Incomplete IXFR transfer (primarySOACount=" + std::to_string(primarySOACount) + ") for '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort() + " state=" + state);
     }
     break;
   case AXFR:
     if (primarySOACount != expectedSOAForAXFR){
-      throw std::runtime_error("Incomplete AXFR style transfer for '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort());
+      throw std::runtime_error("Incomplete AXFR style transfer (primarySOACount=" + std::to_string(primarySOACount) + ")  for '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort() + " state=" + state);
     }
     break;
   case Unknown:
-    throw std::runtime_error("Incomplete XFR for '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort());
+    throw std::runtime_error("Incomplete XFR (primarySOACount=" + std::to_string(primarySOACount) + ") for '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort() + " state=" + state);
     break;
   }
 
