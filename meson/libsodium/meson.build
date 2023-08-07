@@ -1,7 +1,7 @@
 # Libsodium-based signers
 # Inputs: deps conf
 
-opt_libsodium = get_option('libsodium')
+opt_libsodium = get_option('signers-libsodium')
 dep_libsodium = dependency('libsodium', required: opt_libsodium, not_found_message: 'libsodium not found')
 
 if dep_libsodium.found()

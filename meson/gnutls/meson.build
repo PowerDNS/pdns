@@ -1,7 +1,7 @@
 # GnuTLS
 # Inputs: conf deps
 
-opt_gnutls = get_option('gnutls')
+opt_gnutls = get_option('tls-gnutls')
 dep_gnutls = dependency('gnutls', version: '>= 3.1.11', required: opt_gnutls)
 
 if dep_gnutls.found()

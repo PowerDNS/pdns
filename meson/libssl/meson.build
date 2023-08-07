@@ -1,7 +1,7 @@
 # OpenSSL libssl
 # Inputs: conf deps
 
-opt_libssl = get_option('libssl')
+opt_libssl = get_option('tls-libssl')
 dep_libssl = dependency('libssl', required: opt_libssl)
 deps += dep_libssl
 

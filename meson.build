@@ -77,7 +77,7 @@ endif
 # TODO Generate pdns/dnslabeltext.cc
 
 # Backend Unit Tests
-opt_backend_unittests = get_option('backend-unit-tests')
+opt_backend_unittests = get_option('unit-tests-backends')
 dep_boost_test = dependency('boost', modules: ['unit_test_framework'], required: opt_backend_unittests)
 deps += dep_boost_test
 conf.set10('BACKEND_UNIT_TESTS', opt_backend_unittests, description: 'Whether backend unit tests are enabled')

@@ -1,7 +1,7 @@
 # Libdecaf-based signers
 # Inputs: deps conf
 
-opt_libdecaf = get_option('libdecaf')
+opt_libdecaf = get_option('signers-libdecaf')
 dep_libdecaf = dependency('', required: false)
 
 if not opt_libdecaf.disabled()

@@ -2,7 +2,7 @@
 # Inputs: deps conf
 # Outputs: have_libcrypto dep_libcrypto
 
-opt_libcrypto = get_option('libcrypto')
+opt_libcrypto = get_option('signers-libcrypto')
 dep_libcrypto = dependency('', required: false)
 
 ssldirs = []
