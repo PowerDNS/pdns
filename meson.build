@@ -66,9 +66,11 @@ subdir('meson/gss-tsig')                 # GSS-TSIG
 subdir('meson/auth-tools')               # Tools
 subdir('meson/ixfrdist')                 # Ixfrdist
 subdir('meson/systemd')                  # Systemd and unit file handling
-subdir('meson/code-coverage')            # Code coverage
+# TODO Use meson's -Db_coverage option?
+# subdir('meson/code-coverage')            # Code coverage
 subdir('meson/auto-var-init')            # Automatic Variable Initialization
-subdir('meson/sanitizers')               # Sanitizers
+# TODO Use meson's -Db_sanitize option?
+# subdir('meson/sanitizers')               # Sanitizers
 
 # Find or generate pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')

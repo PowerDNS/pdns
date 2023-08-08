@@ -4,7 +4,8 @@ opt_hardening = get_option('hardening')
 if opt_hardening.enabled() or opt_hardening.auto()
   hardening_features = []
 
-  subdir('pie')                 # PIE
+  # TODO Use meson's -Db_pie and -Db_staticpic options?
+  # subdir('pie')                 # PIE
   subdir('stack-prot')          # Stack Protector
   subdir('stack-smashing-prot') # Stack-Smashing Protection
   subdir('fortify-source')      # Fortify Source
