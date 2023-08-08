@@ -21,10 +21,10 @@ summary('Build Dir', product_build_dir, section: 'Build')
 fs = import('fs')
 
 # Create the configuration object and dependencies list.
-add_global_arguments('-DHAVE_CONFIG_H', language: ['c', 'cpp'])
 conf = configuration_data()
 deps = []
 
+subdir('meson' / 'config')                 # Config
 subdir('meson' / 'version')                # Generate version define
 subdir('meson' / 'compiler-setup')         # Common compiler setup
 subdir('meson' / 'summary')                # Print a system/project summary
