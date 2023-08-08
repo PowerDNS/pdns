@@ -18,9 +18,25 @@ module_docs = [
 ]
 
 if get_variable(module_name + '_module')
-  static_library(module_backend_name, module_sources, include_directories: toplevel_includes, dependencies: dep_libcrypto, extra_files: module_docs)
+  lib = static_library(
+    module_backend_name,
+    module_sources,
+    include_directories: toplevel_includes,
+    dependencies: dep_libcrypto,
+    extra_files: module_docs
+  )
+
+  set_variable('dep_static_' + module_name, lib)
 endif
 
 if get_variable(module_name + '_dyn_module')
-  shared_library(module_backend_name, module_sources, include_directories: toplevel_includes, dependencies: dep_libcrypto, extra_files: module_docs)
+  lib = shared_library(
+    module_backend_name,
+    module_sources,
+    include_directories: toplevel_includes,
+    dependencies: dep_libcrypto,
+    extra_files: module_docs
+  )
+
+  set_variable('dep_dyn_' + module_name, lib)
 endif
