@@ -24,52 +24,52 @@ add_global_arguments('-DHAVE_CONFIG_H', language: ['cpp'])
 conf = configuration_data()
 deps = []
 
-subdir('meson/version')                  # Generate version define
-subdir('meson/compiler-setup')           # Common compiler setup (cxx is the C++ compiler)
-subdir('meson/summary')                  # Print a system/project summary
-subdir('meson/timet-size')               # Check the size of time_t
-subdir('meson/timet-sign')               # Check the sign of time_t
-subdir('meson/flex')                     # Find flex and create generator
-subdir('meson/bison')                    # Find bison and create generator
-subdir('meson/platform')                 # Platform detection
-subdir('meson/atomics')                  # Check atomics support
-subdir('meson/pthread-headers')          # Check pthread headers
-subdir('meson/pthread-setname')          # Pthread setname madness
-subdir('meson/strerror')                 # Strerror_r
-subdir('meson/lua')                      # Lua
-subdir('meson/lua-records')              # Lua Records
-subdir('meson/hardening')                # Hardening
-subdir('meson/kiss-rng')                 # Unsafe KISS RNG
-subdir('meson/net-libs')                 # Network Libraries
-subdir('meson/tm-gmtoff')                # Check for the tm_gmtoff field in struct tm
-subdir('meson/mmap')                     # Check for mmap
-subdir('meson/libsodium')                # Libsodium-based signers
-subdir('meson/libdecaf')                 # Libdecaf-based signers
-subdir('meson/libcrypto')                # OpenSSL-based signers
-subdir('meson/libssl')                   # OpenSSL libssl
-subdir('meson/gnutls')                   # GnuTLS
-subdir('meson/dot')                      # DNS over TLS
-subdir('meson/ipcipher')                 # IPCipher
-subdir('meson/prog-ragel')               # Find Ragel
-subdir('meson/clock-gettime')            # Clock_gettime
-subdir('meson/boost')                    # Boost
-subdir('meson/boost-program-options')    # Boost Program Options Library
-subdir('meson/unit-tests')               # Unit Tests
-subdir('meson/reproducible')             # Reproducible Builds
-subdir('meson/fuzz-targets')             # Fuzzing Targets
-subdir('meson/python-venv')              # Python Venv
-subdir('meson/from-git')                 # From Git
-subdir('meson/dlopen')                   # dlopen
-subdir('meson/verbose-logging')          # Verbose Logging
-subdir('meson/pkcs11')                   # PKCS11
-subdir('meson/gss-tsig')                 # GSS-TSIG
-subdir('meson/auth-tools')               # Tools
-subdir('meson/ixfrdist')                 # Ixfrdist
-subdir('meson/systemd')                  # Systemd and unit file handling
-subdir('meson/code-coverage')            # Code coverage
-subdir('meson/auto-var-init')            # Automatic Variable Initialization
-subdir('meson/sanitizers')               # Sanitizers
-subdir('meson/malloc-trace')             # Malloc-trace
+subdir('meson' / 'version')                # Generate version define
+subdir('meson' / 'compiler-setup')         # Common compiler setup
+subdir('meson' / 'summary')                # Print a system/project summary
+subdir('meson' / 'timet-size')             # Check the size of time_t
+subdir('meson' / 'timet-sign')             # Check the sign of time_t
+subdir('meson' / 'flex')                   # Find flex and create generator
+subdir('meson' / 'bison')                  # Find bison and create generator
+subdir('meson' / 'platform')               # Platform detection
+subdir('meson' / 'atomics')                # Check atomics support
+subdir('meson' / 'pthread-headers')        # Check pthread headers
+subdir('meson' / 'pthread-setname')        # Pthread setname madness
+subdir('meson' / 'strerror')               # Strerror_r
+subdir('meson' / 'lua')                    # Lua
+subdir('meson' / 'lua-records')            # Lua Records
+subdir('meson' / 'hardening')              # Hardening
+subdir('meson' / 'kiss-rng')               # Unsafe KISS RNG
+subdir('meson' / 'net-libs')               # Network Libraries
+subdir('meson' / 'tm-gmtoff')              # Check for tm_gmtoff field in struct tm
+subdir('meson' / 'mmap')                   # Check for mmap
+subdir('meson' / 'libsodium')              # Libsodium-based signers
+subdir('meson' / 'libdecaf')               # Libdecaf-based signers
+subdir('meson' / 'libcrypto')              # OpenSSL-based signers
+subdir('meson' / 'libssl')                 # OpenSSL libssl
+subdir('meson' / 'gnutls')                 # GnuTLS
+subdir('meson' / 'dot')                    # DNS over TLS
+subdir('meson' / 'ipcipher')               # IPCipher
+subdir('meson' / 'prog-ragel')             # Find Ragel
+subdir('meson' / 'clock-gettime')          # Clock_gettime
+subdir('meson' / 'boost')                  # Boost
+subdir('meson' / 'boost-program-options')  # Boost Program Options Library
+subdir('meson' / 'unit-tests')             # Unit Tests
+subdir('meson' / 'reproducible')           # Reproducible Builds
+subdir('meson' / 'fuzz-targets')           # Fuzzing Targets
+subdir('meson' / 'python-venv')            # Python Venv
+subdir('meson' / 'from-git')               # From Git
+subdir('meson' / 'dlopen')                 # dlopen
+subdir('meson' / 'verbose-logging')        # Verbose Logging
+subdir('meson' / 'pkcs11')                 # PKCS11
+subdir('meson' / 'gss-tsig')               # GSS-TSIG
+subdir('meson' / 'auth-tools')             # Tools
+subdir('meson' / 'ixfrdist')               # Ixfrdist
+subdir('meson' / 'systemd')                # Systemd and unit file handling
+subdir('meson' / 'code-coverage')          # Code coverage
+subdir('meson' / 'auto-var-init')          # Automatic Variable Initialization
+subdir('meson' / 'sanitizers')             # Sanitizers
+subdir('meson' / 'malloc-trace')           # Malloc-trace
 
 # Find or generate pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
