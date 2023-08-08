@@ -9,7 +9,7 @@ module_sources = [
 ]
 
 if get_variable(module_name + '_module')
-  static_library(module_backend_name, module_sources, include_directories: module_includes, dependencies: [dep_libcrypto, dep_lua])
+  static_library(module_backend_name, module_sources, include_directories: toplevel_includes, dependencies: [dep_libcrypto, dep_lua])
 endif
 
 if get_variable(module_name + '_dyn_module')

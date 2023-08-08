@@ -97,6 +97,10 @@ if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
 endif
 # TODO Generate pdns_server.1 manpage
 
+# TODO Ultimately we should get rid of this by passing library objects instead of include
+# directories to e.g. modules.
+toplevel_includes = include_directories('.', 'pdns')
+
 # Modules
 all_modules = {
   'bind':     [],
@@ -118,7 +122,6 @@ foreach module_name, module_deps: all_modules
   module_backend_name = module_name + 'backend'
   module_opt = get_option('module-' + module_name)
   module_opt_dyn = get_option('module-' + module_name + '-dyn')
-  module_includes = include_directories('.', 'pdns')
 
   if module_name == 'remote' and (module_opt != 'disabled' or module_opt_dyn != 'disabled')
     set_variable(module_name + '_module', module_opt != 'disabled')
