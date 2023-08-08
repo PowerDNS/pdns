@@ -80,7 +80,7 @@ if not ragel.found() and not fs.exists('pdns' / 'dnslabeltext.cc')
 endif
 
 # Swagger
-if not fs.exists('pdns/api-swagger.json') and not python_have_venv
+if not fs.exists('pdns' / 'api-swagger.json') and not python_have_venv
   error('Python3 and/or its venv module is not available and ' +
         '`pdns/api-swagger.json` cannot be found. ' +
         'The Authoritative Server cannot be built.')
@@ -88,7 +88,7 @@ endif
 # TODO Generate api-swagger.json
 
 # Manpages
-if not fs.exists('docs/pdns_server.1') and not python_have_venv
+if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
   warning('Python3 and/or its venv module is not available and ' +
           '`docs/pdns_server.1` cannot be found. ' +
           'Documentation will not be built.')
