@@ -28,7 +28,7 @@ foreach platform: platforms
     endforeach
 
     foreach arg: args
-      add_global_arguments('-D' + arg, language: ['cpp'])
+      add_global_arguments('-D' + arg, language: ['c', 'cpp'])
     endforeach
 
     foreach lib: libs

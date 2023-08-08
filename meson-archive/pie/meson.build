@@ -25,8 +25,8 @@ else
     ldflags = variant[1]
 
     if cxx.links(prog, args: cflags + ldflags, name: 'compiler can build Position Independent Executables')
-      add_global_arguments(cflags, language: ['cpp'])
-      add_global_link_arguments(ldflags, language: ['cpp'])
+      add_global_arguments(cflags, language: ['c', 'cpp'])
+      add_global_link_arguments(ldflags, language: ['c', 'cpp'])
       found_variant = true
       break
     endif

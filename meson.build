@@ -20,7 +20,7 @@ summary('Build Dir', product_build_dir, section: 'Build')
 fs = import('fs')
 
 # Create the configuration object and dependencies list.
-add_global_arguments('-DHAVE_CONFIG_H', language: ['cpp'])
+add_global_arguments('-DHAVE_CONFIG_H', language: ['c', 'cpp'])
 conf = configuration_data()
 deps = []
 
