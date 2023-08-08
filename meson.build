@@ -11,6 +11,7 @@ project(
   ],
 )
 
+# TODO Meson 0.56 introduces meson.project_source_root().
 product_source_dir = meson.current_source_dir()
 product_build_dir = meson.current_build_dir()
 summary('Source Dir', product_source_dir, section: 'Build')
