@@ -56,6 +56,7 @@ subdir('meson' / 'clock-gettime')          # Clock_gettime
 subdir('meson' / 'boost')                  # Boost
 subdir('meson' / 'boost-program-options')  # Boost Program Options Library
 subdir('meson' / 'unit-tests')             # Unit Tests
+subdir('meson' / 'auth-backend-unit-test') # Auth Backend Unit Tests
 subdir('meson' / 'reproducible')           # Reproducible Builds
 subdir('meson' / 'fuzz-targets')           # Fuzzing Targets
 subdir('meson' / 'python-venv')            # Python Venv
@@ -76,15 +77,6 @@ subdir('meson' / 'malloc-trace')           # Malloc-trace
 if not ragel.found() and not fs.exists('pdns' / 'dnslabeltext.cc')
   error('Ragel is missing and `pdns/dnslabeltext.cc` cannot be found. ' +
         'Install Ragel or download the sources from www.powerdns.com')
-endif
-
-# Backend Unit Tests
-opt_backend_unittests = get_option('unit-tests-backends')
-dep_boost_test = dependency('boost', modules: ['unit_test_framework'], required: opt_backend_unittests)
-deps += dep_boost_test
-conf.set10('BACKEND_UNIT_TESTS', opt_backend_unittests, description: 'Whether backend unit tests are enabled')
-if not opt_unittests
-  summary('Test', dep_boost_test.found(), bool_yn: true, section: 'Boost')
 endif
 
 # Swagger
