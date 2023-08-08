@@ -71,6 +71,7 @@ subdir('meson/systemd')                  # Systemd and unit file handling
 subdir('meson/auto-var-init')            # Automatic Variable Initialization
 # TODO Use meson's -Db_sanitize option?
 # subdir('meson/sanitizers')               # Sanitizers
+subdir('meson/malloc-trace')             # Malloc-trace
 
 # Find or generate pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')

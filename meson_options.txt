@@ -55,3 +55,4 @@ option('auto-var-init', type: 'combo', value: 'disabled', choices: ['zero', 'pat
 # option('sanitizer-thread', type: 'boolean', value: false, description: 'Enable the Thread Sanitizer')
 # option('sanitizer-leak', type: 'boolean', value: false, description: 'Enable the Leak Sanitizer')
 # option('sanitizer-undefined', type: 'boolean', value: false, description: 'Enable the Undefined Behavior Sanitizer')
+option('malloc-trace', type: 'boolean', value: false, description: 'Enable malloc-trace')
