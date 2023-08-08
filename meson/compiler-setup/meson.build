@@ -7,7 +7,7 @@ if meson.get_compiler('cpp').get_id() == 'clang'
   add_global_arguments('-ferror-limit=0', language: ['c', 'cpp'])
 endif
 
-add_global_arguments('-Wshadow', '-Wmissing-declarations', '-Wredundant-decls', language: ['c', 'cpp'])
+add_global_arguments('-Wshadow', '-Wmissing-declarations', '-Wredundant-decls', '-Wno-ignored-attributes', language: ['c', 'cpp'])
 
 cxx = meson.get_compiler('cpp')
 system = target_machine.system()
