@@ -9,7 +9,7 @@ if auto_var_init != 'disabled'
     subdir_done()
   endif
 
-  add_global_arguments(arg)
+  add_global_arguments(arg, language: ['cpp'])
 endif
 
 summary('Auto Var Init', auto_var_init, section: 'Configuration')

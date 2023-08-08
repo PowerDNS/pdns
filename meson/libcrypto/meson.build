@@ -123,10 +123,10 @@ has = cxx.has_header_symbol('openssl/kdf.h', 'EVP_PKEY_CTX_set1_scrypt_salt', ar
 conf.set10('HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT', has, description: 'Whether we have EVP_PKEY_CTX_set1_scrypt_salt')
 
 if libdir != ''
-  add_global_arguments(libcrypto_args + ['-I' + libdir / 'include'])
-else
-  deps += dep_libcrypto
+  dep_libcrypto = declare_dependency(compile_args: libcrypto_args + ['-I' + libdir / 'include'])
 endif
+
+deps += dep_libcrypto
 
 conf.set10('HAVE_LIBCRYPTO', have_libcrypto, description: 'Whether we build OpenSSL libcrypto-based signers')
 summary('OpenSSL libcrypto', have_libcrypto, bool_yn: true, section: 'Configuration')

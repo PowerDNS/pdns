@@ -1,11 +1,10 @@
 # Stack Protector
-# Inputs: hardening_features deps
+# Inputs: hardening_features
 
 support_stack_protector = cxx.has_argument('-fstack-protector')
 
 if support_stack_protector
-  dep_sp = declare_dependency(compile_args: ['-fstack-protector'])
-  deps += dep_sp
+  add_global_arguments('-fstack-protector', language: ['cpp'])
 endif
 
 hardening_features += [[support_stack_protector, 'Stack Protector']]

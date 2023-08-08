@@ -21,7 +21,7 @@ foreach sanitizer, name: sanitizers
   if not cxx.has_argument(compiler_opt)
     error(name + ' Sanitizer requested but compiler does not support `' + compiler_opt + '`')
   endif
-  add_global_arguments(compiler_opt)
+  add_global_arguments(compiler_opt, language: ['cpp'])
   summary(name, get_variable(opt_name), bool_yn: true, section: 'Sanitizers')
 endforeach
 
@@ -42,5 +42,5 @@ if opt_memory_sanitizer and opt_thread_sanitizer
 endif
 
 if opt_address_sanitizer or opt_thread_sanitizer or opt_leak_sanitizer or opt_undefined_behavior_sanitizer or opt_memory_sanitizer
-  add_global_arguments('-fno-omit-frame-pointer')
+  add_global_arguments('-fno-omit-frame-pointer', language: ['cpp'])
 endif

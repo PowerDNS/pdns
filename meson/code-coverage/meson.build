@@ -1,7 +1,5 @@
 # Code coverage
-# Inputs: deps
 
-code_coverage_deps = []
 code_coverage = get_option('code-coverage')
 
 if code_coverage
@@ -12,9 +10,9 @@ if code_coverage
       error('Compiler does not support ' + arg + ', which is needed for code coverage')
       break
     endif
-
-    code_coverage_deps += declare_dependency(compile_args: [arg])
   endforeach
+
+  add_global_arguments(args, language: ['cpp'])
 endif
 
 summary('Code Coverage', code_coverage, bool_yn: true, section: 'Configuration')

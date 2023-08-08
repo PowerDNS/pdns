@@ -28,8 +28,7 @@ foreach platform: platforms
     endforeach
 
     foreach arg: args
-      dep = declare_dependency(compile_args: ['-D' + arg])
-      deps += dep
+      add_global_arguments('-D' + arg, language: ['cpp'])
     endforeach
 
     foreach lib: libs

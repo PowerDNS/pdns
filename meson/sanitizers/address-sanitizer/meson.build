@@ -55,6 +55,6 @@ conf.set10('HAVE_FIBER_SANITIZER', single_pointer or three_pointers, description
 conf.set10('HAVE_SANITIZER_FINISH_SWITCH_FIBER_SINGLE_PTR', single_pointer, description: 'Address Sanitizer: __sanitizer_finish_switch_fiber takes only a pointer')
 conf.set10('HAVE_SANITIZER_FINISH_SWITCH_FIBER_THREE_PTRS', three_pointers, description: 'Address Sanitizer: __sanitizer_finish_switch_fiber takes three pointers')
 
-add_global_arguments('-fsanitize=address')
+add_global_arguments('-fsanitize=address', language: ['cpp'])
 
 summary('address', opt_address_sanitizer, bool_yn: true, section: 'Sanitizers')

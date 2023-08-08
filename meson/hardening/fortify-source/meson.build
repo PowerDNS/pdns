@@ -1,5 +1,5 @@
 # Fortify Source
-# Inputs: hardening_features deps
+# Inputs: hardening_features
 
 fortify_source_opt = get_option('fortify-source')
 
@@ -16,8 +16,7 @@ if fortify_source_opt != 'disabled'
     variant_str = variant.to_string()
     if fortify_source_level == variant
       if cxx.has_argument('-D_FORTIFY_SOURCE=' + variant_str)
-        dep_fortify = declare_dependency(compile_args: ['-U_FORTIFY_SOURCE', '-D_FORTIFY_SOURCE=' + variant_str])
-        deps += dep_fortify
+        add_global_arguments('-U_FORTIFY_SOURCE', '-D_FORTIFY_SOURCE=' + variant_str, language: ['cpp'])
         break
       else
         fortify_source_level = fortify_source_level - 1

@@ -1,5 +1,5 @@
 # Read-only Global Offset Table
-# Inputs: hardening_features deps
+# Inputs: hardening_features
 
 ld_help = run_command(cxx, '-Wl,-help', '2>&1', check: true).stdout().strip()
 variants = ['relro', 'now']
@@ -7,8 +7,7 @@ found_variant = false
 foreach variant: variants
   if ld_help.contains('-z ' + variant)
     found_variant = true
-    dep_relro = declare_dependency(link_args: ['-Wl,-z', '-Wl,' + variant])
-    deps += dep_relro
+    add_global_link_arguments('-Wl,-z', '-Wl,' + variant, language: ['cpp'])
   endif
 endforeach
 
