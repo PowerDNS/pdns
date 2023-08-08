@@ -68,8 +68,7 @@ subdir('meson/ixfrdist')                 # Ixfrdist
 subdir('meson/systemd')                  # Systemd and unit file handling
 subdir('meson/code-coverage')            # Code coverage
 subdir('meson/auto-var-init')            # Automatic Variable Initialization
-# TODO Use meson's -Db_sanitize option?
-# subdir('meson/sanitizers')               # Sanitizers
+subdir('meson/sanitizers')               # Sanitizers
 subdir('meson/malloc-trace')             # Malloc-trace
 # TODO Use meson's -Db_lto* options?
 subdir('meson/lto')                      # Link-time Optimization
