@@ -1,18 +1,15 @@
 # Code coverage
 
-code_coverage = get_option('code-coverage')
+coverage = get_option('b_coverage')
 
-if code_coverage
-  args = ['-U_FORTIFY_SOURCE', '-g', '-O0', '-fprofile-arcs', '-ftest-coverage']
+if coverage
+  if get_option('buildtype') != 'debug'
+    warning('Coverage is enabled, using `builtype=debug` would produce better reports')
+  endif
 
-  foreach arg: args
-    if not cxx.has_argument(arg)
-      error('Compiler does not support ' + arg + ', which is needed for code coverage')
-      break
-    endif
-  endforeach
-
-  add_global_arguments(args, language: ['cpp'])
+  if cxx.has_argument('-U_FORTIFY_SOURCE')
+    add_global_arguments('-U_FORTIFY_SOURCE', language: ['c', 'cpp'])
+  endif
 endif
 
-summary('Code Coverage', code_coverage, bool_yn: true, section: 'Configuration')
+summary('Code Coverage', coverage, bool_yn: true, section: 'Configuration')

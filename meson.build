@@ -66,8 +66,7 @@ subdir('meson/gss-tsig')                 # GSS-TSIG
 subdir('meson/auth-tools')               # Tools
 subdir('meson/ixfrdist')                 # Ixfrdist
 subdir('meson/systemd')                  # Systemd and unit file handling
-# TODO Use meson's -Db_coverage option?
-# subdir('meson/code-coverage')            # Code coverage
+subdir('meson/code-coverage')            # Code coverage
 subdir('meson/auto-var-init')            # Automatic Variable Initialization
 # TODO Use meson's -Db_sanitize option?
 # subdir('meson/sanitizers')               # Sanitizers
