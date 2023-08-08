@@ -1,7 +1,7 @@
 project(
   'pdns',
   ['c', 'cpp'],
-  # version: 4.7.0,             # TODO This should call builder-support/gen-version
+  version: run_command('builder-support' / 'gen-version', check: true).stdout().strip(),
   # license_files: 'LICENSE',   # TODO Meson 1.1.0
   meson_version: '>= 0.53',
   default_options: [
