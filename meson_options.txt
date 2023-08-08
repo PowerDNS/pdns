@@ -56,3 +56,5 @@ option('auto-var-init', type: 'combo', value: 'disabled', choices: ['zero', 'pat
 # option('sanitizer-leak', type: 'boolean', value: false, description: 'Enable the Leak Sanitizer')
 # option('sanitizer-undefined', type: 'boolean', value: false, description: 'Enable the Undefined Behavior Sanitizer')
 option('malloc-trace', type: 'boolean', value: false, description: 'Enable malloc-trace')
+# TODO Use meson's -Db_lto* options?
+option('lto', type: 'combo', choices: ['yes', 'no', 'thin', 'auto'], value: 'no', description: 'Enable link-time optimization')

@@ -72,6 +72,8 @@ subdir('meson/auto-var-init')            # Automatic Variable Initialization
 # TODO Use meson's -Db_sanitize option?
 # subdir('meson/sanitizers')               # Sanitizers
 subdir('meson/malloc-trace')             # Malloc-trace
+# TODO Use meson's -Db_lto* options?
+subdir('meson/lto')                      # Link-time Optimization
 
 # Find or generate pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
