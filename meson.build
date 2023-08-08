@@ -51,7 +51,7 @@ subdir('meson' / 'libssl')                 # OpenSSL libssl
 subdir('meson' / 'gnutls')                 # GnuTLS
 subdir('meson' / 'dot')                    # DNS over TLS
 subdir('meson' / 'ipcipher')               # IPCipher
-subdir('meson' / 'prog-ragel')             # Find Ragel
+subdir('meson' / 'ragel')                  # Find Ragel and create generator
 subdir('meson' / 'clock-gettime')          # Clock_gettime
 subdir('meson' / 'boost')                  # Boost
 subdir('meson' / 'boost-program-options')  # Boost Program Options Library
@@ -72,12 +72,11 @@ subdir('meson' / 'auto-var-init')          # Automatic Variable Initialization
 subdir('meson' / 'sanitizers')             # Sanitizers
 subdir('meson' / 'malloc-trace')           # Malloc-trace
 
-# Find or generate pdns/dnslabeltext.cc
-if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
+# Find ragel or pdns/dnslabeltext.cc
+if not ragel.found() and not fs.exists('pdns' / 'dnslabeltext.cc')
   error('Ragel is missing and `pdns/dnslabeltext.cc` cannot be found. ' +
         'Install Ragel or download the sources from www.powerdns.com')
 endif
-# TODO Generate pdns/dnslabeltext.cc
 
 # Backend Unit Tests
 opt_backend_unittests = get_option('unit-tests-backends')
