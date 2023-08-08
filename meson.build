@@ -163,6 +163,10 @@ endforeach
 conf.set_quoted('PDNS_MODULES', ' '.join(selected_modules), description: 'Built-in modules')
 conf.set_quoted('PDNS_DYN_MODULES', ' '.join(selected_dyn_modules), description: 'Dynamically loadable modules that were built along with pdns')
 
+# Ext
+ext_modules = ['yahttp', 'ipcrypt']
+subdir('ext')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # TODO Meson 0.57
