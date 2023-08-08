@@ -72,6 +72,7 @@ subdir('meson' / 'code-coverage')          # Code coverage
 subdir('meson' / 'auto-var-init')          # Automatic Variable Initialization
 subdir('meson' / 'sanitizers')             # Sanitizers
 subdir('meson' / 'malloc-trace')           # Malloc-trace
+subdir('meson' / 'auth-socket-dir')        # Socket Dir
 
 # Find ragel or pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns' / 'dnslabeltext.cc')
@@ -111,9 +112,6 @@ foreach func: funcs
   conf.set10(define, found, description: 'Whether we have ' + func)
   # summary(func, found, bool_yn: true, section: 'Various Functions')
 endforeach
-
-# Socket Dir
-opt_socket_dir = get_option('socket-dir')
 
 # Modules
 all_modules = {
