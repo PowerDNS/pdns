@@ -48,3 +48,8 @@ option('systemd-service-user', type: 'string', value: 'pdns', description: 'Syst
 option('systemd-service-group', type: 'string', value: 'pdns', description: 'Systemd service group (setgid and unit file; group is not created)')
 option('code-coverage', type: 'boolean', value: false, description: 'Enable code coverage')
 option('auto-var-init', type: 'combo', value: 'disabled', choices: ['zero', 'pattern', 'disabled'], description: 'Enable initialization of automatic variables')
+option('sanitizer-address', type: 'boolean', value: false, description: 'Enable the Address Sanitizer')
+option('sanitizer-memory', type: 'boolean', value: false, description: 'Enable the Memory Sanitizer')
+option('sanitizer-thread', type: 'boolean', value: false, description: 'Enable the Thread Sanitizer')
+option('sanitizer-leak', type: 'boolean', value: false, description: 'Enable the Leak Sanitizer')
+option('sanitizer-undefined', type: 'boolean', value: false, description: 'Enable the Undefined Behavior Sanitizer')

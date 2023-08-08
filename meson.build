@@ -68,6 +68,7 @@ subdir('meson/ixfrdist')                 # Ixfrdist
 subdir('meson/systemd')                  # Systemd and unit file handling
 subdir('meson/code-coverage')            # Code coverage
 subdir('meson/auto-var-init')            # Automatic Variable Initialization
+subdir('meson/sanitizers')               # Sanitizers
 
 # Find or generate pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns/dnslabeltext.cc')
