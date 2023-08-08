@@ -1234,6 +1234,36 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
     BOOST_CHECK_EQUAL(line, str);
   }
 
+  expected.clear();
+  expected.push_back("; Zone powerdns.com.\n");
+  expected.push_back("www.powerdns.com. 10 IN NSEC z.powerdns.com. A RRSIG NSEC\n");
+  expected.push_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+  expected.push_back("z.powerdns.com. 30 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC\n");
+  expected.push_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+  expected.push_back("; Zone powerdns.org.\n");
+  expected.push_back("www.powerdns.org. 10 IN NSEC3 1 0 50 ab HASG==== A RRSIG NSEC3\n");
+  expected.push_back("- RRSIG NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+
+  rec.d_name = DNSName("z.powerdns.com");
+  rec.d_type = QType::NSEC;
+  rec.d_ttl = now.tv_sec + 30;
+  rec.setContent(getRecordContent(QType::NSEC, "zz.powerdns.com. AAAA RRSIG NSEC"));
+  rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+  cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
+
+  fp = std::unique_ptr<FILE, int (*)(FILE*)>(tmpfile(), fclose);
+  BOOST_CHECK_EQUAL(cache->dumpToFile(fp, now), 3U);
+
+  rewind(fp.get());
+
+  for (auto str : expected) {
+    read = getline(&line, &len, fp.get());
+    if (read == -1) {
+      BOOST_FAIL("Unable to read a line from the temp file");
+    }
+    BOOST_CHECK_EQUAL(line, str);
+  }
+
   /* getline() allocates a buffer when called with a nullptr,
      then reallocates it when needed, but we need to free the
      last allocation if any. */
