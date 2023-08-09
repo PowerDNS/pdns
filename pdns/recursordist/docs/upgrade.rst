@@ -37,6 +37,8 @@ See :doc:`performance`, in particular the :ref:`worker_imbalance` section.
 - The :ref:`setting-reuseport` default has been changed to ``yes``.
 - The :ref:`setting-packetcache-ttl` default has been changed to 24 hours.
 - The :ref:`setting-max-recursion-depth` default has been changed to 16. Before it was, 40, but effectively the CNAME length chain limit (fixed at 16) took precedence.
+  If you increase :ref:`setting-max-recursion-depth`, you also have to increase :ref:`setting-stack-size`.
+  A starting point of 5k per recursion depth is suggested. Add some extra safety margin to avoid running out of stack.
 - The :ref:`setting-hint-file` setting gained a new special value to disable refreshing of root hints completely. See :ref:`handling-of-root-hints`.
 
 :program:`rec_control`
