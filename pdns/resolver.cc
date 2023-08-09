@@ -302,7 +302,7 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
     }
   }
   if(!gotSOA)
-    throw ResolverException("Query to '" + remote->toString() + "' for SOA of '" + domain->toLogString() + "' did not return a SOA");
+    throw ResolverException("Query to '" + remote->toStringWithPort() + "' for SOA of '" + domain->toLogString() + "' did not return a SOA");
   return true;
 }
 
