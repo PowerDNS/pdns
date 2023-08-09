@@ -164,7 +164,7 @@ conf.set_quoted('PDNS_MODULES', ' '.join(selected_modules), description: 'Built-
 conf.set_quoted('PDNS_DYN_MODULES', ' '.join(selected_dyn_modules), description: 'Dynamically loadable modules that were built along with pdns')
 
 # Ext
-ext_modules = ['yahttp', 'ipcrypt']
+ext_modules = ['yahttp', 'ipcrypt', 'json11']
 subdir('ext')
 
 # Generate config.h ----------------------------------------------------------------------
