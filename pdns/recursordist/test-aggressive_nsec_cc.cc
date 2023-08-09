@@ -1181,17 +1181,19 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
   auto cache = make_unique<AggressiveNSECCache>(10000);
 
   std::vector<std::string> expected;
-  expected.push_back("; Zone powerdns.com.\n");
-  expected.push_back("www.powerdns.com. 10 IN NSEC z.powerdns.com. A RRSIG NSEC\n");
-  expected.push_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
-  expected.push_back("z.powerdns.com. 10 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC\n");
-  expected.push_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
-  expected.push_back("; Zone powerdns.org.\n");
-  expected.push_back("www.powerdns.org. 10 IN NSEC3 1 0 50 ab HASG==== A RRSIG NSEC3\n");
-  expected.push_back("- RRSIG NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+  expected.emplace_back("; Zone powerdns.com.\n");
+  expected.emplace_back("www.powerdns.com. 10 IN NSEC z.powerdns.com. A RRSIG NSEC\n");
+  expected.emplace_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+  expected.emplace_back("z.powerdns.com. 10 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC\n");
+  expected.emplace_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+  expected.emplace_back("; Zone powerdns.org.\n");
+  expected.emplace_back("www.powerdns.org. 10 IN NSEC3 1 0 50 ab HASG==== A RRSIG NSEC3\n");
+  expected.emplace_back("- RRSIG NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
 
-  struct timeval now;
-  Utility::gettimeofday(&now, 0);
+  struct timeval now
+  {
+  };
+  Utility::gettimeofday(&now, nullptr);
 
   DNSRecord rec;
   rec.d_name = DNSName("www.powerdns.com");
@@ -1214,20 +1216,19 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
 
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
 
-  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(tmpfile(), fclose);
-  if (!fp) {
+  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(tmpfile(), fclose);
+  if (!filePtr) {
     BOOST_FAIL("Temporary file could not be opened");
   }
 
-  BOOST_CHECK_EQUAL(cache->dumpToFile(fp, now), 3U);
+  BOOST_CHECK_EQUAL(cache->dumpToFile(filePtr, now), 3U);
 
-  rewind(fp.get());
+  rewind(filePtr.get());
   char* line = nullptr;
   size_t len = 0;
-  ssize_t read;
 
-  for (auto str : expected) {
-    read = getline(&line, &len, fp.get());
+  for (const auto& str : expected) {
+    auto read = getline(&line, &len, filePtr.get());
     if (read == -1) {
       BOOST_FAIL("Unable to read a line from the temp file");
     }
@@ -1235,14 +1236,14 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
   }
 
   expected.clear();
-  expected.push_back("; Zone powerdns.com.\n");
-  expected.push_back("www.powerdns.com. 10 IN NSEC z.powerdns.com. A RRSIG NSEC\n");
-  expected.push_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
-  expected.push_back("z.powerdns.com. 30 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC\n");
-  expected.push_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
-  expected.push_back("; Zone powerdns.org.\n");
-  expected.push_back("www.powerdns.org. 10 IN NSEC3 1 0 50 ab HASG==== A RRSIG NSEC3\n");
-  expected.push_back("- RRSIG NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+  expected.emplace_back("; Zone powerdns.com.\n");
+  expected.emplace_back("www.powerdns.com. 10 IN NSEC z.powerdns.com. A RRSIG NSEC\n");
+  expected.emplace_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+  expected.emplace_back("z.powerdns.com. 30 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC\n");
+  expected.emplace_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
+  expected.emplace_back("; Zone powerdns.org.\n");
+  expected.emplace_back("www.powerdns.org. 10 IN NSEC3 1 0 50 ab HASG==== A RRSIG NSEC3\n");
+  expected.emplace_back("- RRSIG NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
 
   rec.d_name = DNSName("z.powerdns.com");
   rec.d_type = QType::NSEC;
@@ -1251,13 +1252,13 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, false);
 
-  fp = std::unique_ptr<FILE, int (*)(FILE*)>(tmpfile(), fclose);
-  BOOST_CHECK_EQUAL(cache->dumpToFile(fp, now), 3U);
+  rewind(filePtr.get());
+  BOOST_CHECK_EQUAL(cache->dumpToFile(filePtr, now), 3U);
 
-  rewind(fp.get());
+  rewind(filePtr.get());
 
-  for (auto str : expected) {
-    read = getline(&line, &len, fp.get());
+  for (const auto& str : expected) {
+    auto read = getline(&line, &len, filePtr.get());
     if (read == -1) {
       BOOST_FAIL("Unable to read a line from the temp file");
     }
@@ -1267,7 +1268,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
   /* getline() allocates a buffer when called with a nullptr,
      then reallocates it when needed, but we need to free the
      last allocation if any. */
-  free(line);
+  free(line); // NOLINT: it's the API.
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
