@@ -1,25 +1,25 @@
-Coding guidelines for contributing to PowerDNS
+Coding Guidelines for Contributing to PowerDNS
 ----------------------------------------------
 
 Thank you for you interest in contributing to the PowerDNS project.
 This document describes the general coding guidelines to keep in mind when contributing code to our code base.
 It does assume that you have already read the contributing document at [CONTRIBUTING.md](https://github.com/PowerDNS/pdns/blob/master/CONTRIBUTING.md).
 
-# High-level guidelines
+# High-level Guidelines
 
 * Although the codebase does not consistently have them, [docblock](https://www.doxygen.nl/manual/docblocks.html)s on functions and classes are appreciated.
 * Never hesitate to write comments on anything that might not be immediately clear just from reading the code.
 * When adding whole new things, consider putting them in a `pdns::X` namespace.
   Look for `namespace pdns` in the codebase for examples.
 
-# Memory handling
+# Memory Handling
 
 The memory model in C++, inherited from the C era, is very powerful but also very error-prone.
 Several features are available in modern (C++11 and up) C++ to make it possible to avoid most of the pitfalls, while conserving the same level of performance.
 
 Most of the issues related to memory allocation (memory leaks, use-after-free) can be solved by using standard containers, or taking advantage of RAII and smart pointers, which take care of destructing the object when it is not used anymore.
 
-## Stack-based memory allocation
+## Stack-based Memory Allocation
 
 Default allocations, when declaring a variable local to a function for example, are done on the stack instead of doing a dynamic allocation on the heap.
 Allocating objects on the stack is faster, especially in threaded programs, and provides the benefit that objects are automatically destroyed when the function is exited.
@@ -27,14 +27,14 @@ Allocating objects on the stack is faster, especially in threaded programs, and 
 One caveat is that the programmer needs to be wary of is the size of the object in order not to exceed the space available on the stack, which would corrupt other objects in memory and could lead to a crash, or even execution of arbitrary code.
 This is especially true in the Recursor which uses a custom stack-switching in user-space mechanism and thus has a reduced stack size.
 
-### Variable-Length Arrays
+### Variable-Length Arrays (VLAs)
 
 In order to avoid smashing the stack, special care should be taken to limit the depth of function calls that, for example, can grow quickly with recursion.
 A second common source of smash stacking is the use of Variable-Length Arrays, whose size is determined at runtime and is therefore very hard to predict.
 The C++ language does not support VLAs but a lot of compilers inherit such a support from C99, so it is possible to use them by accident.
 PowerDNS strictly forbids the use of VLAs, as does the Linux kernel, and enforces that with the `-Werror=vla` compiler flag.
 
-### C-style arrays
+### C-style Arrays
 
 While you might still find some in the existing code base, we are actively trying to get rid of C-style arrays like this one:
 
@@ -56,7 +56,7 @@ auto bufferSize = buffer.size();
 auto& firstElement = buffer.at(0);
 ```
 
-### alloca
+### `alloca`
 
 The use of `alloca()` is forbidden in the code base as it is much too easy to smash the stack.
 
@@ -113,7 +113,7 @@ BadFileDescriptorWrapper()
 }
 ```
 
-## Smart pointers
+## Smart Pointers
 
 There is almost no good reason not to use a smart pointer when doing dynamic memory allocation.
 Smart pointers will keep track of whether the dynamically allocated object is still used, and destroy it when the last user goes away.
@@ -141,7 +141,7 @@ Please note however that while unique pointers are as cheap as naked pointers, s
 That is because they need to use atomic operations to update their internal counters, so making a copy of a shared pointer is expensive.
 Passing one by reference is cheap, however.
 
-### Shared pointers
+### Shared Pointers
 
 An important thing to be aware of with shared pointers is that taking a new copy of a shared pointer or releasing, thus updating its internal reference counter, is atomic and therefore thread-safe.
 Altering the content of the object pointed to is not, though, and is subject to the usual locking methods.
@@ -171,7 +171,7 @@ std::thread threadB([&ptr]{
 That unfortunately means that we still need some locking with shared pointers.
 C++11 defines atomic compare/exchange operations for `std::shared_ptr`, but they are implemented in `libstdc++` by global mutexes and are therefore not lock-free.
 
-### Wrapping C pointers
+### Wrapping C Pointers
 
 Smart pointers can also be used to wrap C-pointers, such as `FILE*` pointers:
 
@@ -195,7 +195,7 @@ When smart pointers cannot be used, special care should be taken to:
 * do not mix `malloc` with `delete`, or `new` with `free` (destructors are not run, at the very least) ;
 * do not mix array allocations (`new[]`) with a non-array `delete` (vs `delete[]`).
 
-## Pointer arithmetic
+## Pointer Arithmetic
 
 It is very common to use pointer arithmetic to calculate a position in a buffer, or to test whether a given offset is outside of a given buffer.
 Unfortunately it is quite easy to trigger undefined behaviour when doing so, as the C++ standard does not allow pointer arithmetic pointing inside an object, except for arrays where it is also permitted to point one element past the end.
@@ -233,7 +233,7 @@ Introduced in C++14 but already available in PowerDNS via boost (see views.hh), 
 
 The basic `string_view` class provides that feature for a container of chars, but the same feature exists for other types, like `uint8_t`.
 
-# Threads and concurrency
+# Threads and Concurrency
 
 All of our products use threading to be able to take advantage of the increasing number of cores on modern CPUs.
 This inevitably leads to the question of how to synchronise data accesses between threads.
@@ -315,18 +315,18 @@ Or when the lock needs to be kept for a bit longer:
 }
 ```
 
-## atomic
+## Atomics
 
 `std::atomic` provides a nice way to share a counter or gauge between threads without the need for locking.
 This is done by implementing operations like reading, increasing, decreasing or writing a value in an atomic way, using memory barriers, making sure that the value cannot be updated from a different core during the operation.
 The default mode uses a sequentially consistent ordering memory model, which is quite expensive since it requires a full memory fence on all multi-core systems.
 A relaxed model can be used for certain very specific operations, but the default model has the advantage of being safe in all situations.
 
-## per-thread counters
+## Per-Thread Counters
 
 For generic per-thread counters, we have a class in `tcounters.hh` that should provide better performances by allowing each thread to independently update its own counter, the costly operation only happening when the counter needs to be read by one thread gathering metrics from all threads.
 
-# Dealing with untrusted data
+# Dealing with Untrusted Data
 
 As a rule of thumb, any data received from outside the process should be considered as untrusted.
 That means data received on a socket, loaded from a file, retrieved from a database, etc.
@@ -339,7 +339,7 @@ In the same way, if we expect a numerical type we should check whether it matche
 Anything unexpected should stop the processing and lead to the discarding of the complete data set.
 If a smaller data set can be safely discarded, and it is more important to load an incomplete set than to assure the integrity of the complete data set, only the faulty data set can be discarded instead.
 
-## alignment issues
+## Alignment Issues
 
 When structured, binary data is received from the network or read from a file, it might be tempting to map it to an existing structure directly to make the parsing easier.
 But one must be careful about alignment issues on some architectures:
@@ -373,7 +373,7 @@ void func(char* data, size_t offset, size_t length) {
 }
 ```
 
-## unsigned vs signed
+## Signed vs. Unsigned
 
 Signed integers might overflow, and the resulting value is unpredictable, as this overflow is undefined behaviour.
 That means that this code results in an unpredictable value:
@@ -442,7 +442,7 @@ The `pdns::checked_conv()` function can be used, ensuring that the conversion ca
 
 `-Wsign-conversion` can be used to warn about dangerous conversions (disabled by default in g++, and note that a cast disables the warning).
 
-## fuzzing
+## Fuzzing
 
 Fuzzing is a very useful way to test a piece of code that parses untrusted data.
 Efficient fuzzers are often doing coverage-based fuzzing, where the code that they test has been compiled in a special way to allow the fuzzer to detect which branches are executed and which are not, so that the fuzzer can see the effect of mutating specific bytes of the input on the code path.
@@ -451,7 +451,7 @@ PowerDNS has a few fuzzing targets that can be used with libFuzzer or AFL in the
 More information can be found in the [fuzzing/README.md](https://github.com/PowerDNS/pdns/blob/master/fuzzing/README.md) file.
 The existing fuzzing targets are run on the OSS-Fuzz infrastructure for a short time every time a pull request is opened, and for a longer time on the HEAD of the repository.
 
-# Other potential issues
+# Other Potential Issues
 
 ## TOCTOU
 
@@ -479,13 +479,13 @@ If you have to:
 * wipe the content before releasing the memory, so it will not linger around.
   Do note that `memset()` is very often optimized out by the compiler, so function like `sodium_munlock()`, `explicit_bzero()` or `explicit_memset()` should be used instead.
 
-### Constant-time comparison
+### Constant-Time Comparison
 
 Don't compare secret against data using a naive string comparison, as the timing of the operation will leak information about the content of the secret.
 Ideally, a constant-time comparison should be used instead (see `constantTimeStringEquals()` in the PowerDNS code base) but it is not always easy to achieve.
 One option might be to compute a HMAC of the secret using a key randomly generated at startup, and compare it against a HMAC of the supplied data computed with the same key.
 
-## Virtual destructors
+## Virtual Destructors
 
 Any class that is expected to be sub-classed should provide a virtual destructor.
 Not doing so will prevent the destructor of a derived class from being called if the object is held as the base type:
@@ -562,7 +562,7 @@ class Parent
 On a related topic, virtual methods should not be called from constructors or destructors.
 While this is allowed under certain restrictions, it is very hard to know exactly which method (base or derived) will be called, and whether all sub-objects contained in the class would have been correctly constructed at that point.
 
-## Hash collisions
+## Hash Collisions
 
 Hashes are a very useful tool, used in `unordered_map` and `unordered_set` among others.
 They are also used in our caches.
@@ -579,19 +579,19 @@ The first issue can be prevented by comparing the entries and not just the value
 The second one can be used by using some sort of secret when computing the hash so that the result cannot be guessed by the attacker.
 That can be achieved by using an unpredictable seed for certain hash algorithms, or a secret for some other like `SipHash`.
 
-# Readability tips
+# Readability Tips
 
 Some of these tips are actually enforced by `clang-tidy` nowadays, but it is still useful to keep them in mind.
 
-## auto
+## `auto`
 
 C++11 introduced automatic type deduction, using the `auto` keyword.
 In addition to saving the typing of a few more letters, using automatic type deduction prevents nasty surprises if the variable is initialized from another one, or from a function, and the other type is changed to a different one.
 The code might still compile while now involving a copy or worse.
 
-## Boolean expressions
+## Boolean Expressions
 
-## Explicit comparisons
+## Explicit Comparisons
 
 * compare numerical values with `== 0` or `!= 0` explicitly ;
 * compare to `false` explicitly, which is easier to read ;
@@ -608,19 +608,19 @@ Use braced initialization for members as often as possible:
 Object a(); // declares a function named a that returns an object
 ```
 
-## nullptr
+## `nullptr`
 
 When representing a pointer, using `nullptr` makes it immediately obvious that we are dealing with a pointer, as opposed to the use of `0`.
 It also cannot be silently taken as an integer, which can happens with `0` but also with `NULL`.
 
-## const-ness
+## `const`-ness
 
 * Mark parameters and variables that should not be modified as `const`.
   This is especially important for references and pointers that comes from outside the function, but it also makes sense to do it for local variables or parameters passed by value because it might help detect a logic error later.
 * Mark const methods as such (and make them thread-safe)
 * Prefer using `at()` on containers so that no insertion can take place by mistake, and to get bounds checking.
 
-## static
+## `static`
 
 Functions that are only used inside a single file should be marked as `static`, so that:
 
@@ -641,14 +641,14 @@ Should be reserved for unexpected events (corrupted data, timeouts, ...) and sho
 Do not be afraid of using them, though, as the cost of an exception that is not thrown is usually very small, thanks to the zero-cost exception model.
 It might still force the compiler to refrain from some optimizations, so it might make sense to avoid them in some very performance-sensitive, narrow code paths.
 
-### Custom exceptions
+### Custom Exceptions
 
 Exceptions defined by the standards should be used whenever possible, as they already cover a lot of use cases.
 
 If custom exceptions are necessary, to be able to catch them explicitly, they should still derive from `std::exception`, directly or indirectly, so that they can still be caught in a more generic way to prevent the program from terminating.
 For example, the main connection handling function of a server can catch `std::exception` and just terminate the current connection if an uncaught exception bubbles up.
 
-### Catching exceptions
+### Catching Exceptions
 
 Catching exceptions should always be done by const reference:
 
@@ -680,7 +680,7 @@ C++-style casts can easily be spotted in a code, which makes it easy to review t
   It cannot be be used to remove a const qualifier.
   When used to reinterpret the content of a buffer it can quickly lead to alignment issues, as described in the [alignment issues] section.
 
-## errno
+## `errno`
 
 `errno` is only guaranteed to be set on failing system calls and not set on succeeding system calls.
 A library call may clobber `errno`, even when it succeeds.
