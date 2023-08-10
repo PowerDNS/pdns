@@ -679,17 +679,17 @@ C-style casts should be avoided, as the compiler does almost no check on the val
 They are also very hard to spot in a code.
 C++-style casts can easily be spotted in a code, which makes it easy to review them.
 
-* `const_cast` can be used to remove the const qualifier on a variable.
-  It's usually a bad sign, but sometimes it is needed to call a function that will not modify the variable but lacks the const qualifier, for example.
+* `const_cast` can be used to remove the `const` qualifier on a variable.
+  It's usually a bad sign, but is sometimes needed to call a function that will not modify the variable but lacks the `const` qualifier.
 * `dynamic_cast` can be used to cast a pointer to a derived class or to a base class, while checking that the operation is valid.
-  If the casted object is not valid for the intended type, a nullptr value will be returned (or a bad_cast exception for references) so the result of the operation should be checked!
-  Note that the RTTI check needed to verify that the casted object is valid has a non-negligible CPU cost.
-  Not checking the return value might lead to remote denial of service by nullptr dereference, as happened with the issue described in this advisory: https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-08.html
+  If the cast object is not valid for the intended type, a `nullptr` value will be returned (or a `bad_cast` exception for references) so the result of the operation should be checked!
+  Note that the RTTI check needed to verify that the cast object is valid has a non-negligible CPU cost.
+  Not checking the return value might lead to remote denial of service by `nullptr`-dereference, as happened with the issue described in this advisory: https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-08.html
 * `static_cast` can perform downcast in place of `dynamic_cast`, with none of the cost associated to the check, but can only be done if the cast is known to be valid.
-  It can also do implicit conversion between types (from `ssize_t` to `size_t`, AFTER checking that the value is greater or equal to zero).
+  It can also do implicit conversion between types (from `ssize_t` to `size_t`, **after** checking that the value is greater or equal to zero).
 * `reinterpret_cast` is quite dangerous, since it can be used to turn a type into a different one.
-  It cannot be be used to remove a const qualifier.
-  When used to reinterpret the content of a buffer it can quickly lead to alignment issues, as described in the [alignment issues] section.
+  It cannot be be used to remove a `const` qualifier.
+  When used to reinterpret the content of a buffer it can quickly lead to alignment issues, as described in the [Alignment Issues] section.
 
 ## `errno`
 
