@@ -180,7 +180,7 @@ C++11 defines atomic compare/exchange operations for `std::shared_ptr`, but they
 Smart pointers can also be used to wrap C-pointers, such as `FILE*` pointers:
 
 ```c++
-auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(certificateFile.c_str(), "r"), fclose);
+auto fp = std::unique_ptr<FILE, decltype(&std::fclose)>(fopen(certificateFile.c_str(), "r"), std::fclose);
 ```
 
 It also works with types from external C libraries, like OpenSSL:
