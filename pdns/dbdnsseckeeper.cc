@@ -533,6 +533,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const DNSName& zname)
 DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
 {
   static int ttl = ::arg().asNum("dnssec-key-cache-ttl");
+  // coverity[store_truncates_time_t]
   unsigned int now = time(nullptr);
 
   if(!((++s_ops) % 100000)) {

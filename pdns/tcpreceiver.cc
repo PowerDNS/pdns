@@ -422,20 +422,20 @@ void TCPNameserver::doConnection(int fd)
   }
   catch(PDNSException &ae) {
     s_P.lock()->reset(); // on next call, backend will be recycled
-    g_log<<Logger::Error<<"TCP nameserver had error, cycling backend: "<<ae.reason<<endl;
+    g_log << Logger::Error << "TCP Connection Thread for client " << remote << " failed, cycling backend: " << ae.reason << endl;
   }
   catch(NetworkError &e) {
-    g_log<<Logger::Info<<"TCP Connection Thread died because of network error: "<<e.what()<<endl;
+    g_log << Logger::Info << "TCP Connection Thread for client " << remote << " died because of network error: " << e.what() << endl;
   }
 
   catch(std::exception &e) {
     s_P.lock()->reset(); // on next call, backend will be recycled
-    g_log << Logger::Error << "TCP Connection Thread died because of STL error, cycling backend: " << e.what() << endl;
+    g_log << Logger::Error << "TCP Connection Thread for client " << remote << " died because of STL error, cycling backend: " << e.what() << endl;
   }
   catch( ... )
   {
     s_P.lock()->reset(); // on next call, backend will be recycled
-    g_log << Logger::Error << "TCP Connection Thread caught unknown exception, cycling backend." << endl;
+    g_log << Logger::Error << "TCP Connection Thread for client " << remote << " caught unknown exception, cycling backend." << endl;
   }
   d_connectionroom_sem->post();
 
@@ -443,7 +443,7 @@ void TCPNameserver::doConnection(int fd)
     closesocket(fd);
   }
   catch(const PDNSException& e) {
-    g_log<<Logger::Error<<"Error closing TCP socket: "<<e.reason<<endl;
+    g_log << Logger::Error << "Error closing TCP socket for client " << remote << ": " << e.reason << endl;
   }
   decrementClientCount(remote);
 }

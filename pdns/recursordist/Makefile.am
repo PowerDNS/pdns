@@ -252,7 +252,7 @@ pdns_recursor_LDFLAGS += \
 	$(BOOST_FILESYSTEM_LDFLAGS)
 endif
 
-rec_control_LDADD = $(LIBCRYPTO_LIBS)
+rec_control_LDADD = $(LIBCRYPTO_LIBS) $(ARC4RANDOM_LIBS)
 
 rec_control_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS)
@@ -402,7 +402,7 @@ pdns_recursor_SOURCES += \
 	sodiumsigners.cc
 pdns_recursor_LDADD += $(LIBSODIUM_LIBS)
 
-rec_control_LDADD += $(LIBSODIUM_LIBS) $(ARC4RANDOM_LIBS)
+rec_control_LDADD += $(LIBSODIUM_LIBS)
 
 testrunner_SOURCES += \
 	sodiumsigners.cc

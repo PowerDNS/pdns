@@ -4194,7 +4194,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       }
 
       if (!(lwr.d_aabit || wasForwardRecurse)) {
-        LOG(prefix << qname << ": Removing irrelevant record '" << rec->d_name << "|" << DNSRecordContent::NumberToType(rec->d_type) << "|" << rec->getContent()->getZoneRepresentation() << "' in the AUTHORITY section received from " << auth << endl);
+        LOG(prefix << qname << ": Removing irrelevant record (AA not set) '" << rec->d_name << "|" << DNSRecordContent::NumberToType(rec->d_type) << "|" << rec->getContent()->getZoneRepresentation() << "' in the AUTHORITY section received from " << auth << endl);
         rec = lwr.d_records.erase(rec);
         continue;
       }

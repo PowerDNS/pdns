@@ -1173,7 +1173,7 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
 
   if (!rrset.empty()) {
     vector<LMDBResourceRecord> adjustedRRSet;
-    for (auto rr : rrset) {
+    for (const auto& rr : rrset) {
       LMDBResourceRecord lrr(rr);
       lrr.content = serializeContent(lrr.qtype.getCode(), lrr.qname, lrr.content);
       lrr.qname.makeUsRelative(di.zone);
@@ -1722,9 +1722,9 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
       zonemap[di.zone] = di;
     }
 
-    for (auto [k, v] : zonemap) {
+    for (auto& [k, v] : zonemap) {
       if (allow(v)) {
-        domains->push_back(v);
+        domains->push_back(std::move(v));
       }
     }
   }
@@ -2429,7 +2429,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
       serFromString(val.get<StringView>(), lrrs);
       bool changed = false;
       vector<LMDBResourceRecord> newRRs;
-      for (auto lrr : lrrs) {
+      for (auto& lrr : lrrs) {
         lrr.qtype = co.getQType(key.getNoStripHeader<StringView>());
         if (!needNSEC3 && qtype != QType::ANY) {
           needNSEC3 = (lrr.ordername && QType(qtype) != lrr.qtype);
@@ -2440,7 +2440,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
           lrr.ordername = hasOrderName;
           changed = true;
         }
-        newRRs.push_back(lrr);
+        newRRs.push_back(std::move(lrr));
       }
       if (changed) {
         cursor.put(key, serToString(newRRs));

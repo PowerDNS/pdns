@@ -175,7 +175,7 @@ struct QuestionData
   int d_assignedID;
   MOADNSParser::answers_t d_origAnswers, d_newAnswers;
   int d_origRcode, d_newRcode;
-  struct timeval d_resentTime;
+  struct timeval d_resentTime{};
   bool d_norecursionavailable;
   bool d_origlate, d_newlate;
 };

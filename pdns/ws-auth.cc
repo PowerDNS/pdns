@@ -287,7 +287,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
-  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; 2013 - 2022 <a href=\"https://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
+  ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; <a href=\"https://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
   ret<<"</body></html>"<<endl;
 
   resp->body = ret.str();
@@ -583,6 +583,7 @@ static void gatherComments(const Json& container, const DNSName& qname, const QT
 
   time_t now = time(nullptr);
   for (const auto& comment : container["comments"].array_items()) {
+    // FIXME this is converting to a *signed* int, 2036 issue
     c.modified_at = intFromJson(comment, "modified_at", now);
     c.content = stringFromJson(comment, "content");
     c.account = stringFromJson(comment, "account");
@@ -1823,7 +1824,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     // will be overridden by updateDomainSettingsFromDocument, if given in document.
     di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
 
-    for(auto rr : new_records) {
+    for(auto& rr : new_records) {
       rr.domain_id = di.id;
       di.backend->feedRecord(rr, DNSName());
     }

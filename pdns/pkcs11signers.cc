@@ -79,8 +79,8 @@ using CkaValueType = enum { Attribute_Byte, Attribute_Long, Attribute_String };
 class P11KitAttribute {
 private:
   CK_ATTRIBUTE_TYPE type;
-  CK_BYTE ckByte;
-  CK_ULONG ckLong;
+  CK_BYTE ckByte{0};
+  CK_ULONG ckLong{0};
   std::string ckString;
   CkaValueType ckType;
   std::unique_ptr<unsigned char[]> buffer;
@@ -218,6 +218,7 @@ class Pkcs11Slot {
     CK_SESSION_HANDLE d_session;
     CK_SLOT_ID d_slot;
     CK_RV d_err{};
+    std::string d_pin;
 
     void logError(const std::string& operation) const {
       if (d_err) {
@@ -248,20 +249,26 @@ class Pkcs11Slot {
       }
     }
 
-    bool Login(const std::string& pin) {
-      if (d_logged_in) return true;
+    bool Login(const std::string& pin, CK_USER_TYPE userType=CKU_USER) {
+      if (userType == CKU_USER && d_logged_in) {
+        return true;
+      }
 
       auto uPin = std::make_unique<unsigned char[]>(pin.size());
       memcpy(uPin.get(), pin.c_str(), pin.size());
-      d_err = d_functions->C_Login(this->d_session, CKU_USER, uPin.get(), pin.size());
-      memset(uPin.get(), 0, pin.size());
+      d_err = d_functions->C_Login(this->d_session, userType, uPin.get(), pin.size());
       logError("C_Login");
 
-      if (d_err == 0) {
+      if (d_err == 0 && userType == CKU_USER) {
         d_logged_in = true;
+        d_pin = pin;
       }
 
       return d_logged_in;
+    }
+
+    bool Relogin() {
+      return Login(d_pin, CKU_CONTEXT_SPECIFIC);
     }
 
     bool LoggedIn() const { return d_logged_in; }
@@ -281,6 +288,7 @@ class Pkcs11Token {
     CK_OBJECT_HANDLE d_public_key;
     CK_OBJECT_HANDLE d_private_key;
     CK_KEY_TYPE d_key_type;
+    bool d_always_auth{false};
 
     CK_ULONG d_bits;
     std::string d_exponent;
@@ -371,9 +379,8 @@ class Pkcs11Token {
       auto slot = d_slot->lock();
       std::vector<P11KitAttribute> attr;
       std::vector<CK_OBJECT_HANDLE> key;
-      attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY));
-//      attr.push_back(P11KitAttribute(CKA_SIGN, (char)CK_TRUE));
-      attr.push_back(P11KitAttribute(CKA_LABEL, d_label));
+      attr.emplace_back(CKA_CLASS, (unsigned long)CKO_PRIVATE_KEY);
+      attr.emplace_back(CKA_LABEL, d_label);
       FindObjects2(*slot, attr, key, 1);
       if (key.size() == 0) {
         g_log<<Logger::Warning<<"Cannot load PKCS#11 private key "<<d_label<<std::endl;;
@@ -381,9 +388,13 @@ class Pkcs11Token {
       }
       d_private_key = key[0];
       attr.clear();
-      attr.push_back(P11KitAttribute(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY));
-//      attr.push_back(P11KitAttribute(CKA_VERIFY, (char)CK_TRUE));
-      attr.push_back(P11KitAttribute(CKA_LABEL, d_pub_label));
+      attr.emplace_back(CKA_ALWAYS_AUTHENTICATE, '\0');
+      if (GetAttributeValue2(*slot, d_private_key, attr)==0) {
+        d_always_auth = attr[0].byte() != 0;
+      }
+      attr.clear();
+      attr.emplace_back(CKA_CLASS, (unsigned long)CKO_PUBLIC_KEY);
+      attr.emplace_back(CKA_LABEL, d_pub_label);
       FindObjects2(*slot, attr, key, 1);
       if (key.size() == 0) {
         g_log<<Logger::Warning<<"Cannot load PKCS#11 public key "<<d_pub_label<<std::endl;
@@ -392,15 +403,15 @@ class Pkcs11Token {
       d_public_key = key[0];
 
       attr.clear();
-      attr.push_back(P11KitAttribute(CKA_KEY_TYPE, 0UL));
+      attr.emplace_back(CKA_KEY_TYPE, 0UL);
 
       if (GetAttributeValue2(*slot, d_public_key, attr)==0) {
         d_key_type = attr[0].ulong();
         if (d_key_type == CKK_RSA) {
           attr.clear();
-          attr.push_back(P11KitAttribute(CKA_MODULUS, ""));
-          attr.push_back(P11KitAttribute(CKA_PUBLIC_EXPONENT, ""));
-          attr.push_back(P11KitAttribute(CKA_MODULUS_BITS, 0UL));
+          attr.emplace_back(CKA_MODULUS, "");
+          attr.emplace_back(CKA_PUBLIC_EXPONENT, "");
+          attr.emplace_back(CKA_MODULUS_BITS, 0UL);
 
           if (!GetAttributeValue2(*slot, d_public_key, attr)) {
             d_modulus = attr[0].str();
@@ -411,8 +422,8 @@ class Pkcs11Token {
           }
         } else if (d_key_type == CKK_EC || d_key_type == CKK_ECDSA) {
           attr.clear();
-          attr.push_back(P11KitAttribute(CKA_ECDSA_PARAMS, ""));
-          attr.push_back(P11KitAttribute(CKA_EC_POINT, ""));
+          attr.emplace_back(CKA_ECDSA_PARAMS, "");
+          attr.emplace_back(CKA_EC_POINT, "");
           if (!GetAttributeValue2(*slot, d_public_key, attr)) {
             d_ecdsa_params = attr[0].str();
             d_bits = ecparam2bits(d_ecdsa_params);
@@ -465,8 +476,12 @@ class Pkcs11Token {
       CK_ULONG buflen = sizeof buffer; // should be enough for most signatures.
       auto slot = d_slot->lock();
 
-      // perform signature
       if ((d_err = slot->f()->C_SignInit(slot->Session(), mechanism, d_private_key))) { logError("C_SignInit"); return d_err; }
+      // check if we need to relogin
+      if (d_always_auth) {
+         slot->Relogin();
+      }
+      // perform signature
       d_err = slot->f()->C_Sign(slot->Session(), (unsigned char*)data.c_str(), data.size(), buffer, &buflen);
 
       if (!d_err) {
@@ -482,6 +497,11 @@ class Pkcs11Token {
       auto slot = d_slot->lock();
 
       if ((d_err = slot->f()->C_VerifyInit(slot->Session(), mechanism, d_public_key))) { logError("C_VerifyInit"); return d_err; }
+      // check if we need to relogin
+      if (d_always_auth) {
+         slot->Relogin();
+      }
+
       d_err = slot->f()->C_Verify(slot->Session(), (unsigned char*)data.c_str(), data.size(), (unsigned char*)signature.c_str(), signature.size());
       logError("C_Verify");
       return d_err;

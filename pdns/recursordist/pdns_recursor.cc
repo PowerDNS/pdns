@@ -768,14 +768,19 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   }
   newquery += "in-addr.arpa.";
 
+  auto log = g_slog->withName("dns64")->withValues("method", Logging::Loggable("getPTR"));
+  vector<DNSRecord> answers;
+  int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, answers, t_pdl, log);
+
   DNSRecord record;
   record.d_name = qname;
   record.d_type = QType::CNAME;
   record.setContent(std::make_shared<CNAMERecordContent>(newquery));
+  // Copy the TTL of the synthesized CNAME from the actual answer
+  record.d_ttl = (rcode == RCode::NoError && !answers.empty()) ? answers.at(0).d_ttl : SyncRes::s_minimumTTL;
   ret.push_back(record);
 
-  auto log = g_slog->withName("dns64")->withValues("method", Logging::Loggable("getPTR"));
-  int rcode = directResolve(DNSName(newquery), QType::PTR, QClass::IN, ret, t_pdl, log);
+  ret.insert(ret.end(), answers.begin(), answers.end());
 
   t_Counters.at(rec::Counter::dns64prefixanswers)++;
   return rcode;
@@ -904,6 +909,20 @@ static uint32_t capPacketCacheTTL(const struct dnsheader& hdr, uint32_t ttl, boo
     ttl = std::min(ttl, SyncRes::s_packetcachettl);
   }
   return ttl;
+}
+
+static void addPolicyTagsToPBMessageIfNeeded(DNSComboWriter& comboWriter, pdns::ProtoZero::RecMessage& pbMessage)
+{
+  /* we do _not_ want to store policy tags set by the gettag hook into the packet cache,
+     since the call to gettag for subsequent queries could yield the same PC tag but different policy tags */
+  if (!comboWriter.d_gettagPolicyTags.empty()) {
+    for (const auto& tag : comboWriter.d_gettagPolicyTags) {
+      comboWriter.d_policyTags.erase(tag);
+    }
+  }
+  if (!comboWriter.d_policyTags.empty()) {
+    pbMessage.addPolicyTags(comboWriter.d_policyTags);
+  }
 }
 
 void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
@@ -1679,9 +1698,10 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         pbMessage.setAppliedPolicyHit(appliedPolicy.d_hit);
         pbMessage.setAppliedPolicyKind(appliedPolicy.d_kind);
       }
-      pbMessage.addPolicyTags(comboWriter->d_policyTags);
       pbMessage.setInBytes(packet.size());
       pbMessage.setValidationState(resolver.getValidationState());
+      // See if we want to store the policyTags into the PC
+      addPolicyTagsToPBMessageIfNeeded(*comboWriter, pbMessage);
 
       // Take s snap of the current protobuf buffer state to store in the PC
       pbDataForCache = boost::make_optional(RecursorPacketCache::PBData{
@@ -1775,6 +1795,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       pbMessage.setDeviceId(dnsQuestion.deviceId);
       pbMessage.setDeviceName(dnsQuestion.deviceName);
       pbMessage.setToPort(comboWriter->d_destination.getPort());
+      pbMessage.addPolicyTags(comboWriter->d_gettagPolicyTags);
 
       for (const auto& metaValue : dnsQuestion.meta) {
         pbMessage.setMeta(metaValue.first, metaValue.second.stringVal, metaValue.second.intVal);
@@ -2243,7 +2264,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         eventTrace.add(RecEventTrace::AnswerSent);
 
         if (t_protobufServers.servers && logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbData || pbData->d_tagged)) {
-          protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace);
+          protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, policyTags);
         }
 
         if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {
@@ -2549,7 +2570,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
 
           if (RecThreadInfo::weDistributeQueries()) {
             std::string localdata = data;
-            distributeAsyncFunction(data, [localdata, fromaddr, destaddr, source, destination, mappedSource, tval, fileDesc, proxyProtocolValues, eventTrace]() mutable {
+            distributeAsyncFunction(data, [localdata = std::move(localdata), fromaddr, destaddr, source, destination, mappedSource, tval, fileDesc, proxyProtocolValues, eventTrace]() mutable {
               return doProcessUDPQuestion(localdata, fromaddr, destaddr, source, destination, mappedSource, tval, fileDesc, proxyProtocolValues, eventTrace);
             });
           }

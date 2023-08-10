@@ -55,10 +55,14 @@ static po::variables_map g_vm;
 
 static bool g_quiet;
 
-static void* recvThread(const vector<std::unique_ptr<Socket>>* sockets)
+//NOLINTNEXTLINE(performance-unnecessary-value-param): we do want a copy to increase the reference count, thank you very much
+static void recvThread(const std::shared_ptr<std::vector<std::unique_ptr<Socket>>> sockets)
 {
   vector<pollfd> rfds, fds;
-  for(const auto& s : *sockets) {
+  for (const auto& s : *sockets) {
+    if (s == nullptr) {
+      continue;
+    }
     struct pollfd pfd;
     pfd.fd = s->getHandle();
     pfd.events = POLLIN;
@@ -114,15 +118,20 @@ static void* recvThread(const vector<std::unique_ptr<Socket>>* sockets)
       }
     }
   }
-  return 0;
 }
 
 static ComboAddress getRandomAddressFromRange(const Netmask& ecsRange)
 {
   ComboAddress result = ecsRange.getMaskedNetwork();
   uint8_t bits = ecsRange.getBits();
-  uint32_t mod = 1 << (32 - bits);
-  result.sin4.sin_addr.s_addr = result.sin4.sin_addr.s_addr + ntohl(dns_random(mod));
+  if (bits > 0) {
+    uint32_t mod = 1 << (32 - bits);
+    result.sin4.sin_addr.s_addr = result.sin4.sin_addr.s_addr + htonl(dns_random(mod));
+  }
+  else {
+    result.sin4.sin_addr.s_addr = dns_random_uint32();
+  }
+
   return result;
 }
 
@@ -140,7 +149,7 @@ static void replaceEDNSClientSubnet(vector<uint8_t>* packet, const Netmask& ecsR
   memcpy(&packet->at(packetSize - sizeof(addr)), &addr, sizeof(addr));
 }
 
-static void sendPackets(const vector<std::unique_ptr<Socket>>& sockets, const vector<vector<uint8_t>* >& packets, int qps, ComboAddress dest, const Netmask& ecsRange)
+static void sendPackets(const vector<std::unique_ptr<Socket>>& sockets, const vector<vector<uint8_t>* >& packets, uint32_t qps, ComboAddress dest, const Netmask& ecsRange)
 {
   unsigned int burst=100;
   const auto nsecPerBurst=1*(unsigned long)(burst*1000000000.0/qps);
@@ -383,7 +392,7 @@ try
     cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
   }
   
-  vector<std::unique_ptr<Socket>> sockets;
+  auto sockets = std::make_shared<std::vector<std::unique_ptr<Socket>>>();
   ComboAddress dest;
   try {
     dest = ComboAddress(g_vm["destination"].as<string>(), 53);
@@ -412,9 +421,14 @@ try
       }
     }
 
-    sockets.push_back(std::move(sock));
+    sockets->push_back(std::move(sock));
   }
-  new thread(recvThread, &sockets);
+
+  {
+    std::thread receiver(recvThread, sockets);
+    receiver.detach();
+  }
+
   uint32_t qps;
 
   ofstream plot;
@@ -465,7 +479,7 @@ try
     DTime dt;
     dt.set();
 
-    sendPackets(sockets, toSend, qps, dest, ecsRange);
+    sendPackets(*sockets, toSend, qps, dest, ecsRange);
     
     const auto udiff = dt.udiffNoReset();
     const auto realqps=toSend.size()/(udiff/1000000.0);

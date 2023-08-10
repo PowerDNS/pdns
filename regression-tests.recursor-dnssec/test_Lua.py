@@ -1006,7 +1006,7 @@ end
         """ postresolve_ffi: test that we can do a DROP for a name and type combo"""
         query = dns.message.make_query('example', 'TXT')
         res = self.sendUDPQuery(query)
-        self.assertEquals(res, None)
+        self.assertEqual(res, None)
 
     def testNXDOMAIN(self):
         """ postresolve_ffi: test that we can return a NXDOMAIN for a name and type combo"""

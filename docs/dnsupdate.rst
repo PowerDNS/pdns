@@ -1,5 +1,5 @@
-Dynamic DNS Update (RFC2136)
-============================
+Dynamic DNS Update (RFC 2136)
+=============================
 
 Starting with the PowerDNS Authoritative Server 3.4.0, DNS update
 support is available. There are a number of items NOT supported:
@@ -204,7 +204,7 @@ logic to change the SOA is not executed.
 
 .. note::
   Powerdns will always use :ref:`metadata-soa-edit` when serving SOA
-  records, thus a query for the SOA record of the recently update domain,
+  records, thus a query for the SOA record of the recently updated domain,
   might have an unexpected result due to a SOA-EDIT setting.
 
 An example::

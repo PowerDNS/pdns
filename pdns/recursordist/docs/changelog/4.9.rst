@@ -4,6 +4,8 @@ Changelogs for 4.9.X
   :version: 4.9.0
   :released: 30th of June 2023
 
+  Please review the :doc:`Upgrade Guide <../upgrade>` before upgrading from versions < 4.9.x.
+ 
   .. change::
     :tags: Bug Fixes
     :pullreq: 12968
@@ -28,6 +30,8 @@ Changelogs for 4.9.X
 .. changelog::
   :version: 4.9.0-rc1
   :released: 15nd of June 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade>` before upgrading from versions < 4.9.x.
 
   .. change::
     :tags: Improvements
@@ -78,6 +82,8 @@ Changelogs for 4.9.X
   :version: 4.9.0-beta1
   :released: 2nd of June 2023
 
+  Please review the :doc:`Upgrade Guide <../upgrade>` before upgrading from versions < 4.9.x.
+
   .. change::
     :tags: Improvements
     :pullreq: 12861
@@ -119,6 +125,8 @@ Changelogs for 4.9.X
 .. changelog::
   :version: 4.9.0-alpha1
   :released: 14th of April 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade>` before upgrading from versions < 4.9.x.
 
   .. change::
     :tags: Improvements

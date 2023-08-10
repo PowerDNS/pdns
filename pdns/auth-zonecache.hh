@@ -43,6 +43,7 @@ public:
 
   uint32_t getRefreshInterval() const
   {
+    // coverity[store_truncates_time_t]
     return d_refreshinterval;
   }
 

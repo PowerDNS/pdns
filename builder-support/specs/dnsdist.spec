@@ -62,9 +62,6 @@ dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 %prep
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
 
-# run as dnsdist user
-sed -i '/^ExecStart/ s/dnsdist/dnsdist -u dnsdist -g dnsdist/' dnsdist.service.in
-
 %build
 %if 0%{?rhel} < 8
 export CPPFLAGS=-I/usr/include/boost169
@@ -114,8 +111,6 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
 %{__mv} %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf-dist %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf
 chmod 0640 %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.conf
-sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/%{_unitdir}/dnsdist.service
-sed -i "s,/^\(ExecStart.*\)dnsdist\(.*\)\$,\1dnsdist -u dnsdist -g dnsdist\2," %{buildroot}/%{_unitdir}/dnsdist@.service
 
 %pre
 getent group dnsdist >/dev/null || groupadd -r dnsdist
@@ -155,5 +150,5 @@ systemctl daemon-reload ||:
 %{_bindir}/*
 %{_mandir}/man1/*
 %dir %{_sysconfdir}/dnsdist
-%config(noreplace) %{_sysconfdir}/%{name}/dnsdist.conf
+%attr(-, root, dnsdist) %config(noreplace) %{_sysconfdir}/%{name}/dnsdist.conf
 %{_unitdir}/dnsdist*

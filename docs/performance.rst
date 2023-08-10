@@ -63,6 +63,10 @@ the value of the :ref:`stat-qsize-q` variable. This represents the number of
 packets waiting for database attention. During normal operations the
 queue should be small.
 
+The value of :ref:`setting-queue-limit` should be set to only keep queries in
+queue for as long as someone would be interested in knowing the answer. Many
+resolvers will query other name servers for the zone quite aggressively.
+
 Logging truly kills performance as answering a question from the cache
 is an order of magnitude less work than logging a line about it. Busy
 sites will prefer to turn :ref:`setting-log-dns-details` off.
@@ -256,7 +260,7 @@ Amount of packets in the packetcache
 
 qsize-q
 ^^^^^^^
-Number of packets waiting for database attention
+Number of packets waiting for database attention, only available if :ref:`setting-receiver-threads` > 1
 
 .. _stat-query-cache-hit:
 

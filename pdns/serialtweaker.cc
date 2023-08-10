@@ -59,6 +59,7 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
     return (old_serial + (inception / (7*86400)));
   }
   else if(pdns_iequals(kind,"EPOCH")) {
+    // coverity[store_truncates_time_t]
     return time(nullptr);
   }
   else if(pdns_iequals(kind,"INCEPTION-EPOCH")) {
@@ -107,6 +108,7 @@ static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increase
     return old_serial + 1;
   }
   else if (pdns_iequals(increaseKind, "EPOCH")) {
+    // coverity[store_truncates_time_t]
     return time(nullptr);
   }
   else if (pdns_iequals(increaseKind, "DEFAULT")) {

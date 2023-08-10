@@ -896,7 +896,7 @@ static void setupLuaRecords(LuaContext& lua)
       auto checker = [](const ComboAddress& addr, const opts_t& opts) {
         return g_up.isUp(addr, opts);
       };
-      return genericIfUp(ips, options, checker, port);
+      return genericIfUp(ips, std::move(options), checker, port);
     });
 
   lua.writeFunction("ifurlextup", [](const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options) {

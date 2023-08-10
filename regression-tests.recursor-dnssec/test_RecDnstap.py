@@ -1,3 +1,4 @@
+import errno
 import os
 import socket
 import struct
@@ -5,7 +6,7 @@ import sys
 import threading
 import dns
 import dnstap_pb2
-from nose import SkipTest
+from unittest import SkipTest
 from recursortests import RecursorTest
 
 FSTRM_CONTROL_ACCEPT = 0x01
@@ -186,7 +187,7 @@ class TestRecursorDNSTap(RecursorTest):
                 fstrm_handle_bidir_connection(conn, lambda data: \
                 param.queue.put(data, True, timeout=2.0))
             except socket.error as e:
-                if e.errno == 9:
+                if e.errno in (errno.EBADF, errno.EPIPE):
                     break
                 sys.stderr.write("Unexpected socket error %s\n" % str(e))
                 sys.exit(1)
@@ -216,7 +217,7 @@ class TestRecursorDNSTap(RecursorTest):
                 listener.setDaemon(True)
                 listener.start()
             except socket.error as e:
-                if e.errno != 9:
+                if e.errno != errno.EBADF:
                     sys.stderr.write("Socket error on accept: %s\n" % str(e))
                 else:
                     break

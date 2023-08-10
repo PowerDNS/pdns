@@ -248,8 +248,8 @@ private:
 
   DNSKEYRecordContent d_dnskey;
   std::shared_ptr<DNSCryptoKeyEngine> d_key;
-  uint16_t d_flags;
-  uint8_t d_algorithm;
+  uint16_t d_flags{0};
+  uint8_t d_algorithm{0};
 };
 
 

@@ -430,6 +430,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains)
     catch (...) {
     }
     sd.serial = soadata.serial;
+    // coverity[store_truncates_time_t]
     if (sd.last_check + soadata.refresh < (unsigned int)time(nullptr))
       unfreshDomains->push_back(std::move(sd));
   }

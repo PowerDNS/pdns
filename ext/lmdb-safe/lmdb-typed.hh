@@ -164,10 +164,8 @@ struct LMDBIndexOps
 
     MDBOutVal currentvalue;
 
-    // check if the entry already exists, so we don't uselessly bump the timestamp
-    if (txn->get(d_idx, combined, currentvalue) == MDB_NOTFOUND) {
-      txn->put(d_idx, combined, empty, flags);
-    }
+    // if the entry existed already, this will just update the timestamp/txid in the LS header. This is intentional, so objects and their indexes always get synced together.
+    txn->put(d_idx, combined, empty, flags);
   }
 
   void del(MDBRWTransaction& txn, const Class& t, uint32_t id)
@@ -242,7 +240,7 @@ class TypedDBI
 {
 public:
   TypedDBI(std::shared_ptr<MDBEnv> env, string_view name)
-    : d_env(env), d_name(name)
+    : d_env(std::move(env)), d_name(name)
   {
     d_main = d_env->openDB(name, MDB_CREATE);
 

@@ -32,6 +32,7 @@
 #include <fstream>
 #include <utility>
 #include <cerrno>
+#include <sys/stat.h>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 #include "opensslsigners.hh"
 #ifdef HAVE_LIBSODIUM
@@ -872,7 +873,7 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 
   B.getAllDomains(&domainInfo, true, true);
   int errors=0;
-  for(auto di : domainInfo) {
+  for (auto& di : domainInfo) {
     if (checkZone(dk, B, di.zone) > 0) {
       errors++;
     }
@@ -889,10 +890,11 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
       errors++;
     }
 
-    seenInfos.insert(di);
+    seenInfos.insert(std::move(di));
 
-    if(errors && exitOnError)
+    if (errors && exitOnError) {
       return EXIT_FAILURE;
+    }
   }
   cout<<"Checked "<<domainInfo.size()<<" zones, "<<errors<<" had errors."<<endl;
   if(!errors)
@@ -1170,6 +1172,13 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
     cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
   }
+
+  /* ensure that the temporary file will only
+     be accessible by the current user, not even
+     by other users in the same group, and certainly
+     not by other users.
+  */
+  umask(S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
   vector<DNSRecord> pre, post;
   char tmpnam[]="/tmp/pdnsutil-XXXXXX";
   int tmpfd=mkstemp(tmpnam);

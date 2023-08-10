@@ -140,7 +140,7 @@ void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& cont
 
 void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name)
 {
-  addRecord(type, content, DNSResourceRecord::ANSWER, ttl, name);
+  addRecord(type, content, DNSResourceRecord::ANSWER, ttl, std::move(name));
 }
 
 struct DynMetric

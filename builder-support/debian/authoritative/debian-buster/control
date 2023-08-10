@@ -65,16 +65,24 @@ Description: Tools for DNS debugging by PowerDNS
  This package contains several tools to debug DNS issues. These tools do not
  require any part of the PowerDNS server components to work.
  .
+   * calidns: Resolver benchmark tool
    * dnsbulktest: A resolver stress-tester
    * dnsgram: Show per 5-second statistics to study intermittent resolver issues
+   * dnspcap2calidns: PCAP conversion tool (calidns format)
+   * dnspcap2protobuf: PCAP conversion tool (protobuf format)
    * dnsreplay: Replay a pcap with DNS queries
    * dnsscan: Prints the query-type amounts in a pcap
    * dnsscope: Calculates statistics without replaying traffic
    * dnstcpbench: Perform TCP benchmarking of DNS servers
    * dnswasher: Clean a pcap of identifying IP information
+   * dumresp: Dummy DNS responder
    * ixplore: Explore diffs from IXFRs
+   * nproxy: DNS notification proxy
    * nsec3dig: Calculate the correctness of NSEC3 proofs
+   * pdns_notify: Simple tool for sending DNS notifies
    * saxfr: AXFR zones and show extra information
+   * sdig: dig-like tool supporting DoH, DoT, PROXY-protocol and XPF
+   * stubquery: Stub resolver query tool
 
 Package: pdns-ixfrdist
 Architecture: any

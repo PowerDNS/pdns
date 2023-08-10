@@ -791,6 +791,8 @@ List of netmasks and domains that :rfc:`EDNS Client Subnet <7871>` should be ena
 For example, an EDNS Client Subnet option containing the address of the initial requestor (but see `ecs-add-for`_) will be added to an outgoing query sent to server 192.0.2.1 for domain X if 192.0.2.1 matches one of the supplied netmasks, or if X matches one of the supplied domains.
 The initial requestor address will be truncated to 24 bits for IPv4 (see `ecs-ipv4-bits`_) and to 56 bits for IPv6 (see `ecs-ipv6-bits`_), as recommended in the privacy section of RFC 7871.
 
+Note that this setting describes the destination of outgoing queries, not the sources of incoming queries, nor the subnets described in the EDNS Client Subnet option.
+
 By default, this option is empty, meaning no EDNS Client Subnet information is sent.
 
 .. _setting-entropy-source:
@@ -1248,8 +1250,7 @@ Maximum number of simultaneous MTasker threads.
 -  Integer
 -  Default: 500000
 
-Maximum number of Packet Cache entries. Each worker and each distributor thread has a packet cache instance.
-This number will be divided by the number of worker plus the number of distributor threads to compute the maximum number of entries per cache instance.
+Maximum number of Packet Cache entries. Sharded and shared by all threads since 4.9.0.
 
 .. _setting-max-qperq:
 
