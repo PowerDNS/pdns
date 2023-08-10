@@ -15,28 +15,28 @@ It does assume that you have already read the contributing document at [CONTRIBU
 # Memory Handling
 
 The memory model in C++, inherited from the C era, is very powerful but also very error-prone.
-Several features are available in modern (C++11 and up) C++ to make it possible to avoid most of the pitfalls, while conserving the same level of performance.
+Several features are available in modern C++ (11 and up) to make it possible to avoid most of the pitfalls, while conserving the same level of performance.
 
-Most of the issues related to memory allocation (memory leaks, use-after-free) can be solved by using standard containers, or taking advantage of RAII and smart pointers, which take care of destructing the object when it is not used anymore.
+Most of the issues related to memory allocation (memory leaks, use-after-free) can be solved by using standard containers, or taking advantage of RAII and smart pointers, which take care of destroying objects when it is not used anymore.
 
 ## Stack-based Memory Allocation
 
 Default allocations, when declaring a variable local to a function for example, are done on the stack instead of doing a dynamic allocation on the heap.
-Allocating objects on the stack is faster, especially in threaded programs, and provides the benefit that objects are automatically destroyed when the function is exited.
+Allocating objects on the stack is faster, especially in threaded programs, and provides the benefit that objects are automatically destroyed when the function exits.
 
-One caveat is that the programmer needs to be wary of is the size of the object in order not to exceed the space available on the stack, which would corrupt other objects in memory and could lead to a crash, or even execution of arbitrary code.
-This is especially true in the Recursor which uses a custom stack-switching in user-space mechanism and thus has a reduced stack size.
+One caveat that the programmer needs to be aware of is the size of the object in order to not exceed the space available on the stack, which would corrupt other objects in memory and could lead to a crash, or even execution of arbitrary code.
+This is especially true in the Recursor which uses a custom mechanism for stack-switching in user-space and thus has a reduced stack size.
 
 ### Variable-Length Arrays (VLAs)
 
 In order to avoid smashing the stack, special care should be taken to limit the depth of function calls that, for example, can grow quickly with recursion.
-A second common source of smash stacking is the use of Variable-Length Arrays, whose size is determined at runtime and is therefore very hard to predict.
-The C++ language does not support VLAs but a lot of compilers inherit such a support from C99, so it is possible to use them by accident.
+A second common source of stack smashing is the use of Variable-Length Arrays (VLAs), whose size is determined at runtime and is therefore very hard to predict.
+The C++ language does not support VLAs but a lot of compilers inherit such support from C99, so it is possible to use them by accident.
 PowerDNS strictly forbids the use of VLAs, as does the Linux kernel, and enforces that with the `-Werror=vla` compiler flag.
 
 ### C-style Arrays
 
-While you might still find some in the existing code base, we are actively trying to get rid of C-style arrays like this one:
+While you might still find some uses of C-style arrays in the existing code base, we are actively trying to get rid of them. One example is as follows:
 
 ```C++
 somestruct buffer[12];
@@ -44,9 +44,9 @@ auto bufferSize = sizeof(buffer) / sizeof(*buffer);
 auto& firstElement = buffer[0];
 ```
 
-It is immediately obvious that computing the actual number of elements is error-prone, as `sizeof()` does not return the number of elements but the total memory space used by the array.
+It is immediately obvious that computing the actual number of elements is error-prone, because `sizeof()` does not return the number of elements but the total memory space used by the array.
 Another obvious issue is that accesses to the array are not bound-checked.
-These are not the only drawbacks of these arrays, but are bad enough already to justify getting rid of them.
+These are not the only drawbacks of C-style arrays, but are bad enough already to justify getting rid of them.
 
 The modern C++ way is to use `std::array`s:
 
@@ -58,19 +58,19 @@ auto& firstElement = buffer.at(0);
 
 ### `alloca`
 
-The use of `alloca()` is forbidden in the code base as it is much too easy to smash the stack.
+The use of `alloca()` is forbidden in the code base because it is too easy to smash the stack.
 
 ## RAII
 
 Resource acquisition is initialization ([RAII](https://en.cppreference.com/w/cpp/language/raii)) is one of the fundamental concepts in C++.
 Resources are allocated during the construction of an object and destroyed when the object is itself destructed.
-It means that if an object is correctly designed, the resources associated with it can not survive its lifetime.
-Since objects that are allocated on the stack (local variables in a function, for example) are automatically destroyed when a function is exited, be it by reaching the last line, calling return or throwing an exception, it makes it possible to ensure that resources are always properly destroyed by wrapping them into an object.
+It means that if an object is correctly designed, the resources associated with it cannot survive its lifetime. In other words, the resources associated with a correctly designed object are owned by the object and cannot outlive it.
+Since stack-allocated objects, like local variables in a function, are automatically destroyed when a function exits, be it by reaching the last line, calling return or throwing an exception, it makes it possible to ensure that resources are always properly destroyed by wrapping them in an object.
 
 We describe the use of smart pointers, containers and other wrappers for that purpose below, but first a few words of caution.
-Resources stored in a object are only tied to this object if the constructor finished properly.
-If an exception is raised in the constructor body, the object is not created and therefore the destructor will not get called.
-This means that if the object has non-object members holding resources, like naked file descriptors or naked pointers, they need to be explicitly released before raising the exception, otherwise they are lost.
+Resources stored in a object are only tied to this object if the constructor executes fully and completes properly.
+If an exception is raised in the constructor's body, the object is not created and therefore the destructor will not be called.
+This means that if the object has non-object members holding resources, like raw file descriptors or raw C-style pointers, they need to be explicitly released before raising the exception, otherwise they are lost or leaked.
 
 ```C++
 class BadFileDescriptorWrapper
@@ -99,7 +99,7 @@ private:
 };
 ```
 
-The use of smart pointers can be a solution to most resources leakage, but otherwise the only way is to be careful about exceptions in constructors:
+The use of smart pointers can be a solution to most resource leakage problems, but otherwise the only way is to be careful about exceptions in constructors:
 
 ```C++
 BadFileDescriptorWrapper()
@@ -115,35 +115,35 @@ BadFileDescriptorWrapper()
 
 ## Smart Pointers
 
-There is almost no good reason not to use a smart pointer when doing dynamic memory allocation.
+There is almost no good reason to not use a smart pointer when doing dynamic memory allocation.
 Smart pointers will keep track of whether the dynamically allocated object is still used, and destroy it when the last user goes away.
 
-Using naked pointers quickly results in security issues, ranging from memory leaks to arbitrary code execution.
+Using raw pointers quickly results in security issues, ranging from memory leaks to arbitrary code execution.
 Examples of such issues can be found in the following PowerDNS security advisories:
 
 * [2017-07: Memory leak in DNSSEC parsing](https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-07.html)
 * [2018-04: Crafted answer can cause a denial of service](https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2018-04.html)
 
 Most allocations should be wrapped in a `std::unique_ptr`, using `make_unique`.
-There can only be one owner at a given time, as opposed to shared pointers, but the ownership can be passed along using `std::move()` if needed.
+There can only be one owner at any given time, as opposed to shared pointers, but the ownership can be passed along using `std::move()` if needed.
 
 If the dynamically allocated object needs to be referenced in several places, the use of a `std::shared_ptr` is advised instead, via `std::make_shared`.
 
-The use of the `make_*` methods has three advantages:
+The use of `make_*` methods has three advantages:
 
 * they result in a single allocation for `shared_ptr`s, instead of two otherwise ;
 * they avoid duplicating the type name twice ;
 * they prevent a possible issue if an exception is raised with temporaries.
 
-They also make is easier to spot naked pointers by looking for "new" and "delete" throughout the code :)
+They also make is easier to spot raw pointers by searching or `grep`ping for "new" and "delete" throughout the code :)
 
-Please note however that while unique pointers are as cheap as naked pointers, shared pointers are much more expensive.
+Please note, however, that while unique pointers are as cheap as raw pointers, shared pointers are much more expensive.
 That is because they need to use atomic operations to update their internal counters, so making a copy of a shared pointer is expensive.
 Passing one by reference is cheap, however.
 
 ### Shared Pointers
 
-An important thing to be aware of with shared pointers is that taking a new copy of a shared pointer or releasing, thus updating its internal reference counter, is atomic and therefore thread-safe.
+An important thing to be aware of with shared pointers is that making a new copy or releasing a shared pointer, thus updating its internal reference counter, is atomic and therefore thread-safe.
 Altering the content of the object pointed to is not, though, and is subject to the usual locking methods.
 The often misunderstood part is that updating the target of the shared pointer is not thread-safe.
 Basically, you can copy the shared pointer from multiple threads at once, and then each thread can assign a new target to its own copy safely, like that:
@@ -198,8 +198,8 @@ When smart pointers cannot be used, special care should be taken to:
 ## Pointer Arithmetic
 
 It is very common to use pointer arithmetic to calculate a position in a buffer, or to test whether a given offset is outside of a given buffer.
-Unfortunately it is quite easy to trigger undefined behaviour when doing so, as the C++ standard does not allow pointer arithmetic pointing inside an object, except for arrays where it is also permitted to point one element past the end.
-Still that undefined behaviour is mostly harmless, but it might lead to real issue on some platforms.
+Unfortunately it is quite easy to trigger undefined behaviour when doing so because the C++ standard does not allow pointer arithmetic pointing inside an object, except for arrays where it is also permitted to point one element past the end.
+Still, that undefined behaviour is mostly harmless, but it might lead to real issue on some platforms.
 
 One such example occurred in dnsdist: [2017-01: Crafted backend responses can cause a denial of service](https://dnsdist.org/security-advisories/powerdns-advisory-for-dnsdist-2017-01.html)
 
@@ -211,7 +211,7 @@ This kind of issue is best avoided by the use of containers to avoid the need fo
 
 ### Containers
 
-The use of containers like `vector`, `map` or `set` has several advantages in term of security:
+The use of containers like `vector`, `map` or `set` has several advantages in terms of security:
 
 * memory allocations are handled by the container itself ;
 * it prevents a disconnect between the actual size and the variable tracking that size ;
@@ -221,15 +221,15 @@ One issue that could have been prevented by the use of a container can be found 
 
 The use of a container and its corresponding `at()` operator would have prevented an out-of-bounds read since calling `at()` on an invalid offset results in an exception being raised.
 The cost of using `at()` is negligible for most use cases, and can be avoided by using the `[]` operator in the rare case when the cost cannot be afforded.
-Note that several Linux distributions now build with `-Wp,-D_GLIBCXX_ASSERTIONS` enabled by default, which turns on cheap range checks for C++ arrays, vectors, and strings anyway.
+Note that several Linux distributions now build with `-Wp,-D_GLIBCXX_ASSERTIONS` enabled by default, which turns on cheap range checks for C++ arrays, vectors, and strings.
 
 Regarding performance, it is advised to `reserve()` the needed size in advance when a rough estimate is known to avoid reallocations and copies.
-Resizing in advance is not advised, though, as it makes it harder to know what is exactly in the container in case of early returns or exceptions.
+Resizing in advance is not advised, though, as it makes it harder to exactly know what is in the container in case of early returns or exceptions.
 
 In C++11, move operators make it possible to cheaply get the contents of a container into a different variable if needed.
 
 The need to pass a subset of a container without copying it often leads to passing a pointer to an array of chars along with a size.
-Introduced in C++14 but already available in PowerDNS via boost (see views.hh), views provides a nice way to borrow the content of a container to pass it to a function, without any copy or dynamic memory allocation.
+Introduced in C++14 but already available in PowerDNS via boost (see views.hh), `views` provide a nice way to borrow the content of a container to pass it to a function, without any copying or dynamic memory allocation.
 
 The basic `string_view` class provides that feature for a container of chars, but the same feature exists for other types, like `uint8_t`.
 
@@ -243,8 +243,7 @@ For example getting the `size()` of a container might not be thread-safe if a di
 Some functions might also not be thread-safe, for example if they have a static non-const variable.
 
 We currently use three solutions, depending on the use-case.
-The first one is used when we only need to share some kind of counter or gauge, and involves the use of `std::atomic` which allows atomic operations to be performed from different threads without locking.
-More on that later.
+The first one is used when we only need to share some kind of counter or gauge, and involves the use of `std::atomic` which allows atomic operations to be performed from different threads without locking. More on that later.
 The second one is the "share nothing" approach, where each thread has its own data (using `thread_local`, for example), avoiding the need for data synchronization.
 When a thread needs to communicate with another one, it might use a `pdns::channel` to pass a pointer to that second thread.
 That works quite well but sometimes sharing data is much more efficient than the alternative.
@@ -320,24 +319,24 @@ Or when the lock needs to be kept for a bit longer:
 `std::atomic` provides a nice way to share a counter or gauge between threads without the need for locking.
 This is done by implementing operations like reading, increasing, decreasing or writing a value in an atomic way, using memory barriers, making sure that the value cannot be updated from a different core during the operation.
 The default mode uses a sequentially consistent ordering memory model, which is quite expensive since it requires a full memory fence on all multi-core systems.
-A relaxed model can be used for certain very specific operations, but the default model has the advantage of being safe in all situations.
+A relaxed model can be used for specific operations, but the default model has the advantage of being safe in all situations.
 
 ## Per-Thread Counters
 
-For generic per-thread counters, we have a class in `tcounters.hh` that should provide better performances by allowing each thread to independently update its own counter, the costly operation only happening when the counter needs to be read by one thread gathering metrics from all threads.
+For generic per-thread counters, we have a class in `tcounters.hh` that should provide better performance by allowing each thread to independently update its own counter, the costly operation only happens when the counter needs to be read by one thread gathering metrics from all threads.
 
 # Dealing with Untrusted Data
 
-As a rule of thumb, any data received from outside the process should be considered as untrusted.
-That means data received on a socket, loaded from a file, retrieved from a database, etc.
+As a rule of thumb, any data received from outside the process should be considered untrusted.
+This includes data received on a socket, loaded from a file, retrieved from a database, etc.
 Data received from an internal pipe might be excluded from that rule.
 
 Untrusted data should never be trusted to adhere to the expected format or specifications, and a strict checking of boundaries should be performed.
 It means for example that, after reading the length for a field inside the data, whether that length does not exceed the total length of the data should be checked.
-In the same way, if we expect a numerical type we should check whether it matches one we expect and understand.
+In the same way, if we expect a numerical type we should check whether it matches what we expect and understand.
 
 Anything unexpected should stop the processing and lead to the discarding of the complete data set.
-If a smaller data set can be safely discarded, and it is more important to load an incomplete set than to assure the integrity of the complete data set, only the faulty data set can be discarded instead.
+If a smaller data set can be safely discarded, and it is more important to load an incomplete set than to assure the integrity of the complete data set, only the faulty data can be discarded instead.
 
 ## Alignment Issues
 
@@ -428,7 +427,7 @@ void parse_untrusted_data(uint8_t* data, uint16_t length)
 }
 ```
 
-Converting from unsigned to signed will lose the high order bytes, and should be avoided, or the value should be checked before-hand:
+Converting from unsigned to signed will lose the high order bytes, and should be avoided, or the value should be checked beforehand:
 
 ```c++
 uint64_t u = std::numeric_limits<uint64_t>::max();
@@ -470,7 +469,7 @@ This is hard to avoid in all cases, but some mitigations do help:
 ## Secrets
 
 Try very hard not to load sensitive information into memory.
-And of course do not write to disk!
+And of course do not write this information to logs or to disk!
 
 If you have to:
 
@@ -483,12 +482,12 @@ If you have to:
 
 Don't compare secret against data using a naive string comparison, as the timing of the operation will leak information about the content of the secret.
 Ideally, a constant-time comparison should be used instead (see `constantTimeStringEquals()` in the PowerDNS code base) but it is not always easy to achieve.
-One option might be to compute a HMAC of the secret using a key randomly generated at startup, and compare it against a HMAC of the supplied data computed with the same key.
+One option might be to compute an HMAC of the secret using a key that was randomly generated at startup, and compare it against a HMAC of the supplied data computed with the same key.
 
 ## Virtual Destructors
 
 Any class that is expected to be sub-classed should provide a virtual destructor.
-Not doing so will prevent the destructor of a derived class from being called if the object is held as the base type:
+Not doing so will prevent the destructor of any derived class from being called if the object is held as the base type:
 
 ```c++
 class Parent
@@ -522,7 +521,7 @@ Note that defining a destructor will prevent the automatic creation of move oper
 * no move operators are declared ;
 * no destructor is declared.
 
-If the Parent class holds data that is costly to copy, it might make sense to declare the move operators explicitly:
+If the parent class holds data that is costly to copy, it might make sense to declare the move operators explicitly:
 
 ```c++
 class Parent
@@ -566,7 +565,7 @@ While this is allowed under certain restrictions, it is very hard to know exactl
 
 Hashes are a very useful tool, used in `unordered_map` and `unordered_set` among others.
 They are also used in our caches.
-An important caveat that developers need to be aware about regarding hashes are that the probability of a collision is often a lot higher than expected.
+An important caveat that developers need to be aware of regarding hashes are that the probability of a collision is often a lot higher than expected.
 This is well-known as the birthday paradox, the fact that the probability of having two entries colliding is a lot higher than the probability of finding a collision for a specific entry.
 This means that it is important to verify that the entries are actually identical, and just not that they hash to the same value.
 
@@ -586,7 +585,7 @@ Some of these tips are actually enforced by `clang-tidy` nowadays, but it is sti
 ## `auto`
 
 C++11 introduced automatic type deduction, using the `auto` keyword.
-In addition to saving the typing of a few more letters, using automatic type deduction prevents nasty surprises if the variable is initialized from another one, or from a function, and the other type is changed to a different one.
+Using automatic type deduction prevents nasty surprises if the variable is initialized from another one, or from a function, and the other type is changed to a different one.
 The code might still compile while now involving a copy or worse.
 
 ## Boolean Expressions
@@ -686,5 +685,5 @@ C++-style casts can easily be spotted in a code, which makes it easy to review t
 A library call may clobber `errno`, even when it succeeds.
 Safe practice is:
 
-* Only look at `errno` on failing systems calls or when a library function is documented to set `errno`.
+* Only look at `errno` on failing system calls or when a library function is documented to set `errno`.
 * Immediately save the value of `errno` in a local variable after a system call for later decision making.
