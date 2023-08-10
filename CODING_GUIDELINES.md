@@ -83,6 +83,7 @@ class BadFileDescriptorWrapper
     }
     ...
   }
+
   ~BadFileDescriptorWrapper()
   {
     if (d_fd > 0) {
@@ -90,12 +91,14 @@ class BadFileDescriptorWrapper
       d_fd = -1;
     }
   }
+
   int getHandle() const
   {
     return d_fd;
   }
+
 private:
-  int d_fd{-1}; 
+  int d_fd{-1};
 };
 ```
 
@@ -151,7 +154,7 @@ Basically, you can copy the shared pointer from multiple threads at once, and th
 ```C++
 auto ptr = std::make_shared<int>(4);
 for (auto idx = 0; idx < 10 ; idx++){
-  std::thread([ptr]{ auto copy = ptr; }).detach(); //ok, only mutates the control block 
+  std::thread([ptr]{ auto copy = ptr; }).detach();   // ok, only mutates the control block
 }
 ```
 
@@ -163,6 +166,7 @@ auto ptr = std::make_shared<int>(4);
 std::thread threadA([&ptr]{
   ptr = std::make_shared<int>(10);
 });
+
 std::thread threadB([&ptr]{
   ptr = std::make_shared<int>(20);
 });
@@ -398,13 +402,16 @@ void parse_untrusted_data(uint8_t* data, uint16_t length)
   if (length < 4) {
     return;
   }
+
   /* read the first two bytes which hold the length of the next record */
   uint16_t recordLen = data[0] * 256 + data[1];
+
   /* let's assume that recordLen is equal to 65535 */
   uint16_t totalRecordLen = /* size of the type */ sizeof(uint16_t) + recordLen; // <-- this results in a wrapped value of 65535 + 2 = 65537 = 1
   if (totalRecordLen > length) {
     return;
   }
+
   /* ... */
 }
 ```
@@ -418,11 +425,13 @@ void parse_untrusted_data(uint8_t* data, uint16_t length)
   if (length < 4) {
     return;
   }
+
   /* read the first two bytes which hold the length of the next record */
   uint16_t recordLen = data[0] * 256 + data[1];
   if (recordLen > length || (length - recordLen) < sizeof(uint16_t)) {
     return;
   }
+
   /* ... */
 }
 ```
@@ -501,6 +510,7 @@ class Child: public Parent
   {
     d_fd = fopen(..);
   }
+
   ~Child()
   {
     if (d_fd) {
@@ -508,6 +518,7 @@ class Child: public Parent
       f_fd = nullptr;
     }
   }
+
   void doVirtualCall() override;
 };
 
@@ -534,6 +545,7 @@ class Parent
   }
 
   virtual void doVirtualCall();
+
 private:
   FILE* d_fd{nullptr};
 };
