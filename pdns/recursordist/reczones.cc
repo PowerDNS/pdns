@@ -159,14 +159,14 @@ string reloadZoneConfiguration()
     auto [newDomainMap, newNotifySet] = parseZoneConfiguration();
 
     // purge both original and new names
-    std::set<DNSName> oldAndNewDomains;
+    auto oldAndNewDomains = std::make_shared<notifyset_t>();
     for (const auto& i : *newDomainMap) {
-      oldAndNewDomains.insert(i.first);
+      oldAndNewDomains->insert(i.first);
     }
 
     if (original) {
       for (const auto& i : *original) {
-        oldAndNewDomains.insert(i.first);
+        oldAndNewDomains->insert(i.first);
       }
     }
 
@@ -179,9 +179,7 @@ string reloadZoneConfiguration()
     // Wipe the caches *after* the new auth domain info has been set
     // up, as a query during setting up might fill the caches
     // again. Old code did the clear before, exposing a race.
-    for (const auto& i : oldAndNewDomains) {
-      wipeCaches(i, true, 0xffff);
-    }
+    wipeCachesForReload(oldAndNewDomains);
     return "ok\n";
   }
   catch (const std::exception& e) {

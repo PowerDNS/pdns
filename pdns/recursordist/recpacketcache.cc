@@ -103,6 +103,30 @@ uint64_t RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qt
   return count;
 }
 
+void RecursorPacketCache::doWipePacketCaches(std::shared_ptr<notifyset_t> oldAndNewDomains, uint16_t qtype /*= 0xffff*/, bool subtree /*= false*/)
+{
+    for(const auto& name : *oldAndNewDomains) {
+        auto& idx = d_packetCache.get<NameTag>();
+        for (auto iter = idx.lower_bound(name); iter != idx.end();) {
+            if (subtree) {
+                if (!iter->d_name.isPartOf(name)) { // this is case insensitive
+                    break;
+                }
+            }
+            else if (iter->d_name != name){
+                break;
+            }
+
+            if (qtype == 0xffff || iter->d_type == qtype) {
+                iter = idx.erase(iter);
+            }
+            else{
+                ++iter;
+            }
+        }
+    }
+}
+
 bool RecursorPacketCache::qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass)
 {
   // this ignores checking on the EDNS subnet flags!

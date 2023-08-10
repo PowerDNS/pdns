@@ -915,6 +915,7 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret);
 
 template <class T>
 T broadcastAccFunction(const std::function<T*()>& func);
+void broadcastAccFunctionForReload(const std::function<void*()>& func);
 
 typedef std::unordered_set<DNSName> notifyset_t;
 std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> parseZoneConfiguration();
@@ -936,6 +937,7 @@ struct WipeCacheResult
 };
 
 struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t qtype);
+void wipeCachesForReload(std::shared_ptr<notifyset_t> oldAndNewDomains);
 
 extern __thread struct timeval g_now;
 

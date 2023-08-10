@@ -36,6 +36,7 @@
 #include "validate.hh"
 #include "lock.hh"
 #include "stat_t.hh"
+#include "syncres.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -86,6 +87,7 @@ public:
   void doPruneTo(size_t maxSize);
   uint64_t doDump(int file);
   uint64_t doWipePacketCache(const DNSName& name, uint16_t qtype = 0xffff, bool subtree = false);
+  void doWipePacketCaches(std::shared_ptr<notifyset_t> oldAndNewDomains, uint16_t qtype = 0xffff, bool subtree = false);
 
   void setMaxSize(size_t size)
   {

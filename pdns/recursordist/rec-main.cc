@@ -1331,6 +1331,31 @@ void broadcastFunction(const pipefunc_t& func)
   }
 }
 
+void broadcastAccFunctionForReload(const std::function<void*()>& func)
+{
+  if (!RecThreadInfo::self().isHandler()) {
+    SLOG(g_log << Logger::Error << "broadcastAccFunctionForReload has been called by a worker (" << RecThreadInfo::id() << ")" << endl,
+         g_slog->withName("runtime")->info(Logr::Critical, "broadcastAccFunctionForReload has been called by a worker")); // tid will be added
+    _exit(1);
+  }
+  unsigned int n = 0;
+  for (const auto& threadInfo : RecThreadInfo::infos()) {
+    if (n++ == RecThreadInfo::id()) {
+      continue;
+    }
+
+    const auto& tps = threadInfo.pipes;
+    ThreadMSG* tmsg = new ThreadMSG();
+    tmsg->func = [func] { return voider<void>(func); };
+    tmsg->wantAnswer = false;
+
+    if (write(tps.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+      delete tmsg;
+      unixDie("write to thread pipe returned wrong size or error");
+    }
+  }
+}
+
 template <class T>
 void* voider(const std::function<T*()>& func)
 {
@@ -3386,4 +3411,48 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
   }
 
   return res;
+}
+
+static void* pleaseWipePacketCaches(std::shared_ptr<notifyset_t> oldAndNewDomains, bool subtree, uint16_t qtype)
+{
+    if(t_packetCache){
+        t_packetCache->doWipePacketCaches(oldAndNewDomains, qtype, subtree);
+    }
+    return nullptr;
+}
+
+static void* pleaseWipeSharedCaches(std::shared_ptr<notifyset_t> oldAndNewDomains, bool subtree, uint16_t qtype)
+{
+    for (const auto& i : *oldAndNewDomains) {
+        g_recCache->doWipeCache(i, subtree, qtype);
+        g_negCache->wipe(i, subtree);
+        if (g_aggressiveNSECCache) {
+            g_aggressiveNSECCache->removeZoneInfo(i, subtree);
+        }
+    }
+    return nullptr;
+}
+
+void wipeCachesForReload(std::shared_ptr<notifyset_t> oldAndNewDomains)
+{
+  try {
+    bool subtree = true;
+    uint16_t qtype = 0xffff;
+    if (RecThreadInfo::self().isHandler()) {
+        ThreadMSG* tmsg = new ThreadMSG();
+        tmsg->func = [=] { return pleaseWipeSharedCaches(oldAndNewDomains, subtree, qtype); };
+        tmsg->wantAnswer = false;
+        if (write(RecThreadInfo::self().pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) {
+            delete tmsg;
+            unixDie("write to thread pipe returned wrong size or error");
+        }
+    }
+    // scanbuild complains here about an allocated function object that is being leaked. Needs investigation
+    broadcastAccFunctionForReload([=] { return pleaseWipePacketCaches(oldAndNewDomains, subtree, qtype); });
+  }
+  catch (const std::exception& e) {
+    auto log = g_slog->withName("runtime");
+    SLOG(g_log << Logger::Warning << ", failed: " << e.what() << endl,
+         log->error(Logr::Warning, e.what(), "Wipecache failed"));
+  }
 }
