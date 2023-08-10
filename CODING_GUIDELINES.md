@@ -661,7 +661,7 @@ For example, the main connection handling function of a server can catch `std::e
 
 ### Catching Exceptions
 
-Catching exceptions should always be done by const reference:
+Catching exceptions should always be done by `const`-reference:
 
 ```c+++
 try {
