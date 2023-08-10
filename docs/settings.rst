@@ -1906,6 +1906,7 @@ Note that this option only applies to credentials stored in the configuration as
 ----------------------
 
 -  String, one of "none", "normal", "detailed"
+-  Default: normal
 
 The amount of logging the webserver must do. "none" means no useful webserver information will be logged.
 When set to "normal", the webserver will log a line per request that should be familiar::
