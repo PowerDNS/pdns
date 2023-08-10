@@ -105,7 +105,7 @@ private:
 The use of smart pointers can be a solution to most resource leakage problems, but otherwise the only way is to be careful about exceptions in constructors:
 
 ```C++
-BadFileDescriptorWrapper()
+GoodFileDescriptorWrapper()
 {
   d_fd = open(...);
   if (something) {
