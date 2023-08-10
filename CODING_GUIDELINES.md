@@ -60,7 +60,7 @@ auto& firstElement = buffer.at(0);
 
 The use of `alloca()` is forbidden in the code base because it is too easy to smash the stack.
 
-## RAII
+## Resource Acquisition Is Initialization (RAII)
 
 Resource acquisition is initialization ([RAII](https://en.cppreference.com/w/cpp/language/raii)) is one of the fundamental concepts in C++.
 Resources are allocated during the construction of an object and destroyed when the object is itself destructed.
@@ -461,7 +461,7 @@ The existing fuzzing targets are run on the OSS-Fuzz infrastructure for a short 
 
 # Other Potential Issues
 
-## TOCTOU
+## Time-Of-Check to Time-Of-Use (TOCTOU)
 
 The time-of-check to time-of-use vulnerability is a very easy mistake to make when dealing with files or directories.
 The gist of it is that there is a small race condition between the time where a program might check the ownership, permissions or even existence of a file and the time it will actually do something with it.
