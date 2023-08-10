@@ -134,9 +134,9 @@ If the dynamically allocated object needs to be referenced in several places, th
 
 The use of `make_*` methods has three advantages:
 
-* they result in a single allocation for `shared_ptr`s, instead of two otherwise ;
-* they avoid duplicating the type name twice ;
-* they prevent a possible issue if an exception is raised with temporaries.
+* They result in a single allocation for `shared_ptr`s, instead of two otherwise ;
+* They avoid duplicating the type name ;
+* They prevent a possible issue if an exception is raised with temporaries.
 
 They also make is easier to spot raw pointers by searching or `grep`ping for "new" and "delete" throughout the code :)
 
@@ -194,10 +194,10 @@ In the PowerDNS products, these cases have been mostly reduced to a few select c
 
 When smart pointers cannot be used, special care should be taken to:
 
-* make sure that every exit point frees the allocated memory (early return, goto, exceptions..) ;
-* set the pointer to `nullptr` right after the deallocation, so we can't use it again (use-after-free) ;
-* do not mix `malloc` with `delete`, or `new` with `free` (destructors are not run, at the very least) ;
-* do not mix array allocations (`new[]`) with a non-array `delete` (vs `delete[]`).
+* Make sure that every exit point frees the allocated memory (early return, goto, exceptions..) ;
+* Set the pointer to `nullptr` right after the deallocation, so we can avoid use-after-free vulnerabilities and crash the program instead ;
+* Do not mix `malloc` with `delete`, or `new` with `free` (destructors are, at the very least, not run in such cases) ;
+* Do not mix array allocations (`new[]`) with a non-array `delete` (vs `delete[]`).
 
 ## Pointer Arithmetic
 
@@ -217,9 +217,9 @@ This kind of issue is best avoided by the use of containers to avoid the need fo
 
 The use of containers like `vector`, `map` or `set` has several advantages in terms of security:
 
-* memory allocations are handled by the container itself ;
-* it prevents a disconnect between the actual size and the variable tracking that size ;
-* it provides safe (and fast) operations like comparisons, iterators, etc..
+* Memory allocations are handled by the container itself ;
+* It prevents a disconnect between the actual size and the variable tracking that size ;
+* It provides safe (and fast) operations like comparisons, iterators, etc..
 
 One issue that could have been prevented by the use of a container can be found in the following advisory: [2018-09: Crafted query can cause a denial of service](https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2018-09.html)
 
@@ -260,29 +260,29 @@ Locks allow a thread of execution to ensure that no other thread will try to acc
 
 There are a few pitfalls to avoid when using locks:
 
-* failing to release the lock, which can be avoided by wrappers like `std::lock_guard`, `std::unique_lock` and our own wrappers: look for `LockGuarded`, `SharedLockGuarded` in lock.hh ;
-* high contention, where threads are blocked for a long time while waiting to acquire a lock.
-  This can be solved by carefully examining the portion of code that really needs to hold the lock, making the critical path faster, or by using sharding which basically divides the data protected by the lock into several blocks, each one of them protected by its own lock ;
-* starvation, which occurs for example when thread 1 acquires lock 1 and wants to acquire lock 2, which is already owned by thread 2, itself currently waiting to acquire lock 1.
-  This can be avoided by a better design of the locking mechanism, and assuring that locks are always acquired in the same order if more than one lock is needed.
+* Failing to release a lock, which can be avoided by using wrappers like `std::lock_guard`, `std::unique_lock` and our own wrappers: `LockGuarded` and `SharedLockGuarded` in `lock.hh` ;
+* High contention, where threads are blocked for a long time while waiting to acquire a lock.
+  This can be solved by carefully examining the portion of code that really needs to hold the lock, making the critical path shorter or faster, or by using sharding which basically divides the data protected by the lock into several pieces, each of them protected by its own lock ;
+* Dead-locks, which occur for example when thread 1 acquires lock 1 and wants to acquire lock 2, which is already acquired by thread 2, itself currently waiting to acquire lock 1.
+  This can be avoided by a better design of the locking mechanism, and assuring that locks are always acquired in the same order if more than one lock is required. Abstracting multiple locks away into a class with a small state machine that locks and unlocks both in the correct sequence and checks that they are always in a valid in-tandem state may prove to be a less error-prone approach while also improving readability and ergonomics.
 
 There are several types of locks:
 
-* spinlocks are very fast but are busy-waiting, meaning that they do not pause, but instead repetitively try to get hold of the lock, using 100% of one core doing so unless preempted by the OS.
+* Spinlocks are very fast but are busy-waiting, meaning that they do not pause, but instead repetitively try to get hold of the lock, using 100% of one core, doing so unless preempted by the OS.
   So they are only suited for locks that are almost never contented ;
-* a mutex is a very simple lock.
+* A mutex is a very simple lock.
   In most implementations it is a very fast lock, implemented in user-space on recent Linux kernels and glibc ;
-* a read-write lock allows several threads to acquire it in read mode, but only one thread can acquire it in write mode.
+* A read-write lock (RW-lock) allows several threads to acquire it in read mode, but only one thread can acquire it in write mode.
   This is suited when most accesses are read-only and writes are rare and do not take too long.
-  Otherwise a mutex might actually be faster ;
+  Otherwise, a mutex might actually be faster ;
 
 One quick word about condition variables, that allow a thread to notify one or more threads waiting for a condition to happen.
 A thread should acquire a mutex using a `std::unique_lock` and call the `wait()` method of the condition variable.
 This is a very useful mechanism but one must be careful about two things:
 
-* the producer thread can either wake only one thread or all threads waiting on the condition variable.
+* The producer thread can either wake only one thread or all threads waiting on the condition variable.
   Waking up several threads if only one has something to do (known as a "thundering herd") is bad practice, but there are some cases where it makes sense ;
-* a consumer might be waken up spuriously, which can be avoided by passing a predicate (which can be as simple as a small lambda function) to `wait()`.
+* A consumer thread might be waken up spuriously, which can be avoided by passing a predicate (which can be as simple as a small lambda function) to `wait()`.
 
 Our wrappers, `LockGuarded`, `SharedLockGuarded` in `lock.hh`, should always be preferred over other solutions.
 They provide a way to wrap any data structure as protected by a lock (mutex or shared mutex), while making it immediately clear which data is protected by that lock, and preventing any access to the data without holding the lock.
@@ -470,10 +470,10 @@ Since the program has enough rights to edit this file, this might allow an attac
 
 This is hard to avoid in all cases, but some mitigations do help:
 
-* opening a file first (handling errors if that fails) then getting the needed metadata via the file descriptor instead of the path (`fstat`, `fchmod`, `fchown`) ;
-* opening with the `O_NOFOLLOW` flag set, so that the operation will fail if the target exists and is a symbolic link ;
-* always creating temporary files via the `mkstemp()` function, which guarantees that the file did not exist before and has been created with the right permissions ;
-* using operations that are guaranteed to be atomic, like renaming a file on the same filesystem (for example in the same directory).
+* Opening a file first (handling errors if that fails) then getting the needed metadata via the file descriptor instead of the path (`fstat`, `fchmod`, `fchown`) ;
+* Opening with the `O_NOFOLLOW` flag set, so that the operation will fail if the target exists and is a symbolic link ;
+* Always creating temporary files via the `mkstemp()` function, which guarantees that the file did not exist before and has been created with the right permissions ;
+* Using operations that are guaranteed to be atomic, like renaming a file on the same filesystem (for example in the same directory).
 
 ## Secrets
 
@@ -482,9 +482,9 @@ And of course do not write this information to logs or to disk!
 
 If you have to:
 
-* use an object that can't be copied, by deleting the copy constructors and assignments operators,
-* try to lock the memory so it cannot be swapped out to disk, or included in a core dump, via `sodium_malloc()` or `sodium_mlock()`, for example ;
-* wipe the content before releasing the memory, so it will not linger around.
+* Use an object that can't be copied, by deleting the copy constructors and assignments operators,
+* Try to lock the memory so it cannot be swapped out to disk, or included in a core dump, via `sodium_malloc()` or `sodium_mlock()`, for example ;
+* Wipe the content before releasing the memory, so it will not linger around.
   Do note that `memset()` is very often optimized out by the compiler, so function like `sodium_munlock()`, `explicit_bzero()` or `explicit_memset()` should be used instead.
 
 ### Constant-Time Comparison
@@ -528,9 +528,9 @@ myObjects.push_back(Child());
 
 Note that defining a destructor will prevent the automatic creation of move operators for that class, since they are generated only if these conditions are met:
 
-* no copy operators are declared ;
-* no move operators are declared ;
-* no destructor is declared.
+* No copy operators are declared ;
+* No move operators are declared ;
+* No destructor is declared.
 
 If the parent class holds data that is costly to copy, it might make sense to declare the move operators explicitly:
 
@@ -583,8 +583,8 @@ This means that it is important to verify that the entries are actually identica
 
 This is especially important when hashing attacker-controlled values, as they can be specially crafted to trigger collisions to cause:
 
-* cache pollution (see [2018-06: Packet cache pollution via crafted query](https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2018-06.html)) ;
-* denial of service via hash table flooding (in a map, all entries that hash to the same value are often placed into a linked-list, making it possible to cause a linear scan of entries by making all of them hash to that same value).
+* Cache pollution (see [2018-06: Packet cache pollution via crafted query](https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2018-06.html)) ;
+* Denial of service via hash table flooding (in a map, all entries that hash to the same value are often placed into a linked-list, making it possible to cause a linear scan of entries by making all of them hash to that same value).
 
 The first issue can be prevented by comparing the entries and not just the value they hash to.
 The second one can be used by using some sort of secret when computing the hash so that the result cannot be guessed by the attacker.
@@ -604,16 +604,16 @@ The code might still compile while now involving a copy or worse.
 
 ## Explicit Comparisons
 
-* compare numerical values with `== 0` or `!= 0` explicitly ;
-* compare to `false` explicitly, which is easier to read ;
-* compare to `nullptr` for the same reason.
+* Compare numerical values with `== 0` or `!= 0` explicitly ;
+* Compare to `false` explicitly, which is easier to read ;
+* Compare to `nullptr` for the same reason.
 
 ## Initialization
 
 Use braced initialization for members as often as possible:
 
-* it does forbid narrowing conversions
-* and avoids C++'s "[most vexing parse](https://en.wikipedia.org/wiki/Most_vexing_parse)" which is to declare a function instead of calling the default constructor:
+* It does forbid narrowing conversions
+* It avoids C++'s "[most vexing parse](https://en.wikipedia.org/wiki/Most_vexing_parse)" which is to declare a function instead of calling the default constructor:
 
 ```c++
 Object a(); // declares a function named a that returns an object
@@ -628,15 +628,15 @@ It also cannot be silently taken as an integer, which can happens with `0` but a
 
 * Mark parameters and variables that should not be modified as `const`.
   This is especially important for references and pointers that comes from outside the function, but it also makes sense to do it for local variables or parameters passed by value because it might help detect a logic error later.
-* Mark const methods as such (and make them thread-safe)
+* Mark `const` methods as such (and make them thread-safe)
 * Prefer using `at()` on containers so that no insertion can take place by mistake, and to get bounds checking.
 
 ## `static`
 
 Functions that are only used inside a single file should be marked as `static`, so that:
 
-* the compiler knows that these functions will not be called from a different compilation unit and thus that no symbol needs to be generated, making it more likely for the function to be inlined ;
-* the reader knows that this function is only used there and can be altered without causing an issue somewhere else.
+* The compiler knows that these functions will not be called from a different compilation unit and thus that no symbol needs to be generated, making it more likely for the function to be inlined ;
+* The reader knows that this function is only used there and can be altered without causing an issue somewhere else.
 
 For the same reason, global variables that are only accessed from a single file should be marked static as well.
 
