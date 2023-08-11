@@ -110,28 +110,42 @@ class Zones(ApiTestCase):
 
 
 class AuthZonesHelperMixin(object):
-    def create_zone(self, name=None, **kwargs):
+    def create_zone(self, name=None, expect_error=None, **kwargs):
         if name is None:
             name = unique_zone_name()
         payload = {
-            'name': name,
-            'kind': 'Native',
-            'nameservers': ['ns1.example.com.', 'ns2.example.com.']
+            "name": name,
+            "kind": "Native",
+            "nameservers": ["ns1.example.com.", "ns2.example.com."]
         }
         for k, v in kwargs.items():
             if v is None:
                 del payload[k]
             else:
                 payload[k] = v
+        if "zone" in payload:
+            payload["zone"] = payload["zone"].replace("$NAME$", payload["name"])
+        if "rrsets" in payload:
+            payload["rrsets"] = templated_rrsets(payload["rrsets"], payload["name"])
+
         print("Create zone", name, "with:", payload)
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
             data=json.dumps(payload),
-            headers={'content-type': 'application/json'})
-        self.assert_success_json(r)
-        self.assertEqual(r.status_code, 201)
-        reply = r.json()
-        print("reply", reply)
+            headers={"content-type": "application/json"})
+
+        if expect_error:
+            self.assertEqual(r.status_code, 422, r.content)
+            reply = r.json()
+            if expect_error is True:
+                pass
+            else:
+                self.assertIn(expect_error, reply["error"])
+        else:
+            # expect success
+            self.assertEqual(r.status_code, 201, r.content)
+            reply = r.json()
+
         return name, payload, reply
 
     def get_zone(self, api_zone_id, expect_error=None, **kwargs):
@@ -357,11 +371,11 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
           ]
 
         if is_auth_lmdb():
-            with self.assertRaises(requests.exceptions.HTTPError):   # No comments in LMDB
-                self.create_zone(name=name, rrsets=rrsets)
+            # No comments in LMDB
+            self.create_zone(name=name, rrsets=rrsets, expect_error="Hosting backend does not support editing comments.")
             return
 
-        name, payload, data = self.create_zone(name=name, rrsets=rrsets)
+        name, _, data = self.create_zone(name=name, rrsets=rrsets)
         # NS records have been created
         self.assertEqual(len(data['rrsets']), len(rrsets) + 1)
         # check our comment has appeared
@@ -758,10 +772,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
     def test_create_consumer_zone(self):
         # Test that nameservers can be absent for consumer zones.
-        name, payload, data = self.create_zone(kind='Consumer', nameservers=None, masters=['127.0.0.2'])
-        for k in ('name', 'masters', 'kind'):
-            self.assertIn(k, data)
-            self.assertEqual(data[k], payload[k])
+        _, payload, data = self.create_zone(kind='Consumer', nameservers=None, masters=['127.0.0.2'])
         print("payload:", payload)
         print("data:", data)
         # Because consumer zones don't get a SOA, we need to test that they'll show up in the zone list.
@@ -778,6 +789,23 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             self.assertEqual(data[k], payload[k])
         self.assertEqual(data['serial'], 0)
         self.assertEqual(data['rrsets'], [])
+
+    def test_create_consumer_zone_no_nameservers(self):
+        """nameservers must be absent for Consumer zones"""
+        self.create_zone(kind="Consumer", nameservers=["127.0.0.1"], expect_error="Nameservers MUST NOT be given for Consumer zones")
+
+    def test_create_consumer_zone_no_rrsets(self):
+        """rrsets must be absent for Consumer zones"""
+        rrsets = [{
+            "name": "$NAME$",
+            "type": "SOA",
+            "ttl": 3600,
+            "records": [{
+                "content": "ns1.example.net. testmaster@example.net. 10 10800 3600 604800 3600",
+                "disabled": False,
+            }],
+        }]
+        self.create_zone(kind="Consumer", nameservers=None, rrsets=rrsets, expect_error="Zone data MUST NOT be given for Consumer zones")
 
     def test_find_zone_by_name(self):
         name = 'foo/' + unique_zone_name()
@@ -1128,6 +1156,18 @@ $ORIGIN %NAME%
                          name + '\t3600\tIN\tSOA\ta.misconfigured.dns.server.invalid. hostmaster.' + name +
                          ' 0 10800 3600 604800 3600']
         self.assertCountEqual(data['zone'].strip().split('\n'), expected_data)
+
+    def test_import_zone_consumer(self):
+        zonestring = """
+$NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
+                  2002022401 ; serial
+                  3H ; refresh
+                  15 ; retry
+                  1w ; expire
+                  3h ; minimum
+                 )
+        """
+        self.create_zone(kind="Consumer", nameservers=[], zone=zonestring, expect_error="Zone data MUST NOT be given for Consumer zones")
 
     def test_export_zone_text(self):
         name, payload, zone = self.create_zone(nameservers=['ns1.foo.com.', 'ns2.foo.com.'], soa_edit_api='')
@@ -2387,13 +2427,30 @@ $ORIGIN %NAME%
         ]
         self.put_zone(name, {'rrsets': rrsets}, expect_error='Must give SOA record for zone when replacing all RR sets')
 
-    def test_zone_replace_rrsets_no_soa_secondary(self):
+    @parameterized.expand([
+        (None, []),
+        (None, [
+            {'name': '$NAME$', 'type': 'SOA', 'ttl': 3600, 'records': [{'content': 'invalid. hostmaster.invalid. 1 10800 3600 604800 3600'}]},
+        ]),
+    ])
+    def test_zone_replace_rrsets_secondary(self, expected_error, rrsets):
         """
-        Replace all RRsets in a SECONDARY zone, but supply no SOA.
-        Should succeed, also setting zone stale (but cannot assert this here).
+        Replace all RRsets in a SECONDARY zone.
+
+        If no SOA is given, this should still succeed, also setting zone stale (but cannot assert this here).
         """
         name, _, _ = self.create_zone(kind='Secondary', nameservers=None, masters=['127.0.0.2'])
-        self.put_zone(name, {'rrsets': []})
+        self.put_zone(name, {'rrsets': templated_rrsets(rrsets, name)}, expect_error=expected_error)
+
+    @parameterized.expand([
+        (None, []),
+        ("Modifying RRsets in Consumer zones is unsupported", [
+            {'name': '$NAME$', 'type': 'SOA', 'ttl': 3600, 'records': [{'content': 'invalid. hostmaster.invalid. 1 10800 3600 604800 3600'}]},
+        ]),
+    ])
+    def test_zone_replace_rrsets_consumer(self, expected_error, rrsets):
+        name, _, _ = self.create_zone(kind='Consumer', nameservers=None, masters=['127.0.0.2'])
+        self.put_zone(name, {'rrsets': templated_rrsets(rrsets, name)}, expect_error=expected_error)
 
     def test_zone_replace_rrsets_negative_ttl(self):
         name, _, _ = self.create_zone(dnssec=False, soa_edit='', soa_edit_api='')

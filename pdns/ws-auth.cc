@@ -1703,8 +1703,17 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
     throw HttpConflictException();
   }
 
+  boost::optional<DomainInfo::DomainKind> kind;
+  boost::optional<vector<ComboAddress>> masters;
+  boost::optional<DNSName> catalog;
+  boost::optional<string> account;
+  extractDomainInfoFromDocument(document, kind, masters, catalog, account);
+
   // validate 'kind' is set
-  DomainInfo::DomainKind zonekind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
+  if (!kind) {
+    throw JsonException("Key 'kind' not present or not a String");
+  }
+  DomainInfo::DomainKind zonekind = *kind;
 
   string zonestring = document["zone"].string_value();
   auto rrsets = document["rrsets"];
@@ -1749,6 +1758,10 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("New RRsets are invalid: " + string(e.what()));
   }
 
+  if (zonekind == DomainInfo::Consumer && !new_records.empty()) {
+    throw ApiException("Zone data MUST NOT be given for Consumer zones");
+  }
+
   for(auto& rr : new_records) {
     rr.qname.makeUsLowerCase();
     if (!rr.qname.isPartOf(zonename) && rr.qname != zonename) {
@@ -1790,6 +1803,9 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
     if (nameserver.empty()) {
       throw ApiException("Nameservers must be non-empty strings");
     }
+    if (zonekind == DomainInfo::Consumer) {
+      throw ApiException("Nameservers MUST NOT be given for Consumer zones");
+    }
     if (!isCanonical(nameserver)) {
       throw ApiException("Nameserver is not canonical: '" + nameserver + "'");
     }
@@ -1819,12 +1835,6 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
       }
     }
   }
-
-  boost::optional<DomainInfo::DomainKind> kind;
-  boost::optional<vector<ComboAddress>> masters;
-  boost::optional<DNSName> catalog;
-  boost::optional<string> account;
-  extractDomainInfoFromDocument(document, kind, masters, catalog, account);
 
   // no going back after this
   if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or(""))) {
@@ -1934,10 +1944,9 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 
     auto rrsets = document["rrsets"];
     bool zoneWasModified = false;
-    bool zoneWillBeSecondary = di.isSecondaryType();
+    DomainInfo::DomainKind newKind = di.kind;
     if (document["kind"].is_string()) {
-      DomainInfo::DomainKind newKind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
-      zoneWillBeSecondary = (newKind == DomainInfo::Slave || newKind == DomainInfo::Consumer);
+      newKind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
     }
 
     // if records/comments are given, load, check and insert them
@@ -1986,9 +1995,13 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
         }
       }
 
-      if (!haveSoa && !zoneWillBeSecondary) {
+      if (!haveSoa && newKind != DomainInfo::Slave && newKind != DomainInfo::Consumer) {
         // Require SOA if this is a primary zone.
         throw ApiException("Must give SOA record for zone when replacing all RR sets");
+      }
+      if (newKind == DomainInfo::Consumer && !new_records.empty()) {
+        // Allow deleting all RRsets, just not modifying them.
+        throw ApiException("Modifying RRsets in Consumer zones is unsupported");
       }
 
       checkNewRecords(new_records, zonename);
@@ -2003,7 +2016,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
         di.backend->feedComment(c);
       }
 
-      if (!haveSoa && zoneWillBeSecondary) {
+      if (!haveSoa && (newKind == DomainInfo::Slave || newKind == DomainInfo::Consumer)) {
         di.backend->setStale(di.id);
       }
     } else {
@@ -2281,6 +2294,10 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp)  //
 
           if (dname_seen && ns_seen && qname != zonename) {
             throw ApiException("RRset "+qname.toString()+" IN "+qtype.toString()+": Cannot have both NS and DNAME except in zone apex");
+          }
+          if (!new_records.empty() && di.kind == DomainInfo::Consumer) {
+            // Allow deleting all RRsets, just not modifying them.
+            throw ApiException("Modifying RRsets in Consumer zones is unsupported");
           }
           if (!new_records.empty() && ent_present) {
             QType qt_ent{0};
