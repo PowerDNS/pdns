@@ -29,6 +29,7 @@ subdir('meson' / 'version')                 # Generate version define
 subdir('meson' / 'compiler-setup')          # Common compiler setup
 subdir('meson' / 'summary')                 # Print a system/project summary
 subdir('meson' / 'sysconfdir')              # Sysconfdir
+subdir('meson' / 'libdir')                  # Libdir
 subdir('meson' / 'timet-size')              # Check the size of time_t
 subdir('meson' / 'timet-sign')              # Check the sign of time_t
 subdir('meson' / 'flex')                    # Find flex and create generator
