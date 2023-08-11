@@ -24,6 +24,10 @@ fs = import('fs')
 conf = configuration_data()
 deps = []
 
+# TODO Ultimately we should get rid of this by passing library objects instead of include
+# directories to e.g. modules.
+toplevel_includes = include_directories('.', 'pdns')
+
 subdir('meson' / 'config')                  # Config
 subdir('meson' / 'version')                 # Generate version define
 subdir('meson' / 'compiler-setup')          # Common compiler setup
@@ -98,10 +102,6 @@ if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
           'Documentation will not be built.')
 endif
 # TODO Generate pdns_server.1 manpage
-
-# TODO Ultimately we should get rid of this by passing library objects instead of include
-# directories to e.g. modules.
-toplevel_includes = include_directories('.', 'pdns')
 
 # Modules
 all_modules = {
