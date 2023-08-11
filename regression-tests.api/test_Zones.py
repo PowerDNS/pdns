@@ -55,6 +55,26 @@ def assert_eq_rrsets(rrsets, expected):
     assert sorted(rrsets, key=key) == sorted(expected, key=key)
 
 
+def templated_rrsets(rrsets: list, zonename: str):
+    """
+    Replace $NAME$ in `name` and `content` of given rrsets with `zonename`.
+    Will return a copy. Original rrsets should stay unmodified.
+    """
+    new_rrsets = []
+    for rrset in rrsets:
+        new_rrset = rrset | {"name": rrset["name"].replace('$NAME$', zonename)}
+
+        if "records" in rrset:
+            records = []
+            for record in rrset["records"]:
+                records.append(record | {"content": record["content"].replace('$NAME$', zonename)})
+            new_rrset["records"] = records
+
+        new_rrsets.append(new_rrset)
+
+    return new_rrsets
+
+
 class Zones(ApiTestCase):
 
     def _test_list_zones(self, dnssec=True):
@@ -146,7 +166,7 @@ class AuthZonesHelperMixin(object):
 
         print("reply status code:", r.status_code)
         if expect_error:
-            self.assertEqual(r.status_code, 422)
+            self.assertEqual(r.status_code, 422, r.content)
             reply = r.json()
             if expect_error is True:
                 pass
@@ -154,7 +174,7 @@ class AuthZonesHelperMixin(object):
                 self.assertIn(expect_error, reply['error'])
         else:
             # expect success (no content)
-            self.assertEqual(r.status_code, 204)
+            self.assertEqual(r.status_code, 204, r.content)
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthZones(ApiTestCase, AuthZonesHelperMixin):
@@ -2368,9 +2388,12 @@ $ORIGIN %NAME%
         self.put_zone(name, {'rrsets': rrsets}, expect_error='Must give SOA record for zone when replacing all RR sets')
 
     def test_zone_replace_rrsets_no_soa_secondary(self):
-        """Replace all RRsets in a SECONDARY zone, but supply no SOA. Should still fail."""
+        """
+        Replace all RRsets in a SECONDARY zone, but supply no SOA.
+        Should succeed, also setting zone stale (but cannot assert this here).
+        """
         name, _, _ = self.create_zone(kind='Secondary', nameservers=None, masters=['127.0.0.2'])
-        self.put_zone(name, {'rrsets': []}, expect_error='Must give SOA record for zone when replacing all RR sets')
+        self.put_zone(name, {'rrsets': []})
 
     def test_zone_replace_rrsets_negative_ttl(self):
         name, _, _ = self.create_zone(dnssec=False, soa_edit='', soa_edit_api='')
@@ -2393,7 +2416,7 @@ $ORIGIN %NAME%
             {'name': name, 'type': 'SOA', 'ttl': 3600, 'records': [{'content': 'invalid. hostmaster.invalid. 1 10800 3600 604800 3600'}]},
             {'name': name, 'type': 'NS', 'ttl': 3600, 'records': [{'content': 'ns1.example.org.'}, {'content': 'ns2.example.org.'}]},
         ]
-        rrsets = base_rrsets + [rrset | {"name": rrset["name"].replace('$NAME$', name)} for rrset in invalid_rrsets]
+        rrsets = base_rrsets + templated_rrsets(invalid_rrsets, name)
         self.put_zone(name, {'rrsets': rrsets}, expect_error=expected_error)
 
 

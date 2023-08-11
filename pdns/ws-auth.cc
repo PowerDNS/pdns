@@ -658,7 +658,7 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
 }
 
 // Must be called within backend transaction.
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool zoneWasModified) {
+static void updateDomainSettingsFromDocument(UeberBackend& B, DomainInfo& di, const DNSName& zonename, const Json& document, bool zoneWasModified) {
   boost::optional<DomainInfo::DomainKind> kind;
   boost::optional<vector<ComboAddress>> masters;
   boost::optional<DNSName> catalog;
@@ -668,6 +668,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
   if (kind) {
     di.backend->setKind(zonename, *kind);
+    di.kind = *kind;
   }
   if (masters) {
     di.backend->setMasters(zonename, *masters);
@@ -804,7 +805,8 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
     if (api_rectify == "1") {
       string info;
       string error_msg;
-      if (!dk.rectifyZone(zonename, error_msg, info, false)) {
+      if (!dk.rectifyZone(zonename, error_msg, info, false) && !di.isSecondaryType()) {
+        // for Secondary zones, it is possible that rectifying was not needed (example: empty zone).
         throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
       }
     }
@@ -1932,6 +1934,12 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 
     auto rrsets = document["rrsets"];
     bool zoneWasModified = false;
+    bool zoneWillBeSecondary = di.isSecondaryType();
+    if (document["kind"].is_string()) {
+      DomainInfo::DomainKind newKind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
+      zoneWillBeSecondary = (newKind == DomainInfo::Slave || newKind == DomainInfo::Consumer);
+    }
+
     // if records/comments are given, load, check and insert them
     if (rrsets.is_array()) {
       zoneWasModified = true;
@@ -1978,10 +1986,8 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
         }
       }
 
-      if (!haveSoa) {
-        // Require SOA regardless if this is a secondary zone or not.
-        // If clients want to "zero out" a secondary zone, they should still send a SOA with a,
-        // for their use case, "low enough" serial.
+      if (!haveSoa && !zoneWillBeSecondary) {
+        // Require SOA if this is a primary zone.
         throw ApiException("Must give SOA record for zone when replacing all RR sets");
       }
 
@@ -1995,6 +2001,10 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
       for(Comment& c : new_comments) {
         c.domain_id = static_cast<int>(di.id);
         di.backend->feedComment(c);
+      }
+
+      if (!haveSoa && zoneWillBeSecondary) {
+        di.backend->setStale(di.id);
       }
     } else {
       // avoid deleting current zone contents
