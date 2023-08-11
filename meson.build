@@ -169,9 +169,13 @@ conf.set_quoted('PDNS_DYN_MODULES', ' '.join(selected_dyn_modules), description:
 ext_modules = ['yahttp', 'ipcrypt', 'json11']
 subdir('ext')
 
+# Pdns
+subdir('pdns')
+
 # Generate config.h ----------------------------------------------------------------------
 config_h = configure_file(configuration: conf, output: 'config.h')
 # summary('Defines', conf.keys(), section: 'Build Configuration') # TODO Meson 0.57
 
 # TODO: Add source files
-auth = executable('pdns', config_h, dependencies: deps, export_dynamic: true)
+internal_deps = [libpdns, libpdns_bindparser, libpdns_auth]
+auth = executable('pdns_server', config_h, dependencies: deps, link_with: internal_deps, export_dynamic: true)
