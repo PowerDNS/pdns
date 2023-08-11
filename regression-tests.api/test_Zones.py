@@ -2379,6 +2379,24 @@ $ORIGIN %NAME%
         ]
         self.put_zone(name, {'rrsets': rrsets}, expect_error="Key 'ttl' is not a positive Integer")
 
+    @parameterized.expand([
+        ("IN MX: non-hostname content", [{'name': '$NAME$', 'type': 'MX', 'ttl': 3600, 'records': [{"content": "10 mail@mx.example.org."}]}]),
+        ("out of zone", [{'name': 'not-in-zone.', 'type': 'NS', 'ttl': 3600, 'records': [{"content": "ns1.example.org."}]}]),
+        ("contains unsupported characters", [{'name': 'test:.$NAME$', 'type': 'NS', 'ttl': 3600, 'records': [{"content": "ns1.example.org."}]}]),
+        ("unknown type", [{'name': '$NAME$', 'type': 'INVALID', 'ttl': 3600, 'records': [{"content": "192.0.2.1"}]}]),
+        ("Conflicts with another RRset", [{'name': '$NAME$', 'type': 'CNAME', 'ttl': 3600, 'records': [{"content": "example.org."}]}]),
+    ])
+    def test_zone_replace_rrsets_invalid(self, expected_error, invalid_rrsets):
+        """Test validation of RRsets before replacing them"""
+        name, _, _ = self.create_zone(dnssec=False, soa_edit='', soa_edit_api='')
+        base_rrsets = [
+            {'name': name, 'type': 'SOA', 'ttl': 3600, 'records': [{'content': 'invalid. hostmaster.invalid. 1 10800 3600 604800 3600'}]},
+            {'name': name, 'type': 'NS', 'ttl': 3600, 'records': [{'content': 'ns1.example.org.'}, {'content': 'ns2.example.org.'}]},
+        ]
+        rrsets = base_rrsets + [rrset | {"name": rrset["name"].replace('$NAME$', name)} for rrset in invalid_rrsets]
+        self.put_zone(name, {'rrsets': rrsets}, expect_error=expected_error)
+
+
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
 
