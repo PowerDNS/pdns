@@ -1490,7 +1490,7 @@ static void checkNewRecords(vector<DNSResourceRecord>& records, const DNSName& z
     try {
       checkHostnameCorrectness(rec);
     } catch (const std::exception& e) {
-      throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString() + " " + e.what());
+      throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString() + ": " + e.what());
     }
 
     previous = rec;
