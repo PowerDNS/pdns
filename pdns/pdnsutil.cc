@@ -2265,7 +2265,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
 static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
 {
   // temp var for addKey
-  int64_t id;
+  int64_t id{-1};
 
   // parse attribute
   string k_algo = ::arg()["default-ksk-algorithm"];
@@ -3068,7 +3068,7 @@ try
         return EXIT_FAILURE;
       }
     }
-    int64_t id;
+    int64_t id{-1};
     if (!dk.addKey(zone, keyOrZone, algorithm, id, bits, active, published)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
       return 1;
@@ -3577,7 +3577,7 @@ try
     }
     dpk.setKey(key, flags, algo);
 
-    int64_t id;
+    int64_t id{-1};
     if (!dk.addKey(DNSName(zone), dpk, id)) {
       cerr << "Adding key failed, perhaps DNSSEC not enabled in configuration?" << endl;
       return 1;
@@ -3633,7 +3633,7 @@ try
     }
     dpk.setKey(key, flags, algo);
 
-    int64_t id;
+    int64_t id{-1};
     if (!dk.addKey(DNSName(zone), dpk, id, active, published)) {
       cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
       return 1;
@@ -3963,7 +3963,6 @@ try
         return 1;
       }
 
-      int64_t id;
       bool keyOrZone = (cmds.at(4) == "ksk" ? true : false);
       string module = cmds.at(5);
       string slot = cmds.at(6);
@@ -3996,8 +3995,8 @@ try
 
       // make sure this key isn't being reused.
       B.getDomainKeys(zone, keys);
-      id = -1;
 
+      int64_t id{-1};
       for(DNSBackend::KeyData& kd :  keys) {
         if (kd.content == iscString.str()) {
           // it's this one, I guess...

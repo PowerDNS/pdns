@@ -629,14 +629,14 @@ static void addDefaultDNSSECKeys(DNSSECKeeper& dk, const DNSName& zonename) {
   int z_size = arg().asNum("default-zsk-size");
 
   if (k_algo != -1) {
-    int64_t id;
+    int64_t id{-1};
     if (!dk.addKey(zonename, true, k_algo, id, k_size)) {
       throwUnableToSecure(zonename);
     }
   }
 
   if (z_algo != -1) {
-    int64_t id;
+    int64_t id{-1};
     if (!dk.addKey(zonename, false, z_algo, id, z_size)) {
       throwUnableToSecure(zonename);
     }
