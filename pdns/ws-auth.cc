@@ -618,6 +618,31 @@ static void throwUnableToSecure(const DNSName& zonename) {
       + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
 }
 
+/*
+ * Add KSK and ZSK to an existing zone. Algorithms and sizes will be chosen per configuration.
+*/
+static void addDefaultDNSSECKeys(DNSSECKeeper& dk, const DNSName& zonename) {
+  checkDefaultDNSSECAlgos();
+  int k_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-ksk-algorithm"]);
+  int z_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-zsk-algorithm"]);
+  int k_size = arg().asNum("default-ksk-size");
+  int z_size = arg().asNum("default-zsk-size");
+
+  if (k_algo != -1) {
+    int64_t id;
+    if (!dk.addKey(zonename, true, k_algo, id, k_size)) {
+      throwUnableToSecure(zonename);
+    }
+  }
+
+  if (z_algo != -1) {
+    int64_t id;
+    if (!dk.addKey(zonename, false, z_algo, id, z_size)) {
+      throwUnableToSecure(zonename);
+    }
+  }
+}
+
 static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<DNSName>& catalog, boost::optional<string>& account)
 {
   if (document["kind"].is_string()) {
@@ -737,26 +762,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, DomainInfo& di, co
   if (dnssecInJSON) {
     if (dnssecDocVal) {
       if (!isDNSSECZone) {
-        checkDefaultDNSSECAlgos();
-
-        int k_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-ksk-algorithm"]);
-        int z_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-zsk-algorithm"]);
-        int k_size = arg().asNum("default-ksk-size");
-        int z_size = arg().asNum("default-zsk-size");
-
-        if (k_algo != -1) {
-          int64_t id;
-          if (!dk.addKey(zonename, true, k_algo, id, k_size)) {
-            throwUnableToSecure(zonename);
-          }
-        }
-
-        if (z_algo != -1) {
-          int64_t id;
-          if (!dk.addKey(zonename, false, z_algo, id, z_size)) {
-            throwUnableToSecure(zonename);
-          }
-        }
+        addDefaultDNSSECKeys(dk, zonename);
 
         // Used later for NSEC3PARAM
         isDNSSECZone = dk.isSecuredZone(zonename);
