@@ -643,6 +643,15 @@ static void addDefaultDNSSECKeys(DNSSECKeeper& dk, const DNSName& zonename) {
   }
 }
 
+static bool isZoneApiRectifyEnabled(const DomainInfo& di) {
+  string api_rectify;
+  di.backend->getDomainMetadataOne(di.zone, "API-RECTIFY", api_rectify);
+  if (api_rectify.empty() && ::arg().mustDo("default-api-rectify")) {
+    api_rectify = "1";
+  }
+  return api_rectify == "1";
+}
+
 static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<DNSName>& catalog, boost::optional<string>& account)
 {
   if (document["kind"].is_string()) {
@@ -818,14 +827,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, DomainInfo& di, co
 
   if (shouldRectify && !isPresigned) {
     // Rectify
-    string api_rectify;
-    di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
-    if (api_rectify.empty()) {
-      if (::arg().mustDo("default-api-rectify")) {
-        api_rectify = "1";
-      }
-    }
-    if (api_rectify == "1") {
+    if (isZoneApiRectifyEnabled(di)) {
       string info;
       string error_msg;
       if (!dk.rectifyZone(zonename, error_msg, info, false) && !di.isSecondaryType()) {
@@ -2350,17 +2352,11 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp)  //
 
   // Rectify
   DNSSECKeeper dk(&B);
-  if (!zone_disabled && !dk.isPresigned(zonename)) {
-    string api_rectify;
-    if (!di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify) && ::arg().mustDo("default-api-rectify")) {
-      api_rectify = "1";
-    }
-    if (api_rectify == "1") {
-      string info;
-      string error_msg;
-      if (!dk.rectifyZone(zonename, error_msg, info, false)) {
-        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
-      }
+  if (!zone_disabled && !dk.isPresigned(zonename) && isZoneApiRectifyEnabled(di)) {
+    string info;
+    string error_msg;
+    if (!dk.rectifyZone(zonename, error_msg, info, false)) {
+      throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
     }
   }
 
