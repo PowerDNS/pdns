@@ -657,6 +657,23 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
   }
 }
 
+/*
+ * Build vector of TSIG Key ids from domain update document.
+ * jsonArray: JSON array element to extract TSIG key ids from.
+ * metadata: returned list of domain key ids for setDomainMetadata
+*/
+static void extractJsonTSIGKeyIds(UeberBackend& B, const Json& jsonArray, vector<string>& metadata) {
+  for(const auto& value : jsonArray.array_items()) {
+    auto keyname(apiZoneIdToName(value.string_value()));
+    DNSName keyAlgo;
+    string keyContent;
+    if (!B.getTSIGKey(keyname, keyAlgo, keyContent)) {
+      throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
+    }
+    metadata.push_back(keyname.toString());
+  }
+}
+
 // Must be called within backend transaction.
 static void updateDomainSettingsFromDocument(UeberBackend& B, DomainInfo& di, const DNSName& zonename, const Json& document, bool zoneWasModified) {
   boost::optional<DomainInfo::DomainKind> kind;
@@ -833,30 +850,14 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, DomainInfo& di, co
 
   if (!document["master_tsig_key_ids"].is_null()) {
     vector<string> metadata;
-    for(const auto& value : document["master_tsig_key_ids"].array_items()) {
-      auto keyname(apiZoneIdToName(value.string_value()));
-      DNSName keyAlgo;
-      string keyContent;
-      if (!B.getTSIGKey(keyname, keyAlgo, keyContent)) {
-        throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
-      }
-      metadata.push_back(keyname.toString());
-    }
+    extractJsonTSIGKeyIds(B, document["master_tsig_key_ids"], metadata);
     if (!di.backend->setDomainMetadata(zonename, "TSIG-ALLOW-AXFR", metadata)) {
       throw HttpInternalServerErrorException("Unable to set new TSIG master keys for zone '" + zonename.toLogString() + "'");
     }
   }
   if (!document["slave_tsig_key_ids"].is_null()) {
     vector<string> metadata;
-    for(const auto& value : document["slave_tsig_key_ids"].array_items()) {
-      auto keyname(apiZoneIdToName(value.string_value()));
-      DNSName keyAlgo;
-      string keyContent;
-      if (!B.getTSIGKey(keyname, keyAlgo, keyContent)) {
-        throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
-      }
-      metadata.push_back(keyname.toString());
-    }
+    extractJsonTSIGKeyIds(B, document["slave_tsig_key_ids"], metadata);
     if (!di.backend->setDomainMetadata(zonename, "AXFR-MASTER-TSIG", metadata)) {
       throw HttpInternalServerErrorException("Unable to set new TSIG slave keys for zone '" + zonename.toLogString() + "'");
     }
