@@ -532,6 +532,7 @@ static bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   pw.getHeader()->id = mdp.d_header.id;
   pw.getHeader()->rd = mdp.d_header.rd;
   pw.getHeader()->qr = 1;
+  pw.getHeader()->aa = 1;
 
   pw.startRecord(mdp.d_qname, QType::SOA, zoneInfo->soaTTL);
   zoneInfo->soa->toPacket(pw);
