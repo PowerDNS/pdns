@@ -272,7 +272,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
 
     sock.writenWithTimeout(reinterpret_cast<const char*>(packet.data()), packet.size(), backend->d_config.tcpSendTimeout);
 
-    const struct timeval remainingTime = { .tv_sec = backend->d_config.tcpRecvTimeout, .tv_usec = 0 };
+    const struct timeval remainingTime = {.tv_sec = backend->d_config.tcpRecvTimeout, .tv_usec = 0};
     uint16_t responseSize = 0;
     auto got = readn2WithTimeout(sock.getHandle(), &responseSize, sizeof(responseSize), remainingTime);
     if (got < 0 || static_cast<size_t>(got) != sizeof(responseSize)) {
