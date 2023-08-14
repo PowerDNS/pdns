@@ -113,7 +113,7 @@ private:
   bool d_logDNSDetails;
   bool d_doDNAME;
   bool d_doExpandALIAS;
-  bool d_dnssec;
+  bool d_dnssec{false};
   SOAData d_sd;
   std::unique_ptr<AuthLua4> d_pdl;
   std::unique_ptr<AuthLua4> d_update_policy_lua;
