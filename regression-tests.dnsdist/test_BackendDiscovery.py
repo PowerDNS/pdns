@@ -268,7 +268,8 @@ class TestBackendDiscovery(DNSDistTest):
         TCPNoUpgradeResponder.setDaemon(True)
         TCPNoUpgradeResponder.start()
 
-        TCPUpgradeToDoTResponder = threading.Thread(name='TCP upgrade to DoT Responder', target=cls.TCPResponder, args=[cls._svcUpgradeDoTBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.UpgradeDoTCallback])
+        # this one is special, does partial writes!
+        TCPUpgradeToDoTResponder = threading.Thread(name='TCP upgrade to DoT Responder', target=cls.TCPResponder, args=[cls._svcUpgradeDoTBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.UpgradeDoTCallback, None, False, '127.0.0.1', True])
         TCPUpgradeToDoTResponder.setDaemon(True)
         TCPUpgradeToDoTResponder.start()
         # and the corresponding DoT responder
