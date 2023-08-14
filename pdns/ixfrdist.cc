@@ -1194,7 +1194,7 @@ struct IXFRDistConfiguration
   uint16_t tcpInThreads{0};
   uid_t uid{0};
   gid_t gid{0};
-  bool done{false};
+  bool shouldExit{false};
 };
 
 static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** argv, FDMultiplexer& fdm)
@@ -1218,11 +1218,13 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
 
     if (g_vm.count("help") > 0) {
       usage(desc);
+      configuration.shouldExit = true;
       return configuration;
     }
 
     if (g_vm.count("version") > 0) {
       cout<<"ixfrdist "<<VERSION<<endl;
+      configuration.shouldExit = true;
       return configuration;
     }
 
@@ -1435,7 +1437,7 @@ int main(int argc, char** argv) {
       return EXIT_FAILURE;
     }
 
-    if (configuration->done) {
+    if (configuration->shouldExit) {
       return EXIT_SUCCESS;
     }
   }
