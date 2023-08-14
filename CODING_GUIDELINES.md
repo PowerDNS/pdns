@@ -79,7 +79,7 @@ class BadFileDescriptorWrapper
   {
     d_fd = open(...);
     if (something) {
-      throw std::runtime_error(...);
+      throw std::runtime_error(...); // WRONG, DO NOT DO THIS!
     }
     ...
   }
@@ -209,7 +209,7 @@ One such example occurred in dnsdist: [2017-01: Crafted backend responses can ca
 
 In that case, a pointer was set to the start of a buffer plus a given length, to see whether the result would go past another pointer that was set to the end of the buffer.
 Unfortunately, if the start of the buffer is at a very high virtual address, the result of the addition might overflow and wrap around, causing the check to become true and leading to either a crash or the reading of unrelated memory.
-While very unlikely on a 64 bits platform, it could happen on 16 or 32 bits platform.
+While very unlikely on a 64 bits platform, it could happen on 32 bits platform.
 
 This kind of issue is best avoided by the use of containers to avoid the need for pointer arithmetic, or by being very careful to only add checked offsets to a pointer.
 
@@ -227,13 +227,13 @@ The use of a container and its corresponding `at()` operator would have prevente
 The cost of using `at()` is negligible for most use cases, and can be avoided by using the `[]` operator in the rare case when the cost cannot be afforded.
 Note that several Linux distributions now build with `-Wp,-D_GLIBCXX_ASSERTIONS` enabled by default, which turns on cheap range checks for C++ arrays, vectors, and strings.
 
-Regarding performance, it is advised to `reserve()` the needed size in advance when a rough estimate is known to avoid reallocations and copies.
+Regarding performance, it is advised to `reserve()` the needed size in advance when a rough estimate is known to avoid reallocations and copies. It usually triggers the allocation of enough memory to hold the requested number of items but does not increase the size of the container as reported by `size()`.
 Resizing in advance is not advised, though, as it makes it harder to exactly know what is in the container in case of early returns or exceptions.
 
 In C++11, move operators make it possible to cheaply get the contents of a container into a different variable if needed.
 
 The need to pass a subset of a container without copying it often leads to passing a pointer to an array of chars along with a size.
-Introduced in C++14 but already available in PowerDNS via boost (see views.hh), `views` provide a nice way to borrow the content of a container to pass it to a function, without any copying or dynamic memory allocation.
+Introduced in C++14, `views` provide a nice way to borrow the content of a container to pass it to a function, without any copying or dynamic memory allocation.
 
 The basic `string_view` class provides that feature for a container of chars, but the same feature exists for other types, like `uint8_t`.
 
@@ -252,7 +252,7 @@ The second one is the "share nothing" approach, where each thread has its own da
 When a thread needs to communicate with another one, it might use a `pdns::channel` to pass a pointer to that second thread.
 That works quite well but sometimes sharing data is much more efficient than the alternative.
 
-For these cases, we use the classic locking approach, using either a simple mutex or read-write lock, depending on the use case.
+For cases where sharing the data between threads is needed, we use the classic locking approach, using either a simple mutex or read-write lock, depending on the use case.
 
 ## Locks
 
@@ -268,13 +268,13 @@ There are a few pitfalls to avoid when using locks:
 
 There are several types of locks:
 
-* Spinlocks are very fast but are busy-waiting, meaning that they do not pause, but instead repetitively try to get hold of the lock, using 100% of one core, doing so unless preempted by the OS.
+* Spinlocks are very fast but are busy-waiting, meaning that they do not pause, but instead repetitively try to get hold of the lock, using 100% of one core, doing so unless preempted by the OS ;
   So they are only suited for locks that are almost never contented ;
 * A mutex is a very simple lock.
   In most implementations it is a very fast lock, implemented in user-space on recent Linux kernels and glibc ;
 * A read-write lock (RW-lock) allows several threads to acquire it in read mode, but only one thread can acquire it in write mode.
   This is suited when most accesses are read-only and writes are rare and do not take too long.
-  Otherwise, a mutex might actually be faster ;
+  Otherwise, a mutex might actually be faster.
 
 One quick word about condition variables, that allow a thread to notify one or more threads waiting for a condition to happen.
 A thread should acquire a mutex using a `std::unique_lock` and call the `wait()` method of the condition variable.
@@ -600,8 +600,6 @@ C++11 introduced automatic type deduction, using the `auto` keyword.
 Using automatic type deduction prevents nasty surprises if the variable is initialized from another one, or from a function, and the other type is changed to a different one.
 The code might still compile while now involving a copy or worse.
 
-## Boolean Expressions
-
 ## Explicit Comparisons
 
 * Compare numerical values with `== 0` or `!= 0` explicitly ;
@@ -612,7 +610,7 @@ The code might still compile while now involving a copy or worse.
 
 Use braced initialization for members as often as possible:
 
-* It does forbid narrowing conversions
+* It does forbid narrowing conversions :
 * It avoids C++'s "[most vexing parse](https://en.wikipedia.org/wiki/Most_vexing_parse)" which is to declare a function instead of calling the default constructor:
 
 ```c++
@@ -627,16 +625,36 @@ It also cannot be silently taken as an integer, which can happens with `0` but a
 ## `const`-ness
 
 * Mark parameters and variables that should not be modified as `const`.
-  This is especially important for references and pointers that comes from outside the function, but it also makes sense to do it for local variables or parameters passed by value because it might help detect a logic error later.
-* Mark `const` methods as such (and make them thread-safe)
+  This is especially important for references and pointers that comes from outside the function, but it also makes sense to do it for local variables or parameters passed by value because it might help detect a logic error later ;
+* Mark `const` methods as such (and make them thread-safe) ;
 * Prefer using `at()` on containers so that no insertion can take place by mistake, and to get bounds checking.
 
-## `static`
+## Unnamed Namespace
 
-Functions that are only used inside a single file should be marked as `static`, so that:
+Functions that are only used inside a single file should be put into an unnamed namespace, so that:
 
 * The compiler knows that these functions will not be called from a different compilation unit and thus that no symbol needs to be generated, making it more likely for the function to be inlined ;
 * The reader knows that this function is only used there and can be altered without causing an issue somewhere else.
+
+```c++
+namespace {
+
+bool thisFunctionIsOnlyUsableFromThisTranslationUnit()
+{
+}
+
+}
+```
+
+These functions used to be marked `static` in the past, so you might still encounter this form in the code base instead: 
+
+```c++
+static bool thisOneAsWell()
+{
+}
+```
+
+but the unnamed namespace form is now preferred.
 
 For the same reason, global variables that are only accessed from a single file should be marked static as well.
 
@@ -680,13 +698,13 @@ They are also very hard to spot in a code.
 C++-style casts can easily be spotted in a code, which makes it easy to review them.
 
 * `const_cast` can be used to remove the `const` qualifier on a variable.
-  It's usually a bad sign, but is sometimes needed to call a function that will not modify the variable but lacks the `const` qualifier.
+  It's usually a bad sign, but is sometimes needed to call a function that will not modify the variable but lacks the `const` qualifier ;
 * `dynamic_cast` can be used to cast a pointer to a derived class or to a base class, while checking that the operation is valid.
   If the cast object is not valid for the intended type, a `nullptr` value will be returned (or a `bad_cast` exception for references) so the result of the operation should be checked!
   Note that the RTTI check needed to verify that the cast object is valid has a non-negligible CPU cost.
-  Not checking the return value might lead to remote denial of service by `nullptr`-dereference, as happened with the issue described in this advisory: https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-08.html
+  Not checking the return value might lead to remote denial of service by `nullptr`-dereference, as happened with the issue described in this advisory: [2017-08: Crafted CNAME answer can cause a denial of service](https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-08.html) ;
 * `static_cast` can perform downcast in place of `dynamic_cast`, with none of the cost associated to the check, but can only be done if the cast is known to be valid.
-  It can also do implicit conversion between types (from `ssize_t` to `size_t`, **after** checking that the value is greater or equal to zero).
+  It can also do implicit conversion between types (from `ssize_t` to `size_t`, **after** checking that the value is greater or equal to zero) ;
 * `reinterpret_cast` is quite dangerous, since it can be used to turn a type into a different one.
   It cannot be be used to remove a `const` qualifier.
   When used to reinterpret the content of a buffer it can quickly lead to alignment issues, as described in the [Alignment Issues] section.
@@ -697,5 +715,5 @@ C++-style casts can easily be spotted in a code, which makes it easy to review t
 A library call may clobber `errno`, even when it succeeds.
 Safe practice is:
 
-* Only look at `errno` on failing system calls or when a library function is documented to set `errno`.
+* Only look at `errno` on failing system calls or when a library function is documented to set `errno` ;
 * Immediately save the value of `errno` in a local variable after a system call for later decision making.
