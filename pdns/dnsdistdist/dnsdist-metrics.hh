@@ -29,11 +29,11 @@
 
 namespace dnsdist::metrics
 {
-  using Error = std::string;
+using Error = std::string;
 
-  [[nodiscard]] std::optional<Error> declareCustomMetric(const std::string& name, const std::string& type, const std::string& description, std::optional<std::string> customName);
-  [[nodiscard]] std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& name, uint64_t step);
-  [[nodiscard]] std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& name, uint64_t step);
-  [[nodiscard]] std::variant<double, Error> setCustomGauge(const std::string_view& name, const double value);
-  [[nodiscard]] std::variant<double, Error> getCustomMetric(const std::string_view& name);
+[[nodiscard]] std::optional<Error> declareCustomMetric(const std::string& name, const std::string& type, const std::string& description, std::optional<std::string> customName);
+[[nodiscard]] std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& name, uint64_t step);
+[[nodiscard]] std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& name, uint64_t step);
+[[nodiscard]] std::variant<double, Error> setCustomGauge(const std::string_view& name, const double value);
+[[nodiscard]] std::variant<double, Error> getCustomMetric(const std::string_view& name);
 }

@@ -25,7 +25,8 @@
 #include "dnsdist.hh"
 #include "dnsdist-web.hh"
 
-namespace dnsdist::metrics {
+namespace dnsdist::metrics
+{
 
 std::optional<std::string> declareCustomMetric(const std::string& name, const std::string& type, const std::string& description, std::optional<std::string> customName)
 {
