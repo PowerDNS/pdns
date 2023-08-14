@@ -504,7 +504,7 @@ DNSHeader (``dh``) object
 
     Get recursion desired flag.
 
-  .. method:: DNSHeader:getTC() -> int
+  .. method:: DNSHeader:getTC() -> bool
 
     .. versionadded:: 1.8.1
 
