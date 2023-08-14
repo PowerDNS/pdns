@@ -296,7 +296,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         sock.close()
 
     @classmethod
-    def handleTCPConnection(cls, conn, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None):
+    def handleTCPConnection(cls, conn, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, partialWrite=False):
       ignoreTrailing = trailingDataResponse is True
       data = conn.recv(2)
       if not data:
@@ -328,7 +328,13 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         conn.close()
         return
 
-      conn.send(struct.pack("!H", len(wire)))
+      wireLen = struct.pack("!H", len(wire))
+      if partialWrite:
+        for b in wireLen:
+          conn.send(bytes([b]))
+          time.sleep(0.5)
+      else:
+        conn.send(wireLen)
       conn.send(wire)
 
       while multipleResponses:
@@ -355,7 +361,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
       conn.close()
 
     @classmethod
-    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1'):
+    def TCPResponder(cls, port, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, tlsContext=None, multipleConnections=False, listeningAddr='127.0.0.1', partialWrite=False):
         cls._backgroundThreads[threading.get_native_id()] = True
         # trailingDataResponse=True means "ignore trailing data".
         # Other values are either False (meaning "raise an exception")
@@ -394,11 +400,11 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             if multipleConnections:
               thread = threading.Thread(name='TCP Connection Handler',
                                         target=cls.handleTCPConnection,
-                                        args=[conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback])
+                                        args=[conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite])
               thread.setDaemon(True)
               thread.start()
             else:
-              cls.handleTCPConnection(conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback)
+              cls.handleTCPConnection(conn, fromQueue, toQueue, trailingDataResponse, multipleResponses, callback, partialWrite)
 
         sock.close()
 
