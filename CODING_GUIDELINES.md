@@ -587,7 +587,7 @@ This is especially important when hashing attacker-controlled values, as they ca
 * Denial of service via hash table flooding (in a map, all entries that hash to the same value are often placed into a linked-list, making it possible to cause a linear scan of entries by making all of them hash to that same value).
 
 The first issue can be prevented by comparing the entries and not just the value they hash to.
-The second one can be used by using some sort of secret when computing the hash so that the result cannot be guessed by the attacker.
+The second one can be avoided by using some sort of secret when computing the hash so that the result cannot be guessed by the attacker.
 That can be achieved by using an unpredictable seed for certain hash algorithms, or a secret for some other like `SipHash`.
 
 # Readability Tips
@@ -598,7 +598,7 @@ Some of these tips are actually enforced by `clang-tidy` nowadays, but it is sti
 
 C++11 introduced automatic type deduction, using the `auto` keyword.
 Using automatic type deduction prevents nasty surprises if the variable is initialized from another one, or from a function, and the other type is changed to a different one.
-The code might still compile while now involving a copy or worse.
+Without `auto`, code might still compile but trigger a copy or worse.
 
 ## Explicit Comparisons
 
@@ -625,7 +625,7 @@ It also cannot be silently taken as an integer, which can happens with `0` but a
 ## `const`-ness
 
 * Mark parameters and variables that should not be modified as `const`.
-  This is especially important for references and pointers that comes from outside the function, but it also makes sense to do it for local variables or parameters passed by value because it might help detect a logic error later ;
+  This is especially important for references and pointers that come from outside the function, but it also makes sense to do it for local variables or parameters passed by value because it might help detect a logic error later ;
 * Mark `const` methods as such (and make them thread-safe) ;
 * Prefer using `at()` on containers so that no insertion can take place by mistake, and to get bounds checking.
 
@@ -661,21 +661,25 @@ For the same reason, global variables that are only accessed from a single file 
 ## Variables
 
 Try to declare variables in the innermost scope possible and avoid uninitialized variables as much as possible.
-Declare and initialize them when the values needed to initialize them are available.
+Declare and initialize variables when the values needed to initialize them are available.
 
 ## Exceptions
 
-Should be reserved for unexpected events (corrupted data, timeouts, ...) and should not be triggered in normal processing.
+Exceptions should be reserved for events that interrupt the normal processing flow (corrupted data, timeouts, ...), and should not be triggered in the general case.
 
-Do not be afraid of using them, though, as the cost of an exception that is not thrown is usually very small, thanks to the zero-cost exception model.
-It might still force the compiler to refrain from some optimizations, so it might make sense to avoid them in some very performance-sensitive, narrow code paths.
+For example, it would be better for a function checking a password or an API key to return a boolean or a `enum` indicating whether the check was successful than to throw an exception if the credentials are not valid, because the return value makes it clear that the check can and will fail, while otherwise the caller might not be aware that an exception can be raised.
+
+This does not mean that we should be afraid of using exceptions, though, but we need to keep in mind that they involve hidden complexity for the programmer that needs to keep a mental map of all the possible exceptions that can be raised.
+
+As far as performance goes the cost of an exception that is not thrown is usually very small, thanks to the zero-cost exception model. It might still force the compiler to refrain from some optimizations, so it might make sense to avoid them in some very performance-sensitive, narrow code paths, and to mark these paths as `noexcept` whenever possible.
 
 ### Custom Exceptions
 
-Exceptions defined by the standards should be used whenever possible, as they already cover a lot of use cases.
+When exceptions are used, the ones defined by the standards should be used whenever possible, as they already cover a lot of use cases.
 
-If custom exceptions are necessary, to be able to catch them explicitly, they should still derive from `std::exception`, directly or indirectly, so that they can still be caught in a more generic way to prevent the program from terminating.
-For example, the main connection handling function of a server can catch `std::exception` and just terminate the current connection if an uncaught exception bubbles up.
+If custom exceptions are necessary, to be able to catch them explicitly, they should derive from `std::exception`, directly or indirectly, so that they can be caught in a more generic way to prevent the program from terminating.
+
+For example, the main connection handling function of a server can catch `std::exception` and terminate the current connection if an uncaught exception bubbles up, without having to worry about all the possible cases.
 
 ### Catching Exceptions
 
@@ -693,7 +697,7 @@ Not using a reference would result in the exception object being sliced, meaning
 
 ## Casts
 
-C-style casts should be avoided, as the compiler does almost no check on the validity of the operation.
+C-style casts should be avoided, as the compiler does almost no checking on the validity of the operation.
 They are also very hard to spot in a code.
 C++-style casts can easily be spotted in a code, which makes it easy to review them.
 
