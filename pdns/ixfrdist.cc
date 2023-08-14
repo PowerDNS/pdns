@@ -1186,6 +1186,7 @@ struct IXFRDistConfiguration
   ComboAddress wsAddr;
   std::string wsLogLevel{"normal"};
   std::string workDir;
+  const struct passwd* userInfo{nullptr};
   uint32_t axfrMaxRecords{0};
   uint16_t keep{0};
   uint16_t axfrTimeout{0};
@@ -1386,6 +1387,8 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
         } else {
           configuration.uid = pw->pw_uid;
         }
+        //NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+        configuration.userInfo = getpwuid(configuration.uid);
       }
     }
 
@@ -1475,14 +1478,13 @@ int main(int argc, char** argv) {
         g_log<<Logger::Error<<"Could not set user id to "<<configuration->uid<<": "<<stringerror()<<endl;
         had_error = true;
       }
-      const auto* pw = getpwuid(configuration->uid);
-      if (pw == nullptr) {
+      if (configuration->userInfo == nullptr) {
         if (setgroups(0, nullptr) < 0) {
           g_log<<Logger::Error<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
           had_error = true;
         }
       } else {
-        if (initgroups(pw->pw_name, configuration->gid) < 0) {
+        if (initgroups(configuration->userInfo->pw_name, configuration->gid) < 0) {
           g_log<<Logger::Error<<"Unable to set supplementary groups: "<<stringerror()<<endl;
           had_error = true;
         }
