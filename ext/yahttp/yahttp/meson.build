@@ -15,7 +15,7 @@ lib_yahttp = static_library(
   'yahttp',
   module_sources,
   cpp_args: '-Wno-overloaded-virtual',
-  include_directories: toplevel_includes,
+  dependencies: [dep_pdns],
 )
 
 dep_yahttp = declare_dependency(
