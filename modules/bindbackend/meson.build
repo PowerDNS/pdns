@@ -1,14 +1,14 @@
-module_sources = [
+sources = [
   'bindbackend2.cc',
   'binddnssec.cc',
+]
 
-  # Headers
+headers = [
   'bindbackend2.hh',
-  # config_h,
 ]
 
 # TODO These should be packaged up some other way (and avoid product_source_dir)
-module_docs = [
+docs = [
   product_source_dir / 'pdns' / 'bind-dnssec.4.2.0_to_4.3.0_schema.sqlite3.sql',
   product_source_dir / 'pdns' / 'bind-dnssec.schema.sqlite3.sql',
 ]
@@ -16,10 +16,9 @@ module_docs = [
 if get_variable(module_name + '_module')
   lib = static_library(
     module_backend_name,
-    module_sources,
-    include_directories: toplevel_includes,
-    dependencies: dep_libcrypto,
-    extra_files: module_docs
+    sources,
+    dependencies: [dep_pdns, dep_libcrypto],
+    extra_files: [headers, docs],
   )
 
   set_variable('dep_static_' + module_name, lib)
@@ -28,10 +27,9 @@ endif
 if get_variable(module_name + '_dyn_module')
   lib = shared_module(
     module_backend_name,
-    module_sources,
-    include_directories: toplevel_includes,
-    dependencies: dep_libcrypto,
-    extra_files: module_docs
+    sources,
+    dependencies: [dep_pdns, dep_libcrypto],
+    extra_files: [headers, docs],
   )
 
   set_variable('dep_dyn_' + module_name, lib)
