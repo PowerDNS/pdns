@@ -24,7 +24,7 @@ endif
 libpdns_lua_records = dependency('', required: false)
 if opt_lua_records
   libpdns_lua_records = static_library(
-    'libpdns-lua-records',
+    'pdns-lua-records',
     'lua-record.cc',
     'minicurl.cc',
     'minicurl.hh',
@@ -39,7 +39,7 @@ endif
 libpdns_tsig = dependency('', required: false)
 if dep_gss_tsig.found()
   libpdns_tsig = static_library(
-    'libpdns-tsig',
+    'pdns-tsig',
     'tsigutils.cc',
     'tsigutils.hh',
     'tsigverifier.cc',
@@ -58,7 +58,7 @@ endif
 libpdns_pkcs11 = dependency('', required: false)
 if dep_pkcs11.found()
   libpdns_pkcs11 = static_library(
-    'libpdns-pkcs11',
+    'pdns-pkcs11',
     'pkcs11signers.cc',
     'pkcs11signers.hh',
     dependencies: [dep_pdns, dep_pkcs11],
@@ -71,7 +71,7 @@ endif
 
 libpdns_ws = declare_dependency(
   link_with: static_library(
-    'libpdns-ws',
+    'pdns-ws',
     'webserver.cc',
     'webserver.hh',
     'ws-api.cc',
@@ -259,7 +259,7 @@ libpdns_auth_ws = declare_dependency(
 libpdns_auth_lua = dependency('', required: false)
 if dep_lua.found()
   libpdns_auth_lua = static_library(
-    'libpdns-auth-lua',
+    'pdns-auth-lua',
     'lua-auth4.cc',
     'lua-auth4.hh',
     dependencies: [dep_pdns, libpdns_lua],
