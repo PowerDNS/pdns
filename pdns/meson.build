@@ -1,21 +1,77 @@
-# libpdns-bindparser
-libpdns_bindparser_sources = [
-  'zoneparser-tng.cc',
-  'zoneparser-tng.hh',
-
-  flex_generator.process('bindlexer.l'),
-  bison_generator.process('bindparser.yy'),
-]
-
-libpdns_bindparser = static_library(
-  'pdns-bindparser',
-  libpdns_bindparser_sources,
-  include_directories: toplevel_includes,
-  # dependencies: [dep_pkcs11, dep_gss_tsig],
+libpdns_bindparser = declare_dependency(
+  link_with: static_library(
+    'pdns-bindparser',
+    'zoneparser-tng.cc',
+    'zoneparser-tng.hh',
+    flex_generator.process('bindlexer.l'),
+    bison_generator.process('bindparser.yy'),
+    include_directories: toplevel_includes,
+    cpp_args: '-Wno-redundant-decls',
+  )
 )
 
-# libpdns
-libpdns_sources = [
+libpdns_lua = dependency('', required: false)
+if dep_lua.found()
+  libpdns_lua = declare_dependency(
+    sources: [
+      'lua-base4.cc',
+      'lua-base4.hh',
+    ],
+    dependencies: dep_lua,
+  )
+endif
+
+libpdns_lua_records = dependency('', required: false)
+if opt_lua_records
+  libpdns_lua_records = static_library(
+    'libpdns-lua-records',
+    'lua-record.cc',
+    'minicurl.cc',
+    'minicurl.hh',
+    include_directories: toplevel_includes,
+    dependencies: [dep_lua, dep_libcurl],
+  )
+
+  libpdns_lua_records = declare_dependency(
+    link_with: libpdns_lua_records,
+  )
+endif
+
+libpdns_tsig = dependency('', required: false)
+if dep_gss_tsig.found()
+  libpdns_tsig = static_library(
+    'libpdns-tsig',
+    'tsigutils.cc',
+    'tsigutils.hh',
+    'tsigverifier.cc',
+    'tsigverifier.hh',
+    'gss_context.cc',
+    'gss_context.hh',
+    cpp_args: '-Wno-redundant-decls',
+    include_directories: toplevel_includes,
+    dependencies: dep_gss_tsig,
+  )
+
+  libpdns_tsig = declare_dependency(
+    link_with: libpdns_tsig,
+  )
+endif
+
+libpdns_ws = declare_dependency(
+  link_with: static_library(
+    'libpdns-ws',
+    'webserver.cc',
+    'webserver.hh',
+    'ws-api.cc',
+    'ws-api.hh',
+    cpp_args: '-Wno-overloaded-virtual',
+    include_directories: toplevel_includes,
+    dependencies: [dep_yahttp, dep_json11],
+  )
+)
+
+libpdns = static_library(
+  'pdns',
   'arguments.cc',
   'arguments.hh',
   'axfr-retriever.cc',
@@ -44,7 +100,6 @@ libpdns_sources = [
   'dns_random.hh',
   'dnsbackend.cc',
   'dnsbackend.hh',
-  'dnslabeltext.cc',
   'dnsname.cc',
   'dnsname.hh',
   'dnspacket.cc',
@@ -74,8 +129,6 @@ libpdns_sources = [
   'ednssubnet.hh',
   'gettime.cc',
   'gettime.hh',
-  'gss_context.cc',
-  'gss_context.hh',
   'histogram.hh',
   'iputils.cc',
   'iputils.hh',
@@ -87,10 +140,6 @@ libpdns_sources = [
   'logger.cc',
   'logger.hh',
   'logging.hh',
-  'lua-auth4.cc',
-  'lua-auth4.hh',
-  'lua-base4.cc',
-  'lua-base4.hh',
   'mastercommunicator.cc',
   'misc.cc',
   'misc.hh',
@@ -116,12 +165,9 @@ libpdns_sources = [
   'rcpgenerator.hh',
   'resolver.cc',
   'resolver.hh',
-  'responsestats-auth.cc',
   'responsestats.cc',
   'responsestats.hh',
   'rfc2136handler.cc',
-  'secpoll-auth.cc',
-  'secpoll-auth.hh',
   'secpoll.cc',
   'secpoll.hh',
   'serialtweaker.cc',
@@ -147,10 +193,6 @@ libpdns_sources = [
   'tkey.cc',
   'trusted-notification-proxy.cc',
   'trusted-notification-proxy.hh',
-  'tsigutils.cc',
-  'tsigutils.hh',
-  'tsigverifier.cc',
-  'tsigverifier.hh',
   'ueberbackend.cc',
   'ueberbackend.hh',
   'unix_semaphore.cc',
@@ -162,42 +204,84 @@ libpdns_sources = [
   'uuid-utils.hh',
   'version.cc',
   'version.hh',
-  'webserver.cc',
-  'webserver.hh',
-  'ws-api.cc',
-  'ws-api.hh',
-  'ws-auth.cc',
-  'ws-auth.hh',
   'zoneparser-tng.cc',
-]
-
-libpdns = static_library(
-  'pdns',
-  libpdns_sources,
+  ragel_generator.process('dnslabeltext.rl'),
   include_directories: toplevel_includes,
-  dependencies: [deps, dep_pkcs11, dep_gss_tsig, dep_json11, dep_yahttp],
+  dependencies: [
+    dep_pkcs11,
+    dep_gss_tsig,
+    dep_json11,
+    dep_yahttp,
+    libpdns_bindparser,
+    libpdns_lua,
+    libpdns_lua_records,
+    libpdns_tsig,
+    libpdns_ws,
+  ],
 )
 
-# libpdns-auth
-libpdns_auth_sources = [
+libpdns_auth_main = declare_dependency(
+  link_with: static_library(
+    'pdns-auth-main',
+    'auth-main.cc',
+    'auth-main.hh',
+    cpp_args: '-Wno-overloaded-virtual',
+    include_directories: toplevel_includes,
+    dependencies: [
+      dep_yahttp,
+      dep_json11,
+      dep_systemd,
+      libpdns_lua_records,
+    ],
+  )
+)
+
+libpdns_auth_ws = declare_dependency(
+  link_with: static_library(
+    'pdns-auth-ws',
+    'ws-auth.cc',
+    'ws-auth.hh',
+    cpp_args: '-Wno-overloaded-virtual',
+    include_directories: toplevel_includes,
+    dependencies: [dep_yahttp, dep_json11],
+  )
+)
+
+libpdns_auth_lua = dependency('', required: false)
+if dep_lua.found()
+  libpdns_auth_lua = static_library(
+    'libpdns-auth-lua',
+    'lua-auth4.cc',
+    'lua-auth4.hh',
+    include_directories: toplevel_includes,
+    dependencies: libpdns_lua,
+  )
+
+  libpdns_auth_lua = declare_dependency(
+    link_with: libpdns_auth_lua,
+  )
+endif
+
+libpdns_auth = static_library(
+  'pdns-auth',
   'auth-caches.cc',
   'auth-caches.hh',
   'auth-carbon.cc',
   'auth-catalogzone.cc',
   'auth-catalogzone.hh',
-  'auth-main.cc',
-  'auth-main.hh',
   'auth-packetcache.cc',
   'auth-packetcache.hh',
   'auth-querycache.cc',
   'auth-querycache.hh',
   'auth-zonecache.cc',
   'auth-zonecache.hh',
-]
-
-libpdns_auth = static_library(
-  'pdns-auth',
-  libpdns_auth_sources,
+  'responsestats-auth.cc',
+  'secpoll-auth.cc',
+  'secpoll-auth.hh',
   include_directories: toplevel_includes,
-  dependencies: [deps, dep_yahttp, dep_json11],
+  dependencies: [
+    libpdns_auth_lua,
+    libpdns_auth_main,
+    libpdns_auth_ws,
+  ],
 )
