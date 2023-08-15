@@ -3,7 +3,7 @@ project(
   ['c', 'cpp'],
   version: run_command('builder-support' / 'gen-version', check: true).stdout().strip(),
   # license_files: 'LICENSE',   # TODO Meson 1.1.0
-  meson_version: '>= 1.0',
+  meson_version: '>= 1.2.1',
   default_options: [
     'buildtype=debugoptimized',
     'warning_level=2',          # TODO Move this to 3 to enable -Wpedantic
