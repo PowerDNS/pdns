@@ -6,12 +6,11 @@ project(
   meson_version: '>= 1.0',
   default_options: [
     'buildtype=debugoptimized',
-    'warning_level=2',          # TODO Move this to 3 at some point to enable -Wpedantic
+    'warning_level=2',          # TODO Move this to 3 to enable -Wpedantic
     'cpp_std=c++17',
   ],
 )
 
-# TODO Meson 0.56 introduces meson.project_source_root().
 product_source_dir = meson.current_source_dir()
 product_build_dir = meson.current_build_dir()
 summary('Source Dir', product_source_dir, section: 'Build')
@@ -24,8 +23,8 @@ fs = import('fs')
 conf = configuration_data()
 deps = []
 
-# TODO Ultimately we should get rid of this by passing library objects instead of include
-# directories to e.g. modules.
+# TODO Get rid of this by passing library objects instead of include directories to
+# e.g. modules.
 toplevel_includes = include_directories('.', 'pdns')
 
 subdir('meson' / 'config')                  # Config
@@ -81,6 +80,7 @@ subdir('meson' / 'malloc-trace')            # Malloc-trace
 subdir('meson' / 'auth-socket-dir')         # Socket Dir
 subdir('meson' / 'auth-various-functions')  # Various Functions
 
+# TODO Should this be handled in pdns/meson.build instead?
 # Find ragel or pdns/dnslabeltext.cc
 if not ragel.found() and not fs.exists('pdns' / 'dnslabeltext.cc')
   error('Ragel is missing and `pdns/dnslabeltext.cc` cannot be found. ' +
