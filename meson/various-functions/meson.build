@@ -1,5 +1,3 @@
-# Various Functions
-
 funcs = [
   'strcasestr',
   'localtime_r',
@@ -15,9 +13,10 @@ funcs = [
   'explicit_memset',
   'memset_s',
 ]
+
 foreach func: funcs
   found = cxx.has_function(func)
   define = 'HAVE_' + func.to_upper()
-  conf.set10(define, found, description: 'Whether we have ' + func)
+  conf.set(define, found, description: 'Have ' + func)
   summary(func, found, bool_yn: true, section: 'Various Functions')
 endforeach
