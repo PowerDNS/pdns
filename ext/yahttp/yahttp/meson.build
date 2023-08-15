@@ -1,19 +1,17 @@
-module_sources = [
-  'cookie.hpp',
-  'exception.hpp',
-  'reqresp.cpp',
-  'reqresp.hpp',
-  'router.cpp',
-  'router.hpp',
-  'url.hpp',
-  'utility.hpp',
-  'yahttp-config.h',
-  'yahttp.hpp',
-]
-
 lib_yahttp = static_library(
   'yahttp',
-  module_sources,
+  'reqresp.cpp',
+  'router.cpp',
+  extra_files: [
+    'cookie.hpp',
+    'exception.hpp',
+    'reqresp.hpp',
+    'router.hpp',
+    'url.hpp',
+    'utility.hpp',
+    'yahttp-config.h',
+    'yahttp.hpp',
+  ],
   cpp_args: '-Wno-overloaded-virtual',
   dependencies: [dep_pdns],
 )
