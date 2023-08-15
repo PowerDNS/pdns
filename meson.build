@@ -77,8 +77,8 @@ subdir('meson' / 'code-coverage')           # Code coverage
 subdir('meson' / 'auto-var-init')           # Automatic Variable Initialization
 subdir('meson' / 'sanitizers')              # Sanitizers
 subdir('meson' / 'malloc-trace')            # Malloc-trace
-subdir('meson' / 'auth-socket-dir')         # Socket Dir
 subdir('meson' / 'auth-various-functions')  # Various Functions
+subdir('meson' / 'socket-dir')              # Socket Dir
 
 # TODO Should this be handled in pdns/meson.build instead?
 # Find ragel or pdns/dnslabeltext.cc
