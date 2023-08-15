@@ -57,6 +57,21 @@ if dep_gss_tsig.found()
   )
 endif
 
+libpdns_pkcs11 = dependency('', required: false)
+if dep_pkcs11.found()
+  libpdns_pkcs11 = static_library(
+    'libpdns-pkcs11',
+    'pkcs11signers.cc',
+    'pkcs11signers.hh',
+    include_directories: toplevel_includes,
+    dependencies: dep_pkcs11,
+  )
+
+  libpdns_pkcs11 = declare_dependency(
+    link_with: libpdns_pkcs11,
+  )
+endif
+
 libpdns_ws = declare_dependency(
   link_with: static_library(
     'libpdns-ws',
@@ -208,7 +223,6 @@ libpdns = static_library(
   ragel_generator.process('dnslabeltext.rl'),
   include_directories: toplevel_includes,
   dependencies: [
-    dep_pkcs11,
     dep_gss_tsig,
     dep_json11,
     dep_yahttp,
@@ -216,6 +230,7 @@ libpdns = static_library(
     libpdns_lua,
     libpdns_lua_records,
     libpdns_tsig,
+    libpdns_pkcs11,
     libpdns_ws,
   ],
 )
