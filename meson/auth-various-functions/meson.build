@@ -8,6 +8,12 @@ funcs = [
   'sched_setscheduler',
   'getrandom',
   'arc4random',
+  'getentropy',
+  'arc4random_uniform',
+  'arc4random_buf',
+  'explicit_bzero',
+  'explicit_memset',
+  'memset_s',
 ]
 foreach func: funcs
   found = cxx.has_function(func)
