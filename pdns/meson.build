@@ -223,7 +223,6 @@ libpdns = static_library(
   ragel_generator.process('dnslabeltext.rl'),
   include_directories: toplevel_includes,
   dependencies: [
-    dep_gss_tsig,
     dep_json11,
     dep_yahttp,
     libpdns_bindparser,
