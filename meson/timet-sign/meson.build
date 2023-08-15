@@ -1,15 +1,4 @@
-# Check the sign of time_t
-
-prog = '''
-#include <sys/types.h>
-
-int main() {
-  int foo[1 - 2 * !(((time_t) -1) < 0)];
-  (void)foo[0];
-  return 0;
-}
-'''
-
+prog = fs.read('timet_sign.cc')
 timet_signed = cxx.compiles(prog, name: 'time_t is signed')
 
 if not timet_signed
