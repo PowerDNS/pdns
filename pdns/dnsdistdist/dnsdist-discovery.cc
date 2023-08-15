@@ -275,7 +275,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     const struct timeval remainingTime = {.tv_sec = backend->d_config.tcpRecvTimeout, .tv_usec = 0};
     uint16_t responseSize = 0;
     auto got = readn2WithTimeout(sock.getHandle(), &responseSize, sizeof(responseSize), remainingTime);
-    if (static_cast<size_t>(got) != sizeof(responseSize)) {
+    if (got != sizeof(responseSize)) {
       if (g_verbose) {
         warnlog("Error while waiting for the ADD upgrade response size from backend %s: %d", addr.toStringWithPort(), got);
       }
@@ -285,7 +285,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     packet.resize(ntohs(responseSize));
 
     got = readn2WithTimeout(sock.getHandle(), packet.data(), packet.size(), remainingTime);
-    if (got < 0 || static_cast<size_t>(got) != packet.size()) {
+    if (got != packet.size()) {
       if (g_verbose) {
         warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toStringWithPort(), got);
       }
