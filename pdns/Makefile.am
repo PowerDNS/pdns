@@ -789,7 +789,7 @@ ixplore_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
-        gss_context.cc gss_context.hh  \
+	gss_context.cc gss_context.hh  \
 	iputils.cc \
 	ixfr.cc ixfr.hh \
 	ixfrutils.cc ixfrutils.hh \
@@ -1351,7 +1351,7 @@ testrunner_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
-        gss_context.cc gss_context.hh \
+	gss_context.cc gss_context.hh \
 	histogram.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc \

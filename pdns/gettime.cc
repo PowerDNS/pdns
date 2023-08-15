@@ -36,8 +36,9 @@ int gettime(struct timespec *tp, bool needRealTime)
 
 #else
 #include <sys/time.h>
+#include <cstddef>
 
-int gettime(struct timespec *tp, bool needRealTime)
+int gettime(struct timespec *tp, bool /* needRealTime */)
 {
 	struct timeval tv;
 
