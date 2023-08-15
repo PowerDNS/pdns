@@ -1,15 +1,20 @@
-module_sources = [
+sources = [
   'lua2api2.cc',
   'lua2backend.cc',
+]
 
-  # Headers
+headers = [
   'lua2backend.hh',
   'lua2api2.hh',
-  # config_h,
 ]
 
 if get_variable(module_name + '_module')
-  static_library(module_backend_name, module_sources, include_directories: toplevel_includes, dependencies: [dep_libcrypto, dep_lua])
+  static_library(
+    module_backend_name,
+    sources,
+    dependencies: [dep_pdns, dep_libcrypto, dep_lua],
+    extra_files: [headers],
+  )
 endif
 
 if get_variable(module_name + '_dyn_module')
