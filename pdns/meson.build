@@ -8,7 +8,7 @@ libpdns_bindparser = declare_dependency(
       'zoneparser-tng.hh',
     ],
     cpp_args: '-Wno-redundant-decls',
-    dependencies: [dep_pdns],
+    dependencies: deps,
   )
 )
 
@@ -21,13 +21,13 @@ if dep_lua.found()
       extra_files: [
         'lua-base4.hh',
       ],
-      dependencies: [dep_pdns, dep_lua],
+      dependencies: deps,
     )
   )
 endif
 
 libpdns_lua_records = dependency('', required: false)
-if opt_lua_records
+if dep_lua_records.found()
   libpdns_lua_records = declare_dependency(
     link_with: static_library(
       'pdns-lua-records',
@@ -36,7 +36,7 @@ if opt_lua_records
       extra_files: [
         'minicurl.hh',
       ],
-      dependencies: [dep_pdns, dep_lua, dep_libcurl],
+      dependencies: deps,
     )
   )
 endif
@@ -55,7 +55,7 @@ if dep_gss_tsig.found()
         'gss_context.hh',
       ],
       cpp_args: '-Wno-redundant-decls',
-      dependencies: [dep_pdns, dep_gss_tsig],
+      dependencies: deps,
     )
   )
 endif
@@ -69,7 +69,7 @@ if dep_pkcs11.found()
       extra_files: [
         'pkcs11signers.hh',
       ],
-      dependencies: [dep_pdns, dep_pkcs11],
+      dependencies: deps,
     )
   )
 endif
@@ -84,7 +84,7 @@ libpdns_ws = declare_dependency(
       'ws-api.hh',
     ],
     cpp_args: '-Wno-overloaded-virtual',
-    dependencies: [dep_pdns, dep_yahttp, dep_json11],
+    dependencies: deps,
   )
 )
 
@@ -227,9 +227,7 @@ libpdns = declare_dependency(
       'version.hh',
     ],
     dependencies: [
-      dep_pdns,
-      dep_json11,
-      dep_yahttp,
+      deps,
       libpdns_bindparser,
       libpdns_lua,
       libpdns_lua_records,
@@ -248,13 +246,7 @@ libpdns_auth_main = declare_dependency(
       'auth-main.hh',
     ],
     cpp_args: '-Wno-overloaded-virtual',
-    dependencies: [
-      dep_pdns,
-      dep_yahttp,
-      dep_json11,
-      dep_systemd,
-      # libpdns_lua_records,
-    ],
+    dependencies: deps,
   )
 )
 
@@ -266,11 +258,7 @@ libpdns_auth_ws = declare_dependency(
       'ws-auth.hh',
     ],
     cpp_args: '-Wno-overloaded-virtual',
-    dependencies: [
-      dep_pdns,
-      dep_yahttp,
-      dep_json11,
-    ],
+    dependencies: deps,
   )
 )
 
@@ -283,10 +271,7 @@ if dep_lua.found()
       extra_files: [
         'lua-auth4.hh',
       ],
-      dependencies: [
-        dep_pdns,
-        libpdns_lua,
-      ],
+      dependencies: deps,
     )
   )
 endif
@@ -311,7 +296,7 @@ libpdns_auth = declare_dependency(
       'secpoll-auth.hh',
     ],
     dependencies: [
-      dep_pdns,
+      deps,
       libpdns_auth_lua,
       libpdns_auth_main,
       libpdns_auth_ws,

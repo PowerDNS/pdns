@@ -172,8 +172,25 @@ config_h = configure_file(configuration: conf, output: 'config.h')
 ext_modules = ['yahttp', 'ipcrypt', 'json11']
 subdir('ext')
 
-# Pdns
+deps = [
+  dep_pdns,
+  dep_atomic,
+  dep_lua,
+  dep_lua_records,
+  dep_gss_tsig,
+  dep_pkcs11,
+  dep_yahttp,
+  dep_json11,
+  dep_systemd,
+]
 subdir('pdns')
 
-internal_deps = [libpdns, libpdns_auth]
-auth = executable('pdns_server', config_h, dependencies: deps, link_with: internal_deps, export_dynamic: true)
+pdns_server = executable(
+  'pdns_server',
+  config_h,
+  export_dynamic: true,
+  dependencies: [
+    libpdns,
+    libpdns_auth,
+  ]
+)
