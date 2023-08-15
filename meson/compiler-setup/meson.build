@@ -1,6 +1,3 @@
-# Common compiler setup
-# Outputs: cxx system
-
 # Don't limit the number of errors when using clang. This is useful to not cut out the
 # error output when using an LSP server like clangd.
 if meson.get_compiler('cpp').get_id() == 'clang'
