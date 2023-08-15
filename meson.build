@@ -43,7 +43,7 @@ subdir('meson' / 'pthread-headers')         # Check pthread headers
 subdir('meson' / 'pthread-setname')         # Pthread setname madness
 subdir('meson' / 'strerror')                # Strerror_r
 subdir('meson' / 'lua')                     # Lua
-subdir('meson' / 'lua-records')             # Lua Records
+subdir('meson' / 'lua-records')             # Lua-based Records
 subdir('meson' / 'hardening')               # Hardening
 subdir('meson' / 'kiss-rng')                # Unsafe KISS RNG
 subdir('meson' / 'net-libs')                # Network Libraries
