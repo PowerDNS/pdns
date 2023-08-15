@@ -5,10 +5,6 @@ module_sources = [
   # Headers
   'bindbackend2.hh',
   # config_h,
-
-  # TODO These should be in their own library (and avoid product_source_dir)
-  flex_generator.process(product_source_dir / 'pdns' / 'bindlexer.l'),
-  bison_generator.process(product_source_dir / 'pdns' / 'bindparser.yy'),
 ]
 
 # TODO These should be packaged up some other way (and avoid product_source_dir)
@@ -30,7 +26,7 @@ if get_variable(module_name + '_module')
 endif
 
 if get_variable(module_name + '_dyn_module')
-  lib = shared_library(
+  lib = shared_module(
     module_backend_name,
     module_sources,
     include_directories: toplevel_includes,
