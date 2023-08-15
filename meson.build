@@ -33,12 +33,12 @@ subdir('meson' / 'compiler-setup')          # Common compiler setup
 subdir('meson' / 'summary')                 # Print a system/project summary
 subdir('meson' / 'sysconfdir')              # Sysconfdir
 subdir('meson' / 'libdir')                  # Libdir
+subdir('meson' / 'platform')                # Platform detection
 subdir('meson' / 'timet-size')              # Check the size of time_t
 subdir('meson' / 'timet-sign')              # Check the sign of time_t
 subdir('meson' / 'flex')                    # Find flex and create generator
 subdir('meson' / 'bison')                   # Find bison and create generator
 subdir('meson' / 'ragel')                   # Find ragel and create generator
-subdir('meson' / 'platform')                # Platform detection
 subdir('meson' / 'atomics')                 # Check atomics support
 subdir('meson' / 'pthread-headers')         # Check pthread headers
 subdir('meson' / 'pthread-setname')         # Pthread setname madness
@@ -174,6 +174,7 @@ subdir('ext')
 
 deps = [
   dep_pdns,
+  dep_platform,
   dep_atomic,
   dep_lua,
   dep_lua_records,
