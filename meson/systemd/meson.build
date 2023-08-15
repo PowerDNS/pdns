@@ -1,9 +1,10 @@
 # Systemd and unit file handling
-# Inputs: conf
+# Inputs: conf deps
 # Outputs: dep_systemd
 
-dep_systemd = dependency('systemd', required: false)
+dep_systemd = dependency('libsystemd', required: false)
 conf.set10('HAVE_SYSTEMD', dep_systemd.found(), description: 'Whether we have systemd')
+deps += dep_systemd
 summary('Systemd', dep_systemd.found(), bool_yn: true, section: 'Configuration')
 
 if dep_systemd.found()
