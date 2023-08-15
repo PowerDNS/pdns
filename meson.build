@@ -162,8 +162,17 @@ foreach module_name, module_deps: all_modules
   subdir('modules' / module_backend_name)
 endforeach
 
-conf.set_quoted('PDNS_MODULES', ' '.join(selected_modules), description: 'Built-in modules')
-conf.set_quoted('PDNS_DYN_MODULES', ' '.join(selected_dyn_modules), description: 'Dynamically loadable modules built along with pdns')
+conf.set_quoted(
+  'PDNS_MODULES',
+  ' '.join(selected_modules),
+  description: 'Built-in modules'
+)
+
+conf.set_quoted(
+  'PDNS_DYN_MODULES',
+  ' '.join(selected_dyn_modules),
+  description: 'Dynamically loadable modules built along with pdns'
+)
 
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
