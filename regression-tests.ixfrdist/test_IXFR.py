@@ -26,7 +26,7 @@ newrecord.example.        8484    A       192.0.2.42
 """,
     3: """
 $ORIGIN example.
-@        86400   SOA    foo bar 3 2 3 4 5
+@        86400   SOA    foo bar 3 1500 3 4 5
 @        4242    NS     ns1.example.
 @        4242    NS     ns2.example.
 ns1.example.    4242    A       192.0.2.1
@@ -72,10 +72,16 @@ class IXFRDistBasicTest(IXFRDistTest):
     def tearDownClass(cls):
         cls.tearDownIXFRDist()
 
-    def waitUntilCorrectSerialIsLoaded(self, serial, timeout=10):
+    def waitUntilCorrectSerialIsLoaded(self, serial, timeout=10, notify=False):
         global xfrServer
 
         xfrServer.moveToSerial(serial)
+
+        if notify:
+            notif = dns.message.make_query('example.', 'SOA')
+            notif.set_opcode(dns.opcode.NOTIFY)
+            notify_response = self.sendUDPQuery(notif)
+            assert notify_response.rcode() == dns.rcode.NOERROR
 
         def get_current_serial():
             query = dns.message.make_query('example.', 'SOA')
@@ -227,7 +233,7 @@ class IXFRDistBasicTest(IXFRDistTest):
         self.checkIXFR(2,3)
         self.checkIXFR(1,3)
 
-        self.waitUntilCorrectSerialIsLoaded(4)
+        self.waitUntilCorrectSerialIsLoaded(serial=4, timeout=10, notify=True)
         self.checkFullZone(4)
         self.checkIXFR(3,4)
         self.checkIXFR(2,4)
