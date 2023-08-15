@@ -37,6 +37,7 @@ subdir('meson' / 'timet-size')              # Check the size of time_t
 subdir('meson' / 'timet-sign')              # Check the sign of time_t
 subdir('meson' / 'flex')                    # Find flex and create generator
 subdir('meson' / 'bison')                   # Find bison and create generator
+subdir('meson' / 'ragel')                   # Find ragel and create generator
 subdir('meson' / 'platform')                # Platform detection
 subdir('meson' / 'atomics')                 # Check atomics support
 subdir('meson' / 'pthread-headers')         # Check pthread headers
@@ -56,7 +57,6 @@ subdir('meson' / 'libssl')                  # OpenSSL libssl
 subdir('meson' / 'gnutls')                  # GnuTLS
 subdir('meson' / 'dot')                     # DNS over TLS
 subdir('meson' / 'ipcipher')                # IPCipher
-subdir('meson' / 'ragel')                   # Find Ragel and create generator
 subdir('meson' / 'clock-gettime')           # Clock_gettime
 subdir('meson' / 'boost')                   # Boost
 subdir('meson' / 'boost-program-options')   # Boost Program Options Library
