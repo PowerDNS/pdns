@@ -24,6 +24,7 @@
 #include <map>
 #include <string>
 
+#include "dns.hh"
 #include "dnsname.hh"
 #include "pdnsexception.hh"
 
@@ -70,6 +71,11 @@ class ixfrdistStats {
       progStats.unknownDomainInQueries += 1;
     }
 
+    void incrementNotImplemented(const string& opcode)
+    {
+      notimpStats[opcode] ++;
+    }
+
   private:
     class perDomainStat {
       public:
@@ -93,6 +99,7 @@ class ixfrdistStats {
     };
 
     std::map<DNSName, perDomainStat> domainStats;
+    std::map<string, std::atomic<uint64_t>> notimpStats;
     programStats progStats;
 
     std::map<DNSName, perDomainStat>::iterator getRegisteredDomain(const DNSName& d) {

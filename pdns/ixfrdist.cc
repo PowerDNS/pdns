@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "dns.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -474,33 +475,52 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
   } /* while (true) */
 } /* updateThread */
 
-static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true, const string& logPrefix="") {
+enum class ResponseType {
+  // Unknown,
+  ValidQuery,
+  RefusedOpcode,
+  RefusedQuery
+};
+
+static ResponseType checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true, const string& logPrefix="") {
   vector<string> info_msg;
+
+  auto ret = ResponseType::ValidQuery;
 
   g_log<<Logger::Debug<<logPrefix<<"Had "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" query from "<<saddr.toStringWithPort()<<endl;
 
-  if (udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).toString() + " is not in {SOA,IXFR})");
+  if (mdp.d_header.opcode != Opcode::Query) {
+    info_msg.push_back("Opcode is unsupported (" + Opcode::to_s(mdp.d_header.opcode) + "), expected QUERY");
+    ret = ResponseType::RefusedOpcode;
   }
-
-  if (!udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR && mdp.d_qtype != QType::AXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).toString() + " is not in {SOA,IXFR,AXFR})");
-  }
-
-  {
-    if (g_domainConfigs.find(mdp.d_qname) == g_domainConfigs.end()) {
-      info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
+  else {
+    if (udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR) {
+      info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).toString() + " is not in {SOA,IXFR})");
+      ret = ResponseType::RefusedQuery;
     }
-    else {
-      const auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
-      if (zoneInfo == nullptr) {
-        info_msg.push_back("Domain has not been transferred yet");
+
+    if (!udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR && mdp.d_qtype != QType::AXFR) {
+      info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).toString() + " is not in {SOA,IXFR,AXFR})");
+      ret = ResponseType::RefusedQuery;
+    }
+
+    {
+      if (g_domainConfigs.find(mdp.d_qname) == g_domainConfigs.end()) {
+        info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
+        ret = ResponseType::RefusedQuery;
+      }
+      else {
+        const auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+        if (zoneInfo == nullptr) {
+          info_msg.push_back("Domain has not been transferred yet");
+          ret = ResponseType::RefusedQuery;
+        }
       }
     }
   }
 
-  if (!info_msg.empty()) {
-    g_log<<Logger::Warning<<logPrefix<<"Refusing "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" query from "<<saddr.toStringWithPort();
+  if (!info_msg.empty()) {  // which means ret is not SOA
+    g_log<<Logger::Warning<<logPrefix<<"Refusing "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" "<< Opcode::to_s(mdp.d_header.opcode) <<" from "<<saddr.toStringWithPort();
     g_log<<Logger::Warning<<": ";
     bool first = true;
     for (const auto& s : info_msg) {
@@ -511,10 +531,10 @@ static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const
       g_log<<Logger::Warning<<s;
     }
     g_log<<Logger::Warning<<endl;
-    return false;
+    // fall through to return below
   }
 
-  return true;
+  return ret;
 }
 
 /*
@@ -551,6 +571,21 @@ static bool makeRefusedPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) 
   pw.getHeader()->rd = mdp.d_header.rd;
   pw.getHeader()->qr = 1;
   pw.getHeader()->rcode = RCode::Refused;
+
+  return true;
+}
+
+/*
+ * Returns a vector<uint8_t> that represents the full NOTIMP response to a
+ * query. QNAME and type are read from mdp.
+ */
+static bool makeNotimpPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
+  DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+  pw.getHeader()->id = mdp.d_header.id;
+  pw.getHeader()->rd = mdp.d_header.rd;
+  pw.getHeader()->qr = 1;
+  pw.getHeader()->rcode = RCode::NotImp;
+  pw.getHeader()->opcode = mdp.d_header.opcode;
 
   return true;
 }
@@ -783,7 +818,9 @@ static bool allowedByACL(const ComboAddress& addr) {
   return g_acl.match(addr);
 }
 
-static void handleUDPRequest(int fd, boost::any&) {
+static void handleUDPRequest(int fd, boost::any&)
+try
+{
   // TODO make the buffer-size configurable
   char buf[4096];
   ComboAddress saddr;
@@ -813,7 +850,8 @@ static void handleUDPRequest(int fd, boost::any&) {
 
   MOADNSParser mdp(true, string(buf, res));
   vector<uint8_t> packet;
-  if (checkQuery(mdp, saddr)) {
+  auto respt = checkQuery(mdp, saddr);
+  if (respt == ResponseType::ValidQuery) {
     /* RFC 1995 Section 2
      *    Transport of a query may be by either UDP or TCP.  If an IXFR query
      *    is via UDP, the IXFR server may attempt to reply using UDP if the
@@ -827,9 +865,12 @@ static void handleUDPRequest(int fd, boost::any&) {
      */
     g_stats.incrementSOAinQueries(mdp.d_qname); // FIXME: this also counts IXFR queries (but the response is the same as to a SOA query)
     makeSOAPacket(mdp, packet);
-  } else {
+  } else if (respt == ResponseType::RefusedQuery) {
     g_stats.incrementUnknownDomainInQueries(mdp.d_qname);
     makeRefusedPacket(mdp, packet);
+  } else if (respt == ResponseType::RefusedOpcode) {
+    g_stats.incrementNotImplemented(Opcode::to_s(mdp.d_header.opcode));
+    makeNotimpPacket(mdp, packet);
   }
 
   if(sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*) &saddr, fromlen) < 0) {
@@ -838,6 +879,10 @@ static void handleUDPRequest(int fd, boost::any&) {
   }
   return;
 }
+catch(std::exception& e) {
+  return;
+}
+
 
 static void handleTCPRequest(int fd, boost::any&) {
   ComboAddress saddr;
@@ -909,7 +954,9 @@ static void tcpWorker(int tid) {
     try {
       MOADNSParser mdp(true, string(buf, res));
 
-      if (!checkQuery(mdp, saddr, false, prefix)) {
+      auto respt = checkQuery(mdp, saddr, false, prefix);
+
+      if (respt != ResponseType::ValidQuery) { // on TCP, we currently do not bother with sending useful errors
         close(cfd);
         continue;
       }
