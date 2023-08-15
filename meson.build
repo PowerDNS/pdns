@@ -24,9 +24,8 @@ fs = import('fs')
 conf = configuration_data()
 deps = []
 
-# TODO Get rid of this by passing library objects instead of include directories to
-# e.g. modules.
-toplevel_includes = include_directories('.', 'pdns')
+# Toplevel includes
+dep_pdns = declare_dependency(include_directories: include_directories('.', 'pdns'))
 
 subdir('meson' / 'config')                  # Config
 subdir('meson' / 'version')                 # Generate version define

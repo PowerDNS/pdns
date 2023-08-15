@@ -5,7 +5,7 @@ libpdns_bindparser = declare_dependency(
     'zoneparser-tng.hh',
     flex_generator.process('bindlexer.l'),
     bison_generator.process('bindparser.yy'),
-    include_directories: toplevel_includes,
+    dependencies: [dep_pdns],
     cpp_args: '-Wno-redundant-decls',
   )
 )
@@ -28,8 +28,7 @@ if opt_lua_records
     'lua-record.cc',
     'minicurl.cc',
     'minicurl.hh',
-    include_directories: toplevel_includes,
-    dependencies: [dep_lua, dep_libcurl],
+    dependencies: [dep_pdns, dep_lua, dep_libcurl],
   )
 
   libpdns_lua_records = declare_dependency(
@@ -48,8 +47,7 @@ if dep_gss_tsig.found()
     'gss_context.cc',
     'gss_context.hh',
     cpp_args: '-Wno-redundant-decls',
-    include_directories: toplevel_includes,
-    dependencies: dep_gss_tsig,
+    dependencies: [dep_pdns, dep_gss_tsig],
   )
 
   libpdns_tsig = declare_dependency(
@@ -63,8 +61,7 @@ if dep_pkcs11.found()
     'libpdns-pkcs11',
     'pkcs11signers.cc',
     'pkcs11signers.hh',
-    include_directories: toplevel_includes,
-    dependencies: dep_pkcs11,
+    dependencies: [dep_pdns, dep_pkcs11],
   )
 
   libpdns_pkcs11 = declare_dependency(
@@ -80,8 +77,7 @@ libpdns_ws = declare_dependency(
     'ws-api.cc',
     'ws-api.hh',
     cpp_args: '-Wno-overloaded-virtual',
-    include_directories: toplevel_includes,
-    dependencies: [dep_yahttp, dep_json11],
+    dependencies: [dep_pdns, dep_yahttp, dep_json11],
   )
 )
 
@@ -221,8 +217,8 @@ libpdns = static_library(
   'version.hh',
   'zoneparser-tng.cc',
   ragel_generator.process('dnslabeltext.rl'),
-  include_directories: toplevel_includes,
   dependencies: [
+    dep_pdns,
     dep_json11,
     dep_yahttp,
     libpdns_bindparser,
@@ -240,8 +236,8 @@ libpdns_auth_main = declare_dependency(
     'auth-main.cc',
     'auth-main.hh',
     cpp_args: '-Wno-overloaded-virtual',
-    include_directories: toplevel_includes,
     dependencies: [
+      dep_pdns,
       dep_yahttp,
       dep_json11,
       dep_systemd,
@@ -256,8 +252,7 @@ libpdns_auth_ws = declare_dependency(
     'ws-auth.cc',
     'ws-auth.hh',
     cpp_args: '-Wno-overloaded-virtual',
-    include_directories: toplevel_includes,
-    dependencies: [dep_yahttp, dep_json11],
+    dependencies: [dep_pdns, dep_yahttp, dep_json11],
   )
 )
 
@@ -267,8 +262,7 @@ if dep_lua.found()
     'libpdns-auth-lua',
     'lua-auth4.cc',
     'lua-auth4.hh',
-    include_directories: toplevel_includes,
-    dependencies: libpdns_lua,
+    dependencies: [dep_pdns, libpdns_lua],
   )
 
   libpdns_auth_lua = declare_dependency(
@@ -292,8 +286,8 @@ libpdns_auth = static_library(
   'responsestats-auth.cc',
   'secpoll-auth.cc',
   'secpoll-auth.hh',
-  include_directories: toplevel_includes,
   dependencies: [
+    dep_pdns,
     libpdns_auth_lua,
     libpdns_auth_main,
     libpdns_auth_ws,
