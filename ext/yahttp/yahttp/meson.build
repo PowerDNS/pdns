@@ -11,8 +11,14 @@ module_sources = [
   'yahttp.hpp',
 ]
 
+lib_yahttp = static_library(
+  'yahttp',
+  module_sources,
+  cpp_args: '-Wno-overloaded-virtual',
+  include_directories: toplevel_includes,
+)
+
 dep_yahttp = declare_dependency(
-  compile_args: '-Wno-overloaded-virtual',
-  sources: module_sources,
+  link_with: lib_yahttp,
   include_directories: include_directories('..'),
 )
