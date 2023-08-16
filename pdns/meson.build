@@ -1,3 +1,21 @@
+libpdns_bind_dnssec_schema = custom_target(
+  'libpdns-bind-dnssec-schema',
+  command: [
+    python_prog,
+    '@INPUT0@',
+    '@INPUT1@',
+  ],
+  input: [
+    'generate-bind-dnssec-schema.py',
+    'bind-dnssec.schema.sqlite3.sql',
+  ],
+  output: 'bind-dnssec.schema.sqlite3.sql.h',
+  capture: true,
+)
+libpdns_bind_dnssec_schema = declare_dependency(
+  sources: [libpdns_bind_dnssec_schema],
+)
+
 libpdns_bind_parser = declare_dependency(
   link_with: static_library(
     'pdns-bind-parser',
@@ -162,7 +180,6 @@ libpdns = declare_dependency(
       'backends/gsql/ssql.hh',
       'base32.hh',
       'base64.hh',
-      'bind-dnssec.schema.sqlite3.sql.h',
       'burtle.hh',
       'cachecleaner.hh',
       'circular_buffer.hh',
@@ -228,6 +245,7 @@ libpdns = declare_dependency(
     ],
     dependencies: [
       deps,
+      libpdns_bind_dnssec_schema,
       libpdns_bind_parser,
       libpdns_lua,
       libpdns_lua_records,
