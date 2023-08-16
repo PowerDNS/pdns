@@ -531,8 +531,13 @@ try
 
   // t1.detach();
 }
- catch(std::exception& e)
+catch (const std::exception& exp)
 {
-  cerr<<"Fatal error: "<<e.what()<<endl;
+  cerr<<"Fatal error: "<<exp.what()<<endl;
+  return EXIT_FAILURE;
+}
+catch (const NetmaskException& exp)
+{
+  cerr<<"Fatal error: "<<exp.reason<<endl;
   return EXIT_FAILURE;
 }
