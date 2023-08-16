@@ -149,11 +149,6 @@
 ./pdns/ednssubnet.hh
 ./pdns/fstrm_logger.cc
 ./pdns/fstrm_logger.hh
-./pdns/fuzz_dnsdistcache.cc
-./pdns/fuzz_moadnsparser.cc
-./pdns/fuzz_packetcache.cc
-./pdns/fuzz_proxyprotocol.cc
-./pdns/fuzz_zoneparsertng.cc
 ./pdns/gettime.cc
 ./pdns/gettime.hh
 ./pdns/histog.hh
