@@ -22,7 +22,6 @@ fs = import('fs')
 
 # Create the configuration object and dependencies list.
 conf = configuration_data()
-deps = []
 
 # Toplevel includes
 dep_pdns = declare_dependency(include_directories: include_directories('.', 'pdns'))
