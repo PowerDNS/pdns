@@ -190,6 +190,7 @@ deps = [
   dep_netlibs,
   dep_libsodium,
   dep_libdecaf,
+  dep_libcrypto,
   dep_gss_tsig,
   dep_pkcs11,
   dep_yahttp,
