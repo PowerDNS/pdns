@@ -35,9 +35,18 @@
 #endif
 
 #if __SANITIZE_THREAD__
+#if defined __has_include
+#if __has_include(<sanitizer/tsan_interface.h>)
+#include <sanitizer/tsan_interface.h>
+#else /* __has_include(<sanitizer/tsan_interface.h>) */
 extern "C" void __tsan_acquire(void* addr);
 extern "C" void __tsan_release(void* addr);
-#endif
+#endif /* __has_include(<sanitizer/tsan_interface.h>) */
+#else /* defined __has_include */
+extern "C" void __tsan_acquire(void* addr);
+extern "C" void __tsan_release(void* addr);
+#endif /* defined __has_include */
+#endif /* __SANITIZE_THREAD__ */
 
 namespace pdns
 {
