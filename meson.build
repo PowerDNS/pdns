@@ -184,7 +184,7 @@ subdir('ext')
 deps = [
   dep_pdns,
   dep_platform,
-  dep_atomic,
+  dep_atomics,
   dep_lua,
   dep_lua_records,
   dep_gss_tsig,
