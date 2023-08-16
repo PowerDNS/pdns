@@ -1,5 +1,3 @@
-# Automatic Variable Initialization
-
 auto_var_init = get_option('auto-var-init')
 
 if auto_var_init != 'disabled'

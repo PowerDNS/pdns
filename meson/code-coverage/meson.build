@@ -1,5 +1,3 @@
-# Code coverage
-
 coverage = get_option('b_coverage')
 
 if coverage
