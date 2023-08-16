@@ -187,6 +187,7 @@ deps = [
   dep_atomics,
   dep_lua,
   dep_lua_records,
+  dep_netlibs,
   dep_gss_tsig,
   dep_pkcs11,
   dep_yahttp,

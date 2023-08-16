@@ -1,5 +1,4 @@
-# Network Libraries ----------------------------------------------------------------------
-# Inputs: deps conf
+netlib_deps = []
 
 variants = [
   ['inet_aton', 'resolv'],
@@ -7,6 +6,7 @@ variants = [
   ['socket', 'socket'],
   ['gethostent', 'nsl'],
 ]
+
 foreach variant: variants
   func_name = variant[0]
   lib_name = variant[1]
@@ -15,23 +15,30 @@ foreach variant: variants
   if not found
     lib = cxx.find_library(lib_name, required: true)
     if not cxx.has_function(func_name, dependencies: lib)
-      error('Cannot find function ' + func_name)
+      error('Cannot find function ' + func_name + ', searched library `' + lib_name + '`')
     endif
-    deps += lib
+    netlib_deps += lib
     found = lib.name() + ' ' + lib.version()
   endif
 
-  # summary(func_name, found, bool_yn: true, section: 'Network Functions')
+  summary(func_name, found, bool_yn: true, section: 'Networking Functions')
 endforeach
 
-variants = ['recvmmsg', 'sendmmsg', 'accept4']
+dep_netlibs = declare_dependency(dependencies: netlib_deps)
+
+variants = [
+  'recvmmsg',
+  'sendmmsg',
+  'accept4',
+]
+
 foreach variant: variants
   found = cxx.has_function(variant)
   define = 'HAVE_' + variant.to_upper()
-  conf.set10(define, found, description: 'Whether we have ' + variant)
-  # summary(variant, found, bool_yn: true, section: 'Network Functions')
+  conf.set(define, found, description: 'Have ' + variant)
+  summary(variant, found, bool_yn: true, section: 'Networking Functions')
 endforeach
 
 declared = cxx.has_header_symbol('ifaddrs.h', 'getifaddrs')
-conf.set10('HAVE_GETIFADDRS', declared, description: 'Whether we have getifaddrs')
-# summary('getifaddrs', declared, bool_yn: true, section: 'Network Functions')
+conf.set('HAVE_GETIFADDRS', declared, description: 'Have getifaddrs')
+summary('getifaddrs', declared, bool_yn: true, section: 'Networking Functions')
