@@ -1,17 +1,17 @@
-# Clock_gettime
-# Inputs: deps
-
 found = cxx.has_function('clock_gettime')
+dep_rt = dependency('', required: false)
 
 if not found
-  lib = cxx.find_library('rt', required: true)
+  dep_rt = cxx.find_library('rt', required: true)
 
-  if not cxx.has_function('clock_gettime', dependencies: lib)
-    error('Cannot find function ' + 'clock_gettime')
+  if not cxx.has_function('clock_gettime', dependencies: dep_rt)
+    error('Cannot find function `clock_gettime`')
   endif
-
-  deps += lib
-  found = lib.name() + ' ' + lib.version()
 endif
 
-summary('clock_gettime', found, bool_yn: true, section: 'System')
+summary('clock_gettime', true, bool_yn: true, section: 'System')
+
+if dep_rt.found()
+  summary('rt library', dep_rt.name(), bool_yn: true, section: 'System')
+  summary('rt library version', dep_rt.version(), bool_yn: true, section: 'System')
+endif

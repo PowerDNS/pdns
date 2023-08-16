@@ -193,6 +193,7 @@ deps = [
   dep_libcrypto,
   dep_libssl,
   dep_gnutls,
+  dep_rt,
   dep_gss_tsig,
   dep_pkcs11,
   dep_yahttp,
