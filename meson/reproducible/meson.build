@@ -1,10 +1,8 @@
-# Reproducible Builds
-# Inputs: conf
-
 opt_repro = get_option('reproducible')
-conf.set10('REPRODUCIBLE', opt_repro, description: 'Whether we enable reproducible builds')
+conf.set('REPRODUCIBLE', opt_repro, description: 'Reproducible builds')
+summary('Reproducible Builds', opt_repro, bool_yn: true, section: 'Reproducible Builds')
 
-if opt_repro
+if not opt_repro
   id_prog = find_program('id', required: opt_repro)
   id_prog_res = run_command(id_prog, '-u', '-n', check: true)
   build_user = id_prog_res.stdout().strip()
@@ -45,6 +43,6 @@ if opt_repro
   endif
 
   build_host = build_user + '@' + build_host
-  conf.set_quoted('BUILD_HOST', build_host, description: 'The user and host to built PowerDNS')
+  conf.set_quoted('BUILD_HOST', build_host, description: 'User and host who built PowerDNS')
   summary('Build Host', build_host, section: 'Reproducible Builds')
 endif

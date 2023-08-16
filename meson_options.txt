@@ -12,7 +12,7 @@ option('dns-over-tls', type: 'boolean', value: false, description: 'DNS over TLS
 option('ipcipher', type: 'feature', value: 'auto', description: 'IPcipher (requires libcrypto)')
 option('unit-tests', type: 'boolean', value: false, description: 'Build and run unit tests')
 option('unit-tests-backends', type: 'boolean', value: false, description: 'Build and run backend unit tests')
-option('reproducible', type: 'boolean', value: false, description: 'Create reproducible builds (for distribution maintainers, makes debugging more difficult)')
+option('reproducible', type: 'boolean', value: false, description: 'Reproducible builds (for distro maintainers, makes debugging difficult)')
 option('fuzz-targets', type: 'boolean', value: false, description: 'Enable fuzzing targets')
 option('verbose-logging', type: 'boolean', value: false, description: 'Enable verbose logging')
 option('experimental-pkcs11', type: 'feature', value: 'disabled', description: 'PKCS11 support')
