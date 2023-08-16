@@ -252,7 +252,7 @@ bool IncomingTCPConnectionState::canAcceptNewQueries(const struct timeval& now)
 
 void IncomingTCPConnectionState::resetForNewQuery()
 {
-  d_buffer.resize(sizeof(uint16_t));
+  d_buffer.clear();
   d_currentPos = 0;
   d_querySize = 0;
   d_state = State::waitingForQuery;
@@ -875,6 +875,7 @@ void IncomingTCPConnectionState::handleIO(std::shared_ptr<IncomingTCPConnectionS
       if (!state->d_lastIOBlocked && (state->d_state == IncomingTCPConnectionState::State::waitingForQuery ||
                                       state->d_state == IncomingTCPConnectionState::State::readingQuerySize)) {
         DEBUGLOG("reading query size");
+        state->d_buffer.resize(sizeof(uint16_t));
         iostate = state->d_handler.tryRead(state->d_buffer, state->d_currentPos, sizeof(uint16_t));
         if (state->d_currentPos > 0) {
           /* if we got at least one byte, we can't go around sending responses */
