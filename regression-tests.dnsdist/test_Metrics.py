@@ -148,7 +148,7 @@ class TestRuleMetrics(DNSDistTest):
 
     def testServFailMetrics(self):
         """
-        Metrics: Check that servfail metrics are correctly updated for cache misses and hits
+        Metrics: Check that servfail metrics are correctly updated for server failures
         """
 
         for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHQueryWrapper"):

@@ -45,15 +45,15 @@ public:
   bool isFull();
   string toString();
   uint64_t getSize();
-  uint64_t getHits() const { return d_hits; }
-  uint64_t getMisses() const { return d_misses; }
-  uint64_t getDeferredLookups() const { return d_deferredLookups; }
-  uint64_t getDeferredInserts() const { return d_deferredInserts; }
-  uint64_t getLookupCollisions() const { return d_lookupCollisions; }
-  uint64_t getInsertCollisions() const { return d_insertCollisions; }
+  uint64_t getHits() const { return d_hits.load(); }
+  uint64_t getMisses() const { return d_misses.load(); }
+  uint64_t getDeferredLookups() const { return d_deferredLookups.load(); }
+  uint64_t getDeferredInserts() const { return d_deferredInserts.load(); }
+  uint64_t getLookupCollisions() const { return d_lookupCollisions.load(); }
+  uint64_t getInsertCollisions() const { return d_insertCollisions.load(); }
   uint64_t getMaxEntries() const { return d_maxEntries; }
-  uint64_t getTTLTooShorts() const { return d_ttlTooShorts; }
-  uint64_t getCleanupCount() const { return d_cleanupCount; }
+  uint64_t getTTLTooShorts() const { return d_ttlTooShorts.load(); }
+  uint64_t getCleanupCount() const { return d_cleanupCount.load(); }
   uint64_t getEntriesCount();
   uint64_t dump(int fd);
 
