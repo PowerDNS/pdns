@@ -203,6 +203,7 @@ deps = [
   dep_pkcs11,
   dep_ixfrdist,
   dep_yahttp,
+  dep_ipcrypt,
   dep_json11,
   dep_systemd,
 ]

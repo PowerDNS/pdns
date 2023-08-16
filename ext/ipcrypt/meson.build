@@ -1,10 +1,13 @@
-module_sources = [
+lib_ipcrypt = static_library(
+  'ipcrypt',
   'ipcrypt.c',
-  'ipcrypt.h',
-]
+  extra_files: [
+    'ipcrypt.h',
+    'LICENSE',
+  ],
+)
 
-module_dist = [
-  'LICENSE',
-]
-
-dep_ipcrypt = static_library('ipcrypt', module_sources, extra_files: module_dist)
+dep_ipcrypt = declare_dependency(
+  link_with: lib_ipcrypt,
+  include_directories: include_directories('.'),
+)
