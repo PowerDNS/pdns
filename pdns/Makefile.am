@@ -984,6 +984,7 @@ dnsbulktest_SOURCES = \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
+	iputils.cc iputils.hh \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \

@@ -56,7 +56,7 @@ bool g_envoutput=false;
 struct DNSResult
 {
   vector<ComboAddress> ips;
-  int rcode;
+  int rcode{0};
   bool seenauthsoa{false};
 };
 
@@ -69,42 +69,40 @@ struct TypedQuery
 
 struct SendReceive
 {
-  typedef int Identifier;
-  typedef DNSResult Answer; // ip 
-  int d_socket;
+  using Identifier = int;
+  using Answer = DNSResult; // ip
+  Socket d_socket;
   std::deque<uint16_t> d_idqueue;
     
-  typedef accumulator_set<
+  using acc_t = accumulator_set<
         double
       , stats<boost::accumulators::tag::extended_p_square,
               boost::accumulators::tag::median(with_p_square_quantile),
               boost::accumulators::tag::mean(immediate)
               >
-    > acc_t;
+    >;
   unique_ptr<acc_t> d_acc;
+
+  static constexpr std::array<double, 11> s_probs{{0.001,0.01, 0.025, 0.1, 0.25,0.5,0.75,0.9,0.975, 0.99,0.9999}};
+  unsigned int d_errors{0};
+  unsigned int d_nxdomains{0};
+  unsigned int d_nodatas{0};
+  unsigned int d_oks{0};
+  unsigned int d_unknowns{0};
+  unsigned int d_received{0};
+  unsigned int d_receiveerrors{0};
+  unsigned int d_senderrors{0};
   
-  boost::array<double, 11> d_probs;
-  
-  SendReceive(const std::string& remoteAddr, uint16_t port) : d_probs({{0.001,0.01, 0.025, 0.1, 0.25,0.5,0.75,0.9,0.975, 0.99,0.9999}})
+  SendReceive(const std::string& remoteAddr, uint16_t port) :
+    d_socket(AF_INET, SOCK_DGRAM),
+    d_acc(make_unique<acc_t>(acc_t(boost::accumulators::tag::extended_p_square::probabilities=s_probs)))
   {
-    d_acc = make_unique<acc_t>(acc_t(boost::accumulators::tag::extended_p_square::probabilities=d_probs));
-    // 
-    //d_acc = acc_t
-    d_socket = socket(AF_INET, SOCK_DGRAM, 0);
-    int val=1;
-    setsockopt(d_socket, SOL_SOCKET, SO_REUSEADDR, &val, sizeof(val));
-    
+    d_socket.setReuseAddr();
     ComboAddress remote(remoteAddr, port);
-    connect(d_socket, (struct sockaddr*)&remote, remote.getSocklen());
-    d_oks = d_errors = d_nodatas = d_nxdomains = d_unknowns = 0;
-    d_received = d_receiveerrors = d_senderrors = 0;
-    for(unsigned int id =0 ; id < std::numeric_limits<uint16_t>::max(); ++id) 
+    d_socket.connect(remote);
+    for (unsigned int id =0 ; id < std::numeric_limits<uint16_t>::max(); ++id) {
       d_idqueue.push_back(id);
-  }
-  
-  ~SendReceive()
-  {
-    close(d_socket);
+    }
   }
   
   Identifier send(TypedQuery& domain)
@@ -116,7 +114,7 @@ struct SendReceive
   
     DNSPacketWriter pw(packet, domain.name, domain.type);
 
-    if(d_idqueue.empty()) {
+    if (d_idqueue.empty()) {
       cerr<<"Exhausted ids!"<<endl;
       exit(1);
     }    
@@ -125,30 +123,31 @@ struct SendReceive
     pw.getHeader()->rd = 1;
     pw.getHeader()->qr = 0;
     
-    if(::send(d_socket, &*packet.begin(), packet.size(), 0) < 0)
+    if (::send(d_socket.getHandle(), &*packet.begin(), packet.size(), 0) < 0) {
       d_senderrors++;
+    }
     
-    if(!g_quiet)
+    if (!g_quiet) {
       cout<<"Sent out query for '"<<domain.name<<"' with id "<<pw.getHeader()->id<<endl;
+    }
     return pw.getHeader()->id;
   }
   
   bool receive(Identifier& id, DNSResult& dr)
   {
-    if(waitForData(d_socket, 0, 500000) > 0) {
-      char buf[512];
+    if (waitForData(d_socket.getHandle(), 0, 500000) > 0) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): no need to initialize the buffer
+      std::array<char, 512> buf;
           
-      int len = recv(d_socket, buf, sizeof(buf), 0);
-      if(len < 0) {
+      auto len = recv(d_socket.getHandle(), buf.data(), buf.size(), 0);
+      if (len < 0) {
         d_receiveerrors++;
-        return 0;
+        return false;
       }
-      else {
-        d_received++;
-      }
+      d_received++;
       // parse packet, set 'id', fill out 'ip' 
       
-      MOADNSParser mdp(false, string(buf, len));
+      MOADNSParser mdp(false, string(buf.data(), static_cast<size_t>(len)));
       if(!g_quiet) {
         cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
         cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
@@ -171,9 +170,9 @@ struct SendReceive
       id = mdp.d_header.id;
       d_idqueue.push_back(id);
     
-      return 1;
+      return true;
     }
-    return 0;
+    return false;
   }
   
   void deliverTimeout(const Identifier& id)
@@ -211,8 +210,6 @@ struct SendReceive
       d_unknowns++;
     }
   }
-  unsigned int d_errors, d_nxdomains, d_nodatas, d_oks, d_unknowns;
-  unsigned int d_received, d_receiveerrors, d_senderrors;
 };
 
 static void usage(po::options_description &desc) {
@@ -355,11 +352,11 @@ try
   
   boost::format statfmt("Time < %6.03f ms %|30t|%6.03f%% cumulative\n");
   
-  for (unsigned int i = 0; i < sr.d_probs.size(); ++i) {
-        cerr << statfmt % extended_p_square(*sr.d_acc)[i] % (100*sr.d_probs[i]);
-    }
+  for (unsigned int i = 0; i < SendReceive::s_probs.size(); ++i) {
+    cerr << statfmt % extended_p_square(*sr.d_acc)[i] % (100*SendReceive::s_probs.at(i));
+  }
 
-  if(g_envoutput) {
+  if (g_envoutput) {
     cout<<"DBT_QUEUED="<<domains.size()<<endl;
     cout<<"DBT_SENDERRORS="<<sr.d_senderrors<<endl;
     cout<<"DBT_RECEIVED="<<sr.d_received<<endl;
@@ -374,8 +371,12 @@ try
     cout<<"DBT_OKPERCENTAGEINT="<<(int)((float)sr.d_oks/domains.size()*100)<<endl;
   }
 }
-catch(PDNSException& pe)
+catch (const PDNSException& exp)
 {
-  cerr<<"Fatal error: "<<pe.reason<<endl;
-  exit(EXIT_FAILURE);
+  cerr<<"Fatal error: "<<exp.reason<<endl;
+  _exit(EXIT_FAILURE);
+}
+catch (const std::exception& exp) {
+  cerr<<"Fatal error: "<<exp.what()<<endl;
+  _exit(EXIT_FAILURE);
 }
