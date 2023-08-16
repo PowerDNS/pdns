@@ -1,8 +1,5 @@
-# Libsodium-based signers
-# Inputs: deps conf
-
 opt_libsodium = get_option('signers-libsodium')
-dep_libsodium = dependency('libsodium', required: opt_libsodium, not_found_message: 'libsodium not found')
+dep_libsodium = dependency('libsodium', required: opt_libsodium)
 
 if dep_libsodium.found()
   funcs = [
@@ -15,12 +12,10 @@ if dep_libsodium.found()
 
   foreach func: funcs
     define = 'HAVE_' + func.to_upper()
-    has = cxx.has_function(func, dependencies: dep_libsodium)
-    conf.set10(define, has, description: 'Whether we have ' + func)
-    # summary(func, has, bool_yn: true, section: 'Libsodium Functions')
+    have_func = cxx.has_function(func, dependencies: dep_libsodium)
+    conf.set(define, have_func, description: 'Have libsodium ' + func)
   endforeach
 endif
 
-deps += dep_libsodium
-conf.set10('HAVE_LIBSODIUM', dep_libsodium.found(), description: 'Whether we build libsodium-based signers')
-summary('libsodium', dep_libsodium.found(), bool_yn: true, section: 'Configuration')
+conf.set('HAVE_LIBSODIUM', dep_libsodium.found(), description: 'libsodium-based signers')
+summary('libsodium signers', dep_libsodium.found(), bool_yn: true, section: 'Crypto')
