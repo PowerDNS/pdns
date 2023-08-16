@@ -1,23 +1,5 @@
-# Address Sanitizer Fiber Switching
-# Inputs: conf
-
-prog_single_pointer = '''
-#include <sanitizer/common_interface_defs.h>
-
-int main() {
-  __sanitizer_finish_switch_fiber(nullptr);
-  return 0;
-}
-'''
-
-prog_three_pointers = '''
-#include <sanitizer/common_interface_defs.h>
-
-int main() {
-  __sanitizer_finish_switch_fiber(nullptr, nullptr, nullptr);
-  return 0;
-}
-'''
+prog_single_pointer = fs.read('sanitizer_finish_switch_fiber_1ptr.cc')
+prog_three_pointers = fs.read('sanitizer_finish_switch_fiber_3ptrs.cc')
 
 single_pointer = false
 three_pointers = false
@@ -36,13 +18,27 @@ if cxx.check_header('sanitizer/common_interface_defs.h', required: false)
   endif
 
 else
-  warning('Address Sanitizer requested but `sanitizer/common_interface_defs.h` is invalid or cannot be found. Address Sanitizer fiber switching is not available')
+  warning('Address Sanitizer requested but `sanitizer/common_interface_defs.h` ' +
+          'is invalid or cannot be found. Address Sanitizer fiber switching is ' +
+          'not available')
 endif
 
 if not single_pointer and not three_pointers
   warning('Address Sanitizer fiber switching is not available due to an unknown API version')
 endif
 
-conf.set10('HAVE_FIBER_SANITIZER', single_pointer or three_pointers, description: 'Address Sanitizer fiber annotation interface is available')
-conf.set10('HAVE_SANITIZER_FINISH_SWITCH_FIBER_SINGLE_PTR', single_pointer, description: 'Address Sanitizer: __sanitizer_finish_switch_fiber takes only a pointer')
-conf.set10('HAVE_SANITIZER_FINISH_SWITCH_FIBER_THREE_PTRS', three_pointers, description: 'Address Sanitizer: __sanitizer_finish_switch_fiber takes three pointers')
+conf.set(
+  'HAVE_FIBER_SANITIZER',
+  single_pointer or three_pointers,
+  description: 'Address Sanitizer fiber annotation interface is available',
+)
+conf.set(
+  'HAVE_SANITIZER_FINISH_SWITCH_FIBER_SINGLE_PTR',
+  single_pointer,
+  description: 'Address Sanitizer: __sanitizer_finish_switch_fiber takes only a pointer',
+)
+conf.set(
+  'HAVE_SANITIZER_FINISH_SWITCH_FIBER_THREE_PTRS',
+  three_pointers,
+  description: 'Address Sanitizer: __sanitizer_finish_switch_fiber takes three pointers',
+)
