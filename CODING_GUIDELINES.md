@@ -227,8 +227,8 @@ The use of a container and its corresponding `at()` operator would have prevente
 The cost of using `at()` is negligible for most use cases, and can be avoided by using the `[]` operator in the rare case when the cost cannot be afforded.
 Note that several Linux distributions now build with `-Wp,-D_GLIBCXX_ASSERTIONS` enabled by default, which turns on cheap range checks for C++ arrays, vectors, and strings.
 
-Regarding performance, it is advised to `reserve()` the needed size in advance when a rough estimate is known to avoid reallocations and copies. It usually triggers the allocation of enough memory to hold the requested number of items but does not increase the size of the container as reported by `size()`.
-Resizing in advance is not advised, though, as it makes it harder to exactly know what is in the container in case of early returns or exceptions.
+Regarding performance, it is advised to [`reserve()`](https://en.cppreference.com/w/cpp/container/vector/reserve) the needed size in advance when a rough estimate is known to avoid reallocations and copies. It usually triggers the allocation of enough memory to hold the requested number of items but does not increase the size of the container as reported by `size()`.
+Calling [`resize()`](https://en.cppreference.com/w/cpp/container/vector/resize) in advance is not advised, though, as it makes it harder to exactly know what is in the container in case of early returns or exceptions.
 
 In C++11, move operators make it possible to cheaply get the contents of a container into a different variable if needed.
 
