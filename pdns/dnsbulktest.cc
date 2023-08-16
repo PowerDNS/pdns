@@ -136,6 +136,7 @@ struct SendReceive
   bool receive(Identifier& id, DNSResult& dr)
   {
     if (waitForData(d_socket.getHandle(), 0, 500000) > 0) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): no need to initialize the buffer
       std::array<char, 512> buf;
           
       auto len = recv(d_socket.getHandle(), buf.data(), buf.size(), 0);
@@ -352,7 +353,7 @@ try
   boost::format statfmt("Time < %6.03f ms %|30t|%6.03f%% cumulative\n");
   
   for (unsigned int i = 0; i < SendReceive::s_probs.size(); ++i) {
-    cerr << statfmt % extended_p_square(*sr.d_acc)[i] % (100*SendReceive::s_probs[i]);
+    cerr << statfmt % extended_p_square(*sr.d_acc)[i] % (100*SendReceive::s_probs.at(i));
   }
 
   if (g_envoutput) {
@@ -373,9 +374,9 @@ try
 catch (const PDNSException& exp)
 {
   cerr<<"Fatal error: "<<exp.reason<<endl;
-  exit(EXIT_FAILURE);
+  _exit(EXIT_FAILURE);
 }
 catch (const std::exception& exp) {
   cerr<<"Fatal error: "<<exp.what()<<endl;
-  exit(EXIT_FAILURE);
+  _exit(EXIT_FAILURE);
 }
