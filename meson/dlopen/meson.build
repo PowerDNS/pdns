@@ -1,16 +1,15 @@
-# dlopen
-# Inputs: cxx deps
+dep_dlopen = declare_dependency(variables: {'name': 'fooooo'}, version: 'system')
 
-# dep_dlopen = dependency('dl', required: true) # TODO Meson 0.62
-# deps += dep_dlopen
+if not cxx.has_function('dlopen')
+  dep_dlopen = dependency('dl', required: false)
 
-if cxx.has_function('dlopen')
-  subdir_done()
+  if not dep_dlopen.found()
+    dep_dlopen = cxx.find_library('dl', required: true)
+
+    if not cxx.has_function('dlopen', dependencies: dep_dlopen)
+      error('Your system does not support dlopen')
+    endif
+  endif
 endif
 
-dl = cxx.find_library('dl', required: true)
-if not cxx.has_function('dlopen', dependencies: dl)
-  error('Your system does not support dlopen')
-endif
-
-deps += dl
+summary('dlopen', dep_dlopen.found(), bool_yn: true, section: 'System')

@@ -199,6 +199,7 @@ deps = [
   dep_gss_tsig,
   dep_unittests,
   dep_backend_unittests,
+  dep_dlopen,
   dep_pkcs11,
   dep_yahttp,
   dep_json11,
