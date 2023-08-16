@@ -1,6 +1,3 @@
-# Stack Protector
-# Inputs: hardening_features
-
 support_stack_protector = cxx.has_argument('-fstack-protector')
 
 if support_stack_protector

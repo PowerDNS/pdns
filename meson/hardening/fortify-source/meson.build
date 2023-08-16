@@ -1,9 +1,8 @@
-# Fortify Source
-# Inputs: hardening_features
-
 fortify_source_opt = get_option('fortify-source')
+fortify_source = fortify_source_opt != 'disabled'
+fortify_source_level = 0
 
-if fortify_source_opt != 'disabled'
+if fortify_source
   fortify_source_level = 2
   if fortify_source_opt == 'auto'
     fortify_source_level = 3
@@ -24,10 +23,12 @@ if fortify_source_opt != 'disabled'
     endif
   endforeach
 
-  if fortify_source_level == 0
-    fortify_source_level = 'no'
-  endif
-
   hardening_features += [[fortify_source_level != 0, 'Source Fortification']]
+endif
+
+fortify_source = fortify_source and fortify_source_level != 0
+summary('Source Fortification', fortify_source, bool_yn: true, section: 'Hardening')
+
+if fortify_source
   summary('Source Fortification Level', fortify_source_level, section: 'Hardening')
 endif

@@ -1,6 +1,3 @@
-# Read-only Global Offset Table
-# Inputs: hardening_features
-
 ld_help = run_command(cxx, '-Wl,-help', check: true).stdout().strip()
 variants = ['relro', 'now']
 found_variant = false
