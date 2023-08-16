@@ -5,21 +5,24 @@ This repository contains several fuzzing targets that can be used with generic
 fuzzing engines like AFL and libFuzzer.
 
 These targets are built by passing the --enable-fuzz-targets option to the
-configure, then building as usual. You can also build only these targets
-by going into the pdns/ directory and issuing a 'make fuzz_targets' command.
+configure of the authoritative server and dnsdist, then building them as usual.
+You can also build only these targets manually by going into the pdns/ directory
+and issuing a 'make fuzz_targets' command for the authoritative server,
+or going into the pdns/dnsdistdist and issuing a 'make fuzz_targets' command for
+dnsdist.
 
 The current targets cover:
-- the auth, dnsdist and rec packet caches (fuzz_target_packetcache and
-  fuzz_target_dnsdistcache) ;
+- the auth and rec packet cache (fuzz_target_packetcache) ;
 - MOADNSParser (fuzz_target_moadnsparser) ;
 - the Proxy Protocol parser (fuzz_target_proxyprotocol) ;
 - the HTTP parser we use (YaHTTP, fuzz_target_yahttp) ;
 - ZoneParserTNG (fuzz_target_zoneparsertng).
 - Parts of the ragel-generated parser (parseRFC1035CharString in
-  fuzz_target_dnslabeltext)
+  fuzz_target_dnslabeltext) ;
+- the dnsdist packet cache (fuzz_target_dnsdistcache).
 
 By default the targets are linked against a standalone target,
-pdns/standalone_fuzz_target_runner.cc, which does no fuzzing but makes it easy
+standalone_fuzz_target_runner.cc, which does no fuzzing but makes it easy
 to check a given test file, or just that the fuzzing targets can be built properly.
 
 This behaviour can be changed via the LIB_FUZZING_ENGINE variable, for example
@@ -59,7 +62,7 @@ in the fuzzing/corpus/zones/ directory.
 
 Quickly getting started (using clang 11)
 ----------------------------------------
-First, confgure:
+First, configure the authoritative server:
 
 ```
 LIB_FUZZING_ENGINE="/usr/lib/clang/11.0.1/lib/linux/libclang_rt.fuzzer-x86_64.a" \
@@ -68,6 +71,12 @@ LIB_FUZZING_ENGINE="/usr/lib/clang/11.0.1/lib/linux/libclang_rt.fuzzer-x86_64.a"
   CFLAGS='-fsanitize=fuzzer-no-link' \
   CXXFLAGS='-fsanitize=fuzzer-no-link' \
   ./configure --without-dynmodules --with-modules= --disable-lua-records --disable-ixfrdist --enable-fuzz-targets --disable-dependency-tracking --disable-silent-rules --enable-asan --enable-ubsan
+```
+
+If you build the fuzzing targets only, you will need to issue the following commands first:
+```
+make -j2 -C ext/arc4random/
+make -j2 -C ext/yahttp/
 ```
 
 Then build:

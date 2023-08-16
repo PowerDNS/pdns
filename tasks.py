@@ -510,6 +510,7 @@ def ci_dnsdist_configure(c, features):
                           -DDISABLE_FALSE_SHARING_PADDING \
                           -DDISABLE_NPN'
     unittests = ' --enable-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
+    fuzztargets = '--enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
     sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
     cflags = '-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int'
     cxxflags = cflags + ' -Wp,-D_GLIBCXX_ASSERTIONS ' + additional_flags
@@ -524,7 +525,7 @@ def ci_dnsdist_configure(c, features):
                      --enable-fortify-source=auto \
                      --enable-auto-var-init=pattern \
                      --enable-lto=thin \
-                     --prefix=/opt/dnsdist %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests), warn=True)
+                     --prefix=/opt/dnsdist %s %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests, fuzztargets), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
