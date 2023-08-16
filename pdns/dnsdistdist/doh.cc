@@ -175,7 +175,7 @@ struct DOHServerConfig
   {
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
     {
-      auto [sender, receiver] = pdns::channel::createObjectQueue<DOHUnit, void(*)(DOHUnit*)>(true, true, internalPipeBufferSize);
+      auto [sender, receiver] = pdns::channel::createObjectQueue<DOHUnit, void(*)(DOHUnit*)>(true, false, internalPipeBufferSize);
       d_querySender = std::move(sender);
       d_queryReceiver = std::move(receiver);
     }
