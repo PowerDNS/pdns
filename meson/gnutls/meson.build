@@ -1,6 +1,3 @@
-# GnuTLS
-# Inputs: conf deps
-
 opt_gnutls = get_option('tls-gnutls')
 dep_gnutls = dependency('gnutls', version: '>= 3.1.11', required: opt_gnutls)
 
@@ -14,10 +11,9 @@ if dep_gnutls.found()
 
   foreach func: funcs
     has = cxx.has_function(func, dependencies: dep_gnutls)
-    conf.set10('HAVE_' + func.to_upper(), has, description: 'Whether we have ' + func)
+    conf.set('HAVE_' + func.to_upper(), has, description: 'Have GnuTLS ' + func)
   endforeach
 endif
 
-deps += dep_gnutls
-conf.set10('HAVE_GNUTLS', dep_gnutls.found(), description: 'Whether we support GnuTLS')
-summary('GnuTLS', dep_gnutls.found(), bool_yn: dep_gnutls.found() or not opt_gnutls.auto(), section: 'Configuration')
+conf.set('HAVE_GNUTLS', dep_gnutls.found(), description: 'GnuTLS')
+summary('GnuTLS', dep_gnutls.found(), bool_yn: true, section: 'Crypto')
