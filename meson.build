@@ -197,6 +197,8 @@ deps = [
   dep_boost,
   dep_boost_program_options,
   dep_gss_tsig,
+  dep_unittests,
+  dep_backend_unittests,
   dep_pkcs11,
   dep_yahttp,
   dep_json11,
