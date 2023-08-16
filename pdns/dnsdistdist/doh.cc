@@ -175,14 +175,14 @@ struct DOHServerConfig
   {
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
     {
-      auto [sender, receiver] = pdns::channel::createObjectQueue<DOHUnit, void(*)(DOHUnit*)>(true, false, internalPipeBufferSize);
+      auto [sender, receiver] = pdns::channel::createObjectQueue<DOHUnit, void(*)(DOHUnit*)>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverBlocking, internalPipeBufferSize);
       d_querySender = std::move(sender);
       d_queryReceiver = std::move(receiver);
     }
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
 
     {
-      auto [sender, receiver] = pdns::channel::createObjectQueue<DOHUnit, void(*)(DOHUnit*)>(true, true, internalPipeBufferSize);
+      auto [sender, receiver] = pdns::channel::createObjectQueue<DOHUnit, void(*)(DOHUnit*)>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
       d_responseSender = std::move(sender);
       d_responseReceiver = std::move(receiver);
     }

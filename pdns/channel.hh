@@ -43,6 +43,17 @@ namespace pdns
 {
 namespace channel
 {
+  enum class SenderBlockingMode
+  {
+    SenderNonBlocking,
+    SenderBlocking
+  };
+  enum class ReceiverBlockingMode
+  {
+    ReceiverNonBlocking,
+    ReceiverBlocking
+  };
+
   /**
    * The sender's end of a channel used to pass objects between threads.
    *
@@ -136,7 +147,7 @@ namespace channel
    * \throw runtime_error if the channel creation failed.
    */
   template <typename T, typename D = std::default_delete<T>>
-  std::pair<Sender<T, D>, Receiver<T, D>> createObjectQueue(bool sendNonBlocking = true, bool receiveNonBlocking = true, size_t pipeBufferSize = 0, bool throwOnEOF = true);
+  std::pair<Sender<T, D>, Receiver<T, D>> createObjectQueue(SenderBlockingMode senderBlockingMode = SenderBlockingMode::SenderNonBlocking, ReceiverBlockingMode receiverBlockingMode = ReceiverBlockingMode::ReceiverNonBlocking, size_t pipeBufferSize = 0, bool throwOnEOF = true);
 
   /**
    * The notifier's end of a channel used to communicate between threads.
@@ -307,7 +318,7 @@ namespace channel
   }
 
   template <typename T, typename D>
-  std::pair<Sender<T, D>, Receiver<T, D>> createObjectQueue(bool sendNonBlocking, bool receiveNonBlocking, size_t pipeBufferSize, bool throwOnEOF)
+  std::pair<Sender<T, D>, Receiver<T, D>> createObjectQueue(SenderBlockingMode senderBlockingMode, ReceiverBlockingMode receiverBlockingMode, size_t pipeBufferSize, bool throwOnEOF)
   {
     int fds[2] = {-1, -1};
     if (pipe(fds) < 0) {
@@ -316,13 +327,12 @@ namespace channel
 
     FDWrapper sender(fds[1]);
     FDWrapper receiver(fds[0]);
-
-    if (receiveNonBlocking && !setNonBlocking(receiver.getHandle())) {
+    if (receiverBlockingMode == ReceiverBlockingMode::ReceiverNonBlocking && !setNonBlocking(receiver.getHandle())) {
       int err = errno;
       throw std::runtime_error("Error making channel pipe non-blocking: " + stringerror(err));
     }
 
-    if (sendNonBlocking && !setNonBlocking(sender.getHandle())) {
+    if (senderBlockingMode == SenderBlockingMode::SenderNonBlocking && !setNonBlocking(sender.getHandle())) {
       int err = errno;
       throw std::runtime_error("Error making channel pipe non-blocking: " + stringerror(err));
     }
