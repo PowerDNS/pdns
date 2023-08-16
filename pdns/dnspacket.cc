@@ -333,7 +333,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
 
   if (d_haveednscookie) {
     if (d_eco.isWellFormed()) {
-        optsize += EDNSCookiesOpt::EDNSCookieOptSize;
+        optsize += EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + EDNSCookiesOpt::EDNSCookieOptSize;
     }
   }
 
