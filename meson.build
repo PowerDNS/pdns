@@ -201,6 +201,7 @@ deps = [
   dep_backend_unittests,
   dep_dlopen,
   dep_pkcs11,
+  dep_ixfrdist,
   dep_yahttp,
   dep_json11,
   dep_systemd,
