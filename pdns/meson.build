@@ -1,6 +1,6 @@
-libpdns_bindparser = declare_dependency(
+libpdns_bind_parser = declare_dependency(
   link_with: static_library(
-    'pdns-bindparser',
+    'pdns-bind-parser',
     'zoneparser-tng.cc',
     flex_generator.process('bindlexer.l'),
     bison_generator.process('bindparser.yy'),
@@ -228,7 +228,7 @@ libpdns = declare_dependency(
     ],
     dependencies: [
       deps,
-      libpdns_bindparser,
+      libpdns_bind_parser,
       libpdns_lua,
       libpdns_lua_records,
       libpdns_tsig,
