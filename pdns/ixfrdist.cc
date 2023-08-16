@@ -1366,6 +1366,10 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
         g_log<<Logger::Error<<"Could not set the webserver ACL: "<<ne.reason<<endl;
         had_error = true;
       }
+      catch (const std::exception& exp) {
+        g_log<<Logger::Error<<"Could not set the webserver ACL: "<<exp.what()<<endl;
+        had_error = true;
+      }
 
       if (config["webserver-loglevel"]) {
         configuration.wsLogLevel = config["webserver-loglevel"].as<string>();
