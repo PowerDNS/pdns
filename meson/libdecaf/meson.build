@@ -1,8 +1,8 @@
-# Libdecaf-based signers
-# Inputs: deps conf
-
 opt_libdecaf = get_option('signers-libdecaf')
 dep_libdecaf = dependency('', required: false)
+
+found_header = false
+header_path = false
 
 if not opt_libdecaf.disabled()
   dep_libdecaf = dependency('libdecaf', required: false)
@@ -10,21 +10,32 @@ if not opt_libdecaf.disabled()
     dep_libdecaf = cxx.find_library('decaf', dirs: ['/usr', '/usr/local'], required: opt_libdecaf)
   endif
 
-  found_header = false
-  header_path = ''
   if dep_libdecaf.found()
     include_dirs = ['/usr/include', '/usr/local/include']
     headers = ['decaf.hxx', 'decaf/decaf.hxx']
 
     do_break = false
     foreach dirname: include_dirs
+      header_path = false
       dir = include_directories(dirname, is_system: true)
+
       foreach header: headers
         header_path = dirname / header
         message('Libdecaf: Checking for ' + header_path)
-        found_header = cxx.has_header(header, dependencies: dep_libdecaf, required: false, include_directories: dir)
+
+        found_header = cxx.has_header(
+          header,
+          dependencies: dep_libdecaf,
+          required: false,
+          include_directories: dir,
+        )
+
         if found_header
-          deps += declare_dependency(compile_args: ['-I' + dirname])
+          dep_libdecaf = declare_dependency(
+            compile_args: ['-I' + dirname],
+            dependencies: dep_libdecaf,
+          )
+
           do_break = true
           break
         endif
@@ -35,9 +46,11 @@ if not opt_libdecaf.disabled()
       endif
     endforeach
   endif
+endif
 
-  show_colors = dep_libdecaf.found() or not opt_libdecaf.auto()
-  conf.set10('HAVE_LIBDECAF', dep_libdecaf.found() and found_header, description: 'Whether we build libdecaf-based signers')
-  summary('libdecaf', dep_libdecaf.found(), bool_yn: show_colors, section: 'Configuration')
-  summary('libdecaf headers', found_header ? header_path : found_header, bool_yn: show_colors, section: 'Configuration')
+conf.set('HAVE_LIBDECAF', dep_libdecaf.found() and found_header, description: 'libdecaf-based signers')
+summary('libdecaf', dep_libdecaf.found(), bool_yn: true, section: 'Crypto')
+
+if dep_libdecaf.found()
+  summary('libdecaf headers', header_path, bool_yn: true, section: 'Crypto')
 endif
