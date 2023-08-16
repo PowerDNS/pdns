@@ -33,7 +33,8 @@ const std::array<std::string, Protocol::s_numberOfProtocols> Protocol::s_names =
   "DNSCryptUDP",
   "DNSCryptTCP",
   "DoT",
-  "DoH"};
+  "DoH",
+  "DoQ"};
 
 const std::array<std::string, Protocol::s_numberOfProtocols> Protocol::s_prettyNames = {
   "Do53 UDP",
@@ -41,7 +42,8 @@ const std::array<std::string, Protocol::s_numberOfProtocols> Protocol::s_prettyN
   "DNSCrypt UDP",
   "DNSCrypt TCP",
   "DNS over TLS",
-  "DNS over HTTPS"};
+  "DNS over HTTPS",
+  "DNS over QUIC"};
 
 Protocol::Protocol(const std::string& s)
 {

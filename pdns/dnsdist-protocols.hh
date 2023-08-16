@@ -37,7 +37,8 @@ public:
     DNSCryptUDP,
     DNSCryptTCP,
     DoT,
-    DoH
+    DoH,
+    DoQ
   };
 
   Protocol(typeenum protocol = DoUDP) :
@@ -61,7 +62,7 @@ public:
 private:
   typeenum d_protocol;
 
-  static constexpr size_t s_numberOfProtocols = 6;
+  static constexpr size_t s_numberOfProtocols = 7;
   static const std::array<std::string, s_numberOfProtocols> s_names;
   static const std::array<std::string, s_numberOfProtocols> s_prettyNames;
 };
