@@ -194,6 +194,8 @@ deps = [
   dep_libssl,
   dep_gnutls,
   dep_rt,
+  dep_boost,
+  dep_boost_program_options,
   dep_gss_tsig,
   dep_pkcs11,
   dep_yahttp,
