@@ -1614,7 +1614,7 @@ bool dnsdist_ffi_metric_declare(const char* name, size_t nameLen, const char* ty
 void dnsdist_ffi_metric_inc(const char* metricName, size_t metricNameLen)
 {
   auto result = dnsdist::metrics::incrementCustomCounter(std::string_view(metricName, metricNameLen), 1U);
-  if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+  if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
   }
 }
@@ -1622,7 +1622,7 @@ void dnsdist_ffi_metric_inc(const char* metricName, size_t metricNameLen)
 void dnsdist_ffi_metric_inc_by(const char* metricName, size_t metricNameLen, uint64_t value)
 {
   auto result = dnsdist::metrics::incrementCustomCounter(std::string_view(metricName, metricNameLen), value);
-  if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+  if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
   }
 }
@@ -1630,7 +1630,7 @@ void dnsdist_ffi_metric_inc_by(const char* metricName, size_t metricNameLen, uin
 void dnsdist_ffi_metric_dec(const char* metricName, size_t metricNameLen)
 {
   auto result = dnsdist::metrics::decrementCustomCounter(std::string_view(metricName, metricNameLen), 1U);
-  if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+  if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
   }
 }
@@ -1638,7 +1638,7 @@ void dnsdist_ffi_metric_dec(const char* metricName, size_t metricNameLen)
 void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double value)
 {
   auto result = dnsdist::metrics::setCustomGauge(std::string_view(metricName, metricNameLen), value);
-  if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+  if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
   }
 }
@@ -1646,7 +1646,7 @@ void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double
 double dnsdist_ffi_metric_get(const char* metricName, size_t metricNameLen, bool isCounter)
 {
   auto result = dnsdist::metrics::getCustomMetric(std::string_view(metricName, metricNameLen));
-  if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
+  if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return 0.;
   }
   return std::get<double>(result);
