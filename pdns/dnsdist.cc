@@ -1672,6 +1672,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       if (dq.ids.delayMsec == 0 && responsesVect != nullptr) {
         queueResponse(cs, query, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
         (*queuedResponses)++;
+        handleResponseSent(dq.ids.qname, dq.ids.qtype, 0., remote, ComboAddress(), query.size(), *dh, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
         return;
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
