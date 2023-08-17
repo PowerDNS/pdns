@@ -57,6 +57,7 @@ version_generated.h
 /api-swagger.yaml
 /api-swagger.json
 /.venv
+/.swagger-api-venv
 effective_tld_names.dat
 /dnsmessage.pb.cc
 /dnsmessage.pb.h

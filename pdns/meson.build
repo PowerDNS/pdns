@@ -256,6 +256,24 @@ libpdns = declare_dependency(
   )
 )
 
+libpdns_auth_api_swagger = custom_target(
+  'libpdns-auth-api-swagger',
+  command: [
+    python_prog,
+    '@INPUT0@',
+    '@INPUT1@',
+  ],
+  input: [
+    'generate-api-swagger.py',
+    product_source_dir / 'docs' / 'http-api' / 'swagger' / 'authoritative-api-swagger.yaml',
+  ],
+  output: 'apidocfiles.h',
+  capture: true,
+)
+libpdns_auth_api_swagger = declare_dependency(
+  sources: [libpdns_auth_api_swagger],
+)
+
 libpdns_auth_main = declare_dependency(
   link_with: static_library(
     'pdns-auth-main',
@@ -315,6 +333,7 @@ libpdns_auth = declare_dependency(
     ],
     dependencies: [
       deps,
+      libpdns_auth_api_swagger,
       libpdns_auth_lua,
       libpdns_auth_main,
       libpdns_auth_ws,
