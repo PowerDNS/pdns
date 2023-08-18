@@ -28,7 +28,7 @@
 #include <sys/socket.h>
 #include <boost/format.hpp>
 
-#if HAVE_GETIFADDRS
+#ifdef HAVE_GETIFADDRS
 #include <ifaddrs.h>
 #endif
 
@@ -540,7 +540,7 @@ void setSocketSendBuffer(int fd, uint32_t size)
 std::set<std::string> getListOfNetworkInterfaces()
 {
   std::set<std::string> result;
-#if HAVE_GETIFADDRS
+#ifdef HAVE_GETIFADDRS
   struct ifaddrs *ifaddr;
   if (getifaddrs(&ifaddr) == -1) {
     return result;
@@ -558,11 +558,11 @@ std::set<std::string> getListOfNetworkInterfaces()
   return result;
 }
 
+#ifdef HAVE_GETIFADDRS
 std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string& itf)
 {
   std::vector<ComboAddress> result;
-#if HAVE_GETIFADDRS
-  struct ifaddrs *ifaddr;
+  struct ifaddrs *ifaddr = nullptr;
   if (getifaddrs(&ifaddr) == -1) {
     return result;
   }
@@ -586,11 +586,17 @@ std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string
   }
 
   freeifaddrs(ifaddr);
-#endif
   return result;
 }
+#else
+std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string& /* itf */)
+{
+  std::vector<ComboAddress> result;
+  return result;
+}
+#endif                          // HAVE_GETIFADDRS
 
-#if HAVE_GETIFADDRS
+#ifdef HAVE_GETIFADDRS
 static uint8_t convertNetmaskToBits(const uint8_t* mask, socklen_t len)
 {
   if (mask == nullptr || len > 16) {
@@ -611,11 +617,11 @@ static uint8_t convertNetmaskToBits(const uint8_t* mask, socklen_t len)
 }
 #endif /* HAVE_GETIFADDRS */
 
+#ifdef HAVE_GETIFADDRS
 std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf)
 {
   std::vector<Netmask> result;
-#if HAVE_GETIFADDRS
-  struct ifaddrs *ifaddr;
+  struct ifaddrs *ifaddr = nullptr;
   if (getifaddrs(&ifaddr) == -1) {
     return result;
   }
@@ -648,6 +654,12 @@ std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf)
   }
 
   freeifaddrs(ifaddr);
-#endif
   return result;
 }
+#else
+std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& /* itf */)
+{
+  std::vector<Netmask> result;
+  return result;
+}
+#endif                          // HAVE_GETIFADDRS
