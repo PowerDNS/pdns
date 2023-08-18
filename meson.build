@@ -63,7 +63,7 @@ subdir('meson' / 'unit-tests')              # Unit Tests
 subdir('meson' / 'auth-backend-unit-tests') # Auth Backend Unit Tests
 subdir('meson' / 'reproducible')            # Reproducible Builds
 subdir('meson' / 'fuzz-targets')            # Fuzzing Targets
-subdir('meson' / 'python-venv')             # Python Venv
+subdir('meson' / 'python')                  # Python
 subdir('meson' / 'from-git')                # From Git
 subdir('meson' / 'dlopen')                  # dlopen
 subdir('meson' / 'verbose-logging')         # Verbose Logging
@@ -87,19 +87,19 @@ if not ragel.found() and not fs.exists('pdns' / 'dnslabeltext.cc')
 endif
 
 # Swagger
-if not fs.exists('pdns' / 'api-swagger.json') and not python_have_venv
-  error('Python3 and/or its venv module is not available and ' +
-        '`pdns/api-swagger.json` cannot be found. ' +
-        'The Authoritative Server cannot be built.')
-endif
+# if not fs.exists('pdns' / 'api-swagger.json') and not python_have_venv
+#   error('Python3 and/or its venv module is not available and ' +
+#         '`pdns/api-swagger.json` cannot be found. ' +
+#         'The Authoritative Server cannot be built.')
+# endif
 # TODO Generate api-swagger.json
 
 # Manpages
-if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
-  warning('Python3 and/or its venv module is not available and ' +
-          '`docs/pdns_server.1` cannot be found. ' +
-          'Documentation will not be built.')
-endif
+# if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
+#   warning('Python3 and/or its venv module is not available and ' +
+#           '`docs/pdns_server.1` cannot be found. ' +
+#           'Documentation will not be built.')
+# endif
 # TODO Generate pdns_server.1 manpage
 
 # Modules
