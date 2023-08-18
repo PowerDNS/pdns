@@ -52,7 +52,8 @@ using json11::Json;
 
 extern StatBag S;
 
-static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp);
+// NOLINTNEXTLINE(readability-identifier-length)
+static void patchZone(UeberBackend& B, const DNSName& zonename, DomainInfo& di, HttpRequest* req, HttpResponse* resp);
 
 // QTypes that MUST NOT have multiple records of the same type in a given RRset.
 static const std::set<uint16_t> onlyOneEntryTypes = { QType::CNAME, QType::DNAME, QType::SOA };
@@ -928,6 +929,22 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
   return found;
 }
 
+// this is easier as macro since we need UeberBackend instance in most places
+// NOLINTBEGIN(cppcoreguidelines-macro-usage, readability-identifier-length)
+#define zoneFromId(req) \
+  DNSName zonename = apiZoneIdToName((req)->parameters["id"]); \
+  UeberBackend B; \
+  DNSSECKeeper dk(&B); \
+  DomainInfo di; \
+  try { \
+    if (!B.getDomainInfo(zonename, di)) { \
+      throw HttpNotFoundException(); \
+    } \
+  } catch(const PDNSException &e) { \
+    throw HttpInternalServerErrorException("Could not retrieve Domain Info: " + e.reason); \
+  }
+// NOLINTEND(cppcoreguidelines-macro-usage, readability-identifier-length)
+
 /* Return OpenAPI document describing the supported API.
  */
 #include "apidocfiles.h"
@@ -946,13 +963,7 @@ void apiDocs(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
-
-  UeberBackend B;
-  DomainInfo di;
-  if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
-  }
+  zoneFromId(req);
 
   if (req->method == "GET") {
     map<string, vector<string> > md;
@@ -1033,13 +1044,7 @@ static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
 }
 
 static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
-
-  UeberBackend B;
-  DomainInfo di;
-  if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
-  }
+  zoneFromId(req);
 
   string kind = req->parameters["kind"];
 
@@ -1395,14 +1400,7 @@ static void apiZoneCryptokeysPUT(const DNSName& zonename, int inquireKeyId, Http
  * If the the HTTP-request-method isn't supported, the function returns a response with the 405 code (method not allowed).
  * */
 static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
-
-  UeberBackend B;
-  DNSSECKeeper dk(&B);
-  DomainInfo di;
-  if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
-  }
+  zoneFromId(req);
 
   int inquireKeyId = -1;
   if (req->parameters.count("key_id")) {
@@ -1942,17 +1940,7 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
-
-  UeberBackend B;
-  DomainInfo di;
-  try {
-    if (!B.getDomainInfo(zonename, di)) {
-      throw HttpNotFoundException();
-    }
-  } catch(const PDNSException &e) {
-    throw HttpInternalServerErrorException("Could not retrieve Domain Info: " + e.reason);
-  }
+  zoneFromId(req);
 
   if(req->method == "PUT") {
     // update domain contents and/or settings
@@ -2075,7 +2063,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
     resp->status = 204; // No Content: declare that the zone is gone now
     return;
   } else if (req->method == "PATCH") {
-    patchZone(B, req, resp);
+    patchZone(B, zonename, di, req, resp);
     return;
   } else if (req->method == "GET") {
     fillZone(B, zonename, resp, req);
@@ -2085,18 +2073,12 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
+  zoneFromId(req);
 
   if(req->method != "GET")
     throw HttpMethodNotAllowedException();
 
   ostringstream ss;
-
-  UeberBackend B;
-  DomainInfo di;
-  if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
-  }
 
   DNSResourceRecord rr;
   SOAData sd;
@@ -2123,16 +2105,10 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
+  zoneFromId(req);
 
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
-
-  UeberBackend B;
-  DomainInfo di;
-  if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
-  }
 
   if (di.primaries.empty())
     throw ApiException("Domain '" + zonename.toString() + "' is not a secondary domain (or has no primary defined)");
@@ -2143,16 +2119,10 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
+  zoneFromId(req);
 
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
-
-  UeberBackend B;
-  DomainInfo di;
-  if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
-  }
 
   if(!Communicator.notifyDomain(zonename, &B))
     throw ApiException("Failed to add to the queue - see server log");
@@ -2161,18 +2131,10 @@ static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
+  zoneFromId(req);
 
   if(req->method != "PUT")
     throw HttpMethodNotAllowedException();
-
-  UeberBackend B;
-  DomainInfo di;
-  if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
-  }
-
-  DNSSECKeeper dk(&B);
 
   if (dk.isPresigned(zonename))
     throw ApiException("Zone '" + zonename.toString() + "' is pre-signed, not rectifying.");
@@ -2185,15 +2147,10 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
   resp->setSuccessResult("Rectified");
 }
 
-static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp)  // NOLINT(readability-function-cognitive-complexity)
+static void patchZone(UeberBackend& B, const DNSName& zonename, DomainInfo& di, HttpRequest* req, HttpResponse* resp) // NOLINT(readability-function-cognitive-complexity, readability-identifier-length)
 {
   bool zone_disabled;
   SOAData sd;
-  DomainInfo di;
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
-  if (!B.getDomainInfo(zonename, di)) {
-    throw HttpNotFoundException();
-  }
 
   vector<DNSResourceRecord> new_records;
   vector<Comment> new_comments;
