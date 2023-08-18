@@ -25,6 +25,12 @@ namespace funcptr = boost;
 #include <utility>
 
 namespace YaHTTP {
+  enum RoutingResult {
+    RouteFound = 1,
+    RouteNotFound = 0,
+    RouteNoMethod = -1,
+  };
+
   typedef funcptr::function <void(Request* req, Response* resp)> THandlerFunction; //!< Handler function pointer 
   typedef funcptr::tuple<std::string, std::string, THandlerFunction, std::string> TRoute; //!< Route tuple (method, urlmask, handler, name)
   typedef std::vector<TRoute> TRouteList; //!< List of routes in order of evaluation
@@ -44,7 +50,7 @@ is consumed but not stored. Note that only path is matched, scheme, host and url
     static Router router; //<! Singleton instance of Router
   public:
     void map(const std::string& method, const std::string& url, THandlerFunction handler, const std::string& name); //<! Instance method for mapping urls
-    bool route(Request *req, THandlerFunction& handler); //<! Instance method for performing routing
+    RoutingResult route(Request *req, THandlerFunction& handler); //<! Instance method for performing routing
     void printRoutes(std::ostream &os); //<! Instance method for printing routes
     std::pair<std::string, std::string> urlFor(const std::string &name, const strstr_map_t& arguments); //<! Instance method for generating paths
 
@@ -59,7 +65,7 @@ If method is left empty, it will match any method. Name is also optional, but ne
     static void Delete(const std::string& url, THandlerFunction handler, const std::string& name = "") { router.map("DELETE", url, handler, name); }; //<! Helper for mapping DELETE
     static void Any(const std::string& url, THandlerFunction handler, const std::string& name = "") { router.map("", url, handler, name); }; //<! Helper for mapping any method
 
-    static bool Route(Request *req, THandlerFunction& handler) { return router.route(req, handler); }; //<! Performs routing based on req->url.path 
+    static RoutingResult Route(Request *req, THandlerFunction& handler) { return router.route(req, handler); }; //<! Performs routing based on req->url.path, returns RouteFound if route is found and method matches, RouteNoMethod if route is seen but method did match, and RouteNotFound if not found.
     static void PrintRoutes(std::ostream &os) { router.printRoutes(os); }; //<! Prints all known routes to given output stream
 
     static std::pair<std::string, std::string> URLFor(const std::string &name, const strstr_map_t& arguments) { return router.urlFor(name,arguments); }; //<! Generates url from named route and arguments. Missing arguments are assumed empty

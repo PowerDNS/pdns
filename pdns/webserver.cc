@@ -142,10 +142,10 @@ static void bareHandlerWrapper(const WebServer::HandlerFunction& handler, YaHTTP
   handler(static_cast<HttpRequest*>(req), static_cast<HttpResponse*>(resp));
 }
 
-void WebServer::registerBareHandler(const string& url, const HandlerFunction& handler)
+void WebServer::registerBareHandler(const string& url, const HandlerFunction& handler, const std::string& method)
 {
   YaHTTP::THandlerFunction f = [=](YaHTTP::Request* req, YaHTTP::Response* resp){return bareHandlerWrapper(handler, req, resp);};
-  YaHTTP::Router::Any(url, std::move(f));
+  YaHTTP::Router::Map(method, url, std::move(f));
 }
 
 static bool optionsHandler(HttpRequest* req, HttpResponse* resp) {
@@ -215,9 +215,9 @@ void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpReques
   }
 }
 
-void WebServer::registerApiHandler(const string& url, const HandlerFunction& handler, bool allowPassword) {
+void WebServer::registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method, bool allowPassword) {
   auto f = [=](HttpRequest *req, HttpResponse* resp){apiWrapper(handler, req, resp, allowPassword);};
-  registerBareHandler(url, f);
+  registerBareHandler(url, f, method);
 }
 
 void WebServer::webWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp) {
@@ -233,9 +233,9 @@ void WebServer::webWrapper(const WebServer::HandlerFunction& handler, HttpReques
   handler(req, resp);
 }
 
-void WebServer::registerWebHandler(const string& url, const HandlerFunction& handler) {
+void WebServer::registerWebHandler(const string& url, const HandlerFunction& handler, const std::string& method) {
   auto f = [=](HttpRequest *req, HttpResponse *resp){webWrapper(handler, req, resp);};
-  registerBareHandler(url, f);
+  registerBareHandler(url, f, method);
 }
 
 static void *WebServerConnectionThreadStart(const WebServer* webServer, std::shared_ptr<Socket> client) {
@@ -293,10 +293,15 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
     }
 
     YaHTTP::THandlerFunction handler;
-    if (!YaHTTP::Router::Route(&req, handler)) {
+    YaHTTP::RoutingResult res = YaHTTP::Router::Route(&req, handler);
+
+    if (res == YaHTTP::RouteNotFound) {
       SLOG(g_log<<Logger::Debug<<req.logprefix<<"No route found for \"" << req.url.path << "\"" << endl,
            log->info(Logr::Debug, "No route found"));
       throw HttpNotFoundException();
+    }
+    if (res == YaHTTP::RouteNoMethod) {
+      throw HttpMethodNotAllowedException();
     }
 
     const string msg = "HTTP ISE Exception";

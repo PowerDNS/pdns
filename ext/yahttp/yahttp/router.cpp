@@ -24,10 +24,11 @@ namespace YaHTTP {
     routes.push_back(funcptr::make_tuple(method2, url, handler, name));
   };
 
-  bool Router::route(Request *req, THandlerFunction& handler) {
+  RoutingResult Router::route(Request *req, THandlerFunction& handler) {
     std::map<std::string, TDelim> params;
     int pos1,pos2;
     bool matched = false;
+    bool seen = false;
     std::string rname;
 
     // iterate routes
@@ -36,8 +37,8 @@ namespace YaHTTP {
       std::string pname;
       std::string method, url;
       funcptr::tie(method, url, handler, rname) = *i;
-    
-      if (method.empty() == false && req->method != method) continue; // no match on method
+      matched = false;
+
       // see if we can't match the url
       params.clear();
       // simple matcher func
@@ -53,6 +54,7 @@ namespace YaHTTP {
             pname = pname.substr(1);
             // this matches whatever comes after it, basically end of string
             pos2 = req->url.path.size();
+            matched = true;
             if (pname != "") 
               params[pname] = funcptr::tie(pos1,pos2);
             k1 = url.size();
@@ -78,10 +80,23 @@ namespace YaHTTP {
         matched = false;
       else
         matched = true;
+
+      if (matched && method.empty() == false && req->method != method) {
+         // method did not match, record it though so we can return correct result
+         matched = false;
+         seen = true;
+         continue;
+      }
     }
 
-    if (!matched) { return false; } // no route
-    req->parameters.clear();    
+    if (!matched) {
+      if (seen)
+        return RouteNoMethod;
+      // no route
+      return RouteNotFound;
+    }
+
+    req->parameters.clear();
 
     for(std::map<std::string, TDelim>::iterator i = params.begin(); i != params.end(); i++) {
       int p1,p2;
@@ -93,7 +108,7 @@ namespace YaHTTP {
 
     req->routeName = std::move(rname);
 
-    return true;
+    return RouteFound;
   };
 
   void Router::printRoutes(std::ostream &os) {
