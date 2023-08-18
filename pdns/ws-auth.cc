@@ -1584,47 +1584,55 @@ static Json::object makeJSONTSIGKey(const struct TSIGKey& key, bool doContent=tr
   return makeJSONTSIGKey(key.name, key.algorithm, doContent ? key.key : "");
 }
 
-static void apiServerTSIGKeys(HttpRequest* req, HttpResponse* resp) {
-  UeberBackend B;
-  if (req->method == "GET") {
-    vector<struct TSIGKey> keys;
+static void apiServerTSIGKeysGET(HttpRequest* /* req */, HttpResponse* resp) {
+  UeberBackend B; // NOLINT(readability-identifier-length)
+  vector<struct TSIGKey> keys;
 
-    if (!B.getTSIGKeys(keys)) {
-      throw HttpInternalServerErrorException("Unable to retrieve TSIG keys");
-    }
-
-    Json::array doc;
-
-    for(const auto &key : keys) {
-      doc.push_back(makeJSONTSIGKey(key, false));
-    }
-    resp->setJsonBody(doc);
-  } else if (req->method == "POST") {
-    auto document = req->json();
-    DNSName keyname(stringFromJson(document, "name"));
-    DNSName algo(stringFromJson(document, "algorithm"));
-    string content = document["key"].string_value();
-
-    if (content.empty()) {
-      try {
-        content = makeTSIGKey(algo);
-      } catch (const PDNSException& e) {
-        throw HttpBadRequestException(e.reason);
-      }
-    }
-
-    // Will throw an ApiException or HttpConflictException on error
-    checkTSIGKey(B, keyname, algo, content);
-
-    if(!B.setTSIGKey(keyname, algo, content)) {
-      throw HttpInternalServerErrorException("Unable to add TSIG key");
-    }
-
-    resp->status = 201;
-    resp->setJsonBody(makeJSONTSIGKey(keyname, algo, content));
-  } else {
-    throw HttpMethodNotAllowedException();
+  if (!B.getTSIGKeys(keys)) {
+    throw HttpInternalServerErrorException("Unable to retrieve TSIG keys");
   }
+
+  Json::array doc;
+
+  for(const auto &key : keys) {
+    doc.push_back(makeJSONTSIGKey(key, false));
+  }
+  resp->setJsonBody(doc);
+}
+
+static void apiServerTSIGKeysPOST(HttpRequest* req, HttpResponse* resp) {
+  UeberBackend B; // NOLINT(readability-identifier-length)
+  const auto& document = req->json();
+  DNSName keyname(stringFromJson(document, "name"));
+  DNSName algo(stringFromJson(document, "algorithm"));
+  string content = document["key"].string_value();
+
+  if (content.empty()) {
+    try {
+      content = makeTSIGKey(algo);
+    } catch (const PDNSException& exc) {
+      throw HttpBadRequestException(exc.reason);
+    }
+  }
+
+  // Will throw an ApiException or HttpConflictException on error
+  checkTSIGKey(B, keyname, algo, content);
+
+  if(!B.setTSIGKey(keyname, algo, content)) {
+    throw HttpInternalServerErrorException("Unable to add TSIG key");
+  }
+
+  resp->status = 201;
+  resp->setJsonBody(makeJSONTSIGKey(keyname, algo, content));
+}
+
+static void apiServerTSIGKeys(HttpRequest* req, HttpResponse* resp) {
+  if (req->method == "GET")
+    apiServerTSIGKeysGET(req, resp);
+  else if (req->method == "POST")
+    apiServerTSIGKeysPOST(req, resp);
+  else
+   HttpMethodNotAllowedException();
 }
 
 static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
