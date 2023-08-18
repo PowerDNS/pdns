@@ -117,48 +117,24 @@ all_modules = {
   'geoip':    ['geoip'],
   'lmdb':     ['lmdb', 'boost-serialization'],
 }
+
 selected_modules = []
 selected_dyn_modules = []
+dep_modules = []
 foreach module_name, module_deps: all_modules
   module_backend_name = module_name + 'backend'
   module_opt = get_option('module-' + module_name)
   module_opt_dyn = get_option('module-' + module_name + '-dyn')
 
-  if module_name == 'remote' and (module_opt != 'disabled' or module_opt_dyn != 'disabled')
-    set_variable(module_name + '_module', module_opt != 'disabled')
-    set_variable(module_name + '_dyn_module', module_opt_dyn != 'disabled')
+  selected_modules += module_opt ? module_name : []
+  selected_dyn_modules += module_opt_dyn ? module_name : []
 
-    selected_modules += module_opt != 'disabled' ? module_name : []
-    selected_dyn_modules += module_opt_dyn != 'disabled' ? module_name : []
-
-    foreach dep: module_deps
-      if dep == 'prog-curl'
-        if not opt_unittests
-          continue                # We only need cURL for unit tests.
-        endif
-      elif dep == 'zeromq'
-        if module_opt != 'with-zeromq' and module_opt_dyn != 'with-zeromq'
-          continue
-        endif
-      endif
-
-      subdir('meson' / dep)
-    endforeach
-  elif module_opt or module_opt_dyn
-    set_variable(module_name + '_module', module_opt)
-    set_variable(module_name + '_dyn_module', module_opt_dyn)
-
-    selected_modules += module_opt ? module_name : []
-    selected_dyn_modules += module_opt_dyn ? module_name : []
-
-    foreach dep: module_deps
-      subdir('meson' / dep)
-    endforeach
-  else
-    continue
-  endif
+  foreach dep: module_deps
+    subdir('meson' / dep)
+  endforeach
 
   subdir('modules' / module_backend_name)
+  dep_modules += get_variable('dep_' + module_backend_name)
 endforeach
 
 conf.set_quoted(
@@ -215,5 +191,6 @@ pdns_server = executable(
   dependencies: [
     libpdns,
     libpdns_auth,
-  ]
+  ],
+  link_with: dep_modules,
 )
