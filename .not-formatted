@@ -131,7 +131,6 @@
 ./pdns/dnswriter.cc
 ./pdns/dnswriter.hh
 ./pdns/doh.hh
-./pdns/dolog.hh
 ./pdns/dumresp.cc
 ./pdns/dynhandler.cc
 ./pdns/dynhandler.hh

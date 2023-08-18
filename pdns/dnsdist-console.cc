@@ -726,6 +726,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setServerPolicyLuaFFIPerThread", true, "name, code", "set server selection policy to one named 'name' and returned by the Lua FFI code passed in 'code'" },
   { "setServFailWhenNoServer", true, "bool", "if set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query" },
   { "setStaleCacheEntriesTTL", true, "n", "allows using cache entries expired for at most n seconds when there is no backend available to answer for a query" },
+  { "setStructuredLogging", true, "value [, options]", "set whether log messages should be in structured-logging-like format" },
   { "setSyslogFacility", true, "facility", "set the syslog logging facility to 'facility'. Defaults to LOG_DAEMON" },
   { "setTCPDownstreamCleanupInterval", true, "interval", "minimum interval in seconds between two cleanups of the idle TCP downstream connections" },
   { "setTCPFastOpenKey", true, "string", "TCP Fast Open Key" },

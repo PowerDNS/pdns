@@ -23,7 +23,6 @@ StatBag S;
 
 // Vars below used by tcpiohandler.cc
 bool g_verbose = true;
-bool g_syslog = false;
 
 static bool hidettl = false;
 

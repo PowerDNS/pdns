@@ -98,12 +98,9 @@
 
 using std::thread;
 bool g_verbose;
-std::optional<std::ofstream> g_verboseStream{std::nullopt};
 
 uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
 uint32_t g_staleCacheEntriesTTL{0};
-bool g_syslog{true};
-bool g_logtimestamps{false};
 bool g_allowEmptyResponse{false};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
@@ -2530,7 +2527,7 @@ static void sigTermHandler(int)
      we crash trying to exit, but let's try to avoid the warnings
      in our tests.
   */
-  if (g_syslog) {
+  if (dnsdist::logging::LoggingConfiguration::getSyslog()) {
     syslog(LOG_INFO, "Exiting on user request");
   }
   std::cout<<"Exiting on user request"<<std::endl;
@@ -2654,13 +2651,13 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
       g_cmdLine.checkConfig = true;
       break;
     case 2:
-      g_syslog = false;
+      dnsdist::logging::LoggingConfiguration::setSyslog(false);
       break;
     case 3:
       g_cmdLine.beSupervised = true;
       break;
     case 4:
-      g_logtimestamps = true;
+      dnsdist::logging::LoggingConfiguration::setLogTimestamps(true);
       break;
     case 'C':
       g_cmdLine.config = optarg;

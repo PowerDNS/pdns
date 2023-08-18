@@ -20,8 +20,6 @@ DNSDistSNMPAgent* g_snmpAgent{nullptr};
 
 #if BENCH_POLICIES
 bool g_verbose{true};
-bool g_syslog{true};
-bool g_logtimestamps{false};
 #include "dnsdist-rings.hh"
 Rings g_rings;
 GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;

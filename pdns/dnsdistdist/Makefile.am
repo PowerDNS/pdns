@@ -212,7 +212,7 @@ dnsdist_SOURCES = \
 	dnstap.cc dnstap.hh \
 	dnswriter.cc dnswriter.hh \
 	doh.hh \
-	dolog.hh \
+	dolog.cc dolog.hh \
 	doq.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
@@ -304,7 +304,7 @@ testrunner_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
 	dnswriter.cc dnswriter.hh \
-	dolog.hh \
+	dolog.cc dolog.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \

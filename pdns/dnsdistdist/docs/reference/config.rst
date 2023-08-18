@@ -1203,6 +1203,27 @@ Status, Statistics and More
 
   * ``outputFile=path``: string - Write the output of the command to the supplied file, instead of the standard output.
 
+.. function:: setStructuredLogging(enable[, options])
+
+  .. versionadded:: 1.9.0
+
+  Set whether log messages should be in a structured-logging-like format. This is turned off by default.
+  The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and with ``levelPrefix="prio"`` and ``timeFormat="ISO8601"``)::
+
+  tm="2023-11-06T12:04:58+0100" prio="info" msg="Added downstream server 127.0.0.1:53"
+
+  And with ``levelPrefix="level"`` and ``timeFormat="numeric"``)::
+
+  tm="1699268815.133" level="info" msg="Added downstream server 127.0.0.1:53"
+
+  :param bool enable: Set to true if you want to enable structured logging
+  :param table options: A table with key: value pairs with options described below.
+
+  Options:
+
+  * ``levelPrefix=prefix``: string - Set the prefix for the log level. Default is ``prio``.
+  * ``timeFormat=format``: string - Set the time format. Supported values are ``ISO8601`` and ``numeric``. Default is ``numeric``.
+
 .. function:: setVerbose(verbose)
 
   .. versionadded:: 1.8.0
