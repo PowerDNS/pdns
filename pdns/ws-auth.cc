@@ -962,84 +962,101 @@ void apiDocs(HttpRequest* req, HttpResponse* resp) {
   }
 }
 
-static void apiZoneMetadata(HttpRequest* req, HttpResponse *resp) {
+static void apiZoneMetadataGET(HttpRequest* req, HttpResponse *resp) {
   zoneFromId(req);
 
-  if (req->method == "GET") {
-    map<string, vector<string> > md;
-    Json::array document;
+  map<string, vector<string> > metas;
+  Json::array document;
 
-    if (!B.getAllDomainMetadata(zonename, md))
-      throw HttpNotFoundException();
+  if (!B.getAllDomainMetadata(zonename, metas)) {
+    throw HttpNotFoundException();
+  }
 
-    for (const auto& i : md) {
-      Json::array entries;
-      for (const string& j : i.second)
-        entries.push_back(j);
-
-      Json::object key {
-        { "type", "Metadata" },
-        { "kind", i.first },
-        { "metadata", entries }
-      };
-
-      document.push_back(key);
+  for (const auto& meta : metas) {
+    Json::array entries;
+    for (const string& value : meta.second) {
+      entries.push_back(value);
     }
-
-    resp->setJsonBody(document);
-  } else if (req->method == "POST") {
-    auto document = req->json();
-    string kind;
-    vector<string> entries;
-
-    try {
-      kind = stringFromJson(document, "kind");
-    } catch (const JsonException&) {
-      throw ApiException("kind is not specified or not a string");
-    }
-
-    if (!isValidMetadataKind(kind, false))
-      throw ApiException("Unsupported metadata kind '" + kind + "'");
-
-    vector<string> vecMetadata;
-
-    if (!B.getDomainMetadata(zonename, kind, vecMetadata))
-      throw ApiException("Could not retrieve metadata entries for domain '" +
-        zonename.toString() + "'");
-
-    auto& metadata = document["metadata"];
-    if (!metadata.is_array())
-      throw ApiException("metadata is not specified or not an array");
-
-    for (const auto& i : metadata.array_items()) {
-      if (!i.is_string())
-        throw ApiException("metadata must be strings");
-      else if (std::find(vecMetadata.cbegin(),
-                         vecMetadata.cend(),
-                         i.string_value()) == vecMetadata.cend()) {
-        vecMetadata.push_back(i.string_value());
-      }
-    }
-
-    if (!B.setDomainMetadata(zonename, kind, vecMetadata))
-      throw ApiException("Could not update metadata entries for domain '" +
-        zonename.toString() + "'");
-
-    DNSSECKeeper::clearMetaCache(zonename);
-
-    Json::array respMetadata;
-    for (const string& s : vecMetadata)
-      respMetadata.push_back(s);
 
     Json::object key {
       { "type", "Metadata" },
-      { "kind", document["kind"] },
-      { "metadata", respMetadata }
+      { "kind", meta.first },
+      { "metadata", entries }
     };
+    document.push_back(key);
+  }
+  resp->setJsonBody(document);
+}
 
-    resp->status = 201;
-    resp->setJsonBody(key);
-  } else
+static void apiZoneMetadataPOST(HttpRequest* req, HttpResponse *resp) {
+  zoneFromId(req);
+
+  const auto& document = req->json();
+  string kind;
+  vector<string> entries;
+
+  try {
+    kind = stringFromJson(document, "kind");
+  } catch (const JsonException&) {
+      throw ApiException("kind is not specified or not a string");
+  }
+
+  if (!isValidMetadataKind(kind, false)) {
+    throw ApiException("Unsupported metadata kind '" + kind + "'");
+  }
+
+  vector<string> vecMetadata;
+
+  if (!B.getDomainMetadata(zonename, kind, vecMetadata)) {
+    throw ApiException("Could not retrieve metadata entries for domain '" +
+      zonename.toString() + "'");
+  }
+
+  const auto& metadata = document["metadata"];
+  if (!metadata.is_array()) {
+    throw ApiException("metadata is not specified or not an array");
+  }
+
+  for (const auto& value : metadata.array_items()) {
+    if (!value.is_string()) {
+      throw ApiException("metadata must be strings");
+    }
+    if (std::find(vecMetadata.cbegin(),
+                       vecMetadata.cend(),
+                       value.string_value()) == vecMetadata.cend()) {
+      vecMetadata.push_back(value.string_value());
+    }
+  }
+
+  if (!B.setDomainMetadata(zonename, kind, vecMetadata)) {
+    throw ApiException("Could not update metadata entries for domain '" +
+      zonename.toString() + "'");
+  }
+
+  DNSSECKeeper::clearMetaCache(zonename);
+
+  Json::array respMetadata;
+  for (const string& value : vecMetadata) {
+    respMetadata.push_back(value);
+  }
+
+  Json::object key {
+    { "type", "Metadata" },
+    { "kind", document["kind"] },
+    { "metadata", respMetadata }
+  };
+
+  resp->status = 201;
+  resp->setJsonBody(key);
+}
+
+static void apiZoneMetadata(HttpRequest *req, HttpResponse* resp)
+{
+  if (req->method == "GET")
+    apiZoneMetadataGET(req, resp);
+  else if (req->method == "POST")
+    apiZoneMetadataPOST(req, resp);
+  else
     throw HttpMethodNotAllowedException();
 }
 
