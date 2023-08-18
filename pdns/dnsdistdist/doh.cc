@@ -1618,7 +1618,7 @@ void dohThread(ClientState* clientState)
   }
 }
 
-void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&& state, [[maybe_unused]] const std::shared_ptr<DownstreamState>& downstream)
+void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&& state, [[maybe_unused]] const std::shared_ptr<DownstreamState>& downstream_)
 {
   auto dohUnit = std::unique_ptr<DOHUnit>(this);
   dohUnit->ids = std::move(state);

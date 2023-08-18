@@ -2348,7 +2348,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (frontend->d_library == "h2o") {
 #ifdef HAVE_LIBH2OEVLOOP
       frontend = std::make_shared<H2ODOHFrontend>();
-      frontend->d_library = "h2o";
 #else /* HAVE_LIBH2OEVLOOP */
         errlog("DOH bind %s is configured to use libh2o but the library is not available", addr);
         return;

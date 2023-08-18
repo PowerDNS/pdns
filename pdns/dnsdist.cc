@@ -2584,13 +2584,13 @@ int main(int argc, char** argv)
         cout<<"dns-over-https(";
 #ifdef HAVE_LIBH2OEVLOOP
         cout<<"h2o";
-#ifdef HAVE_NGHTTP2
-        cout<<" ";
-#endif
 #endif /* HAVE_LIBH2OEVLOOP */
+#if defined(HAVE_LIBH2OEVLOOP) && defined(HAVE_NGHTTP2)
+        cout<<" ";
+#endif /* defined(HAVE_LIBH2OEVLOOP) && defined(HAVE_NGHTTP2) */
 #ifdef HAVE_NGHTTP2
         cout<<"nghttp2";
-#endif
+#endif /* HAVE_NGHTTP2 */
         cout<<") ";
 #endif /* HAVE_DNS_OVER_HTTPS */
 #ifdef HAVE_DNSCRYPT
