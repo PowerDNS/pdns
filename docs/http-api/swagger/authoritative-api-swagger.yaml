@@ -625,7 +625,7 @@ paths:
           required: true
           description: The kind of metadata
       responses:
-        '200':
+        '204':
           description: OK
         <<: *commonErrors
 

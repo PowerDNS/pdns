@@ -729,7 +729,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
     def test_delete_zone_metadata(self):
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/example.com/metadata/AXFR-SOURCE"))
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 204)
         r = self.session.get(self.url("/api/v1/servers/localhost/zones/example.com/metadata/AXFR-SOURCE"))
         rdata = r.json()
         self.assertEqual(r.status_code, 200)
@@ -2710,4 +2710,4 @@ class AuthZoneKeys(ApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(len(keydata), 4)
 
         r = self.session.delete(self.url("/api/v1/servers/localhost/zones/powerdnssec.org./metadata/PUBLISH-CDS"))
-        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.status_code, 204)

@@ -1060,68 +1060,96 @@ static void apiZoneMetadata(HttpRequest *req, HttpResponse* resp)
     throw HttpMethodNotAllowedException();
 }
 
-static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
+static void apiZoneMetadataKindGET(HttpRequest* req, HttpResponse* resp) {
   zoneFromId(req);
 
   string kind = req->parameters["kind"];
 
-  if (req->method == "GET") {
-    vector<string> metadata;
-    Json::object document;
-    Json::array entries;
+  vector<string> metadata;
+  Json::object document;
+  Json::array entries;
 
-    if (!B.getDomainMetadata(zonename, kind, metadata))
-      throw HttpNotFoundException();
-    else if (!isValidMetadataKind(kind, true))
-      throw ApiException("Unsupported metadata kind '" + kind + "'");
+  if (!B.getDomainMetadata(zonename, kind, metadata)) {
+    throw HttpNotFoundException();
+  }
+  if (!isValidMetadataKind(kind, true)) {
+    throw ApiException("Unsupported metadata kind '" + kind + "'");
+  }
 
-    document["type"] = "Metadata";
-    document["kind"] = kind;
+  document["type"] = "Metadata";
+  document["kind"] = kind;
 
-    for (const string& i : metadata)
-      entries.push_back(i);
+  for (const string& value : metadata) {
+    entries.push_back(value);
+  }
 
-    document["metadata"] = entries;
-    resp->setJsonBody(document);
-  } else if (req->method == "PUT") {
-    auto document = req->json();
+  document["metadata"] = entries;
+  resp->setJsonBody(document);
+}
 
-    if (!isValidMetadataKind(kind, false))
-      throw ApiException("Unsupported metadata kind '" + kind + "'");
+static void apiZoneMetadataKindPUT(HttpRequest* req, HttpResponse* resp) {
+  zoneFromId(req);
 
-    vector<string> vecMetadata;
-    auto& metadata = document["metadata"];
-    if (!metadata.is_array())
-      throw ApiException("metadata is not specified or not an array");
+  string kind = req->parameters["kind"];
 
-    for (const auto& i : metadata.array_items()) {
-      if (!i.is_string())
-        throw ApiException("metadata must be strings");
-      vecMetadata.push_back(i.string_value());
+  const auto& document = req->json();
+
+  if (!isValidMetadataKind(kind, false)) {
+    throw ApiException("Unsupported metadata kind '" + kind + "'");
+  }
+
+  vector<string> vecMetadata;
+  const auto& metadata = document["metadata"];
+  if (!metadata.is_array()) {
+    throw ApiException("metadata is not specified or not an array");
+  }
+  for (const auto& value : metadata.array_items()) {
+    if (!value.is_string()) {
+      throw ApiException("metadata must be strings");
     }
+    vecMetadata.push_back(value.string_value());
+  }
 
-    if (!B.setDomainMetadata(zonename, kind, vecMetadata))
-      throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
+  if (!B.setDomainMetadata(zonename, kind, vecMetadata)) {
+    throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
+  }
 
-    DNSSECKeeper::clearMetaCache(zonename);
+  DNSSECKeeper::clearMetaCache(zonename);
 
-    Json::object key {
-      { "type", "Metadata" },
-      { "kind", kind },
-      { "metadata", metadata }
-    };
+  Json::object key {
+    { "type", "Metadata" },
+    { "kind", kind },
+    { "metadata", metadata }
+  };
 
-    resp->setJsonBody(key);
-  } else if (req->method == "DELETE") {
-    if (!isValidMetadataKind(kind, false))
-      throw ApiException("Unsupported metadata kind '" + kind + "'");
+  resp->setJsonBody(key);
+}
 
-    vector<string> md;  // an empty vector will do it
-    if (!B.setDomainMetadata(zonename, kind, md))
-      throw ApiException("Could not delete metadata for domain '" + zonename.toString() + "' (" + kind + ")");
+static void apiZoneMetadataKindDELETE(HttpRequest* req, HttpResponse* resp) {
+  zoneFromId(req);
 
-    DNSSECKeeper::clearMetaCache(zonename);
-  } else
+  const string& kind = req->parameters["kind"];
+  if (!isValidMetadataKind(kind, false)) {
+    throw ApiException("Unsupported metadata kind '" + kind + "'");
+  }
+
+  vector<string> metadata;  // an empty vector will do it
+  if (!B.setDomainMetadata(zonename, kind, metadata)) {
+    throw ApiException("Could not delete metadata for domain '" + zonename.toString() + "' (" + kind + ")");
+  }
+
+  DNSSECKeeper::clearMetaCache(zonename);
+  resp->status = 204;
+}
+
+static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
+  if (req->method == "GET")
+    apiZoneMetadataKindGET(req, resp);
+  else if (req->method == "PUT")
+    apiZoneMetadataKindPUT(req, resp);
+  else if (req->method == "DELETE")
+    apiZoneMetadataKindDELETE(req, resp);
+  else
     throw HttpMethodNotAllowedException();
 }
 
