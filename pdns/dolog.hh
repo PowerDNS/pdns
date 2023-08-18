@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include <array>
 #include <fstream>
 #include <iostream>
 #include <optional>
@@ -50,36 +51,44 @@
 
    This will happily print a string to %d! Doesn't do further format processing.
 */
-
-#if !defined(RECURSOR)
-inline void dolog(std::ostream& os, const char*s)
+template<typename O>
+inline void dolog(O& outputStream, const char* str)
 {
-  os<<s;
+  outputStream << str;
 }
 
-template<typename T, typename... Args>
-void dolog(std::ostream& os, const char* s, T value, const Args&... args)
+template<typename O, typename T, typename... Args>
+void dolog(O& outputStream, const char* formatStr, T value, const Args&... args)
 {
-  while (*s) {
-    if (*s == '%') {
-      if (*(s + 1) == '%') {
-	++s;
+  while (*formatStr) {
+    if (*formatStr == '%') {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      if (*(formatStr + 1) == '%') {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	++formatStr;
       }
       else {
-	os << value;
-	s += 2;
-	dolog(os, s, args...);
+	outputStream << value;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+	formatStr += 2;
+	dolog(outputStream, formatStr, args...);
 	return;
       }
     }
-    os << *s++;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    outputStream << *formatStr++;
   }
 }
 
+#if !defined(RECURSOR)
+//NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 extern bool g_verbose;
+//NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 extern bool g_syslog;
 #ifdef DNSDIST
+//NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 extern bool g_logtimestamps;
+//NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 extern std::optional<std::ofstream> g_verboseStream;
 #endif
 
@@ -91,44 +100,45 @@ inline void setSyslogFacility(int facility)
 }
 
 template<typename... Args>
-void genlog(std::ostream& stream, int level, bool doSyslog, const char* s, const Args&... args)
+void genlog(std::ostream& stream, int level, bool doSyslog, const char* formatStr, const Args&... args)
 {
   std::ostringstream str;
-  dolog(str, s, args...);
+  dolog(str, formatStr, args...);
 
   auto output = str.str();
 
   if (doSyslog) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): syslog is what it is
     syslog(level, "%s", output.c_str());
   }
 
 #ifdef DNSDIST
   if (g_logtimestamps) {
-    char buffer[50] = "";
-    struct tm tm;
-    time_t t;
-    time(&t);
-    localtime_r(&t, &tm);
-    if (strftime(buffer, sizeof(buffer), "%b %d %H:%M:%S ", &tm) == 0) {
+    std::array<char,50> buffer{""};
+    time_t now{0};
+    time(&now);
+    struct tm localNow{};
+    localtime_r(&now, &localNow);
+    if (strftime(buffer.data(), buffer.size(), "%b %d %H:%M:%S ", &localNow) == 0) {
       buffer[0] = '\0';
     }
-    stream<<buffer;
+    stream << buffer.data();
   }
 #endif
 
-  stream<<output<<std::endl;
+  stream << output << std::endl;
 }
 
 template<typename... Args>
-void verboselog(const char* s, const Args&... args)
+void verboselog(const char* formatStr, const Args&... args)
 {
 #ifdef DNSDIST
   if (g_verboseStream) {
-    genlog(*g_verboseStream, LOG_DEBUG, false, s, args...);
+    genlog(*g_verboseStream, LOG_DEBUG, false, formatStr, args...);
   }
   else {
 #endif /* DNSDIST */
-    genlog(std::cout, LOG_DEBUG, g_syslog, s, args...);
+    genlog(std::cout, LOG_DEBUG, g_syslog, formatStr, args...);
 #ifdef DNSDIST
   }
 #endif /* DNSDIST */
@@ -137,75 +147,46 @@ void verboselog(const char* s, const Args&... args)
 #define vinfolog if (g_verbose) verboselog
 
 template<typename... Args>
-void infolog(const char* s, const Args&... args)
+void infolog(const char* formatStr, const Args&... args)
 {
-  genlog(std::cout, LOG_INFO, g_syslog, s, args...);
+  genlog(std::cout, LOG_INFO, g_syslog, formatStr, args...);
 }
 
 template<typename... Args>
-void warnlog(const char* s, const Args&... args)
+void warnlog(const char* formatStr, const Args&... args)
 {
-  genlog(std::cout, LOG_WARNING, g_syslog, s, args...);
+  genlog(std::cout, LOG_WARNING, g_syslog, formatStr, args...);
 }
 
 template<typename... Args>
-void errlog(const char* s, const Args&... args)
+void errlog(const char* formatStr, const Args&... args)
 {
-  genlog(std::cout, LOG_ERR, g_syslog, s, args...);
+  genlog(std::cout, LOG_ERR, g_syslog, formatStr, args...);
 }
 
 #else // RECURSOR
-
 #define g_verbose 0
-
-inline void dolog(Logger::Urgency u, const char* s)
-{
-  g_log << u << s << std::endl;
-}
-
-inline void dolog(const char* s)
-{
-  g_log << s << std::endl;
-}
-
-template<typename T, typename... Args>
-void dolog(Logger::Urgency u, const char* s, T value, const Args&... args)
-{
-  g_log << u;
-  while (*s) {
-    if (*s == '%') {
-      if (*(s + 1) == '%') {
-	++s;
-      }
-      else {
-	g_log << value;
-	s += 2;
-	dolog(s, args...);
-	return;
-      }
-    }
-    g_log << *s++;
-  }
-}
-
 #define vinfolog if(g_verbose)infolog
 
 template<typename... Args>
-void infolog(const char* s, const Args&... args)
+void infolog(const char* formatStr, const Args&... args)
 {
-  dolog(Logger::Info, s, args...);
+  g_log << Logger::Info;
+  dolog(g_log, formatStr, args...);
 }
 
 template<typename... Args>
-void warnlog(const char* s, const Args&... args)
+void warnlog(const char* formatStr, const Args&... args)
 {
-  dolog(Logger::Warning, s, args...);
+  g_log << Logger::Warning;
+  dolog(g_log, formatStr, args...);
 }
 
 template<typename... Args>
-void errlog(const char* s, const Args&... args)
+void errlog(const char* formatStr, const Args&... args)
 {
-  dolog(Logger::Error, s, args...);
+  g_log << Logger::Error;
+  dolog(g_log, formatStr, args...);
 }
 
 #endif
