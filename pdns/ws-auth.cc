@@ -2022,137 +2022,153 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 }
 
-static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
+static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp) {
   zoneFromId(req);
 
-  if(req->method == "PUT") {
-    // update domain contents and/or settings
-    auto document = req->json();
+  // update domain contents and/or settings
+  const auto& document = req->json();
 
-    auto rrsets = document["rrsets"];
-    bool zoneWasModified = false;
-    DomainInfo::DomainKind newKind = di.kind;
-    if (document["kind"].is_string()) {
-      newKind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
+  auto rrsets = document["rrsets"];
+  bool zoneWasModified = false;
+  DomainInfo::DomainKind newKind = di.kind;
+  if (document["kind"].is_string()) {
+    newKind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
+  }
+
+  // if records/comments are given, load, check and insert them
+  if (rrsets.is_array()) {
+    zoneWasModified = true;
+    bool haveSoa = false;
+    string soaEditApiKind;
+    string soaEditKind;
+    di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soaEditApiKind);
+    di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soaEditKind);
+
+    vector<DNSResourceRecord> new_records;
+    vector<Comment> new_comments;
+
+    try {
+      for (const auto& rrset : rrsets.array_items()) {
+        DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
+        apiCheckQNameAllowedCharacters(qname.toString());
+        QType qtype;
+        qtype = stringFromJson(rrset, "type");
+        if (qtype.getCode() == 0) {
+          throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
+        }
+        if (rrset["records"].is_array()) {
+          uint32_t ttl = uintFromJson(rrset, "ttl");
+          gatherRecords(rrset, qname, qtype, ttl, new_records);
+        }
+        if (rrset["comments"].is_array()) {
+          gatherComments(rrset, qname, qtype, new_comments);
+        }
+      }
+    }
+    catch (const JsonException& exc) {
+      throw ApiException("New RRsets are invalid: " + string(exc.what()));
     }
 
-    // if records/comments are given, load, check and insert them
-    if (rrsets.is_array()) {
-      zoneWasModified = true;
-      bool haveSoa = false;
-      string soaEditApiKind;
-      string soaEditKind;
-      di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soaEditApiKind);
-      di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soaEditKind);
-
-      vector<DNSResourceRecord> new_records;
-      vector<Comment> new_comments;
-
-      try {
-        for (const auto& rrset : rrsets.array_items()) {
-          DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
-          apiCheckQNameAllowedCharacters(qname.toString());
-          QType qtype;
-          qtype = stringFromJson(rrset, "type");
-          if (qtype.getCode() == 0) {
-            throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
-          }
-          if (rrset["records"].is_array()) {
-            uint32_t ttl = uintFromJson(rrset, "ttl");
-            gatherRecords(rrset, qname, qtype, ttl, new_records);
-          }
-          if (rrset["comments"].is_array()) {
-            gatherComments(rrset, qname, qtype, new_comments);
-          }
-        }
+    for(auto& rr : new_records) { // NOLINT(readability-identifier-length)
+      rr.qname.makeUsLowerCase();
+      if (!rr.qname.isPartOf(zonename) && rr.qname != zonename) {
+        throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
       }
-      catch (const JsonException& e) {
-        throw ApiException("New RRsets are invalid: " + string(e.what()));
-      }
+      apiCheckQNameAllowedCharacters(rr.qname.toString());
 
-      for(auto& rr : new_records) {
-        rr.qname.makeUsLowerCase();
-        if (!rr.qname.isPartOf(zonename) && rr.qname != zonename) {
-          throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
-        }
-        apiCheckQNameAllowedCharacters(rr.qname.toString());
-
-        if (rr.qtype.getCode() == QType::SOA && rr.qname == zonename) {
-          haveSoa = true;
-        }
+      if (rr.qtype.getCode() == QType::SOA && rr.qname == zonename) {
+        haveSoa = true;
       }
-
-      if (!haveSoa && newKind != DomainInfo::Secondary && newKind != DomainInfo::Consumer) {
-        // Require SOA if this is a primary zone.
-        throw ApiException("Must give SOA record for zone when replacing all RR sets");
-      }
-      if (newKind == DomainInfo::Consumer && !new_records.empty()) {
-        // Allow deleting all RRsets, just not modifying them.
-        throw ApiException("Modifying RRsets in Consumer zones is unsupported");
-      }
-
-      checkNewRecords(new_records, zonename);
-
-      di.backend->startTransaction(zonename, static_cast<int>(di.id));
-      for(auto& rr : new_records) {
-        rr.domain_id = static_cast<int>(di.id);
-        di.backend->feedRecord(rr, DNSName());
-      }
-      for(Comment& c : new_comments) {
-        c.domain_id = static_cast<int>(di.id);
-        di.backend->feedComment(c);
-      }
-
-      if (!haveSoa && (newKind == DomainInfo::Secondary || newKind == DomainInfo::Consumer)) {
-        di.backend->setStale(di.id);
-      }
-    } else {
-      // avoid deleting current zone contents
-      di.backend->startTransaction(zonename, -1);
     }
 
-    // updateDomainSettingsFromDocument will rectify the zone and update SOA serial.
-    updateDomainSettingsFromDocument(B, di, zonename, document, zoneWasModified);
+    if (!haveSoa && newKind != DomainInfo::Secondary && newKind != DomainInfo::Consumer) {
+      // Require SOA if this is a primary zone.
+      throw ApiException("Must give SOA record for zone when replacing all RR sets");
+    }
+    if (newKind == DomainInfo::Consumer && !new_records.empty()) {
+      // Allow deleting all RRsets, just not modifying them.
+      throw ApiException("Modifying RRsets in Consumer zones is unsupported");
+    }
+
+    checkNewRecords(new_records, zonename);
+
+    di.backend->startTransaction(zonename, static_cast<int>(di.id));
+    for(auto& rr : new_records) { // NOLINT(readability-identifier-length)
+      rr.domain_id = static_cast<int>(di.id);
+      di.backend->feedRecord(rr, DNSName());
+    }
+    for(Comment& comment : new_comments) {
+      comment.domain_id = static_cast<int>(di.id);
+      di.backend->feedComment(comment);
+    }
+
+    if (!haveSoa && (newKind == DomainInfo::Secondary || newKind == DomainInfo::Consumer)) {
+      di.backend->setStale(di.id);
+    }
+  } else {
+    // avoid deleting current zone contents
+    di.backend->startTransaction(zonename, -1);
+  }
+
+  // updateDomainSettingsFromDocument will rectify the zone and update SOA serial.
+  updateDomainSettingsFromDocument(B, di, zonename, document, zoneWasModified);
+  di.backend->commitTransaction();
+
+  purgeAuthCaches(zonename.toString() + "$");
+
+  resp->body = "";
+  resp->status = 204; // No Content, but indicate success
+}
+
+static void apiServerZoneDetailDELETE(HttpRequest* req, HttpResponse* resp) {
+  zoneFromId(req);
+
+  // delete domain
+
+  di.backend->startTransaction(zonename, -1);
+  try {
+    if(!di.backend->deleteDomain(zonename)) {
+      throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
+    }
+
     di.backend->commitTransaction();
 
     purgeAuthCaches(zonename.toString() + "$");
-
-    resp->body = "";
-    resp->status = 204; // No Content, but indicate success
-    return;
+  } catch (...) {
+    di.backend->abortTransaction();
+    throw;
   }
-  else if(req->method == "DELETE") {
-    // delete domain
 
-    di.backend->startTransaction(zonename, -1);
-    try {
-      if(!di.backend->deleteDomain(zonename))
-        throw ApiException("Deleting domain '"+zonename.toString()+"' failed: backend delete failed/unsupported");
+  // clear caches
+  DNSSECKeeper::clearCaches(zonename);
+  purgeAuthCaches(zonename.toString() + "$");
 
-      di.backend->commitTransaction();
+  // empty body on success
+  resp->body = "";
+  resp->status = 204; // No Content: declare that the zone is gone now
+}
 
-      g_zoneCache.remove(zonename);
-    } catch (...) {
-      di.backend->abortTransaction();
-      throw;
-    }
+static void apiServerZoneDetailPATCH(HttpRequest* req, HttpResponse* resp) {
+  zoneFromId(req);
+  patchZone(B, zonename, di, req, resp);
+}
 
-    // clear caches
-    DNSSECKeeper::clearCaches(zonename);
-    purgeAuthCaches(zonename.toString() + "$");
+static void apiServerZoneDetailGET(HttpRequest* req, HttpResponse* resp) {
+  zoneFromId(req);
+  fillZone(B, zonename, resp, req);
+}
 
-    // empty body on success
-    resp->body = "";
-    resp->status = 204; // No Content: declare that the zone is gone now
-    return;
-  } else if (req->method == "PATCH") {
-    patchZone(B, zonename, di, req, resp);
-    return;
-  } else if (req->method == "GET") {
-    fillZone(B, zonename, resp, req);
-    return;
-  }
-  throw HttpMethodNotAllowedException();
+static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
+  if (req->method == "GET")
+    apiServerZoneDetailGET(req, resp);
+  else if (req->method == "PATCH")
+    apiServerZoneDetailPATCH(req, resp);
+  else if (req->method == "PUT")
+    apiServerZoneDetailPUT(req, resp);
+  else if (req->method == "DELETE")
+    apiServerZoneDetailDELETE(req, resp);
+  else
+    throw HttpMethodNotAllowedException();
 }
 
 static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
