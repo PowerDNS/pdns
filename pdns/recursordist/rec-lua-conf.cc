@@ -365,12 +365,12 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
       }
       catch (const PDNSException& e) {
         SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << zoneName << " from seed file '" << seedFile << "': " << e.reason << endl,
-             log->error(Logr::Warning, e.reason, "Exception while pre-loadin RPZ zone", "exception", Logging::Loggable("PDNSException")));
+             log->error(Logr::Warning, e.reason, "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("PDNSException")));
         zone->clear();
       }
       catch (const std::exception& e) {
         SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << zoneName << " from seed file '" << seedFile << "': " << e.what() << endl,
-             log->error(Logr::Warning, e.what(), "Exception while pre-loadin RPZ zone", "exception", Logging::Loggable("std::exception")));
+             log->error(Logr::Warning, e.what(), "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("std::exception")));
         zone->clear();
       }
     }
@@ -690,11 +690,11 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       }
       catch (std::exception& e) {
         SLOG(g_log << Logger::Error << "Error while adding protobuf logger: " << e.what() << endl,
-             lci.d_slog->error(Logr::Error, e.what(), "Exception  while adding protobuf logger", "exception", Logging::Loggable("std::exception")));
+             lci.d_slog->error(Logr::Error, e.what(), "Exception while adding protobuf logger", "exception", Logging::Loggable("std::exception")));
       }
       catch (PDNSException& e) {
         SLOG(g_log << Logger::Error << "Error while adding protobuf logger: " << e.reason << endl,
-             lci.d_slog->error(Logr::Error, e.reason, "Exception  while adding protobuf logger", "exception", Logging::Loggable("PDNSException")));
+             lci.d_slog->error(Logr::Error, e.reason, "Exception while adding protobuf logger", "exception", Logging::Loggable("PDNSException")));
       }
     }
     else {
@@ -907,12 +907,12 @@ void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads,
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.what() << endl,
-           g_slog->withName("rpz")->error(Logr::Error, e.what(), "Exception startng RPZIXFRTracker thread", "exception", Logging::Loggable("std::exception")));
+           g_slog->withName("rpz")->error(Logr::Error, e.what(), "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("std::exception")));
       exit(1);
     }
     catch (const PDNSException& e) {
       SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.reason << endl,
-           g_slog->withName("rpz")->error(Logr::Error, e.reason, "Exception startng RPZIXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
+           g_slog->withName("rpz")->error(Logr::Error, e.reason, "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
       exit(1);
     }
   }
