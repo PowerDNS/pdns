@@ -320,7 +320,11 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     @classmethod
     def handleTCPConnection(cls, conn, fromQueue, toQueue, trailingDataResponse=False, multipleResponses=False, callback=None, partialWrite=False):
       ignoreTrailing = trailingDataResponse is True
-      data = conn.recv(2)
+      try:
+        data = conn.recv(2)
+      except Exception as err:
+        data = None
+        print(f'Error while reading query size in TCP responder thread {err=}, {type(err)=}')
       if not data:
         conn.close()
         return
@@ -440,6 +444,9 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         except ssl.SSLEOFError as e:
           print("Unexpected EOF: %s" % (e))
           return
+        except Exception as err:
+          print(f'Unexpected exception in DoH responder thread (connection init) {err=}, {type(err)=}')
+          return
 
         dnsData = {}
 
@@ -470,7 +477,11 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         # be careful, HTTP/2 headers and data might be in different recv() results
         requestHeaders = None
         while True:
-            data = conn.recv(65535)
+            try:
+              data = conn.recv(65535)
+            except Exception as err:
+              data = None
+              print(f'Unexpected exception in DoH responder thread {err=}, {type(err)=}')
             if not data:
                 break
 
