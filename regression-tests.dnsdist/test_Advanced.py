@@ -311,6 +311,7 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
     _config_params = ['_testServerPort', '_dnsDistPort', '_dnsDistPort']
     _acl = ['127.0.0.1/32', '::1/128']
     _skipListeningOnCL = True
+    _verboseMode = True
 
     def testAdvancedGetLocalAddressOnAnyBind(self):
         """
