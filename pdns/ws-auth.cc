@@ -1168,8 +1168,17 @@ static void apiZoneCryptoKeysCheckKeyExists(const DNSName& zonename, int inquire
   }
 }
 
-static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, HttpResponse *resp, DNSSECKeeper *dk) {
-  DNSSECKeeper::keyset_t keyset=dk->getKeys(zonename, false);
+static inline int getInquireKeyId(HttpRequest *req, const DNSName& zonename, DNSSECKeeper *dnsseckeeper) {
+  int inquireKeyId = -1;
+  if (req->parameters.count("key_id") == 1) {
+    inquireKeyId = std::stoi(req->parameters["key_id"]);
+    apiZoneCryptoKeysCheckKeyExists(zonename, inquireKeyId, dnsseckeeper);
+  }
+  return inquireKeyId;
+}
+
+static void apiZoneCryptokeysExport(const DNSName& zonename, int64_t inquireKeyId, HttpResponse *resp, DNSSECKeeper *dnssec_dk) {
+  DNSSECKeeper::keyset_t keyset=dnssec_dk->getKeys(zonename, false);
 
   bool inquireSingleKey = inquireKeyId >= 0;
 
@@ -1188,18 +1197,18 @@ static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, Http
 
     Json::object key {
         { "type", "Cryptokey" },
-        { "id", (int)value.second.id },
+        { "id", static_cast<int>(value.second.id) },
         { "active", value.second.active },
         { "published", value.second.published },
         { "keytype", keyType },
-        { "flags", (uint16_t)value.first.getFlags() },
+        { "flags", static_cast<uint16_t>(value.first.getFlags()) },
         { "dnskey", value.first.getDNSKEY().getZoneRepresentation() },
         { "algorithm", DNSSECKeeper::algorithm2name(value.first.getAlgorithm()) },
         { "bits", value.first.getKey()->getBits() }
     };
 
     string publishCDS;
-    dk->getPublishCDS(zonename, publishCDS);
+    dnssec_dk->getPublishCDS(zonename, publishCDS);
 
     vector<string> digestAlgos;
     stringtok(digestAlgos, publishCDS, ", ");
@@ -1241,7 +1250,13 @@ static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, Http
     throw HttpNotFoundException();
   }
   resp->setJsonBody(doc);
+}
 
+static void apiZoneCryptokeysGET(HttpRequest *req, HttpResponse *resp) {
+  zoneFromId(req);
+  const auto inquireKeyId = getInquireKeyId(req, zonename, &dk);
+
+  apiZoneCryptokeysExport(zonename, inquireKeyId, resp, &dk);
 }
 
 /*
@@ -1255,8 +1270,15 @@ static void apiZoneCryptokeysGET(const DNSName& zonename, int inquireKeyId, Http
  * Case 3: the key or zone does not exist.
  *      The server returns 404 Not Found
  * */
-static void apiZoneCryptokeysDELETE(const DNSName& zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
-  if (dk->removeKey(zonename, inquireKeyId)) {
+static void apiZoneCryptokeysDELETE(HttpRequest *req, HttpResponse *resp) {
+  zoneFromId(req);
+  const auto inquireKeyId = getInquireKeyId(req, zonename, &dk);
+
+  if (inquireKeyId == -1) {
+     throw HttpBadRequestException();
+  }
+
+  if (dk.removeKey(zonename, inquireKeyId)) {
     resp->body = "";
     resp->status = 204;
   } else {
@@ -1300,8 +1322,10 @@ static void apiZoneCryptokeysDELETE(const DNSName& zonename, int inquireKeyId, H
  *    The server returns 201 Created and all public data about the added cryptokey
  */
 
-static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
-  auto document = req->json();
+static void apiZoneCryptokeysPOST(HttpRequest *req, HttpResponse *resp) {
+  zoneFromId(req);
+
+  const auto& document = req->json();
   string privatekey_fieldname = "privatekey";
   auto privatekey = document["privatekey"];
   if (privatekey.is_null()) {
@@ -1334,11 +1358,12 @@ static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, Htt
       }
     }
     int algorithm = DNSSECKeeper::shorthand2algorithm(keyOrZone ? ::arg()["default-ksk-algorithm"] : ::arg()["default-zsk-algorithm"]);
-    auto providedAlgo = document["algorithm"];
+    const auto& providedAlgo = document["algorithm"];
     if (providedAlgo.is_string()) {
       algorithm = DNSSECKeeper::shorthand2algorithm(providedAlgo.string_value());
-      if (algorithm == -1)
+      if (algorithm == -1) {
         throw ApiException("Unknown algorithm: " + providedAlgo.string_value());
+      }
     } else if (providedAlgo.is_number()) {
       algorithm = providedAlgo.int_value();
     } else if (!providedAlgo.is_null()) {
@@ -1346,7 +1371,7 @@ static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, Htt
     }
 
     try {
-      if (!dk->addKey(zonename, keyOrZone, algorithm, insertedId, bits, active, published)) {
+      if (!dk.addKey(zonename, keyOrZone, algorithm, insertedId, bits, active, published)) {
         throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
       }
     } catch (std::runtime_error& error) {
@@ -1355,7 +1380,7 @@ static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, Htt
     if (insertedId < 0)
       throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
   } else if (document["bits"].is_null() && document["algorithm"].is_null()) {
-    auto keyData = stringFromJson(document, privatekey_fieldname);
+    const auto& keyData = stringFromJson(document, privatekey_fieldname);
     DNSKEYRecordContent dkrc;
     DNSSECPrivateKey dpk;
     try {
@@ -1378,18 +1403,19 @@ static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, Htt
     catch (std::runtime_error& error) {
       throw ApiException("Key could not be parsed. Make sure your key format is correct.");
     } try {
-      if (!dk->addKey(zonename, dpk,insertedId, active, published)) {
+      if (!dk.addKey(zonename, dpk, insertedId, active, published)) {
         throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
       }
     } catch (std::runtime_error& error) {
       throw ApiException(error.what());
     }
-    if (insertedId < 0)
+    if (insertedId < 0) {
       throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
+    }
   } else {
     throw ApiException("Either you submit just the 'privatekey' field or you leave 'privatekey' empty and submit the other fields.");
   }
-  apiZoneCryptokeysGET(zonename, insertedId, resp, dk);
+  apiZoneCryptokeysExport(zonename, insertedId, resp, &dk);
   resp->status = 201;
 }
 
@@ -1404,31 +1430,37 @@ static void apiZoneCryptokeysPOST(const DNSName& zonename, HttpRequest *req, Htt
  * Case 3: the backend returns false on de/activation. An error occurred.
  *      The sever returns 422 Unprocessable Entity with message "Could not de/activate Key: :cryptokey_id in Zone: :zone_name"
  * */
-static void apiZoneCryptokeysPUT(const DNSName& zonename, int inquireKeyId, HttpRequest *req, HttpResponse *resp, DNSSECKeeper *dk) {
+static void apiZoneCryptokeysPUT(HttpRequest *req, HttpResponse *resp) {
+  zoneFromId(req);
+  const auto inquireKeyId = getInquireKeyId(req, zonename, &dk);
+
+  if (inquireKeyId == -1) {
+    throw HttpBadRequestException();
+  }
   //throws an exception if the Body is empty
-  auto document = req->json();
+  const auto& document = req->json();
   //throws an exception if the key does not exist or is not a bool
   bool active = boolFromJson(document, "active");
   bool published = boolFromJson(document, "published", true);
   if (active) {
-    if (!dk->activateKey(zonename, inquireKeyId)) {
+    if (!dk.activateKey(zonename, inquireKeyId)) {
       resp->setErrorResult("Could not activate Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
       return;
     }
   } else {
-    if (!dk->deactivateKey(zonename, inquireKeyId)) {
+    if (!dk.deactivateKey(zonename, inquireKeyId)) {
       resp->setErrorResult("Could not deactivate Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
       return;
     }
   }
 
   if (published) {
-    if (!dk->publishKey(zonename, inquireKeyId)) {
+    if (!dk.publishKey(zonename, inquireKeyId)) {
       resp->setErrorResult("Could not publish Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
       return;
     }
   } else {
-    if (!dk->unpublishKey(zonename, inquireKeyId)) {
+    if (!dk.unpublishKey(zonename, inquireKeyId)) {
       resp->setErrorResult("Could not unpublish Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
       return;
     }
@@ -1445,26 +1477,14 @@ static void apiZoneCryptokeysPUT(const DNSName& zonename, int inquireKeyId, Http
  * If the the HTTP-request-method isn't supported, the function returns a response with the 405 code (method not allowed).
  * */
 static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
-  zoneFromId(req);
-
-  int inquireKeyId = -1;
-  if (req->parameters.count("key_id")) {
-    inquireKeyId = std::stoi(req->parameters["key_id"]);
-    apiZoneCryptoKeysCheckKeyExists(zonename, inquireKeyId, &dk);
-  }
-
   if (req->method == "GET") {
-    apiZoneCryptokeysGET(zonename, inquireKeyId, resp, &dk);
+    apiZoneCryptokeysGET(req, resp);
   } else if (req->method == "DELETE") {
-    if (inquireKeyId == -1)
-      throw HttpBadRequestException();
-    apiZoneCryptokeysDELETE(zonename, inquireKeyId, req, resp, &dk);
+    apiZoneCryptokeysDELETE(req, resp);
   } else if (req->method == "POST") {
-    apiZoneCryptokeysPOST(zonename, req, resp, &dk);
+    apiZoneCryptokeysPOST(req, resp);
   } else if (req->method == "PUT") {
-    if (inquireKeyId == -1)
-      throw HttpBadRequestException();
-    apiZoneCryptokeysPUT(zonename, inquireKeyId, req, resp, &dk);
+    apiZoneCryptokeysPUT(req, resp);
   } else {
     throw HttpMethodNotAllowedException(); //Returns method not allowed
   }
