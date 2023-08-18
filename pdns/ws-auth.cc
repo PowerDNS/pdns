@@ -1729,41 +1729,53 @@ static void apiServerAutoprimaryDetail(HttpRequest* req, HttpResponse* resp) {
   }
 }
 
-static void apiServerAutoprimaries(HttpRequest* req, HttpResponse* resp) {
-  UeberBackend B;
+static void apiServerAutoprimariesGET(HttpRequest* /* req */, HttpResponse* resp) {
+  UeberBackend B; // NOLINT(readability-identifier-length)
 
-  if (req->method == "GET") {
-    std::vector<AutoPrimary> primaries;
-    if (!B.autoPrimariesList(primaries))
-      throw HttpInternalServerErrorException("Unable to retrieve autoprimaries");
-    Json::array doc;
-    for (const auto& primary: primaries) {
-      Json::object obj = {
-        { "ip", primary.ip },
-        { "nameserver", primary.nameserver },
-        { "account", primary.account }
-      };
-      doc.push_back(obj);
-    }
-    resp->setJsonBody(doc);
-  } else if (req->method == "POST") {
-    auto document = req->json();
-    AutoPrimary primary(stringFromJson(document, "ip"), stringFromJson(document, "nameserver"), "");
-
-    if (document["account"].is_string()) {
-      primary.account = document["account"].string_value();
-    }
-
-    if (primary.ip=="" or primary.nameserver=="") {
-      throw ApiException("ip and nameserver fields must be filled");
-    }
-    if (!B.autoPrimaryAdd(primary))
-      throw HttpInternalServerErrorException("Cannot find backend with autoprimary feature");
-    resp->body = "";
-    resp->status = 201;
-  } else {
-    throw HttpMethodNotAllowedException();
+  std::vector<AutoPrimary> primaries;
+  if (!B.autoPrimariesList(primaries)) {
+    throw HttpInternalServerErrorException("Unable to retrieve autoprimaries");
   }
+  Json::array doc;
+  for (const auto& primary: primaries) {
+    const Json::object obj = {
+      { "ip", primary.ip },
+      { "nameserver", primary.nameserver },
+      { "account", primary.account }
+    };
+    doc.push_back(obj);
+  }
+  resp->setJsonBody(doc);
+}
+
+static void apiServerAutoprimariesPOST(HttpRequest* req, HttpResponse* resp) {
+  UeberBackend B; // NOLINT(readability-identifier-length)
+
+  const auto& document = req->json();
+
+  AutoPrimary primary(stringFromJson(document, "ip"), stringFromJson(document, "nameserver"), "");
+
+  if (document["account"].is_string()) {
+    primary.account = document["account"].string_value();
+  }
+
+  if (primary.ip.empty() or primary.nameserver.empty()) {
+    throw ApiException("ip and nameserver fields must be filled");
+  }
+  if (!B.autoPrimaryAdd(primary)) {
+    throw HttpInternalServerErrorException("Cannot find backend with autoprimary feature");
+  }
+  resp->body = "";
+  resp->status = 201;
+}
+
+static void apiServerAutoprimaries(HttpRequest* req, HttpResponse* resp) {
+  if (req->method == "GET")
+    apiServerAutoprimariesGET(req, resp);
+  else if (req->method == "POST")
+    apiServerAutoprimariesPOST(req, resp);
+  else
+    throw HttpMethodNotAllowedException();
 }
 
 // create new zone
