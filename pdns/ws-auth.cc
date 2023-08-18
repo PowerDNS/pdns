@@ -1784,11 +1784,11 @@ static void apiServerAutoprimaries(HttpRequest* req, HttpResponse* resp) {
 }
 
 // create new zone
-static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
+static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSSECKeeper dk(&B);
   DomainInfo di;
-  auto document = req->json();
+  const auto& document = req->json();
   DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
   apiCheckNameAllowedCharacters(zonename.toString());
   zonename.makeUsLowerCase();
@@ -1974,7 +1974,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
 }
 
 // list known zones
-static void apiServerZonesGet(HttpRequest* req, HttpResponse* resp) {
+static void apiServerZonesGET(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSSECKeeper dk(&B);
   vector<DomainInfo> domains;
@@ -2014,17 +2014,12 @@ static void apiServerZonesGet(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
-  if (req->method == "POST") {
-    apiServerZonesPost(req, resp);
-    return;
-  }
-
-  if (req->method == "GET") {
-    apiServerZonesGet(req, resp);
-    return;
-  }
-
-  throw HttpMethodNotAllowedException();
+  if (req->method == "GET")
+    apiServerZonesGET(req, resp);
+  else if (req->method == "POST")
+    apiServerZonesPOST(req, resp);
+  else
+    throw HttpMethodNotAllowedException();
 }
 
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
