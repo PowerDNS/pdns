@@ -950,9 +950,6 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
 #include "apidocfiles.h"
 
 void apiDocs(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
   if (req->accept_yaml) {
     resp->setYamlBody(g_api_swagger_yaml);
   } else if (req->accept_json) {
@@ -1050,16 +1047,6 @@ static void apiZoneMetadataPOST(HttpRequest* req, HttpResponse *resp) {
   resp->setJsonBody(key);
 }
 
-static void apiZoneMetadata(HttpRequest *req, HttpResponse* resp)
-{
-  if (req->method == "GET")
-    apiZoneMetadataGET(req, resp);
-  else if (req->method == "POST")
-    apiZoneMetadataPOST(req, resp);
-  else
-    throw HttpMethodNotAllowedException();
-}
-
 static void apiZoneMetadataKindGET(HttpRequest* req, HttpResponse* resp) {
   zoneFromId(req);
 
@@ -1140,17 +1127,6 @@ static void apiZoneMetadataKindDELETE(HttpRequest* req, HttpResponse* resp) {
 
   DNSSECKeeper::clearMetaCache(zonename);
   resp->status = 204;
-}
-
-static void apiZoneMetadataKind(HttpRequest* req, HttpResponse* resp) {
-  if (req->method == "GET")
-    apiZoneMetadataKindGET(req, resp);
-  else if (req->method == "PUT")
-    apiZoneMetadataKindPUT(req, resp);
-  else if (req->method == "DELETE")
-    apiZoneMetadataKindDELETE(req, resp);
-  else
-    throw HttpMethodNotAllowedException();
 }
 
 // Throws 404 if the key with inquireKeyId does not exist
@@ -1471,25 +1447,6 @@ static void apiZoneCryptokeysPUT(HttpRequest *req, HttpResponse *resp) {
   return;
 }
 
-/*
- * This method chooses the right functionality for the request. It also checks for a cryptokey_id which has to be passed
- * by URL /api/v1/servers/:server_id/zones/:zone_name/cryptokeys/:cryptokey_id .
- * If the the HTTP-request-method isn't supported, the function returns a response with the 405 code (method not allowed).
- * */
-static void apiZoneCryptokeys(HttpRequest *req, HttpResponse *resp) {
-  if (req->method == "GET") {
-    apiZoneCryptokeysGET(req, resp);
-  } else if (req->method == "DELETE") {
-    apiZoneCryptokeysDELETE(req, resp);
-  } else if (req->method == "POST") {
-    apiZoneCryptokeysPOST(req, resp);
-  } else if (req->method == "PUT") {
-    apiZoneCryptokeysPUT(req, resp);
-  } else {
-    throw HttpMethodNotAllowedException(); //Returns method not allowed
-  }
-}
-
 static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResourceRecord>& new_records, const DNSName& zonename) {
   DNSResourceRecord rr;
   vector<string> zonedata;
@@ -1646,15 +1603,6 @@ static void apiServerTSIGKeysPOST(HttpRequest* req, HttpResponse* resp) {
   resp->setJsonBody(makeJSONTSIGKey(keyname, algo, content));
 }
 
-static void apiServerTSIGKeys(HttpRequest* req, HttpResponse* resp) {
-  if (req->method == "GET")
-    apiServerTSIGKeysGET(req, resp);
-  else if (req->method == "POST")
-    apiServerTSIGKeysPOST(req, resp);
-  else
-   HttpMethodNotAllowedException();
-}
-
 // NOLINTBEGIN(cppcoreguidelines-macro-usage, readability-identifier-length)
 #define TSIGKeyFromId(req) \
   UeberBackend B; \
@@ -1725,17 +1673,6 @@ static void apiServerTSIGKeyDetailDELETE(HttpRequest* req, HttpResponse* resp) {
   resp->status = 204;
 }
 
-static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
-  if (req->method == "GET")
-    apiServerTSIGKeyDetailGET(req, resp);
-  else if (req->method == "PUT")
-    apiServerTSIGKeyDetailPUT(req, resp);
-  else if (req->method == "DELETE")
-    apiServerTSIGKeyDetailDELETE(req, resp);
-  else
-    throw HttpMethodNotAllowedException();
-}
-
 static void apiServerAutoprimaryDetailDELETE(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B; // NOLINT(readability-identifier-length)
   const AutoPrimary& primary{req->parameters["ip"], req->parameters["nameserver"], ""};
@@ -1744,14 +1681,6 @@ static void apiServerAutoprimaryDetailDELETE(HttpRequest* req, HttpResponse* res
   }
   resp->body = "";
   resp->status = 204;
-}
-
-static void apiServerAutoprimaryDetail(HttpRequest* req, HttpResponse* resp) {
-  if (req->method == "DELETE") {
-    apiServerAutoprimaryDetailDELETE(req, resp);
-  } else {
-    throw HttpMethodNotAllowedException();
-  }
 }
 
 static void apiServerAutoprimariesGET(HttpRequest* /* req */, HttpResponse* resp) {
@@ -1792,15 +1721,6 @@ static void apiServerAutoprimariesPOST(HttpRequest* req, HttpResponse* resp) {
   }
   resp->body = "";
   resp->status = 201;
-}
-
-static void apiServerAutoprimaries(HttpRequest* req, HttpResponse* resp) {
-  if (req->method == "GET")
-    apiServerAutoprimariesGET(req, resp);
-  else if (req->method == "POST")
-    apiServerAutoprimariesPOST(req, resp);
-  else
-    throw HttpMethodNotAllowedException();
 }
 
 // create new zone
@@ -2033,15 +1953,6 @@ static void apiServerZonesGET(HttpRequest* req, HttpResponse* resp) {
   resp->setJsonBody(doc);
 }
 
-static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
-  if (req->method == "GET")
-    apiServerZonesGET(req, resp);
-  else if (req->method == "POST")
-    apiServerZonesPOST(req, resp);
-  else
-    throw HttpMethodNotAllowedException();
-}
-
 static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp) {
   zoneFromId(req);
 
@@ -2178,24 +2089,8 @@ static void apiServerZoneDetailGET(HttpRequest* req, HttpResponse* resp) {
   fillZone(B, zonename, resp, req);
 }
 
-static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
-  if (req->method == "GET")
-    apiServerZoneDetailGET(req, resp);
-  else if (req->method == "PATCH")
-    apiServerZoneDetailPATCH(req, resp);
-  else if (req->method == "PUT")
-    apiServerZoneDetailPUT(req, resp);
-  else if (req->method == "DELETE")
-    apiServerZoneDetailDELETE(req, resp);
-  else
-    throw HttpMethodNotAllowedException();
-}
-
 static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
   zoneFromId(req);
-
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
 
   ostringstream ss;
 
@@ -2226,9 +2121,6 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
   zoneFromId(req);
 
-  if(req->method != "PUT")
-    throw HttpMethodNotAllowedException();
-
   if (di.primaries.empty())
     throw ApiException("Domain '" + zonename.toString() + "' is not a secondary domain (or has no primary defined)");
 
@@ -2240,9 +2132,6 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
   zoneFromId(req);
 
-  if(req->method != "PUT")
-    throw HttpMethodNotAllowedException();
-
   if(!Communicator.notifyDomain(zonename, &B))
     throw ApiException("Failed to add to the queue - see server log");
 
@@ -2251,9 +2140,6 @@ static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {
 
 static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
   zoneFromId(req);
-
-  if(req->method != "PUT")
-    throw HttpMethodNotAllowedException();
 
   if (dk.isPresigned(zonename))
     throw ApiException("Zone '" + zonename.toString() + "' is pre-signed, not rectifying.");
@@ -2453,9 +2339,6 @@ static void patchZone(UeberBackend& B, const DNSName& zonename, DomainInfo& di, 
 }
 
 static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
   string q = req->getvars["q"];
   string sMax = req->getvars["max"];
   string sObjectType = req->getvars["object_type"];
@@ -2561,9 +2444,6 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
 }
 
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "PUT")
-    throw HttpMethodNotAllowedException();
-
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
 
   if (g_zoneCache.isEnabled()) {
@@ -2598,9 +2478,6 @@ static std::ostream& operator<<(std::ostream& os, StatType statType)
 }
 
 static void prometheusMetrics(HttpRequest* req, HttpResponse* resp) {
-  if (req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
   std::ostringstream output;
   for (const auto &metricName : S.getEntries()) {
     // Prometheus suggest using '_' instead of '-'
@@ -2661,34 +2538,49 @@ void AuthWebServer::webThread()
   try {
     setThreadName("pdns/webserver");
     if(::arg().mustDo("api")) {
-      d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", apiServerStatistics);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries/<ip>/<nameserver>", &apiServerAutoprimaryDetail);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries", &apiServerAutoprimaries);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetail);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", apiServerTSIGKeys);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", apiServerZoneAxfrRetrieve);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", apiZoneCryptokeys);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", apiZoneCryptokeys);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/export", apiServerZoneExport);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata/<kind>", apiZoneMetadataKind);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata", apiZoneMetadata);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/notify", apiServerZoneNotify);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/rectify", apiServerZoneRectify);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail);
-      d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZones);
-      d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail);
-      d_ws->registerApiHandler("/api/v1/servers", apiServer);
-      d_ws->registerApiHandler("/api/v1", apiDiscoveryV1);
-      d_ws->registerApiHandler("/api/docs", apiDocs);
-      d_ws->registerApiHandler("/api", apiDiscovery);
+      d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush, "PUT");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", apiServerStatistics, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries/<ip>/<nameserver>", &apiServerAutoprimaryDetailDELETE, "DELETE");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries", &apiServerAutoprimariesGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries", &apiServerAutoprimariesPOST, "POST");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetailGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetailPUT, "PUT");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetailDELETE, "DELETE");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", apiServerTSIGKeysGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", apiServerTSIGKeysPOST, "POST");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", apiServerZoneAxfrRetrieve, "PUT");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", apiZoneCryptokeysGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", apiZoneCryptokeysPOST, "POST");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", apiZoneCryptokeysPUT, "PUT");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", apiZoneCryptokeysDELETE, "DELETE");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", apiZoneCryptokeysGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys", apiZoneCryptokeysPOST, "POST");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/export", apiServerZoneExport, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata/<kind>", apiZoneMetadataKindGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata/<kind>", apiZoneMetadataKindPUT, "PUT");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata/<kind>", apiZoneMetadataKindDELETE, "DELETE");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata", apiZoneMetadataGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/metadata", apiZoneMetadataPOST, "POST");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/notify", apiServerZoneNotify, "PUT");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/rectify", apiServerZoneRectify, "PUT");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailPATCH, "PATCH");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailPUT, "PUT");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailDELETE, "DELETE");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZonesGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZonesPOST, "POST");
+      d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail, "GET");
+      d_ws->registerApiHandler("/api/v1/servers", apiServer, "GET");
+      d_ws->registerApiHandler("/api/v1", apiDiscoveryV1, "GET");
+      d_ws->registerApiHandler("/api/docs", apiDocs, "GET");
+      d_ws->registerApiHandler("/api", apiDiscovery, "GET");
     }
     if (::arg().mustDo("webserver")) {
-      d_ws->registerWebHandler("/style.css", [this](HttpRequest *req, HttpResponse *resp){cssfunction(req, resp);});
-      d_ws->registerWebHandler("/", [this](HttpRequest *req, HttpResponse *resp){indexfunction(req, resp);});
-      d_ws->registerWebHandler("/metrics", prometheusMetrics);
+      d_ws->registerWebHandler("/style.css", [this](HttpRequest *req, HttpResponse *resp){cssfunction(req, resp);}, "GET");
+      d_ws->registerWebHandler("/", [this](HttpRequest *req, HttpResponse *resp){indexfunction(req, resp);}, "GET");
+      d_ws->registerWebHandler("/metrics", prometheusMetrics, "GET");
     }
     d_ws->go();
   }
