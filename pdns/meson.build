@@ -320,6 +320,7 @@ libpdns_auth = declare_dependency(
     'auth-zonecache.cc',
     'responsestats-auth.cc',
     'secpoll-auth.cc',
+    'ssqlite3.cc',
     extra_files: [
       'auth-caches.hh',
       'auth-catalogzone.hh',
@@ -327,6 +328,7 @@ libpdns_auth = declare_dependency(
       'auth-querycache.hh',
       'auth-zonecache.hh',
       'secpoll-auth.hh',
+      'ssqlite3.hh',
     ],
     dependencies: [
       deps,
