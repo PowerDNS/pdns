@@ -128,12 +128,28 @@ dep_modules = []
 foreach module_name, module_deps: all_modules
   module_backend_name = module_name + 'backend'
   module_opt = get_option('module-' + module_name)
-  module_opt_dyn = get_option('module-' + module_name + '-dyn')
 
-  selected_modules += module_opt ? module_name : []
-  selected_dyn_modules += module_opt_dyn ? module_name : []
+  if module_opt == 'disabled'
+    continue
+  elif module_opt == 'static'
+    selected_modules += module_name
+  else
+    selected_dyn_modules += module_name
+  endif
 
   foreach dep: module_deps
+    if module_name == 'remote'
+      if dep == 'prog-curl'
+        if not opt_unittests
+          continue                # We only need cURL for unit tests.
+        endif
+      elif dep == 'zeromq'
+        if not get_option('module-remote-zeromq')
+          continue
+        endif
+      endif
+    endif
+
     subdir('meson' / dep)
   endforeach
 
@@ -191,6 +207,6 @@ pdns_server = executable(
   dependencies: [
     libpdns,
     libpdns_auth,
+    dep_modules,
   ],
-  link_with: dep_modules,
 )

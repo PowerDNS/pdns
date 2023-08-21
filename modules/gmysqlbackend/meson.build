@@ -19,12 +19,18 @@ extras = [
 
 deps = [dep_pdns, dep_libcrypto, dep_libssl, dep_mysql]
 
-set_variable('dep_' + module_backend_name, dependency('', required: false))
-if module_opt
-  lib = static_library(module_backend_name, sources, dependencies: deps, extra_files: extras)
-  set_variable('dep_' + module_backend_name, lib)
-endif
+lib = static_library(
+  module_backend_name,
+  sources,
+  dependencies: deps,
+  extra_files: extras,
+)
 
-if module_opt_dyn
-  shared_module(module_backend_name, sources, dependencies: deps, extra_files: extras)
+dep_name = 'dep_' + module_backend_name
+set_variable(dep_name, dependency('', required: false))
+if module_opt == 'static'
+  dep = declare_dependency(link_with: lib)
+  set_variable(dep_name, dep)
+else
+  shared_module(module_backend_name, link_with: lib)
 endif
