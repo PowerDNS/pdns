@@ -28,7 +28,7 @@
 template<class T>
 ObjectPipe<T>::ObjectPipe()
 {
-  auto [sender, receiver] = pdns::channel::createObjectQueue<T>(false, true, 0, false);
+  auto [sender, receiver] = pdns::channel::createObjectQueue<T>(pdns::channel::SenderBlockingMode::SenderBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, 0, false);
   d_sender = std::move(sender);
   d_receiver = std::move(receiver);
 }
