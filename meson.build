@@ -102,6 +102,10 @@ endif
 # endif
 # TODO Generate pdns_server.1 manpage
 
+# Ext
+ext_modules = ['arc4random', 'yahttp', 'ipcrypt', 'json11']
+subdir('ext')
+
 # Modules
 all_modules = {
   'bind':     [],
@@ -151,10 +155,6 @@ conf.set_quoted(
 
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
-
-# Ext
-ext_modules = ['yahttp', 'ipcrypt', 'json11']
-subdir('ext')
 
 deps = [
   dep_pdns,
