@@ -29,8 +29,8 @@ lib = static_library(
 dep_name = 'dep_' + module_backend_name
 set_variable(dep_name, dependency('', required: false))
 if module_opt == 'static'
-  dep = declare_dependency(link_with: lib)
+  dep = declare_dependency(link_whole: lib)
   set_variable(dep_name, dep)
 else
-  shared_module(module_backend_name, link_with: lib)
+  shared_module(module_backend_name, link_whole: lib)
 endif
