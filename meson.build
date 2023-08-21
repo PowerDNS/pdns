@@ -176,6 +176,7 @@ deps = [
   dep_pdns,
   dep_platform,
   dep_atomics,
+  dep_threads,
   dep_lua,
   dep_lua_records,
   dep_netlibs,
