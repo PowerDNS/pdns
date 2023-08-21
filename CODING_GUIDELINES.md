@@ -7,7 +7,7 @@ It does assume that you have already read the contributing document at [CONTRIBU
 
 # High-level Guidelines
 
-* Although the codebase does not consistently have them, [docblock](https://www.doxygen.nl/manual/docblocks.html)s on functions and classes are appreciated.
+* Although the codebase does not consistently have them, [docblocks](https://www.doxygen.nl/manual/docblocks.html) on functions and classes are appreciated.
 * Never hesitate to write comments on anything that might not be immediately clear just from reading the code.
 * When adding whole new things, consider putting them in a `pdns::X` namespace.
   Look for `namespace pdns` in the codebase for examples.
@@ -110,6 +110,7 @@ GoodFileDescriptorWrapper()
   d_fd = open(...);
   if (something) {
     close(d_fd);
+    d_fd = -1;
     throw std::runtime_error(...);
   }
   ...
@@ -149,7 +150,7 @@ Passing one by reference is cheap, however.
 An important thing to be aware of with shared pointers is that making a new copy or releasing a shared pointer, thus updating its internal reference counter, is atomic and therefore thread-safe.
 Altering the content of the object pointed to is not, though, and is subject to the usual locking methods.
 The often misunderstood part is that updating the target of the shared pointer is not thread-safe.
-Basically, you can copy the shared pointer from multiple threads at once, and then each thread can assign a new target to its own copy safely, like that:
+Basically, you can copy the shared pointer from multiple threads at once, and then each thread can assign a new target to its own copy safely, like this:
 
 ```C++
 auto ptr = std::make_shared<int>(4);
@@ -233,9 +234,7 @@ Calling [`resize()`](https://en.cppreference.com/w/cpp/container/vector/resize) 
 In C++11, move operators make it possible to cheaply get the contents of a container into a different variable if needed.
 
 The need to pass a subset of a container without copying it often leads to passing a pointer to an array of chars along with a size.
-Introduced in C++14, `views` provide a nice way to borrow the content of a container to pass it to a function, without any copying or dynamic memory allocation.
-
-The basic `string_view` class provides that feature for a container of chars, but the same feature exists for other types, like `uint8_t`.
+Introduced in C++14, `views` provide a nice way to borrow the content of a container to pass it to a function, without any copying or dynamic memory allocation. The basic `string_view` class provides that feature for a container of chars.
 
 # Threads and Concurrency
 
@@ -475,6 +474,15 @@ This is hard to avoid in all cases, but some mitigations do help:
 * Always creating temporary files via the `mkstemp()` function, which guarantees that the file did not exist before and has been created with the right permissions ;
 * Using operations that are guaranteed to be atomic, like renaming a file on the same filesystem (for example in the same directory).
 
+## `errno`
+
+`errno` is only guaranteed to be set on failing system calls and not set on succeeding system calls.
+A library call may clobber `errno`, even when it succeeds.
+Safe practice is:
+
+* Only look at `errno` on failing system calls or when a library function is documented to set `errno` ;
+* Immediately save the value of `errno` in a local variable after a system call for later decision making.
+
 ## Secrets
 
 Try very hard not to load sensitive information into memory.
@@ -588,7 +596,7 @@ This is especially important when hashing attacker-controlled values, as they ca
 
 The first issue can be prevented by comparing the entries and not just the value they hash to.
 The second one can be avoided by using some sort of secret when computing the hash so that the result cannot be guessed by the attacker.
-That can be achieved by using an unpredictable seed for certain hash algorithms, or a secret for some other like `SipHash`.
+That can be achieved by using an unpredictable seed for certain hash algorithms, or a secret for some other like [`SipHash`](https://en.wikipedia.org/wiki/SipHash).
 
 # Readability Tips
 
@@ -656,7 +664,7 @@ static bool thisOneAsWell()
 
 but the unnamed namespace form is now preferred.
 
-For the same reason, global variables that are only accessed from a single file should be marked static as well.
+For the same reason, global variables that are only accessed from a single file should be put into an unnamed namespace, or marked static as well.
 
 ## Variables
 
@@ -705,19 +713,10 @@ C++-style casts can easily be spotted in a code, which makes it easy to review t
   It's usually a bad sign, but is sometimes needed to call a function that will not modify the variable but lacks the `const` qualifier ;
 * `dynamic_cast` can be used to cast a pointer to a derived class or to a base class, while checking that the operation is valid.
   If the cast object is not valid for the intended type, a `nullptr` value will be returned (or a `bad_cast` exception for references) so the result of the operation should be checked!
-  Note that the RTTI check needed to verify that the cast object is valid has a non-negligible CPU cost.
+  Note that the Run-Time Type Information (RTTI) check needed to verify that the cast object is valid has a non-negligible CPU cost.
   Not checking the return value might lead to remote denial of service by `nullptr`-dereference, as happened with the issue described in this advisory: [2017-08: Crafted CNAME answer can cause a denial of service](https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2017-08.html) ;
 * `static_cast` can perform downcast in place of `dynamic_cast`, with none of the cost associated to the check, but can only be done if the cast is known to be valid.
   It can also do implicit conversion between types (from `ssize_t` to `size_t`, **after** checking that the value is greater or equal to zero) ;
 * `reinterpret_cast` is quite dangerous, since it can be used to turn a type into a different one.
   It cannot be be used to remove a `const` qualifier.
   When used to reinterpret the content of a buffer it can quickly lead to alignment issues, as described in the [Alignment Issues] section.
-
-## `errno`
-
-`errno` is only guaranteed to be set on failing system calls and not set on succeeding system calls.
-A library call may clobber `errno`, even when it succeeds.
-Safe practice is:
-
-* Only look at `errno` on failing system calls or when a library function is documented to set `errno` ;
-* Immediately save the value of `errno` in a local variable after a system call for later decision making.
