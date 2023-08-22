@@ -15,6 +15,6 @@ lib_arc4random = static_library(
 )
 
 dep_arc4random = declare_dependency(
-  link_whole: lib_arc4random,
+  link_with: lib_arc4random,
   include_directories: include_directories('.'),
 )

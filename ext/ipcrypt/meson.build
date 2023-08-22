@@ -8,6 +8,6 @@ lib_ipcrypt = static_library(
 )
 
 dep_ipcrypt = declare_dependency(
-  link_whole: lib_ipcrypt,
+  link_with: lib_ipcrypt,
   include_directories: include_directories('.'),
 )

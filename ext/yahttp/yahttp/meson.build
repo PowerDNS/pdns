@@ -17,6 +17,6 @@ lib_yahttp = static_library(
 )
 
 dep_yahttp = declare_dependency(
-  link_whole: lib_yahttp,
+  link_with: lib_yahttp,
   include_directories: include_directories('..'),
 )

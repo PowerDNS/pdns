@@ -7,6 +7,6 @@ lib_json11 = static_library(
 )
 
 dep_json11 = declare_dependency(
-  link_whole: lib_json11,
+  link_with: lib_json11,
   include_directories: include_directories('.'),
 )
