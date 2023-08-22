@@ -20,7 +20,7 @@ option('experimental-gss-tsig', type: 'feature', value: 'disabled', description:
 option('socket-dir', type: 'string', value: '/var/run', description: 'Where the control socket lives')
 option('module-bind', type: 'combo', choices: ['disabled', 'static', 'dynamic'], value: 'static', description: 'Bind backend')
 option('module-pipe', type: 'combo', choices: ['disabled', 'static', 'dynamic'], value: 'dynamic', description: 'Pipe backend')
-option('module-gmysql', type: 'combo', choices: ['disabled', 'static', 'dynamic'], value: 'static', description: 'Generic MySQL backend')
+option('module-gmysql', type: 'combo', choices: ['disabled', 'static', 'dynamic'], value: 'disabled', description: 'Generic MySQL backend')
 option('module-godbc', type: 'combo', choices: ['disabled', 'static', 'dynamic'], value: 'disabled', description: 'Generic ODBC backend')
 option('module-gpgsql', type: 'combo', choices: ['disabled', 'static', 'dynamic'], value: 'disabled', description: 'Generic PostgreSQL backend')
 option('module-gsqlite3', type: 'combo', choices: ['disabled', 'static', 'dynamic'], value: 'disabled', description: 'Generic SQLite3 backend')
