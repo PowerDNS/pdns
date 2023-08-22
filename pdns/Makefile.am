@@ -1415,6 +1415,7 @@ testrunner_SOURCES = \
 	test-trusted-notification-proxy_cc.cc \
 	test-tsig.cc \
 	test-ueberbackend_cc.cc \
+	test-webserver_cc.cc \
 	test-zonemd_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
@@ -1423,7 +1424,9 @@ testrunner_SOURCES = \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc ueberbackend.hh \
 	unix_utility.cc \
+	uuid-utils.cc \
 	validate.hh \
+	webserver.cc \
 	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
@@ -1438,7 +1441,9 @@ testrunner_LDADD = \
 	$(RT_LIBS) \
 	$(LUA_LIBS) \
 	$(LIBDL) \
-	$(IPCRYPT_LIBS)
+	$(IPCRYPT_LIBS) \
+	$(YAHTTP_LIBS) \
+	$(JSON11_LIBS)
 
 if GSS_TSIG
 testrunner_LDADD += $(GSS_LIBS)

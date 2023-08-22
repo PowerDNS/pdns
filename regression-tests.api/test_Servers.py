@@ -2,7 +2,6 @@ import json
 import operator
 import requests
 import unittest
-import socket
 from test_helper import ApiTestCase, is_auth, is_recursor, is_auth_lmdb
 
 
@@ -42,18 +41,13 @@ class Servers(ApiTestCase):
         self.assertIn('daemon', data)
 
     def test_read_statistics(self):
-        # Use low-level API as we want to create an invalid request to test log line encoding
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM);
-        sock.connect((self.server_address, self.server_port))
-        sock.send(b'GET /binary\x00\x01\xeb HTTP/1.0\r\n')
-        sock.close()
         r = self.session.get(self.url("/api/v1/servers/localhost/statistics"))
         self.assert_success_json(r)
         data = r.json()
         self.assertIn('uptime', [e['name'] for e in data])
         print(data)
         if is_auth():
-            qtype_stats, respsize_stats, queries_stats, rcode_stats, logmessages = None, None, None, None, None
+            qtype_stats, respsize_stats, queries_stats, rcode_stats = None, None, None, None
             for elem in data:
                 if elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-by-qtype':
                     qtype_stats = elem['value']
@@ -63,13 +57,10 @@ class Servers(ApiTestCase):
                     queries_stats = elem['value']
                 elif elem['type'] == 'MapStatisticItem' and elem['name'] == 'response-by-rcode':
                     rcode_stats = elem['value']
-                elif elem['type'] == 'RingStatisticItem' and elem['name'] == 'logmessages':
-                    logmessages = elem['value']
             self.assertIn('A', [e['name'] for e in qtype_stats])
             self.assertIn('80', [e['name'] for e in respsize_stats])
             self.assertIn('example.com/A', [e['name'] for e in queries_stats])
             self.assertIn('No Error', [e['name'] for e in rcode_stats])
-            self.assertTrue(logmessages[0]['name'].startswith('[webserver]'))
         else:
             qtype_stats, respsize_stats, rcode_stats = None, None, None
             for elem in data:
