@@ -5,7 +5,7 @@ if opt_hardening.enabled() or opt_hardening.auto()
 
   # PIE
   opt_pie = get_option('b_pie')
-  if not opt_pie
+  if not opt_pie and opt_hardening.enabled()
     error('Hardening was requested but building position independent executables is disabled')
   endif
   hardening_features += [[opt_pie, 'Building position independent executables (PIEs)']]
