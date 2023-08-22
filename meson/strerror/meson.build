@@ -1,3 +1,5 @@
+prog = fs.read('strerror_r.cc')
+
 have_strerror_r_decl = cxx.has_header_symbol('string.h', 'strerror_r')
 have_strerror_r = cxx.has_function('strerror_r', prefix: '#include <string.h>')
 strerror_r_returns_charp = have_strerror_r and cxx.compiles(prog, name: 'strerror_r() returns char *')
