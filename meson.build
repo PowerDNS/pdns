@@ -200,7 +200,6 @@ deps = [
   dep_pkcs11,
   dep_gss_tsig,
   dep_ixfrdist,
-  dep_lmdb,
   dep_yahttp,
   dep_ipcrypt,
   dep_json11,
