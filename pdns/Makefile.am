@@ -55,7 +55,7 @@ EXTRA_DIST = \
 	dnsmessage.proto \
 	mtasker.cc \
 	inflighter.cc \
-	bindparser.h \
+	bindparser.hh \
 	named.conf.parsertest \
 	pdns.service.in \
 	ixfrdist.service.in \
@@ -71,7 +71,7 @@ EXTRA_DIST = \
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
-	bindparser.h \
+	bindparser.hh \
 	dnslabeltext.cc \
 	apidocfiles.h
 
@@ -1676,11 +1676,7 @@ dnslabeltext.cc: dnslabeltext.rl
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo '#pragma once'; echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' $< | sed 's/^/"/g'  ; echo ';' ) > $@
 
-# for bindparser.h/hh
-.hh.h:
-	cp $< $@
-
-bindlexer.$(OBJEXT): bindparser.h
+bindlexer.$(OBJEXT): bindparser.hh
 
 pdns_recursor rec_control:
 	@echo "Please build the recursor from the recursordist/ dir"

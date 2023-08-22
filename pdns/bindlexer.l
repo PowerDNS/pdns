@@ -7,7 +7,7 @@
 #define YY_NO_INPUT 1
 #define YYSTYPE char *
 
-#include "bindparser.h"
+#include "bindparser.hh"
 
 int linenumber;
 #define MAX_INCLUDE_DEPTH 10
