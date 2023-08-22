@@ -78,6 +78,7 @@ subdir('meson' / 'sanitizers')              # Sanitizers
 subdir('meson' / 'malloc-trace')            # Malloc-trace
 subdir('meson' / 'socket-dir')              # Socket Dir
 subdir('meson' / 'various-functions')       # Various Functions
+subdir('meson' / 'various-headers')         # Various Headers
 
 # TODO Should this be handled in pdns/meson.build instead?
 # Find ragel or pdns/dnslabeltext.cc
