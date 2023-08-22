@@ -11,7 +11,7 @@ extras = [
   product_source_dir / 'pdns' / 'bind-dnssec.schema.sqlite3.sql',
 ]
 
-deps = [dep_pdns, dep_libcrypto]
+deps = [dep_pdns, dep_libcrypto, dep_boost]
 
 lib = static_library(
   module_backend_name,
