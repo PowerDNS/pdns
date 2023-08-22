@@ -108,26 +108,28 @@ subdir('ext')
 
 # Modules
 all_modules = {
-  'bind':     [],
-  'pipe':     [],
-  'gmysql':   ['mysql'],
-  'godbc':    ['odbc'],
-  'gpgsql':   ['pgsql'],
-  'gsqlite3': ['sqlite3'],
-  'ldap':     ['ldap'],
-  'lua2':     [],
-  'remote':   ['prog-curl', 'zeromq'],
-  'tinydns':  ['cdb'],
-  'geoip':    ['geoip'],
-  'lmdb':     ['lmdb', 'boost-serialization'],
+  'bind':     {'deps': [],                              'exts': []},
+  'pipe':     {'deps': [],                              'exts': []},
+  'gmysql':   {'deps': ['mysql'],                       'exts': []},
+  'godbc':    {'deps': ['odbc'],                        'exts': []},
+  'gpgsql':   {'deps': ['pgsql'],                       'exts': []},
+  'gsqlite3': {'deps': ['sqlite3'],                     'exts': []},
+  'ldap':     {'deps': ['ldap'],                        'exts': []},
+  'lua2':     {'deps': [],                              'exts': []},
+  'remote':   {'deps': ['prog-curl', 'zeromq'],         'exts': []},
+  'tinydns':  {'deps': ['cdb'],                         'exts': []},
+  'geoip':    {'deps': ['geoip'],                       'exts': []},
+  'lmdb':     {'deps': ['lmdb', 'boost-serialization'], 'exts': ['lmdb-safe']},
 }
 
 selected_modules = []
 selected_dyn_modules = []
 dep_modules = []
-foreach module_name, module_deps: all_modules
+foreach module_name, module_props: all_modules
   module_backend_name = module_name + 'backend'
   module_opt = get_option('module-' + module_name)
+  module_deps = module_props['deps']
+  module_exts = module_props['exts']
 
   if module_opt == 'disabled'
     continue
@@ -151,6 +153,10 @@ foreach module_name, module_deps: all_modules
     endif
 
     subdir('meson' / dep)
+  endforeach
+
+  foreach ext: module_exts
+    subdir('ext' / ext)
   endforeach
 
   subdir('modules' / module_backend_name)
@@ -194,6 +200,7 @@ deps = [
   dep_pkcs11,
   dep_gss_tsig,
   dep_ixfrdist,
+  dep_lmdb,
   dep_yahttp,
   dep_ipcrypt,
   dep_json11,
