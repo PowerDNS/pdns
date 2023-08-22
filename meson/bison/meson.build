@@ -7,5 +7,5 @@ summary('Bison Version', bison.version(), section: 'Programs')
 bison_generator = generator(
   bison,
   output: '@BASENAME@.cc',
-  arguments: ['--verbose', '--debug', '--header=@BUILD_DIR@' / '@BASENAME@.h', '--output=@OUTPUT@', '@INPUT@'],
+  arguments: ['-d', '--verbose', '--debug', '--output=@OUTPUT@', '@INPUT@'],
 )
