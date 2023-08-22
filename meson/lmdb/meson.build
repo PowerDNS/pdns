@@ -1,8 +1,6 @@
-# LMDB
-# Inputs: conf
-# Outputs: deps_lmdb
-
-deps_lmdb = dependency('lmdb', required: true)
-conf.set10('HAVE_LMDB', deps_lmdb.found(), description: 'Whether we have LMDB')
-conf.set10('LMDB', deps_lmdb.found(), description: 'Whether we have LMDB')
-summary('LMDB', deps_lmdb.found(), bool_yn: true, section: 'Configuration')
+dep_lmdb = dependency('lmdb', required: true)
+conf.set('HAVE_LMDB', dep_lmdb.found(), description: 'Whether we have LMDB')
+summary('LMDB', dep_lmdb.found(), bool_yn: true, section: 'LMDB')
+if dep_lmdb.found()
+  summary('Version', dep_lmdb.version(), bool_yn: true, section: 'LMDB')
+endif
