@@ -1,5 +1,5 @@
 dep_geoip = dependency('geoip', required: true)
-dep_libmmdb = dependency('libmaxminddb', required: true)
+dep_mmdb = dependency('libmaxminddb', required: true)
 dep_yaml_cpp = dependency('yaml-cpp', version: '>= 0.5', required: true)
 
 conf.set('HAVE_GEOIP', dep_geoip.found(), description: 'GeoIP')
