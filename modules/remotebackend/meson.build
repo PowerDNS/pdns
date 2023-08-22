@@ -1,5 +1,4 @@
 sources = [
-  # TODO Change this into a libpdns library
   'httpconnector.cc',
   'pipeconnector.cc',
   'remotebackend.cc',
