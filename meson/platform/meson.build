@@ -1,6 +1,7 @@
 platforms = [
   ['linux',   [['HAVE_LINUX',   'On Linux']], [], []],
-  ['darwin',  [['HAVE_DARWIN',  'On Darwin/MacOS']], [], ['__APPLE_USE_RFC_3542', '_XOPEN_SOURCE', '_DARWIN_C_SOURCE'], []],
+  ['darwin',  [['HAVE_DARWIN',  'On Darwin/MacOS']],
+   ['__APPLE_USE_RFC_3542', '_XOPEN_SOURCE', '_DARWIN_C_SOURCE'], []],
   ['openbsd', [['HAVE_OPENBSD', 'On OpenBSD']], [], []],
   ['freebsd', [['HAVE_FREEBSD', 'On FreeBSD']], [], []],
   ['sunos',   [['HAVE_SOLARIS', 'On Solaris/SunOS'],
