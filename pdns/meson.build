@@ -59,24 +59,17 @@ if dep_lua_records.found()
   )
 endif
 
-libpdns_tsig = dependency('', required: false)
-if dep_gss_tsig.found()
-  libpdns_tsig = declare_dependency(
-    link_with: static_library(
-      'pdns-tsig',
-      'tsigutils.cc',
-      'tsigverifier.cc',
-      'gss_context.cc',
-      extra_files: [
-        'tsigutils.hh',
-        'tsigverifier.hh',
-        'gss_context.hh',
-      ],
-      cpp_args: '-Wno-redundant-decls',
-      dependencies: deps,
-    )
+libpdns_gss = dependency('', required: false)
+libpdns_gss = declare_dependency(
+  link_with: static_library(
+    'pdns-gss',
+    'gss_context.cc',
+    extra_files: [
+      'gss_context.hh',
+    ],
+    dependencies: deps,
   )
-endif
+)
 
 libpdns_pkcs11 = dependency('', required: false)
 if dep_pkcs11.found()
@@ -102,6 +95,20 @@ libpdns_ws = declare_dependency(
       'ws-api.hh',
     ],
     cpp_args: '-Wno-overloaded-virtual',
+    dependencies: deps,
+  )
+)
+
+libpdns_tsig = declare_dependency(
+  link_with: static_library(
+    'pdns-tsig',
+    'tsigutils.cc',
+    'tsigverifier.cc',
+    extra_files: [
+      'tsigutils.hh',
+      'tsigverifier.hh',
+    ],
+    cpp_args: '-Wno-redundant-decls',
     dependencies: deps,
   )
 )
@@ -246,6 +253,7 @@ libpdns = declare_dependency(
       libpdns_bind_parser,
       libpdns_lua,
       libpdns_lua_records,
+      libpdns_gss,
       libpdns_tsig,
       libpdns_pkcs11,
       libpdns_ws,
