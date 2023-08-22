@@ -20,6 +20,9 @@ summary('Build Dir', product_build_dir, section: 'Build')
 # Setup some modules
 fs = import('fs')
 
+# Check if we're running from a git checkout
+from_git = fs.exists('.git')
+
 # Create the configuration object and dependencies list.
 conf = configuration_data()
 
@@ -64,7 +67,6 @@ subdir('meson' / 'auth-backend-unit-tests') # Auth Backend Unit Tests
 subdir('meson' / 'reproducible')            # Reproducible Builds
 subdir('meson' / 'fuzz-targets')            # Fuzzing Targets
 subdir('meson' / 'python')                  # Python
-subdir('meson' / 'from-git')                # From Git
 subdir('meson' / 'dlopen')                  # dlopen
 subdir('meson' / 'verbose-logging')         # Verbose Logging
 subdir('meson' / 'pkcs11')                  # PKCS11
