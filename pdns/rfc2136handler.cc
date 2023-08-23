@@ -68,25 +68,31 @@ int PacketHandler::checkUpdatePrerequisites(const DNSRecord *rr, DomainInfo *di)
 // Method implements section 3.4.1 of RFC2136
 int PacketHandler::checkUpdatePrescan(const DNSRecord *rr) {
   // The RFC stats that d_class != ZCLASS, but we only support the IN class.
-  if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY)
+  if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY) {
     return RCode::FormErr;
+  }
 
   QType qtype = QType(rr->d_type);
 
-  if (! qtype.isSupportedType())
+  if (!qtype.isSupportedType()) {
     return RCode::FormErr;
+  }
 
-  if ((rr->d_class == QClass::NONE || rr->d_class == QClass::ANY) && rr->d_ttl != 0)
+  if ((rr->d_class == QClass::NONE || rr->d_class == QClass::ANY) && rr->d_ttl != 0) {
     return RCode::FormErr;
+  }
 
-  if (rr->d_class == QClass::ANY && rr->d_clen != 0)
+  if (rr->d_class == QClass::ANY && rr->d_clen != 0) {
     return RCode::FormErr;
+  }
 
-  if (qtype.isMetadataType())
-      return RCode::FormErr;
-
-  if (rr->d_class != QClass::ANY && qtype.getCode() == QType::ANY)
+  if (qtype.isMetadataType()) {
     return RCode::FormErr;
+  }
+
+  if (rr->d_class != QClass::ANY && qtype.getCode() == QType::ANY) {
+    return RCode::FormErr;
+  }
 
   return RCode::NoError;
 }
