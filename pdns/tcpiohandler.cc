@@ -83,14 +83,6 @@ public:
   {
     d_socket = socket;
 
-    if (!s_initTLSConnIndex.test_and_set()) {
-      /* not initialized yet */
-      s_tlsConnIndex = SSL_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
-      if (s_tlsConnIndex == -1) {
-        throw std::runtime_error("Error getting an index for TLS connection data");
-      }
-    }
-
     if (!d_conn) {
       vinfolog("Error creating TLS object");
       if (g_verbose) {
@@ -103,21 +95,13 @@ public:
       throw std::runtime_error("Error assigning socket");
     }
 
-    SSL_set_ex_data(d_conn.get(), s_tlsConnIndex, this);
+    SSL_set_ex_data(d_conn.get(), getConnectionIndex(), this);
   }
 
   /* client-side connection */
   OpenSSLTLSConnection(const std::string& hostname, bool hostIsAddr, int socket, const struct timeval& timeout, std::shared_ptr<SSL_CTX>& tlsCtx): d_tlsCtx(tlsCtx), d_conn(std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(tlsCtx.get()), SSL_free)), d_hostname(hostname), d_timeout(timeout)
   {
     d_socket = socket;
-
-    if (!s_initTLSConnIndex.test_and_set()) {
-      /* not initialized yet */
-      s_tlsConnIndex = SSL_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
-      if (s_tlsConnIndex == -1) {
-        throw std::runtime_error("Error getting an index for TLS connection data");
-      }
-    }
 
     if (!d_conn) {
       vinfolog("Error creating TLS object");
@@ -166,7 +150,7 @@ public:
 #endif
     }
 
-    SSL_set_ex_data(d_conn.get(), s_tlsConnIndex, this);
+    SSL_set_ex_data(d_conn.get(), getConnectionIndex(), this);
   }
 
   std::vector<int> getAsyncFDs() override
@@ -579,11 +563,30 @@ public:
     d_ktls = true;
   }
 
-  static int s_tlsConnIndex;
+  static void generateConnectionIndexIfNeeded()
+  {
+    auto init = s_initTLSConnIndex.lock();
+    if (*init == true) {
+      return;
+    }
+
+    /* not initialized yet */
+    s_tlsConnIndex = SSL_get_ex_new_index(0, nullptr, nullptr, nullptr, nullptr);
+    if (s_tlsConnIndex == -1) {
+      throw std::runtime_error("Error getting an index for TLS connection data");
+    }
+
+    *init = true;
+  }
+
+  static int getConnectionIndex()
+  {
+    return s_tlsConnIndex;
+  }
 
 private:
-  static std::atomic_flag s_initTLSConnIndex;
-
+  static LockGuarded<bool> s_initTLSConnIndex;
+  static int s_tlsConnIndex;
   std::vector<std::unique_ptr<TLSSession>> d_tlsSessions;
   /* server context */
   std::shared_ptr<OpenSSLFrontendContext> d_feContext;
@@ -596,8 +599,8 @@ private:
   bool d_ktls{false};
 };
 
-std::atomic_flag OpenSSLTLSConnection::s_initTLSConnIndex = ATOMIC_FLAG_INIT;
-int OpenSSLTLSConnection::s_tlsConnIndex = -1;
+LockGuarded<bool> OpenSSLTLSConnection::s_initTLSConnIndex{false};
+int OpenSSLTLSConnection::s_tlsConnIndex{-1};
 
 class OpenSSLTLSIOCtx: public TLSCtx
 {
@@ -605,6 +608,8 @@ public:
   /* server side context */
   OpenSSLTLSIOCtx(TLSFrontend& fe): d_feContext(std::make_shared<OpenSSLFrontendContext>(fe.d_addr, fe.d_tlsConfig))
   {
+    OpenSSLTLSConnection::generateConnectionIndexIfNeeded();
+
     d_ticketsKeyRotationDelay = fe.d_tlsConfig.d_ticketsKeyRotationDelay;
 
     if (fe.d_tlsConfig.d_enableTickets && fe.d_tlsConfig.d_numberOfTicketsKeys > 0) {
@@ -673,6 +678,8 @@ public:
     }
 
     registerOpenSSLUser();
+
+    OpenSSLTLSConnection::generateConnectionIndexIfNeeded();
 
 #ifdef HAVE_TLS_CLIENT_METHOD
     d_tlsCtx = std::shared_ptr<SSL_CTX>(SSL_CTX_new(TLS_client_method()), SSL_CTX_free);
@@ -753,7 +760,7 @@ public:
     int ret = libssl_ticket_key_callback(s, ctx->d_ticketKeys, keyName, iv, ectx, hctx, enc);
     if (enc == 0) {
       if (ret == 0 || ret == 2) {
-        auto* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(s, OpenSSLTLSConnection::s_tlsConnIndex));
+        auto* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(s, OpenSSLTLSConnection::getConnectionIndex()));
         if (conn != nullptr) {
           if (ret == 0) {
             conn->setUnknownTicketKey();
@@ -781,7 +788,7 @@ public:
 
   static int newTicketFromServerCb(SSL* ssl, SSL_SESSION* session)
   {
-    OpenSSLTLSConnection* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(ssl, OpenSSLTLSConnection::s_tlsConnIndex));
+    OpenSSLTLSConnection* conn = reinterpret_cast<OpenSSLTLSConnection*>(SSL_get_ex_data(ssl, OpenSSLTLSConnection::getConnectionIndex()));
     if (session == nullptr || conn == nullptr) {
       return 0;
     }
