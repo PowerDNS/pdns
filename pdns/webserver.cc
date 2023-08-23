@@ -148,23 +148,7 @@ void WebServer::registerBareHandler(const string& url, const HandlerFunction& ha
   YaHTTP::Router::Map(method, url, std::move(f));
 }
 
-static bool optionsHandler(HttpRequest* req, HttpResponse* resp) {
-  if (req->method == "OPTIONS") {
-    resp->headers["access-control-allow-origin"] = "*";
-    resp->headers["access-control-allow-headers"] = "Content-Type, X-API-Key";
-    resp->headers["access-control-allow-methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
-    resp->headers["access-control-max-age"] = "3600";
-    resp->status = 200;
-    resp->headers["content-type"]= "text/plain";
-    resp->body = "";
-    return true;
-  }
-  return false;
-}
-
 void WebServer::apiWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp, bool allowPassword) {
-  if (optionsHandler(req, resp)) return;
-
   resp->headers["access-control-allow-origin"] = "*";
 
   if (!d_apikey) {
@@ -605,6 +589,36 @@ WebServer::WebServer(string listenaddress, int port) :
   d_server(nullptr),
   d_maxbodysize(2*1024*1024)
 {
+    YaHTTP::Router::Map("OPTIONS", "/<*url>", [](YaHTTP::Request *req, YaHTTP::Response *resp) {
+      // look for url in routes
+      bool seen = false;
+      std::vector<std::string> methods;
+      for(const auto& route: YaHTTP::Router::GetRoutes()) {
+         const auto& method = std::get<0>(route);
+         const auto& url = std::get<1>(route);
+         if (method == "OPTIONS") {
+            continue;
+         }
+         std::map<std::string, YaHTTP::TDelim> params;
+         if (YaHTTP::Router::Match(url, req->url, params)) {
+            methods.push_back(method);
+            seen = true;
+         }
+       }
+       if (!seen) {
+          resp->status = 404;
+          resp->body = "";
+          return;
+       }
+       methods.emplace_back("OPTIONS");
+       resp->headers["access-control-allow-origin"] = "*";
+       resp->headers["access-control-allow-headers"] = "Content-Type, X-API-Key";
+       resp->headers["access-control-allow-methods"] = boost::algorithm::join(methods, ", ");
+       resp->headers["access-control-max-age"] = "3600";
+       resp->status = 200;
+       resp->headers["content-type"]= "text/plain";
+       resp->body = "";
+    }, "OptionsHandlerRoute");
 }
 
 void WebServer::bind()
