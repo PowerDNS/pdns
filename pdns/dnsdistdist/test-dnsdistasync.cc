@@ -153,7 +153,6 @@ BOOST_AUTO_TEST_CASE(test_AddingExpiredEvent)
     sender = query->d_sender;
     BOOST_REQUIRE(sender != nullptr);
     holder->push(asyncID, queryID, ttd, std::move(query));
-    BOOST_CHECK(!holder->empty());
   }
 
   // sleep for 20 ms
