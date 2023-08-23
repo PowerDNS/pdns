@@ -389,40 +389,44 @@ static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
   resp->setJsonBody(doc);
 }
 
-static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
+static inline DNSName findZoneById(HttpRequest* req)
 {
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
-
-  auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
-  if (iter == SyncRes::t_sstorage.domainmap->end()) {
+  auto zonename = apiZoneIdToName(req->parameters["id"]);
+  if (SyncRes::t_sstorage.domainmap->find(zonename) == SyncRes::t_sstorage.domainmap->end()) {
     throw ApiException("Could not find domain '" + zonename.toLogString() + "'");
   }
+  return zonename;
+}
 
-  if (req->method == "PUT") {
-    Json document = req->json();
+static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
+{
+  auto zonename = findZoneById(req);
+  const auto& document = req->json();
 
-    doDeleteZone(zonename);
-    doCreateZone(document);
-    reloadZoneConfiguration(g_yamlSettings);
-    resp->body = "";
-    resp->status = 204; // No Content, but indicate success
-  }
-  else if (req->method == "DELETE") {
-    if (!doDeleteZone(zonename)) {
-      throw ApiException("Deleting domain failed");
-    }
+  doDeleteZone(zonename);
+  doCreateZone(document);
+  reloadZoneConfiguration(g_yamlSettings);
+  resp->body = "";
+  resp->status = 204; // No Content, but indicate success
+}
 
-    reloadZoneConfiguration(g_yamlSettings);
-    // empty body on success
-    resp->body = "";
-    resp->status = 204; // No Content: declare that the zone is gone now
+static void apiServerZoneDetailDELETE(HttpRequest* req, HttpResponse* resp)
+{
+  auto zonename = findZoneById(req);
+  if (!doDeleteZone(zonename)) {
+    throw ApiException("Deleting domain failed");
   }
-  else if (req->method == "GET") {
-    fillZone(zonename, resp);
-  }
-  else {
-    throw HttpMethodNotAllowedException();
-  }
+
+  reloadZoneConfiguration(g_yamlSettings);
+  // empty body on success
+  resp->body = "";
+  resp->status = 204; // No Content: declare that the zone is gone now
+}
+
+static void apiServerZoneDetailGET(HttpRequest* req, HttpResponse* resp)
+{
+  auto zonename = findZoneById(req);
+  fillZone(zonename, resp);
 }
 
 static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
@@ -1318,9 +1322,9 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", apiServerRPZStats, "GET");
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData, "GET");
   d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", apiServerStatistics, "GET", true);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail, "PUT");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail, "DELETE");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailGET, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailPUT, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailDELETE, "DELETE");
   d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZonesGET, "GET");
   d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZonesPOST, "POST");
   d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail, "GET", true);
