@@ -346,38 +346,34 @@ static bool doDeleteZone(const DNSName& zonename)
   return true;
 }
 
-static void apiServerZones(HttpRequest* req, HttpResponse* resp)
+static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method == "POST") {
-    if (::arg()["api-config-dir"].empty()) {
-      throw ApiException("Config Option \"api-config-dir\" must be set");
-    }
-
-    Json document = req->json();
-
-    DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
-
-    auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
-    if (iter != SyncRes::t_sstorage.domainmap->end()) {
-      throw ApiException("Zone already exists");
-    }
-
-    doCreateZone(document);
-    reloadZoneConfiguration(g_yamlSettings);
-    fillZone(zonename, resp);
-    resp->status = 201;
-    return;
+  if (::arg()["api-config-dir"].empty()) {
+    throw ApiException("Config Option \"api-config-dir\" must be set");
   }
 
-  if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
+  Json document = req->json();
+
+  DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
+
+  const auto& iter = SyncRes::t_sstorage.domainmap->find(zonename);
+  if (iter != SyncRes::t_sstorage.domainmap->cend()) {
+    throw ApiException("Zone already exists");
   }
 
+  doCreateZone(document);
+  reloadZoneConfiguration(g_yamlSettings);
+  fillZone(zonename, resp);
+  resp->status = 201;
+}
+
+static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
+{
   Json::array doc;
-  for (const SyncRes::domainmap_t::value_type& val : *SyncRes::t_sstorage.domainmap) {
+  for (const auto& val : *SyncRes::t_sstorage.domainmap) {
     const SyncRes::AuthDomain& zone = val.second;
     Json::array servers;
-    for (const ComboAddress& server : zone.d_servers) {
+    for (const auto& server : zone.d_servers) {
       servers.emplace_back(server.toStringWithPort());
     }
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
@@ -1325,8 +1321,8 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail, "GET");
   d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail, "PUT");
   d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail, "DELETE");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZones, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZones, "POST");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZonesGET, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZonesPOST, "POST");
   d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail, "GET", true);
   d_ws->registerApiHandler("/api/v1/servers", apiServer, "GET");
   d_ws->registerApiHandler("/api/v1", apiDiscoveryV1, "GET");
