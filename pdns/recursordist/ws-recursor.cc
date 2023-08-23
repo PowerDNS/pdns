@@ -1303,27 +1303,32 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 
   // legacy dispatch
   d_ws->registerApiHandler(
-    "/jsonstat", [](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, true);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFrom);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", &apiServerConfigAllowNotifyFrom);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", apiServerRPZStats);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", apiServerStatistics, true);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZones);
-  d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail, true);
-  d_ws->registerApiHandler("/api/v1/servers", apiServer);
-  d_ws->registerApiHandler("/api/v1", apiDiscoveryV1);
-  d_ws->registerApiHandler("/api", apiDiscovery);
+    "/jsonstat", [](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, "GET", true);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFrom, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFrom, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", apiServerConfigAllowNotifyFrom, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", apiServerConfigAllowNotifyFrom, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", apiServerRPZStats, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", apiServerStatistics, "GET", true);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail, "DELETE");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZones, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZones, "POST");
+  d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail, "GET", true);
+  d_ws->registerApiHandler("/api/v1/servers", apiServer, "GET");
+  d_ws->registerApiHandler("/api/v1", apiDiscoveryV1, "GET");
+  d_ws->registerApiHandler("/api", apiDiscovery, "GET");
 
   for (const auto& url : g_urlmap) {
-    d_ws->registerWebHandler("/" + url.first, serveStuff);
+    d_ws->registerWebHandler("/" + url.first, serveStuff, "GET");
   }
 
-  d_ws->registerWebHandler("/", serveStuff);
-  d_ws->registerWebHandler("/metrics", prometheusMetrics);
+  d_ws->registerWebHandler("/", serveStuff, "GET");
+  d_ws->registerWebHandler("/metrics", prometheusMetrics, "GET");
   d_ws->go();
 }
 
