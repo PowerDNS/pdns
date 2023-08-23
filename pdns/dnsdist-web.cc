@@ -467,53 +467,58 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   std::ostringstream output;
   static const std::set<std::string> metricBlacklist = { "special-memory-usage", "latency-count", "latency-sum" };
-  for (const auto& e : g_stats.entries) {
-    const auto& metricName = std::get<0>(e);
+  {
+    auto entries = g_stats.entries.read_lock();
+    for (const auto& entry : *entries) {
+      const auto& metricName = entry.d_name;
 
-    if (metricBlacklist.count(metricName) != 0) {
-      continue;
-    }
+      if (metricBlacklist.count(metricName) != 0) {
+        continue;
+      }
 
-    MetricDefinition metricDetails;
-    if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
-      vinfolog("Do not have metric details for %s", metricName);
-      continue;
-    }
+      MetricDefinition metricDetails;
+      if (!s_metricDefinitions.getMetricDetails(metricName, metricDetails)) {
+        vinfolog("Do not have metric details for %s", metricName);
+        continue;
+      }
 
-    const std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
-    if (prometheusTypeName.empty()) {
-      vinfolog("Unknown Prometheus type for %s", metricName);
-      continue;
-    }
+      const std::string prometheusTypeName = s_metricDefinitions.getPrometheusStringMetricType(metricDetails.prometheusType);
+      if (prometheusTypeName.empty()) {
+        vinfolog("Unknown Prometheus type for %s", metricName);
+        continue;
+      }
 
-    // Prometheus suggest using '_' instead of '-'
-    std::string prometheusMetricName;
-    if (metricDetails.customName.empty()) {
-      prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
-    }
-    else {
-      prometheusMetricName = metricDetails.customName;
-    }
+      // Prometheus suggest using '_' instead of '-'
+      std::string prometheusMetricName;
+      if (metricDetails.customName.empty()) {
+        prometheusMetricName = "dnsdist_" + boost::replace_all_copy(metricName, "-", "_");
+      }
+      else {
+        prometheusMetricName = metricDetails.customName;
+      }
 
-    // for these we have the help and types encoded in the sources:
-    output << "# HELP " << prometheusMetricName << " " << metricDetails.description    << "\n";
-    output << "# TYPE " << prometheusMetricName << " " << prometheusTypeName << "\n";
-    output << prometheusMetricName << " ";
+      // for these we have the help and types encoded in the sources
+      // but we need to be careful about labels in custom metrics
+      std::string helpName = prometheusMetricName.substr(0, prometheusMetricName.find('{'));
+      output << "# HELP " << helpName << " " << metricDetails.description    << "\n";
+      output << "# TYPE " << helpName << " " << prometheusTypeName << "\n";
+      output << prometheusMetricName << " ";
 
-    if (const auto& val = boost::get<pdns::stat_t*>(&std::get<1>(e))) {
-      output << (*val)->load();
-    }
-    else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&std::get<1>(e))) {
-      output << (*adval)->load();
-    }
-    else if (const auto& dval = boost::get<double*>(&std::get<1>(e))) {
-      output << **dval;
-    }
-    else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&std::get<1>(e))) {
-      output << (*func)(std::get<0>(e));
-    }
+      if (const auto& val = boost::get<pdns::stat_t*>(&entry.d_value)) {
+        output << (*val)->load();
+      }
+      else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+        output << (*adval)->load();
+      }
+      else if (const auto& dval = boost::get<double*>(&entry.d_value)) {
+        output << **dval;
+      }
+      else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&entry.d_value)) {
+        output << (*func)(entry.d_name);
+      }
 
-    output << "\n";
+      output << "\n";
+    }
   }
 
   // Latency histogram buckets
@@ -890,18 +895,19 @@ using namespace json11;
 
 static void addStatsToJSONObject(Json::object& obj)
 {
-  for (const auto& e : g_stats.entries) {
-    if (e.first == "special-memory-usage") {
+  auto entries = g_stats.entries.read_lock();
+  for (const auto& entry : *entries) {
+    if (entry.d_name == "special-memory-usage") {
       continue; // Too expensive for get-all
     }
-    if (const auto& val = boost::get<pdns::stat_t*>(&e.second)) {
-      obj.emplace(e.first, (double)(*val)->load());
-    } else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&e.second)) {
-      obj.emplace(e.first, (*adval)->load());
-    } else if (const auto& dval = boost::get<double*>(&e.second)) {
-      obj.emplace(e.first, (**dval));
-    } else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&e.second)) {
-      obj.emplace(e.first, (double)(*func)(e.first));
+    if (const auto& val = boost::get<pdns::stat_t*>(&entry.d_value)) {
+      obj.emplace(entry.d_name, (double)(*val)->load());
+    } else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+      obj.emplace(entry.d_name, (*adval)->load());
+    } else if (const auto& dval = boost::get<double*>(&entry.d_value)) {
+      obj.emplace(entry.d_name, (**dval));
+    } else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&entry.d_value)) {
+      obj.emplace(entry.d_name, (double)(*func)(entry.d_name));
     }
   }
 }
@@ -1329,37 +1335,41 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.status = 200;
 
   Json::array doc;
-  for(const auto& item : g_stats.entries) {
-    if (item.first == "special-memory-usage")
-      continue; // Too expensive for get-all
+  {
+    auto entries = g_stats.entries.read_lock();
+    for (const auto& item : *entries) {
+      if (item.d_name == "special-memory-usage") {
+        continue; // Too expensive for get-all
+      }
 
-    if (const auto& val = boost::get<pdns::stat_t*>(&item.second)) {
-      doc.push_back(Json::object {
-          { "type", "StatisticItem" },
-          { "name", item.first },
-          { "value", (double)(*val)->load() }
-        });
-    }
-    else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&item.second)) {
-      doc.push_back(Json::object {
-          { "type", "StatisticItem" },
-          { "name", item.first },
-          { "value", (*adval)->load() }
-        });
-    }
-    else if (const auto& dval = boost::get<double*>(&item.second)) {
-      doc.push_back(Json::object {
-          { "type", "StatisticItem" },
-          { "name", item.first },
-          { "value", (**dval) }
-        });
-    }
-    else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&item.second)) {
-      doc.push_back(Json::object {
-          { "type", "StatisticItem" },
-          { "name", item.first },
-          { "value", (double)(*func)(item.first) }
-        });
+      if (const auto& val = boost::get<pdns::stat_t*>(&item.d_value)) {
+        doc.push_back(Json::object {
+            { "type", "StatisticItem" },
+            { "name", item.d_name },
+            { "value", (double)(*val)->load() }
+          });
+      }
+      else if (const auto& adval = boost::get<pdns::stat_t_trait<double>*>(&item.d_value)) {
+        doc.push_back(Json::object {
+            { "type", "StatisticItem" },
+            { "name", item.d_name },
+            { "value", (*adval)->load() }
+          });
+      }
+      else if (const auto& dval = boost::get<double*>(&item.d_value)) {
+        doc.push_back(Json::object {
+            { "type", "StatisticItem" },
+            { "name", item.d_name },
+            { "value", (**dval) }
+          });
+      }
+      else if (const auto& func = boost::get<DNSDistStats::statfunction_t>(&item.d_value)) {
+        doc.push_back(Json::object {
+            { "type", "StatisticItem" },
+            { "name", item.d_name },
+            { "value", (double)(*func)(item.d_name) }
+          });
+      }
     }
   }
   Json my_json = doc;

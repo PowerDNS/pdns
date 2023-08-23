@@ -29,6 +29,11 @@
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 
+bool addMetricDefinition(const std::string& name, const std::string& type, const std::string& description, const std::string& customPrometheusName)
+{
+  return true;
+}
+
 BOOST_AUTO_TEST_SUITE(test_dnsdist_lua_ffi)
 
 BOOST_AUTO_TEST_CASE(test_Query)
