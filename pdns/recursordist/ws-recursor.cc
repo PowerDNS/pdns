@@ -86,68 +86,8 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
   ofconf.close();
 }
 
-static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, HttpResponse* resp)
+static void apiServerConfigACLGET(const std::string& aclType, HttpRequest* /* req */, HttpResponse* resp)
 {
-  if (req->method == "PUT") {
-    Json document = req->json();
-
-    auto jlist = document["value"];
-    if (!jlist.is_array()) {
-      throw ApiException("'value' must be an array");
-    }
-
-    if (g_yamlSettings) {
-      ::rust::Vec<::rust::String> vec;
-      for (const auto& value : jlist.array_items()) {
-        vec.emplace_back(value.string_value());
-      }
-
-      try {
-        ::pdns::rust::settings::rec::validate_allow_from(aclType, vec);
-      }
-      catch (const ::rust::Error& e) {
-        throw ApiException(string("Unable to convert: ") + e.what());
-      }
-      ::rust::String yaml;
-      if (aclType == "allow-from") {
-        yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_from", "allow_from_file", vec);
-      }
-      else {
-        yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_notify_from", "allow_notify_from_file", vec);
-      }
-      apiWriteConfigFile(aclType, string(yaml));
-    }
-    else {
-      NetmaskGroup nmg;
-      for (const auto& value : jlist.array_items()) {
-        try {
-          nmg.addMask(value.string_value());
-        }
-        catch (const NetmaskException& e) {
-          throw ApiException(e.reason);
-        }
-      }
-
-      ostringstream strStream;
-
-      // Clear <foo>-from-file if set, so our changes take effect
-      strStream << aclType << "-file=" << endl;
-
-      // Clear ACL setting, and provide a "parent" value
-      strStream << aclType << "=" << endl;
-      strStream << aclType << "+=" << nmg.toString() << endl;
-
-      apiWriteConfigFile(aclType, strStream.str());
-    }
-
-    parseACLs();
-
-    // fall through to GET
-  }
-  else if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
-  }
-
   // Return currently configured ACLs
   vector<string> entries;
   if (t_allowFrom && aclType == "allow-from") {
@@ -163,14 +103,83 @@ static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, Htt
   });
 }
 
-static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
+static void apiServerConfigACLPUT(const std::string& aclType, HttpRequest* req, HttpResponse* resp)
 {
-  apiServerConfigACL("allow-from", req, resp);
+  const auto& document = req->json();
+
+  const auto& jlist = document["value"];
+
+  if (!jlist.is_array()) {
+    throw ApiException("'value' must be an array");
+  }
+
+  if (g_yamlSettings) {
+    ::rust::Vec<::rust::String> vec;
+    for (const auto& value : jlist.array_items()) {
+      vec.emplace_back(value.string_value());
+    }
+
+    try {
+      ::pdns::rust::settings::rec::validate_allow_from(aclType, vec);
+    }
+    catch (const ::rust::Error& e) {
+      throw ApiException(string("Unable to convert: ") + e.what());
+    }
+    ::rust::String yaml;
+    if (aclType == "allow-from") {
+      yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_from", "allow_from_file", vec);
+    }
+    else {
+      yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_notify_from", "allow_notify_from_file", vec);
+    }
+    apiWriteConfigFile(aclType, string(yaml));
+  }
+  else {
+    NetmaskGroup nmg;
+    for (const auto& value : jlist.array_items()) {
+      try {
+        nmg.addMask(value.string_value());
+      }
+      catch (const NetmaskException& e) {
+        throw ApiException(e.reason);
+      }
+    }
+
+    ostringstream strStream;
+
+    // Clear <foo>-from-file if set, so our changes take effect
+    strStream << aclType << "-file=" << endl;
+
+    // Clear ACL setting, and provide a "parent" value
+    strStream << aclType << "=" << endl;
+    strStream << aclType << "+=" << nmg.toString() << endl;
+
+    apiWriteConfigFile(aclType, strStream.str());
+  }
+
+  parseACLs();
+
+  apiServerConfigACLGET(aclType, req, resp);
 }
 
-static void apiServerConfigAllowNotifyFrom(HttpRequest* req, HttpResponse* resp)
+static void apiServerConfigAllowFromGET(HttpRequest* req, HttpResponse* resp)
 {
-  apiServerConfigACL("allow-notify-from", req, resp);
+  apiServerConfigACLGET("allow-from", req, resp);
+}
+
+static void apiServerConfigAllowNotifyFromGET(HttpRequest* req, HttpResponse* resp)
+{
+  apiServerConfigACLGET("allow-notify-from", req, resp);
+}
+
+static void apiServerConfigAllowFromPUT(HttpRequest* req, HttpResponse* resp)
+{
+  apiServerConfigACLPUT("allow-from", req, resp);
+}
+
+static void apiServerConfigAllowNotifyFromPUT(HttpRequest* req, HttpResponse* resp)
+{
+  apiServerConfigACLPUT("allow-notify-from", req, resp);
 }
 
 static void fillZone(const DNSName& zonename, HttpResponse* resp)
@@ -1305,10 +1314,10 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerApiHandler(
     "/jsonstat", [](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, "GET", true);
   d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush, "PUT");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFrom, "PUT");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFrom, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", apiServerConfigAllowNotifyFrom, "GET");
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", apiServerConfigAllowNotifyFrom, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFromPUT, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFromGET, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", apiServerConfigAllowNotifyFromGET, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", apiServerConfigAllowNotifyFromPUT, "PUT");
   d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig, "GET");
   d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", apiServerRPZStats, "GET");
   d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData, "GET");
