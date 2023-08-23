@@ -34,6 +34,7 @@ namespace YaHTTP {
   typedef funcptr::function <void(Request* req, Response* resp)> THandlerFunction; //!< Handler function pointer 
   typedef funcptr::tuple<std::string, std::string, THandlerFunction, std::string> TRoute; //!< Route tuple (method, urlmask, handler, name)
   typedef std::vector<TRoute> TRouteList; //!< List of routes in order of evaluation
+  typedef funcptr::tuple<int,int> TDelim;
 
   /*! Implements simple router.
 
@@ -53,6 +54,7 @@ is consumed but not stored. Note that only path is matched, scheme, host and url
     RoutingResult route(Request *req, THandlerFunction& handler); //<! Instance method for performing routing
     void printRoutes(std::ostream &os); //<! Instance method for printing routes
     std::pair<std::string, std::string> urlFor(const std::string &name, const strstr_map_t& arguments); //<! Instance method for generating paths
+    static bool match(const std::string& route, const URL& requrl, std::map<std::string, TDelim>& params); //<! Instance method for matching a route
 
 /*! Map an URL.
 If method is left empty, it will match any method. Name is also optional, but needed if you want to find it for making URLs 
@@ -65,6 +67,7 @@ If method is left empty, it will match any method. Name is also optional, but ne
     static void Delete(const std::string& url, THandlerFunction handler, const std::string& name = "") { router.map("DELETE", url, handler, name); }; //<! Helper for mapping DELETE
     static void Any(const std::string& url, THandlerFunction handler, const std::string& name = "") { router.map("", url, handler, name); }; //<! Helper for mapping any method
 
+    static bool Match(const std::string& route, const URL& requrl, std::map<std::string, TDelim>& params) { return router.match(route, requrl, params); };
     static RoutingResult Route(Request *req, THandlerFunction& handler) { return router.route(req, handler); }; //<! Performs routing based on req->url.path, returns RouteFound if route is found and method matches, RouteNoMethod if route is seen but method did match, and RouteNotFound if not found.
     static void PrintRoutes(std::ostream &os) { router.printRoutes(os); }; //<! Prints all known routes to given output stream
 
