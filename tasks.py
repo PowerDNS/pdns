@@ -462,6 +462,7 @@ def ci_dnsdist_configure(c, features):
                       --with-libsodium \
                       --with-lua=luajit \
                       --with-libcap \
+                      --with-net-snmp \
                       --with-nghttp2 \
                       --with-re2 '
     else:
