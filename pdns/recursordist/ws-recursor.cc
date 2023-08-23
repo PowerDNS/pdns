@@ -431,10 +431,6 @@ static void apiServerZoneDetailGET(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
-  }
-
   string qVar = req->getvars["q"];
   if (qVar.empty()) {
     throw ApiException("Query q can't be blank");
@@ -476,10 +472,6 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method != "PUT") {
-    throw HttpMethodNotAllowedException();
-  }
-
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
   bool subtree = req->getvars.count("subtree") > 0 && req->getvars["subtree"] == "true";
   uint16_t qtype = 0xffff;
@@ -493,12 +485,8 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
     {"result", "Flushed cache."}});
 }
 
-static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp)
+static void apiServerRPZStats(HttpRequest* /* req */, HttpResponse* resp)
 {
-  if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
-  }
-
   auto luaconf = g_luaconfs.getLocal();
   auto numZones = luaconf->dfe.size();
 
@@ -530,10 +518,6 @@ static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp)
 static void prometheusMetrics(HttpRequest* req, HttpResponse* resp)
 {
   static MetricDefinitionStorage s_metricDefinitions;
-
-  if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
-  }
 
   std::ostringstream output;
 
