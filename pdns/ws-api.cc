@@ -109,10 +109,7 @@ static Json getServerDetail() {
 /* Return information about the supported API versions.
  * The format of this MUST NEVER CHANGE at it's not versioned.
  */
-void apiDiscovery(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
+void apiDiscovery(HttpRequest* /* req */, HttpResponse* resp) {
   Json version1 = Json::object {
     { "version", 1 },
     { "url", "/api/v1" }
@@ -122,10 +119,7 @@ void apiDiscovery(HttpRequest* req, HttpResponse* resp) {
   resp->setJsonBody(doc);
 }
 
-void apiDiscoveryV1(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
+void apiDiscoveryV1(HttpRequest* /* req */, HttpResponse* resp) {
   Json version1 = Json::object {
     { "server_url", "/api/v1/servers{/server}" },
     { "api_features", Json::array {} }
@@ -136,25 +130,16 @@ void apiDiscoveryV1(HttpRequest* req, HttpResponse* resp) {
 
 }
 
-void apiServer(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
+void apiServer(HttpRequest* /* req */ , HttpResponse* resp) {
   Json doc = Json::array {getServerDetail()};
   resp->setJsonBody(doc);
 }
 
-void apiServerDetail(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
+void apiServerDetail(HttpRequest* /* req */, HttpResponse* resp) {
   resp->setJsonBody(getServerDetail());
 }
 
-void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
+void apiServerConfig(HttpRequest* /* req */, HttpResponse* resp) {
   vector<string> items = ::arg().list();
   string value;
   Json::array doc;
@@ -174,9 +159,6 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
 }
 
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
   Json::array doc;
   string name = req->getvars["statistic"];
   if (!name.empty()) {
