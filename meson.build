@@ -210,13 +210,26 @@ deps = [
 ]
 subdir('pdns')
 
-pdns_server = executable(
-  'pdns_server',
+pdns_auth = executable(
+  'pdns-auth',
   config_h,
   export_dynamic: true,
   dependencies: [
     libpdns,
     libpdns_auth,
+    libpdns_auth_main,
+    libpdns_auth_ws,
     dep_modules,
+  ],
+)
+
+pdns_util = executable(
+  'pdns-util',
+  config_h,
+  dependencies: [
+    libpdns,
+    libpdns_auth,
+    libpdns_util,
+    libpdns_util_main,
   ],
 )

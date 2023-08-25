@@ -1,21 +1,3 @@
-libpdns_bind_dnssec_schema = custom_target(
-  'libpdns-bind-dnssec-schema',
-  command: [
-    python_prog,
-    '@INPUT0@',
-    '@INPUT1@',
-  ],
-  input: [
-    'generate-bind-dnssec-schema.py',
-    'bind-dnssec.schema.sqlite3.sql',
-  ],
-  output: 'bind-dnssec.schema.sqlite3.sql.h',
-  capture: true,
-)
-libpdns_bind_dnssec_schema = declare_dependency(
-  sources: [libpdns_bind_dnssec_schema],
-)
-
 libpdns_bind_parser = declare_dependency(
   link_with: static_library(
     'pdns-bind-parser',
@@ -249,7 +231,6 @@ libpdns = declare_dependency(
     ],
     dependencies: [
       deps,
-      libpdns_bind_dnssec_schema,
       libpdns_bind_parser,
       libpdns_lua,
       libpdns_lua_records,
@@ -319,7 +300,7 @@ endif
 
 libpdns_auth = declare_dependency(
   link_with: static_library(
-    'pdns-auth',
+    'libpdns-auth',
     'auth-caches.cc',
     'auth-carbon.cc',
     'auth-catalogzone.cc',
@@ -342,8 +323,59 @@ libpdns_auth = declare_dependency(
       deps,
       libpdns_auth_api_swagger,
       libpdns_auth_lua,
-      libpdns_auth_main,
-      libpdns_auth_ws,
+    ],
+  )
+)
+
+libpdns_bind_dnssec_schema = custom_target(
+  'libpdns-bind-dnssec-schema',
+  command: [
+    python_prog,
+    '@INPUT0@',
+    '@INPUT1@',
+  ],
+  input: [
+    'generate-bind-dnssec-schema.py',
+    'bind-dnssec.schema.sqlite3.sql',
+  ],
+  output: 'bind-dnssec.schema.sqlite3.sql.h',
+  capture: true,
+)
+libpdns_bind_dnssec_schema = declare_dependency(
+  sources: [libpdns_bind_dnssec_schema],
+)
+
+libpdns_ipcipher = dependency('', required: false)
+if enable_ipcipher
+  libpdns_ipcipher = declare_dependency(
+    link_with: static_library(
+      'libpdns-ipcipher',
+      'ipcipher.cc',
+      dependencies: deps,
+    )
+  )
+endif
+
+libpdns_util_main = declare_dependency(
+  link_with: static_library(
+    'libpdns-util-main',
+    'pdnsutil.cc',
+    dependencies: deps,
+  )
+)
+
+libpdns_util = declare_dependency(
+  link_with: static_library(
+    'libpdns-util',
+    'zonemd.cc',
+    extra_files: [
+      'zonemd.hh',
+    ],
+    dependencies: [
+      deps,
+      libpdns_util_main,
+      libpdns_bind_dnssec_schema,
+      libpdns_ipcipher,
     ],
   )
 )
