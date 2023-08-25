@@ -2,6 +2,38 @@ Changelogs for 4.7.X
 ====================
 
 .. changelog::
+  :version: 4.7.6
+  :released: 25th of August 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13157
+    :tickets: 13105
+
+    (I)XFR: handle partial read of len prefix.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13079
+    :tickets: 12892
+
+    YaHTTP: Prevent integer overflow on very large chunks.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13075
+    :tickets: 12961
+
+    Work around Red Hat 8 misfeature in OpenSSL's headers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13058
+    :tickets: 13021
+
+    Fix setting of policy tags for packet cache hits.
+
+.. changelog::
   :version: 4.7.5
   :released: 29th of March 2023
 
