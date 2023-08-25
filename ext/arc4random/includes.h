@@ -24,4 +24,6 @@ uint32_t arc4random_uniform(uint32_t upper_bound);
 void explicit_bzero(void *, size_t len);
 #endif
 
+int _ssh_compat_getentropy(void *, size_t);
+
 #define DEF_WEAK(x)
