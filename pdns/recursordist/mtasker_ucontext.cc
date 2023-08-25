@@ -24,7 +24,8 @@
 #include <exception>
 #include <cstring>
 #include <cassert>
-#include <signal.h>
+#include <csignal>
+#include <cstdint>
 #include <ucontext.h>
 
 #ifdef PDNS_USE_VALGRIND
