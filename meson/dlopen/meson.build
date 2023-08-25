@@ -1,4 +1,4 @@
-dep_dlopen = declare_dependency(variables: {'name': 'fooooo'}, version: 'system')
+dep_dlopen = declare_dependency()
 
 if not cxx.has_function('dlopen')
   dep_dlopen = dependency('dl', required: false)
