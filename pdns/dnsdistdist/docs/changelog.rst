@@ -73,7 +73,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 13120
 
-    fix typo libeditr -> libedit
+    Fix a typo for libedit in the dnsdist features list
 
   .. change::
     :tags: Improvements
