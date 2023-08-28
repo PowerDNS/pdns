@@ -269,7 +269,7 @@ class PDNSPBConnHandler(object):
             for entry in mt.value.stringVal:
                 values = ', '.join([values, entry]) if values != '' else entry
             for entry in mt.value.intVal:
-                values = ', '.join([values, entry]) if values != '' else entry
+                values = ', '.join([values, str(entry)]) if values != '' else str(entry)
 
             print('- %s -> %s' % (mt.key, values))
 
