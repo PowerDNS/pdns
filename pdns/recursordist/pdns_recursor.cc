@@ -776,30 +776,12 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   return rcode;
 }
 
-static bool answerIsNOData(uint16_t requestedType, int rcode, const std::vector<DNSRecord>& records)
-{
-  if (rcode != RCode::NoError) {
-    return false;
-  }
-  for (const auto& rec : records) {
-    if (rec.d_place != DNSResourceRecord::ANSWER) {
-      /* no records in the answer section */
-      return true;
-    }
-    if (rec.d_type == requestedType) {
-      /* we have a record, of the right type, in the right section */
-      return false;
-    }
-  }
-  return true;
-}
-
 // RFC 6147 section 5.1 all rcodes except NXDomain should be candidate for dns64
 // for NoError, check if it is NoData
 static bool dns64Candidate(uint16_t requestedType, int rcode, const std::vector<DNSRecord>& records)
 {
   if (rcode == RCode::NoError) {
-    return answerIsNOData(requestedType, rcode, records);
+    return SyncRes::answerIsNOData(requestedType, rcode, records);
   }
   return rcode != RCode::NXDomain;
 }
@@ -1298,7 +1280,7 @@ void startDoResolve(void* p) // NOLINT(readability-function-cognitive-complexity
       bool luaHookHandled = false;
       if (dc->d_luaContext) {
         PolicyResult policyResult = PolicyResult::NoAction;
-        if (answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
+        if (SyncRes::answerIsNOData(dc->d_mdp.d_qtype, res, ret)) {
           if (dc->d_luaContext->nodata(dq, res, sr.d_eventTrace)) {
             luaHookHandled = true;
             shouldNotValidate = true;

@@ -5953,3 +5953,26 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
   }
   return res;
 }
+
+bool SyncRes::answerIsNOData(uint16_t requestedType, int rcode, const std::vector<DNSRecord>& records)
+{
+  if (rcode != RCode::NoError) {
+    return false;
+  }
+
+  // NOLINTNEXTLINE(readability-use-anyofallof)
+  for (const auto& rec : records) {
+    if (rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == requestedType) {
+      /* we have a record, of the right type, in the right section */
+      return false;
+    }
+  }
+  return true;
+#if 0
+  // This code should be equivalent to the code above, clang-tidy prefers any_of()
+  // I have doubts if that is easier to read
+  return !std::any_of(records.begin(), records.end(), [=](const DNSRecord& rec) {
+    return rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == requestedType;
+  });
+#endif
+}
