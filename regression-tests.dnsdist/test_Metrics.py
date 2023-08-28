@@ -8,7 +8,7 @@ import unittest
 import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
-class TestRuleMetrics(DNSDistTest):
+class RuleMetricsTest(object):
 
     _config_template = """
     addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
@@ -176,3 +176,12 @@ class TestRuleMetrics(DNSDistTest):
             self.assertEqual(self.getMetric('frontend-servfail'), frontendBefore + 2)
             self.assertEqual(self.getMetric('servfail-responses'), servfailBefore + 1)
             self.assertEqual(self.getMetric('rule-servfail'), ruleBefore)
+
+class TestRuleMetricsDefault(RuleMetricsTest, DNSDistTest):
+    None
+
+class TestRuleMetricsRecvmmsg(RuleMetricsTest, DNSDistTest):
+    # test the metrics with recvmmsg/sendmmsg support enabled as well
+    _config_template = RuleMetricsTest._config_template + """
+        setUDPMultipleMessagesVectorSize(10)
+    """
