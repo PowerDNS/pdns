@@ -1,0 +1,212 @@
+---
+name: Build packages
+
+on:
+  workflow_call:
+    inputs:
+      product:
+        required: true
+        description: Product to build
+        type: string
+      os:
+        required: false
+        description: OSes to build for, space separated
+        type: string
+        # please remember to update the pkghashes below when you
+        # update this list, as well as the one in builder-dispatch.yml
+        default: >
+          el-7
+          el-8
+          el-9
+          debian-buster
+          debian-bullseye
+          debian-bookworm
+          ubuntu-focal
+          ubuntu-jammy
+      ref:
+        description: git ref to checkout
+        type: string
+        default: master
+        required: false
+      is_release:
+        description: is this a release build?
+        type: string
+        required: false
+        default: 'NO'
+    secrets:
+      DOWNLOADS_AUTOBUILT_SECRET:
+        required: true
+      DOWNLOADS_AUTOBUILT_RSYNCTARGET:
+        required: true
+      DOWNLOADS_AUTOBUILT_HOSTKEY:
+        required: true
+
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
+jobs:
+  prepare:
+    name: generate OS list
+    runs-on: ubuntu-20.04
+    outputs:
+      oslist: ${{ steps.get-oslist.outputs.oslist }}
+    steps:
+      # instead of jo, we could use jq here, which avoids running apt, and thus would be faster.
+      # but, as this whole workflow needs at least 30 minutes to run, I prefer spending a few seconds here
+      # so that the command remains readable, because jo is simpler to use.
+      - run: sudo apt-get update && sudo apt-get -y install jo
+      - id: get-oslist
+        run: echo "oslist=$(jo -a ${{ inputs.os }})" >> "$GITHUB_OUTPUT"
+  build:
+    needs: prepare
+    name: build ${{ inputs.product }} (${{ inputs.ref }}) for ${{ matrix.os }}
+    # on a ubuntu-20.04 VM
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        os: ${{fromJson(needs.prepare.outputs.oslist)}}
+      fail-fast: false
+    outputs:
+      version: ${{ steps.getversion.outputs.version }}
+      pkghashes-el-7: ${{ steps.pkghashes.outputs.pkghashes-el-7 }}
+      pkghashes-el-8: ${{ steps.pkghashes.outputs.pkghashes-el-8 }}
+      pkghashes-el-9: ${{ steps.pkghashes.outputs.pkghashes-el-9 }}
+      pkghashes-debian-buster: ${{ steps.pkghashes.outputs.pkghashes-debian-buster }}
+      pkghashes-debian-bullseye: ${{ steps.pkghashes.outputs.pkghashes-debian-bullseye }}
+      pkghashes-debian-bookworm: ${{ steps.pkghashes.outputs.pkghashes-debian-bookworm }}
+      pkghashes-ubuntu-focal: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-focal }}
+      pkghashes-ubuntu-jammy: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-jammy }}
+      srchashes: ${{ steps.srchashes.outputs.srchashes }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # for correct version numbers
+          submodules: recursive
+          ref: ${{ inputs.ref }}
+      # this builds packages and runs our unit tests (make check)
+      - run: IS_RELEASE=${{ inputs.is_release}} builder/build.sh -v -m ${{ inputs.product }} ${{ matrix.os }}
+      - name: Get version number
+        run: |
+          echo "version=$(readlink builder/tmp/latest)" >> $GITHUB_OUTPUT
+        id: getversion
+      - name: Upload packages as GH artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
+          path: built_pkgs/
+          retention-days: 7
+      - name: Normalize package name
+        id: normalize-name
+        run: |
+          if [ "x${{ inputs.product }}" = "xauthoritative" ]; then
+            echo "normalized-package-name=pdns" >> $GITHUB_OUTPUT
+          elif [ "x${{ inputs.product }}" = "xrecursor" ]; then
+            echo "normalized-package-name=pdns-recursor" >> $GITHUB_OUTPUT
+          else
+            echo "normalized-package-name=${{ inputs.product }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract packages from the tarball
+        # so we get provenance for individual packages (and the JSON package manifests from the builder)
+        id: extract
+        run: |
+          mkdir -m 700 -p ./packages/
+          tar xvf ./built_pkgs/*/*/${{ steps.normalize-name.outputs.normalized-package-name }}-${{ steps.getversion.outputs.version }}-${{ matrix.os }}.tar.bz2 -C ./packages/ --transform='s/.*\///'
+      - name: Generate package hashes for provenance
+        shell: bash
+        id: pkghashes
+        run: |
+          echo "pkghashes-${{ matrix.os }}=$(sha256sum ./packages/*.rpm ./packages/*.deb ./packages/*.json | base64 -w0)" >> $GITHUB_OUTPUT
+      - name: Generate source hash for provenance
+        shell: bash
+        id: srchashes
+        run: |
+          echo "srchashes=$(sha256sum ./built_pkgs/*/*/${{ steps.normalize-name.outputs.normalized-package-name }}-${{ steps.getversion.outputs.version }}.tar.bz2 ./packages/*.json | base64 -w0)" >> $GITHUB_OUTPUT
+      - name: Upload packages to downloads.powerdns.com
+        env:
+          SSHKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
+          RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
+          HOSTKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_HOSTKEY }}
+        if:
+          "${{ env.SSHKEY != '' }}"
+        run: |
+          mkdir -m 700 -p ~/.ssh
+          echo "$SSHKEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "$HOSTKEY" > ~/.ssh/known_hosts
+          rsync -4rlptD built_pkgs/* "$RSYNCTARGET"
+
+  check-hashes:
+    needs: build
+    name: Check if hashes were created for all requested targets
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Get list of outputs from build jobs
+        run: echo '${{ toJSON(needs.build.outputs) }}' | jq 'keys[]' | grep -v version | tee /tmp/build-outputs.txt
+      - name: Get list of OS inputs
+        run: for i in ${{ inputs.os }}; do echo "\"pkghashes-$i\""; done | sort | tee /tmp/os-inputs.txt; echo "\"srchashes\"" | tee -a /tmp/os-inputs.txt
+      - name: Fail if there is a hash missing
+        run: if ! diff -q /tmp/build-outputs.txt /tmp/os-inputs.txt; then exit 1; fi
+
+  provenance-pkgs:
+    needs: [prepare, build]
+    name: Generate provenance for ${{ inputs.product }} (${{ inputs.ref }}) for ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ${{fromJson(needs.prepare.outputs.oslist)}}
+    permissions:
+      actions: read   # To read the workflow path.
+      id-token: write # To sign the provenance.
+      contents: write # To be able to upload assets as release artifacts
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.4.0
+    with:
+      base64-subjects: "${{ needs.build.outputs[format('pkghashes-{0}', matrix.os)] }}"
+      upload-assets: false
+      provenance-name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-${{ matrix.os}}.intoto.jsonl"
+
+  provenance-src:
+    needs: build
+    name: Generate provenance for ${{ inputs.product }} (${{ inputs.ref }}) source tarball
+    permissions:
+      actions: read   # To read the workflow path.
+      id-token: write # To sign the provenance.
+      contents: write # To be able to upload assets as release artifacts
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.4.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.srchashes }}"
+      upload-assets: false
+      provenance-name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-src.intoto.jsonl"
+
+  upload-provenance:
+    needs: [prepare, build, provenance-src, provenance-pkgs]
+    name: Upload the provenance artifacts to downloads.powerdns.com
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        os: ${{fromJson(needs.prepare.outputs.oslist)}}
+    steps:
+      - name: Download source tarball provenance for ${{ inputs.product }} (${{ inputs.ref }})
+        id: download-src-provenance
+        uses: actions/download-artifact@v3
+        with:
+          name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-src.intoto.jsonl"
+      - name: Download provenance for ${{ inputs.product }} (${{ inputs.ref }}) for ${{ matrix.os }}
+        id: download-provenance
+        uses: actions/download-artifact@v3
+        with:
+          name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-${{ matrix.os}}.intoto.jsonl"
+      - name: Upload provenance artifacts to downloads.powerdns.com
+        id: upload-provenance
+        env:
+          SSHKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
+          RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
+          HOSTKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_HOSTKEY }}
+        if:
+          "${{ env.SSHKEY != '' }}"
+        shell: bash
+        run: |
+          mkdir -m 700 -p ~/.ssh
+          echo "$SSHKEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "$HOSTKEY" > ~/.ssh/known_hosts
+          rsync -4rlptD ${{steps.download-src-provenance.outputs.download-path}}/*.jsonl ${{steps.download-provenance.outputs.download-path}}/*.jsonl "${RSYNCTARGET}/${{ inputs.product }}/${{ needs.build.outputs.version }}/"
