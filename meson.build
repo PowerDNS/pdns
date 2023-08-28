@@ -82,13 +82,6 @@ subdir('meson' / 'socket-dir')              # Socket Dir
 subdir('meson' / 'various-functions')       # Various Functions
 subdir('meson' / 'various-headers')         # Various Headers
 
-# TODO Should this be handled in pdns/meson.build instead?
-# Find ragel or pdns/dnslabeltext.cc
-if not ragel.found() and not fs.exists('pdns' / 'dnslabeltext.cc')
-  error('Ragel is missing and `pdns/dnslabeltext.cc` cannot be found. ' +
-        'Install Ragel or download the sources from www.powerdns.com')
-endif
-
 # Swagger
 # if not fs.exists('pdns' / 'api-swagger.json') and not python_have_venv
 #   error('Python3 and/or its venv module is not available and ' +

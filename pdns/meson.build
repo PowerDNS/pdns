@@ -158,7 +158,7 @@ libpdns = declare_dependency(
     'uuid-utils.cc',
     'version.cc',
     'zoneparser-tng.cc',
-    ragel_generator.process('dnslabeltext.rl'),
+    fs.is_file('dnslabeltext.cc') ? 'dnslabeltext.cc' : ragel_generator.process('dnslabeltext.rl'),
     extra_files: [
       'arguments.hh',
       'axfr-retriever.hh',
