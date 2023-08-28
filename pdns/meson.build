@@ -330,20 +330,23 @@ libpdns_auth = declare_dependency(
   )
 )
 
-libpdns_bind_dnssec_schema = custom_target(
-  'libpdns-bind-dnssec-schema',
-  command: [
-    python_prog,
-    '@INPUT0@',
-    '@INPUT1@',
-  ],
-  input: [
-    'generate-bind-dnssec-schema.py',
-    'bind-dnssec.schema.sqlite3.sql',
-  ],
-  output: 'bind-dnssec.schema.sqlite3.sql.h',
-  capture: true,
-)
+libpdns_bind_dnssec_schema = 'bind-dnssec.schema.sqlite3.sql.h'
+if not fs.is_file('bind-dnssec.schema.sqlite3.sql.h')
+  libpdns_bind_dnssec_schema = custom_target(
+    'libpdns-bind-dnssec-schema',
+    command: [
+      python_prog,
+      '@INPUT0@',
+      '@INPUT1@',
+    ],
+    input: [
+      'generate-bind-dnssec-schema.py',
+      'bind-dnssec.schema.sqlite3.sql',
+    ],
+    output: 'bind-dnssec.schema.sqlite3.sql.h',
+    capture: true,
+  )
+endif
 libpdns_bind_dnssec_schema = declare_dependency(
   sources: [libpdns_bind_dnssec_schema],
 )
