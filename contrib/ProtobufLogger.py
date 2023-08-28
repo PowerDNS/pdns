@@ -312,7 +312,7 @@ class PDNSPBListener(object):
             thread = threading.Thread(name='Connection Handler',
                                       target=PDNSPBConnHandler.run,
                                       args=[handler])
-            thread.setDaemon(True)
+            thread.daemon = True
             thread.start()
 
         self._sock.close()
