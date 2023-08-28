@@ -2,6 +2,166 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.8.1
+  :released: TBD
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12820
+
+    Print the received, invalid health-check response ID
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12821
+
+    Account for the health-check run time between two runs
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12822
+
+    Properly set the size of the UDP health-check response
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12823
+
+    Add the query ID to health-check log messages, fix nits
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12824
+
+    Stop setting SO_REUSEADDR on outgoing UDP client sockets
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 12977
+
+    Fix a crash when X-Forwarded-For overrides the initial source IP
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13116
+
+    Properly handle short reads on backend upgrade discovery
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13117
+
+    Undo an accidentally change of disableZeroScope to disableZeroScoping (Winfried Angele)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13118
+    :tickets: 13027
+
+    Fix the group of the dnsdist.conf file when installed via RPM
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13119
+    :tickets: 12926
+
+    Work around Red Hat 8 messing up OpenSSL's headers and refusing to fix it
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13120
+
+    fix typo libeditr -> libedit
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13121
+
+    Stop using the now deprecated ERR_load_CRYPTO_strings() to detect OpenSSL
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13122
+
+    Automatically load Lua FFI inspection functions
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13123
+
+    Allow declaring custom metrics at runtime
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13124
+
+    Fix webserver config template for our docker container (Houtworm)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13125
+
+    Increment the "dyn blocked" counter for eBPF blocks as well
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13127
+
+    YaHTTP: Prevent integer overflow on very large chunks
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13128
+
+    Fix the console description of PoolAction and QPSPoolAction (phonedph1)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13129
+    :tickets: 12711
+
+    Properly handle reconnection failure for backend UDP sockets
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, DNS over TLS
+    :pullreq: 13130
+
+    Fix a memory leak when processing TLS tickets w/ OpenSSL 3.x
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 13131
+    :tickets: 12762
+
+    Fix cache hit and miss metrics with DoH queries
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13132
+
+    SpoofAction: copy the QClass from the request (Christof Chen)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13133
+
+    Make DNSQType.TSIG available (Jacob Bunk)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13150
+
+    Properly record self-answered UDP responses with recvmmsg
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS
+    :pullreq: 13178
+
+    Fix a race when creating the first TLS connections
+
+.. changelog::
   :version: 1.7.4
   :released: 14th of April 2023
 
