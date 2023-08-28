@@ -104,7 +104,7 @@ has = cxx.has_header_symbol(
   'EVP_PKEY_CTX_set1_scrypt_salt',
   dependencies: dep_libcrypto,
   prefix: prefix,
-  required: true,
+  required: false,
 )
 conf.set(
   'HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT',
