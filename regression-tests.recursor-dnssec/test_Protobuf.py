@@ -99,7 +99,7 @@ class TestRecursorProtobuf(RecursorTest):
           #print(param.port)
           failed = 0
 
-          while param.queue.empty:
+          while param.queue.empty():
             #print(failed)
             #print(retries)
             if failed >= retries:
