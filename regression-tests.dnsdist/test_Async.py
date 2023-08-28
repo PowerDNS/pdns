@@ -2,6 +2,7 @@
 
 import os
 import socket
+import sys
 import threading
 import unittest
 import dns
