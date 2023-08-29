@@ -119,11 +119,14 @@ void BackendMakerClass::load_all()
     return;
   }
   struct dirent* entry = nullptr;
-  while ((entry=readdir(dir.get()))) {
-    if (strncmp(entry->d_name, "lib", 3) == 0 &&
-       strlen(entry->d_name) > 13 &&
-       strcmp(entry->d_name + strlen(entry->d_name)-10, "backend.so") == 0)
+  //NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
+  while ((entry = readdir(dir.get())) != nullptr) {
+    auto name = std::string_view(entry->d_name, strlen(entry->d_name));
+    if (boost::starts_with(name, "lib") &&
+        name.size() > 13 &&
+        boost::ends_with(name, "backend.so")) {
       load(entry->d_name);
+    }
   }
 }
 
