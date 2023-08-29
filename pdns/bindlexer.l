@@ -7,7 +7,7 @@
 #define YY_NO_INPUT 1
 #define YYSTYPE char *
 
-#include "bindparser.h"
+#include "bindparser.hh"
 
 int linenumber;
 #define MAX_INCLUDE_DEPTH 10
@@ -21,7 +21,7 @@ extern const char *bind_directory;
 
 %}
 
-%x comment 
+%x comment
 %x incl
 %x quoted
 %option stack
@@ -106,7 +106,7 @@ include                 BEGIN(incl);
 
 
 
-zone			return ZONETOK; 
+zone			return ZONETOK;
 
 file			return FILETOK;
 options                 return OPTIONSTOK;

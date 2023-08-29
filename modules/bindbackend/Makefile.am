@@ -19,7 +19,3 @@ libbindbackend_la_SOURCES = \
 	binddnssec.cc
 
 libbindbackend_la_LDFLAGS = -module -avoid-version
-
-# for bindparser.h/hh
-.hh.h:
-	cp $< $@
