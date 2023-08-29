@@ -1470,7 +1470,7 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fd)
    For now this means we can't be clever, but will turn off DNSSEC if you reply with FormError or gibberish.
 */
 
-LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained, const DNSName& nsName) const
+LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool ednsMANDATORY, const DNSName& domain, [[maybe_unused]] const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained, const DNSName& nsName) const
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the best level of EDNS support
@@ -1493,7 +1493,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
   SyncRes::EDNSStatus::EDNSMode mode = EDNSStatus::EDNSOK;
   {
     auto lock = s_ednsstatus.lock();
-    auto ednsstatus = lock->find(ip); // does this include port? YES
+    auto ednsstatus = lock->find(address); // does this include port? YES
     if (ednsstatus != lock->end()) {
       if (ednsstatus->ttd && ednsstatus->ttd < d_now.tv_sec) {
         lock->erase(ednsstatus);
@@ -1531,10 +1531,10 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
     }
 
     if (d_asyncResolve) {
-      ret = d_asyncResolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
+      ret = d_asyncResolve(address, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
     }
     else {
-      ret = asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
+      ret = asyncresolve(address, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
     }
 
     if (ret == LWResult::Result::PermanentError || ret == LWResult::Result::OSLimitError || ret == LWResult::Result::Spoofed) {
@@ -1554,20 +1554,20 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
       // Determine new mode
       if (res->d_validpacket && !res->d_haveEDNS && res->d_rcode == RCode::FormErr) {
         mode = EDNSStatus::NOEDNS;
-        auto ednsstatus = lock->insert(ip).first;
+        auto ednsstatus = lock->insert(address).first;
         auto& ind = lock->get<ComboAddress>();
         lock->setMode(ind, ednsstatus, mode, d_now.tv_sec);
         // This is the only path that re-iterates the loop
         continue;
       }
       else if (!res->d_haveEDNS) {
-        auto ednsstatus = lock->insert(ip).first;
+        auto ednsstatus = lock->insert(address).first;
         auto& ind = lock->get<ComboAddress>();
         lock->setMode(ind, ednsstatus, EDNSStatus::EDNSIGNORANT, d_now.tv_sec);
       }
       else {
         // New status is EDNSOK
-        lock->erase(ip);
+        lock->erase(address);
       }
     }
 
