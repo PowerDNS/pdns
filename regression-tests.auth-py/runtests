@@ -34,13 +34,13 @@ fi
 ignore="-I test_GSSTSIG.py"
 if [ "${WITHKERBEROS}" = "YES" ]; then
     ignore=""
-    (cd kerberos-server && docker-compose up --detach --build)
+    (cd kerberos-server && docker compose up --detach --build)
 fi
 
 nosetests --with-xunit $ignore $@
 ret=$?
 
 if [ "${WITHKERBEROS}" = "YES" ]; then
-    (cd kerberos-server && docker-compose stop || exit 0)
+    (cd kerberos-server && docker compose stop || exit 0)
 fi
 exit $ret
