@@ -27,7 +27,7 @@ namespace dnsdist::edns
 {
 std::pair<std::optional<uint16_t>, std::optional<std::string>> getExtendedDNSError(const PacketBuffer& packet)
 {
-  uint16_t optStart;
+  uint16_t optStart = 0;
   size_t optLen = 0;
   bool last = false;
 
