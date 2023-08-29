@@ -24,7 +24,7 @@
 #include "rec-protozero.hh"
 #include <variant>
 
-void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, bool udr)
+void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, [[maybe_unused]] bool udr)
 {
   if (record.d_place != DNSResourceRecord::ANSWER || record.d_class != QClass::IN) {
     return;
