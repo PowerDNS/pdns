@@ -202,20 +202,19 @@ static bool sortSOA(uint32_t i, uint32_t j) {
 
 static void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const string& workdir) {
   string dir = workdir + "/" + domain.toString();
-  DIR *dp;
-  dp = opendir(dir.c_str());
-  if (dp == nullptr) {
+  auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(dir.c_str()), closedir);
+  if (!dirHandle) {
     return;
   }
   vector<uint32_t> zoneVersions;
-  struct dirent *d;
-  while ((d = readdir(dp)) != nullptr) {
-    if(!strcmp(d->d_name, ".") || !strcmp(d->d_name, "..")) {
+  struct dirent* entry = nullptr;
+  while ((entry = readdir(dirHandle.get())) != nullptr) {
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
       continue;
     }
-    zoneVersions.push_back(std::stoi(d->d_name));
+    zoneVersions.push_back(std::stoi(entry->d_name));
   }
-  closedir(dp);
+  dirHandle.reset();
   g_log<<Logger::Info<<"Found "<<zoneVersions.size()<<" versions of "<<domain<<", asked to keep "<<keep<<", ";
   if (zoneVersions.size() <= keep) {
     g_log<<Logger::Info<<"not cleaning up"<<endl;

@@ -85,12 +85,12 @@ GeoIPBackend::GeoIPBackend(const string& suffix)
   WriteLock writeLock(&s_state_lock);
   setArgPrefix("geoip" + suffix);
   if (!getArg("dnssec-keydir").empty()) {
-    DIR* dir = opendir(getArg("dnssec-keydir").c_str());
-    if (dir == nullptr) {
+    auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(getArg("dnssec-keydir").c_str()), closedir);
+    if (!dirHandle) {
       throw PDNSException("dnssec-keydir " + getArg("dnssec-keydir") + " does not exist");
     }
     d_dnssec = true;
-    closedir(dir);
+    dirHandle.reset();
   }
   if (s_rc == 0) { // first instance gets to open everything
     initialize();

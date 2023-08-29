@@ -1861,16 +1861,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
 
-    DIR* dirp;
-    struct dirent* ent;
+    auto dirp = std::unique_ptr<DIR, decltype(&closedir)>(opendir(dirname.c_str()), closedir);
     std::vector<std::string> files;
-    if (!(dirp = opendir(dirname.c_str()))) {
+    if (!dirp) {
       errlog("Error opening the included directory %s!", dirname.c_str());
       g_outputBuffer = "Error opening the included directory " + dirname + "!";
       return;
     }
 
-    while ((ent = readdir(dirp)) != NULL) {
+    struct dirent* ent = nullptr;
+    while ((ent = readdir(dirp.get())) != NULL) {
       if (ent->d_name[0] == '.') {
         continue;
       }
@@ -1887,7 +1887,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     }
 
-    closedir(dirp);
+    dirp.reset();
     std::sort(files.begin(), files.end());
 
     g_included = true;

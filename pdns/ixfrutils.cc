@@ -75,18 +75,20 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
 
 uint32_t getSerialFromDir(const std::string& dir)
 {
-  uint32_t ret=0;
-  DIR* dirhdl=opendir(dir.c_str());
-  if(!dirhdl)
+  uint32_t ret = 0;
+  auto dirhdl = std::unique_ptr<DIR, decltype(&closedir)>(opendir(dir.c_str()), closedir);
+  if (!dirhdl) {
     throw runtime_error("Could not open IXFR directory '" + dir + "': " + stringerror());
-  struct dirent *entry;
-
-  while((entry = readdir(dirhdl))) {
-    uint32_t num = atoi(entry->d_name);
-    if(std::to_string(num) == entry->d_name)
-      ret = max(num, ret);
   }
-  closedir(dirhdl);
+
+  struct dirent* entry = nullptr;
+  while ((entry = readdir(dirhdl.get()))) {
+    uint32_t num = atoi(entry->d_name);
+    if (std::to_string(num) == entry->d_name) {
+      ret = max(num, ret);
+    }
+  }
+
   return ret;
 }
 

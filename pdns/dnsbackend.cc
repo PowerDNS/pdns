@@ -113,19 +113,18 @@ vector<string> BackendMakerClass::getModules()
 void BackendMakerClass::load_all()
 {
   // TODO: Implement this?
-  DIR *dir=opendir(arg()["module-dir"].c_str());
-  if(!dir) {
+  auto dir = std::unique_ptr<DIR, decltype(&closedir)>(opendir(arg()["module-dir"].c_str()), closedir);
+  if (!dir) {
     g_log<<Logger::Error<<"Unable to open module directory '"<<arg()["module-dir"]<<"'"<<endl;
     return;
   }
-  struct dirent *entry;
-  while((entry=readdir(dir))) {
-    if(!strncmp(entry->d_name,"lib",3) &&
-       strlen(entry->d_name)>13 &&
-       !strcmp(entry->d_name+strlen(entry->d_name)-10,"backend.so"))
+  struct dirent* entry = nullptr;
+  while ((entry=readdir(dir.get()))) {
+    if (strncmp(entry->d_name, "lib", 3) == 0 &&
+       strlen(entry->d_name) > 13 &&
+       strcmp(entry->d_name + strlen(entry->d_name)-10, "backend.so") == 0)
       load(entry->d_name);
   }
-  closedir(dir);
 }
 
 void BackendMakerClass::load(const string &module)

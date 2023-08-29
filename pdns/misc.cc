@@ -1377,23 +1377,24 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 uint64_t getOpenFileDescriptors(const std::string&)
 {
 #ifdef __linux__
-  DIR* dirhdl=opendir(("/proc/"+std::to_string(getpid())+"/fd/").c_str());
-  if(!dirhdl)
+  auto dirhdl = std::unique_ptr<DIR, decltype(&closedir)>(opendir(("/proc/"+std::to_string(getpid())+"/fd/").c_str()), closedir);
+  if (!dirhdl) {
     return 0;
+  }
 
-  struct dirent *entry;
-  int ret=0;
-  while((entry = readdir(dirhdl))) {
+  int ret = 0;
+  struct dirent* entry = nullptr;
+  while ((entry = readdir(dirhdl.get()))) {
     uint32_t num;
     try {
       pdns::checked_stoi_into(num, entry->d_name);
     } catch (...) {
       continue; // was not a number.
     }
-    if(std::to_string(num) == entry->d_name)
+    if (std::to_string(num) == entry->d_name) {
       ret++;
+    }
   }
-  closedir(dirhdl);
   return ret;
 
 #elif defined(__OpenBSD__)
