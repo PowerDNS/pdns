@@ -10,12 +10,12 @@ extras = [
   'backend.pl',
 ]
 
-deps = [dep_pdns, dep_libcrypto, dep_boost]
+module_deps = [deps]
 
 lib = static_library(
   module_backend_name,
   sources,
-  dependencies: deps,
+  dependencies: module_deps,
   extra_files: extras,
 )
 

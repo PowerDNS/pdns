@@ -13,12 +13,12 @@ extras = [
   '4.3.0_to_4.7.0_schema.mssql.sql',
 ]
 
-deps = [dep_pdns, dep_libcrypto, dep_odbc]
+module_deps = [deps, dep_odbc]
 
 lib = static_library(
   module_backend_name,
   sources,
-  dependencies: deps,
+  dependencies: module_deps,
   extra_files: extras,
 )
 

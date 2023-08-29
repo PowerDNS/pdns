@@ -20,12 +20,12 @@ extras = [
   'pdns-domaininfo.schema',
 ]
 
-deps = [dep_pdns, dep_libcrypto, dep_ldap]
+module_deps = [deps, dep_ldap]
 
 lib = static_library(
   module_backend_name,
   sources,
-  dependencies: deps,
+  dependencies: module_deps,
   extra_files: extras,
 )
 

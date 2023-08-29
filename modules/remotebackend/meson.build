@@ -25,21 +25,12 @@ extras = [
   'remotebackend.hh',
 ]
 
-deps = [
-  dep_pdns,
-  dep_yahttp,
-  dep_json11,
-  dep_zeromq,
-  dep_lua,
-  dep_libsodium,
-  dep_threads,
-  dep_arc4random,
-]
+module_deps = [deps, dep_zeromq]
 
 lib = static_library(
   module_backend_name,
   sources,
-  dependencies: deps,
+  dependencies: module_deps,
   extra_files: extras,
 )
 

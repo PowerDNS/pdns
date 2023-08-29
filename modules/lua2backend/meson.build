@@ -8,12 +8,12 @@ extras = [
   'lua2api2.hh',
 ]
 
-deps = [dep_pdns, dep_libcrypto, dep_lua]
+module_deps = [deps]
 
 lib = static_library(
   module_backend_name,
   sources,
-  dependencies: deps,
+  dependencies: module_deps,
   extra_files: extras,
 )
 

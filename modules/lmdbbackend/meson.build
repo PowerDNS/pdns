@@ -6,12 +6,12 @@ extras = [
   'lmdbbackend.hh',
 ]
 
-deps = [dep_pdns, dep_lmdb_safe, dep_lmdb, dep_boost_serialization]
+module_deps = [deps, dep_lmdb_safe, dep_lmdb, dep_boost_serialization]
 
 lib = static_library(
   module_backend_name,
   sources,
-  dependencies: deps,
+  dependencies: module_deps,
   extra_files: extras,
 )
 

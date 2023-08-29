@@ -15,11 +15,11 @@ extras = [
   'schema.sqlite3.sql',
 ]
 
-deps = [dep_pdns, dep_libcrypto, dep_sqlite3]
+module_deps = [deps, dep_sqlite3]
 lib = static_library(
   module_backend_name,
   sources,
-  dependencies: deps,
+  dependencies: module_deps,
   extra_files: extras,
 )
 

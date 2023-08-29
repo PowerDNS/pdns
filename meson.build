@@ -94,6 +94,35 @@ subdir('meson' / 'various-headers')         # Various Headers
 ext_modules = ['arc4random', 'yahttp', 'ipcrypt', 'json11']
 subdir('ext')
 
+deps = [
+  dep_pdns,
+  dep_platform,
+  dep_atomics,
+  dep_threads,
+  dep_lua,
+  dep_lua_records,
+  dep_netlibs,
+  dep_libsodium,
+  dep_libdecaf,
+  dep_libcrypto,
+  dep_libssl,
+  dep_gnutls,
+  dep_rt,
+  dep_boost,
+  dep_boost_program_options,
+  dep_unittests,
+  dep_backend_unittests,
+  dep_dlopen,
+  dep_pkcs11,
+  dep_gss_tsig,
+  dep_ixfrdist,
+  dep_yahttp,
+  dep_ipcrypt,
+  dep_json11,
+  dep_arc4random,
+  dep_systemd,
+]
+
 # Modules
 all_modules = {
   'bind':     {'deps': [],                              'exts': []},
@@ -166,33 +195,6 @@ conf.set_quoted(
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
 
-deps = [
-  dep_pdns,
-  dep_platform,
-  dep_atomics,
-  dep_threads,
-  dep_lua,
-  dep_lua_records,
-  dep_netlibs,
-  dep_libsodium,
-  dep_libdecaf,
-  dep_libcrypto,
-  dep_libssl,
-  dep_gnutls,
-  dep_rt,
-  dep_boost,
-  dep_boost_program_options,
-  dep_unittests,
-  dep_backend_unittests,
-  dep_dlopen,
-  dep_pkcs11,
-  dep_gss_tsig,
-  dep_ixfrdist,
-  dep_yahttp,
-  dep_ipcrypt,
-  dep_json11,
-  dep_systemd,
-]
 subdir('pdns')
 
 pdns_auth = executable(

@@ -9,12 +9,12 @@ extras = [
   product_source_dir / 'pdns' / 'cdb.hh',
 ]
 
-deps = [dep_pdns, dep_cdb]
+module_deps = [deps, dep_cdb]
 
 lib = static_library(
   module_backend_name,
   sources,
-  dependencies: deps,
+  dependencies: module_deps,
   extra_files: extras,
 )
 

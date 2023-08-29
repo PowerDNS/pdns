@@ -16,12 +16,12 @@ extras = [
   '4.3.0_to_4.7.0_schema.pgsql.sql',
 ]
 
-deps = [dep_pdns, dep_libcrypto, dep_pgsql]
+module_deps = [deps, dep_pgsql]
 
 lib = static_library(
   module_backend_name,
   sources,
-  dependencies: deps,
+  dependencies: module_deps,
   extra_files: extras,
 )
 
