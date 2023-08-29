@@ -27,6 +27,32 @@
 #include "mplexer.hh"
 #include "uuid-utils.hh"
 
+// When pdns_distributes query is false with reuseport true (the default since 4.9.0), TCP queries
+// are read and handled by worker threads. If the kernel balancing is OK for TCP sockets (observed
+// to be good on Debian bullseye, but not good on e.g. MacOS), the TCP handling is no extra burden.
+// In the case of MacOS all incoming TCP queries are handled by a single worker, while incoming UDP
+// queries do get distributed round-robin over the worker threads.  Do note the TCP queries might
+// need to wait until the g_maxUDPQueriesPerRound is reached.
+//
+// In the case of pdns-distributes-queries true and reuseport false the queries are read and
+// initially processed by the distributor thread(s).
+//
+// Initial processing consist of parsing, calling gettag and checking if we have a packet cache
+// hit. If that does not produce a hit, the query is passed to an mthread in the same way as with
+// UDP queries, but do note that the mthread processing is serviced by the distributor thread. The
+// final answer will be sent by the same distributor thread that originally picked up the query.
+//
+// Changing this, and having incoming TCP queries handled by worker threads is somewhat more complex
+// than UDP, as the socket must remain avaiable in the distributor thread (for reading more
+// queries), but the TCP socket must also be passed to a worker thread so it can write its
+// answer. The in-flight bookkeeping also has to be aware of how a query is handled to do the
+// accounting properly. I am not sure if changing the current setup is worth all this trouble,
+// especilly since the default is now to not use pdns-distributes-queries, which works well in many
+// cases.
+//
+// The drawback mentioned in https://github.com/PowerDNS/pdns/issues/8394 are not longer true, so an
+// alternative approach would be to introduce dedicated TCP worker thread(s).
+
 size_t g_tcpMaxQueriesPerConn;
 unsigned int g_maxTCPPerClient;
 int g_tcpTimeout;
@@ -216,10 +242,49 @@ private:
   int d_fd{-1};
 };
 
+static void handleNotify(std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname)
+{
+  if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(comboWriter->d_mappedSource)) {
+    if (!g_quiet) {
+      SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
+           g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY, address not matched by allow-notify-from", "source", Logging::Loggable(comboWriter->d_mappedSource)));
+    }
+
+    t_Counters.at(rec::Counter::sourceDisallowedNotify)++;
+    return;
+  }
+
+  if (!isAllowNotifyForZone(qname)) {
+    if (!g_quiet) {
+      SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
+           g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(comboWriter->d_mappedSource), "zone", Logging::Loggable(qname)));
+    }
+
+    t_Counters.at(rec::Counter::zoneDisallowedNotify)++;
+    return;
+  }
+}
+
+static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& luaconfsLocal, const std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname, QType qtype, QClass qclass, const dnsheader* dnsheader, const shared_ptr<TCPConnection>& conn)
+{
+  try {
+    if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && comboWriter->d_policyTags.empty())) {
+      protobufLogQuery(luaconfsLocal, comboWriter->d_uuid, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet.source, true, dnsheader->id, conn->qlen, qname, qtype, qclass, comboWriter->d_policyTags, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta);
+    }
+  }
+  catch (const std::exception& e) {
+    if (g_logCommonErrors) {
+      SLOG(g_log << Logger::Warning << "Error parsing a TCP query packet for edns subnet: " << e.what() << endl,
+           g_slogtcpin->error(Logr::Warning, e.what(), "Error parsing a TCP query packet for edns subnet", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
+    }
+  }
+}
 
 static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, shared_ptr<TCPConnection>& conn, RunningTCPQuestionGuard& tcpGuard, int fileDesc)
 {
-  struct timeval start{};
+  struct timeval start
+  {
+  };
   Utility::gettimeofday(&start, nullptr);
 
   DNSName qname;
@@ -296,18 +361,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   }
 
   if (t_protobufServers.servers) {
-    try {
-
-      if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && comboWriter->d_policyTags.empty())) {
-        protobufLogQuery(luaconfsLocal, comboWriter->d_uuid, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet.source, true, dnsheader->id, conn->qlen, qname, qtype, qclass, comboWriter->d_policyTags, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta);
-      }
-    }
-    catch (const std::exception& e) {
-      if (g_logCommonErrors) {
-        SLOG(g_log << Logger::Warning << "Error parsing a TCP query packet for edns subnet: " << e.what() << endl,
-             g_slogtcpin->error(Logr::Warning, e.what(), "Error parsing a TCP query packet for edns subnet", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
-      }
-    }
+    doProtobufLogQuery(logQuery, luaconfsLocal, comboWriter, qname, qtype, qclass, dnsheader, conn);
   }
 
   if (t_pdl) {
@@ -352,30 +406,11 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   }
   {
     // We have read a proper query
-    //++t_Counters.at(rec::Counter::qcounter);
     ++t_Counters.at(rec::Counter::qcounter);
     ++t_Counters.at(rec::Counter::tcpqcounter);
 
     if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
-      if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(comboWriter->d_mappedSource)) {
-        if (!g_quiet) {
-          SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
-               g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY, address not matched by allow-notify-from", "source", Logging::Loggable(comboWriter->d_mappedSource)));
-        }
-
-        t_Counters.at(rec::Counter::sourceDisallowedNotify)++;
-        return;
-      }
-
-      if (!isAllowNotifyForZone(qname)) {
-        if (!g_quiet) {
-          SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
-               g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(comboWriter->d_mappedSource), "zone", Logging::Loggable(qname)));
-        }
-
-        t_Counters.at(rec::Counter::zoneDisallowedNotify)++;
-        return;
-      }
+      handleNotify(comboWriter, qname);
     }
 
     string response;
@@ -400,8 +435,8 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
         bool hadError = sendResponseOverTCP(comboWriter, response);
         finishTCPReply(comboWriter, hadError, false);
         struct timeval now
-          {
-          };
+        {
+        };
         Utility::gettimeofday(&now, nullptr);
         uint64_t spentUsec = uSec(now - start);
         t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
@@ -409,9 +444,9 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
 
         if (t_protobufServers.servers && comboWriter->d_logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbData || pbData->d_tagged)) {
           struct timeval tval
-            {
-              0, 0
-            };
+          {
+            0, 0
+          };
           protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, true, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet, comboWriter->d_uuid, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta, comboWriter->d_eventTrace, comboWriter->d_policyTags);
         }
 
@@ -455,7 +490,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   } // good query
 }
 
-static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var) // NOLINT(readability-function-cognitive-complexity) https://github.com/PowerDNS/pdns/issues/12791
+static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var)
 {
   auto conn = boost::any_cast<shared_ptr<TCPConnection>>(var);
 
