@@ -14,7 +14,7 @@ on:
         type: string
         # please remember to update the pkghashes below when you
         # update this list, as well as the one in builder-dispatch.yml
-        default: >
+        default: >-
           el-7
           el-8
           el-9

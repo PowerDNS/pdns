@@ -59,10 +59,10 @@ RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then 
 @ENDIF
 
 # Generate provenance
-@IF [ ${BUILDER_TARGET} = el-7 || ${BUILDER_TARGET} = centos-7 ]
+@IF [ "${BUILDER_TARGET}" = "el-7" -o "${BUILDER_TARGET}" = "centos-7" ]
 @EVAL RUN python builder/helpers/generate-yum-provenance.py /dist/packages-${BUILDER_TARGET}.json || python3 builder/helpers/generate-yum-provenance.py /dist/packages-${BUILDER_TARGET}.json
 @ENDIF
-@IF [ ${BUILDER_TARGET} != el-7 && ${BUILDET_TARGET} != centos-7 ]
+@IF [ "${BUILDER_TARGET}" != "el-7" -a "${BUILDER_TARGET}" != "centos-7" ]
 @EVAL RUN python builder/helpers/generate-dnf-provenance.py /dist/packages-${BUILDER_TARGET}.json || python3 builder/helpers/generate-dnf-provenance.py /dist/packages-${BUILDER_TARGET}.json
 @ENDIF
 
