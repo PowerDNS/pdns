@@ -147,23 +147,23 @@ doc_deps_pdf = [
 def apt_fresh(c):
     c.sudo('sed -i \'s/azure\.//\' /etc/apt/sources.list')
     c.sudo('apt-get update')
-    c.sudo('apt-get -qq -y --allow-downgrades dist-upgrade')
+    c.sudo('apt-get -y --allow-downgrades dist-upgrade')
 
 @task
 def install_clang(c):
     """
     install clang-12 and llvm-12
     """
-    c.sudo('apt-get -qq -y --no-install-recommends install clang-12 llvm-12')
+    c.sudo('apt-get -y --no-install-recommends install clang-12 llvm-12')
 
 @task
 def install_clang_tidy_tools(c):
-    c.sudo('apt-get -qq -y --no-install-recommends install clang-tidy-12 clang-tools-12 bear python-yaml')
+    c.sudo('apt-get -y --no-install-recommends install clang-tidy-12 clang-tools-12 bear python-yaml')
 
 @task
 def install_clang_runtime(c):
     # this gives us the symbolizer, for symbols in asan/ubsan traces
-    c.sudo('apt-get -qq -y --no-install-recommends install clang-12')
+    c.sudo('apt-get -y --no-install-recommends install clang-12')
 
 def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
@@ -183,15 +183,15 @@ def install_libdecaf(c, product):
 
 @task
 def install_doc_deps(c):
-    c.sudo('apt-get install -qq -y ' + ' '.join(doc_deps))
+    c.sudo('apt-get install -y ' + ' '.join(doc_deps))
 
 @task
 def install_doc_deps_pdf(c):
-    c.sudo('apt-get install -qq -y ' + ' '.join(doc_deps_pdf))
+    c.sudo('apt-get install -y ' + ' '.join(doc_deps_pdf))
 
 @task
 def install_auth_build_deps(c):
-    c.sudo('apt-get install -qq -y --no-install-recommends ' + ' '.join(all_build_deps + git_build_deps + auth_build_deps))
+    c.sudo('apt-get install -y --no-install-recommends ' + ' '.join(all_build_deps + git_build_deps + auth_build_deps))
     install_libdecaf(c, 'pdns-auth')
 
 def setup_authbind(c):
@@ -220,7 +220,7 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
     extra=[]
     for b in backend:
         extra.extend(auth_backend_test_deps[b])
-    c.sudo('apt-get -y -qq install ' + ' '.join(extra+auth_test_deps))
+    c.sudo('apt-get -y install ' + ' '.join(extra+auth_test_deps))
 
     c.run('chmod +x /opt/pdns-auth/bin/* /opt/pdns-auth/sbin/*')
     # c.run('''if [ ! -e $HOME/bin/jdnssec-verifyzone ]; then
@@ -239,12 +239,12 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
 
 @task
 def install_rec_bulk_deps(c): # FIXME: rename this, we do way more than apt-get
-    c.sudo('apt-get --no-install-recommends -qq -y install ' + ' '.join(rec_bulk_deps))
+    c.sudo('apt-get --no-install-recommends -y install ' + ' '.join(rec_bulk_deps))
     c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
 
 @task
 def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
-    c.sudo('apt-get --no-install-recommends install -qq -y ' + ' '.join(rec_bulk_deps) + ' \
+    c.sudo('apt-get --no-install-recommends install -y ' + ' '.join(rec_bulk_deps) + ' \
               pdns-server pdns-backend-bind daemontools \
               jq libfaketime lua-posix lua-socket bc authbind \
               python3-venv python3-dev default-libmysqlclient-dev libpq-dev \
@@ -261,7 +261,7 @@ def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
 
 @task
 def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-get
-    c.sudo('apt-get install -qq -y \
+    c.sudo('apt-get install -y \
               libluajit-5.1-2 \
               libboost-all-dev \
               libcap2 \
@@ -287,11 +287,11 @@ def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-
 
 @task
 def install_rec_build_deps(c):
-    c.sudo('apt-get install -qq -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + rec_build_deps))
+    c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + rec_build_deps))
 
 @task
 def install_dnsdist_build_deps(c):
-    c.sudo('apt-get install -qq -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps))
+    c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps))
 
 @task
 def ci_autoconf(c):
@@ -557,7 +557,7 @@ def ci_auth_install_remotebackend_test_deps(c):
     with c.cd('modules/remotebackend'):
       # c.run('bundle config set path vendor/bundle')
       c.run('sudo ruby -S bundle install')
-    c.sudo('apt-get install -qq -y socat')
+    c.sudo('apt-get install -y socat')
 
 @task
 def ci_auth_run_unit_tests(c):
@@ -591,7 +591,7 @@ def add_auth_repo(c):
     release = 'focal'
     version = '44'
 
-    c.sudo('apt-get install -qq -y curl gnupg2')
+    c.sudo('apt-get install -y curl gnupg2')
     if version == 'master':
         c.sudo('curl -s -o /etc/apt/trusted.gpg.d/pdns-repo.asc https://repo.powerdns.com/CBC8B383-pub.asc')
     else:
@@ -726,7 +726,7 @@ def setup_godbc_sqlite3(c):
     c.sudo('sed -i "s/libsqlite3odbc.so/\/usr\/lib\/x86_64-linux-gnu\/odbc\/libsqlite3odbc.so/g" /etc/odbcinst.ini')
 
 def setup_ldap_client(c):
-    c.sudo('DEBIAN_FRONTEND=noninteractive apt-get install -qq -y ldap-utils')
+    c.sudo('DEBIAN_FRONTEND=noninteractive apt-get install -y ldap-utils')
     c.sudo('sh -c \'echo "127.0.0.1 ldapserver" | tee -a /etc/hosts\'')
 
 @task
