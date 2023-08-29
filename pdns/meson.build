@@ -362,24 +362,16 @@ if enable_ipcipher
   )
 endif
 
-libpdns_util_main = declare_dependency(
-  link_with: static_library(
-    'libpdns-util-main',
-    'pdnsutil.cc',
-    dependencies: deps,
-  )
-)
-
 libpdns_util = declare_dependency(
   link_with: static_library(
-    'libpdns-util',
+    'pdns-util',
+    'pdnsutil.cc',
     'zonemd.cc',
     extra_files: [
       'zonemd.hh',
     ],
     dependencies: [
       deps,
-      libpdns_util_main,
       libpdns_bind_dnssec_schema,
       libpdns_ipcipher,
     ],

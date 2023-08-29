@@ -215,6 +215,5 @@ pdns_util = executable(
     libpdns,
     libpdns_auth,
     libpdns_util,
-    libpdns_util_main,
   ],
 )
