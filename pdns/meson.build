@@ -245,7 +245,7 @@ libpdns = declare_dependency(
 libpdns_auth_api_swagger = 'apidocfiles.h'
 if not fs.is_file('apidocfiles.h')
   libpdns_auth_api_swagger = custom_target(
-    'libpdns-auth-api-swagger',
+    'pdns-auth-api-swagger',
     command: [
       python_prog,
       '@INPUT0@',
@@ -303,7 +303,7 @@ endif
 
 libpdns_auth = declare_dependency(
   link_with: static_library(
-    'libpdns-auth',
+    'pdns-auth',
     'auth-caches.cc',
     'auth-carbon.cc',
     'auth-catalogzone.cc',
@@ -333,7 +333,7 @@ libpdns_auth = declare_dependency(
 libpdns_bind_dnssec_schema = 'bind-dnssec.schema.sqlite3.sql.h'
 if not fs.is_file('bind-dnssec.schema.sqlite3.sql.h')
   libpdns_bind_dnssec_schema = custom_target(
-    'libpdns-bind-dnssec-schema',
+    'pdns-bind-dnssec-schema',
     command: [
       python_prog,
       '@INPUT0@',
@@ -355,7 +355,7 @@ libpdns_ipcipher = dependency('', required: false)
 if enable_ipcipher
   libpdns_ipcipher = declare_dependency(
     link_with: static_library(
-      'libpdns-ipcipher',
+      'pdns-ipcipher',
       'ipcipher.cc',
       dependencies: deps,
     )
