@@ -23,7 +23,7 @@ if opt_hardening.enabled() or opt_hardening.auto()
 
     if not available
       if opt_hardening.auto()
-        warning(name + ' is not supported')
+        warning(name + ' is disabled or not supported')
       else
         error('Failing because ' + name + ' is not supported but hardening was explicitly requested')
       endif
