@@ -40,7 +40,7 @@ std::pair<std::optional<uint16_t>, std::optional<std::string>> getExtendedDNSErr
   size_t optContentStart = 0;
   uint16_t optContentLen = 0;
   uint16_t infoCode{0};
-  std::string extraText;
+  std::optional<std::string> extraText{std::nullopt};
   /* we need at least 2 bytes after the option length (info-code) */
   if (!isEDNSOptionInOpt(packet, optStart, optLen, EDNSOptionCode::EXTENDEDERROR, &optContentStart, &optContentLen) || optContentLen < sizeof(infoCode)) {
     return std::make_pair(std::nullopt, std::nullopt);
@@ -49,8 +49,9 @@ std::pair<std::optional<uint16_t>, std::optional<std::string>> getExtendedDNSErr
   infoCode = ntohs(infoCode);
 
   if (optContentLen > sizeof(infoCode)) {
-    extraText.resize(optContentLen - sizeof(infoCode));
-    memcpy(extraText.data(), &packet.at(optContentStart + sizeof(infoCode)), optContentLen - sizeof(infoCode));
+    extraText = std::string();
+    extraText->resize(optContentLen - sizeof(infoCode));
+    memcpy(extraText->data(), &packet.at(optContentStart + sizeof(infoCode)), optContentLen - sizeof(infoCode));
   }
   return std::make_pair(infoCode, std::move(extraText));
 }

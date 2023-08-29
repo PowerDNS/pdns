@@ -69,7 +69,7 @@ public:
   void startRecord(const DNSName& name, uint16_t qtype, uint32_t ttl=3600, uint16_t qclass=QClass::IN, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER, bool compress=true);
 
   /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
-  typedef vector<pair<uint16_t,std::string> > optvect_t;
+  using optvect_t = vector<pair<uint16_t,std::string> >;
   void addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options=optvect_t(), const uint8_t version=0);
 
   /** needs to be called after the last record is added, but can be called again and again later on. Is called internally by startRecord too.
