@@ -1,9 +1,7 @@
-expected_modules = from_git ? ['yaml'] : []
-
 py = import('python')
 python_prog = py.find_installation(
   'python3',
-  modules: expected_modules,
+  modules: from_git ? ['yaml'] : [],
   required: from_git,
 )
 
