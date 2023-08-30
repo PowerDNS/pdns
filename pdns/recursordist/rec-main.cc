@@ -910,8 +910,8 @@ static void checkLinuxIPv6Limits([[maybe_unused]] Logr::log_t log)
 static void checkOrFixFDS(Logr::log_t log)
 {
   unsigned int availFDs = getFilenumLimit();
-  unsigned int wantFDs = g_maxMThreads * RecThreadInfo::numWorkers() + 25; // even healthier margin then before
-  wantFDs += RecThreadInfo::numWorkers() * TCPOutConnectionManager::s_maxIdlePerThread;
+  unsigned int wantFDs = g_maxMThreads * (RecThreadInfo::numWorkers() + RecThreadInfo::numTCPWorkers()) + 25; // even healthier margin than before
+  wantFDs += (RecThreadInfo::numWorkers() + RecThreadInfo::numTCPWorkers()) * TCPOutConnectionManager::s_maxIdlePerThread;
 
   if (wantFDs > availFDs) {
     unsigned int hardlimit = getFilenumLimit(true);
@@ -921,7 +921,7 @@ static void checkOrFixFDS(Logr::log_t log)
            log->info(Logr::Warning, "Raised soft limit on number of filedescriptors to match max-mthreads and threads settings", "limit", Logging::Loggable(wantFDs)));
     }
     else {
-      auto newval = (hardlimit - 25 - TCPOutConnectionManager::s_maxIdlePerThread) / RecThreadInfo::numWorkers();
+      auto newval = (hardlimit - 25 - TCPOutConnectionManager::s_maxIdlePerThread) / (RecThreadInfo::numWorkers() + RecThreadInfo::numTCPWorkers());
       SLOG(g_log << Logger::Warning << "Insufficient number of filedescriptors available for max-mthreads*threads setting! (" << hardlimit << " < " << wantFDs << "), reducing max-mthreads to " << newval << endl,
            log->info(Logr::Warning, "Insufficient number of filedescriptors available for max-mthreads*threads setting! Reducing max-mthreads", "hardlimit", Logging::Loggable(hardlimit), "want", Logging::Loggable(wantFDs), "max-mthreads", Logging::Loggable(newval)));
       g_maxMThreads = newval;

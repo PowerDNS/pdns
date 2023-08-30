@@ -52,6 +52,10 @@
 //
 // The drawback mentioned in https://github.com/PowerDNS/pdns/issues/8394 are not longer true, so an
 // alternative approach would be to introduce dedicated TCP worker thread(s).
+//
+// And this approach was implemented in https://github.com/PowerDNS/pdns/pull/13195. The distributor
+// and worker thread(s) now no longe process TCP queries.
+
 
 size_t g_tcpMaxQueriesPerConn;
 unsigned int g_maxTCPPerClient;
