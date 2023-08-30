@@ -2064,7 +2064,7 @@ void requestWipeCaches(const DNSName& canon)
   ThreadMSG* tmsg = new ThreadMSG(); // NOLINT: pointer owner
   tmsg->func = [=] { return pleaseWipeCaches(canon, true, 0xffff); };
   tmsg->wantAnswer = false;
-  if (write(RecThreadInfo::info(0).pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT: correct sizeof
+  if (write(RecThreadInfo::info(0).getPipes().writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT: correct sizeof
     delete tmsg; // NOLINT: pointer owner
 
     unixDie("write to thread pipe returned wrong size or error");
@@ -2084,7 +2084,7 @@ bool expectProxyProtocol(const ComboAddress& from)
 // mappedSource: the address we assume the query is coming from. Differs from source if table based mapping has been applied
 static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, const ComboAddress& mappedSource, struct timeval tval, int fileDesc, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
-  ++(RecThreadInfo::self().numberOfDistributedQueries);
+  RecThreadInfo::self().incNumberOfDistributedQueries();
   gettimeofday(&g_now, nullptr);
   if (tval.tv_sec != 0) {
     struct timeval diff = g_now - tval;
@@ -2691,7 +2691,7 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
     _exit(1);
   }
 
-  const auto& tps = targetInfo.pipes;
+  const auto& tps = targetInfo.getPipes();
 
   ssize_t written = write(tps.writeQueriesToThread, &tmsg, sizeof(tmsg)); // NOLINT: correct sizeof
   if (written > 0) {
@@ -2714,7 +2714,7 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
 
 static unsigned int getWorkerLoad(size_t workerIdx)
 {
-  const auto* multiThreader = RecThreadInfo::info(RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + workerIdx).mt;
+  const auto* multiThreader = RecThreadInfo::info(RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + workerIdx).getMT();
   if (multiThreader != nullptr) {
     return multiThreader->numProcesses();
   }

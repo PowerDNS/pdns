@@ -279,7 +279,6 @@ extern std::set<uint16_t> g_avoidUdpSourcePorts;
 
 /* without reuseport, all listeners share the same sockets */
 typedef vector<pair<int, std::function<void(int, boost::any&)>>> deferredAdd_t;
-extern deferredAdd_t g_deferredAdds;
 
 typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
 extern thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
@@ -346,9 +345,9 @@ public:
     return s_threadInfos.at(t_id);
   }
 
-  static RecThreadInfo& info(unsigned int i)
+  static RecThreadInfo& info(unsigned int index)
   {
-    return s_threadInfos.at(i);
+    return s_threadInfos.at(index);
   }
 
   static vector<RecThreadInfo>& infos()
@@ -356,7 +355,7 @@ public:
     return s_threadInfos;
   }
 
-  bool isDistributor() const
+  [[nodiscard]] bool isDistributor() const
   {
     if (t_id == 0) {
       return false;
@@ -364,7 +363,7 @@ public:
     return s_weDistributeQueries && listener;
   }
 
-  bool isHandler() const
+  [[nodiscard]] bool isHandler() const
   {
     if (t_id == 0) {
       return true;
@@ -372,17 +371,21 @@ public:
     return handler;
   }
 
-  bool isWorker() const
+  [[nodiscard]] bool isWorker() const
   {
     return worker;
   }
 
-  bool isListener() const
+  [[nodiscard]] bool isListener() const
   {
     return listener;
   }
+  [[nodiscard]] bool isTCPListener() const
+  {
+    return tcplistener;
+  }
 
-  bool isTaskThread() const
+  [[nodiscard]] bool isTaskThread() const
   {
     return taskThread;
   }
@@ -402,6 +405,11 @@ public:
     listener = flag;
   }
 
+  void setTCPListener(bool flag = true)
+  {
+    tcplistener = flag;
+  }
+
   void setTaskThread()
   {
     taskThread = true;
@@ -412,12 +420,12 @@ public:
     return t_id;
   }
 
-  static void setThreadId(unsigned int id)
+  static void setThreadId(unsigned int arg)
   {
-    t_id = id;
+    t_id = arg;
   }
 
-  std::string getName() const
+  [[nodiscard]] std::string getName() const
   {
     return name;
   }
@@ -435,6 +443,11 @@ public:
   static unsigned int numWorkers()
   {
     return s_numWorkerThreads;
+  }
+
+  static unsigned int numTCPWorkers()
+  {
+    return s_numTCPWorkerThreads;
   }
 
   static unsigned int numDistributors()
@@ -457,6 +470,11 @@ public:
     s_numWorkerThreads = n;
   }
 
+  static void setNumTCPWorkerThreads(unsigned int n)
+  {
+    s_numTCPWorkerThreads = n;
+  }
+
   static void setNumDistributorThreads(unsigned int n)
   {
     s_numDistributorThreads = n;
@@ -464,17 +482,58 @@ public:
 
   static unsigned int numRecursorThreads()
   {
-    return numHandlers() + numDistributors() + numWorkers() + numTaskThreads();
+    return numHandlers() + numDistributors() + numWorkers() + numTCPWorkers() + numTaskThreads();
   }
 
   static int runThreads(Logr::log_t);
   static void makeThreadPipes(Logr::log_t);
 
-  void setExitCode(int e)
+  void setExitCode(int n)
   {
-    exitCode = e;
+    exitCode = n;
   }
 
+  std::set<int>& getTCPSockets()
+  {
+    return tcpSockets;
+  }
+
+  void setTCPSockets(std::set<int>& socks)
+  {
+    tcpSockets = socks;
+  }
+
+  deferredAdd_t& getDeferredAdds()
+  {
+    return deferredAdds;
+  }
+
+  ThreadPipeSet& getPipes()
+  {
+    return pipes;
+  }
+
+  [[nodiscard]] uint64_t getNumberOfDistributedQueries() const
+  {
+    return numberOfDistributedQueries;
+  }
+
+  void incNumberOfDistributedQueries()
+  {
+    numberOfDistributedQueries++;
+  }
+
+  MT_t* getMT()
+  {
+    return mt;
+  }
+
+  void setMT(MT_t* theMT)
+  {
+    mt = theMT;
+  }
+
+private:
   // FD corresponding to TCP sockets this thread is listening on.
   // These FDs are also in deferredAdds when we have one socket per
   // listener, and in g_deferredAdds instead.
@@ -488,8 +547,7 @@ public:
   MT_t* mt{nullptr};
   uint64_t numberOfDistributedQueries{0};
 
-private:
-  void start(unsigned int id, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap, Logr::log_t);
+  void start(unsigned int theId, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap, Logr::log_t);
 
   std::string name;
   std::thread thread;
@@ -499,6 +557,8 @@ private:
   bool handler{false};
   // accept incoming queries (and distributes them to the workers if pdns-distributes-queries is set)
   bool listener{false};
+  // accept incoming TCP queries (and distributes them to the workers if pdns-distributes-queries is set)
+  bool tcplistener{false};
   // process queries
   bool worker{false};
   // run async tasks: from TaskQueue and ZoneToCache
@@ -509,6 +569,7 @@ private:
   static bool s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
   static unsigned int s_numDistributorThreads;
   static unsigned int s_numWorkerThreads;
+  static unsigned int s_numTCPWorkerThreads;
 };
 
 struct ThreadMSG
