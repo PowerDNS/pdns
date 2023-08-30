@@ -15,7 +15,7 @@ if not dep_mysql.found()
   mysql_ldflags_res = run_command(mysql_config, '--libs', check: true)
   mysql_ldflags = mysql_ldflags_res.stdout().strip().split()
 
-  mysql_version_res = run_command(mysql_config, '--cc_version', check: true)
+  mysql_version_res = run_command(mysql_config, '--version', check: false)
   mysql_version = mysql_version_res.stdout().strip()
 
   dep_mysql = declare_dependency(
