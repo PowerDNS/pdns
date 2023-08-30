@@ -251,7 +251,6 @@ int RecThreadInfo::runThreads(Logr::log_t log)
     currentThreadId = 1;
     auto& info = RecThreadInfo::info(currentThreadId);
     info.setListener();
-    info.setTCPListener();
     info.setWorker();
     RecThreadInfo::setThreadId(currentThreadId);
     recursorThread();
