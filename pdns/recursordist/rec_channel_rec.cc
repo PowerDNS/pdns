@@ -1189,9 +1189,9 @@ static StatsMap toCPUStatsMap(const string& name)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
-  // Only distr and worker threads, I think we should revisit this as we now not only have the handler thread but also
-  // taskThread(s).
-  for (unsigned int n = 0; n < RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers(); ++n) {
+
+  // Handler is not reported
+  for (unsigned int n = 0; n < RecThreadInfo::numRecursorThreads() - 1; ++n) {
     uint64_t tm = doGetThreadCPUMsec(n);
     std::string pname = pbasename + "{thread=\"" + std::to_string(n) + "\"}";
     entries.emplace(name + "-thread-" + std::to_string(n), StatsMapEntry{std::move(pname), std::to_string(tm)});
