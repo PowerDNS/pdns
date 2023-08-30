@@ -29,6 +29,7 @@ conf = configuration_data()
 # Toplevel includes
 dep_pdns = declare_dependency(include_directories: include_directories('.', 'pdns'))
 
+# Feature detection and system configuration
 subdir('meson' / 'config')                  # Config
 subdir('meson' / 'version')                 # Generate version define
 subdir('meson' / 'compiler-setup')          # Common compiler setup
@@ -38,8 +39,6 @@ subdir('meson' / 'libdir')                  # Libdir
 subdir('meson' / 'platform')                # Platform detection
 subdir('meson' / 'timet-size')              # Check the size of time_t
 subdir('meson' / 'timet-sign')              # Check the sign of time_t
-subdir('meson' / 'flex')                    # Find flex and create generator
-subdir('meson' / 'bison')                   # Find bison and create generator
 subdir('meson' / 'ragel')                   # Find ragel and create generator
 subdir('meson' / 'atomics')                 # Check atomics support
 subdir('meson' / 'pthread-headers')         # Check pthread headers

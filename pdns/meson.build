@@ -1,14 +1,61 @@
+fs = import('fs')
+
+libpdns_bindlexer_cc = 'bindlexer.c'
+if not fs.is_file(libpdns_bindlexer_cc)
+  flex = find_program('flex', required: true)
+
+  summary('Flex', flex.found(), bool_yn: true, section: 'BIND Parser')
+  summary('Flex Path', flex.full_path(), section: 'BIND Parser')
+  summary('Flex Version', flex.version(), section: 'BIND Parser')
+
+  flex_generator = generator(
+    flex,
+    output: '@BASENAME@.c',
+    arguments: ['--case-insensitive', '--outfile=@OUTPUT@', '@INPUT@'],
+  )
+
+  libpdns_bindlexer_cc = flex_generator.process('bindlexer.l')
+endif
+libpdns_bindlexer_cc = declare_dependency(
+  sources: [libpdns_bindlexer_cc],
+)
+
+libpdns_bindparser_cc = 'bindparser.cc'
+if not fs.is_file(libpdns_bindparser_cc) and not fs.is_file('bindparser.hh')
+  bison = find_program('bison', required: false)
+  if not bison.found()
+    bison = find_program('yacc', required: true)
+  endif
+
+  summary('Bison/YACC', bison.found(), bool_yn: true, section: 'BIND Parser')
+  summary('Bison/YACC Path', bison.full_path(), section: 'BIND Parser')
+  summary('Bison/YACC Version', bison.version(), section: 'BIND Parser')
+
+  bison_generator = generator(
+    bison,
+    output: ['@BASENAME@.cc', '@BASENAME@.hh', '@BASENAME@.output'],
+    arguments: ['-d', '--verbose', '--debug', '--output=@OUTPUT0@', '@INPUT@'],
+  )
+
+  libpdns_bindparser_cc = bison_generator.process('bindparser.yy')
+endif
+libpdns_bindparser_cc = declare_dependency(
+  sources: [libpdns_bindparser_cc],
+)
+
 libpdns_bind_parser = declare_dependency(
   link_with: static_library(
     'pdns-bind-parser',
     'zoneparser-tng.cc',
-    flex_generator.process('bindlexer.l'),
-    bison_generator.process('bindparser.yy'),
     extra_files: [
       'zoneparser-tng.hh',
     ],
     cpp_args: '-Wno-redundant-decls',
-    dependencies: deps,
+    dependencies: [
+      deps,
+      libpdns_bindlexer_cc,
+      libpdns_bindparser_cc,
+    ],
   )
 )
 
