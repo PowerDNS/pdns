@@ -142,6 +142,22 @@ libpdns_tsig = declare_dependency(
   )
 )
 
+libpdns_dnslabeltext_cc = 'dnslabeltext.cc'
+if not fs.is_file(libpdns_dnslabeltext_cc)
+  ragel = find_program('ragel', required: true)
+  ragel_generator = generator(
+    ragel,
+    output: '@BASENAME@.cc',
+    arguments: ['@INPUT@', '-o', '@OUTPUT@'],
+  )
+
+  summary('Ragel', ragel.found(), bool_yn: ragel.found(), section: 'DNS Labels')
+  summary('Ragel Path', ragel.full_path(), section: 'DNS Labels')
+  summary('Ragel Version', ragel.version(), section: 'DNS Labels')
+
+  libpdns_dnslabeltext_cc = ragel_generator.process('dnslabeltext.rl')
+endif
+
 libpdns = declare_dependency(
   link_with: static_library(
     'pdns',
@@ -205,7 +221,7 @@ libpdns = declare_dependency(
     'uuid-utils.cc',
     'version.cc',
     'zoneparser-tng.cc',
-    fs.is_file('dnslabeltext.cc') ? 'dnslabeltext.cc' : ragel_generator.process('dnslabeltext.rl'),
+    libpdns_dnslabeltext_cc,
     extra_files: [
       'arguments.hh',
       'axfr-retriever.hh',

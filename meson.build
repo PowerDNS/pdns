@@ -39,7 +39,6 @@ subdir('meson' / 'libdir')                  # Libdir
 subdir('meson' / 'platform')                # Platform detection
 subdir('meson' / 'timet-size')              # Check the size of time_t
 subdir('meson' / 'timet-sign')              # Check the sign of time_t
-subdir('meson' / 'ragel')                   # Find ragel and create generator
 subdir('meson' / 'atomics')                 # Check atomics support
 subdir('meson' / 'pthread-headers')         # Check pthread headers
 subdir('meson' / 'pthread-setname')         # Pthread setname madness
