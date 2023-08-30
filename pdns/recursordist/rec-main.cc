@@ -1158,7 +1158,7 @@ static void doStats()
     for (const auto& threadInfo : RecThreadInfo::infos()) {
       if (threadInfo.isWorker()) {
         SLOG(g_log << Logger::Notice << "stats: thread " << idx << " has been distributed " << threadInfo.getNumberOfDistributedQueries() << " queries" << endl,
-             log->info(Logr::Info, "Queries handled by thread", "thread", Logging::Loggable(idx), "count", Logging::Loggable(threadInfo.getNumberOfDistributedQueries())));
+             log->info(Logr::Info, "Queries handled by thread", "thread", Logging::Loggable(idx), "tname", Logging::Loggable(threadInfo.getName()), "count", Logging::Loggable(threadInfo.getNumberOfDistributedQueries())));
         ++idx;
       }
     }

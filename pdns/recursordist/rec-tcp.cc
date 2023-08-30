@@ -282,6 +282,7 @@ static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& 
 
 static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, shared_ptr<TCPConnection>& conn, RunningTCPQuestionGuard& tcpGuard, int fileDesc)
 {
+  RecThreadInfo::self().incNumberOfDistributedQueries();
   struct timeval start
   {
   };
@@ -408,6 +409,9 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
     // We have read a proper query
     ++t_Counters.at(rec::Counter::qcounter);
     ++t_Counters.at(rec::Counter::tcpqcounter);
+    if (comboWriter->d_source.sin4.sin_family == AF_INET6) {
+      ++t_Counters.at(rec::Counter::ipv6qcounter);
+    }
 
     if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
       handleNotify(comboWriter, qname);
