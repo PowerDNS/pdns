@@ -64,7 +64,6 @@ subdir('meson' / 'unit-tests')              # Unit Tests
 subdir('meson' / 'auth-backend-unit-tests') # Auth Backend Unit Tests
 subdir('meson' / 'reproducible')            # Reproducible Builds
 subdir('meson' / 'fuzz-targets')            # Fuzzing Targets
-subdir('meson' / 'python')                  # Python
 subdir('meson' / 'dlopen')                  # dlopen
 subdir('meson' / 'verbose-logging')         # Verbose Logging
 subdir('meson' / 'pkcs11')                  # PKCS11

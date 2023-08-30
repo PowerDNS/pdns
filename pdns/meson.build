@@ -305,12 +305,19 @@ libpdns = declare_dependency(
   )
 )
 
-libpdns_auth_api_swagger = 'apidocfiles.h'
-if not fs.is_file('apidocfiles.h')
-  libpdns_auth_api_swagger = custom_target(
-    'pdns-auth-api-swagger',
+libpdns_auth_apidocfiles_h = 'apidocfiles.h'
+if not fs.is_file(libpdns_auth_apidocfiles_h)
+  py = import('python')
+  python = py.find_installation('python3', modules: 'yaml', required: true)
+
+  summary('Python', python.found(), bool_yn: true, section: 'Swagger API')
+  summary('Path', python.full_path(), section: 'Swagger API')
+  summary('Version', python.version(), section: 'Swagger API')
+
+  libpdns_auth_apidocfiles_h = custom_target(
+    'pdns-auth-apidocfiles-h',
     command: [
-      python_prog,
+      python,
       '@INPUT0@',
       '@INPUT1@',
     ],
@@ -322,8 +329,8 @@ if not fs.is_file('apidocfiles.h')
     capture: true,
   )
 endif
-libpdns_auth_api_swagger = declare_dependency(
-  sources: [libpdns_auth_api_swagger],
+libpdns_auth_apidocfiles_h = declare_dependency(
+  sources: [libpdns_auth_apidocfiles_h],
 )
 
 libpdns_auth_main = declare_dependency(
@@ -387,18 +394,25 @@ libpdns_auth = declare_dependency(
     ],
     dependencies: [
       deps,
-      libpdns_auth_api_swagger,
+      libpdns_auth_apidocfiles_h,
       libpdns_auth_lua,
     ],
   )
 )
 
-libpdns_bind_dnssec_schema = 'bind-dnssec.schema.sqlite3.sql.h'
-if not fs.is_file('bind-dnssec.schema.sqlite3.sql.h')
-  libpdns_bind_dnssec_schema = custom_target(
+libpdns_bind_dnssec_schema_h = 'bind-dnssec.schema.sqlite3.sql.h'
+if not fs.is_file(libpdns_bind_dnssec_schema_h)
+  py = import('python')
+  python = py.find_installation('python3', required: true)
+
+  summary('Python', python.found(), bool_yn: true, section: 'BIND DNSSEC Schema')
+  summary('Path', python.full_path(), section: 'BIND DNSSEC Schema')
+  summary('Version', python.version(), section: 'BIND DNSSEC Schema')
+
+  libpdns_bind_dnssec_schema_h = custom_target(
     'pdns-bind-dnssec-schema',
     command: [
-      python_prog,
+      python,
       '@INPUT0@',
       '@INPUT1@',
     ],
@@ -410,8 +424,8 @@ if not fs.is_file('bind-dnssec.schema.sqlite3.sql.h')
     capture: true,
   )
 endif
-libpdns_bind_dnssec_schema = declare_dependency(
-  sources: [libpdns_bind_dnssec_schema],
+libpdns_bind_dnssec_schema_h = declare_dependency(
+  sources: [libpdns_bind_dnssec_schema_h],
 )
 
 libpdns_ipcipher = dependency('', required: false)
@@ -435,7 +449,7 @@ libpdns_util = declare_dependency(
     ],
     dependencies: [
       deps,
-      libpdns_bind_dnssec_schema,
+      libpdns_bind_dnssec_schema_h,
       libpdns_ipcipher,
     ],
   )
