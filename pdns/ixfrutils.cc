@@ -23,6 +23,8 @@
 #include <cinttypes>
 #include <dirent.h>
 #include <cerrno>
+#include <sys/stat.h>
+
 #include "ixfrutils.hh"
 #include "sstuff.hh"
 #include "dnssecinfra.hh"
@@ -127,32 +129,35 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
 {
   DNSRecord soa;
   auto serial = getSerialFromRecords(records, soa);
-  string fname=directory +"/"+std::to_string(serial);
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen((fname+".partial").c_str(), "w"), fclose);
-  if (!fp) {
+  string fname = directory + "/" + std::to_string(serial);
+  /* ensure that the partial zone file will only be accessible by the current user, not even
+     by other users in the same group, and certainly not by other users. */
+  umask(S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+  auto filePtr = std::unique_ptr<FILE, int(*)(FILE*)>(fopen((fname+".partial").c_str(), "w"), fclose);
+  if (!filePtr) {
     throw runtime_error("Unable to open file '"+fname+".partial' for writing: "+stringerror());
   }
 
   records_t soarecord;
   soarecord.insert(soa);
-  if (fprintf(fp.get(), "$ORIGIN %s\n", zone.toString().c_str()) < 0) {
+  if (fprintf(filePtr.get(), "$ORIGIN %s\n", zone.toString().c_str()) < 0) {
     string error = "Error writing to zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + stringerror();
-    fp.reset();
+    filePtr.reset();
     unlink((fname+".partial").c_str());
     throw std::runtime_error(error);
   }
 
   try {
-    writeRecords(fp.get(), soarecord);
-    writeRecords(fp.get(), records);
-    writeRecords(fp.get(), soarecord);
+    writeRecords(filePtr.get(), soarecord);
+    writeRecords(filePtr.get(), records);
+    writeRecords(filePtr.get(), soarecord);
   } catch (runtime_error &e) {
-    fp.reset();
+    filePtr.reset();
     unlink((fname+".partial").c_str());
     throw runtime_error("Error closing zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + e.what());
   }
 
-  if (fclose(fp.release()) != 0) {
+  if (fclose(filePtr.release()) != 0) {
     string error = "Error closing zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + stringerror();
     unlink((fname+".partial").c_str());
     throw std::runtime_error(error);
