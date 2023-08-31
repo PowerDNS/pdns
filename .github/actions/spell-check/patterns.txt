@@ -92,6 +92,10 @@ DoH
 # PGP
 \b(?:[0-9A-F]{4} ){9}[0-9A-F]{4}\b
 
+# hit-count: 4 file-count: 3
+# Non-English
+[a-zA-Z]*[ÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź][a-zA-Z]{3}[a-zA-ZÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź]*|[a-zA-Z]{3,}[ÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź]|[ÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź][a-zA-Z]{3,}
+
 # hit-count: 2 file-count: 2
 # IServiceProvider
 \bI(?=(?:[A-MOQ-Z][a-z]{2,})+\b)
@@ -109,10 +113,9 @@ DoH
 # Wikipedia
 \ben\.wikipedia\.org/wiki/[-\w%.#]+
 
-# Contributors with non-ascii characters in their name
-Hoffst[^[:ascii:]]+tte
-Gri[^[:ascii:]]
-Lundstr[^[:ascii:]]+m
+# hit-count: 1 file-count: 1
+# base64 encoded content
+([`'"])[-a-zA-Z=;:/0-9+]+==\g{-1}
 
 # Questionably acceptable forms of `in to`
 # Personally, I prefer `log into`, but people object
