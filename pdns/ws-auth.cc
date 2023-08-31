@@ -793,22 +793,6 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   }
 
   if (shouldRectify && !isPresigned) {
-    // Rectify
-    string api_rectify;
-    di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
-    if (api_rectify.empty()) {
-      if (::arg().mustDo("default-api-rectify")) {
-        api_rectify = "1";
-      }
-    }
-    if (api_rectify == "1") {
-      string info;
-      string error_msg;
-      if (!dk.rectifyZone(zonename, error_msg, info, false)) {
-        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
-      }
-    }
-
     // Increase serial
     string soa_edit_api_kind;
     di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soa_edit_api_kind);
@@ -825,6 +809,22 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
         if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
           throw ApiException("Hosting backend does not support editing records.");
         }
+      }
+    }
+
+    // Rectify
+    string api_rectify;
+    di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
+    if (api_rectify.empty()) {
+      if (::arg().mustDo("default-api-rectify")) {
+        api_rectify = "1";
+      }
+    }
+    if (api_rectify == "1") {
+      string info;
+      string error_msg;
+      if (!dk.rectifyZone(zonename, error_msg, info, false)) {
+        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
       }
     }
   }
