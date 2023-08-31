@@ -27,7 +27,7 @@
 #include "mplexer.hh"
 #include "uuid-utils.hh"
 
-// When pdns_distributes query is false with reuseport true (the default since 4.9.0), TCP queries
+// When pdns-distributes-queries is false with reuseport true (the default since 4.9.0), TCP queries
 // are read and handled by worker threads. If the kernel balancing is OK for TCP sockets (observed
 // to be good on Debian bullseye, but not good on e.g. MacOS), the TCP handling is no extra burden.
 // In the case of MacOS all incoming TCP queries are handled by a single worker, while incoming UDP
@@ -47,7 +47,7 @@
 // queries), but the TCP socket must also be passed to a worker thread so it can write its
 // answer. The in-flight bookkeeping also has to be aware of how a query is handled to do the
 // accounting properly. I am not sure if changing the current setup is worth all this trouble,
-// especilly since the default is now to not use pdns-distributes-queries, which works well in many
+// especially since the default is now to not use pdns-distributes-queries, which works well in many
 // cases.
 //
 // The drawback mentioned in https://github.com/PowerDNS/pdns/issues/8394 are not longer true, so an
