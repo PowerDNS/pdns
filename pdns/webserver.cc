@@ -36,6 +36,8 @@
 #include "json.hh"
 #include "uuid-utils.hh"
 #include <yahttp/router.hpp>
+#include <algorithm>
+#include <unordered_set>
 
 json11::Json HttpRequest::json()
 {
@@ -461,6 +463,53 @@ void WebServer::logResponse(const HttpResponse& resp, const ComboAddress& /* rem
   }
 }
 
+
+struct ValidChars {
+  ValidChars()
+  {
+    // letter may be signed, but we only pass positive values
+    for (auto letter : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~:/?#[]@!$&'()*+,;=") {
+      set.set(letter);
+    }
+  }
+  std::bitset<127> set;
+};
+
+static const ValidChars validChars;
+
+static bool validURLChars(const string& str)
+{
+  for (auto iter = str.begin(); iter != str.end(); ++iter) {
+    if (*iter == '%') {
+      ++iter;
+      if (iter == str.end() || isxdigit(static_cast<unsigned char>(*iter)) == 0) {
+        return false;
+      }
+      ++iter;
+      if (iter == str.end() || isxdigit(static_cast<unsigned char>(*iter)) == 0) {
+        return false;
+      }
+    }
+    else if (static_cast<size_t>(*iter) >= validChars.set.size() || !validChars.set[*iter]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool WebServer::validURL(const YaHTTP::URL& url)
+{
+  bool isOK = true;
+  isOK = isOK && validURLChars(url.protocol);
+  isOK = isOK && validURLChars(url.host);
+  isOK = isOK && validURLChars(url.username);
+  isOK = isOK && validURLChars(url.password);
+  isOK = isOK && validURLChars(url.path);
+  isOK = isOK && validURLChars(url.parameters);
+  isOK = isOK && validURLChars(url.anchor);
+  return isOK;
+}
+
 void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
   const auto unique = getUniqueID();
   const string logprefix = d_logprefix + to_string(unique) + " ";
@@ -504,6 +553,9 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
            d_slog->error(Logr::Warning, e.what(), "Unable to parse request"));
     }
 
+    if (!validURL(req.url)) {
+      throw PDNSException("Received request with invalid URL");
+    }
     // Uses of `remote` below guarded by d_loglevel
     if (d_loglevel > WebServer::LogLevel::None) {
       client->getRemote(remote);
@@ -535,7 +587,7 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
   }
 
   if (d_loglevel >= WebServer::LogLevel::Normal) {
-    SLOG(g_log<<Logger::Notice<<logprefix<<remote<<" \""<<req.method<<" "<<YaHTTP::Utility::encodeURL(req.url.path)<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl,
+    SLOG(g_log<<Logger::Notice<<logprefix<<remote<<" \""<<req.method<<" "<<req.url.path<<" HTTP/"<<req.versionStr(req.version)<<"\" "<<resp.status<<" "<<reply.size()<<endl,
          d_slog->info(Logr::Info, "Request", "remote", Logging::Loggable(remote), "method", Logging::Loggable(req.method),
                       "urlpath", Logging::Loggable(req.url.path), "HTTPVersion", Logging::Loggable(req.versionStr(req.version)),
                       "status", Logging::Loggable(resp.status), "respsize",  Logging::Loggable(reply.size())));

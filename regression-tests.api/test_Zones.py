@@ -251,7 +251,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
                   "type": "soa",  # test uppercasing of type, too.
                   "comments": [{
                       "account": "test1",
-                      "content": "blah blah",
+                      "content": "blah blah and test a few non-ASCII chars: ö, €",
                       "modified_at": 11112,
                   }],
               },

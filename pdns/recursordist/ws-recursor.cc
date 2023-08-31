@@ -1435,6 +1435,9 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
            req.d_slog->error(Logr::Warning, e.what(), "Unable to parse request"));
     }
 
+    if (!validURL(req.url)) {
+      throw PDNSException("Received request with invalid URL");
+    }
     logRequest(req, remote);
 
     WebServer::handleRequest(req, resp);
@@ -1451,6 +1454,12 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
            req.d_slog->info(Logr::Error, "Failed sending reply to HTTP client"));
     }
     handler->close(); // needed to signal "done" to client
+    if (d_loglevel >= WebServer::LogLevel::Normal) {
+      SLOG(g_log << Logger::Notice << logprefix << remote << " \"" << req.method << " " << req.url.path << " HTTP/" << req.versionStr(req.version) << "\" " << resp.status << " " << reply.size() << endl,
+           req.d_slog->info(Logr::Info, "Request", "remote", Logging::Loggable(remote), "method", Logging::Loggable(req.method),
+                            "urlpath", Logging::Loggable(req.url.path), "HTTPVersion", Logging::Loggable(req.versionStr(req.version)),
+                            "status", Logging::Loggable(resp.status), "respsize", Logging::Loggable(reply.size())));
+    }
   }
   catch (PDNSException& e) {
     SLOG(g_log << Logger::Error << logprefix << "Exception: " << e.reason << endl,
@@ -1464,13 +1473,6 @@ void AsyncWebServer::serveConnection(std::shared_ptr<Socket> client) const
   catch (...) {
     SLOG(g_log << Logger::Error << logprefix << "Unknown exception" << endl,
          req.d_slog->error(Logr::Error, "Exception handing request"))
-  }
-
-  if (d_loglevel >= WebServer::LogLevel::Normal) {
-    SLOG(g_log << Logger::Notice << logprefix << remote << " \"" << req.method << " " << req.url.path << " HTTP/" << req.versionStr(req.version) << "\" " << resp.status << " " << reply.size() << endl,
-         req.d_slog->info(Logr::Info, "Request", "remote", Logging::Loggable(remote), "method", Logging::Loggable(req.method),
-                          "urlpath", Logging::Loggable(req.url.path), "HTTPVersion", Logging::Loggable(req.versionStr(req.version)),
-                          "status", Logging::Loggable(resp.status), "respsize", Logging::Loggable(reply.size())));
   }
 }
 
