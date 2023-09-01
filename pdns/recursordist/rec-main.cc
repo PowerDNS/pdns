@@ -2575,8 +2575,7 @@ static void runLuaMaintenance(RecThreadInfo& threadInfo, time_t& last_lua_mainte
 {
   if (t_pdl != nullptr) {
     // lua-dns-script directive is present, call the maintenance callback if needed
-    /* remember that the listener threads handle TCP queries */
-    if (threadInfo.isWorker() || threadInfo.isListener()) {
+    if (threadInfo.isWorker()) { // either UDP of TCP worker
       // Only on threads processing queries
       if (g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
         struct timeval start
