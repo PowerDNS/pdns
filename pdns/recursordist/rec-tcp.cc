@@ -56,7 +56,6 @@
 // And this approach was implemented in https://github.com/PowerDNS/pdns/pull/13195. The distributor
 // and worker thread(s) now no longe process TCP queries.
 
-
 size_t g_tcpMaxQueriesPerConn;
 unsigned int g_maxTCPPerClient;
 int g_tcpTimeout;

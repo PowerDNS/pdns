@@ -106,8 +106,8 @@ std::shared_ptr<Logr::Logger> g_slogudpin;
 std::shared_ptr<Logr::Logger> g_slogudpout;
 
 /* without reuseport, all listeners share the same sockets */
-static deferredAdd_t g_deferredAdds;
-static deferredAdd_t g_deferredTCPAdds;
+static deferredAdd_t s_deferredUDPadds;
+static deferredAdd_t s_deferredTCPadds;
 
 /* first we have the handler thread, t_id == 0 (some other
    helper threads like SNMP might have t_id == 0 as well)
@@ -120,7 +120,7 @@ thread_local std::unique_ptr<ProxyMapping> t_proxyMapping;
 
 bool RecThreadInfo::s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
 unsigned int RecThreadInfo::s_numDistributorThreads;
-unsigned int RecThreadInfo::s_numWorkerThreads;
+unsigned int RecThreadInfo::s_numUDPWorkerThreads;
 unsigned int RecThreadInfo::s_numTCPWorkerThreads;
 thread_local unsigned int RecThreadInfo::t_id;
 
@@ -222,7 +222,7 @@ int RecThreadInfo::runThreads(Logr::log_t log)
   int ret = EXIT_SUCCESS;
   const auto cpusMap = parseCPUMap(log);
 
-  if (RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers() == 1) {
+  if (RecThreadInfo::numDistributors() + RecThreadInfo::numUDPWorkers() == 1) {
     SLOG(g_log << Logger::Warning << "Operating with single distributor/worker thread" << endl,
          log->info(Logr::Notice, "Operating with single distributor/worker thread"));
 
@@ -236,7 +236,6 @@ int RecThreadInfo::runThreads(Logr::log_t log)
     currentThreadId = 2;
     for (unsigned int thread = 0; thread < RecThreadInfo::numTCPWorkers(); thread++, currentThreadId++) {
       auto& info = RecThreadInfo::info(currentThreadId);
-      info.setListener();
       info.setTCPListener();
       info.setWorker();
       info.start(currentThreadId, "tcpworker", cpusMap, log);
@@ -274,14 +273,13 @@ int RecThreadInfo::runThreads(Logr::log_t log)
         RecThreadInfo::info(currentThreadId).setListener();
       }
     }
-    for (unsigned int thread = 0; thread < RecThreadInfo::numWorkers(); thread++, currentThreadId++) {
+    for (unsigned int thread = 0; thread < RecThreadInfo::numUDPWorkers(); thread++, currentThreadId++) {
       auto& info = RecThreadInfo::info(currentThreadId);
       info.setListener(!RecThreadInfo::weDistributeQueries());
       info.setWorker();
     }
     for (unsigned int thread = 0; thread < RecThreadInfo::numTCPWorkers(); thread++, currentThreadId++) {
       auto& info = RecThreadInfo::info(currentThreadId);
-      info.setListener();
       info.setTCPListener();
       info.setWorker();
     }
@@ -300,10 +298,10 @@ int RecThreadInfo::runThreads(Logr::log_t log)
         info.start(currentThreadId, "distr", cpusMap, log);
       }
     }
-    SLOG(g_log << Logger::Warning << "Launching " << RecThreadInfo::numWorkers() << " worker threads" << endl,
-         log->info(Logr::Notice, "Launching worker threads", "count", Logging::Loggable(RecThreadInfo::numWorkers())));
+    SLOG(g_log << Logger::Warning << "Launching " << RecThreadInfo::numUDPWorkers() << " worker threads" << endl,
+         log->info(Logr::Notice, "Launching worker threads", "count", Logging::Loggable(RecThreadInfo::numUDPWorkers())));
 
-    for (unsigned int thread = 0; thread < RecThreadInfo::numWorkers(); thread++, currentThreadId++) {
+    for (unsigned int thread = 0; thread < RecThreadInfo::numUDPWorkers(); thread++, currentThreadId++) {
       auto& info = RecThreadInfo::info(currentThreadId);
       info.start(currentThreadId, "worker", cpusMap, log);
     }
@@ -910,8 +908,8 @@ static void checkLinuxIPv6Limits([[maybe_unused]] Logr::log_t log)
 static void checkOrFixFDS(Logr::log_t log)
 {
   unsigned int availFDs = getFilenumLimit();
-  unsigned int wantFDs = g_maxMThreads * (RecThreadInfo::numWorkers() + RecThreadInfo::numTCPWorkers()) + 25; // even healthier margin than before
-  wantFDs += (RecThreadInfo::numWorkers() + RecThreadInfo::numTCPWorkers()) * TCPOutConnectionManager::s_maxIdlePerThread;
+  unsigned int wantFDs = g_maxMThreads * (RecThreadInfo::numUDPWorkers() + RecThreadInfo::numTCPWorkers()) + 25; // even healthier margin than before
+  wantFDs += (RecThreadInfo::numUDPWorkers() + RecThreadInfo::numTCPWorkers()) * TCPOutConnectionManager::s_maxIdlePerThread;
 
   if (wantFDs > availFDs) {
     unsigned int hardlimit = getFilenumLimit(true);
@@ -921,7 +919,7 @@ static void checkOrFixFDS(Logr::log_t log)
            log->info(Logr::Warning, "Raised soft limit on number of filedescriptors to match max-mthreads and threads settings", "limit", Logging::Loggable(wantFDs)));
     }
     else {
-      auto newval = (hardlimit - 25 - TCPOutConnectionManager::s_maxIdlePerThread) / (RecThreadInfo::numWorkers() + RecThreadInfo::numTCPWorkers());
+      auto newval = (hardlimit - 25 - TCPOutConnectionManager::s_maxIdlePerThread) / (RecThreadInfo::numUDPWorkers() + RecThreadInfo::numTCPWorkers());
       SLOG(g_log << Logger::Warning << "Insufficient number of filedescriptors available for max-mthreads*threads setting! (" << hardlimit << " < " << wantFDs << "), reducing max-mthreads to " << newval << endl,
            log->info(Logr::Warning, "Insufficient number of filedescriptors available for max-mthreads*threads setting! Reducing max-mthreads", "hardlimit", Logging::Loggable(hardlimit), "want", Logging::Loggable(wantFDs), "max-mthreads", Logging::Loggable(newval)));
       g_maxMThreads = newval;
@@ -1375,7 +1373,7 @@ void broadcastFunction(const pipefunc_t& func)
   }
 
   unsigned int thread = 0;
-  for (auto& threadInfo : RecThreadInfo::infos()) {
+  for (const auto& threadInfo : RecThreadInfo::infos()) {
     if (thread++ == RecThreadInfo::id()) {
       func(); // don't write to ourselves!
       continue;
@@ -1454,7 +1452,7 @@ T broadcastAccFunction(const std::function<T*()>& func)
 
   unsigned int thread = 0;
   T ret = T();
-  for (auto& threadInfo : RecThreadInfo::infos()) {
+  for (const auto& threadInfo : RecThreadInfo::infos()) {
     if (thread++ == RecThreadInfo::id()) {
       continue;
     }
@@ -1768,13 +1766,13 @@ static void initDistribution(Logr::log_t log)
     }
     else {
       /* first thread is the handler, there is no distributor here and workers are accepting queries */
-      for (unsigned int i = 0; i < RecThreadInfo::numWorkers(); i++, threadNum++) {
+      for (unsigned int i = 0; i < RecThreadInfo::numUDPWorkers(); i++, threadNum++) {
         auto& info = RecThreadInfo::info(threadNum);
         auto& deferredAdds = info.getDeferredAdds();
         makeUDPServerSockets(deferredAdds, log);
       }
     }
-    threadNum = 1 + RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers();
+    threadNum = 1 + RecThreadInfo::numDistributors() + RecThreadInfo::numUDPWorkers();
     for (unsigned int i = 0; i < RecThreadInfo::numTCPWorkers(); i++, threadNum++) {
       auto& info = RecThreadInfo::info(threadNum);
       auto& deferredAdds = info.getDeferredAdds();
@@ -1786,12 +1784,12 @@ static void initDistribution(Logr::log_t log)
     std::set<int> tcpSockets;
     /* we don't have reuseport so we can only open one socket per
        listening addr:port and everyone will listen on it */
-    makeUDPServerSockets(g_deferredAdds, log);
-    makeTCPServerSockets(g_deferredTCPAdds, tcpSockets, log);
+    makeUDPServerSockets(s_deferredUDPadds, log);
+    makeTCPServerSockets(s_deferredTCPadds, tcpSockets, log);
 
     // TCP queries are handled by TCP workers
     for (unsigned int i = 0; i < RecThreadInfo::numTCPWorkers(); i++) {
-      auto& info = RecThreadInfo::info(i + 1 + RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers());
+      auto& info = RecThreadInfo::info(i + 1 + RecThreadInfo::numDistributors() + RecThreadInfo::numUDPWorkers());
       info.setTCPSockets(tcpSockets);
     }
   }
@@ -2125,11 +2123,11 @@ static int serviceMain(Logr::log_t log)
   g_paddingOutgoing = ::arg().mustDo("edns-padding-out");
 
   RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
-  RecThreadInfo::setNumWorkerThreads(::arg().asNum("threads"));
-  if (RecThreadInfo::numWorkers() < 1) {
+  RecThreadInfo::setNumUDPWorkerThreads(::arg().asNum("threads"));
+  if (RecThreadInfo::numUDPWorkers() < 1) {
     SLOG(g_log << Logger::Warning << "Asked to run with 0 threads, raising to 1 instead" << endl,
          log->info(Logr::Warning, "Asked to run with 0 threads, raising to 1 instead"));
-    RecThreadInfo::setNumWorkerThreads(1);
+    RecThreadInfo::setNumUDPWorkerThreads(1);
   }
   RecThreadInfo::setNumTCPWorkerThreads(1); // XXX
   if (RecThreadInfo::numTCPWorkers() < 1) {
@@ -2748,7 +2746,7 @@ static void recursorThread()
       }
     }
 
-    unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numWorkers();
+    unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numUDPWorkers();
     if (ringsize != 0) {
       t_remotes = std::make_unique<addrringbuf_t>();
       if (RecThreadInfo::weDistributeQueries()) {
@@ -2819,7 +2817,7 @@ static void recursorThread()
         }
         else {
           /* otherwise all listeners are listening on the same ones */
-          for (const auto& deferred : threadInfo.isTCPListener() ? g_deferredTCPAdds : g_deferredAdds) {
+          for (const auto& deferred : threadInfo.isTCPListener() ? s_deferredTCPadds : s_deferredUDPadds) {
             t_fdm->addReadFD(deferred.first, deferred.second);
           }
         }

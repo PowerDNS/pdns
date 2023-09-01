@@ -2723,27 +2723,27 @@ static unsigned int getWorkerLoad(size_t workerIdx)
 
 static unsigned int selectWorker(unsigned int hash)
 {
-  assert(RecThreadInfo::numWorkers() != 0); // NOLINT: assert implementation
+  assert(RecThreadInfo::numUDPWorkers() != 0); // NOLINT: assert implementation
   if (g_balancingFactor == 0) {
-    return RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + (hash % RecThreadInfo::numWorkers());
+    return RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + (hash % RecThreadInfo::numUDPWorkers());
   }
 
   /* we start with one, representing the query we are currently handling */
   double currentLoad = 1;
-  std::vector<unsigned int> load(RecThreadInfo::numWorkers());
-  for (size_t idx = 0; idx < RecThreadInfo::numWorkers(); idx++) {
+  std::vector<unsigned int> load(RecThreadInfo::numUDPWorkers());
+  for (size_t idx = 0; idx < RecThreadInfo::numUDPWorkers(); idx++) {
     load[idx] = getWorkerLoad(idx);
     currentLoad += load[idx];
   }
 
-  double targetLoad = (currentLoad / RecThreadInfo::numWorkers()) * g_balancingFactor;
+  double targetLoad = (currentLoad / RecThreadInfo::numUDPWorkers()) * g_balancingFactor;
 
-  unsigned int worker = hash % RecThreadInfo::numWorkers();
+  unsigned int worker = hash % RecThreadInfo::numUDPWorkers();
   /* at least one server has to be at or below the average load */
   if (load[worker] > targetLoad) {
     ++t_Counters.at(rec::Counter::rebalancedQueries);
     do {
-      worker = (worker + 1) % RecThreadInfo::numWorkers();
+      worker = (worker + 1) % RecThreadInfo::numUDPWorkers();
     } while (load[worker] > targetLoad);
   }
 
@@ -2777,7 +2777,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
        was full, let's try another one */
     unsigned int newTarget = 0;
     do {
-      newTarget = RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + dns_random(RecThreadInfo::numWorkers());
+      newTarget = RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + dns_random(RecThreadInfo::numUDPWorkers());
     } while (newTarget == target);
 
     if (!trySendingQueryToWorker(newTarget, tmsg)) {

@@ -376,10 +376,13 @@ public:
     return worker;
   }
 
+  // UDP or TCP listener?
   [[nodiscard]] bool isListener() const
   {
     return listener;
   }
+
+  // A TCP-only listener?
   [[nodiscard]] bool isTCPListener() const
   {
     return tcplistener;
@@ -407,6 +410,7 @@ public:
 
   void setTCPListener(bool flag = true)
   {
+    setListener(flag);
     tcplistener = flag;
   }
 
@@ -440,9 +444,9 @@ public:
     return 1;
   }
 
-  static unsigned int numWorkers()
+  static unsigned int numUDPWorkers()
   {
-    return s_numWorkerThreads;
+    return s_numUDPWorkerThreads;
   }
 
   static unsigned int numTCPWorkers()
@@ -465,9 +469,9 @@ public:
     s_weDistributeQueries = flag;
   }
 
-  static void setNumWorkerThreads(unsigned int n)
+  static void setNumUDPWorkerThreads(unsigned int n)
   {
-    s_numWorkerThreads = n;
+    s_numUDPWorkerThreads = n;
   }
 
   static void setNumTCPWorkerThreads(unsigned int n)
@@ -482,7 +486,7 @@ public:
 
   static unsigned int numRecursorThreads()
   {
-    return numHandlers() + numDistributors() + numWorkers() + numTCPWorkers() + numTaskThreads();
+    return numHandlers() + numDistributors() + numUDPWorkers() + numTCPWorkers() + numTaskThreads();
   }
 
   static int runThreads(Logr::log_t);
@@ -508,7 +512,7 @@ public:
     return deferredAdds;
   }
 
-  ThreadPipeSet& getPipes()
+  const ThreadPipeSet& getPipes() const
   {
     return pipes;
   }
@@ -547,7 +551,7 @@ private:
   MT_t* mt{nullptr};
   uint64_t numberOfDistributedQueries{0};
 
-  void start(unsigned int theId, const string& name, const std::map<unsigned int, std::set<int>>& cpusMap, Logr::log_t);
+  void start(unsigned int tid, const string& tname, const std::map<unsigned int, std::set<int>>& cpusMap, Logr::log_t);
 
   std::string name;
   std::thread thread;
@@ -568,7 +572,7 @@ private:
   static std::vector<RecThreadInfo> s_threadInfos;
   static bool s_weDistributeQueries; // if true, 1 or more threads listen on the incoming query sockets and distribute them to workers
   static unsigned int s_numDistributorThreads;
-  static unsigned int s_numWorkerThreads;
+  static unsigned int s_numUDPWorkerThreads;
   static unsigned int s_numTCPWorkerThreads;
 };
 
