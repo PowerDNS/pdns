@@ -185,7 +185,7 @@ Before version 5.0.0, TCP queries are processed by either the distributer thread
 Starting with version 5.0.0, :program:`Recursor` has dedicated thread(s) processing TCP queries.
 
 The maximum number of mthreads consumed by TCP queries is :ref:`setting-max-tcp-clients` times :ref:`setting-max-concurrent-requests-per-tcp-connection`.
-If :ref:`setting-pdns-distributes-queries` is true, this number should be (much) lower than :ref:`setting-max-mthreads`, to also allow UDP queries to be handled as these also consume mthreads.
+Before version 5.0.0, if :ref:`setting-pdns-distributes-queries` is false, this number should be (much) lower than :ref:`setting-max-mthreads`, to also allow UDP queries to be handled as these also consume mthreads.
 Note that :ref:`setting-max-mthreads` is a per Posix thread setting.
 This means that the global maximum number of mthreads  is (#distributor threads + #worker threads) * max-mthreads.
 
