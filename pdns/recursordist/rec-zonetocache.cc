@@ -289,7 +289,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
     if (nsecs.records.size() > 0 && nsecs.signatures.size() > 0) {
       // Valdidate the NSEC
       nsecValidationStatus = validateWithKeySet(d_now, d_zone, nsecs.records, nsecs.signatures, validKeys, std::nullopt);
-      csp.emplace(std::make_pair(d_zone, QType::NSEC), nsecs);
+      csp.emplace(std::pair(d_zone, QType::NSEC), nsecs);
     }
     else if (nsec3s.records.size() > 0 && nsec3s.signatures.size() > 0) {
       // Validate NSEC3PARAMS
@@ -304,7 +304,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
       }
       // Valdidate the NSEC3
       nsecValidationStatus = validateWithKeySet(d_now, zonemd.getNSEC3Label(), nsec3s.records, nsec3s.signatures, validKeys, std::nullopt);
-      csp.emplace(std::make_pair(zonemd.getNSEC3Label(), QType::NSEC3), nsec3s);
+      csp.emplace(std::pair(zonemd.getNSEC3Label(), QType::NSEC3), nsec3s);
     }
     else {
       d_log->info("No NSEC(3) records and/or RRSIGS found to deny ZONEMD");
@@ -438,7 +438,7 @@ void RecZoneToCache::maintainStates(const map<DNSName, Config>& configs, map<DNS
       }
     }
     else {
-      states.emplace(std::make_pair(config.first, State{0, 0, mygeneration}));
+      states.emplace(config.first, State{0, 0, mygeneration});
     }
   }
 }

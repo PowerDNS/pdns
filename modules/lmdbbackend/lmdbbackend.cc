@@ -88,7 +88,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
   if ((rc = mdb_env_open(env, filename.c_str(), MDB_NOSUBDIR | MDB_RDONLY, 0600)) != 0) {
     if (rc == ENOENT) {
       // we don't have a database yet! report schema 0, with 0 shards
-      return std::make_pair(0, 0);
+      return {0u, 0u};
     }
     mdb_env_close(env);
     throw std::runtime_error("mdb_env_open failed");
@@ -109,7 +109,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
       // we pretend this means 5
       mdb_txn_abort(txn);
       mdb_env_close(env);
-      return std::make_pair(5, 0);
+      return {5u, 0u};
     }
     mdb_txn_abort(txn);
     mdb_env_close(env);
@@ -127,7 +127,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
       // we pretend this means 5
       mdb_txn_abort(txn);
       mdb_env_close(env);
-      return std::make_pair(5, 0);
+      return {5u, 0u};
     }
 
     throw std::runtime_error("mdb_get pdns.schemaversion failed");
@@ -183,7 +183,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
   mdb_txn_abort(txn);
   mdb_env_close(env);
 
-  return std::make_pair(schemaversion, shards);
+  return {schemaversion, shards};
 }
 
 namespace
@@ -1702,7 +1702,7 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
       di.id = iter.getID();
       di.backend = this;
 
-      if (!zonemap.insert(std::make_pair(di.zone, di)).second) {
+      if (!zonemap.emplace(di.zone, di).second) {
         dups.insert(di.zone);
       }
     }

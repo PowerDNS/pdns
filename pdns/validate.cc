@@ -118,7 +118,7 @@ static std::string getHashFromNSEC3(const DNSName& qname, const NSEC3RecordConte
     return result;
   }
 
-  auto key = std::make_tuple(qname, nsec3.d_salt, nsec3.d_iterations);
+  auto key = std::tuple(qname, nsec3.d_salt, nsec3.d_iterations);
   auto iter = cache.find(key);
   if (iter != cache.end())
   {

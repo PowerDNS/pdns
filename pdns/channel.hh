@@ -341,7 +341,7 @@ namespace channel
       setPipeBufferSize(receiver.getHandle(), pipeBufferSize);
     }
 
-    return std::pair(Sender<T, D>(std::move(sender)), Receiver<T, D>(std::move(receiver), throwOnEOF));
+    return {Sender<T, D>(std::move(sender)), Receiver<T, D>(std::move(receiver), throwOnEOF)};
   }
 }
 }

@@ -41,7 +41,7 @@ template <class T> static std::shared_ptr<DownstreamState> getLeastOutstanding(c
   size_t usableServers = 0;
   for (const auto& d : servers) {
     if (d.second->isUp()) {
-      poss[usableServers] = std::make_pair(std::make_tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->getRelevantLatencyUsec()), d.first);
+      poss[usableServers] = std::pair(std::tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->getRelevantLatencyUsec()), d.first);
       usableServers++;
     }
   }
@@ -101,7 +101,7 @@ template <class T> static std::shared_ptr<DownstreamState> getValRandom(const Se
         sum += d.second->d_config.d_weight;
       }
 
-      poss[usableServers]  = std::make_pair(sum, d.first);
+      poss[usableServers]  = std::pair(sum, d.first);
       usableServers++;
     }
   }

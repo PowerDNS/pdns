@@ -942,7 +942,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     LuaArray<std::shared_ptr<DownstreamState>> ret;
     int count = 1;
     for (const auto& s : g_dstates.getCopy()) {
-      ret.push_back(make_pair(count++, s));
+      ret.emplace_back(count++, s);
     }
     return ret;
   });
@@ -1683,7 +1683,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     const auto localPools = g_pools.getCopy();
     for (const auto& entry : localPools) {
       const string& name = entry.first;
-      ret.push_back(make_pair(count++, name));
+      ret.emplace_back(count++, name);
     }
     return ret;
   });
@@ -2380,7 +2380,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       LuaAssociativeTable<std::string> customResponseHeaders;
       if (getOptionalValue<decltype(customResponseHeaders)>(vars, "customResponseHeaders", customResponseHeaders) > 0) {
         for (auto const& headerMap : customResponseHeaders) {
-          std::pair<std::string, std::string> headerResponse = std::make_pair(boost::to_lower_copy(headerMap.first), headerMap.second);
+          auto headerResponse = std::pair(boost::to_lower_copy(headerMap.first), headerMap.second);
           frontend->d_customResponseHeaders.insert(headerResponse);
         }
       }
