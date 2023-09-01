@@ -1076,6 +1076,52 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_wildcard_synthesis)
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
 
+BOOST_AUTO_TEST_CASE(test_aggressive_nsec_replace)
+{
+  const size_t testSize = 10000;
+  auto cache = make_unique<AggressiveNSECCache>(testSize);
+
+  struct timeval now{};
+  Utility::gettimeofday(&now, nullptr);
+
+  vector<DNSName> names;
+  names.reserve(testSize);
+  for (size_t i = 0; i < testSize; i++) {
+    names.emplace_back(std::to_string(i) + "powerdns.com");
+  }
+
+  DTime time;
+  time.set();
+
+  for (const auto& name : names) {
+    DNSRecord rec;
+    rec.d_name = name;
+    rec.d_type = QType::NSEC3;
+    rec.d_ttl = now.tv_sec + 10;
+    rec.setContent(getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3"));
+    auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+    cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, true);
+  }
+  auto diff1 = time.udiff(true);
+
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), testSize);
+  for (const auto& name : names) {
+    DNSRecord rec;
+    rec.d_name = name;
+    rec.d_type = QType::NSEC3;
+    rec.d_ttl = now.tv_sec + 10;
+    rec.setContent(getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3"));
+    auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data");
+    cache->insertNSEC(DNSName("powerdns.com"), rec.d_name, rec, {rrsig}, true);
+  }
+
+  BOOST_CHECK_EQUAL(cache->getEntriesCount(), testSize);
+
+  auto diff2 = time.udiff(true);
+  // Check that replace is about equally fast as insert
+  BOOST_ASSERT(diff1 < diff2 * 1.2 && diff2 < diff1 * 1.2);
+}
+
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wiping)
 {
   auto cache = make_unique<AggressiveNSECCache>(10000);
@@ -1152,7 +1198,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
 
   rec.d_name = DNSName("www.powerdns.org");
   rec.d_type = QType::NSEC3;
-  rec.d_ttl = now.tv_sec + 10;
+  rec.d_ttl = now.tv_sec + 20;
   rec.setContent(getRecordContent(QType::NSEC3, "1 0 500 ab HASG==== A RRSIG NSEC3"));
   rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data");
   cache->insertNSEC(DNSName("powerdns.org"), rec.d_name, rec, {rrsig}, true);
@@ -1160,18 +1206,13 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
 
   /* we have set a upper bound to 2 entries, so we are above,
-     and all entries are actually expired, so we will prune one entry
+     and one entry are actually expired, so we will prune one entry
      to get below the limit */
-  cache->prune(now.tv_sec + 600);
+  cache->prune(now.tv_sec + 15);
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
 
-  /* now we are at the limit, so we will scan 1/5th of the entries,
-     and prune the expired ones, which mean we will also remove only one */
-  cache->prune(now.tv_sec + 600);
-  BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
-
-  /* now we are below the limit, so we will scan 1/5th of the entries again,
-     and prune the expired ones, which mean we will remove the last one */
+  /* now we are at the limit, so we will scan 1/5th of all zones entries, rounded up,
+     and prune the expired ones, which mean we will also remoing twoe */
   cache->prune(now.tv_sec + 600);
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 0U);
 }

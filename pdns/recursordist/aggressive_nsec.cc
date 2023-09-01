@@ -126,76 +126,72 @@ void AggressiveNSECCache::prune(time_t now)
 {
   uint64_t maxNumberOfEntries = d_maxEntries;
   std::vector<DNSName> emptyEntries;
-
   uint64_t erased = 0;
-  uint64_t lookedAt = 0;
-  uint64_t toLook = std::max(d_entriesCount / 5U, static_cast<uint64_t>(1U));
 
-  if (d_entriesCount > maxNumberOfEntries) {
-    uint64_t toErase = d_entriesCount - maxNumberOfEntries;
-    toLook = toErase * 5;
-    // we are full, scan at max 5 * toErase entries and stop once we have nuked enough
+  auto zones = d_zones.write_lock();
+  // To start, just look through 10% of each zone and nuke everything that is expired
+  zones->visit([now, &erased, &emptyEntries](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
+    if (!node.d_value) {
+      return;
+    }
 
-    auto zones = d_zones.write_lock();
-    zones->visit([now, &erased, toErase, toLook, &lookedAt, &emptyEntries](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
-      if (!node.d_value || erased > toErase || lookedAt > toLook) {
-        return;
+    auto zoneEntry = node.d_value->lock();
+    auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(zoneEntry->d_entries);
+    const auto toLookAtForThisZone = (zoneEntry->d_entries.size() + 9) / 10;
+    uint64_t lookedAt = 0;
+    for (auto it = sidx.begin(); it != sidx.end() && lookedAt < toLookAtForThisZone; ++lookedAt) {
+      if (it->d_ttd < now) {
+        it = sidx.erase(it);
+        ++erased;
       }
-
-      auto zoneEntry = node.d_value->lock();
-      auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(zoneEntry->d_entries);
-      for (auto it = sidx.begin(); it != sidx.end(); ++lookedAt) {
-        if (erased >= toErase || lookedAt >= toLook) {
-          break;
-        }
-
-        if (it->d_ttd < now) {
-          it = sidx.erase(it);
-          ++erased;
-        }
-        else {
-          ++it;
-        }
+      else {
+        ++it;
       }
+    }
 
-      if (zoneEntry->d_entries.size() == 0) {
-        emptyEntries.push_back(zoneEntry->d_zone);
-      }
-    });
-  }
-  else {
-    // we are not full, just look through 10% of the cache and nuke everything that is expired
-    auto zones = d_zones.write_lock();
-    zones->visit([now, &erased, toLook, &lookedAt, &emptyEntries](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
-      if (!node.d_value) {
-        return;
-      }
-
-      auto zoneEntry = node.d_value->lock();
-      auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(zoneEntry->d_entries);
-      for (auto it = sidx.begin(); it != sidx.end(); ++lookedAt) {
-        if (lookedAt >= toLook) {
-          break;
-        }
-        if (it->d_ttd < now || lookedAt > toLook) {
-          it = sidx.erase(it);
-          ++erased;
-        }
-        else {
-          ++it;
-        }
-      }
-
-      if (zoneEntry->d_entries.size() == 0) {
-        emptyEntries.push_back(zoneEntry->d_zone);
-      }
-    });
-  }
+    if (zoneEntry->d_entries.empty()) {
+      emptyEntries.push_back(zoneEntry->d_zone);
+    }
+  });
 
   d_entriesCount -= erased;
 
+  // If we are still above try harder by nuking entries from each zone in LRU order
+  auto entriesCount = d_entriesCount.load();
+  if (entriesCount > maxNumberOfEntries) {
+    erased = 0;
+    uint64_t toErase = entriesCount - maxNumberOfEntries;
+    zones->visit([&erased, &toErase, &entriesCount, &emptyEntries](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
+      if (!node.d_value || entriesCount == 0) {
+        return;
+      }
+      auto zoneEntry = node.d_value->lock();
+      const auto zoneSize = zoneEntry->d_entries.size();
+      auto& sidx = boost::multi_index::get<ZoneEntry::SequencedTag>(zoneEntry->d_entries);
+      const auto toTrimForThisZone = static_cast<uint64_t>(std::round(static_cast<double>(toErase) * static_cast<double>(zoneSize) / static_cast<double>(entriesCount)));
+      if (entriesCount < zoneSize) {
+        throw std::runtime_error("Inconsistent agggressive cache " + std::to_string(entriesCount) + " " + std::to_string(zoneSize));
+      }
+      // This is comparable to what cachecleaner.hh::pruneMutexCollectionsVector() is doing, look there for an explanation
+      entriesCount -= zoneSize;
+      uint64_t trimmedFromThisZone = 0;
+      for (auto it = sidx.begin(); it != sidx.end() && trimmedFromThisZone < toTrimForThisZone; ) {
+        it = sidx.erase(it);
+        ++erased;
+        ++trimmedFromThisZone;
+        if (--toErase == 0) {
+          break;
+        }
+      }
+      if (zoneEntry->d_entries.empty()) {
+        emptyEntries.push_back(zoneEntry->d_zone);
+      }
+    });
+
+    d_entriesCount -= erased;
+  }
+
   if (!emptyEntries.empty()) {
-    auto zones = d_zones.write_lock();
     for (const auto& entry : emptyEntries) {
       zones->remove(entry);
     }
@@ -399,13 +395,14 @@ bool AggressiveNSECCache::getNSECBefore(time_t now, std::shared_ptr<LockGuarded<
     return false;
   }
 
+  auto firstIndexIterator = zoneEntry->d_entries.project<ZoneEntry::OrderedTag>(it);
   if (it->d_ttd <= now) {
-    moveCacheItemToFront<ZoneEntry::SequencedTag>(zoneEntry->d_entries, it);
+    moveCacheItemToFront<ZoneEntry::SequencedTag>(zoneEntry->d_entries, firstIndexIterator);
     return false;
   }
 
   entry = *it;
-  moveCacheItemToBack<ZoneEntry::SequencedTag>(zoneEntry->d_entries, it);
+  moveCacheItemToBack<ZoneEntry::SequencedTag>(zoneEntry->d_entries, firstIndexIterator);
   return true;
 }
 
