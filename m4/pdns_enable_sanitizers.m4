@@ -26,6 +26,14 @@ AC_DEFUN([PDNS_ENABLE_SANITIZERS], [
   ])
 ])
 
+# When compiling with ASAN, starting with clang version 15 the default on linux for
+# ASAN_OPTIONS=detect_stack_use_after_return is 1. This does not work well with the mthread code. At
+# this point in time, it is unknown if that is an issue with our usage of
+# __sanitizer_start_switch_fiber() and __sanitizer_finish_switch_fiber() or something else. But as
+# these __sanitizer functions are barely documented, it's hard find out what exactly is going on. So
+# as a workaround, completely disable detect_stack_use_after_return by compiling with
+# -fsanitize-address-use-after-return=never if ASAN is enabled.
+
 AC_DEFUN([PDNS_ENABLE_ASAN], [
   AC_REQUIRE([gl_UNKNOWN_WARNINGS_ARE_ERRORS])
   AC_MSG_CHECKING([whether to enable AddressSanitizer])
@@ -40,7 +48,7 @@ AC_DEFUN([PDNS_ENABLE_ASAN], [
   AS_IF([test "x$enable_asan" != "xno"], [
     gl_COMPILER_OPTION_IF([-fsanitize=address],
       [
-        [SANITIZER_FLAGS="-fsanitize=address $SANITIZER_FLAGS"]
+        [SANITIZER_FLAGS="-fsanitize=address -fsanitize-address-use-after-return=never $SANITIZER_FLAGS"]
         AC_CHECK_HEADERS([sanitizer/common_interface_defs.h], asan_headers=yes, asan_headers=no)
         AS_IF([test x"$asan_headers" = "xyes" ],
           [AC_CHECK_DECL(__sanitizer_start_switch_fiber,
