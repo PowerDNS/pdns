@@ -77,7 +77,7 @@ class DynBlocksTest(DNSDistTest):
             waitForMaintenanceToRun()
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=1)
         self.assertEqual(receivedResponse, None)
 
         if testViaAPI:
@@ -269,7 +269,7 @@ class DynBlocksTest(DNSDistTest):
         print(time.time())
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=1)
         self.assertEqual(receivedResponse, None)
 
         print(self.sendConsoleCommand("showDynBlocks()"))
@@ -378,7 +378,7 @@ class DynBlocksTest(DNSDistTest):
             waitForMaintenanceToRun()
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=1)
         self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
@@ -487,7 +487,7 @@ class DynBlocksTest(DNSDistTest):
         waitForMaintenanceToRun()
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=1)
         self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
