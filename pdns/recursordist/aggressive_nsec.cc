@@ -140,7 +140,7 @@ void AggressiveNSECCache::prune(time_t now)
     const auto toLookAtForThisZone = (zoneEntry->d_entries.size() + 9) / 10;
     uint64_t lookedAt = 0;
     for (auto it = sidx.begin(); it != sidx.end() && lookedAt < toLookAtForThisZone; ++lookedAt) {
-      if (it->d_ttd < now) {
+      if (it->d_ttd <= now) {
         it = sidx.erase(it);
         ++erased;
       }
