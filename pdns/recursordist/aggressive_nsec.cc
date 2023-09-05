@@ -175,7 +175,7 @@ void AggressiveNSECCache::prune(time_t now)
       // This is comparable to what cachecleaner.hh::pruneMutexCollectionsVector() is doing, look there for an explanation
       entriesCount -= zoneSize;
       uint64_t trimmedFromThisZone = 0;
-      for (auto it = sidx.begin(); it != sidx.end() && trimmedFromThisZone < toTrimForThisZone; ) {
+      for (auto it = sidx.begin(); it != sidx.end() && trimmedFromThisZone < toTrimForThisZone;) {
         it = sidx.erase(it);
         ++erased;
         ++trimmedFromThisZone;
