@@ -49,7 +49,6 @@ subdir('meson' / 'hardening')               # Hardening
 subdir('meson' / 'kiss-rng')                # Unsafe KISS RNG
 subdir('meson' / 'net-libs')                # Network Libraries
 subdir('meson' / 'tm-gmtoff')               # Check for tm_gmtoff field in struct tm
-subdir('meson' / 'mmap')                    # Check for mmap
 subdir('meson' / 'libsodium')               # Libsodium-based signers
 subdir('meson' / 'libdecaf')                # Libdecaf-based signers
 subdir('meson' / 'libcrypto')               # OpenSSL-based signers
@@ -132,7 +131,7 @@ all_modules = {
   'lua2':     {'deps': [],                              'exts': []},
   'remote':   {'deps': ['prog-curl', 'zeromq'],         'exts': []},
   'tinydns':  {'deps': ['cdb'],                         'exts': []},
-  'geoip':    {'deps': ['geoip'],                       'exts': []},
+  'geoip':    {'deps': [],                              'exts': []},
   'lmdb':     {'deps': ['lmdb', 'boost-serialization'], 'exts': ['lmdb-safe']},
 }
 
