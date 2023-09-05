@@ -1,7 +1,8 @@
 #pragma once
-
 #include <cstddef>
 #include <cinttypes>
+
+#include "config.h"
 
 extern "C"
 {
