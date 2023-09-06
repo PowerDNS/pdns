@@ -536,7 +536,7 @@ static void validateGatheredRRType(const DNSResourceRecord& rr) {
   }
 }
 
-static void gatherRecords(const Json& container, const DNSName& qname, const QType& qtype, const int ttl, vector<DNSResourceRecord>& new_records) {
+static void gatherRecords(const Json& container, const DNSName& qname, const QType& qtype, const uint32_t ttl, vector<DNSResourceRecord>& new_records) {
   DNSResourceRecord rr;
   rr.qname = qname;
   rr.qtype = qtype;
@@ -583,8 +583,8 @@ static void gatherComments(const Json& container, const DNSName& qname, const QT
 
   time_t now = time(nullptr);
   for (const auto& comment : container["comments"].array_items()) {
-    // FIXME this is converting to a *signed* int, 2036 issue
-    c.modified_at = intFromJson(comment, "modified_at", now);
+    // FIXME 2036 issue internally in uintFromJson
+    c.modified_at = uintFromJson(comment, "modified_at", now);
     c.content = stringFromJson(comment, "content");
     c.account = stringFromJson(comment, "account");
     new_comments.push_back(c);
@@ -616,6 +616,40 @@ static void checkDefaultDNSSECAlgos() {
 static void throwUnableToSecure(const DNSName& zonename) {
   throw ApiException("No backend was able to secure '" + zonename.toString() + "', most likely because no DNSSEC"
       + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
+}
+
+/*
+ * Add KSK and ZSK to an existing zone. Algorithms and sizes will be chosen per configuration.
+*/
+static void addDefaultDNSSECKeys(DNSSECKeeper& dk, const DNSName& zonename) {
+  checkDefaultDNSSECAlgos();
+  int k_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-ksk-algorithm"]);
+  int z_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-zsk-algorithm"]);
+  int k_size = arg().asNum("default-ksk-size");
+  int z_size = arg().asNum("default-zsk-size");
+
+  if (k_algo != -1) {
+    int64_t id{-1};
+    if (!dk.addKey(zonename, true, k_algo, id, k_size)) {
+      throwUnableToSecure(zonename);
+    }
+  }
+
+  if (z_algo != -1) {
+    int64_t id{-1};
+    if (!dk.addKey(zonename, false, z_algo, id, z_size)) {
+      throwUnableToSecure(zonename);
+    }
+  }
+}
+
+static bool isZoneApiRectifyEnabled(const DomainInfo& di) {
+  string api_rectify;
+  di.backend->getDomainMetadataOne(di.zone, "API-RECTIFY", api_rectify);
+  if (api_rectify.empty() && ::arg().mustDo("default-api-rectify")) {
+    api_rectify = "1";
+  }
+  return api_rectify == "1";
 }
 
 static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<DNSName>& catalog, boost::optional<string>& account)
@@ -657,8 +691,25 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
   }
 }
 
+/*
+ * Build vector of TSIG Key ids from domain update document.
+ * jsonArray: JSON array element to extract TSIG key ids from.
+ * metadata: returned list of domain key ids for setDomainMetadata
+*/
+static void extractJsonTSIGKeyIds(UeberBackend& B, const Json& jsonArray, vector<string>& metadata) {
+  for(const auto& value : jsonArray.array_items()) {
+    auto keyname(apiZoneIdToName(value.string_value()));
+    DNSName keyAlgo;
+    string keyContent;
+    if (!B.getTSIGKey(keyname, keyAlgo, keyContent)) {
+      throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
+    }
+    metadata.push_back(keyname.toString());
+  }
+}
+
 // Must be called within backend transaction.
-static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& di, const DNSName& zonename, const Json& document, bool zoneWasModified) {
+static void updateDomainSettingsFromDocument(UeberBackend& B, DomainInfo& di, const DNSName& zonename, const Json& document, bool zoneWasModified) {
   boost::optional<DomainInfo::DomainKind> kind;
   boost::optional<vector<ComboAddress>> masters;
   boost::optional<DNSName> catalog;
@@ -668,6 +719,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
   if (kind) {
     di.backend->setKind(zonename, *kind);
+    di.kind = *kind;
   }
   if (masters) {
     di.backend->setMasters(zonename, *masters);
@@ -719,26 +771,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
   if (dnssecInJSON) {
     if (dnssecDocVal) {
       if (!isDNSSECZone) {
-        checkDefaultDNSSECAlgos();
-
-        int k_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-ksk-algorithm"]);
-        int z_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-zsk-algorithm"]);
-        int k_size = arg().asNum("default-ksk-size");
-        int z_size = arg().asNum("default-zsk-size");
-
-        if (k_algo != -1) {
-          int64_t id;
-          if (!dk.addKey(zonename, true, k_algo, id, k_size)) {
-            throwUnableToSecure(zonename);
-          }
-        }
-
-        if (z_algo != -1) {
-          int64_t id;
-          if (!dk.addKey(zonename, false, z_algo, id, z_size)) {
-            throwUnableToSecure(zonename);
-          }
-        }
+        addDefaultDNSSECKeys(dk, zonename);
 
         // Used later for NSEC3PARAM
         isDNSSECZone = dk.isSecuredZone(zonename);
@@ -794,17 +827,11 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
   if (shouldRectify && !isPresigned) {
     // Rectify
-    string api_rectify;
-    di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify);
-    if (api_rectify.empty()) {
-      if (::arg().mustDo("default-api-rectify")) {
-        api_rectify = "1";
-      }
-    }
-    if (api_rectify == "1") {
+    if (isZoneApiRectifyEnabled(di)) {
       string info;
       string error_msg;
-      if (!dk.rectifyZone(zonename, error_msg, info, false)) {
+      if (!dk.rectifyZone(zonename, error_msg, info, false) && !di.isSecondaryType()) {
+        // for Secondary zones, it is possible that rectifying was not needed (example: empty zone).
         throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
       }
     }
@@ -831,30 +858,14 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, const DomainInfo& 
 
   if (!document["master_tsig_key_ids"].is_null()) {
     vector<string> metadata;
-    for(const auto& value : document["master_tsig_key_ids"].array_items()) {
-      auto keyname(apiZoneIdToName(value.string_value()));
-      DNSName keyAlgo;
-      string keyContent;
-      if (!B.getTSIGKey(keyname, keyAlgo, keyContent)) {
-        throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
-      }
-      metadata.push_back(keyname.toString());
-    }
+    extractJsonTSIGKeyIds(B, document["master_tsig_key_ids"], metadata);
     if (!di.backend->setDomainMetadata(zonename, "TSIG-ALLOW-AXFR", metadata)) {
       throw HttpInternalServerErrorException("Unable to set new TSIG master keys for zone '" + zonename.toLogString() + "'");
     }
   }
   if (!document["slave_tsig_key_ids"].is_null()) {
     vector<string> metadata;
-    for(const auto& value : document["slave_tsig_key_ids"].array_items()) {
-      auto keyname(apiZoneIdToName(value.string_value()));
-      DNSName keyAlgo;
-      string keyContent;
-      if (!B.getTSIGKey(keyname, keyAlgo, keyContent)) {
-        throw ApiException("A TSIG key with the name '"+keyname.toLogString()+"' does not exist");
-      }
-      metadata.push_back(keyname.toString());
-    }
+    extractJsonTSIGKeyIds(B, document["slave_tsig_key_ids"], metadata);
     if (!di.backend->setDomainMetadata(zonename, "AXFR-MASTER-TSIG", metadata)) {
       throw HttpInternalServerErrorException("Unable to set new TSIG slave keys for zone '" + zonename.toLogString() + "'");
     }
@@ -1490,7 +1501,7 @@ static void checkNewRecords(vector<DNSResourceRecord>& records, const DNSName& z
     try {
       checkHostnameCorrectness(rec);
     } catch (const std::exception& e) {
-      throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString() + " " + e.what());
+      throw ApiException("RRset "+rec.qname.toString()+" IN "+rec.qtype.toString() + ": " + e.what());
     }
 
     previous = rec;
@@ -1686,38 +1697,51 @@ static void apiServerAutoprimaries(HttpRequest* req, HttpResponse* resp) {
   }
 }
 
-static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
+// create new zone
+static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   UeberBackend B;
   DNSSECKeeper dk(&B);
-  if (req->method == "POST") {
-    DomainInfo di;
-    auto document = req->json();
-    DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
-    apiCheckNameAllowedCharacters(zonename.toString());
-    zonename.makeUsLowerCase();
+  DomainInfo di;
+  auto document = req->json();
+  DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
+  apiCheckNameAllowedCharacters(zonename.toString());
+  zonename.makeUsLowerCase();
 
-    bool exists = B.getDomainInfo(zonename, di);
-    if(exists)
-      throw HttpConflictException();
+  bool exists = B.getDomainInfo(zonename, di);
+  if (exists) {
+    throw HttpConflictException();
+  }
 
-    // validate 'kind' is set
-    DomainInfo::DomainKind zonekind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
+  boost::optional<DomainInfo::DomainKind> kind;
+  boost::optional<vector<ComboAddress>> masters;
+  boost::optional<DNSName> catalog;
+  boost::optional<string> account;
+  extractDomainInfoFromDocument(document, kind, masters, catalog, account);
 
-    string zonestring = document["zone"].string_value();
-    auto rrsets = document["rrsets"];
-    if (rrsets.is_array() && zonestring != "")
-      throw ApiException("You cannot give rrsets AND zone data as text");
+  // validate 'kind' is set
+  if (!kind) {
+    throw JsonException("Key 'kind' not present or not a String");
+  }
+  DomainInfo::DomainKind zonekind = *kind;
 
-    auto nameservers = document["nameservers"];
-    if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer)
-      throw ApiException("Nameservers is not a list");
+  string zonestring = document["zone"].string_value();
+  auto rrsets = document["rrsets"];
+  if (rrsets.is_array() && !zonestring.empty()) {
+    throw ApiException("You cannot give rrsets AND zone data as text");
+  }
 
-    // if records/comments are given, load and check them
-    bool have_soa = false;
-    bool have_zone_ns = false;
-    vector<DNSResourceRecord> new_records;
-    vector<Comment> new_comments;
+  auto nameservers = document["nameservers"];
+  if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer) {
+    throw ApiException("Nameservers is not a list");
+  }
 
+  // if records/comments are given, load and check them
+  bool have_soa = false;
+  bool have_zone_ns = false;
+  vector<DNSResourceRecord> new_records;
+  vector<Comment> new_comments;
+
+  try {
     if (rrsets.is_array()) {
       for (const auto& rrset : rrsets.array_items()) {
         DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
@@ -1728,127 +1752,138 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
           throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
         }
         if (rrset["records"].is_array()) {
-          int ttl = intFromJson(rrset, "ttl");
+          uint32_t ttl = uintFromJson(rrset, "ttl");
           gatherRecords(rrset, qname, qtype, ttl, new_records);
         }
         if (rrset["comments"].is_array()) {
           gatherComments(rrset, qname, qtype, new_comments);
         }
       }
-    } else if (zonestring != "") {
+    } else if (!zonestring.empty()) {
       gatherRecordsFromZone(zonestring, new_records, zonename);
     }
-
-    for(auto& rr : new_records) {
-      rr.qname.makeUsLowerCase();
-      if (!rr.qname.isPartOf(zonename) && rr.qname != zonename)
-        throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
-      apiCheckQNameAllowedCharacters(rr.qname.toString());
-
-      if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
-        have_soa = true;
-      }
-      if (rr.qtype.getCode() == QType::NS && rr.qname==zonename) {
-        have_zone_ns = true;
-      }
-    }
-
-    // synthesize RRs as needed
-    DNSResourceRecord autorr;
-    autorr.qname = zonename;
-    autorr.auth = true;
-    autorr.ttl = ::arg().asNum("default-ttl");
-
-    if (!have_soa && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer) {
-      // synthesize a SOA record so the zone "really" exists
-      string soa = ::arg()["default-soa-content"];
-      boost::replace_all(soa, "@", zonename.toStringNoDot());
-      SOAData sd;
-      fillSOAData(soa, sd);
-      sd.serial=document["serial"].int_value();
-      autorr.qtype = QType::SOA;
-      autorr.content = makeSOAContent(sd)->getZoneRepresentation(true);
-      // updateDomainSettingsFromDocument will apply SOA-EDIT-API as needed
-      new_records.push_back(autorr);
-    }
-
-    // create NS records if nameservers are given
-    for (const auto& value : nameservers.array_items()) {
-      const string& nameserver = value.string_value();
-      if (nameserver.empty())
-        throw ApiException("Nameservers must be non-empty strings");
-      if (!isCanonical(nameserver))
-        throw ApiException("Nameserver is not canonical: '" + nameserver + "'");
-      try {
-        // ensure the name parses
-        autorr.content = DNSName(nameserver).toStringRootDot();
-      } catch (...) {
-        throw ApiException("Unable to parse DNS Name for NS '" + nameserver + "'");
-      }
-      autorr.qtype = QType::NS;
-      new_records.push_back(autorr);
-      if (have_zone_ns) {
-        throw ApiException("Nameservers list MUST NOT be mixed with zone-level NS in rrsets");
-      }
-    }
-
-    checkNewRecords(new_records, zonename);
-
-    if (boolFromJson(document, "dnssec", false)) {
-      checkDefaultDNSSECAlgos();
-
-      if(document["nsec3param"].string_value().length() > 0) {
-        NSEC3PARAMRecordContent ns3pr(document["nsec3param"].string_value());
-        string error_msg = "";
-        if (!dk.checkNSEC3PARAM(ns3pr, error_msg)) {
-          throw ApiException("NSEC3PARAMs provided for zone '"+zonename.toString()+"' are invalid. " + error_msg);
-        }
-      }
-    }
-
-    boost::optional<DomainInfo::DomainKind> kind;
-    boost::optional<vector<ComboAddress>> masters;
-    boost::optional<DNSName> catalog;
-    boost::optional<string> account;
-    extractDomainInfoFromDocument(document, kind, masters, catalog, account);
-
-    // no going back after this
-    if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or("")))
-      throw ApiException("Creating domain '"+zonename.toString()+"' failed: backend refused");
-
-    if(!B.getDomainInfo(zonename, di))
-      throw ApiException("Creating domain '"+zonename.toString()+"' failed: lookup of domain ID failed");
-
-    di.backend->startTransaction(zonename, di.id);
-
-    // will be overridden by updateDomainSettingsFromDocument, if given in document.
-    di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
-
-    for(auto& rr : new_records) {
-      rr.domain_id = di.id;
-      di.backend->feedRecord(rr, DNSName());
-    }
-    for(Comment& c : new_comments) {
-      c.domain_id = di.id;
-      if (!di.backend->feedComment(c)) {
-        throw ApiException("Hosting backend does not support editing comments.");
-      }
-    }
-
-    updateDomainSettingsFromDocument(B, di, zonename, document, !new_records.empty());
-
-    di.backend->commitTransaction();
-
-    g_zoneCache.add(zonename, di.id); // make new zone visible
-
-    fillZone(B, zonename, resp, req);
-    resp->status = 201;
-    return;
+  }
+  catch (const JsonException& e) {
+    throw ApiException("New RRsets are invalid: " + string(e.what()));
   }
 
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
+  if (zonekind == DomainInfo::Consumer && !new_records.empty()) {
+    throw ApiException("Zone data MUST NOT be given for Consumer zones");
+  }
 
+  for(auto& rr : new_records) {
+    rr.qname.makeUsLowerCase();
+    if (!rr.qname.isPartOf(zonename) && rr.qname != zonename) {
+      throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
+    }
+
+    apiCheckQNameAllowedCharacters(rr.qname.toString());
+
+    if (rr.qtype.getCode() == QType::SOA && rr.qname == zonename) {
+      have_soa = true;
+    }
+    if (rr.qtype.getCode() == QType::NS && rr.qname == zonename) {
+      have_zone_ns = true;
+    }
+  }
+
+  // synthesize RRs as needed
+  DNSResourceRecord autorr;
+  autorr.qname = zonename;
+  autorr.auth = true;
+  autorr.ttl = ::arg().asNum("default-ttl");
+
+  if (!have_soa && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer) {
+    // synthesize a SOA record so the zone "really" exists
+    string soa = ::arg()["default-soa-content"];
+    boost::replace_all(soa, "@", zonename.toStringNoDot());
+    SOAData sd;
+    fillSOAData(soa, sd);
+    sd.serial=document["serial"].int_value();
+    autorr.qtype = QType::SOA;
+    autorr.content = makeSOAContent(sd)->getZoneRepresentation(true);
+    // updateDomainSettingsFromDocument will apply SOA-EDIT-API as needed
+    new_records.push_back(autorr);
+  }
+
+  // create NS records if nameservers are given
+  for (const auto& value : nameservers.array_items()) {
+    const string& nameserver = value.string_value();
+    if (nameserver.empty()) {
+      throw ApiException("Nameservers must be non-empty strings");
+    }
+    if (zonekind == DomainInfo::Consumer) {
+      throw ApiException("Nameservers MUST NOT be given for Consumer zones");
+    }
+    if (!isCanonical(nameserver)) {
+      throw ApiException("Nameserver is not canonical: '" + nameserver + "'");
+    }
+    try {
+      // ensure the name parses
+      autorr.content = DNSName(nameserver).toStringRootDot();
+    } catch (...) {
+      throw ApiException("Unable to parse DNS Name for NS '" + nameserver + "'");
+    }
+    autorr.qtype = QType::NS;
+    new_records.push_back(autorr);
+    if (have_zone_ns) {
+      throw ApiException("Nameservers list MUST NOT be mixed with zone-level NS in rrsets");
+    }
+  }
+
+  checkNewRecords(new_records, zonename);
+
+  if (boolFromJson(document, "dnssec", false)) {
+    checkDefaultDNSSECAlgos();
+
+    if(document["nsec3param"].string_value().length() > 0) {
+      NSEC3PARAMRecordContent ns3pr(document["nsec3param"].string_value());
+      string error_msg;
+      if (!dk.checkNSEC3PARAM(ns3pr, error_msg)) {
+        throw ApiException("NSEC3PARAMs provided for zone '"+zonename.toString()+"' are invalid. " + error_msg);
+      }
+    }
+  }
+
+  // no going back after this
+  if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or(""))) {
+    throw ApiException("Creating domain '"+zonename.toString()+"' failed: backend refused");
+  }
+
+  if(!B.getDomainInfo(zonename, di)) {
+    throw ApiException("Creating domain '"+zonename.toString()+"' failed: lookup of domain ID failed");
+  }
+
+  di.backend->startTransaction(zonename, static_cast<int>(di.id));
+
+  // will be overridden by updateDomainSettingsFromDocument, if given in document.
+  di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
+
+  for(auto& rr : new_records) {
+    rr.domain_id = static_cast<int>(di.id);
+    di.backend->feedRecord(rr, DNSName());
+  }
+  for(Comment& c : new_comments) {
+    c.domain_id = static_cast<int>(di.id);
+    if (!di.backend->feedComment(c)) {
+      throw ApiException("Hosting backend does not support editing comments.");
+    }
+  }
+
+  updateDomainSettingsFromDocument(B, di, zonename, document, !new_records.empty());
+
+  di.backend->commitTransaction();
+
+  g_zoneCache.add(zonename, static_cast<int>(di.id)); // make new zone visible
+
+  fillZone(B, zonename, resp, req);
+  resp->status = 201;
+}
+
+// list known zones
+static void apiServerZonesGet(HttpRequest* req, HttpResponse* resp) {
+  UeberBackend B;
+  DNSSECKeeper dk(&B);
   vector<DomainInfo> domains;
 
   if (req->getvars.count("zone")) {
@@ -1885,6 +1920,20 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
   resp->setJsonBody(doc);
 }
 
+static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
+  if (req->method == "POST") {
+    apiServerZonesPost(req, resp);
+    return;
+  }
+
+  if (req->method == "GET") {
+    apiServerZonesGet(req, resp);
+    return;
+  }
+
+  throw HttpMethodNotAllowedException();
+}
+
 static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   DNSName zonename = apiZoneIdToName(req->parameters["id"]);
 
@@ -1899,11 +1948,96 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
   }
 
   if(req->method == "PUT") {
-    // update domain settings
+    // update domain contents and/or settings
+    auto document = req->json();
 
-    di.backend->startTransaction(zonename, -1);
-    updateDomainSettingsFromDocument(B, di, zonename, req->json(), false);
+    auto rrsets = document["rrsets"];
+    bool zoneWasModified = false;
+    DomainInfo::DomainKind newKind = di.kind;
+    if (document["kind"].is_string()) {
+      newKind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
+    }
+
+    // if records/comments are given, load, check and insert them
+    if (rrsets.is_array()) {
+      zoneWasModified = true;
+      bool haveSoa = false;
+      string soaEditApiKind;
+      string soaEditKind;
+      di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soaEditApiKind);
+      di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soaEditKind);
+
+      vector<DNSResourceRecord> new_records;
+      vector<Comment> new_comments;
+
+      try {
+        for (const auto& rrset : rrsets.array_items()) {
+          DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
+          apiCheckQNameAllowedCharacters(qname.toString());
+          QType qtype;
+          qtype = stringFromJson(rrset, "type");
+          if (qtype.getCode() == 0) {
+            throw ApiException("RRset "+qname.toString()+" IN "+stringFromJson(rrset, "type")+": unknown type given");
+          }
+          if (rrset["records"].is_array()) {
+            uint32_t ttl = uintFromJson(rrset, "ttl");
+            gatherRecords(rrset, qname, qtype, ttl, new_records);
+          }
+          if (rrset["comments"].is_array()) {
+            gatherComments(rrset, qname, qtype, new_comments);
+          }
+        }
+      }
+      catch (const JsonException& e) {
+        throw ApiException("New RRsets are invalid: " + string(e.what()));
+      }
+
+      for(auto& rr : new_records) {
+        rr.qname.makeUsLowerCase();
+        if (!rr.qname.isPartOf(zonename) && rr.qname != zonename) {
+          throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
+        }
+        apiCheckQNameAllowedCharacters(rr.qname.toString());
+
+        if (rr.qtype.getCode() == QType::SOA && rr.qname == zonename) {
+          haveSoa = true;
+        }
+      }
+
+      if (!haveSoa && newKind != DomainInfo::Slave && newKind != DomainInfo::Consumer) {
+        // Require SOA if this is a primary zone.
+        throw ApiException("Must give SOA record for zone when replacing all RR sets");
+      }
+      if (newKind == DomainInfo::Consumer && !new_records.empty()) {
+        // Allow deleting all RRsets, just not modifying them.
+        throw ApiException("Modifying RRsets in Consumer zones is unsupported");
+      }
+
+      checkNewRecords(new_records, zonename);
+
+      di.backend->startTransaction(zonename, static_cast<int>(di.id));
+      for(auto& rr : new_records) {
+        rr.domain_id = static_cast<int>(di.id);
+        di.backend->feedRecord(rr, DNSName());
+      }
+      for(Comment& c : new_comments) {
+        c.domain_id = static_cast<int>(di.id);
+        di.backend->feedComment(c);
+      }
+
+      if (!haveSoa && (newKind == DomainInfo::Slave || newKind == DomainInfo::Consumer)) {
+        di.backend->setStale(di.id);
+      }
+    } else {
+      // avoid deleting current zone contents
+      di.backend->startTransaction(zonename, -1);
+    }
+
+    // updateDomainSettingsFromDocument will rectify the zone and update SOA serial.
+    updateDomainSettingsFromDocument(B, di, zonename, document, zoneWasModified);
     di.backend->commitTransaction();
+
+    purgeAuthCaches(zonename.toString() + "$");
 
     resp->body = "";
     resp->status = 204; // No Content, but indicate success
@@ -2044,7 +2178,8 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp) {
   resp->setSuccessResult("Rectified");
 }
 
-static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
+static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp)  // NOLINT(readability-function-cognitive-complexity)
+{
   bool zone_disabled;
   SOAData sd;
   DomainInfo di;
@@ -2111,27 +2246,31 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
         new_records.clear();
         new_comments.clear();
 
-        if (replace_records) {
-          // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
-          int ttl = intFromJson(rrset, "ttl");
+        try {
+          if (replace_records) {
+            // ttl shouldn't be part of DELETE, and it shouldn't be required if we don't get new records.
+            uint32_t ttl = uintFromJson(rrset, "ttl");
+            gatherRecords(rrset, qname, qtype, ttl, new_records);
 
-          gatherRecords(rrset, qname, qtype, ttl, new_records);
+            for(DNSResourceRecord& rr : new_records) {
+              rr.domain_id = static_cast<int>(di.id);
+              if (rr.qtype.getCode() == QType::SOA && rr.qname == zonename) {
+                soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
+              }
+            }
+            checkNewRecords(new_records, zonename);
+          }
 
-          for(DNSResourceRecord& rr : new_records) {
-            rr.domain_id = di.id;
-            if (rr.qtype.getCode() == QType::SOA && rr.qname==zonename) {
-              soa_edit_done = increaseSOARecord(rr, soa_edit_api_kind, soa_edit_kind);
+          if (replace_comments) {
+            gatherComments(rrset, qname, qtype, new_comments);
+
+            for(Comment& c : new_comments) {
+              c.domain_id = static_cast<int>(di.id);
             }
           }
-          checkNewRecords(new_records, zonename);
         }
-
-        if (replace_comments) {
-          gatherComments(rrset, qname, qtype, new_comments);
-
-          for(Comment& c : new_comments) {
-            c.domain_id = di.id;
-          }
+        catch (const JsonException& e) {
+          throw ApiException("New RRsets are invalid: " + string(e.what()));
         }
 
         if (replace_records) {
@@ -2164,6 +2303,10 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
 
           if (dname_seen && ns_seen && qname != zonename) {
             throw ApiException("RRset "+qname.toString()+" IN "+qtype.toString()+": Cannot have both NS and DNAME except in zone apex");
+          }
+          if (!new_records.empty() && di.kind == DomainInfo::Consumer) {
+            // Allow deleting all RRsets, just not modifying them.
+            throw ApiException("Modifying RRsets in Consumer zones is unsupported");
           }
           if (!new_records.empty() && ent_present) {
             QType qt_ent{0};
@@ -2209,17 +2352,11 @@ static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp) {
 
   // Rectify
   DNSSECKeeper dk(&B);
-  if (!zone_disabled && !dk.isPresigned(zonename)) {
-    string api_rectify;
-    if (!di.backend->getDomainMetadataOne(zonename, "API-RECTIFY", api_rectify) && ::arg().mustDo("default-api-rectify")) {
-      api_rectify = "1";
-    }
-    if (api_rectify == "1") {
-      string info;
-      string error_msg;
-      if (!dk.rectifyZone(zonename, error_msg, info, false)) {
-        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
-      }
+  if (!zone_disabled && !dk.isPresigned(zonename) && isZoneApiRectifyEnabled(di)) {
+    string info;
+    string error_msg;
+    if (!dk.rectifyZone(zonename, error_msg, info, false)) {
+      throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
     }
   }
 
@@ -2352,7 +2489,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
     if (B.getDomainInfo(canon, di, false)) {
       // zone exists (uncached), add/update it in the zone cache.
       // Handle this first, to avoid concurrent queries re-populating the other caches.
-      g_zoneCache.add(di.zone, di.id);
+      g_zoneCache.add(di.zone, static_cast<int>(di.id));
     }
     else {
       g_zoneCache.remove(di.zone);
