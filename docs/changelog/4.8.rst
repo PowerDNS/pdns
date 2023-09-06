@@ -33,7 +33,7 @@ Changelogs for 4.8.x
     :tags: Bug Fixes
     :pullreq: 12992
 
-    YaHTTP: Prevent integer overflow on very large chunks
+    YaHTTP: Prevent integer overflow on very 3large chunks
 
   .. change::
     :tags: Improvements
