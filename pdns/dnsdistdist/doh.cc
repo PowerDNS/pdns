@@ -1731,4 +1731,4 @@ void H2ODOHFrontend::setup()
 }
 
 #endif /* HAVE_LIBH2OEVLOOP */
-#endif /* HAVE_LIBH2OEVLOOP */
+#endif /* HAVE_DNS_OVER_HTTPS */

@@ -207,7 +207,7 @@ dnsdist_SOURCES = \
 	dnsparser.hh dnsparser.cc \
 	dnstap.cc dnstap.hh \
 	dnswriter.cc dnswriter.hh \
-	doh.hh doh.cc \
+	doh.hh \
 	dolog.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
@@ -424,6 +424,7 @@ dnsdist_LDADD += -lgnutls
 endif
 
 if HAVE_LIBH2OEVLOOP
+dnsdist_SOURCES += doh.cc
 dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
 endif
 
