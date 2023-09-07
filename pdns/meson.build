@@ -163,7 +163,8 @@ libpdns = declare_dependency(
     'pdns',
     'arguments.cc',
     'axfr-retriever.cc',
-    'backends/gsql/gsqlbackend.cc',
+    # TODO Move to a separate module
+    'backends' / 'gsql' / 'gsqlbackend.cc',
     'base32.cc',
     'base64.cc',
     'communicator.cc',
