@@ -483,6 +483,7 @@ bin_PROGRAMS += \
 
 fuzz_targets_libs = \
 	$(LIBCRYPTO_LIBS) \
+	$(ARC4RANDOM_LIBS) \
 	$(LIB_FUZZING_ENGINE)
 
 fuzz_targets_ldflags = \
