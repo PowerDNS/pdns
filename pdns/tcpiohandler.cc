@@ -1826,25 +1826,25 @@ bool TLSFrontend::setupTLS()
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
   std::shared_ptr<TLSCtx> newCtx{nullptr};
   /* get the "best" available provider */
-#ifdef HAVE_GNUTLS
+#if defined(HAVE_GNUTLS)
   if (d_provider == "gnutls") {
     newCtx = std::make_shared<GnuTLSIOCtx>(*this);
   }
 #endif /* HAVE_GNUTLS */
-#ifdef HAVE_LIBSSL
+#if defined(HAVE_LIBSSL)
   if (d_provider == "openssl") {
     newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
   }
 #endif /* HAVE_LIBSSL */
 
   if (!newCtx) {
-#ifdef HAVE_LIBSSL
+#if defined(HAVE_LIBSSL)
     newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
-#else /* HAVE_LIBSSL */
-#ifdef HAVE_GNUTLS
+#elif defined(HAVE_GNUTLS)
     newCtx = std::make_shared<GnuTLSIOCtx>(*this);
-#endif /* HAVE_GNUTLS */
-#endif /* HAVE_LIBSSL */
+#else
+#error "TLS support needed but neither libssl nor GnuTLS were selected"
+#endif
   }
 
   if (d_alpn == ALPN::DoT) {
@@ -1864,25 +1864,25 @@ std::shared_ptr<TLSCtx> getTLSContext([[maybe_unused]] const TLSContextParameter
 #ifdef HAVE_DNS_OVER_TLS
   /* get the "best" available provider */
   if (!params.d_provider.empty()) {
-#ifdef HAVE_GNUTLS
+#if defined(HAVE_GNUTLS)
     if (params.d_provider == "gnutls") {
       return std::make_shared<GnuTLSIOCtx>(params);
     }
 #endif /* HAVE_GNUTLS */
-#ifdef HAVE_LIBSSL
+#if defined(HAVE_LIBSSL)
     if (params.d_provider == "openssl") {
       return std::make_shared<OpenSSLTLSIOCtx>(params);
     }
 #endif /* HAVE_LIBSSL */
   }
 
-#ifdef HAVE_LIBSSL
+#if defined(HAVE_LIBSSL)
   return std::make_shared<OpenSSLTLSIOCtx>(params);
-#else /* HAVE_LIBSSL */
-#ifdef HAVE_GNUTLS
+#elif defined(HAVE_GNUTLS)
   return std::make_shared<GnuTLSIOCtx>(params);
-#endif /* HAVE_GNUTLS */
-#endif /* HAVE_LIBSSL */
+#else
+#error "DNS over TLS support needed but neither libssl nor GnuTLS were selected"
+#endif
 
 #endif /* HAVE_DNS_OVER_TLS */
   return nullptr;
