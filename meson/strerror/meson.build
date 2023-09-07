@@ -1,4 +1,4 @@
-prog = fs.read('strerror_r.cc')
+prog = fs.read('strerror_r.c')
 
 have_strerror_r_decl = cxx.has_header_symbol('string.h', 'strerror_r')
 have_strerror_r = cxx.has_function('strerror_r', prefix: '#include <string.h>')
