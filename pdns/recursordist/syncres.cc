@@ -878,7 +878,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName& qname, const QType qtype, con
 //! This is the 'out of band resolver', in other words, the authoritative server
 void SyncRes::AuthDomain::addSOA(std::vector<DNSRecord>& records) const
 {
-  SyncRes::AuthDomain::records_t::const_iterator ziter = d_records.find(std::make_tuple(getName(), QType::SOA));
+  SyncRes::AuthDomain::records_t::const_iterator ziter = d_records.find(std::tuple(getName(), QType::SOA));
   if (ziter != d_records.end()) {
     DNSRecord dr = *ziter;
     dr.d_place = DNSResourceRecord::AUTHORITY;
@@ -958,7 +958,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
 
   DNSName wcarddomain(qname);
   while (wcarddomain != getName() && wcarddomain.chopOff()) {
-    range = d_records.equal_range(std::make_tuple(g_wildcarddnsname + wcarddomain));
+    range = d_records.equal_range(std::tuple(g_wildcarddnsname + wcarddomain));
     if (range.first == range.second)
       continue;
 
@@ -982,7 +982,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
   /* Nothing for this name, no wildcard, let's see if there is some NS */
   DNSName nsdomain(qname);
   while (nsdomain.chopOff() && nsdomain != getName()) {
-    range = d_records.equal_range(std::make_tuple(nsdomain, QType::NS));
+    range = d_records.equal_range(std::tuple(nsdomain, QType::NS));
     if (range.first == range.second)
       continue;
 
@@ -1230,22 +1230,22 @@ void SyncRes::clearThrottle()
 
 bool SyncRes::isThrottled(time_t now, const ComboAddress& server, const DNSName& target, QType qtype)
 {
-  return s_throttle.lock()->shouldThrottle(now, std::make_tuple(server, target, qtype));
+  return s_throttle.lock()->shouldThrottle(now, std::tuple(server, target, qtype));
 }
 
 bool SyncRes::isThrottled(time_t now, const ComboAddress& server)
 {
-  return s_throttle.lock()->shouldThrottle(now, std::make_tuple(server, g_rootdnsname, 0));
+  return s_throttle.lock()->shouldThrottle(now, std::tuple(server, g_rootdnsname, 0));
 }
 
 void SyncRes::doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries)
 {
-  s_throttle.lock()->throttle(now, std::make_tuple(server, g_rootdnsname, 0), duration, tries);
+  s_throttle.lock()->throttle(now, std::tuple(server, g_rootdnsname, 0), duration, tries);
 }
 
 void SyncRes::doThrottle(time_t now, const ComboAddress& server, const DNSName& name, QType qtype, time_t duration, unsigned int tries)
 {
-  s_throttle.lock()->throttle(now, std::make_tuple(server, name, qtype), duration, tries);
+  s_throttle.lock()->throttle(now, std::tuple(server, name, qtype), duration, tries);
 }
 
 uint64_t SyncRes::doDumpThrottleMap(int fd)

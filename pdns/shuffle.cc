@@ -130,7 +130,7 @@ static uint16_t mapTypesToOrder(uint16_t type)
 void pdns::orderAndShuffle(vector<DNSRecord>& rrs, bool includingAdditionals)
 {
   std::stable_sort(rrs.begin(), rrs.end(), [](const DNSRecord& a, const DNSRecord& b) {
-    return std::make_tuple(a.d_place, mapTypesToOrder(a.d_type)) < std::make_tuple(b.d_place, mapTypesToOrder(b.d_type));
+    return std::tuple(a.d_place, mapTypesToOrder(a.d_type)) < std::tuple(b.d_place, mapTypesToOrder(b.d_type));
   });
   shuffle(rrs, includingAdditionals);
 }

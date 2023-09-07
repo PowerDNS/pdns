@@ -60,8 +60,8 @@ private:
       for(const auto& m : rhs.opts)
         rhsoopts[m.first]=m.second;
 
-      return std::make_tuple(rem, url, oopts) <
-        std::make_tuple(rhs.rem, rhs.url, rhsoopts);
+      return std::tuple(rem, url, oopts) <
+        std::tuple(rhs.rem, rhs.url, rhsoopts);
     }
   };
   struct CheckState

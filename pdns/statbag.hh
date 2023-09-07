@@ -121,7 +121,7 @@ public:
       if (it == d_dnsnameqtyperings.end()) {
 	throw runtime_error("Attempting to account to nonexistent dnsname+qtype ring '"+std::string(name)+"'");
       }
-      it->second.lock()->account(std::make_tuple(dnsname, qtype));
+      it->second.lock()->account(std::tuple(dnsname, qtype));
     }
   }
 

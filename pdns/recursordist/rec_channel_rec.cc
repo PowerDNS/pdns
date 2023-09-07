@@ -913,7 +913,7 @@ static ProxyMappingStats_t* pleaseGetProxyMappingStats()
   auto ret = new ProxyMappingStats_t;
   if (t_proxyMapping) {
     for (const auto& [key, entry] : *t_proxyMapping) {
-      ret->emplace(std::make_pair(key, ProxyMappingCounts{entry.stats.netmaskMatches, entry.stats.suffixMatches}));
+      ret->emplace(key, ProxyMappingCounts{entry.stats.netmaskMatches, entry.stats.suffixMatches});
     }
   }
   return ret;
@@ -925,7 +925,7 @@ static RemoteLoggerStats_t* pleaseGetRemoteLoggerStats()
 
   if (t_protobufServers.servers) {
     for (const auto& server : *t_protobufServers.servers) {
-      ret->emplace(std::make_pair(server->address(), server->getStats()));
+      ret->emplace(server->address(), server->getStats());
     }
   }
   return ret.release();
@@ -948,7 +948,7 @@ static RemoteLoggerStats_t* pleaseGetOutgoingRemoteLoggerStats()
 
   if (t_outgoingProtobufServers.servers) {
     for (const auto& server : *t_outgoingProtobufServers.servers) {
-      ret->emplace(std::make_pair(server->address(), server->getStats()));
+      ret->emplace(server->address(), server->getStats());
     }
   }
   return ret.release();
@@ -961,7 +961,7 @@ static RemoteLoggerStats_t* pleaseGetFramestreamLoggerStats()
 
   if (t_frameStreamServersInfo.servers) {
     for (const auto& server : *t_frameStreamServersInfo.servers) {
-      ret->emplace(std::make_pair(server->address(), server->getStats()));
+      ret->emplace(server->address(), server->getStats());
     }
   }
   return ret.release();
@@ -973,7 +973,7 @@ static RemoteLoggerStats_t* pleaseGetNODFramestreamLoggerStats()
 
   if (t_nodFrameStreamServersInfo.servers) {
     for (const auto& server : *t_nodFrameStreamServersInfo.servers) {
-      ret->emplace(std::make_pair(server->address(), server->getStats()));
+      ret->emplace(server->address(), server->getStats());
     }
   }
   return ret.release();

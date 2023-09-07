@@ -386,7 +386,7 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
     exit(1); // FIXME proper exit code?
   }
 
-  delayedThreads.rpzPrimaryThreads.push_back(std::make_tuple(primaries, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile));
+  delayedThreads.rpzPrimaryThreads.emplace_back(primaries, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile);
 }
 
 // A wrapper class that loads the standard Lua defintions into the context, so that we can use things like pdns.A
