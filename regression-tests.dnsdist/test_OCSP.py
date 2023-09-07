@@ -46,17 +46,19 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
     _ocspFile = 'server.ocsp'
     _caCert = 'ca.pem'
     _caKey = 'ca.key'
-    _dohServerPort = pickAvailablePort()
+    _dohWithNGHTTP2ServerPort = pickAvailablePort()
+    _dohWithH2OServerPort = pickAvailablePort()
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
 
     -- generate an OCSP response file for our certificate, valid one day
     generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { ocspResponses={"%s"}})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { ocspResponses={"%s"}, library='nghttp2'})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { ocspResponses={"%s"}, library='h2o'})
     """
-    _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_dohServerPort', '_serverCert', '_serverKey', '_ocspFile']
+    _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_serverCert', '_caCert', '_caKey', '_ocspFile', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_ocspFile', '_dohWithH2OServerPort', '_serverCert', '_serverKey', '_ocspFile']
 
     @classmethod
     def setUpClass(cls):
@@ -75,21 +77,22 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
         """
         OCSP Stapling: DOH
         """
-        output = self.checkOCSPStaplingStatus('127.0.0.1', self._dohServerPort, self._serverName, self._caCert)
-        self.assertIn('OCSP Response Status: successful (0x0)', output)
+        for port in [self._dohWithNGHTTP2ServerPort, self._dohWithH2OServerPort]:
+            output = self.checkOCSPStaplingStatus('127.0.0.1', port, self._serverName, self._caCert)
+            self.assertIn('OCSP Response Status: successful (0x0)', output)
 
-        serialNumber = self.getOCSPSerial(output)
-        self.assertTrue(serialNumber)
+            serialNumber = self.getOCSPSerial(output)
+            self.assertTrue(serialNumber)
 
-        self.generateNewCertificateAndKey()
-        self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
-        self.sendConsoleCommand("reloadAllCertificates()")
+            self.generateNewCertificateAndKey()
+            self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
+            self.sendConsoleCommand("reloadAllCertificates()")
 
-        output = self.checkOCSPStaplingStatus('127.0.0.1', self._dohServerPort, self._serverName, self._caCert)
-        self.assertIn('OCSP Response Status: successful (0x0)', output)
-        serialNumber2 = self.getOCSPSerial(output)
-        self.assertTrue(serialNumber2)
-        self.assertNotEqual(serialNumber, serialNumber2)
+            output = self.checkOCSPStaplingStatus('127.0.0.1', port, self._serverName, self._caCert)
+            self.assertIn('OCSP Response Status: successful (0x0)', output)
+            serialNumber2 = self.getOCSPSerial(output)
+            self.assertTrue(serialNumber2)
+            self.assertNotEqual(serialNumber, serialNumber2)
 
 class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
 
@@ -101,22 +104,26 @@ class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
     _caCert = 'ca.pem'
     # invalid OCSP file!
     _ocspFile = '/dev/null'
-    _tlsServerPort = pickAvailablePort()
+    _dohWithNGHTTP2ServerPort = pickAvailablePort()
+    _dohWithH2OServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     setKey("%s")
     controlSocket("127.0.0.1:%s")
 
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { ocspResponses={"%s"}})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { ocspResponses={"%s"}, library='nghttp2'})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { ocspResponses={"%s"}, library='h2o'})
+
     """
-    _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_tlsServerPort', '_serverCert', '_serverKey', '_ocspFile']
+    _config_params = ['_testServerPort', '_consoleKeyB64', '_consolePort', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_ocspFile', '_dohWithH2OServerPort', '_serverCert', '_serverKey', '_ocspFile']
 
     def testBrokenOCSPStapling(self):
         """
         OCSP Stapling: Broken (DoH)
         """
-        output = self.checkOCSPStaplingStatus('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert)
-        self.assertNotIn('OCSP Response Status: successful (0x0)', output)
+        for port in [self._dohWithNGHTTP2ServerPort, self._dohWithH2OServerPort]:
+            output = self.checkOCSPStaplingStatus('127.0.0.1', port, self._serverName, self._caCert)
+            self.assertNotIn('OCSP Response Status: successful (0x0)', output)
 
 class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
 

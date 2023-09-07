@@ -57,6 +57,7 @@
 #include "dnsdist-web.hh"
 
 #include "base64.hh"
+#include "doh.hh"
 #include "dolog.hh"
 #include "sodcrypto.hh"
 #include "threadname.hh"
@@ -225,6 +226,7 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
   getOptionalValue<bool>(vars, "enableRenegotiation", config.d_enableRenegotiation);
   getOptionalValue<bool>(vars, "tlsAsyncMode", config.d_asyncMode);
   getOptionalValue<bool>(vars, "ktls", config.d_ktls);
+  getOptionalValue<bool>(vars, "readAhead", config.d_readAhead);
 }
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
@@ -2336,31 +2338,61 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaSideEffect();
 
     auto frontend = std::make_shared<DOHFrontend>();
+    if (getOptionalValue<std::string>(vars, "library", frontend->d_library) == 0) {
+#ifdef HAVE_NGHTTP2
+      frontend->d_library = "nghttp2";
+#else /* HAVE_NGHTTP2 */
+        frontend->d_library = "h2o";
+#endif /* HAVE_NGHTTP2 */
+    }
+    if (frontend->d_library == "h2o") {
+#ifdef HAVE_LIBH2OEVLOOP
+      frontend = std::make_shared<H2ODOHFrontend>();
+      // we _really_ need to set it again, as we just replaced the generic frontend by a new one
+      frontend->d_library = "h2o";
+#else /* HAVE_LIBH2OEVLOOP */
+        errlog("DOH bind %s is configured to use libh2o but the library is not available", addr);
+        return;
+#endif /* HAVE_LIBH2OEVLOOP */
+    }
+    else if (frontend->d_library == "nghttp2") {
+#ifndef HAVE_NGHTTP2
+      errlog("DOH bind %s is configured to use nghttp2 but the library is not available", addr);
+      return;
+#endif /* HAVE_NGHTTP2 */
+    }
+    else {
+      errlog("DOH bind %s is configured to use an unknown library ('%s')", addr, frontend->d_library);
+      return;
+    }
+
+    bool useTLS = true;
     if (certFiles && !certFiles->empty()) {
-      if (!loadTLSCertificateAndKeys("addDOHLocal", frontend->d_tlsConfig.d_certKeyPairs, *certFiles, *keyFiles)) {
+      if (!loadTLSCertificateAndKeys("addDOHLocal", frontend->d_tlsContext.d_tlsConfig.d_certKeyPairs, *certFiles, *keyFiles)) {
         return;
       }
 
-      frontend->d_local = ComboAddress(addr, 443);
+      frontend->d_tlsContext.d_addr = ComboAddress(addr, 443);
     }
     else {
-      frontend->d_local = ComboAddress(addr, 80);
-      infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", frontend->d_local.toStringWithPort());
+      frontend->d_tlsContext.d_addr = ComboAddress(addr, 80);
+      infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", frontend->d_tlsContext.d_addr.toStringWithPort());
+      useTLS = false;
     }
 
     if (urls) {
       if (urls->type() == typeid(std::string)) {
-        frontend->d_urls.push_back(boost::get<std::string>(*urls));
+        frontend->d_urls.insert(boost::get<std::string>(*urls));
       }
       else if (urls->type() == typeid(LuaArray<std::string>)) {
         auto urlsVect = boost::get<LuaArray<std::string>>(*urls);
         for (const auto& p : urlsVect) {
-          frontend->d_urls.push_back(p.second);
+          frontend->d_urls.insert(p.second);
         }
       }
     }
     else {
-      frontend->d_urls = {"/dns-query"};
+      frontend->d_urls.insert("/dns-query");
     }
 
     bool reusePort = false;
@@ -2376,6 +2408,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
       getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
       getOptionalValue<std::string>(vars, "serverTokens", frontend->d_serverTokens);
+      getOptionalValue<std::string>(vars, "provider", frontend->d_tlsContext.d_provider);
+      boost::algorithm::to_lower(frontend->d_tlsContext.d_provider);
+      getOptionalValue<bool>(vars, "proxyProtocolOutsideTLS", frontend->d_tlsContext.d_proxyProtocolOutsideTLS);
 
       LuaAssociativeTable<std::string> customResponseHeaders;
       if (getOptionalValue<decltype(customResponseHeaders)>(vars, "customResponseHeaders", customResponseHeaders) > 0) {
@@ -2388,6 +2423,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       getOptionalValue<bool>(vars, "sendCacheControlHeaders", frontend->d_sendCacheControlHeaders);
       getOptionalValue<bool>(vars, "keepIncomingHeaders", frontend->d_keepIncomingHeaders);
       getOptionalValue<bool>(vars, "trustForwardedForHeader", frontend->d_trustForwardedForHeader);
+      getOptionalValue<bool>(vars, "earlyACLDrop", frontend->d_earlyACLDrop);
       getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
       getOptionalValue<bool>(vars, "exactPathMatching", frontend->d_exactPathMatching);
 
@@ -2405,7 +2441,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         }
       }
 
-      parseTLSConfig(frontend->d_tlsConfig, "addDOHLocal", vars);
+      parseTLSConfig(frontend->d_tlsContext.d_tlsConfig, "addDOHLocal", vars);
 
       bool ignoreTLSConfigurationErrors = false;
       if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
@@ -2413,7 +2449,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         // and properly ignore the frontend before actually launching it
         try {
           std::map<int, std::string> ocspResponses = {};
-          auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
+          auto ctx = libssl_init_server_context(frontend->d_tlsContext.d_tlsConfig, ocspResponses);
         }
         catch (const std::runtime_error& e) {
           errlog("Ignoring DoH frontend: '%s'", e.what());
@@ -2423,8 +2459,23 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       checkAllParametersConsumed("addDOHLocal", vars);
     }
+
+    if (useTLS && frontend->d_library == "nghttp2") {
+      if (!frontend->d_tlsContext.d_provider.empty()) {
+        vinfolog("Loading TLS provider '%s'", frontend->d_tlsContext.d_provider);
+      }
+      else {
+#ifdef HAVE_LIBSSL
+        const std::string provider("openssl");
+#else
+          const std::string provider("gnutls");
+#endif
+        vinfolog("Loading default TLS provider '%s'", provider);
+      }
+    }
+
     g_dohlocals.push_back(frontend);
-    auto cs = std::make_unique<ClientState>(frontend->d_local, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
+    auto cs = std::make_unique<ClientState>(frontend->d_tlsContext.d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
     cs->dohFrontend = frontend;
     cs->d_additionalAddresses = std::move(additionalAddresses);
 
@@ -2435,9 +2486,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       cs->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
     }
     g_frontends.push_back(std::move(cs));
-#else
+#else /* HAVE_DNS_OVER_HTTPS */
       throw std::runtime_error("addDOHLocal() called but DNS over HTTPS support is not present!");
-#endif
+#endif /* HAVE_DNS_OVER_HTTPS */
   });
 
   luaCtx.writeFunction("showDOHFrontends", []() {
@@ -2449,7 +2500,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       ret << (fmt % "#" % "Address" % "HTTP" % "HTTP/1" % "HTTP/2" % "GET" % "POST" % "Bad" % "Errors" % "Redirects" % "Valid" % "# ticket keys" % "Rotation delay" % "Next rotation") << endl;
       size_t counter = 0;
       for (const auto& ctx : g_dohlocals) {
-        ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_httpconnects % ctx->d_http1Stats.d_nbQueries % ctx->d_http2Stats.d_nbQueries % ctx->d_getqueries % ctx->d_postqueries % ctx->d_badrequests % ctx->d_errorresponses % ctx->d_redirectresponses % ctx->d_validresponses % ctx->getTicketsKeysCount() % ctx->getTicketsKeyRotationDelay() % ctx->getNextTicketsKeyRotation()) << endl;
+        ret << (fmt % counter % ctx->d_tlsContext.d_addr.toStringWithPort() % ctx->d_httpconnects % ctx->d_http1Stats.d_nbQueries % ctx->d_http2Stats.d_nbQueries % ctx->d_getqueries % ctx->d_postqueries % ctx->d_badrequests % ctx->d_errorresponses % ctx->d_redirectresponses % ctx->d_validresponses % ctx->getTicketsKeysCount() % ctx->getTicketsKeyRotationDelay() % ctx->getNextTicketsKeyRotation()) << endl;
         counter++;
       }
       g_outputBuffer = ret.str();
@@ -2473,7 +2524,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       ret << (fmt % "#" % "Address" % "200" % "400" % "403" % "500" % "502" % "Others") << endl;
       size_t counter = 0;
       for (const auto& ctx : g_dohlocals) {
-        ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_http1Stats.d_nb200Responses % ctx->d_http1Stats.d_nb400Responses % ctx->d_http1Stats.d_nb403Responses % ctx->d_http1Stats.d_nb500Responses % ctx->d_http1Stats.d_nb502Responses % ctx->d_http1Stats.d_nbOtherResponses) << endl;
+        ret << (fmt % counter % ctx->d_tlsContext.d_addr.toStringWithPort() % ctx->d_http1Stats.d_nb200Responses % ctx->d_http1Stats.d_nb400Responses % ctx->d_http1Stats.d_nb403Responses % ctx->d_http1Stats.d_nb500Responses % ctx->d_http1Stats.d_nb502Responses % ctx->d_http1Stats.d_nbOtherResponses) << endl;
         counter++;
       }
       g_outputBuffer += ret.str();
@@ -2483,7 +2534,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       ret << (fmt % "#" % "Address" % "200" % "400" % "403" % "500" % "502" % "Others") << endl;
       counter = 0;
       for (const auto& ctx : g_dohlocals) {
-        ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_http2Stats.d_nb200Responses % ctx->d_http2Stats.d_nb400Responses % ctx->d_http2Stats.d_nb403Responses % ctx->d_http2Stats.d_nb500Responses % ctx->d_http2Stats.d_nb502Responses % ctx->d_http2Stats.d_nbOtherResponses) << endl;
+        ret << (fmt % counter % ctx->d_tlsContext.d_addr.toStringWithPort() % ctx->d_http2Stats.d_nb200Responses % ctx->d_http2Stats.d_nb400Responses % ctx->d_http2Stats.d_nb403Responses % ctx->d_http2Stats.d_nb500Responses % ctx->d_http2Stats.d_nb502Responses % ctx->d_http2Stats.d_nbOtherResponses) << endl;
         counter++;
       }
       g_outputBuffer += ret.str();
@@ -2537,7 +2588,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, boost::variant<std::string, LuaArray<std::string>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<DOHFrontend> frontend, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, boost::variant<std::string, LuaArray<std::string>> keyFiles) {
 #ifdef HAVE_DNS_OVER_HTTPS
     if (frontend != nullptr) {
-      if (loadTLSCertificateAndKeys("DOHFrontend::loadNewCertificatesAndKeys", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
+      if (loadTLSCertificateAndKeys("DOHFrontend::loadNewCertificatesAndKeys", frontend->d_tlsContext.d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
         frontend->reloadCertificates();
       }
     }
@@ -2579,7 +2630,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     setLuaSideEffect();
 
-    shared_ptr<TLSFrontend> frontend = std::make_shared<TLSFrontend>();
+    auto frontend = std::make_shared<TLSFrontend>(TLSFrontend::ALPN::DoT);
     if (!loadTLSCertificateAndKeys("addTLSLocal", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
       return;
     }
@@ -2598,6 +2649,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       getOptionalValue<std::string>(vars, "provider", frontend->d_provider);
       boost::algorithm::to_lower(frontend->d_provider);
+      getOptionalValue<bool>(vars, "proxyProtocolOutsideTLS", frontend->d_proxyProtocolOutsideTLS);
 
       LuaArray<std::string> addresses;
       if (getOptionalValue<decltype(addresses)>(vars, "additionalAddresses", addresses) > 0) {
@@ -2639,10 +2691,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
       else {
 #ifdef HAVE_LIBSSL
-        vinfolog("Loading default TLS provider 'openssl'");
+        const std::string provider("openssl");
 #else
-          vinfolog("Loading default TLS provider 'gnutls'");
+          const std::string provider("gnutls");
 #endif
+        vinfolog("Loading default TLS provider '%s'", provider);
       }
       // only works pre-startup, so no sync necessary
       auto cs = std::make_unique<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus);

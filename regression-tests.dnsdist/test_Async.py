@@ -86,6 +86,16 @@ asyncResponder.daemon = True
 asyncResponder.start()
 
 class AsyncTests(object):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = pickAvailablePort()
+    _dohWithNGHTTP2ServerPort = pickAvailablePort()
+    _dohWithH2OServerPort = pickAvailablePort()
+    _dohWithNGHTTP2BaseURL = ("https://%s:%d/" % (_serverName, _dohWithNGHTTP2ServerPort))
+    _dohWithH2OBaseURL = ("https://%s:%d/" % (_serverName, _dohWithH2OServerPort))
+
     def testPass(self):
         """
         Async: Accept
@@ -101,22 +111,12 @@ class AsyncTests(object):
                                         '192.0.2.1')
             response.answer.append(rrset)
 
-            for method in ("sendUDPQuery", "sendTCPQuery"):
+            for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
                 sender = getattr(self, method)
                 (receivedQuery, receivedResponse) = sender(query, response)
                 receivedQuery.id = query.id
                 self.assertEqual(query, receivedQuery)
                 self.assertEqual(response, receivedResponse)
-
-            (receivedQuery, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(response, receivedResponse)
-
-            (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(response, receivedResponse)
 
     def testPassCached(self):
         """
@@ -133,28 +133,20 @@ class AsyncTests(object):
                                     '192.0.2.1')
         response.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
-            # first time to fill the cache
+        for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
             sender = getattr(self, method)
-            (receivedQuery, receivedResponse) = sender(query, response)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(response, receivedResponse)
+            if method != 'sendDOTQueryWrapper' and method != 'sendDOHWithH2OQueryWrapper':
+                # first time to fill the cache
+                # disabled for DoT since it was already filled via TCP
+                (receivedQuery, receivedResponse) = sender(query, response)
+                receivedQuery.id = query.id
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
+
             # second time from the cache
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(response, receivedResponse)
-
-        (_, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=None, useQueue=False, caFile=self._caCert)
-        self.assertEqual(response, receivedResponse)
-
-        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
-        receivedQuery.id = query.id
-        self.assertEqual(query, receivedQuery)
-        self.assertEqual(response, receivedResponse)
-
-        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=None, useQueue=False, caFile=self._caCert)
-        self.assertEqual(response, receivedResponse)
 
     def testTimeoutThenAccept(self):
         """
@@ -171,22 +163,12 @@ class AsyncTests(object):
                                         '192.0.2.1')
             response.answer.append(rrset)
 
-            for method in ("sendUDPQuery", "sendTCPQuery"):
+            for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
                 sender = getattr(self, method)
                 (receivedQuery, receivedResponse) = sender(query, response)
                 receivedQuery.id = query.id
                 self.assertEqual(query, receivedQuery)
                 self.assertEqual(response, receivedResponse)
-
-            (receivedQuery, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(response, receivedResponse)
-
-            (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(response, receivedResponse)
 
     def testAcceptThenTimeout(self):
         """
@@ -203,22 +185,12 @@ class AsyncTests(object):
                                         '192.0.2.1')
             response.answer.append(rrset)
 
-            for method in ("sendUDPQuery", "sendTCPQuery"):
+            for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
                 sender = getattr(self, method)
                 (receivedQuery, receivedResponse) = sender(query, response)
                 receivedQuery.id = query.id
                 self.assertEqual(query, receivedQuery)
                 self.assertEqual(response, receivedResponse)
-
-            (receivedQuery, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(response, receivedResponse)
-
-            (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(response, receivedResponse)
 
     def testAcceptThenRefuse(self):
         """
@@ -239,22 +211,12 @@ class AsyncTests(object):
             expectedResponse.flags |= dns.flags.RA
             expectedResponse.set_rcode(dns.rcode.REFUSED)
 
-            for method in ("sendUDPQuery", "sendTCPQuery"):
+            for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
                 sender = getattr(self, method)
                 (receivedQuery, receivedResponse) = sender(query, response)
                 receivedQuery.id = query.id
                 self.assertEqual(query, receivedQuery)
                 self.assertEqual(expectedResponse, receivedResponse)
-
-            (receivedQuery, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(expectedResponse, receivedResponse)
-
-            (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(expectedResponse, receivedResponse)
 
     def testAcceptThenCustom(self):
         """
@@ -278,22 +240,12 @@ class AsyncTests(object):
             expectedResponse.flags |= dns.flags.RA
             expectedResponse.set_rcode(dns.rcode.FORMERR)
 
-            for method in ("sendUDPQuery", "sendTCPQuery"):
+            for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
                 sender = getattr(self, method)
                 (receivedQuery, receivedResponse) = sender(query, response)
                 receivedQuery.id = query.id
                 self.assertEqual(query, receivedQuery)
                 self.assertEqual(expectedResponse, receivedResponse)
-
-            (receivedQuery, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(expectedResponse, receivedResponse)
-
-            (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(expectedResponse, receivedResponse)
 
     def testAcceptThenDrop(self):
         """
@@ -310,22 +262,12 @@ class AsyncTests(object):
                                         '192.0.2.1')
             response.answer.append(rrset)
 
-            for method in ("sendUDPQuery", "sendTCPQuery"):
+            for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
                 sender = getattr(self, method)
                 (receivedQuery, receivedResponse) = sender(query, response)
                 receivedQuery.id = query.id
                 self.assertEqual(query, receivedQuery)
                 self.assertEqual(receivedResponse, None)
-
-            (receivedQuery, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(receivedResponse, None)
-
-            (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert)
-            receivedQuery.id = query.id
-            self.assertEqual(query, receivedQuery)
-            self.assertEqual(receivedResponse, None)
 
     def testRefused(self):
         """
@@ -338,17 +280,11 @@ class AsyncTests(object):
         expectedResponse.flags |= dns.flags.RA
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
-
-        (_, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=None, caFile=self._caCert, useQueue=False)
-        self.assertEqual(expectedResponse, receivedResponse)
-
-        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=None, caFile=self._caCert, useQueue=False)
-        self.assertEqual(expectedResponse, receivedResponse)
 
     def testDrop(self):
         """
@@ -357,16 +293,10 @@ class AsyncTests(object):
         name = 'drop.async.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, None)
-
-        (_, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=None, caFile=self._caCert, useQueue=False)
-        self.assertEqual(receivedResponse, None)
-
-        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=None, caFile=self._caCert, useQueue=False)
-        self.assertEqual(receivedResponse, None)
 
     def testCustom(self):
         """
@@ -379,17 +309,11 @@ class AsyncTests(object):
         expectedResponse.flags |= dns.flags.RA
         expectedResponse.set_rcode(dns.rcode.FORMERR)
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
-
-        (_, receivedResponse) = self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response=None, caFile=self._caCert, useQueue=False)
-        self.assertEqual(expectedResponse, receivedResponse)
-
-        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=None, caFile=self._caCert, useQueue=False)
-        self.assertEqual(expectedResponse, receivedResponse)
 
     def testTruncation(self):
         """
@@ -397,59 +321,54 @@ class AsyncTests(object):
         """
         # the query is first forwarded over UDP, leading to a TC=1 answer from the
         # backend, then over TCP
-        name = 'timeout-then-accept.tc.async.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        query.id = 42
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
-        expectedQuery.id = 42
-        response = dns.message.make_response(query)
-        rrset = dns.rrset.from_text(name,
-                                    3600,
-                                    dns.rdataclass.IN,
-                                    dns.rdatatype.A,
-                                    '127.0.0.1')
-        response.answer.append(rrset)
 
-        # first response is a TC=1
-        tcResponse = dns.message.make_response(query)
-        tcResponse.flags |= dns.flags.TC
-        self._toResponderQueue.put(tcResponse, True, 2.0)
+        for method in ("sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
+            sender = getattr(self, method)
+            name = 'timeout-then-accept.' + method + '.tc.async.tests.powerdns.com.'
+            query = dns.message.make_query(name, 'A', 'IN')
+            query.id = 42
+            expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+            expectedQuery.id = 42
+            response = dns.message.make_response(query)
+            rrset = dns.rrset.from_text(name,
+                                        3600,
+                                        dns.rdataclass.IN,
+                                        dns.rdatatype.A,
+                                        '127.0.0.1')
+            response.answer.append(rrset)
 
-        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, response=response)
-        # first query, received by the responder over UDP
-        self.assertTrue(receivedQuery)
-        receivedQuery.id = expectedQuery.id
-        self.assertEqual(expectedQuery, receivedQuery)
-        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+            # first response is a TC=1
+            tcResponse = dns.message.make_response(query)
+            tcResponse.flags |= dns.flags.TC
+            self._toResponderQueue.put(tcResponse, True, 2.0)
 
-        # check the response
-        self.assertTrue(receivedResponse)
-        self.assertEqual(response, receivedResponse)
+            # first query, received by the responder over UDP
+            (receivedQuery, receivedResponse) = sender(query, response=response)
+            self.assertTrue(receivedQuery)
+            receivedQuery.id = expectedQuery.id
+            self.assertEqual(expectedQuery, receivedQuery)
+            self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
 
-        # check the second query, received by the responder over TCP
-        receivedQuery = self._fromResponderQueue.get(True, 2.0)
-        self.assertTrue(receivedQuery)
-        receivedQuery.id = expectedQuery.id
-        self.assertEqual(expectedQuery, receivedQuery)
-        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+            # check the response
+            self.assertTrue(receivedResponse)
+            self.assertEqual(response, receivedResponse)
+
+            # check the second query, received by the responder over TCP
+            receivedQuery = self._fromResponderQueue.get(True, 2.0)
+            self.assertTrue(receivedQuery)
+            receivedQuery.id = expectedQuery.id
+            self.assertEqual(expectedQuery, receivedQuery)
+            self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
 
 @unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestAsyncFFI(DNSDistTest, AsyncTests):
-
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
-    _tlsServerPort = pickAvailablePort()
-    _dohServerPort = pickAvailablePort()
-    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
-
     _config_template = """
-    newServer{address="127.0.0.1:%s", pool={'', 'cache'}}
-    newServer{address="127.0.0.1:%s", pool="tcp-only", tcpOnly=true }
+    newServer{address="127.0.0.1:%d", pool={'', 'cache'}}
+    newServer{address="127.0.0.1:%d", pool="tcp-only", tcpOnly=true }
 
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/"})
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library="h2o"})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library="nghttp2"})
 
     local ffi = require("ffi")
     local C = ffi.C
@@ -540,26 +459,18 @@ class TestAsyncFFI(DNSDistTest, AsyncTests):
     """
     _asyncResponderSocketPath = asyncResponderSocketPath
     _dnsdistSocketPath = dnsdistSocketPath
-    _config_params = ['_testServerPort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohServerPort', '_serverCert', '_serverKey', '_asyncResponderSocketPath', '_dnsdistSocketPath']
+    _config_params = ['_testServerPort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohWithH2OServerPort', '_serverCert', '_serverKey', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_asyncResponderSocketPath', '_dnsdistSocketPath']
     _verboseMode = True
 
 @unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestAsyncLua(DNSDistTest, AsyncTests):
-
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
-    _serverName = 'tls.tests.dnsdist.org'
-    _caCert = 'ca.pem'
-    _tlsServerPort = pickAvailablePort()
-    _dohServerPort = pickAvailablePort()
-    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
-
     _config_template = """
-    newServer{address="127.0.0.1:%s", pool={'', 'cache'}}
-    newServer{address="127.0.0.1:%s", pool="tcp-only", tcpOnly=true }
+    newServer{address="127.0.0.1:%d", pool={'', 'cache'}}
+    newServer{address="127.0.0.1:%d", pool="tcp-only", tcpOnly=true }
 
-    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/"})
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library="h2o"})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library="nghttp2"})
 
     local filteringTagName = 'filtering'
     local filteringTagValue = 'pass'
@@ -648,5 +559,5 @@ class TestAsyncLua(DNSDistTest, AsyncTests):
     """
     _asyncResponderSocketPath = asyncResponderSocketPath
     _dnsdistSocketPath = dnsdistSocketPath
-    _config_params = ['_testServerPort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohServerPort', '_serverCert', '_serverKey', '_asyncResponderSocketPath', '_dnsdistSocketPath']
+    _config_params = ['_testServerPort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohWithH2OServerPort', '_serverCert', '_serverKey', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_asyncResponderSocketPath', '_dnsdistSocketPath']
     _verboseMode = True

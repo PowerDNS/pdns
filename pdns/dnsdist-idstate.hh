@@ -22,6 +22,7 @@
 #pragma once
 
 #include "config.h"
+#include "dnscrypt.hh"
 #include "dnsname.hh"
 #include "dnsdist-protocols.hh"
 #include "gettime.hh"
@@ -29,11 +30,12 @@
 #include "uuid-utils.hh"
 
 struct ClientState;
-struct DOHUnit;
+struct DOHUnitInterface;
 class DNSCryptQuery;
 class DNSDistPacketCache;
 
 using QTag = std::unordered_map<string, string>;
+using HeadersMap = std::unordered_map<std::string, std::string>;
 
 struct StopWatch
 {
@@ -89,6 +91,8 @@ private:
   bool d_needRealTime;
 };
 
+class CrossProtocolContext;
+
 struct InternalQueryState
 {
   struct ProtoBufData
@@ -99,12 +103,7 @@ struct InternalQueryState
     std::string d_requestorID;
   };
 
-  static void DeleterPlaceHolder(DOHUnit*)
-  {
-  }
-
-  InternalQueryState() :
-    du(std::unique_ptr<DOHUnit, void (*)(DOHUnit*)>(nullptr, DeleterPlaceHolder))
+  InternalQueryState()
   {
     origDest.sin4.sin_family = 0;
   }
@@ -130,7 +129,9 @@ struct InternalQueryState
   std::unique_ptr<ProtoBufData> d_protoBufData{nullptr};
   boost::optional<uint32_t> tempFailureTTL{boost::none}; // 8
   ClientState* cs{nullptr}; // 8
-  std::unique_ptr<DOHUnit, void (*)(DOHUnit*)> du; // 8
+  std::unique_ptr<DOHUnitInterface> du; // 8
+  size_t d_proxyProtocolPayloadSize{0}; // 8
+  int32_t d_streamID{-1}; // 4
   uint32_t cacheKey{0}; // 4
   uint32_t cacheKeyNoECS{0}; // 4
   // DoH-only */

@@ -557,7 +557,7 @@ private:
 class HTTPPathRule : public DNSRule
 {
 public:
-  HTTPPathRule(const std::string& path);
+  HTTPPathRule(std::string path);
   bool matches(const DNSQuestion* dq) const override;
   string toString() const override;
 private:

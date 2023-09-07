@@ -147,7 +147,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
         errorCounters = &front->tlsFrontend->d_tlsCounters;
       }
       else if (front->dohFrontend != nullptr) {
-        errorCounters = &front->dohFrontend->d_tlsCounters;
+        errorCounters = &front->dohFrontend->d_tlsContext.d_tlsCounters;
       }
       if (errorCounters != nullptr) {
         str << base << "tlsdhkeytoosmall" << ' ' << errorCounters->d_dhKeyTooSmall << " " << now << "\r\n";
@@ -204,7 +204,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       std::map<std::string, uint64_t> dohFrontendDuplicates;
       const string base = "dnsdist." + hostname + ".main.doh.";
       for (const auto& doh : g_dohlocals) {
-        string name = doh->d_local.toStringWithPort();
+        string name = doh->d_tlsContext.d_addr.toStringWithPort();
         boost::replace_all(name, ".", "_");
         boost::replace_all(name, ":", "_");
         boost::replace_all(name, "[", "_");

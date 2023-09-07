@@ -831,7 +831,8 @@ These ``DNSRule``\ s be one of the following items:
   sense for DoT or DoH, and for that last one matching on the HTTP Host header using :func:`HTTPHeaderRule`
   might provide more consistent results.
   As of the version 2.3.0-beta of h2o, it is unfortunately not possible to extract the SNI value from DoH
-  connections, and it is therefore necessary to use the HTTP Host header until version 2.3.0 is released.
+  connections, and it is therefore necessary to use the HTTP Host header until version 2.3.0 is released,
+  or ``nghttp2`` is used for incoming DoH instead (1.9.0+).
 
   :param str name: The exact SNI name to match.
 

@@ -360,7 +360,7 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
 {
   ids.age = 0;
   ids.inUse = false;
-  handleDOHTimeout(std::move(ids.internal.du));
+  DOHUnitInterface::handleTimeout(std::move(ids.internal.du));
   ++reuseds;
   --outstanding;
   ++dnsdist::metrics::g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
@@ -463,7 +463,7 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
         auto oldDU = std::move(it->second.internal.du);
         ++reuseds;
         ++dnsdist::metrics::g_stats.downstreamTimeouts;
-        handleDOHTimeout(std::move(oldDU));
+        DOHUnitInterface::handleTimeout(std::move(oldDU));
       }
       else {
         ++outstanding;
@@ -490,7 +490,7 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
       auto oldDU = std::move(ids.internal.du);
       ++reuseds;
       ++dnsdist::metrics::g_stats.downstreamTimeouts;
-      handleDOHTimeout(std::move(oldDU));
+      DOHUnitInterface::handleTimeout(std::move(oldDU));
     }
     else {
       ++outstanding;
@@ -513,7 +513,7 @@ void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
       /* already used */
       ++reuseds;
       ++dnsdist::metrics::g_stats.downstreamTimeouts;
-      handleDOHTimeout(std::move(state.du));
+      DOHUnitInterface::handleTimeout(std::move(state.du));
     }
     else {
       it->second.internal = std::move(state);
@@ -528,14 +528,14 @@ void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
     /* already used */
     ++reuseds;
     ++dnsdist::metrics::g_stats.downstreamTimeouts;
-    handleDOHTimeout(std::move(state.du));
+    DOHUnitInterface::handleTimeout(std::move(state.du));
     return;
   }
   if (ids.isInUse()) {
     /* already used */
     ++reuseds;
     ++dnsdist::metrics::g_stats.downstreamTimeouts;
-    handleDOHTimeout(std::move(state.du));
+    DOHUnitInterface::handleTimeout(std::move(state.du));
     return;
   }
   ids.internal = std::move(state);

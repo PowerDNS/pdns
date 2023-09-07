@@ -11,7 +11,7 @@ const bool TCPIOHandler::s_disableConnectForUnitTests = false;
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
 
-#ifdef HAVE_DNS_OVER_TLS
+#if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 #ifdef HAVE_LIBSSL
 
 #include <openssl/conf.h>
@@ -432,15 +432,6 @@ public:
     return got;
   }
 
-  bool hasBufferedData() const override
-  {
-    if (d_conn) {
-      return SSL_pending(d_conn.get()) > 0;
-    }
-
-    return false;
-  }
-
   bool isUsable() const override
   {
     if (!d_conn) {
@@ -628,6 +619,10 @@ public:
       SSL_CTX_set_tlsext_status_arg(d_feContext->d_tlsCtx.get(), &d_feContext->d_ocspResponses);
     }
 #endif /* DISABLE_OCSP_STAPLING */
+
+    if (fe.d_tlsConfig.d_readAhead) {
+      SSL_CTX_set_read_ahead(d_feContext->d_tlsCtx.get(), 1);
+    }
 
     libssl_set_error_counters_callback(d_feContext->d_tlsCtx, &fe.d_tlsCounters);
 
@@ -1440,15 +1435,6 @@ public:
     return got;
   }
 
-  bool hasBufferedData() const override
-  {
-    if (d_conn) {
-      return gnutls_record_check_pending(d_conn.get()) > 0;
-    }
-
-    return false;
-  }
-
   bool isUsable() const override
   {
     if (!d_conn) {
@@ -1811,7 +1797,7 @@ private:
 
 #endif /* HAVE_GNUTLS */
 
-#endif /* HAVE_DNS_OVER_TLS */
+#endif /* HAVE_DNS_OVER_TLS || HAVE_DNS_OVER_HTTPS */
 
 bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
 {
@@ -1824,40 +1810,52 @@ bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
   return true;
 }
 
+bool setupDoHProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
+{
+  if (ctx == nullptr) {
+    return false;
+  }
+  /* we want to set the ALPN to doh */
+  const std::vector<std::vector<uint8_t>> dohAlpns = {{'h', '2'}};
+  ctx->setALPNProtos(dohAlpns);
+  return true;
+}
+
 bool TLSFrontend::setupTLS()
 {
-#ifdef HAVE_DNS_OVER_TLS
+#if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
   std::shared_ptr<TLSCtx> newCtx{nullptr};
   /* get the "best" available provider */
-  if (!d_provider.empty()) {
-#ifdef HAVE_GNUTLS
-    if (d_provider == "gnutls") {
-      newCtx = std::make_shared<GnuTLSIOCtx>(*this);
-      setupDoTProtocolNegotiation(newCtx);
-      std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
-      return true;
-    }
-#endif /* HAVE_GNUTLS */
-#ifdef HAVE_LIBSSL
-    if (d_provider == "openssl") {
-      newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
-      setupDoTProtocolNegotiation(newCtx);
-      std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
-      return true;
-    }
-#endif /* HAVE_LIBSSL */
+#if defined(HAVE_GNUTLS)
+  if (d_provider == "gnutls") {
+    newCtx = std::make_shared<GnuTLSIOCtx>(*this);
   }
-#ifdef HAVE_LIBSSL
-  newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
-#else /* HAVE_LIBSSL */
-#ifdef HAVE_GNUTLS
-  newCtx = std::make_shared<GnuTLSIOCtx>(*this);
 #endif /* HAVE_GNUTLS */
+#if defined(HAVE_LIBSSL)
+  if (d_provider == "openssl") {
+    newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
+  }
 #endif /* HAVE_LIBSSL */
 
-  setupDoTProtocolNegotiation(newCtx);
+  if (!newCtx) {
+#if defined(HAVE_LIBSSL)
+    newCtx = std::make_shared<OpenSSLTLSIOCtx>(*this);
+#elif defined(HAVE_GNUTLS)
+    newCtx = std::make_shared<GnuTLSIOCtx>(*this);
+#else
+#error "TLS support needed but neither libssl nor GnuTLS were selected"
+#endif
+  }
+
+  if (d_alpn == ALPN::DoT) {
+    setupDoTProtocolNegotiation(newCtx);
+  }
+  else if (d_alpn == ALPN::DoH) {
+    setupDoHProtocolNegotiation(newCtx);
+  }
+
   std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
-#endif /* HAVE_DNS_OVER_TLS */
+#endif /* HAVE_DNS_OVER_TLS || HAVE_DNS_OVER_HTTPS */
   return true;
 }
 
@@ -1866,25 +1864,25 @@ std::shared_ptr<TLSCtx> getTLSContext([[maybe_unused]] const TLSContextParameter
 #ifdef HAVE_DNS_OVER_TLS
   /* get the "best" available provider */
   if (!params.d_provider.empty()) {
-#ifdef HAVE_GNUTLS
+#if defined(HAVE_GNUTLS)
     if (params.d_provider == "gnutls") {
       return std::make_shared<GnuTLSIOCtx>(params);
     }
 #endif /* HAVE_GNUTLS */
-#ifdef HAVE_LIBSSL
+#if defined(HAVE_LIBSSL)
     if (params.d_provider == "openssl") {
       return std::make_shared<OpenSSLTLSIOCtx>(params);
     }
 #endif /* HAVE_LIBSSL */
   }
 
-#ifdef HAVE_LIBSSL
+#if defined(HAVE_LIBSSL)
   return std::make_shared<OpenSSLTLSIOCtx>(params);
-#else /* HAVE_LIBSSL */
-#ifdef HAVE_GNUTLS
+#elif defined(HAVE_GNUTLS)
   return std::make_shared<GnuTLSIOCtx>(params);
-#endif /* HAVE_GNUTLS */
-#endif /* HAVE_LIBSSL */
+#else
+#error "DNS over TLS support needed but neither libssl nor GnuTLS were selected"
+#endif
 
 #endif /* HAVE_DNS_OVER_TLS */
   return nullptr;

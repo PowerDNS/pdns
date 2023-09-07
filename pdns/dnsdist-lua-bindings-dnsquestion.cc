@@ -284,7 +284,7 @@ public:
 
     struct timeval now;
     gettimeofday(&now, nullptr);
-    sender->notifyIOError(std::move(object->query.d_idstate), now);
+    sender->notifyIOError(now, TCPResponse(std::move(object->query)));
     return true;
   }
 

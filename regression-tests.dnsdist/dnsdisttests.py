@@ -624,7 +624,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return sock
 
     @classmethod
-    def openTLSConnection(cls, port, serverName, caCert=None, timeout=None):
+    def openTLSConnection(cls, port, serverName, caCert=None, timeout=None, alpn=[]):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
@@ -633,6 +633,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         # 2.7.9+
         if hasattr(ssl, 'create_default_context'):
             sslctx = ssl.create_default_context(cafile=caCert)
+            if len(alpn)> 0 and hasattr(sslctx, 'set_alpn_protocols'):
+              sslctx.set_alpn_protocols(alpn)
             sslsock = sslctx.wrap_socket(sock, server_hostname=serverName)
         else:
             sslsock = ssl.wrap_socket(sock, ca_certs=caCert, cert_reqs=ssl.CERT_REQUIRED)
@@ -655,7 +657,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     @classmethod
     def recvTCPResponseOverConnection(cls, sock, useQueue=False, timeout=2.0):
-        print("reading data")
         message = None
         data = sock.recv(2)
         if data:
@@ -669,7 +670,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         print(useQueue)
         if useQueue and not cls._fromResponderQueue.empty():
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
-            print("Got from queue")
             print(receivedQuery)
             return (receivedQuery, message)
         else:
@@ -705,7 +705,6 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         receivedQuery = None
         print(useQueue)
         if useQueue and not cls._fromResponderQueue.empty():
-            print("Got from queue")
             print(receivedQuery)
             receivedQuery = cls._fromResponderQueue.get(True, timeout)
         else:
@@ -985,18 +984,24 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return conn
 
     @classmethod
-    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[], useHTTPS=True, fromQueue=None, toQueue=None):
+    def sendDOHQuery(cls, port, servername, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, rawResponse=False, customHeaders=[], useHTTPS=True, fromQueue=None, toQueue=None, conn=None):
         url = cls.getDOHGetURL(baseurl, query, rawQuery)
-        conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
-        response_headers = BytesIO()
-        #conn.setopt(pycurl.VERBOSE, True)
-        conn.setopt(pycurl.URL, url)
-        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
+
+        if not conn:
+            conn = cls.openDOHConnection(port, caFile=caFile, timeout=timeout)
+            # this means "really do HTTP/2, not HTTP/1 with Upgrade headers"
+            conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE)
+
         if useHTTPS:
             conn.setopt(pycurl.SSL_VERIFYPEER, 1)
             conn.setopt(pycurl.SSL_VERIFYHOST, 2)
             if caFile:
                 conn.setopt(pycurl.CAINFO, caFile)
+
+        response_headers = BytesIO()
+        #conn.setopt(pycurl.VERBOSE, True)
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
 
         conn.setopt(pycurl.HTTPHEADER, customHeaders)
         conn.setopt(pycurl.HEADERFUNCTION, response_headers.write)
@@ -1036,6 +1041,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         #conn.setopt(pycurl.VERBOSE, True)
         conn.setopt(pycurl.URL, url)
         conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (servername, port)])
+        # this means "really do HTTP/2, not HTTP/1 with Upgrade headers"
+        conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE)
         if useHTTPS:
             conn.setopt(pycurl.SSL_VERIFYPEER, 1)
             conn.setopt(pycurl.SSL_VERIFYHOST, 2)
@@ -1072,6 +1079,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     def sendDOHQueryWrapper(self, query, response, useQueue=True):
         return self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
+
+    def sendDOHWithNGHTTP2QueryWrapper(self, query, response, useQueue=True):
+        return self.sendDOHQuery(self._dohWithNGHTTP2ServerPort, self._serverName, self._dohWithNGHTTP2BaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
+
+    def sendDOHWithH2OQueryWrapper(self, query, response, useQueue=True):
+        return self.sendDOHQuery(self._dohWithH2OServerPort, self._serverName, self._dohWithH2OBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
 
     def sendDOTQueryWrapper(self, query, response, useQueue=True):
         return self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response, self._caCert, useQueue=useQueue)
