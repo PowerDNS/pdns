@@ -2,6 +2,46 @@ Changelogs for 4.8.x
 ====================
 
 .. changelog::
+  :version: 4.8.2
+  :released: 7th of September 2023
+
+  This is release 4.8.2 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.8.x.
+
+  This release contains a small collection of fixes:
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13186
+
+    (I)XFR: handle partial read of len prefix
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13187
+
+    fix code producing json
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13188
+
+    calidns: fix setting an ECS source of 0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13189
+
+    Fix incorrect optsize
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13099
+
+    lmdb: when broadcasting indexes, -do- rewrite them even if they are unchanged
+
+.. changelog::
   :version: 4.8.1
   :released: 7th of July 2023
 
