@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.8.1
-  :released: TBD
+  :released: 8th of September 2023
 
   Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
 
