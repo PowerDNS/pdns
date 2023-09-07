@@ -1,0 +1,1 @@
+../../../m4/pdns_enable_fuzz_targets.m4

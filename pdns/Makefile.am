@@ -63,6 +63,7 @@ EXTRA_DIST = \
 	lua-record.cc \
 	minicurl.cc \
 	minicurl.hh \
+	standalone_fuzz_target_runner.cc \
 	api-swagger.yaml \
 	api-swagger.json \
 	requirements.txt \
@@ -1533,7 +1534,6 @@ LIB_FUZZING_ENGINE ?= standalone_fuzz_target_runner.o
 standalone_fuzz_target_runner.o: standalone_fuzz_target_runner.cc
 
 fuzz_targets_programs =  \
-	fuzz_target_dnsdistcache \
 	fuzz_target_moadnsparser \
 	fuzz_target_packetcache \
 	fuzz_target_proxyprotocol \
@@ -1606,31 +1606,6 @@ fuzz_target_proxyprotocol_SOURCES = \
 fuzz_target_proxyprotocol_DEPENDENCIES = $(fuzz_targets_deps)
 fuzz_target_proxyprotocol_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_proxyprotocol_LDADD = $(fuzz_targets_libs)
-
-fuzz_target_dnsdistcache_SOURCES = \
-	channel.hh channel.cc \
-	dns.cc dns.hh \
-	dnsdist-cache.cc dnsdist-cache.hh \
-	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-idstate.hh \
-	dnsdist-protocols.cc dnsdist-protocols.hh \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnsparser.cc dnsparser.hh \
-	dnswriter.cc dnswriter.hh \
-	doh.hh \
-	ednsoptions.cc ednsoptions.hh \
-	ednssubnet.cc ednssubnet.hh \
-	fuzz_dnsdistcache.cc \
-	iputils.cc iputils.hh \
-	misc.cc misc.hh \
-	packetcache.hh \
-	qtype.cc qtype.hh \
-	svc-records.cc svc-records.hh
-
-fuzz_target_dnsdistcache_DEPENDENCIES = $(fuzz_targets_deps)
-fuzz_target_dnsdistcache_LDFLAGS = $(fuzz_targets_ldflags)
-fuzz_target_dnsdistcache_LDADD = $(fuzz_targets_libs)
 
 fuzz_target_yahttp_SOURCES = \
 	fuzz_yahttp.cc
