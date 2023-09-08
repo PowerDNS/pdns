@@ -295,7 +295,6 @@
 ./pdns/tsigutils.hh
 ./pdns/tsigverifier.cc
 ./pdns/tsigverifier.hh
-./pdns/ueberbackend.cc
 ./pdns/ueberbackend.hh
 ./pdns/unix_semaphore.cc
 ./pdns/unix_utility.cc
