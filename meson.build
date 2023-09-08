@@ -186,6 +186,11 @@ conf.set_quoted(
   description: 'Dynamically loadable modules built along with pdns'
 )
 
+# TODO This should be cleaned up
+if get_variable('dep_sqlite3', dependency('', required: false)).found()
+  deps += dep_sqlite3
+endif
+
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
 
