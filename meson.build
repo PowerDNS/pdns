@@ -45,6 +45,7 @@ subdir('meson' / 'lua-records')             # Lua-based Records
 subdir('meson' / 'hardening')               # Hardening
 subdir('meson' / 'kiss-rng')                # Unsafe KISS RNG
 subdir('meson' / 'net-libs')                # Network Libraries
+subdir('meson' / 'mmap')                    # Check for mmap
 subdir('meson' / 'libsodium')               # Libsodium-based signers
 subdir('meson' / 'libdecaf')                # Libdecaf-based signers
 subdir('meson' / 'libcrypto')               # OpenSSL-based signers
