@@ -16,6 +16,7 @@ extras = [
 ]
 
 module_deps = [deps, dep_sqlite3]
+
 lib = static_library(
   module_backend_name,
   sources,

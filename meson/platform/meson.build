@@ -11,6 +11,7 @@ platforms = [
 ]
 
 platform_deps = []
+
 foreach platform: platforms
   name = platform[0]
   defines = platform[1]
