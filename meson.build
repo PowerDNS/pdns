@@ -20,9 +20,6 @@ summary('Build Dir', product_build_dir, section: 'Build')
 # Setup some modules
 fs = import('fs')
 
-# Check if we're running from a git checkout
-from_git = fs.exists('.git')
-
 # Create the configuration object and dependencies list.
 conf = configuration_data()
 
