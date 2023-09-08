@@ -30,5 +30,5 @@ if module_opt == 'static'
   dep = declare_dependency(link_whole: lib)
   set_variable(dep_name, dep)
 else
-  shared_module(module_backend_name, link_whole: lib)
+  shared_module(module_backend_name, link_whole: lib, name_suffix: 'so')
 endif
