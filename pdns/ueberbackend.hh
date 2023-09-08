@@ -36,7 +36,7 @@
 
 /** This is a very magic backend that allows us to load modules dynamically,
     and query them in order. This is persistent over all UeberBackend instantiations
-    across multiple threads. 
+    across multiple threads.
 
     The UeberBackend is transparent for exceptions, which should fall straight through.
 */
@@ -44,28 +44,28 @@
 class UeberBackend : public boost::noncopyable
 {
 public:
-  UeberBackend(const string &pname="default");
+  UeberBackend(const string& pname = "default");
   ~UeberBackend();
 
-  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db);
+  bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db);
 
-  bool superMasterAdd(const AutoPrimary &primary);
+  bool superMasterAdd(const AutoPrimary& primary);
   bool autoPrimaryRemove(const struct AutoPrimary& primary);
   bool autoPrimariesList(std::vector<AutoPrimary>& primaries);
 
   /** Tracks all created UeberBackend instances for us. We use this vector to notify
-      existing threads of new modules 
+      existing threads of new modules
   */
-  static LockGuarded<vector<UeberBackend *>> d_instances;
+  static LockGuarded<vector<UeberBackend*>> d_instances;
 
-  static bool loadmodule(const string &name);
+  static bool loadmodule(const string& name);
   static bool loadModules(const vector<string>& modules, const string& path);
 
   static void go(void);
 
   /** This contains all registered backends. The DynListener modifies this list for us when
       new modules are loaded */
-  vector<DNSBackend*> backends; 
+  vector<DNSBackend*> backends;
 
   void cleanup();
 
@@ -73,14 +73,14 @@ public:
   class handle
   {
   public:
-    bool get(DNSZoneRecord &dr);
+    bool get(DNSZoneRecord& dr);
     handle();
     ~handle();
 
     //! The UeberBackend class where this handle belongs to
-    UeberBackend *parent;
+    UeberBackend* parent;
     //! The current real backend, which is answering questions
-    DNSBackend *d_hinterBackend;
+    DNSBackend* d_hinterBackend;
 
     //! DNSPacket who asked this question
     DNSPacket* pkt_p;
@@ -92,28 +92,27 @@ public:
     int zoneId;
 
   private:
-
     static AtomicCounter instances;
   };
 
-  void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *pkt_p=nullptr);
+  void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr);
 
   /** Determines if we are authoritative for a zone, and at what level */
-  bool getAuth(const DNSName &target, const QType &qtype, SOAData* sd, bool cachedOk=true);
+  bool getAuth(const DNSName& target, const QType& qtype, SOAData* sd, bool cachedOk = true);
   /** Load SOA info from backends, ignoring the cache.*/
-  bool getSOAUncached(const DNSName &domain, SOAData &sd);
-  bool get(DNSZoneRecord &r);
+  bool getSOAUncached(const DNSName& domain, SOAData& sd);
+  bool get(DNSZoneRecord& r);
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
 
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
-  bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true);
-  bool createDomain(const DNSName &domain, const DomainInfo::DomainKind kind, const vector<ComboAddress> &masters, const string &account);
-  
+  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true);
+  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account);
+
   bool doesDNSSEC();
   bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id);
   bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
-  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta);
+  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta);
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::string& meta);
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
@@ -125,8 +124,8 @@ public:
   bool publishDomainKey(const DNSName& name, unsigned int id);
   bool unpublishDomainKey(const DNSName& name, unsigned int id);
 
-  void alsoNotifies(const DNSName &domain, set<string> *ips); 
-  void rediscover(string* status=0);
+  void alsoNotifies(const DNSName& domain, set<string>* ips);
+  void rediscover(string* status = 0);
   void reload();
 
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
@@ -134,8 +133,8 @@ public:
   bool getTSIGKeys(std::vector<struct TSIGKey>& keys);
   bool deleteTSIGKey(const DNSName& name);
 
-  bool searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result);
-  bool searchComments(const string &pattern, int maxResults, vector<Comment>& result);
+  bool searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result);
+  bool searchComments(const string& pattern, int maxResults, vector<Comment>& result);
 
   void updateZoneCache();
 
@@ -154,7 +153,7 @@ private:
     DNSName qname;
     int zoneId;
     QType qtype;
-  }d_question;
+  } d_question;
 
   unsigned int d_cache_ttl, d_negcache_ttl;
   uint16_t d_qtype;
@@ -166,7 +165,7 @@ private:
   bool d_stale;
   static bool s_doANYLookupsOnly;
 
-  int cacheHas(const Question &q, vector<DNSZoneRecord> &rrs);
-  void addNegCache(const Question &q);
-  void addCache(const Question &q, vector<DNSZoneRecord>&& rrs);
+  int cacheHas(const Question& q, vector<DNSZoneRecord>& rrs);
+  void addNegCache(const Question& q);
+  void addCache(const Question& q, vector<DNSZoneRecord>&& rrs);
 };
