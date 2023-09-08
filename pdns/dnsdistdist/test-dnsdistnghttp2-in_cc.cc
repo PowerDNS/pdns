@@ -500,6 +500,10 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
   pwR.xfr32BitInt(0x01020304);
   pwR.commit();
 
+  /* we _NEED_ to set this function to empty otherwise we might get what was set
+     by the last test, and we might not like it at all */
+  s_processQuery = nullptr;
+
   {
     /* dnsdist drops the query right away after receiving it, client closes the connection */
     s_connectionContexts[counter++] = ExpectedData{{}, {query}, {response}, {403U}};
