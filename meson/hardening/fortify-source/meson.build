@@ -15,7 +15,7 @@ if fortify_source
     variant_str = variant.to_string()
     if fortify_source_level == variant
       if cxx.has_argument('-D_FORTIFY_SOURCE=' + variant_str)
-        add_global_arguments('-U_FORTIFY_SOURCE', '-D_FORTIFY_SOURCE=' + variant_str, language: ['c', 'cpp'])
+        add_project_arguments('-U_FORTIFY_SOURCE', '-D_FORTIFY_SOURCE=' + variant_str, language: ['c', 'cpp'])
         break
       else
         fortify_source_level = fortify_source_level - 1

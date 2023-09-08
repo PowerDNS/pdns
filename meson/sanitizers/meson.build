@@ -5,7 +5,7 @@ if opt_sanitize == 'address' or opt_sanitize == 'address,undefined'
 endif
 
 if opt_sanitize != '' and opt_sanitize != 'none'
-  add_global_arguments('-fno-omit-frame-pointer', language: ['c', 'cpp'])
+  add_project_arguments('-fno-omit-frame-pointer', language: ['c', 'cpp'])
 endif
 
 summary('Sanitizers', opt_sanitize, bool_yn: true, section: 'Configuration')

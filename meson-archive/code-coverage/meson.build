@@ -12,7 +12,7 @@ if code_coverage
     endif
   endforeach
 
-  add_global_arguments(args, language: ['c', 'cpp'])
+  add_project_arguments(args, language: ['c', 'cpp'])
 endif
 
 summary('Code Coverage', code_coverage, bool_yn: true, section: 'Configuration')

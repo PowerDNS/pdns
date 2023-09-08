@@ -1,6 +1,6 @@
 support_stack_smashing_protector = cxx.has_argument('--param=ssp-buffer-size=4')
 if support_stack_smashing_protector
-  add_global_arguments('--param=ssp-buffer-size=4', language: ['c', 'cpp'])
+  add_project_arguments('--param=ssp-buffer-size=4', language: ['c', 'cpp'])
 endif
 
 hardening_features += [[support_stack_smashing_protector, 'Stack Smashing Protection']]

@@ -4,7 +4,7 @@ found_variant = false
 foreach variant: variants
   if ld_help.contains('-z ' + variant)
     found_variant = true
-    add_global_link_arguments('-Wl,-z', '-Wl,' + variant, language: ['c', 'cpp'])
+    add_project_link_arguments('-Wl,-z', '-Wl,' + variant, language: ['c', 'cpp'])
   endif
 endforeach
 

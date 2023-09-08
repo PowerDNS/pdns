@@ -6,7 +6,7 @@ if coverage
   endif
 
   if cxx.has_argument('-U_FORTIFY_SOURCE')
-    add_global_arguments('-U_FORTIFY_SOURCE', language: ['c', 'cpp'])
+    add_project_arguments('-U_FORTIFY_SOURCE', language: ['c', 'cpp'])
   endif
 endif
 
