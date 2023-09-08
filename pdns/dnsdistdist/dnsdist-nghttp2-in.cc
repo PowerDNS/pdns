@@ -230,7 +230,9 @@ std::unique_ptr<DOHUnitInterface> IncomingHTTP2Connection::getDOHUnit(uint32_t s
 void IncomingHTTP2Connection::restoreDOHUnit(std::unique_ptr<DOHUnitInterface>&& unit)
 {
   auto context = std::unique_ptr<IncomingDoHCrossProtocolContext>(dynamic_cast<IncomingDoHCrossProtocolContext*>(unit.release()));
-  d_currentStreams.at(context->d_streamID) = std::move(context->d_query);
+  if (context) {
+    d_currentStreams.at(context->d_streamID) = std::move(context->d_query);
+  }
 }
 
 IncomingHTTP2Connection::IncomingHTTP2Connection(ConnectionInfo&& connectionInfo, TCPClientThreadData& threadData, const struct timeval& now) :
@@ -905,9 +907,6 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
       break;
     case QueryProcessingResult::InvalidHeaders:
       handleImmediateResponse(400, "DoH invalid headers");
-      break;
-    case QueryProcessingResult::Empty:
-      handleImmediateResponse(200, "DoH empty query", std::move(query.d_buffer));
       break;
     case QueryProcessingResult::Dropped:
       handleImmediateResponse(403, "DoH dropped query");
