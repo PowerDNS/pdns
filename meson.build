@@ -128,7 +128,7 @@ all_modules = {
   'lua2':     {'deps': [],                              'exts': []},
   'remote':   {'deps': ['prog-curl', 'zeromq'],         'exts': []},
   'tinydns':  {'deps': ['cdb'],                         'exts': []},
-  'geoip':    {'deps': [],                              'exts': []},
+  'geoip':    {'deps': ['geoip', 'mmdb', 'yaml-cpp'],   'exts': []},
   'lmdb':     {'deps': ['lmdb', 'boost-serialization'], 'exts': ['lmdb-safe']},
 }
 
