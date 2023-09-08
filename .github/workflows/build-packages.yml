@@ -201,6 +201,8 @@ jobs:
           SSHKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
           RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
           HOSTKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_HOSTKEY }}
+          PRODUCT: ${{ inputs.product }}
+          VERSION: ${{ needs.build.outputs.version }}
         if:
           "${{ env.SSHKEY != '' }}"
         shell: bash
@@ -209,4 +211,4 @@ jobs:
           echo "$SSHKEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           echo "$HOSTKEY" > ~/.ssh/known_hosts
-          rsync -4rlptD ${{steps.download-src-provenance.outputs.download-path}}/*.jsonl ${{steps.download-provenance.outputs.download-path}}/*.jsonl "${RSYNCTARGET}/${{ inputs.product }}/${{ needs.build.outputs.version }}/"
+          rsync -4rlptD ${{steps.download-src-provenance.outputs.download-path}}/*.jsonl ${{steps.download-provenance.outputs.download-path}}/*.jsonl "${RSYNCTARGET}/${PRODUCT}/${VERSION}/"
