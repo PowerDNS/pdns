@@ -90,7 +90,7 @@ then
     echo recursor-bulktest >> passed_tests
     RETVAL=0
 else
-    echo "::error ::title=Recursor-bulktest::Bulk test failed: less than ${THRESHOLD}% of queries answered successfully"
+    echo "::error title=Recursor-bulktest::Bulk test failed: less than ${THRESHOLD}% of queries answered successfully"
     echo recursor-bulktest >> failed_tests
     RETVAL=1
 fi

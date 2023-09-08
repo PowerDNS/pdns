@@ -147,7 +147,7 @@ do
 done
 
 if [ $failed -gt 0 ]; then
-	echo -n "::error ::title=Regression-tests::Tests failed. "
+	echo -n "::error title=Regression-tests::Tests failed. "
 fi
 echo -n $passed out of $[$passed+$failed]
 echo -n " ("
