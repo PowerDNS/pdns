@@ -133,21 +133,13 @@ all_modules = {
   'lmdb':     {'deps': ['lmdb', 'boost-serialization'], 'exts': ['lmdb-safe']},
 }
 
-selected_modules = []
-selected_dyn_modules = []
-dep_modules = []
+# Configure module dependencies
 foreach module_name, module_props: all_modules
-  module_backend_name = module_name + 'backend'
   module_opt = get_option('module-' + module_name)
   module_deps = module_props['deps']
-  module_exts = module_props['exts']
 
   if module_opt == 'disabled'
     continue
-  elif module_opt == 'static'
-    selected_modules += module_name
-  else
-    selected_dyn_modules += module_name
   endif
 
   foreach dep: module_deps
@@ -165,6 +157,28 @@ foreach module_name, module_props: all_modules
 
     subdir('meson' / dep)
   endforeach
+endforeach
+
+# Add the sqlite3 dependency for the bind and gsqlite3 backends and pdnsutil.
+deps += get_variable('dep_sqlite3', dependency('', required: false))
+
+subdir('pdns')
+
+selected_modules = []
+selected_dyn_modules = []
+dep_modules = []
+foreach module_name, module_props: all_modules
+  module_backend_name = module_name + 'backend'
+  module_opt = get_option('module-' + module_name)
+  module_exts = module_props['exts']
+
+  if module_opt == 'disabled'
+    continue
+  elif module_opt == 'static'
+    selected_modules += module_name
+  else
+    selected_dyn_modules += module_name
+  endif
 
   foreach ext: module_exts
     subdir('ext' / ext)
@@ -186,15 +200,8 @@ conf.set_quoted(
   description: 'Dynamically loadable modules built along with pdns'
 )
 
-# TODO This should be cleaned up
-if get_variable('dep_sqlite3', dependency('', required: false)).found()
-  deps += dep_sqlite3
-endif
-
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
-
-subdir('pdns')
 
 pdns_auth = executable(
   'pdns-auth',
