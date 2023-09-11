@@ -1208,13 +1208,13 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_pruning)
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
 
   /* we have set a upper bound to 2 entries, so we are above,
-     and one entry are actually expired, so we will prune one entry
+     and one entry is actually expired, so we will prune one entry
      to get below the limit */
   cache->prune(now.tv_sec + 15);
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 2U);
 
-  /* now we are at the limit, so we will scan 1/5th of all zones entries, rounded up,
-     and prune the expired ones, which mean we will also remoing twoe */
+  /* now we are at the limit, so we will scan 1/10th of all zones entries, rounded up,
+     and prune the expired ones, which mean we will also be removing the remaining two */
   cache->prune(now.tv_sec + 600);
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 0U);
 }
