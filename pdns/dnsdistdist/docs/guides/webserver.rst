@@ -30,7 +30,7 @@ By default, our web server sends some security-related headers::
    X-XSS-Protection: 1; mode=block
    Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'
 
-You can override those headers, or add custom headers by using the last parameter to :func:`webserver`.
+You can override those headers, or add custom headers by using the last parameter to :func:`setWebserverConfig`.
 For example, to remove the X-Frame-Options header and add a X-Custom one:
 
 .. code-block:: lua
@@ -42,7 +42,7 @@ Credentials can be changed at run time using the :func:`setWebserverConfig` func
 dnsdist API
 -----------
 
-To access the API, the `apikey` must be set in the :func:`webserver` function.
+To access the API, the `apikey` must be set in the :func:`setWebserverConfig` function.
 Use the API, this key will need to be sent to dnsdist in the ``X-API-Key`` request header.
 An HTTP 401 response is returned when a wrong or no API key is received.
 A 404 response is generated is the requested endpoint does not exist.
