@@ -401,19 +401,52 @@ static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(
 }
 
 // Does not follow the generic dump to file pattern, has a more complex lambda
-static RecursorControlChannel::Answer doDumpCache(int socket)
+template <typename T>
+static RecursorControlChannel::Answer doDumpCache(int socket, T begin, T end)
 {
   auto fdw = getfd(socket);
 
   if (fdw < 0) {
     return {1, "Error opening dump file for writing: " + stringerror() + "\n"};
   }
+  bool dumpRecordCache = true;
+  bool dumpNegCache = true;
+  bool dumpPacketCache = true;
+  bool dumpAggrCache = true;
+  if (begin != end) {
+    dumpRecordCache = false;
+    dumpNegCache = false;
+    dumpPacketCache = false;
+    dumpAggrCache = false;
+    for (auto name = begin; name != end; ++name) {
+      if (*name == "r") {
+        dumpRecordCache = true;
+      }
+      else if (*name == "n") {
+        dumpNegCache = true;
+      }
+      else if (*name == "p") {
+        dumpPacketCache = true;
+      }
+      else if (*name == "a") {
+        dumpAggrCache = true;
+      }
+    }
+  }
   uint64_t total = 0;
   try {
-    total += g_recCache->doDump(fdw, g_maxCacheEntries.load());
-    total += g_negCache->doDump(fdw, g_maxCacheEntries.load() / 8);
-    total += g_packetCache ? g_packetCache->doDump(fdw) : 0;
-    total += dumpAggressiveNSECCache(fdw);
+    if (dumpRecordCache) {
+      total += g_recCache->doDump(fdw, g_maxCacheEntries.load());
+    }
+    if (dumpNegCache) {
+      total += g_negCache->doDump(fdw, g_maxCacheEntries.load() / 8);
+    }
+    if (dumpPacketCache) {
+      total += g_packetCache ? g_packetCache->doDump(fdw) : 0;
+    }
+    if (dumpAggrCache) {
+      total += dumpAggressiveNSECCache(fdw);
+    }
   }
   catch (...) {
   }
@@ -2163,7 +2196,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     return {0, "bye nicely\n"};
   }
   if (cmd == "dump-cache") {
-    return doDumpCache(socket);
+    return doDumpCache(socket, begin, end);
   }
   if (cmd == "dump-dot-probe-map") {
     return doDumpToFile(socket, pleaseDumpDoTProbeMap, cmd, false);
