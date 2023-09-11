@@ -141,9 +141,9 @@ latency-doh-avg10000
 --------------------
 Average response latency, in microseconds, of the last 10000 packets received over DoH.
 
-latency-doh-avg100000
+latency-doh-avg1000000
 ---------------------
-Average response latency, in microseconds, of the last 100000 packets received over DoH.
+Average response latency, in microseconds, of the last 1000000 packets received over DoH.
 
 latency-dot-avg100
 ------------------
