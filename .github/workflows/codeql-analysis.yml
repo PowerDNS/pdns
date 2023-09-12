@@ -104,6 +104,7 @@ jobs:
                 libwslay-dev \
                 libyaml-cpp-dev \
                 ragel \
+                rustc \
                 unixodbc-dev
 
     - name: Build auth
@@ -133,6 +134,8 @@ jobs:
         autoreconf -vfi
         ./configure --enable-unit-tests --enable-nod --enable-dnstap CFLAGS='-O0' CXXFLAGS='-O0'
         make -j8 -C ext
+        make -j8 -C settings
+        make -j8 -C settings/rust
         make htmlfiles.h
         make -j4 pdns_recursor rec_control
 

@@ -1,10 +1,10 @@
 FROM dist-base as package-builder
 RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
       yum upgrade -y && \
-      yum install -y rpm-build rpmdevtools python2 python3 "@Development Tools"; \
+      yum install -y rpm-build rpmdevtools python2 python3 curl "@Development Tools"; \
     else \
       yum upgrade -y && \
-      yum install -y rpm-build rpmdevtools python3 "@Development Tools"; \
+      yum install -y rpm-build rpmdevtools python3 curl "@Development Tools"; \
     fi
 
 RUN mkdir /dist /pdns
@@ -13,6 +13,11 @@ RUN rpmdev-setuptree
 
 # Only ADD/COPY the files you really need for efficient docker caching.
 ADD builder/helpers/ /pdns/builder/helpers/
+ADD builder-support/helpers/ /pdns/builder-support/helpers/
+
+@IF [ -n "$M_recursor$M_all" ]
+RUN /pdns/builder-support/helpers/install_rust.sh
+@ENDIF
 
 # Used for -p option to only build specific spec files
 ARG BUILDER_PACKAGE_MATCH

@@ -451,6 +451,7 @@ fulltoc
 fullycapable
 Furnell
 Fusl
+fwzones
 FYhvws
 FZq
 gaba
@@ -1123,7 +1124,9 @@ rdata
 rdqueries
 rdynamic
 reconnections
+recordcache
 recursor
+recursord
 recursordist
 Recursordoc
 Recuweb
@@ -1514,6 +1517,7 @@ webbased
 webdocs
 webhandler
 webpassword
+webservice
 Webspider
 Wegener
 Weimer
@@ -1561,6 +1565,8 @@ xpf
 XRecord
 XXXXXX
 yahttp
+yamlconversion
+yamlsettings
 Yehuda
 yeswehack
 Yiu

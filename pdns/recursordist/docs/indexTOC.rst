@@ -10,6 +10,7 @@ PowerDNS Recursor
     running
     dnssec
     settings
+    yamlsettings
     lua-config/index
     lua-scripting/index
     dns64

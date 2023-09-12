@@ -39,6 +39,7 @@
 #include "secpoll-recursor.hh"
 #include "logging.hh"
 #include "dnsseckeeper.hh"
+#include "settings/cxxsettings.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -67,6 +68,7 @@ string g_programname = "pdns_recursor";
 string g_pidfname;
 RecursorControlChannel g_rcc; // only active in the handler thread
 bool g_regressionTestMode;
+bool g_yamlSettings;
 
 #ifdef NOD_ENABLED
 bool g_nodEnabled;
@@ -754,7 +756,7 @@ static void setupNODThread(Logr::log_t log)
     }
     catch (const PDNSException& e) {
       SLOG(g_log << Logger::Error << "new-domain-history-dir (" << ::arg()["new-domain-history-dir"] << ") is not readable or does not exist" << endl,
-           log->error(Logr::Error, e.reason, "new-domain-history-dir is not readbale or does not exists", "dir", Logging::Loggable(::arg()["new-domain-history-dir"])));
+           log->error(Logr::Error, e.reason, "new-domain-history-dir is not readable or does not exists", "dir", Logging::Loggable(::arg()["new-domain-history-dir"])));
       _exit(1);
     }
     if (!t_nodDBp->init()) {
@@ -854,7 +856,7 @@ static void usr2Handler([[maybe_unused]] int arg)
 {
   g_quiet = !g_quiet;
   SyncRes::setDefaultLogMode(g_quiet ? SyncRes::LogNone : SyncRes::Log);
-  ::arg().set("quiet") = g_quiet ? "" : "no";
+  ::arg().set("quiet") = g_quiet ? "yes" : "no";
 }
 
 static void checkLinuxIPv6Limits([[maybe_unused]] Logr::log_t log)
@@ -1147,28 +1149,40 @@ static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const 
 {
   auto result = std::make_shared<NetmaskGroup>();
 
-  if (!::arg()[aclFile].empty()) {
-    string line;
-    ifstream ifs(::arg()[aclFile].c_str());
-    if (!ifs) {
-      throw runtime_error("Could not open '" + ::arg()[aclFile] + "': " + stringerror());
-    }
+  const string file = ::arg()[aclFile];
 
-    while (getline(ifs, line)) {
-      auto pos = line.find('#');
-      if (pos != string::npos) {
-        line.resize(pos);
+  if (!file.empty()) {
+    if (boost::ends_with(file, ".yml")) {
+      ::rust::vec<::rust::string> vec;
+      pdns::settings::rec::readYamlAllowFromFile(file, vec, log);
+      for (const auto& subnet : vec) {
+        result->addMask(string(subnet));
       }
-      boost::trim(line);
-      if (line.empty()) {
-        continue;
+    }
+    else {
+      string line;
+      ifstream ifs(file);
+      if (!ifs) {
+        int err = errno;
+        throw runtime_error("Could not open '" + file + "': " + stringerror(err));
       }
 
-      result->addMask(line);
+      while (getline(ifs, line)) {
+        auto pos = line.find('#');
+        if (pos != string::npos) {
+          line.resize(pos);
+        }
+        boost::trim(line);
+        if (line.empty()) {
+          continue;
+        }
+
+        result->addMask(line);
+      }
     }
-    SLOG(g_log << Logger::Info << "Done parsing " << result->size() << " " << aclSetting << " ranges from file '" << ::arg()[aclFile] << "' - overriding '" << aclSetting << "' setting" << endl,
+    SLOG(g_log << Logger::Info << "Done parsing " << result->size() << " " << aclSetting << " ranges from file '" << file << "' - overriding '" << aclSetting << "' setting" << endl,
          log->info(Logr::Info, "Done parsing ranges from file, will override setting", "setting", Logging::Loggable(aclSetting),
-                   "number", Logging::Loggable(result->size()), "file", Logging::Loggable(::arg()[aclFile])));
+                   "number", Logging::Loggable(result->size()), "file", Logging::Loggable(file)));
   }
   else if (!::arg()[aclSetting].empty()) {
     vector<string> ips;
@@ -1220,51 +1234,75 @@ void parseACLs()
   static bool l_initialized;
 
   if (l_initialized) { // only reload configuration file on second call
-    string configName = ::arg()["config-dir"] + "/recursor.conf";
+
+    string configName = ::arg()["config-dir"] + "/recursor";
     if (!::arg()["config-name"].empty()) {
-      configName = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"] + ".conf";
+      configName = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"];
     }
     cleanSlashes(configName);
 
-    if (!::arg().preParseFile(configName.c_str(), "allow-from-file")) {
-      throw runtime_error("Unable to re-parse configuration file '" + configName + "'");
-    }
-    ::arg().preParseFile(configName.c_str(), "allow-from", LOCAL_NETS);
+    if (g_yamlSettings) {
+      configName += ".yml";
+      string msg;
+      pdns::rust::settings::rec::Recursorsettings settings;
+      // XXX Does ::arg()["include-dir"] have the right value, i.e. potentially overriden by command line?
+      auto yamlstatus = pdns::settings::rec::readYamlSettings(configName, ::arg()["include-dir"], settings, msg, log);
 
-    if (!::arg().preParseFile(configName.c_str(), "allow-notify-from-file")) {
-      throw runtime_error("Unable to re-parse configuration file '" + configName + "'");
-    }
-    ::arg().preParseFile(configName.c_str(), "allow-notify-from");
-
-    ::arg().preParseFile(configName.c_str(), "include-dir");
-    ::arg().preParse(g_argc, g_argv, "include-dir");
-
-    // then process includes
-    std::vector<std::string> extraConfigs;
-    ::arg().gatherIncludes(extraConfigs);
-
-    for (const std::string& fileName : extraConfigs) {
-      if (!::arg().preParseFile(fileName.c_str(), "allow-from-file", ::arg()["allow-from-file"])) {
-        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
-      }
-      if (!::arg().preParseFile(fileName.c_str(), "allow-from", ::arg()["allow-from"])) {
-        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
-      }
-
-      if (!::arg().preParseFile(fileName.c_str(), "allow-notify-from-file", ::arg()["allow-notify-from-file"])) {
-        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
-      }
-      if (!::arg().preParseFile(fileName.c_str(), "allow-notify-from", ::arg()["allow-notify-from"])) {
-        throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+      switch (yamlstatus) {
+      case pdns::settings::rec::YamlSettingsStatus::CannotOpen:
+        throw runtime_error("Unable to open '" + configName + "': " + msg);
+        break;
+      case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
+        throw runtime_error("Error processing '" + configName + "': " + msg);
+        break;
+      case pdns::settings::rec::YamlSettingsStatus::OK:
+        // Does *not* set include-dir
+        pdns::settings::rec::setArgsForACLRelatedSettings(settings);
+        break;
       }
     }
+    else {
+      configName += ".conf";
+      if (!::arg().preParseFile(configName, "allow-from-file")) {
+        throw runtime_error("Unable to re-parse configuration file '" + configName + "'");
+      }
+      ::arg().preParseFile(configName, "allow-from", LOCAL_NETS);
 
-    ::arg().preParse(g_argc, g_argv, "allow-from-file");
-    ::arg().preParse(g_argc, g_argv, "allow-from");
+      if (!::arg().preParseFile(configName, "allow-notify-from-file")) {
+        throw runtime_error("Unable to re-parse configuration file '" + configName + "'");
+      }
+      ::arg().preParseFile(configName, "allow-notify-from");
 
-    ::arg().preParse(g_argc, g_argv, "allow-notify-from-file");
-    ::arg().preParse(g_argc, g_argv, "allow-notify-from");
+      ::arg().preParseFile(configName, "include-dir");
+      ::arg().preParse(g_argc, g_argv, "include-dir");
+
+      // then process includes
+      std::vector<std::string> extraConfigs;
+      ::arg().gatherIncludes(::arg()["include-dir"], ".conf", extraConfigs);
+
+      for (const std::string& fileName : extraConfigs) {
+        if (!::arg().preParseFile(fileName, "allow-from-file", ::arg()["allow-from-file"])) {
+          throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+        }
+        if (!::arg().preParseFile(fileName, "allow-from", ::arg()["allow-from"])) {
+          throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+        }
+
+        if (!::arg().preParseFile(fileName, "allow-notify-from-file", ::arg()["allow-notify-from-file"])) {
+          throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+        }
+        if (!::arg().preParseFile(fileName, "allow-notify-from", ::arg()["allow-notify-from"])) {
+          throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+        }
+      }
+    }
   }
+  // Process command line args potentially overriding settings read from file
+  ::arg().preParse(g_argc, g_argv, "allow-from-file");
+  ::arg().preParse(g_argc, g_argv, "allow-from");
+
+  ::arg().preParse(g_argc, g_argv, "allow-notify-from-file");
+  ::arg().preParse(g_argc, g_argv, "allow-notify-from");
 
   auto allowFrom = parseACL("allow-from-file", "allow-from", log);
 
@@ -1556,7 +1594,7 @@ static void initDontQuery(Logr::log_t log)
   }
 }
 
-static int initSyncRes(Logr::log_t log, const std::optional<std::string>& myHostname)
+static int initSyncRes(Logr::log_t log)
 {
   SyncRes::s_minimumTTL = ::arg().asNum("minimum-ttl-override");
   SyncRes::s_minimumECSTTL = ::arg().asNum("ecs-minimum-ttl-override");
@@ -1605,11 +1643,6 @@ static int initSyncRes(Logr::log_t log, const std::optional<std::string>& myHost
     checkFastOpenSysctl(true, log);
     checkTFOconnect(log);
   }
-
-  if (SyncRes::s_serverID.empty()) {
-    SyncRes::s_serverID = myHostname.has_value() ? *myHostname : "";
-  }
-
   SyncRes::s_ecsipv4limit = ::arg().asNum("ecs-ipv4-bits");
   SyncRes::s_ecsipv6limit = ::arg().asNum("ecs-ipv6-bits");
   SyncRes::clearECSStats();
@@ -2020,13 +2053,8 @@ static int serviceMain(Logr::log_t log)
     ::arg().set("quiet") = "no";
     g_quiet = false;
   }
-  auto myHostname = getHostname();
-  if (!myHostname.has_value()) {
-    SLOG(g_log << Logger::Warning << "Unable to get the hostname, NSID and id.server values will be empty" << endl,
-         log->info(Logr::Warning, "Unable to get the hostname, NSID and id.server values will be empty"));
-  }
 
-  ret = initSyncRes(log, myHostname);
+  ret = initSyncRes(log);
   if (ret != 0) {
     return ret;
   }
@@ -2040,7 +2068,7 @@ static int serviceMain(Logr::log_t log)
   }
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
-  std::tie(g_initialDomainMap, g_initialAllowNotifyFor) = parseZoneConfiguration();
+  std::tie(g_initialDomainMap, g_initialAllowNotifyFor) = parseZoneConfiguration(g_yamlSettings);
 
   g_latencyStatSize = ::arg().asNum("latency-statistic-size");
 
@@ -2136,10 +2164,6 @@ static int serviceMain(Logr::log_t log)
 
   openssl_thread_setup();
   openssl_seed();
-
-  if (::arg()["server-id"].empty()) {
-    ::arg().set("server-id") = myHostname.has_value() ? *myHostname : "";
-  }
 
   gid_t newgid = 0;
   if (!::arg()["setgid"].empty()) {
@@ -2798,6 +2822,8 @@ static void recursorThread()
   }
 }
 
+#if 0
+// THIS FUNCTION IS REPLACED BY GENERATED CODE IN settings/cxxsettings-generated.cc
 static void initArgs()
 {
 #if HAVE_FIBER_SANITIZER
@@ -2810,21 +2836,21 @@ static void initArgs()
   // This mode forces metrics snap updates and disable root-refresh, to get consistent counters
   ::arg().setSwitch("devonly-regression-test-mode", "internal use only") = "no";
   ::arg().set("soa-minimum-ttl", "Don't change") = "0";
-  ::arg().set("no-shuffle", "Don't change") = "off";
+  ::arg().setSwitch("no-shuffle", "Don't change") = "off";
   ::arg().set("local-port", "port to listen on") = "53";
   ::arg().set("local-address", "IP addresses to listen on, separated by spaces or commas. Also accepts ports.") = "127.0.0.1";
   ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options") = "no";
   ::arg().set("trace", "if we should output heaps of logging. set to 'fail' to only log failing domains") = "off";
   ::arg().set("dnssec", "DNSSEC mode: off/process-no-validate/process (default)/log-fail/validate") = "process";
-  ::arg().set("dnssec-log-bogus", "Log DNSSEC bogus validations") = "no";
+  ::arg().setSwitch("dnssec-log-bogus", "Log DNSSEC bogus validations") = "no";
   ::arg().set("signature-inception-skew", "Allow the signature inception to be off by this number of seconds") = "60";
   ::arg().set("dnssec-disabled-algorithms", "List of DNSSEC algorithm numbers that are considered unsupported") = "";
-  ::arg().set("daemon", "Operate as a daemon") = "no";
+  ::arg().setSwitch("daemon", "Operate as a daemon") = "no";
   ::arg().setSwitch("write-pid", "Write a PID file") = "yes";
   ::arg().set("loglevel", "Amount of logging. Higher is more. Do not set below 3") = "6";
-  ::arg().set("disable-syslog", "Disable logging to syslog, useful when running inside a supervisor that logs stdout") = "no";
-  ::arg().set("log-timestamp", "Print timestamps in log lines, useful to disable when running with a tool that timestamps stdout already") = "yes";
-  ::arg().set("log-common-errors", "If we should log rather common errors") = "no";
+  ::arg().setSwitch("disable-syslog", "Disable logging to syslog, useful when running inside a supervisor that logs stdout") = "no";
+  ::arg().setSwitch("log-timestamp", "Print timestamps in log lines, useful to disable when running with a tool that timestamps stdout already") = "yes";
+  ::arg().setSwitch("log-common-errors", "If we should log rather common errors") = "no";
   ::arg().set("chroot", "switch to chroot jail") = "";
   ::arg().set("setgid", "If set, change group id to this gid for more security"
 #ifdef HAVE_SYSTEMD
@@ -2860,7 +2886,7 @@ static void initArgs()
   ::arg().set("carbon-instance", "If set overwrites the instance name default") = "recursor";
 
   ::arg().set("statistics-interval", "Number of seconds between printing of recursor statistics, 0 to disable") = "1800";
-  ::arg().set("quiet", "Suppress logging of questions and answers") = "";
+  ::arg().setSwitch("quiet", "Suppress logging of questions and answers") = "yes";
   ::arg().set("logging-facility", "Facility to log messages as. 0 corresponds to local0") = "";
   ::arg().set("config-dir", "Location of configuration directory (recursor.conf)") = SYSCONFDIR;
   ::arg().set("socket-owner", "Owner of socket") = "";
@@ -2914,7 +2940,7 @@ static void initArgs()
   ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)") = "0";
   ::arg().set("max-tcp-queries-per-connection", "If set, maximum number of TCP queries in a TCP connection") = "0";
   ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses") = "1";
-  ::arg().set("single-socket", "If set, only use a single socket for outgoing queries") = "off";
+  ::arg().setSwitch("single-socket", "If set, only use a single socket for outgoing queries") = "off";
   ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ") = "";
   ::arg().set("lua-config-file", "More powerful configuration options") = "";
   ::arg().setSwitch("allow-trust-anchor-query", "Allow queries for trustanchor.server CH TXT and negativetrustanchor.server CH TXT") = "no";
@@ -2922,10 +2948,10 @@ static void initArgs()
   ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs") = "";
   ::arg().set("forward-zones-recurse", "Zones for which we forward queries with recursion bit, comma separated domain=ip pairs") = "";
   ::arg().set("forward-zones-file", "File with (+)domain=ip pairs for forwarding") = "";
-  ::arg().set("export-etc-hosts", "If we should serve up contents from /etc/hosts") = "off";
+  ::arg().setSwitch("export-etc-hosts", "If we should serve up contents from /etc/hosts") = "off";
   ::arg().set("export-etc-hosts-search-suffix", "Also serve up the contents of /etc/hosts with this suffix") = "";
   ::arg().set("etc-hosts-file", "Path to 'hosts' file") = "/etc/hosts";
-  ::arg().set("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space") = "yes";
+  ::arg().setSwitch("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space") = "yes";
   ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers") = "";
   ::arg().set("lua-maintenance-interval", "Number of seconds between calls to the lua user defined maintenance() function") = "1";
   ::arg().set("latency-statistic-size", "Number of latency values to calculate the qa-latency average") = "10000";
@@ -2992,7 +3018,7 @@ static void initArgs()
   ::arg().set("stats-snmp-disabled-list", "List of statistics that are prevented from being exported via SNMP") = defaultDisabledStats;
 
   ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size") = "0";
-  ::arg().set("tcp-fast-open-connect", "Enable TCP Fast Open support on outgoing sockets") = "no";
+  ::arg().setSwitch("tcp-fast-open-connect", "Enable TCP Fast Open support on outgoing sockets") = "no";
   ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record") = "150";
 
   ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs") = "";
@@ -3012,7 +3038,7 @@ static void initArgs()
   ::arg().set("distribution-load-factor", "The load factor used when PowerDNS is distributing queries to worker threads") = "0.0";
 
   ::arg().setSwitch("qname-minimization", "Use Query Name Minimization") = "yes";
-  ::arg().setSwitch("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)") = "dnssec";
+  ::arg().set("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)") = "dnssec";
   ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file") = "0";
   ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file") = "20";
 
@@ -3025,16 +3051,16 @@ static void initArgs()
   ::arg().set("x-dnssec-names", "Collect DNSSEC statistics for names or suffixes in this list in separate x-dnssec counters") = "";
 
 #ifdef NOD_ENABLED
-  ::arg().set("new-domain-tracking", "Track newly observed domains (i.e. never seen before).") = "no";
-  ::arg().set("new-domain-log", "Log newly observed domains.") = "yes";
+  ::arg().setSwitch("new-domain-tracking", "Track newly observed domains (i.e. never seen before).") = "no";
+  ::arg().setSwitch("new-domain-log", "Log newly observed domains.") = "yes";
   ::arg().set("new-domain-lookup", "Perform a DNS lookup newly observed domains as a subdomain of the configured domain") = "";
   ::arg().set("new-domain-history-dir", "Persist new domain tracking data here to persist between restarts") = string(NODCACHEDIR) + "/nod";
   ::arg().set("new-domain-whitelist", "List of domains (and implicitly all subdomains) which will never be considered a new domain (deprecated)") = "";
   ::arg().set("new-domain-ignore-list", "List of domains (and implicitly all subdomains) which will never be considered a new domain") = "";
   ::arg().set("new-domain-db-size", "Size of the DB used to track new domains in terms of number of cells. Defaults to 67108864") = "67108864";
   ::arg().set("new-domain-pb-tag", "If protobuf is configured, the tag to use for messages containing newly observed domains. Defaults to 'pdns-nod'") = "pdns-nod";
-  ::arg().set("unique-response-tracking", "Track unique responses (tuple of query name, type and RR).") = "no";
-  ::arg().set("unique-response-log", "Log unique responses") = "yes";
+  ::arg().setSwitch("unique-response-tracking", "Track unique responses (tuple of query name, type and RR).") = "no";
+  ::arg().setSwitch("unique-response-log", "Log unique responses") = "yes";
   ::arg().set("unique-response-history-dir", "Persist unique response tracking data here to persist between restarts") = string(NODCACHEDIR) + "/udr";
   ::arg().set("unique-response-db-size", "Size of the DB used to track unique responses in terms of number of cells. Defaults to 67108864") = "67108864";
   ::arg().set("unique-response-pb-tag", "If protobuf is configured, the tag to use for messages containing unique DNS responses. Defaults to 'pdns-udr'") = "pdns-udr";
@@ -3069,6 +3095,58 @@ static void initArgs()
   ::arg().setCmd("config", "Output blank configuration. You can use --config=check to test the config file and command line arguments.");
   ::arg().setDefaults();
   g_log.toConsole(Logger::Info);
+
+  if (s_generateConfigTable) {
+    auto file = ofstream("settings/table.py");
+    const std::map<std::string, std::string> overrideMap = {
+      {"allow-from", "LType.ListSubnets"},
+      {"allow-notify-for", "LType.ListStrings"},
+      {"allow-notify-from", "LType.ListSubnets"},
+      {"auth-zones", "LType.ListStrings"},
+      {"dnssec-disabled-algorithms", "LType.ListStrings"},
+      {"dont-query", "LType.ListSubnets"},
+      {"dont-throttle-names", "LType.ListStrings"},
+      {"dont-throttle-netmasks", "LType.ListSubnets"},
+      {"dot-to-auth-names", "LType.ListStrings"},
+      {"ecs-add-for", "LType.ListSubnets"},
+      {"edbs-padding-from", "LType.ListSubnets"},
+      {"edns-subnet-allow-list", "LType.ListSubnets"},
+      {"forwad-zones", "LType.ListStrings"},
+      {"forwad-zones-recurse", "LType.Strings"},
+      {"local-address", "LType.ListSocketAddresses"},
+      {"new-domain-ignore-list", "LType.ListStrings"},
+      {"query-local-address", "LType.ListSubnets"},
+      {"stats-api-disabled-list", "LType.ListStrings"},
+      {"stats-carbon-disabled-list", "LType.ListStrings"},
+      {"stats-rec-control-disabled-list", "LType.ListStrings"},
+      {"stats-snmp-disabled-list", "LType.ListStrings"},
+      {"webserver-allow-from", "LType.ListSubnets"},
+      {"x-dnssec-names", "LType.ListStrings"},
+    };
+    file << ::arg().table(overrideMap);
+    file.close();
+  }
+}
+#endif
+
+static pair<int, bool> doYamlConfig(Logr::log_t /* startupLog */, int argc, char* argv[]) // NOLINT: Posix API
+{
+  if (!::arg().mustDo("config")) {
+    return {0, false};
+  }
+  const string config = ::arg()["config"];
+  if (config == "diff" || config.empty()) {
+    ::arg().parse(argc, argv);
+    pdns::rust::settings::rec::Recursorsettings settings;
+    pdns::settings::rec::oldStyleSettingsToBridgeStruct(settings);
+    auto yaml = settings.to_yaml_string();
+    cout << yaml << endl;
+  }
+  else if (config == "default") {
+    auto yaml = pdns::settings::rec::defaultsToYaml();
+    cout << yaml << endl;
+  }
+  return {0, true};
 }
 
 static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname, int argc, char* argv[]) // NOLINT: Posix API
@@ -3077,7 +3155,7 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
     string config = ::arg()["config"];
     if (config == "check") {
       try {
-        if (!::arg().file(configname.c_str())) {
+        if (!::arg().file(configname)) {
           SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
                startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
           return {1, true};
@@ -3095,7 +3173,7 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
       cout << ::arg().configstring(false, true);
     }
     else if (config == "diff") {
-      if (!::arg().laxFile(configname.c_str())) {
+      if (!::arg().laxFile(configname)) {
         SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
              startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
         return {1, true};
@@ -3104,7 +3182,7 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
       cout << ::arg().configstring(true, false);
     }
     else {
-      if (!::arg().laxFile(configname.c_str())) {
+      if (!::arg().laxFile(configname)) {
         SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
              startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
         return {1, true};
@@ -3115,6 +3193,59 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
     return {0, true};
   }
   return {0, false};
+}
+
+static void handleRuntimeDefaults(Logr::log_t log)
+{
+#if HAVE_FIBER_SANITIZER
+  // Asan needs more stack
+  if (::arg().asNum("stack-size") == 200000) { // the default in table.py
+    ::arg().set("stack-size", "stack size per mthread") = "600000";
+  }
+#endif
+
+  const string RUNTIME = "*runtime determined*";
+  if (::arg()["version-string"] == RUNTIME) { // i.e. not set explicitly
+    ::arg().set("version-string") = fullVersionString();
+  }
+
+  if (::arg()["server-id"] == RUNTIME) { // i.e. not set explicitly
+    auto myHostname = getHostname();
+    if (!myHostname.has_value()) {
+      SLOG(g_log << Logger::Warning << "Unable to get the hostname, NSID and id.server values will be empty" << endl,
+           log->info(Logr::Warning, "Unable to get the hostname, NSID and id.server values will be empty"));
+    }
+    ::arg().set("server-id") = myHostname.has_value() ? *myHostname : "";
+  }
+
+  if (::arg()["socket-dir"].empty()) {
+    if (::arg()["chroot"].empty()) {
+      ::arg().set("socket-dir") = std::string(LOCALSTATEDIR) + "/pdns-recursor";
+    }
+    else {
+      ::arg().set("socket-dir") = "/";
+    }
+  }
+
+  if (::arg().asNum("threads") == 1) {
+    if (::arg().mustDo("pdns-distributes-queries")) {
+      SLOG(g_log << Logger::Warning << "Only one thread, no need to distribute queries ourselves" << endl,
+           log->info(Logr::Warning, "Only one thread, no need to distribute queries ourselves"));
+      ::arg().set("pdns-distributes-queries") = "no";
+    }
+  }
+
+  if (::arg().mustDo("pdns-distributes-queries") && ::arg().asNum("distributor-threads") == 0) {
+    SLOG(g_log << Logger::Warning << "Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1" << endl,
+         log->info(Logr::Warning, "Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1"));
+    ::arg().set("distributor-threads") = "1";
+  }
+
+  if (!::arg().mustDo("pdns-distributes-queries") && ::arg().asNum("distributor-threads") > 0) {
+    SLOG(g_log << Logger::Warning << "Not distributing queries, setting distributor threads to 0" << endl,
+         log->info(Logr::Warning, "Not distributing queries, setting distributor threads to 0"));
+    ::arg().set("distributor-threads") = "0";
+  }
 }
 
 int main(int argc, char** argv)
@@ -3128,7 +3259,9 @@ int main(int argc, char** argv)
   int ret = EXIT_SUCCESS;
 
   try {
-    initArgs();
+    pdns::settings::rec::defineOldStyleSettings();
+    ::arg().setDefaults();
+    g_log.toConsole(Logger::Info);
     ::arg().laxParse(argc, argv); // do a lax parse
 
     if (::arg().mustDo("version")) {
@@ -3158,9 +3291,10 @@ int main(int argc, char** argv)
     g_log.setLoglevel(s_logUrgency);
     g_log.toConsole(s_logUrgency);
 
-    string configname = ::arg()["config-dir"] + "/recursor.conf";
+    g_yamlSettings = false;
+    string configname = ::arg()["config-dir"] + "/recursor";
     if (!::arg()["config-name"].empty()) {
-      configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"] + ".conf";
+      configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"];
       g_programname += "-" + ::arg()["config-name"];
     }
     cleanSlashes(configname);
@@ -3207,18 +3341,52 @@ int main(int argc, char** argv)
 
     ::arg().setSLog(startupLog);
 
-    bool mustExit = false;
-    std::tie(ret, mustExit) = doConfig(startupLog, configname, argc, argv);
-    if (ret != 0 || mustExit) {
-      return ret;
+    const string yamlconfigname = configname + ".yml";
+    string msg;
+    pdns::rust::settings::rec::Recursorsettings settings;
+    // TODO: handle include-dir on command line
+    auto yamlstatus = pdns::settings::rec::readYamlSettings(yamlconfigname, ::arg()["include-dir"], settings, msg, startupLog);
+
+    switch (yamlstatus) {
+    case pdns::settings::rec::YamlSettingsStatus::CannotOpen:
+      SLOG(g_log << Logger::Debug << "No YAML config found for configname '" << yamlconfigname << "': " << msg << endl,
+           startupLog->error(Logr::Debug, msg, "No YAML config found", "configname", Logging::Loggable(yamlconfigname)));
+      break;
+    case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
+      SLOG(g_log << Logger::Error << "YAML config found for configname '" << yamlconfigname << "' but error ocurred processing it" << endl,
+           startupLog->error(Logr::Error, msg, "YAML config found, but error occurred processsing it", "configname", Logging::Loggable(yamlconfigname)));
+      return 1;
+      break;
+    case pdns::settings::rec::YamlSettingsStatus::OK:
+      g_yamlSettings = true;
+      SLOG(g_log << Logger::Notice << "YAML config found and processed for configname '" << yamlconfigname << "'" << endl,
+           startupLog->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname)));
+      pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
+      break;
     }
 
-    if (!::arg().file(configname.c_str())) {
-      SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
-           startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+    if (g_yamlSettings) {
+      bool mustExit = false;
+      std::tie(ret, mustExit) = doYamlConfig(startupLog, argc, argv);
+      if (ret != 0 || mustExit) {
+        return ret;
+      }
     }
 
-    // Reparse, now with config file as well
+    if (yamlstatus == pdns::settings::rec::YamlSettingsStatus::CannotOpen) {
+      configname += ".conf";
+      bool mustExit = false;
+      std::tie(ret, mustExit) = doConfig(startupLog, configname, argc, argv);
+      if (ret != 0 || mustExit) {
+        return ret;
+      }
+      if (!::arg().file(configname)) {
+        SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
+             startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+      }
+    }
+
+    // Reparse, now with config file as well, both for old-style as for YAML settings
     ::arg().parse(argc, argv);
 
     g_quiet = ::arg().mustDo("quiet");
@@ -3240,32 +3408,7 @@ int main(int argc, char** argv)
       return EXIT_FAILURE;
     }
 
-    if (::arg()["socket-dir"].empty()) {
-      if (::arg()["chroot"].empty()) {
-        ::arg().set("socket-dir") = std::string(LOCALSTATEDIR) + "/pdns-recursor";
-      }
-      else {
-        ::arg().set("socket-dir") = "/";
-      }
-    }
-
-    if (::arg().asNum("threads") == 1) {
-      if (::arg().mustDo("pdns-distributes-queries")) {
-        SLOG(g_log << Logger::Warning << "Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1" << endl,
-             startupLog->v(1)->info("Only one thread, no need to distribute queries ourselves"));
-        ::arg().set("pdns-distributes-queries") = "no";
-      }
-    }
-
-    if (::arg().mustDo("pdns-distributes-queries") && ::arg().asNum("distributor-threads") <= 0) {
-      SLOG(g_log << Logger::Warning << "Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1" << endl,
-           startupLog->v(1)->info("Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1"));
-      ::arg().set("distributor-threads") = "1";
-    }
-
-    if (!::arg().mustDo("pdns-distributes-queries")) {
-      ::arg().set("distributor-threads") = "0";
-    }
+    handleRuntimeDefaults(startupLog);
 
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);

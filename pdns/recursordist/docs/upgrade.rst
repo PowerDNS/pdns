@@ -246,7 +246,7 @@ Deprecated and changed settings
 
 Removed settings
 ^^^^^^^^^^^^^^^^
-- The :ref:`setting-query-local-address6` has been removed. It already was deprecated.
+- The ``query-local-address6`` setting has been removed. It already was deprecated.
 
 4.3.x to 4.4.0
 --------------
@@ -272,7 +272,7 @@ inconsistent results.
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - The :ref:`setting-query-local-address` setting has been modified to be able to include both IPv4 and IPv6 addresses.
-- The :ref:`setting-query-local-address6` settings is now deprecated.
+- The ``query-local-address6`` setting is now deprecated.
 
 New settings
 ^^^^^^^^^^^^
@@ -324,8 +324,8 @@ New settings
 
 Two new settings have been added:
 
-- :ref:`setting-xpf-allow-from` can contain a list of IP addresses ranges from which `XPF (X-Proxied-For) <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ records will be trusted.
-- :ref:`setting-xpf-rr-code` should list the number of the XPF record to use (in lieu of an assigned code).
+- ``xpf-allow-from`` can contain a list of IP addresses ranges from which `XPF (X-Proxied-For) <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ records will be trusted.
+- ``setting-xpf-rr-code`` should list the number of the XPF record to use (in lieu of an assigned code).
 
 4.0.x to 4.1.0
 --------------
