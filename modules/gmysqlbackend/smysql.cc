@@ -489,11 +489,6 @@ void SMySQL::connect()
 
   do {
 
-#if MYSQL_VERSION_ID >= 50013
-    my_bool set_reconnect = 0;
-    mysql_options(&d_db, MYSQL_OPT_RECONNECT, &set_reconnect);
-#endif
-
 #if MYSQL_VERSION_ID >= 50100
     if (d_timeout) {
       mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &d_timeout);
