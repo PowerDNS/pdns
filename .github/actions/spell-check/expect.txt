@@ -82,6 +82,7 @@ axfrfilter
 Baan
 backgrounding
 backported
+backticks
 BADALG
 BADCOOKIE
 badips
@@ -119,6 +120,7 @@ binddn
 BINDTODEVICE
 Binero
 binlog
+bitfield
 bitmaps
 bla
 blackhole
@@ -241,6 +243,7 @@ cryptopp
 cryptoshop
 csum
 csync
+Cunha
 custommetrics
 cve
 cvename
@@ -834,6 +837,7 @@ mrtg
 msdcs
 MSDNS
 msphinx
+msrv
 mtasker
 mthread
 Mulholland
@@ -1197,6 +1201,7 @@ rsasha
 Rueckert
 rulesets
 runtimedir
+rustup
 Ruthensteiner
 Rvd
 rwlock
