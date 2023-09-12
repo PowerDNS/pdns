@@ -1514,7 +1514,7 @@ noinst_PROGRAMS = speedtest
 if UNIT_TESTS
 noinst_PROGRAMS += testrunner
 if HAVE_BOOST_GE_148
-TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
+TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message BOOST_TEST_RANDOM=1 SRCDIR='$(srcdir)'
 TESTS=testrunner
 else
 check-local:
