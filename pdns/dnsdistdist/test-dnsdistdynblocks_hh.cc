@@ -15,7 +15,20 @@ shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 
 BOOST_AUTO_TEST_SUITE(dnsdistdynblocks_hh)
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
+struct TestFixture
+{
+  TestFixture()
+  {
+    g_rings.reset();
+    g_rings.init();
+  }
+  ~TestFixture()
+  {
+    g_rings.reset();
+  }
+};
+
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate, TestFixture) {
   dnsheader dh;
   memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
@@ -35,9 +48,6 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
   size_t blockDuration = 60;
   const auto action = DNSAction::Action::Drop;
   const std::string reason = "Exceeded query rate";
-
-  g_rings.reset();
-  g_rings.init();
 
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
@@ -154,7 +164,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_RangeV6) {
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_RangeV6, TestFixture) {
   /* Check that we correctly group IPv6 addresses from the same /64 subnet into the same
      dynamic block entry, if instructed to do so */
   dnsheader dh;
@@ -179,9 +189,6 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_RangeV6) {
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
   dbrg.setMasks(32, 64, 0);
-
-  g_rings.reset();
-  g_rings.init();
 
   /* block above 50 qps for numberOfSeconds seconds, no warning */
   dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
@@ -257,7 +264,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_RangeV6) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_V4Ports) {
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_V4Ports, TestFixture) {
   /* Check that we correctly split IPv4 addresses based on port ranges, when instructed to do so */
   dnsheader dh;
   memset(&dh, 0, sizeof(dh));
@@ -282,9 +289,6 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_V4Ports) {
   dbrg.setQuiet(true);
   /* split v4 by ports using a  /2 (0 - 16383, 16384 - 32767, 32768 - 49151, 49152 - 65535) */
   dbrg.setMasks(32, 128, 2);
-
-  g_rings.reset();
-  g_rings.init();
 
   /* block above 50 qps for numberOfSeconds seconds, no warning */
   dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
@@ -391,7 +395,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_V4Ports) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses) {
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses, TestFixture) {
   /* check that the responses are not accounted as queries when a
      rcode rate rule is defined (sounds very specific but actually happened) */
   dnsheader dh;
@@ -453,7 +457,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QTypeRate, TestFixture) {
   dnsheader dh;
   memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
@@ -473,8 +477,6 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
 
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
-  g_rings.reset();
-  g_rings.init();
 
   /* block above 50 qps for numberOfSeconds seconds, no warning */
   dbrg.setQTypeRate(QType::AAAA, 50, 0, numberOfSeconds, reason, blockDuration, action);
@@ -543,7 +545,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_QTypeRate) {
 
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_RCodeRate, TestFixture) {
   dnsheader dh;
   memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
@@ -636,7 +638,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRate) {
 
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio, TestFixture) {
   dnsheader dh;
   memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
@@ -659,9 +661,6 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
 
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
-
-  g_rings.reset();
-  g_rings.init();
 
   /* block above 0.2 ServFail/Total ratio over numberOfSeconds seconds, no warning, minimum number of queries should be at least 51 */
   dbrg.setRCodeRatio(rcode, 0.2, 0, numberOfSeconds, reason, blockDuration, action, 51);
@@ -758,7 +757,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate, TestFixture) {
   dnsheader dh;
   memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
@@ -781,9 +780,6 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
 
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
-
-  g_rings.reset();
-  g_rings.init();
 
   /* block above 10kB/s for numberOfSeconds seconds, no warning */
   dbrg.setResponseByteRate(10000, 0, numberOfSeconds, reason, blockDuration, action);
@@ -835,7 +831,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate) {
 
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_Warning, TestFixture) {
   dnsheader dh;
   memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
@@ -855,9 +851,6 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
 
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
-
-  g_rings.reset();
-  g_rings.init();
 
   /* warn above 20 qps for numberOfSeconds seconds, block above 50 qps */
   dbrg.setQueryRate(50, 20, numberOfSeconds, reason, blockDuration, action);
@@ -998,7 +991,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Warning) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_Ranges, TestFixture) {
   dnsheader dh;
   memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");
@@ -1025,9 +1018,6 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
 
   /* block above 50 qps for numberOfSeconds seconds, no warning */
   dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
-
-  g_rings.reset();
-  g_rings.init();
 
   {
     /* insert just above 50 qps from the two clients in the last 10s
@@ -1058,7 +1048,7 @@ BOOST_AUTO_TEST_CASE(test_DynBlockRulesGroup_Ranges) {
 
 }
 
-BOOST_AUTO_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN) {
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
   dnsheader dh;
   memset(&dh, 0, sizeof(dh));
   DNSName qname("rings.powerdns.com.");

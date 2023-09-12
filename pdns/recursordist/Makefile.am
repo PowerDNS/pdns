@@ -93,7 +93,7 @@ TESTS=test_libcrypto
 
 if UNIT_TESTS
 noinst_PROGRAMS = testrunner
-TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message BOOST_TEST_RANDOM=1 SRCDIR='$(srcdir)'
+TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message BOOST_TEST_RANDOM=0 SRCDIR='$(srcdir)'
 TESTS += testrunner
 else
 check-local:
