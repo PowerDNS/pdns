@@ -325,7 +325,14 @@ template<class Key, class Val, class Cmp>bool MTasker<Key,Val,Cmp>::schedule(con
     d_threads[d_tid].dt.start();
 #endif
     notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
-    pdns_swapcontext(d_kernel, *d_threads[d_tid].context);
+    try {
+      pdns_swapcontext(d_kernel, *d_threads[d_tid].context);
+    }
+    catch (...) {
+      notifyStackSwitchDone();
+      // It is not clear if the d_runQueue.pop() should be done in this case
+      throw;
+    }
     notifyStackSwitchDone();
 
     d_runQueue.pop();
