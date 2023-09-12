@@ -337,7 +337,7 @@ def is_value_rust_default(typ, value):
         return value == ''
     return False
 
-def gen_rust_forwardzonevec_default_fucntions(name):
+def gen_rust_forwardzonevec_default_functions(name):
     """Generate Rust code for the default handling of a vector for ForwardZones"""
     ret = f'// DEFAULT HANDLING for {name}\n'
     ret += f'fn default_value_{name}() -> Vec<recsettings::ForwardZone> {{\n'
@@ -397,7 +397,7 @@ def gen_rust_default_functions(entry, name, rust_type):
     if entry['type'] in (LType.ListSocketAddresses, LType.ListSubnets, LType.ListStrings):
         return gen_rust_stringvec_default_functions(entry, name)
     if entry['type'] == LType.ListForwardZones:
-        return gen_rust_forwardzonevec_default_fucntions(name)
+        return gen_rust_forwardzonevec_default_functions(name)
     if entry['type'] == LType.ListAuthZones:
         return gen_rust_authzonevec_default_functions(name)
     ret = f'// DEFAULT HANDLING for {name}\n'
