@@ -103,7 +103,7 @@ static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, Htt
       }
 
       try {
-        ::pdns::rust::settings::rec::validate_allow_from(aclType, {vec.data(), vec.size()});
+        ::pdns::rust::settings::rec::validate_allow_from(aclType, vec);
       }
       catch (const ::rust::Error& e) {
         throw ApiException(string("Unable to convert: ") + e.what());

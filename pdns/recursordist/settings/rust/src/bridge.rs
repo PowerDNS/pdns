@@ -210,13 +210,13 @@ impl AuthZone {
     }
 }
 
-pub fn validate_auth_zones(field: &str, vec: &[AuthZone]) -> Result<(), ValidationError> {
+pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))
 }
 
 pub fn validate_forward_zones(
     field: &str,
-    vec: &[ForwardZone],
+    vec: &Vec<ForwardZone>,
 ) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))
 }
@@ -270,7 +270,7 @@ pub fn allow_from_to_yaml_string_incoming(
     serde_yaml::to_string(&outerval)
 }
 
-pub fn validate_allow_from(field: &str, vec: &[String]) -> Result<(), ValidationError> {
+pub fn validate_allow_from(field: &str, vec: &Vec<String>) -> Result<(), ValidationError> {
     validate_vec(field, vec, validate_subnet)
 }
 
@@ -280,11 +280,11 @@ pub fn allow_for_to_yaml_string(vec: &Vec<String>) -> Result<String, serde_yaml:
     allow_from_to_yaml_string(vec)
 }
 
-pub fn validate_allow_for(field: &str, vec: &[String]) -> Result<(), ValidationError> {
+pub fn validate_allow_for(field: &str, vec: &Vec<String>) -> Result<(), ValidationError> {
     validate_vec(field, vec, validate_name)
 }
 
-pub fn validate_allow_notify_for(field: &str, vec: &[String]) -> Result<(), ValidationError> {
+pub fn validate_allow_notify_for(field: &str, vec: &Vec<String>) -> Result<(), ValidationError> {
     validate_vec(field, vec, validate_name)
 }
 
