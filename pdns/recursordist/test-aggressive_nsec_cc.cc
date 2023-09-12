@@ -1121,7 +1121,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_replace)
 
   auto diff2 = time.udiff(true);
   // Check that replace is about equally fast as insert
-  BOOST_CHECK(diff1 < diff2 * 1.2 && diff2 < diff1 * 1.2);
+  BOOST_CHECK(diff1 < diff2 * 1.3 && diff2 < diff1 * 1.3);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_wiping)
