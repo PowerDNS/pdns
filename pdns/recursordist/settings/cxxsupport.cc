@@ -177,7 +177,7 @@ void pdns::settings::rec::readYamlAllowFromFile(const std::string& filename, ::r
   }
   auto data = string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
   auto yamlvec = pdns::rust::settings::rec::parse_yaml_string_to_allow_from(data);
-  pdns::rust::settings::rec::validate_allow_from(filename, yamlvec);
+  pdns::rust::settings::rec::validate_allow_from(filename, {yamlvec.data(), yamlvec.size()});
   vec = yamlvec;
 }
 
@@ -191,7 +191,7 @@ void pdns::settings::rec::readYamlForwardZonesFile(const std::string& filename, 
   }
   auto data = string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
   auto yamlvec = pdns::rust::settings::rec::parse_yaml_string_to_forward_zones(data);
-  pdns::rust::settings::rec::validate_forward_zones("forward_zones", yamlvec);
+  pdns::rust::settings::rec::validate_forward_zones("forward_zones", {yamlvec.data(), yamlvec.size()});
   vec = yamlvec;
 }
 
@@ -205,7 +205,7 @@ void pdns::settings::rec::readYamlAllowNotifyForFile(const std::string& filename
   }
   auto data = string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
   auto yamlvec = pdns::rust::settings::rec::parse_yaml_string_to_allow_notify_for(data);
-  pdns::rust::settings::rec::validate_allow_notify_for("allow-notify-for", yamlvec);
+  pdns::rust::settings::rec::validate_allow_notify_for("allow-notify-for", {yamlvec.data(), yamlvec.size()});
   vec = yamlvec;
 }
 

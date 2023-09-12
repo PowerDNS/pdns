@@ -95,11 +95,11 @@ extern "Rust" {
     fn validate(self: &ApiZones, field: &str) -> Result<()>;
 
     // Helper functions to call the proper validate function on vectors of various kinds
-    fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<()>;
-    fn validate_forward_zones(field: &str, vec: &Vec<ForwardZone>) -> Result<()>;
-    fn validate_allow_for(field: &str, vec: &Vec<String>) -> Result<()>;
-    fn validate_allow_notify_for(field: &str, vec: &Vec<String>) -> Result<()>;
-    fn validate_allow_from(field: &str, vec: &Vec<String>) -> Result<()>;
+    fn validate_auth_zones(field: &str, vec: &[AuthZone]) -> Result<()>;
+    fn validate_forward_zones(field: &str, vec: &[ForwardZone]) -> Result<()>;
+    fn validate_allow_for(field: &str, vec: &[String]) -> Result<()>;
+    fn validate_allow_notify_for(field: &str, vec: &[String]) -> Result<()>;
+    fn validate_allow_from(field: &str, vec: &[String]) -> Result<()>;
 
     // The functions to maintain REST API managed zones
     fn api_read_zones(path: &str) ->  Result<UniquePtr<ApiZones>>;

@@ -153,7 +153,7 @@ static std::string showForwardFileYAML(const ::rust::string& rfilename)
   msg += std::string(yaml);
   msg += "# Validation result: ";
   try {
-    pdns::rust::settings::rec::validate_forward_zones("forward_zones", forwards);
+    pdns::rust::settings::rec::validate_forward_zones("forward_zones", {forwards.data(), forwards.size()});
     msg += "OK";
   }
   catch (const rust::Error& err) {
@@ -163,7 +163,7 @@ static std::string showForwardFileYAML(const ::rust::string& rfilename)
   return msg;
 }
 
-static std::string showAllowYAML(const ::rust::String& rfilename, const string& section, const string& key, const std::function<void(const ::rust::String&, const ::rust::Vec<::rust::String>&)>& func)
+static std::string showAllowYAML(const ::rust::String& rfilename, const string& section, const string& key, const std::function<void(const ::rust::String&, ::rust::Slice<::rust::String const>)>& func)
 {
   std::string msg;
   if (rfilename.empty() || boost::ends_with(rfilename, ".yml")) {
@@ -178,7 +178,7 @@ static std::string showAllowYAML(const ::rust::String& rfilename, const string& 
   msg += std::string(yaml);
   msg += "# Validation result: ";
   try {
-    func(key, allows);
+    func(key, {allows.data(), allows.size()});
     msg += "OK";
   }
   catch (const rust::Error& err) {
