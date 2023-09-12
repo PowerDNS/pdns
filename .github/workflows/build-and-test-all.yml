@@ -134,6 +134,7 @@ jobs:
           key: recursor-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: recursor-${{ matrix.sanitizers }}-ccache-
       - run: inv ci-install-rust ${{ env.REPO_HOME }}
+        working-directory: ./pdns/recursordist/
       - run: inv ci-autoconf
         working-directory: ./pdns/recursordist/
       - run: inv ci-rec-configure
