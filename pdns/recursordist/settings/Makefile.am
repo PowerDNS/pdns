@@ -10,6 +10,8 @@ EXTRA_DIST = \
 
 all: cxxsettings-generated.cc
 
+BUILT_SOURCES=cxxsettings-generated.cc
+
 # It's a bit dirty that this target also generated a file inside rust/src (lib.rs)
 cxxsettings-generated.cc: table.py generate.py rust-preamble-in.rs rust-bridge-in.rs docs-old-preamble-in.rst docs-new-preamble-in.rst
 	$(PYTHON) generate.py
