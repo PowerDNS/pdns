@@ -380,7 +380,13 @@ template<class Key, class Val, class Cmp>bool MTasker<Key,Val,Cmp>::schedule(con
         ttdindex.erase(i++);                  // removes the waitpoint
 
         notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
-        pdns_swapcontext(d_kernel, *uc); // swaps back to the above point 'A'
+        try {
+          pdns_swapcontext(d_kernel, *uc); // swaps back to the above point 'A'
+        }
+        catch (...) {
+          notifyStackSwitchDone();
+          throw;
+        }
         notifyStackSwitchDone();
       }
       else if(i->ttd.tv_sec)
