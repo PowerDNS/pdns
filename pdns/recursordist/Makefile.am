@@ -46,7 +46,7 @@ CLEANFILES = htmlfiles.h \
 htmlfiles.h: incfiles html/* html/js/*
 	./incfiles > $@
 
-# We explicilt build settings in two steps, as settings modifies files in the settings/rust subdir
+# We explicitly build settings in two steps, as settings modifies files in the settings/rust subdir
 SUBDIRS=ext settings settings/rust
 
 if LUA

@@ -210,10 +210,12 @@ impl AuthZone {
     }
 }
 
+#[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))
 }
 
+#[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_forward_zones(
     field: &str,
     vec: &Vec<ForwardZone>,
@@ -270,6 +272,7 @@ pub fn allow_from_to_yaml_string_incoming(
     serde_yaml::to_string(&outerval)
 }
 
+#[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_allow_from(field: &str, vec: &Vec<String>) -> Result<(), ValidationError> {
     validate_vec(field, vec, validate_subnet)
 }
@@ -280,10 +283,12 @@ pub fn allow_for_to_yaml_string(vec: &Vec<String>) -> Result<String, serde_yaml:
     allow_from_to_yaml_string(vec)
 }
 
+#[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_allow_for(field: &str, vec: &Vec<String>) -> Result<(), ValidationError> {
     validate_vec(field, vec, validate_name)
 }
 
+#[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_allow_notify_for(field: &str, vec: &Vec<String>) -> Result<(), ValidationError> {
     validate_vec(field, vec, validate_name)
 }
