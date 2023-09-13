@@ -2744,6 +2744,18 @@ Maximum number of idle outgoing TCP/DoT connections per thread, 0 means do not k
 
 Spawn this number of threads on startup.
 
+.. _setting-tcp-threads:
+
+``tcp-threads``
+~~~~~~~~~~~~~~~
+
+-  Integer
+-  Default: 1
+
+- YAML setting: :ref:`setting-yaml-recursor.tcp_threads`
+
+Spawn this number of TCP processing threads on startup.
+
 .. _setting-trace:
 
 ``trace``

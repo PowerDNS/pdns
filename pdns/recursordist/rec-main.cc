@@ -2129,10 +2129,10 @@ static int serviceMain(Logr::log_t log)
          log->info(Logr::Warning, "Asked to run with 0 threads, raising to 1 instead"));
     RecThreadInfo::setNumUDPWorkerThreads(1);
   }
-  RecThreadInfo::setNumTCPWorkerThreads(1); // XXX
+  RecThreadInfo::setNumTCPWorkerThreads(::arg().asNum("tcp-threads"));
   if (RecThreadInfo::numTCPWorkers() < 1) {
-    SLOG(g_log << Logger::Warning << "Asked to run with 0 tcpthreads, raising to 1 instead" << endl,
-         log->info(Logr::Warning, "Asked to run with 0 tcpthreads, raising to 1 instead"));
+    SLOG(g_log << Logger::Warning << "Asked to run with 0 TCP threads, raising to 1 instead" << endl,
+         log->info(Logr::Warning, "Asked to run with 0 TCP threads, raising to 1 instead"));
     RecThreadInfo::setNumTCPWorkerThreads(1);
   }
 
