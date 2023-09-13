@@ -1095,7 +1095,7 @@ Whether to compute the latency of responses in protobuf messages using the times
 ^^^^^^^^^^^^^^^^^
 
 -  Boolean
--  Default: ``yes``
+-  Default: ``true``
 
 - Old style setting: :ref:`setting-quiet`
 
