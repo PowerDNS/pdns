@@ -264,6 +264,7 @@ public:
   static bool isThrottled(time_t now, const ComboAddress& server);
   static void doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries);
   static void doThrottle(time_t now, const ComboAddress& server, const DNSName& name, QType qtype, time_t duration, unsigned int tries);
+  static void unThrottle(const ComboAddress& server, const DNSName& qname, QType qtype);
 
   static uint64_t getFailedServersSize();
   static void clearFailedServers();
