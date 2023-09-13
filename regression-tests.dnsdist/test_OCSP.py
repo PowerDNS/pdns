@@ -35,13 +35,20 @@ class DNSDistOCSPStaplingTest(DNSDistTest):
     def getTLSProvider(self):
         return self.sendConsoleCommand("getBind(0):getEffectiveTLSProvider()").rstrip()
 
+    @classmethod
+    def setUpClass(cls):
+        cls.generateNewCertificateAndKey('server-ocsp')
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+
 @unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
+    _serverKey = 'server-ocsp.key'
+    _serverCert = 'server-ocsp.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _ocspFile = 'server.ocsp'
     _caCert = 'ca.pem'
@@ -67,6 +74,7 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
         if 'SKIP_DOH_TESTS' in os.environ:
             raise unittest.SkipTest('DNS over HTTPS tests are disabled')
 
+        cls.generateNewCertificateAndKey('server-ocsp')
         cls.startResponders()
         cls.startDNSDist()
         cls.setUpSockets()
@@ -84,7 +92,7 @@ class TestOCSPStaplingDOH(DNSDistOCSPStaplingTest):
             serialNumber = self.getOCSPSerial(output)
             self.assertTrue(serialNumber)
 
-            self.generateNewCertificateAndKey()
+            self.generateNewCertificateAndKey('server-ocsp')
             self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
             self.sendConsoleCommand("reloadAllCertificates()")
 
@@ -98,8 +106,8 @@ class TestBrokenOCSPStaplingDoH(DNSDistOCSPStaplingTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
+    _serverKey = 'server-ocsp.key'
+    _serverCert = 'server-ocsp.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     # invalid OCSP file!
@@ -129,8 +137,8 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
+    _serverKey = 'server-ocsp.key'
+    _serverCert = 'server-ocsp.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _ocspFile = 'server.ocsp'
     _caCert = 'ca.pem'
@@ -158,7 +166,7 @@ class TestOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
         serialNumber = self.getOCSPSerial(output)
         self.assertTrue(serialNumber)
 
-        self.generateNewCertificateAndKey()
+        self.generateNewCertificateAndKey('server-ocsp')
         self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
         self.sendConsoleCommand("reloadAllCertificates()")
 
@@ -172,8 +180,8 @@ class TestBrokenOCSPStaplingTLSGnuTLS(DNSDistOCSPStaplingTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
+    _serverKey = 'server-ocsp.key'
+    _serverCert = 'server-ocsp.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     # invalid OCSP file!
@@ -200,8 +208,8 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
+    _serverKey = 'server-ocsp.key'
+    _serverCert = 'server-ocsp.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _ocspFile = 'server.ocsp'
     _caCert = 'ca.pem'
@@ -229,7 +237,7 @@ class TestOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
         serialNumber = self.getOCSPSerial(output)
         self.assertTrue(serialNumber)
 
-        self.generateNewCertificateAndKey()
+        self.generateNewCertificateAndKey('server-ocsp')
         self.sendConsoleCommand("generateOCSPResponse('%s', '%s', '%s', '%s', 1, 0)" % (self._serverCert, self._caCert, self._caKey, self._ocspFile))
         self.sendConsoleCommand("reloadAllCertificates()")
 
@@ -243,8 +251,8 @@ class TestBrokenOCSPStaplingTLSOpenSSL(DNSDistOCSPStaplingTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
+    _serverKey = 'server-ocsp.key'
+    _serverCert = 'server-ocsp.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     # invalid OCSP file!

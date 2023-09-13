@@ -905,16 +905,17 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     def checkResponseNoEDNS(self, expected, received):
         self.checkMessageNoEDNS(expected, received)
 
-    def generateNewCertificateAndKey(self):
+    @staticmethod
+    def generateNewCertificateAndKey(filePrefix):
         # generate and sign a new cert
-        cmd = ['openssl', 'req', '-new', '-newkey', 'rsa:2048', '-nodes', '-keyout', 'server.key', '-out', 'server.csr', '-config', 'configServer.conf']
+        cmd = ['openssl', 'req', '-new', '-newkey', 'rsa:2048', '-nodes', '-keyout', filePrefix + '.key', '-out', filePrefix + '.csr', '-config', 'configServer.conf']
         output = None
         try:
             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
             output = process.communicate(input='')
         except subprocess.CalledProcessError as exc:
             raise AssertionError('openssl req failed (%d): %s' % (exc.returncode, exc.output))
-        cmd = ['openssl', 'x509', '-req', '-days', '1', '-CA', 'ca.pem', '-CAkey', 'ca.key', '-CAcreateserial', '-in', 'server.csr', '-out', 'server.pem', '-extfile', 'configServer.conf', '-extensions', 'v3_req']
+        cmd = ['openssl', 'x509', '-req', '-days', '1', '-CA', 'ca.pem', '-CAkey', 'ca.key', '-CAcreateserial', '-in', filePrefix + '.csr', '-out', filePrefix + '.pem', '-extfile', 'configServer.conf', '-extensions', 'v3_req']
         output = None
         try:
             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
@@ -922,12 +923,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         except subprocess.CalledProcessError as exc:
             raise AssertionError('openssl x509 failed (%d): %s' % (exc.returncode, exc.output))
 
-        with open('server.chain', 'w') as outFile:
-            for inFileName in ['server.pem', 'ca.pem']:
+        with open(filePrefix + '.chain', 'w') as outFile:
+            for inFileName in [filePrefix + '.pem', 'ca.pem']:
                 with open(inFileName) as inFile:
                     outFile.write(inFile.read())
 
-        cmd = ['openssl', 'pkcs12', '-export', '-passout', 'pass:passw0rd', '-clcerts', '-in', 'server.pem', '-CAfile', 'ca.pem', '-inkey', 'server.key', '-out', 'server.p12']
+        cmd = ['openssl', 'pkcs12', '-export', '-passout', 'pass:passw0rd', '-clcerts', '-in', filePrefix + '.pem', '-CAfile', 'ca.pem', '-inkey', filePrefix + '.key', '-out', filePrefix + '.p12']
         output = None
         try:
             process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
