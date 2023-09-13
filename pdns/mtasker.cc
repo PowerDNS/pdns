@@ -252,7 +252,13 @@ template<class EventKey, class EventVal, class Cmp>int MTasker<EventKey,EventVal
   auto userspace=std::move(waiter->context);
   d_waiters.erase(waiter);             // removes the waitpoint
   notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
-  pdns_swapcontext(d_kernel,*userspace); // swaps back to the above point 'A'
+  try {
+    pdns_swapcontext(d_kernel,*userspace); // swaps back to the above point 'A'
+  }
+  catch (...) {
+    notifyStackSwitchDone();
+    throw;
+  }
   notifyStackSwitchDone();
   return 1;
 }
@@ -325,7 +331,14 @@ template<class Key, class Val, class Cmp>bool MTasker<Key,Val,Cmp>::schedule(con
     d_threads[d_tid].dt.start();
 #endif
     notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
-    pdns_swapcontext(d_kernel, *d_threads[d_tid].context);
+    try {
+      pdns_swapcontext(d_kernel, *d_threads[d_tid].context);
+    }
+    catch (...) {
+      notifyStackSwitchDone();
+      // It is not clear if the d_runQueue.pop() should be done in this case
+      throw;
+    }
     notifyStackSwitchDone();
 
     d_runQueue.pop();
@@ -367,7 +380,13 @@ template<class Key, class Val, class Cmp>bool MTasker<Key,Val,Cmp>::schedule(con
         ttdindex.erase(i++);                  // removes the waitpoint
 
         notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
-        pdns_swapcontext(d_kernel, *uc); // swaps back to the above point 'A'
+        try {
+          pdns_swapcontext(d_kernel, *uc); // swaps back to the above point 'A'
+        }
+        catch (...) {
+          notifyStackSwitchDone();
+          throw;
+        }
         notifyStackSwitchDone();
       }
       else if(i->ttd.tv_sec)
