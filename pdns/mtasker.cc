@@ -252,7 +252,13 @@ template<class EventKey, class EventVal, class Cmp>int MTasker<EventKey,EventVal
   auto userspace=std::move(waiter->context);
   d_waiters.erase(waiter);             // removes the waitpoint
   notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
-  pdns_swapcontext(d_kernel,*userspace); // swaps back to the above point 'A'
+  try {
+    pdns_swapcontext(d_kernel,*userspace); // swaps back to the above point 'A'
+  }
+  catch (...) {
+    notifyStackSwitchDone();
+    throw;
+  }
   notifyStackSwitchDone();
   return 1;
 }
