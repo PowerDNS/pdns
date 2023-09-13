@@ -2594,6 +2594,7 @@ Spawn this number of threads on startup.
         'doc' : '''
 Spawn this number of TCP processing threads on startup.
  ''',
+        'versionadded': '5.0.0'
     },
     {
         'name' : 'trace',

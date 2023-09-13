@@ -2959,6 +2959,7 @@ A sequence of statistic names, that are prevented from being exported via SNMP, 
 
 ``recursor.tcp_threads``
 ^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 5.0.0
 
 -  Integer
 -  Default: ``1``

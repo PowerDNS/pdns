@@ -2748,6 +2748,7 @@ Spawn this number of threads on startup.
 
 ``tcp-threads``
 ~~~~~~~~~~~~~~~
+.. versionadded:: 5.0.0
 
 -  Integer
 -  Default: 1
