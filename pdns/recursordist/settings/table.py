@@ -1975,7 +1975,7 @@ In the default configuration this means that IPv6 is not used for outgoing queri
         'name' : 'quiet',
         'section' : 'logging',
         'type' : LType.Bool,
-        'default' : 'yes',
+        'default' : 'true',
         'help' : 'Suppress logging of questions and answers',
         'doc' : '''
 Don't log queries.
