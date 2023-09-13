@@ -1,6 +1,6 @@
 CARGO ?= cargo
 
-all: libsettings.a
+all install: libsettings.a
 
 EXTRA_DIST = \
 	Cargo.toml \
