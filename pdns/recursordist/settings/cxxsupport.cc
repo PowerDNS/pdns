@@ -491,7 +491,10 @@ std::string pdns::settings::rec::defaultsToYaml()
       withHelp = true;
     }
     if (withHelp) {
-      auto oldname = std::string(map.find(make_pair(section, field))->second.old_name);
+      std::string oldname;
+      if (auto iter = map.find(make_pair(section, field)); iter != map.end()) {
+        oldname = std::string(iter->second.old_name);
+      }
       res += "##### ";
       res += arg().getHelp(oldname);
       res += '\n';
