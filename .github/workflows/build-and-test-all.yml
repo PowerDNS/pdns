@@ -15,6 +15,8 @@ env:
   # github.workspace variable points to the Runner home folder. Container home folder defined below.
   REPO_HOME: '/__w/pdns/pdns'
   BUILDER_VERSION: '0.0.0-git1'
+  COVERAGE: yes
+  LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
 
 jobs:
   build-auth:
@@ -85,6 +87,15 @@ jobs:
           fi
       - run: inv ci-auth-install-remotebackend-test-deps
       - run: inv ci-auth-run-unit-tests
+      - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+        working-directory: ./pdns-${{ env.BUILDER_VERSION }}/pdns
+      - name: Coveralls Parallel auth unit
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: auth-unit-${{ matrix.sanitizers }}
+          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+          parallel: true
+          allow-empty: true
       - run: inv ci-make-install
       - run: ccache -s
       - name: Store the binaries
@@ -162,6 +173,16 @@ jobs:
             echo "failed=$?" >> $GITHUB_OUTPUT
           fi
       - run: inv ci-rec-run-unit-tests
+      - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+        if: ${{ matrix.sanitizers != 'tsan' }}
+      - name: Coveralls Parallel rec unit
+        if: ${{ matrix.sanitizers != 'tsan' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: rec-unit-${{ matrix.sanitizers }}
+          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+          parallel: true
+          allow-empty: true
       - run: inv ci-make-install
       - run: ccache -s
       - name: Store the binaries
@@ -242,6 +263,16 @@ jobs:
             echo "failed=$?" >> $GITHUB_OUTPUT
           fi
       - run: inv ci-dnsdist-run-unit-tests
+      - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+        if: ${{ matrix.sanitizers != 'tsan' }}
+      - name: Coveralls Parallel dnsdist unit
+        if: ${{ matrix.sanitizers != 'tsan' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: dnsdist-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
+          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+          parallel: true
+          allow-empty: true
       - run: inv ci-make-install
       - run: ccache -s
       - name: Store the binaries
@@ -301,6 +332,14 @@ jobs:
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps -b ${{ matrix.backend }}
       - run: inv test-api auth -b ${{ matrix.backend }}
+      - run: inv generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
+      - name: Coveralls Parallel auth API ${{ matrix.backend }}
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: auth-api-${{ matrix.backend }}
+          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+          parallel: true
+          allow-empty: true
 
   test-auth-backend:
     needs: build-auth
@@ -413,6 +452,14 @@ jobs:
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps -b ${{ matrix.backend }}
       - run: inv test-auth-backend -b ${{ matrix.backend }}
+      - run: inv generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
+      - name: Coveralls Parallel auth backend ${{ matrix.backend }}
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: auth-backend-${{ matrix.backend }}
+          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+          parallel: true
+          allow-empty: true
 
   test-ixfrdist:
     needs: build-auth
@@ -436,6 +483,14 @@ jobs:
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps
       - run: inv test-ixfrdist
+      - run: inv generate-coverage-info /opt/pdns-auth/bin/ixfrdist $GITHUB_WORKSPACE
+      - name: Coveralls Parallel ixfrdist
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: ixfrdist
+          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+          parallel: true
+          allow-empty: true
 
   test-recursor-api:
     needs: build-recursor
@@ -468,6 +523,16 @@ jobs:
       - run: inv install-clang-runtime
       - run: inv install-rec-test-deps
       - run: inv test-api recursor
+      - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+        if: ${{ matrix.sanitizers != 'tsan' }}
+      - name: Coveralls Parallel recursor API
+        if: ${{ matrix.sanitizers != 'tsan' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: rec-api
+          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+          parallel: true
+          allow-empty: true
 
   test-recursor-regression:
     needs: build-recursor
@@ -501,6 +566,16 @@ jobs:
       - run: inv install-clang-runtime
       - run: inv install-rec-test-deps
       - run: inv test-regression-recursor
+      - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+        if: ${{ matrix.sanitizers != 'tsan' }}
+      - name: Coveralls Parallel recursor regression
+        if: ${{ matrix.sanitizers != 'tsan' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: rec-regression
+          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+          parallel: true
+          allow-empty: true
 
   test-recursor-bulk:
     name: 'test rec *mini* bulk'
@@ -532,6 +607,16 @@ jobs:
       - run: inv install-clang-runtime
       - run: inv install-rec-bulk-deps
       - run: inv test-bulk-recursor ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }}
+      - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+        if: ${{ matrix.sanitizers != 'tsan' }}
+      - name: Coveralls Parallel recursor bulk
+        if: ${{ matrix.sanitizers != 'tsan' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: rec-regression-bulk
+          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+          parallel: true
+          allow-empty: true
 
   test-dnsdist-regression:
     needs: build-dnsdist
@@ -548,6 +633,8 @@ jobs:
         TSAN_OPTIONS: "halt_on_error=1:intercept_send=0:suppressions=${{ env.REPO_HOME }}/pdns/dnsdistdist/dnsdist-tsan.supp"
         # IncludeDir tests are disabled because of a weird interaction between TSAN and these tests which ever only happens on GH actions
         SKIP_INCLUDEDIR_TESTS: yes
+        SANITIZERS: ${{ matrix.sanitizers }}
+        COVERAGE: yes
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
       - uses: actions/checkout@v3
@@ -562,6 +649,16 @@ jobs:
       - run: inv install-clang-runtime
       - run: inv install-dnsdist-test-deps
       - run: inv test-dnsdist
+      - run: inv generate-coverage-info /opt/dnsdist/bin/dnsdist $GITHUB_WORKSPACE
+        if: ${{ matrix.sanitizers != 'tsan' }}
+      - name: Coveralls Parallel dnsdist regression
+        if: ${{ matrix.sanitizers != 'tsan' }}
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: dnsdist-regression-full-${{ matrix.sanitizers }}
+          path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+          parallel: true
+          allow-empty: true
 
   swagger-syntax-check:
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
@@ -616,6 +713,10 @@ jobs:
     if: success() || failure()
     runs-on: ubuntu-20.04
     steps:
+      - name: Coveralls Parallel Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel-finished: true
       - name: Install jq and yq
         run: "sudo snap install jq yq"
       - name: Fail job if any of the previous jobs failed

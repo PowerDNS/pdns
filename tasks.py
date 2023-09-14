@@ -203,6 +203,28 @@ def install_auth_build_deps(c):
     c.sudo('apt-get install -y --no-install-recommends ' + ' '.join(all_build_deps + git_build_deps + auth_build_deps))
     install_libdecaf(c, 'pdns-auth')
 
+def is_coverage_enabled():
+    sanitizers = os.getenv('SANITIZERS')
+    if sanitizers:
+        sanitizers = sanitizers.split('+')
+        if 'tsan' in sanitizers:
+            return False
+    return os.getenv('COVERAGE') == 'yes'
+
+@task
+def install_coverage_deps(c):
+    if is_coverage_enabled():
+        c.sudo(f'apt-get install -y --no-install-recommends llvm-{clang_version}')
+
+@task
+def generate_coverage_info(c, binary, outputDir):
+    if is_coverage_enabled():
+        version = os.getenv('BUILDER_VERSION')
+        c.run(f'llvm-profdata-{clang_version} merge -sparse -o {outputDir}/temp.profdata /tmp/code-*.profraw')
+        c.run(f'llvm-cov-{clang_version} export --format=lcov --ignore-filename-regex=\'^/usr/\' -instr-profile={outputDir}/temp.profdata -object {binary} > {outputDir}/coverage.lcov')
+        c.run(f'{outputDir}/.github/scripts/normalize_paths_in_coverage.py {outputDir} {version} {outputDir}/coverage.lcov {outputDir}/normalized_coverage.lcov')
+        c.run(f'mv {outputDir}/normalized_coverage.lcov {outputDir}/coverage.lcov')
+
 def setup_authbind(c):
     c.sudo('touch /etc/authbind/byport/53')
     c.sudo('chmod 755 /etc/authbind/byport/53')
@@ -395,6 +417,7 @@ def ci_auth_configure(c):
 
     fuzz_targets = os.getenv('FUZZING_TARGETS')
     fuzz_targets = '--enable-fuzz-targets' if fuzz_targets == 'yes' else ''
+    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
 
     modules = " ".join([
         "bind",
@@ -425,6 +448,7 @@ def ci_auth_configure(c):
         sanitizers,
         unittests,
         fuzz_targets,
+        coverage,
     ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
@@ -438,6 +462,7 @@ def ci_rec_configure(c):
 
     unittests = os.getenv('UNIT_TESTS')
     unittests = '--enable-unit-tests' if unittests == 'yes' else ''
+    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
 
     configure_cmd = " ".join([
         get_base_configure_cmd(),
@@ -449,6 +474,7 @@ def ci_rec_configure(c):
         "--enable-dns-over-tls",
         sanitizers,
         unittests,
+        coverage,
     ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
@@ -523,8 +549,9 @@ def ci_dnsdist_configure(c, features):
     unittests = ' --enable-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
     fuzztargets = '--enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
     sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
-    cflags = '-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int'
-    cxxflags = cflags + ' -Wp,-D_GLIBCXX_ASSERTIONS ' + additional_flags
+    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
+    cflags = get_cflags()
+    cxxflags = " ".join([get_cxxflags(), additional_flags])
     res = c.run(f'''CFLAGS="%s" \
                    CXXFLAGS="%s" \
                    AR=llvm-ar-{clang_version} \
@@ -536,7 +563,7 @@ def ci_dnsdist_configure(c, features):
                      --enable-fortify-source=auto \
                      --enable-auto-var-init=pattern \
                      --enable-lto=thin \
-                     --prefix=/opt/dnsdist %s %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests, fuzztargets), warn=True)
+                     --prefix=/opt/dnsdist %s %s %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests, fuzztargets, coverage), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
