@@ -1089,3 +1089,35 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     def sendDOTQueryWrapper(self, query, response, useQueue=True):
         return self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response, self._caCert, useQueue=useQueue)
+
+    @classmethod
+    def getDOQConnection(cls, port, servername, caFile=None, source=None, source_port=0):
+
+        manager = dns.quic.SyncQuicManager(
+            verify_mode=caFile
+        )
+
+        return manager.connect(servername, port, source, source_port)
+
+    @classmethod
+    def sendDOQQuery(cls, port, servername, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, fromQueue=None, toQueue=None, connection=None):
+
+        if response:
+            if toQueue:
+                toQueue.put(response, True, timeout)
+            else:
+                cls._toResponderQueue.put(response, True, timeout)
+
+        message = dns.query.quic(query, servername, timeout, port, verify=caFile, connection=connection)
+
+        receivedQuery = None
+
+        if useQueue:
+            if fromQueue:
+                if not fromQueue.empty():
+                    receivedQuery = fromQueue.get(True, timeout)
+            else:
+                if not cls._fromResponderQueue.empty():
+                    receivedQuery = cls._fromResponderQueue.get(True, timeout)
+
+        return (receivedQuery, message)
