@@ -28,6 +28,7 @@
 #include "rec-lua-conf.hh"
 
 #include "aggressive_nsec.hh"
+#include "coverage.hh"
 #include "validate-recursor.hh"
 #include "filterpo.hh"
 
@@ -1586,8 +1587,12 @@ void doExitGeneric(bool nicely)
   g_log << Logger::Error << "Exiting on user request" << endl;
   g_rcc.~RecursorControlChannel();
 
-  if (!g_pidfname.empty())
+  if (!g_pidfname.empty()) {
     unlink(g_pidfname.c_str()); // we can at least try..
+  }
+
+  pdns::coverage::dumpCoverageData();
+
   if (nicely) {
     RecursorControlChannel::stop = true;
   }

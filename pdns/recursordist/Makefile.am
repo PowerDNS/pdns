@@ -114,6 +114,7 @@ pdns_recursor_SOURCES = \
 	channel.cc channel.hh \
 	circular_buffer.hh \
 	comment.hh \
+	coverage.cc coverage.hh \
 	credentials.cc credentials.hh \
 	dns.hh dns.cc \
 	dns_random.hh \
