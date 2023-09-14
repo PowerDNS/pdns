@@ -4,7 +4,7 @@ RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then 
       yum install -y rpm-build rpmdevtools python2 python3 curl "@Development Tools"; \
     else \
       yum upgrade -y && \
-      yum install -y rpm-build rpmdevtools python3 curl "@Development Tools"; \
+      yum install --allowerasing -y rpm-build rpmdevtools python3 curl "@Development Tools"; \
     fi
 
 RUN mkdir /dist /pdns
