@@ -53,6 +53,7 @@
 #endif
 
 #include "auth-main.hh"
+#include "coverage.hh"
 #include "secpoll-auth.hh"
 #include "dynhandler.hh"
 #include "dnsseckeeper.hh"
@@ -1183,6 +1184,14 @@ static void tbhandler(int num)
 }
 #endif
 
+#ifdef COVERAGE
+static void sigTermHandler([[maybe_unused]] int signal)
+{
+  pdns::coverage::dumpCoverageData();
+  _exit(EXIT_SUCCESS);
+}
+#endif /* COVERAGE */
+
 //! The main function of pdns, the pdns process
 int main(int argc, char** argv)
 {
@@ -1281,6 +1290,12 @@ int main(int argc, char** argv)
       // never get here, guardian will reinvoke process
       cerr << "Um, we did get here!" << endl;
     }
+
+#ifdef COVERAGE
+    if (!::arg().mustDo("guardian") && !::arg().mustDo("daemon")) {
+      signal(SIGTERM, sigTermHandler);
+    }
+#endif
 
     // we really need to do work - either standalone or as an instance
 
