@@ -458,6 +458,7 @@ struct TestFixture
   {
     reset();
   }
+
 private:
   void reset()
   {
