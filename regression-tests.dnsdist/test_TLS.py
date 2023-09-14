@@ -58,7 +58,7 @@ class TLSTests(object):
         self.assertEqual(names, ['tls.tests.dnsdist.org', 'powerdns.com', '127.0.0.1'])
         serialNumber = cert['serialNumber']
 
-        self.generateNewCertificateAndKey()
+        self.generateNewCertificateAndKey('server-tls')
         self.sendConsoleCommand("reloadAllCertificates()")
 
         conn.close()
@@ -268,8 +268,8 @@ class TestOpenSSL(DNSDistTest, TLSTests):
     _extraStartupSleep = 1
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
+    _serverKey = 'server-tls.key'
+    _serverCert = 'server-tls.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _tlsServerPort = pickAvailablePort()
@@ -283,6 +283,13 @@ class TestOpenSSL(DNSDistTest, TLSTests):
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
 
+    @classmethod
+    def setUpClass(cls):
+        cls.generateNewCertificateAndKey('server-tls')
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+
     def testProvider(self):
         self.assertEqual(self.getTLSProvider(), "openssl")
 
@@ -290,8 +297,8 @@ class TestGnuTLS(DNSDistTest, TLSTests):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _serverKey = 'server.key'
-    _serverCert = 'server.chain'
+    _serverKey = 'server-tls.key'
+    _serverCert = 'server-tls.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _tlsServerPort = pickAvailablePort()
@@ -304,6 +311,13 @@ class TestGnuTLS(DNSDistTest, TLSTests):
     addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+
+    @classmethod
+    def setUpClass(cls):
+        cls.generateNewCertificateAndKey('server-tls')
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
 
     def testProvider(self):
         self.assertEqual(self.getTLSProvider(), "gnutls")
@@ -481,7 +495,7 @@ class TestProtocols(DNSDistTest):
 class TestPKCSTLSCertificate(DNSDistTest, TLSTests):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _serverCert = 'server.p12'
+    _serverCert = 'server-tls.p12'
     _pkcsPassphrase = 'passw0rd'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
@@ -495,3 +509,10 @@ class TestPKCSTLSCertificate(DNSDistTest, TLSTests):
     addAction(SNIRule("powerdns.com"), SpoofAction("1.2.3.4"))
     """
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_serverCert', '_pkcsPassphrase', '_tlsServerPort']
+
+    @classmethod
+    def setUpClass(cls):
+        cls.generateNewCertificateAndKey('server-tls')
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
