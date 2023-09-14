@@ -139,6 +139,7 @@ dnsdist_SOURCES = \
 	channel.cc channel.hh \
 	circular_buffer.hh \
 	connection-management.hh \
+	coverage.cc coverage.hh \
 	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dns_random.hh \

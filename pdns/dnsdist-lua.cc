@@ -57,6 +57,7 @@
 #include "dnsdist-web.hh"
 
 #include "base64.hh"
+#include "coverage.hh"
 #include "doh.hh"
 #include "dolog.hh"
 #include "sodcrypto.hh"
@@ -281,13 +282,6 @@ static void LuaThread(const std::string& code)
     sleep(5);
   }
 }
-
-#ifdef COVERAGE
-extern "C"
-{
-  void __gcov_dump(void);
-}
-#endif
 
 static bool checkConfigurationTime(const std::string& name)
 {
@@ -866,9 +860,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_tlslocals.clear();
     g_rings.clear();
 #endif /* 0 */
-#ifdef COVERAGE
-    __gcov_dump();
-#endif
+    pdns::coverage::dumpCoverageData();
     _exit(0);
   });
 
