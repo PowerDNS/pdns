@@ -112,23 +112,29 @@ BOOST_AUTO_TEST_CASE(test_TimeoutFailClose)
   auto holder = std::make_unique<dnsdist::AsynchronousHolder>(false);
   uint16_t asyncID = 1;
   uint16_t queryID = 42;
-  struct timeval ttd;
-  gettimeofday(&ttd, nullptr);
-  // timeout in 10 ms
-  const timeval add{0, 10000};
-  ttd = ttd + add;
+  struct timeval ttd
+  {
+  };
 
   std::shared_ptr<DummyQuerySender> sender{nullptr};
   {
+    // timeout in 10 ms
+    const timeval add{0, 10000};
     auto query = std::make_unique<DummyCrossProtocolQuery>();
     sender = query->d_sender;
     BOOST_REQUIRE(sender != nullptr);
+    gettimeofday(&ttd, nullptr);
+    ttd = ttd + add;
     holder->push(asyncID, queryID, ttd, std::move(query));
     BOOST_CHECK(!holder->empty());
   }
 
-  // sleep for 20 ms, to be sure
-  usleep(20000);
+  // the event should be triggered after 10 ms, but we have seen
+  // many spurious failures on our CI, likely because the box is
+  // overloaded, so sleep for up to 100 ms to be sure
+  for (size_t counter = 0; !holder->empty() && counter < 10; counter++) {
+    usleep(10000);
+  }
 
   BOOST_CHECK(holder->empty());
   BOOST_CHECK(sender->errorRaised);
@@ -155,8 +161,13 @@ BOOST_AUTO_TEST_CASE(test_AddingExpiredEvent)
     holder->push(asyncID, queryID, ttd, std::move(query));
   }
 
-  // sleep for 20 ms
-  usleep(20000);
+  // the expired event should be triggered almost immediately,
+  // but we have seen many spurious failures on our CI,
+  // likely because the box is overloaded, so sleep for up to
+  // 100 ms to be sure
+  for (size_t counter = 0; !holder->empty() && counter < 10; counter++) {
+    usleep(10000);
+  }
 
   BOOST_CHECK(holder->empty());
   BOOST_CHECK(sender->errorRaised);
