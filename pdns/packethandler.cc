@@ -1574,7 +1574,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 #endif
 
     // see what we get..
-    B.lookup(QType(QType::ANY), target, d_sd.domain_id, &p);
+    B.lookup(p.qtype, target, d_sd.domain_id, &p);
     rrset.clear();
     haveAlias.clear();
     aliasScopeMask = 0;
