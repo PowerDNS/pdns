@@ -11,6 +11,8 @@ the library used when dnsdist is built with support for both ``h2o`` and ``nghtt
 Note that ``nghttp2`` only supports HTTP/2, and not HTTP/1, while ``h2o`` supported both. This is not an issue for actual DNS over HTTPS clients that
 support HTTP/2, but might be one in setups running dnsdist behind a reverse-proxy that does not support HTTP/1. See :doc:`guides/dns-over-https` for some work-around.
 
+SNMP support is no longer enabled by default during ``configure``, requiring ``--with-net-snmp`` to be built.
+
 1.7.x to 1.8.0
 --------------
 
