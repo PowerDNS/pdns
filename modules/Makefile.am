@@ -12,4 +12,5 @@ DIST_SUBDIRS = \
 	lua2backend \
 	pipebackend \
 	remotebackend \
-	tinydnsbackend
+	tinydnsbackend \
+	dlsobackend

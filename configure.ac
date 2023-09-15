@@ -221,6 +221,9 @@ for a in $modules $dynmodules; do
       )
       have_remotebackend=yes
       ;;
+    dlso)
+      have_dlsobackend=yes
+      ;;
     tinydns)
       needcdb=yes
       PDNS_CHECK_CDB
@@ -369,6 +372,9 @@ AC_CONFIG_FILES([
   modules/pipebackend/Makefile
   modules/remotebackend/Makefile
   modules/tinydnsbackend/Makefile
+  modules/dlsobackend/Makefile
+  regression-tests/modules/dlso-gsql/Makefile
+
 ])
 AC_OUTPUT
 

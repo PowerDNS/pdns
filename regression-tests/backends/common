@@ -51,6 +51,10 @@ start_master ()
 				source ./backends/lua2-master
 				;;
 
+			dlso*)
+				source ./backends/dlso-master
+				;;
+
 			ext-nsd*)
 				source ./ext/nsd-master
 				;;
@@ -103,6 +107,10 @@ start_slave ()
 
 		lmdb*)
 			source ./backends/lmdb-slave
+			;;
+
+		dlso*)
+			source ./backends/dlso-slave
 			;;
 
 		ext-bind*)
