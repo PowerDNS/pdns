@@ -448,11 +448,7 @@ struct TestFixture
 {
   TestFixture()
   {
-    s_steps.clear();
-    s_connectionContexts.clear();
-    s_connectionBuffers.clear();
-    s_connectionID = 0;
-    s_mplexer = std::make_unique<MockupFDMultiplexer>();
+    reset();
   }
   TestFixture(const TestFixture&) = delete;
   TestFixture(TestFixture&&) = delete;
@@ -460,11 +456,20 @@ struct TestFixture
   TestFixture& operator=(TestFixture&&) = delete;
   ~TestFixture()
   {
+    reset();
+  }
+
+private:
+  void reset()
+  {
     s_steps.clear();
     s_connectionContexts.clear();
     s_connectionBuffers.clear();
     s_connectionID = 0;
-    s_mplexer.reset();
+    /* we _NEED_ to set this function to empty otherwise we might get what was set
+       by the last test, and we might not like it at all */
+    s_processQuery = nullptr;
+    g_proxyProtocolACL.clear();
   }
 };
 
@@ -499,10 +504,6 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
   pwR.startRecord(name, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
   pwR.xfr32BitInt(0x01020304);
   pwR.commit();
-
-  /* we _NEED_ to set this function to empty otherwise we might get what was set
-     by the last test, and we might not like it at all */
-  s_processQuery = nullptr;
 
   {
     /* dnsdist drops the query right away after receiving it, client closes the connection */

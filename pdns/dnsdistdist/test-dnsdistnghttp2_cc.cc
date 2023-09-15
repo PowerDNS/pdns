@@ -70,6 +70,7 @@ struct ExpectedData
 
 static std::deque<ExpectedStep> s_steps;
 static std::map<uint16_t, ExpectedData> s_responses;
+static std::unique_ptr<FDMultiplexer> s_mplexer;
 
 std::ostream& operator<<(std::ostream& os, const ExpectedStep::ExpectedRequest d);
 

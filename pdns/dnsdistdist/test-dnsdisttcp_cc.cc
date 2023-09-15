@@ -435,6 +435,39 @@ static void prependPayloadEditingID(PacketBuffer& buffer, const PacketBuffer& pa
   buffer.insert(buffer.begin(), newPayload.begin(), newPayload.end());
 }
 
+struct TestFixture
+{
+  TestFixture()
+  {
+    reset();
+  }
+  TestFixture(const TestFixture&) = delete;
+  TestFixture(TestFixture&&) = delete;
+  TestFixture& operator=(const TestFixture&) = delete;
+  TestFixture& operator=(TestFixture&&) = delete;
+  ~TestFixture()
+  {
+    reset();
+  }
+
+  static void reset()
+  {
+    s_steps.clear();
+    s_readBuffer.clear();
+    s_writeBuffer.clear();
+    s_backendReadBuffer.clear();
+    s_backendWriteBuffer.clear();
+
+    g_proxyProtocolACL.clear();
+    g_verbose = false;
+    IncomingTCPConnectionState::clearAllDownstreamConnections();
+
+    /* we _NEED_ to set this function to empty otherwise we might get what was set
+       by the last test, and we might not like it at all */
+    s_processQuery = nullptr;
+  }
+};
+
 static void testInit(const std::string& name, TCPClientThreadData& threadData)
 {
 #ifdef DEBUGLOG_ENABLED
@@ -443,22 +476,13 @@ static void testInit(const std::string& name, TCPClientThreadData& threadData)
   (void) name;
 #endif
 
-  s_steps.clear();
-  s_readBuffer.clear();
-  s_writeBuffer.clear();
-  s_backendReadBuffer.clear();
-  s_backendWriteBuffer.clear();
-
-  g_proxyProtocolACL.clear();
-  g_verbose = false;
-  IncomingTCPConnectionState::clearAllDownstreamConnections();
-
+  TestFixture::reset();
   threadData.mplexer = std::make_unique<MockupFDMultiplexer>();
 }
 
 #define TEST_INIT(str) testInit(str, threadData)
 
-BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
+BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
@@ -705,7 +729,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_SelfAnswered)
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered)
+BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
@@ -835,7 +859,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered)
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
+BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
@@ -1735,7 +1759,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnection_BackendNoOOOR)
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
+BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});
@@ -3875,7 +3899,7 @@ BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR)
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR)
+BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, false, "", {});

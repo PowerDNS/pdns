@@ -153,5 +153,3 @@ static ComboAddress getBackendAddress(const std::string& lastDigit, uint16_t por
 
   return ComboAddress("192.0.2." + lastDigit, port);
 }
-
-static std::unique_ptr<FDMultiplexer> s_mplexer;
