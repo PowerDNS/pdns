@@ -59,9 +59,15 @@ would look like this::
         allow-transfer {  key test.; };
     };
 
-A packet authorized and authenticated by a TSIG signature will gain
-access to a zone even if the remote IP address is not otherwise allowed
-to AXFR a zone.
+Yet another way of configuring AXFR access using TSIG is by using curl:
+
+.. code-block:: shell
+
+    # First the key has to be created
+    curl -d '{"name":"mytsigkey", "algorithm":"hmac-sha256"}' -H "Content-Type: application/json" -H "X-Api-Key: changeme" http://127.0.0.1:8081/api/v1/servers/localhost/tsigkeys
+    # Afterwards the key can be set on a specific zone
+    curl -X PUT -d  '{ "master_tsig_key_ids" : ["mytsigkey"] }' http://127.0.0.1:8081/api/v1/servers/localhost/zones/{zone_id} -H 'X-API-Key: changeme'
+
 
 .. _tsig-provision-signed-notify-axfr:
 
