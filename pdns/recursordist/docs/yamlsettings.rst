@@ -2030,7 +2030,7 @@ Either do not ``chroot`` on these systems or set the 'Type' of this service to '
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 -  String
--  Default: ``/etc/powerdns``
+-  Default: ``SYSCONFDIR``
 
 - Old style setting: :ref:`setting-config-dir`
 

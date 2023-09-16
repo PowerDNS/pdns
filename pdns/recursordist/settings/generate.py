@@ -209,7 +209,8 @@ def gen_cxx_defineoldsettings(file, entries):
         elif entry['type'] == LType.Command:
             file.write(f"  ::arg().setCmd({oldname}, {helptxt});\n")
         else:
-            file.write(f"  ::arg().set({oldname}, {helptxt}) = {quote(entry['default'])};\n")
+            cxxdef = 'SYSCONFDIR' if entry['default'] == 'SYSCONFDIR' else quote(entry['default'])
+            file.write(f"  ::arg().set({oldname}, {helptxt}) = {cxxdef};\n")
     file.write('}\n\n')
 
 def gen_cxx_oldstylesettingstobridgestruct(file, entries):
@@ -402,7 +403,8 @@ def gen_rust_default_functions(entry, name, rust_type):
         return gen_rust_authzonevec_default_functions(name)
     ret = f'// DEFAULT HANDLING for {name}\n'
     ret += f'fn default_value_{name}() -> {rust_type} {{\n'
-    ret += f"    String::from({quote(entry['default'])})\n"
+    rustdef = 'env!("SYSCONFDIR")' if entry['default'] == 'SYSCONFDIR' else quote(entry['default'])
+    ret += f"    String::from({rustdef})\n"
     ret += '}\n'
     if rust_type == 'String':
         rust_type = 'str'

@@ -379,7 +379,7 @@ EMPTY?  '''
         'name' : 'config_dir',
         'section' : 'recursor',
         'type' : LType.String,
-        'default' : '/etc/powerdns',
+        'default' : 'SYSCONFDIR',
         'help' : 'Location of configuration directory (recursor.conf)',
         'doc' : '''
 Location of configuration directory (``recursor.conf``).

@@ -363,7 +363,7 @@ Time to wait for data from TCP clients.
 ~~~~~~~~~~~~~~
 
 -  String
--  Default: /etc/powerdns
+-  Default: SYSCONFDIR
 
 - YAML setting: :ref:`setting-yaml-recursor.config_dir`
 
