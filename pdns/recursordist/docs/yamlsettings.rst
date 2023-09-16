@@ -2034,8 +2034,9 @@ Either do not ``chroot`` on these systems or set the 'Type' of this service to '
 
 - Old style setting: :ref:`setting-config-dir`
 
-Location of configuration directory (``recursor.conf``).
+Location of configuration directory (where ``recursor.conf`` or ``recursor.yml`` is stored).
 Usually ``/etc/powerdns``, but this depends on ``SYSCONFDIR`` during compile-time.
+Use default or set on command line.
 
 .. _setting-yaml-recursor.config_name:
 
