@@ -25,7 +25,7 @@ Changelog
 
     Change the default for building with net-snmp from `auto` to `no`
 
- .. change::
+  .. change::
     :tags: Improvements
     :pullreq: 13135
 
