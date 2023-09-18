@@ -336,3 +336,8 @@ uint64_t getResolveTaskExceptions()
 {
   return s_almost_expired_tasks.exceptions;
 }
+
+bool taskQTypeIsSupported(QType qtype)
+{
+  return !SyncRes::isUnsupported(qtype);
+}

@@ -126,12 +126,16 @@ bool RecursorPacketCache::checkResponseMatches(MapCombo::LockedContent& shard, s
       *age = static_cast<uint32_t>(now - iter->d_creation);
       // we know ttl is > 0
       auto ttl = static_cast<uint32_t>(iter->d_ttd - now);
-      if (s_refresh_ttlperc > 0 && !iter->d_submitted) {
-        const uint32_t deadline = iter->getOrigTTL() * s_refresh_ttlperc / 100;
-        const bool almostExpired = ttl <= deadline;
-        if (almostExpired) {
-          iter->d_submitted = true;
-          pushAlmostExpiredTask(qname, qtype, iter->d_ttd, Netmask());
+      if (s_refresh_ttlperc > 0 && !iter->d_submitted && taskQTypeIsSupported(qtype)) {
+        const dnsheader_aligned header(iter->d_packet.data());
+        const auto* headerPtr = header.get();
+        if (headerPtr->rcode == RCode::NoError) {
+          const uint32_t deadline = iter->getOrigTTL() * s_refresh_ttlperc / 100;
+          const bool almostExpired = ttl <= deadline;
+          if (almostExpired) {
+            iter->d_submitted = true;
+            pushAlmostExpiredTask(qname, qtype, iter->d_ttd, Netmask());
+          }
         }
       }
       *responsePacket = iter->d_packet;
@@ -244,7 +248,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     seq_idx.erase(seq_idx.begin());
     map.d_entriesCount--;
   }
-  assert(map.d_entriesCount == shard->d_map.size()); // XXX
+  assert(map.d_entriesCount == shard->d_map.size()); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay): clib implementation
 }
 
 void RecursorPacketCache::doPruneTo(size_t maxSize)
