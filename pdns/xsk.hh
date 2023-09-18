@@ -52,6 +52,8 @@ class XskPacket;
 class XskWorker;
 class XskSocket;
 
+using MACAddr = std::array<uint8_t,6>;
+
 #ifdef HAVE_XSK
 using XskPacketPtr = std::unique_ptr<XskPacket>;
 

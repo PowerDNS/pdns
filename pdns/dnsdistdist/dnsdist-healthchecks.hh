@@ -67,4 +67,3 @@ struct HealthCheckData
 PacketBuffer getHealthCheckPacket(const std::shared_ptr<DownstreamState>& ds, FDMultiplexer* mplexer, std::shared_ptr<HealthCheckData>& data);
 void setHealthCheckTime(const std::shared_ptr<DownstreamState>& ds, const std::shared_ptr<HealthCheckData>& data);
 bool handleResponse(std::shared_ptr<HealthCheckData>& data);
-

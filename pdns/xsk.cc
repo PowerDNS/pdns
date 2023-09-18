@@ -42,6 +42,7 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <net/if.h>
+#include <net/if_arp.h>
 #include <netinet/in.h>
 #include <poll.h>
 #include <stdexcept>
@@ -781,14 +782,22 @@ void XskWorker::notifyWorker() noexcept
 }
 void XskSocket::getMACFromIfName()
 {
-  ifreq ifr;
-  auto fd = ::socket(AF_INET, SOCK_DGRAM, 0);
-  strncpy(ifr.ifr_name, ifName.c_str(), ifName.length() + 1);
-  if (ioctl(fd, SIOCGIFHWADDR, &ifr) < 0) {
-    throw runtime_error("Error getting MAC addr");
+  ifreq ifr{};
+  auto fd = FDWrapper(::socket(AF_INET, SOCK_DGRAM, 0));
+  if (fd < 0) {
+    throw std::runtime_error("Error creating a socket to get the MAC address of interface " + ifName);
   }
-  memcpy(source, ifr.ifr_hwaddr.sa_data, sizeof(source));
-  close(fd);
+
+  if (ifName.size() >= IFNAMSIZ) {
+    throw std::runtime_error("Unable to get MAC address for interface " + ifName + ": name too long");
+  }
+
+  strncpy(ifr.ifr_name, ifName.c_str(), ifName.length() + 1);
+  if (ioctl(fd.getHandle(), SIOCGIFHWADDR, &ifr) < 0 || ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER) {
+    throw std::runtime_error("Error getting MAC address for interface " + ifName);
+  }
+  static_assert(sizeof(ifr.ifr_hwaddr.sa_data) >= std::tuple_size<decltype(source)>{}, "The size of an ARPHRD_ETHER MAC address is smaller than expected");
+  memcpy(source.data(), ifr.ifr_hwaddr.sa_data, source.size());
 }
 [[nodiscard]] int XskSocket::timeDifference(const timespec& t1, const timespec& t2) noexcept
 {

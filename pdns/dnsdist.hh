@@ -986,7 +986,7 @@ public:
       throw runtime_error("invalid source addr");
     }
     xsk->addWorker(xskInfo, d_config.sourceAddr, getProtocol() != dnsdist::Protocol::DoUDP);
-    memcpy(d_config.sourceMACAddr, xsk->source, sizeof(MACAddr));
+    d_config.sourceMACAddr = xsk->source;
     xskInfo->sharedEmptyFrameOffset = xsk->sharedEmptyFrameOffset;
   }
 #endif /* HAVE_XSK */

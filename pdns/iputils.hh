@@ -83,7 +83,6 @@
 #undef IP_PKTINFO
 #endif
 
-using MACAddr = uint8_t[6];
 union ComboAddress {
   struct sockaddr_in sin4;
   struct sockaddr_in6 sin6;

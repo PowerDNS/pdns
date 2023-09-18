@@ -759,7 +759,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     }
     extern std::vector<std::shared_ptr<XskSocket>> g_xsk;
     auto socket = std::make_shared<XskSocket>(frameNums, ifName, queue_id, path, poolName);
-    g_xsk.push_back(socket); 
+    g_xsk.push_back(socket);
     return socket;
   });
   luaCtx.registerFunction<std::string(std::shared_ptr<XskSocket>::*)()const>("getMetrics", [](const std::shared_ptr<XskSocket>& xsk) {
