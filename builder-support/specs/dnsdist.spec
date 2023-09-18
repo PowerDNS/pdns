@@ -80,6 +80,7 @@ export RANLIB=gcc-ranlib
   --enable-unit-tests \
   --enable-lto=thin \
   --enable-dns-over-tls \
+  --with-h2o \
 %if 0%{?suse_version}
   --disable-dnscrypt \
   --without-libsodium \

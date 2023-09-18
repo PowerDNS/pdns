@@ -53,6 +53,7 @@ override_dh_auto_configure:
 	  --enable-dnscrypt \
 	  --enable-dnstap \
 	  --with-gnutls \
+	  --with-h2o \
 	  --with-net-snmp \
 	  --with-libcap \
 	  --with-libsodium \
