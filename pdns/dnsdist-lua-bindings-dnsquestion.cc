@@ -500,5 +500,16 @@ private:
     auto query = dnsdist::getInternalQueryFromDQ(dr, false);
     return dnsdist::queueQueryResumptionEvent(std::move(query));
   });
+
+  luaCtx.registerMember<const ComboAddress (DNSResponse::*)>("selectedBackend", 
+    []( const DNSResponse& dr) -> const ComboAddress { 
+      if (dr.d_downstream == nullptr) {
+        return ComboAddress();
+      } else {
+        return dr.d_downstream->d_config.remote;
+      }
+    }, 
+    [](DNSResponse& dr, const ComboAddress newSelectedBackend) { (void) newSelectedBackend; }
+  );
 #endif /* DISABLE_NON_FFI_DQ_BINDINGS */
 }
