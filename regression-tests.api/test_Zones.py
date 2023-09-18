@@ -157,12 +157,15 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
 
     def test_create_zone_with_account(self):
         # soa_edit_api wins over serial
-        name, payload, data = self.create_zone(account='anaccount', serial=10)
+        name, payload, data = self.create_zone(account='anaccount', serial=10, kind='Master')
         print(data)
         for k in ('account', ):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEqual(data[k], payload[k])
+
+        # as we did not set a catalog in our request, check that the default catalog was applied
+        self.assertEqual(data['catalog'], "default-catalog.example.com.")
 
     def test_create_zone_default_soa_edit_api(self):
         name, payload, data = self.create_zone()

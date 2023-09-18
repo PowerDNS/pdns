@@ -1836,6 +1836,13 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp) {
 
     updateDomainSettingsFromDocument(B, di, zonename, document, !new_records.empty());
 
+    if (!catalog && kind == DomainInfo::Master) {
+      auto defaultCatalog = ::arg()["default-catalog-zone"];
+      if (!defaultCatalog.empty()) {
+        di.backend->setCatalog(zonename, DNSName(defaultCatalog));
+      }
+    }
+
     di.backend->commitTransaction();
 
     g_zoneCache.add(zonename, di.id); // make new zone visible

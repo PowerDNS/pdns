@@ -328,6 +328,8 @@ static void declareArguments()
   ::arg().setSwitch("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
   ::arg().set("rng", "Specify the random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.") = "auto";
+
+  ::arg().set("default-catalog-zone", "Catalog zone to assign newly created primary zones (via the API) to") = "";
 #ifdef ENABLE_GSS_TSIG
   ::arg().setSwitch("enable-gss-tsig", "Enable GSS TSIG processing") = "no";
 #endif
@@ -1477,6 +1479,17 @@ int main(int argc, char** argv)
   }
   catch (PDNSException& PE) {
     g_log << Logger::Error << "Exiting because: " << PE.reason << endl;
+    exit(1);
+  }
+
+  try {
+    auto defaultCatalog = ::arg()["default-catalog-zone"];
+    if (!defaultCatalog.empty()) {
+      auto defCatalog = DNSName(defaultCatalog);
+    }
+  }
+  catch (const std::exception& e) {
+    g_log << Logger::Error << "Invalid value '" << ::arg()["default-catalog-zone"] << "' for default-catalog-zone: " << e.what() << endl;
     exit(1);
   }
   S.blacklist("special-memory-usage");

@@ -75,6 +75,7 @@ default-soa-edit=INCEPTION-INCREMENT
 launch+=bind
 bind-config=bindbackend.conf
 loglevel=5
+default-catalog-zone=default-catalog.example.com
 """
 
 BINDBACKEND_CONF_TPL = """
