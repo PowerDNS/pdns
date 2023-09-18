@@ -2,6 +2,67 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.0-alpha1
+  :released: 18th of September 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 12678
+
+    Add support for incoming DoH via nghttp2
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13145
+
+    Fix building our fuzzing targets from a dist tarball
+
+  .. change::
+    :tags: Removals
+    :pullreq: 13168
+
+    Change the default for building with net-snmp from `auto` to `no`
+
+ .. change::
+    :tags: Improvements
+    :pullreq: 13135
+
+    Add a DNSHeader:getTC() Lua binding
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13013
+    :tickets: 13007
+
+    Add Lua bindings to access selector and action
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13088
+
+    Stop passing -u dnsdist -g dnsdist on systemd's ExecStart
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 13009
+
+    Add metrics for health-check failures
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12931
+
+    Use arc4random only for random values
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12689
+
+    Add an option to write `grepq`'s output to a file
+
+.. changelog::
   :version: 1.8.1
   :released: 8th of September 2023
 
