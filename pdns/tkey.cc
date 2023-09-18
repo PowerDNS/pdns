@@ -71,7 +71,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
 #ifdef ENABLE_GSS_TSIG
       g_log<<Logger::Error<<"GSS-TSIG request but feature not enabled by enable-gss-tsigs setting"<<endl;
 #else
-      g_log<<Logger::Error<<"GSS-TSIG request but not feature not compiled in"<<endl;
+      g_log<<Logger::Error<<"GSS-TSIG request but feature not compiled in"<<endl;
 #endif
     }
   } else if (tkey_in.d_mode == 5) { // destroy context
