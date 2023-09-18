@@ -49,8 +49,10 @@ Consult :doc:`../yamlsettings` for details on how settings spread over multiple 
 
 The contents of the report can be used to produce YAML settings equivalent to the old-style settings.
 This is a manual step and consists of copy-pasting the sections of the conversion report to individual files.
-Any settings filename in the include directory should end with ``.yml``.
-It is possible to put associated files (like a ``recursor.forward_zones_file``) into the include dir, but do *not* let these files end in ``.yml``, as ``.yml`` files will be interpreted as full configuration files, while the associated settings files are YAML sequences of a specific type.
+
+Any converted settings filename in the **include** directory should end with ``.yml``.
+The names of associated files (like a ``recursor.forward_zones_file``) should also end in ``.yml``, but should *not* be put into the **include** directory, as they do not contain full configuration YAML clauses but YAML sequences of a specific type.
+The associated files *can* be put in the **config** directory, the directory that is searched for a ``recursor.conf`` or ``recursor.yml`` file.
 
 API Managed Files
 -----------------
