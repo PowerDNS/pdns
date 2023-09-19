@@ -105,8 +105,19 @@ private:
   struct Entry
   {
     Entry(DNSName&& qname, uint16_t qtype, uint16_t qclass, std::string&& packet, std::string&& query, bool tcp,
-          uint32_t qhash, time_t ttd, time_t now, uint32_t tag, vState vstate) : // NOLINT
-      d_name(std::move(qname)), d_packet(std::move(packet)), d_query(std::move(query)), d_ttd(ttd), d_creation(now), d_qhash(qhash), d_tag(tag), d_type(qtype), d_class(qclass), d_vstate(vstate), d_tcp(tcp)
+          // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+          uint32_t qhash, time_t ttd, time_t now, uint32_t tag, vState vstate) :
+      d_name(std::move(qname)),
+      d_packet(std::move(packet)),
+      d_query(std::move(query)),
+      d_ttd(ttd),
+      d_creation(now),
+      d_qhash(qhash),
+      d_tag(tag),
+      d_type(qtype),
+      d_class(qclass),
+      d_vstate(vstate),
+      d_tcp(tcp)
     {
     }
 
