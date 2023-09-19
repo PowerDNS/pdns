@@ -24,7 +24,7 @@ uint64_t RecursorPacketCache::size() const
 {
   uint64_t count = 0;
   for (const auto& map : d_maps) {
-    count += map.d_entriesCount;
+    count += map.getEntriesCount();
   }
   return count;
 }
@@ -92,7 +92,7 @@ uint64_t RecursorPacketCache::doWipePacketCache(const DNSName& name, uint16_t qt
       }
       if (qtype == 0xffff || iter->d_type == qtype) {
         iter = idx.erase(iter);
-        map.d_entriesCount--;
+        map.decEntriesCount();
         count++;
       }
       else {
@@ -235,20 +235,20 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
     return;
   }
 
-  struct Entry entry(qname, qtype, qclass, std::move(responsePacket), std::move(query), tcp, qhash, now + ttl, now, tag, valState);
+  struct Entry entry(DNSName(qname), qtype, qclass, std::move(responsePacket), std::move(query), tcp, qhash, now + ttl, now, tag, valState);
   if (pbdata) {
     entry.d_pbdata = std::move(*pbdata);
   }
 
   shard->d_map.insert(entry);
-  map.d_entriesCount++;
+  map.incEntriesCount();
 
   if (shard->d_map.size() > shard->d_shardSize) {
     auto& seq_idx = shard->d_map.get<SequencedTag>();
     seq_idx.erase(seq_idx.begin());
-    map.d_entriesCount--;
+    map.decEntriesCount();
   }
-  assert(map.d_entriesCount == shard->d_map.size()); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay): clib implementation
+  assert(map.getEntriesCount() == shard->d_map.size()); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay): clib implementation
 }
 
 void RecursorPacketCache::doPruneTo(size_t maxSize)

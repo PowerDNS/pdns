@@ -141,7 +141,6 @@ private:
       uint64_t d_acquired_count{0};
       void invalidate() {}
     };
-    pdns::stat_t d_entriesCount{0};
 
     LockGuardedTryHolder<MapCombo::LockedContent> lock()
     {
@@ -154,8 +153,29 @@ private:
       return locked;
     }
 
+    [[nodiscard]] auto getEntriesCount() const
+    {
+      return d_entriesCount.load();
+    }
+
+    void incEntriesCount()
+    {
+      ++d_entriesCount;
+    }
+
+    void decEntriesCount()
+    {
+      --d_entriesCount;
+    }
+
+    void clearEntriesCount()
+    {
+      d_entriesCount = 0;
+    }
+
   private:
     LockGuarded<LockedContent> d_content;
+    pdns::stat_t d_entriesCount{0};
   };
 
   vector<MapCombo> d_maps;

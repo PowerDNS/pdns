@@ -21,7 +21,7 @@
  */
 #pragma once
 #include <string>
-#include <inttypes.h>
+#include <cinttypes>
 #include "dns.hh"
 #include "namespaces.hh"
 #include <iostream>
@@ -104,9 +104,9 @@ public:
 private:
   struct Entry
   {
-    Entry(const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& packet, std::string&& query, bool tcp,
-          uint32_t qhash, time_t ttd, time_t now, uint32_t tag, vState vstate) :
-      d_name(qname), d_packet(std::move(packet)), d_query(std::move(query)), d_ttd(ttd), d_creation(now), d_qhash(qhash), d_tag(tag), d_type(qtype), d_class(qclass), d_vstate(vstate), d_tcp(tcp)
+    Entry(DNSName&& qname, uint16_t qtype, uint16_t qclass, std::string&& packet, std::string&& query, bool tcp,
+          uint32_t qhash, time_t ttd, time_t now, uint32_t tag, vState vstate) : // NOLINT
+      d_name(std::move(qname)), d_packet(std::move(packet)), d_query(std::move(query)), d_ttd(ttd), d_creation(now), d_qhash(qhash), d_tag(tag), d_type(qtype), d_class(qclass), d_vstate(vstate), d_tcp(tcp)
     {
     }
 
@@ -157,8 +157,12 @@ private:
   struct MapCombo
   {
     MapCombo() = default;
+    ~MapCombo() = default;
     MapCombo(const MapCombo&) = delete;
+    MapCombo(MapCombo&&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
+    MapCombo& operator=(MapCombo&&) = delete;
+
     struct LockedContent
     {
       packetCache_t d_map;
@@ -169,7 +173,6 @@ private:
       uint64_t d_acquired_count{0};
       void invalidate() {}
     };
-    pdns::stat_t d_entriesCount{0};
 
     LockGuardedTryHolder<MapCombo::LockedContent> lock()
     {
@@ -182,8 +185,24 @@ private:
       return locked;
     }
 
+    [[nodiscard]] auto getEntriesCount() const
+    {
+      return d_entriesCount.load();
+    }
+
+    void incEntriesCount()
+    {
+      ++d_entriesCount;
+    }
+
+    void decEntriesCount()
+    {
+      --d_entriesCount;
+    }
+
   private:
     LockGuarded<LockedContent> d_content;
+    pdns::stat_t d_entriesCount{0};
   };
 
   vector<MapCombo> d_maps;

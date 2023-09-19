@@ -63,7 +63,7 @@ size_t MemRecursorCache::size() const
 {
   size_t count = 0;
   for (const auto& shard : d_maps) {
-    count += shard.d_entriesCount;
+    count += shard.getEntriesCount();
   }
   return count;
 }
@@ -548,7 +548,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
   cache_t::iterator stored = lockedShard->d_map.find(key);
   if (stored == lockedShard->d_map.end()) {
     stored = lockedShard->d_map.insert(CacheEntry(key, auth)).first;
-    ++shard.d_entriesCount;
+    shard.incEntriesCount();
     isNew = true;
   }
 
@@ -641,7 +641,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
       if (i->d_qtype == qtype || qtype == 0xffff) {
         i = idx.erase(i);
         count++;
-        --shard.d_entriesCount;
+        shard.decEntriesCount();
       }
       else {
         ++i;
@@ -670,7 +670,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
         if (i->d_qtype == qtype || qtype == 0xffff) {
           count++;
           i = idx.erase(i);
-          --mc.d_entriesCount;
+          mc.decEntriesCount();
         }
         else {
           ++i;
