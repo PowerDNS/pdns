@@ -10,6 +10,8 @@
 #include "dns_random.hh"
 #include "iputils.hh"
 #include "recpacketcache.hh"
+#include "taskqueue.hh"
+#include "rec-taskqueue.hh"
 #include <utility>
 
 BOOST_AUTO_TEST_SUITE(test_recpacketcache_cc)
@@ -78,6 +80,66 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple)
 
   rpc.doWipePacketCache(DNSName("com"), 0xffff, true);
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
+}
+
+BOOST_AUTO_TEST_CASE(test_recPacketCacheSimpleWithRefresh)
+{
+  RecursorPacketCache::s_refresh_ttlperc = 30;
+  RecursorPacketCache rpc(1000);
+  string fpacket;
+  unsigned int tag = 0;
+  uint32_t age = 0;
+  uint32_t qhash = 0;
+  uint32_t ttd = 3600;
+  BOOST_CHECK_EQUAL(rpc.size(), 0U);
+
+  DNSName qname("www.powerdns.com");
+  vector<uint8_t> packet;
+  DNSPacketWriter pw(packet, qname, QType::A);
+  pw.getHeader()->rd = true;
+  pw.getHeader()->qr = false;
+  pw.getHeader()->id = dns_random_uint16();
+  string qpacket((const char*)&packet[0], packet.size());
+  pw.startRecord(qname, QType::A, ttd);
+
+  time_t now = time(nullptr);
+
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, now, &fpacket, &age, &qhash), false);
+
+  ARecordContent ar("127.0.0.1");
+  ar.toPacket(pw);
+  pw.commit();
+  string rpacket((const char*)&packet[0], packet.size());
+
+  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), now, ttd, vState::Indeterminate, boost::none, false);
+  BOOST_CHECK_EQUAL(rpc.size(), 1U);
+  uint32_t qhash2 = 0;
+  bool found = rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, now, &fpacket, &age, &qhash2);
+  BOOST_CHECK_EQUAL(found, true);
+  BOOST_CHECK_EQUAL(qhash, qhash2);
+  BOOST_CHECK_EQUAL(fpacket, rpacket);
+
+  BOOST_REQUIRE_EQUAL(getTaskSize(), 0U);
+
+  // Half of time has passed, no task should have been submitted
+  now += ttd / 2;
+  found = rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, now, &fpacket, &age, &qhash2);
+  BOOST_CHECK_EQUAL(found, true);
+  BOOST_CHECK_EQUAL(qhash, qhash2);
+  BOOST_CHECK_EQUAL(fpacket, rpacket);
+
+  BOOST_REQUIRE_EQUAL(getTaskSize(), 0U);
+
+  // 75% of time has passed, task should have been submitted as refresh perc is 30 and (100-75) = 25 <= 30
+  now += ttd / 4;
+  found = rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, now, &fpacket, &age, &qhash2);
+  BOOST_CHECK_EQUAL(found, true);
+  BOOST_CHECK_EQUAL(qhash, qhash2);
+  BOOST_CHECK_EQUAL(fpacket, rpacket);
+
+  BOOST_REQUIRE_EQUAL(getTaskSize(), 1U);
+  auto task = taskQueuePop();
+  BOOST_CHECK_EQUAL(task.d_qname, qname);
 }
 
 BOOST_AUTO_TEST_CASE(test_recPacketCacheSimplePost2038)
@@ -275,7 +337,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags)
 BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP)
 {
   /* Insert a response with UDP, the exact same query with a TCP flag
-     should lead to a miss. 
+     should lead to a miss.
   */
   RecursorPacketCache rpc(1000);
   string fpacket;
