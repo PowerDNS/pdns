@@ -403,15 +403,13 @@ DNSResponse object
   - ``useECS``
 
   If the value is really needed while the response is being processed, it is possible to set a tag while the query is processed, as tags will be passed to the response object.
-  The DNSResponse object has one additional attribute:
+  It also has additional methods:
 
-  .. attribute:: DNSResponse.selectedBackend
+  .. method:: DNSResponse.getSelectedBackend() -> Server
 
     .. versionadded:: 1.9.0
 
-    :ref:`ComboAddress` of the selected backend.
-
-  It also has additional methods:
+    Get the selected backend :class:`Server` or nil
 
   .. method:: DNSResponse:editTTLs(func)
 
