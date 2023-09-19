@@ -2586,6 +2586,17 @@ Spawn this number of threads on startup.
  ''',
     },
     {
+        'name' : 'tcp_threads',
+        'section' : 'recursor',
+        'type' : LType.Uint64,
+        'default' : '1',
+        'help' : 'Launch this number of threads listening for and processing TCP queries',
+        'doc' : '''
+Spawn this number of TCP processing threads on startup.
+ ''',
+        'versionadded': '5.0.0'
+    },
+    {
         'name' : 'trace',
         'section' : 'logging',
         'type' : LType.String,

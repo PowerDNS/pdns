@@ -27,6 +27,39 @@
 #include "mplexer.hh"
 #include "uuid-utils.hh"
 
+// OLD PRE 5.0.0 situation:
+//
+// When pdns-distributes-queries is false with reuseport true (the default since 4.9.0), TCP queries
+// are read and handled by worker threads. If the kernel balancing is OK for TCP sockets (observed
+// to be good on Debian bullseye, but not good on e.g. MacOS), the TCP handling is no extra burden.
+// In the case of MacOS all incoming TCP queries are handled by a single worker, while incoming UDP
+// queries do get distributed round-robin over the worker threads.  Do note the TCP queries might
+// need to wait until the g_maxUDPQueriesPerRound is reached.
+//
+// In the case of pdns-distributes-queries true and reuseport false the queries were read and
+// initially processed by the distributor thread(s).
+//
+// Initial processing consist of parsing, calling gettag and checking if we have a packet cache
+// hit. If that does not produce a hit, the query is passed to an mthread in the same way as with
+// UDP queries, but do note that the mthread processing is serviced by the distributor thread. The
+// final answer will be sent by the same distributor thread that originally picked up the query.
+//
+// Changing this, and having incoming TCP queries handled by worker threads is somewhat more complex
+// than UDP, as the socket must remain available in the distributor thread (for reading more
+// queries), but the TCP socket must also be passed to a worker thread so it can write its
+// answer. The in-flight bookkeeping also has to be aware of how a query is handled to do the
+// accounting properly. I am not sure if changing the current setup is worth all this trouble,
+// especially since the default is now to not use pdns-distributes-queries, which works well in many
+// cases.
+//
+// NEW SITUATION SINCE 5.0.0:
+//
+// The drawback mentioned in https://github.com/PowerDNS/pdns/issues/8394 are not longer true, so an
+// alternative approach would be to introduce dedicated TCP worker thread(s).
+//
+// This approach was implemented in https://github.com/PowerDNS/pdns/pull/13195. The distributor and
+// worker thread(s) now no longer process TCP queries.
+
 size_t g_tcpMaxQueriesPerConn;
 unsigned int g_maxTCPPerClient;
 int g_tcpTimeout;
@@ -216,7 +249,259 @@ private:
   int d_fd{-1};
 };
 
-static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var) // NOLINT(readability-function-cognitive-complexity) https://github.com/PowerDNS/pdns/issues/12791
+static void handleNotify(std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname)
+{
+  if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(comboWriter->d_mappedSource)) {
+    if (!g_quiet) {
+      SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
+           g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY, address not matched by allow-notify-from", "source", Logging::Loggable(comboWriter->d_mappedSource)));
+    }
+
+    t_Counters.at(rec::Counter::sourceDisallowedNotify)++;
+    return;
+  }
+
+  if (!isAllowNotifyForZone(qname)) {
+    if (!g_quiet) {
+      SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
+           g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(comboWriter->d_mappedSource), "zone", Logging::Loggable(qname)));
+    }
+
+    t_Counters.at(rec::Counter::zoneDisallowedNotify)++;
+    return;
+  }
+}
+
+static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& luaconfsLocal, const std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname, QType qtype, QClass qclass, const dnsheader* dnsheader, const shared_ptr<TCPConnection>& conn)
+{
+  try {
+    if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && comboWriter->d_policyTags.empty())) {
+      protobufLogQuery(luaconfsLocal, comboWriter->d_uuid, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet.source, true, dnsheader->id, conn->qlen, qname, qtype, qclass, comboWriter->d_policyTags, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta);
+    }
+  }
+  catch (const std::exception& e) {
+    if (g_logCommonErrors) {
+      SLOG(g_log << Logger::Warning << "Error parsing a TCP query packet for edns subnet: " << e.what() << endl,
+           g_slogtcpin->error(Logr::Warning, e.what(), "Error parsing a TCP query packet for edns subnet", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
+    }
+  }
+}
+
+static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, shared_ptr<TCPConnection>& conn, RunningTCPQuestionGuard& tcpGuard, int fileDesc)
+{
+  RecThreadInfo::self().incNumberOfDistributedQueries();
+  struct timeval start
+  {
+  };
+  Utility::gettimeofday(&start, nullptr);
+
+  DNSName qname;
+  uint16_t qtype = 0;
+  uint16_t qclass = 0;
+  bool needECS = false;
+  string requestorId;
+  string deviceId;
+  string deviceName;
+  bool logQuery = false;
+  bool qnameParsed = false;
+
+  comboWriter->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
+  comboWriter->d_eventTrace.add(RecEventTrace::ReqRecv);
+  auto luaconfsLocal = g_luaconfs.getLocal();
+  if (checkProtobufExport(luaconfsLocal)) {
+    needECS = true;
+  }
+  logQuery = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logQueries;
+  comboWriter->d_logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
+
+  if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
+
+    try {
+      EDNSOptionViewMap ednsOptions;
+      comboWriter->d_ecsParsed = true;
+      comboWriter->d_ecsFound = false;
+      getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
+                        comboWriter->d_ecsFound, &comboWriter->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
+      qnameParsed = true;
+
+      if (t_pdl) {
+        try {
+          if (t_pdl->d_gettag_ffi) {
+            RecursorLua4::FFIParams params(qname, qtype, comboWriter->d_destination, comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_data, comboWriter->d_policyTags, comboWriter->d_records, ednsOptions, comboWriter->d_proxyProtocolValues, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_rcode, comboWriter->d_ttlCap, comboWriter->d_variable, true, logQuery, comboWriter->d_logResponse, comboWriter->d_followCNAMERecords, comboWriter->d_extendedErrorCode, comboWriter->d_extendedErrorExtra, comboWriter->d_responsePaddingDisabled, comboWriter->d_meta);
+            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
+            comboWriter->d_tag = t_pdl->gettag_ffi(params);
+            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, comboWriter->d_tag, false);
+          }
+          else if (t_pdl->d_gettag) {
+            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag);
+            comboWriter->d_tag = t_pdl->gettag(comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_destination, qname, qtype, &comboWriter->d_policyTags, comboWriter->d_data, ednsOptions, true, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_proxyProtocolValues);
+            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag, comboWriter->d_tag, false);
+          }
+        }
+        catch (const std::exception& e) {
+          if (g_logCommonErrors) {
+            SLOG(g_log << Logger::Warning << "Error parsing a query packet qname='" << qname << "' for tag determination, setting tag=0: " << e.what() << endl,
+                 g_slogtcpin->info(Logr::Warning, "Error parsing a query packet for tag determination, setting tag=0", "remote", Logging::Loggable(conn->d_remote), "qname", Logging::Loggable(qname)));
+          }
+        }
+      }
+    }
+    catch (const std::exception& e) {
+      if (g_logCommonErrors) {
+        SLOG(g_log << Logger::Warning << "Error parsing a query packet for tag determination, setting tag=0: " << e.what() << endl,
+             g_slogtcpin->error(Logr::Warning, e.what(), "Error parsing a query packet for tag determination, setting tag=0", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
+      }
+    }
+  }
+
+  if (comboWriter->d_tag == 0 && !comboWriter->d_responsePaddingDisabled && g_paddingFrom.match(comboWriter->d_remote)) {
+    comboWriter->d_tag = g_paddingTag;
+  }
+
+  const dnsheader_aligned headerdata(conn->data.data());
+  const struct dnsheader* dnsheader = headerdata.get();
+
+  if (t_protobufServers.servers || t_outgoingProtobufServers.servers) {
+    comboWriter->d_requestorId = requestorId;
+    comboWriter->d_deviceId = deviceId;
+    comboWriter->d_deviceName = deviceName;
+    comboWriter->d_uuid = getUniqueID();
+  }
+
+  if (t_protobufServers.servers) {
+    doProtobufLogQuery(logQuery, luaconfsLocal, comboWriter, qname, qtype, qclass, dnsheader, conn);
+  }
+
+  if (t_pdl) {
+    bool ipf = t_pdl->ipfilter(comboWriter->d_source, comboWriter->d_destination, *dnsheader, comboWriter->d_eventTrace);
+    if (ipf) {
+      if (!g_quiet) {
+        SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << g_multiTasker->getTid() << "/" << g_multiTasker->numProcesses() << "] DROPPED TCP question from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl,
+             g_slogtcpin->info(Logr::Info, "Dropped TCP question based on policy", "remote", Logging::Loggable(conn->d_remote), "source", Logging::Loggable(comboWriter->d_source)));
+      }
+      t_Counters.at(rec::Counter::policyDrops)++;
+      return;
+    }
+  }
+
+  if (comboWriter->d_mdp.d_header.qr) {
+    t_Counters.at(rec::Counter::ignoredCount)++;
+    if (g_logCommonErrors) {
+      SLOG(g_log << Logger::Error << "Ignoring answer from TCP client " << comboWriter->getRemote() << " on server socket!" << endl,
+           g_slogtcpin->info(Logr::Error, "Ignoring answer from TCP client on server socket", "remote", Logging::Loggable(comboWriter->getRemote())));
+    }
+    return;
+  }
+  if (comboWriter->d_mdp.d_header.opcode != static_cast<unsigned>(Opcode::Query) && comboWriter->d_mdp.d_header.opcode != static_cast<unsigned>(Opcode::Notify)) {
+    t_Counters.at(rec::Counter::ignoredCount)++;
+    if (g_logCommonErrors) {
+      SLOG(g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(comboWriter->d_mdp.d_header.opcode) << " from TCP client " << comboWriter->getRemote() << " on server socket!" << endl,
+           g_slogtcpin->info(Logr::Error, "Ignoring unsupported opcode from TCP client", "remote", Logging::Loggable(comboWriter->getRemote()), "opcode", Logging::Loggable(Opcode::to_s(comboWriter->d_mdp.d_header.opcode))));
+    }
+    sendErrorOverTCP(comboWriter, RCode::NotImp);
+    tcpGuard.keep();
+    return;
+  }
+  if (dnsheader->qdcount == 0U) {
+    t_Counters.at(rec::Counter::emptyQueriesCount)++;
+    if (g_logCommonErrors) {
+      SLOG(g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << comboWriter->getRemote() << " on server socket!" << endl,
+           g_slogtcpin->info(Logr::Error, "Ignoring empty (qdcount == 0) query on server socket", "remote", Logging::Loggable(comboWriter->getRemote())));
+    }
+    sendErrorOverTCP(comboWriter, RCode::NotImp);
+    tcpGuard.keep();
+    return;
+  }
+  {
+    // We have read a proper query
+    ++t_Counters.at(rec::Counter::qcounter);
+    ++t_Counters.at(rec::Counter::tcpqcounter);
+    if (comboWriter->d_source.sin4.sin_family == AF_INET6) {
+      ++t_Counters.at(rec::Counter::ipv6qcounter);
+    }
+
+    if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
+      handleNotify(comboWriter, qname);
+    }
+
+    string response;
+    RecursorPacketCache::OptPBData pbData{boost::none};
+
+    if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Query)) {
+      /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
+         but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
+         as cacheable we would cache it with a wrong tag, so better safe than sorry. */
+      comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck);
+      bool cacheHit = checkForCacheHit(qnameParsed, comboWriter->d_tag, conn->data, qname, qtype, qclass, g_now, response, comboWriter->d_qhash, pbData, true, comboWriter->d_source, comboWriter->d_mappedSource);
+      comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
+
+      if (cacheHit) {
+        if (!g_quiet) {
+          SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " TCP question answered from packet cache tag=" << comboWriter->d_tag << " from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << endl,
+               g_slogtcpin->info(Logr::Notice, "TCP question answered from packet cache", "tag", Logging::Loggable(comboWriter->d_tag),
+                                 "qname", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype)),
+                                 "source", Logging::Loggable(comboWriter->d_source), "remote", Logging::Loggable(comboWriter->d_remote)));
+        }
+
+        bool hadError = sendResponseOverTCP(comboWriter, response);
+        finishTCPReply(comboWriter, hadError, false);
+        struct timeval now
+        {
+        };
+        Utility::gettimeofday(&now, nullptr);
+        uint64_t spentUsec = uSec(now - start);
+        t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
+        comboWriter->d_eventTrace.add(RecEventTrace::AnswerSent);
+
+        if (t_protobufServers.servers && comboWriter->d_logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbData || pbData->d_tagged)) {
+          struct timeval tval
+          {
+            0, 0
+          };
+          protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, true, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet, comboWriter->d_uuid, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta, comboWriter->d_eventTrace, comboWriter->d_policyTags);
+        }
+
+        if (comboWriter->d_eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {
+          SLOG(g_log << Logger::Info << comboWriter->d_eventTrace.toString() << endl,
+               g_slogtcpin->info(Logr::Info, comboWriter->d_eventTrace.toString())); // More fancy?
+        }
+        tcpGuard.keep();
+        t_Counters.updateSnap(g_regressionTestMode);
+        return;
+      } // cache hit
+    } // query opcode
+
+    if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
+      if (!g_quiet) {
+        SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << endl,
+             g_slogtcpin->info(Logr::Notice, "Got NOTIFY", "qname", Logging::Loggable(qname), "source", Logging::Loggable(comboWriter->d_source), "remote", Logging::Loggable(comboWriter->d_remote)));
+      }
+
+      requestWipeCaches(qname);
+
+      // the operation will now be treated as a Query, generating
+      // a normal response, as the rest of the code does not
+      // check dh->opcode, but we need to ensure that the response
+      // to this request does not get put into the packet cache
+      comboWriter->d_variable = true;
+    }
+
+    // setup for startDoResolve() in an mthread
+    ++conn->d_requestsInFlight;
+    if (conn->d_requestsInFlight >= TCPConnection::s_maxInFlight) {
+      t_fdm->removeReadFD(fileDesc); // should no longer awake ourselves when there is data to read
+    }
+    else {
+      Utility::gettimeofday(&g_now, nullptr); // needed?
+      struct timeval ttd = g_now;
+      t_fdm->setReadTTD(fileDesc, ttd, g_tcpTimeout);
+    }
+    tcpGuard.keep();
+    g_multiTasker->makeThread(startDoResolve, comboWriter.release()); // deletes dc
+  } // good query
+}
+
+static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var)
 {
   auto conn = boost::any_cast<shared_ptr<TCPConnection>>(var);
 
@@ -382,245 +667,9 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
          all queries sent over this connection */
       comboWriter->d_proxyProtocolValues = conn->proxyProtocolValues;
 
-      struct timeval start
-      {
-      };
-      Utility::gettimeofday(&start, nullptr);
-
-      DNSName qname;
-      uint16_t qtype = 0;
-      uint16_t qclass = 0;
-      bool needECS = false;
-      string requestorId;
-      string deviceId;
-      string deviceName;
-      bool logQuery = false;
-      bool qnameParsed = false;
-
-      comboWriter->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
-      comboWriter->d_eventTrace.add(RecEventTrace::ReqRecv);
-      auto luaconfsLocal = g_luaconfs.getLocal();
-      if (checkProtobufExport(luaconfsLocal)) {
-        needECS = true;
-      }
-      logQuery = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logQueries;
-      comboWriter->d_logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
-
-      if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
-
-        try {
-          EDNSOptionViewMap ednsOptions;
-          comboWriter->d_ecsParsed = true;
-          comboWriter->d_ecsFound = false;
-          getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
-                            comboWriter->d_ecsFound, &comboWriter->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
-          qnameParsed = true;
-
-          if (t_pdl) {
-            try {
-              if (t_pdl->d_gettag_ffi) {
-                RecursorLua4::FFIParams params(qname, qtype, comboWriter->d_destination, comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_data, comboWriter->d_policyTags, comboWriter->d_records, ednsOptions, comboWriter->d_proxyProtocolValues, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_rcode, comboWriter->d_ttlCap, comboWriter->d_variable, true, logQuery, comboWriter->d_logResponse, comboWriter->d_followCNAMERecords, comboWriter->d_extendedErrorCode, comboWriter->d_extendedErrorExtra, comboWriter->d_responsePaddingDisabled, comboWriter->d_meta);
-                comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
-                comboWriter->d_tag = t_pdl->gettag_ffi(params);
-                comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, comboWriter->d_tag, false);
-              }
-              else if (t_pdl->d_gettag) {
-                comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag);
-                comboWriter->d_tag = t_pdl->gettag(comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_destination, qname, qtype, &comboWriter->d_policyTags, comboWriter->d_data, ednsOptions, true, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_proxyProtocolValues);
-                comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag, comboWriter->d_tag, false);
-              }
-            }
-            catch (const std::exception& e) {
-              if (g_logCommonErrors) {
-                SLOG(g_log << Logger::Warning << "Error parsing a query packet qname='" << qname << "' for tag determination, setting tag=0: " << e.what() << endl,
-                     g_slogtcpin->info(Logr::Warning, "Error parsing a query packet for tag determination, setting tag=0", "remote", Logging::Loggable(conn->d_remote), "qname", Logging::Loggable(qname)));
-              }
-            }
-          }
-        }
-        catch (const std::exception& e) {
-          if (g_logCommonErrors) {
-            SLOG(g_log << Logger::Warning << "Error parsing a query packet for tag determination, setting tag=0: " << e.what() << endl,
-                 g_slogtcpin->error(Logr::Warning, e.what(), "Error parsing a query packet for tag determination, setting tag=0", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
-          }
-        }
-      }
-
-      if (comboWriter->d_tag == 0 && !comboWriter->d_responsePaddingDisabled && g_paddingFrom.match(comboWriter->d_remote)) {
-        comboWriter->d_tag = g_paddingTag;
-      }
-
-      const dnsheader_aligned headerdata(conn->data.data());
-      const struct dnsheader* dnsheader = headerdata.get();
-
-      if (t_protobufServers.servers || t_outgoingProtobufServers.servers) {
-        comboWriter->d_requestorId = requestorId;
-        comboWriter->d_deviceId = deviceId;
-        comboWriter->d_deviceName = deviceName;
-        comboWriter->d_uuid = getUniqueID();
-      }
-
-      if (t_protobufServers.servers) {
-        try {
-
-          if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && comboWriter->d_policyTags.empty())) {
-            protobufLogQuery(luaconfsLocal, comboWriter->d_uuid, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet.source, true, dnsheader->id, conn->qlen, qname, qtype, qclass, comboWriter->d_policyTags, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta);
-          }
-        }
-        catch (const std::exception& e) {
-          if (g_logCommonErrors) {
-            SLOG(g_log << Logger::Warning << "Error parsing a TCP query packet for edns subnet: " << e.what() << endl,
-                 g_slogtcpin->error(Logr::Warning, e.what(), "Error parsing a TCP query packet for edns subnet", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
-          }
-        }
-      }
-
-      if (t_pdl) {
-        bool ipf = t_pdl->ipfilter(comboWriter->d_source, comboWriter->d_destination, *dnsheader, comboWriter->d_eventTrace);
-        if (ipf) {
-          if (!g_quiet) {
-            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << g_multiTasker->getTid() << "/" << g_multiTasker->numProcesses() << "] DROPPED TCP question from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << " based on policy" << endl,
-                 g_slogtcpin->info(Logr::Info, "Dropped TCP question based on policy", "remote", Logging::Loggable(conn->d_remote), "source", Logging::Loggable(comboWriter->d_source)));
-          }
-          t_Counters.at(rec::Counter::policyDrops)++;
-          return;
-        }
-      }
-
-      if (comboWriter->d_mdp.d_header.qr) {
-        t_Counters.at(rec::Counter::ignoredCount)++;
-        if (g_logCommonErrors) {
-          SLOG(g_log << Logger::Error << "Ignoring answer from TCP client " << comboWriter->getRemote() << " on server socket!" << endl,
-               g_slogtcpin->info(Logr::Error, "Ignoring answer from TCP client on server socket", "remote", Logging::Loggable(comboWriter->getRemote())));
-        }
-        return;
-      }
-      if (comboWriter->d_mdp.d_header.opcode != static_cast<unsigned>(Opcode::Query) && comboWriter->d_mdp.d_header.opcode != static_cast<unsigned>(Opcode::Notify)) {
-        t_Counters.at(rec::Counter::ignoredCount)++;
-        if (g_logCommonErrors) {
-          SLOG(g_log << Logger::Error << "Ignoring unsupported opcode " << Opcode::to_s(comboWriter->d_mdp.d_header.opcode) << " from TCP client " << comboWriter->getRemote() << " on server socket!" << endl,
-               g_slogtcpin->info(Logr::Error, "Ignoring unsupported opcode from TCP client", "remote", Logging::Loggable(comboWriter->getRemote()), "opcode", Logging::Loggable(Opcode::to_s(comboWriter->d_mdp.d_header.opcode))));
-        }
-        sendErrorOverTCP(comboWriter, RCode::NotImp);
-        tcpGuard.keep();
-        return;
-      }
-      if (dnsheader->qdcount == 0U) {
-        t_Counters.at(rec::Counter::emptyQueriesCount)++;
-        if (g_logCommonErrors) {
-          SLOG(g_log << Logger::Error << "Ignoring empty (qdcount == 0) query from " << comboWriter->getRemote() << " on server socket!" << endl,
-               g_slogtcpin->info(Logr::Error, "Ignoring empty (qdcount == 0) query on server socket", "remote", Logging::Loggable(comboWriter->getRemote())));
-        }
-        sendErrorOverTCP(comboWriter, RCode::NotImp);
-        tcpGuard.keep();
-        return;
-      }
-      {
-        // We have read a proper query
-        //++t_Counters.at(rec::Counter::qcounter);
-        ++t_Counters.at(rec::Counter::qcounter);
-        ++t_Counters.at(rec::Counter::tcpqcounter);
-
-        if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
-          if (!t_allowNotifyFrom || !t_allowNotifyFrom->match(comboWriter->d_mappedSource)) {
-            if (!g_quiet) {
-              SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", address not matched by allow-notify-from" << endl,
-                   g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY, address not matched by allow-notify-from", "source", Logging::Loggable(comboWriter->d_mappedSource)));
-            }
-
-            t_Counters.at(rec::Counter::sourceDisallowedNotify)++;
-            return;
-          }
-
-          if (!isAllowNotifyForZone(qname)) {
-            if (!g_quiet) {
-              SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP NOTIFY from " << comboWriter->d_mappedSource.toString() << ", for " << qname.toLogString() << ", zone not matched by allow-notify-for" << endl,
-                   g_slogtcpin->info(Logr::Error, "Dropping TCP NOTIFY,  zone not matched by allow-notify-for", "source", Logging::Loggable(comboWriter->d_mappedSource), "zone", Logging::Loggable(qname)));
-            }
-
-            t_Counters.at(rec::Counter::zoneDisallowedNotify)++;
-            return;
-          }
-        }
-
-        string response;
-        RecursorPacketCache::OptPBData pbData{boost::none};
-
-        if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Query)) {
-          /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
-             but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
-             as cacheable we would cache it with a wrong tag, so better safe than sorry. */
-          comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck);
-          bool cacheHit = checkForCacheHit(qnameParsed, comboWriter->d_tag, conn->data, qname, qtype, qclass, g_now, response, comboWriter->d_qhash, pbData, true, comboWriter->d_source, comboWriter->d_mappedSource);
-          comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
-
-          if (cacheHit) {
-            if (!g_quiet) {
-              SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " TCP question answered from packet cache tag=" << comboWriter->d_tag << " from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << endl,
-                   g_slogtcpin->info(Logr::Notice, "TCP question answered from packet cache", "tag", Logging::Loggable(comboWriter->d_tag),
-                                     "qname", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype)),
-                                     "source", Logging::Loggable(comboWriter->d_source), "remote", Logging::Loggable(comboWriter->d_remote)));
-            }
-
-            bool hadError = sendResponseOverTCP(comboWriter, response);
-            finishTCPReply(comboWriter, hadError, false);
-            struct timeval now
-            {
-            };
-            Utility::gettimeofday(&now, nullptr);
-            uint64_t spentUsec = uSec(now - start);
-            t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
-            comboWriter->d_eventTrace.add(RecEventTrace::AnswerSent);
-
-            if (t_protobufServers.servers && comboWriter->d_logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbData || pbData->d_tagged)) {
-              struct timeval tval
-              {
-                0, 0
-              };
-              protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, true, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet, comboWriter->d_uuid, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta, comboWriter->d_eventTrace, comboWriter->d_policyTags);
-            }
-
-            if (comboWriter->d_eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {
-              SLOG(g_log << Logger::Info << comboWriter->d_eventTrace.toString() << endl,
-                   g_slogtcpin->info(Logr::Info, comboWriter->d_eventTrace.toString())); // More fancy?
-            }
-            tcpGuard.keep();
-            t_Counters.updateSnap(g_regressionTestMode);
-            return;
-          } // cache hit
-        } // query opcode
-
-        if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
-          if (!g_quiet) {
-            SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " got NOTIFY for " << qname.toLogString() << " from " << comboWriter->d_source.toStringWithPort() << (comboWriter->d_source != comboWriter->d_remote ? " (via " + comboWriter->d_remote.toStringWithPort() + ")" : "") << endl,
-                 g_slogtcpin->info(Logr::Notice, "Got NOTIFY", "qname", Logging::Loggable(qname), "source", Logging::Loggable(comboWriter->d_source), "remote", Logging::Loggable(comboWriter->d_remote)));
-          }
-
-          requestWipeCaches(qname);
-
-          // the operation will now be treated as a Query, generating
-          // a normal response, as the rest of the code does not
-          // check dh->opcode, but we need to ensure that the response
-          // to this request does not get put into the packet cache
-          comboWriter->d_variable = true;
-        }
-
-        // setup for startDoResolve() in an mthread
-        ++conn->d_requestsInFlight;
-        if (conn->d_requestsInFlight >= TCPConnection::s_maxInFlight) {
-          t_fdm->removeReadFD(fileDesc); // should no longer awake ourselves when there is data to read
-        }
-        else {
-          Utility::gettimeofday(&g_now, nullptr); // needed?
-          struct timeval ttd = g_now;
-          t_fdm->setReadTTD(fileDesc, ttd, g_tcpTimeout);
-        }
-        tcpGuard.keep();
-        g_multiTasker->makeThread(startDoResolve, comboWriter.release()); // deletes dc
-      } // good query
-    } // read full query
-  } // reading query
-
+      doProcessTCPQuestion(comboWriter, conn, tcpGuard, fileDesc);
+    } // reading query
+  }
   // more to come
   tcpGuard.keep();
 }

@@ -2955,6 +2955,19 @@ Can be read out using ``rec_control top-remotes``.
 
 A sequence of statistic names, that are prevented from being exported via SNMP, for performance reasons.
 
+.. _setting-yaml-recursor.tcp_threads:
+
+``recursor.tcp_threads``
+^^^^^^^^^^^^^^^^^^^^^^^^
+.. versionadded:: 5.0.0
+
+-  Integer
+-  Default: ``1``
+
+- Old style setting: :ref:`setting-tcp-threads`
+
+Spawn this number of TCP processing threads on startup.
+
 .. _setting-yaml-recursor.threads:
 
 ``recursor.threads``
