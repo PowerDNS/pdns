@@ -453,22 +453,6 @@ static void processDOQQuery(DOQUnitUniquePtr&& unit)
   ComboAddress remote;
 
   try {
-    {
-      // if there was no EDNS, we add it with a large buffer size
-      // so we can use UDP to talk to the backend.
-      auto dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.data()));
-
-      if (!dh->arcount) {
-        if (generateOptRR(std::string(), du->query, 4096, 4096, 0, false)) {
-          dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(du->query.data())); // may have reallocated
-          dh->arcount = htons(1);
-          du->ids.ednsAdded = true;
-        }
-      }
-      else {
-        // we leave existing EDNS in place
-      }
-    }
 
     remote = du->ids.origRemote;
     DOQServerConfig* dsc = du->dsc;
