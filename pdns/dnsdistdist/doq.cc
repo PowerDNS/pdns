@@ -32,7 +32,6 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-proxy-protocol.hh"
 
-
 static void sendBackDOQUnit(DOQUnitUniquePtr&& du, const char* description);
 class DOQServerConfig
 {
@@ -55,7 +54,7 @@ public:
 
 #if 0
 #define DEBUGLOG_ENABLED
-#define DEBUGLOG(x) std::cerr<<x<<std::endl;
+#define DEBUGLOG(x) std::cerr << x << std::endl;
 #else
 #define DEBUGLOG(x)
 #endif
@@ -99,7 +98,6 @@ public:
       static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
 
       dr.ids.doqu = std::move(du);
-
 
       if (!processResponse(dr.ids.doqu->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false)) {
         if (dr.ids.doqu) {
@@ -197,7 +195,7 @@ public:
     auto& ids = query.d_idstate;
     DNSResponse dr(ids, query.d_buffer, downstream);
     return dr;
-   }
+  }
 
   DOQUnitUniquePtr&& releaseDU()
   {
@@ -210,14 +208,14 @@ private:
 
 std::shared_ptr<DOQTCPCrossQuerySender> DOQCrossProtocolQuery::s_sender = std::make_shared<DOQTCPCrossQuerySender>();
 
-/* Always called from the main DoQ thread */
 static void handleResponse(DOQFrontend& df, Connection& conn, const uint64_t streamID, const PacketBuffer& response)
 {
   if (response.size() == 0) {
     quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, 0x5);
-  } else {
+  }
+  else {
     uint16_t responseSize = static_cast<uint16_t>(response.size());
-    const uint8_t sizeBytes[] = { static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256) };
+    const uint8_t sizeBytes[] = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
     auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, sizeBytes, sizeof(sizeBytes), false);
     if (res == sizeof(sizeBytes)) {
       res = quiche_conn_stream_send(conn.d_conn.get(), streamID, response.data(), response.size(), true);
@@ -270,7 +268,6 @@ static std::optional<PacketBuffer> getCID()
   int rng = open("/dev/urandom", O_RDONLY);
   if (rng < 0) {
     return std::nullopt;
-
   }
   PacketBuffer buffer;
   buffer.resize(LOCAL_CONN_ID_LEN);
@@ -374,17 +371,19 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(Quiche
 {
   auto quicheConn = QuicheConnection(quiche_accept(serverSideID.data(), serverSideID.size(),
                                                    originalDestinationID.data(), originalDestinationID.size(),
-                                                   (struct sockaddr*) &local,
+                                                   (struct sockaddr*)&local,
                                                    local.getSocklen(),
-                                                   (struct sockaddr*) &peer,
+                                                   (struct sockaddr*)&peer,
                                                    peer.getSocklen(),
-                                                   config.get()), quiche_conn_free);
+                                                   config.get()),
+                                     quiche_conn_free);
   auto conn = Connection(peer, std::move(quicheConn));
-  auto pair = s_connections.emplace(serverSideID,  std::move(conn));
+  auto pair = s_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
 }
 
-static void flushEgress(Socket& sock, Connection& conn) {
+static void flushEgress(Socket& sock, Connection& conn)
+{
   std::array<uint8_t, MAX_DATAGRAM_SIZE> out;
   quiche_send_info send_info;
 
@@ -398,11 +397,9 @@ static void flushEgress(Socket& sock, Connection& conn) {
     if (written < 0) {
       return;
     }
-
+    // FIXME pacing (as send_info.at should tell us when to send the packet) ?
     sock.sendTo(reinterpret_cast<const char*>(out.data()), written, conn.d_peer);
   }
-
-  // FIXME: update timers
 }
 
 std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& dq, bool isResponse)
@@ -413,7 +410,7 @@ std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& 
 
   auto du = std::move(dq.ids.doqu);
   if (&dq.ids != &du->ids) {
-   du->ids = std::move(dq.ids);
+    du->ids = std::move(dq.ids);
   }
 
   du->ids.origID = dq.getHeader()->id;
@@ -439,11 +436,9 @@ static void processDOQQuery(DOQUnitUniquePtr&& unit)
 {
   const auto handleImmediateResponse = [](DOQUnitUniquePtr&& du, const char* reason) {
     DEBUGLOG("handleImmediateResponse() reason=" << reason);
-      auto conn = getConnection(du->serverConnID);
-      handleResponse(*du->dsc->df, *conn, du->streamID, du->response);
-      /* so the unique pointer is stored in the InternalState which itself is stored in the unique pointer itself. We likely need
-         a better design, but for now let's just reset the internal one since we know it is no longer needed. */
-      du->ids.doqu.reset();
+    auto conn = getConnection(du->serverConnID);
+    handleResponse(*du->dsc->df, *conn, du->streamID, du->response);
+    du->ids.doqu.reset();
   };
 
   auto& ids = unit->ids;
@@ -460,8 +455,8 @@ static void processDOQQuery(DOQUnitUniquePtr&& unit)
     ClientState& cs = *dsc->cs;
 
     if (du->query.size() < sizeof(dnsheader)) {
-      // ++dnsdist::metrics::g_stats.nonCompliantQueries;
-      // ++cs.nonCompliantQueries;
+      ++dnsdist::metrics::g_stats.nonCompliantQueries;
+      ++cs.nonCompliantQueries;
       struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(du->query.data());
       dh->rcode = RCode::ServFail;
       dh->qr = true;
@@ -471,8 +466,8 @@ static void processDOQQuery(DOQUnitUniquePtr&& unit)
       return;
     }
 
-    // ++cs.queries;
-    // ++dnsdist::metrics::g_stats.queries;
+    ++cs.queries;
+    ++dnsdist::metrics::g_stats.queries;
     du->ids.queryRealTime.start();
 
     {
@@ -526,6 +521,11 @@ static void processDOQQuery(DOQUnitUniquePtr&& unit)
       }
       handleImmediateResponse(std::move(du), "DoQ self-answered response");
       return;
+    }
+
+    ++dnsdist::metrics::g_stats.responses;
+    if (du->ids.cs != nullptr) {
+      ++du->ids.cs->responses;
     }
 
     if (result != ProcessQueryResult::PassToBackend) {
@@ -711,10 +711,8 @@ void doqThread(ClientState* cs)
         else {
           DEBUGLOG("Connection not established");
         }
-        /* FIXME: we should handle timeouts */
-        // pacing QUIC ?
-        // quiche_send_info.at Queue avec les paquets a envoyer par date.
       }
+
       for (auto conn = s_connections.begin(); conn != s_connections.end();) {
         quiche_conn_on_timeout(conn->second.d_conn.get());
 
@@ -728,10 +726,11 @@ void doqThread(ClientState* cs)
           quiche_conn_stats(conn->second.d_conn.get(), &stats);
           quiche_conn_path_stats(conn->second.d_conn.get(), 0, &path_stats);
 
-          DEBUGLOG("Connection closed, recv="<<stats.recv<<" sent="<<stats.sent<<" lost="<<stats.lost<<" rtt="<<path_stats.rtt<<"ns cwnd="<<path_stats.cwnd);
+          DEBUGLOG("Connection closed, recv=" << stats.recv << " sent=" << stats.sent << " lost=" << stats.lost << " rtt=" << path_stats.rtt << "ns cwnd=" << path_stats.cwnd);
 #endif
           conn = s_connections.erase(conn);
-        } else {
+        }
+        else {
           ++conn;
         }
       }

@@ -131,7 +131,6 @@ struct InternalQueryState
   std::unique_ptr<ProtoBufData> d_protoBufData{nullptr};
   boost::optional<uint32_t> tempFailureTTL{boost::none}; // 8
   ClientState* cs{nullptr}; // 8
-
   std::unique_ptr<DOHUnitInterface> du; // 8
   size_t d_proxyProtocolPayloadSize{0}; // 8
   int32_t d_streamID{-1}; // 4

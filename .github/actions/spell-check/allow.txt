@@ -829,6 +829,7 @@ dontdrop
 dontinclude
 dontqueries
 DONTWAIT
+DOQ
 doquery
 dosec
 dotests

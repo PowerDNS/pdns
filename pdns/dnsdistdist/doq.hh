@@ -41,8 +41,8 @@ class Connection
 public:
   Connection(const ComboAddress& peer, std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>&& conn) :
     d_peer(peer), d_conn(std::move(conn))
-    {
-    }
+  {
+  }
   Connection(const Connection&) = delete;
   Connection(Connection&&) = default;
   Connection& operator=(const Connection&) = delete;
@@ -63,8 +63,8 @@ struct DownstreamState;
 struct DOQFrontend
 {
   DOQFrontend()
-    {
-    }
+  {
+  }
 
   std::shared_ptr<DOQServerConfig> d_server_config{nullptr};
   TLSConfig d_tlsConfig;
@@ -75,7 +75,8 @@ struct DOQFrontend
 
 struct DOQUnit
 {
-  DOQUnit(PacketBuffer&& q): query(std::move(q))
+  DOQUnit(PacketBuffer&& q) :
+    query(std::move(q))
   {
     ids.ednsAdded = false;
   }
@@ -105,6 +106,7 @@ struct DNSQuestion;
 std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& dq, bool isResponse);
 
 #else
+
 struct DOQUnit
 {
 };
@@ -112,12 +114,11 @@ struct DOQUnit
 struct DOQFrontend
 {
   DOQFrontend()
-    {
-    }
+  {
+  }
   void setup()
-    {
-
-    }
+  {
+  }
 };
 
 #endif
