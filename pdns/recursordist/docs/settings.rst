@@ -1229,6 +1229,9 @@ This feature is intended to facilitate ip-failover setups, but it may also mask 
 
 ``loglevel``
 ~~~~~~~~~~~~
+.. versionchanged:: 5.0.0
+
+  Previous version would not allow setting a level below ``3 (error)``.
 
 -  Integer
 -  Default: 6
@@ -1236,9 +1239,10 @@ This feature is intended to facilitate ip-failover setups, but it may also mask 
 - YAML setting: :ref:`setting-yaml-logging.loglevel`
 
 Amount of logging. The higher the number, the more lines logged.
-Corresponds to 'syslog' level values (e.g. 0 = emergency, 1 = alert, 2 = critical, 3 = error, 4 = warning, 5 = notice, 6 = info, 7 = debug).
+Corresponds to ``syslog`` level values (e.g. 0 = ``emergency``, 1 = ``alert``, 2 = ``critical``, 3 = ``error``, 4 = ``warning``, 5 = ``notice``, 6 = ``info``, 7 = ``debug``).
 Each level includes itself plus the lower levels before it.
 Not recommended to set this below 3.
+If :ref:`setting-quiet` is ``no/false``, :ref:`setting-loglevel` will be minimally set to ``6 (info)``.
 
 .. _setting-log-common-errors:
 
