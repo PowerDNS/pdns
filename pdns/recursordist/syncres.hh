@@ -526,6 +526,7 @@ public:
   static unsigned int s_serverdownthrottletime;
   static unsigned int s_nonresolvingnsmaxfails;
   static unsigned int s_nonresolvingnsthrottletime;
+  static unsigned int s_unthrottle_n;
 
   static unsigned int s_ecscachelimitttl;
   static uint8_t s_ecsipv4limit;
