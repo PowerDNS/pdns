@@ -223,8 +223,8 @@ int RecThreadInfo::runThreads(Logr::log_t log)
   const auto cpusMap = parseCPUMap(log);
 
   if (RecThreadInfo::numDistributors() + RecThreadInfo::numUDPWorkers() == 1) {
-    SLOG(g_log << Logger::Warning << "Operating with single distributor/worker thread" << endl,
-         log->info(Logr::Notice, "Operating with single distributor/worker thread"));
+    SLOG(g_log << Logger::Warning << "Operating with single UDP distributor/worker thread" << endl,
+         log->info(Logr::Notice, "Operating with single UDP distributor/worker thread"));
 
     /* This thread handles the web server, carbon, statistics and the control channel */
     unsigned int currentThreadId = 0;

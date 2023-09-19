@@ -27,6 +27,8 @@
 #include "mplexer.hh"
 #include "uuid-utils.hh"
 
+// OLD PRE 5.0.0 situation:
+//
 // When pdns-distributes-queries is false with reuseport true (the default since 4.9.0), TCP queries
 // are read and handled by worker threads. If the kernel balancing is OK for TCP sockets (observed
 // to be good on Debian bullseye, but not good on e.g. MacOS), the TCP handling is no extra burden.
@@ -34,7 +36,7 @@
 // queries do get distributed round-robin over the worker threads.  Do note the TCP queries might
 // need to wait until the g_maxUDPQueriesPerRound is reached.
 //
-// In the case of pdns-distributes-queries true and reuseport false the queries are read and
+// In the case of pdns-distributes-queries true and reuseport false the queries were read and
 // initially processed by the distributor thread(s).
 //
 // Initial processing consist of parsing, calling gettag and checking if we have a packet cache
@@ -43,18 +45,20 @@
 // final answer will be sent by the same distributor thread that originally picked up the query.
 //
 // Changing this, and having incoming TCP queries handled by worker threads is somewhat more complex
-// than UDP, as the socket must remain avaiable in the distributor thread (for reading more
+// than UDP, as the socket must remain available in the distributor thread (for reading more
 // queries), but the TCP socket must also be passed to a worker thread so it can write its
 // answer. The in-flight bookkeeping also has to be aware of how a query is handled to do the
 // accounting properly. I am not sure if changing the current setup is worth all this trouble,
 // especially since the default is now to not use pdns-distributes-queries, which works well in many
 // cases.
 //
+// NEW SITUATION SINCE 5.0.0:
+//
 // The drawback mentioned in https://github.com/PowerDNS/pdns/issues/8394 are not longer true, so an
 // alternative approach would be to introduce dedicated TCP worker thread(s).
 //
-// And this approach was implemented in https://github.com/PowerDNS/pdns/pull/13195. The distributor
-// and worker thread(s) now no longe process TCP queries.
+// This approach was implemented in https://github.com/PowerDNS/pdns/pull/13195. The distributor and
+// worker thread(s) now no longer process TCP queries.
 
 size_t g_tcpMaxQueriesPerConn;
 unsigned int g_maxTCPPerClient;
