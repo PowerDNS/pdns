@@ -565,7 +565,6 @@ def ci_dnsdist_configure(c, features):
                      --enable-option-checking=fatal \
                      --enable-fortify-source=auto \
                      --enable-auto-var-init=pattern \
-                     --enable-lto=thin \
                      --prefix=/opt/dnsdist %s %s %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests, fuzztargets, coverage), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
