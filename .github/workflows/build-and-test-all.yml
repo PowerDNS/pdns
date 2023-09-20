@@ -236,6 +236,10 @@ jobs:
           path: ~/.ccache
           key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-
+      - run: inv ci-install-rust ${{ env.REPO_HOME }}
+        working-directory: ./pdns/dnsdistdist/
+      - run: inv ci-build-and-install-quiche
+        working-directory: ./pdns/dnsdistdist/
       - run: inv ci-autoconf
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-dnsdist-configure ${{ matrix.features }}
