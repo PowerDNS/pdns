@@ -500,5 +500,9 @@ private:
     auto query = dnsdist::getInternalQueryFromDQ(dr, false);
     return dnsdist::queueQueryResumptionEvent(std::move(query));
   });
+
+  luaCtx.registerFunction<std::shared_ptr<DownstreamState>(DNSResponse::*)(void)const>("getSelectedBackend", [](const DNSResponse& dr) {
+    return dr.d_downstream;
+  });
 #endif /* DISABLE_NON_FFI_DQ_BINDINGS */
 }
