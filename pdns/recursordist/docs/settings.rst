@@ -363,12 +363,13 @@ Time to wait for data from TCP clients.
 ~~~~~~~~~~~~~~
 
 -  String
--  Default: /etc/powerdns
+-  Default: SYSCONFDIR
 
 - YAML setting: :ref:`setting-yaml-recursor.config_dir`
 
-Location of configuration directory (``recursor.conf``).
+Location of configuration directory (where ``recursor.conf`` or ``recursor.yml`` is stored).
 Usually ``/etc/powerdns``, but this depends on ``SYSCONFDIR`` during compile-time.
+Use default or set on command line.
 
 .. _setting-config-name:
 

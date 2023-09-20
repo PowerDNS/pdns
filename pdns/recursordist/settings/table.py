@@ -379,11 +379,12 @@ EMPTY?  '''
         'name' : 'config_dir',
         'section' : 'recursor',
         'type' : LType.String,
-        'default' : '/etc/powerdns',
-        'help' : 'Location of configuration directory (recursor.conf)',
+        'default' : 'SYSCONFDIR',
+        'help' : 'Location of configuration directory (recursor.conf or recursor.yml)',
         'doc' : '''
-Location of configuration directory (``recursor.conf``).
+Location of configuration directory (where ``recursor.conf`` or ``recursor.yml`` is stored).
 Usually ``/etc/powerdns``, but this depends on ``SYSCONFDIR`` during compile-time.
+Use default or set on command line.
  ''',
     },
     {

@@ -11,7 +11,7 @@ EXTRA_DIST = \
 
 # should actually end up in a target specific dir...
 libsettings.a lib.rs.h: src/bridge.rs src/lib.rs src/helpers.rs Cargo.toml Cargo.lock build.rs
-	$(CARGO) build --release $(RUST_TARGET)
+	SYSCONFDIR=$(sysconfdir) $(CARGO) build --release $(RUST_TARGET)
 	cp target/$(RUSTC_TARGET_ARCH)/release/libsettings.a libsettings.a
 	cp target/$(RUSTC_TARGET_ARCH)/cxxbridge/settings/src/lib.rs.h lib.rs.h
 	cp target/$(RUSTC_TARGET_ARCH)/cxxbridge/rust/cxx.h cxx.h
