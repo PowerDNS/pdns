@@ -30,7 +30,7 @@
 
 #ifdef HAVE_LIBSODIUM
 
-string newKey()
+string newKey(bool base64Encoded)
 {
   std::string key;
   key.resize(crypto_secretbox_KEYBYTES);
@@ -38,6 +38,9 @@ string newKey()
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   randombytes_buf(reinterpret_cast<unsigned char*>(key.data()), key.size());
 
+  if (!base64Encoded) {
+    return key;
+  }
   return "\"" + Base64Encode(key) + "\"";
 }
 
@@ -46,10 +49,10 @@ bool sodIsValidKey(const std::string& key)
   return key.size() == crypto_secretbox_KEYBYTES;
 }
 
-std::string sodEncryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce)
+std::string sodEncryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce)
 {
   if (!sodIsValidKey(key)) {
-    throw std::runtime_error("Invalid encryption key of size " + std::to_string(key.size()) + ", use setKey() to set a valid key");
+    throw std::runtime_error("Invalid encryption key of size " + std::to_string(key.size()) + " (" + std::to_string(crypto_secretbox_KEYBYTES) + " expected), use setKey() to set a valid key");
   }
 
   std::string ciphertext;
@@ -63,11 +66,14 @@ std::string sodEncryptSym(const std::string_view& msg, const std::string& key, S
                         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                         reinterpret_cast<const unsigned char*>(key.data()));
 
-  nonce.increment();
+  if (incrementNonce) {
+    nonce.increment();
+  }
+
   return ciphertext;
 }
 
-std::string sodDecryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce)
+std::string sodDecryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce)
 {
   std::string decrypted;
 
@@ -92,7 +98,10 @@ std::string sodDecryptSym(const std::string_view& msg, const std::string& key, S
     throw std::runtime_error("Could not decrypt message, please check that the key configured with setKey() is correct");
   }
 
-  nonce.increment();
+  if (incrementNonce) {
+    nonce.increment();
+  }
+
   return decrypted;
 }
 
@@ -129,16 +138,16 @@ void SodiumNonce::increment()
 {
 }
 
-std::string sodEncryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
+std::string sodEncryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce)
 {
-  return msg;
+  return std::string(msg);
 }
-std::string sodDecryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
+std::string sodDecryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce)
 {
-  return msg;
+  return std::string(msg);
 }
 
-string newKey()
+string newKey(bool base64Encoded)
 {
   return "\"plaintext\"";
 }
