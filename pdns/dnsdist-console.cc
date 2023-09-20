@@ -236,8 +236,8 @@ void doClient(ComboAddress server, const std::string& command)
   SodiumNonce theirs, ours, readingNonce, writingNonce;
   ours.init();
 
-  writen2(fd.getHandle(), (const char*)ours.value, sizeof(ours.value));
-  readn2(fd.getHandle(), (char*)theirs.value, sizeof(theirs.value));
+  writen2(fd.getHandle(), ours.value.data(), ours.value.size());
+  readn2(fd.getHandle(), theirs.value.data(), theirs.value.size());
   readingNonce.merge(ours, theirs);
   writingNonce.merge(theirs, ours);
 
@@ -868,8 +868,8 @@ static void controlClientThread(ConsoleConnection&& conn)
 
     SodiumNonce theirs, ours, readingNonce, writingNonce;
     ours.init();
-    readn2(conn.getFD(), (char*)theirs.value, sizeof(theirs.value));
-    writen2(conn.getFD(), (char*)ours.value, sizeof(ours.value));
+    readn2(conn.getFD(), theirs.value.data(), theirs.value.size());
+    writen2(conn.getFD(), ours.value.data(), ours.value.size());
     readingNonce.merge(ours, theirs);
     writingNonce.merge(theirs, ours);
 

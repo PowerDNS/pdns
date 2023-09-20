@@ -20,12 +20,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <iostream>
+#include <arpa/inet.h>
+
 #include "namespaces.hh"
 #include "noinitvector.hh"
 #include "misc.hh"
 #include "base64.hh"
 #include "sodcrypto.hh"
-
 
 #ifdef HAVE_LIBSODIUM
 
@@ -34,9 +35,10 @@ string newKey()
   std::string key;
   key.resize(crypto_secretbox_KEYBYTES);
 
-  randombytes_buf(reinterpret_cast<unsigned char*>(&key.at(0)), key.size());
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  randombytes_buf(reinterpret_cast<unsigned char*>(key.data()), key.size());
 
-  return "\""+Base64Encode(key)+"\"";
+  return "\"" + Base64Encode(key) + "\"";
 }
 
 bool sodIsValidKey(const std::string& key)
@@ -44,7 +46,7 @@ bool sodIsValidKey(const std::string& key)
   return key.size() == crypto_secretbox_KEYBYTES;
 }
 
-std::string sodEncryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
+std::string sodEncryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce)
 {
   if (!sodIsValidKey(key)) {
     throw std::runtime_error("Invalid encryption key of size " + std::to_string(key.size()) + ", use setKey() to set a valid key");
@@ -52,17 +54,20 @@ std::string sodEncryptSym(const std::string& msg, const std::string& key, Sodium
 
   std::string ciphertext;
   ciphertext.resize(msg.length() + crypto_secretbox_MACBYTES);
-  crypto_secretbox_easy(reinterpret_cast<unsigned char*>(&ciphertext.at(0)),
-                        reinterpret_cast<const unsigned char*>(msg.c_str()),
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  crypto_secretbox_easy(reinterpret_cast<unsigned char*>(ciphertext.data()),
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                        reinterpret_cast<const unsigned char*>(msg.data()),
                         msg.length(),
-                        nonce.value,
-                        reinterpret_cast<const unsigned char*>(key.c_str()));
+                        nonce.value.data(),
+                        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                        reinterpret_cast<const unsigned char*>(key.data()));
 
   nonce.increment();
   return ciphertext;
 }
 
-std::string sodDecryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
+std::string sodDecryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce)
 {
   std::string decrypted;
 
@@ -76,18 +81,54 @@ std::string sodDecryptSym(const std::string& msg, const std::string& key, Sodium
 
   decrypted.resize(msg.length() - crypto_secretbox_MACBYTES);
 
-  if (crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(const_cast<char *>(decrypted.data())),
-                                 reinterpret_cast<const unsigned char*>(msg.c_str()),
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (crypto_secretbox_open_easy(reinterpret_cast<unsigned char*>(decrypted.data()),
+                                 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                                 reinterpret_cast<const unsigned char*>(msg.data()),
                                  msg.length(),
-                                 nonce.value,
-                                 reinterpret_cast<const unsigned char*>(key.c_str())) != 0) {
+                                 nonce.value.data(),
+                                 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                                 reinterpret_cast<const unsigned char*>(key.data())) != 0) {
     throw std::runtime_error("Could not decrypt message, please check that the key configured with setKey() is correct");
   }
 
   nonce.increment();
   return decrypted;
 }
+
+void SodiumNonce::init()
+{
+  randombytes_buf(value.data(), value.size());
+}
+
+void SodiumNonce::merge(const SodiumNonce& lower, const SodiumNonce& higher)
+{
+  constexpr size_t halfSize = std::tuple_size<decltype(value)>{} / 2;
+  memcpy(value.data(), lower.value.data(), halfSize);
+  memcpy(value.data() + halfSize, higher.value.data() + halfSize, halfSize);
+}
+
+void SodiumNonce::increment()
+{
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  auto* ptr = reinterpret_cast<uint32_t*>(value.data());
+  uint32_t count = htonl(*ptr);
+  *ptr = ntohl(++count);
+}
+
 #else
+void SodiumNonce::init()
+{
+}
+
+void SodiumNonce::merge(const SodiumNonce& lower, const SodiumNonce& higher)
+{
+}
+
+void SodiumNonce::increment()
+{
+}
+
 std::string sodEncryptSym(const std::string& msg, const std::string& key, SodiumNonce& nonce)
 {
   return msg;
@@ -109,9 +150,7 @@ bool sodIsValidKey(const std::string& key)
 
 #endif
 
-
-#include "base64.hh"
-#include <inttypes.h>
+#include <cinttypes>
 
 namespace anonpdns {
 static char B64Decode1(char cInChar)
