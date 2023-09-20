@@ -23,6 +23,7 @@
 
 #include <cstdint>
 #include <ctime>
+#include <qtype.hh>
 
 class DNSName;
 union ComboAddress;
@@ -54,3 +55,5 @@ uint64_t getResolveTaskExceptions();
 uint64_t getAlmostExpiredTasksPushed();
 uint64_t getAlmostExpiredTasksRun();
 uint64_t getAlmostExpiredTaskExceptions();
+
+bool taskQTypeIsSupported(QType qtype);

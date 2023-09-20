@@ -7,6 +7,7 @@
 #include "root-dnssec.hh"
 #include "rec-taskqueue.hh"
 #include "test-syncres_cc.hh"
+#include "recpacketcache.hh"
 
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
 GlobalStateHolder<SuffixMatchNode> g_xdnssec;
@@ -139,6 +140,7 @@ void initSR(bool debug)
     g_log.toConsole(Logger::Error);
   }
 
+  RecursorPacketCache::s_refresh_ttlperc = 0;
   MemRecursorCache::s_maxServedStaleExtensions = 0;
   NegCache::s_maxServedStaleExtensions = 0;
   g_recCache = std::make_unique<MemRecursorCache>();

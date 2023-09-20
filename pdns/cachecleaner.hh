@@ -167,7 +167,7 @@ uint64_t pruneMutexCollectionsVector(C& container, std::vector<T>& maps, uint64_
         container.preRemoval(*shard, *i);
         i = sidx.erase(i);
         erased++;
-        --content.d_entriesCount;
+        content.decEntriesCount();
       }
       else {
         ++i;
@@ -226,7 +226,7 @@ uint64_t pruneMutexCollectionsVector(C& container, std::vector<T>& maps, uint64_
     for (auto i = sidx.begin(); i != sidx.end() && removed < toTrimForThisShard; removed++) {
       container.preRemoval(*shard, *i);
       i = sidx.erase(i);
-      --content.d_entriesCount;
+      content.decEntriesCount();
       ++totErased;
       if (--toTrim == 0) {
         return totErased;
