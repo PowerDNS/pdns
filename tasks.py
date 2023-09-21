@@ -836,7 +836,7 @@ def test_dnsdist(c):
     c.run('ls -ald /var /var/agentx /var/agentx/master')
     c.run('ls -al /var/agentx/master')
     with c.cd('regression-tests.dnsdist'):
-        c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist ./runtests')
+        c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist LD_LIBRARY_PATH=/opt/dnsdist/lib/ ./runtests')
 
 @task
 def test_regression_recursor(c):
@@ -895,17 +895,18 @@ def ci_build_and_install_quiche(c):
     c.run(f'echo {quiche_hash}"  "quiche-{quiche_version}.tar.gz | sha256sum -c -')
     c.run(f'tar xf quiche-{quiche_version}.tar.gz')
     with c.cd(f'quiche-{quiche_version}'):
-        c.run('cargo build --release --no-default-features --features ffi,pkg-config-meta,qlog,boringssl-boring-crate --package quiche')
+        c.run('cargo build --release --no-default-features --features ffi,boringssl-boring-crate --package quiche')
         c.run('ls quiche/include/quiche.h target/release/libquiche.a /usr/include /usr/lib /usr/lib/pkgconfig')
         # cannot use c.sudo() inside a cd() context, see https://github.com/pyinvoke/invoke/issues/687
         c.run('sudo install -Dm644 quiche/include/quiche.h /usr/include')
-        c.run('sudo install -Dm644 target/release/libquiche.a /usr/lib')
-        c.run("""sudo install -Dm644 /dev/stdin /usr/lib/pkgconfig/quiche.pc <<PC
+        c.run('sudo install -Dm644 target/release/libquiche.so /usr/lib')
+        c.run('install -D target/release/libquiche.so /opt/dnsdist/lib/libquiche.so')
+        c.run(f"""sudo install -Dm644 /dev/stdin /usr/lib/pkgconfig/quiche.pc <<PC
 # quiche
 Name: quiche
 Description: quiche library
 URL: https://github.com/cloudflare/quiche
-Version: $pkgver
+Version: {quiche_version}
 Libs: -lquiche
 PC""")
 
