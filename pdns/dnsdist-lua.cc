@@ -2511,6 +2511,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (vars) {
       parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
 
+      getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
+
       parseTLSConfig(frontend->d_tlsConfig, "addDOQLocal", vars);
 
       bool ignoreTLSConfigurationErrors = false;
