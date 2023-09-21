@@ -93,6 +93,8 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimpleWithRefresh)
   uint32_t ttd = 3600;
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 
+  taskQueueClear();
+
   DNSName qname("www.powerdns.com");
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, qname, QType::A);
