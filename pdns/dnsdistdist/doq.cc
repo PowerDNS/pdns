@@ -23,6 +23,7 @@
 #include "doq.hh"
 
 #include "dnsdist-tcp.hh"
+#include "dnsdist-random.hh"
 #include "dolog.hh"
 #include "iputils.hh"
 #include "misc.hh"
@@ -33,9 +34,8 @@
 #include "dnsdist-proxy-protocol.hh"
 
 static void sendBackDOQUnit(DOQUnitUniquePtr&& du, const char* description);
-class DOQServerConfig
+struct DOQServerConfig
 {
-public:
   DOQServerConfig(std::unique_ptr<quiche_config, decltype(&quiche_config_free)>&& config_) :
     config(std::move(config_))
   {
@@ -264,16 +264,13 @@ void DOQFrontend::setup()
 
 static std::optional<PacketBuffer> getCID()
 {
-  // FIXME replace it
-  int rng = open("/dev/urandom", O_RDONLY);
-  if (rng < 0) {
-    return std::nullopt;
-  }
   PacketBuffer buffer;
+  size_t idx = 0;
+
   buffer.resize(LOCAL_CONN_ID_LEN);
-  auto got = read(rng, buffer.data(), LOCAL_CONN_ID_LEN);
-  if (got < 0) {
-    return std::nullopt;
+  while (idx < LOCAL_CONN_ID_LEN) {
+    buffer.at(idx) = dnsdist::getRandomValue(std::numeric_limits<uint8_t>::max());
+    ++idx;
   }
 
   return buffer;
@@ -623,8 +620,6 @@ void doqThread(ClientState* cs)
         size_t scid_len = scid.size();
         std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> dcid;
         size_t dcid_len = dcid.size();
-        std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> odcid;
-        size_t odcid_len = odcid.size();
         std::array<uint8_t, TOKEN_LEN> token;
         size_t token_len = token.size();
 
