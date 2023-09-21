@@ -138,3 +138,59 @@ class TestDOQ(DNSDistTest):
             dropped = True
         self.assertTrue(dropped)
             # dns.quic doesn't seem to report correctly the quic error so the connection timeout
+
+class TestDOQWithCache(DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = '127.0.0.1'
+    _caCert = 'ca.pem'
+    _doqServerPort = 8853
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    addDOQLocal("127.0.0.1:%d", "%s", "%s")
+
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+    """
+    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _verboseMode = True
+
+    def testCached(self):
+        """
+        Cache: Served from cache
+
+        dnsdist is configured to cache entries, we are sending several
+        identical requests and checking that the backend only receive
+        the first one.
+        """
+        numberOfQueries = 10
+        name = 'cached.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        query.id = 0
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response.answer.append(rrset)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=response, caFile=self._caCert)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=None, caFile=self._caCert, useQueue=False)
+            self.assertEqual(receivedResponse, response)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+            TestDOQWithCache._responsesCounter[key] = 0
+
+        self.assertEqual(total, 1)
