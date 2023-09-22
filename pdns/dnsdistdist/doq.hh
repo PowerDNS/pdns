@@ -29,32 +29,6 @@
 #include "stat_t.hh"
 #include "dnsdist-idstate.hh"
 
-#ifdef HAVE_DNS_OVER_QUIC
-
-#include <quiche.h>
-
-using QuicheConnection = std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>;
-using QuicheConfig = std::unique_ptr<quiche_config, decltype(&quiche_config_free)>;
-
-class Connection
-{
-public:
-  Connection(const ComboAddress& peer, std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>&& conn) :
-    d_peer(peer), d_conn(std::move(conn))
-  {
-  }
-  Connection(const Connection&) = delete;
-  Connection(Connection&&) = default;
-  Connection& operator=(const Connection&) = delete;
-  Connection& operator=(Connection&&) = default;
-  ~Connection() = default;
-
-  ComboAddress d_peer;
-  QuicheConnection d_conn;
-};
-
-#endif
-
 struct DOQServerConfig;
 struct DownstreamState;
 
@@ -94,16 +68,14 @@ struct DOQUnit
   InternalQueryState ids;
   PacketBuffer query;
   PacketBuffer response;
+  PacketBuffer serverConnID;
   std::shared_ptr<DownstreamState> downstream{nullptr};
   DOQServerConfig* dsc{nullptr};
-  pdns::channel::Sender<DOQUnit>* responseSender{nullptr};
-  size_t proxyProtocolPayloadSize{0};
   uint64_t streamID{0};
-  PacketBuffer serverConnID;
+  size_t proxyProtocolPayloadSize{0};
   /* whether the query was re-sent to the backend over
      TCP after receiving a truncated answer over UDP */
   bool tcp{false};
-  bool truncated{false};
 };
 
 using DOQUnitUniquePtr = std::unique_ptr<DOQUnit>;

@@ -36,6 +36,32 @@
 
 static std::string s_quicRetryTokenKey = newKey(false);
 
+#ifdef HAVE_DNS_OVER_QUIC
+
+#include <quiche.h>
+
+using QuicheConnection = std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>;
+using QuicheConfig = std::unique_ptr<quiche_config, decltype(&quiche_config_free)>;
+
+class Connection
+{
+public:
+  Connection(const ComboAddress& peer, std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>&& conn) :
+    d_peer(peer), d_conn(std::move(conn))
+  {
+  }
+  Connection(const Connection&) = delete;
+  Connection(Connection&&) = default;
+  Connection& operator=(const Connection&) = delete;
+  Connection& operator=(Connection&&) = default;
+  ~Connection() = default;
+
+  ComboAddress d_peer;
+  QuicheConnection d_conn;
+};
+
+#endif
+
 static void sendBackDOQUnit(DOQUnitUniquePtr&& du, const char* description);
 struct DOQServerConfig
 {
@@ -94,7 +120,7 @@ public:
     }
 
     auto du = std::move(response.d_idstate.doqu);
-    if (du->responseSender == nullptr) {
+    if (du->dsc == nullptr) {
       return;
     }
 
@@ -407,11 +433,11 @@ static std::optional<std::reference_wrapper<Connection>> getConnection(const Pac
 
 static void sendBackDOQUnit(DOQUnitUniquePtr&& du, const char* description)
 {
-  if (du->responseSender == nullptr) {
+  if (du->dsc == nullptr) {
     return;
   }
   try {
-    if (!du->responseSender->send(std::move(du))) {
+    if (!du->dsc->d_responseSender.send(std::move(du))) {
       vinfolog("Unable to pass a %s to the DoQ worker thread because the pipe is full", description);
     }
   } catch (const std::exception& e) {
@@ -640,7 +666,6 @@ static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const
     du->ids.protocol = dnsdist::Protocol::DoQ;
     du->serverConnID = serverConnID;
     du->streamID = streamID;
-    du->responseSender = &dsc.d_responseSender;
 
     processDOQQuery(std::move(du));
   }
