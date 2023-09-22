@@ -52,6 +52,7 @@ struct DOQFrontend
 #else
   uint32_t d_internalPipeBufferSize{0};
 #endif
+  uint64_t d_idleTimeout{5};
 };
 
 struct DOQUnit

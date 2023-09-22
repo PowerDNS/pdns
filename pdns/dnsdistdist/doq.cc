@@ -287,7 +287,7 @@ void DOQFrontend::setup()
     }
   }
 
-  quiche_config_set_max_idle_timeout(config.get(), 5000);
+  quiche_config_set_max_idle_timeout(config.get(), d_idleTimeout * 1000);
   quiche_config_set_max_recv_udp_payload_size(config.get(), MAX_DATAGRAM_SIZE);
   quiche_config_set_max_send_udp_payload_size(config.get(), MAX_DATAGRAM_SIZE);
   quiche_config_set_initial_max_data(config.get(), 10000000);

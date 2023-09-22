@@ -2512,6 +2512,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
 
       getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
+      getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
 
       parseTLSConfig(frontend->d_tlsConfig, "addDOQLocal", vars);
 
