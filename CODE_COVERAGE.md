@@ -38,7 +38,7 @@ The `.profraw` file(s) can be merged by [`llvm-profdata merge`](https://llvm.org
 ## Implementation
 
 We use `clang++`'s source-based coverage method in our CI, as it allows running our regression tests in parallel with several workers. It is enabled by passing the `--enable-coverage=clang` flag during `configure` for all products.
-The code coverage generation is done as part of the (build-and-test-all.yml)[https://github.com/PowerDNS/pdns/blob/master/.github/workflows/build-and-test-all.yml] workflow.
+The code coverage generation is done as part of the [build-and-test-all.yml](https://github.com/PowerDNS/pdns/blob/master/.github/workflows/build-and-test-all.yml) workflow.
 
 Since we have a `monorepo` for three products which share the same code-base, the process is a bit tricky:
 
