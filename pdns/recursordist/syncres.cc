@@ -2107,7 +2107,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
       Context newContext1;
       cset.clear();
       // Go out to get A's
-      if (s_doIPv4 && doResolve(qname, QType::A, cset, depth + 1, beenthere, newContext1) == 0) { // this consults cache, OR goes out
+      if (s_doIPv4 && doResolveNoQNameMinimization(qname, QType::A, cset, depth + 1, beenthere, newContext1) == 0) { // this consults cache, OR goes out
         for (auto const& i : cset) {
           if (i.d_type == QType::A) {
             if (auto rec = getRR<ARecordContent>(i)) {
@@ -2120,7 +2120,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
         if (ret.empty()) {
           // We only go out immediately to find IPv6 records if we did not find any IPv4 ones.
           Context newContext2;
-          if (doResolve(qname, QType::AAAA, cset, depth + 1, beenthere, newContext2) == 0) { // this consults cache, OR goes out
+          if (doResolveNoQNameMinimization(qname, QType::AAAA, cset, depth + 1, beenthere, newContext2) == 0) { // this consults cache, OR goes out
             for (const auto& i : cset) {
               if (i.d_type == QType::AAAA) {
                 if (auto rec = getRR<AAAARecordContent>(i)) {
@@ -3420,8 +3420,17 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 
 void SyncRes::checkMaxQperQ(const DNSName& qname) const
 {
-  if (d_outqueries + d_throttledqueries > s_maxqperq) {
-    throw ImmediateServFailException("more than " + std::to_string(s_maxqperq) + " (max-qperq) queries sent or throttled while resolving " + qname.toLogString());
+  auto bound = s_maxqperq;
+  if (d_qNameMinimization) {
+    // With an empty cache, a rev ipv6 query with dnssec enabled takes
+    // almost 100 queries. Default maxqperq is 60
+    // Note: This no longer seems to be true. The examples taken from #8646 take now way less
+    // queries. The main reason seems to be a much better zone cut determination.
+    bound = std::max(100U, bound);
+  }
+
+  if (d_outqueries + d_throttledqueries > bound) {
+    throw ImmediateServFailException("more than " + std::to_string(bound) + " (adjusted max-qperq) queries sent or throttled while resolving " + qname.toLogString());
   }
 }
 
