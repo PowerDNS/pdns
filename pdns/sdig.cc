@@ -6,6 +6,7 @@
 #include "dnswriter.hh"
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
+#include "ednsextendederror.hh"
 #include "misc.hh"
 #include "proxy-protocol.hh"
 #include "sstuff.hh"
@@ -185,6 +186,11 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         }
       } else if (iter->first == EDNSOptionCode::PADDING) {
         cerr << "EDNS Padding size: " << (iter->second.size()) << endl;
+      } else if (iter->first == EDNSOptionCode::EXTENDEDERROR) {
+        EDNSExtendedError eee;
+        if (getEDNSExtendedErrorOptFromString(iter->second, eee)) {
+          cerr << "EDNS Extended Error response: " << eee.infoCode << "/" << eee.extraText << endl;
+        }
       } else {
         cerr << "Have unknown option " << (int)iter->first << endl;
       }
