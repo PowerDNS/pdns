@@ -438,9 +438,10 @@ endif
 endif
 
 if HAVE_DNS_OVER_QUIC
-
 dnsdist_SOURCES += doq.cc
-
+if HAVE_QUICHE
+dnsdist_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
+endif
 endif
 
 if HAVE_NGHTTP2

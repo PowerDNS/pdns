@@ -13,10 +13,6 @@ AC_DEFUN([PDNS_WITH_QUICHE], [
       PKG_CHECK_MODULES([QUICHE], [quiche], [
         [HAVE_QUICHE=1]
         AC_DEFINE([HAVE_QUICHE], [1], [Define to 1 if you have quiche])
-        save_CFLAGS=$CFLAGS
-        save_LIBS=$LIBS
-        CFLAGS="$QUICHE_CFLAGS $CFLAGS"
-        LIBS="$QUICHE_LIBS $LIBS"
       ], [ : ])
     ])
   ])
