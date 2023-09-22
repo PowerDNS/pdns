@@ -286,6 +286,7 @@ Dessel
 destname
 Detlef
 devicename
+devonly
 devtoolset
 DHCID
 dhcpd
@@ -345,6 +346,7 @@ dnsviz
 dnswasher
 dnszone
 Dobrawy
+docdefault
 docnamecachelookup
 documentclass
 documentwrapper
