@@ -307,6 +307,10 @@ def ci_autoconf(c):
     c.run('autoreconf -vfi')
 
 @task
+def ci_docs_rec_generate(c):
+    c.run('python3 generate.py')
+
+@task
 def ci_docs_build(c):
     c.run('make -f Makefile.sphinx -C docs html')
 
