@@ -59,6 +59,8 @@ struct DOQFrontend
 #endif
   uint64_t d_idleTimeout{5};
   uint64_t d_maxInFlight{65535};
+  std::string d_ccAlgo{"reno"};
+  static std::map<const string, int> s_available_cc_algorithms;
 };
 
 struct DOQUnit

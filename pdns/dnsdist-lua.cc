@@ -2515,7 +2515,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
       getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
       getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
-
+      {
+        std::string valueStr;
+        if (getOptionalValue<std::string>(vars, "congestionControlAlgo", valueStr) > 0) {
+          if (DOQFrontend::s_available_cc_algorithms.count(valueStr)) {
+            frontend->d_ccAlgo = valueStr;
+          }
+          else {
+            warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOQLocal'", valueStr);
+          }
+        }
+      }
       parseTLSConfig(frontend->d_tlsConfig, "addDOQLocal", vars);
 
       bool ignoreTLSConfigurationErrors = false;

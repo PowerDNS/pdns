@@ -40,6 +40,12 @@
 
 static std::string s_quicRetryTokenKey = newKey(false);
 
+std::map<const string, int> DOQFrontend::s_available_cc_algorithms = {
+  {"reno", QUICHE_CC_RENO},
+  {"cubic", QUICHE_CC_CUBIC},
+  {"bbr", QUICHE_CC_BBR},
+};
+
 using QuicheConnection = std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>;
 using QuicheConfig = std::unique_ptr<quiche_config, decltype(&quiche_config_free)>;
 
@@ -322,7 +328,10 @@ void DOQFrontend::setup()
   // https://docs.rs/quiche/latest/quiche/struct.Config.html#method.set_initial_max_data
   quiche_config_set_initial_max_data(config.get(), 8192 * d_maxInFlight);
 
-  quiche_config_set_cc_algorithm(config.get(), QUICHE_CC_RENO);
+  auto algo = DOQFrontend::s_available_cc_algorithms.find(d_ccAlgo);
+  if (algo != DOQFrontend::s_available_cc_algorithms.end()) {
+    quiche_config_set_cc_algorithm(config.get(), static_cast<enum quiche_cc_algorithm>(algo->second));
+  }
 
   {
     PacketBuffer resetToken;
