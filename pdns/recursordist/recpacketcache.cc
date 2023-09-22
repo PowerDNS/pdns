@@ -129,7 +129,7 @@ bool RecursorPacketCache::checkResponseMatches(MapCombo::LockedContent& shard, s
       if (s_refresh_ttlperc > 0 && !iter->d_submitted && taskQTypeIsSupported(qtype)) {
         const dnsheader_aligned header(iter->d_packet.data());
         const auto* headerPtr = header.get();
-        if (headerPtr->rcode == RCode::NoError) {
+        if (headerPtr->rcode == static_cast<unsigned>(RCode::NoError)) {
           const uint32_t deadline = iter->getOrigTTL() * s_refresh_ttlperc / 100;
           const bool almostExpired = ttl <= deadline;
           if (almostExpired) {

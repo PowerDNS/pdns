@@ -57,4 +57,3 @@ uint64_t getAlmostExpiredTasksRun();
 uint64_t getAlmostExpiredTaskExceptions();
 
 bool taskQTypeIsSupported(QType qtype);
-
