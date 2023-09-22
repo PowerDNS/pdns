@@ -10,7 +10,7 @@ class TestDOQ(DNSDistTest):
     _serverCert = 'server.chain'
     _serverName = '127.0.0.1'
     _caCert = 'ca.pem'
-    _doqServerPort = 8853
+    _doqServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
