@@ -22,23 +22,23 @@
 
 #include "doq.hh"
 
-#include "dnsdist-tcp.hh"
-#include "dnsdist-random.hh"
+#ifdef HAVE_DNS_OVER_QUIC
+#include <quiche.h>
+
 #include "dnsparser.hh"
 #include "dolog.hh"
 #include "iputils.hh"
 #include "misc.hh"
+#include "sodcrypto.hh"
 #include "sstuff.hh"
 #include "threadname.hh"
+
 #include "dnsdist-ecs.hh"
 #include "dnsdist-proxy-protocol.hh"
-#include "sodcrypto.hh"
+#include "dnsdist-tcp.hh"
+#include "dnsdist-random.hh"
 
 static std::string s_quicRetryTokenKey = newKey(false);
-
-#ifdef HAVE_DNS_OVER_QUIC
-
-#include <quiche.h>
 
 using QuicheConnection = std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>;
 using QuicheConfig = std::unique_ptr<quiche_config, decltype(&quiche_config_free)>;
@@ -60,12 +60,10 @@ public:
   QuicheConnection d_conn;
 };
 
-#endif
-
 static void sendBackDOQUnit(DOQUnitUniquePtr&& du, const char* description);
 struct DOQServerConfig
 {
-  DOQServerConfig(std::unique_ptr<quiche_config, decltype(&quiche_config_free)>&& config_, uint32_t internalPipeBufferSize) :
+  DOQServerConfig(QuicheConfig&& config_, uint32_t internalPipeBufferSize) :
     config(std::move(config_))
   {
     {
@@ -88,6 +86,17 @@ struct DOQServerConfig
   pdns::channel::Receiver<DOQUnit> d_responseReceiver;
 };
 
+/* these might seem useless, but they are needed because
+   they need to be declared _after_ the definition of DOQServerConfig
+   so that we can use a unique_ptr in DOQFrontend */
+DOQFrontend::DOQFrontend()
+{
+}
+
+DOQFrontend::~DOQFrontend()
+{
+}
+
 #if 0
 #define DEBUGLOG_ENABLED
 #define DEBUGLOG(x) std::cerr << x << std::endl;
@@ -95,7 +104,7 @@ struct DOQServerConfig
 #define DEBUGLOG(x)
 #endif
 
-static constexpr size_t MAX_DATAGRAM_SIZE = 1350;
+static constexpr size_t MAX_DATAGRAM_SIZE = 1200;
 static constexpr size_t LOCAL_CONN_ID_LEN = 16;
 
 static std::map<PacketBuffer, Connection> s_connections;
@@ -269,6 +278,7 @@ static void fillRandom(PacketBuffer& buffer, size_t size)
     --size;
   }
 }
+
 void DOQFrontend::setup()
 {
   auto config = QuicheConfig(quiche_config_new(QUICHE_PROTOCOL_VERSION), quiche_config_free);
@@ -286,7 +296,7 @@ void DOQFrontend::setup()
   }
 
   {
-    const std::array<uint8_t, 4> alpn{'\x03', 'd', 'o', 'q'};
+    constexpr std::array<uint8_t, 4> alpn{'\x03', 'd', 'o', 'q'};
     auto res = quiche_config_set_application_protos(config.get(),
                                                     alpn.data(),
                                                     alpn.size());
@@ -296,7 +306,7 @@ void DOQFrontend::setup()
   }
 
   quiche_config_set_max_idle_timeout(config.get(), d_idleTimeout * 1000);
-  quiche_config_set_max_recv_udp_payload_size(config.get(), MAX_DATAGRAM_SIZE);
+  /* maximum size of an outgoing packet, which means the buffer we pass to quiche_conn_send() should be at least that big */
   quiche_config_set_max_send_udp_payload_size(config.get(), MAX_DATAGRAM_SIZE);
 
   // The number of concurrent remotely-initiated bidirectional streams to be open at any given time
@@ -320,7 +330,7 @@ void DOQFrontend::setup()
     quiche_config_set_stateless_reset_token(config.get(), reinterpret_cast<const uint8_t*>(resetToken.data()));
   }
 
-  d_server_config = std::make_shared<DOQServerConfig>(std::move(config), d_internalPipeBufferSize);
+  d_server_config = std::make_unique<DOQServerConfig>(std::move(config), d_internalPipeBufferSize);
 }
 
 static std::optional<PacketBuffer> getCID()
@@ -869,3 +879,5 @@ void doqThread(ClientState* cs)
     DEBUGLOG("Caught fatal error: " << e.what());
   }
 }
+
+#endif /* HAVE_DNS_OVER_QUIC */

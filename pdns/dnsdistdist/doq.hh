@@ -22,6 +22,8 @@
 #pragma once
 
 #include <memory>
+
+#include "config.h"
 #include "channel.hh"
 #include "iputils.hh"
 #include "libssl.hh"
@@ -36,11 +38,14 @@ struct DownstreamState;
 
 struct DOQFrontend
 {
-  DOQFrontend()
-  {
-  }
+  DOQFrontend();
+  DOQFrontend(const DOQFrontend&) = delete;
+  DOQFrontend(DOQFrontend&&) = delete;
+  DOQFrontend& operator=(const DOQFrontend&) = delete;
+  DOQFrontend& operator=(DOQFrontend&&) = delete;
+  ~DOQFrontend();
 
-  std::shared_ptr<DOQServerConfig> d_server_config{nullptr};
+  std::unique_ptr<DOQServerConfig> d_server_config{nullptr};
   TLSConfig d_tlsConfig;
   ComboAddress d_local;
 
@@ -61,7 +66,6 @@ struct DOQUnit
   DOQUnit(PacketBuffer&& q) :
     query(std::move(q))
   {
-    ids.ednsAdded = false;
   }
 
   DOQUnit(const DOQUnit&) = delete;
