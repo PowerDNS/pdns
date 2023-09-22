@@ -517,7 +517,6 @@ gpgsqlbackend
 gprof
 gpsqlbackend
 grepq
-grpc
 GSQ
 gsql
 gsqlite
@@ -527,7 +526,6 @@ gsub
 gtld
 guilabel
 Gyselinck
-hackerone
 Hakulinen
 Hannu
 Harker
@@ -810,7 +808,6 @@ metricnames
 metricscarbon
 Meulen
 Michiel
-middleware
 Miek
 Miell
 Mieslinger
@@ -1044,7 +1041,6 @@ pipermail
 Plusnet
 plzz
 pmtmr
-pnds
 Poelov
 pointsize
 polarssl
@@ -1382,7 +1378,6 @@ taskqueue
 tbhandler
 tcely
 TCounters
-tcp
 tcpconnecttimeouts
 tcpdump
 TCPKEEPALIVE
@@ -1417,8 +1412,6 @@ tinydns
 tinydnsbackend
 tisr
 tlsa
-tlsresumptions
-tmp
 tmpfs
 tobool
 toctree
