@@ -2510,7 +2510,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     if (vars) {
       parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
-
+      if (maxInFlightQueriesPerConn > 0) {
+        frontend->d_maxInFlight = maxInFlightQueriesPerConn;
+      }
       getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
       getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
 

@@ -298,10 +298,20 @@ void DOQFrontend::setup()
   quiche_config_set_max_idle_timeout(config.get(), d_idleTimeout * 1000);
   quiche_config_set_max_recv_udp_payload_size(config.get(), MAX_DATAGRAM_SIZE);
   quiche_config_set_max_send_udp_payload_size(config.get(), MAX_DATAGRAM_SIZE);
-  quiche_config_set_initial_max_data(config.get(), 10000000);
-  quiche_config_set_initial_max_stream_data_bidi_local(config.get(), 1000000);
-  quiche_config_set_initial_max_stream_data_bidi_remote(config.get(), 1000000);
-  quiche_config_set_initial_max_streams_bidi(config.get(), 100);
+
+  // The number of concurrent remotely-initiated bidirectional streams to be open at any given time
+  // https://docs.rs/quiche/latest/quiche/struct.Config.html#method.set_initial_max_streams_bidi
+  // 0 means none will get accepted, that's why we have a default value of 65535
+  quiche_config_set_initial_max_streams_bidi(config.get(), d_maxInFlight);
+
+  // The number of bytes of incoming stream data to be buffered for each localy or remotely-initiated bidirectional stream
+  quiche_config_set_initial_max_stream_data_bidi_local(config.get(), 8192);
+  quiche_config_set_initial_max_stream_data_bidi_remote(config.get(), 8192);
+
+  // The number of total bytes of incoming stream data to be buffered for the whole connection
+  // https://docs.rs/quiche/latest/quiche/struct.Config.html#method.set_initial_max_data
+  quiche_config_set_initial_max_data(config.get(), 8192 * d_maxInFlight);
+
   quiche_config_set_cc_algorithm(config.get(), QUICHE_CC_RENO);
 
   {
