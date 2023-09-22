@@ -1,9 +1,9 @@
 Code Coverage
 -------------
 
-PowerDNS uses [coveralls](https://coveralls.io/) to generate code coverage reports from our Continuous Integration tests. The resulting analysis can then be consulted [online](https://coveralls.io/github/PowerDNS/pdns), and gives hindsight into which parts of the code are automatically tested.
+PowerDNS uses [coveralls](https://coveralls.io/) to generate code coverage reports from our Continuous Integration tests. The resulting analysis can then be consulted [online](https://coveralls.io/github/PowerDNS/pdns), and gives insight into which parts of the code are automatically tested.
 
-Code coverage is generated during our Continuous Integration tests, for every pull requests and pushs. In addition to the dashboard on coveralls's website, a summary is posted on pull requests.
+Code coverage is generated during our Continuous Integration tests, for every pull request. In addition to the dashboard on Coveralls' website, a summary is posted on pull requests.
 
 # Technical Details
 
@@ -73,5 +73,5 @@ It is possible to generate a code coverage report without going through the CI, 
 
 # Remaining Tasks
 
-The way our code coverage report is generated does not currently handle very well the multiple tools that are generated during the authoritative server build, and end up in the `pdns-tools` package. Consequently the coverage report for these tools, and the related code parts, is not accurate.
+The way our code coverage report is generated does not currently handle the different authoritative server tools (that end up in the `pdns-tools` package) very well. Consequently the coverage report for these tools, and the related code parts, is not accurate.
 It is likely possible to pass several `--object </path/to/binary>` options to `llvm-cov` when processing the `.profdata` file.

@@ -25,10 +25,10 @@
 #ifdef COVERAGE
 extern "C"
 {
-  //NOLINTNEXTLINE(bugprone-reserved-identifier): not ours
+  // NOLINTNEXTLINE(bugprone-reserved-identifier): not ours
   void __gcov_dump(void);
 #ifdef CLANG_COVERAGE
-  //NOLINTNEXTLINE(bugprone-reserved-identifier): not ours
+  // NOLINTNEXTLINE(bugprone-reserved-identifier): not ours
   int __llvm_profile_write_file(void);
 #endif /* CLANG_COVERAGE */
 }
