@@ -261,6 +261,14 @@ static void handleResponse(DOQFrontend& df, Connection& conn, const uint64_t str
   }
 }
 
+static void fillRandom(PacketBuffer& buffer, size_t size)
+{
+  buffer.reserve(size);
+  while (size > 0) {
+    buffer.insert(buffer.end(), dnsdist::getRandomValue(std::numeric_limits<uint8_t>::max()));
+    --size;
+  }
+}
 void DOQFrontend::setup()
 {
   auto config = QuicheConfig(quiche_config_new(QUICHE_PROTOCOL_VERSION), quiche_config_free);
@@ -295,7 +303,12 @@ void DOQFrontend::setup()
   quiche_config_set_initial_max_stream_data_bidi_remote(config.get(), 1000000);
   quiche_config_set_initial_max_streams_bidi(config.get(), 100);
   quiche_config_set_cc_algorithm(config.get(), QUICHE_CC_RENO);
-  // quiche_config_log_keys(config.get());
+
+  {
+    PacketBuffer resetToken;
+    fillRandom(resetToken, 16);
+    quiche_config_set_stateless_reset_token(config.get(), reinterpret_cast<const uint8_t*>(resetToken.data()));
+  }
 
   d_server_config = std::make_shared<DOQServerConfig>(std::move(config), d_internalPipeBufferSize);
 }
@@ -303,13 +316,8 @@ void DOQFrontend::setup()
 static std::optional<PacketBuffer> getCID()
 {
   PacketBuffer buffer;
-  size_t idx = 0;
 
-  buffer.resize(LOCAL_CONN_ID_LEN);
-  while (idx < LOCAL_CONN_ID_LEN) {
-    buffer.at(idx) = dnsdist::getRandomValue(std::numeric_limits<uint8_t>::max());
-    ++idx;
-  }
+  fillRandom(buffer, LOCAL_CONN_ID_LEN);
 
   return buffer;
 }
