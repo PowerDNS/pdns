@@ -443,7 +443,7 @@ unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_packetcachenegativettl;
 unsigned int SyncRes::s_serverdownmaxfails;
 unsigned int SyncRes::s_serverdownthrottletime;
-unsigned int SyncRes::s_unthrottle_n = 100;
+unsigned int SyncRes::s_unthrottle_n;
 unsigned int SyncRes::s_nonresolvingnsmaxfails;
 unsigned int SyncRes::s_nonresolvingnsthrottletime;
 unsigned int SyncRes::s_ecscachelimitttl;
@@ -1240,12 +1240,15 @@ bool SyncRes::isThrottled(time_t now, const ComboAddress& server, const DNSName&
 
 bool SyncRes::isThrottled(time_t now, const ComboAddress& server)
 {
-  // Give fully throttled servers a chance to be used, to avoid having one bad domain spoil the NS record for others usingf the same NS
-  // If the NS answers, it will be unThrottled immediately
-  if (dns_random(s_unthrottle_n) == 0) {
-    return false;
+  auto throttled = s_throttle.lock()->shouldThrottle(now, std::tuple(server, g_rootdnsname, 0));
+  if (throttled) {
+    // Give fully throttled servers a chance to be used, to avoid having one bad zone spoil the NS
+    // record for others using the same NS. If the NS answers, it will be unThrottled immediately
+    if (s_unthrottle_n > 0 && dns_random(s_unthrottle_n) == 0) {
+      throttled = false;
+    }
   }
-  return s_throttle.lock()->shouldThrottle(now, std::tuple(server, g_rootdnsname, 0));
+  return throttled;
 }
 
 void SyncRes::unThrottle(const ComboAddress& server, const DNSName& name, QType qtype)

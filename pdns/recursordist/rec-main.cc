@@ -1641,6 +1641,7 @@ static int initSyncRes(Logr::log_t log)
 
   SyncRes::s_serverdownmaxfails = ::arg().asNum("server-down-max-fails");
   SyncRes::s_serverdownthrottletime = ::arg().asNum("server-down-throttle-time");
+  SyncRes::s_unthrottle_n = ::arg().asNum("server-down-use-probability");
   SyncRes::s_nonresolvingnsmaxfails = ::arg().asNum("non-resolving-ns-max-fails");
   SyncRes::s_nonresolvingnsthrottletime = ::arg().asNum("non-resolving-ns-throttle-time");
   SyncRes::s_serverID = ::arg()["server-id"];
