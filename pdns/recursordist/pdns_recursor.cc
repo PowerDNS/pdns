@@ -2334,7 +2334,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   return 0;
 }
 
-static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& /* var */)
+static void handleNewUDPQuestion(int fd, FDMultiplexer::funcparam_t& /* var */) // NOLINT(readability-function-cognitive-complexity)
 {
   ssize_t len;
   static const size_t maxIncomingQuerySize = g_proxyProtocolACL.empty() ? 512 : (512 + g_proxyProtocolMaximumSize);
