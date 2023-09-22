@@ -73,7 +73,6 @@ struct DOQServerConfig
       d_responseSender = std::move(sender);
       d_responseReceiver = std::move(receiver);
     }
-
   }
   DOQServerConfig(const DOQServerConfig&) = delete;
   DOQServerConfig(DOQServerConfig&&) = default;
@@ -440,7 +439,8 @@ static void sendBackDOQUnit(DOQUnitUniquePtr&& du, const char* description)
     if (!du->dsc->d_responseSender.send(std::move(du))) {
       vinfolog("Unable to pass a %s to the DoQ worker thread because the pipe is full", description);
     }
-  } catch (const std::exception& e) {
+  }
+  catch (const std::exception& e) {
     vinfolog("Unable to pass a %s to the DoQ worker thread because we couldn't write to the pipe: %s", description, e.what());
   }
 }
@@ -676,18 +676,17 @@ static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const
 
 static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver)
 {
-  for(;;) {
+  for (;;) {
     try {
       auto tmp = receiver.receive();
       if (!tmp) {
-        return ;
+        return;
       }
 
       auto du = std::move(*tmp);
       auto conn = getConnection(du->serverConnID);
 
       handleResponse(*du->dsc->df, *conn, du->streamID, du->response);
-
     }
     catch (const std::exception& e) {
       errlog("Error while processing response received over DoQ: %s", e.what());

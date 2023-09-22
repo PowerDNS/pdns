@@ -48,7 +48,7 @@ struct DOQFrontend
 #ifdef __linux__
   // On Linux this gives us 128k pending queries (default is 8192 queries),
   // which should be enough to deal with huge spikes
-  uint32_t d_internalPipeBufferSize{1024*1024};
+  uint32_t d_internalPipeBufferSize{1024 * 1024};
 #else
   uint32_t d_internalPipeBufferSize{0};
 #endif
