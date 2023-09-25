@@ -2155,15 +2155,15 @@ Throttle a server that has failed to respond :ref:`setting-server-down-max-fails
  ''',
     },
     {
-        'name' : 'server_down_use_probability',
+        'name' : 'bypass_server_throttling_probability',
         'section' : 'recursor',
         'type' : LType.Uint64,
         'default' : '25',
         'help' : 'Determines the probability of a server marked down to be used anyway',
         'doc' : '''
 This setting determines the probability of a server marked down to be used anyway.
-A value of ``n`` means that the chance of a server marked down being used after it wins speed selection is is ``1/n``.
-If this setting is zero this mechanism is not active.
+A value of ``n`` means that the chance of a server marked down still being used after it wins speed selection is is ``1/n``.
+If this setting is zero throttled servers will never be selected to be used anyway.
         ''',
         'versionadded': '5.0.0'
     },
