@@ -1967,7 +1967,7 @@ described in :rfc:`9156`.
         'help' : 'RFC9156 max minimize count',
         'doc' : '''
 ``Max minimize count`` parameter, described in :rfc:`9156`. This is the maximum number of iterations
-of the Quqey Name Minimization Algorithm.
+of the Query Name Minimization Algorithm.
  ''',
     'versionadded': '5.0.0'
     },
