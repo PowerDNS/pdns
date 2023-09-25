@@ -183,6 +183,8 @@ void initSR(bool debug)
   SyncRes::s_save_parent_ns_set = true;
   SyncRes::s_maxnsperresolve = 13;
   SyncRes::s_locked_ttlperc = 0;
+  SyncRes::s_minimize_one_lab = 4;
+  SyncRes::s_max_minimize_count = 10;
 
   SyncRes::clearNSSpeeds();
   BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);
