@@ -23,6 +23,7 @@ jobs:
           - centos-8-stream
           - centos-9-stream
           - ubuntu-lunar
+          - ubuntu-mantic
           - debian-bookworm
           - amazon-2023
       fail-fast: false
