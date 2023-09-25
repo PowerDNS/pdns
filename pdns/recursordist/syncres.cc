@@ -309,6 +309,10 @@ public:
     d_cont.clear();
   }
 
+  void clear(const Thing& thing)
+  {
+    d_cont.erase(thing);
+  }
   void prune(time_t now)
   {
     auto& ind = d_cont.template get<time_t>();
@@ -439,6 +443,7 @@ unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_packetcachenegativettl;
 unsigned int SyncRes::s_serverdownmaxfails;
 unsigned int SyncRes::s_serverdownthrottletime;
+unsigned int SyncRes::s_unthrottle_n;
 unsigned int SyncRes::s_nonresolvingnsmaxfails;
 unsigned int SyncRes::s_nonresolvingnsthrottletime;
 unsigned int SyncRes::s_ecscachelimitttl;
@@ -1235,7 +1240,21 @@ bool SyncRes::isThrottled(time_t now, const ComboAddress& server, const DNSName&
 
 bool SyncRes::isThrottled(time_t now, const ComboAddress& server)
 {
-  return s_throttle.lock()->shouldThrottle(now, std::tuple(server, g_rootdnsname, 0));
+  auto throttled = s_throttle.lock()->shouldThrottle(now, std::tuple(server, g_rootdnsname, 0));
+  if (throttled) {
+    // Give fully throttled servers a chance to be used, to avoid having one bad zone spoil the NS
+    // record for others using the same NS. If the NS answers, it will be unThrottled immediately
+    if (s_unthrottle_n > 0 && dns_random(s_unthrottle_n) == 0) {
+      throttled = false;
+    }
+  }
+  return throttled;
+}
+
+void SyncRes::unThrottle(const ComboAddress& server, const DNSName& name, QType qtype)
+{
+  s_throttle.lock()->clear(std::tuple(server, g_rootdnsname, 0));
+  s_throttle.lock()->clear(std::tuple(server, name, qtype));
 }
 
 void SyncRes::doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries)
@@ -5263,13 +5282,13 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix << qname << ": Error resolving from " << remoteIP.toString() << (doTCP ? " over TCP" : "") << ", possible error: " << stringerror() << endl);
     }
 
+    // don't account for resource limits, they are our own fault
+    // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
     if (resolveret != LWResult::Result::OSLimitError && !chained && !dontThrottle) {
-      // don't account for resource limits, they are our own fault
-      // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
       s_nsSpeeds.lock()->find_or_enter(nsName.empty() ? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
 
-      // code below makes sure we don't filter COM or the root
-      if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
+      // make sure we don't throttle the root
+      if (s_serverdownmaxfails > 0 && auth != g_rootdnsname && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
         LOG(prefix << qname << ": Max fails reached resolving on " << remoteIP.toString() << ". Going full throttle for " << s_serverdownthrottletime << " seconds" << endl);
         // mark server as down
         doThrottle(d_now.tv_sec, remoteIP, s_serverdownthrottletime, 10000);
@@ -5327,6 +5346,8 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   if (s_serverdownmaxfails > 0) {
     s_fails.lock()->clear(remoteIP);
   }
+  // Clear all throttles for this IP, both general and specific throttles for qname-qtype
+  unThrottle(remoteIP, qname, qtype);
 
   if (lwr.d_tcbit) {
     truncated = true;
