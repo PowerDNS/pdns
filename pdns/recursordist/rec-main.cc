@@ -1645,6 +1645,7 @@ static int initSyncRes(Logr::log_t log)
   SyncRes::s_nonresolvingnsmaxfails = ::arg().asNum("non-resolving-ns-max-fails");
   SyncRes::s_nonresolvingnsthrottletime = ::arg().asNum("non-resolving-ns-throttle-time");
   SyncRes::s_serverID = ::arg()["server-id"];
+  // This bound is dynamically adjusted in SyncRes, depending on qname minimization being active
   SyncRes::s_maxqperq = ::arg().asNum("max-qperq");
   SyncRes::s_maxnsperresolve = ::arg().asNum("max-ns-per-resolve");
   SyncRes::s_maxnsaddressqperq = ::arg().asNum("max-ns-address-qperq");
@@ -1686,12 +1687,6 @@ static int initSyncRes(Logr::log_t log)
   SyncRes::s_ecscachelimitttl = ::arg().asNum("ecs-cache-limit-ttl");
 
   SyncRes::s_qnameminimization = ::arg().mustDo("qname-minimization");
-
-  if (SyncRes::s_qnameminimization) {
-    // With an empty cache, a rev ipv6 query with dnssec enabled takes
-    // almost 100 queries. Default maxqperq is 60.
-    SyncRes::s_maxqperq = std::max(SyncRes::s_maxqperq, static_cast<unsigned int>(100));
-  }
 
   SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
   string value = ::arg()["nothing-below-nxdomain"];

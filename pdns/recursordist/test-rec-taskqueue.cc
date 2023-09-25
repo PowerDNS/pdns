@@ -30,17 +30,17 @@ BOOST_AUTO_TEST_CASE(test_almostexpired_queue_no_dups)
 BOOST_AUTO_TEST_CASE(test_resolve_queue_rate_limit)
 {
   taskQueueClear();
-  pushResolveTask(DNSName("foo"), QType::AAAA, 0, 1);
+  pushResolveTask(DNSName("foo"), QType::AAAA, 0, 1, false);
   BOOST_CHECK_EQUAL(getTaskSize(), 1U);
   taskQueuePop();
   BOOST_CHECK_EQUAL(getTaskSize(), 0U);
 
   // Should hit rate limiting
-  pushResolveTask(DNSName("foo"), QType::AAAA, 0, 1);
+  pushResolveTask(DNSName("foo"), QType::AAAA, 0, 1, false);
   BOOST_CHECK_EQUAL(getTaskSize(), 0U);
 
   // Should not hit rate limiting as time has passed
-  pushResolveTask(DNSName("foo"), QType::AAAA, 61, 62);
+  pushResolveTask(DNSName("foo"), QType::AAAA, 61, 62, false);
   BOOST_CHECK_EQUAL(getTaskSize(), 1U);
 }
 
