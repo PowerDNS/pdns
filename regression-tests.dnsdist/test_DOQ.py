@@ -8,7 +8,7 @@ from dnsdisttests import pickAvailablePort
 class TestDOQ(DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
-    _serverName = '127.0.0.1'
+    _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _doqServerPort = pickAvailablePort()
     _config_template = """
@@ -40,7 +40,7 @@ class TestDOQ(DNSDistTest):
                                     dns.rdatatype.A,
                                     '127.0.0.1')
         response.answer.append(rrset)
-        (receivedQuery, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=response, caFile=self._caCert)
+        (receivedQuery, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, serverName=self._serverName)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
@@ -64,15 +64,15 @@ class TestDOQ(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        connection = self.getDOQConnection(self._doqServerPort, self._serverName, self._caCert)
+        connection = self.getDOQConnection(self._doqServerPort, self._caCert)
 
-        (receivedQuery, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=response, connection=connection)
+        (receivedQuery, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, serverName=self._serverName, connection=connection)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
         self.assertEqual(expectedQuery, receivedQuery)
 
-        (receivedQuery, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=response, connection=connection)
+        (receivedQuery, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, serverName=self._serverName, connection=connection)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = expectedQuery.id
@@ -86,7 +86,7 @@ class TestDOQ(DNSDistTest):
         query = dns.message.make_query(name, 'A', 'IN')
         dropped = False
         try:
-            (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=None, caFile=self._caCert, useQueue=False)
+            (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=None, caFile=self._caCert, useQueue=False, serverName=self._serverName)
             # dns.quic doesn't seem to report correctly the quic error so the connection timeout
         except dns.exception.Timeout :
             dropped = True
@@ -103,7 +103,7 @@ class TestDOQ(DNSDistTest):
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
 
-        (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=None, caFile=self._caCert, useQueue=False)
+        (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=None, caFile=self._caCert, useQueue=False, serverName=self._serverName)
         self.assertEqual(receivedResponse, expectedResponse)
 
     def testSpoof(self):
@@ -122,7 +122,7 @@ class TestDOQ(DNSDistTest):
                                     '1.2.3.4')
         expectedResponse.answer.append(rrset)
 
-        (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=None, caFile=self._caCert, useQueue=False)
+        (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=None, caFile=self._caCert, useQueue=False, serverName=self._serverName)
         self.assertEqual(receivedResponse, expectedResponse)
 
     def testDOQNoBackend(self):
@@ -133,7 +133,7 @@ class TestDOQ(DNSDistTest):
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         dropped = False
         try:
-            (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=None, caFile=self._caCert, useQueue=False)
+            (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=None, caFile=self._caCert, useQueue=False, serverName=self._serverName)
         except dns.exception.Timeout :
             dropped = True
         self.assertTrue(dropped)
@@ -142,7 +142,7 @@ class TestDOQ(DNSDistTest):
 class TestDOQWithCache(DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
-    _serverName = '127.0.0.1'
+    _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _doqServerPort = 8853
     _config_template = """
@@ -177,7 +177,7 @@ class TestDOQWithCache(DNSDistTest):
         response.answer.append(rrset)
 
         # first query to fill the cache
-        (receivedQuery, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=response, caFile=self._caCert)
+        (receivedQuery, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, serverName=self._serverName)
         self.assertTrue(receivedQuery)
         self.assertTrue(receivedResponse)
         receivedQuery.id = query.id
@@ -185,7 +185,7 @@ class TestDOQWithCache(DNSDistTest):
         self.assertEqual(receivedResponse, response)
 
         for _ in range(numberOfQueries):
-            (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, self._serverName, query, response=None, caFile=self._caCert, useQueue=False)
+            (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=None, caFile=self._caCert, useQueue=False, serverName=self._serverName)
             self.assertEqual(receivedResponse, response)
 
         total = 0

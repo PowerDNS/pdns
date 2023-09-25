@@ -1090,17 +1090,20 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     def sendDOTQueryWrapper(self, query, response, useQueue=True):
         return self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response, self._caCert, useQueue=useQueue)
 
+    def sendDOQQueryWrapper(self, query, response, useQueue=True):
+        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName)
+
     @classmethod
-    def getDOQConnection(cls, port, servername, caFile=None, source=None, source_port=0):
+    def getDOQConnection(cls, port, caFile=None, source=None, source_port=0):
 
         manager = dns.quic.SyncQuicManager(
             verify_mode=caFile
         )
 
-        return manager.connect(servername, port, source, source_port)
+        return manager.connect('127.0.0.1', port, source, source_port)
 
     @classmethod
-    def sendDOQQuery(cls, port, servername, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, fromQueue=None, toQueue=None, connection=None):
+    def sendDOQQuery(cls, port, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, fromQueue=None, toQueue=None, connection=None, serverName=None):
 
         if response:
             if toQueue:
@@ -1108,7 +1111,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             else:
                 cls._toResponderQueue.put(response, True, timeout)
 
-        message = dns.query.quic(query, servername, timeout, port, verify=caFile, connection=connection)
+        message = dns.query.quic(query, '127.0.0.1', timeout, port, verify=caFile, connection=connection, server_hostname=serverName)
 
         receivedQuery = None
 
