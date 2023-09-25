@@ -2515,6 +2515,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
       getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
       getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
+      getOptionalValue<std::string>(vars, "keyLogFile", frontend->d_keyLogFile);
       {
         std::string valueStr;
         if (getOptionalValue<std::string>(vars, "congestionControlAlgo", valueStr) > 0) {

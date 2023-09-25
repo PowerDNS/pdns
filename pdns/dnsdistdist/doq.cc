@@ -327,6 +327,9 @@ void DOQFrontend::setup()
   // The number of total bytes of incoming stream data to be buffered for the whole connection
   // https://docs.rs/quiche/latest/quiche/struct.Config.html#method.set_initial_max_data
   quiche_config_set_initial_max_data(config.get(), 8192 * d_maxInFlight);
+  if (!d_keyLogFile.empty()) {
+    quiche_config_log_keys(config.get());
+  }
 
   auto algo = DOQFrontend::s_available_cc_algorithms.find(d_ccAlgo);
   if (algo != DOQFrontend::s_available_cc_algorithms.end()) {
@@ -482,7 +485,7 @@ static void sendBackDOQUnit(DOQUnitUniquePtr&& du, const char* description)
   }
 }
 
-static std::optional<std::reference_wrapper<Connection>> createConnection(QuicheConfig& config, const PacketBuffer& serverSideID, const PacketBuffer& originalDestinationID, const PacketBuffer& token, const ComboAddress& local, const ComboAddress& peer)
+static std::optional<std::reference_wrapper<Connection>> createConnection(const DOQServerConfig& config, const PacketBuffer& serverSideID, const PacketBuffer& originalDestinationID, const PacketBuffer& token, const ComboAddress& local, const ComboAddress& peer)
 {
   auto quicheConn = QuicheConnection(quiche_accept(serverSideID.data(), serverSideID.size(),
                                                    originalDestinationID.data(), originalDestinationID.size(),
@@ -490,8 +493,13 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(Quiche
                                                    local.getSocklen(),
                                                    (struct sockaddr*)&peer,
                                                    peer.getSocklen(),
-                                                   config.get()),
+                                                   config.config.get()),
                                      quiche_conn_free);
+
+  if (config.df && !config.df->d_keyLogFile.empty()) {
+    quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_keyLogFile.c_str());
+  }
+
   auto conn = Connection(peer, std::move(quicheConn));
   auto pair = s_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
@@ -809,7 +817,7 @@ void doqThread(ClientState* cs)
           }
 
           DEBUGLOG("Creating a new connection");
-          conn = createConnection(frontend->d_server_config->config, serverConnID, *originalDestinationID, tokenBuf, cs->local, client);
+          conn = createConnection(*frontend->d_server_config, serverConnID, *originalDestinationID, tokenBuf, cs->local, client);
           if (!conn) {
             continue;
           }
