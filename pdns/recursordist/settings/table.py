@@ -1955,9 +1955,33 @@ Path to the Public Suffix List file, if any. If set, PowerDNS will try to load t
         'help' : 'Use Query Name Minimization',
         'doc' : '''
 Enable Query Name Minimization. This implements a relaxed form of Query Name Mimimization as
-described in :rfc:`7816`.
+described in :rfc:`9156`.
  ''',
     'versionadded': '4.3.0'
+    },
+    {
+        'name' : 'qname_max_minimize_count',
+        'section' : 'recursor',
+        'type' : LType.Uint64,
+        'default' : '10',
+        'help' : 'RFC9156 max minimize count',
+        'doc' : '''
+``Max minimize count`` parameter, described in :rfc:`9156`. This is the maximum number of iterations
+of the Quqey Name Minimization Algorithm.
+ ''',
+    'versionadded': '5.0.0'
+    },
+    {
+        'name' : 'qname_minimize_one_label',
+        'section' : 'recursor',
+        'type' : LType.Uint64,
+        'default' : '4',
+        'help' : 'RFC9156 minimize one label parameter',
+        'doc' : '''
+``Minimize one label`` parameter, described in :rfc:`9156`.
+The value for the number of iterations of the Query Name Minimization Algorithm that should only have one label appended.
+ ''',
+    'versionadded': '5.0.0'
     },
     {
         'name' : 'source_address',

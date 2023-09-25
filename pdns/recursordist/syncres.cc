@@ -1596,20 +1596,20 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool 
 }
 
 /* The parameters from rfc9156. */
-/* maximum number of QNAME minimisation iterations */
-static const unsigned int s_max_minimise_count = 10;
-/* number of queries that should only have one label appended */
-static const unsigned int s_minimise_one_lab = 4;
+/* maximum number of QNAME minimization iterations */
+unsigned int SyncRes::s_max_minimize_count; // default is 10
+/* number of iterations that should only have one label appended */
+unsigned int SyncRes::s_minimize_one_lab; // default is 4
 
 static unsigned int qmStepLen(unsigned int labels, unsigned int qnamelen, unsigned int i)
 {
   unsigned int step;
 
-  if (i < s_minimise_one_lab) {
+  if (i < SyncRes::s_minimize_one_lab) {
     step = 1;
   }
-  else if (i < s_max_minimise_count) {
-    step = std::max(1U, (qnamelen - labels) / (10 - i));
+  else if (i < SyncRes::s_max_minimize_count) {
+    step = std::max(1U, (qnamelen - labels) / (SyncRes::s_max_minimize_count - i));
   }
   else {
     step = qnamelen - labels;
@@ -1788,6 +1788,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
       LOG(prefix << qname << ": Step4 Resolve " << child << "|A result is " << RCode::to_s(res) << "/" << retq.size() << "/" << stopAtDelegation << endl);
       if (stopAtDelegation == Stopped) {
         LOG(prefix << qname << ": Delegation seen, continue at step 1" << endl);
+        i++;
         break;
       }
 

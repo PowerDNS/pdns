@@ -1687,6 +1687,8 @@ static int initSyncRes(Logr::log_t log)
   SyncRes::s_ecscachelimitttl = ::arg().asNum("ecs-cache-limit-ttl");
 
   SyncRes::s_qnameminimization = ::arg().mustDo("qname-minimization");
+  SyncRes::s_minimize_one_lab = ::arg().asNum("qname-minimize-one-label");
+  SyncRes::s_max_minimize_count = ::arg().asNum("qname-max-minimize-count");
 
   SyncRes::s_hardenNXD = SyncRes::HardenNXD::DNSSEC;
   string value = ::arg()["nothing-below-nxdomain"];
