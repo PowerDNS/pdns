@@ -608,7 +608,7 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
       // There are a few cases where an answer is neither stored in the record cache nor in the neg cache.
       // An example is a SOA-less NODATA response. Rate limiting will kick in if those tasks are pushed too often.
       // We might want to fix these cases (and always either store positive or negative) some day.
-      pushResolveTask(qname, qtype, d_now.tv_sec, d_now.tv_sec + 60);
+      pushResolveTask(qname, qtype, d_now.tv_sec, d_now.tv_sec + 60, false);
       additionalsNotInCache = true;
     }
     break;
@@ -2151,7 +2151,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
       NegCache::NegCacheEntry ne;
       bool inNegCache = g_negCache->get(qname, QType::AAAA, d_now, ne, false);
       if (!inNegCache) {
-        pushResolveTask(qname, QType::AAAA, d_now.tv_sec, d_now.tv_sec + 60);
+        pushResolveTask(qname, QType::AAAA, d_now.tv_sec, d_now.tv_sec + 60, true);
       }
     }
   }

@@ -114,7 +114,8 @@ struct taskstats
 static struct taskstats s_almost_expired_tasks;
 static struct taskstats s_resolve_tasks;
 
-static void resolve(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task) noexcept
+// forceNoQM is true means resolve using no qm, false means use default value
+static void resolveInternal(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task, bool forceNoQM) noexcept
 {
   auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(task.d_qname), "qtype", Logging::Loggable(QType(task.d_qtype).toString()), "netmask", Logging::Loggable(task.d_netmask.empty() ? "" : task.d_netmask.toString()));
   const string msg = "Exception while running a background ResolveTask";
@@ -122,6 +123,9 @@ static void resolve(const struct timeval& now, bool logErrors, const pdns::Resol
   vector<DNSRecord> ret;
   resolver.setRefreshAlmostExpired(task.d_refreshMode);
   resolver.setQuerySource(task.d_netmask);
+  if (forceNoQM) {
+    resolver.setQNameMinimization(false);
+  }
   bool exceptionOccurred = true;
   try {
     log->info(Logr::Debug, "resolving", "refresh", Logging::Loggable(task.d_refreshMode));
@@ -164,6 +168,16 @@ static void resolve(const struct timeval& now, bool logErrors, const pdns::Resol
       ++s_resolve_tasks.run;
     }
   }
+}
+
+static void resolveForceNoQM(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task) noexcept
+{
+  resolveInternal(now, logErrors, task, true);
+}
+
+static void resolve(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task) noexcept
+{
+  resolveInternal(now, logErrors, task, false);
 }
 
 static void tryDoT(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task) noexcept
@@ -247,14 +261,15 @@ void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline
   }
 }
 
-void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline)
+void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline, bool forceQMOff)
 {
   if (SyncRes::isUnsupported(qtype)) {
     auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype).toString()));
     log->error(Logr::Error, "Cannot push task", "qtype unsupported");
     return;
   }
-  pdns::ResolveTask task{qname, qtype, deadline, false, resolve, {}, {}, {}};
+  auto func = forceQMOff ? resolveForceNoQM : resolve;
+  pdns::ResolveTask task{qname, qtype, deadline, false, func, {}, {}, {}};
   auto lock = s_taskQueue.lock();
   bool inserted = lock->rateLimitSet.insert(now, task);
   if (inserted) {
