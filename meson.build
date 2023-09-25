@@ -208,11 +208,12 @@ pdns_auth = executable(
   config_h,
   export_dynamic: true,
   dependencies: [
+    dep_modules,
     libpdns,
     libpdns_auth,
     libpdns_auth_main,
     libpdns_auth_ws,
-    dep_modules,
+    libpdns_lua_records,
   ],
 )
 
@@ -220,8 +221,8 @@ pdns_util = executable(
   'pdns-util',
   config_h,
   dependencies: [
-    libpdns,
     libpdns_auth,
+    libpdns_base,
     libpdns_util,
   ],
 )

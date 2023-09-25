@@ -44,7 +44,7 @@ libpdns_bindparser_cc = declare_dependency(
 )
 
 libpdns_bind_parser = declare_dependency(
-  link_with: static_library(
+  link_whole: static_library(
     'pdns-bind-parser',
     'zoneparser-tng.cc',
     extra_files: [
@@ -62,7 +62,7 @@ libpdns_bind_parser = declare_dependency(
 libpdns_lua = dependency('', required: false)
 if dep_lua.found()
   libpdns_lua = declare_dependency(
-    link_with: static_library(
+    link_whole: static_library(
       'pdns-lua',
       'lua-base4.cc',
       extra_files: [
@@ -76,7 +76,7 @@ endif
 libpdns_lua_records = dependency('', required: false)
 if dep_lua_records.found()
   libpdns_lua_records = declare_dependency(
-    link_with: static_library(
+    link_whole: static_library(
       'pdns-lua-records',
       'lua-record.cc',
       'minicurl.cc',
@@ -90,7 +90,7 @@ endif
 
 libpdns_gss = dependency('', required: false)
 libpdns_gss = declare_dependency(
-  link_with: static_library(
+  link_whole: static_library(
     'pdns-gss',
     'gss_context.cc',
     extra_files: [
@@ -103,7 +103,7 @@ libpdns_gss = declare_dependency(
 libpdns_pkcs11 = dependency('', required: false)
 if dep_pkcs11.found()
   libpdns_pkcs11 = declare_dependency(
-    link_with: static_library(
+    link_whole: static_library(
       'pdns-pkcs11',
       'pkcs11signers.cc',
       extra_files: [
@@ -115,7 +115,7 @@ if dep_pkcs11.found()
 endif
 
 libpdns_ws = declare_dependency(
-  link_with: static_library(
+  link_whole: static_library(
     'pdns-ws',
     'webserver.cc',
     'ws-api.cc',
@@ -129,7 +129,7 @@ libpdns_ws = declare_dependency(
 )
 
 libpdns_tsig = declare_dependency(
-  link_with: static_library(
+  link_whole: static_library(
     'pdns-tsig',
     'tsigutils.cc',
     'tsigverifier.cc',
@@ -158,16 +158,15 @@ if not fs.is_file(libpdns_dnslabeltext_cc)
   libpdns_dnslabeltext_cc = ragel_generator.process('dnslabeltext.rl')
 endif
 
-libpdns = declare_dependency(
-  link_with: static_library(
-    'pdns',
+libpdns_base = declare_dependency(
+  link_whole: static_library(
+    'pdns-base',
     'arguments.cc',
     'axfr-retriever.cc',
     # TODO Move to a separate module
     'backends' / 'gsql' / 'gsqlbackend.cc',
     'base32.cc',
     'base64.cc',
-    'communicator.cc',
     'credentials.cc',
     'dbdnsseckeeper.cc',
     'dns.cc',
@@ -180,7 +179,6 @@ libpdns = declare_dependency(
     'dnssecinfra.cc',
     'dnssecsigner.cc',
     'dnswriter.cc',
-    'dynhandler.cc',
     'dynlistener.cc',
     'ednscookies.cc',
     'ednsoptions.cc',
@@ -190,38 +188,30 @@ libpdns = declare_dependency(
     'ixfr.cc',
     'json.cc',
     'logger.cc',
-    'mastercommunicator.cc',
     'misc.cc',
-    'nameserver.cc',
     'nsecrecords.cc',
     'opensslsigners.cc',
-    'packethandler.cc',
     'proxy-protocol.cc',
     'qtype.cc',
     'query-local-address.cc',
     'rcpgenerator.cc',
     'resolver.cc',
     'responsestats.cc',
-    'rfc2136handler.cc',
     'secpoll.cc',
     'serialtweaker.cc',
     'shuffle.cc',
     'signingpipe.cc',
     'sillyrecords.cc',
-    'slavecommunicator.cc',
     'statbag.cc',
     'stubresolver.cc',
     'svc-records.cc',
-    'tcpreceiver.cc',
     'threadname.cc',
-    'tkey.cc',
     'trusted-notification-proxy.cc',
     'ueberbackend.cc',
     'unix_semaphore.cc',
     'unix_utility.cc',
     'uuid-utils.cc',
     'version.cc',
-    'zoneparser-tng.cc',
     libpdns_dnslabeltext_cc,
     extra_files: [
       'arguments.hh',
@@ -234,7 +224,6 @@ libpdns = declare_dependency(
       'cachecleaner.hh',
       'circular_buffer.hh',
       'comment.hh',
-      'communicator.hh',
       'credentials.hh',
       'digests.hh',
       'distributor.hh',
@@ -264,12 +253,10 @@ libpdns = declare_dependency(
       'logger.hh',
       'logging.hh',
       'misc.hh',
-      'nameserver.hh',
       'namespaces.hh',
       'noinitvector.hh',
       'opensslsigners.hh',
       'packetcache.hh',
-      'packethandler.hh',
       'pdnsexception.hh',
       'proxy-protocol.hh',
       'qtype.hh',
@@ -285,7 +272,6 @@ libpdns = declare_dependency(
       'statbag.hh',
       'stubresolver.hh',
       'svc-records.hh',
-      'tcpreceiver.hh',
       'threadname.hh',
       'trusted-notification-proxy.hh',
       'ueberbackend.hh',
@@ -296,11 +282,36 @@ libpdns = declare_dependency(
     dependencies: [
       deps,
       libpdns_bind_parser,
-      libpdns_lua,
-      libpdns_lua_records,
       libpdns_gss,
-      libpdns_tsig,
+      libpdns_lua,
       libpdns_pkcs11,
+      libpdns_tsig,
+    ],
+  )
+)
+
+libpdns = declare_dependency(
+  link_whole: static_library(
+    'pdns',
+    'communicator.cc',
+    'dynhandler.cc',
+    'mastercommunicator.cc',
+    'nameserver.cc',
+    'packethandler.cc',
+    'rfc2136handler.cc',
+    'slavecommunicator.cc',
+    'tcpreceiver.cc',
+    'tkey.cc',
+    extra_files: [
+      'communicator.hh',
+      'dynhandler.hh',
+      'nameserver.hh',
+      'packethandler.hh',
+      'tcpreceiver.hh',
+    ],
+    dependencies: [
+      deps,
+      libpdns_base,
       libpdns_ws,
     ],
   )
@@ -335,7 +346,7 @@ libpdns_auth_apidocfiles_h = declare_dependency(
 )
 
 libpdns_auth_main = declare_dependency(
-  link_with: static_library(
+  link_whole: static_library(
     'pdns-auth-main',
     'auth-main.cc',
     extra_files: [
@@ -347,7 +358,7 @@ libpdns_auth_main = declare_dependency(
 )
 
 libpdns_auth_ws = declare_dependency(
-  link_with: static_library(
+  link_whole: static_library(
     'pdns-auth-ws',
     'ws-auth.cc',
     extra_files: [
@@ -361,7 +372,7 @@ libpdns_auth_ws = declare_dependency(
 libpdns_auth_lua = dependency('', required: false)
 if dep_lua.found()
   libpdns_auth_lua = declare_dependency(
-    link_with: static_library(
+    link_whole: static_library(
       'pdns-auth-lua',
       'lua-auth4.cc',
       extra_files: [
@@ -372,18 +383,25 @@ if dep_lua.found()
   )
 endif
 
+libpdns_auth_sources = [
+  'auth-caches.cc',
+  'auth-carbon.cc',
+  'auth-catalogzone.cc',
+  'auth-packetcache.cc',
+  'auth-querycache.cc',
+  'auth-zonecache.cc',
+  'responsestats-auth.cc',
+  'secpoll-auth.cc',
+]
+
+if get_variable('dep_sqlite3', dependency('', required: false)).found()
+  libpdns_auth_sources += 'ssqlite3.cc'
+endif
+
 libpdns_auth = declare_dependency(
-  link_with: static_library(
+  link_whole: static_library(
     'pdns-auth',
-    'auth-caches.cc',
-    'auth-carbon.cc',
-    'auth-catalogzone.cc',
-    'auth-packetcache.cc',
-    'auth-querycache.cc',
-    'auth-zonecache.cc',
-    'responsestats-auth.cc',
-    'secpoll-auth.cc',
-    'ssqlite3.cc',
+    libpdns_auth_sources,
     extra_files: [
       'auth-caches.hh',
       'auth-catalogzone.hh',
@@ -432,7 +450,7 @@ libpdns_bind_dnssec_schema_h = declare_dependency(
 libpdns_ipcipher = dependency('', required: false)
 if enable_ipcipher
   libpdns_ipcipher = declare_dependency(
-    link_with: static_library(
+    link_whole: static_library(
       'pdns-ipcipher',
       'ipcipher.cc',
       dependencies: deps,
@@ -441,7 +459,7 @@ if enable_ipcipher
 endif
 
 libpdns_util = declare_dependency(
-  link_with: static_library(
+  link_whole: static_library(
     'pdns-util',
     'pdnsutil.cc',
     'zonemd.cc',
