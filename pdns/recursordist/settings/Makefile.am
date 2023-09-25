@@ -20,7 +20,7 @@ BUILT_SOURCES=cxxsettings-generated.cc rust/src/lib.rs
 # re-run by cargo after rust/src/lib.rs changed because of a generate.py run. In that case we end up
 # with an rust/src/lib.rs.h that does not contain e.g. field name or field type changes.
 #
-# Use patterns to avoid having two instances of generate run simultaneously, a well know hack for GNU make
+# Use patterns to avoid having two instances of generate run simultaneously, a well-known hack for GNU make
 cxxsettings-generated%cc rust/src/lib%rs: table.py generate.py rust-preamble-in.rs rust-bridge-in.rs docs-old-preamble-in.rst docs-new-preamble-in.rst
 	$(MAKE) -C rust clean
 	$(PYTHON) generate.py
