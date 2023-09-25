@@ -263,7 +263,8 @@ private:
 std::shared_ptr<DOQTCPCrossQuerySender> DOQCrossProtocolQuery::s_sender = std::make_shared<DOQTCPCrossQuerySender>();
 
 /* from rfc9250 section-4.3 */
-enum class DOQ_Error_Codes : uint64_t {
+enum class DOQ_Error_Codes : uint64_t
+{
   DOQ_NO_ERROR = 0,
   DOQ_INTERNAL_ERROR = 1,
   DOQ_PROTOCOL_ERROR = 2,
@@ -289,8 +290,7 @@ static void handleResponse(DOQFrontend& df, Connection& conn, const uint64_t str
       return;
     }
     pos += res;
-  }
-  while (pos < sizeBytes.size());
+  } while (pos < sizeBytes.size());
 
   pos = 0;
   do {
@@ -300,8 +300,7 @@ static void handleResponse(DOQFrontend& df, Connection& conn, const uint64_t str
       return;
     }
     pos += res;
-  }
-  while (pos < response.size());
+  } while (pos < response.size());
 }
 
 static void fillRandom(PacketBuffer& buffer, size_t size)
