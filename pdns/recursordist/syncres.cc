@@ -2078,7 +2078,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
   const unsigned int startqueries = d_outqueries;
   d_requireAuthData = false;
   d_DNSSECValidationRequested = false;
-  d_followCNAME = true;
+  d_followCNAME = false;
 
   MemRecursorCache::Flags flags = MemRecursorCache::None;
   if (d_serveStale) {
@@ -2269,6 +2269,7 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
           else {
             *flawedNSSet = true;
             LOG(prefix << qname << ": NS in cache for '" << subdomain << "', but needs glue (" << nrr->getNS() << ") which we miss or is expired" << endl);
+            g_recCache->doWipeCache(subdomain, false, QType::NS);
           }
         }
       }
