@@ -31,7 +31,7 @@ EOF
 
 ./launch-pdns
 
-dig -p 5301 @127.0.0.1 smoke.bind.example.org 2>&1 | tee "$TMPFILE"
+../../pdns/sdig 127.0.0.1 5301 smoke.bind.example.org A 2>&1 | tee "$TMPFILE"
 
 if grep -c '127\.0\.0\.123' "$TMPFILE"; then
     echo success

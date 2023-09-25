@@ -59,7 +59,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-dig @127.0.0.1 smoke.$ZONE 2>&1 | tee "$TMPFILE"
+sdig 127.0.0.1 53 smoke.$ZONE A 2>&1 | tee "$TMPFILE"
 
 if grep -c '127\.0\.0\.222' "$TMPFILE"; then
     echo success

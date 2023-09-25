@@ -25,6 +25,7 @@ jobs:
           - ubuntu-lunar
           - ubuntu-mantic
           - debian-bookworm
+          - debian-trixie
           - amazon-2023
       fail-fast: false
     steps:
