@@ -51,7 +51,7 @@ COMPILING Authoritative Server
 The PowerDNS Authoritative Server depends on Boost, OpenSSL and Lua, and requires a
 compiler with C++-2017 support.
 
-On Debian 9, the following is useful:
+On Debian, the following is useful:
 
 ```sh
 apt install g++ libboost-all-dev libtool make pkg-config default-libmysqlclient-dev libssl-dev libluajit-5.1-dev python3-venv
@@ -63,7 +63,7 @@ When building from git, the following packages are also required:
 apt install autoconf automake ragel bison flex
 ```
 
-For Ubuntu 18.04 (Bionic Beaver), the following packages should be installed:
+For Ubuntu, the following packages should be installed:
 
 ```sh
 apt install libcurl4-openssl-dev luajit lua-yaml-dev libyaml-cpp-dev libtolua-dev lua5.3 autoconf automake ragel bison flex g++ libboost-all-dev libtool make pkg-config libssl-dev lua-yaml-dev libyaml-cpp-dev libluajit-5.1-dev libcurl4 gawk libsqlite3-dev python3-venv
