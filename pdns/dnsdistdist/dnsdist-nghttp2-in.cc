@@ -951,23 +951,7 @@ int IncomingHTTP2Connection::on_stream_close_callback(nghttp2_session* session, 
 {
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
 
-  if (error_code == 0) {
-    return 0;
-  }
-
-  auto stream = conn->d_currentStreams.find(stream_id);
-  if (stream == conn->d_currentStreams.end()) {
-    /* we don't care, then */
-    return 0;
-  }
-
-  struct timeval now
-  {
-  };
-  gettimeofday(&now, nullptr);
-  auto request = std::move(stream->second);
-  conn->d_currentStreams.erase(stream->first);
-
+  conn->d_currentStreams.erase(stream_id);
   return 0;
 }
 
@@ -1167,11 +1151,6 @@ void IncomingHTTP2Connection::handleWritableIOCallback([[maybe_unused]] int desc
   conn->writeToSocket(true);
 }
 
-bool IncomingHTTP2Connection::isIdle() const
-{
-  return getConcurrentStreamsCount() == 0;
-}
-
 void IncomingHTTP2Connection::stopIO()
 {
   d_ioState->reset();
@@ -1217,7 +1196,9 @@ void IncomingHTTP2Connection::updateIO(IOState newState, const FDMultiplexer::ca
     gettimeofday(&now, nullptr);
 
     if (newState == IOState::NeedRead) {
-      if (isIdle()) {
+      /* use the idle TTL if the handshake has been completed (and proxy protocol payload received, if any),
+         and we have processed at least one query, otherwise we use the shorter read TTL  */
+      if ((d_state == State::waitingForQuery || d_state == State::idle) && (d_queriesCount > 0 || d_currentQueriesCount)) {
         ttd = getIdleClientReadTTD(now);
       }
       else {
