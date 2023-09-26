@@ -2572,6 +2572,9 @@ int main(int argc, char** argv)
 #ifdef HAVE_CDB
         cout<<"cdb ";
 #endif
+#ifdef HAVE_DNS_OVER_QUIC
+        cout<<"dns-over-quic ";
+#endif
 #ifdef HAVE_DNS_OVER_TLS
         cout<<"dns-over-tls(";
 #ifdef HAVE_GNUTLS
