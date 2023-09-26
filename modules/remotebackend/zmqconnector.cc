@@ -59,13 +59,13 @@ ZeroMQConnector::ZeroMQConnector(std::map<std::string, std::string> options) :
 
   this->send(msg);
   msg = nullptr;
-  if (this->recv(msg) == false) {
+  if (!this->recv(msg)) {
     g_log << Logger::Error << "Failed to initialize zeromq" << std::endl;
     throw PDNSException("Failed to initialize zeromq");
   }
 };
 
-ZeroMQConnector::~ZeroMQConnector() {}
+ZeroMQConnector::~ZeroMQConnector() = default;
 
 int ZeroMQConnector::send_message(const Json& input)
 {
@@ -88,8 +88,9 @@ int ZeroMQConnector::send_message(const Json& input)
           // message was not sent
           g_log << Logger::Error << "Cannot send to " << this->d_endpoint << ": " << zmq_strerror(errno) << std::endl;
         }
-        else
+        else {
           return line.size();
+        }
       }
     }
   }
@@ -120,7 +121,7 @@ int ZeroMQConnector::recv_message(Json& output)
         // we have an event
         if ((item.revents & ZMQ_POLLIN) == ZMQ_POLLIN) {
           string data;
-          size_t msg_size;
+          size_t msg_size = 0;
           zmq_msg_init(&message);
           // read something
           if (zmq_msg_recv(&message, this->d_sock.get(), ZMQ_NOBLOCK) > 0) {
@@ -129,18 +130,18 @@ int ZeroMQConnector::recv_message(Json& output)
             data.assign(reinterpret_cast<const char*>(zmq_msg_data(&message)), msg_size);
             zmq_msg_close(&message);
             output = Json::parse(data, err);
-            if (output != nullptr)
+            if (output != nullptr) {
               rv = msg_size;
-            else
+            }
+            else {
               g_log << Logger::Error << "Cannot parse JSON reply from " << this->d_endpoint << ": " << err << endl;
+            }
             break;
           }
-          else if (errno == EAGAIN) {
+          if (errno == EAGAIN) {
             continue; // try again }
           }
-          else {
-            break;
-          }
+          break;
         }
       }
     }
