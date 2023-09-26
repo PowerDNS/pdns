@@ -208,7 +208,7 @@ public:
   void setAddr(const ComboAddress& from_, MACAddr fromMAC, const ComboAddress& to_, MACAddr toMAC, bool tcp = false) noexcept;
   bool setPayload(const PacketBuffer& buf);
   void rewrite() noexcept;
-  void setHeader(const PacketBuffer& buf) noexcept;
+  void setHeader(const PacketBuffer& buf);
   XskPacket() = default;
   XskPacket(void* frame, size_t dataSize, size_t frameSize);
   void addDelay(int relativeMilliseconds) noexcept;
@@ -225,13 +225,14 @@ class XskWorker
   using XskPacketRing = boost::lockfree::spsc_queue<XskPacket*, boost::lockfree::capacity<512>>;
 
 public:
-  uint8_t* umemBufBase;
-  std::shared_ptr<LockGuarded<vector<uint64_t>>> sharedEmptyFrameOffset;
-  vector<uint64_t> uniqueEmptyFrameOffset;
   // queue of packets to be processed by this worker
   XskPacketRing cq;
   // queue of packets processed by this worker (to be sent, or discarded)
   XskPacketRing sq;
+
+  uint8_t* umemBufBase;
+  std::shared_ptr<LockGuarded<vector<uint64_t>>> sharedEmptyFrameOffset;
+  vector<uint64_t> uniqueEmptyFrameOffset;
   std::string poolName;
   size_t frameSize;
   FDWrapper workerWaker;
@@ -241,6 +242,8 @@ public:
   static int createEventfd();
   static void notify(int fd);
   static std::shared_ptr<XskWorker> create();
+  void pushToProcessingQueue(XskPacketPtr&& packet);
+  void pushToSendQueue(XskPacketPtr&& packet);
   // notify worker that at least one packet is available for processing
   void notifyWorker() noexcept;
   // notify the router that packets are ready to be sent

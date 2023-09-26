@@ -28,7 +28,6 @@
 #include "xsk.hh"
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <fcntl.h>
@@ -65,6 +64,7 @@ constexpr bool XskSocket::isPowOfTwo(uint32_t value) noexcept
 {
   return value != 0 && (value & (value - 1)) == 0;
 }
+
 int XskSocket::firstTimeout()
 {
   if (waitForDelay.empty()) {
@@ -243,14 +243,14 @@ void XskSocket::recycle(size_t size) noexcept
   xsk_ring_cons__release(&cq, completeSize);
 }
 
-void XskSocket::XskUmem::umemInit(size_t memSize, xsk_ring_cons* cq, xsk_ring_prod* fq, xsk_umem_config* config)
+void XskSocket::XskUmem::umemInit(size_t memSize, xsk_ring_cons* completionQueue, xsk_ring_prod* fillQueue, xsk_umem_config* config)
 {
   size = memSize;
   bufBase = static_cast<uint8_t*>(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0));
   if (bufBase == MAP_FAILED) {
     throw std::runtime_error("mmap failed");
   }
-  auto ret = xsk_umem__create(&umem, bufBase, size, fq, cq, config);
+  auto ret = xsk_umem__create(&umem, bufBase, size, fillQueue, completionQueue, config);
   if (ret != 0) {
     munmap(bufBase, size);
     throw std::runtime_error("Error creating a umem of size" + std::to_string(size) + stringerror(ret));
@@ -326,7 +326,7 @@ bool XskPacket::parse()
   if (l4Protocol == IPPROTO_UDP) {
     // check udp.check == ipv4Checksum() is not needed!
     // We check it in BPF program
-    auto* udp = reinterpret_cast<udphdr*>(l4Header);
+    const auto* udp = reinterpret_cast<const udphdr*>(l4Header);
     payload = l4Header + sizeof(udphdr);
     // Because of XskPacket::setHeader
     // payload = payloadEnd should be allow
@@ -341,7 +341,7 @@ bool XskPacket::parse()
   if (l4Protocol == IPPROTO_TCP) {
     // check tcp.check == ipv4Checksum() is not needed!
     // We check it in BPF program
-    auto* tcp = reinterpret_cast<tcphdr*>(l4Header);
+    const auto* tcp = reinterpret_cast<const tcphdr*>(l4Header);
     if (tcp->doff != static_cast<uint32_t>(sizeof(tcphdr) >> 2)) {
       // tcp is not supported now!
       return false;
@@ -514,6 +514,23 @@ XskWorker::XskWorker() :
   workerWaker(createEventfd()), xskSocketWaker(createEventfd())
 {
 }
+
+void XskWorker::pushToProcessingQueue(XskPacketPtr&& packet)
+{
+  auto raw = packet.release();
+  if (!cq.push(raw)) {
+    delete raw;
+  }
+}
+
+void XskWorker::pushToSendQueue(XskPacketPtr&& packet)
+{
+  auto raw = packet.release();
+  if (!sq.push(raw)) {
+    delete raw;
+  }
+}
+
 void* XskPacket::payloadData()
 {
   return reinterpret_cast<void*>(payload);
@@ -670,7 +687,7 @@ void XskPacket::rewrite() noexcept
     };
   };
   struct ipv4_pseudo_header_t pseudo_header;
-  assert(sizeof(pseudo_header) == 12);
+  static_assert(sizeof(pseudo_header) == 12, "IPv4 pseudo-header size is incorrect");
 
   /* Fill in the pseudo-header. */
   pseudo_header.fields.src_ip = src_ip;
@@ -701,7 +718,7 @@ void XskPacket::rewrite() noexcept
     };
   };
   struct ipv6_pseudo_header_t pseudo_header;
-  assert(sizeof(pseudo_header) == 40);
+  static_assert(sizeof(pseudo_header) == 40, "IPv6 pseudo-header size is incorrect");
 
   /* Fill in the pseudo-header. */
   pseudo_header.fields.src_ip = *src_ip;
@@ -711,13 +728,14 @@ void XskPacket::rewrite() noexcept
   pseudo_header.fields.next_header = protocol;
   return ip_checksum_partial(&pseudo_header, sizeof(pseudo_header), 0);
 }
-void XskPacket::setHeader(const PacketBuffer& buf) noexcept
+void XskPacket::setHeader(const PacketBuffer& buf)
 {
   memcpy(frame, buf.data(), buf.size());
   payloadEnd = frame + buf.size();
   flags = 0;
-  const auto res = parse();
-  assert(res);
+  if (!parse()) {
+    throw std::runtime_error("Error setting the XSK frame header");
+  }
 }
 std::unique_ptr<PacketBuffer> XskPacket::cloneHeadertoPacketBuffer() const
 {

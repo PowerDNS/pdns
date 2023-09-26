@@ -780,11 +780,11 @@ static void XskHealthCheck(std::shared_ptr<DownstreamState>& dss, std::unordered
   data->d_initial = initial;
   setHealthCheckTime(dss, data);
   auto* frame = xskInfo->getEmptyframe();
-  auto *xskPacket = new XskPacket(frame, 0, xskInfo->frameSize);
+  auto xskPacket = std::make_unique<XskPacket>(frame, 0, xskInfo->frameSize);
   xskPacket->setAddr(dss->d_config.sourceAddr, dss->d_config.sourceMACAddr, dss->d_config.remote, dss->d_config.destMACAddr);
   xskPacket->setPayload(packet);
   xskPacket->rewrite();
-  xskInfo->sq.push(xskPacket);
+  xskInfo->pushToSendQueue(std::move(xskPacket));
   const auto queryId = data->d_queryID;
   map[queryId] = std::move(data);
 }
@@ -853,9 +853,10 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         bool needNotify = false;
         if (pollfds[0].revents & POLLIN) {
           needNotify = true;
-          xskInfo->cq.consume_all([&](XskPacket* packet) {
+          xskInfo->cq.consume_all([&](XskPacket* packetRaw) {
+            auto packet = XskPacketPtr(packetRaw);
             if (packet->dataLen() < sizeof(dnsheader)) {
-              xskInfo->sq.push(packet);
+              xskInfo->pushToSendQueue(std::move(packet));
               return;
             }
             const auto* dh = reinterpret_cast<const struct dnsheader*>(packet->payloadData());
@@ -876,7 +877,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
                 packet->cloneIntoPacketBuffer(data->d_buffer);
                 data->d_ds->submitHealthCheckResult(data->d_initial, handleResponse(data));
               }
-              xskInfo->sq.push(packet);
+              xskInfo->pushToSendQueue(std::move(packet));
               return;
             }
             auto response = packet->clonePacketBuffer();
@@ -885,13 +886,13 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
               ids->xskPacketHeader.reset();
             }
             if (!processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids))) {
-              xskInfo->sq.push(packet);
+              xskInfo->pushToSendQueue(std::move(packet));
               return;
             }
             if (response.size() > packet->capacity()) {
               /* fallback to sending the packet via normal socket */
               sendUDPResponse(ids->cs->udpFD, response, ids->delayMsec, ids->hopLocal, ids->hopRemote);
-              xskInfo->sq.push(packet);
+              xskInfo->pushToSendQueue(std::move(packet));
               return;
             }
             packet->setHeader(*ids->xskPacketHeader);
@@ -900,7 +901,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
               packet->addDelay(ids->delayMsec);
             }
             packet->updatePacket();
-            xskInfo->sq.push(packet);
+            xskInfo->pushToSendQueue(std::move(packet));
           });
           xskInfo->cleanSocketNotification();
         }
@@ -1006,7 +1007,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           xskPacket->setHeader(*ids->xskPacketHeader);
           xskPacket->setPayload(response);
           xskPacket->updatePacket();
-          xskInfo->sq.push(xskPacket.release());
+          xskInfo->pushToSendQueue(std::move(xskPacket));
           xskInfo->notifyXskSocket();
 #endif /* HAVE_XSK */
         }
@@ -2248,10 +2249,11 @@ static void xskClientThread(ClientState* cs)
     while (!xskInfo->cq.read_available()) {
       xskInfo->waitForXskSocket();
     }
-    xskInfo->cq.consume_all([&](XskPacket* packet) {
+    xskInfo->cq.consume_all([&](XskPacket* packetRaw) {
+      auto packet = XskPacketPtr(packetRaw);
       ProcessXskQuery(*cs, holders, *packet);
       packet->updatePacket();
-      xskInfo->sq.push(packet);
+      xskInfo->pushToSendQueue(std::move(packet));
     });
     xskInfo->notifyXskSocket();
   }
@@ -3652,7 +3654,7 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
           xsk->uniqueEmptyFrameOffset.push_back(xsk->frameOffset(*packet));
           continue;
         }
-        res->worker->cq.push(packet.release());
+        res->worker->pushToProcessingQueue(std::move(packet));
         needNotify.insert(res->workerWaker);
       }
       for (auto i : needNotify) {
@@ -3672,17 +3674,18 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
       if (xsk->fds[i].revents & POLLIN) {
         ready--;
         auto& info = xskWakerIdx.find(xsk->fds[i].fd)->worker;
-        info->sq.consume_all([&](XskPacket* x) {
-          if (!(x->getFlags() & XskPacket::UPDATE)) {
-            xsk->uniqueEmptyFrameOffset.push_back(xsk->frameOffset(*x));
+        info->sq.consume_all([&](XskPacket* packetRaw) {
+          auto packet = XskPacketPtr(packetRaw);
+          if (!(packet->getFlags() & XskPacket::UPDATE)) {
+            xsk->uniqueEmptyFrameOffset.push_back(xsk->frameOffset(*packet));
+            packet.release();
             return;
           }
-          auto ptr = std::unique_ptr<XskPacket>(x);
-          if (x->getFlags() & XskPacket::DELAY) {
-            xsk->waitForDelay.push(std::move(ptr));
+          if (packet->getFlags() & XskPacket::DELAY) {
+            xsk->waitForDelay.push(std::move(packet));
             return;
           }
-          fillInTx.push_back(std::move(ptr));
+          fillInTx.push_back(std::move(packet));
         });
         info->cleanWorkerNotification();
       }
