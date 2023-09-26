@@ -141,6 +141,7 @@ Stats::Stats() :
     {"security-status", &securityStatus},
     {"doh-query-pipe-full", &dohQueryPipeFull},
     {"doh-response-pipe-full", &dohResponsePipeFull},
+    {"doq-response-pipe-full", &doqResponsePipeFull},
     {"outgoing-doh-query-pipe-full", &outgoingDoHQueryPipeFull},
     {"tcp-query-pipe-full", &tcpQueryPipeFull},
     {"tcp-cross-protocol-query-pipe-full", &tcpCrossProtocolQueryPipeFull},

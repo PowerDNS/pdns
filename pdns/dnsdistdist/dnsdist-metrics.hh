@@ -74,6 +74,7 @@ struct Stats
   stat_t securityStatus{0};
   stat_t dohQueryPipeFull{0};
   stat_t dohResponsePipeFull{0};
+  stat_t doqResponsePipeFull{0};
   stat_t outgoingDoHQueryPipeFull{0};
   stat_t proxyProtocolInvalid{0};
   stat_t tcpQueryPipeFull{0};

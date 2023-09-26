@@ -504,6 +504,7 @@ static void sendBackDOQUnit(DOQUnitUniquePtr&& du, const char* description)
   }
   try {
     if (!du->dsc->d_responseSender.send(std::move(du))) {
+      ++dnsdist::metrics::g_stats.doqResponsePipeFull;
       vinfolog("Unable to pass a %s to the DoQ worker thread because the pipe is full", description);
     }
   }
