@@ -2561,11 +2561,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaNoSideEffect();
     try {
       ostringstream ret;
-      boost::format fmt("%-3d %-20.20s");
-      ret << (fmt % "#" % "Address") << endl;
+      boost::format fmt("%-3d %-20.20s %-15d %-15d %-15d %-15d");
+      ret << (fmt % "#" % "Address" % "Bad Version" % "Invalid Token" % "Errors" % "Valid") << endl;
       size_t counter = 0;
       for (const auto& ctx : g_doqlocals) {
-        ret << (fmt % counter % ctx->d_local.toStringWithPort()) << endl;
+        ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_doqUnsupportedVersionErrors % ctx->d_doqInvalidTokensReceived % ctx->d_errorResponses % ctx->d_validResponses) << endl;
         counter++;
       }
       g_outputBuffer = ret.str();

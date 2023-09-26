@@ -276,10 +276,11 @@ enum class DOQ_Error_Codes : uint64_t
 static void handleResponse(DOQFrontend& df, Connection& conn, const uint64_t streamID, const PacketBuffer& response)
 {
   if (response.size() == 0) {
+    ++df.d_errorResponses;
     quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_UNSPECIFIED_ERROR));
     return;
   }
-
+  ++df.d_validResponses;
   uint16_t responseSize = static_cast<uint16_t>(response.size());
   const std::array<uint8_t, 2> sizeBytes = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
   size_t pos = 0;
@@ -826,6 +827,7 @@ void doqThread(ClientState* clientState)
           DEBUGLOG("Connection not found");
           if (!quiche_version_is_supported(version)) {
             DEBUGLOG("Unsupported version");
+            ++frontend->d_doqUnsupportedVersionErrors;
             handleVersionNegociation(sock, clientConnID, serverConnID, client);
             continue;
           }
@@ -840,6 +842,7 @@ void doqThread(ClientState* clientState)
           PacketBuffer tokenBuf(token.begin(), token.begin() + token_len);
           auto originalDestinationID = validateToken(tokenBuf, serverConnID, client);
           if (!originalDestinationID) {
+            ++frontend->d_doqInvalidTokensReceived;
             DEBUGLOG("Discarding invalid token");
             continue;
           }

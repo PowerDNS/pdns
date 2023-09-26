@@ -62,6 +62,12 @@ struct DOQFrontend
   uint64_t d_idleTimeout{5};
   uint64_t d_maxInFlight{65535};
   std::string d_ccAlgo{"reno"};
+
+  pdns::stat_t d_doqUnsupportedVersionErrors{0}; // Unsupported protocol version errors
+  pdns::stat_t d_doqInvalidTokensReceived{0}; // Discarded received tokens
+  pdns::stat_t d_validResponses{0}; // Valid responses sent
+  pdns::stat_t d_errorResponses{0}; // Empty responses (no backend, drops, invalid queries, etc.)
+
   static std::map<const string, int> s_available_cc_algorithms;
 };
 
