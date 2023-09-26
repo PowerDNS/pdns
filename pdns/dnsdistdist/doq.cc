@@ -87,7 +87,7 @@ struct DOQServerConfig
 
   LocalHolders holders;
   QuicheConfig config;
-  ClientState* cs{nullptr};
+  ClientState* clientState{nullptr};
   std::shared_ptr<DOQFrontend> df{nullptr};
   pdns::channel::Sender<DOQUnit> d_responseSender;
   pdns::channel::Receiver<DOQUnit> d_responseReceiver;
@@ -602,11 +602,11 @@ static void processDOQQuery(DOQUnitUniquePtr&& unit)
     remote = du->ids.origRemote;
     DOQServerConfig* dsc = du->dsc;
     auto& holders = dsc->holders;
-    ClientState& cs = *dsc->cs;
+    ClientState& clientState = *dsc->clientState;
 
     if (du->query.size() < sizeof(dnsheader)) {
       ++dnsdist::metrics::g_stats.nonCompliantQueries;
-      ++cs.nonCompliantQueries;
+      ++clientState.nonCompliantQueries;
       struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(du->query.data());
       dh->rcode = RCode::ServFail;
       dh->qr = true;
@@ -616,7 +616,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& unit)
       return;
     }
 
-    ++cs.queries;
+    ++clientState.queries;
     ++dnsdist::metrics::g_stats.queries;
     du->ids.queryRealTime.start();
 
@@ -624,7 +624,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& unit)
       /* don't keep that pointer around, it will be invalidated if the buffer is ever resized */
       struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(du->query.data());
 
-      if (!checkQueryHeaders(dh, cs)) {
+      if (!checkQueryHeaders(dh, clientState)) {
         dh->rcode = RCode::ServFail;
         dh->qr = true;
         du->response = std::move(du->query);
@@ -650,7 +650,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& unit)
     DNSQuestion dq(du->ids, du->query);
     const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader());
     ids.origFlags = *flags;
-    du->ids.cs = &cs;
+    du->ids.cs = &clientState;
 
     auto result = processQuery(dq, holders, downstream);
     if (result == ProcessQueryResult::Drop) {
@@ -770,17 +770,17 @@ static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver)
 }
 
 // this is the entrypoint from dnsdist.cc
-void doqThread(ClientState* cs)
+void doqThread(ClientState* clientState)
 {
   try {
-    std::shared_ptr<DOQFrontend>& frontend = cs->doqFrontend;
+    std::shared_ptr<DOQFrontend>& frontend = clientState->doqFrontend;
 
-    frontend->d_server_config->cs = cs;
-    frontend->d_server_config->df = cs->doqFrontend;
+    frontend->d_server_config->clientState = clientState;
+    frontend->d_server_config->df = clientState->doqFrontend;
 
     setThreadName("dnsdist/doq");
 
-    Socket sock(cs->udpFD);
+    Socket sock(clientState->udpFD);
 
     PacketBuffer buffer(std::numeric_limits<uint16_t>::max());
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
@@ -844,7 +844,7 @@ void doqThread(ClientState* cs)
           }
 
           DEBUGLOG("Creating a new connection");
-          conn = createConnection(*frontend->d_server_config, serverConnID, *originalDestinationID, tokenBuf, cs->local, client);
+          conn = createConnection(*frontend->d_server_config, serverConnID, *originalDestinationID, tokenBuf, clientState->local, client);
           if (!conn) {
             continue;
           }
@@ -853,8 +853,8 @@ void doqThread(ClientState* cs)
           (struct sockaddr*)&client,
           client.getSocklen(),
 
-          (struct sockaddr*)&cs->local,
-          cs->local.getSocklen(),
+          (struct sockaddr*)&clientState->local,
+          clientState->local.getSocklen(),
         };
 
         auto done = quiche_conn_recv(conn->get().d_conn.get(), reinterpret_cast<uint8_t*>(bufferStr.data()), bufferStr.size(), &recv_info);
@@ -876,17 +876,21 @@ void doqThread(ClientState* cs)
                                                     &fin);
             streamBuffer.resize(existingLength + received);
             if (fin) {
-              if (streamBuffer.size() < (sizeof(dnsheader) + sizeof(uint16_t))) {
+              if (streamBuffer.size() < (sizeof(uint16_t) + sizeof(dnsheader))) {
+                ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                ++clientState->nonCompliantQueries;
                 quiche_conn_stream_shutdown(conn->get().d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
                 break;
               }
               uint16_t payloadLength = streamBuffer.at(0) * 256 + streamBuffer.at(1);
               streamBuffer.erase(streamBuffer.begin(), streamBuffer.begin() + 2);
               if (payloadLength != streamBuffer.size()) {
+                ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                ++clientState->nonCompliantQueries;
                 quiche_conn_stream_shutdown(conn->get().d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
                 break;
               }
-              doq_dispatch_query(*(frontend->d_server_config), std::move(streamBuffer), cs->local, client, serverConnID, streamID);
+              doq_dispatch_query(*(frontend->d_server_config), std::move(streamBuffer), clientState->local, client, serverConnID, streamID);
               conn->get().d_streamBuffers.erase(streamID);
             }
           }
