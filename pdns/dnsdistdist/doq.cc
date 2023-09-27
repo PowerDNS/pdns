@@ -138,9 +138,7 @@ public:
     unit->ids = std::move(response.d_idstate);
     DNSResponse dnsResponse(unit->ids, unit->response, unit->downstream);
 
-    dnsheader cleartextDH
-    {
-    };
+    dnsheader cleartextDH{};
     memcpy(&cleartextDH, dnsResponse.getHeader(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
@@ -392,7 +390,7 @@ static std::optional<PacketBuffer> getCID()
   return buffer;
 }
 
-static constexpr size_t MAX_TOKEN_LEN = std::tuple_size<decltype(SodiumNonce::value)>{} /* nonce */ + /* MAC */ crypto_secretbox_MACBYTES + sizeof(uint64_t) /* TTD */ + 16 /* IPv6 */ + QUICHE_MAX_CONN_ID_LEN;
+static constexpr size_t MAX_TOKEN_LEN = dnsdist::crypto::authenticated::getEncryptedSize(std::tuple_size<decltype(SodiumNonce::value)>{} /* nonce */ + sizeof(uint64_t) /* TTD */ + 16 /* IPv6 */ + QUICHE_MAX_CONN_ID_LEN);
 
 static PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer)
 {
@@ -836,7 +834,7 @@ void doqThread(ClientState* clientState)
                                       dcid.data(), &dcid_len,
                                       token.data(), &token_len);
         if (res != 0) {
-          DEBUGLOG("Error in quiche_header_info: "<<res);
+          DEBUGLOG("Error in quiche_header_info: " << res);
           continue;
         }
 

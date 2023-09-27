@@ -54,3 +54,15 @@ std::string sodEncryptSym(const std::string_view& msg, const std::string& key, S
 std::string sodDecryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce = true);
 std::string newKey(bool base64Encoded = true);
 bool sodIsValidKey(const std::string& key);
+
+namespace dnsdist::crypto::authenticated
+{
+constexpr size_t getEncryptedSize(size_t plainTextSize)
+{
+#if defined(HAVE_LIBSODIUM)
+  return plainTextSize + crypto_secretbox_MACBYTES;
+#else
+  return plainTextSize;
+#endif
+}
+}
