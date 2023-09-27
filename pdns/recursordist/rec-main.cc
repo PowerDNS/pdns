@@ -1288,6 +1288,7 @@ void parseACLs()
         throw runtime_error("Error processing '" + configName + "': " + msg);
         break;
       case pdns::settings::rec::YamlSettingsStatus::OK:
+        pdns::settings::rec::processAPIDir(arg()["include-dir"], settings, log);
         // Does *not* set include-dir
         pdns::settings::rec::setArgsForACLRelatedSettings(settings);
         break;
@@ -3384,6 +3385,7 @@ int main(int argc, char** argv)
       g_yamlSettings = true;
       SLOG(g_log << Logger::Notice << "YAML config found and processed for configname '" << yamlconfigname << "'" << endl,
            startupLog->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname)));
+      pdns::settings::rec::processAPIDir(arg()["include-dir"], settings, startupLog);
       pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
       break;
     }
