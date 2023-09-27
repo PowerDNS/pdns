@@ -382,7 +382,7 @@ static std::optional<PacketBuffer> getCID()
   return buffer;
 }
 
-static constexpr size_t MAX_TOKEN_LEN = std::tuple_size<decltype(SodiumNonce::value)>{} /* nonce */ + sizeof(uint64_t) /* TTD */ + 16 /* IPv6 */ + QUICHE_MAX_CONN_ID_LEN;
+static constexpr size_t MAX_TOKEN_LEN = std::tuple_size<decltype(SodiumNonce::value)>{} /* nonce */ + /* MAC */ crypto_secretbox_MACBYTES + sizeof(uint64_t) /* TTD */ + 16 /* IPv6 */ + QUICHE_MAX_CONN_ID_LEN;
 
 static PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer)
 {
