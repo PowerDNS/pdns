@@ -163,7 +163,7 @@ pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config, p
   if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
     bool validationDone, validationSuccess;
     zonemd.verify(validationDone, validationSuccess);
-    d_log->info("ZONEMD digest validation", "validationDone", Logging::Loggable(validationDone),
+    d_log->info(Logr::Info, "ZONEMD digest validation", "validationDone", Logging::Loggable(validationDone),
                 "validationSuccess", Logging::Loggable(validationSuccess));
     if (!validationDone) {
       return pdns::ZoneMD::Result::NoValidationDone;
@@ -229,7 +229,7 @@ pdns::ZoneMD::Result ZoneData::processLines(const vector<string>& lines, const R
   if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {
     bool validationDone, validationSuccess;
     zonemd.verify(validationDone, validationSuccess);
-    d_log->info("ZONEMD digest validation", "validationDone", Logging::Loggable(validationDone),
+    d_log->info(Logr::Info, "ZONEMD digest validation", "validationDone", Logging::Loggable(validationDone),
                 "validationSuccess", Logging::Loggable(validationSuccess));
     if (!validationDone) {
       return pdns::ZoneMD::Result::NoValidationDone;
@@ -299,7 +299,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
       }
       nsecValidationStatus = validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(), validKeys, std::nullopt);
       if (nsecValidationStatus != vState::Secure) {
-        d_log->info("NSEC3PARAMS records did not validate");
+        d_log->info(Logr::Warning, "NSEC3PARAMS records did not validate");
         return nsecValidationStatus;
       }
       // Valdidate the NSEC3
@@ -307,21 +307,21 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
       csp.emplace(std::pair(zonemd.getNSEC3Label(), QType::NSEC3), nsec3s);
     }
     else {
-      d_log->info("No NSEC(3) records and/or RRSIGS found to deny ZONEMD");
+      d_log->info(Logr::Warning, "No NSEC(3) records and/or RRSIGS found to deny ZONEMD");
       return vState::BogusInvalidDenial;
     }
 
     if (nsecValidationStatus != vState::Secure) {
-      d_log->info("zone NSEC(3) record does not validate");
+      d_log->info(Logr::Warning, "zone NSEC(3) record does not validate");
       return nsecValidationStatus;
     }
 
     auto denial = getDenial(csp, d_zone, QType::ZONEMD, false, false, std::nullopt, true);
     if (denial == dState::NXQTYPE) {
-      d_log->info("Validated denial of absence of ZONEMD record");
+      d_log->info(Logr::Info, "Validated denial of existence of ZONEMD record");
       return vState::Secure;
     }
-    d_log->info("No ZONEMD record, but NSEC(3) record does not deny it");
+    d_log->info(Logr::Warning, "No ZONEMD record, but NSEC(3) record does not deny it");
     return vState::BogusInvalidDenial;
   }
 
@@ -336,7 +336,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
 void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
 {
   if (config.d_sources.size() > 1) {
-    d_log->info("Multiple sources not yet supported, using first");
+    d_log->info(Logr::Notice, "Multiple sources not yet supported, using first");
   }
 
   if (config.d_dnssec == pdns::ZoneMD::Config::Require && (g_dnssecmode == DNSSECMode::Off || g_dnssecmode == DNSSECMode::ProcessNoValidate)) {
@@ -350,17 +350,17 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
   auto zonemd = pdns::ZoneMD(DNSName(config.d_zone));
   pdns::ZoneMD::Result result = pdns::ZoneMD::Result::OK;
   if (config.d_method == "axfr") {
-    d_log->info("Getting zone by AXFR");
+    d_log->info(Logr::Info, "Getting zone by AXFR");
     result = getByAXFR(config, zonemd);
   }
   else {
     vector<string> lines;
     if (config.d_method == "url") {
-      d_log->info("Getting zone by URL");
+      d_log->info(Logr::Info, "Getting zone by URL");
       lines = getURL(config);
     }
     else if (config.d_method == "file") {
-      d_log->info("Getting zone from file");
+      d_log->info(Logr::Info, "Getting zone from file");
       lines = getLinesFromFile(config.d_sources.at(0));
     }
     result = processLines(lines, config, zonemd);
@@ -370,7 +370,7 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
   if (config.d_dnssec == pdns::ZoneMD::Config::Require || (g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate && config.d_dnssec != pdns::ZoneMD::Config::Ignore)) {
     size_t zonemdCount;
     auto validationStatus = dnssecValidate(zonemd, zonemdCount);
-    d_log->info("ZONEMD record related DNSSEC validation", "validationStatus", Logging::Loggable(validationStatus),
+    d_log->info(Logr::Info, "ZONEMD record related DNSSEC validation", "validationStatus", Logging::Loggable(validationStatus),
                 "zonemdCount", Logging::Loggable(zonemdCount));
     if (config.d_dnssec == pdns::ZoneMD::Config::Require && validationStatus != vState::Secure) {
       throw PDNSException("ZONEMD required DNSSEC validation failed");
@@ -459,7 +459,7 @@ void RecZoneToCache::ZoneToCache(const RecZoneToCache::Config& config, RecZoneTo
     ZoneData data(log, config.d_zone);
     data.ZoneToCache(config);
     state.d_waittime = config.d_refreshPeriod;
-    log->info("Loaded zone into cache", "refresh", Logging::Loggable(state.d_waittime));
+    log->info(Logr::Info, "Loaded zone into cache", "refresh", Logging::Loggable(state.d_waittime));
   }
   catch (const PDNSException& e) {
     log->error(Logr::Error, e.reason, "Unable to load zone into cache, will retry", "exception", Logging::Loggable("PDNSException"), "refresh", Logging::Loggable(state.d_waittime));
@@ -468,7 +468,7 @@ void RecZoneToCache::ZoneToCache(const RecZoneToCache::Config& config, RecZoneTo
     log->error(Logr::Error, e.what(), "Unable to load zone into cache, will retry", "exception", Logging::Loggable("std::runtime_error"), "refresh", Logging::Loggable(state.d_waittime));
   }
   catch (...) {
-    log->info("Unable to load zone into cache, will retry", "refresh", Logging::Loggable(state.d_waittime));
+    log->info(Logr::Error, "Unable to load zone into cache, will retry", "refresh", Logging::Loggable(state.d_waittime));
   }
   state.d_lastrun = time(nullptr);
   return;

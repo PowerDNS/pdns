@@ -185,7 +185,7 @@ void Utility::dropUserPrivs( uid_t uid )
     }
     else {
       SLOG(g_log<<Logger::Info<<"Set effective user id to "<<uid<<endl,
-           g_slog->withName("runtime")->info("Set effective user", "uid", Logging::Loggable(uid)));
+           g_slog->withName("runtime")->info(Logr::Info, "Set effective user", "uid", Logging::Loggable(uid)));
     }
   }
 }
