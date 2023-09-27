@@ -89,17 +89,21 @@ export RANLIB=gcc-ranlib
   --without-net-snmp
 %endif
 %if 0%{?rhel} >= 7
-  --with-gnutls \
-  --enable-dnstap \
-  --with-lua=%{lua_implementation} \
-  --with-libcap \
-  --with-libsodium \
   --enable-dnscrypt \
+  --enable-dnstap \
   --enable-dns-over-https \
   --enable-systemd --with-systemd=%{_unitdir} \
-  --with-re2 \
+  --with-gnutls \
+  --with-libcap \
+  --with-libsodium \
+  --with-lua=%{lua_implementation} \
   --with-net-snmp \
-  PKG_CONFIG_PATH=/opt/lib64/pkgconfig
+  --with-re2 \
+%if 0%{?rhel} >= 8
+  --enable-dns-over-quic \
+  --with-quiche \
+%endif
+  PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
 %endif
 
 make %{?_smp_mflags}
@@ -110,6 +114,9 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 %install
 %make_install
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
+%if 0%{?rhel} >= 8
+install -Dm644 /usr/lib/libdnsdist-quiche.so %{buildroot}/%{_libdir}/libdnsdist-quiche.so
+%endif
 %{__mv} %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf-dist %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf
 chmod 0640 %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.conf
 
@@ -149,6 +156,9 @@ systemctl daemon-reload ||:
 %{!?_licensedir:%global license %%doc}
 %doc README.md
 %{_bindir}/*
+%if 0%{?rhel} >= 8
+%{_libdir}/libdnsdist-quiche.so
+%endif
 %{_mandir}/man1/*
 %dir %{_sysconfdir}/dnsdist
 %attr(-, root, dnsdist) %config(noreplace) %{_sysconfdir}/%{name}/dnsdist.conf

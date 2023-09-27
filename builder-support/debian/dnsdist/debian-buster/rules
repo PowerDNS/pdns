@@ -49,16 +49,18 @@ override_dh_auto_configure:
 	  --libexecdir='$${prefix}/lib' \
 	  --enable-lto=thin \
 	  --enable-dns-over-https \
+	  --enable-dns-over-quic \
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
 	  --enable-dnstap \
+	  --with-ebpf \
 	  --with-gnutls \
 	  --with-h2o \
 	  --with-net-snmp \
 	  --with-libcap \
 	  --with-libsodium \
+	  --with-quiche \
 	  --with-re2 \
-	  --with-ebpf \
 	  --with-service-user='_dnsdist' \
 	  --with-service-group='_dnsdist' \
 	  $(CONFIGURE_ARGS)
@@ -68,6 +70,7 @@ override_dh_auto_build-arch:
 
 override_dh_install:
 	dh_auto_install
+	install -Dm644 /usr/lib/libdnsdist-quiche.so debian/dnsdist/usr/lib/libdnsdist-quiche.so
 ifeq ($(DEB_HOST_ARCH_BITS),32)
 	echo RestrictAddressFamilies is broken on 32bit, removing it from service file
 	perl -ni -e 'print unless /RestrictAddressFamilies/' debian/dnsdist/lib/systemd/system/*.service

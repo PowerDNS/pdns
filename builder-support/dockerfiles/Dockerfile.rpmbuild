@@ -19,6 +19,16 @@ ADD builder-support/helpers/ /pdns/builder-support/helpers/
 RUN /pdns/builder-support/helpers/install_rust.sh
 @ENDIF
 
+@IF [ -n "$M_dnsdist$M_all" ]
+RUN /pdns/builder-support/helpers/install_rust.sh
+# We do not build Quiche (DNS over QUIC support) on el-7 because the clang
+# version is too old to build the 'boring-sys' crate needed by Quiche
+RUN if ! $(grep -q 'release 7' /etc/redhat-release); then \
+      yum install -y git cmake clang; \
+      /pdns/builder-support/helpers/install_quiche.sh; \
+    fi
+@ENDIF
+
 # Used for -p option to only build specific spec files
 ARG BUILDER_PACKAGE_MATCH
 
