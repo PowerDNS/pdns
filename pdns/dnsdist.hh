@@ -569,7 +569,10 @@ struct ClientState
   {
     std::string result = udpFD != -1 ? "UDP" : "TCP";
 
-    if (dohFrontend) {
+    if (doqFrontend) {
+      result += " (DNS over QUIC)";
+    }
+    else if (dohFrontend) {
       if (dohFrontend->isHTTPS()) {
         result += " (DNS over HTTPS)";
       }
