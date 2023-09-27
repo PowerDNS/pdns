@@ -896,7 +896,6 @@ def ci_build_and_install_quiche(c):
     c.run(f'tar xf quiche-{quiche_version}.tar.gz')
     with c.cd(f'quiche-{quiche_version}'):
         c.run('cargo build --release --no-default-features --features ffi,boringssl-boring-crate --package quiche')
-        c.run('ls quiche/include/quiche.h target/release/libquiche.a /usr/include /usr/lib /usr/lib/pkgconfig')
         # cannot use c.sudo() inside a cd() context, see https://github.com/pyinvoke/invoke/issues/687
         c.run('sudo install -Dm644 quiche/include/quiche.h /usr/include')
         c.run('sudo install -Dm644 target/release/libquiche.so /usr/lib')
