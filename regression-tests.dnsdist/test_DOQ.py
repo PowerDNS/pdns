@@ -144,7 +144,7 @@ class TestDOQWithCache(DNSDistTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _doqServerPort = 8853
+    _doqServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
