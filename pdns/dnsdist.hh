@@ -1106,10 +1106,6 @@ struct LocalHolders
 
 void tcpAcceptorThread(std::vector<ClientState*> states);
 
-#ifdef HAVE_DNS_OVER_QUIC
-void doqThread(ClientState* cs);
-#endif /* HAVE_DNS_OVER_QUIC */
-
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
 void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls
 bool getLuaNoSideEffect(); // set if there were only explicit declarations of _no_ side effect

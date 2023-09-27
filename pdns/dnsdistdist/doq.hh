@@ -100,6 +100,8 @@ struct CrossProtocolQuery;
 struct DNSQuestion;
 std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& dq, bool isResponse);
 
+void doqThread(ClientState* clientState);
+
 #else
 
 struct DOQUnit
