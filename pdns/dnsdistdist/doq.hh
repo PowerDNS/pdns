@@ -47,7 +47,7 @@ struct DOQFrontend
 
   void setup();
 
-  std::unique_ptr<DOQServerConfig> d_server_config{nullptr};
+  std::unique_ptr<DOQServerConfig> d_server_config;
   TLSConfig d_tlsConfig;
   ComboAddress d_local;
   std::string d_keyLogFile;
