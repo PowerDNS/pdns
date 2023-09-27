@@ -73,8 +73,8 @@ struct DOQFrontend
 
 struct DOQUnit
 {
-  DOQUnit(PacketBuffer&& q) :
-    query(std::move(q))
+  DOQUnit(PacketBuffer&& query_) :
+    query(std::move(query_))
   {
   }
 
@@ -98,7 +98,7 @@ using DOQUnitUniquePtr = std::unique_ptr<DOQUnit>;
 
 struct CrossProtocolQuery;
 struct DNSQuestion;
-std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& dq, bool isResponse);
+std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion, bool isResponse);
 
 void doqThread(ClientState* clientState);
 

@@ -50,7 +50,6 @@ struct SodiumNonce
 #endif
 };
 
-std::string newKeypair();
 std::string sodEncryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce = true);
 std::string sodDecryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce = true);
 std::string newKey(bool base64Encoded = true);

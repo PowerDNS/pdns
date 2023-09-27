@@ -67,7 +67,8 @@ public:
   std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
 };
 
-static void sendBackDOQUnit(DOQUnitUniquePtr&& du, const char* description);
+static void sendBackDOQUnit(DOQUnitUniquePtr&& unit, const char* description);
+
 struct DOQServerConfig
 {
   DOQServerConfig(QuicheConfig&& config_, uint32_t internalPipeBufferSize) :
@@ -99,13 +100,8 @@ struct DOQServerConfig
 /* these might seem useless, but they are needed because
    they need to be declared _after_ the definition of DOQServerConfig
    so that we can use a unique_ptr in DOQFrontend */
-DOQFrontend::DOQFrontend()
-{
-}
-
-DOQFrontend::~DOQFrontend()
-{
-}
+DOQFrontend::DOQFrontend() = default;
+DOQFrontend::~DOQFrontend() = default;
 
 #if 0
 #define DEBUGLOG_ENABLED
@@ -120,72 +116,72 @@ static constexpr size_t LOCAL_CONN_ID_LEN = 16;
 class DOQTCPCrossQuerySender final : public TCPQuerySender
 {
 public:
-  DOQTCPCrossQuerySender()
-  {
-  }
+  DOQTCPCrossQuerySender() = default;
 
-  bool active() const override
+  [[nodiscard]] bool active() const override
   {
     return true;
   }
 
-  void handleResponse(const struct timeval& now, TCPResponse&& response) override
+  void handleResponse([[maybe_unused]] const struct timeval& now, TCPResponse&& response) override
   {
     if (!response.d_idstate.doqu) {
       return;
     }
 
-    auto du = std::move(response.d_idstate.doqu);
-    if (du->dsc == nullptr) {
+    auto unit = std::move(response.d_idstate.doqu);
+    if (unit->dsc == nullptr) {
       return;
     }
 
-    du->response = std::move(response.d_buffer);
-    du->ids = std::move(response.d_idstate);
-    DNSResponse dr(du->ids, du->response, du->downstream);
+    unit->response = std::move(response.d_buffer);
+    unit->ids = std::move(response.d_idstate);
+    DNSResponse dnsResponse(unit->ids, unit->response, unit->downstream);
 
-    dnsheader cleartextDH;
-    memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
+    dnsheader cleartextDH
+    {
+    };
+    memcpy(&cleartextDH, dnsResponse.getHeader(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
 
       static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
       static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
 
-      dr.ids.doqu = std::move(du);
+      dnsResponse.ids.doqu = std::move(unit);
 
-      if (!processResponse(dr.ids.doqu->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false)) {
-        if (dr.ids.doqu) {
+      if (!processResponse(dnsResponse.ids.doqu->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
+        if (dnsResponse.ids.doqu) {
 
-          sendBackDOQUnit(std::move(dr.ids.doqu), "Response dropped by rules");
+          sendBackDOQUnit(std::move(dnsResponse.ids.doqu), "Response dropped by rules");
         }
         return;
       }
 
-      if (dr.isAsynchronous()) {
+      if (dnsResponse.isAsynchronous()) {
         return;
       }
 
-      du = std::move(dr.ids.doqu);
+      unit = std::move(dnsResponse.ids.doqu);
     }
 
-    if (!du->ids.selfGenerated) {
-      double udiff = du->ids.queryRealTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s (quic), took %f us", du->downstream->d_config.remote.toStringWithPort(), du->ids.origRemote.toStringWithPort(), udiff);
+    if (!unit->ids.selfGenerated) {
+      double udiff = unit->ids.queryRealTime.udiff();
+      vinfolog("Got answer from %s, relayed to %s (quic), took %f us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), udiff);
 
-      auto backendProtocol = du->downstream->getProtocol();
-      if (backendProtocol == dnsdist::Protocol::DoUDP && du->tcp) {
+      auto backendProtocol = unit->downstream->getProtocol();
+      if (backendProtocol == dnsdist::Protocol::DoUDP && unit->tcp) {
         backendProtocol = dnsdist::Protocol::DoTCP;
       }
-      handleResponseSent(du->ids, udiff, du->ids.origRemote, du->downstream->d_config.remote, du->response.size(), cleartextDH, backendProtocol, true);
+      handleResponseSent(unit->ids, udiff, unit->ids.origRemote, unit->downstream->d_config.remote, unit->response.size(), cleartextDH, backendProtocol, true);
     }
 
     ++dnsdist::metrics::g_stats.responses;
-    if (du->ids.cs) {
-      ++du->ids.cs->responses;
+    if (unit->ids.cs != nullptr) {
+      ++unit->ids.cs->responses;
     }
 
-    sendBackDOQUnit(std::move(du), "Cross-protocol response");
+    sendBackDOQUnit(std::move(unit), "Cross-protocol response");
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
@@ -214,25 +210,25 @@ public:
 class DOQCrossProtocolQuery : public CrossProtocolQuery
 {
 public:
-  DOQCrossProtocolQuery(DOQUnitUniquePtr&& du, bool isResponse)
+  DOQCrossProtocolQuery(DOQUnitUniquePtr&& unit, bool isResponse)
   {
     if (isResponse) {
       /* happens when a response becomes async */
-      query = InternalQuery(std::move(du->response), std::move(du->ids));
+      query = InternalQuery(std::move(unit->response), std::move(unit->ids));
     }
     else {
       /* we need to duplicate the query here because we might need
          the existing query later if we get a truncated answer */
-      query = InternalQuery(PacketBuffer(du->query), std::move(du->ids));
+      query = InternalQuery(PacketBuffer(unit->query), std::move(unit->ids));
     }
 
-    /* it might have been moved when we moved du->ids */
-    if (du) {
-      query.d_idstate.doqu = std::move(du);
+    /* it might have been moved when we moved unit->ids */
+    if (unit) {
+      query.d_idstate.doqu = std::move(unit);
     }
 
     /* we _could_ remove it from the query buffer and put in query's d_proxyProtocolPayload,
-       clearing query.d_proxyProtocolPayloadAdded and du->proxyProtocolPayloadSize.
+       clearing query.d_proxyProtocolPayloadAdded and unit->proxyProtocolPayloadSize.
        Leave it for now because we know that the onky case where the payload has been
        added is when we tried over UDP, got a TC=1 answer and retried over TCP/DoT,
        and we know the TCP/DoT code can handle it. */
@@ -254,15 +250,15 @@ public:
   DNSQuestion getDQ() override
   {
     auto& ids = query.d_idstate;
-    DNSQuestion dq(ids, query.d_buffer);
-    return dq;
+    DNSQuestion dnsQuestion(ids, query.d_buffer);
+    return dnsQuestion;
   }
 
   DNSResponse getDR() override
   {
     auto& ids = query.d_idstate;
-    DNSResponse dr(ids, query.d_buffer, downstream);
-    return dr;
+    DNSResponse dnsResponse(ids, query.d_buffer, downstream);
+    return dnsResponse;
   }
 
   DOQUnitUniquePtr&& releaseDU()
@@ -287,35 +283,35 @@ enum class DOQ_Error_Codes : uint64_t
   DOQ_UNSPECIFIED_ERROR = 5
 };
 
-static void handleResponse(DOQFrontend& df, Connection& conn, const uint64_t streamID, const PacketBuffer& response)
+static void handleResponse(DOQFrontend& frontend, Connection& conn, const uint64_t streamID, const PacketBuffer& response)
 {
-  if (response.size() == 0) {
-    ++df.d_errorResponses;
+  if (response.empty()) {
+    ++frontend.d_errorResponses;
     quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_UNSPECIFIED_ERROR));
     return;
   }
-  ++df.d_validResponses;
-  uint16_t responseSize = static_cast<uint16_t>(response.size());
+  ++frontend.d_validResponses;
+  auto responseSize = static_cast<uint16_t>(response.size());
   const std::array<uint8_t, 2> sizeBytes = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
   size_t pos = 0;
-  do {
-    auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, sizeBytes.data() + pos, sizeBytes.size() - pos, false);
+  while (pos < sizeBytes.size()) {
+    auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, &sizeBytes.at(pos), sizeBytes.size() - pos, false);
     if (res < 0) {
       quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_INTERNAL_ERROR));
       return;
     }
     pos += res;
-  } while (pos < sizeBytes.size());
+  }
 
   pos = 0;
-  do {
-    auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, response.data() + pos, response.size() - pos, true);
+  while (pos < response.size()) {
+    auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, &response.at(pos), response.size() - pos, true);
     if (res < 0) {
       quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_INTERNAL_ERROR));
       return;
     }
     pos += res;
-  } while (pos < response.size());
+  }
 }
 
 static void fillRandom(PacketBuffer& buffer, size_t size)
@@ -381,7 +377,7 @@ void DOQFrontend::setup()
   {
     PacketBuffer resetToken;
     fillRandom(resetToken, 16);
-    quiche_config_set_stateless_reset_token(config.get(), reinterpret_cast<const uint8_t*>(resetToken.data()));
+    quiche_config_set_stateless_reset_token(config.get(), resetToken.data());
   }
 
   d_server_config = std::make_unique<DOQServerConfig>(std::move(config), d_internalPipeBufferSize);
@@ -409,9 +405,11 @@ static PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer
     const uint64_t ttd = time(nullptr) + 60U;
     PacketBuffer plainTextToken;
     plainTextToken.reserve(sizeof(ttd) + addrBytes.size() + dcid.size());
-    plainTextToken.insert(plainTextToken.end(), reinterpret_cast<const char*>(&ttd), reinterpret_cast<const char*>(&ttd) + sizeof(ttd));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    plainTextToken.insert(plainTextToken.end(), reinterpret_cast<const uint8_t*>(&ttd), reinterpret_cast<const uint8_t*>(&ttd) + sizeof(ttd));
     plainTextToken.insert(plainTextToken.end(), addrBytes.begin(), addrBytes.end());
     plainTextToken.insert(plainTextToken.end(), dcid.begin(), dcid.end());
+    //	NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto encryptedToken = sodEncryptSym(std::string_view(reinterpret_cast<const char*>(plainTextToken.data()), plainTextToken.size()), s_quicRetryTokenKey, nonce, false);
     // a bit sad, let's see if we can do better later
     auto encryptedTokenPacket = PacketBuffer(encryptedToken.begin(), encryptedToken.end());
@@ -425,7 +423,7 @@ static PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer
 }
 
 // returns the original destination ID if the token is valid, nothing otherwise
-static std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const PacketBuffer& dcid, const ComboAddress& peer)
+static std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const ComboAddress& peer)
 {
   try {
     SodiumNonce nonce;
@@ -438,6 +436,7 @@ static std::optional<PacketBuffer> validateToken(const PacketBuffer& token, cons
 
     memcpy(nonce.value.data(), token.data(), nonce.value.size());
 
+    //	NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto cipher = std::string_view(reinterpret_cast<const char*>(&token.at(nonce.value.size())), token.size() - nonce.value.size());
     auto plainText = sodDecryptSym(cipher, s_quicRetryTokenKey, nonce, false);
 
@@ -454,6 +453,7 @@ static std::optional<PacketBuffer> validateToken(const PacketBuffer& token, cons
     if (std::memcmp(&plainText.at(sizeof(ttd)), &*addrBytes.begin(), addrBytes.size()) != 0) {
       return std::nullopt;
     }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     return PacketBuffer(plainText.begin() + (sizeof(ttd) + addrBytes.size()), plainText.end());
   }
   catch (const std::exception& exp) {
@@ -500,6 +500,7 @@ static void handleVersionNegociation(Socket& sock, const PacketBuffer& clientCon
     DEBUGLOG("failed to create vneg packet " << written);
     return;
   }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   sock.sendTo(reinterpret_cast<const char*>(out.data()), written, peer);
 }
 
@@ -512,13 +513,13 @@ static std::optional<std::reference_wrapper<Connection>> getConnection(DOQServer
   return iter->second;
 }
 
-static void sendBackDOQUnit(DOQUnitUniquePtr&& du, const char* description)
+static void sendBackDOQUnit(DOQUnitUniquePtr&& unit, const char* description)
 {
-  if (du->dsc == nullptr) {
+  if (unit->dsc == nullptr) {
     return;
   }
   try {
-    if (!du->dsc->d_responseSender.send(std::move(du))) {
+    if (!unit->dsc->d_responseSender.send(std::move(unit))) {
       ++dnsdist::metrics::g_stats.doqResponsePipeFull;
       vinfolog("Unable to pass a %s to the DoQ worker thread because the pipe is full", description);
     }
@@ -532,9 +533,11 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(DOQSer
 {
   auto quicheConn = QuicheConnection(quiche_accept(serverSideID.data(), serverSideID.size(),
                                                    originalDestinationID.data(), originalDestinationID.size(),
-                                                   (struct sockaddr*)&local,
+                                                   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                                                   reinterpret_cast<const struct sockaddr*>(&local),
                                                    local.getSocklen(),
-                                                   (struct sockaddr*)&peer,
+                                                   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                                                   reinterpret_cast<const struct sockaddr*>(&peer),
                                                    peer.getSocklen(),
                                                    config.config.get()),
                                      quiche_conn_free);
@@ -550,12 +553,11 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(DOQSer
 
 static void flushEgress(Socket& sock, Connection& conn)
 {
-  std::array<uint8_t, MAX_DATAGRAM_SIZE> out;
+  std::array<uint8_t, MAX_DATAGRAM_SIZE> out{};
   quiche_send_info send_info;
 
   while (true) {
     auto written = quiche_conn_send(conn.d_conn.get(), out.data(), out.size(), &send_info);
-
     if (written == QUICHE_ERR_DONE) {
       return;
     }
@@ -564,198 +566,201 @@ static void flushEgress(Socket& sock, Connection& conn)
       return;
     }
     // FIXME pacing (as send_info.at should tell us when to send the packet) ?
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     sock.sendTo(reinterpret_cast<const char*>(out.data()), written, conn.d_peer);
   }
 }
 
-std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& dq, bool isResponse)
+std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion, bool isResponse)
 {
-  if (!dq.ids.doqu) {
+  if (!dnsQuestion.ids.doqu) {
     throw std::runtime_error("Trying to create a DoQ cross protocol query without a valid DoQ unit");
   }
 
-  auto du = std::move(dq.ids.doqu);
-  if (&dq.ids != &du->ids) {
-    du->ids = std::move(dq.ids);
+  auto unit = std::move(dnsQuestion.ids.doqu);
+  if (&dnsQuestion.ids != &unit->ids) {
+    unit->ids = std::move(dnsQuestion.ids);
   }
 
-  du->ids.origID = dq.getHeader()->id;
+  unit->ids.origID = dnsQuestion.getHeader()->id;
 
   if (!isResponse) {
-    if (du->query.data() != dq.getMutableData().data()) {
-      du->query = std::move(dq.getMutableData());
+    if (unit->query.data() != dnsQuestion.getMutableData().data()) {
+      unit->query = std::move(dnsQuestion.getMutableData());
     }
   }
   else {
-    if (du->response.data() != dq.getMutableData().data()) {
-      du->response = std::move(dq.getMutableData());
+    if (unit->response.data() != dnsQuestion.getMutableData().data()) {
+      unit->response = std::move(dnsQuestion.getMutableData());
     }
   }
 
-  return std::make_unique<DOQCrossProtocolQuery>(std::move(du), isResponse);
+  return std::make_unique<DOQCrossProtocolQuery>(std::move(unit), isResponse);
 }
 
 /*
    We are not in the main DoQ thread but in the DoQ 'client' thread.
 */
-static void processDOQQuery(DOQUnitUniquePtr&& unit)
+static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
 {
-  const auto handleImmediateResponse = [](DOQUnitUniquePtr&& du, const char* reason) {
+  const auto handleImmediateResponse = [](DOQUnitUniquePtr&& unit, [[maybe_unused]] const char* reason) {
     DEBUGLOG("handleImmediateResponse() reason=" << reason);
-    auto conn = getConnection(du->dsc->df->d_server_config->d_connections, du->serverConnID);
-    handleResponse(*du->dsc->df, *conn, du->streamID, du->response);
-    du->ids.doqu.reset();
+    auto conn = getConnection(unit->dsc->df->d_server_config->d_connections, unit->serverConnID);
+    handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->response);
+    unit->ids.doqu.reset();
   };
 
-  auto& ids = unit->ids;
-  ids.doqu = std::move(unit);
-  auto& du = ids.doqu;
+  auto& ids = doqUnit->ids;
+  ids.doqu = std::move(doqUnit);
+  auto& unit = ids.doqu;
   uint16_t queryId = 0;
   ComboAddress remote;
 
   try {
 
-    remote = du->ids.origRemote;
-    DOQServerConfig* dsc = du->dsc;
+    remote = unit->ids.origRemote;
+    DOQServerConfig* dsc = unit->dsc;
     auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
-    if (du->query.size() < sizeof(dnsheader)) {
+    if (unit->query.size() < sizeof(dnsheader)) {
       ++dnsdist::metrics::g_stats.nonCompliantQueries;
       ++clientState.nonCompliantQueries;
-      struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(du->query.data());
-      dh->rcode = RCode::ServFail;
-      dh->qr = true;
-      du->response = std::move(du->query);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      auto* dnsHeader = reinterpret_cast<struct dnsheader*>(unit->query.data());
+      dnsHeader->rcode = RCode::ServFail;
+      dnsHeader->qr = true;
+      unit->response = std::move(unit->query);
 
-      handleImmediateResponse(std::move(du), "DoQ non-compliant query");
+      handleImmediateResponse(std::move(unit), "DoQ non-compliant query");
       return;
     }
 
     ++clientState.queries;
     ++dnsdist::metrics::g_stats.queries;
-    du->ids.queryRealTime.start();
+    unit->ids.queryRealTime.start();
 
     {
       /* don't keep that pointer around, it will be invalidated if the buffer is ever resized */
-      struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(du->query.data());
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      auto* dnsHeader = reinterpret_cast<struct dnsheader*>(unit->query.data());
 
-      if (!checkQueryHeaders(dh, clientState)) {
-        dh->rcode = RCode::ServFail;
-        dh->qr = true;
-        du->response = std::move(du->query);
+      if (!checkQueryHeaders(dnsHeader, clientState)) {
+        dnsHeader->rcode = RCode::ServFail;
+        dnsHeader->qr = true;
+        unit->response = std::move(unit->query);
 
-        handleImmediateResponse(std::move(du), "DoQ invalid headers");
+        handleImmediateResponse(std::move(unit), "DoQ invalid headers");
         return;
       }
 
-      if (dh->qdcount == 0) {
-        dh->rcode = RCode::NotImp;
-        dh->qr = true;
-        du->response = std::move(du->query);
+      if (dnsHeader->qdcount == 0) {
+        dnsHeader->rcode = RCode::NotImp;
+        dnsHeader->qr = true;
+        unit->response = std::move(unit->query);
 
-        handleImmediateResponse(std::move(du), "DoQ empty query");
+        handleImmediateResponse(std::move(unit), "DoQ empty query");
         return;
       }
 
-      queryId = ntohs(dh->id);
+      queryId = ntohs(dnsHeader->id);
     }
 
-    auto downstream = du->downstream;
-    du->ids.qname = DNSName(reinterpret_cast<const char*>(du->query.data()), du->query.size(), sizeof(dnsheader), false, &du->ids.qtype, &du->ids.qclass);
-    DNSQuestion dq(du->ids, du->query);
-    const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader());
+    auto downstream = unit->downstream;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    unit->ids.qname = DNSName(reinterpret_cast<const char*>(unit->query.data()), static_cast<int>(unit->query.size()), sizeof(dnsheader), false, &unit->ids.qtype, &unit->ids.qclass);
+    DNSQuestion dnsQuestion(unit->ids, unit->query);
+    const uint16_t* flags = getFlagsFromDNSHeader(dnsQuestion.getHeader());
     ids.origFlags = *flags;
-    du->ids.cs = &clientState;
+    unit->ids.cs = &clientState;
 
-    auto result = processQuery(dq, holders, downstream);
+    auto result = processQuery(dnsQuestion, holders, downstream);
     if (result == ProcessQueryResult::Drop) {
-      handleImmediateResponse(std::move(du), "DoQ dropped query");
+      handleImmediateResponse(std::move(unit), "DoQ dropped query");
       return;
     }
-    else if (result == ProcessQueryResult::Asynchronous) {
+    if (result == ProcessQueryResult::Asynchronous) {
       return;
     }
-    else if (result == ProcessQueryResult::SendAnswer) {
-      if (du->response.empty()) {
-        du->response = std::move(du->query);
+    if (result == ProcessQueryResult::SendAnswer) {
+      if (unit->response.empty()) {
+        unit->response = std::move(unit->query);
       }
-      if (du->response.size() >= sizeof(dnsheader)) {
-        auto dh = reinterpret_cast<const struct dnsheader*>(du->response.data());
+      if (unit->response.size() >= sizeof(dnsheader)) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        const auto* dnsHeader = reinterpret_cast<const struct dnsheader*>(unit->response.data());
 
-        handleResponseSent(du->ids.qname, QType(du->ids.qtype), 0., du->ids.origDest, ComboAddress(), du->response.size(), *dh, dnsdist::Protocol::DoQ, dnsdist::Protocol::DoQ, false);
+        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0., unit->ids.origDest, ComboAddress(), unit->response.size(), *dnsHeader, dnsdist::Protocol::DoQ, dnsdist::Protocol::DoQ, false);
       }
-      handleImmediateResponse(std::move(du), "DoQ self-answered response");
+      handleImmediateResponse(std::move(unit), "DoQ self-answered response");
       return;
     }
 
     ++dnsdist::metrics::g_stats.responses;
-    if (du->ids.cs != nullptr) {
-      ++du->ids.cs->responses;
+    if (unit->ids.cs != nullptr) {
+      ++unit->ids.cs->responses;
     }
 
     if (result != ProcessQueryResult::PassToBackend) {
-      handleImmediateResponse(std::move(du), "DoQ no backend available");
+      handleImmediateResponse(std::move(unit), "DoQ no backend available");
       return;
     }
 
     if (downstream == nullptr) {
-      handleImmediateResponse(std::move(du), "DoQ no backend available");
+      handleImmediateResponse(std::move(unit), "DoQ no backend available");
       return;
     }
 
-    du->downstream = downstream;
+    unit->downstream = downstream;
 
     std::string proxyProtocolPayload;
     /* we need to do this _before_ creating the cross protocol query because
        after that the buffer will have been moved */
     if (downstream->d_config.useProxyProtocol) {
-      proxyProtocolPayload = getProxyProtocolPayload(dq);
+      proxyProtocolPayload = getProxyProtocolPayload(dnsQuestion);
     }
 
-    du->ids.origID = htons(queryId);
-    du->tcp = true;
+    unit->ids.origID = htons(queryId);
+    unit->tcp = true;
 
-    /* this moves du->ids, careful! */
-    auto cpq = std::make_unique<DOQCrossProtocolQuery>(std::move(du), false);
+    /* this moves unit->ids, careful! */
+    auto cpq = std::make_unique<DOQCrossProtocolQuery>(std::move(unit), false);
     cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
     if (downstream->passCrossProtocolQuery(std::move(cpq))) {
       return;
     }
-    else {
-      du = cpq->releaseDU();
-      handleImmediateResponse(std::move(du), "DoQ internal error");
-      return;
-    }
+    // NOLINTNEXTLINE(bugprone-use-after-move): it was only moved if the call succeeded
+    unit = cpq->releaseDU();
+    handleImmediateResponse(std::move(unit), "DoQ internal error");
+    return;
   }
   catch (const std::exception& e) {
     vinfolog("Got an error in DOQ question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
-    handleImmediateResponse(std::move(du), "DoQ internal error");
+    handleImmediateResponse(std::move(unit), "DoQ internal error");
     return;
   }
-
-  return;
 }
 
 static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID)
 {
   try {
     /* we only parse it there as a sanity check, we will parse it again later */
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     DNSPacketMangler mangler(reinterpret_cast<char*>(query.data()), query.size());
     mangler.skipDomainName();
     mangler.skipBytes(4);
     // Should we ensure message id is 0 ?
 
-    auto du = std::make_unique<DOQUnit>(std::move(query));
-    du->dsc = &dsc;
-    du->ids.origDest = local;
-    du->ids.origRemote = remote;
-    du->ids.protocol = dnsdist::Protocol::DoQ;
-    du->serverConnID = serverConnID;
-    du->streamID = streamID;
+    auto unit = std::make_unique<DOQUnit>(std::move(query));
+    unit->dsc = &dsc;
+    unit->ids.origDest = local;
+    unit->ids.origRemote = remote;
+    unit->ids.protocol = dnsdist::Protocol::DoQ;
+    unit->serverConnID = serverConnID;
+    unit->streamID = streamID;
 
-    processDOQQuery(std::move(du));
+    processDOQQuery(std::move(unit));
   }
   catch (const std::exception& exp) {
     vinfolog("Had error parsing DoQ DNS packet from %s: %s", remote.toStringWithPort(), exp.what());
@@ -810,25 +815,28 @@ void doqThread(ClientState* clientState)
       mplexer->getAvailableFDs(readyFDs, 500);
 
       if (std::find(readyFDs.begin(), readyFDs.end(), sock.getHandle()) != readyFDs.end()) {
+        DEBUGLOG("Received datagram");
         std::string bufferStr;
         ComboAddress client;
         sock.recvFrom(bufferStr, client);
 
         uint32_t version{0};
-        uint8_t type;
-        std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> scid;
+        uint8_t type{0};
+        std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> scid{};
         size_t scid_len = scid.size();
-        std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> dcid;
+        std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> dcid{};
         size_t dcid_len = dcid.size();
-        std::array<uint8_t, MAX_TOKEN_LEN> token;
+        std::array<uint8_t, MAX_TOKEN_LEN> token{};
         size_t token_len = token.size();
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         auto res = quiche_header_info(reinterpret_cast<const uint8_t*>(bufferStr.data()), bufferStr.size(), LOCAL_CONN_ID_LEN,
                                       &version, &type,
                                       scid.data(), &scid_len,
                                       dcid.data(), &dcid_len,
                                       token.data(), &token_len);
         if (res != 0) {
+          DEBUGLOG("Error in quiche_header_info: "<<res);
           continue;
         }
 
@@ -855,7 +863,7 @@ void doqThread(ClientState* clientState)
           }
 
           PacketBuffer tokenBuf(token.begin(), token.begin() + token_len);
-          auto originalDestinationID = validateToken(tokenBuf, serverConnID, client);
+          auto originalDestinationID = validateToken(tokenBuf, client);
           if (!originalDestinationID) {
             ++frontend->d_doqInvalidTokensReceived;
             DEBUGLOG("Discarding invalid token");
@@ -868,14 +876,17 @@ void doqThread(ClientState* clientState)
             continue;
           }
         }
+        DEBUGLOG("Connection found");
         quiche_recv_info recv_info = {
-          (struct sockaddr*)&client,
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          reinterpret_cast<struct sockaddr*>(&client),
           client.getSocklen(),
-
-          (struct sockaddr*)&clientState->local,
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+          reinterpret_cast<struct sockaddr*>(&clientState->local),
           clientState->local.getSocklen(),
         };
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         auto done = quiche_conn_recv(conn->get().d_conn.get(), reinterpret_cast<uint8_t*>(bufferStr.data()), bufferStr.size(), &recv_info);
         if (done < 0) {
           continue;
@@ -909,6 +920,7 @@ void doqThread(ClientState* clientState)
                 quiche_conn_stream_shutdown(conn->get().d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
                 break;
               }
+              DEBUGLOG("Dispatching query");
               doq_dispatch_query(*(frontend->d_server_config), std::move(streamBuffer), clientState->local, client, serverConnID, streamID);
               conn->get().d_streamBuffers.erase(streamID);
             }
