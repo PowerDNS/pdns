@@ -12,3 +12,4 @@ lmdb>=0.95
 cdbx==0.1.2
 h2>=4.0.0
 aioquic
+async_timeout

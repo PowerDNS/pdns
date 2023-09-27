@@ -6,6 +6,8 @@ import sys
 import threading
 import unittest
 import dns
+import doqclient
+
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
 def AsyncResponder(listenPath, responsePath):
@@ -284,7 +286,7 @@ class AsyncTests(object):
                 sender = getattr(self, method)
                 try:
                     (receivedQuery, receivedResponse) = sender(query, response)
-                except dns.exception.Timeout:
+                except doqclient.StreamResetError:
                     if not self._fromResponderQueue.empty():
                         receivedQuery = self._fromResponderQueue.get(True, 1.0)
                     receivedResponse = None
@@ -323,7 +325,7 @@ class AsyncTests(object):
             sender = getattr(self, method)
             try:
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            except dns.exception.Timeout:
+            except doqclient.StreamResetError:
                 receivedResponse = None
             self.assertEqual(receivedResponse, None)
 

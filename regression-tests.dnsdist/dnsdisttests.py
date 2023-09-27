@@ -28,6 +28,8 @@ import h2.config
 import pycurl
 from io import BytesIO
 
+from doqclient import quic_query
+
 from eqdnsmessage import AssertEqualDNSMessageMixin
 from proxyprotocol import ProxyProtocol
 
@@ -1111,7 +1113,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             else:
                 cls._toResponderQueue.put(response, True, timeout)
 
-        message = dns.query.quic(query, '127.0.0.1', timeout, port, verify=caFile, connection=connection, server_hostname=serverName)
+        message = quic_query(query, '127.0.0.1', timeout, port, verify=caFile, server_hostname=serverName)
 
         receivedQuery = None
 

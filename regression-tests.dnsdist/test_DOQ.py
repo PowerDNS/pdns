@@ -4,6 +4,38 @@ import clientsubnetoption
 
 from dnsdisttests import DNSDistTest
 from dnsdisttests import pickAvailablePort
+from doqclient import quic_bogus_query
+import doqclient
+
+class TestDOQBogus(DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    addDOQLocal("127.0.0.1:%d", "%s", "%s")
+    """
+    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _verboseMode = True
+
+    def testDOQBogus(self):
+        """
+        DOQ: Test a bogus query (wrong packed length)
+        """
+        name = 'bogus.doq.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
+        expectedQuery.id = 0
+
+        try:
+            message = quic_bogus_query(query, '127.0.0.1', 2.0, self._doqServerPort, verify=self._caCert, server_hostname=self._serverName)
+            self.assertFalse(True)
+        except doqclient.StreamResetError as e :
+            self.assertEqual(e.error, 2);
 
 class TestDOQ(DNSDistTest):
     _serverKey = 'server.key'
@@ -87,10 +119,9 @@ class TestDOQ(DNSDistTest):
         dropped = False
         try:
             (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=None, caFile=self._caCert, useQueue=False, serverName=self._serverName)
-            # dns.quic doesn't seem to report correctly the quic error so the connection timeout
-        except dns.exception.Timeout :
-            dropped = True
-        self.assertTrue(dropped)
+            self.assertTrue(False)
+        except doqclient.StreamResetError as e :
+            self.assertEqual(e.error, 5);
 
     def testRefused(self):
         """
@@ -134,10 +165,9 @@ class TestDOQ(DNSDistTest):
         dropped = False
         try:
             (_, receivedResponse) = self.sendDOQQuery(self._doqServerPort, query, response=None, caFile=self._caCert, useQueue=False, serverName=self._serverName)
-        except dns.exception.Timeout :
-            dropped = True
-        self.assertTrue(dropped)
-            # dns.quic doesn't seem to report correctly the quic error so the connection timeout
+            self.assertTrue(False)
+        except doqclient.StreamResetError as e :
+            self.assertEqual(e.error, 5);
 
 class TestDOQWithCache(DNSDistTest):
     _serverKey = 'server.key'

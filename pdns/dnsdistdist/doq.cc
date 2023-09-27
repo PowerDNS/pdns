@@ -748,7 +748,6 @@ static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const
     DNSPacketMangler mangler(reinterpret_cast<char*>(query.data()), query.size());
     mangler.skipDomainName();
     mangler.skipBytes(4);
-    // Should we ensure message id is 0 ?
 
     auto unit = std::make_unique<DOQUnit>(std::move(query));
     unit->dsc = &dsc;
