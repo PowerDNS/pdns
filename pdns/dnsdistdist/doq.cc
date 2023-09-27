@@ -193,8 +193,21 @@ public:
     return handleResponse(now, std::move(response));
   }
 
-  void notifyIOError(const struct timeval& now, TCPResponse&& response) override
+  void notifyIOError([[maybe_unused]] const struct timeval& now, TCPResponse&& response) override
   {
+    if (!response.d_idstate.doqu) {
+      return;
+    }
+
+    auto unit = std::move(response.d_idstate.doqu);
+    if (unit->dsc == nullptr) {
+      return;
+    }
+
+    /* this will signal an error */
+    unit->response.clear();
+    unit->ids = std::move(response.d_idstate);
+    sendBackDOQUnit(std::move(unit), "Cross-protocol error");
   }
 };
 
