@@ -2233,7 +2233,7 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
     vector<DNSRecord> ns;
     *flawedNSSet = false;
 
-    if (g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &ns, d_cacheRemote, d_routingTag) > 0) {
+    if (bool isAuth = false; g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &ns, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, nullptr, &isAuth) > 0) {
       if (s_maxnsperresolve > 0 && ns.size() > s_maxnsperresolve) {
         vector<DNSRecord> selected;
         selected.reserve(s_maxnsperresolve);
@@ -2269,9 +2269,14 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
           else {
             *flawedNSSet = true;
             LOG(prefix << qname << ": NS in cache for '" << subdomain << "', but needs glue (" << nrr->getNS() << ") which we miss or is expired" << endl);
-            g_recCache->doWipeCache(subdomain, false, QType::NS);
           }
         }
+      }
+      if (*flawedNSSet && bestns.empty() && isAuth) {
+        // The authoritative (child) NS records did not produce any usable addresses, wipe them, so
+        // these useless records do not prevent parent records to be inserted into the cache
+        LOG(prefix << qname << ": Wiping flawed authoritative NS records for " << subdomain << endl);
+        g_recCache->doWipeCache(subdomain, false, QType::NS);
       }
 
       if (!bestns.empty()) {
