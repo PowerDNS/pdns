@@ -447,8 +447,8 @@ URL Endpoints
       # TYPE dnsdist_frontend_tcpdiedsendingresponse counter
       # HELP dnsdist_frontend_tcpgaveup Amount of TCP connections terminated after too many attempts to get a connection to the backend
       # TYPE dnsdist_frontend_tcpgaveup counter
-      # HELP dnsdist_frontend_tcpclientimeouts Amount of TCP connections terminated by a timeout while reading from the client
-      # TYPE dnsdist_frontend_tcpclientimeouts counter
+      # HELP dnsdist_frontend_tcpclienttimeouts Amount of TCP connections terminated by a timeout while reading from the client
+      # TYPE dnsdist_frontend_tcpclienttimeouts counter
       # HELP dnsdist_frontend_tcpdownstreamtimeouts Amount of TCP connections terminated by a timeout while reading from the backend
       # TYPE dnsdist_frontend_tcpdownstreamtimeouts counter
       # HELP dnsdist_frontend_tcpcurrentconnections Amount of current incoming TCP connections from clients
@@ -477,7 +477,7 @@ URL Endpoints
       dnsdist_frontend_tcpdiedreadingquery{frontend="127.0.0.1:853",proto="TCP (DNS over TLS)",thread="0"} 0
       dnsdist_frontend_tcpdiedsendingresponse{frontend="127.0.0.1:853",proto="TCP (DNS over TLS)",thread="0"} 0
       dnsdist_frontend_tcpgaveup{frontend="127.0.0.1:853",proto="TCP (DNS over TLS)",thread="0"} 0
-      dnsdist_frontend_tcpclientimeouts{frontend="127.0.0.1:853",proto="TCP (DNS over TLS)",thread="0"} 0
+      dnsdist_frontend_tcpclienttimeouts{frontend="127.0.0.1:853",proto="TCP (DNS over TLS)",thread="0"} 0
       dnsdist_frontend_tcpdownstreamtimeouts{frontend="127.0.0.1:853",proto="TCP (DNS over TLS)",thread="0"} 0
       dnsdist_frontend_tcpcurrentconnections{frontend="127.0.0.1:853",proto="TCP (DNS over TLS)",thread="0"} 0
       dnsdist_frontend_tcpmaxconcurrentconnections{frontend="127.0.0.1:853",proto="TCP (DNS over TLS)",thread="0"} 0
@@ -506,7 +506,7 @@ URL Endpoints
       dnsdist_frontend_tcpdiedreadingquery{frontend="[::1]:443",proto="TCP (DNS over HTTPS)",thread="0"} 0
       dnsdist_frontend_tcpdiedsendingresponse{frontend="[::1]:443",proto="TCP (DNS over HTTPS)",thread="0"} 0
       dnsdist_frontend_tcpgaveup{frontend="[::1]:443",proto="TCP (DNS over HTTPS)",thread="0"} 0
-      dnsdist_frontend_tcpclientimeouts{frontend="[::1]:443",proto="TCP (DNS over HTTPS)",thread="0"} 0
+      dnsdist_frontend_tcpclienttimeouts{frontend="[::1]:443",proto="TCP (DNS over HTTPS)",thread="0"} 0
       dnsdist_frontend_tcpdownstreamtimeouts{frontend="[::1]:443",proto="TCP (DNS over HTTPS)",thread="0"} 0
       dnsdist_frontend_tcpcurrentconnections{frontend="[::1]:443",proto="TCP (DNS over HTTPS)",thread="0"} 0
       dnsdist_frontend_tcpmaxconcurrentconnections{frontend="[::1]:443",proto="TCP (DNS over HTTPS)",thread="0"} 0
@@ -538,7 +538,7 @@ URL Endpoints
       dnsdist_frontend_tcpdiedreadingquery{frontend="127.0.0.1:53",proto="TCP",thread="0"} 0
       dnsdist_frontend_tcpdiedsendingresponse{frontend="127.0.0.1:53",proto="TCP",thread="0"} 0
       dnsdist_frontend_tcpgaveup{frontend="127.0.0.1:53",proto="TCP",thread="0"} 0
-      dnsdist_frontend_tcpclientimeouts{frontend="127.0.0.1:53",proto="TCP",thread="0"} 0
+      dnsdist_frontend_tcpclienttimeouts{frontend="127.0.0.1:53",proto="TCP",thread="0"} 0
       dnsdist_frontend_tcpdownstreamtimeouts{frontend="127.0.0.1:53",proto="TCP",thread="0"} 0
       dnsdist_frontend_tcpcurrentconnections{frontend="127.0.0.1:53",proto="TCP",thread="0"} 0
       dnsdist_frontend_tcpmaxconcurrentconnections{frontend="127.0.0.1:53",proto="TCP",thread="0"} 0

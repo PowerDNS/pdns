@@ -669,8 +669,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << frontsbase << "tcpdiedsendingresponse " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tcpgaveup " << "Amount of TCP connections terminated after too many attempts to get a connection to the backend" << "\n";
   output << "# TYPE " << frontsbase << "tcpgaveup " << "counter" << "\n";
-  output << "# HELP " << frontsbase << "tcpclientimeouts " << "Amount of TCP connections terminated by a timeout while reading from the client" << "\n";
-  output << "# TYPE " << frontsbase << "tcpclientimeouts " << "counter" << "\n";
+  output << "# HELP " << frontsbase << "tcpclienttimeouts " << "Amount of TCP connections terminated by a timeout while reading from the client" << "\n";
+  output << "# TYPE " << frontsbase << "tcpclienttimeouts " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tcpdownstreamtimeouts " << "Amount of TCP connections terminated by a timeout while reading from the backend" << "\n";
   output << "# TYPE " << frontsbase << "tcpdownstreamtimeouts " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tcpcurrentconnections " << "Amount of current incoming TCP connections from clients" << "\n";
@@ -718,7 +718,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       output << frontsbase << "tcpdiedreadingquery" << label << front->tcpDiedReadingQuery.load() << "\n";
       output << frontsbase << "tcpdiedsendingresponse" << label << front->tcpDiedSendingResponse.load() << "\n";
       output << frontsbase << "tcpgaveup" << label << front->tcpGaveUp.load() << "\n";
-      output << frontsbase << "tcpclientimeouts" << label << front->tcpClientTimeouts.load() << "\n";
+      output << frontsbase << "tcpclienttimeouts" << label << front->tcpClientTimeouts.load() << "\n";
       output << frontsbase << "tcpdownstreamtimeouts" << label << front->tcpDownstreamTimeouts.load() << "\n";
       output << frontsbase << "tcpcurrentconnections" << label << front->tcpCurrentConnections.load() << "\n";
       output << frontsbase << "tcpmaxconcurrentconnections" << label << front->tcpMaxConcurrentConnections.load() << "\n";

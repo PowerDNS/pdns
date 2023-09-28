@@ -3546,7 +3546,7 @@ tcpavgqueriesperconnection
 tcpbench
 tcpbytesanswered
 tcpclient
-tcpclientimeouts
+tcpclienttimeouts
 tcpclientthreads
 tcpcurrentconnections
 tcpdiedreaddingresponse
