@@ -464,7 +464,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
   int index = 0;
 
-  for (const std::string& dbname : {"domains", "keydata", "tsig", "metadata"}) {
+  for (const std::string dbname : {"domains", "keydata", "tsig", "metadata"}) {
     std::cerr << "migrating " << dbname << std::endl;
     std::string tdbname = dbname + "_v5";
 
@@ -504,7 +504,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
   index = 0;
 
-  for (const std::string& dbname : {"domains", "keydata", "tsig", "metadata"}) {
+  for (const std::string dbname : {"domains", "keydata", "tsig", "metadata"}) {
     std::string fdbname = dbname + "_0";
     std::cerr << "migrating " << dbname << std::endl;
     std::string tdbname = dbname + "_v5_0";
@@ -553,7 +553,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
   std::string header(LMDBLS::LS_MIN_HEADER_SIZE, '\0');
 
-  for (const std::string& keyname : {"schemaversion", "shards"}) {
+  for (const std::string keyname : {"schemaversion", "shards"}) {
     cerr << "migrating pdns." << keyname << endl;
 
     key.mv_data = (char*)keyname.c_str();
@@ -591,7 +591,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     }
   }
 
-  for (const std::string& keyname : {"uuid"}) {
+  for (const std::string keyname : {"uuid"}) {
     cerr << "migrating pdns." << keyname << endl;
 
     key.mv_data = (char*)keyname.c_str();
