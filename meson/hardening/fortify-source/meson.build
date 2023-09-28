@@ -2,6 +2,11 @@ fortify_source_opt = get_option('fortify-source')
 fortify_source = fortify_source_opt != 'disabled'
 fortify_source_level = 0
 
+if fortify_source and get_option('buildtype') == 'debug'
+  error('Source fortification was requested but it requires compiling with optimization. ' +
+        'A debug buildtype was requested, try setting buildtype=debugoptimized instead')
+endif
+
 if fortify_source
   fortify_source_level = 2
   if fortify_source_opt == 'auto'
