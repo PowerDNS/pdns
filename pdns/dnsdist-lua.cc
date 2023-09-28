@@ -1595,9 +1595,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       g_frontends.push_back(std::move(cs));
     }
-    catch (std::exception& e) {
-      errlog(e.what());
-      g_outputBuffer = "Error: " + string(e.what()) + "\n";
+    catch (const std::exception& e) {
+      errlog("Error during addDNSCryptBind() processing: %s", e.what());
+      g_outputBuffer = "Error during addDNSCryptBind() processing: " + string(e.what()) + "\n";
     }
   });
 
@@ -2560,13 +2560,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         result = g_dohlocals.at(index);
       }
       else {
-        errlog("Error: trying to get DOH frontend with index %zu but we only have %zu frontend(s)\n", index, g_dohlocals.size());
+        errlog("Error: trying to get DOH frontend with index %d but we only have %d frontend(s)\n", index, g_dohlocals.size());
         g_outputBuffer = "Error: trying to get DOH frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_dohlocals.size()) + " frontend(s)\n";
       }
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error while trying to get DOH frontend with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
-      errlog("Error while trying to get DOH frontend with index %zu: %s\n", index, string(e.what()));
+      errlog("Error while trying to get DOH frontend with index %d: %s\n", index, string(e.what()));
     }
 #else
         g_outputBuffer="DNS over HTTPS support is not present!\n";
@@ -2755,13 +2755,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         result = g_tlslocals.at(index)->getContext();
       }
       else {
-        errlog("Error: trying to get TLS context with index %zu but we only have %zu context(s)\n", index, g_tlslocals.size());
+        errlog("Error: trying to get TLS context with index %d but we only have %d context(s)\n", index, g_tlslocals.size());
         g_outputBuffer = "Error: trying to get TLS context with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + " context(s)\n";
       }
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error while trying to get TLS context with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
-      errlog("Error while trying to get TLS context with index %zu: %s\n", index, string(e.what()));
+      errlog("Error while trying to get TLS context with index %d: %s\n", index, string(e.what()));
     }
 #else
         g_outputBuffer="DNS over TLS support is not present!\n";
@@ -2778,13 +2778,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         result = g_tlslocals.at(index);
       }
       else {
-        errlog("Error: trying to get TLS frontend with index %zu but we only have %zu frontends\n", index, g_tlslocals.size());
+        errlog("Error: trying to get TLS frontend with index %d but we only have %d frontends\n", index, g_tlslocals.size());
         g_outputBuffer = "Error: trying to get TLS frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + " frontend(s)\n";
       }
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error while trying to get TLS frontend with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
-      errlog("Error while trying to get TLS frontend with index %zu: %s\n", index, string(e.what()));
+      errlog("Error while trying to get TLS frontend with index %d: %s\n", index, string(e.what()));
     }
 #else
         g_outputBuffer="DNS over TLS support is not present!\n";
@@ -2971,7 +2971,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName ? std::optional<std::string>(*customName) : std::nullopt);
     if (result) {
       g_outputBuffer += *result + "\n";
-      errlog("%s", *result);
+      errlog("Error in declareMetric: %s", *result);
       return false;
     }
     return true;
@@ -2980,7 +2980,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto result = dnsdist::metrics::incrementCustomCounter(name, step ? *step : 1);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
-      errlog("%s", *errorStr);
+      errlog("Error in incMetric: %s", *errorStr);
       return static_cast<uint64_t>(0);
     }
     return std::get<uint64_t>(result);
@@ -2989,7 +2989,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto result = dnsdist::metrics::decrementCustomCounter(name, step ? *step : 1);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
-      errlog("%s", *errorStr);
+      errlog("Error in decMetric: %s", *errorStr);
       return static_cast<uint64_t>(0);
     }
     return std::get<uint64_t>(result);
@@ -2998,7 +2998,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto result = dnsdist::metrics::setCustomGauge(name, value);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
-      errlog("%s", *errorStr);
+      errlog("Error in setMetric: %s", *errorStr);
       return 0.;
     }
     return std::get<double>(result);
@@ -3007,7 +3007,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto result = dnsdist::metrics::getCustomMetric(name);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
-      errlog("%s", *errorStr);
+      errlog("Error in getMetric: %s", *errorStr);
       return 0.;
     }
     return std::get<double>(result);

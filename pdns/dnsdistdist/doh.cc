@@ -1182,7 +1182,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     return 0;
   }
   catch (const std::exception& e) {
-    errlog("DOH Handler function failed with error %s", e.what());
+    vinfolog("DOH Handler function failed with error: '%s'", e.what());
     return 0;
   }
 }
@@ -1264,10 +1264,10 @@ static void dnsdistclient(pdns::channel::Receiver<DOHUnit>&& receiver)
       processDOHQuery(std::move(dohUnit), false);
     }
     catch (const std::exception& e) {
-      errlog("Error while processing query received over DoH: %s", e.what());
+      vinfolog("Error while processing query received over DoH: %s", e.what());
     }
     catch (...) {
-      errlog("Unspecified error while processing query received over DoH");
+      vinfolog("Unspecified error while processing query received over DoH");
     }
   }
 }
@@ -1298,7 +1298,7 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
       dohUnit = std::move(*tmp);
     }
     catch (const std::exception& e) {
-      errlog("Error reading a DOH internal response: %s", e.what());
+      warnlog("Error reading a DOH internal response: %s", e.what());
       return;
     }
 

@@ -407,7 +407,7 @@ void IncomingHTTP2Connection::handleIO()
     }
   }
   catch (const std::exception& e) {
-    infolog("Exception when processing IO for incoming DoH connection from %s: %s", d_ci.remote.toStringWithPort(), e.what());
+    vinfolog("Exception when processing IO for incoming DoH connection from %s: %s", d_ci.remote.toStringWithPort(), e.what());
     d_connectionDied = true;
     stopIO();
   }

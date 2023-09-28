@@ -1309,7 +1309,7 @@ public:
         else if (res == GNUTLS_E_AGAIN) {
           return IOState::NeedWrite;
         }
-        warnlog("Warning, non-fatal error while writing to TLS connection: %s", gnutls_strerror(res));
+        vinfolog("Warning, non-fatal error while writing to TLS connection: %s", gnutls_strerror(res));
       }
     }
     while (pos < toWrite);
@@ -1345,7 +1345,7 @@ public:
         else if (res == GNUTLS_E_AGAIN) {
           return IOState::NeedRead;
         }
-        warnlog("Warning, non-fatal error while writing to TLS connection: %s", gnutls_strerror(res));
+        vinfolog("Warning, non-fatal error while writing to TLS connection: %s", gnutls_strerror(res));
       }
     }
     while (pos < toRead);
