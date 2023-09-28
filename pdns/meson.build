@@ -434,10 +434,6 @@ libpdns_auth_sources = [
   'secpoll-auth.cc',
 ]
 
-if get_variable('dep_sqlite3', dependency('', required: false)).found()
-  libpdns_auth_sources += 'ssqlite3.cc'
-endif
-
 libpdns_auth = declare_dependency(
   link_whole: static_library(
     'pdns-auth',
@@ -449,7 +445,6 @@ libpdns_auth = declare_dependency(
       'auth-querycache.hh',
       'auth-zonecache.hh',
       'secpoll-auth.hh',
-      'ssqlite3.hh',
     ],
     dependencies: [
       deps,
