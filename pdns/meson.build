@@ -100,6 +100,29 @@ libpdns_gss = declare_dependency(
   )
 )
 
+libpdns_sodium = dependency('', required: false)
+if dep_libsodium.found()
+  libpdns_sodium = declare_dependency(
+    link_whole: static_library(
+      'pdns-sodium',
+      'sodiumsigners.cc',
+      dependencies: deps,
+    )
+  )
+endif
+
+libpdns_decaf = dependency('', required: false)
+if dep_libdecaf.found()
+  libpdns_decaf = declare_dependency(
+    link_whole: static_library(
+      'pdns-decaf',
+      'decafsigners.cc',
+      dependencies: deps,
+      cpp_args: '-Wno-shadow',
+    )
+  )
+endif
+
 libpdns_pkcs11 = dependency('', required: false)
 if dep_pkcs11.found()
   libpdns_pkcs11 = declare_dependency(
@@ -108,6 +131,20 @@ if dep_pkcs11.found()
       'pkcs11signers.cc',
       extra_files: [
         'pkcs11signers.hh',
+      ],
+      dependencies: deps,
+    )
+  )
+endif
+
+libpdns_sqlite3 = dependency('', required: false)
+if get_variable('dep_sqlite3', dependency('', required: false)).found()
+  libpdns_sqlite3 = declare_dependency(
+    link_whole: static_library(
+      'pdns-sqlite3',
+      'ssqlite3.cc',
+      extra_files: [
+        'ssqlite3.hh',
       ],
       dependencies: deps,
     )
@@ -286,6 +323,9 @@ libpdns_base = declare_dependency(
       libpdns_lua,
       libpdns_pkcs11,
       libpdns_tsig,
+      libpdns_sodium,
+      libpdns_decaf,
+      libpdns_sqlite3,
     ],
   )
 )
