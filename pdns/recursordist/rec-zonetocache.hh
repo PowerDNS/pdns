@@ -39,7 +39,7 @@ public:
     TSIGTriplet d_tt; // Authentication data
     size_t d_maxReceivedBytes{0}; // Maximum size
     time_t d_retryOnError{60}; // Retry on error
-    time_t d_refreshPeriod{static_cast<time_t>(24 *3600)}; // Time between refetch
+    time_t d_refreshPeriod{static_cast<time_t>(24 * 3600)}; // Time between refetch
     uint32_t d_timeout{20}; // timeout in seconds
     pdns::ZoneMD::Config d_zonemd{pdns::ZoneMD::Config::Validate};
     pdns::ZoneMD::Config d_dnssec{pdns::ZoneMD::Config::Validate};
