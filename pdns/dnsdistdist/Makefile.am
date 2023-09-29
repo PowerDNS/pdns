@@ -440,6 +440,7 @@ endif
 if HAVE_DNS_OVER_QUIC
 dnsdist_SOURCES += doq.cc
 if HAVE_QUICHE
+AM_CPPFLAGS += $(QUICHE_CFLAGS)
 dnsdist_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
 endif
 endif
