@@ -134,23 +134,23 @@ static void resolveInternal(const struct timeval& now, bool logErrors, const pdn
     log->info(Logr::Debug, "done", "rcode", Logging::Loggable(res), "records", Logging::Loggable(ret.size()));
   }
   catch (const std::exception& e) {
-    log->error(Logr::Error, msg, e.what());
+    log->error(Logr::Warning, msg, e.what());
   }
   catch (const PDNSException& e) {
-    log->error(Logr::Error, msg, e.reason);
+    log->error(Logr::Warning, msg, e.reason);
   }
   catch (const ImmediateServFailException& e) {
     if (logErrors) {
-      log->error(Logr::Error, msg, e.reason);
+      log->error(Logr::Warning, msg, e.reason);
     }
   }
   catch (const PolicyHitException& e) {
     if (logErrors) {
-      log->error(Logr::Notice, msg, "PolicyHit");
+      log->error(Logr::Warning, msg, "PolicyHit");
     }
   }
   catch (...) {
-    log->error(Logr::Error, msg, "Unexpectec exception");
+    log->error(Logr::Warning, msg, "Unexpectec exception");
   }
   if (exceptionOccurred) {
     if (task.d_refreshMode) {
@@ -195,14 +195,14 @@ static void tryDoT(const struct timeval& now, bool logErrors, const pdns::Resolv
     log->info(Logr::Debug, "done", "ok", Logging::Loggable(tryOK));
   }
   catch (const std::exception& e) {
-    log->error(Logr::Error, msg, e.what());
+    log->error(Logr::Warning, msg, e.what());
   }
   catch (const PDNSException& e) {
-    log->error(Logr::Error, msg, e.reason);
+    log->error(Logr::Warning, msg, e.reason);
   }
   catch (const ImmediateServFailException& e) {
     if (logErrors) {
-      log->error(Logr::Error, msg, e.reason);
+      log->error(Logr::Warning, msg, e.reason);
     }
   }
   catch (const PolicyHitException& e) {
@@ -211,7 +211,7 @@ static void tryDoT(const struct timeval& now, bool logErrors, const pdns::Resolv
     }
   }
   catch (...) {
-    log->error(Logr::Error, msg, "Unexpected exception");
+    log->error(Logr::Warning, msg, "Unexpected exception");
   }
   if (exceptionOccurred) {
     ++s_resolve_tasks.exceptions;

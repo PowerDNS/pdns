@@ -5897,28 +5897,28 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
     res = sr.beginResolve(qname, qtype, qclass, ret, 0);
   }
   catch (const PDNSException& e) {
-    SLOG(g_log << Logger::Error << "Failed to resolve " << qname << ", got pdns exception: " << e.reason << endl,
-         log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
+    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got pdns exception: " << e.reason << endl,
+         log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
     ret.clear();
   }
   catch (const ImmediateServFailException& e) {
-    SLOG(g_log << Logger::Error << "Failed to resolve " << qname << ", got ImmediateServFailException: " << e.reason << endl,
-         log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException")));
+    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got ImmediateServFailException: " << e.reason << endl,
+         log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException")));
     ret.clear();
   }
   catch (const PolicyHitException& e) {
-    SLOG(g_log << Logger::Error << "Failed to resolve " << qname << ", got a policy hit" << endl,
-         log->info(Logr::Error, msg, "exception", Logging::Loggable("PolicyHitException")));
+    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got a policy hit" << endl,
+         log->info(Logr::Warning, msg, "exception", Logging::Loggable("PolicyHitException")));
     ret.clear();
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Error << "Failed to resolve " << qname << ", got STL error: " << e.what() << endl,
-         log->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception")));
+    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got STL error: " << e.what() << endl,
+         log->error(Logr::Warning, e.what(), msg, "exception", Logging::Loggable("std::exception")));
     ret.clear();
   }
   catch (...) {
-    SLOG(g_log << Logger::Error << "Failed to resolve " << qname << ", got an exception" << endl,
-         log->info(Logr::Error, msg));
+    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got an exception" << endl,
+         log->info(Logr::Warning, msg));
     ret.clear();
   }
 
