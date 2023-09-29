@@ -59,8 +59,27 @@ Finally, it's also possible to attach it to specific binds at runtime::
   > bd = getBind(0)
   > bd:attachFilter(bpf)
 
-:program:`dnsdist` also supports adding dynamic, expiring blocks to a BPF filter::
+:program:`dnsdist` also supports adding dynamic, expiring blocks to a BPF filter:
 
+.. code-block:: lua
+
+  bpf = newBPFFilter({ipv4MaxItems=1024, ipv6MaxItems=1024, qnamesMaxItems=1024})
+  setDefaultBPFFilter(bpf)
+  local dbr = dynBlockRulesGroup()
+  dbr:setQueryRate(20, 10, "Exceeded query rate", 60)
+
+  function maintenance()
+    dbr:apply()
+  end
+
+This will dynamically block all hosts that exceeded 20 queries/s as measured over the past 10 seconds, and the dynamic block will last for 60 seconds.
+
+Since 1.6.0, the default BPF filter set via :func:`setDefaultBPFFilter` will automatically get used when a "drop" dynamic block is inserted via a :ref:`DynBlockRulesGroup`, which provides a better way to combine dynamic blocks with eBPF filtering.
+Before that, it was possible to use the :func:`addBPFFilterDynBlocks` method instead:
+
+.. code-block:: lua
+
+  -- this is a legacy method, please see above for DNSdist >= 1.6.0
   bpf = newBPFFilter({ipv4MaxItems=1024, ipv6MaxItems=1024, qnamesMaxItems=1024})
   setDefaultBPFFilter(bpf)
   dbpf = newDynBPFFilter(bpf)
@@ -69,15 +88,11 @@ Finally, it's also possible to attach it to specific binds at runtime::
           dbpf:purgeExpired()
   end
 
-This will dynamically block all hosts that exceeded 20 queries/s as measured over the past 10 seconds, and the dynamic block will last for 60 seconds.
-
 The dynamic eBPF blocks and the number of queries they blocked can be seen in the web interface and retrieved from the API. Note however that eBPF dynamic objects need to be registered before they appear in the web interface or the API, using the :func:`registerDynBPFFilter` function::
 
   registerDynBPFFilter(dbpf)
 
 They can be unregistered at a later point using the :func:`unregisterDynBPFFilter` function.
-
-Since 1.6.0, the default BPF filter set via :func:`setDefaultBPFFilter` will automatically get used when a "drop" dynamic block is inserted via a :ref:`DynBlockRulesGroup`, which provides a better way to combine dynamic blocks with eBPF filtering.
 
 Requirements
 ------------

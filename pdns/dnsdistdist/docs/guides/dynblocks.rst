@@ -11,13 +11,27 @@ To set dynamic rules, based on recent traffic, define a function called :func:`m
 It will get called every second, and from this function you can set rules to block traffic based on statistics.
 More exactly, the thread handling the :func:`maintenance` function will sleep for one second between each invocation, so if the function takes several seconds to complete it will not be invoked exactly every second.
 
-As an example::
+As an example:
+
+.. code-block:: lua
+
+  local dbr = dynBlockRulesGroup()
+  dbr:setQueryRate(20, 10, "Exceeded query rate", 60)
 
   function maintenance()
-      addDynBlocks(exceedQRate(20, 10), "Exceeded query rate", 60)
+    dbr:apply()
   end
 
 This will dynamically block all hosts that exceeded 20 queries/s as measured over the past 10 seconds, and the dynamic block will last for 60 seconds.
+
+:ref:`DynBlockRulesGroup` is a very efficient way of processing dynamic blocks that was introduced in 1.3.0. Before that, it was possible to use :meth:`addDynBlocks` instead:
+
+.. code-block:: lua
+
+  -- this is a legacy method, please see above for DNSdist >= 1.3.0
+  function maintenance()
+      addDynBlocks(exceedQRate(20, 10), "Exceeded query rate", 60)
+  end
 
 Dynamic blocks in force are displayed with :func:`showDynBlocks` and can be cleared with :func:`clearDynBlocks`.
 They return a table whose key is a :class:`ComboAddress` object, representing the client's source address, and whose value is an integer representing the number of queries matching the corresponding condition (for example the qtype for :func:`exceedQTypeRate`, rcode for :func:`exceedServFails`).
@@ -40,18 +54,6 @@ Starting with dnsdist 1.3.0, a new :ref:`dynBlockRulesGroup` function can be use
 designed to make the processing of multiple rate-limiting rules faster by walking the query and response buffers only once
 for each invocation, instead of once per existing `exceed*()` invocation.
 
-For example, instead of having something like:
-
-.. code-block:: lua
-
-  function maintenance()
-    addDynBlocks(exceedQRate(30, 10), "Exceeded query rate", 60)
-    addDynBlocks(exceedNXDOMAINs(20, 10), "Exceeded NXD rate", 60)
-    addDynBlocks(exceedServFails(20, 10), "Exceeded ServFail rate", 60)
-    addDynBlocks(exceedQTypeRate(DNSQType.ANY, 5, 10), "Exceeded ANY rate", 60)
-    addDynBlocks(exceedRespByterate(1000000, 10), "Exceeded resp BW rate", 60)
-  end
-
 The new syntax would be:
 
 .. code-block:: lua
@@ -66,6 +68,20 @@ The new syntax would be:
   function maintenance()
     dbr:apply()
   end
+
+Before 1.3.0 the legacy syntax was:
+
+.. code-block:: lua
+
+  function maintenance()
+    -- this example is using legacy methods, please see above for DNSdist >= 1.3.0
+    addDynBlocks(exceedQRate(30, 10), "Exceeded query rate", 60)
+    addDynBlocks(exceedNXDOMAINs(20, 10), "Exceeded NXD rate", 60)
+    addDynBlocks(exceedServFails(20, 10), "Exceeded ServFail rate", 60)
+    addDynBlocks(exceedQTypeRate(DNSQType.ANY, 5, 10), "Exceeded ANY rate", 60)
+    addDynBlocks(exceedRespByterate(1000000, 10), "Exceeded resp BW rate", 60)
+  end
+
 
 The old syntax would walk the query buffer 2 times and the response one 3 times, while the new syntax does it only once for each.
 It also reuse the same internal table to keep track of the source IPs, reducing the CPU usage.
