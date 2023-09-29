@@ -2483,7 +2483,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_DNS_OVER_HTTPS */
   });
 
-  luaCtx.writeFunction("addDOQLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::optional<boost::variant<std::string, LuaArray<std::string>>> keyFiles, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addDOQLocal", [client](const std::string& addr, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, boost::variant<std::string, LuaArray<std::string>> keyFiles, boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2494,7 +2494,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaSideEffect();
 
     auto frontend = std::make_shared<DOQFrontend>();
-    if (!loadTLSCertificateAndKeys("addDOQLocal", frontend->d_tlsConfig.d_certKeyPairs, *certFiles, *keyFiles)) {
+    if (!loadTLSCertificateAndKeys("addDOQLocal", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
       return;
     }
     frontend->d_local = ComboAddress(addr, 853);

@@ -171,7 +171,7 @@ Listen Sockets
   * ``readAhead``: bool - When the TLS provider is set to OpenSSL, whether we tell the library to read as many input bytes as possible, which leads to better performance by reducing the number of syscalls. Default is true.
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
 
-.. function:: addDOQLocal(address, [certFile(s) [, keyFile(s) [, urls [, options]]]])
+.. function:: addDOQLocal(address, certFile(s), keyFile(s) [, options])
 
   .. versionadded:: 1.9.0
 
