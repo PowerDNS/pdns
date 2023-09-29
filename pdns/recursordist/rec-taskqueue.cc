@@ -150,7 +150,7 @@ static void resolveInternal(const struct timeval& now, bool logErrors, const pdn
     }
   }
   catch (...) {
-    log->error(Logr::Warning, msg, "Unexpectec exception");
+    log->error(Logr::Warning, msg, "Unexpected exception");
   }
   if (exceptionOccurred) {
     if (task.d_refreshMode) {
