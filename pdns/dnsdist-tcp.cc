@@ -1446,43 +1446,43 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
             if (g_tcpStatesDumpRequested > 0) {
               /* no race here, we took the lock so it can only be increased in the meantime */
               --g_tcpStatesDumpRequested;
-              errlog("Dumping the TCP states, as requested:");
+              infolog("Dumping the TCP states, as requested:");
               data.mplexer->runForAllWatchedFDs([](bool isRead, int fd, const FDMultiplexer::funcparam_t& param, struct timeval ttd)
               {
                 struct timeval lnow;
                 gettimeofday(&lnow, nullptr);
                 if (ttd.tv_sec > 0) {
-                  errlog("- Descriptor %d is in %s state, TTD in %d", fd, (isRead ? "read" : "write"), (ttd.tv_sec-lnow.tv_sec));
+                  infolog("- Descriptor %d is in %s state, TTD in %d", fd, (isRead ? "read" : "write"), (ttd.tv_sec-lnow.tv_sec));
                 }
                 else {
-                  errlog("- Descriptor %d is in %s state, no TTD set", fd, (isRead ? "read" : "write"));
+                  infolog("- Descriptor %d is in %s state, no TTD set", fd, (isRead ? "read" : "write"));
                 }
 
                 if (param.type() == typeid(std::shared_ptr<IncomingTCPConnectionState>)) {
                   auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
-                  errlog(" - %s", state->toString());
+                  infolog(" - %s", state->toString());
                 }
 #ifdef HAVE_NGHTTP2
                 else if (param.type() == typeid(std::shared_ptr<IncomingHTTP2Connection>)) {
                   auto state = boost::any_cast<std::shared_ptr<IncomingHTTP2Connection>>(param);
-                  errlog(" - %s", state->toString());
+                  infolog(" - %s", state->toString());
                 }
 #endif /* HAVE_NGHTTP2 */
                 else if (param.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
                   auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(param);
-                  errlog(" - %s", conn->toString());
+                  infolog(" - %s", conn->toString());
                 }
                 else if (param.type() == typeid(TCPClientThreadData*)) {
-                  errlog(" - Worker thread pipe");
+                  infolog(" - Worker thread pipe");
                 }
               });
-              errlog("The TCP/DoT client cache has %d active and %d idle outgoing connections cached", t_downstreamTCPConnectionsManager.getActiveCount(), t_downstreamTCPConnectionsManager.getIdleCount());
+              infolog("The TCP/DoT client cache has %d active and %d idle outgoing connections cached", t_downstreamTCPConnectionsManager.getActiveCount(), t_downstreamTCPConnectionsManager.getIdleCount());
             }
           }
         }
       }
       catch (const std::exception& e) {
-        errlog("Error in TCP worker thread: %s", e.what());
+        warnlog("Error in TCP worker thread: %s", e.what());
       }
     }
   }

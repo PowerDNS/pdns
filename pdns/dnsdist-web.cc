@@ -225,7 +225,7 @@ bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& 
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
 {
   if (!g_apiReadWrite) {
-    errlog("Not writing content to %s since the API is read-only", filebasename);
+    warnlog("Not writing content to %s since the API is read-only", filebasename);
     return false;
   }
 
@@ -1757,10 +1757,10 @@ static void connectionThread(WebClientConnection&& conn)
     vinfolog("Webserver thread died with parse error exception while processing a request from %s: %s", conn.getClient().toStringWithPort(), e.what());
   }
   catch (const std::exception& e) {
-    errlog("Webserver thread died with exception while processing a request from %s: %s", conn.getClient().toStringWithPort(), e.what());
+    vinfolog("Webserver thread died with exception while processing a request from %s: %s", conn.getClient().toStringWithPort(), e.what());
   }
   catch (...) {
-    errlog("Webserver thread died with exception while processing a request from %s", conn.getClient().toStringWithPort());
+    vinfolog("Webserver thread died with exception while processing a request from %s", conn.getClient().toStringWithPort());
   }
 }
 
@@ -1843,7 +1843,7 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
       t.detach();
     }
     catch (const std::exception& e) {
-      errlog("Had an error accepting new webserver connection: %s", e.what());
+      vinfolog("Had an error accepting new webserver connection: %s", e.what());
     }
   }
 }

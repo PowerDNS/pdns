@@ -338,7 +338,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   }
   catch (const std::exception& e) {
     if (remote && response.size() > 0 && static_cast<size_t>(response.size()) > sizeof(dnsheader)) {
-      infolog("Backend %s sent us a response with id %d that did not parse: %s", remote->d_config.remote.toStringWithPort(), ntohs(dh->id), e.what());
+      vinfolog("Backend %s sent us a response with id %d that did not parse: %s", remote->d_config.remote.toStringWithPort(), ntohs(dh->id), e.what());
     }
     ++dnsdist::metrics::g_stats.nonCompliantResponses;
     if (remote) {
@@ -1956,9 +1956,9 @@ static void maintThread()
           (*f)();
           secondsToWaitLog = 0;
         }
-        catch(const std::exception &e) {
+        catch (const std::exception &e) {
           if (secondsToWaitLog <= 0) {
-            infolog("Error during execution of maintenance function: %s", e.what());
+            warnlog("Error during execution of maintenance function: %s", e.what());
             secondsToWaitLog = 61;
           }
           secondsToWaitLog -= interval;
