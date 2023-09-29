@@ -1140,7 +1140,6 @@ redhat
 redjack
 reentrantly
 refman
-refreh
 refuseds
 reid
 reimplementation
