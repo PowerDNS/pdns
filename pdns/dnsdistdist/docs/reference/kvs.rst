@@ -131,7 +131,7 @@ If the value found in the LMDB database for the key '\\8powerdns\\3com\\0' was '
   .. versionadded:: 1.4.0
 
   Return a new KeyValueStore object associated to the corresponding CDB database. The modification time
-  of the CDB file will be checked every 'refrehDelay' second and the database re-opened if needed.
+  of the CDB file will be checked every 'refreshDelay' second and the database re-opened if needed.
 
   :param string filename: The path to an existing CDB database
   :param int refreshDelays: The delay in seconds between two checks of the database modification time. 0 means disabled
