@@ -197,7 +197,7 @@ Changelogs for 4.9.X
     :tags: Improvements
     :pullreq: 12709
 
-    More fine grained capping of packet cache TTL.
+    More fine-grained capping of packet cache TTL.
 
   .. change::
     :tags: Bug Fixes
