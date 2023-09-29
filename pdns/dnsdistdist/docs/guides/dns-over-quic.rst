@@ -12,7 +12,7 @@ Adding a listen port for DNS-over-QUIC can be done with the :func:`addDOQLocal` 
 
   addDOQLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key')
 
-This will make :program:`dnsdist` listen on [2001:db8:1:f00::1]:853 on UDP, and will use the provided certificate and key to serve incoming TLS connections.
+This will make :program:`dnsdist` listen on [2001:db8:1:f00::1]:853 on UDP, and will use the provided certificate and key to serve incoming DoQ connections.
 
 The fourth parameter, if present, indicates various options. For instance, you can change the congestion control algorithm used. An example is::
 
