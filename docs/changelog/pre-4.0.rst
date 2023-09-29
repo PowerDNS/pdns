@@ -5822,7 +5822,7 @@ Remaining issues
 Version 2.0 Release Candidate 1
 -------------------------------
 
-The MacOS X release! A very experimental OS X 10.2 build has been added.
+The Mac OS X release! A very experimental OS X 10.2 build has been added.
 Furthermore, the Windows version is now in line with Unix with respect
 to capabilities. The ODBC backend now has the code to function as both a
 master and a slave.
