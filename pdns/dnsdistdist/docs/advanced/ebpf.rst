@@ -93,6 +93,7 @@ The dynamic eBPF blocks and the number of queries they blocked can be seen in th
   registerDynBPFFilter(dbpf)
 
 They can be unregistered at a later point using the :func:`unregisterDynBPFFilter` function.
+Since 1.8.2, the metrics for the BPF filter registered via :func:`setDefaultBPFFilter` are exported as well.
 
 Requirements
 ------------
