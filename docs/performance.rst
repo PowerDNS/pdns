@@ -229,7 +229,7 @@ Number of entries in the metadata cache
 .. _stat-open-tcp-connections:
 
 open-tcp-connections
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 Number of currently open TCP connections
 
 .. _stat-overload-drops:
