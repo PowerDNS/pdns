@@ -261,7 +261,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
     }
 
     if (!d_beQuiet) {
-      warnlog("Inserting %sdynamic block for %s for %d seconds: %s", warning ? "(warning) " :"", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
+      warnlog("Inserting %s%sdynamic block for %s for %d seconds: %s", warning ? "(warning) " :"", bpf ? "eBPF " : "", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
     }
   }
 
