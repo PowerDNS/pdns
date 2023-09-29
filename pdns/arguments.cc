@@ -359,6 +359,13 @@ static const map<string, string> deprecateList = {
   {"snmp-master-socket", "snmp-daemon-socket"},
   {"xpf-allow-from", "Proxy Protocol"},
   {"xpf-rr-code", "Proxy Protocol"},
+  {"allow-unsigned-supermaster", "allow-unsigned-autoprimary"},
+  {"master", "primary"},
+  {"slave-cycle-interval", "xfr-cycle-interval"},
+  {"slave-renotify", "secondary-do-renotify"},
+  {"slave", "secondary"},
+  {"superslave", "autosecondary"},
+  {"domain-metadata-cache-ttl", "zone-metadata-cache-ttl"},
 };
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static): accesses d_log (compiled out in auth, hence clang-tidy message)
