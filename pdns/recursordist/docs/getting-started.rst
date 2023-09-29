@@ -31,9 +31,9 @@ OpenBSD
 On OpenBSD, :program:`Recursor` is available through the `OpenBSD ports system <https://openports.se/net/powerdns_recursor>`_.
 Run ``pkg_add powerdns-recursor`` as root to install.
 
-MacOS
+macOS
 ^^^^^
-On MacOS :program:`Recursor` is available through `brew <https://brew.sh/>`_.
+On macOS :program:`Recursor` is available through `brew <https://brew.sh/>`_.
 Run ``brew install pdnsrec`` to install.
 
 Compiling From Source
