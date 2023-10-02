@@ -1198,7 +1198,7 @@ void IncomingHTTP2Connection::updateIO(IOState newState, const FDMultiplexer::ca
     if (newState == IOState::NeedRead) {
       /* use the idle TTL if the handshake has been completed (and proxy protocol payload received, if any),
          and we have processed at least one query, otherwise we use the shorter read TTL  */
-      if ((d_state == State::waitingForQuery || d_state == State::idle) && (d_queriesCount > 0 || d_currentQueriesCount)) {
+      if ((d_state == State::waitingForQuery || d_state == State::idle) && (d_queriesCount > 0 || d_currentQueriesCount > 0)) {
         ttd = getIdleClientReadTTD(now);
       }
       else {
