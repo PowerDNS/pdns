@@ -237,10 +237,10 @@ $(document).ready(function() {
 
         $.ajax({ url: 'jsonstat?command=dynblocklist', type: 'GET', dataType: 'json', jsonp: false,
                  success: function(data) {
-                     var bouw='<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th align=left>Reason</th></tr>';
+                     var bouw='<table width="100%"><tr align=left><th>Dyn blocked netmask</th><th>Seconds</th><th>Blocks</th><th>eBPF</th><th align=left>Reason</th></tr>';
 		     var gotsome=false;
                      $.each(data, function(a,b) {
-                         bouw=bouw+("<tr><td>"+a+"</td><td>"+b.seconds+"</td><td>"+b.blocks+"</td><td>"+b.reason+"</td></tr>");
+                         bouw=bouw+("<tr><td>"+a+"</td><td>"+b.seconds+"</td><td>"+b.blocks+"</td><td>"+b.ebpf+"</td><td>"+b.reason+"</td></tr>");
 			 gotsome=true;
                      });
                      

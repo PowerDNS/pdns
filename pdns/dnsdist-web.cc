@@ -964,33 +964,42 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     auto nmg = g_dynblockNMG.getLocal();
     struct timespec now;
     gettime(&now);
-    for (const auto& e: *nmg) {
-      if(now < e.second.until ) {
-        Json::object thing{
-          {"reason", e.second.reason},
-          {"seconds", (double)(e.second.until.tv_sec - now.tv_sec)},
-          {"blocks", (double)e.second.blocks},
-          {"action", DNSAction::typeToString(e.second.action != DNSAction::Action::None ? e.second.action : g_dynBlockAction) },
-          {"warning", e.second.warning }
-        };
-        obj.emplace(e.first.toString(), thing);
+    for (const auto& entry: *nmg) {
+      if (!(now < entry.second.until)) {
+        continue;
       }
+      uint64_t counter = entry.second.blocks;
+      if (entry.second.bpf && g_defaultBPFFilter) {
+        counter += g_defaultBPFFilter->getHits(entry.first.getNetwork());
+      }
+      Json::object thing{
+        {"reason", entry.second.reason},
+        {"seconds", static_cast<double>(entry.second.until.tv_sec - now.tv_sec)},
+        {"blocks", static_cast<double>(counter)},
+        {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : g_dynBlockAction)},
+        {"warning", entry.second.warning},
+        {"ebpf", entry.second.bpf}
+      };
+      obj.emplace(entry.first.toString(), thing);
     }
 
     auto smt = g_dynblockSMT.getLocal();
     smt->visit([&now,&obj](const SuffixMatchTree<DynBlock>& node) {
-      if(now <node.d_value.until) {
-        string dom("empty");
-        if(!node.d_value.domain.empty())
-          dom = node.d_value.domain.toString();
-        Json::object thing{
-          {"reason", node.d_value.reason},
-          {"seconds", (double)(node.d_value.until.tv_sec - now.tv_sec)},
-          {"blocks", (double)node.d_value.blocks},
-          {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) }
-        };
-        obj.emplace(dom, thing);
+      if (!(now < node.d_value.until)) {
+        return;
       }
+      string dom("empty");
+      if (!node.d_value.domain.empty()) {
+        dom = node.d_value.domain.toString();
+      }
+      Json::object thing{
+        {"reason", node.d_value.reason},
+        {"seconds", static_cast<double>(node.d_value.until.tv_sec - now.tv_sec)},
+        {"blocks", static_cast<double>(node.d_value.blocks)},
+        {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction)},
+        {"ebpf", node.d_value.bpf}
+      };
+      obj.emplace(dom, thing);
     });
 #endif /* DISABLE_DYNBLOCKS */
     Json my_json = obj;
@@ -1011,6 +1020,23 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
             {"blocks", (double)(std::get<1>(entry))}
           };
         obj.emplace(std::get<0>(entry).toString(), thing );
+      }
+    }
+    if (g_defaultBPFFilter) {
+      auto nmg = g_dynblockNMG.getLocal();
+      for (const auto& entry: *nmg) {
+        if (!(now < entry.second.until) || !entry.second.bpf) {
+          continue;
+        }
+        uint64_t counter = entry.second.blocks + g_defaultBPFFilter->getHits(entry.first.getNetwork());
+        Json::object thing{
+          {"reason", entry.second.reason},
+          {"seconds", static_cast<double>(entry.second.until.tv_sec - now.tv_sec)},
+          {"blocks", static_cast<double>(counter)},
+          {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : g_dynBlockAction)},
+          {"warning", entry.second.warning},
+        };
+        obj.emplace(entry.first.toString(), thing);
       }
     }
 #endif /* HAVE_EBPF */
