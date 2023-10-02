@@ -1,7 +1,9 @@
 """Helpers for dealing with git, compilation databases, etc."""
 
+import pathlib
 import json
 import os
+import sys
 
 import git
 import yaml
@@ -46,3 +48,28 @@ def index_compdb(file_contents):
         filename = os.path.join(item["directory"], item["file"])
         result.add(filename)
     return result
+
+def normalize_dist_dir(version, distPath):
+    """Map the path of a source file from inside the dist directory
+       to its path in the git repository."""
+    # get rid of the distdir path, to get file paths as they are in the repository
+    repositoryPath = pathlib.Path(get_repo_root()).resolve()
+    distPath = pathlib.Path(distPath).resolve()
+    if f'pdns-{version}' in distPath.parts:
+        # authoritative or tool
+        authPath = repositoryPath.joinpath(f'pdns-{version}').resolve()
+        relativeToAuth = distPath.relative_to(authPath)
+        return str(repositoryPath.joinpath(relativeToAuth))
+
+    if f'pdns-recursor-{version}' in distPath.parts:
+        recPath = repositoryPath.joinpath('pdns', 'recursordist', f'pdns-recursor-{version}').resolve()
+        relativeToRec = distPath.relative_to(recPath)
+        return str(repositoryPath.joinpath('pdns', 'recursordist', relativeToRec).resolve())
+
+    if f'dnsdist-{version}' in distPath.parts:
+        dnsdistPath = repositoryPath.joinpath('pdns', 'dnsdistdist', f'dnsdist-{version}').resolve()
+        relativeToDist = distPath.relative_to(dnsdistPath)
+        return str(repositoryPath.joinpath('pdns', 'dnsdistdist', relativeToDist).resolve())
+
+    print(f'Unable to map {distPath}', file=sys.stderr)
+    return str(distPath)
