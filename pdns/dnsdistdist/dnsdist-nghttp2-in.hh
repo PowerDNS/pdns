@@ -86,7 +86,6 @@ private:
   std::unique_ptr<DOHUnitInterface> getDOHUnit(uint32_t streamID) override;
 
   void stopIO();
-  bool isIdle() const;
   uint32_t getConcurrentStreamsCount() const;
   void updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback);
   void handleIOError();
