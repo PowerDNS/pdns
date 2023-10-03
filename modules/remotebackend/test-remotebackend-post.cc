@@ -66,7 +66,7 @@ struct RemotebackendSetup
 {
   RemotebackendSetup()
   {
-    be = 0;
+    be = nullptr;
     try {
       // setup minimum arguments
       ::arg().set("module-dir") = "./.libs";
@@ -81,7 +81,7 @@ struct RemotebackendSetup
       BOOST_TEST_MESSAGE("Cannot start remotebackend: " << ex.reason);
     };
   }
-  ~RemotebackendSetup() {}
+  ~RemotebackendSetup() = default;
 };
 
 BOOST_GLOBAL_FIXTURE(RemotebackendSetup);

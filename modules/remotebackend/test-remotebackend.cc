@@ -75,8 +75,9 @@ BOOST_AUTO_TEST_CASE(test_method_list)
 
   BOOST_TEST_MESSAGE("Testing list method");
   be->list(DNSName("unit.test."), -1);
-  while (be->get(rr))
+  while (be->get(rr)) {
     record_count++;
+  }
 
   BOOST_CHECK_EQUAL(record_count, 5); // number of records our test domain has
 }
@@ -90,7 +91,7 @@ BOOST_AUTO_TEST_CASE(test_method_doesDNSSEC)
 BOOST_AUTO_TEST_CASE(test_method_setDomainMetadata)
 {
   std::vector<std::string> meta;
-  meta.push_back("VALUE");
+  meta.emplace_back("VALUE");
   BOOST_TEST_MESSAGE("Testing setDomainMetadata method");
   BOOST_CHECK(be->setDomainMetadata(DNSName("unit.test."), "TEST", meta));
 }
@@ -102,8 +103,9 @@ BOOST_AUTO_TEST_CASE(test_method_alsoNotifies)
   BOOST_TEST_MESSAGE("Testing alsoNotifies method");
   be->alsoNotifies(DNSName("unit.test."), &alsoNotifies);
   BOOST_CHECK_EQUAL(alsoNotifies.size(), 1);
-  if (alsoNotifies.size() > 0)
+  if (!alsoNotifies.empty()) {
     BOOST_CHECK_EQUAL(alsoNotifies.count("192.0.2.1"), 1);
+  }
   BOOST_CHECK(be->setDomainMetadata(DNSName("unit.test."), "ALSO-NOTIFY", std::vector<std::string>()));
 }
 
@@ -115,8 +117,9 @@ BOOST_AUTO_TEST_CASE(test_method_getDomainMetadata)
   BOOST_CHECK_EQUAL(meta.size(), 1);
   // in case we got more than one value, which would be unexpected
   // but not fatal
-  if (meta.size() > 0)
+  if (!meta.empty()) {
     BOOST_CHECK_EQUAL(meta[0], "VALUE");
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_method_getAllDomainMetadata)
@@ -127,14 +130,15 @@ BOOST_AUTO_TEST_CASE(test_method_getAllDomainMetadata)
   BOOST_CHECK_EQUAL(meta.size(), 1);
   // in case we got more than one value, which would be unexpected
   // but not fatal
-  if (meta.size() > 0)
+  if (!meta.empty()) {
     BOOST_CHECK_EQUAL(meta["TEST"][0], "VALUE");
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_method_addDomainKey)
 {
   BOOST_TEST_MESSAGE("Testing addDomainKey method");
-  int64_t id;
+  int64_t id = 0;
   be->addDomainKey(DNSName("unit.test."), k1, id);
   BOOST_CHECK_EQUAL(id, 1);
   be->addDomainKey(DNSName("unit.test."), k2, id);
@@ -182,7 +186,9 @@ BOOST_AUTO_TEST_CASE(test_method_removeDomainKey)
 
 BOOST_AUTO_TEST_CASE(test_method_getBeforeAndAfterNamesAbsolute)
 {
-  DNSName unhashed, before, after;
+  DNSName unhashed;
+  DNSName before;
+  DNSName after;
   BOOST_TEST_MESSAGE("Testing getBeforeAndAfterNamesAbsolute method");
 
   be->getBeforeAndAfterNamesAbsolute(-1, DNSName("middle.unit.test."), unhashed, before, after);
@@ -193,7 +199,8 @@ BOOST_AUTO_TEST_CASE(test_method_getBeforeAndAfterNamesAbsolute)
 
 BOOST_AUTO_TEST_CASE(test_method_setTSIGKey)
 {
-  std::string algorithm, content;
+  std::string algorithm;
+  std::string content;
   BOOST_TEST_MESSAGE("Testing setTSIGKey method");
   BOOST_CHECK_MESSAGE(be->setTSIGKey(DNSName("unit.test."), DNSName("hmac-md5."), "kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="), "did not return true");
 }
@@ -210,7 +217,8 @@ BOOST_AUTO_TEST_CASE(test_method_getTSIGKey)
 
 BOOST_AUTO_TEST_CASE(test_method_deleteTSIGKey)
 {
-  std::string algorithm, content;
+  std::string algorithm;
+  std::string content;
   BOOST_TEST_MESSAGE("Testing deleteTSIGKey method");
   BOOST_CHECK_MESSAGE(be->deleteTSIGKey(DNSName("unit.test.")), "did not return true");
 }
@@ -220,8 +228,8 @@ BOOST_AUTO_TEST_CASE(test_method_getTSIGKeys)
   std::vector<struct TSIGKey> keys;
   BOOST_TEST_MESSAGE("Testing getTSIGKeys method");
   be->getTSIGKeys(keys);
-  BOOST_CHECK(keys.size() > 0);
-  if (keys.size() > 0) {
+  BOOST_CHECK(!keys.empty());
+  if (!keys.empty()) {
     BOOST_CHECK_EQUAL(keys[0].name.toString(), "test.");
     BOOST_CHECK_EQUAL(keys[0].algorithm.toString(), "NULL.");
     BOOST_CHECK_EQUAL(keys[0].key, "NULL");
@@ -268,7 +276,7 @@ BOOST_AUTO_TEST_CASE(test_method_superMasterBackend)
 {
   DNSResourceRecord rr;
   std::vector<DNSResourceRecord> nsset;
-  DNSBackend* dbd;
+  DNSBackend* dbd = nullptr;
   BOOST_TEST_MESSAGE("Testing superMasterBackend method");
 
   rr.qname = DNSName("example.com.");
@@ -284,7 +292,7 @@ BOOST_AUTO_TEST_CASE(test_method_superMasterBackend)
   rr.content = "ns2.example.com.";
   nsset.push_back(rr);
 
-  BOOST_CHECK(be->superMasterBackend("10.0.0.1", DNSName("example.com."), nsset, NULL, NULL, &dbd));
+  BOOST_CHECK(be->superMasterBackend("10.0.0.1", DNSName("example.com."), nsset, nullptr, nullptr, &dbd));
 
   // let's see what we got
   BOOST_CHECK_EQUAL(dbd, be);
@@ -376,7 +384,7 @@ BOOST_AUTO_TEST_CASE(test_method_getUpdatedMasters)
 
   be->getUpdatedMasters(result, catalogs, hashes);
 
-  BOOST_REQUIRE(result.size() > 0);
+  BOOST_REQUIRE(!result.empty());
 
   di = result.at(0);
   BOOST_CHECK_EQUAL(di.zone.toString(), "master.test.");
