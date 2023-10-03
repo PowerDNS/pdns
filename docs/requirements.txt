@@ -306,7 +306,7 @@ sphinxcontrib-httpdomain==1.8.1 \
     --hash=sha256:6c2dfe6ca282d75f66df333869bb0ce7331c01b475db6809ff9d107b7cdfe04b
     # via sphinxcontrib-openapi
 sphinxcontrib-openapi @ https://github.com/PowerDNS/sphinxcontrib-openapi/archive/refs/heads/use-jsondomain-pdns-py3.10-noscm.zip \
-    --hash=sha256:7314b6a453d8c397d45a284255adbb55b7ba464f5f2ace32da4d08941ed76b2d
+    --hash=sha256:ad6659a5e86e4899386d249f1eae18a459175a92da0dd851ce20f8b8ff6569b0
     # via -r requirements.in
 sphinxcontrib-serializinghtml==1.1.5 \
     --hash=sha256:352a9a00ae864471d3a7ead8d7d79f5fc0b57e8b3f95e9867eb9eb28999b92fd \
