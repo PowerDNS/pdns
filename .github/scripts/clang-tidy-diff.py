@@ -36,6 +36,8 @@ import tempfile
 import threading
 import traceback
 
+from pathlib import Path
+
 try:
   import yaml
 except ImportError:
@@ -242,7 +244,8 @@ def main():
 
   for name in lines_by_file:
     line_filter_json = json.dumps(
-      [{"name": name, "lines": lines_by_file[name]}],
+      # clang-tidy only supports filenames in -line-filter, not paths
+      [{"name": Path(name).name, "lines": lines_by_file[name]}],
       separators=(',', ':'))
 
     # Run clang-tidy on files containing changes.
