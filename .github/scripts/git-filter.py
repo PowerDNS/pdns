@@ -16,6 +16,10 @@ import unidiff
 
 def main():
     """Start the script."""
+    # It might be tempting to normalize the paths here instead of
+    # rewriting the compilation database, but then clang-tidy
+    # loses the depth of files in the repository, outputing for
+    # example "credentials.cc" instead of "pdns/credentials.cc"
     compdb = helpers.load_compdb("compile_commands.json")
     compdb = helpers.index_compdb(compdb)
 
