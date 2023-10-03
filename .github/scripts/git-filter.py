@@ -32,25 +32,6 @@ def main():
     for patch in patch_set:
         path = os.path.join(root, patch.path)
         if path in compdb:
-            if not patch.path.startswith(pdns_path):
-                # If the file being diffed is not under the pdns/ directory, we
-                # need to reconstruct its filename in the patch adding extra
-                # paths that clang-tidy-diff will get rid of: this way
-                # clang-tidy can work with the correct file path.
-                #
-                # Example with a source file under modules/:
-                #   patch.path = modules/foo/foo.cc
-                #   path       = /home/user/workspace/pdns/modules/foo/foo.cc
-                #   cwd        = /home/user/workspace/pdns/pdns/
-                #   relpath    = ../modules/foo/foo.cc
-                #
-                # Then the patch filenames would be:
-                #   patch.source_file = a/pdns/../modules/foo/foo.cc
-                #   patch.target_file = b/pdns/../modules/foo/foo.cc
-                relpath = os.path.relpath(path, cwd)
-                if patch.source_file is not None:
-                    patch.source_file = os.path.join("a", "pdns", relpath)
-                patch.target_file = os.path.join("b", "pdns", relpath)
             print(patch)
         else:
             msg = f"Skipping {path}: it is not in the compilation db"
