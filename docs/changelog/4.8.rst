@@ -2,6 +2,34 @@ Changelogs for 4.8.x
 ====================
 
 .. changelog::
+  :version: 4.8.3
+  :released: 5th of October 2023
+
+  This is release 4.8.3 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.8.x.
+
+  This release contains one new feature (``default-catalog-zone``), one bugfix (in ixfrdist), and a workaround for a bug in the MySQL client libraries.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13271
+
+    smysql: stop explicitly setting MYSQL_OPT_RECONNECT to 0
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13240
+
+    add default-catalog-zone setting
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13316
+
+    ixfrdist: set AA=1 on SOA responses
+
+.. changelog::
   :version: 4.8.2
   :released: 7th of September 2023
 
