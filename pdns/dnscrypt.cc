@@ -399,9 +399,10 @@ bool DNSCryptQuery::parsePlaintextQuery(const PacketBuffer& packet)
     return false;
   }
 
-  const struct dnsheader * dh = reinterpret_cast<const struct dnsheader *>(packet.data());
-  if (dh->qr || ntohs(dh->qdcount) != 1 || dh->ancount != 0 || dh->nscount != 0 || dh->opcode != Opcode::Query)
+  const dnsheader_aligned dh(packet.data());
+  if (dh->qr || ntohs(dh->qdcount) != 1 || dh->ancount != 0 || dh->nscount != 0 || dh->opcode != Opcode::Query) {
     return false;
+  }
 
   unsigned int qnameWireLength;
   uint16_t qtype, qclass;

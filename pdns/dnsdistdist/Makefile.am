@@ -513,6 +513,7 @@ fuzz_target_dnsdistcache_SOURCES = \
 	channel.hh channel.cc \
 	dns.cc dns.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
+	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-idstate.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \

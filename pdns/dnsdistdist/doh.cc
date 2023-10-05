@@ -26,6 +26,7 @@
 #include "dns.hh"
 #include "dolog.hh"
 #include "dnsdist-concurrent-connections.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-proxy-protocol.hh"
@@ -499,7 +500,7 @@ public:
     DNSResponse dr(dohUnit->ids, dohUnit->response, dohUnit->downstream);
 
     dnsheader cleartextDH{};
-    memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
+    memcpy(&cleartextDH, dr.getHeader().get(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
       static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
@@ -716,17 +717,20 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     {
       /* don't keep that pointer around, it will be invalidated if the buffer is ever resized */
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      auto* dnsHeader = reinterpret_cast<struct dnsheader*>(unit->query.data());
+      const dnsheader_aligned dnsHeader(unit->query.data());
 
-      if (!checkQueryHeaders(dnsHeader, clientState)) {
+      if (!checkQueryHeaders(dnsHeader.get(), clientState)) {
         unit->status_code = 400;
         handleImmediateResponse(std::move(unit), "DoH invalid headers");
         return;
       }
 
       if (dnsHeader->qdcount == 0U) {
-        dnsHeader->rcode = RCode::NotImp;
-        dnsHeader->qr = true;
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(unit->query, [](dnsheader& header) {
+          header.rcode = RCode::NotImp;
+          header.qr = true;
+          return true;
+        });
         unit->response = std::move(unit->query);
 
         handleImmediateResponse(std::move(unit), "DoH empty query");
@@ -751,7 +755,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     ids.qname = DNSName(reinterpret_cast<const char*>(unit->query.data()), static_cast<int>(unit->query.size()), static_cast<int>(sizeof(dnsheader)), false, &ids.qtype, &ids.qclass);
     DNSQuestion dnsQuestion(ids, unit->query);
-    const uint16_t* flags = getFlagsFromDNSHeader(dnsQuestion.getHeader());
+    const uint16_t* flags = getFlagsFromDNSHeader(dnsQuestion.getHeader().get());
     ids.origFlags = *flags;
     ids.cs = &clientState;
     dnsQuestion.sni = std::move(unit->sni);
@@ -1322,9 +1326,10 @@ static void on_dnsdist(h2o_socket_t *listener, const char *err)
         dohUnit->query.size() > dohUnit->ids.d_proxyProtocolPayloadSize &&
         (dohUnit->query.size() - dohUnit->ids.d_proxyProtocolPayloadSize) > sizeof(dnsheader)) {
       /* restoring the original ID */
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      auto* queryDH = reinterpret_cast<struct dnsheader*>(&dohUnit->query.at(dohUnit->ids.d_proxyProtocolPayloadSize));
-      queryDH->id = dohUnit->ids.origID;
+      dnsdist::PacketMangling::editDNSHeaderFromRawPacket(&dohUnit->query.at(dohUnit->ids.d_proxyProtocolPayloadSize), [oldID=dohUnit->ids.origID](dnsheader& header) {
+        header.id = oldID;
+        return true;
+      });
       dohUnit->ids.forwardedOverUDP = false;
       dohUnit->tcp = true;
       dohUnit->truncated = false;
@@ -1645,7 +1650,7 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&&
 
     DNSResponse dnsResponse(dohUnit->ids, udpResponse, dohUnit->downstream);
     dnsheader cleartextDH{};
-    memcpy(&cleartextDH, dnsResponse.getHeader(), sizeof(cleartextDH));
+    memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
 
     dnsResponse.ids.du = std::move(dohUnit);
     if (!processResponse(udpResponse, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {

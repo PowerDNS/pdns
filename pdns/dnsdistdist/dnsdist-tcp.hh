@@ -126,7 +126,8 @@ struct TCPResponse : public TCPQuery
     TCPQuery(std::move(buffer), std::move(state)), d_connection(std::move(conn)), d_ds(std::move(ds))
   {
     if (d_buffer.size() >= sizeof(dnsheader)) {
-      memcpy(&d_cleartextDH, reinterpret_cast<const dnsheader*>(d_buffer.data()), sizeof(d_cleartextDH));
+      dnsheader_aligned header(d_buffer.data());
+      memcpy(&d_cleartextDH, header.get(), sizeof(d_cleartextDH));
     }
     else {
       memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));
@@ -137,7 +138,8 @@ struct TCPResponse : public TCPQuery
     TCPQuery(std::move(query))
   {
     if (d_buffer.size() >= sizeof(dnsheader)) {
-      memcpy(&d_cleartextDH, reinterpret_cast<const dnsheader*>(d_buffer.data()), sizeof(d_cleartextDH));
+      dnsheader_aligned header(d_buffer.data());
+      memcpy(&d_cleartextDH, header.get(), sizeof(d_cleartextDH));
     }
     else {
       memset(&d_cleartextDH, 0, sizeof(d_cleartextDH));

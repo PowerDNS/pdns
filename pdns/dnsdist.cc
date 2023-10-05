@@ -53,6 +53,7 @@
 #include "dnsdist-carbon.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-discovery.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
@@ -197,8 +198,12 @@ static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qn
     }
 
     packet.resize(static_cast<uint16_t>(sizeof(dnsheader)+qnameWireLength+DNS_TYPE_SIZE+DNS_CLASS_SIZE));
-    struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(packet.data());
-    dh->ancount = dh->arcount = dh->nscount = 0;
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(packet, [](dnsheader& header) {
+      header.ancount = 0;
+      header.arcount = 0;
+      header.nscount = 0;
+      return true;
+    });
 
     if (hadEDNS) {
       addEDNS(packet, maximumSize, z & EDNS_HEADER_FLAG_DO, payloadSize, 0);
@@ -232,8 +237,8 @@ static std::unique_ptr<DelayPipe<DelayedPacket>> g_delay{nullptr};
 
 std::string DNSQuestion::getTrailingData() const
 {
-  const char* message = reinterpret_cast<const char*>(this->getHeader());
-  const uint16_t messageLen = getDNSPacketLength(message, this->data.size());
+  const char* message = reinterpret_cast<const char*>(this->getData().data());
+  const uint16_t messageLen = getDNSPacketLength(message, this->getData().size());
   return std::string(message + messageLen, this->getData().size() - messageLen);
 }
 
@@ -249,6 +254,14 @@ bool DNSQuestion::setTrailingData(const std::string& tail)
     this->data.insert(this->data.end(), tail.begin(), tail.end());
   }
   return true;
+}
+
+bool DNSQuestion::editHeader(std::function<bool(dnsheader&)> editFunction)
+{
+  if (data.size() < sizeof(dnsheader)) {
+    throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
+  }
+  return dnsdist::PacketMangling::editDNSHeaderFromPacket(data, editFunction);
 }
 
 static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
@@ -311,7 +324,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
     return false;
   }
 
-  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(response.data());
+  const dnsheader_aligned dh(response.data());
   if (dh->qr == 0) {
     ++dnsdist::metrics::g_stats.nonCompliantResponses;
     if (remote) {
@@ -370,11 +383,14 @@ static void restoreFlags(struct dnsheader* dh, uint16_t origFlags)
   *flags |= origFlags;
 }
 
-static bool fixUpQueryTurnedResponse(DNSQuestion& dq, const uint16_t origFlags)
+static bool fixUpQueryTurnedResponse(DNSQuestion& dnsQuestion, const uint16_t origFlags)
 {
-  restoreFlags(dq.getHeader(), origFlags);
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [origFlags](dnsheader& header) {
+    restoreFlags(&header, origFlags);
+    return true;
+  });
 
-  return addEDNSToQueryTurnedResponse(dq);
+  return addEDNSToQueryTurnedResponse(dnsQuestion);
 }
 
 static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t origFlags, bool ednsAdded, bool ecsAdded, bool* zeroScope)
@@ -383,8 +399,10 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
     return false;
   }
 
-  struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(response.data());
-  restoreFlags(dh, origFlags);
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(response, [origFlags](dnsheader& header) {
+    restoreFlags(&header, origFlags);
+    return true;
+  });
 
   if (response.size() == sizeof(dnsheader)) {
     return true;
@@ -422,10 +440,12 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
         if (last) {
           /* simply remove the last AR */
           response.resize(response.size() - optLen);
-          dh = reinterpret_cast<struct dnsheader*>(response.data());
-          uint16_t arcount = ntohs(dh->arcount);
-          arcount--;
-          dh->arcount = htons(arcount);
+          dnsdist::PacketMangling::editDNSHeaderFromPacket(response, [](dnsheader& header) {
+            uint16_t arcount = ntohs(header.arcount);
+            arcount--;
+            header.arcount = htons(arcount);
+            return true;
+          });
         }
         else {
           /* Removing an intermediary RR could lead to compression error */
@@ -499,7 +519,10 @@ static bool applyRulesToResponse(const std::vector<DNSDistResponseRuleAction>& r
         return true;
         break;
       case DNSResponseAction::Action::ServFail:
-        dr.getHeader()->rcode = RCode::ServFail;
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(dr.getMutableData(), [](dnsheader& header) {
+          header.rcode = RCode::ServFail;
+          return true;
+        });
         return true;
         break;
         /* non-terminal actions follow */
@@ -660,7 +683,10 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   if (ids.udpPayloadSize > 0 && response.size() > ids.udpPayloadSize) {
     vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), ids.udpPayloadSize);
     truncateTC(dr.getMutableData(), dr.getMaximumSize(), dr.ids.qname.wirelength());
-    dr.getHeader()->tc = true;
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dr.getMutableData(), [](dnsheader& header) {
+      header.tc = true;
+      return true;
+    });
   }
   else if (dr.getHeader()->tc && g_truncateTC) {
     truncateTC(response, dr.getMaximumSize(), dr.ids.qname.wirelength());
@@ -669,7 +695,7 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
   dnsheader cleartextDH;
-  memcpy(&cleartextDH, dr.getHeader(), sizeof(cleartextDH));
+  memcpy(&cleartextDH, dr.getHeader().get(), sizeof(cleartextDH));
 
   if (!isAsync) {
     if (!processResponse(response, respRuleActions, cacheInsertedRespRuleActions, dr, ids.cs && ids.cs->muted)) {
@@ -759,7 +785,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         }
 
         response.resize(static_cast<size_t>(got));
-        dnsheader* dh = reinterpret_cast<struct dnsheader*>(response.data());
+        const dnsheader_aligned dh(response.data());
         queryId = dh->id;
 
         auto ids = dss->getState(queryId);
@@ -775,7 +801,10 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 
         auto du = std::move(ids->du);
 
-        dh->id = ids->origID;
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(response, [&ids](dnsheader& header) {
+          header.id = ids->origID;
+          return true;
+        });
         ++dss->responses;
 
         double udiff = ids->queryRealTime.udiff();
@@ -869,7 +898,15 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return false;
   }
 
-  switch(action) {
+  auto setRCode = [&dq](uint8_t rcode) {
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [rcode](dnsheader& header) {
+      header.rcode = rcode;
+      header.qr = true;
+      return true;
+    });
+  };
+
+  switch (action) {
   case DNSAction::Action::Allow:
     return true;
     break;
@@ -879,18 +916,15 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return true;
     break;
   case DNSAction::Action::Nxdomain:
-    dq.getHeader()->rcode = RCode::NXDomain;
-    dq.getHeader()->qr = true;
+    setRCode(RCode::NXDomain);
     return true;
     break;
   case DNSAction::Action::Refused:
-    dq.getHeader()->rcode = RCode::Refused;
-    dq.getHeader()->qr = true;
+    setRCode(RCode::Refused);
     return true;
     break;
   case DNSAction::Action::ServFail:
-    dq.getHeader()->rcode = RCode::ServFail;
-    dq.getHeader()->qr = true;
+    setRCode(RCode::ServFail);
     return true;
     break;
   case DNSAction::Action::Spoof:
@@ -907,11 +941,14 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     break;
   case DNSAction::Action::Truncate:
     if (!dq.overTCP()) {
-      dq.getHeader()->tc = true;
-      dq.getHeader()->qr = true;
-      dq.getHeader()->ra = dq.getHeader()->rd;
-      dq.getHeader()->aa = false;
-      dq.getHeader()->ad = false;
+      dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+        header.tc = true;
+        header.qr = true;
+        header.ra = header.rd;
+        header.aa = false;
+        header.ad = false;
+        return true;
+      });
       ++dnsdist::metrics::g_stats.ruleTruncated;
       return true;
     }
@@ -926,7 +963,10 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return true;
     break;
   case DNSAction::Action::NoRecurse:
-    dq.getHeader()->rd = false;
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+      header.rd = false;
+      return true;
+    });
     return true;
     break;
     /* non-terminal actions follow */
@@ -946,6 +986,14 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
 
 static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const struct timespec& now)
 {
+  auto setRCode = [&dq](uint8_t rcode) {
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [rcode](dnsheader& header) {
+      header.rcode = rcode;
+      header.qr = true;
+      return true;
+    });
+  };
+
   if (g_rings.shouldRecordQueries()) {
     g_rings.insertQuery(now, dq.ids.origRemote, dq.ids.qname, dq.ids.qtype, dq.getData().size(), *dq.getHeader(), dq.getProtocol());
   }
@@ -980,6 +1028,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
       if (action == DNSAction::Action::None) {
         action = g_dynBlockAction;
       }
+
       switch (action) {
       case DNSAction::Action::NoOp:
         /* do nothing */
@@ -989,27 +1038,28 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
         vinfolog("Query from %s turned into NXDomain because of dynamic block", dq.ids.origRemote.toStringWithPort());
         updateBlockStats();
 
-        dq.getHeader()->rcode = RCode::NXDomain;
-        dq.getHeader()->qr=true;
+        setRCode(RCode::NXDomain);
         return true;
 
       case DNSAction::Action::Refused:
         vinfolog("Query from %s refused because of dynamic block", dq.ids.origRemote.toStringWithPort());
         updateBlockStats();
 
-        dq.getHeader()->rcode = RCode::Refused;
-        dq.getHeader()->qr = true;
+        setRCode(RCode::Refused);
         return true;
 
       case DNSAction::Action::Truncate:
         if (!dq.overTCP()) {
           updateBlockStats();
           vinfolog("Query from %s truncated because of dynamic block", dq.ids.origRemote.toStringWithPort());
-          dq.getHeader()->tc = true;
-          dq.getHeader()->qr = true;
-          dq.getHeader()->ra = dq.getHeader()->rd;
-          dq.getHeader()->aa = false;
-          dq.getHeader()->ad = false;
+          dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+            header.tc = true;
+            header.qr = true;
+            header.ra = header.rd;
+            header.aa = false;
+            header.ad = false;
+            return true;
+          });
           return true;
         }
         else {
@@ -1019,7 +1069,10 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
       case DNSAction::Action::NoRecurse:
         updateBlockStats();
         vinfolog("Query from %s setting rd=0 because of dynamic block", dq.ids.origRemote.toStringWithPort());
-        dq.getHeader()->rd = false;
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+          header.rd = false;
+          return true;
+        });
         return true;
       default:
         updateBlockStats();
@@ -1048,26 +1101,27 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
         vinfolog("Query from %s for %s turned into NXDomain because of dynamic block", dq.ids.origRemote.toStringWithPort(), dq.ids.qname.toLogString());
         updateBlockStats();
 
-        dq.getHeader()->rcode = RCode::NXDomain;
-        dq.getHeader()->qr = true;
+        setRCode(RCode::NXDomain);
         return true;
       case DNSAction::Action::Refused:
         vinfolog("Query from %s for %s refused because of dynamic block", dq.ids.origRemote.toStringWithPort(), dq.ids.qname.toLogString());
         updateBlockStats();
 
-        dq.getHeader()->rcode = RCode::Refused;
-        dq.getHeader()->qr = true;
+        setRCode(RCode::Refused);
         return true;
       case DNSAction::Action::Truncate:
         if (!dq.overTCP()) {
           updateBlockStats();
 
           vinfolog("Query from %s for %s truncated because of dynamic block", dq.ids.origRemote.toStringWithPort(), dq.ids.qname.toLogString());
-          dq.getHeader()->tc = true;
-          dq.getHeader()->qr = true;
-          dq.getHeader()->ra = dq.getHeader()->rd;
-          dq.getHeader()->aa = false;
-          dq.getHeader()->ad = false;
+          dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+            header.tc = true;
+            header.qr = true;
+            header.ra = header.rd;
+            header.aa = false;
+            header.ad = false;
+            return true;
+          });
           return true;
         }
         else {
@@ -1077,7 +1131,10 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
       case DNSAction::Action::NoRecurse:
         updateBlockStats();
         vinfolog("Query from %s setting rd=0 because of dynamic block", dq.ids.origRemote.toStringWithPort());
-        dq.getHeader()->rd = false;
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+          header.rd = false;
+          return true;
+        });
         return true;
       default:
         updateBlockStats();
@@ -1368,7 +1425,10 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
          yet, as we will do a second-lookup */
       if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKey, dq.ids.subnet, dq.ids.dnssecOK, forwardedOverUDP, allowExpired, false, true, dq.ids.protocol != dnsdist::Protocol::DoH || forwardedOverUDP)) {
 
-        restoreFlags(dq.getHeader(), dq.ids.origFlags);
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [flags=dq.ids.origFlags](dnsheader& header) {
+          restoreFlags(&header, flags);
+          return true;
+        });
 
         vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), dq.ids.protocol.toString(), dq.getData().size());
 
@@ -1403,8 +1463,11 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
 
       vinfolog("%s query for %s|%s from %s, no downstream server available", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort());
       if (g_servFailOnNoPolicy) {
-        dq.getHeader()->rcode = RCode::ServFail;
-        dq.getHeader()->qr = true;
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+          header.rcode = RCode::ServFail;
+          header.qr = true;
+          return true;
+        });
 
         fixUpQueryTurnedResponse(dq, dq.ids.origFlags);
 
@@ -1421,7 +1484,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
     }
 
     /* save the DNS flags as sent to the backend so we can cache the answer with the right flags later */
-    dq.ids.cacheFlags = *getFlagsFromDNSHeader(dq.getHeader());
+    dq.ids.cacheFlags = *getFlagsFromDNSHeader(dq.getHeader().get());
 
     if (dq.addXPF && selectedBackend->d_config.xpfRRCode != 0) {
       addXPF(dq, selectedBackend->d_config.xpfRRCode);
@@ -1647,16 +1710,20 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
 
     {
       /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
-      struct dnsheader* dh = reinterpret_cast<struct dnsheader*>(query.data());
+      const dnsheader_aligned dh(query.data());
       queryId = ntohs(dh->id);
 
-      if (!checkQueryHeaders(dh, cs)) {
+      if (!checkQueryHeaders(dh.get(), cs)) {
         return;
       }
 
       if (dh->qdcount == 0) {
-        dh->rcode = RCode::NotImp;
-        dh->qr = true;
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(query, [](dnsheader& header) {
+          header.rcode = RCode::NotImp;
+          header.qr = true;
+          return true;
+        });
+
         sendUDPResponse(cs.udpFD, query, 0, dest, remote);
         return;
       }
@@ -1667,7 +1734,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       ids.protocol = dnsdist::Protocol::DNSCryptUDP;
     }
     DNSQuestion dq(ids, query);
-    const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader());
+    const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader().get());
     ids.origFlags = *flags;
 
     if (!proxyProtocolValues.empty()) {
@@ -1682,7 +1749,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
     }
 
     // the buffer might have been invalidated by now (resized)
-    struct dnsheader* dh = dq.getHeader();
+    const auto dh = dq.getHeader();
     if (result == ProcessQueryResult::SendAnswer) {
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)

@@ -89,20 +89,26 @@ struct DNSQuestion
     return data;
   }
 
-  dnsheader* getHeader()
+  bool editHeader(std::function<bool(dnsheader&)> editFunction);
+
+  const dnsheader_aligned getHeader() const
   {
     if (data.size() < sizeof(dnsheader)) {
       throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
     }
-    return reinterpret_cast<dnsheader*>(&data.at(0));
+    dnsheader_aligned dh(data.data());
+    return dh;
   }
 
-  const dnsheader* getHeader() const
+  /* this function is not safe against unaligned access, you should
+     use editHeader() instead, but we need it for the Lua bindings */
+  dnsheader* getMutableHeader()
   {
     if (data.size() < sizeof(dnsheader)) {
       throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
     }
-    return reinterpret_cast<const dnsheader*>(&data.at(0));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return reinterpret_cast<dnsheader*>(data.data());
   }
 
   bool hasRoomFor(size_t more) const

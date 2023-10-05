@@ -129,7 +129,7 @@ int dnsdist_ffi_dnsquestion_get_rcode(const dnsdist_ffi_dnsquestion_t* dq)
 
 void* dnsdist_ffi_dnsquestion_get_header(const dnsdist_ffi_dnsquestion_t* dq)
 {
-  return dq->dq->getHeader();
+  return dq->dq->getMutableHeader();
 }
 
 uint16_t dnsdist_ffi_dnsquestion_get_len(const dnsdist_ffi_dnsquestion_t* dq)
@@ -458,14 +458,20 @@ void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, ui
 #ifdef HAVE_DNS_OVER_HTTPS
   PacketBuffer bodyVect(body, body + bodyLen);
   dq->dq->ids.du->setHTTPResponse(statusCode, std::move(bodyVect), contentType);
-  dq->dq->getHeader()->qr = true;
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->dq->getMutableData(), [](dnsheader& header) {
+    header.qr = true;
+    return true;
+  });
 #endif
 }
 
 void dnsdist_ffi_dnsquestion_set_rcode(dnsdist_ffi_dnsquestion_t* dq, int rcode)
 {
-  dq->dq->getHeader()->rcode = rcode;
-  dq->dq->getHeader()->qr = true;
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->dq->getMutableData(), [rcode](dnsheader& header) {
+    header.rcode = rcode;
+    header.qr = true;
+    return true;
+  });
 }
 
 void dnsdist_ffi_dnsquestion_set_len(dnsdist_ffi_dnsquestion_t* dq, uint16_t len)
@@ -950,11 +956,15 @@ bool dnsdist_ffi_set_answer_from_async(uint16_t asyncID, uint16_t queryID, const
     return false;
   }
 
-  auto oldId = reinterpret_cast<const dnsheader*>(query->query.d_buffer.data())->id;
+  dnsheader_aligned alignedHeader(query->query.d_buffer.data());
+  auto oldID = alignedHeader->id;
   query->query.d_buffer.clear();
   query->query.d_buffer.insert(query->query.d_buffer.begin(), raw, raw + rawSize);
-  reinterpret_cast<dnsheader*>(query->query.d_buffer.data())->id = oldId;
 
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(query->query.d_buffer, [oldID](dnsheader& header) {
+    header.id = oldID;
+    return true;
+  });
   query->query.d_idstate.skipCache = true;
 
   return dnsdist::queueQueryResumptionEvent(std::move(query));
