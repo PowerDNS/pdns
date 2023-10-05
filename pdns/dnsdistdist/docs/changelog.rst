@@ -2,6 +2,55 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.0-alpha2
+  :released: 20th of October 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
+
+  .. change::
+    :tags: Bugs Fixes
+    :pullreq: 13274
+
+    Enable back h2o support in our packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13275
+    :tickets: 13201
+
+    Add Lua binding to downstream address (Denis Machard)
+
+  .. change::
+    :tags: New Features, DNS over QUIC
+    :pullreq: 13280
+
+    Add support for incoming DNS over QUIC
+
+  .. change::
+    :tags: Bugs Fixes, DNS over HTTPS
+    :pullreq: 13298
+
+    Fix timeouts on incoming DoH connections with nghttp2
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 13302
+
+    Client timeouts not client imeouts  (phonedph1)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13305
+
+    Set proper levels when logging messages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13310
+
+    Fix several cosmetic issues in eBPF dynamic blocks, update documentation
+
+.. changelog::
   :version: 1.8.2
   :released: 11th of October 2023
 
