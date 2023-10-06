@@ -11,7 +11,7 @@ Building packages on your own computer
 2. Check out the version you want, it can be a git tag like dnsdist-1.8.1, a git commit ID or branch
 3. Update submodules (`git submodule update --init --recursive`)
 4. Execute `builder/build.sh` to see what arguments it supports
-5. Then run `builder/build.sh` with the arguments you want (for example, `builder/build.sh -m recursor ubuntu-bionic`)
+5. Then run `builder/build.sh` with the arguments you want (for example, `builder/build.sh -m recursor debian-bookworm`)
 
 Building packages from GitHub actions
 -------------------------------------
