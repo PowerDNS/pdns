@@ -7,6 +7,8 @@ The [build-tags.yml](https://github.com/PowerDNS/pdns/blob/master/.github/workfl
 Building packages on your own computer
 --------------------------------------
 
+This requires a working Docker installation.
+
 1. Clone our git repo (`git clone https://github.com/PowerDNS/pdns.git`)
 2. Check out the version you want, it can be a git tag like dnsdist-1.8.1, a git commit ID or branch
 3. Update submodules (`git submodule update --init --recursive`)
