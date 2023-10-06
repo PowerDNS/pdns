@@ -916,6 +916,19 @@ void setupLuaInspection(LuaContext& luaCtx)
         group->includeRange(Netmask(*boost::get<std::string>(&ranges)));
       }
     });
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, LuaArray<std::string>, NetmaskGroup>)>("removeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, LuaArray<std::string>, NetmaskGroup> ranges) {
+      if (ranges.type() == typeid(LuaArray<std::string>)) {
+        for (const auto& range : *boost::get<LuaArray<std::string>>(&ranges)) {
+          group->removeRange(Netmask(range.second));
+        }
+      }
+      else if (ranges.type() == typeid(NetmaskGroup)) {
+        group->removeRange(*boost::get<NetmaskGroup>(&ranges));
+      }
+      else {
+        group->removeRange(Netmask(*boost::get<std::string>(&ranges)));
+      }
+    });
   luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(LuaTypeOrArrayOf<std::string>)>("excludeDomains", [](std::shared_ptr<DynBlockRulesGroup>& group, LuaTypeOrArrayOf<std::string> domains) {
       if (domains.type() == typeid(LuaArray<std::string>)) {
         for (const auto& range : *boost::get<LuaArray<std::string>>(&domains)) {
