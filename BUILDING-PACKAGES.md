@@ -25,7 +25,7 @@ Please be aware that by default some of the workflows are executed once every da
 On the left side, click on `Trigger specific package build`.
 
 Locate the `Run workflow` dropdown item on the top right side of the screen, inside the blue region stating `This workflow has a workflow_dispatch event trigger.` It will open a menu with several options:
-- `Branch`: you can keep `master` here, unless you need to build for an operating system which is not in the list, in which case you will have to create a new branch and add the required file for this OS. See `Adding a new OS` below.
+- `Branch`: you can keep `master` here, unless you need to build for an operating system which is not in the list, in which case you will have to create a new branch and add the required file(s) for this OS. See `Adding a new OS` below.
 - `Product to build`: select the product you want to build packages for, for example `dnsdist`
 - `OSes to build for, space separated`: keep one or more OSes you want to build packages for, for example `ubuntu-focal`
 - `git ref to checkout`: the exact version you want to build. It can be the name of branch, a git tag or a git commit ID. Most likely you will be willing to build from a tagged release, like `dnsdist-1.8.1`.
