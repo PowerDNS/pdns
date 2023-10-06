@@ -204,10 +204,10 @@ $(document).ready(function() {
                      bouw = bouw + "</table>";
                      $("#downstreams").html(bouw);
                      
-                     bouw='<table width="100%"><tr align=left><th>#</th><th align=left>Rule</th><th>Action</th><th>Matches</th></tr>';
+                     bouw='<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Rule</th><th>Action</th><th>Matches</th></tr>';
                      if(data["rules"].length) {
                          $.each(data["rules"], function(a,b) {
-                             bouw = bouw + ("<tr align=left><td>"+b["id"]+"</td><td align=left>"+b["rule"]+"</td><td>"+b["action"]+"</td>");
+                             bouw = bouw + ("<tr align=left><td>"+b["id"]+"</td><td align=left>"+b["name"]+"</td><td align=left>"+b["rule"]+"</td><td>"+b["action"]+"</td>");
                              bouw = bouw + ("<td>"+b["matches"]+"</td></tr>");
                          }); 
                      }
@@ -216,10 +216,10 @@ $(document).ready(function() {
                      bouw = bouw + "</table>";
                      $("#rules").html(bouw);
 
-                     bouw='<table width="100%"><tr align=left><th>#</th><th align=left>Response Rule</th><th>Action</th><th>Matches</th></tr>';
+                     bouw='<table width="100%"><tr align=left><th>#</th><th align=left>Name</th><th align=left>Response Rule</th><th>Action</th><th>Matches</th></tr>';
                      if(data["response-rules"].length) {
                          $.each(data["response-rules"], function(a,b) {
-                             bouw = bouw + ("<tr align=left><td>"+b["id"]+"</td><td align=left>"+b["rule"]+"</td><td>"+b["action"]+"</td>");
+                             bouw = bouw + ("<tr align=left><td>"+b["id"]+"</td><td align=left>"+b["name"]+"</td><td align=left>"+b["rule"]+"</td><td>"+b["action"]+"</td>");
                              bouw = bouw + ("<td>"+b["matches"]+"</td></tr>");
                          });
                      }

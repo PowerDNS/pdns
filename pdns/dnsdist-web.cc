@@ -1263,6 +1263,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         {"id", num++},
         {"creationOrder", (double)a.d_creationOrder},
         {"uuid", boost::uuids::to_string(a.d_id)},
+        {"name", a.d_name},
         {"matches", (double)a.d_rule->d_matches},
         {"rule", a.d_rule->toString()},
         {"action", a.d_action->toString()},
