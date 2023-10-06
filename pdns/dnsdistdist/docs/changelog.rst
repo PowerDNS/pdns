@@ -36,7 +36,7 @@ Changelog
     :tags: Bug Fixes, Metrics
     :pullreq: 13302
 
-    Client timeouts not client imeouts  (phonedph1)
+    Fix a typo in 'Client timeouts'  (phonedph1)
 
   .. change::
     :tags: Improvements
