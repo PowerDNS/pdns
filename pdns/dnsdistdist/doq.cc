@@ -34,6 +34,7 @@
 #include "threadname.hh"
 
 #include "dnsdist-ecs.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-random.hh"
@@ -624,11 +625,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     if (unit->query.size() < sizeof(dnsheader)) {
       ++dnsdist::metrics::g_stats.nonCompliantQueries;
       ++clientState.nonCompliantQueries;
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      auto* dnsHeader = reinterpret_cast<struct dnsheader*>(unit->query.data());
-      dnsHeader->rcode = RCode::ServFail;
-      dnsHeader->qr = true;
-      unit->response = std::move(unit->query);
+      unit->response.clear();
 
       handleImmediateResponse(std::move(unit), "DoQ non-compliant query");
       return;
@@ -641,11 +638,14 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     {
       /* don't keep that pointer around, it will be invalidated if the buffer is ever resized */
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      auto* dnsHeader = reinterpret_cast<struct dnsheader*>(unit->query.data());
+      dnsheader_aligned dnsHeader(unit->query.data());
 
-      if (!checkQueryHeaders(dnsHeader, clientState)) {
-        dnsHeader->rcode = RCode::ServFail;
-        dnsHeader->qr = true;
+      if (!checkQueryHeaders(dnsHeader.get(), clientState)) {
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(unit->query, [](dnsheader& header) {
+          header.rcode = RCode::ServFail;
+          header.qr = true;
+          return true;
+        });
         unit->response = std::move(unit->query);
 
         handleImmediateResponse(std::move(unit), "DoQ invalid headers");
@@ -653,8 +653,11 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
       }
 
       if (dnsHeader->qdcount == 0) {
-        dnsHeader->rcode = RCode::NotImp;
-        dnsHeader->qr = true;
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(unit->query, [](dnsheader& header) {
+          header.rcode = RCode::NotImp;
+          header.qr = true;
+          return true;
+        });
         unit->response = std::move(unit->query);
 
         handleImmediateResponse(std::move(unit), "DoQ empty query");
@@ -668,8 +671,11 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     unit->ids.qname = DNSName(reinterpret_cast<const char*>(unit->query.data()), static_cast<int>(unit->query.size()), sizeof(dnsheader), false, &unit->ids.qtype, &unit->ids.qclass);
     DNSQuestion dnsQuestion(unit->ids, unit->query);
-    const uint16_t* flags = getFlagsFromDNSHeader(dnsQuestion.getHeader());
-    ids.origFlags = *flags;
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [&ids](dnsheader& header) {
+      const uint16_t* flags = getFlagsFromDNSHeader(&header);
+      ids.origFlags = *flags;
+      return true;
+    });
     unit->ids.cs = &clientState;
 
     auto result = processQuery(dnsQuestion, holders, downstream);
@@ -685,8 +691,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
         unit->response = std::move(unit->query);
       }
       if (unit->response.size() >= sizeof(dnsheader)) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        const auto* dnsHeader = reinterpret_cast<const struct dnsheader*>(unit->response.data());
+        const dnsheader_aligned dnsHeader(unit->response.data());
 
         handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0., unit->ids.origDest, ComboAddress(), unit->response.size(), *dnsHeader, dnsdist::Protocol::DoQ, dnsdist::Protocol::DoQ, false);
       }

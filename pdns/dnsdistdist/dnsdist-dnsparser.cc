@@ -186,4 +186,32 @@ bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, con
   return true;
 }
 
+namespace PacketMangling
+{
+  bool editDNSHeaderFromPacket(PacketBuffer& packet, std::function<bool(dnsheader& header)> editFunction)
+  {
+    if (packet.size() < sizeof(dnsheader)) {
+      throw std::runtime_error("Trying to edit the DNS header of a too small packet");
+    }
+
+    return editDNSHeaderFromRawPacket(packet.data(), editFunction);
+  }
+
+  bool editDNSHeaderFromRawPacket(void* packet, std::function<bool(dnsheader& header)> editFunction)
+  {
+    if (dnsheader_aligned::isMemoryAligned(packet)) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      auto* header = reinterpret_cast<dnsheader*>(packet);
+      return editFunction(*header);
+    }
+
+    dnsheader header;
+    memcpy(&header, packet, sizeof(header));
+    if (!editFunction(header)) {
+      return false;
+    }
+    memcpy(packet, &header, sizeof(header));
+    return true;
+  }
+}
 }

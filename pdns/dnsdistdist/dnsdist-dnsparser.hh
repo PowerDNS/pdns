@@ -54,4 +54,10 @@ public:
  * because it could contain pointers that would not be rewritten.
  */
 bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, const DNSName& to);
+
+namespace PacketMangling
+{
+  bool editDNSHeaderFromPacket(PacketBuffer& packet, std::function<bool(dnsheader& header)> editFunction);
+  bool editDNSHeaderFromRawPacket(void* packet, std::function<bool(dnsheader& header)> editFunction);
+}
 }
