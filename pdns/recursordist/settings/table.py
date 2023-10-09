@@ -1980,6 +1980,7 @@ of the Query Name Minimization Algorithm.
         'doc' : '''
 ``Minimize one label`` parameter, described in :rfc:`9156`.
 The value for the number of iterations of the Query Name Minimization Algorithm that should only have one label appended.
+This value has precedence over :ref:`setting-qname-max-minimize-count`.
  ''',
     'versionadded': '5.0.0'
     },
