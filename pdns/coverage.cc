@@ -25,11 +25,12 @@
 #ifdef COVERAGE
 extern "C"
 {
-  // NOLINTNEXTLINE(bugprone-reserved-identifier): not ours
-  void __gcov_dump(void);
 #ifdef CLANG_COVERAGE
   // NOLINTNEXTLINE(bugprone-reserved-identifier): not ours
   int __llvm_profile_write_file(void);
+#else /* CLANG_COVERAGE */
+  // NOLINTNEXTLINE(bugprone-reserved-identifier): not ours
+  void __gcov_dump(void);
 #endif /* CLANG_COVERAGE */
 }
 #endif /* COVERAGE */
@@ -39,9 +40,10 @@ namespace pdns::coverage
 void dumpCoverageData()
 {
 #ifdef COVERAGE
-  __gcov_dump();
 #ifdef CLANG_COVERAGE
   __llvm_profile_write_file();
+#else /* CLANG_COVERAGE */
+  __gcov_dump();
 #endif /* CLANG_COVERAGE */
 #endif /* COVERAGE */
 }
