@@ -210,7 +210,7 @@ Changelogs for 4.9.X
     :tags: Improvements
     :pullreq: 10072,12716
 
-    Update Debian packaging for Recursor (Chris Hofstaedtler).
+    Update Debian packaging for Recursor, including removal of sysv init script (Chris Hofstaedtler).
 
   .. change::
     :tags: Improvements
