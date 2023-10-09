@@ -50,6 +50,18 @@ Changelog
 
     Fix several cosmetic issues in eBPF dynamic blocks, update documentation
 
+  .. change::
+    :tags: Improvements, Webserver
+    :pullreq: 13335
+
+    Display the rule name, if any, in the web interface
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13340
+
+    Netmask: Normalize subnet masks coming from a string
+
 .. changelog::
   :version: 1.8.2
   :released: 11th of October 2023
