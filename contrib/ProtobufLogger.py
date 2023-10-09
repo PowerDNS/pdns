@@ -269,7 +269,7 @@ class PDNSPBConnHandler(object):
             for entry in mt.value.stringVal:
                 values = ', '.join([values, entry]) if values != '' else entry
             for entry in mt.value.intVal:
-                values = ', '.join([values, entry]) if values != '' else entry
+                values = ', '.join([values, str(entry)]) if values != '' else str(entry)
 
             print('- %s -> %s' % (mt.key, values))
 
@@ -312,7 +312,7 @@ class PDNSPBListener(object):
             thread = threading.Thread(name='Connection Handler',
                                       target=PDNSPBConnHandler.run,
                                       args=[handler])
-            thread.setDaemon(True)
+            thread.daemon = True
             thread.start()
 
         self._sock.close()

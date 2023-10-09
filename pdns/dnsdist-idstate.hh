@@ -27,6 +27,7 @@
 #include "dnsdist-protocols.hh"
 #include "gettime.hh"
 #include "iputils.hh"
+#include "noinitvector.hh"
 #include "uuid-utils.hh"
 
 struct ClientState;

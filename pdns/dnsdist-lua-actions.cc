@@ -24,6 +24,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-edns.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-mac-address.hh"
@@ -1484,14 +1485,16 @@ private:
   boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > d_alterFunc;
 };
 
-static void addMetaDataToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion& dq, const std::vector<std::pair<std::string, ProtoBufMetaKey>>& metas)
+namespace
+{
+void addMetaDataToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion& dq, const std::vector<std::pair<std::string, ProtoBufMetaKey>>& metas)
 {
   for (const auto& [name, meta] : metas) {
-    message.addMeta(name, meta.getValues(dq));
+    message.addMeta(name, meta.getValues(dq), {});
   }
 }
 
-static void addTagsToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion& dq, const std::unordered_set<std::string>& allowed)
+void addTagsToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion& dq, const std::unordered_set<std::string>& allowed)
 {
   if (!dq.ids.qTag) {
     return;
@@ -1511,11 +1514,40 @@ static void addTagsToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion
   }
 }
 
+void addExtendedDNSErrorToProtobuf(DNSDistProtoBufMessage& message, const DNSResponse& dr, const std::string& metaKey)
+{
+  auto [infoCode, extraText] = dnsdist::edns::getExtendedDNSError(dr.getData());
+  if (!infoCode) {
+    return;
+  }
+
+  if (extraText) {
+    message.addMeta(metaKey, {*extraText}, {*infoCode});
+  }
+  else {
+    message.addMeta(metaKey, {}, {*infoCode});
+  }
+}
+}
+
+struct RemoteLogActionConfiguration
+{
+  std::vector<std::pair<std::string, ProtoBufMetaKey>> metas;
+  std::optional<std::unordered_set<std::string>> tagsToExport{std::nullopt};
+  boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterQueryFunc{boost::none};
+  boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterResponseFunc{boost::none};
+  std::shared_ptr<RemoteLoggerInterface> logger;
+  std::string serverID;
+  std::string ipEncryptKey;
+  std::optional<std::string> exportExtendedErrorsToMeta{std::nullopt};
+  bool includeCNAME{false};
+};
+
 class RemoteLogAction : public DNSAction, public boost::noncopyable
 {
 public:
   // this action does not stop the processing
-  RemoteLogAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, std::vector<std::pair<std::string, ProtoBufMetaKey>>&& metas, std::optional<std::unordered_set<std::string>>&& tagsToExport): d_tagsToExport(std::move(tagsToExport)), d_metas(std::move(metas)), d_logger(logger), d_alterFunc(std::move(alterFunc)), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey)
+  RemoteLogAction(RemoteLogActionConfiguration& config): d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterQueryFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey)
   {
   }
 
@@ -1660,7 +1692,7 @@ class RemoteLogResponseAction : public DNSResponseAction, public boost::noncopya
 {
 public:
   // this action does not stop the processing
-  RemoteLogResponseAction(std::shared_ptr<RemoteLoggerInterface>& logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, const std::string& serverID, const std::string& ipEncryptKey, bool includeCNAME, std::vector<std::pair<std::string, ProtoBufMetaKey>>&& metas, std::optional<std::unordered_set<std::string>>&& tagsToExport): d_tagsToExport(std::move(tagsToExport)), d_metas(std::move(metas)), d_logger(logger), d_alterFunc(std::move(alterFunc)), d_serverID(serverID), d_ipEncryptKey(ipEncryptKey), d_includeCNAME(includeCNAME)
+  RemoteLogResponseAction(RemoteLogActionConfiguration& config): d_tagsToExport(std::move(config.tagsToExport)), d_metas(std::move(config.metas)), d_logger(config.logger), d_alterFunc(std::move(config.alterResponseFunc)), d_serverID(config.serverID), d_ipEncryptKey(config.ipEncryptKey), d_exportExtendedErrorsToMeta(std::move(config.exportExtendedErrorsToMeta)), d_includeCNAME(config.includeCNAME)
   {
   }
   DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
@@ -1690,6 +1722,10 @@ public:
 
     addMetaDataToProtobuf(message, *dr, d_metas);
 
+    if (d_exportExtendedErrorsToMeta) {
+      addExtendedDNSErrorToProtobuf(message, *dr, *d_exportExtendedErrorsToMeta);
+    }
+
     if (d_alterFunc) {
       auto lock = g_lua.lock();
       (*d_alterFunc)(dr, &message);
@@ -1713,6 +1749,7 @@ private:
   boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > d_alterFunc;
   std::string d_serverID;
   std::string d_ipEncryptKey;
+  std::optional<std::string> d_exportExtendedErrorsToMeta{std::nullopt};
   bool d_includeCNAME;
 };
 
@@ -2510,35 +2547,34 @@ void setupLuaActions(LuaContext& luaCtx)
         }
       }
 
-      std::string serverID;
-      std::string ipEncryptKey;
       std::string tags;
-      getOptionalValue<std::string>(vars, "serverID", serverID);
-      getOptionalValue<std::string>(vars, "ipEncryptKey", ipEncryptKey);
+      RemoteLogActionConfiguration config;
+      config.logger = logger;
+      config.alterQueryFunc = std::move(alterFunc);
+      getOptionalValue<std::string>(vars, "serverID", config.serverID);
+      getOptionalValue<std::string>(vars, "ipEncryptKey", config.ipEncryptKey);
       getOptionalValue<std::string>(vars, "exportTags", tags);
 
-      std::vector<std::pair<std::string, ProtoBufMetaKey>> metaOptions;
       if (metas) {
         for (const auto& [key, value] : *metas) {
-          metaOptions.push_back({key, ProtoBufMetaKey(value)});
+          config.metas.push_back({key, ProtoBufMetaKey(value)});
         }
       }
 
-      std::optional<std::unordered_set<std::string>> tagsToExport{std::nullopt};
       if (!tags.empty()) {
-        tagsToExport = std::unordered_set<std::string>();
+        config.tagsToExport = std::unordered_set<std::string>();
         if (tags != "*") {
           std::vector<std::string> tokens;
           stringtok(tokens, tags, ",");
           for (auto& token : tokens) {
-            tagsToExport->insert(std::move(token));
+            config.tagsToExport->insert(std::move(token));
           }
         }
       }
 
       checkAllParametersConsumed("RemoteLogAction", vars);
 
-      return std::shared_ptr<DNSAction>(new RemoteLogAction(logger, std::move(alterFunc), serverID, ipEncryptKey, std::move(metaOptions), std::move(tagsToExport)));
+      return std::shared_ptr<DNSAction>(new RemoteLogAction(config));
     });
 
   luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)> > alterFunc, boost::optional<bool> includeCNAME, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas) {
@@ -2551,35 +2587,36 @@ void setupLuaActions(LuaContext& luaCtx)
         }
       }
 
-      std::string serverID;
-      std::string ipEncryptKey;
       std::string tags;
-      getOptionalValue<std::string>(vars, "serverID", serverID);
-      getOptionalValue<std::string>(vars, "ipEncryptKey", ipEncryptKey);
+      RemoteLogActionConfiguration config;
+      config.logger = logger;
+      config.alterResponseFunc = alterFunc;
+      config.includeCNAME = includeCNAME ? *includeCNAME : false;
+      getOptionalValue<std::string>(vars, "serverID", config.serverID);
+      getOptionalValue<std::string>(vars, "ipEncryptKey", config.ipEncryptKey);
       getOptionalValue<std::string>(vars, "exportTags", tags);
+      getOptionalValue<std::string>(vars, "exportExtendedErrorsToMeta", config.exportExtendedErrorsToMeta);
 
-      std::vector<std::pair<std::string, ProtoBufMetaKey>> metaOptions;
       if (metas) {
         for (const auto& [key, value] : *metas) {
-          metaOptions.push_back({key, ProtoBufMetaKey(value)});
+          config.metas.push_back({key, ProtoBufMetaKey(value)});
         }
       }
 
-      std::optional<std::unordered_set<std::string>> tagsToExport{std::nullopt};
       if (!tags.empty()) {
-        tagsToExport = std::unordered_set<std::string>();
+        config.tagsToExport = std::unordered_set<std::string>();
         if (tags != "*") {
           std::vector<std::string> tokens;
           stringtok(tokens, tags, ",");
           for (auto& token : tokens) {
-            tagsToExport->insert(std::move(token));
+            config.tagsToExport->insert(std::move(token));
           }
         }
       }
 
       checkAllParametersConsumed("RemoteLogResponseAction", vars);
 
-      return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(logger, std::move(alterFunc), serverID, ipEncryptKey, includeCNAME ? *includeCNAME : false, std::move(metaOptions), std::move(tagsToExport)));
+      return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(config));
     });
 
   luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)> > alterFunc) {
