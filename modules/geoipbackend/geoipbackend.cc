@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <cstdint>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -51,7 +52,7 @@ struct GeoIPService
 
 struct GeoIPDomain
 {
-  int id;
+  std::uint32_t id{};
   DNSName domain;
   int ttl{};
   map<DNSName, GeoIPService> services;
@@ -123,9 +124,10 @@ static bool validateMappingLookupFormats(const vector<string>& formats)
   return true;
 }
 
-bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDomain& dom)
+bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, GeoIPDomain& dom)
 {
   try {
+    dom.id = domainID;
     dom.domain = DNSName(domain["domain"].as<string>());
     dom.ttl = domain["ttl"].as<int>();
 
@@ -136,7 +138,7 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDo
       for (auto item = recs->second.begin(); item != recs->second.end(); item++) {
         auto rec = item->begin();
         GeoIPDNSResourceRecord rr;
-        rr.domain_id = dom.id;
+        rr.domain_id = static_cast<int>(dom.id);
         rr.ttl = dom.ttl;
         rr.qname = qname;
         if (rec->first.IsNull()) {
@@ -260,18 +262,18 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDo
       // ensure we have parent in records
       DNSName name = item.first;
       while (name.chopOff() && name.isPartOf(dom.domain)) {
-          GeoIPDNSResourceRecord rr;
         if (dom.records.find(name) == dom.records.end() && (dom.services.count(name) == 0U)) { // don't ENT out a service!
+          GeoIPDNSResourceRecord resourceRecord;
           vector<GeoIPDNSResourceRecord> rrs;
-          rr.domain_id = dom.id;
-          rr.ttl = dom.ttl;
-          rr.qname = name;
-          rr.qtype = QType(0); // empty non terminal
-          rr.content = "";
-          rr.auth = 1;
-          rr.weight = 100;
-          rr.has_weight = false;
-          rrs.push_back(rr);
+          resourceRecord.domain_id = static_cast<int>(dom.id);
+          resourceRecord.ttl = dom.ttl;
+          resourceRecord.qname = name;
+          resourceRecord.qtype = QType(0); // empty non terminal
+          resourceRecord.content = "";
+          resourceRecord.auth = true;
+          resourceRecord.weight = 100;
+          resourceRecord.has_weight = false;
+          rrs.push_back(resourceRecord);
           std::swap(dom.records[name], rrs);
         }
       }
@@ -283,17 +285,17 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDo
       DNSName name = item.first;
       while (name.chopOff() && name.isPartOf(dom.domain)) {
         if (dom.records.find(name) == dom.records.end()) {
-          GeoIPDNSResourceRecord rr;
+          GeoIPDNSResourceRecord resourceRecord;
           vector<GeoIPDNSResourceRecord> rrs;
-          rr.domain_id = dom.id;
-          rr.ttl = dom.ttl;
-          rr.qname = name;
-          rr.qtype = QType(0);
-          rr.content = "";
-          rr.auth = 1;
-          rr.weight = 100;
-          rr.has_weight = false;
-          rrs.push_back(rr);
+          resourceRecord.domain_id = static_cast<int>(dom.id);
+          resourceRecord.ttl = dom.ttl;
+          resourceRecord.qname = name;
+          resourceRecord.qtype = QType(0);
+          resourceRecord.content = "";
+          resourceRecord.auth = true;
+          resourceRecord.weight = 100;
+          resourceRecord.has_weight = false;
+          rrs.push_back(resourceRecord);
           std::swap(dom.records[name], rrs);
         }
       }
@@ -409,8 +411,7 @@ void GeoIPBackend::initialize()
 
   for (YAML::const_iterator _domain = config["domains"].begin(); _domain != config["domains"].end(); _domain++) {
     GeoIPDomain dom;
-    auto id = tmp_domains.size();
-    if (loadDomain(*_domain, id, dom)) {
+    if (loadDomain(*_domain, tmp_domains.size(), dom)) {
       tmp_domains.push_back(std::move(dom));
     }
   }
