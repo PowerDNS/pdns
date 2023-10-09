@@ -42,7 +42,7 @@ if __name__ == '__main__':
                     print(f'Ignoring {target} that we could not map to a distdir', file=sys.stderr)
                     continue
 
-                # we need to propery map symbolic links
+                # we need to properly map symbolic links
                 fullPath = os.path.join(repositoryRoot, target)
                 if os.path.islink(fullPath):
                     # get the link target

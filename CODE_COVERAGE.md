@@ -27,7 +27,7 @@ Processing pdns/ednssubnet.gcda
 __w/pdns/pdns/pdns/ednssubnet.gcno:version '408', prefer 'B02'
 ```
 
-### Sourced Based
+### Source Based
 
 `clang++` supports [source-based coverage](https://clang.llvm.org/docs/SourceBasedCodeCoverage.html), which operates on `AST` and preprocessor information directly. This is enabled by passing `-fprofile-instr-generate -fcoverage-mapping` to the compiler and leads to `.profraw` files being produced when the binary is executed. 
 The `.profraw` file(s) can be merged by [`llvm-profdata merge`](https://llvm.org/docs/CommandGuide/llvm-profdata.html#profdata-merge) into a `.profdata` file which can then be used by [`llvm-cov show`](https://llvm.org/docs/CommandGuide/llvm-cov.html#llvm-cov-show) to generate HTML and text reports, or by [`llvm-cov export`](https://llvm.org/docs/CommandGuide/llvm-cov.html#llvm-cov-export) to export `LCOV` data that is compatible with other tools.
