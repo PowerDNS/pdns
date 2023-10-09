@@ -71,9 +71,9 @@ class ixfrdistStats {
       progStats.unknownDomainInQueries += 1;
     }
 
-    void incrementNotImplemented(const string& opcode)
+    void incrementNotImplemented(uint8_t opcode)
     {
-      notimpStats[opcode] ++;
+      notimpStats.at(opcode) ++;
     }
 
   private:
@@ -99,7 +99,7 @@ class ixfrdistStats {
     };
 
     std::map<DNSName, perDomainStat> domainStats;
-    std::map<string, std::atomic<uint64_t>> notimpStats;
+    std::array<std::atomic<uint64_t>, 16> notimpStats;
     programStats progStats;
 
     std::map<DNSName, perDomainStat>::iterator getRegisteredDomain(const DNSName& d) {

@@ -90,8 +90,12 @@ std::string ixfrdistStats::getStats() {
     stats<<"# TYPE "<<prefix<<"notimp counter"<<std::endl;
   }
 
-  for (auto const &d : notimpStats) {
-    stats<<prefix<<"notimp{opcode=\""<<d.first<<"\"} "<<d.second<<std::endl;
+  for (std::size_t i = 0; i < notimpStats.size() ; i++) {
+    auto val = notimpStats.at(i).load();
+
+    if (val > 0) {
+      stats<<prefix<<"notimp{opcode=\""<<Opcode::to_s(i)<<"\"} "<<val<<std::endl;
+    }
   }
 
   stats<<"# HELP "<<prefix<<"unknown_domain_inqueries_total Number of queries received for domains unknown to us"<<std::endl;

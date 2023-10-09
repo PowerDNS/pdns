@@ -959,7 +959,7 @@ try
     g_stats.incrementUnknownDomainInQueries(mdp.d_qname);
     makeRefusedPacket(mdp, packet);
   } else if (respt == ResponseType::RefusedOpcode) {
-    g_stats.incrementNotImplemented(Opcode::to_s(mdp.d_header.opcode));
+    g_stats.incrementNotImplemented(mdp.d_header.opcode);
     makeNotimpPacket(mdp, packet);
   }
 
