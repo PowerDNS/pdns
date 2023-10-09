@@ -73,7 +73,7 @@ void initPublicSuffixList(const std::string& file)
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Warning << "Error while loading the Public Suffix List from '" << file << "', falling back to the built-in list: " << e.what() << endl,
-           g_slog->withName("runtime")->error(Logr::Error, e.what(), "Loaded the Public Suffix List", "file", Logging::Loggable(file)));
+           g_slog->withName("runtime")->error(Logr::Error, e.what(), "Error while loading the Public Suffix List", "file", Logging::Loggable(file)));
     }
   }
 

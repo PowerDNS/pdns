@@ -377,13 +377,11 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "Problem configuring 'rpzPrimary': " << e.what() << endl,
-         lci.d_slog->error(Logr::Critical, e.what(), "Exception configuring 'rpzPrimary'", "exception", Logging::Loggable("std::exception")));
-    exit(1); // FIXME proper exit code?
+         lci.d_slog->error(Logr::Error, e.what(), "Exception configuring 'rpzPrimary'", "exception", Logging::Loggable("std::exception")));
   }
   catch (const PDNSException& e) {
     SLOG(g_log << Logger::Error << "Problem configuring 'rpzPrimary': " << e.reason << endl,
-         lci.d_slog->error(Logr::Critical, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException")));
-    exit(1); // FIXME proper exit code?
+         lci.d_slog->error(Logr::Error, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException")));
   }
 
   delayedThreads.rpzPrimaryThreads.emplace_back(primaries, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile);

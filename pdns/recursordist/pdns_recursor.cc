@@ -1882,7 +1882,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "STL error " << makeLoginfo(comboWriter) << ": " << e.what(),
-         resolver.d_slog->error(Logr::Error, e.what(), "Exception in resolver context ", "exception", Logging::Loggable("std::exception")));
+         resolver.d_slog->error(Logr::Error, e.what(), "Exception in resolver context", "exception", Logging::Loggable("std::exception")));
 
     // Luawrapper nests the exception from Lua, so we unnest it here
     try {
@@ -2624,8 +2624,8 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
 #endif
       if (address.sin6.sin6_family == AF_INET6 && setsockopt(socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
         int err = errno;
-        SLOG(g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << stringerror(err) << endl,
-             log->error(Logr::Error, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
+        SLOG(g_log << Logger::Warning << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << stringerror(err) << endl,
+             log->error(Logr::Warning, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
       }
     }
     if (::arg().mustDo("non-local-bind")) {
@@ -2755,7 +2755,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
   if (!RecThreadInfo::self().isDistributor()) {
     SLOG(g_log << Logger::Error << "distributeAsyncFunction() has been called by a worker (" << RecThreadInfo::id() << ")" << endl,
-         g_slog->info(Logr::Error, "distributeAsyncFunction() has been called by a worker")); // tid will be added
+         g_slog->withName("runtime")->info(Logr::Error, "distributeAsyncFunction() has been called by a worker")); // tid will be added
     _exit(1);
   }
 
