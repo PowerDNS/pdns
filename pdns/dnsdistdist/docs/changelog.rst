@@ -8,6 +8,12 @@ Changelog
   Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
 
   .. change::
+    :tags: New Features, Protobuf
+    :pullreq: 13185
+
+    Log Extended DNS Errors (EDE) to protobuf
+
+    .. change::
     :tags: Bugs Fixes
     :pullreq: 13274
 
