@@ -68,6 +68,7 @@
 
 #include "base64.hh"
 #include "capabilities.hh"
+#include "coverage.hh"
 #include "delaypipe.hh"
 #include "doh.hh"
 #include "dolog.hh"
@@ -2395,11 +2396,6 @@ static void usage()
 }
 
 #ifdef COVERAGE
-extern "C"
-{
-  void __gcov_dump(void);
-}
-
 static void cleanupLuaObjects()
 {
   /* when our coverage mode is enabled, we need to make
@@ -2410,13 +2406,14 @@ static void cleanupLuaObjects()
   g_selfansweredrespruleactions.setState({});
   g_dstates.setState({});
   g_policy.setState(ServerPolicy());
+  g_pools.setState({});
   clearWebHandlers();
 }
 
 static void sigTermHandler(int)
 {
   cleanupLuaObjects();
-  __gcov_dump();
+  pdns::coverage::dumpCoverageData();
   _exit(EXIT_SUCCESS);
 }
 #else /* COVERAGE */

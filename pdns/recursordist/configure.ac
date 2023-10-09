@@ -66,6 +66,7 @@ AS_IF([test -n "$pdns_context_library"], [AC_MSG_RESULT([$pdns_context_library])
 
 PDNS_ENABLE_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
+PDNS_ENABLE_COVERAGE
 
 PDNS_WITH_LUA([mandatory])
 AS_IF([test "x$LUAPC" = "xluajit"], [

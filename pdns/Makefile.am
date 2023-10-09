@@ -211,6 +211,7 @@ pdns_server_SOURCES = \
 	circular_buffer.hh \
 	comment.hh \
 	communicator.cc communicator.hh \
+	coverage.cc coverage.hh \
 	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
 	digests.hh \
