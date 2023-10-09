@@ -71,7 +71,7 @@ public:
 
   void replace(time_t, const DNSName& qname, const QType qt, const vector<DNSRecord>& content, const vector<shared_ptr<const RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, boost::optional<ComboAddress> from = boost::none, bool refresh = false, time_t ttl_time = time(nullptr));
 
-  void doPrune(size_t keep);
+  void doPrune(time_t now, size_t keep);
   uint64_t doDump(int fd, size_t maxCacheEntries);
 
   size_t doWipeCache(const DNSName& name, bool sub, QType qtype = 0xffff);
@@ -79,6 +79,8 @@ public:
   bool updateValidationStatus(time_t now, const DNSName& qname, QType qt, const ComboAddress& who, const OptTag& routingTag, bool requireAuth, vState newState, boost::optional<time_t> capTTD);
 
   pdns::stat_t cacheHits{0}, cacheMisses{0};
+
+  static void resetStaticsForTests();
 
 private:
   struct CacheEntry

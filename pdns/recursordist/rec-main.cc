@@ -2404,18 +2404,18 @@ static void houseKeepingWork(Logr::log_t log)
   else if (info.isHandler()) {
     if (g_packetCache) {
       static PeriodicTask packetCacheTask{"packetCacheTask", 5};
-      packetCacheTask.runIfDue(now, []() {
-        g_packetCache->doPruneTo(g_maxPacketCacheEntries);
+      packetCacheTask.runIfDue(now, [now]() {
+        g_packetCache->doPruneTo(now.tv_sec, g_maxPacketCacheEntries);
       });
     }
     static PeriodicTask recordCachePruneTask{"RecordCachePruneTask", 5};
-    recordCachePruneTask.runIfDue(now, []() {
-      g_recCache->doPrune(g_maxCacheEntries);
+    recordCachePruneTask.runIfDue(now, [now]() {
+      g_recCache->doPrune(now.tv_sec, g_maxCacheEntries);
     });
 
     static PeriodicTask negCachePruneTask{"NegCachePrunteTask", 5};
-    negCachePruneTask.runIfDue(now, []() {
-      g_negCache->prune(g_maxCacheEntries / 8);
+    negCachePruneTask.runIfDue(now, [now]() {
+      g_negCache->prune(now.tv_sec, g_maxCacheEntries / 8);
     });
 
     static PeriodicTask aggrNSECPruneTask{"AggrNSECPruneTask", 5};

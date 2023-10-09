@@ -13,6 +13,7 @@ BOOST_AUTO_TEST_SUITE(recursorcache_cc)
 
 static void simple(time_t now)
 {
+  MemRecursorCache::resetStaticsForTests();
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
@@ -387,6 +388,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimpleDistantFuture)
 
 BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost)
 {
+  MemRecursorCache::resetStaticsForTests();
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
@@ -430,6 +432,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheReplaceAuthByNonAuthMargin)
 {
   // Test #12140: as QM does a best NS lookup and then  uses it, incoming infra records should update
   // cache, otherwise they might expire in-between.
+  MemRecursorCache::resetStaticsForTests();
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
@@ -475,6 +478,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheReplaceAuthByNonAuthMargin)
 
 BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 {
+  MemRecursorCache::resetStaticsForTests();
   MemRecursorCache MRC(1);
 
   std::vector<DNSRecord> records;
@@ -522,7 +526,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
   /* we ask that 10 entries remain in the cache, this is larger than
      the cache size (2), so 1 entry will be looked at as the code
      rounds up the 10% of entries per shard to look at */
-  MRC.doPrune(10);
+  MRC.doPrune(now, 10);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power2, but to get it
@@ -555,7 +559,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
   /* we ask that 10 entries remain in the cache, this is larger than
      the cache size (2), so 1 entry will be looked at as the code
      rounds up the 10% of entries per shard to look at */
-  MRC.doPrune(10);
+  MRC.doPrune(now, 10);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power1, but to get it
@@ -569,6 +573,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 
 BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
 {
+  MemRecursorCache::resetStaticsForTests();
   MemRecursorCache MRC(1);
 
   std::vector<DNSRecord> records;
@@ -615,7 +620,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   /* the one for power2 having been inserted
      more recently should be removed last */
   /* we ask that only entry remains in the cache */
-  MRC.doPrune(1);
+  MRC.doPrune(now, 1);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power2 */
@@ -649,7 +654,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
      to the back of the expunge queue, so power2 should be at the front
      and should this time be removed first */
   /* we ask that only entry remains in the cache */
-  MRC.doPrune(1);
+  MRC.doPrune(now, 1);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power1 */
@@ -681,7 +686,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   /* the entry for power1 should have been moved to the back of the expunge queue
      due to the hit, so power2 should be at the front and should this time be removed first */
   /* we ask that only entry remains in the cache */
-  MRC.doPrune(1);
+  MRC.doPrune(now, 1);
   BOOST_CHECK_EQUAL(MRC.size(), 1U);
 
   /* the remaining entry should be power1 */
@@ -691,7 +696,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   /* check that power2 is gone */
   BOOST_CHECK_EQUAL(MRC.get(now, power2, QType(dr2.d_type), MemRecursorCache::None, &retrieved, who, boost::none, nullptr), -1);
 
-  MRC.doPrune(0);
+  MRC.doPrune(now, 0);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
 
   /* add a lot of netmask-specific entries */
@@ -716,7 +721,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
 
   /* remove a bit less than half of them */
   size_t keep = 129;
-  MRC.doPrune(keep);
+  MRC.doPrune(now, keep);
   BOOST_CHECK_EQUAL(MRC.size(), keep);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1U);
 
@@ -740,13 +745,14 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
   BOOST_CHECK_EQUAL(found, keep);
 
   /* remove the rest */
-  MRC.doPrune(0);
+  MRC.doPrune(now, 0);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
 {
+  MemRecursorCache::resetStaticsForTests();
   MemRecursorCache MRC(1);
 
   const DNSName power("powerdns.com.");
@@ -797,7 +803,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
   /* wipe everything */
-  MRC.doPrune(0);
+  MRC.doPrune(now, 0);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
 
@@ -835,7 +841,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr1Content.toString());
 
   /* wipe everything */
-  MRC.doPrune(0);
+  MRC.doPrune(now, 0);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
 
@@ -870,7 +876,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   BOOST_CHECK_EQUAL(MRC.size(), 2U);
 
   /* wipe everything */
-  MRC.doPrune(0);
+  MRC.doPrune(now, 0);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
 
@@ -899,13 +905,14 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 1U);
 
   /* wipe everything */
-  MRC.doPrune(0);
+  MRC.doPrune(now, 0);
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   BOOST_CHECK_EQUAL(MRC.ecsIndexSize(), 0U);
 }
 
 BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
 {
+  MemRecursorCache::resetStaticsForTests();
   MemRecursorCache MRC;
 
   const DNSName power("powerdns.com.");
@@ -996,6 +1003,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
 
 BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
 {
+  MemRecursorCache::resetStaticsForTests();
   MemRecursorCache MRC;
 
   const DNSName authZone(".");

@@ -54,6 +54,14 @@
 
 uint16_t MemRecursorCache::s_maxServedStaleExtensions;
 
+void MemRecursorCache::resetStaticsForTests()
+{
+  s_maxServedStaleExtensions = 0;
+  SyncRes::s_refresh_ttlperc = 0;
+  SyncRes::s_locked_ttlperc = 0;
+  SyncRes::s_minimumTTL = 0;
+}
+
 MemRecursorCache::MemRecursorCache(size_t mapsCount) :
   d_maps(mapsCount == 0 ? 1 : mapsCount)
 {
@@ -821,10 +829,10 @@ uint64_t MemRecursorCache::doDump(int fd, size_t maxCacheEntries)
   return count;
 }
 
-void MemRecursorCache::doPrune(size_t keep)
+void MemRecursorCache::doPrune(time_t now, size_t keep)
 {
   size_t cacheSize = size();
-  pruneMutexCollectionsVector<SequencedTag>(*this, d_maps, keep, cacheSize);
+  pruneMutexCollectionsVector<SequencedTag>(now, *this, d_maps, keep, cacheSize);
 }
 
 namespace boost

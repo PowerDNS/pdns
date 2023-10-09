@@ -98,7 +98,7 @@ public:
   bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne, bool serveStale, bool refresh);
   size_t count(const DNSName& qname);
   size_t count(const DNSName& qname, QType qtype);
-  void prune(size_t maxEntries);
+  void prune(time_t now, size_t maxEntries);
   void clear();
   size_t doDump(int fd, size_t maxCacheEntries, time_t now = time(nullptr));
   size_t wipe(const DNSName& name, bool subtree = false);

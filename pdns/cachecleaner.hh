@@ -131,9 +131,8 @@ uint64_t pruneLockedCollectionsVector(std::vector<T>& maps)
 }
 
 template <typename S, typename C, typename T>
-uint64_t pruneMutexCollectionsVector(C& container, std::vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
+uint64_t pruneMutexCollectionsVector(time_t now, C& container, std::vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
 {
-  const time_t now = time(nullptr);
   uint64_t totErased = 0;
   uint64_t toTrim = 0;
   uint64_t lookAt = 0;

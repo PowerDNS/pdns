@@ -251,10 +251,10 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
   assert(map.getEntriesCount() == shard->d_map.size()); // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay): clib implementation
 }
 
-void RecursorPacketCache::doPruneTo(size_t maxSize)
+void RecursorPacketCache::doPruneTo(time_t now, size_t maxSize)
 {
   size_t cacheSize = size();
-  pruneMutexCollectionsVector<SequencedTag>(*this, d_maps, maxSize, cacheSize);
+  pruneMutexCollectionsVector<SequencedTag>(now, *this, d_maps, maxSize, cacheSize);
 }
 
 uint64_t RecursorPacketCache::doDump(int file)
