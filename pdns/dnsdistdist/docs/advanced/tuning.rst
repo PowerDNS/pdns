@@ -116,6 +116,10 @@ Incoming and outgoing DNS over TLS, as well as outgoing DNS over HTTPS, might be
  * supported ciphers depend on the exact kernel version used. ``TLS_AES_128_GCM_SHA256`` might be a good option for testing purpose since it was supported pretty early
  * as of OpenSSL 3.0.7, kTLS can only be used for sending TLS 1.3 packets, not receiving them. Both sending and receiving packets should be working for TLS 1.2.
 
+TLS performance
+---------------
+
+For DNS over HTTPS and DNS over TLS, in addition to the advices above we advise reading the :doc:`tls-sessions-management` page to know how to improve TLS session resumption ratio, which has a huge impact on CPU usage and latency.
 
 Rules and Lua
 -------------
