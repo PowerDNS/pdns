@@ -1572,7 +1572,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint1
     auto proxyProtocolPayloadSize = dq.ids.d_proxyProtocolPayloadSize;
     auto idOffset = ds->saveState(std::move(dq.ids));
     /* set the correct ID */
-    memcpy(query.data() + proxyProtocolPayloadSize, &idOffset, sizeof(idOffset));
+    memcpy(&query.at(proxyProtocolPayloadSize), &idOffset, sizeof(idOffset));
 
     /* you can't touch ids or du after this line, unless the call returned a non-negative value,
        because it might already have been freed */
