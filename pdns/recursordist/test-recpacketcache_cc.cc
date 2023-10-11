@@ -35,31 +35,32 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple)
   string qpacket((const char*)&packet[0], packet.size());
   pw.startRecord(qname, QType::A, ttd);
 
-  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag, qpacket, time(nullptr), &fpacket, &age, &qhash), false);
-  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &qhash), false);
+  time_t now = time(nullptr);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag, qpacket, now, &fpacket, &age, &qhash), false);
+  BOOST_CHECK_EQUAL(rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, now, &fpacket, &age, &qhash), false);
 
   ARecordContent ar("127.0.0.1");
   ar.toPacket(pw);
   pw.commit();
   string rpacket((const char*)&packet[0], packet.size());
 
-  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), time(0), ttd, vState::Indeterminate, boost::none, false);
+  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), now, ttd, vState::Indeterminate, boost::none, false);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
-  rpc.doPruneTo(0);
+  rpc.doPruneTo(now, 0);
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
-  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), time(0), ttd, vState::Indeterminate, boost::none, false);
+  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), now, ttd, vState::Indeterminate, boost::none, false);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
   rpc.doWipePacketCache(qname);
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 
-  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), time(0), ttd, vState::Indeterminate, boost::none, false);
+  rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), now, ttd, vState::Indeterminate, boost::none, false);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
   uint32_t qhash2 = 0;
-  bool found = rpc.getResponsePacket(tag, qpacket, time(nullptr), &fpacket, &age, &qhash2);
+  bool found = rpc.getResponsePacket(tag, qpacket, now, &fpacket, &age, &qhash2);
   BOOST_CHECK_EQUAL(found, true);
   BOOST_CHECK_EQUAL(qhash, qhash2);
   BOOST_CHECK_EQUAL(fpacket, rpacket);
-  found = rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &qhash2);
+  found = rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, now, &fpacket, &age, &qhash2);
   BOOST_CHECK_EQUAL(found, true);
   BOOST_CHECK_EQUAL(qhash, qhash2);
   BOOST_CHECK_EQUAL(fpacket, rpacket);
@@ -73,9 +74,9 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimple)
   pw2.getHeader()->id = dns_random_uint16();
   qpacket.assign((const char*)&packet[0], packet.size());
 
-  found = rpc.getResponsePacket(tag, qpacket, time(nullptr), &fpacket, &age, &qhash);
+  found = rpc.getResponsePacket(tag, qpacket, now, &fpacket, &age, &qhash);
   BOOST_CHECK_EQUAL(found, false);
-  found = rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, time(nullptr), &fpacket, &age, &qhash);
+  found = rpc.getResponsePacket(tag, qpacket, qname, QType::A, QClass::IN, now, &fpacket, &age, &qhash);
   BOOST_CHECK_EQUAL(found, false);
 
   rpc.doWipePacketCache(DNSName("com"), 0xffff, true);
@@ -175,7 +176,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCacheSimplePost2038)
 
   rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), future, ttd, vState::Indeterminate, boost::none, false);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
-  rpc.doPruneTo(0);
+  rpc.doPruneTo(time(nullptr), 0);
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
   rpc.insertResponsePacket(tag, qhash, string(qpacket), qname, QType::A, QClass::IN, string(rpacket), future, ttd, vState::Indeterminate, boost::none, false);
   BOOST_CHECK_EQUAL(rpc.size(), 1U);
@@ -280,7 +281,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_Tags)
   BOOST_CHECK_EQUAL(rpc.size(), 2U);
 
   /* remove all responses from the cache */
-  rpc.doPruneTo(0);
+  rpc.doPruneTo(time(nullptr), 0);
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 
   /* reinsert both */
@@ -393,7 +394,7 @@ BOOST_AUTO_TEST_CASE(test_recPacketCache_TCP)
   BOOST_CHECK_EQUAL(rpc.size(), 2U);
 
   /* remove all responses from the cache */
-  rpc.doPruneTo(0);
+  rpc.doPruneTo(time(nullptr), 0);
   BOOST_CHECK_EQUAL(rpc.size(), 0U);
 
   /* reinsert both */

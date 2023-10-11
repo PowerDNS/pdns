@@ -284,10 +284,10 @@ void NegCache::clear()
  *
  * \param maxEntries The maximum number of entries that may exist in the cache.
  */
-void NegCache::prune(size_t maxEntries)
+void NegCache::prune(time_t now, size_t maxEntries)
 {
   size_t cacheSize = size();
-  pruneMutexCollectionsVector<SequenceTag>(*this, d_maps, maxEntries, cacheSize);
+  pruneMutexCollectionsVector<SequenceTag>(now, *this, d_maps, maxEntries, cacheSize);
 }
 
 /*!
