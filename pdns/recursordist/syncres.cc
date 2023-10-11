@@ -1596,20 +1596,20 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool 
 }
 
 /* The parameters from rfc9156. */
-/* maximum number of QNAME minimisation iterations */
-static const unsigned int s_max_minimise_count = 10;
-/* number of queries that should only have one label appended */
-static const unsigned int s_minimise_one_lab = 4;
+/* maximum number of QNAME minimization iterations */
+unsigned int SyncRes::s_max_minimize_count; // default is 10
+/* number of iterations that should only have one label appended */
+unsigned int SyncRes::s_minimize_one_label; // default is 4
 
 static unsigned int qmStepLen(unsigned int labels, unsigned int qnamelen, unsigned int i)
 {
   unsigned int step;
 
-  if (i < s_minimise_one_lab) {
+  if (i < SyncRes::s_minimize_one_label) {
     step = 1;
   }
-  else if (i < s_max_minimise_count) {
-    step = std::max(1U, (qnamelen - labels) / (10 - i));
+  else if (i < SyncRes::s_max_minimize_count) {
+    step = std::max(1U, (qnamelen - labels) / (SyncRes::s_max_minimize_count - i));
   }
   else {
     step = qnamelen - labels;
@@ -1695,7 +1695,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
     LOG(prefix << qname << ": Step0 qname is in a forwarded domain " << fwdomain << endl);
   }
 
-  for (unsigned int i = 0; i <= qnamelen;) {
+  for (unsigned int i = 0; i <= qnamelen; i++) {
 
     // Step 1
     vector<DNSRecord> bestns;
@@ -1714,7 +1714,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
       }
     }
 
-    if (bestns.size() == 0) {
+    if (bestns.empty()) {
       if (!forwarded) {
         // Something terrible is wrong
         LOG(prefix << qname << ": Step1 No ancestor found return ServFail" << endl);
