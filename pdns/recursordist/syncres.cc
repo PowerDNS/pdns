@@ -4713,7 +4713,7 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& ne, cons
   return getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE, LogObject(prefix));
 }
 
-bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth)
+bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth) // NOLINT(readability-function-cognitive-complexity)
 {
   bool done = false;
   DNSName dnameTarget, dnameOwner;

@@ -1643,24 +1643,24 @@ BOOST_AUTO_TEST_CASE(test_servestale_cname_to_nodata)
   size_t lookupCount = 0;
   bool cnameOK = true;
 
-  const int theTTL = 5;
-  const int negTTL = 60;
+  const time_t theTTL = 5;
+  const time_t negTTL = 60;
 
-  sr->setAsyncCallback([&downServers, &downCount, &lookupCount, &cnameOK, target, auth](const ComboAddress& ip, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&downServers, &downCount, &lookupCount, &cnameOK, target, auth](const ComboAddress& ipAddress, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const boost::optional<const ResolveContext&>& /* context */, LWResult* res, bool* /* chained */) {
     /* this will cause issue with qname minimization if we ever implement it */
-    if (downServers.find(ip) != downServers.end()) {
+    if (downServers.find(ipAddress) != downServers.end()) {
       downCount++;
       return LWResult::Result::Timeout;
     }
 
-    if (isRootServer(ip)) {
+    if (isRootServer(ipAddress)) {
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY);
       addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL);
       addRecordToLW(res, "a.gtld-servers.net.", QType::AAAA, "2001:DB8::1", DNSResourceRecord::ADDITIONAL);
       return LWResult::Result::Success;
     }
-    else if (ip == ComboAddress("192.0.2.1:53") || ip == ComboAddress("[2001:DB8::1]:53")) {
+    if (ipAddress == ComboAddress("192.0.2.1:53") || ipAddress == ComboAddress("[2001:DB8::1]:53")) {
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, theTTL);
       addRecordToLW(res, "powerdns.com.", QType::NS, "pdns-public-ns2.powerdns.com.", DNSResourceRecord::AUTHORITY, theTTL);
@@ -1670,7 +1670,7 @@ BOOST_AUTO_TEST_CASE(test_servestale_cname_to_nodata)
       addRecordToLW(res, "pdns-public-ns2.powerdns.com.", QType::AAAA, "2001:DB8::3", DNSResourceRecord::ADDITIONAL, theTTL);
       return LWResult::Result::Success;
     }
-    else if (ip == ComboAddress("192.0.2.2:53") || ip == ComboAddress("192.0.2.3:53") || ip == ComboAddress("[2001:DB8::2]:53") || ip == ComboAddress("[2001:DB8::3]:53")) {
+    if (ipAddress == ComboAddress("192.0.2.2:53") || ipAddress == ComboAddress("192.0.2.3:53") || ipAddress == ComboAddress("[2001:DB8::2]:53") || ipAddress == ComboAddress("[2001:DB8::3]:53")) {
       if (cnameOK) {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, target, QType::CNAME, "cname.powerdns.com.", DNSResourceRecord::ANSWER, 5);
@@ -1678,22 +1678,19 @@ BOOST_AUTO_TEST_CASE(test_servestale_cname_to_nodata)
         lookupCount++;
         return LWResult::Result::Success;
       }
-      else {
-        setLWResult(res, RCode::NoError, true, false, true);
-        addRecordToLW(res, auth, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 60", DNSResourceRecord::AUTHORITY, negTTL);
-        lookupCount++;
-        return LWResult::Result::Success;
-      }
+      setLWResult(res, RCode::NoError, true, false, true);
+      addRecordToLW(res, auth, QType::SOA, "pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 60", DNSResourceRecord::AUTHORITY, negTTL);
+      lookupCount++;
+      return LWResult::Result::Success;
     }
-    else {
-      return LWResult::Result::Timeout;
-    }
+    return LWResult::Result::Timeout;
   });
 
   time_t now = time(nullptr);
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_REQUIRE_EQUAL(ret.size(), 2U);
   BOOST_CHECK(ret[0].d_type == QType::CNAME);
   BOOST_CHECK(ret[1].d_type == QType::A);
