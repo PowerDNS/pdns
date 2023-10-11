@@ -35,7 +35,7 @@ fi
 cd /tmp
 echo $0: Downloading $RUST_TARBALL
 
-curl -o $RUST_TARBALL $SITE/$RUST_TARBALL
+curl -f -o $RUST_TARBALL $SITE/$RUST_TARBALL
 # Line below should echo two spaces between digest and name
 echo $VALUE"  "$RUST_TARBALL | sha256sum -c -
 tar -zxf $RUST_TARBALL
