@@ -2,6 +2,22 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.8.2
+  :released: 11th of October 2023
+
+  This release fixes the HTTP2 rapid reset attack for the packages we provide.
+  If you are compiling DNSdist yourself or using the packages provided by your distribution,
+  please check that the h2o library has been patched to mitigate this vulnerability.
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: #13349
+
+    Switch to our fork of h2o to mitigate the HTTP2 rapid reset attack
+
+.. changelog::
   :version: 1.9.0-alpha1
   :released: 18th of September 2023
 
