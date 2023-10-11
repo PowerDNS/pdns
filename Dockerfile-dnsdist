@@ -40,6 +40,12 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
     fi && \
     BUILDER_MODULES=dnsdist autoreconf -vfi
 
+RUN mkdir /libh2o && cd /libh2o && \
+      apt-get update && apt-get install -y cmake curl libssl-dev zlib1g-dev && \
+      curl -f -L https://github.com/PowerDNS/h2o/archive/refs/tags/v2.2.6+pdns2.tar.gz | tar xz && \
+      CFLAGS='-fPIC' cmake -DWITH_PICOTLS=off -DWITH_BUNDLED_SSL=off -DWITH_MRUBY=off -DCMAKE_INSTALL_PREFIX=/opt ./h2o-2.2.6-pdns2 && \
+      make install
+
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     ./configure \
@@ -50,7 +56,8 @@ RUN mkdir /build && \
       --enable-dnscrypt \
       --enable-dns-over-tls \
       --enable-dns-over-https \
-      --with-re2 && \
+      --with-re2 \
+      PKG_CONFIG_PATH=/opt/lib/pkgconfig && \
     make clean && \
     make $MAKEFLAGS install DESTDIR=/build && make clean && \
     strip /build/usr/local/bin/*
