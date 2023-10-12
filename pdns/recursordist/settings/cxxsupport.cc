@@ -168,7 +168,7 @@ static void possiblyConvertACLFile(const string& includeDir, const string& apiDi
   else {
     yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_notify_from", "allow_notify_from_file", result);
   }
-  string yamlfilename =  apiDir;
+  string yamlfilename = apiDir;
   yamlfilename.append("/").append(filename).append(".yml");
   string tmpfilename = yamlfilename + ".tmp";
   ofstream ofconf(tmpfilename);
@@ -273,8 +273,7 @@ void pdns::settings::rec::processAPIDir(const string& includeDirOnCommandLine, p
   }
   const std::array<std::string, 2> aclFiles = {
     "allow-from",
-    "allow-notify-from"
-  };
+    "allow-notify-from"};
   for (const auto& file : aclFiles) {
     possiblyConvertACLFile(includeDir, apiDir, file, log);
     auto path = apiDir;
