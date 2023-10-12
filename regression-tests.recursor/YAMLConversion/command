@@ -1,0 +1,26 @@
+#!/bin/sh
+cd $(dirname $0) 
+set -e
+
+d=$(mktemp -d in.XXXXXXXXX)
+d2=$(mktemp -d out.XXXXXXXX)
+cd $d
+tar -zxf ../apiconfig.tar.gz
+cd ..
+cat > recursor.yml << EOF
+incoming:
+  port: 9999
+recursor:
+  include_dir: $d
+  socket_dir: .
+webservice:
+  api_dir: $d2
+EOF
+${PDNSRECURSOR} --config-dir=. &
+
+sleep 1
+${RECCONTROL} --config-dir=. quit-nicely
+diff -u apizones.expected $d2/apizones
+diff -u allow-from.yml.expected $d2/allow-from.yml
+diff -u allow-notify-from.yml.expected $d2/allow-notify-from.yml
+rm -rf $d $d2 recursor.yml
