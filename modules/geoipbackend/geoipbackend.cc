@@ -33,6 +33,7 @@
 #include <boost/format.hpp>
 #include <fstream>
 #include <filesystem>
+#include <utility>
 #include <yaml-cpp/yaml.h>
 
 ReadWriteLock GeoIPBackend::s_state_lock;
@@ -124,6 +125,94 @@ static bool validateMappingLookupFormats(const vector<string>& formats)
   return true;
 }
 
+static vector<GeoIPDNSResourceRecord> makeDNSResourceRecord(GeoIPDomain& dom, DNSName name)
+{
+  GeoIPDNSResourceRecord resourceRecord;
+  resourceRecord.domain_id = static_cast<int>(dom.id);
+  resourceRecord.ttl = dom.ttl;
+  resourceRecord.qname = std::move(name);
+  resourceRecord.qtype = QType(0); // empty non terminal
+  resourceRecord.content = "";
+  resourceRecord.auth = true;
+  resourceRecord.weight = 100;
+  resourceRecord.has_weight = false;
+  vector<GeoIPDNSResourceRecord> rrs;
+  rrs.push_back(resourceRecord);
+  return rrs;
+}
+
+void GeoIPBackend::setupNetmasks(const YAML::Node& domain, GeoIPDomain& dom)
+{
+  for (auto service = domain["services"].begin(); service != domain["services"].end(); service++) {
+    unsigned int netmask4 = 0;
+    unsigned int netmask6 = 0;
+    DNSName serviceName{service->first.as<string>()};
+    NetmaskTree<vector<string>> netmaskTree;
+
+    // if it's an another map, we need to iterate it again, otherwise we just add two root entries.
+    if (service->second.IsMap()) {
+      for (auto net = service->second.begin(); net != service->second.end(); net++) {
+        vector<string> value;
+        if (net->second.IsSequence()) {
+          value = net->second.as<vector<string>>();
+        }
+        else {
+          value.push_back(net->second.as<string>());
+        }
+        if (net->first.as<string>() == "default") {
+          netmaskTree.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(), value.end());
+          netmaskTree.insert(Netmask("::/0")).second.swap(value);
+        }
+        else {
+          Netmask netmask{net->first.as<string>()};
+          netmaskTree.insert(netmask).second.swap(value);
+          if (netmask.isIPv6() && netmask6 < netmask.getBits()) {
+            netmask6 = netmask.getBits();
+          }
+          if (!netmask.isIPv6() && netmask4 < netmask.getBits()) {
+            netmask4 = netmask.getBits();
+          }
+        }
+      }
+    }
+    else {
+      vector<string> value;
+      if (service->second.IsSequence()) {
+        value = service->second.as<vector<string>>();
+      }
+      else {
+        value.push_back(service->second.as<string>());
+      }
+      netmaskTree.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(), value.end());
+      netmaskTree.insert(Netmask("::/0")).second.swap(value);
+    }
+
+    // Allow per domain override of mapping_lookup_formats and custom_mapping.
+    // If not defined, the global values will be used.
+    if (YAML::Node formats = domain["mapping_lookup_formats"]) {
+      auto mapping_lookup_formats = formats.as<vector<string>>();
+      if (!validateMappingLookupFormats(mapping_lookup_formats)) {
+        throw PDNSException(string("%mp is not allowed in mapping lookup formats of domain ") + dom.domain.toLogString());
+      }
+
+      dom.mapping_lookup_formats = mapping_lookup_formats;
+    }
+    else {
+      dom.mapping_lookup_formats = d_global_mapping_lookup_formats;
+    }
+    if (YAML::Node mapping = domain["custom_mapping"]) {
+      dom.custom_mapping = mapping.as<map<std::string, std::string>>();
+    }
+    else {
+      dom.custom_mapping = d_global_custom_mapping;
+    }
+
+    dom.services[serviceName].netmask4 = netmask4;
+    dom.services[serviceName].netmask6 = netmask6;
+    dom.services[serviceName].masks.swap(netmaskTree);
+  }
+}
+
 bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, GeoIPDomain& dom)
 {
   try {
@@ -188,74 +277,7 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, 
       std::swap(dom.records[qname], rrs);
     }
 
-    for (auto service = domain["services"].begin(); service != domain["services"].end(); service++) {
-      unsigned int netmask4 = 0;
-      unsigned int netmask6 = 0;
-      DNSName srvName{service->first.as<string>()};
-      NetmaskTree<vector<string>> nmt;
-
-      // if it's an another map, we need to iterate it again, otherwise we just add two root entries.
-      if (service->second.IsMap()) {
-        for (auto net = service->second.begin(); net != service->second.end(); net++) {
-          vector<string> value;
-          if (net->second.IsSequence()) {
-            value = net->second.as<vector<string>>();
-          }
-          else {
-            value.push_back(net->second.as<string>());
-          }
-          if (net->first.as<string>() == "default") {
-            nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(), value.end());
-            nmt.insert(Netmask("::/0")).second.swap(value);
-          }
-          else {
-            Netmask netmask{net->first.as<string>()};
-            nmt.insert(netmask).second.swap(value);
-            if (netmask.isIPv6() && netmask6 < netmask.getBits()) {
-              netmask6 = netmask.getBits();
-            }
-            if (!netmask.isIPv6() && netmask4 < netmask.getBits()) {
-              netmask4 = netmask.getBits();
-            }
-          }
-        }
-      }
-      else {
-        vector<string> value;
-        if (service->second.IsSequence()) {
-          value = service->second.as<vector<string>>();
-        }
-        else {
-          value.push_back(service->second.as<string>());
-        }
-        nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(), value.end());
-        nmt.insert(Netmask("::/0")).second.swap(value);
-      }
-
-      // Allow per domain override of mapping_lookup_formats and custom_mapping.
-      // If not defined, the global values will be used.
-      if (YAML::Node formats = domain["mapping_lookup_formats"]) {
-        auto mapping_lookup_formats = formats.as<vector<string>>();
-        if (!validateMappingLookupFormats(mapping_lookup_formats)) {
-          throw PDNSException(string("%mp is not allowed in mapping lookup formats of domain ") + dom.domain.toLogString());
-        }
-
-        dom.mapping_lookup_formats = mapping_lookup_formats;
-      }
-      else {
-        dom.mapping_lookup_formats = d_global_mapping_lookup_formats;
-      }
-      if (YAML::Node mapping = domain["custom_mapping"]) {
-        dom.custom_mapping = mapping.as<map<std::string, std::string>>();
-      }
-      else {
-        dom.custom_mapping = d_global_custom_mapping;
-      }
-
-      dom.services[srvName].netmask4 = netmask4;
-      dom.services[srvName].netmask6 = netmask6;
-      dom.services[srvName].masks.swap(nmt);
-    }
+    setupNetmasks(domain, dom);
 
     // rectify the zone, first static records
     for (auto& item : dom.records) {
@@ -263,17 +285,7 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, 
       DNSName name = item.first;
       while (name.chopOff() && name.isPartOf(dom.domain)) {
         if (dom.records.find(name) == dom.records.end() && (dom.services.count(name) == 0U)) { // don't ENT out a service!
-          GeoIPDNSResourceRecord resourceRecord;
-          vector<GeoIPDNSResourceRecord> rrs;
-          resourceRecord.domain_id = static_cast<int>(dom.id);
-          resourceRecord.ttl = dom.ttl;
-          resourceRecord.qname = name;
-          resourceRecord.qtype = QType(0); // empty non terminal
-          resourceRecord.content = "";
-          resourceRecord.auth = true;
-          resourceRecord.weight = 100;
-          resourceRecord.has_weight = false;
-          rrs.push_back(resourceRecord);
+          auto rrs = makeDNSResourceRecord(dom, name);
           std::swap(dom.records[name], rrs);
         }
       }
@@ -285,17 +297,7 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, 
       DNSName name = item.first;
       while (name.chopOff() && name.isPartOf(dom.domain)) {
         if (dom.records.find(name) == dom.records.end()) {
-          GeoIPDNSResourceRecord resourceRecord;
-          vector<GeoIPDNSResourceRecord> rrs;
-          resourceRecord.domain_id = static_cast<int>(dom.id);
-          resourceRecord.ttl = dom.ttl;
-          resourceRecord.qname = name;
-          resourceRecord.qtype = QType(0);
-          resourceRecord.content = "";
-          resourceRecord.auth = true;
-          resourceRecord.weight = 100;
-          resourceRecord.has_weight = false;
-          rrs.push_back(resourceRecord);
+          auto rrs = makeDNSResourceRecord(dom, name);
           std::swap(dom.records[name], rrs);
         }
       }
