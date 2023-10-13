@@ -100,6 +100,9 @@ void ZoneData::parseDRForCache(DNSRecord& dnsRecord)
     break;
   case QType::RRSIG: {
     const auto rrsig = getRR<RRSIGRecordContent>(dnsRecord);
+    if (rrsig == nullptr) {
+      break;
+    }
     const auto sigkey = pair(key.first, rrsig->d_type);
     auto found = d_sigs.find(sigkey);
     if (found != d_sigs.end()) {
