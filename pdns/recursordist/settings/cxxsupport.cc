@@ -161,13 +161,15 @@ static void possiblyConvertACLFile(const string& includeDir, const string& apiDi
       result.emplace_back(val);
     }
   }
-  rust::string yaml;
+
+  rust::string key = "allow_from";
+  rust::string filekey = "allow_from_file";
   if (filename == "allow-from") {
-    yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_from", "allow_from_file", result);
+    key = "allow_notify_from";
+    filekey = "allow_notify_from_file";
   }
-  else {
-    yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_notify_from", "allow_notify_from_file", result);
-  }
+  const auto yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming(key, filekey, result);
+
   string yamlfilename = apiDir;
   yamlfilename.append("/").append(filename).append(".yml");
   string tmpfilename = yamlfilename + ".tmp";
@@ -218,7 +220,7 @@ static void fileCopy(const string& src, const string& dst, Logr::log_t log)
       log->error(Logr::Error, err, "Error reading", "to", Logging::Loggable(src));
       throw runtime_error("YAML Conversion");
     }
-    ofconf.put(character);
+    ofconf.put(static_cast<char>(character));
     if (ofconf.bad()) {
       int err = errno;
       log->error(Logr::Error, err, "Error writing YAML", "to", Logging::Loggable(dst));
@@ -230,9 +232,9 @@ static void fileCopy(const string& src, const string& dst, Logr::log_t log)
 }
 static void possiblyConvertForwardsandAuths(const std::string& includeDir, const std::string& apiDir, Logr::log_t log)
 {
-  std::vector<std::string> forwAndAuthFiles;
+  std::vector<std::string> forwAndAuthFiles{};
   ::arg().gatherIncludes(includeDir, "..conf", forwAndAuthFiles);
-  pdns::rust::settings::rec::Recursorsettings settings;
+  pdns::rust::settings::rec::Recursorsettings settings{};
   for (const auto& file : forwAndAuthFiles) {
     auto yaml = pdns::settings::rec::oldStyleSettingsFileToYaml(file, false);
     pdns::rust::settings::rec::merge(settings, yaml);
