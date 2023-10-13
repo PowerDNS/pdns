@@ -637,7 +637,6 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
 
     {
       /* don't keep that pointer around, it will be invalidated if the buffer is ever resized */
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       dnsheader_aligned dnsHeader(unit->query.data());
 
       if (!checkQueryHeaders(dnsHeader.get(), clientState)) {
