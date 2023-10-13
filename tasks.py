@@ -180,7 +180,7 @@ def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
     with c.cd('/tmp/libdecaf'):
         c.run('git checkout 41f349')
-        c.run(f'CC=clang-{clang_version} CXX=clang-{clang_version} '
+        c.run(f'CC={get_c_compiler()} CXX={get_cxx_compiler()} '
               'cmake -B build '
               '-DCMAKE_INSTALL_PREFIX=/usr/local '
               '-DCMAKE_INSTALL_LIBDIR=lib '
@@ -373,10 +373,24 @@ def get_sanitizers():
         sanitizers = ' '.join(sanitizers)
     return sanitizers
 
+def get_c_compiler():
+    if os.getenv('COMPILER', 'clang') == 'clang':
+        return f'clang-{clang_version}'
+    return 'gcc'
+
+def get_cxx_compiler():
+    if os.getenv('COMPILER', 'clang') == 'clang':
+        return f'clang++-{clang_version}'
+    return 'g++'
+
+def get_optimizations():
+    if os.getenv('OPTIMIZATIONS', 'yes') == 'yes':
+        return "-O1"
+    return "-O0"
 
 def get_cflags():
     return " ".join([
-        "-O1",
+        get_optimizations(),
         "-Werror=vla",
         "-Werror=shadow",
         "-Wformat=2",
@@ -397,8 +411,8 @@ def get_base_configure_cmd():
         f'CFLAGS="{get_cflags()}"',
         f'CXXFLAGS="{get_cxxflags()}"',
         './configure',
-        f"CC='clang-{clang_version}'",
-        f"CXX='clang++-{clang_version}'",
+        f"CC='{get_c_compiler()}'",
+        f"CXX='{get_cxx_compiler()}'",
         "--enable-option-checking=fatal",
         "--enable-systemd",
         "--with-libsodium",
@@ -440,6 +454,7 @@ def ci_auth_configure(c):
         "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
         f"--with-modules='{modules}'",
         "--enable-tools",
+        "--enable-dns-over-tls",
         "--enable-experimental-pkcs11",
         "--enable-experimental-gss-tsig",
         "--enable-remotebackend-zeromq",
@@ -555,18 +570,18 @@ def ci_dnsdist_configure(c, features):
     coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
     cflags = get_cflags()
     cxxflags = " ".join([get_cxxflags(), additional_flags])
+    tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if os.getenv('COMPILER', 'clang') == 'clang' else ''
     res = c.run(f'''CFLAGS="%s" \
                    CXXFLAGS="%s" \
-                   AR=llvm-ar-{clang_version} \
-                   RANLIB=llvm-ranlib-{clang_version} \
+                   %s \
                    ./configure \
-                     CC='clang-{clang_version}' \
-                     CXX='clang++-{clang_version}' \
+                     CC='{get_c_compiler()}' \
+                     CXX='{get_cxx_compiler()}' \
                      --enable-option-checking=fatal \
                      --enable-fortify-source=auto \
                      --enable-auto-var-init=pattern \
                      --enable-lto=thin \
-                     --prefix=/opt/dnsdist %s %s %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests, fuzztargets, coverage), warn=True)
+                     --prefix=/opt/dnsdist %s %s %s %s %s''' % (cflags, cxxflags, tools, features_set, sanitizers, unittests, fuzztargets, coverage), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)

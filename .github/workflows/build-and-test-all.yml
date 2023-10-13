@@ -11,12 +11,14 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
   contents: read
 
 env:
+  COMPILER: clang
   CLANG_VERSION: '13'
   # github.workspace variable points to the Runner home folder. Container home folder defined below.
   REPO_HOME: '/__w/pdns/pdns'
   BUILDER_VERSION: '0.0.0-git1'
   COVERAGE: yes
   LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
+  OPTIMIZATIONS: yes
 
 jobs:
   build-auth:
@@ -35,8 +37,6 @@ jobs:
     defaults:
       run:
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}
-    outputs:
-      clang-tidy-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -64,34 +64,6 @@ jobs:
         working-directory: .
       - run: inv ci-auth-configure
       - run: inv ci-auth-make-bear  # This runs under pdns-$BUILDER_VERSION/pdns/
-      - name: Normalize paths in compilation DB
-        working-directory: .
-        run: python3 .github/scripts/normalize_paths_in_compilation_database.py --version $BUILDER_VERSION pdns-$BUILDER_VERSION/pdns/compile_commands.json
-      - name: Copy the compilation DB
-        working-directory: .
-        run: cp pdns-$BUILDER_VERSION/pdns/compile_commands.json .
-      - run: ln -s .clang-tidy.full .clang-tidy
-        working-directory: .
-      - name: Run clang-tidy
-        working-directory: .
-        run: git diff -U0 HEAD^..HEAD | python3 .github/scripts/git-filter.py | python3 .github/scripts/clang-tidy-diff.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p1 -export-fixes clang-tidy-auth.yml
-      - name: Print clang-tidy fixes YAML
-        working-directory: .
-        shell: bash
-        run: |
-          if [ -f clang-tidy-auth.yml ]; then
-            cat clang-tidy-auth.yml
-          fi
-      - name: Result annotations
-        id: clang-tidy-annotations
-        working-directory: .
-        shell: bash
-        run: |
-          if [ -f clang-tidy-auth.yml ]; then
-            set +e
-            python3 .github/scripts/clang-tidy.py --fixes-file clang-tidy-auth.yml
-            echo "failed=$?" >> $GITHUB_OUTPUT
-          fi
       - run: inv ci-auth-install-remotebackend-test-deps
       - run: inv ci-auth-run-unit-tests
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
@@ -130,8 +102,6 @@ jobs:
     defaults:
       run:
         working-directory: ./pdns/recursordist/pdns-recursor-${{ env.BUILDER_VERSION }}
-    outputs:
-      clang-tidy-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -161,34 +131,6 @@ jobs:
         working-directory: ./pdns/recursordist/
       - run: inv ci-rec-configure
       - run: inv ci-rec-make-bear
-      - name: Normalize paths in compilation DB
-        working-directory: .
-        run: python3 .github/scripts/normalize_paths_in_compilation_database.py --version $BUILDER_VERSION ./pdns/recursordist/pdns-recursor-$BUILDER_VERSION/compile_commands.json
-      - name: Copy compilation DB
-        working-directory: .
-        run: cp ./pdns/recursordist/pdns-recursor-$BUILDER_VERSION/compile_commands.json .
-      - run: ln -s .clang-tidy.full .clang-tidy
-        working-directory: .
-      - name: Run clang-tidy
-        working-directory: .
-        run: git diff -U0 HEAD^..HEAD | python3 .github/scripts/git-filter.py | python3 .github/scripts/clang-tidy-diff.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p1 -export-fixes clang-tidy-rec.yml
-      - name: Print clang-tidy fixes YAML
-        working-directory: .
-        shell: bash
-        run: |
-          if [ -f clang-tidy-rec.yml ]; then
-            cat clang-tidy-rec.yml
-          fi
-      - name: Result annotations
-        id: clang-tidy-annotations
-        working-directory: .
-        shell: bash
-        run: |
-          if [ -f clang-tidy-rec.yml ]; then
-            set +e
-            python .github/scripts/clang-tidy.py --fixes-file clang-tidy-rec.yml
-            echo "failed=$?" >> $GITHUB_OUTPUT
-          fi
       - run: inv ci-rec-run-unit-tests
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
         if: ${{ matrix.sanitizers != 'tsan' }}
@@ -232,8 +174,6 @@ jobs:
     defaults:
       run:
         working-directory: ./pdns/dnsdistdist/dnsdist-${{ env.BUILDER_VERSION }}
-    outputs:
-      clang-tidy-failed: ${{ steps.clang-tidy-annotations.outputs.failed }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -265,34 +205,6 @@ jobs:
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-dnsdist-configure ${{ matrix.features }}
       - run: inv ci-dnsdist-make-bear
-      - name: Normalize paths in compilation DB
-        working-directory: .
-        run: python3 .github/scripts/normalize_paths_in_compilation_database.py --version $BUILDER_VERSION ./pdns/dnsdistdist/dnsdist-$BUILDER_VERSION/compile_commands.json
-      - name: Copy compilation DB
-        run: cp ./pdns/dnsdistdist/dnsdist-$BUILDER_VERSION/compile_commands.json  compile_commands.json
-        working-directory: .
-      - run: ln -s .clang-tidy.full .clang-tidy
-        working-directory: .
-      - name: Run clang-tidy
-        working-directory: .
-        run: git diff -U0 HEAD^..HEAD | python3 .github/scripts/git-filter.py | python3 .github/scripts/clang-tidy-diff.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p1 -export-fixes clang-tidy-dnsdist.yml
-      - name: Print clang-tidy fixes YAML
-        working-directory: .
-        shell: bash
-        run: |
-          if [ -f clang-tidy-dnsdist.yml ]; then
-            cat clang-tidy-dnsdist.yml
-          fi
-      - name: Result annotations
-        id: clang-tidy-annotations
-        working-directory: .
-        shell: bash
-        run: |
-          if [ -f clang-tidy-dnsdist.yml ]; then
-            set +e
-            python .github/scripts/clang-tidy.py --fixes-file clang-tidy-dnsdist.yml
-            echo "failed=$?" >> $GITHUB_OUTPUT
-          fi
       - run: inv ci-dnsdist-run-unit-tests
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
         if: ${{ matrix.sanitizers != 'tsan' }}
@@ -708,25 +620,6 @@ jobs:
       - run: inv install-swagger-tools
       - run: inv swagger-syntax-check
 
-  check-clang-tidy:
-    needs: [build-auth, build-dnsdist, build-recursor]
-    runs-on: ubuntu-20.04
-    name: Check whether clang-tidy succeeded
-    steps:
-      - run: |
-          if [ "x${{ needs.build-auth.outputs.clang-tidy-failed }}" != "x" -a "${{ needs.build-auth.outputs.clang-tidy-failed }}" != "0" ]; then
-            echo "::error::Auth clang-tidy failed"
-            exit 1
-          fi
-          if [ "x${{needs.build-recursor.outputs.clang-tidy-failed}}" != "x" -a "${{needs.build-recursor.outputs.clang-tidy-failed}}" != "0" ]; then
-            echo "::error::Rec clang-tidy failed"
-            exit 1
-          fi
-          if [ "x${{ needs.build-dnsdist.outputs.clang-tidy-failed }}" != "x" -a "${{ needs.build-dnsdist.outputs.clang-tidy-failed }}" != "0" ]; then
-            echo "::error::dnsdist clang-tidy failed"
-            exit 1
-          fi
-
   collect:
     needs:
       - build-auth
@@ -740,7 +633,6 @@ jobs:
       - test-recursor-api
       - test-recursor-regression
       - test-recursor-bulk
-      - check-clang-tidy
     if: success() || failure()
     runs-on: ubuntu-20.04
     steps:
