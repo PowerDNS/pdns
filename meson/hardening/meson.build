@@ -30,21 +30,3 @@ if opt_hardening.enabled() or opt_hardening.auto()
   endforeach
 endif
 
-opt_full_hardening = get_option('hardening-full')
-if opt_full_hardening.enabled() or opt_full_hardening.auto()
-  full_hardening_features = []
-  subdir('relro-full')          # Full RELRO
-
-  foreach feature: full_hardening_features
-    available = feature[0]
-    name = feature[1]
-
-    if not available
-      if opt_full_hardening.auto()
-        warning(name + ' is disabled or not supported')
-      else
-        error('Failing because ' + name + ' is not supported but full hardening was requested')
-      endif
-    endif
-  endforeach
-endif
