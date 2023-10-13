@@ -65,6 +65,7 @@ bool UeberBackend::loadmodule(const string& name)
   void* dlib = dlopen(name.c_str(), RTLD_NOW);
 
   if (dlib == nullptr) {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe): There's no thread-safe alternative to dlerror().
     g_log << Logger::Error << "Unable to load module '" << name << "': " << dlerror() << endl;
     return false;
   }
