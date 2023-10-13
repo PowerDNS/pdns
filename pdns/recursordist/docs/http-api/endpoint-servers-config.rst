@@ -8,7 +8,8 @@
     Only :ref:`setting-allow-from` and :ref:`setting-allow-notify-from` can be set.
 
   .. note::
-    For configuration changes to work :ref:`setting-include-dir` and :ref:`setting-api-config-dir` should have the same value.
+    For configuration changes to work :ref:`setting-include-dir` and :ref:`setting-api-config-dir` should have the same value for old-style settings.
+    When using YAML settings :ref:`setting-yaml-recursor.include_dir` and :ref:`setting-yaml-webservice.api_dir` must have a different value.
 
   :param server_id: The name of the server
   :param config_setting_name: The name of the setting to change
