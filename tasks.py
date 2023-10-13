@@ -395,7 +395,7 @@ def get_cflags():
         "-Werror=shadow",
         "-Wformat=2",
         "-Werror=format-security",
-        "-Werror=string-plus-int",
+        "-Werror=string-plus-int" if os.getenv('COMPILER', 'clang') == 'clang' else '',
     ])
 
 
