@@ -29,6 +29,11 @@ RUST_BACKTRACE=1 cargo build --release --no-default-features --features ffi,bori
 
 install -m644 quiche/include/quiche.h "${INSTALL_PREFIX}"/include
 install -m644 target/release/libquiche.${SOEXT} "${INSTALL_PREFIX}"/lib/libdnsdist-quiche.${SOEXT}
+
+if [ $(uname) = Darwin ]; then
+  install_name_tool -id "${INSTALL_PREFIX}"/lib/libdnsdist-quiche.${SOEXT} "${INSTALL_PREFIX}"/lib/libdnsdist-quiche.${SOEXT}
+fi
+
 if [ ! -d "${INSTALL_PREFIX}"/lib/pkgconfig/ ]; then
     mkdir "${INSTALL_PREFIX}"/lib/pkgconfig/
 fi
