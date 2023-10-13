@@ -366,7 +366,7 @@ def ci_docs_add_ssh(c, ssh_key, host_key):
 
 
 def get_sanitizers():
-    sanitizers = os.getenv('SANITIZERS')
+    sanitizers = os.getenv('SANITIZERS', '')
     if sanitizers != '':
         sanitizers = sanitizers.split('+')
         sanitizers = ['--enable-' + sanitizer for sanitizer in sanitizers]
@@ -566,7 +566,7 @@ def ci_dnsdist_configure(c, features):
                           -DDISABLE_NPN'
     unittests = ' --enable-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
     fuzztargets = '--enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
-    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
+    sanitizers = get_sanitizers()
     coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
     cflags = get_cflags()
     cxxflags = " ".join([get_cxxflags(), additional_flags])
