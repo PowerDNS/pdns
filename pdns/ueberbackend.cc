@@ -488,32 +488,32 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
   return found;
 }
 
-bool UeberBackend::getSOAUncached(const DNSName& domain, SOAData& sd)
+bool UeberBackend::getSOAUncached(const DNSName& domain, SOAData& soaData)
 {
   d_question.qtype = QType::SOA;
   d_question.qname = domain;
   d_question.zoneId = -1;
 
   for (auto* backend : backends) {
-    if (backend->getSOA(domain, sd)) {
-      if (domain != sd.qname) {
-        throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '" + domain.toLogString() + "', answer: '" + sd.qname.toLogString() + "'");
+    if (backend->getSOA(domain, soaData)) {
+      if (domain != soaData.qname) {
+        throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '" + domain.toLogString() + "', answer: '" + soaData.qname.toLogString() + "'");
       }
-      if (d_cache_ttl) {
-        DNSZoneRecord rr;
-        rr.dr.d_name = sd.qname;
-        rr.dr.d_type = QType::SOA;
-        rr.dr.setContent(makeSOAContent(sd));
-        rr.dr.d_ttl = sd.ttl;
-        rr.domain_id = sd.domain_id;
+      if (d_cache_ttl != 0U) {
+        DNSZoneRecord zoneRecord;
+        zoneRecord.dr.d_name = soaData.qname;
+        zoneRecord.dr.d_type = QType::SOA;
+        zoneRecord.dr.setContent(makeSOAContent(soaData));
+        zoneRecord.dr.d_ttl = soaData.ttl;
+        zoneRecord.domain_id = soaData.domain_id;
 
-        addCache(d_question, {rr});
+        addCache(d_question, {zoneRecord});
       }
       return true;
     }
   }
 
-  if (d_negcache_ttl) {
+  if (d_negcache_ttl != 0U) {
     addNegCache(d_question);
   }
   return false;
