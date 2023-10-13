@@ -30,3 +30,4 @@ if opt_hardening.enabled() or opt_hardening.auto()
 endif
 
 subdir('fortify-source')      # Fortify Source
+subdir('control-flow')        # Control Flow Protection
