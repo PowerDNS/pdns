@@ -620,7 +620,9 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
       }
     }
     // Not found in cache, check negcache and push task if also not in negcache
-    additionalsNotInCache = pushResolveIfNotInNegCache(qname, qtype, d_now);
+    if (pushResolveIfNotInNegCache(qname, qtype, d_now)) {
+      additionalsNotInCache = true;
+    }
     break;
   }
   case AdditionalMode::Ignore:
