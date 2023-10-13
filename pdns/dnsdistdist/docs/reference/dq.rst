@@ -463,7 +463,8 @@ DNSResponse object
         return DNSAction.None
       end
       function restartOnServFail(dr)
-        if dr.rcode == DNSRCode.SERVFAIL then
+        -- if the query was SERVFAIL and not already tried on the restarted pool
+        if dr.rcode == DNSRCode.SERVFAIL and dr.pool ~= 'restarted' then
           -- assign this query to a new pool
           dr.pool = 'restarted'
           -- discard the received response and
