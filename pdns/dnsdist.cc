@@ -607,7 +607,7 @@ static size_t getMaximumIncomingPacketSize(const ClientState& cs)
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
 #ifndef DISABLE_DELAY_PIPE
-  if (delayMsec && g_delay != nullptr) {
+  if (delayMsec > 0 && g_delay != nullptr) {
     DelayedPacket dp{origFD, response, origRemote, origDest};
     g_delay->submit(dp, delayMsec);
     return true;
@@ -2296,7 +2296,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
 #ifdef HAVE_EBPF
   if (g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
     clientState.attachFilter(g_defaultBPFFilter, socket);
-    vinfolog("Attaching default BPF Filter to %s frontend %s", (!tcp ? "UDP" : "TCP"), addr.toStringWithPort());
+    vinfolog("Attaching default BPF Filter to %s frontend %s", std::string(!tcp ? "UDP" : "TCP"), addr.toStringWithPort());
   }
 #endif /* HAVE_EBPF */
 
@@ -2772,7 +2772,9 @@ int main(int argc, char** argv)
 #endif /* DISABLE_COMPLETION */
 #endif /* HAVE_LIBEDIT */
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast): SIG_IGN macro
     signal(SIGPIPE, SIG_IGN);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast): SIG_IGN macro
     signal(SIGCHLD, SIG_IGN);
     signal(SIGTERM, sigTermHandler);
 
@@ -2781,7 +2783,7 @@ int main(int argc, char** argv)
 #ifdef HAVE_LIBSODIUM
     if (sodium_init() == -1) {
       cerr<<"Unable to initialize crypto library"<<endl;
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): argv
+      // NOLINTNEXTLINE(concurrency-mt-unsafe): only on thread at this point
       exit(EXIT_FAILURE);
     }
 #endif
