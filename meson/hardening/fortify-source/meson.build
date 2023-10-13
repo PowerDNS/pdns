@@ -27,8 +27,6 @@ if fortify_source
       endif
     endif
   endforeach
-
-  hardening_features += [[fortify_source_level != 0, 'Source Fortification']]
 endif
 
 fortify_source = fortify_source and fortify_source_level != 0

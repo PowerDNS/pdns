@@ -13,7 +13,6 @@ if opt_hardening.enabled() or opt_hardening.auto()
 
   subdir('stack-prot')          # Stack Protector
   subdir('stack-smashing-prot') # Stack-Smashing Protection
-  subdir('fortify-source')      # Fortify Source
   subdir('relro')               # RELRO
 
   foreach feature: hardening_features
@@ -30,3 +29,4 @@ if opt_hardening.enabled() or opt_hardening.auto()
   endforeach
 endif
 
+subdir('fortify-source')      # Fortify Source
