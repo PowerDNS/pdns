@@ -188,7 +188,7 @@ bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, con
 
 namespace PacketMangling
 {
-  bool editDNSHeaderFromPacket(PacketBuffer& packet, std::function<bool(dnsheader& header)> editFunction)
+  bool editDNSHeaderFromPacket(PacketBuffer& packet, const std::function<bool(dnsheader& header)>& editFunction)
   {
     if (packet.size() < sizeof(dnsheader)) {
       throw std::runtime_error("Trying to edit the DNS header of a too small packet");
@@ -197,7 +197,7 @@ namespace PacketMangling
     return editDNSHeaderFromRawPacket(packet.data(), editFunction);
   }
 
-  bool editDNSHeaderFromRawPacket(void* packet, std::function<bool(dnsheader& header)> editFunction)
+  bool editDNSHeaderFromRawPacket(void* packet, const std::function<bool(dnsheader& header)>& editFunction)
   {
     if (dnsheader_aligned::isMemoryAligned(packet)) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -205,7 +205,7 @@ namespace PacketMangling
       return editFunction(*header);
     }
 
-    dnsheader header;
+    dnsheader header{};
     memcpy(&header, packet, sizeof(header));
     if (!editFunction(header)) {
       return false;

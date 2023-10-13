@@ -293,6 +293,7 @@ static bool checkConfigurationTime(const std::string& name)
   return false;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
   typedef LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, DownstreamState::checkfunc_t>> newserver_t;
@@ -2483,7 +2484,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_DNS_OVER_HTTPS */
   });
 
-  luaCtx.writeFunction("addDOQLocal", [client](const std::string& addr, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, boost::variant<std::string, LuaArray<std::string>> keyFiles, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addDOQLocal", [client](const std::string& addr, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const boost::variant<std::string, LuaArray<std::string>>& keyFiles, boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2519,7 +2520,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       {
         std::string valueStr;
         if (getOptionalValue<std::string>(vars, "congestionControlAlgo", valueStr) > 0) {
-          if (DOQFrontend::s_available_cc_algorithms.count(valueStr)) {
+          if (DOQFrontend::s_available_cc_algorithms.count(valueStr) > 0) {
             frontend->d_ccAlgo = valueStr;
           }
           else {

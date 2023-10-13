@@ -57,7 +57,7 @@ bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, con
 
 namespace PacketMangling
 {
-  bool editDNSHeaderFromPacket(PacketBuffer& packet, std::function<bool(dnsheader& header)> editFunction);
-  bool editDNSHeaderFromRawPacket(void* packet, std::function<bool(dnsheader& header)> editFunction);
+  bool editDNSHeaderFromPacket(PacketBuffer& packet, const std::function<bool(dnsheader& header)>& editFunction);
+  bool editDNSHeaderFromRawPacket(void* packet, const std::function<bool(dnsheader& header)>& editFunction);
 }
 }
