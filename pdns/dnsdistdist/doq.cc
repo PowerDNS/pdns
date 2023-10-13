@@ -53,7 +53,7 @@ using QuicheConfig = std::unique_ptr<quiche_config, decltype(&quiche_config_free
 class Connection
 {
 public:
-  Connection(const ComboAddress& peer, std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>&& conn) :
+  Connection(const ComboAddress& peer, QuicheConnection&& conn) :
     d_peer(peer), d_conn(std::move(conn))
   {
   }
