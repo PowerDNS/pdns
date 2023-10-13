@@ -1576,7 +1576,7 @@ void dohThread(ClientState* clientState)
 
     // in this complicated way we insert the DOHServerConfig pointer in there
     h2o_vector_reserve(nullptr, &dsc->h2o_ctx.storage, 1);
-    // NOLINTNEXTLINE: h2o API
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): h2o API
     dsc->h2o_ctx.storage.entries[0].data = dsc.get();
     ++dsc->h2o_ctx.storage.size;
 
