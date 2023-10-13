@@ -19,6 +19,7 @@ env:
   COVERAGE: yes
   LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
   OPTIMIZATIONS: yes
+  DECAF_SUPPORT: yes
 
 jobs:
   build-auth:

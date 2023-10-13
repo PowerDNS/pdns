@@ -203,7 +203,8 @@ def install_doc_deps_pdf(c):
 @task
 def install_auth_build_deps(c):
     c.sudo('apt-get install -y --no-install-recommends ' + ' '.join(all_build_deps + git_build_deps + auth_build_deps))
-    install_libdecaf(c, 'pdns-auth')
+    if os.getenv('DECAF_SUPPORT', 'no') == 'yes':
+        install_libdecaf(c, 'pdns-auth')
 
 def is_coverage_enabled():
     sanitizers = os.getenv('SANITIZERS')
@@ -266,9 +267,10 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
     # FIXME we may want to start a background recursor here to make ALIAS tests more robust
     setup_authbind(c)
 
-    # Copy libdecaf out
-    c.sudo('mkdir -p /usr/local/lib')
-    c.sudo('cp /opt/pdns-auth/libdecaf/libdecaf.so* /usr/local/lib/.')
+    if os.getenv('DECAF_SUPPORT', 'no') == 'yes':
+        # Copy libdecaf out
+        c.sudo('mkdir -p /usr/local/lib')
+        c.sudo('cp /opt/pdns-auth/libdecaf/libdecaf.so* /usr/local/lib/.')
 
 @task
 def install_rec_bulk_deps(c): # FIXME: rename this, we do way more than apt-get
@@ -459,7 +461,7 @@ def ci_auth_configure(c):
         "--enable-experimental-gss-tsig",
         "--enable-remotebackend-zeromq",
         "--with-lmdb=/usr",
-        "--with-libdecaf",
+        "--with-libdecaf" if os.getenv('DECAF_SUPPORT', 'no') == 'yes' else '',
         "--prefix=/opt/pdns-auth",
         "--enable-ixfrdist",
         sanitizers,
