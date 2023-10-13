@@ -124,12 +124,12 @@ void pdns::settings::rec::oldStyleAllowFileToBridgeStruct(const std::string& fil
 
 static void mergeYamlSubFile(const std::string& configname, Recursorsettings& settings, Logr::log_t log)
 {
-  SLOG(g_log << Logger::Notice << "Processing YAML settings from " << configname << endl,
-       log->info(Logr::Notice, "Processing YAML settings", "path", Logging::Loggable(configname)));
   auto file = ifstream(configname);
   if (!file.is_open()) {
     throw runtime_error("Cannot open " + configname);
   }
+  SLOG(g_log << Logger::Notice << "Processing YAML settings from " << configname << endl,
+       log->info(Logr::Notice, "Processing YAML settings", "path", Logging::Loggable(configname)));
   auto data = string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
   pdns::rust::settings::rec::merge(settings, data);
 }

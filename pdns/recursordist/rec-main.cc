@@ -2028,8 +2028,6 @@ static int serviceMain(Logr::log_t log)
     }
   }
 
-  showProductVersion();
-
   g_disthashseed = dns_random_uint32();
 
   int ret = initNet(log);
@@ -3314,6 +3312,7 @@ int main(int argc, char** argv)
     }
     g_log.setLoglevel(s_logUrgency);
     g_log.toConsole(s_logUrgency);
+    showProductVersion();
 
     g_yamlSettings = false;
     string configname = ::arg()["config-dir"] + "/recursor";
