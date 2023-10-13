@@ -22,6 +22,7 @@
 #pragma once
 #include "pdns/namespaces.hh"
 
+#include <cstdint>
 #include <vector>
 #include <map>
 #include <string>
@@ -79,10 +80,11 @@ private:
 
   void initialize();
   string format2str(string format, const Netmask& addr, GeoIPNetmask& gl, const GeoIPDomain& dom);
-  bool d_dnssec;
+  bool d_dnssec{};
   bool hasDNSSECkey(const DNSName& name);
   bool lookup_static(const GeoIPDomain& dom, const DNSName& search, const QType& qtype, const DNSName& qdomain, const Netmask& addr, GeoIPNetmask& gl);
-  bool loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDomain& dom);
+  void setupNetmasks(const YAML::Node& domain, GeoIPDomain& dom);
+  bool loadDomain(const YAML::Node& domain, std::uint32_t domainID, GeoIPDomain& dom);
   void loadDomainsFromDirectory(const std::string& dir, vector<GeoIPDomain>& domains);
   vector<DNSResourceRecord> d_result;
   vector<GeoIPInterface> d_files;

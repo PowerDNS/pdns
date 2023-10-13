@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <cstdint>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -32,14 +33,15 @@
 #include <boost/format.hpp>
 #include <fstream>
 #include <filesystem>
+#include <utility>
 #include <yaml-cpp/yaml.h>
 
 ReadWriteLock GeoIPBackend::s_state_lock;
 
 struct GeoIPDNSResourceRecord : DNSResourceRecord
 {
-  int weight;
-  bool has_weight;
+  int weight{};
+  bool has_weight{};
 };
 
 struct GeoIPService
@@ -51,9 +53,9 @@ struct GeoIPService
 
 struct GeoIPDomain
 {
-  int id;
+  std::uint32_t id{};
   DNSName domain;
-  int ttl;
+  int ttl{};
   map<DNSName, GeoIPService> services;
   map<DNSName, vector<GeoIPDNSResourceRecord>> records;
   vector<string> mapping_lookup_formats;
@@ -77,16 +79,15 @@ const static std::array<string, 12> GeoIP_MONTHS = {"jan", "feb", "mar", "apr", 
 
 GeoIPBackend::GeoIPBackend(const string& suffix)
 {
-  WriteLock wl(&s_state_lock);
-  d_dnssec = false;
+  WriteLock writeLock(&s_state_lock);
   setArgPrefix("geoip" + suffix);
-  if (getArg("dnssec-keydir").empty() == false) {
-    DIR* d = opendir(getArg("dnssec-keydir").c_str());
-    if (d == nullptr) {
+  if (!getArg("dnssec-keydir").empty()) {
+    DIR* dir = opendir(getArg("dnssec-keydir").c_str());
+    if (dir == nullptr) {
       throw PDNSException("dnssec-keydir " + getArg("dnssec-keydir") + " does not exist");
     }
     d_dnssec = true;
-    closedir(d);
+    closedir(dir);
   }
   if (s_rc == 0) { // first instance gets to open everything
     initialize();
@@ -104,14 +105,17 @@ static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribut
 // infinite recursion.
 static bool validateMappingLookupFormats(const vector<string>& formats)
 {
-  string::size_type cur, last;
+  string::size_type cur = 0;
+  string::size_type last = 0;
+
   for (const auto& lookupFormat : formats) {
     last = 0;
     while ((cur = lookupFormat.find("%", last)) != string::npos) {
-      if (!lookupFormat.compare(cur, 3, "%mp")) {
+      if (lookupFormat.compare(cur, 3, "%mp") == 0) {
         return false;
       }
-      else if (!lookupFormat.compare(cur, 2, "%%")) { // Ensure escaped % is also accepted
+
+      if (lookupFormat.compare(cur, 2, "%%") == 0) { // Ensure escaped % is also accepted
         last = cur + 2;
         continue;
       }
@@ -121,20 +125,109 @@ static bool validateMappingLookupFormats(const vector<string>& formats)
   return true;
 }
 
-bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDomain& dom)
+static vector<GeoIPDNSResourceRecord> makeDNSResourceRecord(GeoIPDomain& dom, DNSName name)
+{
+  GeoIPDNSResourceRecord resourceRecord;
+  resourceRecord.domain_id = static_cast<int>(dom.id);
+  resourceRecord.ttl = dom.ttl;
+  resourceRecord.qname = std::move(name);
+  resourceRecord.qtype = QType(0); // empty non terminal
+  resourceRecord.content = "";
+  resourceRecord.auth = true;
+  resourceRecord.weight = 100;
+  resourceRecord.has_weight = false;
+  vector<GeoIPDNSResourceRecord> rrs;
+  rrs.push_back(resourceRecord);
+  return rrs;
+}
+
+void GeoIPBackend::setupNetmasks(const YAML::Node& domain, GeoIPDomain& dom)
+{
+  for (auto service = domain["services"].begin(); service != domain["services"].end(); service++) {
+    unsigned int netmask4 = 0;
+    unsigned int netmask6 = 0;
+    DNSName serviceName{service->first.as<string>()};
+    NetmaskTree<vector<string>> netmaskTree;
+
+    // if it's an another map, we need to iterate it again, otherwise we just add two root entries.
+    if (service->second.IsMap()) {
+      for (auto net = service->second.begin(); net != service->second.end(); net++) {
+        vector<string> value;
+        if (net->second.IsSequence()) {
+          value = net->second.as<vector<string>>();
+        }
+        else {
+          value.push_back(net->second.as<string>());
+        }
+        if (net->first.as<string>() == "default") {
+          netmaskTree.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(), value.end());
+          netmaskTree.insert(Netmask("::/0")).second.swap(value);
+        }
+        else {
+          Netmask netmask{net->first.as<string>()};
+          netmaskTree.insert(netmask).second.swap(value);
+          if (netmask.isIPv6() && netmask6 < netmask.getBits()) {
+            netmask6 = netmask.getBits();
+          }
+          if (!netmask.isIPv6() && netmask4 < netmask.getBits()) {
+            netmask4 = netmask.getBits();
+          }
+        }
+      }
+    }
+    else {
+      vector<string> value;
+      if (service->second.IsSequence()) {
+        value = service->second.as<vector<string>>();
+      }
+      else {
+        value.push_back(service->second.as<string>());
+      }
+      netmaskTree.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(), value.end());
+      netmaskTree.insert(Netmask("::/0")).second.swap(value);
+    }
+
+    // Allow per domain override of mapping_lookup_formats and custom_mapping.
+    // If not defined, the global values will be used.
+    if (YAML::Node formats = domain["mapping_lookup_formats"]) {
+      auto mapping_lookup_formats = formats.as<vector<string>>();
+      if (!validateMappingLookupFormats(mapping_lookup_formats)) {
+        throw PDNSException(string("%mp is not allowed in mapping lookup formats of domain ") + dom.domain.toLogString());
+      }
+
+      dom.mapping_lookup_formats = mapping_lookup_formats;
+    }
+    else {
+      dom.mapping_lookup_formats = d_global_mapping_lookup_formats;
+    }
+    if (YAML::Node mapping = domain["custom_mapping"]) {
+      dom.custom_mapping = mapping.as<map<std::string, std::string>>();
+    }
+    else {
+      dom.custom_mapping = d_global_custom_mapping;
+    }
+
+    dom.services[serviceName].netmask4 = netmask4;
+    dom.services[serviceName].netmask6 = netmask6;
+    dom.services[serviceName].masks.swap(netmaskTree);
+  }
+}
+
+bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, GeoIPDomain& dom)
 {
   try {
+    dom.id = domainID;
     dom.domain = DNSName(domain["domain"].as<string>());
     dom.ttl = domain["ttl"].as<int>();
 
-    for (YAML::const_iterator recs = domain["records"].begin(); recs != domain["records"].end(); recs++) {
+    for (auto recs = domain["records"].begin(); recs != domain["records"].end(); recs++) {
       DNSName qname = DNSName(recs->first.as<string>());
       vector<GeoIPDNSResourceRecord> rrs;
 
-      for (YAML::const_iterator item = recs->second.begin(); item != recs->second.end(); item++) {
-        YAML::const_iterator rec = item->begin();
+      for (auto item = recs->second.begin(); item != recs->second.end(); item++) {
+        auto rec = item->begin();
         GeoIPDNSResourceRecord rr;
-        rr.domain_id = dom.id;
+        rr.domain_id = static_cast<int>(dom.id);
         rr.ttl = dom.ttl;
         rr.qname = qname;
         if (rec->first.IsNull()) {
@@ -151,9 +244,9 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDo
         }
         else if (rec->second.IsMap()) {
           for (YAML::const_iterator iter = rec->second.begin(); iter != rec->second.end(); iter++) {
-            string attr = iter->first.as<string>();
+            auto attr = iter->first.as<string>();
             if (attr == "content") {
-              string content = iter->second.as<string>();
+              auto content = iter->second.as<string>();
               rr.content = std::move(content);
             }
             else if (attr == "weight") {
@@ -174,98 +267,25 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDo
           }
         }
         else {
-          string content = rec->second.as<string>();
+          auto content = rec->second.as<string>();
           rr.content = std::move(content);
           rr.weight = 100;
         }
-        rr.auth = 1;
+        rr.auth = true;
         rrs.push_back(rr);
       }
       std::swap(dom.records[qname], rrs);
     }
 
-    for (YAML::const_iterator service = domain["services"].begin(); service != domain["services"].end(); service++) {
-      unsigned int netmask4 = 0, netmask6 = 0;
-      DNSName srvName{service->first.as<string>()};
-      NetmaskTree<vector<string>> nmt;
-
-      // if it's an another map, we need to iterate it again, otherwise we just add two root entries.
-      if (service->second.IsMap()) {
-        for (YAML::const_iterator net = service->second.begin(); net != service->second.end(); net++) {
-          vector<string> value;
-          if (net->second.IsSequence()) {
-            value = net->second.as<vector<string>>();
-          }
-          else {
-            value.push_back(net->second.as<string>());
-          }
-          if (net->first.as<string>() == "default") {
-            nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(), value.end());
-            nmt.insert(Netmask("::/0")).second.swap(value);
-          }
-          else {
-            Netmask nm{net->first.as<string>()};
-            nmt.insert(nm).second.swap(value);
-            if (nm.isIPv6() == true && netmask6 < nm.getBits())
-              netmask6 = nm.getBits();
-            if (nm.isIPv6() == false && netmask4 < nm.getBits())
-              netmask4 = nm.getBits();
-          }
-        }
-      }
-      else {
-        vector<string> value;
-        if (service->second.IsSequence()) {
-          value = service->second.as<vector<string>>();
-        }
-        else {
-          value.push_back(service->second.as<string>());
-        }
-        nmt.insert(Netmask("0.0.0.0/0")).second.assign(value.begin(), value.end());
-        nmt.insert(Netmask("::/0")).second.swap(value);
-      }
-
-      // Allow per domain override of mapping_lookup_formats and custom_mapping.
-      // If not defined, the global values will be used.
-      if (YAML::Node formats = domain["mapping_lookup_formats"]) {
-        vector<string> mapping_lookup_formats = formats.as<vector<string>>();
-        if (!validateMappingLookupFormats(mapping_lookup_formats))
-          throw PDNSException(string("%mp is not allowed in mapping lookup formats of domain ") + dom.domain.toLogString());
-
-        dom.mapping_lookup_formats = mapping_lookup_formats;
-      }
-      else {
-        dom.mapping_lookup_formats = d_global_mapping_lookup_formats;
-      }
-      if (YAML::Node mapping = domain["custom_mapping"]) {
-        dom.custom_mapping = mapping.as<map<std::string, std::string>>();
-      }
-      else {
-        dom.custom_mapping = d_global_custom_mapping;
-      }
-
-      dom.services[srvName].netmask4 = netmask4;
-      dom.services[srvName].netmask6 = netmask6;
-      dom.services[srvName].masks.swap(nmt);
-    }
+    setupNetmasks(domain, dom);
 
     // rectify the zone, first static records
     for (auto& item : dom.records) {
       // ensure we have parent in records
       DNSName name = item.first;
       while (name.chopOff() && name.isPartOf(dom.domain)) {
-        if (dom.records.find(name) == dom.records.end() && !dom.services.count(name)) { // don't ENT out a service!
-          GeoIPDNSResourceRecord rr;
-          vector<GeoIPDNSResourceRecord> rrs;
-          rr.domain_id = dom.id;
-          rr.ttl = dom.ttl;
-          rr.qname = name;
-          rr.qtype = QType(0); // empty non terminal
-          rr.content = "";
-          rr.auth = 1;
-          rr.weight = 100;
-          rr.has_weight = false;
-          rrs.push_back(rr);
+        if (dom.records.find(name) == dom.records.end() && (dom.services.count(name) == 0U)) { // don't ENT out a service!
+          auto rrs = makeDNSResourceRecord(dom, name);
           std::swap(dom.records[name], rrs);
         }
       }
@@ -277,17 +297,7 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDo
       DNSName name = item.first;
       while (name.chopOff() && name.isPartOf(dom.domain)) {
         if (dom.records.find(name) == dom.records.end()) {
-          GeoIPDNSResourceRecord rr;
-          vector<GeoIPDNSResourceRecord> rrs;
-          rr.domain_id = dom.id;
-          rr.ttl = dom.ttl;
-          rr.qname = name;
-          rr.qtype = QType(0);
-          rr.content = "";
-          rr.auth = 1;
-          rr.weight = 100;
-          rr.has_weight = false;
-          rrs.push_back(rr);
+          auto rrs = makeDNSResourceRecord(dom, name);
           std::swap(dom.records[name], rrs);
         }
       }
@@ -300,25 +310,27 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDo
       map<uint16_t, GeoIPDNSResourceRecord*> lasts;
       bool has_weight = false;
       // first we look for used weight
-      for (const auto& rr : item.second) {
-        weights[rr.qtype.getCode()] += rr.weight;
-        if (rr.has_weight)
+      for (const auto& resourceRecord : item.second) {
+        weights[resourceRecord.qtype.getCode()] += static_cast<float>(resourceRecord.weight);
+        if (resourceRecord.has_weight) {
           has_weight = true;
+        }
       }
       if (has_weight) {
         // put them back as probabilities and values..
-        for (auto& rr : item.second) {
-          uint16_t rr_type = rr.qtype.getCode();
-          rr.weight = static_cast<int>((static_cast<float>(rr.weight) / weights[rr_type]) * 1000.0);
-          sums[rr_type] += rr.weight;
-          rr.has_weight = has_weight;
-          lasts[rr_type] = &rr;
+        for (auto& resourceRecord : item.second) {
+          uint16_t rr_type = resourceRecord.qtype.getCode();
+          resourceRecord.weight = static_cast<int>((static_cast<float>(resourceRecord.weight) / weights[rr_type]) * 1000.0);
+          sums[rr_type] += static_cast<float>(resourceRecord.weight);
+          resourceRecord.has_weight = has_weight;
+          lasts[rr_type] = &resourceRecord;
         }
         // remove rounding gap
         for (auto& x : lasts) {
           float sum = sums[x.first];
-          if (sum < 1000)
+          if (sum < 1000) {
             x.second->weight += (1000 - sum);
+          }
         }
       }
     }
@@ -337,9 +349,11 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, unsigned int id, GeoIPDo
 void GeoIPBackend::loadDomainsFromDirectory(const std::string& dir, vector<GeoIPDomain>& domains)
 {
   vector<std::filesystem::path> paths;
-  for (const std::filesystem::path& p : std::filesystem::directory_iterator(std::filesystem::path(dir)))
-    if (std::filesystem::is_regular_file(p) && p.has_extension() && (p.extension() == ".yaml" || p.extension() == ".yml"))
+  for (const std::filesystem::path& p : std::filesystem::directory_iterator(std::filesystem::path(dir))) {
+    if (std::filesystem::is_regular_file(p) && p.has_extension() && (p.extension() == ".yaml" || p.extension() == ".yml")) {
       paths.push_back(p);
+    }
+  }
   std::sort(paths.begin(), paths.end());
   for (const auto& p : paths) {
     try {
@@ -347,8 +361,9 @@ void GeoIPBackend::loadDomainsFromDirectory(const std::string& dir, vector<GeoIP
       const auto& zoneRoot = YAML::LoadFile(p.string());
       // expect zone key
       const auto& zone = zoneRoot["zone"];
-      if (loadDomain(zone, domains.size(), dom))
+      if (loadDomain(zone, domains.size(), dom)) {
         domains.push_back(dom);
+      }
     }
     catch (std::exception& ex) {
       g_log << Logger::Warning << "Cannot load zone from " << p << ": " << ex.what() << endl;
@@ -371,8 +386,9 @@ void GeoIPBackend::initialize()
     }
   }
 
-  if (s_geoip_files.empty())
+  if (s_geoip_files.empty()) {
     g_log << Logger::Warning << "No GeoIP database files loaded!" << endl;
+  }
 
   if (!getArg("zones-file").empty()) {
     try {
@@ -387,8 +403,9 @@ void GeoIPBackend::initialize()
   // if none defined at the domain level.
   if (YAML::Node formats = config["mapping_lookup_formats"]) {
     d_global_mapping_lookup_formats = formats.as<vector<string>>();
-    if (!validateMappingLookupFormats(d_global_mapping_lookup_formats))
+    if (!validateMappingLookupFormats(d_global_mapping_lookup_formats)) {
       throw PDNSException(string("%mp is not allowed in mapping lookup"));
+    }
   }
   if (YAML::Node mapping = config["custom_mapping"]) {
     d_global_custom_mapping = mapping.as<map<std::string, std::string>>();
@@ -396,13 +413,14 @@ void GeoIPBackend::initialize()
 
   for (YAML::const_iterator _domain = config["domains"].begin(); _domain != config["domains"].end(); _domain++) {
     GeoIPDomain dom;
-    auto id = tmp_domains.size();
-    if (loadDomain(*_domain, id, dom))
+    if (loadDomain(*_domain, tmp_domains.size(), dom)) {
       tmp_domains.push_back(std::move(dom));
+    }
   }
 
-  if (YAML::Node domain_dir = config["zones_dir"])
+  if (YAML::Node domain_dir = config["zones_dir"]) {
     loadDomainsFromDirectory(domain_dir.as<string>(), tmp_domains);
+  }
 
   s_domains.clear();
   std::swap(s_domains, tmp_domains);
@@ -414,7 +432,7 @@ void GeoIPBackend::initialize()
 GeoIPBackend::~GeoIPBackend()
 {
   try {
-    WriteLock wl(&s_state_lock);
+    WriteLock writeLock(&s_state_lock);
     s_rc--;
     if (s_rc == 0) { // last instance gets to cleanup
       s_geoip_files.clear();

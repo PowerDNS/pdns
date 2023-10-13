@@ -162,8 +162,6 @@ struct LMDBIndexOps
     auto scombined = makeCombinedKey(keyConv(d_parent->getMember(t)), id);
     MDBInVal combined(scombined);
 
-    MDBOutVal currentvalue;
-
     // if the entry existed already, this will just update the timestamp/txid in the LS header. This is intentional, so objects and their indexes always get synced together.
     txn->put(d_idx, combined, empty, flags);
   }
