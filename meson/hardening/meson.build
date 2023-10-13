@@ -31,3 +31,4 @@ endif
 
 subdir('fortify-source')      # Fortify Source
 subdir('control-flow')        # Control Flow Protection
+subdir('stack-clash-prot')    # Stack Clash Protection

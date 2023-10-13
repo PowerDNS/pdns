@@ -1,6 +1,7 @@
 option('lua', type: 'combo', choices: ['auto', 'luajit', 'lua'], value: 'auto', description: 'Lua implementation to use')
 option('hardening', type: 'feature', value: 'auto', description: 'Compiler security checks')
 option('hardening-experimental-cf', type: 'combo', choices: ['disabled', 'full', 'branch', 'return', 'check'], value: 'disabled', description: 'Control Flow hardening')
+option('hardening-experimental-scp', type: 'feature', value: 'disabled', description: 'Stack Clash Protection')
 option('hardening-fortify-source', type: 'combo', choices: ['auto', 'disabled', '1', '2', '3'], value: '2', description: 'Source fortification level')
 option('rng-kiss', type: 'boolean', value: false, description: 'Use the unsafe KISS RNG')
 option('signers-libsodium', type: 'feature', value: 'auto', description: 'Enable libsodium-based signers')
