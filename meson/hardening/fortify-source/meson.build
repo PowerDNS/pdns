@@ -1,4 +1,4 @@
-fortify_source_opt = get_option('fortify-source')
+fortify_source_opt = get_option('hardening-fortify-source')
 fortify_source = fortify_source_opt != 'disabled'
 fortify_source_level = 0
 
