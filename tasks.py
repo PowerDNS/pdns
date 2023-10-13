@@ -590,31 +590,37 @@ def ci_dnsdist_configure(c, features):
 
 @task
 def ci_auth_make(c):
-    c.run('make -j8 -k V=1')
+    concurrency = os.getenv('CONCURRENCY', 8)
+    c.run(f'make -j{concurrency} -k V=1')
 
 @task
 def ci_auth_make_bear(c):
+    concurrency = os.getenv('CONCURRENCY', 8)
     # Needed for clang-tidy -line-filter vs project structure shenanigans
     with c.cd('pdns'):
-        c.run('bear --append -- make -j8 -k V=1 -C ..')
+        c.run(f'bear --append -- make -j{concurrency} -k V=1 -C ..')
 
 @task
 def ci_rec_make(c):
-    c.run('make -j8 -k V=1')
+    concurrency = os.getenv('CONCURRENCY', 8)
+    c.run(f'make -j{concurrency} -k V=1')
 
 @task
 def ci_rec_make_bear(c):
+    concurrency = os.getenv('CONCURRENCY', 8)
     # Assumed to be running under ./pdns/recursordist/
-    c.run('bear --append -- make -j8 -k V=1')
+    c.run(f'bear --append -- make -j{concurrency} -k V=1')
 
 @task
 def ci_dnsdist_make(c):
-    c.run('make -j4 -k V=1')
+    concurrency = os.getenv('CONCURRENCY', 4)
+    c.run(f'make -j{concurrency} -k V=1')
 
 @task
 def ci_dnsdist_make_bear(c):
+    concurrency = os.getenv('CONCURRENCY', 4)
     # Assumed to be running under ./pdns/dnsdistdist/
-    c.run('bear --append -- make -j4 -k V=1')
+    c.run(f'bear --append -- make -j{concurrency} -k V=1')
 
 @task
 def ci_auth_install_remotebackend_test_deps(c):

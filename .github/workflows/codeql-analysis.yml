@@ -208,7 +208,7 @@ jobs:
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
       run: |
-        inv ci-rec-make-bear
+        CONCURRENCY=4 inv ci-rec-make-bear
     - run: ln -s .clang-tidy.full .clang-tidy
       if: matrix.product == 'rec'
     - run: cp ./pdns/recursordist/compile_commands.json .
