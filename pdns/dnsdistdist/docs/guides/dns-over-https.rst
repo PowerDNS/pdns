@@ -25,7 +25,7 @@ the call to :func:`addDOHLocal`. It is optional and defaults to ``/`` in 1.4.0, 
 
 The fifth parameter, if present, indicates various options. For instance, you use it to indicate custom HTTP headers. An example is::
 
-  addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/dns", {customResponseHeaders={["x-foo"]="bar"}}
+  addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/dns", {customResponseHeaders={["x-foo"]="bar"}})
 
 A more complicated (and more realistic) example is when you want to indicate metainformation about the server, such as the stated policy (privacy statement and so on). We use the link types of RFC 8631::
 
