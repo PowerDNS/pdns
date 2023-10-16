@@ -229,7 +229,7 @@ Number of entries in the metadata cache
 .. _stat-open-tcp-connections:
 
 open-tcp-connections
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 Number of currently open TCP connections
 
 .. _stat-overload-drops:
@@ -285,6 +285,12 @@ Number of entries in the query cache
 rd-queries
 ^^^^^^^^^^
 Number of packets sent by clients requesting recursion (regardless of if we'll be providing them with recursion).
+
+.. _stat-receive-latency:
+
+receive-latency
+^^^^^^^^^^^^^^^
+Average number of microseconds needed to receive a query
 
 .. _stat-recursing-answers:
 
@@ -393,6 +399,12 @@ Number of questions received over TCPv6
 timedout-packets
 ^^^^^^^^^^^^^^^^
 Amount of packets that were dropped because they had to wait too long internally
+
+.. _stat-send-latency:
+
+send-latency
+^^^^^^^^^^^^
+Average number of microseconds needed to send the answer
 
 .. _stat-udp-answers-bytes:
 
