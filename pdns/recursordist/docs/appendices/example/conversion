@@ -1,0 +1,48 @@
+# THIS IS A PROOF OF CONCEPT! STRUCTURE, TYPES AND NAMES ARE SUBJECT TO CHANGE
+# Start of converted recursor.yml based on recursor.conf
+dnssec:
+  validation: validate
+incoming:
+  listen:
+  - 128.66.23.4:5353
+  - '[::1]:53'
+recursor:
+  forward_zones:
+  - zone: example
+    recurse: false
+    forwarders:
+    - 127.0.0.1:1024
+  forward_zones_file: fwzones.txt
+  include_dir: recursor.d
+# Validation result: OK
+# End of converted recursor.conf
+#
+# Found 1 .conf file in recursor.d
+# Converted include-dir recursor.d/01.conf to YAML format:
+incoming:
+  listen: !override
+  - 0.0.0.0
+recursor:
+  forward_zones:
+  - zone: example.com
+    recurse: false
+    forwarders:
+    - 128.66.9.99
+  - zone: example.net
+    recurse: false
+    forwarders:
+    - 128.66.9.100
+    - 128.66.9.101
+# Validation result: OK
+# End of converted recursor.d/01.conf
+#
+# Converted fwzones.txt to YAML format for recursor.forward_zones_file: 
+- zone: example.org
+  forwarders:
+  - 127.0.0.1:1024
+  recurse: true
+  notify_allowed: true
+# Validation result: OK
+# End of converted fwzones.txt
+#
+

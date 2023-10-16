@@ -6,6 +6,7 @@ The changelogs for the recursor are split between release trains.
 .. toctree::
     :maxdepth: 2
 
+    5.0
     4.9
     4.8
     4.7

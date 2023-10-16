@@ -832,7 +832,7 @@ std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
     while (res == 0) {
       if (bpf_lookup_elem(map.d_fd.getHandle(), &nextKey, &value) == 0) {
         nextKey.qname[sizeof(nextKey.qname) - 1 ] = '\0';
-        result.push_back(std::make_tuple(DNSName(reinterpret_cast<const char*>(nextKey.qname), sizeof(nextKey.qname), 0, false), value.qtype, value.counter));
+        result.emplace_back(DNSName(reinterpret_cast<const char*>(nextKey.qname), sizeof(nextKey.qname), 0, false), value.qtype, value.counter);
       }
 
       res = bpf_get_next_key(map.d_fd.getHandle(), &nextKey, &nextKey);
@@ -853,7 +853,7 @@ std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
     while (res == 0) {
       if (bpf_lookup_elem(map.d_fd.getHandle(), &nextKey, &value) == 0) {
         nextKey.qname[sizeof(nextKey.qname) - 1 ] = '\0';
-        result.push_back(std::make_tuple(DNSName(reinterpret_cast<const char*>(nextKey.qname), sizeof(nextKey.qname), 0, false), key.qtype, value.counter));
+        result.emplace_back(DNSName(reinterpret_cast<const char*>(nextKey.qname), sizeof(nextKey.qname), 0, false), key.qtype, value.counter);
       }
 
       res = bpf_get_next_key(map.d_fd.getHandle(), &nextKey, &nextKey);

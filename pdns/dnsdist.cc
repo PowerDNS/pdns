@@ -68,7 +68,9 @@
 
 #include "base64.hh"
 #include "capabilities.hh"
+#include "coverage.hh"
 #include "delaypipe.hh"
+#include "doh.hh"
 #include "dolog.hh"
 #include "dnsname.hh"
 #include "dnsparser.hh"
@@ -337,7 +339,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   }
   catch (const std::exception& e) {
     if (remote && response.size() > 0 && static_cast<size_t>(response.size()) > sizeof(dnsheader)) {
-      infolog("Backend %s sent us a response with id %d that did not parse: %s", remote->d_config.remote.toStringWithPort(), ntohs(dh->id), e.what());
+      vinfolog("Backend %s sent us a response with id %d that did not parse: %s", remote->d_config.remote.toStringWithPort(), ntohs(dh->id), e.what());
     }
     ++dnsdist::metrics::g_stats.nonCompliantResponses;
     if (remote) {
@@ -784,7 +786,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         if (du) {
 #ifdef HAVE_DNS_OVER_HTTPS
           // DoH query, we cannot touch du after that
-          handleUDPResponseForDoH(std::move(du), std::move(response), std::move(*ids));
+          DOHUnitInterface::handleUDPResponse(std::move(du), std::move(response), std::move(*ids), dss);
 #endif
           continue;
         }
@@ -1468,7 +1470,7 @@ public:
     return handleResponse(now, std::move(response));
   }
 
-  void notifyIOError(InternalQueryState&& query, const struct timeval& now) override
+  void notifyIOError(const struct timeval&, TCPResponse&&) override
   {
     // nothing to do
   }
@@ -1539,24 +1541,23 @@ ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::sha
   return ProcessQueryResult::Drop;
 }
 
-bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query, ComboAddress& dest)
+bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query)
 {
   bool doh = dq.ids.du != nullptr;
 
   bool failed = false;
-  size_t proxyPayloadSize = 0;
   if (ds->d_config.useProxyProtocol) {
     try {
-      if (addProxyProtocol(dq, &proxyPayloadSize)) {
-        if (dq.ids.du) {
-          dq.ids.du->proxyProtocolPayloadSize = proxyPayloadSize;
-        }
-      }
+      addProxyProtocol(dq, &dq.ids.d_proxyProtocolPayloadSize);
     }
     catch (const std::exception& e) {
       vinfolog("Adding proxy protocol payload to %s query from %s failed: %s", (dq.ids.du ? "DoH" : ""), dq.ids.origDest.toStringWithPort(), e.what());
       return false;
     }
+  }
+
+  if (doh && !dq.ids.d_packet) {
+    dq.ids.d_packet = std::make_unique<PacketBuffer>(query);
   }
 
   try {
@@ -1569,7 +1570,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint1
 
     auto idOffset = ds->saveState(std::move(dq.ids));
     /* set the correct ID */
-    memcpy(query.data() + proxyPayloadSize, &idOffset, sizeof(idOffset));
+    memcpy(query.data() + dq.ids.d_proxyProtocolPayloadSize, &idOffset, sizeof(idOffset));
 
     /* you can't touch ids or du after this line, unless the call returned a non-negative value,
        because it might already have been freed */
@@ -1585,9 +1586,6 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint1
       auto cleared = ds->getState(idOffset);
       if (cleared) {
         dq.ids.du = std::move(cleared->du);
-        if (dq.ids.du) {
-          dq.ids.du->status_code = 502;
-        }
       }
       ++dnsdist::metrics::g_stats.downstreamSendErrors;
       ++ds->sendErrors;
@@ -1688,6 +1686,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       if (dq.ids.delayMsec == 0 && responsesVect != nullptr) {
         queueResponse(cs, query, dest, remote, responsesVect[*queuedResponses], respIOV, respCBuf);
         (*queuedResponses)++;
+        handleResponseSent(dq.ids.qname, dq.ids.qtype, 0., remote, ComboAddress(), query.size(), *dh, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
         return;
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
@@ -1719,7 +1718,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       return;
     }
 
-    assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query, dest);
+    assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query);
   }
   catch(const std::exception& e){
     vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", ids.origRemote.toStringWithPort(), queryId, e.what());
@@ -1958,9 +1957,9 @@ static void maintThread()
           (*f)();
           secondsToWaitLog = 0;
         }
-        catch(const std::exception &e) {
+        catch (const std::exception &e) {
           if (secondsToWaitLog <= 0) {
-            infolog("Error during execution of maintenance function: %s", e.what());
+            warnlog("Error during execution of maintenance function: %s", e.what());
             secondsToWaitLog = 61;
           }
           secondsToWaitLog -= interval;
@@ -2397,11 +2396,6 @@ static void usage()
 }
 
 #ifdef COVERAGE
-extern "C"
-{
-  void __gcov_dump(void);
-}
-
 static void cleanupLuaObjects()
 {
   /* when our coverage mode is enabled, we need to make
@@ -2412,13 +2406,14 @@ static void cleanupLuaObjects()
   g_selfansweredrespruleactions.setState({});
   g_dstates.setState({});
   g_policy.setState(ServerPolicy());
+  g_pools.setState({});
   clearWebHandlers();
 }
 
 static void sigTermHandler(int)
 {
   cleanupLuaObjects();
-  __gcov_dump();
+  pdns::coverage::dumpCoverageData();
   _exit(EXIT_SUCCESS);
 }
 #else /* COVERAGE */
@@ -2576,15 +2571,25 @@ int main(int argc, char** argv)
 #ifdef HAVE_LIBSSL
         cout<<" ";
 #endif
-#endif
+#endif /* HAVE_GNUTLS */
 #ifdef HAVE_LIBSSL
         cout<<"openssl";
 #endif
         cout<<") ";
-#endif
+#endif /* HAVE_DNS_OVER_TLS */
 #ifdef HAVE_DNS_OVER_HTTPS
-        cout<<"dns-over-https(DOH) ";
-#endif
+        cout<<"dns-over-https(";
+#ifdef HAVE_LIBH2OEVLOOP
+        cout<<"h2o";
+#endif /* HAVE_LIBH2OEVLOOP */
+#if defined(HAVE_LIBH2OEVLOOP) && defined(HAVE_NGHTTP2)
+        cout<<" ";
+#endif /* defined(HAVE_LIBH2OEVLOOP) && defined(HAVE_NGHTTP2) */
+#ifdef HAVE_NGHTTP2
+        cout<<"nghttp2";
+#endif /* HAVE_NGHTTP2 */
+        cout<<") ";
+#endif /* HAVE_DNS_OVER_HTTPS */
 #ifdef HAVE_DNSCRYPT
         cout<<"dnscrypt ";
 #endif
@@ -2605,9 +2610,6 @@ int main(int argc, char** argv)
 #endif
 #ifdef HAVE_LMDB
         cout<<"lmdb ";
-#endif
-#ifdef HAVE_NGHTTP2
-        cout<<"outgoing-dns-over-https(nghttp2) ";
 #endif
 #ifndef DISABLE_PROTOBUF
         cout<<"protobuf ";
@@ -2912,14 +2914,16 @@ int main(int argc, char** argv)
 
     std::vector<ClientState*> tcpStates;
     std::vector<ClientState*> udpStates;
-    for(auto& cs : g_frontends) {
-      if (cs->dohFrontend != nullptr) {
+    for (auto& cs : g_frontends) {
+      if (cs->dohFrontend != nullptr && cs->dohFrontend->d_library == "h2o") {
 #ifdef HAVE_DNS_OVER_HTTPS
+#ifdef HAVE_LIBH2OEVLOOP
         std::thread t1(dohThread, cs.get());
         if (!cs->cpus.empty()) {
           mapThreadToCPUList(t1.native_handle(), cs->cpus);
         }
         t1.detach();
+#endif /* HAVE_LIBH2OEVLOOP */
 #endif /* HAVE_DNS_OVER_HTTPS */
         continue;
       }

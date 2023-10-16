@@ -22,6 +22,7 @@
 #include "lua-recursor4.hh"
 #include <fstream>
 #include "logger.hh"
+#include "logging.hh"
 #include "dnsparser.hh"
 #include "syncres.hh"
 #include "namespaces.hh"
@@ -346,7 +347,8 @@ void RecursorLua4::postPrepareContext()
         }
       }
       catch(std::exception& e) {
-        g_log <<Logger::Error<<e.what()<<endl;
+        SLOG(g_log <<Logger::Error<<e.what()<<endl,
+             g_slog->withName("lua")->error(Logr::Error, e.what(), "Error in call to DNSSuffixMatchGroup:add"));
       }
     }
   );
@@ -501,7 +503,8 @@ void RecursorLua4::getFeatures(Features& features)
 static void warnDrop(const RecursorLua4::DNSQuestion& dq)
 {
   if (dq.rcode == -2) {
-    g_log << Logger::Error << "Returning -2 (pdns.DROP) is not supported anymore, see https://docs.powerdns.com/recursor/lua-scripting/hooks.html#hooksemantics" << endl;
+    SLOG(g_log << Logger::Error << "Returning -2 (pdns.DROP) is not supported anymore, see https://docs.powerdns.com/recursor/lua-scripting/hooks.html#hooksemantics" << endl,
+         g_slog->withName("lua")->info(Logr::Error, "Returning -2 (pdns.DROP) is not supported anymore, see https://docs.powerdns.com/recursor/lua-scripting/hooks.html#hooksemantics"));
     // We *could* set policy here, but that would also mean interfering with rcode and the return code of the hook.
     // So leave it at the error message.
   }
@@ -744,7 +747,8 @@ bool RecursorLua4::genhook(const luacall_t& func, DNSQuestion& dq, int& ret) con
         dq.udpAnswer = std::string(reinterpret_cast<const char*>(p.data()), p.size());
         auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(0);
         if (!cbFunc) {
-          g_log << Logger::Error << "Attempted callback for Lua UDP Query/Response which could not be found" << endl;
+          SLOG(g_log << Logger::Error << "Attempted callback for Lua UDP Query/Response which could not be found" << endl,
+               g_slog->withName("lua")->info(Logr::Error, "Attempted callback for Lua UDP Query/Response which could not be found"));
           return false;
         }
         bool result = cbFunc(&dq);

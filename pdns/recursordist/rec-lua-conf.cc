@@ -365,28 +365,26 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
       }
       catch (const PDNSException& e) {
         SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << zoneName << " from seed file '" << seedFile << "': " << e.reason << endl,
-             log->error(Logr::Warning, e.reason, "Exception while pre-loadin RPZ zone", "exception", Logging::Loggable("PDNSException")));
+             log->error(Logr::Warning, e.reason, "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("PDNSException")));
         zone->clear();
       }
       catch (const std::exception& e) {
         SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << zoneName << " from seed file '" << seedFile << "': " << e.what() << endl,
-             log->error(Logr::Warning, e.what(), "Exception while pre-loadin RPZ zone", "exception", Logging::Loggable("std::exception")));
+             log->error(Logr::Warning, e.what(), "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("std::exception")));
         zone->clear();
       }
     }
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "Problem configuring 'rpzPrimary': " << e.what() << endl,
-         lci.d_slog->error(Logr::Critical, e.what(), "Exception configuring 'rpzPrimary'", "exception", Logging::Loggable("std::exception")));
-    exit(1); // FIXME proper exit code?
+         lci.d_slog->error(Logr::Error, e.what(), "Exception configuring 'rpzPrimary'", "exception", Logging::Loggable("std::exception")));
   }
   catch (const PDNSException& e) {
     SLOG(g_log << Logger::Error << "Problem configuring 'rpzPrimary': " << e.reason << endl,
-         lci.d_slog->error(Logr::Critical, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException")));
-    exit(1); // FIXME proper exit code?
+         lci.d_slog->error(Logr::Error, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException")));
   }
 
-  delayedThreads.rpzPrimaryThreads.push_back(std::make_tuple(primaries, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile));
+  delayedThreads.rpzPrimaryThreads.emplace_back(primaries, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile);
 }
 
 // A wrapper class that loads the standard Lua defintions into the context, so that we can use things like pdns.A
@@ -690,11 +688,11 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       }
       catch (std::exception& e) {
         SLOG(g_log << Logger::Error << "Error while adding protobuf logger: " << e.what() << endl,
-             lci.d_slog->error(Logr::Error, e.what(), "Exception  while adding protobuf logger", "exception", Logging::Loggable("std::exception")));
+             lci.d_slog->error(Logr::Error, e.what(), "Exception while adding protobuf logger", "exception", Logging::Loggable("std::exception")));
       }
       catch (PDNSException& e) {
         SLOG(g_log << Logger::Error << "Error while adding protobuf logger: " << e.reason << endl,
-             lci.d_slog->error(Logr::Error, e.reason, "Exception  while adding protobuf logger", "exception", Logging::Loggable("PDNSException")));
+             lci.d_slog->error(Logr::Error, e.reason, "Exception while adding protobuf logger", "exception", Logging::Loggable("PDNSException")));
       }
     }
     else {
@@ -907,12 +905,12 @@ void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads,
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.what() << endl,
-           g_slog->withName("rpz")->error(Logr::Error, e.what(), "Exception startng RPZIXFRTracker thread", "exception", Logging::Loggable("std::exception")));
+           g_slog->withName("rpz")->error(Logr::Error, e.what(), "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("std::exception")));
       exit(1);
     }
     catch (const PDNSException& e) {
       SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.reason << endl,
-           g_slog->withName("rpz")->error(Logr::Error, e.reason, "Exception startng RPZIXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
+           g_slog->withName("rpz")->error(Logr::Error, e.reason, "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
       exit(1);
     }
   }

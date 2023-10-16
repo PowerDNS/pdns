@@ -51,21 +51,24 @@ using json11::Json;
 class Connector
 {
 public:
-  virtual ~Connector(){};
+  virtual ~Connector() = default;
   bool send(Json& value);
   bool recv(Json& value);
   virtual int send_message(const Json& input) = 0;
   virtual int recv_message(Json& output) = 0;
 
 protected:
-  string asString(const Json& value)
+  static string asString(const Json& value)
   {
-    if (value.is_number())
+    if (value.is_number()) {
       return std::to_string(value.int_value());
-    if (value.is_bool())
+    }
+    if (value.is_bool()) {
       return (value.bool_value() ? "1" : "0");
-    if (value.is_string())
+    }
+    if (value.is_string()) {
       return value.string_value();
+    }
     throw JsonException("Json value not convertible to String");
   };
 };
@@ -75,9 +78,9 @@ class UnixsocketConnector : public Connector
 {
 public:
   UnixsocketConnector(std::map<std::string, std::string> options);
-  virtual ~UnixsocketConnector();
-  virtual int send_message(const Json& input);
-  virtual int recv_message(Json& output);
+  ~UnixsocketConnector() override;
+  int send_message(const Json& input) override;
+  int recv_message(Json& output) override;
 
 private:
   ssize_t read(std::string& data);
@@ -94,10 +97,10 @@ class HTTPConnector : public Connector
 {
 public:
   HTTPConnector(std::map<std::string, std::string> options);
-  ~HTTPConnector();
+  ~HTTPConnector() override;
 
-  virtual int send_message(const Json& input);
-  virtual int recv_message(Json& output);
+  int send_message(const Json& input) override;
+  int recv_message(Json& output) override;
 
 private:
   std::string d_url;
@@ -108,8 +111,8 @@ private:
   bool d_post_json;
   void restful_requestbuilder(const std::string& method, const Json& parameters, YaHTTP::Request& req);
   void post_requestbuilder(const Json& input, YaHTTP::Request& req);
-  void addUrlComponent(const Json& parameters, const string& element, std::stringstream& ss);
-  std::string buildMemberListArgs(std::string prefix, const Json& args);
+  static void addUrlComponent(const Json& parameters, const string& element, std::stringstream& ss);
+  static std::string buildMemberListArgs(const std::string& prefix, const Json& args);
   std::unique_ptr<Socket> d_socket;
   ComboAddress d_addr;
   std::string d_host;
@@ -121,9 +124,9 @@ class ZeroMQConnector : public Connector
 {
 public:
   ZeroMQConnector(std::map<std::string, std::string> options);
-  virtual ~ZeroMQConnector();
-  virtual int send_message(const Json& input);
-  virtual int recv_message(Json& output);
+  ~ZeroMQConnector() override;
+  int send_message(const Json& input) override;
+  int recv_message(Json& output) override;
 
 private:
   void connect();
@@ -140,19 +143,19 @@ class PipeConnector : public Connector
 {
 public:
   PipeConnector(std::map<std::string, std::string> options);
-  ~PipeConnector();
+  ~PipeConnector() override;
 
-  virtual int send_message(const Json& input);
-  virtual int recv_message(Json& output);
+  int send_message(const Json& input) override;
+  int recv_message(Json& output) override;
 
 private:
   void launch();
-  bool checkStatus();
+  [[nodiscard]] bool checkStatus() const;
 
   std::string command;
   std::map<std::string, std::string> options;
 
-  int d_fd1[2], d_fd2[2];
+  int d_fd1[2]{}, d_fd2[2]{};
   int d_pid;
   int d_timeout;
   std::unique_ptr<FILE, int (*)(FILE*)> d_fp{nullptr, fclose};
@@ -162,7 +165,7 @@ class RemoteBackend : public DNSBackend
 {
 public:
   RemoteBackend(const std::string& suffix = "");
-  ~RemoteBackend();
+  ~RemoteBackend() override;
 
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = nullptr) override;
   bool get(DNSResourceRecord& rr) override;
@@ -211,35 +214,41 @@ private:
   std::unique_ptr<Connector> connector;
   bool d_dnssec;
   Json d_result;
-  int d_index;
-  int64_t d_trxid;
+  int d_index{-1};
+  int64_t d_trxid{0};
   std::string d_connstr;
 
   bool send(Json& value);
   bool recv(Json& value);
-  void makeErrorAndThrow(Json& value);
+  static void makeErrorAndThrow(Json& value);
 
-  string asString(const Json& value)
+  static string asString(const Json& value)
   {
-    if (value.is_number())
+    if (value.is_number()) {
       return std::to_string(value.int_value());
-    if (value.is_bool())
+    }
+    if (value.is_bool()) {
       return (value.bool_value() ? "1" : "0");
-    if (value.is_string())
+    }
+    if (value.is_string()) {
       return value.string_value();
+    }
     throw JsonException("Json value not convertible to String");
   };
 
-  bool asBool(const Json& value)
+  static bool asBool(const Json& value)
   {
-    if (value.is_bool())
+    if (value.is_bool()) {
       return value.bool_value();
+    }
     try {
       string val = asString(value);
-      if (val == "0")
+      if (val == "0") {
         return false;
-      if (val == "1")
+      }
+      if (val == "1") {
         return true;
+      }
     }
     catch (const JsonException&) {
     };

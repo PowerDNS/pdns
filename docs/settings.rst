@@ -366,6 +366,18 @@ The value of :ref:`metadata-api-rectify` if it is not set on the zone.
 .. note::
   Pre 4.2.0 the default was always no.
 
+.. _setting-default-catalog-zone:
+
+``default-catalog-zone``
+------------------------
+
+- String:
+- Default: empty
+
+.. versionadded:: 4.8.3
+
+When a primary zone is created via the API, and the request does not specify a catalog zone, the name given here will be used.
+
 .. _setting-default-ksk-algorithms:
 .. _setting-default-ksk-algorithm:
 
@@ -1906,6 +1918,7 @@ Note that this option only applies to credentials stored in the configuration as
 ----------------------
 
 -  String, one of "none", "normal", "detailed"
+-  Default: normal
 
 The amount of logging the webserver must do. "none" means no useful webserver information will be logged.
 When set to "normal", the webserver will log a line per request that should be familiar::

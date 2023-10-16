@@ -26,5 +26,6 @@ class AssertEqualDNSMessageMixin(unittest.TestCase):
 
     def setUp(self):
         self.addTypeEqualityFunc(dns.message.Message, self.assertEqualDNSMessage)
+        self.addTypeEqualityFunc(dns.message.QueryMessage, self.assertEqualDNSMessage)
 
         super(AssertEqualDNSMessageMixin, self).setUp()

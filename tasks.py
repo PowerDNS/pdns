@@ -8,6 +8,7 @@ import time
 auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
 
 clang_version = os.getenv('CLANG_VERSION', '13')
+rust_version = 'rust-1.72.0-x86_64-unknown-linux-gnu'
 
 all_build_deps = [
     'ccache',
@@ -90,7 +91,6 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'curl',
     'default-jre-headless',
     'dnsutils',
-    'docker-compose',
     'faketime',
     'gawk',
     'krb5-user',
@@ -170,6 +170,10 @@ def install_clang_runtime(c):
     # this gives us the symbolizer, for symbols in asan/ubsan traces
     c.sudo(f'apt-get -y --no-install-recommends install clang-{clang_version}')
 
+@task
+def ci_install_rust(c, repo):
+    c.sudo(f'{repo}/builder-support/helpers/install_rust.sh {rust_version}')
+
 def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
     with c.cd('/tmp/libdecaf'):
@@ -198,6 +202,28 @@ def install_doc_deps_pdf(c):
 def install_auth_build_deps(c):
     c.sudo('apt-get install -y --no-install-recommends ' + ' '.join(all_build_deps + git_build_deps + auth_build_deps))
     install_libdecaf(c, 'pdns-auth')
+
+def is_coverage_enabled():
+    sanitizers = os.getenv('SANITIZERS')
+    if sanitizers:
+        sanitizers = sanitizers.split('+')
+        if 'tsan' in sanitizers:
+            return False
+    return os.getenv('COVERAGE') == 'yes'
+
+@task
+def install_coverage_deps(c):
+    if is_coverage_enabled():
+        c.sudo(f'apt-get install -y --no-install-recommends llvm-{clang_version}')
+
+@task
+def generate_coverage_info(c, binary, outputDir):
+    if is_coverage_enabled():
+        version = os.getenv('BUILDER_VERSION')
+        c.run(f'llvm-profdata-{clang_version} merge -sparse -o {outputDir}/temp.profdata /tmp/code-*.profraw')
+        c.run(f'llvm-cov-{clang_version} export --format=lcov --ignore-filename-regex=\'^/usr/\' -instr-profile={outputDir}/temp.profdata -object {binary} > {outputDir}/coverage.lcov')
+        c.run(f'{outputDir}/.github/scripts/normalize_paths_in_coverage.py {outputDir} {version} {outputDir}/coverage.lcov {outputDir}/normalized_coverage.lcov')
+        c.run(f'mv {outputDir}/normalized_coverage.lcov {outputDir}/coverage.lcov')
 
 def setup_authbind(c):
     c.sudo('touch /etc/authbind/byport/53')
@@ -300,7 +326,11 @@ def install_dnsdist_build_deps(c):
 
 @task
 def ci_autoconf(c):
-    c.run('BUILDER_VERSION=0.0.0-git1 autoreconf -vfi')
+    c.run('autoreconf -vfi')
+
+@task
+def ci_docs_rec_generate(c):
+    c.run('python3 generate.py')
 
 @task
 def ci_docs_build(c):
@@ -387,6 +417,7 @@ def ci_auth_configure(c):
 
     fuzz_targets = os.getenv('FUZZING_TARGETS')
     fuzz_targets = '--enable-fuzz-targets' if fuzz_targets == 'yes' else ''
+    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
 
     modules = " ".join([
         "bind",
@@ -417,6 +448,7 @@ def ci_auth_configure(c):
         sanitizers,
         unittests,
         fuzz_targets,
+        coverage,
     ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
@@ -430,6 +462,7 @@ def ci_rec_configure(c):
 
     unittests = os.getenv('UNIT_TESTS')
     unittests = '--enable-unit-tests' if unittests == 'yes' else ''
+    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
 
     configure_cmd = " ".join([
         get_base_configure_cmd(),
@@ -441,6 +474,7 @@ def ci_rec_configure(c):
         "--enable-dns-over-tls",
         sanitizers,
         unittests,
+        coverage,
     ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
@@ -459,9 +493,11 @@ def ci_dnsdist_configure(c, features):
                       --enable-systemd \
                       --prefix=/opt/dnsdist \
                       --with-gnutls \
+                      --with-h2o \
                       --with-libsodium \
                       --with-lua=luajit \
                       --with-libcap \
+                      --with-net-snmp \
                       --with-nghttp2 \
                       --with-re2 '
     else:
@@ -472,6 +508,7 @@ def ci_dnsdist_configure(c, features):
                       --without-cdb \
                       --without-ebpf \
                       --without-gnutls \
+                      --without-h2o \
                       --without-libedit \
                       --without-libsodium \
                       --without-lmdb \
@@ -510,9 +547,11 @@ def ci_dnsdist_configure(c, features):
                           -DDISABLE_FALSE_SHARING_PADDING \
                           -DDISABLE_NPN'
     unittests = ' --enable-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
+    fuzztargets = '--enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
     sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
-    cflags = '-O1 -Werror=vla -Werror=shadow -Wformat=2 -Werror=format-security -Werror=string-plus-int'
-    cxxflags = cflags + ' -Wp,-D_GLIBCXX_ASSERTIONS ' + additional_flags
+    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
+    cflags = get_cflags()
+    cxxflags = " ".join([get_cxxflags(), additional_flags])
     res = c.run(f'''CFLAGS="%s" \
                    CXXFLAGS="%s" \
                    AR=llvm-ar-{clang_version} \
@@ -524,7 +563,7 @@ def ci_dnsdist_configure(c, features):
                      --enable-fortify-source=auto \
                      --enable-auto-var-init=pattern \
                      --enable-lto=thin \
-                     --prefix=/opt/dnsdist %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests), warn=True)
+                     --prefix=/opt/dnsdist %s %s %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests, fuzztargets, coverage), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
@@ -585,6 +624,10 @@ def ci_dnsdist_run_unit_tests(c):
     if res.exited != 0:
       c.run('cat test-suite.log')
       raise UnexpectedExit(res)
+
+@task
+def ci_make_distdir(c):
+    res = c.run('make distdir')
 
 @task
 def ci_make_install(c):
@@ -805,7 +848,7 @@ def test_bulk_recursor(c, threads, mthreads, shards):
         c.run('curl -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip')
         c.run('unzip top-1m.csv.zip -d .')
         c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
-        c.run(f'DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control THRESHOLD=95 TRACE=no ./timestamp ./recursor-test 5300 100 {threads} {mthreads} {shards}')
+        c.run(f'DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control THRESHOLD=95 TRACE=no ./recursor-test 5300 100 {threads} {mthreads} {shards}')
 
 @task
 def install_swagger_tools(c):

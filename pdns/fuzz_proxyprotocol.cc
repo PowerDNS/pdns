@@ -24,20 +24,21 @@
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+{
 
   std::vector<ProxyProtocolValue> values;
   ComboAddress source;
   ComboAddress destination;
   bool proxy = false;
-  bool tcp = false;  
+  bool tcp = false;
 
   try {
     parseProxyHeader(std::string(reinterpret_cast<const char*>(data), size), proxy, source, destination, tcp, values);
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
   }
-  catch(const PDNSException& e) {
+  catch (const PDNSException& e) {
   }
 
   return 0;

@@ -1,9 +1,9 @@
 AC_DEFUN([PDNS_WITH_NET_SNMP], [
   AC_MSG_CHECKING([if we need to link in Net SNMP])
   AC_ARG_WITH([net-snmp],
-    AS_HELP_STRING([--with-net-snmp],[enable net snmp support @<:@default=auto@:>@]),
+    AS_HELP_STRING([--with-net-snmp],[enable net snmp support @<:@default=no@:>@]),
     [with_net_snmp=$withval],
-    [with_net_snmp=auto],
+    [with_net_snmp=no],
   )
   AC_MSG_RESULT([$with_net_snmp])
 

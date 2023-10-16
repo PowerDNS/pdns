@@ -80,10 +80,14 @@ MTasker and MThreads
 PowerDNS Recursor uses a cooperative multitasking in userspace called ``MTasker``, based either on ``boost::context`` if available, or on ``System V ucontexts`` otherwise. For maximum performance, please make sure that your system supports ``boost::context``, as the alternative has been known to be quite slower.
 
 The maximum number of simultaneous MTasker threads, called ``MThreads``, can be tuned via :ref:`setting-max-mthreads`, as the default value of 2048 might not be enough for large-scale installations.
+This setting limits the number of mthreads *per physical (Posix) thread*.
+The threads that create mthreads are the distributor and worker threads.
 
 When a ``MThread`` is started, a new stack is dynamically allocated for it on the heap. The size of that stack can be configured via the :ref:`setting-stack-size` parameter, whose default value is 200 kB which should be enough in most cases.
 
-To reduce the cost of allocating a new stack for every query, the recursor can cache a small amount of stacks to make sure that the allocation stays cheap. This can be configured via the :ref:`setting-stack-cache-size` setting. The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equals to the number of stacks specified by :ref:`setting-stack-cache-size` multiplied by the size of one stack, itself specified via :ref:`setting-stack-size`.
+To reduce the cost of allocating a new stack for every query, the recursor can cache a small amount of stacks to make sure that the allocation stays cheap. This can be configured via the :ref:`setting-stack-cache-size` setting.
+This limit is per physical (Posix) thread.
+The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equals to the number of stacks specified by :ref:`setting-stack-cache-size` multiplied by the size of one stack, itself specified via :ref:`setting-stack-size`.
 
 Performance tips
 ----------------
@@ -177,8 +181,13 @@ Each of the queries processed will consume an mthread until processing is done.
 A response to a query is sent immediately when it becomes available; the response can be sent before other responses to queries that were received earlier by the Recursor.
 This is the Out-of-Order feature which greatly enhances performance, as a single slow query does not prevent other queries to be processed.
 
+Before version 5.0.0, TCP queries are processed by either the distributer thread(s) if :ref:`setting-pdns-distributes-queries` is true, or by worker threads if :ref:`setting-pdns-distributes-queries` is false.
+Starting with version 5.0.0, :program:`Recursor` has dedicated thread(s) processing TCP queries.
+
 The maximum number of mthreads consumed by TCP queries is :ref:`setting-max-tcp-clients` times :ref:`setting-max-concurrent-requests-per-tcp-connection`.
-This number should be (much) lower than :ref:`setting-max-mthreads`, to also allow UDP queries to be handled as these also consume mthreads.
+Before version 5.0.0, if :ref:`setting-pdns-distributes-queries` is false, this number should be (much) lower than :ref:`setting-max-mthreads`, to also allow UDP queries to be handled as these also consume mthreads.
+Note that :ref:`setting-max-mthreads` is a per Posix thread setting.
+This means that the global maximum number of mthreads  is (#distributor threads + #worker threads) * max-mthreads.
 
 If you expect few clients, you can increase :ref:`setting-max-concurrent-requests-per-tcp-connection`, to allow more concurrency per TCP connection.
 If you expect many clients and you have increased :ref:`setting-max-tcp-clients`, reduce :ref:`setting-max-concurrent-requests-per-tcp-connection` number to prevent mthread starvation or increase the maximum number of mthreads.
@@ -188,6 +197,7 @@ To see the current number of mthreads in use consult the :ref:`stat-concurrent-q
 If a query could not be handled due to mthread shortage, the :ref:`stat-over-capacity-drops` metric is increased.
 
 As an example, if you have typically 200 TCP clients, and the default maximum number of mthreads of 2048, a good number of concurrent requests per TCP connection would be 5. Assuming a worst case packet cache hit ratio, if all 200 TCP clients fill their connections with queries, about half (5 * 200) of the mthreads would be used by incoming TCP queries, leaving the other half for incoming UDP queries.
+Note that starting with version 5.0.0, TCP queries are processed by dedicated TCP thread(s), so the sharing of mthreads between UDP and TCP queries no longer applies.
 
 The total number of incoming TCP connections is limited by :ref:`setting-max-tcp-clients`.
 There is also a per client address limit: :ref:`setting-max-tcp-per-client` to limit the impact of a single client.

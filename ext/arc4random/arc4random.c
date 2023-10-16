@@ -48,7 +48,6 @@
  * will call a native getentropy if available then fall back as required.
  * We use a different name so that OpenSSL cannot call the wrong getentropy.
  */
-int _ssh_compat_getentropy(void *, size_t);
 #ifdef getentropy
 # undef getentropy
 #endif

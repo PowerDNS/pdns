@@ -1052,7 +1052,7 @@ struct SlaveSenderReceiver
   {
     shuffle(dni.di.masters.begin(), dni.di.masters.end(), pdns::dns_random_engine());
     try {
-      return std::make_tuple(dni.di.zone,
+      return {dni.di.zone,
                              *dni.di.masters.begin(),
                              d_resolver.sendResolve(*dni.di.masters.begin(),
                                                     dni.localaddr,
@@ -1060,7 +1060,7 @@ struct SlaveSenderReceiver
                                                     QType::SOA,
                                                     nullptr,
                                                     dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
-        );
+      };
     }
     catch(PDNSException& e) {
       throw runtime_error("While attempting to query freshness of '"+dni.di.zone.toLogString()+"': "+e.reason);

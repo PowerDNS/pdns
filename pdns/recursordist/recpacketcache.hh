@@ -21,7 +21,7 @@
  */
 #pragma once
 #include <string>
-#include <inttypes.h>
+#include <cinttypes>
 #include "dns.hh"
 #include "namespaces.hh"
 #include <iostream>
@@ -83,7 +83,7 @@ public:
   bool getResponsePacket(unsigned int tag, const std::string& queryPacket, DNSName& qname, uint16_t* qtype, uint16_t* qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, uint32_t* qhash, OptPBData* pbdata, bool tcp);
 
   void insertResponsePacket(unsigned int tag, uint32_t qhash, std::string&& query, const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& responsePacket, time_t now, uint32_t ttl, const vState& valState, OptPBData&& pbdata, bool tcp);
-  void doPruneTo(size_t maxSize);
+  void doPruneTo(time_t now, size_t maxSize);
   uint64_t doDump(int file);
   uint64_t doWipePacketCache(const DNSName& name, uint16_t qtype = 0xffff, bool subtree = false);
 
@@ -104,9 +104,20 @@ public:
 private:
   struct Entry
   {
-    Entry(const DNSName& qname, uint16_t qtype, uint16_t qclass, std::string&& packet, std::string&& query, bool tcp,
+    Entry(DNSName&& qname, uint16_t qtype, uint16_t qclass, std::string&& packet, std::string&& query, bool tcp,
+          // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
           uint32_t qhash, time_t ttd, time_t now, uint32_t tag, vState vstate) :
-      d_name(qname), d_packet(std::move(packet)), d_query(std::move(query)), d_ttd(ttd), d_creation(now), d_qhash(qhash), d_tag(tag), d_type(qtype), d_class(qclass), d_vstate(vstate), d_tcp(tcp)
+      d_name(std::move(qname)),
+      d_packet(std::move(packet)),
+      d_query(std::move(query)),
+      d_ttd(ttd),
+      d_creation(now),
+      d_qhash(qhash),
+      d_tag(tag),
+      d_type(qtype),
+      d_class(qclass),
+      d_vstate(vstate),
+      d_tcp(tcp)
     {
     }
 
@@ -157,8 +168,12 @@ private:
   struct MapCombo
   {
     MapCombo() = default;
+    ~MapCombo() = default;
     MapCombo(const MapCombo&) = delete;
+    MapCombo(MapCombo&&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
+    MapCombo& operator=(MapCombo&&) = delete;
+
     struct LockedContent
     {
       packetCache_t d_map;
@@ -169,7 +184,6 @@ private:
       uint64_t d_acquired_count{0};
       void invalidate() {}
     };
-    pdns::stat_t d_entriesCount{0};
 
     LockGuardedTryHolder<MapCombo::LockedContent> lock()
     {
@@ -182,8 +196,24 @@ private:
       return locked;
     }
 
+    [[nodiscard]] auto getEntriesCount() const
+    {
+      return d_entriesCount.load();
+    }
+
+    void incEntriesCount()
+    {
+      ++d_entriesCount;
+    }
+
+    void decEntriesCount()
+    {
+      --d_entriesCount;
+    }
+
   private:
     LockGuarded<LockedContent> d_content;
+    pdns::stat_t d_entriesCount{0};
   };
 
   vector<MapCombo> d_maps;
@@ -208,7 +238,7 @@ private:
   }
 
   static bool qrMatch(const packetCache_t::index<HashTag>::type::iterator& iter, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass);
-  bool checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata);
+  static bool checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata);
 
   void setShardSizes(size_t shardSize);
 

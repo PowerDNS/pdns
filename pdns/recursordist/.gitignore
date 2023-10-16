@@ -34,6 +34,7 @@
 /rec_control
 /pdns-recursor-*
 /recursor.conf-dist
+/recursor.yml-dist
 /ext/Makefile
 /ext/Makefile.in
 /dnsmessage.pb.cc

@@ -831,7 +831,8 @@ These ``DNSRule``\ s be one of the following items:
   sense for DoT or DoH, and for that last one matching on the HTTP Host header using :func:`HTTPHeaderRule`
   might provide more consistent results.
   As of the version 2.3.0-beta of h2o, it is unfortunately not possible to extract the SNI value from DoH
-  connections, and it is therefore necessary to use the HTTP Host header until version 2.3.0 is released.
+  connections, and it is therefore necessary to use the HTTP Host header until version 2.3.0 is released,
+  or ``nghttp2`` is used for incoming DoH instead (1.9.0+).
 
   :param str name: The exact SNI name to match.
 
@@ -1419,6 +1420,9 @@ The following actions exist.
     ``metas`` optional parameter added.
     ``exportTags`` optional key added to the options table.
 
+  .. versionchanged:: 1.9.0
+    ``exportExtendedErrorsToMeta`` optional key added to the options table.
+
   Send the content of this response to a remote logger via Protocol Buffer.
   ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
   ``includeCNAME`` indicates whether CNAME records inside the response should be parsed and exported.
@@ -1437,6 +1441,7 @@ The following actions exist.
   * ``serverID=""``: str - Set the Server Identity field.
   * ``ipEncryptKey=""``: str - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6.
   * ``exportTags=""``: str - The comma-separated list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as "key:value" strings. Note that a tag with an empty value will be exported as "<key>", not "<key>:". An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported.
+  * ``exportExtendedErrorsToMeta=""``: str - Export Extended DNS Errors present in the DNS response, if any, into the ``meta`` Protocol Buffer field using the specified ``key``. The EDE info code will be exported as an integer value, and the EDE extra text, if present, as a string value.
 
 .. function:: SetAdditionalProxyProtocolValueAction(type, value)
 

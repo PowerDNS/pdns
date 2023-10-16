@@ -126,7 +126,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       str << base << "tcpdiedreadingquery" << ' ' << front->tcpDiedReadingQuery.load() << " " << now << "\r\n";
       str << base << "tcpdiedsendingresponse" << ' ' << front->tcpDiedSendingResponse.load() << " " << now << "\r\n";
       str << base << "tcpgaveup" << ' ' << front->tcpGaveUp.load() << " " << now << "\r\n";
-      str << base << "tcpclientimeouts" << ' ' << front->tcpClientTimeouts.load() << " " << now << "\r\n";
+      str << base << "tcpclienttimeouts" << ' ' << front->tcpClientTimeouts.load() << " " << now << "\r\n";
       str << base << "tcpdownstreamtimeouts" << ' ' << front->tcpDownstreamTimeouts.load() << " " << now << "\r\n";
       str << base << "tcpcurrentconnections" << ' ' << front->tcpCurrentConnections.load() << " " << now << "\r\n";
       str << base << "tcpmaxconcurrentconnections" << ' ' << front->tcpMaxConcurrentConnections.load() << " " << now << "\r\n";
@@ -147,7 +147,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
         errorCounters = &front->tlsFrontend->d_tlsCounters;
       }
       else if (front->dohFrontend != nullptr) {
-        errorCounters = &front->dohFrontend->d_tlsCounters;
+        errorCounters = &front->dohFrontend->d_tlsContext.d_tlsCounters;
       }
       if (errorCounters != nullptr) {
         str << base << "tlsdhkeytoosmall" << ' ' << errorCounters->d_dhKeyTooSmall << " " << now << "\r\n";
@@ -204,7 +204,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       std::map<std::string, uint64_t> dohFrontendDuplicates;
       const string base = "dnsdist." + hostname + ".main.doh.";
       for (const auto& doh : g_dohlocals) {
-        string name = doh->d_local.toStringWithPort();
+        string name = doh->d_tlsContext.d_addr.toStringWithPort();
         boost::replace_all(name, ".", "_");
         boost::replace_all(name, ":", "_");
         boost::replace_all(name, "[", "_");

@@ -32,7 +32,7 @@ Settings
 ``lmdb-filename``
 ^^^^^^^^^^^^^^^^^
 
-Path to the LMDB file (e.g. */var/spool/powerdns/pdns.lmdb*)
+Path to the LMDB file (e.g. */var/lib/powerdns/pdns.lmdb*)
 
 .. warning::
   On systemd systems,

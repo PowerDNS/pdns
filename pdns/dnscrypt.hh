@@ -21,6 +21,7 @@
  */
 #pragma once
 #include "config.h"
+#include <memory>
 
 #ifndef HAVE_DNSCRYPT
 
@@ -43,7 +44,6 @@ private:
 
 #else /* HAVE_DNSCRYPT */
 
-#include <memory>
 #include <string>
 #include <vector>
 #include <arpa/inet.h>

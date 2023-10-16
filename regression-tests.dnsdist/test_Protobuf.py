@@ -5,14 +5,15 @@ import socket
 import struct
 import sys
 import time
-from dnsdisttests import DNSDistTest, Queue
+from dnsdisttests import DNSDistTest, pickAvailablePort, Queue
 from proxyprotocol import ProxyProtocol
 
 import dns
 import dnsmessage_pb2
+import extendederrors
 
 class DNSDistProtobufTest(DNSDistTest):
-    _protobufServerPort = 4242
+    _protobufServerPort = pickAvailablePort()
     _protobufQueue = Queue()
     _protobufServerID = 'dnsdist-server-1'
     _protobufCounter = 0
@@ -58,15 +59,15 @@ class DNSDistProtobufTest(DNSDistTest):
     @classmethod
     def startResponders(cls):
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
 
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
         cls._protobufListener = threading.Thread(name='Protobuf Listener', target=cls.ProtobufListener, args=[cls._protobufServerPort])
-        cls._protobufListener.setDaemon(True)
+        cls._protobufListener.daemon = True
         cls._protobufListener.start()
 
     def getFirstProtobufMessage(self):
@@ -295,8 +296,9 @@ class TestProtobuf(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        # let the protobuf messages the time to get there
-        time.sleep(1)
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -323,8 +325,9 @@ class TestProtobuf(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        # let the protobuf messages the time to get there
-        time.sleep(1)
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
 
         # check the protobuf message corresponding to the TCP query
         msg = self.getFirstProtobufMessage()
@@ -368,9 +371,9 @@ class TestProtobuf(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-
-        # let the protobuf messages the time to get there
-        time.sleep(1)
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -394,8 +397,9 @@ class TestProtobuf(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        # let the protobuf messages the time to get there
-        time.sleep(1)
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
 
         # check the protobuf message corresponding to the TCP query
         msg = self.getFirstProtobufMessage()
@@ -445,8 +449,9 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        # let the protobuf messages the time to get there
-        time.sleep(1)
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -485,27 +490,88 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         # no ':' when the value is empty
         self.assertIn('my-empty-key', msg.meta[0].value.stringVal)
 
+class TestProtobufExtendedDNSErrorTags(DNSDistProtobufTest):
+    _config_params = ['_testServerPort', '_protobufServerPort']
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    rl = newRemoteLogger('127.0.0.1:%d')
+
+    addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='dnsdist-server-1'}))
+    addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1', exportExtendedErrorsToMeta='extended-error'}))
+    """
+
+    def testProtobufExtendedError(self):
+        """
+        Protobuf: Extended Error
+        """
+        name = 'extended-error.protobuf.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+        ede = extendederrors.ExtendedErrorOption(15, b'Blocked by RPZ!')
+        response.use_edns(edns=True, payload=4096, options=[ede])
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+
+        # check the protobuf message corresponding to the UDP query
+        msg = self.getFirstProtobufMessage()
+
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+
+        # meta tags
+        self.assertEqual(len(msg.meta), 0)
+
+        # check the protobuf message corresponding to the UDP response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
+
+        # meta tags
+        self.assertEqual(len(msg.meta), 1)
+
+        self.assertEqual(msg.meta[0].key, 'extended-error')
+        self.assertEqual(len(msg.meta[0].value.intVal), 1)
+        self.assertEqual(len(msg.meta[0].value.stringVal), 1)
+        self.assertIn(15, msg.meta[0].value.intVal)
+        self.assertIn('Blocked by RPZ!', msg.meta[0].value.stringVal)
+
 class TestProtobufMetaDOH(DNSDistProtobufTest):
 
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = 8453
-    _dohServerPort = 8443
-    _dohBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohServerPort))
-    _config_params = ['_testServerPort', '_protobufServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohServerPort', '_serverCert', '_serverKey']
+    _tlsServerPort = pickAvailablePort()
+    _dohWithNGHTTP2ServerPort = pickAvailablePort()
+    _dohWithNGHTTP2BaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohWithNGHTTP2ServerPort))
+    _dohWithH2OServerPort = pickAvailablePort()
+    _dohWithH2OBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohWithH2OServerPort))
     _config_template = """
     newServer{address="127.0.0.1:%d"}
     rl = newRemoteLogger('127.0.0.1:%d')
 
     addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { '/dns-query' }, { keepIncomingHeaders=true })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { keepIncomingHeaders=true, library='nghttp2' })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { keepIncomingHeaders=true, library='h2o' })
 
     local mytags = {path='doh-path', host='doh-host', ['query-string']='doh-query-string', scheme='doh-scheme', agent='doh-header:user-agent'}
     addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='dnsdist-server-1'}, mytags))
     addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1'}, mytags))
     """
+    _config_params = ['_testServerPort', '_protobufServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_dohWithH2OServerPort', '_serverCert', '_serverKey']
 
     def testProtobufMetaDoH(self):
         """
@@ -521,7 +587,7 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHQueryWrapper"):
+        for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper", "sendDOHWithH2OQueryWrapper"):
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response)
 
@@ -531,8 +597,9 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
-            # let the protobuf messages the time to get there
-            time.sleep(1)
+            if self._protobufQueue.empty():
+                # let the protobuf messages the time to get there
+                time.sleep(1)
 
             # check the protobuf message corresponding to the query
             msg = self.getFirstProtobufMessage()
@@ -543,10 +610,9 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
                 pbMessageType = dnsmessage_pb2.PBDNSMessage.TCP
             elif method == "sendDOTQueryWrapper":
                 pbMessageType = dnsmessage_pb2.PBDNSMessage.DOT
-            elif method == "sendDOHQueryWrapper":
+            elif method == "sendDOHWithNGHTTP2QueryWrapper" or method == "sendDOHWithH2OQueryWrapper":
                 pbMessageType = dnsmessage_pb2.PBDNSMessage.DOH
 
-            print(method)
             self.checkProtobufQuery(msg, pbMessageType, query, dns.rdataclass.IN, dns.rdatatype.A, name)
             self.assertEqual(len(msg.meta), 5)
             tags = {}
@@ -555,10 +621,13 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
                 tags[entry.key] = entry.value.stringVal[0]
 
             self.assertIn('agent', tags)
-            if method == "sendDOHQueryWrapper":
+            if method == "sendDOHWithNGHTTP2QueryWrapper" or method == "sendDOHWithH2OQueryWrapper":
                 self.assertIn('PycURL', tags['agent'])
                 self.assertIn('host', tags)
-                self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohServerPort))
+                if method == "sendDOHWithNGHTTP2QueryWrapper":
+                    self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohWithNGHTTP2ServerPort))
+                elif method == "sendDOHWithH2OQueryWrapper":
+                    self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohWithH2OServerPort))
                 self.assertIn('path', tags)
                 self.assertEqual(tags['path'], '/dns-query')
                 self.assertIn('query-string', tags)
@@ -576,10 +645,13 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
                 tags[entry.key] = entry.value.stringVal[0]
 
             self.assertIn('agent', tags)
-            if method == "sendDOHQueryWrapper":
+            if method == "sendDOHWithNGHTTP2QueryWrapper" or method == "sendDOHWithH2OQueryWrapper":
                 self.assertIn('PycURL', tags['agent'])
                 self.assertIn('host', tags)
-                self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohServerPort))
+                if method == "sendDOHWithNGHTTP2QueryWrapper":
+                    self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohWithNGHTTP2ServerPort))
+                elif method == "sendDOHWithH2OQueryWrapper":
+                    self.assertEqual(tags['host'], self._serverName + ':' + str(self._dohWithH2OServerPort))
                 self.assertIn('path', tags)
                 self.assertEqual(tags['path'], '/dns-query')
                 self.assertIn('query-string', tags)
@@ -629,8 +701,9 @@ class TestProtobufMetaProxy(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        # let the protobuf messages the time to get there
-        time.sleep(1)
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -690,8 +763,9 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        # let the protobuf messages the time to get there
-        time.sleep(1)
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
 
         # check the protobuf message corresponding to the UDP query
         msg = self.getFirstProtobufMessage()
@@ -718,8 +792,9 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
-        # let the protobuf messages the time to get there
-        time.sleep(1)
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
 
         # check the protobuf message corresponding to the TCP query
         msg = self.getFirstProtobufMessage()

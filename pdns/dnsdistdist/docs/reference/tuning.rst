@@ -163,13 +163,13 @@ Tuning related functions
 
 .. function:: setTCPRecvTimeout(num)
 
-  Set the read timeout on TCP connections from the client, in seconds
+  Set the read timeout on TCP connections from the client, in seconds. Defaults to 2
 
   :param int num:
 
 .. function:: setTCPSendTimeout(num)
 
-  Set the write timeout on TCP connections from the client, in seconds
+  Set the write timeout on TCP connections from the client, in seconds. Defaults to 2
 
   :param int num:
 

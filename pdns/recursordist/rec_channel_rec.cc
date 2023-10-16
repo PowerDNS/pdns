@@ -28,6 +28,7 @@
 #include "rec-lua-conf.hh"
 
 #include "aggressive_nsec.hh"
+#include "coverage.hh"
 #include "validate-recursor.hh"
 #include "filterpo.hh"
 
@@ -37,6 +38,8 @@
 #include "rec-taskqueue.hh"
 #include "rec-tcpout.hh"
 #include "rec-main.hh"
+
+#include "settings/cxxsettings.hh"
 
 std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNum(const std::string& a)
 {
@@ -401,19 +404,52 @@ static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(
 }
 
 // Does not follow the generic dump to file pattern, has a more complex lambda
-static RecursorControlChannel::Answer doDumpCache(int socket)
+template <typename T>
+static RecursorControlChannel::Answer doDumpCache(int socket, T begin, T end)
 {
   auto fdw = getfd(socket);
 
   if (fdw < 0) {
     return {1, "Error opening dump file for writing: " + stringerror() + "\n"};
   }
+  bool dumpRecordCache = true;
+  bool dumpNegCache = true;
+  bool dumpPacketCache = true;
+  bool dumpAggrCache = true;
+  if (begin != end) {
+    dumpRecordCache = false;
+    dumpNegCache = false;
+    dumpPacketCache = false;
+    dumpAggrCache = false;
+    for (auto name = begin; name != end; ++name) {
+      if (*name == "r") {
+        dumpRecordCache = true;
+      }
+      else if (*name == "n") {
+        dumpNegCache = true;
+      }
+      else if (*name == "p") {
+        dumpPacketCache = true;
+      }
+      else if (*name == "a") {
+        dumpAggrCache = true;
+      }
+    }
+  }
   uint64_t total = 0;
   try {
-    total += g_recCache->doDump(fdw, g_maxCacheEntries.load());
-    total += g_negCache->doDump(fdw, g_maxCacheEntries.load() / 8);
-    total += g_packetCache ? g_packetCache->doDump(fdw) : 0;
-    total += dumpAggressiveNSECCache(fdw);
+    if (dumpRecordCache) {
+      total += g_recCache->doDump(fdw, g_maxCacheEntries.load());
+    }
+    if (dumpNegCache) {
+      total += g_negCache->doDump(fdw, g_maxCacheEntries.load() / 8);
+    }
+    if (dumpPacketCache) {
+      total += g_packetCache ? g_packetCache->doDump(fdw) : 0;
+    }
+    if (dumpAggrCache) {
+      total += dumpAggressiveNSECCache(fdw);
+    }
   }
   catch (...) {
   }
@@ -913,7 +949,7 @@ static ProxyMappingStats_t* pleaseGetProxyMappingStats()
   auto ret = new ProxyMappingStats_t;
   if (t_proxyMapping) {
     for (const auto& [key, entry] : *t_proxyMapping) {
-      ret->emplace(std::make_pair(key, ProxyMappingCounts{entry.stats.netmaskMatches, entry.stats.suffixMatches}));
+      ret->emplace(key, ProxyMappingCounts{entry.stats.netmaskMatches, entry.stats.suffixMatches});
     }
   }
   return ret;
@@ -925,7 +961,7 @@ static RemoteLoggerStats_t* pleaseGetRemoteLoggerStats()
 
   if (t_protobufServers.servers) {
     for (const auto& server : *t_protobufServers.servers) {
-      ret->emplace(std::make_pair(server->address(), server->getStats()));
+      ret->emplace(server->address(), server->getStats());
     }
   }
   return ret.release();
@@ -948,7 +984,7 @@ static RemoteLoggerStats_t* pleaseGetOutgoingRemoteLoggerStats()
 
   if (t_outgoingProtobufServers.servers) {
     for (const auto& server : *t_outgoingProtobufServers.servers) {
-      ret->emplace(std::make_pair(server->address(), server->getStats()));
+      ret->emplace(server->address(), server->getStats());
     }
   }
   return ret.release();
@@ -961,7 +997,7 @@ static RemoteLoggerStats_t* pleaseGetFramestreamLoggerStats()
 
   if (t_frameStreamServersInfo.servers) {
     for (const auto& server : *t_frameStreamServersInfo.servers) {
-      ret->emplace(std::make_pair(server->address(), server->getStats()));
+      ret->emplace(server->address(), server->getStats());
     }
   }
   return ret.release();
@@ -973,7 +1009,7 @@ static RemoteLoggerStats_t* pleaseGetNODFramestreamLoggerStats()
 
   if (t_nodFrameStreamServersInfo.servers) {
     for (const auto& server : *t_nodFrameStreamServersInfo.servers) {
-      ret->emplace(std::make_pair(server->address(), server->getStats()));
+      ret->emplace(server->address(), server->getStats());
     }
   }
   return ret.release();
@@ -1154,9 +1190,9 @@ static StatsMap toCPUStatsMap(const string& name)
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
-  // Only distr and worker threads, I think we should revisit this as we now not only have the handler thread but also
-  // taskThread(s).
-  for (unsigned int n = 0; n < RecThreadInfo::numDistributors() + RecThreadInfo::numWorkers(); ++n) {
+
+  // Handler is not reported
+  for (unsigned int n = 0; n < RecThreadInfo::numRecursorThreads() - 1; ++n) {
     uint64_t tm = doGetThreadCPUMsec(n);
     std::string pname = pbasename + "{thread=\"" + std::to_string(n) + "\"}";
     entries.emplace(name + "-thread-" + std::to_string(n), StatsMapEntry{std::move(pname), std::to_string(tm)});
@@ -1551,8 +1587,12 @@ void doExitGeneric(bool nicely)
   g_log << Logger::Error << "Exiting on user request" << endl;
   g_rcc.~RecursorControlChannel();
 
-  if (!g_pidfname.empty())
+  if (!g_pidfname.empty()) {
     unlink(g_pidfname.c_str()); // we can at least try..
+  }
+
+  pdns::coverage::dumpCoverageData();
+
   if (nicely) {
     RecursorControlChannel::stop = true;
   }
@@ -2077,7 +2117,8 @@ static RecursorControlChannel::Answer help()
           "unload-lua-script                unload Lua script\n"
           "version                          return Recursor version number\n"
           "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
-          "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"};
+          "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"
+          "show-yaml [file]                 EXPERIMENTAL command to show yaml config derived from old-style config\n"};
 }
 
 template <typename T>
@@ -2163,7 +2204,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     return {0, "bye nicely\n"};
   }
   if (cmd == "dump-cache") {
-    return doDumpCache(socket);
+    return doDumpCache(socket, begin, end);
   }
   if (cmd == "dump-dot-probe-map") {
     return doDumpToFile(socket, pleaseDumpDoTProbeMap, cmd, false);
@@ -2267,7 +2308,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
       g_log << Logger::Error << "Unable to reload zones and forwards when chroot()'ed, requested via control channel" << endl;
       return {1, "Unable to reload zones and forwards when chroot()'ed, please restart\n"};
     }
-    return {0, reloadZoneConfiguration()};
+    return {0, reloadZoneConfiguration(g_yamlSettings)};
   }
   if (cmd == "set-ecs-minimum-ttl") {
     return {0, setMinimumECSTTL(begin, end)};

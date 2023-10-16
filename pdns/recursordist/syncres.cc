@@ -309,6 +309,10 @@ public:
     d_cont.clear();
   }
 
+  void clear(const Thing& thing)
+  {
+    d_cont.erase(thing);
+  }
   void prune(time_t now)
   {
     auto& ind = d_cont.template get<time_t>();
@@ -439,6 +443,7 @@ unsigned int SyncRes::s_packetcacheservfailttl;
 unsigned int SyncRes::s_packetcachenegativettl;
 unsigned int SyncRes::s_serverdownmaxfails;
 unsigned int SyncRes::s_serverdownthrottletime;
+unsigned int SyncRes::s_unthrottle_n;
 unsigned int SyncRes::s_nonresolvingnsmaxfails;
 unsigned int SyncRes::s_nonresolvingnsthrottletime;
 unsigned int SyncRes::s_ecscachelimitttl;
@@ -608,7 +613,7 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
       // There are a few cases where an answer is neither stored in the record cache nor in the neg cache.
       // An example is a SOA-less NODATA response. Rate limiting will kick in if those tasks are pushed too often.
       // We might want to fix these cases (and always either store positive or negative) some day.
-      pushResolveTask(qname, qtype, d_now.tv_sec, d_now.tv_sec + 60);
+      pushResolveTask(qname, qtype, d_now.tv_sec, d_now.tv_sec + 60, false);
       additionalsNotInCache = true;
     }
     break;
@@ -878,7 +883,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName& qname, const QType qtype, con
 //! This is the 'out of band resolver', in other words, the authoritative server
 void SyncRes::AuthDomain::addSOA(std::vector<DNSRecord>& records) const
 {
-  SyncRes::AuthDomain::records_t::const_iterator ziter = d_records.find(std::make_tuple(getName(), QType::SOA));
+  SyncRes::AuthDomain::records_t::const_iterator ziter = d_records.find(std::tuple(getName(), QType::SOA));
   if (ziter != d_records.end()) {
     DNSRecord dr = *ziter;
     dr.d_place = DNSResourceRecord::AUTHORITY;
@@ -958,7 +963,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
 
   DNSName wcarddomain(qname);
   while (wcarddomain != getName() && wcarddomain.chopOff()) {
-    range = d_records.equal_range(std::make_tuple(g_wildcarddnsname + wcarddomain));
+    range = d_records.equal_range(std::tuple(g_wildcarddnsname + wcarddomain));
     if (range.first == range.second)
       continue;
 
@@ -982,7 +987,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
   /* Nothing for this name, no wildcard, let's see if there is some NS */
   DNSName nsdomain(qname);
   while (nsdomain.chopOff() && nsdomain != getName()) {
-    range = d_records.equal_range(std::make_tuple(nsdomain, QType::NS));
+    range = d_records.equal_range(std::tuple(nsdomain, QType::NS));
     if (range.first == range.second)
       continue;
 
@@ -1230,22 +1235,36 @@ void SyncRes::clearThrottle()
 
 bool SyncRes::isThrottled(time_t now, const ComboAddress& server, const DNSName& target, QType qtype)
 {
-  return s_throttle.lock()->shouldThrottle(now, std::make_tuple(server, target, qtype));
+  return s_throttle.lock()->shouldThrottle(now, std::tuple(server, target, qtype));
 }
 
 bool SyncRes::isThrottled(time_t now, const ComboAddress& server)
 {
-  return s_throttle.lock()->shouldThrottle(now, std::make_tuple(server, g_rootdnsname, 0));
+  auto throttled = s_throttle.lock()->shouldThrottle(now, std::tuple(server, g_rootdnsname, 0));
+  if (throttled) {
+    // Give fully throttled servers a chance to be used, to avoid having one bad zone spoil the NS
+    // record for others using the same NS. If the NS answers, it will be unThrottled immediately
+    if (s_unthrottle_n > 0 && dns_random(s_unthrottle_n) == 0) {
+      throttled = false;
+    }
+  }
+  return throttled;
+}
+
+void SyncRes::unThrottle(const ComboAddress& server, const DNSName& name, QType qtype)
+{
+  s_throttle.lock()->clear(std::tuple(server, g_rootdnsname, 0));
+  s_throttle.lock()->clear(std::tuple(server, name, qtype));
 }
 
 void SyncRes::doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries)
 {
-  s_throttle.lock()->throttle(now, std::make_tuple(server, g_rootdnsname, 0), duration, tries);
+  s_throttle.lock()->throttle(now, std::tuple(server, g_rootdnsname, 0), duration, tries);
 }
 
 void SyncRes::doThrottle(time_t now, const ComboAddress& server, const DNSName& name, QType qtype, time_t duration, unsigned int tries)
 {
-  s_throttle.lock()->throttle(now, std::make_tuple(server, name, qtype), duration, tries);
+  s_throttle.lock()->throttle(now, std::tuple(server, name, qtype), duration, tries);
 }
 
 uint64_t SyncRes::doDumpThrottleMap(int fd)
@@ -1470,7 +1489,7 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fd)
    For now this means we can't be clever, but will turn off DNSSEC if you reply with FormError or gibberish.
 */
 
-LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained, const DNSName& nsName) const
+LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool ednsMANDATORY, const DNSName& domain, [[maybe_unused]] const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained, const DNSName& nsName) const
 {
   /* what is your QUEST?
      the goal is to get as many remotes as possible on the best level of EDNS support
@@ -1493,7 +1512,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
   SyncRes::EDNSStatus::EDNSMode mode = EDNSStatus::EDNSOK;
   {
     auto lock = s_ednsstatus.lock();
-    auto ednsstatus = lock->find(ip); // does this include port? YES
+    auto ednsstatus = lock->find(address); // does this include port? YES
     if (ednsstatus != lock->end()) {
       if (ednsstatus->ttd && ednsstatus->ttd < d_now.tv_sec) {
         lock->erase(ednsstatus);
@@ -1531,10 +1550,10 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
     }
 
     if (d_asyncResolve) {
-      ret = d_asyncResolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
+      ret = d_asyncResolve(address, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, res, chained);
     }
     else {
-      ret = asyncresolve(ip, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
+      ret = asyncresolve(address, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
     }
 
     if (ret == LWResult::Result::PermanentError || ret == LWResult::Result::OSLimitError || ret == LWResult::Result::Spoofed) {
@@ -1554,20 +1573,20 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
       // Determine new mode
       if (res->d_validpacket && !res->d_haveEDNS && res->d_rcode == RCode::FormErr) {
         mode = EDNSStatus::NOEDNS;
-        auto ednsstatus = lock->insert(ip).first;
+        auto ednsstatus = lock->insert(address).first;
         auto& ind = lock->get<ComboAddress>();
         lock->setMode(ind, ednsstatus, mode, d_now.tv_sec);
         // This is the only path that re-iterates the loop
         continue;
       }
       else if (!res->d_haveEDNS) {
-        auto ednsstatus = lock->insert(ip).first;
+        auto ednsstatus = lock->insert(address).first;
         auto& ind = lock->get<ComboAddress>();
         lock->setMode(ind, ednsstatus, EDNSStatus::EDNSIGNORANT, d_now.tv_sec);
       }
       else {
         // New status is EDNSOK
-        lock->erase(ip);
+        lock->erase(address);
       }
     }
 
@@ -1577,20 +1596,20 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& ip, bool ednsM
 }
 
 /* The parameters from rfc9156. */
-/* maximum number of QNAME minimisation iterations */
-static const unsigned int s_max_minimise_count = 10;
-/* number of queries that should only have one label appended */
-static const unsigned int s_minimise_one_lab = 4;
+/* maximum number of QNAME minimization iterations */
+unsigned int SyncRes::s_max_minimize_count; // default is 10
+/* number of iterations that should only have one label appended */
+unsigned int SyncRes::s_minimize_one_label; // default is 4
 
 static unsigned int qmStepLen(unsigned int labels, unsigned int qnamelen, unsigned int i)
 {
   unsigned int step;
 
-  if (i < s_minimise_one_lab) {
+  if (i < SyncRes::s_minimize_one_label) {
     step = 1;
   }
-  else if (i < s_max_minimise_count) {
-    step = std::max(1U, (qnamelen - labels) / (10 - i));
+  else if (i < SyncRes::s_max_minimize_count) {
+    step = std::max(1U, (qnamelen - labels) / (SyncRes::s_max_minimize_count - i));
   }
   else {
     step = qnamelen - labels;
@@ -1676,7 +1695,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
     LOG(prefix << qname << ": Step0 qname is in a forwarded domain " << fwdomain << endl);
   }
 
-  for (unsigned int i = 0; i <= qnamelen;) {
+  for (unsigned int i = 0; i <= qnamelen; i++) {
 
     // Step 1
     vector<DNSRecord> bestns;
@@ -1695,7 +1714,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
       }
     }
 
-    if (bestns.size() == 0) {
+    if (bestns.empty()) {
       if (!forwarded) {
         // Something terrible is wrong
         LOG(prefix << qname << ": Step1 No ancestor found return ServFail" << endl);
@@ -2078,7 +2097,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
   const unsigned int startqueries = d_outqueries;
   d_requireAuthData = false;
   d_DNSSECValidationRequested = false;
-  d_followCNAME = true;
+  d_followCNAME = false;
 
   MemRecursorCache::Flags flags = MemRecursorCache::None;
   if (d_serveStale) {
@@ -2107,7 +2126,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
       Context newContext1;
       cset.clear();
       // Go out to get A's
-      if (s_doIPv4 && doResolve(qname, QType::A, cset, depth + 1, beenthere, newContext1) == 0) { // this consults cache, OR goes out
+      if (s_doIPv4 && doResolveNoQNameMinimization(qname, QType::A, cset, depth + 1, beenthere, newContext1) == 0) { // this consults cache, OR goes out
         for (auto const& i : cset) {
           if (i.d_type == QType::A) {
             if (auto rec = getRR<ARecordContent>(i)) {
@@ -2120,7 +2139,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
         if (ret.empty()) {
           // We only go out immediately to find IPv6 records if we did not find any IPv4 ones.
           Context newContext2;
-          if (doResolve(qname, QType::AAAA, cset, depth + 1, beenthere, newContext2) == 0) { // this consults cache, OR goes out
+          if (doResolveNoQNameMinimization(qname, QType::AAAA, cset, depth + 1, beenthere, newContext2) == 0) { // this consults cache, OR goes out
             for (const auto& i : cset) {
               if (i.d_type == QType::AAAA) {
                 if (auto rec = getRR<AAAARecordContent>(i)) {
@@ -2151,7 +2170,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
       NegCache::NegCacheEntry ne;
       bool inNegCache = g_negCache->get(qname, QType::AAAA, d_now, ne, false);
       if (!inNegCache) {
-        pushResolveTask(qname, QType::AAAA, d_now.tv_sec, d_now.tv_sec + 60);
+        pushResolveTask(qname, QType::AAAA, d_now.tv_sec, d_now.tv_sec + 60, true);
       }
     }
   }
@@ -2233,7 +2252,7 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
     vector<DNSRecord> ns;
     *flawedNSSet = false;
 
-    if (g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &ns, d_cacheRemote, d_routingTag) > 0) {
+    if (bool isAuth = false; g_recCache->get(d_now.tv_sec, subdomain, QType::NS, flags, &ns, d_cacheRemote, d_routingTag, nullptr, nullptr, nullptr, nullptr, &isAuth) > 0) {
       if (s_maxnsperresolve > 0 && ns.size() > s_maxnsperresolve) {
         vector<DNSRecord> selected;
         selected.reserve(s_maxnsperresolve);
@@ -2271,6 +2290,12 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
             LOG(prefix << qname << ": NS in cache for '" << subdomain << "', but needs glue (" << nrr->getNS() << ") which we miss or is expired" << endl);
           }
         }
+      }
+      if (*flawedNSSet && bestns.empty() && isAuth) {
+        // The authoritative (child) NS records did not produce any usable addresses, wipe them, so
+        // these useless records do not prevent parent records to be inserted into the cache
+        LOG(prefix << qname << ": Wiping flawed authoritative NS records for " << subdomain << endl);
+        g_recCache->doWipeCache(subdomain, false, QType::NS);
       }
 
       if (!bestns.empty()) {
@@ -3420,8 +3445,17 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 
 void SyncRes::checkMaxQperQ(const DNSName& qname) const
 {
-  if (d_outqueries + d_throttledqueries > s_maxqperq) {
-    throw ImmediateServFailException("more than " + std::to_string(s_maxqperq) + " (max-qperq) queries sent or throttled while resolving " + qname.toLogString());
+  auto bound = s_maxqperq;
+  if (d_qNameMinimization) {
+    // With an empty cache, a rev ipv6 query with dnssec enabled takes
+    // almost 100 queries. Default maxqperq is 60
+    // Note: This no longer seems to be true. The examples taken from #8646 take now way less
+    // queries. The main reason seems to be a much better zone cut determination.
+    bound = std::max(100U, bound);
+  }
+
+  if (d_outqueries + d_throttledqueries > bound) {
+    throw ImmediateServFailException("more than " + std::to_string(bound) + " (adjusted max-qperq) queries sent or throttled while resolving " + qname.toLogString());
   }
 }
 
@@ -5263,13 +5297,13 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix << qname << ": Error resolving from " << remoteIP.toString() << (doTCP ? " over TCP" : "") << ", possible error: " << stringerror() << endl);
     }
 
+    // don't account for resource limits, they are our own fault
+    // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
     if (resolveret != LWResult::Result::OSLimitError && !chained && !dontThrottle) {
-      // don't account for resource limits, they are our own fault
-      // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
       s_nsSpeeds.lock()->find_or_enter(nsName.empty() ? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
 
-      // code below makes sure we don't filter COM or the root
-      if (s_serverdownmaxfails > 0 && (auth != g_rootdnsname) && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
+      // make sure we don't throttle the root
+      if (s_serverdownmaxfails > 0 && auth != g_rootdnsname && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
         LOG(prefix << qname << ": Max fails reached resolving on " << remoteIP.toString() << ". Going full throttle for " << s_serverdownthrottletime << " seconds" << endl);
         // mark server as down
         doThrottle(d_now.tv_sec, remoteIP, s_serverdownthrottletime, 10000);
@@ -5327,6 +5361,8 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   if (s_serverdownmaxfails > 0) {
     s_fails.lock()->clear(remoteIP);
   }
+  // Clear all throttles for this IP, both general and specific throttles for qname-qtype
+  unThrottle(remoteIP, qname, qtype);
 
   if (lwr.d_tcbit) {
     truncated = true;
@@ -5867,28 +5903,28 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
     res = sr.beginResolve(qname, qtype, qclass, ret, 0);
   }
   catch (const PDNSException& e) {
-    SLOG(g_log << Logger::Error << "Failed to resolve " << qname << ", got pdns exception: " << e.reason << endl,
-         log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
+    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got pdns exception: " << e.reason << endl,
+         log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
     ret.clear();
   }
   catch (const ImmediateServFailException& e) {
-    SLOG(g_log << Logger::Error << "Failed to resolve " << qname << ", got ImmediateServFailException: " << e.reason << endl,
-         log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException")));
+    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got ImmediateServFailException: " << e.reason << endl,
+         log->error(Logr::Warning, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException")));
     ret.clear();
   }
   catch (const PolicyHitException& e) {
-    SLOG(g_log << Logger::Error << "Failed to resolve " << qname << ", got a policy hit" << endl,
-         log->info(Logr::Error, msg, "exception", Logging::Loggable("PolicyHitException")));
+    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got a policy hit" << endl,
+         log->info(Logr::Warning, msg, "exception", Logging::Loggable("PolicyHitException")));
     ret.clear();
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Error << "Failed to resolve " << qname << ", got STL error: " << e.what() << endl,
-         log->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception")));
+    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got STL error: " << e.what() << endl,
+         log->error(Logr::Warning, e.what(), msg, "exception", Logging::Loggable("std::exception")));
     ret.clear();
   }
   catch (...) {
-    SLOG(g_log << Logger::Error << "Failed to resolve " << qname << ", got an exception" << endl,
-         log->info(Logr::Error, msg));
+    SLOG(g_log << Logger::Warning << "Failed to resolve " << qname << ", got an exception" << endl,
+         log->info(Logr::Warning, msg));
     ret.clear();
   }
 
@@ -5952,4 +5988,27 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
          log->info(Logr::Warning, msg, "rcode", Logging::Loggable(res)));
   }
   return res;
+}
+
+bool SyncRes::answerIsNOData(uint16_t requestedType, int rcode, const std::vector<DNSRecord>& records)
+{
+  if (rcode != RCode::NoError) {
+    return false;
+  }
+
+  // NOLINTNEXTLINE(readability-use-anyofallof)
+  for (const auto& rec : records) {
+    if (rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == requestedType) {
+      /* we have a record, of the right type, in the right section */
+      return false;
+    }
+  }
+  return true;
+#if 0
+  // This code should be equivalent to the code above, clang-tidy prefers any_of()
+  // I have doubts if that is easier to read
+  return !std::any_of(records.begin(), records.end(), [=](const DNSRecord& rec) {
+    return rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == requestedType;
+  });
+#endif
 }

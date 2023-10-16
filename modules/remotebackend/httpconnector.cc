@@ -80,16 +80,17 @@ HTTPConnector::HTTPConnector(std::map<std::string, std::string> options) :
   }
 }
 
-HTTPConnector::~HTTPConnector() {}
+HTTPConnector::~HTTPConnector() = default;
 
 void HTTPConnector::addUrlComponent(const Json& parameters, const string& element, std::stringstream& ss)
 {
   std::string sparam;
-  if (parameters[element] != Json())
+  if (parameters[element] != Json()) {
     ss << "/" << YaHTTP::Utility::encodeURL(asString(parameters[element]), false);
+  }
 }
 
-std::string HTTPConnector::buildMemberListArgs(std::string prefix, const Json& args)
+std::string HTTPConnector::buildMemberListArgs(const std::string& prefix, const Json& args)
 {
   std::stringstream stream;
 
@@ -101,7 +102,7 @@ std::string HTTPConnector::buildMemberListArgs(std::string prefix, const Json& a
       stream << prefix << "[" << YaHTTP::Utility::encodeURL(pair.first, false) << "]=";
     }
     else {
-      stream << prefix << "[" << YaHTTP::Utility::encodeURL(pair.first, false) << "]=" << YaHTTP::Utility::encodeURL(this->asString(pair.second), false);
+      stream << prefix << "[" << YaHTTP::Utility::encodeURL(pair.first, false) << "]=" << YaHTTP::Utility::encodeURL(HTTPConnector::asString(pair.second), false);
     }
     stream << "&";
   }
@@ -173,7 +174,7 @@ void HTTPConnector::restful_requestbuilder(const std::string& method, const Json
   else if (method == "createSlaveDomain") {
     addUrlComponent(parameters, "ip", ss);
     addUrlComponent(parameters, "domain", ss);
-    if (parameters["account"].is_null() == false && parameters["account"].is_string()) {
+    if (!parameters["account"].is_null() && parameters["account"].is_string()) {
       req.POST()["account"] = parameters["account"].string_value();
     }
     req.preparePost();
@@ -316,7 +317,8 @@ void HTTPConnector::post_requestbuilder(const Json& input, YaHTTP::Request& req)
     req.body = out;
   }
   else {
-    std::stringstream url, content;
+    std::stringstream url;
+    std::stringstream content;
     // call url/method.suffix
     url << d_url << "/" << input["method"].string_value() << d_url_suffix;
     req.setup("POST", url.str());
@@ -329,7 +331,9 @@ void HTTPConnector::post_requestbuilder(const Json& input, YaHTTP::Request& req)
 
 int HTTPConnector::send_message(const Json& input)
 {
-  int rv, ec, fd;
+  int rv = 0;
+  int ec = 0;
+  int fd = 0;
 
   std::vector<std::string> members;
   std::string method;
@@ -338,10 +342,12 @@ int HTTPConnector::send_message(const Json& input)
   // perform request
   YaHTTP::Request req;
 
-  if (d_post)
+  if (d_post) {
     post_requestbuilder(input, req);
-  else
+  }
+  else {
     restful_requestbuilder(input["method"].string_value(), input["parameters"], req);
+  }
 
   rv = -1;
   req.headers["connection"] = "Keep-Alive"; // see if we can streamline requests (not needed, strictly speaking)
@@ -366,13 +372,18 @@ int HTTPConnector::send_message(const Json& input)
     }
   }
 
-  if (rv == 1)
+  if (rv == 1) {
     return rv;
+  }
 
   this->d_socket.reset();
 
   // connect using tcp
-  struct addrinfo *gAddr, *gAddrPtr, hints;
+  struct addrinfo* gAddr = nullptr;
+  struct addrinfo* gAddrPtr = nullptr;
+  struct addrinfo hints
+  {
+  };
   std::string sPort = std::to_string(d_port);
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC;
@@ -383,7 +394,7 @@ int HTTPConnector::send_message(const Json& input)
     // try to connect to each address.
     gAddrPtr = gAddr;
 
-    while (gAddrPtr) {
+    while (gAddrPtr != nullptr) {
       try {
         d_socket = std::make_unique<Socket>(gAddrPtr->ai_family, gAddrPtr->ai_socktype, gAddrPtr->ai_protocol);
         d_addr.setSockaddr(gAddrPtr->ai_addr, gAddrPtr->ai_addrlen);
@@ -399,8 +410,9 @@ int HTTPConnector::send_message(const Json& input)
         g_log << Logger::Error << "While writing to HTTP endpoint " << d_addr.toStringWithPort() << ": exception caught" << std::endl;
       }
 
-      if (rv > -1)
+      if (rv > -1) {
         break;
+      }
       d_socket.reset();
       gAddrPtr = gAddrPtr->ai_next;
     }
@@ -418,27 +430,31 @@ int HTTPConnector::recv_message(Json& output)
   YaHTTP::AsyncResponseLoader arl;
   YaHTTP::Response resp;
 
-  if (d_socket == nullptr)
+  if (d_socket == nullptr) {
     return -1; // cannot receive :(
+  }
   char buffer[4096];
   int rd = -1;
-  time_t t0;
+  time_t t0 = 0;
 
   arl.initialize(&resp);
 
   try {
-    t0 = time((time_t*)NULL);
-    while (arl.ready() == false && (labs(time((time_t*)NULL) - t0) <= timeout)) {
+    t0 = time((time_t*)nullptr);
+    while (!arl.ready() && (labs(time((time_t*)nullptr) - t0) <= timeout)) {
       rd = d_socket->readWithTimeout(buffer, sizeof(buffer), timeout);
-      if (rd == 0)
+      if (rd == 0) {
         throw NetworkError("EOF while reading");
-      if (rd < 0)
+      }
+      if (rd < 0) {
         throw NetworkError(std::string(strerror(rd)));
+      }
       arl.feed(std::string(buffer, rd));
     }
     // timeout occurred.
-    if (arl.ready() == false)
+    if (!arl.ready()) {
       throw NetworkError("timeout");
+    }
   }
   catch (NetworkError& ne) {
     d_socket.reset();
@@ -459,8 +475,9 @@ int HTTPConnector::recv_message(Json& output)
   int rv = -1;
   std::string err;
   output = Json::parse(resp.body, err);
-  if (output != nullptr)
+  if (output != nullptr) {
     return resp.body.size();
+  }
   g_log << Logger::Error << "Cannot parse JSON reply: " << err << endl;
 
   return rv;

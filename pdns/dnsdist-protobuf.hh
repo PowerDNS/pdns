@@ -47,7 +47,7 @@ public:
   void setEDNSSubnet(const Netmask& nm);
 
   void addTag(const std::string& strValue);
-  void addMeta(const std::string& key, std::vector<std::string>&& values);
+  void addMeta(const std::string& key, std::vector<std::string>&& strValues, const std::vector<int64_t>& intValues);
   void addRR(DNSName&& qname, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& data);
 
   void serialize(std::string& data) const;
@@ -76,7 +76,12 @@ private:
 
   std::vector<PBRecord> d_additionalRRs;
   std::vector<std::string> d_additionalTags;
-  std::unordered_map<std::string, std::unordered_set<std::string>> d_metaTags;
+  struct MetaValue
+  {
+    std::unordered_set<std::string> d_strings;
+    std::unordered_set<int64_t> d_integers;
+  };
+  std::unordered_map<std::string, MetaValue> d_metaTags;
 
   const DNSQuestion& d_dq;
   const DNSResponse* d_dr{nullptr};

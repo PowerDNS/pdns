@@ -3,13 +3,13 @@ import base64
 import threading
 import clientsubnetoption
 import dns
-from dnsdisttests import DNSDistTest, Queue
+from dnsdisttests import DNSDistTest, Queue, pickAvailablePort
 
 class TestTeeAction(DNSDistTest):
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _teeServerPort = 5390
+    _teeServerPort = pickAvailablePort()
     _toTeeQueue = Queue()
     _fromTeeQueue = Queue()
     _config_template = """
@@ -25,15 +25,15 @@ class TestTeeAction(DNSDistTest):
         print("Launching responders..")
 
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
 
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, True])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
         cls._TeeResponder = threading.Thread(name='Tee Responder', target=cls.UDPResponder, args=[cls._teeServerPort, cls._toTeeQueue, cls._fromTeeQueue])
-        cls._TeeResponder.setDaemon(True)
+        cls._TeeResponder.daemon = True
         cls._TeeResponder.start()
 
     def testTeeWithECS(self):

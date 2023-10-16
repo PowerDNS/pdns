@@ -73,7 +73,7 @@ plus various other directories with `regression-tests.*` names.
 * If this commit fixes an issue, put "Closes #XXXX" in the message
 * Do not put whitespace fixes/cleanup and functionality changes in the same commit
 
-# Coding Guidelines
+# Formatting and Coding Guidelines
 
 ## `clang-format`
 
@@ -83,17 +83,17 @@ If you're adding new code, adhering to the formatting configuration available in
 
 Any formatting breakage in already formatted files will be caught by the CI. To format all files that are supposed to be formatted, run `make format-code` in the root of the tree.
 
-## Additional guidelines
+## Formatting guidelines
 
 * Don't have end-of-line whitespace.
 * Use spaces instead of tabs.
-* Although the codebase does not consistently have them, [docblock](https://www.doxygen.nl/manual/docblocks.html)s on functions and classes are appreciated.
-* Never hesitate to write comments on anything that might not be immediately clear just from reading the code.
-* When adding whole new things, consider putting them in a `pdns::X` namespace. Look for `namespace pdns` in the codebase for examples.
+
+## Coding guidelines
+
+The coding guidelines can be found in the repository at
+[CODING_GUIDELINES.md](https://github.com/PowerDNS/pdns/blob/master/CODING_GUIDELINES.md)
 
 ## Code Checkers
-
-Even though we don't automatically run any of the code checkers listed below as part of our CI, it might make sense to run them manually, not only on newly added code, but to also improve existing code.
 
 ### `clang-tidy`
 
@@ -127,6 +127,13 @@ Any added `// NOLINTNEXTLINE` or `// NOLINT` directive or others need to have a 
 If the warning cannot be avoided in any way, a good explanation is needed. As an example:
 
 `// NOLINTNEXTLINE(*-cast): Using the OpenSSL C APIs.`
+
+### Additional checkers
+
+Even though we don't automatically run any of the code checkers listed below as part of our CI, it might make sense to run them manually, not only on newly added code, but to also improve existing code.
+
+* `clang`'s static analyzer, sometimes also referred as `scan-build`
+* `cppcheck`
 
 # Development Environment
 

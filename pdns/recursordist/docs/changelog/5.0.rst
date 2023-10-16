@@ -1,0 +1,190 @@
+Changelogs for 5.0.X
+====================
+.. changelog::
+  :version: 5.0.0-alpha1
+  :released: 13th of September 2023
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13008
+
+    Rewrite settings code, introducing YAML settings file, using Rust and generated code to implement YAML processing
+
+  .. change::
+    :tags:  Improvements
+    :pullreq: 13209
+
+    Make aggressive cache pruning more effective and more fair.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13210
+
+    Remove Before=nss-lookup.target line from unit file.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13208
+
+    Remove make_tuple and make_pair (Rosen Penev).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13190
+
+    Rec: fix a few unused argument warnings (depending on features enabled).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13167
+
+    TCPIOHandler: Fix a race when creating the first TLS connections.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13174
+
+    Rec: Include cstdint in mtasker_ucontext.cc, noted by @zeha.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13168
+
+    Change the default for building with net-snmp from `auto` to `no`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13155
+    :tickets: 13147
+
+    Channel: Make the blocking parameters of the object queue explicit.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13102
+
+    Do not assume the records are in a particular order when determining if an answer is NODATA.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13111
+
+    Document default for `webserver-loglevel` (Frank Louwers).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13087
+
+    Remove unused sysv init files.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13092
+
+    Fixes a few performance issues reported by Coverity.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13074
+
+    Highlight why regression tests failed with github annotation (Josh Soref)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13073
+
+    Switch from deprecated ::set-output (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13067
+
+    Use backticks in rec_control(1) (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13068
+
+    Clarify why bulktest is failing (Josh Soref).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13043
+    :tickets: 13011
+
+    Set TTL in getFakePTRRecords.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13032
+
+    Update settings.rst -- clarify edns-subnet-allow-list (Seth Arnold).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13026
+
+    Dnsheader: Switch from bitfield to uint16_t whenever possible.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12805
+
+    Clarify log message for NODATA/NXDOMAIN without AA (Håkan Lindqvist).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12913,12931,12999,13001,13022,13175,15197
+
+    Use arc4random only for random values.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12851
+
+    Update base Debian version in Docker docs (Italo Cunha).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12917
+
+    Delint pdns recursor.cc.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12957
+
+    Include qname when logging skip of step 4 of qname minimization (Doug Freed).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12952
+
+    Fix a set of move optimizations, as suggested by Coverity.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12934
+
+    Silence Coverity 1462719 Unchecked return value from library.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12930
+
+    Fix compile warnings.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12913
+
+    Dns random: add method to get full 32-bits of randomness.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12808
+
+    Reformat and delint arguments.cc and arguments.hh.
+
+
+

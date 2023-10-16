@@ -264,6 +264,7 @@ public:
   static bool isThrottled(time_t now, const ComboAddress& server);
   static void doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries);
   static void doThrottle(time_t now, const ComboAddress& server, const DNSName& name, QType qtype, time_t duration, unsigned int tries);
+  static void unThrottle(const ComboAddress& server, const DNSName& qname, QType qtype);
 
   static uint64_t getFailedServersSize();
   static void clearFailedServers();
@@ -498,6 +499,8 @@ public:
     return false;
   }
 
+  static bool answerIsNOData(uint16_t requestedType, int rcode, const std::vector<DNSRecord>& records);
+
   static thread_local ThreadLocalStorage t_sstorage;
 
   static pdns::stat_t s_ecsqueries;
@@ -523,6 +526,7 @@ public:
   static unsigned int s_serverdownthrottletime;
   static unsigned int s_nonresolvingnsmaxfails;
   static unsigned int s_nonresolvingnsthrottletime;
+  static unsigned int s_unthrottle_n;
 
   static unsigned int s_ecscachelimitttl;
   static uint8_t s_ecsipv4limit;
@@ -546,6 +550,8 @@ public:
   static bool s_dot_to_port_853;
   static unsigned int s_max_busy_dot_probes;
   static unsigned int s_max_CNAMES_followed;
+  static unsigned int s_max_minimize_count;
+  static unsigned int s_minimize_one_label;
 
   static const int event_trace_to_pb = 1;
   static const int event_trace_to_log = 2;
@@ -650,7 +656,7 @@ private:
 
   bool doSpecialNamesResolve(const DNSName& qname, QType qtype, const QClass qclass, vector<DNSRecord>& ret);
 
-  LWResult::Result asyncresolveWrapper(const ComboAddress& ip, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained, const DNSName& nsName) const;
+  LWResult::Result asyncresolveWrapper(const ComboAddress& address, bool ednsMANDATORY, const DNSName& domain, const DNSName& auth, int type, bool doTCP, bool sendRDQuery, struct timeval* now, boost::optional<Netmask>& srcmask, LWResult* res, bool* chained, const DNSName& nsName) const;
 
   boost::optional<Netmask> getEDNSSubnetMask(const DNSName& dn, const ComboAddress& rem);
 
@@ -902,7 +908,7 @@ extern uint16_t g_outgoingEDNSBufsize;
 extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
 extern bool g_lowercaseOutgoing;
 
-std::string reloadZoneConfiguration();
+std::string reloadZoneConfiguration(bool yaml);
 typedef std::function<void*(void)> pipefunc_t;
 void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& packet, const pipefunc_t& func);
@@ -917,7 +923,7 @@ template <class T>
 T broadcastAccFunction(const std::function<T*()>& func);
 
 typedef std::unordered_set<DNSName> notifyset_t;
-std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> parseZoneConfiguration();
+std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> parseZoneConfiguration(bool yaml);
 void* pleaseSupplantAllowNotifyFor(std::shared_ptr<notifyset_t> allowNotifyFor);
 
 uint64_t* pleaseGetNsSpeedsSize();

@@ -2,13 +2,15 @@
 
 import copy
 import dns
+import selectors
 import socket
+import ssl
 import struct
 import sys
 import threading
 import time
 
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 from proxyprotocol import ProxyProtocol
 from dnsdistdohtests import DNSDistDOHTest
 
@@ -132,14 +134,103 @@ def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
 
 toProxyQueue = Queue()
 fromProxyQueue = Queue()
-proxyResponderPort = 5470
+proxyResponderPort = pickAvailablePort()
 
 udpResponder = threading.Thread(name='UDP Proxy Protocol Responder', target=ProxyProtocolUDPResponder, args=[proxyResponderPort, toProxyQueue, fromProxyQueue])
-udpResponder.setDaemon(True)
+udpResponder.daemon = True
 udpResponder.start()
 tcpResponder = threading.Thread(name='TCP Proxy Protocol Responder', target=ProxyProtocolTCPResponder, args=[proxyResponderPort, toProxyQueue, fromProxyQueue])
-tcpResponder.setDaemon(True)
+tcpResponder.daemon = True
 tcpResponder.start()
+
+backgroundThreads = {}
+
+def MockTCPReverseProxyAddingProxyProtocol(listeningPort, forwardingPort, serverCtx=None, ca=None, sni=None):
+    # this responder accepts TCP connections on the listening port,
+    # and relay the raw content to a second TCP connection to the
+    # forwarding port, after adding a Proxy Protocol v2 payload
+    # containing the initial source IP and port, destination IP
+    # and port.
+    backgroundThreads[threading.get_native_id()] = True
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+    if serverCtx is not None:
+        sock = serverCtx.wrap_socket(sock, server_side=True)
+
+    try:
+        sock.bind(("127.0.0.1", listeningPort))
+    except socket.error as e:
+        print("Error binding in the Mock TCP reverse proxy: %s" % str(e))
+        sys.exit(1)
+    sock.settimeout(0.5)
+    sock.listen(100)
+
+    while True:
+        try:
+            (incoming, _) = sock.accept()
+        except socket.timeout:
+            if backgroundThreads.get(threading.get_native_id(), False) == False:
+                del backgroundThreads[threading.get_native_id()]
+                break
+            else:
+              continue
+
+        incoming.settimeout(5.0)
+        payload = ProxyProtocol.getPayload(False, True, False, '127.0.0.1', '127.0.0.1', incoming.getpeername()[1], listeningPort, [ [ 2, b'foo'], [ 3, b'proxy'] ])
+
+        outgoing = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        outgoing.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        outgoing.settimeout(2.0)
+        if sni:
+            if hasattr(ssl, 'create_default_context'):
+                sslctx = ssl.create_default_context(cafile=ca)
+                if hasattr(sslctx, 'set_alpn_protocols'):
+                    sslctx.set_alpn_protocols(['h2'])
+                outgoing = sslctx.wrap_socket(outgoing, server_hostname=sni)
+            else:
+                outgoing = ssl.wrap_socket(outgoing, ca_certs=ca, cert_reqs=ssl.CERT_REQUIRED)
+
+        outgoing.connect(('127.0.0.1', forwardingPort))
+
+        outgoing.send(payload)
+
+        sel = selectors.DefaultSelector()
+        def readFromClient(conn):
+            data = conn.recv(512)
+            if not data or len(data) == 0:
+              return False
+            outgoing.send(data)
+            return True
+
+        def readFromBackend(conn):
+            data = conn.recv(512)
+            if not data or len(data) == 0:
+              return False
+            incoming.send(data)
+            return True
+
+        sel.register(incoming, selectors.EVENT_READ, readFromClient)
+        sel.register(outgoing, selectors.EVENT_READ, readFromBackend)
+        done = False
+        while not done:
+          try:
+            events = sel.select()
+            for key, mask in events:
+              if not (key.data)(key.fileobj):
+                done = True
+                break
+          except socket.timeout:
+            break
+          except:
+            break
+
+        incoming.close()
+        outgoing.close()
+
+    sock.close()
 
 class ProxyProtocolTest(DNSDistTest):
     _proxyResponderPort = proxyResponderPort
@@ -398,6 +489,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
     """
 
     _config_template = """
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library='nghttp2', proxyProtocolOutsideTLS=true})
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library='nghttp2', proxyProtocolOutsideTLS=false})
     setProxyProtocolACL( { "127.0.0.1/32" } )
     newServer{address="127.0.0.1:%d", useProxyProtocol=true}
 
@@ -434,8 +527,13 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
     -- override all existing values
     addAction("override.proxy-protocol-incoming.tests.powerdns.com.", SetProxyProtocolValuesAction({["50"]="overridden"}))
     """
-    _config_params = ['_proxyResponderPort']
-    _verboseMode = True
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPPOutsidePort = pickAvailablePort()
+    _dohServerPPInsidePort = pickAvailablePort()
+    _config_params = ['_dohServerPPOutsidePort', '_serverCert', '_serverKey', '_dohServerPPInsidePort', '_serverCert', '_serverKey', '_proxyResponderPort']
 
     def testNoHeader(self):
         """
@@ -445,9 +543,12 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         name = 'no-header.incoming-proxy-protocol.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
 
-        for method in ("sendUDPQuery", "sendTCPQuery"):
+        for method in ("sendUDPQuery", "sendTCPQuery", "sendDOHQueryWrapper"):
           sender = getattr(self, method)
-          (_, receivedResponse) = sender(query, response=None)
+          try:
+            (_, receivedResponse) = sender(query, response=None)
+          except Exception:
+            receivedResponse = None
           self.assertEqual(receivedResponse, None)
 
     def testIncomingProxyDest(self):
@@ -656,6 +757,118 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
           self.assertEqual(receivedResponse, response)
           self.checkMessageProxyProtocol(receivedProxyPayload, srcAddr, destAddr, True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], True, srcPort, destPort)
 
+    def testProxyDoHSeveralQueriesOverConnectionPPOutside(self):
+        """
+        Incoming Proxy Protocol: Several queries over the same connection (DoH, PP outside TLS)
+        """
+        name = 'several-queries.doh-outside.proxy-protocol-incoming.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        toProxyQueue.put(response, True, 2.0)
+
+        wire = query.to_wire()
+
+        reverseProxyPort = pickAvailablePort()
+        reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dohServerPPOutsidePort])
+        reverseProxy.start()
+        time.sleep(1)
+
+        receivedResponse = None
+        conn = self.openDOHConnection(reverseProxyPort, self._caCert, timeout=2.0)
+
+        reverseProxyBaseURL = ("https://%s:%d/" % (self._serverName, reverseProxyPort))
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, useQueue=True, conn=conn)
+        (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+        self.assertTrue(receivedProxyPayload)
+        self.assertTrue(receivedDNSData)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], v6=False, sourcePort=None, destinationPort=reverseProxyPort)
+
+        for idx in range(5):
+          receivedResponse = None
+          toProxyQueue.put(response, True, 2.0)
+          (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, useQueue=True, conn=conn)
+          (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+          self.assertTrue(receivedProxyPayload)
+          self.assertTrue(receivedDNSData)
+          self.assertTrue(receivedResponse)
+
+          receivedQuery = dns.message.from_wire(receivedDNSData)
+          receivedQuery.id = query.id
+          receivedResponse.id = response.id
+          self.assertEqual(receivedQuery, query)
+          self.assertEqual(receivedResponse, response)
+          self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], v6=False, sourcePort=None, destinationPort=reverseProxyPort)
+
+    def testProxyDoHSeveralQueriesOverConnectionPPInside(self):
+        """
+        Incoming Proxy Protocol: Several queries over the same connection (DoH, PP inside TLS)
+        """
+        name = 'several-queries.doh-inside.proxy-protocol-incoming.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        toProxyQueue.put(response, True, 2.0)
+
+        wire = query.to_wire()
+
+        reverseProxyPort = pickAvailablePort()
+        tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tlsContext.load_cert_chain(self._serverCert, self._serverKey)
+        tlsContext.set_alpn_protocols(['h2'])
+        reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dohServerPPInsidePort, tlsContext, self._caCert, self._serverName])
+        reverseProxy.start()
+
+        receivedResponse = None
+        time.sleep(1)
+        conn = self.openDOHConnection(reverseProxyPort, self._caCert, timeout=2.0)
+
+        reverseProxyBaseURL = ("https://%s:%d/" % (self._serverName, reverseProxyPort))
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, useQueue=True, conn=conn)
+        (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+        self.assertTrue(receivedProxyPayload)
+        self.assertTrue(receivedDNSData)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], v6=False, sourcePort=None, destinationPort=reverseProxyPort)
+
+        for idx in range(5):
+          receivedResponse = None
+          toProxyQueue.put(response, True, 2.0)
+          (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, useQueue=True, conn=conn)
+          (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+          self.assertTrue(receivedProxyPayload)
+          self.assertTrue(receivedDNSData)
+          self.assertTrue(receivedResponse)
+
+          receivedQuery = dns.message.from_wire(receivedDNSData)
+          receivedQuery.id = query.id
+          receivedResponse.id = response.id
+          self.assertEqual(receivedQuery, query)
+          self.assertEqual(receivedResponse, response)
+          self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [ 42, b'bar'], [255, b'proxy-protocol'] ], v6=False, sourcePort=None, destinationPort=reverseProxyPort)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._sock.close()
+        for backgroundThread in cls._backgroundThreads:
+            cls._backgroundThreads[backgroundThread] = False
+        for backgroundThread in backgroundThreads:
+            backgroundThreads[backgroundThread] = False
+        cls.killProcess(cls._dnsdist)
+
 class TestProxyProtocolNotExpected(DNSDistTest):
     """
     dnsdist is configured to expect a Proxy Protocol header on incoming queries but not from 127.0.0.1
@@ -729,23 +942,27 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
-    _dohBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohServerPort))
+    _dohWithNGHTTP2ServerPort = pickAvailablePort()
+    _dohWithNGHTTP2BaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohWithNGHTTP2ServerPort))
+    _dohWithH2OServerPort = pickAvailablePort()
+    _dohWithH2OBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohWithH2OServerPort))
     _proxyResponderPort = proxyResponderPort
     _config_template = """
     newServer{address="127.0.0.1:%s", useProxyProtocol=true}
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { '/dns-query' }, { trustForwardedForHeader=true })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { trustForwardedForHeader=true, library='nghttp2' })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { '/dns-query' }, { trustForwardedForHeader=true, library='h2o' })
     setACL( { "::1/128", "127.0.0.0/8" } )
     """
-    _config_params = ['_proxyResponderPort', '_dohServerPort', '_serverCert', '_serverKey']
+    _config_params = ['_proxyResponderPort', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_dohWithH2OServerPort', '_serverCert', '_serverKey']
+    _verboseMode = True
 
     def testTruncation(self):
         """
-        DOH: Truncation over UDP (with cache)
+        DOH: Truncation over UDP
         """
         # the query is first forwarded over UDP, leading to a TC=1 answer from the
         # backend, then over TCP
-        name = 'truncated-udp.doh-with-cache.tests.powerdns.com.'
+        name = 'truncated-udp.doh.proxy-protocol.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         query.id = 42
         expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=4096)
@@ -758,39 +975,40 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        # first response is a TC=1
-        tcResponse = dns.message.make_response(query)
-        tcResponse.flags |= dns.flags.TC
-        toProxyQueue.put(tcResponse, True, 2.0)
+        for (port,url) in [(self._dohWithNGHTTP2ServerPort, self._dohWithNGHTTP2BaseURL), (self._dohWithH2OServerPort, self._dohWithH2OBaseURL)]:
+          # first response is a TC=1
+          tcResponse = dns.message.make_response(query)
+          tcResponse.flags |= dns.flags.TC
+          toProxyQueue.put(tcResponse, True, 2.0)
 
-        ((receivedProxyPayload, receivedDNSData), receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, response=response, fromQueue=fromProxyQueue, toQueue=toProxyQueue)
-        # first query, received by the responder over UDP
-        self.assertTrue(receivedProxyPayload)
-        self.assertTrue(receivedDNSData)
-        receivedQuery = dns.message.from_wire(receivedDNSData)
-        self.assertTrue(receivedQuery)
-        receivedQuery.id = expectedQuery.id
-        self.assertEqual(expectedQuery, receivedQuery)
-        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
-        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, destinationPort=self._dohServerPort)
+          ((receivedProxyPayload, receivedDNSData), receivedResponse) = self.sendDOHQuery(port, self._serverName, url, query, caFile=self._caCert, response=response, fromQueue=fromProxyQueue, toQueue=toProxyQueue)
+          # first query, received by the responder over UDP
+          self.assertTrue(receivedProxyPayload)
+          self.assertTrue(receivedDNSData)
+          receivedQuery = dns.message.from_wire(receivedDNSData)
+          self.assertTrue(receivedQuery)
+          receivedQuery.id = expectedQuery.id
+          self.assertEqual(expectedQuery, receivedQuery)
+          self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+          self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, destinationPort=port)
 
-        # check the response
-        self.assertTrue(receivedResponse)
-        self.assertEqual(response, receivedResponse)
+          # check the response
+          self.assertTrue(receivedResponse)
+          self.assertEqual(response, receivedResponse)
 
-        # check the second query, received by the responder over TCP
-        (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
-        self.assertTrue(receivedDNSData)
-        receivedQuery = dns.message.from_wire(receivedDNSData)
-        self.assertTrue(receivedQuery)
-        receivedQuery.id = expectedQuery.id
-        self.assertEqual(expectedQuery, receivedQuery)
-        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
-        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, destinationPort=self._dohServerPort)
+          # check the second query, received by the responder over TCP
+          (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+          self.assertTrue(receivedDNSData)
+          receivedQuery = dns.message.from_wire(receivedDNSData)
+          self.assertTrue(receivedQuery)
+          receivedQuery.id = expectedQuery.id
+          self.assertEqual(expectedQuery, receivedQuery)
+          self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+          self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, destinationPort=port)
 
-        # make sure we consumed everything
-        self.assertTrue(toProxyQueue.empty())
-        self.assertTrue(fromProxyQueue.empty())
+          # make sure we consumed everything
+          self.assertTrue(toProxyQueue.empty())
+          self.assertTrue(fromProxyQueue.empty())
 
     def testAddressFamilyMismatch(self):
         """
@@ -809,25 +1027,26 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        # the query should be dropped
-        (receivedQuery, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, customHeaders=['x-forwarded-for: [::1]:8080'], useQueue=False)
-        self.assertFalse(receivedQuery)
-        self.assertFalse(receivedResponse)
+        for (port,url) in [(self._dohWithNGHTTP2ServerPort, self._dohWithNGHTTP2BaseURL), (self._dohWithH2OServerPort, self._dohWithH2OBaseURL)]:
+          # the query should be dropped
+          (receivedQuery, receivedResponse) = self.sendDOHQuery(port, self._serverName, url, query, caFile=self._caCert, customHeaders=['x-forwarded-for: [::1]:8080'], useQueue=False)
+          self.assertFalse(receivedQuery)
+          self.assertFalse(receivedResponse)
 
-        # make sure the timeout is detected, if any
-        time.sleep(4)
+          # make sure the timeout is detected, if any
+          time.sleep(4)
 
-        # this one should not
-        ((receivedProxyPayload, receivedDNSData), receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, customHeaders=['x-forwarded-for: 127.0.0.42:8080'], response=response, fromQueue=fromProxyQueue, toQueue=toProxyQueue)
-        self.assertTrue(receivedProxyPayload)
-        self.assertTrue(receivedDNSData)
-        receivedQuery = dns.message.from_wire(receivedDNSData)
-        self.assertTrue(receivedQuery)
-        receivedQuery.id = expectedQuery.id
-        self.assertEqual(expectedQuery, receivedQuery)
-        self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
-        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.42', '127.0.0.1', True, destinationPort=self._dohServerPort)
-        # check the response
-        self.assertTrue(receivedResponse)
-        receivedResponse.id = response.id
-        self.assertEqual(response, receivedResponse)
+          # this one should not
+          ((receivedProxyPayload, receivedDNSData), receivedResponse) = self.sendDOHQuery(port, self._serverName, url, query, caFile=self._caCert, customHeaders=['x-forwarded-for: 127.0.0.42:8080'], response=response, fromQueue=fromProxyQueue, toQueue=toProxyQueue)
+          self.assertTrue(receivedProxyPayload)
+          self.assertTrue(receivedDNSData)
+          receivedQuery = dns.message.from_wire(receivedDNSData)
+          self.assertTrue(receivedQuery)
+          receivedQuery.id = expectedQuery.id
+          self.assertEqual(expectedQuery, receivedQuery)
+          self.checkQueryEDNSWithoutECS(expectedQuery, receivedQuery)
+          self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.42', '127.0.0.1', True, destinationPort=port)
+          # check the response
+          self.assertTrue(receivedResponse)
+          receivedResponse.id = response.id
+          self.assertEqual(response, receivedResponse)

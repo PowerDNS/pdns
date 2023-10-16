@@ -483,22 +483,22 @@ public:
   Netmask(const ComboAddress& network, uint8_t bits=0xff): d_network(network)
   {
     d_network.sin4.sin_port = 0;
-    setBits(network.isIPv4() ? std::min(bits, static_cast<uint8_t>(32)) : std::min(bits, static_cast<uint8_t>(128)));
+    setBits(bits);
   }
 
   Netmask(const sockaddr_in* network, uint8_t bits = 0xff): d_network(network)
   {
     d_network.sin4.sin_port = 0;
-    setBits(std::min(bits, static_cast<uint8_t>(32)));
+    setBits(bits);
   }
   Netmask(const sockaddr_in6* network, uint8_t bits = 0xff): d_network(network)
   {
     d_network.sin4.sin_port = 0;
-    setBits(std::min(bits, static_cast<uint8_t>(128)));
+    setBits(bits);
   }
   void setBits(uint8_t value)
   {
-    d_bits = value;
+    d_bits = d_network.isIPv4() ? std::min(value, static_cast<uint8_t>(32U)) : std::min(value, static_cast<uint8_t>(128U));
 
     if (d_bits < 32) {
       d_mask = ~(0xFFFFFFFF >> d_bits);

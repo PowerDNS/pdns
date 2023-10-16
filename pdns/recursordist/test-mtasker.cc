@@ -78,19 +78,6 @@ BOOST_AUTO_TEST_CASE(test_AlmostStackOverflow)
   BOOST_CHECK_EQUAL(g_result, o);
 }
 
-#if defined(HAVE_FIBER_SANITIZER) && defined(__APPLE__) && defined(__arm64__)
-
-// This test is buggy on MacOS when compiled with asan. It also causes subsequents tests to report spurious issues.
-// So switch it off for now
-// See https://github.com/PowerDNS/pdns/issues/12151
-
-BOOST_AUTO_TEST_CASE(test_MtaskerException)
-{
-  cerr << "test_MtaskerException test disabled on this platform with asan enabled, please fix" << endl;
-}
-
-#else
-
 static void willThrow(void* /* p */)
 {
   throw std::runtime_error("Help!");
@@ -110,7 +97,5 @@ BOOST_AUTO_TEST_CASE(test_MtaskerException)
   },
                     std::exception);
 }
-
-#endif // defined(HAVE_FIBER_SANITIZER) && defined(__APPLE__) && defined(__arm64__)
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -96,8 +96,8 @@ bool LMDBKVStore::getValue(const std::string& key, std::string& value)
       return false;
     }
   }
-  catch(const std::exception& e) {
-    warnlog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
+  catch (const std::exception& e) {
+    vinfolog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
   }
   return false;
 }
@@ -115,8 +115,8 @@ bool LMDBKVStore::keyExists(const std::string& key)
       return false;
     }
   }
-  catch(const std::exception& e) {
-    warnlog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
+  catch (const std::exception& e) {
+    vinfolog("Error while looking up key '%s' from LMDB file '%s', database '%s': %s", key, d_fname, d_dbName, e.what());
   }
   return false;
 }
@@ -163,7 +163,7 @@ bool LMDBKVStore::getRangeValue(const std::string& key, std::string& value)
       return false;
     }
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
     vinfolog("Error while looking up a range from LMDB file '%s', database '%s': %s", d_fname, d_dbName, e.what());
   }
   return false;
@@ -230,7 +230,7 @@ void CDBKVStore::refreshDBIfNeeded(time_t now)
     d_nextCheck = now + d_refreshDelay;
     d_refreshing.clear();
   }
-  catch(...) {
+  catch (...) {
     d_refreshing.clear();
     throw;
   }
@@ -252,8 +252,8 @@ bool CDBKVStore::getValue(const std::string& key, std::string& value)
       }
     }
   }
-  catch(const std::exception& e) {
-    warnlog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what());
+  catch (const std::exception& e) {
+    vinfolog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what());
   }
   return false;
 }
@@ -276,8 +276,8 @@ bool CDBKVStore::keyExists(const std::string& key)
       return (*cdb)->keyExists(key);
     }
   }
-  catch(const std::exception& e) {
-    warnlog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what());
+  catch (const std::exception& e) {
+    vinfolog("Error while looking up key '%s' from CDB file '%s': %s", key, d_fname, e.what());
   }
   return false;
 }

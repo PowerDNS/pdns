@@ -225,7 +225,7 @@ bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& 
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
 {
   if (!g_apiReadWrite) {
-    errlog("Not writing content to %s since the API is read-only", filebasename);
+    warnlog("Not writing content to %s since the API is read-only", filebasename);
     return false;
   }
 
@@ -669,8 +669,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << frontsbase << "tcpdiedsendingresponse " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tcpgaveup " << "Amount of TCP connections terminated after too many attempts to get a connection to the backend" << "\n";
   output << "# TYPE " << frontsbase << "tcpgaveup " << "counter" << "\n";
-  output << "# HELP " << frontsbase << "tcpclientimeouts " << "Amount of TCP connections terminated by a timeout while reading from the client" << "\n";
-  output << "# TYPE " << frontsbase << "tcpclientimeouts " << "counter" << "\n";
+  output << "# HELP " << frontsbase << "tcpclienttimeouts " << "Amount of TCP connections terminated by a timeout while reading from the client" << "\n";
+  output << "# TYPE " << frontsbase << "tcpclienttimeouts " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tcpdownstreamtimeouts " << "Amount of TCP connections terminated by a timeout while reading from the backend" << "\n";
   output << "# TYPE " << frontsbase << "tcpdownstreamtimeouts " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tcpcurrentconnections " << "Amount of current incoming TCP connections from clients" << "\n";
@@ -718,7 +718,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       output << frontsbase << "tcpdiedreadingquery" << label << front->tcpDiedReadingQuery.load() << "\n";
       output << frontsbase << "tcpdiedsendingresponse" << label << front->tcpDiedSendingResponse.load() << "\n";
       output << frontsbase << "tcpgaveup" << label << front->tcpGaveUp.load() << "\n";
-      output << frontsbase << "tcpclientimeouts" << label << front->tcpClientTimeouts.load() << "\n";
+      output << frontsbase << "tcpclienttimeouts" << label << front->tcpClientTimeouts.load() << "\n";
       output << frontsbase << "tcpdownstreamtimeouts" << label << front->tcpDownstreamTimeouts.load() << "\n";
       output << frontsbase << "tcpcurrentconnections" << label << front->tcpCurrentConnections.load() << "\n";
       output << frontsbase << "tcpmaxconcurrentconnections" << label << front->tcpMaxConcurrentConnections.load() << "\n";
@@ -741,7 +741,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
           errorCounters = &front->tlsFrontend->d_tlsCounters;
         }
         else if (front->dohFrontend != nullptr) {
-          errorCounters = &front->dohFrontend->d_tlsCounters;
+          errorCounters = &front->dohFrontend->d_tlsContext.d_tlsCounters;
         }
 
         if (errorCounters != nullptr) {
@@ -779,7 +779,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 #ifdef HAVE_DNS_OVER_HTTPS
   std::map<std::string,uint64_t> dohFrontendDuplicates;
   for(const auto& doh : g_dohlocals) {
-    const string frontName = doh->d_local.toStringWithPort();
+    const string frontName = doh->d_tlsContext.d_addr.toStringWithPort();
     uint64_t threadNumber = 0;
     auto dupPair = frontendDuplicates.emplace(frontName, 1);
     if (!dupPair.second) {
@@ -964,33 +964,42 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     auto nmg = g_dynblockNMG.getLocal();
     struct timespec now;
     gettime(&now);
-    for (const auto& e: *nmg) {
-      if(now < e.second.until ) {
-        Json::object thing{
-          {"reason", e.second.reason},
-          {"seconds", (double)(e.second.until.tv_sec - now.tv_sec)},
-          {"blocks", (double)e.second.blocks},
-          {"action", DNSAction::typeToString(e.second.action != DNSAction::Action::None ? e.second.action : g_dynBlockAction) },
-          {"warning", e.second.warning }
-        };
-        obj.emplace(e.first.toString(), thing);
+    for (const auto& entry: *nmg) {
+      if (!(now < entry.second.until)) {
+        continue;
       }
+      uint64_t counter = entry.second.blocks;
+      if (entry.second.bpf && g_defaultBPFFilter) {
+        counter += g_defaultBPFFilter->getHits(entry.first.getNetwork());
+      }
+      Json::object thing{
+        {"reason", entry.second.reason},
+        {"seconds", static_cast<double>(entry.second.until.tv_sec - now.tv_sec)},
+        {"blocks", static_cast<double>(counter)},
+        {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : g_dynBlockAction)},
+        {"warning", entry.second.warning},
+        {"ebpf", entry.second.bpf}
+      };
+      obj.emplace(entry.first.toString(), thing);
     }
 
     auto smt = g_dynblockSMT.getLocal();
     smt->visit([&now,&obj](const SuffixMatchTree<DynBlock>& node) {
-      if(now <node.d_value.until) {
-        string dom("empty");
-        if(!node.d_value.domain.empty())
-          dom = node.d_value.domain.toString();
-        Json::object thing{
-          {"reason", node.d_value.reason},
-          {"seconds", (double)(node.d_value.until.tv_sec - now.tv_sec)},
-          {"blocks", (double)node.d_value.blocks},
-          {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) }
-        };
-        obj.emplace(dom, thing);
+      if (!(now < node.d_value.until)) {
+        return;
       }
+      string dom("empty");
+      if (!node.d_value.domain.empty()) {
+        dom = node.d_value.domain.toString();
+      }
+      Json::object thing{
+        {"reason", node.d_value.reason},
+        {"seconds", static_cast<double>(node.d_value.until.tv_sec - now.tv_sec)},
+        {"blocks", static_cast<double>(node.d_value.blocks)},
+        {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction)},
+        {"ebpf", node.d_value.bpf}
+      };
+      obj.emplace(dom, thing);
     });
 #endif /* DISABLE_DYNBLOCKS */
     Json my_json = obj;
@@ -1011,6 +1020,23 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
             {"blocks", (double)(std::get<1>(entry))}
           };
         obj.emplace(std::get<0>(entry).toString(), thing );
+      }
+    }
+    if (g_defaultBPFFilter) {
+      auto nmg = g_dynblockNMG.getLocal();
+      for (const auto& entry: *nmg) {
+        if (!(now < entry.second.until) || !entry.second.bpf) {
+          continue;
+        }
+        uint64_t counter = entry.second.blocks + g_defaultBPFFilter->getHits(entry.first.getNetwork());
+        Json::object thing{
+          {"reason", entry.second.reason},
+          {"seconds", static_cast<double>(entry.second.until.tv_sec - now.tv_sec)},
+          {"blocks", static_cast<double>(counter)},
+          {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : g_dynBlockAction)},
+          {"warning", entry.second.warning},
+        };
+        obj.emplace(entry.first.toString(), thing);
       }
     }
 #endif /* HAVE_EBPF */
@@ -1149,7 +1175,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       errorCounters = &front->tlsFrontend->d_tlsCounters;
     }
     else if (front->dohFrontend != nullptr) {
-      errorCounters = &front->dohFrontend->d_tlsCounters;
+      errorCounters = &front->dohFrontend->d_tlsContext.d_tlsCounters;
     }
     if (errorCounters != nullptr) {
       frontend["tlsHandshakeFailuresDHKeyTooSmall"] = (double)errorCounters->d_dhKeyTooSmall;
@@ -1172,7 +1198,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     for (const auto& doh : g_dohlocals) {
       dohs.emplace_back(Json::object{
         { "id", num++ },
-        { "address", doh->d_local.toStringWithPort() },
+        { "address", doh->d_tlsContext.d_addr.toStringWithPort() },
         { "http-connects", (double) doh->d_httpconnects },
         { "http1-queries", (double) doh->d_http1Stats.d_nbQueries },
         { "http2-queries", (double) doh->d_http2Stats.d_nbQueries },
@@ -1237,6 +1263,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         {"id", num++},
         {"creationOrder", (double)a.d_creationOrder},
         {"uuid", boost::uuids::to_string(a.d_id)},
+        {"name", a.d_name},
         {"matches", (double)a.d_rule->d_matches},
         {"rule", a.d_rule->toString()},
         {"action", a.d_action->toString()},
@@ -1757,10 +1784,10 @@ static void connectionThread(WebClientConnection&& conn)
     vinfolog("Webserver thread died with parse error exception while processing a request from %s: %s", conn.getClient().toStringWithPort(), e.what());
   }
   catch (const std::exception& e) {
-    errlog("Webserver thread died with exception while processing a request from %s: %s", conn.getClient().toStringWithPort(), e.what());
+    vinfolog("Webserver thread died with exception while processing a request from %s: %s", conn.getClient().toStringWithPort(), e.what());
   }
   catch (...) {
-    errlog("Webserver thread died with exception while processing a request from %s", conn.getClient().toStringWithPort());
+    vinfolog("Webserver thread died with exception while processing a request from %s", conn.getClient().toStringWithPort());
   }
 }
 
@@ -1843,7 +1870,7 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
       t.detach();
     }
     catch (const std::exception& e) {
-      errlog("Had an error accepting new webserver connection: %s", e.what());
+      vinfolog("Had an error accepting new webserver connection: %s", e.what());
     }
   }
 }

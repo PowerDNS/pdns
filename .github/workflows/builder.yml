@@ -22,9 +22,10 @@ jobs:
           - el-8
           - centos-8-stream
           - centos-9-stream
-          - ubuntu-kinetic
           - ubuntu-lunar
+          - ubuntu-mantic
           - debian-bookworm
+          - debian-trixie
           - amazon-2023
       fail-fast: false
     steps:

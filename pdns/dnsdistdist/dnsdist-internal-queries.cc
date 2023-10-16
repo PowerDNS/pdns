@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist-internal-queries.hh"
+#include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-tcp.hh"
 #include "doh.hh"
 
@@ -35,7 +36,12 @@ std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dq, bool
   }
 #ifdef HAVE_DNS_OVER_HTTPS
   else if (protocol == dnsdist::Protocol::DoH) {
-    return getDoHCrossProtocolQueryFromDQ(dq, isResponse);
+#ifdef HAVE_LIBH2OEVLOOP
+    if (dq.ids.cs->dohFrontend->d_library == "h2o") {
+      return getDoHCrossProtocolQueryFromDQ(dq, isResponse);
+    }
+#endif /* HAVE_LIBH2OEVLOOP */
+    return getTCPCrossProtocolQueryFromDQ(dq);
   }
 #endif
   else {

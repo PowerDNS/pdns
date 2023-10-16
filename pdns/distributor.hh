@@ -165,7 +165,7 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
   }
 
   for (int distributorIdx = 0; distributorIdx < numberOfThreads; distributorIdx++) {
-    auto [sender, receiver] = pdns::channel::createObjectQueue<QuestionData>(false, false);
+    auto [sender, receiver] = pdns::channel::createObjectQueue<QuestionData>(pdns::channel::SenderBlockingMode::SenderBlocking, pdns::channel::ReceiverBlockingMode::ReceiverBlocking);
     d_senders.push_back(std::move(sender));
     d_receivers.push_back(std::move(receiver));
   }

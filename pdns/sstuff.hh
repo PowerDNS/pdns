@@ -351,6 +351,11 @@ public:
     return static_cast<size_t>(res);
   }
 
+  /** Read a bock of data from the socket to a block of memory,
+  *   waiting at most 'timeout' seconds for the data to become
+  *   available. Be aware that this does _NOT_ handle partial reads
+  *   for you.
+  */
   ssize_t readWithTimeout(char* buffer, size_t n, int timeout)
   {
     int err = waitForRWData(d_socket, true, timeout, 0);

@@ -55,7 +55,7 @@ EXTRA_DIST = \
 	dnsmessage.proto \
 	mtasker.cc \
 	inflighter.cc \
-	bindparser.h \
+	bindparser.hh \
 	named.conf.parsertest \
 	pdns.service.in \
 	ixfrdist.service.in \
@@ -63,6 +63,7 @@ EXTRA_DIST = \
 	lua-record.cc \
 	minicurl.cc \
 	minicurl.hh \
+	standalone_fuzz_target_runner.cc \
 	api-swagger.yaml \
 	api-swagger.json \
 	requirements.txt \
@@ -71,7 +72,7 @@ EXTRA_DIST = \
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
-	bindparser.h \
+	bindparser.hh \
 	dnslabeltext.cc \
 	apidocfiles.h
 
@@ -210,6 +211,7 @@ pdns_server_SOURCES = \
 	circular_buffer.hh \
 	comment.hh \
 	communicator.cc communicator.hh \
+	coverage.cc coverage.hh \
 	credentials.cc credentials.hh \
 	dbdnsseckeeper.cc \
 	digests.hh \
@@ -553,6 +555,7 @@ sdig_SOURCES = \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
+	ednsextendederror.cc ednsextendederror.hh \
 	ednssubnet.cc iputils.cc \
 	libssl.cc libssl.hh \
 	logger.cc \
@@ -789,7 +792,7 @@ ixplore_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
-        gss_context.cc gss_context.hh  \
+	gss_context.cc gss_context.hh  \
 	iputils.cc \
 	ixfr.cc ixfr.hh \
 	ixfrutils.cc ixfrutils.hh \
@@ -984,6 +987,7 @@ dnsbulktest_SOURCES = \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
+	iputils.cc iputils.hh \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
@@ -1351,7 +1355,7 @@ testrunner_SOURCES = \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
-        gss_context.cc gss_context.hh \
+	gss_context.cc gss_context.hh \
 	histogram.hh \
 	ipcipher.cc ipcipher.hh \
 	iputils.cc \
@@ -1414,6 +1418,7 @@ testrunner_SOURCES = \
 	test-trusted-notification-proxy_cc.cc \
 	test-tsig.cc \
 	test-ueberbackend_cc.cc \
+	test-webserver_cc.cc \
 	test-zonemd_cc.cc \
 	test-zoneparser_tng_cc.cc \
 	testrunner.cc \
@@ -1422,7 +1427,9 @@ testrunner_SOURCES = \
 	tsigverifier.cc tsigverifier.hh \
 	ueberbackend.cc ueberbackend.hh \
 	unix_utility.cc \
+	uuid-utils.cc \
 	validate.hh \
+	webserver.cc \
 	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
@@ -1437,7 +1444,9 @@ testrunner_LDADD = \
 	$(RT_LIBS) \
 	$(LUA_LIBS) \
 	$(LIBDL) \
-	$(IPCRYPT_LIBS)
+	$(IPCRYPT_LIBS) \
+	$(YAHTTP_LIBS) \
+	$(JSON11_LIBS)
 
 if GSS_TSIG
 testrunner_LDADD += $(GSS_LIBS)
@@ -1507,7 +1516,7 @@ noinst_PROGRAMS = speedtest
 if UNIT_TESTS
 noinst_PROGRAMS += testrunner
 if HAVE_BOOST_GE_148
-TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message SRCDIR='$(srcdir)'
+TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message BOOST_TEST_RANDOM=1 SRCDIR='$(srcdir)'
 TESTS=testrunner
 else
 check-local:
@@ -1527,7 +1536,6 @@ LIB_FUZZING_ENGINE ?= standalone_fuzz_target_runner.o
 standalone_fuzz_target_runner.o: standalone_fuzz_target_runner.cc
 
 fuzz_targets_programs =  \
-	fuzz_target_dnsdistcache \
 	fuzz_target_moadnsparser \
 	fuzz_target_packetcache \
 	fuzz_target_proxyprotocol \
@@ -1601,31 +1609,6 @@ fuzz_target_proxyprotocol_DEPENDENCIES = $(fuzz_targets_deps)
 fuzz_target_proxyprotocol_LDFLAGS = $(fuzz_targets_ldflags)
 fuzz_target_proxyprotocol_LDADD = $(fuzz_targets_libs)
 
-fuzz_target_dnsdistcache_SOURCES = \
-	channel.hh channel.cc \
-	dns.cc dns.hh \
-	dnsdist-cache.cc dnsdist-cache.hh \
-	dnsdist-ecs.cc dnsdist-ecs.hh \
-	dnsdist-idstate.hh \
-	dnsdist-protocols.cc dnsdist-protocols.hh \
-	dnslabeltext.cc \
-	dnsname.cc dnsname.hh \
-	dnsparser.cc dnsparser.hh \
-	dnswriter.cc dnswriter.hh \
-	doh.hh \
-	ednsoptions.cc ednsoptions.hh \
-	ednssubnet.cc ednssubnet.hh \
-	fuzz_dnsdistcache.cc \
-	iputils.cc iputils.hh \
-	misc.cc misc.hh \
-	packetcache.hh \
-	qtype.cc qtype.hh \
-	svc-records.cc svc-records.hh
-
-fuzz_target_dnsdistcache_DEPENDENCIES = $(fuzz_targets_deps)
-fuzz_target_dnsdistcache_LDFLAGS = $(fuzz_targets_ldflags)
-fuzz_target_dnsdistcache_LDADD = $(fuzz_targets_libs)
-
 fuzz_target_yahttp_SOURCES = \
 	fuzz_yahttp.cc
 
@@ -1675,11 +1658,7 @@ dnslabeltext.cc: dnslabeltext.rl
 bind-dnssec.schema.sqlite3.sql.h: bind-dnssec.schema.sqlite3.sql
 	( echo '#pragma once'; echo 'static char sqlCreate[] __attribute__((unused))=' ; sed 's/$$/"/g' $< | sed 's/^/"/g'  ; echo ';' ) > $@
 
-# for bindparser.h/hh
-.hh.h:
-	cp $< $@
-
-bindlexer.$(OBJEXT): bindparser.h
+bindlexer.$(OBJEXT): bindparser.hh
 
 pdns_recursor rec_control:
 	@echo "Please build the recursor from the recursordist/ dir"

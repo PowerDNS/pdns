@@ -338,6 +338,9 @@ wipe-cache *DOMAIN* [*DOMAIN*] [...]
 wipe-cache-typed *qtype* *DOMAIN* [*DOMAIN*] [...]
     Same as wipe-cache, but only wipe records of type *qtype*.
 
+show-yaml [*FILE*]
+    Show Yaml representation of config. EXPERIMENTAL.
+
 See also
 --------
 :manpage:`pdns_recursor(1)`

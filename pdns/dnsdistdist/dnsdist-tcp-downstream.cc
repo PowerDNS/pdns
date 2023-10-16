@@ -118,7 +118,7 @@ bool ConnectionToBackend::reconnect()
       return true;
     }
     catch (const std::runtime_error& e) {
-      vinfolog("Connection to downstream server %s failed: %s", d_ds->getName(), e.what());
+      vinfolog("Connection to downstream server %s failed: %s", d_ds->getNameWithAddr(), e.what());
       d_downstreamFailures++;
       if (d_downstreamFailures >= d_ds->d_config.d_retries) {
         throw;
@@ -173,7 +173,7 @@ static uint32_t getSerialFromRawSOAContent(const std::vector<uint8_t>& raw)
 static bool getSerialFromIXFRQuery(TCPQuery& query)
 {
   try {
-    size_t proxyPayloadSize = query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayloadAddedSize : 0;
+    size_t proxyPayloadSize = query.d_proxyProtocolPayloadAdded ? query.d_idstate.d_proxyProtocolPayloadSize : 0;
     if (query.d_buffer.size() <= (proxyPayloadSize + sizeof(uint16_t))) {
       return false;
     }
@@ -232,24 +232,25 @@ static void prepareQueryForSending(TCPQuery& query, uint16_t id, QueryState quer
     if (query.d_proxyProtocolPayload.size() > 0 && !query.d_proxyProtocolPayloadAdded) {
       query.d_buffer.insert(query.d_buffer.begin(), query.d_proxyProtocolPayload.begin(), query.d_proxyProtocolPayload.end());
       query.d_proxyProtocolPayloadAdded = true;
-      query.d_proxyProtocolPayloadAddedSize = query.d_proxyProtocolPayload.size();
+      query.d_idstate.d_proxyProtocolPayloadSize = query.d_proxyProtocolPayload.size();
     }
   }
   else if (connectionState == ConnectionState::proxySent) {
     if (query.d_proxyProtocolPayloadAdded) {
-      if (query.d_buffer.size() < query.d_proxyProtocolPayloadAddedSize) {
+      if (query.d_buffer.size() < query.d_idstate.d_proxyProtocolPayloadSize) {
         throw std::runtime_error("Trying to remove a proxy protocol payload of size " + std::to_string(query.d_proxyProtocolPayload.size()) + " from a buffer of size " + std::to_string(query.d_buffer.size()));
       }
-      query.d_buffer.erase(query.d_buffer.begin(), query.d_buffer.begin() + query.d_proxyProtocolPayloadAddedSize);
+      // NOLINTNEXTLINE(*-narrowing-conversions): the size of the payload is limited to 2^16-1
+      query.d_buffer.erase(query.d_buffer.begin(), query.d_buffer.begin() + static_cast<ssize_t>(query.d_idstate.d_proxyProtocolPayloadSize));
       query.d_proxyProtocolPayloadAdded = false;
-      query.d_proxyProtocolPayloadAddedSize = 0;
+      query.d_idstate.d_proxyProtocolPayloadSize = 0;
     }
   }
   if (query.d_idstate.qclass == QClass::IN && query.d_idstate.qtype == QType::IXFR) {
     getSerialFromIXFRQuery(query);
   }
 
-  editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_proxyProtocolPayloadAddedSize : 0, true);
+  editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_idstate.d_proxyProtocolPayloadSize : 0, true);
 }
 
 IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)
@@ -268,7 +269,7 @@ IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBa
 
 IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
-  DEBUGLOG("sending query to backend "<<conn->getDS()->getName()<<" over FD "<<conn->d_handler->getDescriptor());
+  DEBUGLOG("sending query to backend "<<conn->getDS()->getNameWithAddr()<<" over FD "<<conn->d_handler->getDescriptor());
 
   IOState state = conn->d_handler->tryWrite(conn->d_currentQuery.d_query.d_buffer, conn->d_currentPos, conn->d_currentQuery.d_query.d_buffer.size());
 
@@ -361,7 +362,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
             iostate = conn->handleResponse(conn, now);
           }
           catch (const std::exception& e) {
-            vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getName() : "unknown", conn->d_currentQuery.d_query.d_idstate.origRemote.toStringWithPort(), e.what());
+            vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getNameWithAddr() : "unknown", conn->d_currentQuery.d_query.d_idstate.origRemote.toStringWithPort(), e.what());
             ioGuard.release();
             conn->release();
             return;
@@ -433,7 +434,8 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
                 /* this one can't be restarted, sorry */
                 DEBUGLOG("A XFR for which a response has already been sent cannot be restarted");
                 try {
-                  pending.second.d_sender->notifyIOError(std::move(pending.second.d_query.d_idstate), now);
+                  TCPResponse response(std::move(pending.second.d_query));
+                  pending.second.d_sender->notifyIOError(now, std::move(response));
                 }
                 catch (const std::exception& e) {
                   vinfolog("Got an exception while notifying: %s", e.what());
@@ -553,16 +555,16 @@ void TCPConnectionToBackend::handleTimeout(const struct timeval& now, bool write
   if (write) {
     if (isFresh() && d_queries == 0) {
       ++d_ds->tcpConnectTimeouts;
-      vinfolog("Timeout while connecting to TCP backend %s", d_ds->getName());
+      vinfolog("Timeout while connecting to TCP backend %s", d_ds->getNameWithAddr());
     }
     else {
       ++d_ds->tcpWriteTimeouts;
-      vinfolog("Timeout while writing to TCP backend %s", d_ds->getName());
+      vinfolog("Timeout while writing to TCP backend %s", d_ds->getNameWithAddr());
     }
   }
   else {
     ++d_ds->tcpReadTimeouts;
-    vinfolog("Timeout while reading from TCP backend %s", d_ds->getName());
+    vinfolog("Timeout while reading from TCP backend %s", d_ds->getNameWithAddr());
   }
 
   try {
@@ -608,7 +610,8 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
       increaseCounters(d_currentQuery.d_query.d_idstate.cs);
       auto sender = d_currentQuery.d_sender;
       if (sender->active()) {
-        sender->notifyIOError(std::move(d_currentQuery.d_query.d_idstate), now);
+        TCPResponse response(std::move(d_currentQuery.d_query));
+        sender->notifyIOError(now, std::move(response));
       }
     }
 
@@ -616,7 +619,8 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
       increaseCounters(query.d_query.d_idstate.cs);
       auto sender = query.d_sender;
       if (sender->active()) {
-        sender->notifyIOError(std::move(query.d_query.d_idstate), now);
+        TCPResponse response(std::move(query.d_query));
+        sender->notifyIOError(now, std::move(response));
       }
     }
 
@@ -624,7 +628,8 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
       increaseCounters(response.second.d_query.d_idstate.cs);
       auto sender = response.second.d_sender;
       if (sender->active()) {
-        sender->notifyIOError(std::move(response.second.d_query.d_idstate), now);
+        TCPResponse tresp(std::move(response.second.d_query));
+        sender->notifyIOError(now, std::move(tresp));
       }
     }
   }
@@ -721,12 +726,20 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     d_state = State::idle;
     t_downstreamTCPConnectionsManager.moveToIdle(conn);
   }
+  else if (!d_pendingResponses.empty()) {
+    d_currentPos = 0;
+    d_state = State::waitingForResponseFromBackend;
+  }
 
+  // be very careful that handleResponse() might trigger new queries being assigned to us,
+  // which may reset our d_currentPos, d_state and/or d_responseBuffer, so we cannot assume
+  // anything without checking first
   auto shared = conn;
   if (sender->active()) {
     DEBUGLOG("passing response to client connection for "<<ids.qname);
     // make sure that we still exist after calling handleResponse()
-    sender->handleResponse(now, TCPResponse(std::move(d_responseBuffer), std::move(ids), conn, conn->d_ds));
+    TCPResponse response(std::move(d_responseBuffer), std::move(ids), conn, conn->d_ds);
+    sender->handleResponse(now, std::move(response));
   }
 
   if (!d_pendingQueries.empty()) {
@@ -735,9 +748,6 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
   }
   else if (!d_pendingResponses.empty()) {
     DEBUGLOG("still have some responses to read");
-    d_state = State::waitingForResponseFromBackend;
-    d_currentPos = 0;
-    d_responseBuffer.resize(sizeof(uint16_t));
     return IOState::NeedRead;
   }
   else {

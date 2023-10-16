@@ -62,42 +62,52 @@ int UnixsocketConnector::send_message(const Json& input)
 {
   auto data = input.dump() + "\n";
   int rv = this->write(data);
-  if (rv == -1)
+  if (rv == -1) {
     return -1;
+  }
   return rv;
 }
 
 int UnixsocketConnector::recv_message(Json& output)
 {
-  int rv;
-  std::string s_output, err;
+  int rv = 0;
+  std::string s_output;
+  std::string err;
 
-  struct timeval t0, t;
+  struct timeval t0
+  {
+  };
+  struct timeval t
+  {
+  };
 
-  gettimeofday(&t0, NULL);
+  gettimeofday(&t0, nullptr);
   memcpy(&t, &t0, sizeof(t0));
   s_output = "";
 
   while ((t.tv_sec - t0.tv_sec) * 1000 + (t.tv_usec - t0.tv_usec) / 1000 < this->timeout) {
     int avail = waitForData(this->fd, 0, this->timeout * 500); // use half the timeout as poll timeout
-    if (avail < 0) // poll error
+    if (avail < 0) { // poll error
       return -1;
+    }
     if (avail == 0) { // timeout
-      gettimeofday(&t, NULL);
+      gettimeofday(&t, nullptr);
       continue;
     }
 
     rv = this->read(s_output);
-    if (rv == -1)
+    if (rv == -1) {
       return -1;
+    }
 
     if (rv > 0) {
       // see if it can be parsed
       output = Json::parse(s_output, err);
-      if (output != nullptr)
+      if (output != nullptr) {
         return s_output.size();
+      }
     }
-    gettimeofday(&t, NULL);
+    gettimeofday(&t, nullptr);
   }
 
   close(fd);
@@ -107,17 +117,19 @@ int UnixsocketConnector::recv_message(Json& output)
 
 ssize_t UnixsocketConnector::read(std::string& data)
 {
-  ssize_t nread;
+  ssize_t nread = 0;
   char buf[1500] = {0};
 
   reconnect();
-  if (!connected)
+  if (!connected) {
     return -1;
+  }
   nread = ::read(this->fd, buf, sizeof buf);
 
   // just try again later...
-  if (nread == -1 && errno == EAGAIN)
+  if (nread == -1 && errno == EAGAIN) {
     return 0;
+  }
 
   if (nread == -1 || nread == 0) {
     connected = false;
@@ -134,8 +146,9 @@ ssize_t UnixsocketConnector::write(const std::string& data)
   size_t pos = 0;
 
   reconnect();
-  if (!connected)
+  if (!connected) {
     return -1;
+  }
 
   while (pos < data.size()) {
     ssize_t written = ::write(fd, &data.at(pos), data.size() - pos);
@@ -144,20 +157,21 @@ ssize_t UnixsocketConnector::write(const std::string& data)
       close(fd);
       return -1;
     }
-    else {
-      pos = pos + static_cast<size_t>(written);
-    }
+    pos = pos + static_cast<size_t>(written);
   }
   return pos;
 }
 
 void UnixsocketConnector::reconnect()
 {
-  struct sockaddr_un sock;
-  int rv;
+  struct sockaddr_un sock
+  {
+  };
+  int rv = 0;
 
-  if (connected)
+  if (connected) {
     return; // no point reconnecting if connected...
+  }
   connected = true;
 
   g_log << Logger::Info << "Reconnecting to backend" << std::endl;
@@ -169,7 +183,7 @@ void UnixsocketConnector::reconnect()
     return;
   }
 
-  if (makeUNsockaddr(path, &sock)) {
+  if (makeUNsockaddr(path, &sock) != 0) {
     g_log << Logger::Error << "Unable to create UNIX domain socket: Path '" << path << "' is not a valid UNIX socket path." << std::endl;
     return;
   }
@@ -192,7 +206,7 @@ void UnixsocketConnector::reconnect()
 
   this->send(msg);
   msg = nullptr;
-  if (this->recv(msg) == false) {
+  if (!this->recv(msg)) {
     g_log << Logger::Warning << "Failed to initialize backend" << std::endl;
     close(fd);
     this->connected = false;

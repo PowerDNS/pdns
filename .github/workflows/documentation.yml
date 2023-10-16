@@ -59,6 +59,8 @@ jobs:
         if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
 
       # Rec
+      - run: inv ci-docs-rec-generate
+        working-directory: ./pdns/recursordist/settings
       - run: inv ci-docs-build
         working-directory: ./pdns/recursordist
       - run: mv html rec-html-docs

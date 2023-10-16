@@ -36,8 +36,6 @@ override_dh_auto_clean:
 	dh_auto_clean
 
 override_dh_auto_configure:
-	# LIBS has been added because Ubuntu Bionic and Cosmic don't have the fix for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=908124 pulled in
-	LIBS='-lwslay' \
 	./configure \
 	  --host=$(DEB_HOST_GNU_TYPE) \
 	  --build=$(DEB_BUILD_GNU_TYPE) \
@@ -53,6 +51,7 @@ override_dh_auto_configure:
 	  --enable-dnscrypt \
 	  --enable-dnstap \
 	  --with-gnutls \
+	  --with-h2o \
 	  --with-net-snmp \
 	  --with-libcap \
 	  --with-libsodium \
@@ -60,7 +59,8 @@ override_dh_auto_configure:
 	  --with-ebpf \
 	  --with-service-user='_dnsdist' \
 	  --with-service-group='_dnsdist' \
-	  $(CONFIGURE_ARGS)
+	  $(CONFIGURE_ARGS) \
+	  PKG_CONFIG_PATH=/opt/lib/pkgconfig
 
 override_dh_auto_build-arch:
 	dh_auto_build -- V=1

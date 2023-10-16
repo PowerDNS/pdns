@@ -448,4 +448,4 @@ This function expects no argument and doesn't return any value.
         -- Perform here your maintenance
     end
 
-The interval can be configured through the :ref:`setting-maintenance-interval` setting.
+The interval can be configured through the :ref:`setting-lua-maintenance-interval` setting.

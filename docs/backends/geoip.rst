@@ -164,6 +164,7 @@ Keys explained
                            format (e.g. %cc).
   :custom_mapping: Defines the mapping between the lookup format and a custom value to replace ``%mp`` placeholder.
 
+:zones_dir: Directory to load zones from. Each file must contain exactly one ``zone:`` object,  formatted like individual domains in the example configuration above.
 :mapping_lookup_formats: Same as per domain, but used as default value if not defined at the domain level.
 :custom_mapping: Same as per domain, but used as default value if not defined at the domain level.
 

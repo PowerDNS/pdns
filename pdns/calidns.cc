@@ -204,6 +204,58 @@ static void usage(po::options_description &desc) {
   cerr<<desc<<endl;
 }
 
+namespace {
+void parseQueryFile(const std::string& queryFile, vector<std::shared_ptr<vector<uint8_t>>>& unknown, bool useECSFromFile, bool wantRecursion, bool addECS)
+{
+  ifstream ifs(queryFile);
+  string line;
+  std::vector<std::string> fields;
+  fields.reserve(3);
+
+  while (getline(ifs, line)) {
+    vector<uint8_t> packet;
+    DNSPacketWriter::optvect_t ednsOptions;
+    boost::trim(line);
+    if (line.empty() || line.at(0) == '#') {
+      continue;
+    }
+
+    fields.clear();
+    stringtok(fields, line, "\t ");
+    if ((useECSFromFile && fields.size() < 3) || fields.size() < 2) {
+      cerr<<"Skipping invalid line '"<<line<<", it does not contain enough values"<<endl;
+      continue;
+    }
+
+    const std::string& qname = fields.at(0);
+    const std::string& qtype = fields.at(1);
+    std::string subnet;
+
+    if (useECSFromFile) {
+      subnet = fields.at(2);
+    }
+
+    DNSPacketWriter packetWriter(packet, DNSName(qname), DNSRecordContent::TypeToNumber(qtype));
+    packetWriter.getHeader()->rd = wantRecursion;
+    packetWriter.getHeader()->id = dns_random_uint16();
+
+    if (!subnet.empty() || addECS) {
+      EDNSSubnetOpts opt;
+      opt.source = Netmask(subnet.empty() ? "0.0.0.0/32" : subnet);
+      ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    }
+
+    if (!ednsOptions.empty() || (packetWriter.getHeader()->id % 2) != 0) {
+      packetWriter.addOpt(1500, 0, EDNSOpts::DNSSECOK, ednsOptions);
+      packetWriter.commit();
+    }
+    unknown.push_back(std::make_shared<vector<uint8_t>>(packet));
+  }
+
+  shuffle(unknown.begin(), unknown.end(), pdns::dns_random_engine());
+}
+}
+
 /*
   New plan. Set cache hit percentage, which we achieve on a per second basis.
   So we start with 10000 qps for example, and for 90% cache hit ratio means
@@ -340,54 +392,11 @@ try
   }
 #endif
 
-  ifstream ifs(g_vm["query-file"].as<string>());
-  string line;
   reportAllTypes();
-  vector<std::shared_ptr<vector<uint8_t> > > unknown, known;
-  std::vector<std::string> fields;
-  fields.reserve(3);
+  vector<std::shared_ptr<vector<uint8_t>>> unknown;
+  vector<std::shared_ptr<vector<uint8_t>>> known;
+  parseQueryFile(g_vm["query-file"].as<string>(), unknown, useECSFromFile, wantRecursion, !ecsRange.empty());
 
-  while(getline(ifs, line)) {
-    vector<uint8_t> packet;
-    DNSPacketWriter::optvect_t ednsOptions;
-    boost::trim(line);
-    if (line.empty() || line.at(0) == '#') {
-      continue;
-    }
-
-    fields.clear();
-    stringtok(fields, line, "\t ");
-    if ((useECSFromFile && fields.size() < 3) || fields.size() < 2) {
-      cerr<<"Skipping invalid line '"<<line<<", it does not contain enough values"<<endl;
-      continue;
-    }
-
-    const std::string& qname = fields.at(0);
-    const std::string& qtype = fields.at(1);
-    std::string subnet;
-
-    if (useECSFromFile) {
-      subnet = fields.at(2);
-    }
-
-    DNSPacketWriter pw(packet, DNSName(qname), DNSRecordContent::TypeToNumber(qtype));
-    pw.getHeader()->rd=wantRecursion;
-    pw.getHeader()->id=dns_random_uint16();
-
-    if(!subnet.empty() || !ecsRange.empty()) {
-      EDNSSubnetOpts opt;
-      opt.source = Netmask(subnet.empty() ? "0.0.0.0/32" : subnet);
-      ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
-    }
-
-    if(!ednsOptions.empty() || pw.getHeader()->id % 2) {
-      pw.addOpt(1500, 0, EDNSOpts::DNSSECOK, ednsOptions);
-      pw.commit();
-    }
-    unknown.push_back(std::make_shared<vector<uint8_t>>(packet));
-  }
-
-  shuffle(unknown.begin(), unknown.end(), pdns::dns_random_engine());
   if (!g_quiet) {
     cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
   }
@@ -531,8 +540,13 @@ try
 
   // t1.detach();
 }
- catch(std::exception& e)
+catch (const std::exception& exp)
 {
-  cerr<<"Fatal error: "<<e.what()<<endl;
+  cerr<<"Fatal error: "<<exp.what()<<endl;
+  return EXIT_FAILURE;
+}
+catch (const NetmaskException& exp)
+{
+  cerr<<"Fatal error: "<<exp.reason<<endl;
   return EXIT_FAILURE;
 }

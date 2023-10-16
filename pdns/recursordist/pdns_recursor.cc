@@ -263,7 +263,7 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
 thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 
 /* these two functions are used by LWRes */
-LWResult::Result asendto(const char* data, size_t len, int /* flags */,
+LWResult::Result asendto(const void* data, size_t len, int /* flags */,
                          const ComboAddress& toAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc)
 {
 
@@ -786,30 +786,12 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   return rcode;
 }
 
-static bool answerIsNOData(uint16_t requestedType, int rcode, const std::vector<DNSRecord>& records)
-{
-  if (rcode != RCode::NoError) {
-    return false;
-  }
-  for (const auto& rec : records) {
-    if (rec.d_place != DNSResourceRecord::ANSWER) {
-      /* no records in the answer section */
-      return true;
-    }
-    if (rec.d_type == requestedType) {
-      /* we have a record, of the right type, in the right section */
-      return false;
-    }
-  }
-  return true;
-}
-
 // RFC 6147 section 5.1 all rcodes except NXDomain should be candidate for dns64
 // for NoError, check if it is NoData
 static bool dns64Candidate(uint16_t requestedType, int rcode, const std::vector<DNSRecord>& records)
 {
   if (rcode == RCode::NoError) {
-    return answerIsNOData(requestedType, rcode, records);
+    return SyncRes::answerIsNOData(requestedType, rcode, records);
   }
   return rcode != RCode::NXDomain;
 }
@@ -1310,7 +1292,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       bool luaHookHandled = false;
       if (comboWriter->d_luaContext) {
         PolicyResult policyResult = PolicyResult::NoAction;
-        if (answerIsNOData(comboWriter->d_mdp.d_qtype, res, ret)) {
+        if (SyncRes::answerIsNOData(comboWriter->d_mdp.d_qtype, res, ret)) {
           if (comboWriter->d_luaContext->nodata(dnsQuestion, res, resolver.d_eventTrace)) {
             luaHookHandled = true;
             shouldNotValidate = true;
@@ -1900,7 +1882,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "STL error " << makeLoginfo(comboWriter) << ": " << e.what(),
-         resolver.d_slog->error(Logr::Error, e.what(), "Exception in resolver context ", "exception", Logging::Loggable("std::exception")));
+         resolver.d_slog->error(Logr::Error, e.what(), "Exception in resolver context", "exception", Logging::Loggable("std::exception")));
 
     // Luawrapper nests the exception from Lua, so we unnest it here
     try {
@@ -2082,7 +2064,7 @@ void requestWipeCaches(const DNSName& canon)
   ThreadMSG* tmsg = new ThreadMSG(); // NOLINT: pointer owner
   tmsg->func = [=] { return pleaseWipeCaches(canon, true, 0xffff); };
   tmsg->wantAnswer = false;
-  if (write(RecThreadInfo::info(0).pipes.writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT: correct sizeof
+  if (write(RecThreadInfo::info(0).getPipes().writeToThread, &tmsg, sizeof(tmsg)) != sizeof(tmsg)) { // NOLINT: correct sizeof
     delete tmsg; // NOLINT: pointer owner
 
     unixDie("write to thread pipe returned wrong size or error");
@@ -2102,7 +2084,7 @@ bool expectProxyProtocol(const ComboAddress& from)
 // mappedSource: the address we assume the query is coming from. Differs from source if table based mapping has been applied
 static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, const ComboAddress& mappedSource, struct timeval tval, int fileDesc, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
-  ++(RecThreadInfo::self().numberOfDistributedQueries);
+  RecThreadInfo::self().incNumberOfDistributedQueries();
   gettimeofday(&g_now, nullptr);
   if (tval.tv_sec != 0) {
     struct timeval diff = g_now - tval;
@@ -2642,8 +2624,8 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
 #endif
       if (address.sin6.sin6_family == AF_INET6 && setsockopt(socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
         int err = errno;
-        SLOG(g_log << Logger::Error << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << stringerror(err) << endl,
-             log->error(Logr::Error, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
+        SLOG(g_log << Logger::Warning << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << stringerror(err) << endl,
+             log->error(Logr::Warning, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
       }
     }
     if (::arg().mustDo("non-local-bind")) {
@@ -2709,7 +2691,7 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
     _exit(1);
   }
 
-  const auto& tps = targetInfo.pipes;
+  const auto& tps = targetInfo.getPipes();
 
   ssize_t written = write(tps.writeQueriesToThread, &tmsg, sizeof(tmsg)); // NOLINT: correct sizeof
   if (written > 0) {
@@ -2732,7 +2714,7 @@ static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
 
 static unsigned int getWorkerLoad(size_t workerIdx)
 {
-  const auto* multiThreader = RecThreadInfo::info(RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + workerIdx).mt;
+  const auto* multiThreader = RecThreadInfo::info(RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + workerIdx).getMT();
   if (multiThreader != nullptr) {
     return multiThreader->numProcesses();
   }
@@ -2741,27 +2723,27 @@ static unsigned int getWorkerLoad(size_t workerIdx)
 
 static unsigned int selectWorker(unsigned int hash)
 {
-  assert(RecThreadInfo::numWorkers() != 0); // NOLINT: assert implementation
+  assert(RecThreadInfo::numUDPWorkers() != 0); // NOLINT: assert implementation
   if (g_balancingFactor == 0) {
-    return RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + (hash % RecThreadInfo::numWorkers());
+    return RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + (hash % RecThreadInfo::numUDPWorkers());
   }
 
   /* we start with one, representing the query we are currently handling */
   double currentLoad = 1;
-  std::vector<unsigned int> load(RecThreadInfo::numWorkers());
-  for (size_t idx = 0; idx < RecThreadInfo::numWorkers(); idx++) {
+  std::vector<unsigned int> load(RecThreadInfo::numUDPWorkers());
+  for (size_t idx = 0; idx < RecThreadInfo::numUDPWorkers(); idx++) {
     load[idx] = getWorkerLoad(idx);
     currentLoad += load[idx];
   }
 
-  double targetLoad = (currentLoad / RecThreadInfo::numWorkers()) * g_balancingFactor;
+  double targetLoad = (currentLoad / RecThreadInfo::numUDPWorkers()) * g_balancingFactor;
 
-  unsigned int worker = hash % RecThreadInfo::numWorkers();
+  unsigned int worker = hash % RecThreadInfo::numUDPWorkers();
   /* at least one server has to be at or below the average load */
   if (load[worker] > targetLoad) {
     ++t_Counters.at(rec::Counter::rebalancedQueries);
     do {
-      worker = (worker + 1) % RecThreadInfo::numWorkers();
+      worker = (worker + 1) % RecThreadInfo::numUDPWorkers();
     } while (load[worker] > targetLoad);
   }
 
@@ -2773,7 +2755,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 {
   if (!RecThreadInfo::self().isDistributor()) {
     SLOG(g_log << Logger::Error << "distributeAsyncFunction() has been called by a worker (" << RecThreadInfo::id() << ")" << endl,
-         g_slog->info(Logr::Error, "distributeAsyncFunction() has been called by a worker")); // tid will be added
+         g_slog->withName("runtime")->info(Logr::Error, "distributeAsyncFunction() has been called by a worker")); // tid will be added
     _exit(1);
   }
 
@@ -2795,7 +2777,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
        was full, let's try another one */
     unsigned int newTarget = 0;
     do {
-      newTarget = RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + dns_random(RecThreadInfo::numWorkers());
+      newTarget = RecThreadInfo::numHandlers() + RecThreadInfo::numDistributors() + dns_random(RecThreadInfo::numUDPWorkers());
     } while (newTarget == target);
 
     if (!trySendingQueryToWorker(newTarget, tmsg)) {

@@ -39,7 +39,7 @@ size_t NegCache::size() const
 {
   size_t count = 0;
   for (const auto& map : d_maps) {
-    count += map.d_entriesCount;
+    count += map.getEntriesCount();
   }
   return count;
 }
@@ -161,7 +161,7 @@ void NegCache::add(const NegCacheEntry& ne)
   auto content = map.lock();
   inserted = lruReplacingInsert<SequenceTag>(content->d_map, ne);
   if (inserted) {
-    ++map.d_entriesCount;
+    map.incEntriesCount();
   }
 }
 
@@ -229,7 +229,7 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
           break;
         i = m->d_map.erase(i);
         ret++;
-        --map.d_entriesCount;
+        map.decEntriesCount();
       }
     }
     return ret;
@@ -242,7 +242,7 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
   while (i != range.second) {
     i = content->d_map.erase(i);
     ret++;
-    --map.d_entriesCount;
+    map.decEntriesCount();
   }
   return ret;
 }
@@ -258,7 +258,7 @@ size_t NegCache::wipeTyped(const DNSName& qname, QType qtype)
     if (i->d_qtype == QType::ENT || i->d_qtype == qtype) {
       i = content->d_map.erase(i);
       ++ret;
-      --map.d_entriesCount;
+      map.decEntriesCount();
     }
     else {
       ++i;
@@ -275,7 +275,7 @@ void NegCache::clear()
   for (auto& map : d_maps) {
     auto m = map.lock();
     m->d_map.clear();
-    map.d_entriesCount = 0;
+    map.clearEntriesCount();
   }
 }
 
@@ -284,10 +284,10 @@ void NegCache::clear()
  *
  * \param maxEntries The maximum number of entries that may exist in the cache.
  */
-void NegCache::prune(size_t maxEntries)
+void NegCache::prune(time_t now, size_t maxEntries)
 {
   size_t cacheSize = size();
-  pruneMutexCollectionsVector<SequenceTag>(*this, d_maps, maxEntries, cacheSize);
+  pruneMutexCollectionsVector<SequenceTag>(now, *this, d_maps, maxEntries, cacheSize);
 }
 
 /*!

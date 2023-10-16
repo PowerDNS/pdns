@@ -6,9 +6,9 @@ import socket
 import threading
 import unittest
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
-class TestRuleMetrics(DNSDistTest):
+class RuleMetricsTest(object):
 
     _config_template = """
     addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
@@ -27,15 +27,15 @@ class TestRuleMetrics(DNSDistTest):
     addAction('cache.metrics.tests.powerdns.com', PoolAction('cache'))
     """
     _webTimeout = 2.0
-    _webServerPort = 8083
+    _webServerPort = pickAvailablePort()
     _webServerAPIKey = 'apisecret'
     _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = 8453
-    _dohServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_params = ['_tlsServerPort', '_serverCert', '_serverKey', '_dohServerPort', '_serverCert', '_serverKey', '_testServerPort', '_webServerPort', '_webServerAPIKeyHashed']
 
@@ -148,7 +148,7 @@ class TestRuleMetrics(DNSDistTest):
 
     def testServFailMetrics(self):
         """
-        Metrics: Check that servfail metrics are correctly updated for cache misses and hits
+        Metrics: Check that servfail metrics are correctly updated for server failures
         """
 
         for method in ("sendUDPQuery", "sendTCPQuery", "sendDOTQueryWrapper", "sendDOHQueryWrapper"):
@@ -176,3 +176,12 @@ class TestRuleMetrics(DNSDistTest):
             self.assertEqual(self.getMetric('frontend-servfail'), frontendBefore + 2)
             self.assertEqual(self.getMetric('servfail-responses'), servfailBefore + 1)
             self.assertEqual(self.getMetric('rule-servfail'), ruleBefore)
+
+class TestRuleMetricsDefault(RuleMetricsTest, DNSDistTest):
+    None
+
+class TestRuleMetricsRecvmmsg(RuleMetricsTest, DNSDistTest):
+    # test the metrics with recvmmsg/sendmmsg support enabled as well
+    _config_template = RuleMetricsTest._config_template + """
+        setUDPMultipleMessagesVectorSize(10)
+    """

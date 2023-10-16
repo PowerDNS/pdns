@@ -27,6 +27,7 @@ INFILE
 --full-histogram <msec>                Write out histogram with specified bin-size to 'full-histogram'
 --log-histogram                        Write out a log-histogram of response times to 'log-histogram'
 --no-servfail-stats                    Remove servfail responses from latency statistics
+--port                                 The source and destination port to consider. Default is looking at packets from and to ports 53 and 5300.
 --servfail-tree                        Figure out subtrees that generate servfails.
 --stats-dir <directory>                Drop statistics files in this directory. Defaults to ./
 -l, --load-stats                       Emit per-second load statistics (questions, answers, outstanding).

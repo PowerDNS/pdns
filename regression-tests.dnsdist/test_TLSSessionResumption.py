@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import time
 import unittest
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 try:
   range = xrange
 except NameError:
@@ -65,21 +65,24 @@ class TestNoTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohWithNGHTTP2ServerPort = pickAvailablePort()
+    _dohWithH2OServerPort = pickAvailablePort()
     _numberOfKeys = 0
     _config_template = """
     newServer{address="127.0.0.1:%s"}
 
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, numberOfStoredSessions=0, sessionTickets=false })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, numberOfStoredSessions=0, sessionTickets=false, library='nghttp2' })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, numberOfStoredSessions=0, sessionTickets=false, library='h2o' })
     """
-    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_numberOfKeys']
+    _config_params = ['_testServerPort', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_numberOfKeys', '_dohWithH2OServerPort', '_serverCert', '_serverKey', '_numberOfKeys']
 
     def testNoSessionResumption(self):
         """
         Session Resumption: DoH (disabled)
         """
-        self.assertFalse(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/no-session.out.doh', None, allowNoTicket=True))
-        self.assertFalse(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/no-session.out.doh', '/tmp/no-session.out.doh', allowNoTicket=True))
+        for port in [self._dohWithNGHTTP2ServerPort, self._dohWithH2OServerPort]:
+          self.assertFalse(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/no-session.out.doh', None, allowNoTicket=True))
+          self.assertFalse(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/no-session.out.doh', '/tmp/no-session.out.doh', allowNoTicket=True))
 
 @unittest.skipIf('SKIP_DOH_TESTS' in os.environ, 'DNS over HTTPS tests are disabled')
 class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
@@ -88,93 +91,96 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohWithNGHTTP2ServerPort = pickAvailablePort()
+    _dohWithH2OServerPort = pickAvailablePort()
     _numberOfKeys = 5
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%s")
     newServer{address="127.0.0.1:%s"}
 
-    addDOHLocal("127.0.0.1:%s", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, library='nghttp2' })
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, { numberOfTicketsKeys=%d, library='h2o' })
     """
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_numberOfKeys']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_numberOfKeys', '_dohWithH2OServerPort', '_serverCert', '_serverKey', '_numberOfKeys']
 
     def testSessionResumption(self):
         """
         Session Resumption: DoH
         """
-        self.assertFalse(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', None))
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh', allowNoTicket=True))
+        for (port, bindIdx) in [(self._dohWithNGHTTP2ServerPort, 0), (self._dohWithH2OServerPort, 1)]:
+          self.assertFalse(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', None))
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh', allowNoTicket=True))
 
-        # rotate the TLS session ticket keys several times, but keep the previously active one around so we can resume
-        for _ in range(self._numberOfKeys - 1):
-            self.sendConsoleCommand("getDOHFrontend(0):rotateTicketsKey()")
+          # rotate the TLS session ticket keys several times, but keep the previously active one around so we can resume
+          for _ in range(self._numberOfKeys - 1):
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):rotateTicketsKey()")
 
-        # the session should be resumed and a new ticket, encrypted with the newly active key, should be stored
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh'))
+          # the session should be resumed and a new ticket, encrypted with the newly active key, should be stored
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh'))
 
-        # rotate the TLS session ticket keys several times, but keep the previously active one around so we can resume
-        for _ in range(self._numberOfKeys - 1):
-            self.sendConsoleCommand("getDOHFrontend(0):rotateTicketsKey()")
+          # rotate the TLS session ticket keys several times, but keep the previously active one around so we can resume
+          for _ in range(self._numberOfKeys - 1):
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):rotateTicketsKey()")
 
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh'))
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh'))
 
-        # rotate the TLS session ticket keys several times, not keeping any key around this time!
-        for _ in range(self._numberOfKeys):
-            self.sendConsoleCommand("getDOHFrontend(0):rotateTicketsKey()")
+          # rotate the TLS session ticket keys several times, not keeping any key around this time!
+          for _ in range(self._numberOfKeys):
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):rotateTicketsKey()")
 
-        # we should not be able to resume
-        self.assertFalse(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh'))
+          # we should not be able to resume
+          self.assertFalse(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh'))
 
-        # generate a file containing _numberOfKeys ticket keys
-        self.generateTicketKeysFile(self._numberOfKeys, '/tmp/ticketKeys.1')
-        self.generateTicketKeysFile(self._numberOfKeys - 1, '/tmp/ticketKeys.2')
-        # load all ticket keys from the file
-        self.sendConsoleCommand("getDOHFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
+          # generate a file containing _numberOfKeys ticket keys
+          self.generateTicketKeysFile(self._numberOfKeys, '/tmp/ticketKeys.1')
+          self.generateTicketKeysFile(self._numberOfKeys - 1, '/tmp/ticketKeys.2')
+          # load all ticket keys from the file
+          self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')")
 
-        # create a new session, resume it
-        self.assertFalse(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', None))
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh', allowNoTicket=True))
+          # create a new session, resume it
+          self.assertFalse(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', None))
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh', allowNoTicket=True))
 
-        # reload the same keys
-        self.sendConsoleCommand("getDOHFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
+          # reload the same keys
+          self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')")
 
-        # should still be able to resume
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh', allowNoTicket=True))
+          # should still be able to resume
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh', allowNoTicket=True))
 
-        # rotate the TLS session ticket keys several times, but keep the previously active one around so we can resume
-        for _ in range(self._numberOfKeys - 1):
-            self.sendConsoleCommand("getDOHFrontend(0):rotateTicketsKey()")
-        # should still be able to resume
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh'))
+          # rotate the TLS session ticket keys several times, but keep the previously active one around so we can resume
+          for _ in range(self._numberOfKeys - 1):
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):rotateTicketsKey()")
+          # should still be able to resume
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh'))
 
-        # reload the same keys
-        self.sendConsoleCommand("getDOHFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
-        # since the last key was only present in memory, we should not be able to resume
-        self.assertFalse(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh'))
+          # reload the same keys
+          self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')")
+          # since the last key was only present in memory, we should not be able to resume
+          self.assertFalse(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh'))
 
-        # but now we can
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh', allowNoTicket=True))
+          # but now we can
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh', allowNoTicket=True))
 
-        # generate a file with only _numberOfKeys - 1 keys, so the last active one should still be around after loading that one
-        self.generateTicketKeysFile(self._numberOfKeys - 1, '/tmp/ticketKeys.2')
-        self.sendConsoleCommand("getDOHFrontend(0):loadTicketsKeys('/tmp/ticketKeys.2')")
-        # we should be able to resume, and the ticket should be re-encrypted with the new key (NOTE THAT we store into a new file!!)
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh.2', '/tmp/session.doh'))
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh.2', '/tmp/session.doh.2', allowNoTicket=True))
+          # generate a file with only _numberOfKeys - 1 keys, so the last active one should still be around after loading that one
+          self.generateTicketKeysFile(self._numberOfKeys - 1, '/tmp/ticketKeys.2')
+          self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.2')")
+          # we should be able to resume, and the ticket should be re-encrypted with the new key (NOTE THAT we store into a new file!!)
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh.2', '/tmp/session.doh'))
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh.2', '/tmp/session.doh.2', allowNoTicket=True))
 
-        # rotate all keys, we should not be able to resume
-        for _ in range(self._numberOfKeys):
-            self.sendConsoleCommand("getDOHFrontend(0):rotateTicketsKey()")
-        self.assertFalse(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh.3', '/tmp/session.doh.2'))
+          # rotate all keys, we should not be able to resume
+          for _ in range(self._numberOfKeys):
+            self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):rotateTicketsKey()")
+          self.assertFalse(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh.3', '/tmp/session.doh.2'))
 
-        # reload from file 1, the old session should resume
-        self.sendConsoleCommand("getDOHFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh', allowNoTicket=True))
+          # reload from file 1, the old session should resume
+          self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.1')")
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh', '/tmp/session.doh', allowNoTicket=True))
 
-        # reload from file 2, the latest session should resume
-        self.sendConsoleCommand("getDOHFrontend(0):loadTicketsKeys('/tmp/ticketKeys.2')")
-        self.assertTrue(self.checkSessionResumed('127.0.0.1', self._dohServerPort, self._serverName, self._caCert, '/tmp/session.doh.2', '/tmp/session.doh.2', allowNoTicket=True))
+          # reload from file 2, the latest session should resume
+          self.sendConsoleCommand(f"getDOHFrontend({bindIdx}):loadTicketsKeys('/tmp/ticketKeys.2')")
+          self.assertTrue(self.checkSessionResumed('127.0.0.1', port, self._serverName, self._caCert, '/tmp/session.doh.2', '/tmp/session.doh.2', allowNoTicket=True))
 
 class TestNoTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
 
@@ -182,7 +188,7 @@ class TestNoTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
     _numberOfKeys = 0
     _config_template = """
     newServer{address="127.0.0.1:%s"}
@@ -204,7 +210,7 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
     _numberOfKeys = 5
     _config_template = """
     setKey("%s")

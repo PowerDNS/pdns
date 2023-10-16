@@ -125,4 +125,5 @@ systemctl daemon-reload ||:
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/recursor.d
 %config(noreplace) %{_sysconfdir}/%{name}/recursor.conf
+%config %{_sysconfdir}/%{name}/recursor.yml-dist
 %doc README

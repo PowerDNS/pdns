@@ -114,7 +114,8 @@ struct taskstats
 static struct taskstats s_almost_expired_tasks;
 static struct taskstats s_resolve_tasks;
 
-static void resolve(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task) noexcept
+// forceNoQM is true means resolve using no qm, false means use default value
+static void resolveInternal(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task, bool forceNoQM) noexcept
 {
   auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(task.d_qname), "qtype", Logging::Loggable(QType(task.d_qtype).toString()), "netmask", Logging::Loggable(task.d_netmask.empty() ? "" : task.d_netmask.toString()));
   const string msg = "Exception while running a background ResolveTask";
@@ -122,6 +123,9 @@ static void resolve(const struct timeval& now, bool logErrors, const pdns::Resol
   vector<DNSRecord> ret;
   resolver.setRefreshAlmostExpired(task.d_refreshMode);
   resolver.setQuerySource(task.d_netmask);
+  if (forceNoQM) {
+    resolver.setQNameMinimization(false);
+  }
   bool exceptionOccurred = true;
   try {
     log->info(Logr::Debug, "resolving", "refresh", Logging::Loggable(task.d_refreshMode));
@@ -130,23 +134,23 @@ static void resolve(const struct timeval& now, bool logErrors, const pdns::Resol
     log->info(Logr::Debug, "done", "rcode", Logging::Loggable(res), "records", Logging::Loggable(ret.size()));
   }
   catch (const std::exception& e) {
-    log->error(Logr::Error, msg, e.what());
+    log->error(Logr::Warning, msg, e.what());
   }
   catch (const PDNSException& e) {
-    log->error(Logr::Error, msg, e.reason);
+    log->error(Logr::Warning, msg, e.reason);
   }
   catch (const ImmediateServFailException& e) {
     if (logErrors) {
-      log->error(Logr::Error, msg, e.reason);
+      log->error(Logr::Warning, msg, e.reason);
     }
   }
   catch (const PolicyHitException& e) {
     if (logErrors) {
-      log->error(Logr::Notice, msg, "PolicyHit");
+      log->error(Logr::Warning, msg, "PolicyHit");
     }
   }
   catch (...) {
-    log->error(Logr::Error, msg, "Unexpectec exception");
+    log->error(Logr::Warning, msg, "Unexpected exception");
   }
   if (exceptionOccurred) {
     if (task.d_refreshMode) {
@@ -166,6 +170,16 @@ static void resolve(const struct timeval& now, bool logErrors, const pdns::Resol
   }
 }
 
+static void resolveForceNoQM(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task) noexcept
+{
+  resolveInternal(now, logErrors, task, true);
+}
+
+static void resolve(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task) noexcept
+{
+  resolveInternal(now, logErrors, task, false);
+}
+
 static void tryDoT(const struct timeval& now, bool logErrors, const pdns::ResolveTask& task) noexcept
 {
   auto log = g_slog->withName("taskq")->withValues("method", Logging::Loggable("tryDoT"), "name", Logging::Loggable(task.d_qname), "qtype", Logging::Loggable(QType(task.d_qtype).toString()), "ip", Logging::Loggable(task.d_ip));
@@ -181,14 +195,14 @@ static void tryDoT(const struct timeval& now, bool logErrors, const pdns::Resolv
     log->info(Logr::Debug, "done", "ok", Logging::Loggable(tryOK));
   }
   catch (const std::exception& e) {
-    log->error(Logr::Error, msg, e.what());
+    log->error(Logr::Warning, msg, e.what());
   }
   catch (const PDNSException& e) {
-    log->error(Logr::Error, msg, e.reason);
+    log->error(Logr::Warning, msg, e.reason);
   }
   catch (const ImmediateServFailException& e) {
     if (logErrors) {
-      log->error(Logr::Error, msg, e.reason);
+      log->error(Logr::Warning, msg, e.reason);
     }
   }
   catch (const PolicyHitException& e) {
@@ -197,7 +211,7 @@ static void tryDoT(const struct timeval& now, bool logErrors, const pdns::Resolv
     }
   }
   catch (...) {
-    log->error(Logr::Error, msg, "Unexpected exception");
+    log->error(Logr::Warning, msg, "Unexpected exception");
   }
   if (exceptionOccurred) {
     ++s_resolve_tasks.exceptions;
@@ -247,14 +261,15 @@ void pushAlmostExpiredTask(const DNSName& qname, uint16_t qtype, time_t deadline
   }
 }
 
-void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline)
+void pushResolveTask(const DNSName& qname, uint16_t qtype, time_t now, time_t deadline, bool forceQMOff)
 {
   if (SyncRes::isUnsupported(qtype)) {
     auto log = g_slog->withName("taskq")->withValues("name", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype).toString()));
     log->error(Logr::Error, "Cannot push task", "qtype unsupported");
     return;
   }
-  pdns::ResolveTask task{qname, qtype, deadline, false, resolve, {}, {}, {}};
+  auto func = forceQMOff ? resolveForceNoQM : resolve;
+  pdns::ResolveTask task{qname, qtype, deadline, false, func, {}, {}, {}};
   auto lock = s_taskQueue.lock();
   bool inserted = lock->rateLimitSet.insert(now, task);
   if (inserted) {
@@ -335,4 +350,9 @@ uint64_t getResolveTasksRun()
 uint64_t getResolveTaskExceptions()
 {
   return s_almost_expired_tasks.exceptions;
+}
+
+bool taskQTypeIsSupported(QType qtype)
+{
+  return !SyncRes::isUnsupported(qtype);
 }

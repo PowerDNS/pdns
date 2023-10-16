@@ -45,17 +45,18 @@ PipeConnector::PipeConnector(std::map<std::string, std::string> optionsMap) :
 
 PipeConnector::~PipeConnector()
 {
-  int status;
+  int status = 0;
   // just in case...
-  if (d_pid == -1)
+  if (d_pid == -1) {
     return;
+  }
 
-  if (!waitpid(d_pid, &status, WNOHANG)) {
+  if (waitpid(d_pid, &status, WNOHANG) == 0) {
     kill(d_pid, 9);
     waitpid(d_pid, &status, 0);
   }
 
-  if (d_fd1[1]) {
+  if (d_fd1[1] != 0) {
     close(d_fd1[1]);
   }
 }
@@ -63,39 +64,46 @@ PipeConnector::~PipeConnector()
 void PipeConnector::launch()
 {
   // no relaunch
-  if (d_pid > 0 && checkStatus())
+  if (d_pid > 0 && checkStatus()) {
     return;
+  }
 
   std::vector<std::string> v;
   split(v, command, boost::is_any_of(" "));
 
   std::vector<const char*> argv(v.size() + 1);
-  argv[v.size()] = 0;
+  argv[v.size()] = nullptr;
 
-  for (size_t n = 0; n < v.size(); n++)
+  for (size_t n = 0; n < v.size(); n++) {
     argv[n] = v[n].c_str();
+  }
 
   signal(SIGPIPE, SIG_IGN);
 
-  if (access(argv[0], X_OK)) // check before fork so we can throw
+  if (access(argv[0], X_OK) != 0) { // check before fork so we can throw
     throw PDNSException("Command '" + string(argv[0]) + "' cannot be executed: " + stringerror());
+  }
 
-  if (pipe(d_fd1) < 0 || pipe(d_fd2) < 0)
+  if (pipe(d_fd1) < 0 || pipe(d_fd2) < 0) {
     throw PDNSException("Unable to open pipe for coprocess: " + string(strerror(errno)));
+  }
 
-  if ((d_pid = fork()) < 0)
+  if ((d_pid = fork()) < 0) {
     throw PDNSException("Unable to fork for coprocess: " + stringerror());
-  else if (d_pid > 0) { // parent speaking
+  }
+  if (d_pid > 0) { // parent speaking
     close(d_fd1[0]);
     setCloseOnExec(d_fd1[1]);
     close(d_fd2[1]);
     setCloseOnExec(d_fd2[0]);
-    if (!(d_fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(d_fd2[0], "r"), fclose)))
+    if (!(d_fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(d_fd2[0], "r"), fclose))) {
       throw PDNSException("Unable to associate a file pointer with pipe: " + stringerror());
-    if (d_timeout)
-      setbuf(d_fp.get(), 0); // no buffering please, confuses poll
+    }
+    if (d_timeout != 0) {
+      setbuf(d_fp.get(), nullptr); // no buffering please, confuses poll
+    }
   }
-  else if (!d_pid) { // child
+  else if (d_pid == 0) { // child
     signal(SIGCHLD, SIG_DFL); // silence a warning from perl
     close(d_fd1[1]);
     close(d_fd2[0]);
@@ -112,8 +120,9 @@ void PipeConnector::launch()
 
     // stdin & stdout are now connected, fire up our coprocess!
 
-    if (execv(argv[0], const_cast<char* const*>(argv.data())) < 0) // now what
+    if (execv(argv[0], const_cast<char* const*>(argv.data())) < 0) { // now what
       exit(123);
+    }
 
     /* not a lot we can do here. We shouldn't return because that will leave a forked process around.
        no way to log this either - only thing we can do is make sure that our parent catches this soonest! */
@@ -127,7 +136,7 @@ void PipeConnector::launch()
 
   this->send(msg);
   msg = nullptr;
-  if (this->recv(msg) == false) {
+  if (!this->recv(msg)) {
     g_log << Logger::Error << "Failed to initialize coprocess" << std::endl;
   }
 }
@@ -140,13 +149,14 @@ int PipeConnector::send_message(const Json& input)
   line.append(1, '\n');
 
   unsigned int sent = 0;
-  int bytes;
+  int bytes = 0;
 
   // writen routine - socket may not accept al data in one go
   while (sent < line.size()) {
     bytes = write(d_fd1[1], line.c_str() + sent, line.length() - sent);
-    if (bytes < 0)
+    if (bytes < 0) {
       throw PDNSException("Writing to coprocess failed: " + std::string(strerror(errno)));
+    }
 
     sent += bytes;
   }
@@ -162,33 +172,38 @@ int PipeConnector::recv_message(Json& output)
 
   while (1) {
     receive.clear();
-    if (d_timeout) {
+    if (d_timeout != 0) {
       int ret = waitForData(fileno(d_fp.get()), 0, d_timeout * 1000);
-      if (ret < 0)
+      if (ret < 0) {
         throw PDNSException("Error waiting on data from coprocess: " + stringerror());
-      if (!ret)
+      }
+      if (ret == 0) {
         throw PDNSException("Timeout waiting for data from coprocess");
+      }
     }
 
-    if (!stringfgets(d_fp.get(), receive))
+    if (!stringfgets(d_fp.get(), receive)) {
       throw PDNSException("Child closed pipe");
+    }
 
     s_output.append(receive);
     // see if it can be parsed
     output = Json::parse(s_output, err);
-    if (output != nullptr)
+    if (output != nullptr) {
       return s_output.size();
+    }
   }
   return 0;
 }
 
-bool PipeConnector::checkStatus()
+bool PipeConnector::checkStatus() const
 {
-  int status;
+  int status = 0;
   int ret = waitpid(d_pid, &status, WNOHANG);
-  if (ret < 0)
+  if (ret < 0) {
     throw PDNSException("Unable to ascertain status of coprocess " + std::to_string(d_pid) + " from " + std::to_string(getpid()) + ": " + string(strerror(errno)));
-  else if (ret) {
+  }
+  if (ret != 0) {
     if (WIFEXITED(status)) {
       int exitStatus = WEXITSTATUS(status);
       throw PDNSException("Coprocess exited with code " + std::to_string(exitStatus));
@@ -197,8 +212,9 @@ bool PipeConnector::checkStatus()
       int sig = WTERMSIG(status);
       string reason = "CoProcess died on receiving signal " + std::to_string(sig);
 #ifdef WCOREDUMP
-      if (WCOREDUMP(status))
+      if (WCOREDUMP(status)) {
         reason += ". Dumped core";
+      }
 #endif
 
       throw PDNSException(reason);

@@ -988,7 +988,7 @@ static void controlClientThread(ConsoleConnection&& conn)
     }
   }
   catch (const std::exception& e) {
-    errlog("Got an exception in client connection from %s: %s", conn.getClient().toStringWithPort(), e.what());
+    infolog("Got an exception in client connection from %s: %s", conn.getClient().toStringWithPort(), e.what());
   }
 }
 
@@ -1026,7 +1026,7 @@ void controlThread(int fd, ComboAddress local)
         t.detach();
       }
       catch (const std::exception& e) {
-        errlog("Control connection died: %s", e.what());
+        infolog("Control connection died: %s", e.what());
       }
     }
   }

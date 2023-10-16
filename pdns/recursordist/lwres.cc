@@ -385,7 +385,8 @@ static void addPadding(const DNSPacketWriter& pw, size_t bufsize, DNSPacketWrite
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws!
  */
-static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* lwr, bool* chained, TCPOutConnectionManager::Connection& connection)
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
+static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, const boost::optional<const ResolveContext&>& context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, [[maybe_unused]] const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* lwr, bool* chained, TCPOutConnectionManager::Connection& connection)
 {
   size_t len;
   size_t bufsize = g_outgoingEDNSBufsize;
@@ -395,7 +396,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
   //  string mapped0x20=dns0x20(domain);
   uint16_t qid = dns_random_uint16();
   DNSPacketWriter pw(vpacket, domain, type);
-  bool dnsOverTLS = SyncRes::s_dot_to_port_853 && ip.getPort() == 853;
+  bool dnsOverTLS = SyncRes::s_dot_to_port_853 && address.getPort() == 853;
 
   pw.getHeader()->rd = sendRDQuery;
   pw.getHeader()->id = qid;
@@ -446,7 +447,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 
   if (outgoingLoggers) {
     uuid = getUniqueID();
-    logOutgoingQuery(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, dnsOverTLS, vpacket.size(), srcmask);
+    logOutgoingQuery(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, address, domain, type, qid, doTCP, dnsOverTLS, vpacket.size(), srcmask);
   }
 
   srcmask = boost::none; // this is also our return value, even if EDNS0Level == 0
@@ -467,11 +468,11 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 
   if (!doTCP) {
     int queryfd;
-    if (ip.sin4.sin_family == AF_INET6) {
+    if (address.sin4.sin_family == AF_INET6) {
       t_Counters.at(rec::Counter::ipv6queries)++;
     }
 
-    ret = asendto((const char*)&*vpacket.begin(), vpacket.size(), 0, ip, qid, domain, type, weWantEDNSSubnet, &queryfd);
+    ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, weWantEDNSSubnet, &queryfd);
 
     if (ret != LWResult::Result::Success) {
       return ret;
@@ -484,18 +485,18 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 #ifdef HAVE_FSTRM
     if (!*chained) {
       if (fstrmQEnabled || fstrmREnabled) {
-        localip.sin4.sin_family = ip.sin4.sin_family;
-        socklen_t slen = ip.getSocklen();
+        localip.sin4.sin_family = address.sin4.sin_family;
+        socklen_t slen = address.getSocklen();
         (void)getsockname(queryfd, reinterpret_cast<sockaddr*>(&localip), &slen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast))
       }
       if (fstrmQEnabled) {
-        logFstreamQuery(fstrmLoggers, queryTime, localip, ip, DnstapMessage::ProtocolType::DoUDP, context ? context->d_auth : boost::none, vpacket);
+        logFstreamQuery(fstrmLoggers, queryTime, localip, address, DnstapMessage::ProtocolType::DoUDP, context ? context->d_auth : boost::none, vpacket);
       }
     }
 #endif /* HAVE_FSTRM */
 
     // sleep until we see an answer to this, interface to mtasker
-    ret = arecvfrom(buf, 0, ip, len, qid, domain, type, queryfd, *now);
+    ret = arecvfrom(buf, 0, address, len, qid, domain, type, queryfd, *now);
   }
   else {
     bool isNew;
@@ -510,11 +511,11 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
         if (context && !context->d_nsName.empty()) {
           nsName = context->d_nsName.toStringNoDot();
         }
-        isNew = tcpconnect(ip, connection, dnsOverTLS, nsName);
-        ret = tcpsendrecv(ip, connection, localip, vpacket, len, buf);
+        isNew = tcpconnect(address, connection, dnsOverTLS, nsName);
+        ret = tcpsendrecv(address, connection, localip, vpacket, len, buf);
 #ifdef HAVE_FSTRM
         if (fstrmQEnabled) {
-          logFstreamQuery(fstrmLoggers, queryTime, localip, ip, !dnsOverTLS ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoT, context ? context->d_auth : boost::none, vpacket);
+          logFstreamQuery(fstrmLoggers, queryTime, localip, address, !dnsOverTLS ? DnstapMessage::ProtocolType::DoTCP : DnstapMessage::ProtocolType::DoT, context ? context->d_auth : boost::none, vpacket);
         }
 #endif /* HAVE_FSTRM */
         if (ret == LWResult::Result::Success) {
@@ -536,7 +537,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 
   if (ret != LWResult::Result::Success) { // includes 'timeout'
     if (outgoingLoggers) {
-      logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, dnsOverTLS, srcmask, 0, -1, {}, queryTime, exportTypes);
+      logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, address, domain, type, qid, doTCP, dnsOverTLS, srcmask, 0, -1, {}, queryTime, exportTypes);
     }
     return ret;
   }
@@ -549,7 +550,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
     if (dnsOverTLS) {
       protocol = DnstapMessage::ProtocolType::DoT;
     }
-    logFstreamResponse(fstrmLoggers, localip, ip, protocol, context ? context->d_auth : boost::none, buf, queryTime, *now);
+    logFstreamResponse(fstrmLoggers, localip, address, protocol, context ? context->d_auth : boost::none, buf, queryTime, *now);
   }
 #endif /* HAVE_FSTRM */
 
@@ -563,7 +564,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 
     if (mdp.d_header.rcode == RCode::FormErr && mdp.d_qname.empty() && mdp.d_qtype == 0 && mdp.d_qclass == 0) {
       if (outgoingLoggers) {
-        logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, dnsOverTLS, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
+        logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, address, domain, type, qid, doTCP, dnsOverTLS, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
       }
       lwr->d_validpacket = true;
       return LWResult::Result::Success; // this is "success", the error is set in lwr->d_rcode
@@ -571,9 +572,9 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
 
     if (domain != mdp.d_qname) {
       if (!mdp.d_qname.empty() && domain.toString().find((char)0) == string::npos /* ugly */) { // embedded nulls are too noisy, plus empty domains are too
-        SLOG(g_log << Logger::Notice << "Packet purporting to come from remote server " << ip.toString() << " contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl,
+        SLOG(g_log << Logger::Notice << "Packet purporting to come from remote server " << address.toString() << " contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl,
              g_slogout->info(Logr::Notice, "Packet purporting to come from remote server contained wrong answer",
-                             "server", Logging::Loggable(ip),
+                             "server", Logging::Loggable(address),
                              "qname", Logging::Loggable(domain),
                              "onwire", Logging::Loggable(mdp.d_qname)));
       }
@@ -610,7 +611,7 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
     }
 
     if (outgoingLoggers) {
-      logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, dnsOverTLS, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
+      logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, address, domain, type, qid, doTCP, dnsOverTLS, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
 
     lwr->d_validpacket = true;
@@ -618,8 +619,8 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
   }
   catch (const std::exception& mde) {
     if (::arg().mustDo("log-common-errors")) {
-      SLOG(g_log << Logger::Notice << "Unable to parse packet from remote server " << ip.toString() << ": " << mde.what() << endl,
-           g_slogout->error(Logr::Notice, mde.what(), "Unable to parse packet from remote server", "server", Logging::Loggable(ip),
+      SLOG(g_log << Logger::Notice << "Unable to parse packet from remote server " << address.toString() << ": " << mde.what() << endl,
+           g_slogout->error(Logr::Notice, mde.what(), "Unable to parse packet from remote server", "server", Logging::Loggable(address),
                             "exception", Logging::Loggable("std::exception")));
     }
 
@@ -628,14 +629,14 @@ static LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& doma
     t_Counters.at(rec::Counter::serverParseError)++;
 
     if (outgoingLoggers) {
-      logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, ip, domain, type, qid, doTCP, dnsOverTLS, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
+      logIncomingResponse(outgoingLoggers, context ? context->d_initialRequestId : boost::none, uuid, address, domain, type, qid, doTCP, dnsOverTLS, srcmask, len, lwr->d_rcode, lwr->d_records, queryTime, exportTypes);
     }
 
     return LWResult::Result::Success; // success - oddly enough
   }
   catch (...) {
     SLOG(g_log << Logger::Notice << "Unknown error parsing packet from remote server" << endl,
-         g_slogout->info(Logr::Notice, "Unknown error parsing packet from remote server", "server", Logging::Loggable(ip)));
+         g_slogout->info(Logr::Notice, "Unknown error parsing packet from remote server", "server", Logging::Loggable(address)));
   }
 
   t_Counters.at(rec::Counter::serverParseError)++;

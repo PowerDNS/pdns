@@ -53,6 +53,7 @@
 #endif
 
 #include "auth-main.hh"
+#include "coverage.hh"
 #include "secpoll-auth.hh"
 #include "dynhandler.hh"
 #include "dnsseckeeper.hh"
@@ -328,6 +329,8 @@ static void declareArguments()
   ::arg().setSwitch("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
   ::arg().set("rng", "Specify the random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.") = "auto";
+
+  ::arg().set("default-catalog-zone", "Catalog zone to assign newly created primary zones (via the API) to") = "";
 #ifdef ENABLE_GSS_TSIG
   ::arg().setSwitch("enable-gss-tsig", "Enable GSS TSIG processing") = "no";
 #endif
@@ -1181,6 +1184,14 @@ static void tbhandler(int num)
 }
 #endif
 
+#ifdef COVERAGE
+static void sigTermHandler([[maybe_unused]] int signal)
+{
+  pdns::coverage::dumpCoverageData();
+  _exit(EXIT_SUCCESS);
+}
+#endif /* COVERAGE */
+
 //! The main function of pdns, the pdns process
 int main(int argc, char** argv)
 {
@@ -1279,6 +1290,12 @@ int main(int argc, char** argv)
       // never get here, guardian will reinvoke process
       cerr << "Um, we did get here!" << endl;
     }
+
+#ifdef COVERAGE
+    if (!::arg().mustDo("guardian") && !::arg().mustDo("daemon")) {
+      signal(SIGTERM, sigTermHandler);
+    }
+#endif
 
     // we really need to do work - either standalone or as an instance
 
@@ -1480,6 +1497,17 @@ int main(int argc, char** argv)
   }
   catch (const PDNSException& PE) {
     g_log << Logger::Error << "Exiting because: " << PE.reason << endl;
+    exit(1);
+  }
+
+  try {
+    auto defaultCatalog = ::arg()["default-catalog-zone"];
+    if (!defaultCatalog.empty()) {
+      auto defCatalog = DNSName(defaultCatalog);
+    }
+  }
+  catch (const std::exception& e) {
+    g_log << Logger::Error << "Invalid value '" << ::arg()["default-catalog-zone"] << "' for default-catalog-zone: " << e.what() << endl;
     exit(1);
   }
   S.blacklist("special-memory-usage");

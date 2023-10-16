@@ -153,7 +153,7 @@ public:
         d_end = range.second;
       }
       else {
-        auto range = idx.equal_range(std::make_tuple(qdomain, qtype.getCode()));
+        auto range = idx.equal_range(std::tuple(qdomain, qtype.getCode()));
         d_iter = range.first;
         d_end = range.second;
       }
@@ -200,7 +200,7 @@ public:
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override
   {
     const auto& idx = boost::multi_index::get<OrderedNameKindTag>(s_metadata.at(d_backendId));
-    auto it = idx.find(std::make_tuple(name, kind));
+    auto it = idx.find(std::tuple(name, kind));
     if (it == idx.end()) {
       /* funnily enough, we are expected to return true even though we might not know that zone */
       return true;
@@ -213,7 +213,7 @@ public:
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override
   {
     auto& idx = boost::multi_index::get<OrderedNameKindTag>(s_metadata.at(d_backendId));
-    auto it = idx.find(std::make_tuple(name, kind));
+    auto it = idx.find(std::tuple(name, kind));
     if (it == idx.end()) {
       s_metadata.at(d_backendId).insert(SimpleMetaData(name, kind, meta));
       return true;
@@ -258,7 +258,7 @@ public:
       }
 
       auto& idx = records->get<OrderedNameTypeTag>();
-      auto range = idx.equal_range(std::make_tuple(best, QType::SOA));
+      auto range = idx.equal_range(std::tuple(best, QType::SOA));
       if (range.first == range.second) {
         return false;
       }
@@ -1155,7 +1155,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_metadata) {
 
     {
       // check that it has not been updated in the second backend
-      const auto& it = SimpleBackend::s_metadata[2].find(std::make_tuple(DNSName("powerdns.org."), "test-data-b"));
+      const auto& it = SimpleBackend::s_metadata[2].find(std::tuple(DNSName("powerdns.org."), "test-data-b"));
       BOOST_REQUIRE(it != SimpleBackend::s_metadata[2].end());
       BOOST_REQUIRE_EQUAL(it->d_values.size(), 2U);
       BOOST_CHECK_EQUAL(it->d_values.at(0), "value1");

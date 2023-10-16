@@ -54,6 +54,14 @@
 
 uint16_t MemRecursorCache::s_maxServedStaleExtensions;
 
+void MemRecursorCache::resetStaticsForTests()
+{
+  s_maxServedStaleExtensions = 0;
+  SyncRes::s_refresh_ttlperc = 0;
+  SyncRes::s_locked_ttlperc = 0;
+  SyncRes::s_minimumTTL = 0;
+}
+
 MemRecursorCache::MemRecursorCache(size_t mapsCount) :
   d_maps(mapsCount == 0 ? 1 : mapsCount)
 {
@@ -63,7 +71,7 @@ size_t MemRecursorCache::size() const
 {
   size_t count = 0;
   for (const auto& shard : d_maps) {
-    count += shard.d_entriesCount;
+    count += shard.getEntriesCount();
   }
   return count;
 }
@@ -240,7 +248,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
         /* we have nothing more specific for you */
         break;
       }
-      auto key = std::make_tuple(qname, qtype, boost::none, best);
+      auto key = std::tuple(qname, qtype, boost::none, best);
       auto entry = map.d_map.find(key);
       if (entry == map.d_map.end()) {
         /* ecsIndex is not up-to-date */
@@ -274,7 +282,7 @@ MemRecursorCache::cache_t::const_iterator MemRecursorCache::getEntryUsingECSInde
   }
 
   /* we have nothing specific, let's see if we have a generic one */
-  auto key = std::make_tuple(qname, qtype, boost::none, Netmask());
+  auto key = std::tuple(qname, qtype, boost::none, Netmask());
   auto entry = map.d_map.find(key);
   if (entry != map.d_map.end()) {
     handleServeStaleBookkeeping(now, serveStale, entry);
@@ -543,12 +551,12 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
 
   // We only store with a tag if we have an ednsmask and the tag is available
   // We only store an ednsmask if we do not have a tag and we do have a mask.
-  auto key = std::make_tuple(qname, qt.getCode(), ednsmask ? routingTag : boost::none, (ednsmask && !routingTag) ? *ednsmask : Netmask());
+  auto key = std::tuple(qname, qt.getCode(), ednsmask ? routingTag : boost::none, (ednsmask && !routingTag) ? *ednsmask : Netmask());
   bool isNew = false;
   cache_t::iterator stored = lockedShard->d_map.find(key);
   if (stored == lockedShard->d_map.end()) {
     stored = lockedShard->d_map.insert(CacheEntry(key, auth)).first;
-    ++shard.d_entriesCount;
+    shard.incEntriesCount();
     isNew = true;
   }
 
@@ -560,7 +568,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qt,
   if (isNew || stored->d_ttd <= now) {
     /* don't bother building an ecsIndex if we don't have any netmask-specific entries */
     if (!routingTag && ednsmask && !ednsmask->empty()) {
-      auto ecsIndexKey = std::make_tuple(qname, qt.getCode());
+      auto ecsIndexKey = std::tuple(qname, qt.getCode());
       auto ecsIndex = lockedShard->d_ecsIndex.find(ecsIndexKey);
       if (ecsIndex == lockedShard->d_ecsIndex.end()) {
         ecsIndex = lockedShard->d_ecsIndex.insert(ECSIndexEntry(qname, qt.getCode())).first;
@@ -641,7 +649,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
       if (i->d_qtype == qtype || qtype == 0xffff) {
         i = idx.erase(i);
         count++;
-        --shard.d_entriesCount;
+        shard.decEntriesCount();
       }
       else {
         ++i;
@@ -670,7 +678,7 @@ size_t MemRecursorCache::doWipeCache(const DNSName& name, bool sub, const QType 
         if (i->d_qtype == qtype || qtype == 0xffff) {
           count++;
           i = idx.erase(i);
-          --mc.d_entriesCount;
+          mc.decEntriesCount();
         }
         else {
           ++i;
@@ -821,10 +829,10 @@ uint64_t MemRecursorCache::doDump(int fd, size_t maxCacheEntries)
   return count;
 }
 
-void MemRecursorCache::doPrune(size_t keep)
+void MemRecursorCache::doPrune(time_t now, size_t keep)
 {
   size_t cacheSize = size();
-  pruneMutexCollectionsVector<SequencedTag>(*this, d_maps, keep, cacheSize);
+  pruneMutexCollectionsVector<SequencedTag>(now, *this, d_maps, keep, cacheSize);
 }
 
 namespace boost

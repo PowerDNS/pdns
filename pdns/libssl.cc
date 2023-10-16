@@ -1032,7 +1032,7 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
   }
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
-  return std::make_pair(std::move(ctx), std::move(warnings));
+  return {std::move(ctx), std::move(warnings)};
 }
 
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK

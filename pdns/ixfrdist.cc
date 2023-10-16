@@ -532,6 +532,7 @@ static bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   pw.getHeader()->id = mdp.d_header.id;
   pw.getHeader()->rd = mdp.d_header.rd;
   pw.getHeader()->qr = 1;
+  pw.getHeader()->aa = 1;
 
   pw.startRecord(mdp.d_qname, QType::SOA, zoneInfo->soaTTL);
   zoneInfo->soa->toPacket(pw);
@@ -1122,7 +1123,7 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
       }
       if (domain["max-soa-refresh"]) {
         try {
-          config["max-soa-refresh"].as<uint32_t>();
+          domain["max-soa-refresh"].as<uint32_t>();
         } catch (const runtime_error &e) {
           g_log<<Logger::Error<<"Unable to read 'max-soa-refresh' value for domain '"<<domain["domain"].as<string>()<<"': "<<e.what()<<endl;
         }
@@ -1179,12 +1180,27 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
   return retval;
 }
 
-int main(int argc, char** argv) {
-  g_log.setLoglevel(Logger::Notice);
-  g_log.toConsole(Logger::Notice);
-  g_log.setPrefixed(true);
-  g_log.disableSyslog(true);
-  g_log.setTimestamps(false);
+struct IXFRDistConfiguration
+{
+  set<int> listeningSockets;
+  NetmaskGroup wsACL;
+  ComboAddress wsAddr;
+  std::string wsLogLevel{"normal"};
+  std::string workDir;
+  const struct passwd* userInfo{nullptr};
+  uint32_t axfrMaxRecords{0};
+  uint16_t keep{0};
+  uint16_t axfrTimeout{0};
+  uint16_t failedSOARetry{0};
+  uint16_t tcpInThreads{0};
+  uid_t uid{0};
+  gid_t gid{0};
+  bool shouldExit{false};
+};
+
+static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** argv, FDMultiplexer& fdm)
+{
+  IXFRDistConfiguration configuration;
   po::variables_map g_vm;
   std::string configPath;
 
@@ -1203,23 +1219,25 @@ int main(int argc, char** argv) {
 
     if (g_vm.count("help") > 0) {
       usage(desc);
-      return EXIT_SUCCESS;
+      configuration.shouldExit = true;
+      return configuration;
     }
 
     if (g_vm.count("version") > 0) {
       cout<<"ixfrdist "<<VERSION<<endl;
-      return EXIT_SUCCESS;
+      configuration.shouldExit = true;
+      return configuration;
     }
 
     configPath = g_vm["config"].as<string>();
   }
   catch (const po::error &e) {
     g_log<<Logger::Error<<e.what()<<". See `ixfrdist --help` for valid options"<<endl;
-    return(EXIT_FAILURE);
+    return std::nullopt;
   }
   catch (const std::exception& exp) {
     g_log<<Logger::Error<<exp.what()<<". See `ixfrdist --help` for valid options"<<endl;
-    return(EXIT_FAILURE);
+    return std::nullopt;
   }
 
   bool had_error = false;
@@ -1240,16 +1258,16 @@ int main(int argc, char** argv) {
     YAML::Node config;
     if (!parseAndCheckConfig(configPath, config)) {
       // parseAndCheckConfig already logged whatever was wrong
-      return EXIT_FAILURE;
+      return std::nullopt;
     }
 
-  /*  From hereon out, we known that all the values in config are valid. */
+    /*  From hereon out, we known that all the values in config are valid. */
 
     for (auto const &domain : config["domains"]) {
       set<ComboAddress> s;
       s.insert(domain["master"].as<ComboAddress>());
       g_domainConfigs[domain["domain"].as<DNSName>()].masters = s;
-      if (domain["max-soa-refresh"]) {
+      if (domain["max-soa-refresh"].IsDefined()) {
         g_domainConfigs[domain["domain"].as<DNSName>()].maxSOARefresh = domain["max-soa-refresh"].as<uint32_t>();
       }
       g_stats.registerDomain(domain["domain"].as<DNSName>());
@@ -1276,20 +1294,13 @@ int main(int argc, char** argv) {
       g_log<<Logger::Error<<"Error printing ACL: "<<exp.what()<<endl;
     }
 
-    if (config["compress"]) {
+    if (config["compress"].IsDefined()) {
       g_compress = config["compress"].as<bool>();
       if (g_compress) {
         g_log<<Logger::Notice<<"Record compression is enabled."<<endl;
       }
     }
 
-    FDMultiplexer* fdm = FDMultiplexer::getMultiplexerSilent();
-    if (fdm == nullptr) {
-      g_log<<Logger::Error<<"Could not enable a multiplexer for the listen sockets!"<<endl;
-      return EXIT_FAILURE;
-    }
-
-    set<int> allSockets;
     for (const auto& addr : config["listen"].as<vector<ComboAddress>>()) {
       for (const auto& stype : {SOCK_DGRAM, SOCK_STREAM}) {
         try {
@@ -1300,8 +1311,8 @@ int main(int argc, char** argv) {
           if (stype == SOCK_STREAM) {
             SListen(s, 30); // TODO make this configurable
           }
-          fdm->addReadFD(s, stype == SOCK_DGRAM ? handleUDPRequest : handleTCPRequest);
-          allSockets.insert(s);
+          fdm.addReadFD(s, stype == SOCK_DGRAM ? handleUDPRequest : handleTCPRequest);
+          configuration.listeningSockets.insert(s);
         }
         catch (const runtime_error& exp) {
           g_log<<Logger::Error<<exp.what()<<endl;
@@ -1316,36 +1327,38 @@ int main(int argc, char** argv) {
       }
     }
 
-    int newgid = 0;
-
-    if (config["gid"]) {
-      string gid = config["gid"].as<string>();
-      if (!(newgid = atoi(gid.c_str()))) {
-        struct group *gr = getgrnam(gid.c_str());
+    if (config["gid"].IsDefined()) {
+      auto gid = config["gid"].as<string>();
+      try {
+        configuration.gid = pdns::checked_stoi<gid_t>(gid);
+      }
+      catch (const std::exception& e) {
+        g_log<<Logger::Error<<"Can not parse gid "<<gid<<endl;
+        had_error = true;
+      }
+      if (configuration.gid != 0) {
+        //NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+        const struct group *gr = getgrnam(gid.c_str());
         if (gr == nullptr) {
           g_log<<Logger::Error<<"Can not determine group-id for gid "<<gid<<endl;
           had_error = true;
         } else {
-          newgid = gr->gr_gid;
+          configuration.gid = gr->gr_gid;
         }
-      }
-      g_log<<Logger::Notice<<"Dropping effective group-id to "<<newgid<<endl;
-      if (setgid(newgid) < 0) {
-        g_log<<Logger::Error<<"Could not set group id to "<<newgid<<": "<<stringerror()<<endl;
-        had_error = true;
       }
     }
 
-    if (config["webserver-address"]) {
-      NetmaskGroup wsACL;
-      try {
-        wsACL.addMask("127.0.0.0/8");
-        wsACL.addMask("::1/128");
+    if (config["webserver-address"].IsDefined()) {
+      configuration.wsAddr = config["webserver-address"].as<ComboAddress>();
 
-        if (config["webserver-acl"]) {
-          wsACL.clear();
+      try {
+        configuration.wsACL.addMask("127.0.0.0/8");
+        configuration.wsACL.addMask("::1/128");
+
+        if (config["webserver-acl"].IsDefined()) {
+          configuration.wsACL.clear();
           for (const auto &acl : config["webserver-acl"].as<vector<Netmask>>()) {
-            wsACL.addMask(acl);
+            configuration.wsACL.addMask(acl);
           }
         }
       }
@@ -1353,96 +1366,174 @@ int main(int argc, char** argv) {
         g_log<<Logger::Error<<"Could not set the webserver ACL: "<<ne.reason<<endl;
         had_error = true;
       }
-
-      string loglevel = "normal";
-      if (config["webserver-loglevel"]) {
-        loglevel = config["webserver-loglevel"].as<string>();
-      }
-
-      // Launch the webserver!
-      try {
-        std::thread(&IXFRDistWebServer::go, IXFRDistWebServer(config["webserver-address"].as<ComboAddress>(), wsACL, loglevel)).detach();
-      }
       catch (const std::exception& exp) {
-        g_log<<Logger::Error<<"Unable to start webserver: "<<exp.what()<<endl;
+        g_log<<Logger::Error<<"Could not set the webserver ACL: "<<exp.what()<<endl;
         had_error = true;
       }
-      catch (const PDNSException &e) {
-        g_log<<Logger::Error<<"Unable to start webserver: "<<e.reason<<endl;
-        had_error = true;
+
+      if (config["webserver-loglevel"]) {
+        configuration.wsLogLevel = config["webserver-loglevel"].as<string>();
       }
     }
 
-    int newuid = 0;
-
-    if (config["uid"]) {
-      string uid = config["uid"].as<string>();
-      if (!(newuid = atoi(uid.c_str()))) {
-        struct passwd *pw = getpwnam(uid.c_str());
+    if (config["uid"].IsDefined()) {
+      auto uid = config["uid"].as<string>();
+      try {
+        configuration.uid = pdns::checked_stoi<uid_t>(uid);
+      }
+      catch (const std::exception& e) {
+        g_log<<Logger::Error<<"Can not parse uid "<<uid<<endl;
+        had_error = true;
+      }
+      if (configuration.uid != 0) {
+        //NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+        const struct passwd *pw = getpwnam(uid.c_str());
         if (pw == nullptr) {
           g_log<<Logger::Error<<"Can not determine user-id for uid "<<uid<<endl;
           had_error = true;
         } else {
-          newuid = pw->pw_uid;
+          configuration.uid = pw->pw_uid;
         }
-      }
-
-      struct passwd *pw = getpwuid(newuid);
-      if (pw == nullptr) {
-        if (setgroups(0, nullptr) < 0) {
-          g_log<<Logger::Error<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
-          had_error = true;
-        }
-      } else {
-        if (initgroups(pw->pw_name, newgid) < 0) {
-          g_log<<Logger::Error<<"Unable to set supplementary groups: "<<stringerror()<<endl;
-          had_error = true;
-        }
-      }
-
-      g_log<<Logger::Notice<<"Dropping effective user-id to "<<newuid<<endl;
-      if (setuid(newuid) < 0) {
-        g_log<<Logger::Error<<"Could not set user id to "<<newuid<<": "<<stringerror()<<endl;
-        had_error = true;
+        //NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+        configuration.userInfo = getpwuid(configuration.uid);
       }
     }
 
+    configuration.workDir = config["work-dir"].as<string>();
+    configuration.keep = config["keep"].as<uint16_t>();
+    configuration.axfrTimeout = config["axfr-timeout"].as<uint16_t>();
+    configuration.failedSOARetry = config["failed-soa-retry"].as<uint16_t>();
+    configuration.axfrMaxRecords = config["axfr-max-records"].as<uint32_t>();
+    configuration.tcpInThreads = config["tcp-in-threads"].as<uint16_t>();
+
     if (had_error) {
+      return std::nullopt;
+    }
+    return configuration;
+  }
+  catch (const YAML::Exception& exp) {
+    had_error = true;
+    g_log<<Logger::Error<<"Got an exception while applying our configuration: "<<exp.msg<<endl;
+    return std::nullopt;
+  }
+}
+
+int main(int argc, char** argv) {
+  bool had_error = false;
+  std::optional<IXFRDistConfiguration> configuration{std::nullopt};
+  std::unique_ptr<FDMultiplexer> fdm{nullptr};
+
+  try {
+    g_log.setLoglevel(Logger::Notice);
+    g_log.toConsole(Logger::Notice);
+    g_log.setPrefixed(true);
+    g_log.disableSyslog(true);
+    g_log.setTimestamps(false);
+
+    fdm = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
+    if (!fdm) {
+      g_log<<Logger::Error<<"Could not enable a multiplexer for the listen sockets!"<<endl;
+      return EXIT_FAILURE;
+    }
+
+    configuration = parseConfiguration(argc, argv, *fdm);
+    if (!configuration) {
       // We have already sent the errors to stderr, just die
       return EXIT_FAILURE;
+    }
+
+    if (configuration->shouldExit) {
+      return EXIT_SUCCESS;
+    }
+  }
+  catch (const YAML::Exception& exp) {
+    had_error = true;
+    g_log<<Logger::Error<<"Got an exception while processing our configuration: "<<exp.msg<<endl;
+  }
+
+  try {
+    if (configuration->gid != 0) {
+      g_log<<Logger::Notice<<"Dropping effective group-id to "<<configuration->gid<<endl;
+      if (setgid(configuration->gid) < 0) {
+        g_log<<Logger::Error<<"Could not set group id to "<<configuration->gid<<": "<<stringerror()<<endl;
+        had_error = true;
+      }
     }
 
     // It all starts here
     signal(SIGTERM, handleSignal);
     signal(SIGINT, handleSignal);
+    //NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     signal(SIGPIPE, SIG_IGN);
 
+    // Launch the webserver!
+    try {
+      std::thread(&IXFRDistWebServer::go, IXFRDistWebServer(configuration->wsAddr, configuration->wsACL, configuration->wsLogLevel)).detach();
+    }
+    catch (const std::exception& exp) {
+      g_log<<Logger::Error<<"Unable to start webserver: "<<exp.what()<<endl;
+      had_error = true;
+    }
+    catch (const PDNSException &e) {
+      g_log<<Logger::Error<<"Unable to start webserver: "<<e.reason<<endl;
+      had_error = true;
+    }
+
+    if (configuration->uid != 0) {
+      g_log<<Logger::Notice<<"Dropping effective user-id to "<<configuration->uid<<endl;
+      if (setuid(configuration->uid) < 0) {
+        g_log<<Logger::Error<<"Could not set user id to "<<configuration->uid<<": "<<stringerror()<<endl;
+        had_error = true;
+      }
+      if (configuration->userInfo == nullptr) {
+        if (setgroups(0, nullptr) < 0) {
+          g_log<<Logger::Error<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
+          had_error = true;
+        }
+      } else {
+        if (initgroups(configuration->userInfo->pw_name, configuration->gid) < 0) {
+          g_log<<Logger::Error<<"Unable to set supplementary groups: "<<stringerror()<<endl;
+          had_error = true;
+        }
+      }
+    }
+
+    if (had_error) {
+      return EXIT_FAILURE;
+    }
+  }
+  catch (const YAML::Exception& exp) {
+    had_error = true;
+    g_log<<Logger::Error<<"Got an exception while applying our configuration: "<<exp.msg<<endl;
+  }
+
+  try {
     // Init the things we need
     reportAllTypes();
 
     std::thread ut(updateThread,
-                   config["work-dir"].as<string>(),
-                   config["keep"].as<uint16_t>(),
-                   config["axfr-timeout"].as<uint16_t>(),
-                   config["failed-soa-retry"].as<uint16_t>(),
-                   config["axfr-max-records"].as<uint32_t>());
+                   configuration->workDir,
+                   configuration->keep,
+                   configuration->axfrTimeout,
+                   configuration->failedSOARetry,
+                   configuration->axfrMaxRecords);
 
     vector<std::thread> tcpHandlers;
-    tcpHandlers.reserve(config["tcp-in-threads"].as<uint16_t>());
+    tcpHandlers.reserve(configuration->tcpInThreads);
     for (size_t i = 0; i < tcpHandlers.capacity(); ++i) {
       tcpHandlers.push_back(std::thread(tcpWorker, i));
     }
 
     struct timeval now;
-    for(;;) {
+    for (;;) {
       gettimeofday(&now, 0);
       fdm->run(&now);
       if (g_exiting) {
         g_log<<Logger::Debug<<"Closing listening sockets"<<endl;
-        for (const int& fd : allSockets) {
+        for (const int& fd : configuration->listeningSockets) {
           try {
             closesocket(fd);
-          } catch(PDNSException &e) {
+          } catch (const PDNSException &e) {
             g_log<<Logger::Error<<e.reason<<endl;
           }
         }
@@ -1460,7 +1551,7 @@ int main(int argc, char** argv) {
   }
   catch (const YAML::Exception& exp) {
     had_error = true;
-    g_log<<Logger::Error<<"Got an exception while applying our configuration: "<<exp.msg<<endl;
+    g_log<<Logger::Error<<"Got an exception: "<<exp.msg<<endl;
   }
 
   return had_error ? EXIT_FAILURE : EXIT_SUCCESS;

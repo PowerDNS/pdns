@@ -4,7 +4,7 @@ import struct
 import threading
 import time
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 try:
   range = xrange
@@ -16,12 +16,12 @@ class TestTCPShort(DNSDistTest):
     # because, contrary to the other ones, its
     # responders allow trailing data and multiple responses,
     # and we don't want to mix things up.
-    _testServerPort = 5361
+    _testServerPort = pickAvailablePort()
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = 8453
+    _tlsServerPort = pickAvailablePort()
     _tcpSendTimeout = 60
     _config_template = """
     newServer{address="127.0.0.1:%s"}
@@ -35,11 +35,11 @@ class TestTCPShort(DNSDistTest):
         print("Launching responders..")
 
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, True])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
 
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, True, True])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
     def testTCPShortRead(self):

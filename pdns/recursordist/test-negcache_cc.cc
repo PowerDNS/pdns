@@ -291,7 +291,7 @@ BOOST_AUTO_TEST_CASE(test_prune)
 
   BOOST_CHECK_EQUAL(cache.size(), 400U);
 
-  cache.prune(100);
+  cache.prune(now.tv_sec, 100);
 
   BOOST_CHECK_EQUAL(cache.size(), 100U);
 }
@@ -313,7 +313,7 @@ BOOST_AUTO_TEST_CASE(test_prune_many_shards)
 
   BOOST_CHECK_EQUAL(cache.size(), 400U);
 
-  cache.prune(100);
+  cache.prune(now.tv_sec, 100);
 
   BOOST_CHECK_EQUAL(cache.size(), 100U);
 }
@@ -340,7 +340,7 @@ BOOST_AUTO_TEST_CASE(test_prune_valid_entries)
 
   /* power2 has been inserted more recently, so it should be
      removed last */
-  cache.prune(1);
+  cache.prune(now.tv_sec, 1);
   BOOST_CHECK_EQUAL(cache.size(), 1U);
 
   NegCache::NegCacheEntry got;
@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(test_prune_valid_entries)
 
   /* power2 has been updated more recently, so it should be
      removed last */
-  cache.prune(1);
+  cache.prune(now.tv_sec, 1);
 
   BOOST_CHECK_EQUAL(cache.size(), 1U);
   got = NegCache::NegCacheEntry();

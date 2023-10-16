@@ -85,7 +85,7 @@ struct lazy_allocator
 #ifdef __OpenBSD__
     // OpenBSD does not like mmap MAP_STACK regions that have
     // PROT_NONE, so allocate r/w and mprotect the guard pages
-    // explictly.
+    // explicitly.
     const int protection = PROT_READ | PROT_WRITE;
 #else
     const int protection = PROT_NONE;

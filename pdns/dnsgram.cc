@@ -163,7 +163,7 @@ try
           }
 
           if(mdp.d_header.rd && !mdp.d_header.qr) {
-	    rdqcounts[pr.d_pheader.ts.tv_sec + 0.01*(pr.d_pheader.ts.tv_usec/10000)]++;
+	    rdqcounts[pr.d_pheader.ts.tv_sec + 0.01*(pr.d_pheader.ts.tv_usec/10000.0)]++;
             g_lastquestionTime=pr.d_pheader.ts;
             g_clientQuestions++;
             totalQueries++;
@@ -171,7 +171,7 @@ try
             questions.emplace(mdp.d_qname, mdp.d_qtype);
           }
           else if(mdp.d_header.rd && mdp.d_header.qr) {
-	    rdacounts[pr.d_pheader.ts.tv_sec + 0.01*(pr.d_pheader.ts.tv_usec/10000)]++;
+	    rdacounts[pr.d_pheader.ts.tv_sec + 0.01*(pr.d_pheader.ts.tv_usec/10000.0)]++;
             g_lastanswerTime=pr.d_pheader.ts;
             g_clientResponses++;
             answers.emplace(mdp.d_qname, mdp.d_qtype);

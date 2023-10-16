@@ -12,3 +12,7 @@
 /recursor.conf
 /rec-conf.d
 /bindbackend.conf
+/acl-notify.list
+/acl-notify.list.yml
+/acl.list.yml
+/recursor.yml

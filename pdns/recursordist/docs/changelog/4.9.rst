@@ -1,11 +1,64 @@
 Changelogs for 4.9.X
 ====================
 .. changelog::
+  :version: 4.9.1
+  :released: 25th of August 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13163
+    :tickets: 13071
+
+    Fix code producing json.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13161
+    :tickets: 13106
+
+    Replace data in the aggressive cache if new data becomes available.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13160
+    :tickets: 13151
+
+    Fix a few typos in log messages.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13159
+    :tickets: 13105
+
+    (I)XFR: handle partial read of len prefix.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13057
+    :tickets: 13021
+
+    Fix setting of policy tags on packet cache hits.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12995
+    :tickets: 12961
+
+    Work around Red Hat 8 misfeature OpenSSL's headers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 12994
+    :tickets: 12935
+
+    Stop using the now deprecated ERR_load_CRYPTO_strings() to detect OpenSSL.
+
+.. changelog::
   :version: 4.9.0
   :released: 30th of June 2023
 
   Please review the :doc:`Upgrade Guide <../upgrade>` before upgrading from versions < 4.9.x.
- 
+
   .. change::
     :tags: Bug Fixes
     :pullreq: 12968
@@ -157,7 +210,7 @@ Changelogs for 4.9.X
     :tags: Improvements
     :pullreq: 10072,12716
 
-    Update Debian packaging for Recursor (Chris Hofstaedtler).
+    Update Debian packaging for Recursor, including removal of sysv init script (Chris Hofstaedtler).
 
   .. change::
     :tags: Improvements

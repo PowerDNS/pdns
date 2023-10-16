@@ -97,7 +97,7 @@ Renamed options
 ~~~~~~~~~~~~~~~
 
 Various settings have been renamed.
-Their old names still work in 4.5.x, but will be removed in the release after it.
+Their old names still work in 4.5.x, but will be removed in a release after it.
 
 * :ref:`setting-allow-unsigned-supermaster` is now :ref:`setting-allow-unsigned-autoprimary`
 * :ref:`setting-master` is now :ref:`setting-primary`

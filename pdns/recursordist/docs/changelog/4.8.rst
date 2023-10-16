@@ -2,6 +2,45 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+  :version: 4.8.5
+  :released: 25th of August 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13158
+    :tickets: 13105
+
+    (I)XFR: handle partial read of len prefix.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13078
+    :tickets: 12892
+
+    YaHTTP: Prevent integer overflow on very large chunks.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13077
+    :tickets: 12935
+
+    Stop using the now deprecated ERR_load_CRYPTO_strings() to detect OpenSSL.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13076
+    :tickets: 12961
+
+    Work around Red Hat 8 misfeature in OpenSSL's headers.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13056
+    :tickets: 13021
+
+    Fix setting of policy tags for packet cache hits.
+
+.. changelog::
   :version: 4.8.4
   :released: 29th of March 2023
 

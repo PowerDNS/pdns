@@ -83,7 +83,7 @@ public:
   bool d_haveEDNS{false};
 };
 
-LWResult::Result asendto(const char* data, size_t len, int flags, const ComboAddress& toAddress, uint16_t qid,
+LWResult::Result asendto(const void* data, size_t len, int flags, const ComboAddress& toAddress, uint16_t qid,
                          const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc);
 LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& fromAddr, size_t& len, uint16_t qid,
                            const DNSName& domain, uint16_t qtype, int fileDesc, const struct timeval& now);

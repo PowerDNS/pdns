@@ -194,6 +194,7 @@ class IXFRDistBasicTest(IXFRDistTest):
     def test_b_UDP_SOA_existing(self):
         query = dns.message.make_query('example.', 'SOA')
         expected = dns.message.make_response(query)
+        expected.flags |= dns.flags.AA
         expected.answer.append(xfrServer._getSOAForSerial(2))
 
         response = self.sendUDPQuery(query)

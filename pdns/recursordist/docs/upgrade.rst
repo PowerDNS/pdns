@@ -4,8 +4,26 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.8.0 to 4.9.0 and master
--------------------------
+4.9.0 to 5.0.0 and master
+--------------------------
+
+YAML setings
+------------
+Starting with version 5.0.0-alpha1 the settings file(s) can be specified using YAML syntax.
+The old-style settings files are still accepted but will be unsupported in a future release.
+When a ``recursor.yml`` settings file is encountered it will be processed instead of a ``recursor.conf`` file.
+Refer to :doc:`yamlsettings` for details and the :doc:`appendices/yamlconversion` guide for how to convert old-style settings to the new YAML format.
+
+Rust
+----
+Some parts of the Recursor code are now written in Rust.
+This has impact if you do local builds or are third-package maintainer.
+According to `cargo msrv` the minimum version to compile the Rust code and its dependencies is 1.64.
+Some distributions ship with an older Rust compiler, see `Rustup <https://rustup.rs/>`__ for a way to install a more recent one.
+For our package builds, we install a Rust compiler from the ``Standalone`` section of `Other Rust Installation Methods <https://forge.rust-lang.org/infra/other-installation-methods.html>`__.
+
+4.8.0 to 4.9.0
+-------------- 
 
 Metrics
 ^^^^^^^
@@ -246,7 +264,7 @@ Deprecated and changed settings
 
 Removed settings
 ^^^^^^^^^^^^^^^^
-- The :ref:`setting-query-local-address6` has been removed. It already was deprecated.
+- The ``query-local-address6`` setting has been removed. It already was deprecated.
 
 4.3.x to 4.4.0
 --------------
@@ -272,7 +290,7 @@ inconsistent results.
 Deprecated and changed settings
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - The :ref:`setting-query-local-address` setting has been modified to be able to include both IPv4 and IPv6 addresses.
-- The :ref:`setting-query-local-address6` settings is now deprecated.
+- The ``query-local-address6`` setting is now deprecated.
 
 New settings
 ^^^^^^^^^^^^
@@ -324,8 +342,8 @@ New settings
 
 Two new settings have been added:
 
-- :ref:`setting-xpf-allow-from` can contain a list of IP addresses ranges from which `XPF (X-Proxied-For) <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ records will be trusted.
-- :ref:`setting-xpf-rr-code` should list the number of the XPF record to use (in lieu of an assigned code).
+- ``xpf-allow-from`` can contain a list of IP addresses ranges from which `XPF (X-Proxied-For) <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ records will be trusted.
+- ``setting-xpf-rr-code`` should list the number of the XPF record to use (in lieu of an assigned code).
 
 4.0.x to 4.1.0
 --------------

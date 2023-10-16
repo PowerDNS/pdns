@@ -285,9 +285,9 @@ class Pkcs11Token {
   private:
     std::shared_ptr<LockGuarded<Pkcs11Slot>> d_slot;
 
-    CK_OBJECT_HANDLE d_public_key;
-    CK_OBJECT_HANDLE d_private_key;
-    CK_KEY_TYPE d_key_type;
+    CK_OBJECT_HANDLE d_public_key{0};
+    CK_OBJECT_HANDLE d_private_key{0};
+    CK_KEY_TYPE d_key_type{0};
     bool d_always_auth{false};
 
     CK_ULONG d_bits;

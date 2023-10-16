@@ -146,6 +146,7 @@ try
     ("filter-name,f", po::value<string>(), "Do statistics only for queries within this domain")
     ("load-stats,l", po::value<string>()->default_value(""), "if set, emit per-second load statistics (questions, answers, outstanding)")
     ("no-servfail-stats", "Don't include servfails in response time stats")
+    ("port", po::value<uint16_t>()->default_value(0), "The source and destination port to consider. Default is looking at packets from and to ports 53 and 5300")
     ("servfail-tree", "Figure out subtrees that generate servfails")
     ("stats-dir", po::value<string>()->default_value("."), "Directory where statistics will be saved")
     ("write-failures,w", po::value<string>()->default_value(""), "if set, write weird packets to this PCAP file")
@@ -217,6 +218,7 @@ try
   std::unordered_set<ComboAddress, ComboAddress::addressOnlyHash> requestors, recipients, rdnonra;
   typedef vector<pair<time_t, LiveCounts> > pcounts_t;
   pcounts_t pcounts;
+  const uint16_t port = g_vm["port"].as<uint16_t>();
   OPTRecordContent::report();
 
   for(unsigned int fno=0; fno < files.size(); ++fno) {
@@ -228,164 +230,179 @@ try
     EDNSOpts edo;
     while(pr.getUDPPacket()) {
 
-      if((ntohs(pr.d_udp->uh_dport)==5300 || ntohs(pr.d_udp->uh_sport)==5300 ||
-	  ntohs(pr.d_udp->uh_dport)==53   || ntohs(pr.d_udp->uh_sport)==53) &&
-	 pr.d_len > 12) {
-	try {
-	  if((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6))
-	    continue;
-	  if(pr.d_ip->ip_v == 4) {
-	    uint16_t frag = ntohs(pr.d_ip->ip_off);
-	    if((frag & IP_MF) || (frag & IP_OFFMASK)) { // more fragments or IS a fragment
-	      fragmented++;
-	      continue;
-	    }
-	  }
-	  uint16_t qtype;
-	  DNSName qname((const char*)pr.d_payload, pr.d_len, 12, false, &qtype);
-	  struct dnsheader header;
-	  memcpy(&header, (struct dnsheader*)pr.d_payload, 12);
+      if (pr.d_len <= 12) {
+        // non-DNS ip
+        nonDNSIP++;
+        continue;
+      }
+      if (port > 0 &&
+          (ntohs(pr.d_udp->uh_dport) != port && ntohs(pr.d_udp->uh_sport) != port)) {
+        // non-DNS ip
+        nonDNSIP++;
+        continue;
+      }
 
-	  if(haveRDFilter && header.rd != rdFilter) {
-	    rdFilterMismatch++;
-	    continue;
-	  }
+      if (port == 0 &&
+          (ntohs(pr.d_udp->uh_dport) != 5300 && ntohs(pr.d_udp->uh_sport) != 5300 &&
+           ntohs(pr.d_udp->uh_dport) != 53 && ntohs(pr.d_udp->uh_sport) != 53)) {
+        // non-DNS ip
+        nonDNSIP++;
+        continue;
+      }
 
-          if(!filtername.empty() && !qname.isPartOf(filtername)) {
-            nameMismatch++;
+      try {
+        if ((pr.d_ip->ip_v == 4 && !doIPv4) || (pr.d_ip->ip_v == 6 && !doIPv6)) {
+          continue;
+        }
+
+        if (pr.d_ip->ip_v == 4) {
+          uint16_t frag = ntohs(pr.d_ip->ip_off);
+          if((frag & IP_MF) || (frag & IP_OFFMASK)) { // more fragments or IS a fragment
+            fragmented++;
             continue;
           }
+        }
+        uint16_t qtype;
+        DNSName qname((const char*)pr.d_payload, pr.d_len, 12, false, &qtype);
+        struct dnsheader header;
+        memcpy(&header, (struct dnsheader*)pr.d_payload, 12);
 
-	  if(!header.qr) {
-            uint16_t udpsize, z;
-            if(getEDNSUDPPayloadSizeAndZ((const char*)pr.d_payload, pr.d_len, &udpsize, &z)) {
-              edns++;
-              if(z & EDNSOpts::DNSSECOK)
-                dnssecOK++;
-              if(header.cd)
-                dnssecCD++;
-              if(header.ad)
-                dnssecAD++;
+        if(haveRDFilter && header.rd != rdFilter) {
+          rdFilterMismatch++;
+          continue;
+        }
+
+        if(!filtername.empty() && !qname.isPartOf(filtername)) {
+          nameMismatch++;
+          continue;
+        }
+
+        if(!header.qr) {
+          uint16_t udpsize, z;
+          if(getEDNSUDPPayloadSizeAndZ((const char*)pr.d_payload, pr.d_len, &udpsize, &z)) {
+            edns++;
+            if(z & EDNSOpts::DNSSECOK)
+              dnssecOK++;
+            if(header.cd)
+              dnssecCD++;
+            if(header.ad)
+              dnssecAD++;
+          }
+        }
+
+        if(pr.d_ip->ip_v == 4)
+          ++ipv4DNSPackets;
+        else
+          ++ipv6DNSPackets;
+
+        if(pr.d_pheader.ts.tv_sec != lastsec) {
+          LiveCounts lc;
+          if(lastsec) {
+            lc.questions = queries;
+            lc.answers = answers;
+            lc.outstanding = liveQuestions();
+
+            LiveCounts diff = lc - lastcounts;
+            pcounts.emplace_back(pr.d_pheader.ts.tv_sec, diff);
+          }
+          lastsec = pr.d_pheader.ts.tv_sec;
+          lastcounts = lc;
+        }
+
+        if(lowestTime) { lowestTime = min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec); }
+        else { lowestTime = pr.d_pheader.ts.tv_sec; }
+        highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
+
+        QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), header, qname, qtype);
+
+        if(!header.qr) { // question
+          //	    cout<<"Query "<<qi<<endl;
+          if(!header.rd)
+            nonRDQueries++;
+          queries++;
+
+          ComboAddress rem = pr.getSource();
+          rem.sin4.sin_port=0;
+          requestors.insert(rem);
+
+          QuestionData& qd=statmap[qi];
+
+          if(!qd.d_firstquestiontime.tv_sec)
+            qd.d_firstquestiontime=pr.d_pheader.ts;
+          else {
+            auto delta=makeFloat(pr.d_pheader.ts - qd.d_firstquestiontime);
+            //	      cout<<"Reuse of "<<qi<<", delta t="<<delta<<", count="<<qd.d_qcount<<endl;
+            if(delta > 2.0) {
+              //		cout<<"Resetting old entry for "<<qi<<", too old"<<endl;
+              qd.d_qcount=0;
+              qd.d_answercount=0;
+              qd.d_firstquestiontime=pr.d_pheader.ts;
             }
           }
-
-	  if(pr.d_ip->ip_v == 4)
-	    ++ipv4DNSPackets;
-	  else
-	    ++ipv6DNSPackets;
-
-	  if(pr.d_pheader.ts.tv_sec != lastsec) {
-	    LiveCounts lc;
-	    if(lastsec) {
-	      lc.questions = queries;
-	      lc.answers = answers;
-	      lc.outstanding = liveQuestions();
-
-	      LiveCounts diff = lc - lastcounts;
-              pcounts.emplace_back(pr.d_pheader.ts.tv_sec, diff);
-            }
-            lastsec = pr.d_pheader.ts.tv_sec;
-            lastcounts = lc;
+          if(qd.d_qcount++)
+            reuses++;
+        }
+        else  {  // answer
+          //	    cout<<"Response "<<qi<<endl;
+          rcodes[header.rcode]++;
+          answers++;
+          if(header.rd && !header.ra) {
+            rdNonRAAnswers++;
+            rdnonra.insert(pr.getDest());
           }
 
-    if(lowestTime) { lowestTime = min((time_t)lowestTime,  (time_t)pr.d_pheader.ts.tv_sec); }
-    else { lowestTime = pr.d_pheader.ts.tv_sec; }
-	  highestTime=max((time_t)highestTime, (time_t)pr.d_pheader.ts.tv_sec);
+          if(header.ra) {
+            ComboAddress rem = pr.getDest();
+            rem.sin4.sin_port=0;
+            recipients.insert(rem);
+          }
 
-	  QuestionIdentifier qi=QuestionIdentifier::create(pr.getSource(), pr.getDest(), header, qname, qtype);
+          QuestionData& qd=statmap[qi];
+          if(!qd.d_qcount) {
+            //	      cout<<"Untracked answer: "<<qi<<endl;
+            untracked++;
+          }
 
-	  if(!header.qr) { // question
-	    //	    cout<<"Query "<<qi<<endl;
-	    if(!header.rd)
-	      nonRDQueries++;
-	    queries++;
+          qd.d_answercount++;
 
-	    ComboAddress rem = pr.getSource();
-	    rem.sin4.sin_port=0;
-	    requestors.insert(rem);
+          if(qd.d_qcount) {
+            uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +
+              (pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
 
-            QuestionData& qd=statmap[qi];
+            //	      cout<<"Usecs for "<<qi<<": "<<usecs<<endl;
+            if(!noservfailstats || header.rcode != 2)
+              cumul[usecs]++;
 
-	    if(!qd.d_firstquestiontime.tv_sec)
-	      qd.d_firstquestiontime=pr.d_pheader.ts;
-	    else {
-	      auto delta=makeFloat(pr.d_pheader.ts - qd.d_firstquestiontime);
-	      //	      cout<<"Reuse of "<<qi<<", delta t="<<delta<<", count="<<qd.d_qcount<<endl;
-	      if(delta > 2.0) {
-		//		cout<<"Resetting old entry for "<<qi<<", too old"<<endl;
-		qd.d_qcount=0;
-		qd.d_answercount=0;
-		qd.d_firstquestiontime=pr.d_pheader.ts;
-	      }
-	    }
-	    if(qd.d_qcount++)
-              reuses++;
-	  }
-	  else  {  // answer
-	    //	    cout<<"Response "<<qi<<endl;
-	    rcodes[header.rcode]++;
-	    answers++;
-	    if(header.rd && !header.ra) {
-	      rdNonRAAnswers++;
-	      rdnonra.insert(pr.getDest());
-	    }
+            if(header.rcode != 0 && header.rcode!=3)
+              errorresult++;
+            ComboAddress rem = pr.getDest();
+            rem.sin4.sin_port=0;
 
-	    if(header.ra) {
-	      ComboAddress rem = pr.getDest();
-	      rem.sin4.sin_port=0;
-	      recipients.insert(rem);
-	    }
+            if(doServFailTree)
+              root.submit(qname, header.rcode, pr.d_len, false, rem);
+          }
 
-	    QuestionData& qd=statmap[qi];
-	    if(!qd.d_qcount) {
-	      //	      cout<<"Untracked answer: "<<qi<<endl;
-	      untracked++;
-	    }
-
-	    qd.d_answercount++;
-
-	    if(qd.d_qcount) {
-	      uint32_t usecs= (pr.d_pheader.ts.tv_sec - qd.d_firstquestiontime.tv_sec) * 1000000 +
-		(pr.d_pheader.ts.tv_usec - qd.d_firstquestiontime.tv_usec) ;
-
-	      //	      cout<<"Usecs for "<<qi<<": "<<usecs<<endl;
-              if(!noservfailstats || header.rcode != 2)
-                cumul[usecs]++;
-
-	      if(header.rcode != 0 && header.rcode!=3)
-		errorresult++;
-	      ComboAddress rem = pr.getDest();
-	      rem.sin4.sin_port=0;
-
-	      if(doServFailTree)
-		root.submit(qname, header.rcode, pr.d_len, false, rem);
-	    }
-
-	    if(!qd.d_qcount || qd.d_qcount == qd.d_answercount) {
-	      //	      cout<<"Clearing state for "<<qi<<endl<<endl;
-	      statmap.erase(qi);
-	    }
-	    else {
-	      //	      cout<<"State for qi remains open, qcount="<<qd.d_qcount<<", answercount="<<qd.d_answercount<<endl;
-            }
-	  }
-	}
-	catch(std::exception& e) {
-	  if(verbose)
-	    cout<<"error parsing packet: "<<e.what()<<endl;
-
-	  if(pw)
-	    pw->write();
-	  parsefail++;
-	  continue;
-	}
+          if(!qd.d_qcount || qd.d_qcount == qd.d_answercount) {
+            //	      cout<<"Clearing state for "<<qi<<endl<<endl;
+            statmap.erase(qi);
+          }
+          else {
+            //	      cout<<"State for qi remains open, qcount="<<qd.d_qcount<<", answercount="<<qd.d_answercount<<endl;
+          }
+        }
       }
-      else { // non-DNS ip
-	nonDNSIP++;
+      catch(std::exception& e) {
+        if(verbose)
+          cout<<"error parsing packet: "<<e.what()<<endl;
+
+        if(pw)
+          pw->write();
+        parsefail++;
+        continue;
       }
     }
-    cout<<"PCAP contained "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<pr.d_nonetheripudp<<" non-UDP.\n";
 
+    cout<<"PCAP contained "<<pr.d_correctpackets<<" correct packets, "<<pr.d_runts<<" runts, "<< pr.d_oversized<<" oversize, "<<pr.d_nonetheripudp<<" non-UDP.\n";
   }
 
   /*

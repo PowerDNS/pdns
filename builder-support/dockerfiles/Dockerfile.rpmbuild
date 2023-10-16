@@ -1,10 +1,10 @@
 FROM dist-base as package-builder
 RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
       yum upgrade -y && \
-      yum install -y rpm-build rpmdevtools python2 python3 "@Development Tools"; \
+      yum install -y rpm-build rpmdevtools python2 python3 curl "@Development Tools"; \
     else \
       yum upgrade -y && \
-      yum install -y rpm-build rpmdevtools python3 "@Development Tools"; \
+      yum install --allowerasing -y rpm-build rpmdevtools python3 curl "@Development Tools"; \
     fi
 
 RUN mkdir /dist /pdns
@@ -13,6 +13,11 @@ RUN rpmdev-setuptree
 
 # Only ADD/COPY the files you really need for efficient docker caching.
 ADD builder/helpers/ /pdns/builder/helpers/
+ADD builder-support/helpers/ /pdns/builder-support/helpers/
+
+@IF [ -n "$M_recursor$M_all" ]
+RUN /pdns/builder-support/helpers/install_rust.sh
+@ENDIF
 
 # Used for -p option to only build specific spec files
 ARG BUILDER_PACKAGE_MATCH
@@ -47,8 +52,8 @@ RUN touch /var/lib/rpm/* &&  if $(grep -q 'release 7' /etc/redhat-release); then
 # this is fine because --allowerasing is only there to deal with libcurl conflicting with libcurl-minimal on some el9 images
 RUN touch /var/lib/rpm/* && mkdir /libh2o && cd /libh2o && \
       yum install -y --allowerasing curl libcurl openssl-devel cmake || yum install -y curl libcurl openssl-devel cmake && \
-      curl -L https://github.com/h2o/h2o/archive/v2.2.6.tar.gz | tar xz && \
-      CFLAGS='-fPIC' cmake -DWITH_PICOTLS=off -DWITH_BUNDLED_SSL=off -DWITH_MRUBY=off -DCMAKE_INSTALL_PREFIX=/opt ./h2o-2.2.6 && \
+      curl -f -L https://github.com/PowerDNS/h2o/archive/refs/tags/v2.2.6+pdns2.tar.gz | tar xz && \
+      CFLAGS='-fPIC' cmake -DWITH_PICOTLS=off -DWITH_BUNDLED_SSL=off -DWITH_MRUBY=off -DCMAKE_INSTALL_PREFIX=/opt ./h2o-2.2.6-pdns2 && \
       make install
 
 RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
@@ -59,10 +64,10 @@ RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then 
 @ENDIF
 
 # Generate provenance
-@IF [ ${BUILDER_TARGET} = el-7 || ${BUILDER_TARGET} = centos-7 ]
+@IF [ "${BUILDER_TARGET}" = "el-7" -o "${BUILDER_TARGET}" = "centos-7" ]
 @EVAL RUN python builder/helpers/generate-yum-provenance.py /dist/packages-${BUILDER_TARGET}.json || python3 builder/helpers/generate-yum-provenance.py /dist/packages-${BUILDER_TARGET}.json
 @ENDIF
-@IF [ ${BUILDER_TARGET} != el-7 && ${BUILDET_TARGET} != centos-7 ]
+@IF [ "${BUILDER_TARGET}" != "el-7" -a "${BUILDER_TARGET}" != "centos-7" ]
 @EVAL RUN python builder/helpers/generate-dnf-provenance.py /dist/packages-${BUILDER_TARGET}.json || python3 builder/helpers/generate-dnf-provenance.py /dist/packages-${BUILDER_TARGET}.json
 @ENDIF
 

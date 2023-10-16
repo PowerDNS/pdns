@@ -14,7 +14,7 @@ on:
         type: string
         # please remember to update the pkghashes below when you
         # update this list, as well as the one in builder-dispatch.yml
-        default: >
+        default: >-
           el-7
           el-8
           el-9
@@ -136,6 +136,18 @@ jobs:
           echo "$HOSTKEY" > ~/.ssh/known_hosts
           rsync -4rlptD built_pkgs/* "$RSYNCTARGET"
 
+  check-hashes:
+    needs: build
+    name: Check if hashes were created for all requested targets
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Get list of outputs from build jobs
+        run: echo '${{ toJSON(needs.build.outputs) }}' | jq 'keys[]' | grep -v version | tee /tmp/build-outputs.txt
+      - name: Get list of OS inputs
+        run: for i in ${{ inputs.os }}; do echo "\"pkghashes-$i\""; done | sort | tee /tmp/os-inputs.txt; echo "\"srchashes\"" | tee -a /tmp/os-inputs.txt
+      - name: Fail if there is a hash missing
+        run: if ! diff -q /tmp/build-outputs.txt /tmp/os-inputs.txt; then exit 1; fi
+
   provenance-pkgs:
     needs: [prepare, build]
     name: Generate provenance for ${{ inputs.product }} (${{ inputs.ref }}) for ${{ matrix.os }}
@@ -189,6 +201,8 @@ jobs:
           SSHKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
           RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
           HOSTKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_HOSTKEY }}
+          PRODUCT: ${{ inputs.product }}
+          VERSION: ${{ needs.build.outputs.version }}
         if:
           "${{ env.SSHKEY != '' }}"
         shell: bash
@@ -197,4 +211,4 @@ jobs:
           echo "$SSHKEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           echo "$HOSTKEY" > ~/.ssh/known_hosts
-          rsync -4rlptD ${{steps.download-src-provenance.outputs.download-path}}/*.jsonl ${{steps.download-provenance.outputs.download-path}}/*.jsonl "${RSYNCTARGET}/${{ inputs.product }}/${{ needs.build.outputs.version }}/"
+          rsync -4rlptD ${{steps.download-src-provenance.outputs.download-path}}/*.jsonl ${{steps.download-provenance.outputs.download-path}}/*.jsonl "${RSYNCTARGET}/${PRODUCT}/${VERSION}/"

@@ -121,9 +121,9 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
             ctx.addNewCertificate(cert, privateKey);
           }
         }
-        catch(const std::exception& e) {
-          errlog(e.what());
-          g_outputBuffer="Error: "+string(e.what())+"\n";
+        catch (const std::exception& e) {
+          errlog("Error generating a DNSCrypt certificate: %s", e.what());
+          g_outputBuffer = "Error generating a DNSCrypt certificate: " + string(e.what()) + "\n";
         }
     });
 
@@ -167,8 +167,8 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
         }
       }
       catch (const std::exception& e) {
-        errlog(e.what());
-        g_outputBuffer = "Error: " + string(e.what()) + "\n";
+        errlog("Error generating a DNSCrypt certificate: %s", e.what());
+        g_outputBuffer = "Error generating a DNSCrypt certificate: " + string(e.what()) + "\n";
       }
     });
 
@@ -195,8 +195,8 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
         g_outputBuffer = "Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
       }
       catch (const std::exception& e) {
-        errlog(e.what());
-        g_outputBuffer = "Error: " + string(e.what()) + "\n";
+        errlog("Error generating a DNSCrypt provider key: %s", e.what());
+        g_outputBuffer = "Error generating a DNSCrypt provider key: " + string(e.what()) + "\n";
       }
 
       sodium_memzero(privateKey, sizeof(privateKey));
@@ -219,8 +219,8 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
         g_outputBuffer = "Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
       }
       catch (const std::exception& e) {
-        errlog(e.what());
-        g_outputBuffer = "Error: " + string(e.what()) + "\n";
+        errlog("Error getting a DNSCrypt provider fingerprint: %s", e.what());
+        g_outputBuffer = "Error getting a DNSCrypt provider fingerprint: " + string(e.what()) + "\n";
       }
     });
 #endif

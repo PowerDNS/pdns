@@ -104,11 +104,14 @@ void DNSDistProtoBufMessage::addTag(const std::string& strValue)
   d_additionalTags.push_back(strValue);
 }
 
-void DNSDistProtoBufMessage::addMeta(const std::string& key, std::vector<std::string>&& values)
+void DNSDistProtoBufMessage::addMeta(const std::string& key, std::vector<std::string>&& strValues, const std::vector<int64_t>& intValues)
 {
   auto& entry = d_metaTags[key];
-  for (auto& value : values) {
-    entry.insert(std::move(value));
+  for (auto& value : strValues) {
+    entry.d_strings.insert(std::move(value));
+  }
+  for (const auto& value : intValues) {
+    entry.d_integers.insert(value);
   }
 }
 
@@ -210,8 +213,8 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
   }
 
   for (const auto& [key, values] : d_metaTags) {
-    if (!values.empty()) {
-      m.setMeta(key, values, {});
+    if (!values.d_strings.empty() || !values.d_integers.empty()) {
+      m.setMeta(key, values.d_strings, values.d_integers);
     }
     else {
       /* the MetaValue field is _required_ to exist, even if we have no value */

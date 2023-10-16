@@ -42,7 +42,7 @@
 #include "dnsdist-lbpolicies.hh"
 #include "dnsdist-protocols.hh"
 #include "dnsname.hh"
-#include "doh.hh"
+#include "dnsdist-doh-common.hh"
 #include "ednsoptions.hh"
 #include "iputils.hh"
 #include "misc.hh"
@@ -527,6 +527,17 @@ struct ClientState
   bool hasTLS() const
   {
     return tlsFrontend != nullptr || (dohFrontend != nullptr && dohFrontend->isHTTPS());
+  }
+
+  const TLSFrontend& getTLSFrontend() const
+  {
+    if (tlsFrontend != nullptr) {
+      return *tlsFrontend;
+    }
+    if (dohFrontend) {
+      return dohFrontend->d_tlsContext;
+    }
+    throw std::runtime_error("Trying to get a TLS frontend from a non-TLS ClientState");
   }
 
   dnsdist::Protocol getProtocol() const
@@ -1088,10 +1099,6 @@ struct LocalHolders
 
 void tcpAcceptorThread(std::vector<ClientState*> states);
 
-#ifdef HAVE_DNS_OVER_HTTPS
-void dohThread(ClientState* cs);
-#endif /* HAVE_DNS_OVER_HTTPS */
-
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
 void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls
 bool getLuaNoSideEffect(); // set if there were only explicit declarations of _no_ side effect
@@ -1123,7 +1130,7 @@ bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRu
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dr, bool muted);
 
-bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query, ComboAddress& dest);
+bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query);
 
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck = false);
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote);
