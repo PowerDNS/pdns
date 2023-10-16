@@ -20,6 +20,7 @@ CFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -fvisibility=hidden 
 CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -fvisibility=hidden $CXXFLAGS"
 
 PDNS_WITH_LIBSODIUM
+PDNS_WITH_QUICHE
 PDNS_CHECK_DNSTAP([auto])
 PDNS_CHECK_RAGEL([dnslabeltext.cc], [www.dnsdist.org])
 PDNS_WITH_LIBEDIT
@@ -80,6 +81,7 @@ DNSDIST_ENABLE_TLS_PROVIDERS
 
 PDNS_ENABLE_DNS_OVER_TLS
 DNSDIST_ENABLE_DNS_OVER_HTTPS
+DNSDIST_ENABLE_DNS_OVER_QUIC
 
 AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xno"], [
   PDNS_WITH_LIBSSL
@@ -105,6 +107,13 @@ AS_IF([test "x$enable_dns_over_https" != "xno"], [
   ])
 ])
 
+AS_IF([test "x$enable_dns_over_quic" != "xno"], [
+  AS_IF([test "x$HAVE_QUICHE" != "x1"], [
+    AC_MSG_ERROR([DNS over QUIC support requested but quiche was not found])
+  ])
+])
+
+PDNS_WITH_NGHTTP2
 DNSDIST_WITH_CDB
 PDNS_CHECK_LMDB
 PDNS_ENABLE_IPCIPHER
@@ -218,6 +227,10 @@ AS_IF([test "x$FSTRM_LIBS" != "x"],
   [AC_MSG_NOTICE([dnstap: yes])],
   [AC_MSG_NOTICE([dnstap: no])]
 )
+AS_IF([test "x$QUICHE_LIBS" != "x"],
+  [AC_MSG_NOTICE([quiche: yes])],
+  [AC_MSG_NOTICE([quiche: no])]
+)
 AS_IF([test "x$RE2_LIBS" != "x"],
   [AC_MSG_NOTICE([re2: yes])],
   [AC_MSG_NOTICE([re2: no])]
@@ -233,6 +246,10 @@ AS_IF([test "x$enable_dns_over_tls" != "xno"],
 AS_IF([test "x$enable_dns_over_https" != "xno"],
   [AC_MSG_NOTICE([DNS over HTTPS (DoH): yes])],
   [AC_MSG_NOTICE([DNS over HTTPS (DoH): no])]
+)
+AS_IF([test "x$enable_dns_over_quic" != "xno"],
+  [AC_MSG_NOTICE([DNS over QUIC (DoQ): yes])],
+  [AC_MSG_NOTICE([DNS over QUIC (DoQ): no])]
 )
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   AS_IF([test "x$GNUTLS_LIBS" != "x"],

@@ -14,6 +14,7 @@ These chapters contain several guides and nuggets of information regarding dnsdi
    serverselection
    carbon
    dns-over-https
+   dns-over-quic
    dns-over-tls
    dnscrypt
 

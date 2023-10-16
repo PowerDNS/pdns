@@ -191,9 +191,14 @@ static_assert(sizeof(dnsheader) == 12, "dnsheader size must be 12");
 class dnsheader_aligned
 {
 public:
+  static bool isMemoryAligned(const void* mem)
+  {
+    return reinterpret_cast<uintptr_t>(mem) % sizeof(uint32_t) == 0; // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  }
+
   dnsheader_aligned(const void* mem)
   {
-    if (reinterpret_cast<uintptr_t>(mem) % sizeof(uint32_t) == 0) {  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    if (isMemoryAligned(mem)) {
       d_p = reinterpret_cast<const dnsheader*>(mem);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
     else {
@@ -207,14 +212,31 @@ public:
     return d_p;
   }
 
+  [[nodiscard]] const dnsheader& operator*() const
+  {
+    return *d_p;
+  }
+
+  [[nodiscard]] const dnsheader* operator->() const
+  {
+    return d_p;
+  }
+
 private:
   dnsheader d_h{};
-  const dnsheader *d_p{};
+  const dnsheader* d_p{};
 };
 
-inline uint16_t * getFlagsFromDNSHeader(struct dnsheader * dh)
+inline uint16_t* getFlagsFromDNSHeader(dnsheader* dh)
 {
-  return (uint16_t*) (((char *) dh) + sizeof(uint16_t));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  return reinterpret_cast<uint16_t*>(reinterpret_cast<char*>(dh) + sizeof(uint16_t));
+}
+
+inline const uint16_t * getFlagsFromDNSHeader(const dnsheader* dh)
+{
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  return reinterpret_cast<const uint16_t*>(reinterpret_cast<const char*>(dh) + sizeof(uint16_t));
 }
 
 #define DNS_TYPE_SIZE (2)

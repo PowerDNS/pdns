@@ -212,6 +212,7 @@ dnsdist_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	doh.hh \
 	dolog.hh \
+	doq.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
@@ -434,6 +435,14 @@ dnsdist_SOURCES += doh.cc
 dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
 endif
 
+endif
+
+if HAVE_DNS_OVER_QUIC
+dnsdist_SOURCES += doq.cc
+if HAVE_QUICHE
+AM_CPPFLAGS += $(QUICHE_CFLAGS)
+dnsdist_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
+endif
 endif
 
 if HAVE_NGHTTP2

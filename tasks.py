@@ -9,6 +9,8 @@ auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
 
 clang_version = os.getenv('CLANG_VERSION', '13')
 rust_version = 'rust-1.72.0-x86_64-unknown-linux-gnu'
+quiche_version = '0.18.0'
+quiche_hash = 'eb242a14c4d801a90b57b6021dd29f7a62099f3a4d7a7ba889e105f8328e6c1f'
 
 all_build_deps = [
     'ccache',
@@ -490,6 +492,7 @@ def ci_dnsdist_configure(c, features):
                       --enable-dnscrypt \
                       --enable-dns-over-tls \
                       --enable-dns-over-https \
+                      --enable-dns-over-quic \
                       --enable-systemd \
                       --prefix=/opt/dnsdist \
                       --with-gnutls \
@@ -562,7 +565,6 @@ def ci_dnsdist_configure(c, features):
                      --enable-option-checking=fatal \
                      --enable-fortify-source=auto \
                      --enable-auto-var-init=pattern \
-                     --enable-lto=thin \
                      --prefix=/opt/dnsdist %s %s %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests, fuzztargets, coverage), warn=True)
     if res.exited != 0:
         c.run('cat config.log')
@@ -834,7 +836,7 @@ def test_dnsdist(c):
     c.run('ls -ald /var /var/agentx /var/agentx/master')
     c.run('ls -al /var/agentx/master')
     with c.cd('regression-tests.dnsdist'):
-        c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist ./runtests')
+        c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist LD_LIBRARY_PATH=/opt/dnsdist/lib/ ./runtests')
 
 @task
 def test_regression_recursor(c):
@@ -884,6 +886,28 @@ def coverity_upload(c, email, project, tarball):
             --form version="$(./builder-support/gen-version)" \
             --form description="master build" \
             https://scan.coverity.com/builds?project={project}', hide=True)
+
+@task
+def ci_build_and_install_quiche(c):
+    # we have to pass -L because GitHub will do a redirect, sadly
+    c.run(f'curl -L -o quiche-{quiche_version}.tar.gz https://github.com/cloudflare/quiche/archive/{quiche_version}.tar.gz')
+    # Line below should echo two spaces between digest and name
+    c.run(f'echo {quiche_hash}"  "quiche-{quiche_version}.tar.gz | sha256sum -c -')
+    c.run(f'tar xf quiche-{quiche_version}.tar.gz')
+    with c.cd(f'quiche-{quiche_version}'):
+        c.run('cargo build --release --no-default-features --features ffi,boringssl-boring-crate --package quiche')
+        # cannot use c.sudo() inside a cd() context, see https://github.com/pyinvoke/invoke/issues/687
+        c.run('sudo install -Dm644 quiche/include/quiche.h /usr/include')
+        c.run('sudo install -Dm644 target/release/libquiche.so /usr/lib')
+        c.run('install -D target/release/libquiche.so /opt/dnsdist/lib/libquiche.so')
+        c.run(f"""sudo install -Dm644 /dev/stdin /usr/lib/pkgconfig/quiche.pc <<PC
+# quiche
+Name: quiche
+Description: quiche library
+URL: https://github.com/cloudflare/quiche
+Version: {quiche_version}
+Libs: -lquiche
+PC""")
 
 # this is run always
 def setup():

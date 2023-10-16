@@ -12,6 +12,12 @@ ADD builder-support/helpers/ /pdns/builder-support/helpers/
 RUN /pdns/builder-support/helpers/install_rust.sh
 @ENDIF
 
+@IF [ -n "$M_dnsdist$M_all" ]
+RUN /pdns/builder-support/helpers/install_rust.sh
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends git cmake clang
+RUN /pdns/builder-support/helpers/install_quiche.sh
+@ENDIF
+
 # Used for -p option to only build specific packages
 ARG BUILDER_PACKAGE_MATCH
 
