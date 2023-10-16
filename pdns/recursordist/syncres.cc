@@ -2289,7 +2289,7 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
               LOG(", not in cache / did not look at cache" << endl);
             }
           }
-          else {
+          else if (nrr != nullptr) {
             *flawedNSSet = true;
             LOG(prefix << qname << ": NS in cache for '" << subdomain << "', but needs glue (" << nrr->getNS() << ") which we miss or is expired" << endl);
             missing.emplace_back(nrr->getNS());
