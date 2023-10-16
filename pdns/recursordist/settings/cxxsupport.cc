@@ -122,10 +122,13 @@ void pdns::settings::rec::oldStyleAllowFileToBridgeStruct(const std::string& fil
   }
 }
 
-static void mergeYamlSubFile(const std::string& configname, Recursorsettings& settings, Logr::log_t log)
+static void mergeYamlSubFile(const std::string& configname, Recursorsettings& settings, bool allowabsent, Logr::log_t log)
 {
   auto file = ifstream(configname);
   if (!file.is_open()) {
+    if (allowabsent) {
+      return;
+    }
     throw runtime_error("Cannot open " + configname);
   }
   SLOG(g_log << Logger::Notice << "Processing YAML settings from " << configname << endl,
@@ -164,7 +167,7 @@ static void possiblyConvertACLFile(const string& includeDir, const string& apiDi
 
   rust::string key = "allow_from";
   rust::string filekey = "allow_from_file";
-  if (filename == "allow-from") {
+  if (filename == "allow-notify-from") {
     key = "allow_notify_from";
     filekey = "allow_notify_from_file";
   }
@@ -280,11 +283,7 @@ void pdns::settings::rec::processAPIDir(const string& includeDirOnCommandLine, p
     possiblyConvertACLFile(includeDir, apiDir, file, log);
     auto path = apiDir;
     path.append("/").append(file).append(".yml");
-    try {
-      mergeYamlSubFile(path, settings, log);
-    }
-    catch (const runtime_error& err) {
-    }
+    mergeYamlSubFile(path, settings, true, log);
   }
   possiblyConvertForwardsandAuths(includeDir, apiDir, log);
 }
@@ -305,7 +304,7 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::readYamlSettings(co
     ::arg().gatherIncludes(!includeDirOnCommandLine.empty() ? includeDirOnCommandLine : string(yamlstruct.recursor.include_dir),
                            ".yml", yamlFiles);
     for (const auto& yamlfile : yamlFiles) {
-      mergeYamlSubFile(yamlfile, yamlstruct, log);
+      mergeYamlSubFile(yamlfile, yamlstruct, false, log);
     }
     yamlstruct.validate();
     settings = yamlstruct;
