@@ -2296,7 +2296,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
 #ifdef HAVE_EBPF
   if (g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
     clientState.attachFilter(g_defaultBPFFilter, socket);
-    vinfolog("Attaching default BPF Filter to %s frontend %s", std::string(!tcp ? "UDP" : "TCP"), addr.toStringWithPort());
+    vinfolog("Attaching default BPF Filter to %s frontend %s", (!tcp ? std::string("UDP") : std::string("TCP")), addr.toStringWithPort());
   }
 #endif /* HAVE_EBPF */
 
