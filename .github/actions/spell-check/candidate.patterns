@@ -396,7 +396,7 @@ Joaqu[^[:ascii:]]n
 (?:\\(?:u00|x)1[Bb]|\x1b|\\u\{1[Bb]\})\[\d+(?:;\d+|)m
 
 # URL escaped characters
-\%[0-9A-F][A-F]
+\%[0-9A-F][A-F](?=[A-Za-z])
 # lower URL escaped characters
 \%[0-9a-f][a-f](?=[a-z]{2,})
 # IPv6
@@ -496,6 +496,9 @@ content: (['"])[-a-zA-Z=;:/0-9+]*=\g{-1}
 # perl qr regex
 (?<!\$)\bqr(?:\{.*?\}|<.*?>|\(.*?\)|([|!/@#,;']).*?\g{-1})
 
+# perl run
+perl(?:\s+-[a-zA-Z]\w*)+
+
 # Go regular expressions
 regexp?\.MustCompile\(`[^`]*`\)
 
@@ -513,6 +516,9 @@ sed 's/(?:[^/]*?[a-zA-Z]{3,}[^/]*?/){2}
 
 # go install
 go install(?:\s+[a-z]+\.[-@\w/.]+)+
+
+# jetbrains schema https://youtrack.jetbrains.com/issue/RSRP-489571
+urn:shemas-jetbrains-com
 
 # kubernetes pod status lists
 # https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
@@ -578,12 +584,12 @@ systemd.*?running in system mode \([-+].*\)$
 # Non-English
 [a-zA-Z]*[ÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź][a-zA-Z]{3}[a-zA-ZÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź]*|[a-zA-Z]{3,}[ÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź]|[ÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź][a-zA-Z]{3,}
 
+# highlighted letters
+\[[A-Z]\][a-z]+
+
 # French
 # This corpus only had capital letters, but you probably want lowercase ones as well.
 \b[LN]'+[a-z]{2,}\b
-
-# latex (check-spelling <= 0.0.21)
-#\\(?:n(?:ew|ormal|osub)|r(?:enew)|t(?:able(?:of|)|he|itle))(?=[a-z]+)
 
 # latex (check-spelling >= 0.0.22)
 \\\w{2,}\{
@@ -594,7 +600,7 @@ systemd.*?running in system mode \([-+].*\)$
 # Windows short paths
 [/\\][^/\\]{5,6}~\d{1,2}[/\\]
 
-# in a version of check-spelling after @0.0.21 printf markers won't be automatically consumed
+# in check-spelling@v0.0.22+, printf markers aren't automatically consumed
 # printf markers
 (?<!\\)\\[nrt](?=[a-z]{2,})
 # alternate markers if you run into latex and friends

@@ -11,8 +11,6 @@ on:
   pull_request:
     branches:
       - "**"
-    tags-ignore:
-      - "**"
     types:
       - 'opened'
       - 'reopened'
@@ -34,7 +32,7 @@ jobs:
     outputs:
       followup: ${{ steps.spelling.outputs.followup }}
     runs-on: ubuntu-latest
-    if: "contains(github.event_name, 'pull_request') || github.event_name == 'push'"
+    if: ${{ contains(github.event_name, 'pull_request') || github.event_name == 'push' }}
     concurrency:
       group: spelling-${{ github.event.pull_request.number || github.ref }}
       # note: If you use only_check_changed_files, you do not want cancel-in-progress
@@ -45,9 +43,11 @@ jobs:
       uses: check-spelling/check-spelling@v0.0.22
       with:
         config: .github/actions/spell-check
+        suppress_push_for_open_pull_request: ${{ github.actor != 'dependabot[bot]' && 1 }}
         checkout: true
         spell_check_this: powerdns/pdns@master
         post_comment: 0
+        warnings: bad-regex,binary-file,deprecated-feature,ignored-expect-variant,large-file,limited-references,no-newline-at-eof,noisy-file,non-alpha-in-dictionary,token-is-substring,unexpected-line-ending,whitespace-in-dictionary,minified-file,unsupported-configuration,no-files-to-check
         use_sarif: ${{ (!github.event.pull_request || (github.event.pull_request.head.repo.full_name == github.repository)) && 1 }}
         extra_dictionaries:
           cspell:software-terms/dict/softwareTerms.txt
