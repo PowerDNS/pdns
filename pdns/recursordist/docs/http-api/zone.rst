@@ -33,7 +33,7 @@ be true:
   override what has been set in the dynamically generated
   configuration files.
 
-* For configuration changes to work :ref:`setting-include-dir` and :ref:`setting-api-config-dir` should have the same value for   old-style settings.
+* For configuration changes to work :ref:`setting-include-dir` and :ref:`setting-api-config-dir` should have the same value for old-style settings.
   When using YAML settings :ref:`setting-yaml-recursor.include_dir` and :ref:`setting-yaml-webservice.api_dir` must have a different value.
 
 .. include:: ../common/api/zone.rst
