@@ -502,7 +502,7 @@ In this case, ``dont-throttle-netmasks`` could be set to ``192.0.2.1``.
         'default' : 'false',
         'help' : 'Disable packetcache',
         'doc' : '''
-Turn off the packet cache. Useful when running with Lua scripts that can not be cached, though individual query caching can be controlled from Lua as well.
+Turn off the packet cache. Useful when running with Lua scripts that cannot be cached, though individual query caching can be controlled from Lua as well.
  ''',
     },
     {

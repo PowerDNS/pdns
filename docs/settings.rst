@@ -1304,7 +1304,7 @@ If this is disabled (the default), ALIAS records are sent verbatim
 during outgoing AXFR. Note that if your slaves do not support ALIAS,
 they will return NODATA for A/AAAA queries for such names.
 
-If the ALIAS target can not be resolved during AXFR the AXFR will fail.
+If the ALIAS target cannot be resolved during AXFR the AXFR will fail.
 To allow outgoing AXFR also if the ALIAS targets are broken set this
 setting to `ignore-errors`.
 Be warned, this will lead to inconsistent zones between Primary and

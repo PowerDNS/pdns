@@ -431,7 +431,7 @@ Tree mode requires each component to be a dc element of its own:
 To use this kind of record, add the dnsdomain2 schema to the
 configuration of the LDAP server.
 
-**CAUTION:** ``ldap-method=strict`` can not be used if zone transfers
+**CAUTION:** ``ldap-method=strict`` cannot be used if zone transfers
 (AXFR) are needed to other name servers. Distributing zones can only be
 done directly via LDAP replication in this case, because for a full zone
 transfer the reverse records are missing.

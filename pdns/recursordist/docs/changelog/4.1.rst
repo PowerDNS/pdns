@@ -1341,7 +1341,7 @@ See :doc:`EOL Statements <../appendices/EOL>`.
     :tags: Bug Fixes
     :pullreq: 5209
 
-    Ensure locks can not be copied.
+    Ensure locks cannot be copied.
 
   .. change::
     :tags: Improvements, RPZ
