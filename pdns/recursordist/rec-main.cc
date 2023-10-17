@@ -1288,6 +1288,7 @@ void parseACLs()
         throw runtime_error("Error processing '" + configName + "': " + msg);
         break;
       case pdns::settings::rec::YamlSettingsStatus::OK:
+        pdns::settings::rec::processAPIDir(arg()["include-dir"], settings, log);
         // Does *not* set include-dir
         pdns::settings::rec::setArgsForACLRelatedSettings(settings);
         break;
@@ -2028,8 +2029,6 @@ static int serviceMain(Logr::log_t log)
            log->info(Logr::Error, "Unknown logging facility", "facility", Logging::Loggable(::arg().asNum("logging-facility"))));
     }
   }
-
-  showProductVersion();
 
   g_disthashseed = dns_random_uint32();
 
@@ -3315,6 +3314,7 @@ int main(int argc, char** argv)
     }
     g_log.setLoglevel(s_logUrgency);
     g_log.toConsole(s_logUrgency);
+    showProductVersion();
 
     g_yamlSettings = false;
     string configname = ::arg()["config-dir"] + "/recursor";
@@ -3386,6 +3386,7 @@ int main(int argc, char** argv)
       g_yamlSettings = true;
       SLOG(g_log << Logger::Notice << "YAML config found and processed for configname '" << yamlconfigname << "'" << endl,
            startupLog->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname)));
+      pdns::settings::rec::processAPIDir(arg()["include-dir"], settings, startupLog);
       pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
       break;
     }

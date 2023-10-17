@@ -225,7 +225,8 @@ Allow ``trustanchor.server CH TXT`` and ``negativetrustanchor.server CH TXT`` qu
         'help' : 'Directory where REST API stores config and zones',
         'doc' : '''
 Directory where the REST API stores its configuration and zones.
-For configuration updates to work, :ref:`setting-include-dir` should have the same value.
+For configuration updates to work, :ref:`setting-include-dir` should have the same value when using old-style settings.
+When using YAML settings :ref:`setting-yaml-recursor.include_dir` and :ref:`setting-yaml-webservice.api_dir` must have a different value.
  ''',
     'versionadded': '4.0.0'
      },
@@ -2144,7 +2145,7 @@ Individual parts of these zones can still be loaded or forwarded.
     },
     {
         'name' : 'serve_stale_extensions',
-        'section' : 'recursor',
+        'section' : 'recordcache',
         'type' : LType.Uint64,
         'default' : '0',
         'help' : 'Number of times a record\'s ttl is extended by 30s to be served stale',

@@ -1591,12 +1591,11 @@ void doExitGeneric(bool nicely)
     unlink(g_pidfname.c_str()); // we can at least try..
   }
 
-  pdns::coverage::dumpCoverageData();
-
   if (nicely) {
     RecursorControlChannel::stop = true;
   }
   else {
+    pdns::coverage::dumpCoverageData();
     _exit(1);
   }
 }

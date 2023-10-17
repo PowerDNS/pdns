@@ -465,6 +465,15 @@ pub fn api_add_forward_zone(path: &str, forwardzone: ForwardZone) -> Result<(), 
     zones.forward_zones.push(forwardzone);
     api_write_zones(path, &zones)
 }
+
+// This function is called from C++, it needs to acquire the lock
+pub fn api_add_forward_zones(path: &str, forwardzones: &mut Vec<ForwardZone>) -> Result<(), std::io::Error> {
+    let _lock = LOCK.lock().unwrap();
+    let mut zones = api_read_zones_locked(path, true)?;
+    zones.forward_zones.append(forwardzones);
+    api_write_zones(path, &zones)
+}
+
 // This function is called from C++, it needs to acquire the lock
 pub fn api_delete_zone(path: &str, zone: &str) -> Result<(), std::io::Error> {
     let _lock = LOCK.lock().unwrap();

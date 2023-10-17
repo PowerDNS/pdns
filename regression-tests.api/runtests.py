@@ -110,7 +110,7 @@ incoming:
   allow_from_file: acl.list.yml
   allow_notify_from_file: acl-notify.list.yml
 webservice:
-  api_dir: %(conf_dir)s
+  api_dir: %(api_dir)s
 recursor:
   include_dir: %(conf_dir)s
   devonly_regression_test_mode: true
@@ -226,6 +226,8 @@ if daemon == 'authoritative':
 else:
     conf_dir = 'rec-conf.d'
     ensure_empty_dir(conf_dir)
+    api_dir = 'rec-api.d'
+    ensure_empty_dir(api_dir)
     with open('acl.list.yml', 'w') as acl_list:
         acl_list.write(ACL_LIST_TPL)
     with open('acl-notify.list.yml', 'w') as acl_notify_list:
