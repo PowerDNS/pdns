@@ -26,7 +26,7 @@
 
 const std::array<const std::string, 13> rootIps4 = {
   "198.41.0.4", // a.root-servers.net.
-  "199.9.14.201", // b.root-servers.net.
+  "170.247.170.2", // b.root-servers.net.
   "192.33.4.12", // c.root-servers.net.
   "199.7.91.13", // d.root-servers.net.
   "192.203.230.10", // e.root-servers.net.
@@ -42,7 +42,7 @@ const std::array<const std::string, 13> rootIps4 = {
 
 const std::array<const std::string, 13> rootIps6 = {
   "2001:503:ba3e::2:30", // a.root-servers.net.
-  "2001:500:200::b", // b.root-servers.net.
+  "2801:1b8:10::b", // b.root-servers.net.
   "2001:500:2::c", // c.root-servers.net.
   "2001:500:2d::d", // d.root-servers.net.
   "2001:500:a8::e", // e.root-servers.net.
