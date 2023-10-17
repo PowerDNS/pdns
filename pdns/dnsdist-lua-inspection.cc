@@ -728,7 +728,9 @@ void setupLuaInspection(LuaContext& luaCtx)
 
   luaCtx.writeFunction("requestDoHStatesDump", [] {
     setLuaNoSideEffect();
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
     g_dohStatesDumpRequested += g_dohClientThreads->getThreadsCount();
+#endif
   });
 
   luaCtx.writeFunction("dumpStats", [] {

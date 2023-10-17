@@ -1242,10 +1242,10 @@ static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param
   gettimeofday(&now, nullptr);
 
   if (citmp->cs->dohFrontend) {
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
     auto state = std::make_shared<IncomingHTTP2Connection>(std::move(*citmp), *threadData, now);
     state->handleIO();
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
   }
   else {
     auto state = std::make_shared<IncomingTCPConnectionState>(std::move(*citmp), *threadData, now);
@@ -1396,7 +1396,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
                 state->handleTimeout(state, false);
               }
             }
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
             else if (cbData.second.type() == typeid(std::shared_ptr<IncomingHTTP2Connection>)) {
               auto state = boost::any_cast<std::shared_ptr<IncomingHTTP2Connection>>(cbData.second);
               if (cbData.first == state->d_handler.getDescriptor()) {
@@ -1405,7 +1405,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
                 state->handleTimeout(parentState, false);
               }
             }
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
             else if (cbData.second.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
               auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(cbData.second);
               vinfolog("Timeout (read) from remote backend %s", conn->getBackendName());
@@ -1422,7 +1422,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
                 state->handleTimeout(state, true);
               }
             }
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
             else if (cbData.second.type() == typeid(std::shared_ptr<IncomingHTTP2Connection>)) {
               auto state = boost::any_cast<std::shared_ptr<IncomingHTTP2Connection>>(cbData.second);
               if (cbData.first == state->d_handler.getDescriptor()) {
@@ -1431,7 +1431,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
                 state->handleTimeout(parentState, true);
               }
             }
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
             else if (cbData.second.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
               auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(cbData.second);
               vinfolog("Timeout (write) from remote backend %s", conn->getBackendName());
@@ -1462,12 +1462,12 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
                   auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
                   infolog(" - %s", state->toString());
                 }
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
                 else if (param.type() == typeid(std::shared_ptr<IncomingHTTP2Connection>)) {
                   auto state = boost::any_cast<std::shared_ptr<IncomingHTTP2Connection>>(param);
                   infolog(" - %s", state->toString());
                 }
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
                 else if (param.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
                   auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(param);
                   infolog(" - %s", conn->toString());
@@ -1567,10 +1567,10 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
       gettimeofday(&now, nullptr);
 
       if (ci.cs->dohFrontend) {
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
         auto state = std::make_shared<IncomingHTTP2Connection>(std::move(ci), *threadData, now);
         state->handleIO();
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
       }
       else {
         auto state = std::make_shared<IncomingTCPConnectionState>(std::move(ci), *threadData, now);

@@ -29,7 +29,7 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-nghttp2-in.hh"
 
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 #include <nghttp2/nghttp2.h>
 
 extern std::function<ProcessQueryResult(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)> s_processQuery;
@@ -736,4 +736,4 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
 }
 
 BOOST_AUTO_TEST_SUITE_END();
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */

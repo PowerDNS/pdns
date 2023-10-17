@@ -113,7 +113,6 @@ AS_IF([test "x$enable_dns_over_quic" != "xno"], [
   ])
 ])
 
-PDNS_WITH_NGHTTP2
 DNSDIST_WITH_CDB
 PDNS_CHECK_LMDB
 PDNS_ENABLE_IPCIPHER

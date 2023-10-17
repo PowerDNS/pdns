@@ -2916,7 +2916,9 @@ int main(int argc, char** argv)
     g_tcpclientthreads = std::make_unique<TCPClientCollection>(*g_maxTCPClientThreads, std::vector<ClientState*>());
 #endif
 
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
     initDoHWorkers();
+#endif
 
     for (auto& todoItem : todo) {
       todoItem();

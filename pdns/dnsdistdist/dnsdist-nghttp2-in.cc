@@ -25,7 +25,7 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsparser.hh"
 
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 
 #if 0
 class IncomingDoHCrossProtocolContext : public CrossProtocolContext
@@ -1228,4 +1228,4 @@ bool IncomingHTTP2Connection::active() const
   return !d_connectionDied && d_ioState != nullptr;
 }
 
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */

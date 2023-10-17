@@ -31,7 +31,7 @@
 #include "dnsdist-nghttp2.hh"
 #include "sstuff.hh"
 
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 #include <nghttp2/nghttp2.h>
 
 BOOST_AUTO_TEST_SUITE(test_dnsdistnghttp2_cc)
@@ -1846,4 +1846,4 @@ BOOST_FIXTURE_TEST_CASE(test_ProxyProtocol, TestFixture)
 }
 
 BOOST_AUTO_TEST_SUITE_END();
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
