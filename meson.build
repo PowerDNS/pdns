@@ -57,16 +57,12 @@ subdir('meson' / 'ipcipher')                # IPCipher
 subdir('meson' / 'clock-gettime')           # Clock_gettime
 subdir('meson' / 'boost')                   # Boost
 subdir('meson' / 'boost-program-options')   # Boost Program Options Library
-subdir('meson' / 'unit-tests')              # Unit Tests
-subdir('meson' / 'auth-backend-unit-tests') # Auth Backend Unit Tests
 subdir('meson' / 'reproducible')            # Reproducible Builds
 subdir('meson' / 'fuzz-targets')            # Fuzzing Targets
 subdir('meson' / 'dlopen')                  # dlopen
 subdir('meson' / 'verbose-logging')         # Verbose Logging
 subdir('meson' / 'pkcs11')                  # PKCS11
 subdir('meson' / 'gss-tsig')                # GSS-TSIG
-subdir('meson' / 'auth-tools')              # Tools
-subdir('meson' / 'ixfrdist')                # Ixfrdist
 subdir('meson' / 'systemd')                 # Systemd and unit file handling
 subdir('meson' / 'code-coverage')           # Code coverage
 subdir('meson' / 'auto-var-init')           # Automatic Variable Initialization
@@ -75,6 +71,14 @@ subdir('meson' / 'malloc-trace')            # Malloc-trace
 subdir('meson' / 'socket-dir')              # Socket Dir
 subdir('meson' / 'various-functions')       # Various Functions
 subdir('meson' / 'various-headers')         # Various Headers
+
+if get_option('unit-tests') or get_option('unit-tests-backends')
+  subdir('meson' / 'boost-test')
+endif
+
+if get_option('module-geoip') != 'disabled' or get_option('tools-ixfrdist')
+  subdir('meson' / 'yaml-cpp')
+endif
 
 # Manpages
 # if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
@@ -104,12 +108,9 @@ deps = [
   dep_rt,
   dep_boost,
   dep_boost_program_options,
-  dep_unittests,
-  dep_backend_unittests,
   dep_dlopen,
   dep_pkcs11,
   dep_gss_tsig,
-  dep_ixfrdist,
   dep_yahttp,
   dep_ipcrypt,
   dep_json11,
@@ -130,7 +131,7 @@ all_modules = {
   'lua2':     {'deps': [],                              'exts': []},
   'remote':   {'deps': ['prog-curl', 'zeromq'],         'exts': []},
   'tinydns':  {'deps': ['cdb'],                         'exts': []},
-  'geoip':    {'deps': ['geoip', 'mmdb', 'yaml-cpp'],   'exts': []},
+  'geoip':    {'deps': ['geoip', 'mmdb'],               'exts': []},
   'lmdb':     {'deps': ['lmdb', 'boost-serialization'], 'exts': ['lmdb-safe']},
 }
 
@@ -146,7 +147,7 @@ foreach module_name, module_props: all_modules
   foreach dep: module_deps
     if module_name == 'remote'
       if dep == 'prog-curl'
-        if not opt_unittests
+        if not get_option('unit-tests')
           continue                # We only need cURL for unit tests.
         endif
       elif dep == 'zeromq'
