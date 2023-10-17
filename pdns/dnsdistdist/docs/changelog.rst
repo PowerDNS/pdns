@@ -2606,7 +2606,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 9925
 
-    Appease clang++ 12 ASAN on MacOS
+    Appease clang++ 12 ASAN on macOS
 
   .. change::
     :tags: Improvements

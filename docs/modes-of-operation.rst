@@ -200,7 +200,7 @@ Finally, IXFR updates that "plug" Empty Non-Terminals do not yet remove
 ENT records. A 'pdnsutil rectify-zone' may be required.
 
 PowerDNS itself is currently only able to retrieve updates via IXFR. It
-can not serve IXFR updates.
+cannot serve IXFR updates.
 
 .. _supermaster-operation:
 .. _autoprimary-operation:

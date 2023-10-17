@@ -61,7 +61,7 @@ and port 5300 change the following in ``pdns.conf``:
 This is most likely an ``apt-get`` or ``yum install`` away, see the
 `Recursor documentation <https://doc.powerdns.com/recursor/getting-started.html#installation>`__ for more information.
 
-It might be possible that the Recursor can not start as the listen
+It might be possible that the Recursor cannot start as the listen
 address is in use by the Authoritative Server, this is fine for now.
 
 Now configure the listen addresses and ACL for the Recursor to be the
@@ -144,7 +144,7 @@ This is most likely an ``apt-get`` or ``yum install`` away, see the
 `Recursor's Install Guide <https://doc.powerdns.com/recursor/getting-started.html#installation>`__ for more
 information.
 
-It might be possible that the Recursor can not start as the listen
+It might be possible that the Recursor cannot start as the listen
 address is in use by the Authoritative Server, this is fine for now.
 
 Configure the recursor to listen on the local loopback interface on a

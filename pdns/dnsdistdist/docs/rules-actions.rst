@@ -962,7 +962,7 @@ The following actions exist.
 
   Removes given type(s) records from the response. Beware you can accidentally turn the answer into a NODATA response
   without a SOA record in the additional section in which case you may want to use :func:`NegativeAndSOAAction` to generate an answer,
-  see example bellow.
+  see example below.
   Subsequent rules are processed after this action.
 
   .. code-block:: Lua
