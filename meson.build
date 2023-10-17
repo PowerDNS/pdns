@@ -85,7 +85,7 @@ subdir('meson' / 'various-headers')         # Various Headers
 # TODO Generate pdns_server.1 manpage
 
 # Ext
-ext_modules = ['arc4random', 'yahttp', 'ipcrypt', 'json11']
+ext_modules = ['arc4random', 'yahttp', 'ipcrypt', 'json11', 'protozero']
 subdir('ext')
 
 deps = [
@@ -115,6 +115,7 @@ deps = [
   dep_json11,
   dep_arc4random,
   dep_systemd,
+  dep_protozero,
 ]
 
 # Modules
