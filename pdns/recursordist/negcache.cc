@@ -73,7 +73,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
       updateStaleEntry(now.tv_sec, ni, QType::A);
     }
     // We have something
-    if (now.tv_sec < ni->d_ttd) {
+    if (now.tv_sec < ni->d_ttd && !(refresh && ni->d_servedStale > 0)) {
       ne = *ni;
       moveCacheItemToBack<SequenceTag>(content->d_map, ni);
       return true;
