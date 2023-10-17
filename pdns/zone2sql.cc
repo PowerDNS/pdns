@@ -193,7 +193,7 @@ ArgvMap &arg()
 }
 
 
-int main(int argc, char **argv)
+int main(int argc, char **argv) // NOLINT(readability-function-cognitive-complexity) 13379 https://github.com/PowerDNS/pdns/issues/13379 Habbie: zone2sql.cc, bindbackend2.cc: reduce complexity
 try
 {
     reportAllTypes();

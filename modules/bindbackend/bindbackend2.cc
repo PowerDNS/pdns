@@ -883,7 +883,7 @@ void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records
   }
 }
 
-void Bind2Backend::loadConfig(string* status)
+void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cognitive-complexity) 13379 https://github.com/PowerDNS/pdns/issues/13379 Habbie: zone2sql.cc, bindbackend2.cc: reduce complexity
 {
   static int domain_id = 1;
 
@@ -961,10 +961,12 @@ void Bind2Backend::loadConfig(string* status)
       bbd.d_also_notify = domain.alsoNotify;
 
       DomainInfo::DomainKind kind = DomainInfo::Native;
-      if (domain.type == "primary" || domain.type == "master")
+      if (domain.type == "primary" || domain.type == "master") {
         kind = DomainInfo::Master;
-      if (domain.type == "secondary" || domain.type == "slave")
+      }
+      if (domain.type == "secondary" || domain.type == "slave") {
         kind = DomainInfo::Slave;
+      }
 
       bool kindChanged = (bbd.d_kind != kind);
       bbd.d_kind = kind;
