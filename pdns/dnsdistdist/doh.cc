@@ -606,7 +606,10 @@ public:
 
   std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
   {
-    dynamic_cast<DOHUnit*>(query.d_idstate.du.get())->downstream = downstream;
+    auto* unit = dynamic_cast<DOHUnit*>(query.d_idstate.du.get());
+    if (unit != nullptr) {
+      unit->downstream = downstream;
+    }
     return s_sender;
   }
 
@@ -812,13 +815,20 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       }
 
       if (inMainThread) {
-        // NOLINTNEXTLINE(bugprone-use-after-move): cpq is not altered if the call fails
-        unit = cpq->releaseDU();
+        // cpq is not altered if the call fails but linters are not smart enough to notice that
+        if (cpq) {
+          // NOLINTNEXTLINE(bugprone-use-after-move): cpq is not altered if the call fails
+          unit = cpq->releaseDU();
+        }
         unit->status_code = 502;
         handleImmediateResponse(std::move(unit), "DoH internal error");
       }
       else {
-        cpq->handleInternalError();
+        // cpq is not altered if the call fails but linters are not smart enough to notice that
+        if (cpq) {
+          // NOLINTNEXTLINE(bugprone-use-after-move): cpq is not altered if the call fails
+          cpq->handleInternalError();
+        }
       }
       return;
     }

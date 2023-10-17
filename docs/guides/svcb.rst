@@ -66,7 +66,7 @@ Consider the following zone content::
   no-ipv6.example.org  IN HTTPS 1 . ipv4hint=auto ipv6hint=auto
   no-ipv6.example.org  IN A     192.0.2.2
 
-Here, no AAAA record exists for www.example.org, so PowerDNS can not put any data in the ipv6hint.
+Here, no AAAA record exists for www.example.org, so PowerDNS cannot put any data in the ipv6hint.
 In this case, the ipv6hint parameter is dropped when answering the query (and on AXFR)::
 
   ;; QUESTION SECTION:

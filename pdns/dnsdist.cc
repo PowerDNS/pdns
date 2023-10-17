@@ -109,6 +109,7 @@ string g_outputBuffer;
 
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
 std::vector<std::shared_ptr<DOHFrontend>> g_dohlocals;
+std::vector<std::shared_ptr<DOQFrontend>> g_doqlocals;
 std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
@@ -226,7 +227,7 @@ struct DelayedPacket
   }
 };
 
-static DelayPipe<DelayedPacket>* g_delay = nullptr;
+static std::unique_ptr<DelayPipe<DelayedPacket>> g_delay{nullptr};
 #endif /* DISABLE_DELAY_PIPE */
 
 std::string DNSQuestion::getTrailingData() const
@@ -606,7 +607,7 @@ static size_t getMaximumIncomingPacketSize(const ClientState& cs)
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
 #ifndef DISABLE_DELAY_PIPE
-  if (delayMsec && g_delay) {
+  if (delayMsec > 0 && g_delay != nullptr) {
     DelayedPacket dp{origFD, response, origRemote, origDest};
     g_delay->submit(dp, delayMsec);
     return true;
@@ -1568,9 +1569,11 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint1
 
     vinfolog("Got query for %s|%s from %s%s, relayed to %s", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), (doh ? " (https)" : ""), ds->getNameWithAddr());
 
+    /* make a copy since we cannot touch dq.ids after the move */
+    auto proxyProtocolPayloadSize = dq.ids.d_proxyProtocolPayloadSize;
     auto idOffset = ds->saveState(std::move(dq.ids));
     /* set the correct ID */
-    memcpy(query.data() + dq.ids.d_proxyProtocolPayloadSize, &idOffset, sizeof(idOffset));
+    memcpy(&query.at(proxyProtocolPayloadSize), &idOffset, sizeof(idOffset));
 
     /* you can't touch ids or du after this line, unless the call returned a non-negative value,
        because it might already have been freed */
@@ -1977,7 +1980,7 @@ static void maintThread()
          if something prevents us from cleaning the expired entries */
       auto localPools = g_pools.getLocal();
       for (const auto& entry : *localPools) {
-        auto& pool = entry.second;
+        const auto& pool = entry.second;
 
         auto packetCache = pool->packetCache;
         if (!packetCache) {
@@ -1989,7 +1992,7 @@ static void maintThread()
         /* if we need to keep stale data for this cache (ie, not clear
            expired entries when at least one pool using this cache
            has all its backends down) */
-        if (packetCache->keepStaleData() && iter->second == false) {
+        if (packetCache->keepStaleData() && !iter->second) {
           /* so far all pools had at least one backend up */
           if (pool->countServers(true) == 0) {
             iter->second = true;
@@ -2000,10 +2003,10 @@ static void maintThread()
       const time_t now = time(nullptr);
       for (const auto& pair : caches) {
         /* shall we keep expired entries ? */
-        if (pair.second == true) {
+        if (pair.second) {
           continue;
         }
-        auto& packetCache = pair.first;
+        const auto& packetCache = pair.first;
         size_t upTo = (packetCache->getMaxEntries()* (100 - g_cacheCleaningPercentage)) / 100;
         packetCache->purgeExpired(upTo, now);
       }
@@ -2117,9 +2120,9 @@ static void bindAny(int af, int sock)
 
 static void dropGroupPrivs(gid_t gid)
 {
-  if (gid) {
+  if (gid != 0) {
     if (setgid(gid) == 0) {
-      if (setgroups(0, NULL) < 0) {
+      if (setgroups(0, nullptr) < 0) {
         warnlog("Warning: Unable to drop supplementary gids: %s", stringerror());
       }
     }
@@ -2131,8 +2134,8 @@ static void dropGroupPrivs(gid_t gid)
 
 static void dropUserPrivs(uid_t uid)
 {
-  if(uid) {
-    if(setuid(uid) < 0) {
+  if (uid != 0) {
+    if (setuid(uid) < 0) {
       warnlog("Warning: Unable to set user ID to %d: %s", uid, stringerror());
     }
   }
@@ -2190,145 +2193,150 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
 
 static bool g_warned_ipv6_recvpktinfo = false;
 
-static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
+static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr, int& socket, bool tcp, bool warn)
 {
-  auto setupSocket = [](ClientState& cs, const ComboAddress& addr, int& socket, bool tcp, bool warn) {
-    (void) warn;
-    socket = SSocket(addr.sin4.sin_family, tcp == false ? SOCK_DGRAM : SOCK_STREAM, 0);
+  (void) warn;
+  socket = SSocket(addr.sin4.sin_family, !tcp ? SOCK_DGRAM : SOCK_STREAM, 0);
 
-    if (tcp) {
-      SSetsockopt(socket, SOL_SOCKET, SO_REUSEADDR, 1);
+  if (tcp) {
+    SSetsockopt(socket, SOL_SOCKET, SO_REUSEADDR, 1);
 #ifdef TCP_DEFER_ACCEPT
-      SSetsockopt(socket, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
+    SSetsockopt(socket, IPPROTO_TCP, TCP_DEFER_ACCEPT, 1);
 #endif
-      if (cs.fastOpenQueueSize > 0) {
+    if (clientState.fastOpenQueueSize > 0) {
 #ifdef TCP_FASTOPEN
-        SSetsockopt(socket, IPPROTO_TCP, TCP_FASTOPEN, cs.fastOpenQueueSize);
+      SSetsockopt(socket, IPPROTO_TCP, TCP_FASTOPEN, clientState.fastOpenQueueSize);
 #ifdef TCP_FASTOPEN_KEY
-        if (!g_TCPFastOpenKey.empty()) {
-          auto res = setsockopt(socket, IPPROTO_IP, TCP_FASTOPEN_KEY, g_TCPFastOpenKey.data(), g_TCPFastOpenKey.size() * sizeof(g_TCPFastOpenKey[0]));
-          if (res == -1) {
-            throw runtime_error("setsockopt for level IPPROTO_TCP and opname TCP_FASTOPEN_KEY failed: " + stringerror());
-          }
+      if (!g_TCPFastOpenKey.empty()) {
+        auto res = setsockopt(socket, IPPROTO_IP, TCP_FASTOPEN_KEY, g_TCPFastOpenKey.data(), g_TCPFastOpenKey.size() * sizeof(g_TCPFastOpenKey[0]));
+        if (res == -1) {
+          throw runtime_error("setsockopt for level IPPROTO_TCP and opname TCP_FASTOPEN_KEY failed: " + stringerror());
         }
+      }
 #endif /* TCP_FASTOPEN_KEY */
 #else /* TCP_FASTOPEN */
-        if (warn) {
-          warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", addr.toStringWithPort());
-        }
+      if (warn) {
+        warnlog("TCP Fast Open has been configured on local address '%s' but is not supported", addr.toStringWithPort());
+      }
 #endif /* TCP_FASTOPEN */
-      }
     }
+  }
 
-    if (addr.sin4.sin_family == AF_INET6) {
-      SSetsockopt(socket, IPPROTO_IPV6, IPV6_V6ONLY, 1);
-    }
+  if (addr.sin4.sin_family == AF_INET6) {
+    SSetsockopt(socket, IPPROTO_IPV6, IPV6_V6ONLY, 1);
+  }
 
-    bindAny(addr.sin4.sin_family, socket);
+  bindAny(addr.sin4.sin_family, socket);
 
-    if (!tcp && IsAnyAddress(addr)) {
-      int one = 1;
-      (void) setsockopt(socket, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one)); // linux supports this, so why not - might fail on other systems
+  if (!tcp && IsAnyAddress(addr)) {
+    int one = 1;
+    (void) setsockopt(socket, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one)); // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
-      if (addr.isIPv6() && setsockopt(socket, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 &&
-          !g_warned_ipv6_recvpktinfo) {
-        warnlog("Warning: IPV6_RECVPKTINFO setsockopt failed: %s", stringerror());
-        g_warned_ipv6_recvpktinfo = true;
-      }
+    if (addr.isIPv6() && setsockopt(socket, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 &&
+        !g_warned_ipv6_recvpktinfo) {
+      warnlog("Warning: IPV6_RECVPKTINFO setsockopt failed: %s", stringerror());
+      g_warned_ipv6_recvpktinfo = true;
+    }
 #endif
-    }
+  }
 
-    if (cs.reuseport) {
-      if (!setReusePort(socket)) {
-        if (warn) {
-          /* no need to warn again if configured but support is not available, we already did for UDP */
-          warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", addr.toStringWithPort());
-        }
+  if (clientState.reuseport) {
+    if (!setReusePort(socket)) {
+      if (warn) {
+        /* no need to warn again if configured but support is not available, we already did for UDP */
+        warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", addr.toStringWithPort());
       }
     }
+  }
 
-    /* Only set this on IPv4 UDP sockets.
-       Don't set it for DNSCrypt binds. DNSCrypt pads queries for privacy
-       purposes, so we do receive large, sometimes fragmented datagrams. */
-    if (!tcp && !cs.dnscryptCtx) {
+  /* Only set this on IPv4 UDP sockets.
+     Don't set it for DNSCrypt binds. DNSCrypt pads queries for privacy
+     purposes, so we do receive large, sometimes fragmented datagrams. */
+  if (!tcp && !clientState.dnscryptCtx) {
+    try {
+      setSocketIgnorePMTU(socket, addr.sin4.sin_family);
+    }
+    catch (const std::exception& e) {
+      warnlog("Failed to set IP_MTU_DISCOVER on UDP server socket for local address '%s': %s", addr.toStringWithPort(), e.what());
+    }
+  }
+
+  if (!tcp) {
+    if (g_socketUDPSendBuffer > 0) {
       try {
-        setSocketIgnorePMTU(socket, addr.sin4.sin_family);
+        setSocketSendBuffer(socket, g_socketUDPSendBuffer);
       }
       catch (const std::exception& e) {
-        warnlog("Failed to set IP_MTU_DISCOVER on UDP server socket for local address '%s': %s", addr.toStringWithPort(), e.what());
+        warnlog(e.what());
       }
     }
 
-    if (!tcp) {
-      if (g_socketUDPSendBuffer > 0) {
-        try {
-          setSocketSendBuffer(socket, g_socketUDPSendBuffer);
-        }
-        catch (const std::exception& e) {
-          warnlog(e.what());
-        }
+    if (g_socketUDPRecvBuffer > 0) {
+      try {
+        setSocketReceiveBuffer(socket, g_socketUDPRecvBuffer);
       }
-
-      if (g_socketUDPRecvBuffer > 0) {
-        try {
-          setSocketReceiveBuffer(socket, g_socketUDPRecvBuffer);
-        }
-        catch (const std::exception& e) {
-          warnlog(e.what());
-        }
+      catch (const std::exception& e) {
+        warnlog(e.what());
       }
     }
+  }
 
-    const std::string& itf = cs.interface;
-    if (!itf.empty()) {
+  const std::string& itf = clientState.interface;
+  if (!itf.empty()) {
 #ifdef SO_BINDTODEVICE
-      int res = setsockopt(socket, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
-      if (res != 0) {
-        warnlog("Error setting up the interface on local address '%s': %s", addr.toStringWithPort(), stringerror());
-      }
-#else
-      if (warn) {
-        warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", addr.toStringWithPort());
-      }
-#endif
+    int res = setsockopt(socket, SOL_SOCKET, SO_BINDTODEVICE, itf.c_str(), itf.length());
+    if (res != 0) {
+      warnlog("Error setting up the interface on local address '%s': %s", addr.toStringWithPort(), stringerror());
     }
+#else
+    if (warn) {
+      warnlog("An interface has been configured on local address '%s' but SO_BINDTODEVICE is not supported", addr.toStringWithPort());
+    }
+#endif
+  }
 
 #ifdef HAVE_EBPF
-    if (g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
-      cs.attachFilter(g_defaultBPFFilter, socket);
-      vinfolog("Attaching default BPF Filter to %s frontend %s", (!tcp ? "UDP" : "TCP"), addr.toStringWithPort());
-    }
+  if (g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
+    clientState.attachFilter(g_defaultBPFFilter, socket);
+    vinfolog("Attaching default BPF Filter to %s frontend %s", (!tcp ? std::string("UDP") : std::string("TCP")), addr.toStringWithPort());
+  }
 #endif /* HAVE_EBPF */
 
-    SBind(socket, addr);
+  SBind(socket, addr);
 
-    if (tcp) {
-      SListen(socket, cs.tcpListenQueueSize);
+  if (tcp) {
+    SListen(socket, clientState.tcpListenQueueSize);
 
-      if (cs.tlsFrontend != nullptr) {
-        infolog("Listening on %s for TLS", addr.toStringWithPort());
-      }
-      else if (cs.dohFrontend != nullptr) {
-        infolog("Listening on %s for DoH", addr.toStringWithPort());
-      }
-      else if (cs.dnscryptCtx != nullptr) {
-        infolog("Listening on %s for DNSCrypt", addr.toStringWithPort());
-      }
-      else {
-        infolog("Listening on %s", addr.toStringWithPort());
-      }
+    if (clientState.tlsFrontend != nullptr) {
+      infolog("Listening on %s for TLS", addr.toStringWithPort());
     }
-  };
+    else if (clientState.dohFrontend != nullptr) {
+      infolog("Listening on %s for DoH", addr.toStringWithPort());
+    }
+    else if (clientState.dnscryptCtx != nullptr) {
+      infolog("Listening on %s for DNSCrypt", addr.toStringWithPort());
+    }
+    else {
+      infolog("Listening on %s", addr.toStringWithPort());
+    }
+  } else {
+    if (clientState.doqFrontend != nullptr) {
+      infolog("Listening on %s for DoQ", addr.toStringWithPort());
+    }
+  }
+}
 
+static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
+{
   /* skip some warnings if there is an identical UDP context */
-  bool warn = cstate->tcp == false || cstate->tlsFrontend != nullptr || cstate->dohFrontend != nullptr;
-  int& fd = cstate->tcp == false ? cstate->udpFD : cstate->tcpFD;
+  bool warn = !cstate->tcp || cstate->tlsFrontend != nullptr || cstate->dohFrontend != nullptr;
+  int& descriptor = !cstate->tcp ? cstate->udpFD : cstate->tcpFD;
   (void) warn;
 
-  setupSocket(*cstate, cstate->local, fd, cstate->tcp, warn);
+  setupLocalSocket(*cstate, cstate->local, descriptor, cstate->tcp, warn);
 
   for (auto& [addr, socket] : cstate->d_additionalAddresses) {
-    setupSocket(*cstate, addr, socket, true, false);
+    setupLocalSocket(*cstate, addr, socket, true, false);
   }
 
   if (cstate->tlsFrontend != nullptr) {
@@ -2340,6 +2348,9 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
 
   if (cstate->dohFrontend != nullptr) {
     cstate->dohFrontend->setup();
+  }
+  if (cstate->doqFrontend != nullptr) {
+    cstate->doqFrontend->setup();
   }
 
   cstate->ready = true;
@@ -2446,6 +2457,311 @@ static void sigTermHandler(int)
 }
 #endif /* COVERAGE */
 
+static void reportFeatures()
+{
+#ifdef LUAJIT_VERSION
+  cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<" ["<<LUAJIT_VERSION<<"])"<<endl;
+#else
+  cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<")"<<endl;
+#endif
+  cout<<"Enabled features: ";
+#ifdef HAVE_CDB
+  cout<<"cdb ";
+#endif
+#ifdef HAVE_DNS_OVER_QUIC
+  cout<<"dns-over-quic ";
+#endif
+#ifdef HAVE_DNS_OVER_TLS
+  cout<<"dns-over-tls(";
+#ifdef HAVE_GNUTLS
+  cout<<"gnutls";
+#ifdef HAVE_LIBSSL
+  cout<<" ";
+#endif
+#endif /* HAVE_GNUTLS */
+#ifdef HAVE_LIBSSL
+  cout<<"openssl";
+#endif
+  cout<<") ";
+#endif /* HAVE_DNS_OVER_TLS */
+#ifdef HAVE_DNS_OVER_HTTPS
+  cout<<"dns-over-https(";
+#ifdef HAVE_LIBH2OEVLOOP
+  cout<<"h2o";
+#endif /* HAVE_LIBH2OEVLOOP */
+#if defined(HAVE_LIBH2OEVLOOP) && defined(HAVE_NGHTTP2)
+  cout<<" ";
+#endif /* defined(HAVE_LIBH2OEVLOOP) && defined(HAVE_NGHTTP2) */
+#ifdef HAVE_NGHTTP2
+  cout<<"nghttp2";
+#endif /* HAVE_NGHTTP2 */
+  cout<<") ";
+#endif /* HAVE_DNS_OVER_HTTPS */
+#ifdef HAVE_DNSCRYPT
+  cout<<"dnscrypt ";
+#endif
+#ifdef HAVE_EBPF
+  cout<<"ebpf ";
+#endif
+#ifdef HAVE_FSTRM
+  cout<<"fstrm ";
+#endif
+#ifdef HAVE_IPCIPHER
+  cout<<"ipcipher ";
+#endif
+#ifdef HAVE_LIBEDIT
+  cout<<"libedit ";
+#endif
+#ifdef HAVE_LIBSODIUM
+  cout<<"libsodium ";
+#endif
+#ifdef HAVE_LMDB
+  cout<<"lmdb ";
+#endif
+#ifndef DISABLE_PROTOBUF
+  cout<<"protobuf ";
+#endif
+#ifdef HAVE_RE2
+  cout<<"re2 ";
+#endif
+#ifndef DISABLE_RECVMMSG
+#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
+  cout<<"recvmmsg/sendmmsg ";
+#endif
+#endif /* DISABLE_RECVMMSG */
+#ifdef HAVE_NET_SNMP
+  cout<<"snmp ";
+#endif
+#ifdef HAVE_SYSTEMD
+  cout<<"systemd";
+#endif
+  cout<<endl;
+}
+
+static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
+{
+  const std::array<struct option,16> longopts{{
+    {"acl", required_argument, nullptr, 'a'},
+    {"check-config", no_argument, nullptr, 1},
+    {"client", no_argument, nullptr, 'c'},
+    {"config", required_argument, nullptr, 'C'},
+    {"disable-syslog", no_argument, nullptr, 2},
+    {"execute", required_argument, nullptr, 'e'},
+    {"gid", required_argument, nullptr, 'g'},
+    {"help", no_argument, nullptr, 'h'},
+    {"local", required_argument, nullptr, 'l'},
+    {"log-timestamps", no_argument, nullptr, 4},
+    {"setkey", required_argument, nullptr, 'k'},
+    {"supervised", no_argument, nullptr, 3},
+    {"uid", required_argument, nullptr, 'u'},
+    {"verbose", no_argument, nullptr, 'v'},
+    {"version", no_argument, nullptr, 'V'},
+    {nullptr, 0, nullptr, 0}
+  }};
+  int longindex = 0;
+  string optstring;
+  while (true) {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+    int gotChar = getopt_long(argc, argv, "a:cC:e:g:hk:l:u:vV", longopts.data(), &longindex);
+    if (gotChar == -1) {
+      break;
+    }
+    switch (gotChar) {
+    case 1:
+      g_cmdLine.checkConfig = true;
+      break;
+    case 2:
+      g_syslog = false;
+      break;
+    case 3:
+      g_cmdLine.beSupervised = true;
+      break;
+    case 4:
+      g_logtimestamps = true;
+      break;
+    case 'C':
+      g_cmdLine.config = optarg;
+      break;
+    case 'c':
+      g_cmdLine.beClient = true;
+      break;
+    case 'e':
+      g_cmdLine.command = optarg;
+      break;
+    case 'g':
+      g_cmdLine.gid = optarg;
+      break;
+    case 'h':
+      cout<<"dnsdist "<<VERSION<<endl;
+      usage();
+      cout<<"\n";
+      // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+      exit(EXIT_SUCCESS);
+      break;
+    case 'a':
+      optstring = optarg;
+      g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
+      break;
+    case 'k':
+#ifdef HAVE_LIBSODIUM
+      if (B64Decode(string(optarg), g_consoleKey) < 0) {
+        cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
+        // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+        exit(EXIT_FAILURE);
+      }
+#else
+      cerr<<"dnsdist has been built without libsodium, -k/--setkey is unsupported."<<endl;
+      // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+      exit(EXIT_FAILURE);
+#endif
+      break;
+    case 'l':
+      g_cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
+      break;
+    case 'u':
+      g_cmdLine.uid = optarg;
+      break;
+    case 'v':
+      g_verbose = true;
+      break;
+    case 'V':
+      reportFeatures();
+      // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+      exit(EXIT_SUCCESS);
+      break;
+    case '?':
+      //getopt_long printed an error message.
+      usage();
+      // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+      exit(EXIT_FAILURE);
+      break;
+    }
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): argv
+  argv += optind;
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): argv
+  for (const auto* ptr = argv; *ptr != nullptr; ++ptr) {
+    if (g_cmdLine.beClient) {
+      clientAddress = ComboAddress(*ptr, 5199);
+    } else {
+      g_cmdLine.remotes.emplace_back(*ptr);
+    }
+  }
+}
+static void setupPools()
+{
+  auto pools = g_pools.getCopy();
+  {
+    bool precompute = false;
+    if (g_policy.getLocal()->getName() == "chashed") {
+      precompute = true;
+    } else {
+      for (const auto& entry: pools) {
+        if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
+          precompute = true;
+          break ;
+        }
+      }
+    }
+    if (precompute) {
+      vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
+      // pre compute hashes
+      auto backends = g_dstates.getLocal();
+      for (const auto& backend: *backends) {
+        if (backend->d_config.d_weight < 100) {
+          vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->d_config.d_weight);
+        }
+
+        backend->hash();
+      }
+    }
+  }
+}
+
+static void dropPrivileges()
+{
+  uid_t newgid = getegid();
+  gid_t newuid = geteuid();
+
+  if (!g_cmdLine.gid.empty()) {
+    newgid = strToGID(g_cmdLine.gid);
+  }
+
+  if (!g_cmdLine.uid.empty()) {
+    newuid = strToUID(g_cmdLine.uid);
+  }
+
+  bool retainedCapabilities = true;
+  if (!g_capabilitiesToRetain.empty() &&
+      (getegid() != newgid || geteuid() != newuid)) {
+    retainedCapabilities = keepCapabilitiesAfterSwitchingIDs();
+  }
+
+  if (getegid() != newgid) {
+    if (running_in_service_mgr()) {
+      errlog("--gid/-g set on command-line, but dnsdist was started as a systemd service. Use the 'Group' setting in the systemd unit file to set the group to run as");
+      _exit(EXIT_FAILURE);
+    }
+    dropGroupPrivs(newgid);
+  }
+
+  if (geteuid() != newuid) {
+    if (running_in_service_mgr()) {
+      errlog("--uid/-u set on command-line, but dnsdist was started as a systemd service. Use the 'User' setting in the systemd unit file to set the user to run as");
+      _exit(EXIT_FAILURE);
+    }
+    dropUserPrivs(newuid);
+  }
+
+  if (retainedCapabilities) {
+    dropCapabilitiesAfterSwitchingIDs();
+  }
+
+  try {
+    /* we might still have capabilities remaining,
+       for example if we have been started as root
+       without --uid or --gid (please don't do that)
+       or as an unprivileged user with ambient
+       capabilities like CAP_NET_BIND_SERVICE.
+    */
+    dropCapabilities(g_capabilitiesToRetain);
+  }
+  catch (const std::exception& e) {
+    warnlog("%s", e.what());
+  }
+}
+
+static void initFrontends()
+{
+  if (!g_cmdLine.locals.empty()) {
+    for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
+      /* DoH, DoT and DNSCrypt frontends are separate */
+      if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->doqFrontend == nullptr) {
+        it = g_frontends.erase(it);
+      }
+      else {
+        ++it;
+      }
+    }
+
+    for (const auto& loc : g_cmdLine.locals) {
+      /* UDP */
+      g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), false, false, 0, "", std::set<int>{}));
+      /* TCP */
+      g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), true, false, 0, "", std::set<int>{}));
+    }
+  }
+
+  if (g_frontends.empty()) {
+    /* UDP */
+    g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), false, false, 0, "",  std::set<int>{}));
+    /* TCP */
+    g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "",  std::set<int>{}));
+  }
+}
+
 int main(int argc, char** argv)
 {
   try {
@@ -2458,7 +2774,9 @@ int main(int argc, char** argv)
 #endif /* DISABLE_COMPLETION */
 #endif /* HAVE_LIBEDIT */
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast): SIG_IGN macro
     signal(SIGPIPE, SIG_IGN);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast): SIG_IGN macro
     signal(SIGCHLD, SIG_IGN);
     signal(SIGTERM, sigTermHandler);
 
@@ -2467,6 +2785,7 @@ int main(int argc, char** argv)
 #ifdef HAVE_LIBSODIUM
     if (sodium_init() == -1) {
       cerr<<"Unable to initialize crypto library"<<endl;
+      // NOLINTNEXTLINE(concurrency-mt-unsafe): only on thread at this point
       exit(EXIT_FAILURE);
     }
 #endif
@@ -2475,189 +2794,17 @@ int main(int argc, char** argv)
 
     ComboAddress clientAddress = ComboAddress();
     g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
-    struct option longopts[]={
-      {"acl", required_argument, 0, 'a'},
-      {"check-config", no_argument, 0, 1},
-      {"client", no_argument, 0, 'c'},
-      {"config", required_argument, 0, 'C'},
-      {"disable-syslog", no_argument, 0, 2},
-      {"execute", required_argument, 0, 'e'},
-      {"gid", required_argument, 0, 'g'},
-      {"help", no_argument, 0, 'h'},
-      {"local", required_argument, 0, 'l'},
-      {"log-timestamps", no_argument, 0, 4},
-      {"setkey", required_argument, 0, 'k'},
-      {"supervised", no_argument, 0, 3},
-      {"uid", required_argument, 0, 'u'},
-      {"verbose", no_argument, 0, 'v'},
-      {"version", no_argument, 0, 'V'},
-      {0,0,0,0}
-    };
-    int longindex=0;
-    string optstring;
-    for(;;) {
-      int c=getopt_long(argc, argv, "a:cC:e:g:hk:l:u:vV", longopts, &longindex);
-      if(c==-1)
-        break;
-      switch(c) {
-      case 1:
-        g_cmdLine.checkConfig=true;
-        break;
-      case 2:
-        g_syslog=false;
-        break;
-      case 3:
-        g_cmdLine.beSupervised=true;
-        break;
-      case 4:
-        g_logtimestamps=true;
-        break;
-      case 'C':
-        g_cmdLine.config=optarg;
-        break;
-      case 'c':
-        g_cmdLine.beClient=true;
-        break;
-      case 'e':
-        g_cmdLine.command=optarg;
-        break;
-      case 'g':
-        g_cmdLine.gid=optarg;
-        break;
-      case 'h':
-        cout<<"dnsdist "<<VERSION<<endl;
-        usage();
-        cout<<"\n";
-        exit(EXIT_SUCCESS);
-        break;
-      case 'a':
-        optstring=optarg;
-        g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
-        break;
-      case 'k':
-#ifdef HAVE_LIBSODIUM
-        if (B64Decode(string(optarg), g_consoleKey) < 0) {
-          cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
-          exit(EXIT_FAILURE);
-        }
-#else
-        cerr<<"dnsdist has been built without libsodium, -k/--setkey is unsupported."<<endl;
-        exit(EXIT_FAILURE);
-#endif
-        break;
-      case 'l':
-        g_cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
-        break;
-      case 'u':
-        g_cmdLine.uid=optarg;
-        break;
-      case 'v':
-        g_verbose=true;
-        break;
-      case 'V':
-#ifdef LUAJIT_VERSION
-        cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<" ["<<LUAJIT_VERSION<<"])"<<endl;
-#else
-        cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<")"<<endl;
-#endif
-        cout<<"Enabled features: ";
-#ifdef HAVE_CDB
-        cout<<"cdb ";
-#endif
-#ifdef HAVE_DNS_OVER_TLS
-        cout<<"dns-over-tls(";
-#ifdef HAVE_GNUTLS
-        cout<<"gnutls";
-#ifdef HAVE_LIBSSL
-        cout<<" ";
-#endif
-#endif /* HAVE_GNUTLS */
-#ifdef HAVE_LIBSSL
-        cout<<"openssl";
-#endif
-        cout<<") ";
-#endif /* HAVE_DNS_OVER_TLS */
-#ifdef HAVE_DNS_OVER_HTTPS
-        cout<<"dns-over-https(";
-#ifdef HAVE_LIBH2OEVLOOP
-        cout<<"h2o";
-#endif /* HAVE_LIBH2OEVLOOP */
-#if defined(HAVE_LIBH2OEVLOOP) && defined(HAVE_NGHTTP2)
-        cout<<" ";
-#endif /* defined(HAVE_LIBH2OEVLOOP) && defined(HAVE_NGHTTP2) */
-#ifdef HAVE_NGHTTP2
-        cout<<"nghttp2";
-#endif /* HAVE_NGHTTP2 */
-        cout<<") ";
-#endif /* HAVE_DNS_OVER_HTTPS */
-#ifdef HAVE_DNSCRYPT
-        cout<<"dnscrypt ";
-#endif
-#ifdef HAVE_EBPF
-        cout<<"ebpf ";
-#endif
-#ifdef HAVE_FSTRM
-        cout<<"fstrm ";
-#endif
-#ifdef HAVE_IPCIPHER
-        cout<<"ipcipher ";
-#endif
-#ifdef HAVE_LIBEDIT
-        cout<<"libedit ";
-#endif
-#ifdef HAVE_LIBSODIUM
-        cout<<"libsodium ";
-#endif
-#ifdef HAVE_LMDB
-        cout<<"lmdb ";
-#endif
-#ifndef DISABLE_PROTOBUF
-        cout<<"protobuf ";
-#endif
-#ifdef HAVE_RE2
-        cout<<"re2 ";
-#endif
-#ifndef DISABLE_RECVMMSG
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-        cout<<"recvmmsg/sendmmsg ";
-#endif
-#endif /* DISABLE_RECVMMSG */
-#ifdef HAVE_NET_SNMP
-        cout<<"snmp ";
-#endif
-#ifdef HAVE_SYSTEMD
-        cout<<"systemd";
-#endif
-        cout<<endl;
-        exit(EXIT_SUCCESS);
-        break;
-      case '?':
-        //getopt_long printed an error message.
-        usage();
-        exit(EXIT_FAILURE);
-        break;
-      }
-    }
 
-    argc -= optind;
-    argv += optind;
-    (void) argc;
-
-    for (auto p = argv; *p; ++p) {
-      if(g_cmdLine.beClient) {
-        clientAddress = ComboAddress(*p, 5199);
-      } else {
-        g_cmdLine.remotes.push_back(*p);
-      }
-    }
+    parseParameters(argc, argv, clientAddress);
 
     ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding, false};
 
     g_policy.setState(leastOutstandingPol);
     if (g_cmdLine.beClient || !g_cmdLine.command.empty()) {
       setupLua(*(g_lua.lock()), true, false, g_cmdLine.config);
-      if (clientAddress != ComboAddress())
+      if (clientAddress != ComboAddress()) {
         g_serverControl = clientAddress;
+      }
       doClient(g_serverControl, g_cmdLine.command);
 #ifdef COVERAGE
       exit(EXIT_SUCCESS);
@@ -2667,9 +2814,10 @@ int main(int argc, char** argv)
     }
 
     auto acl = g_ACL.getCopy();
-    if(acl.empty()) {
-      for(auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"})
+    if (acl.empty()) {
+      for (const auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"}) {
         acl.addMask(addr);
+      }
       g_ACL.setState(acl);
     }
 
@@ -2698,67 +2846,18 @@ int main(int argc, char** argv)
 
     auto todo = setupLua(*(g_lua.lock()), false, false, g_cmdLine.config);
 
-    auto localPools = g_pools.getCopy();
-    {
-      bool precompute = false;
-      if (g_policy.getLocal()->getName() == "chashed") {
-        precompute = true;
-      } else {
-        for (const auto& entry: localPools) {
-          if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
-            precompute = true;
-            break ;
-          }
-        }
-      }
-      if (precompute) {
-        vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
-        // pre compute hashes
-        auto backends = g_dstates.getLocal();
-        for (auto& backend: *backends) {
-          if (backend->d_config.d_weight < 100) {
-            vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->d_config.d_weight);
-          }
+    setupPools();
 
-          backend->hash();
-        }
-      }
-    }
-
-    if (!g_cmdLine.locals.empty()) {
-      for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
-        /* DoH, DoT and DNSCrypt frontends are separate */
-        if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr) {
-          it = g_frontends.erase(it);
-        }
-        else {
-          ++it;
-        }
-      }
-
-      for (const auto& loc : g_cmdLine.locals) {
-        /* UDP */
-        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress(loc, 53), false, false, 0, "", {})));
-        /* TCP */
-        g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress(loc, 53), true, false, 0, "", {})));
-      }
-    }
-
-    if (g_frontends.empty()) {
-      /* UDP */
-      g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress("127.0.0.1", 53), false, false, 0, "", {})));
-      /* TCP */
-      g_frontends.push_back(std::unique_ptr<ClientState>(new ClientState(ComboAddress("127.0.0.1", 53), true, false, 0, "", {})));
-    }
+    initFrontends();
 
     g_configurationDone = true;
 
     g_rings.init();
 
-    for(auto& frontend : g_frontends) {
+    for (auto& frontend : g_frontends) {
       setUpLocalBind(frontend);
 
-      if (frontend->tcp == false) {
+      if (!frontend->tcp) {
         ++udpBindsCount;
       }
       else {
@@ -2769,12 +2868,13 @@ int main(int argc, char** argv)
     vector<string> vec;
     std::string acls;
     g_ACL.getLocal()->toStringVector(&vec);
-    for(const auto& s : vec) {
-      if (!acls.empty())
+    for (const auto& aclEntry : vec) {
+      if (!acls.empty()) {
         acls += ", ";
-      acls += s;
+      }
+      acls += aclEntry;
     }
-    infolog("ACL allowing queries from: %s", acls.c_str());
+    infolog("ACL allowing queries from: %s", acls);
     vec.clear();
     acls.clear();
     g_consoleACL.getLocal()->toStringVector(&vec);
@@ -2792,62 +2892,14 @@ int main(int argc, char** argv)
     }
 #endif
 
-    uid_t newgid=getegid();
-    gid_t newuid=geteuid();
-
-    if (!g_cmdLine.gid.empty()) {
-      newgid = strToGID(g_cmdLine.gid);
-    }
-
-    if (!g_cmdLine.uid.empty()) {
-      newuid = strToUID(g_cmdLine.uid);
-    }
-
-    bool retainedCapabilities = true;
-    if (!g_capabilitiesToRetain.empty() &&
-        (getegid() != newgid || geteuid() != newuid)) {
-      retainedCapabilities = keepCapabilitiesAfterSwitchingIDs();
-    }
-
-    if (getegid() != newgid) {
-      if (running_in_service_mgr()) {
-        errlog("--gid/-g set on command-line, but dnsdist was started as a systemd service. Use the 'Group' setting in the systemd unit file to set the group to run as");
-        _exit(EXIT_FAILURE);
-      }
-      dropGroupPrivs(newgid);
-    }
-
-    if (geteuid() != newuid) {
-      if (running_in_service_mgr()) {
-        errlog("--uid/-u set on command-line, but dnsdist was started as a systemd service. Use the 'User' setting in the systemd unit file to set the user to run as");
-        _exit(EXIT_FAILURE);
-      }
-      dropUserPrivs(newuid);
-    }
-
-    if (retainedCapabilities) {
-      dropCapabilitiesAfterSwitchingIDs();
-    }
-
-    try {
-      /* we might still have capabilities remaining,
-         for example if we have been started as root
-         without --uid or --gid (please don't do that)
-         or as an unprivileged user with ambient
-         capabilities like CAP_NET_BIND_SERVICE.
-      */
-      dropCapabilities(g_capabilitiesToRetain);
-    }
-    catch (const std::exception& e) {
-      warnlog("%s", e.what());
-    }
+    dropPrivileges();
 
     /* this need to be done _after_ dropping privileges */
 #ifndef DISABLE_DELAY_PIPE
-    g_delay = new DelayPipe<DelayedPacket>();
+    g_delay = std::make_unique<DelayPipe<DelayedPacket>>();
 #endif /* DISABLE_DELAY_PIPE */
 
-    if (g_snmpAgent) {
+    if (g_snmpAgent != nullptr) {
       g_snmpAgent->run();
     }
 
@@ -2868,14 +2920,14 @@ int main(int argc, char** argv)
 
     initDoHWorkers();
 
-    for (auto& t : todo) {
-      t();
+    for (auto& todoItem : todo) {
+      todoItem();
     }
 
-    localPools = g_pools.getCopy();
+    auto localPools = g_pools.getCopy();
     /* create the default pool no matter what */
     createPoolIfNotExists(localPools, "");
-    if (g_cmdLine.remotes.size()) {
+    if (!g_cmdLine.remotes.empty()) {
       for (const auto& address : g_cmdLine.remotes) {
         DownstreamState::Config config;
         config.remote = ComboAddress(address, 53);
@@ -2925,6 +2977,16 @@ int main(int argc, char** argv)
         t1.detach();
 #endif /* HAVE_LIBH2OEVLOOP */
 #endif /* HAVE_DNS_OVER_HTTPS */
+        continue;
+      }
+      if (cs->doqFrontend != nullptr) {
+#ifdef HAVE_DNS_OVER_QUIC
+        std::thread t1(doqThread, cs.get());
+        if (!cs->cpus.empty()) {
+          mapThreadToCPUList(t1.native_handle(), cs->cpus);
+        }
+        t1.detach();
+#endif /* HAVE_DNS_OVER_QUIC */
         continue;
       }
       if (cs->udpFD >= 0) {

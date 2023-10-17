@@ -198,7 +198,7 @@ Details & Security
 LUA records are synthesized on query. They can also be transferred via AXFR
 to other PowerDNS servers.
 
-LUA records themselves can not be queried however, as this would allow third parties to see load balancing internals
+LUA records themselves cannot be queried however, as this would allow third parties to see load balancing internals
 they do not need to see.
 
 A non-supporting DNS server will also serve a zone with LUA records, but

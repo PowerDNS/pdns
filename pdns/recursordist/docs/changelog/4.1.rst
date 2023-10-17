@@ -695,7 +695,7 @@ See :doc:`EOL Statements <../appendices/EOL>`.
 
   The full release notes can be read `on the blog <https://blog.powerdns.com/2017/12/04/powerdns-recursor-4-1/>`__.
 
-  This is a major release containing significant speedups (both in throughput and latency), enhanced capabilities and a highly conformant and robust DNSSEC validation implementation that is ready for heavy production use. In addition, our EDNS Client Subnet implementation now scales effortlessly to networks needing very fine grained scopes (as used by some ‘country sized’ service providers).
+  This is a major release containing significant speedups (both in throughput and latency), enhanced capabilities and a highly conformant and robust DNSSEC validation implementation that is ready for heavy production use. In addition, our EDNS Client Subnet implementation now scales effortlessly to networks needing very fine-grained scopes (as used by some ‘country sized’ service providers).
 
   - Improved DNSSEC support,
   - Improved documentation,
@@ -1341,7 +1341,7 @@ See :doc:`EOL Statements <../appendices/EOL>`.
     :tags: Bug Fixes
     :pullreq: 5209
 
-    Ensure locks can not be copied.
+    Ensure locks cannot be copied.
 
   .. change::
     :tags: Improvements, RPZ

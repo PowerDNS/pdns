@@ -46,7 +46,7 @@ It could be lowered however if we discover the security status is less urgent th
 If resolution fails, and the previous security-status was 1, the new security-status becomes 0 ('no data').
 If the security-status was higher than 1, it will remain that way, and not get set to 0.
 
-In this way, security-status of 0 really means 'no data', and can not mask a known problem.
+In this way, security-status of 0 really means 'no data', and cannot mask a known problem.
 
 Distributions
 ~~~~~~~~~~~~~

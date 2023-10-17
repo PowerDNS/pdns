@@ -203,14 +203,14 @@ extern bool g_slogStructured;
 //      startupLog->error("No such file", "Unable to parse configuration file", "config_file", Logging::Loggable(configname));
 //
 #define SLOG(oldStyle, slogCall) \
-  do {                           \
+  if (true) {                    \
     if (g_slogStructured) {      \
       slogCall;                  \
     }                            \
     else {                       \
       oldStyle;                  \
     }                            \
-  } while (0);
+  }
 
 #else // No structured logging (e.g. auth)
 #define SLOG(oldStyle, slogCall) \

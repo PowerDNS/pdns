@@ -258,7 +258,7 @@ Changelogs for 4.7.x
     :tags: Improvements
     :pullreq: 12029
 
-    clang14 has reached MacOS
+    clang14 has reached macOS
 
   .. change::
     :tags: Improvements

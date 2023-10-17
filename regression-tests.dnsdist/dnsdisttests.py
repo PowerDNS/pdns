@@ -28,6 +28,8 @@ import h2.config
 import pycurl
 from io import BytesIO
 
+from doqclient import quic_query
+
 from eqdnsmessage import AssertEqualDNSMessageMixin
 from proxyprotocol import ProxyProtocol
 
@@ -1089,3 +1091,38 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
     def sendDOTQueryWrapper(self, query, response, useQueue=True):
         return self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response, self._caCert, useQueue=useQueue)
+
+    def sendDOQQueryWrapper(self, query, response, useQueue=True):
+        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName)
+
+    @classmethod
+    def getDOQConnection(cls, port, caFile=None, source=None, source_port=0):
+
+        manager = dns.quic.SyncQuicManager(
+            verify_mode=caFile
+        )
+
+        return manager.connect('127.0.0.1', port, source, source_port)
+
+    @classmethod
+    def sendDOQQuery(cls, port, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, fromQueue=None, toQueue=None, connection=None, serverName=None):
+
+        if response:
+            if toQueue:
+                toQueue.put(response, True, timeout)
+            else:
+                cls._toResponderQueue.put(response, True, timeout)
+
+        message = quic_query(query, '127.0.0.1', timeout, port, verify=caFile, server_hostname=serverName)
+
+        receivedQuery = None
+
+        if useQueue:
+            if fromQueue:
+                if not fromQueue.empty():
+                    receivedQuery = fromQueue.get(True, timeout)
+            else:
+                if not cls._fromResponderQueue.empty():
+                    receivedQuery = cls._fromResponderQueue.get(True, timeout)
+
+        return (receivedQuery, message)

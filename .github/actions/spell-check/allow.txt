@@ -240,6 +240,7 @@ batchmode
 baz
 bbnew
 bbold
+bbr
 bbsv
 bccaf
 bdr
@@ -829,6 +830,7 @@ dontdrop
 dontinclude
 dontqueries
 DONTWAIT
+DOQ
 doquery
 dosec
 dotests

@@ -1615,6 +1615,9 @@ if test x$boost_cv_inc_path != xno; then
   # I'm not sure about my test for `il' (be careful: Intel's ICC pre-defines
   # the same defines as GCC's).
   for i in \
+    "defined __clang__ && __clang_major__ == 17 && __clang_minor__ == 0 @ clang170" \
+    "defined __clang__ && __clang_major__ == 16 && __clang_minor__ == 0 @ clang160" \
+    "defined __clang__ && __clang_major__ == 15 && __clang_minor__ == 0 @ clang150" \
     "defined __clang__ && __clang_major__ == 14 && __clang_minor__ == 0 @ clang140" \
     "defined __clang__ && __clang_major__ == 13 && __clang_minor__ == 0 @ clang130" \
     "defined __clang__ && __clang_major__ == 12 && __clang_minor__ == 0 @ clang120" \

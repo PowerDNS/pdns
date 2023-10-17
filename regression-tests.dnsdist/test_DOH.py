@@ -253,6 +253,22 @@ class DOHTests(object):
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         self.assertEqual(rcode, 400)
 
+    def testDOHZeroQDCount(self):
+        """
+        DOH: qdcount == 0
+        """
+        if self._dohLibrary == 'h2o':
+            raise unittest.SkipTest('h2o tries to parse the qname early, so this check will fail')
+        name = 'zero-qdcount.doh.tests.powerdns.com.'
+        query = dns.message.Message()
+        query.id = 0
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.NOTIMP)
+
+        (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, caFile=self._caCert, query=query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, expectedResponse)
+
     def testDOHShortPath(self):
         """
         DOH: Short path in GET query

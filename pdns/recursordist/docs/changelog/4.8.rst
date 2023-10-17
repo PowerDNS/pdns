@@ -472,7 +472,7 @@ Changelogs for 4.8.X
     :pullreq: 11857
     :tickets: 11855
 
-    Set ``rec_control_LDFLAGS``, needed for MacOS or any platforms where libcrypto is not in default lib path.
+    Set ``rec_control_LDFLAGS``, needed for macOS or any platforms where libcrypto is not in default lib path.
 
   .. change::
     :tags: Improvements

@@ -468,7 +468,7 @@ Changelogs for 4.6.X
     :pullreq: 10634
     :tickets: 10631
 
-    Move MacOS to kqueue event handler and assorted compile fixes.
+    Move macOS to kqueue event handler and assorted compile fixes.
 
   .. change::
     :tags: Bug Fixes

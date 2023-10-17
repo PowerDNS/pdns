@@ -497,6 +497,19 @@ OptLog SyncRes::LogObject(const string& prefix)
   return ret;
 }
 
+static bool pushResolveIfNotInNegCache(const DNSName& qname, QType qtype, const struct timeval& now)
+{
+  NegCache::NegCacheEntry negEntry;
+  bool inNegCache = g_negCache->get(qname, qtype, now, negEntry, false);
+  if (!inNegCache) {
+    // There are a few cases where an answer is neither stored in the record cache nor in the neg cache.
+    // An example is a SOA-less NODATA response. Rate limiting will kick in if those tasks are pushed too often.
+    // We might want to fix these cases (and always either store positive or negative) some day.
+    pushResolveTask(qname, qtype, now.tv_sec, now.tv_sec + 60, false);
+  }
+  return !inNegCache;
+}
+
 // A helper function to print a double with specific printf format.
 // Not using boost::format since it is not thread safe while calling
 // into locale handling code according to tsan.
@@ -607,13 +620,7 @@ void SyncRes::resolveAdditionals(const DNSName& qname, QType qtype, AdditionalMo
       }
     }
     // Not found in cache, check negcache and push task if also not in negcache
-    NegCache::NegCacheEntry ne;
-    bool inNegCache = g_negCache->get(qname, qtype, d_now, ne, false);
-    if (!inNegCache) {
-      // There are a few cases where an answer is neither stored in the record cache nor in the neg cache.
-      // An example is a SOA-less NODATA response. Rate limiting will kick in if those tasks are pushed too often.
-      // We might want to fix these cases (and always either store positive or negative) some day.
-      pushResolveTask(qname, qtype, d_now.tv_sec, d_now.tv_sec + 60, false);
+    if (pushResolveIfNotInNegCache(qname, qtype, d_now)) {
       additionalsNotInCache = true;
     }
     break;
@@ -2167,11 +2174,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
     if (s_doIPv6 && !seenV6 && !cacheOnly) {
       // No IPv6 records in cache, check negcache and submit async task if negache does not have the data
       // so that the next time the cache or the negcache will have data
-      NegCache::NegCacheEntry ne;
-      bool inNegCache = g_negCache->get(qname, QType::AAAA, d_now, ne, false);
-      if (!inNegCache) {
-        pushResolveTask(qname, QType::AAAA, d_now.tv_sec, d_now.tv_sec + 60, true);
-      }
+      pushResolveIfNotInNegCache(qname, QType::AAAA, d_now);
     }
   }
   catch (const PolicyHitException&) {
@@ -2234,7 +2237,7 @@ vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth,
   return ret;
 }
 
-void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain)
+void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain) // NOLINT(readability-function-cognitive-complexity)
 {
   DNSName subdomain(qname);
   bestns.clear();
@@ -2261,6 +2264,7 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
       }
       bestns.reserve(ns.size());
 
+      vector<DNSName> missing;
       for (auto k = ns.cbegin(); k != ns.cend(); ++k) {
         if (k->d_ttl > (unsigned int)d_now.tv_sec) {
           vector<DNSRecord> aset;
@@ -2285,9 +2289,10 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
               LOG(", not in cache / did not look at cache" << endl);
             }
           }
-          else {
+          else if (nrr != nullptr) {
             *flawedNSSet = true;
             LOG(prefix << qname << ": NS in cache for '" << subdomain << "', but needs glue (" << nrr->getNS() << ") which we miss or is expired" << endl);
+            missing.emplace_back(nrr->getNS());
           }
         }
       }
@@ -2296,6 +2301,17 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
         // these useless records do not prevent parent records to be inserted into the cache
         LOG(prefix << qname << ": Wiping flawed authoritative NS records for " << subdomain << endl);
         g_recCache->doWipeCache(subdomain, false, QType::NS);
+      }
+      if (!missing.empty() && missing.size() < ns.size()) {
+        // We miss glue, but we have a chance to resolve it, since we do have address(es) for at least one NS
+        for (const auto& name : missing) {
+          if (s_doIPv4 && pushResolveIfNotInNegCache(name, QType::A, d_now)) {
+            LOG(prefix << qname << ": A glue for " << subdomain << " NS " << name << " missing, pushed task to resolve" << endl);
+          }
+          if (s_doIPv6 && pushResolveIfNotInNegCache(name, QType::AAAA, d_now)) {
+            LOG(prefix << qname << ": AAAA glue for " << subdomain << " NS " << name << " missing, pushed task to resolve" << endl);
+          }
+        }
       }
 
       if (!bestns.empty()) {
@@ -5049,6 +5065,11 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_ttd = d_now.tv_sec + lowestTTL;
         ne.d_orig_ttl = lowestTTL;
         if (qtype.getCode()) { // prevents us from NXDOMAIN'ing a whole domain
+          // doCNAMECacheCheck() checks record cache and does not look into negcache. That means that an old record might be found if
+          // serve-stale is active. Avoid that by explicitly zapping that CNAME record.
+          if (qtype == QType::CNAME && MemRecursorCache::s_maxServedStaleExtensions > 0) {
+            g_recCache->doWipeCache(qname, false, qtype);
+          }
           g_negCache->add(ne);
         }
 

@@ -105,5 +105,6 @@ extern "Rust" {
     fn api_read_zones(path: &str) ->  Result<UniquePtr<ApiZones>>;
     fn api_add_auth_zone(file: &str, authzone: AuthZone) -> Result<()>;
     fn api_add_forward_zone(file: &str, forwardzone: ForwardZone) -> Result<()>;
+    fn api_add_forward_zones(file: &str, forwardzones: &mut Vec<ForwardZone>) -> Result<()>;
     fn api_delete_zone(file: &str, zone: &str) -> Result<()>;
 }

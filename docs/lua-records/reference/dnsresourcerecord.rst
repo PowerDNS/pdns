@@ -24,7 +24,7 @@ Functions and methods of a ``DNSResourceRecord``
   :param int domainId: The optional domain ID of the zone the record belongs to
   :param int auth: ?
 
-  .. todo complete LUA example bellow
+  .. todo complete LUA example below
   .. code-block:: lua
 
     name = newDN("www.example.org.")

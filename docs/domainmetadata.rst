@@ -27,7 +27,7 @@ The following options can only be read (not written to) via the HTTP API metadat
 * PRESIGNED
 * TSIG-ALLOW-AXFR
 
-The option SOA-EDIT-API can not be written or read via the HTTP API metadata endpoint.
+The option SOA-EDIT-API cannot be written or read via the HTTP API metadata endpoint.
 
 .. _metadata-allow-axfr-from:
 

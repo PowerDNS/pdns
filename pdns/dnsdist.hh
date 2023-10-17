@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+
 #include "config.h"
 #include "ext/luawrapper/include/LuaContext.hpp"
 
@@ -43,6 +44,7 @@
 #include "dnsdist-protocols.hh"
 #include "dnsname.hh"
 #include "dnsdist-doh-common.hh"
+#include "doq.hh"
 #include "ednsoptions.hh"
 #include "iputils.hh"
 #include "misc.hh"
@@ -492,6 +494,7 @@ struct ClientState
   std::shared_ptr<DNSCryptContext> dnscryptCtx{nullptr};
   std::shared_ptr<TLSFrontend> tlsFrontend{nullptr};
   std::shared_ptr<DOHFrontend> dohFrontend{nullptr};
+  std::shared_ptr<DOQFrontend> doqFrontend{nullptr};
   std::shared_ptr<BPFFilter> d_filter{nullptr};
   size_t d_maxInFlightQueriesPerConn{1};
   size_t d_tcpConcurrentConnectionsLimit{0};
@@ -566,7 +569,10 @@ struct ClientState
   {
     std::string result = udpFD != -1 ? "UDP" : "TCP";
 
-    if (dohFrontend) {
+    if (doqFrontend) {
+      result += " (DNS over QUIC)";
+    }
+    else if (dohFrontend) {
       if (dohFrontend->isHTTPS()) {
         result += " (DNS over HTTPS)";
       }
@@ -1053,6 +1059,7 @@ extern ComboAddress g_serverControl; // not changed during runtime
 
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
 extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
+extern std::vector<shared_ptr<DOQFrontend>> g_doqlocals;
 extern std::vector<std::unique_ptr<ClientState>> g_frontends;
 extern bool g_truncateTC;
 extern bool g_fixupCase;
