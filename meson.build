@@ -89,7 +89,14 @@ endif
 # TODO Generate pdns_server.1 manpage
 
 # Ext
-ext_modules = ['arc4random', 'yahttp', 'ipcrypt', 'json11', 'protozero']
+ext_modules = [
+  'arc4random',
+  'ipcrypt',
+  'json11',
+  'luawrapper',
+  'protozero',
+  'yahttp',
+]
 subdir('ext')
 
 deps = [
@@ -111,12 +118,13 @@ deps = [
   dep_dlopen,
   dep_pkcs11,
   dep_gss_tsig,
-  dep_yahttp,
+  dep_systemd,
+  dep_arc4random,
   dep_ipcrypt,
   dep_json11,
-  dep_arc4random,
-  dep_systemd,
+  dep_luawrapper,
   dep_protozero,
+  dep_yahttp,
 ]
 
 # Modules
