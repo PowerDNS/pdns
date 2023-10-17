@@ -13,7 +13,7 @@ Changelog
 
     Log Extended DNS Errors (EDE) to protobuf
 
-    .. change::
+  .. change::
     :tags: Bugs Fixes
     :pullreq: 13274
 
