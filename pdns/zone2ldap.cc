@@ -306,10 +306,10 @@ int main( int argc, char* argv[] )
 
                         for(const auto& i: domains)
                         {
-                                        if(i.type!="master" && i.type!="slave") {
-                                                cerr<<" Warning! Skipping '"<<i.type<<"' zone '"<<i.name<<"'"<<endl;
-                                                continue;
-                                        }
+                                if (i.type != "primary" && i.type != "secondary" && !i.type.empty() && i.type != "master" && i.type != "slave") {
+                                  cerr << " Warning! Skipping '" << i.type << "' zone '" << i.name << "'" << endl;
+                                  continue;
+                                }
                                 try
                                 {
                                   if( i.name != g_rootdnsname && i.name != DNSName("localhost") && i.name != DNSName("0.0.127.in-addr.arpa") )

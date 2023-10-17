@@ -30,41 +30,42 @@ zone "test.dyndns" {
 };
 
 zone "wtest.com"{
-	type master;
+	type primary;
 	file "wtest.com";
 };
 
 zone "nztest.com"{
-	type master;
+	type secondary;
 	file "nztest.com";
+	primaries { 1.2.3.4:5678; };
 };
 
 zone "dnssec-parent.com"{
-	type master;
+	type primary;
 	file "dnssec-parent.com";
 };
 
 zone "delegated.dnssec-parent.com"{
-	type master;
+	type primary;
 	file "delegated.dnssec-parent.com";
 };
 
 zone "secure-delegated.dnssec-parent.com"{
-	type master;
+	type primary;
 	file "secure-delegated.dnssec-parent.com";
 };
 
 zone "minimal.com"{
-	type master;
+	type primary;
 	file "minimal.com";
 };
 
 zone "tsig.com"{
-	type master;
+	type primary;
 	file "tsig.com";
 };
 
 zone "stest.com"{
-	type master;
+	type primary;
 	file "stest.com";
 };

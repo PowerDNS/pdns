@@ -1,5 +1,5 @@
 	context=${context}-presigned
-	perl -pe 's/type master;/type slave;\n\tmasters { 127.0.0.1:'$port'; };/ ;s/file "([^"]+)/file "$1-slave/' < named.conf > named-slave.conf
+	perl -pe 's/type primary;/type secondary;\n\tprimaries { 127.0.0.1:'$port'; };/ ;s/file "([^"]+)/file "$1-slave/' < named.conf > named-slave.conf
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 	do
