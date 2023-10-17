@@ -88,17 +88,19 @@ export RANLIB=gcc-ranlib
   --enable-systemd --with-systemd=%{_unitdir} \
   --without-net-snmp
 %endif
-%if 0%{?rhel} >= 7
-  --enable-dnscrypt \
+%if 0%{?rhel} >= 7 || 0%{?amzn} == 2023
   --enable-dnstap \
   --enable-dns-over-https \
   --enable-systemd --with-systemd=%{_unitdir} \
   --with-gnutls \
   --with-libcap \
-  --with-libsodium \
   --with-lua=%{lua_implementation} \
-  --with-net-snmp \
   --with-re2 \
+%if 0%{?amzn} != 2023
+  --enable-dnscrypt \
+  --with-libsodium \
+  --with-net-snmp \
+%endif
 %if 0%{?rhel} >= 8
   --enable-dns-over-quic \
   --with-quiche \
