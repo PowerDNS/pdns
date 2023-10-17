@@ -7,23 +7,34 @@ When upgrading several versions, please read **all** notes applying to the upgra
 4.9.0 to 5.0.0 and master
 --------------------------
 
-YAML setings
-------------
+YAML settings
+^^^^^^^^^^^^^
 Starting with version 5.0.0-alpha1 the settings file(s) can be specified using YAML syntax.
 The old-style settings files are still accepted but will be unsupported in a future release.
 When a ``recursor.yml`` settings file is encountered it will be processed instead of a ``recursor.conf`` file.
 Refer to :doc:`yamlsettings` for details and the :doc:`appendices/yamlconversion` guide for how to convert old-style settings to the new YAML format.
 
 Rust
-----
+^^^^
 Some parts of the Recursor code are now written in Rust.
 This has impact if you do local builds or are third-package maintainer.
 According to `cargo msrv` the minimum version to compile the Rust code and its dependencies is 1.64.
 Some distributions ship with an older Rust compiler, see `Rustup <https://rustup.rs/>`__ for a way to install a more recent one.
 For our package builds, we install a Rust compiler from the ``Standalone`` section of `Other Rust Installation Methods <https://forge.rust-lang.org/infra/other-installation-methods.html>`__.
 
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-bypass-server-throttling-probability` setting has been introduced to try throttled servers once in a while.
+- The :ref:`setting-tcp-threads` setting has been introduced to set the number of threads dedicated to processing incoming queries over TCP.
+  Previously either the distributor thread(s) or the general worker threads would process TCP queries.
+- The :ref:`setting-qname-max-minimize-count` and :ref:`setting-qname-minimize-one-label` have been introduced to allow tuning of the parameters specified in :rfc:`9156`.
+
+Changed settings
+^^^^^^^^^^^^^^^^
+- The :ref:`setting-loglevel` can now be set to a level below 3 (error).
+
 4.8.0 to 4.9.0
--------------- 
+--------------
 
 Metrics
 ^^^^^^^
@@ -34,7 +45,7 @@ This affects the results shown by ``rec_control get-qtypelist`` and the ``respon
 Additionally, most ``RCodes`` and ``QTypes`` that are marked ``Unassigned``, ``Reserved`` or ``Obsolete`` by IANA are not accounted, to reduce the memory consumed by these metrics.
 
 New settings
-~~~~~~~~~~~~
+^^^^^^^^^^^^
 - The :ref:`setting-packetcache-negative-ttl` settings to control the TTL of negative (NxDomain or NoData) answers in the packet cache has been introduced.
 - The :ref:`setting-stack-cache-size` setting to  control the number of allocated mthread stacks has been introduced.
 - The :ref:`setting-packetcache-shards` settings to control the number of shards in the packet cache has been introduced.
@@ -46,7 +57,7 @@ New settings
 - The setting ``includeSOA`` was added to the :func:`rpzPrimary` and :func:`rpzFile` Lua functions to include the SOA of the RPZ the responses modified by the RPZ.
 
 Changed settings
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 The first two settings below have effect on the way the recursor distributes queries over threads.
 In some cases, this can lead to imbalance of the number of queries process per thread.
 See :doc:`performance`, in particular the :ref:`worker_imbalance` section.
