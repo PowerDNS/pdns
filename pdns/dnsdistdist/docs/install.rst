@@ -60,7 +60,7 @@ dnsdist depends on the following libraries:
 * `protobuf <https://developers.google.com/protocol-buffers/>`_ (optional, not needed as of 1.6.0)
 * `quiche <https://github.com/cloudflare/quiche>`_ (optional, incoming DoQ support)
 * `re2 <https://github.com/google/re2>`_ (optional)
-* `TinyCDB <https://www.corpit.ru/mjt/tinycdb.html>` (optional, CDB support)
+* `TinyCDB <https://www.corpit.ru/mjt/tinycdb.html>`_ (optional, CDB support)
 
 Should :program:`dnsdist` be run on a system with systemd, it is highly recommended to have
 the systemd header files (``libsystemd-dev`` on Debian and ``systemd-devel`` on CentOS)
