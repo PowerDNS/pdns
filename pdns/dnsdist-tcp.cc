@@ -677,12 +677,15 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
       TCPResponse response;
       dh->rcode = RCode::NotImp;
       dh->qr = true;
+      auto queryID = dh->id;
+      response.d_idstate = std::move(ids);
+      response.d_idstate.origID = queryID;
       response.d_idstate.selfGenerated = true;
       response.d_buffer = std::move(query);
       d_state = State::idle;
       ++d_currentQueriesCount;
       queueResponse(state, now, std::move(response), false);
-      return QueryProcessingResult::Empty;
+      return QueryProcessingResult::SelfAnswered;
     }
   }
 

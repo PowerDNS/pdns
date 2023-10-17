@@ -1569,9 +1569,11 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint1
 
     vinfolog("Got query for %s|%s from %s%s, relayed to %s", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), (doh ? " (https)" : ""), ds->getNameWithAddr());
 
+    /* make a copy since we cannot touch dq.ids after the move */
+    auto proxyProtocolPayloadSize = dq.ids.d_proxyProtocolPayloadSize;
     auto idOffset = ds->saveState(std::move(dq.ids));
     /* set the correct ID */
-    memcpy(query.data() + dq.ids.d_proxyProtocolPayloadSize, &idOffset, sizeof(idOffset));
+    memcpy(&query.at(proxyProtocolPayloadSize), &idOffset, sizeof(idOffset));
 
     /* you can't touch ids or du after this line, unless the call returned a non-negative value,
        because it might already have been freed */
