@@ -89,7 +89,7 @@ struct DNSQuestion
     return data;
   }
 
-  bool editHeader(std::function<bool(dnsheader&)> editFunction);
+  bool editHeader(const std::function<bool(dnsheader&)>& editFunction);
 
   const dnsheader_aligned getHeader() const
   {
@@ -102,7 +102,7 @@ struct DNSQuestion
 
   /* this function is not safe against unaligned access, you should
      use editHeader() instead, but we need it for the Lua bindings */
-  dnsheader* getMutableHeader()
+  dnsheader* getMutableHeader() const
   {
     if (data.size() < sizeof(dnsheader)) {
       throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");

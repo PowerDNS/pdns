@@ -27,6 +27,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsparser.hh"
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
 {
 #ifndef DISABLE_NON_FFI_DQ_BINDINGS
@@ -44,7 +45,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   });
   luaCtx.registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dq) -> const ComboAddress { return dq.ids.origRemote; }, [](DNSQuestion& dq, const ComboAddress newRemote) { (void) newRemote; });
   /* DNSDist DNSQuestion */
-  luaCtx.registerMember<dnsheader* (DNSQuestion::*)>("dh", [](const DNSQuestion& dq) -> dnsheader* { return const_cast<DNSQuestion&>(dq).getMutableHeader(); }, [](DNSQuestion& dq, const dnsheader* dh) {
+  luaCtx.registerMember<dnsheader* (DNSQuestion::*)>("dh", [](const DNSQuestion& dq) -> dnsheader* { return dq.getMutableHeader(); }, [](DNSQuestion& dq, const dnsheader* dh) {
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [&dh](dnsheader& header) {
       header = *dh;
       return true;
@@ -100,7 +101,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     dq.ids.d_protoBufData->d_requestorID = newValue;
   });
   luaCtx.registerFunction<bool(DNSQuestion::*)()const>("getDO", [](const DNSQuestion& dq) {
-      return getEDNSZ(dq) & EDNS_HEADER_FLAG_DO;
+    return getEDNSZ(dq) & EDNS_HEADER_FLAG_DO;
     });
   luaCtx.registerFunction<std::string(DNSQuestion::*)()const>("getContent", [](const DNSQuestion& dq) {
     return std::string(reinterpret_cast<const char*>(dq.getData().data()), dq.getData().size());
@@ -111,7 +112,6 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     buffer.clear();
     buffer.insert(buffer.begin(), raw.begin(), raw.end());
 
-  reinterpret_cast<dnsheader*>(buffer.data())->id = oldID;
     dnsdist::PacketMangling::editDNSHeaderFromPacket(buffer, [oldID](dnsheader& header) {
       header.id = oldID;
       return true;
@@ -350,12 +350,15 @@ private:
   luaCtx.registerMember<uint16_t (DNSResponse::*)>("qclass", [](const DNSResponse& dq) -> uint16_t { return dq.ids.qclass; }, [](DNSResponse& dq, uint16_t newClass) { (void) newClass; });
   luaCtx.registerMember<int (DNSResponse::*)>("rcode", [](const DNSResponse& dq) -> int { return dq.getHeader()->rcode; }, [](DNSResponse& dq, int newRCode) {
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [newRCode](dnsheader& header) {
-      header.rcode = newRCode;
-      return true;
+      if (newRCode >= 0 && newRCode <= std::numeric_limits<decltype(dnsheader::rcode)>::max()) {
+        header.rcode = static_cast<decltype(dnsheader::rcode)>(newRCode);
+        return true;
+      }
+      return false;
     });
   });
   luaCtx.registerMember<const ComboAddress (DNSResponse::*)>("remoteaddr", [](const DNSResponse& dq) -> const ComboAddress { return dq.ids.origRemote; }, [](DNSResponse& dq, const ComboAddress newRemote) { (void) newRemote; });
-  luaCtx.registerMember<dnsheader* (DNSResponse::*)>("dh", [](const DNSResponse& dr) -> dnsheader* { return const_cast<DNSResponse&>(dr).getMutableHeader(); }, [](DNSResponse& dr, const dnsheader* dh) {
+  luaCtx.registerMember<dnsheader* (DNSResponse::*)>("dh", [](const DNSResponse& dr) -> dnsheader* { return dr.getMutableHeader(); }, [](DNSResponse& dr, const dnsheader* dh) {
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dr.getMutableData(), [&dh](dnsheader& header) {
       header = *dh;
       return true;

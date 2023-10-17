@@ -243,7 +243,7 @@ std::map<std::string,double> TeeAction::getStats() const
 void TeeAction::worker()
 {
   setThreadName("dnsdist/TeeWork");
-  std::array<char, 1500> packet;
+  std::array<char, s_udpIncomingBufferSize> packet{};
   ssize_t res = 0;
   const dnsheader_aligned dh(packet.data());
   for (;;) {
@@ -267,21 +267,27 @@ void TeeAction::worker()
       d_responses++;
     }
 
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
     if (dh->rcode == RCode::NoError) {
       d_noerrors++;
     }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
     else if (dh->rcode == RCode::ServFail) {
       d_servfails++;
     }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
     else if (dh->rcode == RCode::NXDomain) {
       d_nxdomains++;
     }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
     else if (dh->rcode == RCode::Refused) {
       d_refuseds++;
     }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
     else if (dh->rcode == RCode::FormErr) {
       d_formerrs++;
     }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
     else if (dh->rcode == RCode::NotImp) {
       d_notimps++;
     }

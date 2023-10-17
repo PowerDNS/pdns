@@ -237,7 +237,8 @@ static std::unique_ptr<DelayPipe<DelayedPacket>> g_delay{nullptr};
 
 std::string DNSQuestion::getTrailingData() const
 {
-  const char* message = reinterpret_cast<const char*>(this->getData().data());
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  const auto* message = reinterpret_cast<const char*>(this->getData().data());
   const uint16_t messageLen = getDNSPacketLength(message, this->getData().size());
   return std::string(message + messageLen, this->getData().size() - messageLen);
 }
@@ -256,7 +257,7 @@ bool DNSQuestion::setTrailingData(const std::string& tail)
   return true;
 }
 
-bool DNSQuestion::editHeader(std::function<bool(dnsheader&)> editFunction)
+bool DNSQuestion::editHeader(const std::function<bool(dnsheader&)>& editFunction)
 {
   if (data.size() < sizeof(dnsheader)) {
     throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
@@ -986,14 +987,6 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
 
 static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const struct timespec& now)
 {
-  auto setRCode = [&dq](uint8_t rcode) {
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [rcode](dnsheader& header) {
-      header.rcode = rcode;
-      header.qr = true;
-      return true;
-    });
-  };
-
   if (g_rings.shouldRecordQueries()) {
     g_rings.insertQuery(now, dq.ids.origRemote, dq.ids.qname, dq.ids.qtype, dq.getData().size(), *dq.getHeader(), dq.getProtocol());
   }
@@ -1016,6 +1009,14 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
   }
 
 #ifndef DISABLE_DYNBLOCKS
+  auto setRCode = [&dq](uint8_t rcode) {
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [rcode](dnsheader& header) {
+      header.rcode = rcode;
+      header.qr = true;
+      return true;
+    });
+  };
+
   /* the Dynamic Block mechanism supports address and port ranges, so we need to pass the full address and port */
   if (auto got = holders.dynNMGBlock->lookup(AddressAndPortRange(dq.ids.origRemote, dq.ids.origRemote.isIPv4() ? 32 : 128, 16))) {
     auto updateBlockStats = [&got]() {
