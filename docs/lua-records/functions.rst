@@ -239,7 +239,7 @@ Record creation functions
   This allows basic persistent load balancing across a number of backends.  It means that
   test.example.com will always resolve to the same IP, but test2.example.com may go elsewhere.
 
-  This works similar to round-robin load balanacing, but has the advantage of making traffic
+  This works similar to round-robin load balancing, but has the advantage of making traffic
   for the same domain always end up on the same server which can help cache hit rates.
 
   This function also works for CNAME or TXT records.
