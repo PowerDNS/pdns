@@ -68,6 +68,7 @@ hashed.example.org.          3600 IN LUA  A     "pickhashed({{ '1.2.3.4', '4.3.2
 hashed-v6.example.org.       3600 IN LUA  AAAA  "pickhashed({{ '2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268' }})"
 hashed-txt.example.org.      3600 IN LUA  TXT   "pickhashed({{ 'bob', 'alice' }})"
 whashed.example.org.         3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
+*.namehashed.example.org.    3600 IN LUA  A     "picknamehashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
 whashed-txt.example.org.     3600 IN LUA  TXT   "pickwhashed({{ {{15, 'bob'}}, {{42, 'alice'}} }})"
 rand.example.org.            3600 IN LUA  A     "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
 rand-txt.example.org.        3600 IN LUA  TXT   "pickrandom({{ 'bob', 'alice' }})"
@@ -773,6 +774,7 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
         self.assertAnswerEmpty(res)
 
+
     def testWHashed(self):
         """
         Basic pickwhashed() test with a set of A records
@@ -789,6 +791,33 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
             res = self.sendUDPQuery(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, first.answer[0])
+
+
+    def testNamehashed(self):
+        """
+        Basic picknamehashed() test with a set of A records
+        As the name is hashed, we should always get the same IP back for the same record name.
+        """
+
+        queries = [
+            {
+                'expected': dns.rrset.from_text('test.namehashed.example.org.', 0,
+                                       dns.rdataclass.IN, 'A',
+                                       '1.2.3.4'),
+                'query': dns.message.make_query('test.namehashed.example.org', 'A')
+            },
+            {
+                'expected': dns.rrset.from_text('test2.namehashed.example.org.', 0,
+                                       dns.rdataclass.IN, 'A',
+                                       '4.3.2.1'),
+                'query': dns.message.make_query('test2.namehashed.example.org', 'A')
+            }
+        ]
+        for query in queries :
+            res = self.sendUDPQuery(query['query'])
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, query['expected'])
+
 
     def testWHashedTxt(self):
         """

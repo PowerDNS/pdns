@@ -383,6 +383,30 @@ static T pickWeightedHashed(const ComboAddress& bestwho, vector< pair<int, T> >&
 }
 
 template <typename T>
+static T pickWeightedNameHashed(const DNSName& dnsname, vector< pair<int, T> >& items)
+{
+  if (items.empty()) {
+    throw std::invalid_argument("The items list cannot be empty");
+  }
+  int sum=0;
+  vector< pair<int, T> > pick;
+  pick.reserve(items.size());
+
+  for(auto& i : items) {
+    sum += i.first;
+    pick.push_back({sum, i.second});
+  }
+
+  if (sum == 0) {
+    throw std::invalid_argument("The sum of items cannot be zero");
+  }
+
+  int r = dnsname.hash() % sum;
+  auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const typename decltype(pick)::value_type& a) { return rarg < a.first; });
+  return p->second;
+}
+
+template <typename T>
 static vector<T> pickRandomSample(int n, const vector<T>& items)
 {
   if (items.empty()) {
@@ -996,6 +1020,20 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       return pickWeightedHashed<string>(s_lua_record_ctx->bestwho, items);
     });
 
+  /*
+   * Based on the hash of the record name, return an IP address from the list
+   * supplied, as weighted by the various `weight` parameters
+   * @example picknamehashed({ {15, '1.2.3.4'}, {50, '5.4.3.2'} })
+   */
+  lua.writeFunction("picknamehashed", [](std::unordered_map<int, wiplist_t > ips) {
+      vector< pair<int, string> > items;
+
+      items.reserve(ips.size());
+      for(auto& i : ips)
+        items.emplace_back(atoi(i.second[1].c_str()), i.second[2]);
+
+      return pickWeightedNameHashed<string>(s_lua_record_ctx->qname, items);
+    });
 
   lua.writeFunction("pickclosest", [](const iplist_t& ips) {
       vector<ComboAddress> conv = convComboAddressList(ips);

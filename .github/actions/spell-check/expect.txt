@@ -1008,6 +1008,7 @@ pickhashed
 pickrandom
 pickrandomsample
 pickwhashed
+picknamehashed
 pickwrandom
 piddir
 pidfile
