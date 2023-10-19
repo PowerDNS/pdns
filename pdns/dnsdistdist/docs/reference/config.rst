@@ -1664,7 +1664,7 @@ faster than the existing rules.
 
   .. method:: DynBlockRulesGroup:removeRange(netmasks)
 
-    .. versionadded:: 1.6.0
+    .. versionadded:: 1.9.0
 
     Remove a previously included or excluded range. The range should be an exact match of the existing entry to remove.
 
