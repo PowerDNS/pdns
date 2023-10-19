@@ -913,6 +913,11 @@ try
     return;
   }
 
+  if (!allowedByACL(saddr, true) && !allowedByACL(saddr, false)) {
+    g_log<<Logger::Warning<<"UDP query from "<<saddr.toString()<<" did not match any valid query or NOTIFY source, dropping"<<endl;
+    return;
+  }
+
   MOADNSParser mdp(true, string(&buf[0], static_cast<size_t>(res)));
   vector<uint8_t> packet;
 
