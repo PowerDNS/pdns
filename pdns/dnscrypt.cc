@@ -400,7 +400,7 @@ bool DNSCryptQuery::parsePlaintextQuery(const PacketBuffer& packet)
   }
 
   const dnsheader_aligned dh(packet.data());
-  if (dh->qr || ntohs(dh->qdcount) != 1 || dh->ancount != 0 || dh->nscount != 0 || dh->opcode != Opcode::Query) {
+  if (dh->qr || ntohs(dh->qdcount) != 1 || dh->ancount != 0 || dh->nscount != 0 || static_cast<uint8_t>(dh->opcode) != Opcode::Query) {
     return false;
   }
 
