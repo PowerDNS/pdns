@@ -68,6 +68,13 @@ Changelog
 
     Netmask: Normalize subnet masks coming from a string
 
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13372
+    :tickets: 13280
+
+    Prevent DNS header alignment issues
+
 .. changelog::
   :version: 1.8.2
   :released: 11th of October 2023
