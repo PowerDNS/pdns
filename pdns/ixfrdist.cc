@@ -278,7 +278,7 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
   // FIXME: also report zone size?
 }
 
-static void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) {
+static void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) { // NOLINT(readability-function-cognitive-complexity) 13400 https://github.com/PowerDNS/pdns/issues/13400 Habbie:  ixfrdist: reduce complexity
   setThreadName("ixfrdist/update");
   std::map<DNSName, time_t> lastCheck;
 
@@ -492,7 +492,7 @@ enum class ResponseType {
 };
 
 static ResponseType maybeHandleNotify(const MOADNSParser& mdp, const ComboAddress& saddr, const string& logPrefix="") {
-  if (mdp.d_header.opcode != Opcode::Notify) {
+  if (mdp.d_header.opcode != Opcode::Notify) { // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions) opcode is 4 bits, this is not a dangerous conversion
     return ResponseType::Unknown;
   }
 
@@ -539,7 +539,7 @@ static ResponseType checkQuery(const MOADNSParser& mdp, const ComboAddress& sadd
 
   g_log<<Logger::Debug<<logPrefix<<"Had "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" query from "<<saddr.toStringWithPort()<<endl;
 
-  if (mdp.d_header.opcode != Opcode::Query) {
+  if (mdp.d_header.opcode != Opcode::Query) { // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions) opcode is 4 bits, this is not a dangerous conversion
     info_msg.push_back("Opcode is unsupported (" + Opcode::to_s(mdp.d_header.opcode) + "), expected QUERY"); // note that we also emit this for a NOTIFY from a wrong source
     ret = ResponseType::RefusedOpcode;
   }
@@ -562,7 +562,7 @@ static ResponseType checkQuery(const MOADNSParser& mdp, const ComboAddress& sadd
       else {
         const auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
         if (zoneInfo == nullptr) {
-          info_msg.push_back("Domain has not been transferred yet");
+          info_msg.emplace_back("Domain has not been transferred yet");
           ret = ResponseType::RefusedQuery;
         }
       }
@@ -897,7 +897,7 @@ static bool allowedByACL(const ComboAddress& addr, bool forNotify = false) {
   return g_acl.match(addr);
 }
 
-static void handleUDPRequest(int fd, boost::any&)
+static void handleUDPRequest(int fd, boost::any& /*unused*/)
 try
 {
   // TODO make the buffer-size configurable
@@ -922,7 +922,7 @@ try
     return;
   }
 
-  MOADNSParser mdp(true, string(buf, res));
+  MOADNSParser mdp(true, string(&buf[0], static_cast<size_t>(res)));
   vector<uint8_t> packet;
 
   ResponseType respt = ResponseType::Unknown;
