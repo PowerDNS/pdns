@@ -83,6 +83,9 @@ Listen Sockets
   .. versionchanged:: 1.6.0
     Added ``maxInFlight`` and ``maxConcurrentTCPConnections`` parameters.
 
+  .. versionchanged:: 1.9.0
+    Added ``randomReusePortPolicy`` parameter.
+
   Add to the list of listen addresses. Note that for IPv6 link-local addresses, it might be necessary to specify the interface to use: ``fe80::1%eth0``. On recent Linux versions specifying the interface via the ``interface`` parameter should work as well.
 
   :param str address: The IP Address with an optional port to listen on.
@@ -99,6 +102,7 @@ Listen Sockets
   * ``tcpListenQueueSize=SOMAXCONN``: int - Set the size of the listen queue. Default is ``SOMAXCONN``.
   * ``maxInFlight=0``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
   * ``maxConcurrentTCPConnections=0``: int - Maximum number of concurrent incoming TCP connections. The default is 0 which means unlimited.
+  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
 
   .. code-block:: lua
 
@@ -123,7 +127,7 @@ Listen Sockets
      ``additionalAddresses``, ``ignoreTLSConfigurationErrors`` and ``keepIncomingHeaders`` options added.
 
   .. versionchanged:: 1.9.0
-     ``library``, ``readAhead`` and ``proxyProtocolOutsideTLS`` options added.
+     ``library``, ``readAhead``, ``proxyProtocolOutsideTLS`` and ``randomReusePortPolicy`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -170,6 +174,7 @@ Listen Sockets
   * ``library``: str - Which underlying HTTP2 library should be used, either h2o or nghttp2. Until 1.9.0 only h2o was available, but the use of this library is now deprecated as it is no longer maintained. nghttp2 is the new default since 1.9.0.
   * ``readAhead``: bool - When the TLS provider is set to OpenSSL, whether we tell the library to read as many input bytes as possible, which leads to better performance by reducing the number of syscalls. Default is true.
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
+  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
 
 .. function:: addDOQLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -193,6 +198,7 @@ Listen Sockets
   * ``maxInFlight=0``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
   * ``congestionControlAlgo="reno"``: str - The congestion control algorithm to be chosen between ``reno``, ``cubic`` and ``bbr``.
   * ``keyLogFile``: str - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format.
+  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
 
 .. function:: addTLSLocal(address, certFile(s), keyFile(s) [, options])
 
@@ -208,7 +214,7 @@ Listen Sockets
      ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`).
      ``additionalAddresses``, ``ignoreTLSConfigurationErrors`` and ``ktls`` options added.
   .. versionchanged:: 1.9.0
-     ``readAhead`` and ``proxyProtocolOutsideTLS`` options added.
+     ``readAhead``, ``proxyProtocolOutsideTLS`` and ``randomReusePortPolicy`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
 
@@ -248,6 +254,7 @@ Listen Sockets
   * ``ktls=false``: bool - Whether to enable the experimental kernel TLS support on Linux, if both the kernel and the OpenSSL library support it. Default is false.
   * ``readAhead``: bool - When the TLS provider is set to OpenSSL, whether we tell the library to read as many input bytes as possible, which leads to better performance by reducing the number of syscalls. Default is true.
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
+  * ``randomReusePortPolicy=false``: bool - On Linux >= 4.6, and when ``reuseport` is set, randomly balances incoming queries between workers instead of the Linux default which is based on the source and destination addresses and ports.
 
 .. function:: setLocal(address[, options])
 
