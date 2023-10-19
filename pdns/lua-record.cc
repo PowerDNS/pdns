@@ -388,7 +388,7 @@ static T pickWeightedNameHashed(const DNSName& dnsname, vector< pair<int, T> >& 
   if (items.empty()) {
     throw std::invalid_argument("The items list cannot be empty");
   }
-  int sum=0;
+  size_t sum=0;
   vector< pair<int, T> > pick;
   pick.reserve(items.size());
 
@@ -401,7 +401,7 @@ static T pickWeightedNameHashed(const DNSName& dnsname, vector< pair<int, T> >& 
     throw std::invalid_argument("The sum of items cannot be zero");
   }
 
-  int r = dnsname.hash() % sum;
+  size_t r = dnsname.hash() % sum;
   auto p = upper_bound(pick.begin(), pick.end(), r, [](int rarg, const typename decltype(pick)::value_type& a) { return rarg < a.first; });
   return p->second;
 }
@@ -672,7 +672,7 @@ static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& 
   return convComboAddressListToString(res);
 }
 
-static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cognitive-complexity
+static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cognitive-complexity)
 {
   lua.writeFunction("latlon", []() {
       double lat = 0, lon = 0;
@@ -1030,7 +1030,9 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
 
       items.reserve(ips.size());
       for(auto& i : ips)
+      {
         items.emplace_back(atoi(i.second[1].c_str()), i.second[2]);
+      }
 
       return pickWeightedNameHashed<string>(s_lua_record_ctx->qname, items);
     });
