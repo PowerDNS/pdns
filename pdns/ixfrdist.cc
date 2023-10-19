@@ -508,21 +508,12 @@ static ResponseType maybeHandleNotify(const MOADNSParser& mdp, const ComboAddres
 
   bool masterFound = false;
 
-  auto saddrPort0 = saddr;
-  saddrPort0.setPort(0);
-
   for(const auto &master : masters) {
-    auto masterPort0 = master;
-    masterPort0.setPort(0);
-    cerr<<masterPort0.toStringWithPort()<<"=="<<saddrPort0.toStringWithPort()<<endl;
-    if (masterPort0 == saddrPort0) {
+    if (ComboAddress::addressOnlyEqual()(saddr, master)) {
       masterFound = true;
-      cerr<<"found"<<endl;
       break;
     }
   }
-
-  cerr<<"masterFound="<<masterFound<<endl;
 
   if (masterFound) {
     g_notifiesReceived.lock()->insert(mdp.d_qname);
