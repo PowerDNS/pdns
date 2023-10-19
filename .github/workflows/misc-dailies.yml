@@ -3,6 +3,7 @@ name: "Various daily checks"
 on:
   schedule:
     - cron: '34 4 * * *'
+  push:
 
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
