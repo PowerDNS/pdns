@@ -101,7 +101,7 @@ export RANLIB=gcc-ranlib
   --with-libsodium \
   --with-net-snmp \
 %endif
-%if 0%{?rhel} >= 8
+%if 0%{?rhel} >= 8 || 0%{?amzn} == 2023
   --enable-dns-over-quic \
   --with-quiche \
 %endif
@@ -116,7 +116,7 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 %install
 %make_install
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
-%if 0%{?rhel} >= 8
+%if 0%{?rhel} >= 8 || 0%{?amzn} == 2023
 install -Dm644 /usr/lib/libdnsdist-quiche.so %{buildroot}/%{_libdir}/libdnsdist-quiche.so
 %endif
 %{__mv} %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf-dist %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf
@@ -158,7 +158,8 @@ systemctl daemon-reload ||:
 %{!?_licensedir:%global license %%doc}
 %doc README.md
 %{_bindir}/*
-%if 0%{?rhel} >= 8
+%if 0%{?rhel} >= 8 || 0%{?amzn} == 2023
+%define __requires_exclude libdnsdist-quiche\\.so
 %{_libdir}/libdnsdist-quiche.so
 %endif
 %{_mandir}/man1/*
