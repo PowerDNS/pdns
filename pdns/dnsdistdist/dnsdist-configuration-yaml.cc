@@ -842,6 +842,7 @@ static void loadBinds(const Context& context, const ::rust::Vec<dnsdist::rust::s
 #endif /* defined(HAVE_DNSCRYPT) */
 
         auto state = std::make_shared<ClientState>(listeningAddress, protocol != "doq" && protocol != "doh3", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, bind.enable_proxy_protocol, bind.pad_responses);
+        state->randomReusePortPolicy = bind.random_reuseport_policy;
 
         if (bind.tcp.listen_queue_size > 0) {
           state->tcpListenQueueSize = bind.tcp.listen_queue_size;

@@ -1865,6 +1865,32 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   }
 }
 
+static std::map<std::pair<ComboAddress, bool>, uint32_t> s_reusePortPolicyMap;
+
+static void setupReuseportPolicy([[maybe_unused]] ClientState& clientState)
+{
+#ifdef HAVE_EBPF
+  if (!clientState.reuseport || !clientState.randomReusePortPolicy) {
+    return;
+  }
+  auto it = s_reusePortPolicyMap.find({clientState.local, clientState.tcp});
+  if (it == s_reusePortPolicyMap.end() || it->second == 1) {
+    return;
+  }
+  int& descriptor = !clientState.tcp ? clientState.udpFD : clientState.tcpFD;
+  try {
+    setRandomReusePortPolicy(descriptor, it->second);
+    SLOG(infolog("Applied random reuseport policy to %s - %s", clientState.local.toStringWithPort(), (clientState.tcp ? "TCP" : "UDP")),
+         dnsdist::logging::getTopLogger("setup")->info(Logr::Info, "Applied random reuseport policy", "frontend", Logging::Loggable{clientState.local.toStringWithPort()}, "protocol", Logging::Loggable{(clientState.tcp ? "TCP" : "UDP")}));
+  }
+  catch (const std::exception& excep) {
+    SLOG(warnlog("Unable to apply random reuseport policy to %s - %s: %s", clientState.local.toStringWithPort(), (clientState.tcp ? "TCP" : "UDP"), excep.what()),
+         dnsdist::logging::getTopLogger("setup")->error(Logr::Warning, excep.what(), "Applied random reuseport policy", "frontend", Logging::Loggable{clientState.local.toStringWithPort()}, "protocol", Logging::Loggable{(clientState.tcp ? "TCP" : "UDP")}));
+  }
+  s_reusePortPolicyMap.erase(it);
+#endif
+}
+
 static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr, int& socket, bool tcp, bool warn, const std::shared_ptr<const Logr::Logger>& logger)
 {
   const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
@@ -1922,6 +1948,10 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
         SLOG(warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", addr.toStringWithPort()),
              logger->info(Logr::Warning, "SO_REUSEPORT has been configured but is not supported", "frontend.adddress", Logging::Loggable(addr)));
       }
+    }
+    auto [mapIt, inserted] = s_reusePortPolicyMap.insert({{addr, tcp}, 1});
+    if (!inserted) {
+      ++mapIt->second;
     }
   }
 
@@ -2905,6 +2935,7 @@ int main(int argc, char** argv)
 
     for (const auto& frontend : dnsdist::getFrontends()) {
       setUpLocalBind(*frontend, setupLogger);
+      setupReuseportPolicy(*frontend);
     }
 
     {
