@@ -251,7 +251,7 @@ private:
 
       auto& query = conn->d_queries.at(frame->hd.stream_id);
       BOOST_REQUIRE_GT(query.size(), sizeof(dnsheader));
-      auto dh = reinterpret_cast<const dnsheader*>(query.data());
+      const dnsheader_aligned dh(query.data());
       uint16_t id = ntohs(dh->id);
       // cerr<<"got query ID "<<id<<endl;
 
@@ -500,7 +500,7 @@ public:
     }
 
     BOOST_REQUIRE_GT(response.d_buffer.size(), sizeof(dnsheader));
-    auto dh = reinterpret_cast<const dnsheader*>(response.d_buffer.data());
+    const dnsheader_aligned dh(response.d_buffer.data());
     uint16_t id = ntohs(dh->id);
 
     BOOST_REQUIRE_EQUAL(id, d_id);

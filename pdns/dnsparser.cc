@@ -768,7 +768,7 @@ static bool checkIfPacketContainsRecords(const PacketBuffer& packet, const std::
   }
 
   try {
-    auto dh = reinterpret_cast<const dnsheader*>(packet.data());
+    const dnsheader_aligned dh(packet.data());
     DNSPacketMangler dpm(const_cast<char*>(reinterpret_cast<const char*>(packet.data())), length);
 
     const uint16_t qdcount = ntohs(dh->qdcount);
@@ -804,7 +804,7 @@ static int rewritePacketWithoutRecordTypes(const PacketBuffer& initialPacket, Pa
     return EINVAL;
   }
   try {
-    const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(initialPacket.data());
+    const dnsheader_aligned dh(initialPacket.data());
 
     if (ntohs(dh->qdcount) == 0)
       return ENOENT;
@@ -979,7 +979,7 @@ uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA
   }
   try
   {
-    const dnsheader* dh = (const dnsheader*) packet;
+    const dnsheader_aligned dh(packet);
     DNSPacketMangler dpm(const_cast<char*>(packet), length);
 
     const uint16_t qdcount = ntohs(dh->qdcount);
@@ -1026,7 +1026,7 @@ uint32_t getDNSPacketLength(const char* packet, size_t length)
   }
   try
   {
-    const dnsheader* dh = reinterpret_cast<const dnsheader*>(packet);
+    const dnsheader_aligned dh(packet);
     DNSPacketMangler dpm(const_cast<char*>(packet), length);
 
     const uint16_t qdcount = ntohs(dh->qdcount);
@@ -1058,7 +1058,7 @@ uint16_t getRecordsOfTypeCount(const char* packet, size_t length, uint8_t sectio
   }
   try
   {
-    const dnsheader* dh = (const dnsheader*) packet;
+    const dnsheader_aligned dh(packet);
     DNSPacketMangler dpm(const_cast<char*>(packet), length);
 
     const uint16_t qdcount = ntohs(dh->qdcount);
@@ -1148,7 +1148,7 @@ bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payl
 
   try
   {
-    const dnsheader* dh = (const dnsheader*) packet;
+    const dnsheader_aligned dh(packet);
     DNSPacketMangler dpm(const_cast<char*>(packet), length);
 
     const uint16_t qdcount = ntohs(dh->qdcount);
@@ -1191,13 +1191,12 @@ bool visitDNSPacket(const std::string_view& packet, const std::function<bool(uin
 
   try
   {
-    dnsheader dh;
-    memcpy(&dh, reinterpret_cast<const dnsheader*>(packet.data()), sizeof(dh));
-    uint64_t numrecords = ntohs(dh.ancount) + ntohs(dh.nscount) + ntohs(dh.arcount);
+    const dnsheader_aligned dh(packet.data());
+    uint64_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
     PacketReader reader(packet);
 
     uint64_t n;
-    for (n = 0; n < ntohs(dh.qdcount) ; ++n) {
+    for (n = 0; n < ntohs(dh->qdcount) ; ++n) {
       (void) reader.getName();
       /* type and class */
       reader.skip(4);
@@ -1206,7 +1205,7 @@ bool visitDNSPacket(const std::string_view& packet, const std::function<bool(uin
     for (n = 0; n < numrecords; ++n) {
       (void) reader.getName();
 
-      uint8_t section = n < ntohs(dh.ancount) ? 1 : (n < (ntohs(dh.ancount) + ntohs(dh.nscount)) ? 2 : 3);
+      uint8_t section = n < ntohs(dh->ancount) ? 1 : (n < (ntohs(dh->ancount) + ntohs(dh->nscount)) ? 2 : 3);
       uint16_t dnstype = reader.get16BitInt();
       uint16_t dnsclass = reader.get16BitInt();
 

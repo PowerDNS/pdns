@@ -466,7 +466,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
   ids.queryRealTime.start();
   DNSQuestion dq(ids, query);
   packetCache->get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
-  packetCache->insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
+  packetCache->insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
 
   std::string poolName("test-pool");
   auto testPool = std::make_shared<ServerPool>();

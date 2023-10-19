@@ -22,6 +22,7 @@
 
 #include "dnsdist-xpf.hh"
 
+#include "dnsdist-dnsparser.hh"
 #include "dnsparser.hh"
 #include "xpf.hh"
 
@@ -54,7 +55,9 @@ bool addXPF(DNSQuestion& dq, uint16_t optionCode)
   pos += payload.size();
   (void) pos;
 
-  dq.getHeader()->arcount = htons(ntohs(dq.getHeader()->arcount) + 1);
-
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+    header.arcount = htons(ntohs(header.arcount) + 1);
+    return true;
+  });
   return true;
 }

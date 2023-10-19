@@ -48,7 +48,7 @@ public:
 class Opcode
 {
 public:
-  enum { Query=0, IQuery=1, Status=2, Notify=4, Update=5 };
+  enum opcodes_ : uint8_t { Query=0, IQuery=1, Status=2, Notify=4, Update=5 };
   static std::string to_s(uint8_t opcode);
 };
 

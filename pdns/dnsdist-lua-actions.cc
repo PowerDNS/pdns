@@ -23,6 +23,7 @@
 #include "threadname.hh"
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-edns.hh"
 #include "dnsdist-lua.hh"
@@ -242,37 +243,54 @@ std::map<std::string,double> TeeAction::getStats() const
 void TeeAction::worker()
 {
   setThreadName("dnsdist/TeeWork");
-  char packet[1500];
-  int res=0;
-  struct dnsheader* dh=(struct dnsheader*)packet;
-  for(;;) {
-    res=waitForData(d_fd, 0, 250000);
-    if(d_pleaseQuit)
+  std::array<char, s_udpIncomingBufferSize> packet{};
+  ssize_t res = 0;
+  const dnsheader_aligned dh(packet.data());
+  for (;;) {
+    res = waitForData(d_fd, 0, 250000);
+    if (d_pleaseQuit) {
       break;
-    if(res < 0) {
+    }
+
+    if (res < 0) {
       usleep(250000);
       continue;
     }
-    if(res==0)
+    if (res == 0) {
       continue;
-    res=recv(d_fd, packet, sizeof(packet), 0);
-    if(res <= (int)sizeof(struct dnsheader))
+    }
+    res = recv(d_fd, packet.data(), packet.size(), 0);
+    if (static_cast<size_t>(res) <= sizeof(struct dnsheader)) {
       d_recverrors++;
-    else
+    }
+    else {
       d_responses++;
+    }
 
-    if(dh->rcode == RCode::NoError)
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
+    if (dh->rcode == RCode::NoError) {
       d_noerrors++;
-    else if(dh->rcode == RCode::ServFail)
+    }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
+    else if (dh->rcode == RCode::ServFail) {
       d_servfails++;
-    else if(dh->rcode == RCode::NXDomain)
+    }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
+    else if (dh->rcode == RCode::NXDomain) {
       d_nxdomains++;
-    else if(dh->rcode == RCode::Refused)
+    }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
+    else if (dh->rcode == RCode::Refused) {
       d_refuseds++;
-    else if(dh->rcode == RCode::FormErr)
+    }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
+    else if (dh->rcode == RCode::FormErr) {
       d_formerrs++;
-    else if(dh->rcode == RCode::NotImp)
+    }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions): rcode is unsigned, RCode::rcodes_ as well
+    else if (dh->rcode == RCode::NotImp) {
       d_notimps++;
+    }
   }
 }
 
@@ -343,9 +361,12 @@ public:
   RCodeAction(uint8_t rcode) : d_rcode(rcode) {}
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    dq->getHeader()->rcode = d_rcode;
-    dq->getHeader()->qr = true; // for good measure
-    setResponseHeadersFromConfig(*dq->getHeader(), d_responseConfig);
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [this](dnsheader& header) {
+      header.rcode = d_rcode;
+      header.qr = true; // for good measure
+      setResponseHeadersFromConfig(header, d_responseConfig);
+      return true;
+    });
     return Action::HeaderModify;
   }
   std::string toString() const override
@@ -364,10 +385,13 @@ public:
   ERCodeAction(uint8_t rcode) : d_rcode(rcode) {}
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    dq->getHeader()->rcode = (d_rcode & 0xF);
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [this](dnsheader& header) {
+      header.rcode = (d_rcode & 0xF);
+      header.qr = true; // for good measure
+      setResponseHeadersFromConfig(header, d_responseConfig);
+      return true;
+    });
     dq->ednsRCode = ((d_rcode & 0xFFF0) >> 4);
-    dq->getHeader()->qr = true; // for good measure
-    setResponseHeadersFromConfig(*dq->getHeader(), d_responseConfig);
     return Action::HeaderModify;
   }
   std::string toString() const override
@@ -819,7 +843,10 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   if (d_raw.size() >= sizeof(dnsheader)) {
     auto id = dq->getHeader()->id;
     dq->getMutableData() = d_raw;
-    dq->getHeader()->id = id;
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [id](dnsheader& header) {
+      header.id = id;
+      return true;
+    });
     return Action::HeaderModify;
   }
   vector<ComboAddress> addrs;
@@ -875,10 +902,13 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
   data.resize(sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords*12 /* recordstart */ + totrdatalen); // there goes your EDNS
   uint8_t* dest = &(data.at(sizeof(dnsheader) + qnameWireLength + 4));
 
-  dq->getHeader()->qr = true; // for good measure
-  setResponseHeadersFromConfig(*dq->getHeader(), d_responseConfig);
-  dq->getHeader()->ancount = 0;
-  dq->getHeader()->arcount = 0; // for now, forget about your EDNS, we're marching over it
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [this](dnsheader& header) {
+    header.qr = true; // for good measure
+    setResponseHeadersFromConfig(header, d_responseConfig);
+    header.ancount = 0;
+    header.arcount = 0; // for now, forget about your EDNS, we're marching over it
+    return true;
+  });
 
   uint32_t ttl = htonl(d_responseConfig.ttl);
   uint16_t qclass = htons(dq->ids.qclass);
@@ -902,7 +932,10 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
     memcpy(dest, recordstart, sizeof(recordstart));
     dest += sizeof(recordstart);
     memcpy(dest, wireData.c_str(), wireData.length());
-    dq->getHeader()->ancount++;
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [](dnsheader& header) {
+      header.ancount++;
+      return true;
+    });
   }
   else if (!rawResponses.empty()) {
     qtype = htons(qtype);
@@ -917,7 +950,10 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
       memcpy(dest, rawResponse.c_str(), rawResponse.size());
       dest += rawResponse.size();
 
-      dq->getHeader()->ancount++;
+      dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [](dnsheader& header) {
+        header.ancount++;
+        return true;
+      });
     }
     raw = true;
   }
@@ -935,11 +971,18 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
              addr.sin4.sin_family == AF_INET ? reinterpret_cast<const void*>(&addr.sin4.sin_addr.s_addr) : reinterpret_cast<const void*>(&addr.sin6.sin6_addr.s6_addr),
              addr.sin4.sin_family == AF_INET ? sizeof(addr.sin4.sin_addr.s_addr) : sizeof(addr.sin6.sin6_addr.s6_addr));
       dest += (addr.sin4.sin_family == AF_INET ? sizeof(addr.sin4.sin_addr.s_addr) : sizeof(addr.sin6.sin6_addr.s6_addr));
-      dq->getHeader()->ancount++;
+      dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [](dnsheader& header) {
+        header.ancount++;
+        return true;
+      });
     }
   }
 
-  dq->getHeader()->ancount = htons(dq->getHeader()->ancount);
+  auto finalANCount = dq->getHeader()->ancount;
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [finalANCount](dnsheader& header) {
+    header.ancount = htons(finalANCount);
+    return true;
+  });
 
   if (hadEDNS && raw == false) {
     addEDNS(dq->getMutableData(), dq->getMaximumSize(), dnssecOK, g_PayloadSizeSelfGenAnswers, 0);
@@ -991,7 +1034,10 @@ public:
 
     auto& data = dq->getMutableData();
     if (generateOptRR(optRData, data, dq->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
-      dq->getHeader()->arcount = htons(1);
+      dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [](dnsheader& header) {
+        header.arcount = htons(1);
+        return true;
+      });
       // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
       dq->ids.ednsAdded = true;
     }
@@ -1036,7 +1082,10 @@ public:
   // this action does not stop the processing
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    dq->getHeader()->rd = false;
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [](dnsheader& header) {
+      header.rd = false;
+      return true;
+    });
     return Action::None;
   }
   std::string toString() const override
@@ -1252,7 +1301,10 @@ public:
   // this action does not stop the processing
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
   {
-    dq->getHeader()->cd = true;
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [](dnsheader& header) {
+      header.cd = true;
+      return true;
+    });
     return Action::None;
   }
   std::string toString() const override
@@ -1922,8 +1974,11 @@ public:
     }
 
     dq->ids.du->setHTTPResponse(d_code, PacketBuffer(d_body), d_contentType);
-    dq->getHeader()->qr = true; // for good measure
-    setResponseHeadersFromConfig(*dq->getHeader(), d_responseConfig);
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [this](dnsheader& header) {
+      header.qr = true; // for good measure
+      setResponseHeadersFromConfig(header, d_responseConfig);
+      return true;
+    });
     return Action::HeaderModify;
   }
 
@@ -2067,7 +2122,10 @@ public:
       return Action::None;
     }
 
-    setResponseHeadersFromConfig(*dq->getHeader(), d_responseConfig);
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->getMutableData(), [this](dnsheader& header) {
+      setResponseHeadersFromConfig(header, d_responseConfig);
+      return true;
+    });
 
     return Action::Allow;
   }

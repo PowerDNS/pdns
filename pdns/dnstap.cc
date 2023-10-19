@@ -74,7 +74,7 @@ DnstapMessage::DnstapMessage(std::string& buffer, DnstapMessage::MessageType typ
   }
 
   if (packet != nullptr && len >= sizeof(dnsheader)) {
-    const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
+    const dnsheader_aligned dh(packet);
     if (!dh->qr) {
       pbf_message.add_bytes(DnstapMessageFields::query_message, packet, len);
     } else {

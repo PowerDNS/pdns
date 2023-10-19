@@ -52,7 +52,7 @@ struct DesignatedResolvers
 static bool parseSVCParams(const PacketBuffer& answer, std::map<uint16_t, DesignatedResolvers>& resolvers)
 {
   std::map<DNSName, std::vector<ComboAddress>> hints;
-  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(answer.data());
+  const dnsheader_aligned dh(answer.data());
   PacketReader pr(std::string_view(reinterpret_cast<const char*>(answer.data()), answer.size()));
   uint16_t qdcount = ntohs(dh->qdcount);
   uint16_t ancount = ntohs(dh->ancount);
