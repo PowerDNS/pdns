@@ -86,6 +86,8 @@ jobs:
       - run: inv coverity-clang-configure
       - run: inv ci-autoconf
         working-directory: ./pdns/dnsdistdist/
+      - run: inv ci-build-and-install-quiche
+        working-directory: ./pdns/dnsdistdist/
       - run: inv ci-dnsdist-configure full
         working-directory: ./pdns/dnsdistdist/
       - run: inv coverity-make
