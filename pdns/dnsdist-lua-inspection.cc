@@ -250,7 +250,7 @@ static counts_t exceedRespByterate(unsigned int rate, int seconds)
 
 #endif /* DISABLE_DEPRECATED_DYNBLOCK */
 #endif /* DISABLE_DYNBLOCKS */
-
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaInspection(LuaContext& luaCtx)
 {
 #ifndef DISABLE_TOP_N_BINDINGS
