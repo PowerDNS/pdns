@@ -104,6 +104,7 @@ EXTRA_DIST=COPYING \
 	   bpf-filter.main.ebpf \
 	   bpf-filter.qname.ebpf \
 	   bpf-filter.ebpf.src \
+	   random-reuseport-policy.ebpf \
 	   DNSDIST-MIB.txt \
 	   devpollmplexer.cc \
 	   epollmplexer.cc \
