@@ -583,12 +583,6 @@ static ResponseType checkQuery(const MOADNSParser& mdp, const ComboAddress& sadd
  * QNAME is read from mdp.
  */
 static bool makeEmptyNoErrorPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
-
-  auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
-  if (zoneInfo == nullptr) {
-    return false;
-  }
-
   DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
   pw.getHeader()->opcode = mdp.d_header.opcode;
   pw.getHeader()->id = mdp.d_header.id;
