@@ -2,7 +2,7 @@ Changelog
 =========
 
 .. changelog::
-  :version: 1.9.0-alpha2
+  :version: 1.9.0-alpha3
   :released: 20th of October 2023
 
   Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
@@ -74,6 +74,12 @@ Changelog
     :tickets: 13280
 
     Prevent DNS header alignment issues
+
+.. changelog::
+  :version: 1.9.0-alpha2
+  :released: Never
+
+  This version was never released due to a last-minute issue in RPM packaging.
 
 .. changelog::
   :version: 1.8.2
