@@ -119,7 +119,7 @@ Incoming and outgoing DNS over TLS, as well as outgoing DNS over HTTPS, might be
 TLS performance
 ---------------
 
-For DNS over HTTPS and DNS over TLS, in addition to the advices above we advise reading the :doc:`tls-sessions-management` page to know how to improve TLS session resumption ratio, which has a huge impact on CPU usage and latency.
+For DNS over HTTPS and DNS over TLS, in addition to the advice above we suggest reading the :doc:`tls-sessions-management` page to learn how to improve TLS session resumption ratio, which has a huge impact on CPU usage and latency.
 
 Rules and Lua
 -------------
