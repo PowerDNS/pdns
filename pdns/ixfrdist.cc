@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "dns.hh"
+#include "dnsparser.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -151,6 +153,10 @@ static map<DNSName, ixfrdistdomain_t> g_domainConfigs;
 // Map domains and their data
 static LockGuarded<std::map<DNSName, std::shared_ptr<ixfrinfo_t>>> g_soas;
 
+// Queue of received NOTIFYs, already verified against their master IPs
+// Lazily implemented as a set
+static LockGuarded<std::set<DNSName>> g_notifiesReceived;
+
 // Condition variable for TCP handling
 static std::condition_variable g_tcpHandlerCV;
 static std::queue<pair<int, ComboAddress>> g_tcpRequestFDs;
@@ -160,7 +166,8 @@ namespace po = boost::program_options;
 
 static bool g_exiting = false;
 
-static NetmaskGroup g_acl;
+static NetmaskGroup g_acl;            // networks that can QUERY us
+static NetmaskGroup g_notifySources;  // networks (well, IPs) that can NOTIFY us
 static bool g_compress = false;
 
 static ixfrdistStats g_stats;
@@ -271,7 +278,7 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
   // FIXME: also report zone size?
 }
 
-static void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) {
+static void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) { // NOLINT(readability-function-cognitive-complexity) 13400 https://github.com/PowerDNS/pdns/issues/13400 Habbie:  ixfrdist: reduce complexity
   setThreadName("ixfrdist/update");
   std::map<DNSName, time_t> lastCheck;
 
@@ -347,7 +354,9 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
           refresh = std::min(refresh, domainConfig.second.maxSOARefresh);
         }
       }
-      if (now - zoneLastCheck < refresh) {
+
+
+      if (now - zoneLastCheck < refresh && g_notifiesReceived.lock()->erase(domain) == 0) {
         continue;
       }
 
@@ -474,33 +483,85 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
   } /* while (true) */
 } /* updateThread */
 
-static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true, const string& logPrefix="") {
+enum class ResponseType {
+  Unknown,
+  ValidQuery,
+  RefusedOpcode,
+  RefusedQuery,
+  EmptyNoError
+};
+
+static ResponseType maybeHandleNotify(const MOADNSParser& mdp, const ComboAddress& saddr, const string& logPrefix="") {
+  if (mdp.d_header.opcode != Opcode::Notify) { // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions) opcode is 4 bits, this is not a dangerous conversion
+    return ResponseType::Unknown;
+  }
+
+  g_log<<Logger::Info<<logPrefix<<"NOTIFY for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" "<< Opcode::to_s(mdp.d_header.opcode) <<" from "<<saddr.toStringWithPort()<<endl;
+
+  auto found = g_domainConfigs.find(mdp.d_qname);
+  if (found == g_domainConfigs.end()) {
+    g_log<<Logger::Info<<("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for notification")<<endl;
+    return ResponseType::RefusedQuery;
+  }
+
+  auto masters = found->second.masters;
+
+  bool masterFound = false;
+
+  for(const auto &master : masters) {
+    if (ComboAddress::addressOnlyEqual()(saddr, master)) {
+      masterFound = true;
+      break;
+    }
+  }
+
+  if (masterFound) {
+    g_notifiesReceived.lock()->insert(mdp.d_qname);
+    return ResponseType::EmptyNoError;
+  }
+
+  return ResponseType::RefusedQuery;
+}
+
+static ResponseType checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const bool udp = true, const string& logPrefix="") {
   vector<string> info_msg;
+
+  auto ret = ResponseType::ValidQuery;
 
   g_log<<Logger::Debug<<logPrefix<<"Had "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" query from "<<saddr.toStringWithPort()<<endl;
 
-  if (udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).toString() + " is not in {SOA,IXFR})");
+  if (mdp.d_header.opcode != Opcode::Query) { // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions) opcode is 4 bits, this is not a dangerous conversion
+    info_msg.push_back("Opcode is unsupported (" + Opcode::to_s(mdp.d_header.opcode) + "), expected QUERY"); // note that we also emit this for a NOTIFY from a wrong source
+    ret = ResponseType::RefusedOpcode;
   }
-
-  if (!udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR && mdp.d_qtype != QType::AXFR) {
-    info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).toString() + " is not in {SOA,IXFR,AXFR})");
-  }
-
-  {
-    if (g_domainConfigs.find(mdp.d_qname) == g_domainConfigs.end()) {
-      info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
+  else {
+    if (udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR) {
+      info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).toString() + " is not in {SOA,IXFR})");
+      ret = ResponseType::RefusedQuery;
     }
-    else {
-      const auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
-      if (zoneInfo == nullptr) {
-        info_msg.push_back("Domain has not been transferred yet");
+
+    if (!udp && mdp.d_qtype != QType::SOA && mdp.d_qtype != QType::IXFR && mdp.d_qtype != QType::AXFR) {
+      info_msg.push_back("QType is unsupported (" + QType(mdp.d_qtype).toString() + " is not in {SOA,IXFR,AXFR})");
+      ret = ResponseType::RefusedQuery;
+    }
+
+    {
+      if (g_domainConfigs.find(mdp.d_qname) == g_domainConfigs.end()) {
+        info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
+        ret = ResponseType::RefusedQuery;
+      }
+      else {
+        const auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+        if (zoneInfo == nullptr) {
+          info_msg.emplace_back("Domain has not been transferred yet");
+          ret = ResponseType::RefusedQuery;
+        }
       }
     }
   }
 
-  if (!info_msg.empty()) {
-    g_log<<Logger::Warning<<logPrefix<<"Refusing "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" query from "<<saddr.toStringWithPort();
+  if (!info_msg.empty()) {  // which means ret is not SOA
+    g_log<<Logger::Warning<<logPrefix<<"Refusing "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" "<< Opcode::to_s(mdp.d_header.opcode) <<" from "<<saddr.toStringWithPort();
     g_log<<Logger::Warning<<": ";
     bool first = true;
     for (const auto& s : info_msg) {
@@ -511,8 +572,25 @@ static bool checkQuery(const MOADNSParser& mdp, const ComboAddress& saddr, const
       g_log<<Logger::Warning<<s;
     }
     g_log<<Logger::Warning<<endl;
-    return false;
+    // fall through to return below
   }
+
+  return ret;
+}
+
+/*
+ * Returns a vector<uint8_t> that represents the full empty NOERROR response.
+ * QNAME is read from mdp.
+ */
+static bool makeEmptyNoErrorPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
+  DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+  pw.getHeader()->opcode = mdp.d_header.opcode;
+  pw.getHeader()->id = mdp.d_header.id;
+  pw.getHeader()->rd = mdp.d_header.rd;
+  pw.getHeader()->qr = 1;
+  pw.getHeader()->aa = 1;
+
+  pw.commit();
 
   return true;
 }
@@ -529,6 +607,7 @@ static bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   }
 
   DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+  pw.getHeader()->opcode = mdp.d_header.opcode;
   pw.getHeader()->id = mdp.d_header.id;
   pw.getHeader()->rd = mdp.d_header.rd;
   pw.getHeader()->qr = 1;
@@ -547,10 +626,26 @@ static bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
  */
 static bool makeRefusedPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
   DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+  pw.getHeader()->opcode = mdp.d_header.opcode;
   pw.getHeader()->id = mdp.d_header.id;
   pw.getHeader()->rd = mdp.d_header.rd;
   pw.getHeader()->qr = 1;
   pw.getHeader()->rcode = RCode::Refused;
+
+  return true;
+}
+
+/*
+ * Returns a vector<uint8_t> that represents the full NOTIMP response to a
+ * query. QNAME and type are read from mdp.
+ */
+static bool makeNotimpPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
+  DNSPacketWriter pw(packet, mdp.d_qname, mdp.d_qtype);
+  pw.getHeader()->opcode = mdp.d_header.opcode;
+  pw.getHeader()->id = mdp.d_header.id;
+  pw.getHeader()->rd = mdp.d_header.rd;
+  pw.getHeader()->qr = 1;
+  pw.getHeader()->rcode = RCode::NotImp;
 
   return true;
 }
@@ -779,11 +874,17 @@ static bool handleIXFR(int fd, const MOADNSParser& mdp, const shared_ptr<const S
   return true;
 }
 
-static bool allowedByACL(const ComboAddress& addr) {
+static bool allowedByACL(const ComboAddress& addr, bool forNotify = false) {
+  if (forNotify) {
+    return g_notifySources.match(addr);
+  }
+
   return g_acl.match(addr);
 }
 
-static void handleUDPRequest(int fd, boost::any&) {
+static void handleUDPRequest(int fd, boost::any& /*unused*/)
+try
+{
   // TODO make the buffer-size configurable
   char buf[4096];
   ComboAddress saddr;
@@ -806,14 +907,29 @@ static void handleUDPRequest(int fd, boost::any&) {
     return;
   }
 
-  if (!allowedByACL(saddr)) {
+  if (!allowedByACL(saddr, true) && !allowedByACL(saddr, false)) {
+    g_log<<Logger::Warning<<"UDP query from "<<saddr.toString()<<" did not match any valid query or NOTIFY source, dropping"<<endl;
+    return;
+  }
+
+  MOADNSParser mdp(true, string(&buf[0], static_cast<size_t>(res)));
+  vector<uint8_t> packet;
+
+  ResponseType respt = ResponseType::Unknown;
+
+  if (allowedByACL(saddr, true)) {
+    respt = maybeHandleNotify(mdp, saddr);
+  }
+  else if (!allowedByACL(saddr)) {
     g_log<<Logger::Warning<<"UDP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
     return;
   }
 
-  MOADNSParser mdp(true, string(buf, res));
-  vector<uint8_t> packet;
-  if (checkQuery(mdp, saddr)) {
+  if (respt == ResponseType::Unknown) {
+    // query was not handled yet (so not a valid NOTIFY)
+    respt = checkQuery(mdp, saddr);
+  }
+  if (respt == ResponseType::ValidQuery) {
     /* RFC 1995 Section 2
      *    Transport of a query may be by either UDP or TCP.  If an IXFR query
      *    is via UDP, the IXFR server may attempt to reply using UDP if the
@@ -827,9 +943,14 @@ static void handleUDPRequest(int fd, boost::any&) {
      */
     g_stats.incrementSOAinQueries(mdp.d_qname); // FIXME: this also counts IXFR queries (but the response is the same as to a SOA query)
     makeSOAPacket(mdp, packet);
-  } else {
+  } else if (respt == ResponseType::EmptyNoError) {
+    makeEmptyNoErrorPacket(mdp, packet);
+  } else if (respt == ResponseType::RefusedQuery) {
     g_stats.incrementUnknownDomainInQueries(mdp.d_qname);
     makeRefusedPacket(mdp, packet);
+  } else if (respt == ResponseType::RefusedOpcode) {
+    g_stats.incrementNotImplemented(mdp.d_header.opcode);
+    makeNotimpPacket(mdp, packet);
   }
 
   if(sendto(fd, &packet[0], packet.size(), 0, (struct sockaddr*) &saddr, fromlen) < 0) {
@@ -838,6 +959,10 @@ static void handleUDPRequest(int fd, boost::any&) {
   }
   return;
 }
+catch(std::exception& e) {
+  return;
+}
+
 
 static void handleTCPRequest(int fd, boost::any&) {
   ComboAddress saddr;
@@ -857,7 +982,9 @@ static void handleTCPRequest(int fd, boost::any&) {
     return;
   }
 
-  if (!allowedByACL(saddr)) {
+  // we allow the connection if this is a legit client or a legit NOTIFY source
+  // need to check per-operation later
+  if (!allowedByACL(saddr) && !allowedByACL(saddr, true)) {
     g_log<<Logger::Warning<<"TCP query from "<<saddr.toString()<<" is not allowed, dropping"<<endl;
     close(cfd);
     return;
@@ -909,13 +1036,37 @@ static void tcpWorker(int tid) {
     try {
       MOADNSParser mdp(true, string(buf, res));
 
-      if (!checkQuery(mdp, saddr, false, prefix)) {
+      ResponseType respt = ResponseType::Unknown;
+
+      // this code is duplicated from the UDP path
+      if (allowedByACL(saddr, true)) {
+        respt = maybeHandleNotify(mdp, saddr);
+      }
+      else if (!allowedByACL(saddr)) {
         close(cfd);
         continue;
       }
 
-      if (mdp.d_qtype == QType::SOA) {
-        vector<uint8_t> packet;
+      if (respt == ResponseType::Unknown) {
+        respt = checkQuery(mdp, saddr, false, prefix);
+      }
+
+      if (respt != ResponseType::ValidQuery && respt != ResponseType::EmptyNoError) { // on TCP, we currently do not bother with sending useful errors
+        close(cfd);
+        continue;
+      }
+
+      vector<uint8_t> packet;
+
+      if (respt == ResponseType::EmptyNoError) {
+        bool ret = makeEmptyNoErrorPacket(mdp, packet);
+        if (!ret) {
+          close(cfd);
+          continue;
+        }
+        sendPacketOverTCP(cfd, packet);
+      }
+      else if (mdp.d_qtype == QType::SOA) {
         bool ret = makeSOAPacket(mdp, packet);
         if (!ret) {
           close(cfd);
@@ -1117,6 +1268,10 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
           continue;
         }
         domain["master"].as<ComboAddress>();
+
+        auto notifySource = domain["master"].as<ComboAddress>();
+
+        g_notifySources.addMask(notifySource);
       } catch (const runtime_error &e) {
         g_log<<Logger::Error<<"Unable to read domain '"<<domain["domain"].as<string>()<<"' master address: "<<e.what()<<endl;
         retval = false;
@@ -1293,6 +1448,8 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
     catch (const std::exception& exp) {
       g_log<<Logger::Error<<"Error printing ACL: "<<exp.what()<<endl;
     }
+
+    g_log<<Logger::Notice<<"NOTIFY accepted from "<<g_notifySources.toString()<<"."<<endl;
 
     if (config["compress"].IsDefined()) {
       g_compress = config["compress"].as<bool>();

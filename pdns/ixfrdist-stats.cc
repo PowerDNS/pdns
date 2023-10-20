@@ -85,6 +85,19 @@ std::string ixfrdistStats::getStats() {
     stats<<prefix<<"ixfr_failures_total{domain=\""<<d.first<<"\"} "<<d.second.numIXFRFailures<<std::endl;
   }
 
+  if (!notimpStats.empty()) {
+    stats<<"# HELP "<<prefix<<"notimp An unimplemented opcode"<<std::endl;
+    stats<<"# TYPE "<<prefix<<"notimp counter"<<std::endl;
+  }
+
+  for (std::size_t i = 0; i < notimpStats.size() ; i++) {
+    auto val = notimpStats.at(i).load();
+
+    if (val > 0) {
+      stats<<prefix<<"notimp{opcode=\""<<Opcode::to_s(i)<<"\"} "<<val<<std::endl;
+    }
+  }
+
   stats<<"# HELP "<<prefix<<"unknown_domain_inqueries_total Number of queries received for domains unknown to us"<<std::endl;
   stats<<"# TYPE "<<prefix<<"unknown_domain_inqueries_total counter"<<std::endl;
   stats<<prefix<<"unknown_domain_inqueries_total "<<progStats.unknownDomainInQueries<<std::endl;

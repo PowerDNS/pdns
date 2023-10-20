@@ -33,7 +33,8 @@ webserver-address: %s
                          "ixfrdist_unknown_domain_inqueries_total",
                          "ixfrdist_sys_msec", "ixfrdist_user_msec",
                          "ixfrdist_real_memory_usage",
-                         "ixfrdist_fd_usage"]
+                         "ixfrdist_fd_usage",
+                         "ixfrdist_notimp"]
     metric_domain_stats = ["ixfrdist_soa_serial", "ixfrdist_soa_checks_total",
                            "ixfrdist_soa_checks_failed_total",
                            "ixfrdist_soa_inqueries_total",
