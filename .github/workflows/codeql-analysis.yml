@@ -110,13 +110,9 @@ jobs:
         inv ci-auth-make-bear
     - run: ln -s .clang-tidy.full .clang-tidy
       if: matrix.product == 'auth'
-    - run: cp ./pdns/compile_commands.json .
-      if: matrix.product == 'auth'
-    - run: cat compile_commands.json
-      if: matrix.product == 'auth'
     - name: Run clang-tidy for auth
       if: matrix.product == 'auth'
-      run: git diff -U0 HEAD^..HEAD | python3 .github/scripts/git-filter.py | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p1 -export-fixes clang-tidy-auth.yml
+      run: git diff -U0 HEAD^..HEAD | python3 .github/scripts/git-filter.py --product auth | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-auth.yml
     - name: Print clang-tidy fixes YAML for auth
       if: matrix.product == 'auth'
       shell: bash
@@ -160,17 +156,16 @@ jobs:
       working-directory: ./pdns/dnsdistdist/
       run: |
         inv ci-dnsdist-make-bear
-    - run: ln -s .clang-tidy.full .clang-tidy
+    - run: ln -s ../../.clang-tidy.full .clang-tidy
       if: matrix.product == 'dnsdist'
-    - run: cp ./pdns/dnsdistdist/compile_commands.json .
-      if: matrix.product == 'dnsdist'
-    - run: cat compile_commands.json
-      if: matrix.product == 'dnsdist'
+      working-directory: ./pdns/dnsdistdist/
     - name: Run clang-tidy for dnsdist
       if: matrix.product == 'dnsdist'
-      run: git diff -U0 HEAD^..HEAD | python3 .github/scripts/git-filter.py | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p1 -export-fixes clang-tidy-dnsdist.yml
+      working-directory: ./pdns/dnsdistdist/
+      run: git diff -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py --product dnsdist | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-dnsdist.yml
     - name: Print clang-tidy fixes YAML for dnsdist
       if: matrix.product == 'dnsdist'
+      working-directory: ./pdns/dnsdistdist/
       shell: bash
       run: |
         if [ -f clang-tidy-dnsdist.yml ]; then
@@ -179,11 +174,12 @@ jobs:
     - name: Result annotations for dnsdist
       if: matrix.product == 'dnsdist'
       id: clang-tidy-annotations-dnsdist
+      working-directory: ./pdns/dnsdistdist/
       shell: bash
       run: |
         if [ -f clang-tidy-dnsdist.yml ]; then
           set +e
-          python3 .github/scripts/clang-tidy.py --fixes-file clang-tidy-dnsdist.yml
+          python3 ../../.github/scripts/clang-tidy.py --fixes-file clang-tidy-dnsdist.yml
           echo "failed=$?" >> $GITHUB_OUTPUT
         fi
 
@@ -209,17 +205,16 @@ jobs:
       working-directory: ./pdns/recursordist/
       run: |
         CONCURRENCY=4 inv ci-rec-make-bear
-    - run: ln -s .clang-tidy.full .clang-tidy
+    - run: ln -s ../../.clang-tidy.full .clang-tidy
       if: matrix.product == 'rec'
-    - run: cp ./pdns/recursordist/compile_commands.json .
-      if: matrix.product == 'rec'
-    - run: cat compile_commands.json
-      if: matrix.product == 'rec'
+      working-directory: ./pdns/recursordist/
     - name: Run clang-tidy for rec
       if: matrix.product == 'rec'
-      run: git diff -U0 HEAD^..HEAD | python3 .github/scripts/git-filter.py | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p1 -export-fixes clang-tidy-rec.yml
+      working-directory: ./pdns/recursordist/
+      run: git diff -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py --product rec | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-rec.yml
     - name: Print clang-tidy fixes YAML for rec
       if: matrix.product == 'rec'
+      working-directory: ./pdns/recursordist/
       shell: bash
       run: |
         if [ -f clang-tidy-rec.yml ]; then
@@ -228,11 +223,12 @@ jobs:
     - name: Result annotations for rec
       if: matrix.product == 'rec'
       id: clang-tidy-annotations-rec
+      working-directory: ./pdns/recursordist/
       shell: bash
       run: |
         if [ -f clang-tidy-rec.yml ]; then
           set +e
-          python3 .github/scripts/clang-tidy.py --fixes-file clang-tidy-rec.yml
+          python3 ../../.github/scripts/clang-tidy.py --fixes-file clang-tidy-rec.yml
           echo "failed=$?" >> $GITHUB_OUTPUT
         fi
 

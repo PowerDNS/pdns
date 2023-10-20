@@ -596,9 +596,7 @@ def ci_auth_make(c):
 @task
 def ci_auth_make_bear(c):
     concurrency = os.getenv('CONCURRENCY', 8)
-    # Needed for clang-tidy -line-filter vs project structure shenanigans
-    with c.cd('pdns'):
-        c.run(f'bear --append -- make -j{concurrency} -k V=1 -C ..')
+    c.run(f'bear --append -- make -j{concurrency} -k V=1')
 
 @task
 def ci_rec_make(c):
