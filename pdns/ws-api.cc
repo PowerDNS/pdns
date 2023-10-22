@@ -120,18 +120,18 @@ void apiDiscovery(HttpRequest* /* req */, HttpResponse* resp) {
 }
 
 void apiDiscoveryV1(HttpRequest* /* req */, HttpResponse* resp) {
-  Json version1 = Json::object {
+  const Json& version1 = Json::object {
     { "server_url", "/api/v1/servers{/server}" },
     { "api_features", Json::array {} }
   };
-  Json doc = Json::array { std::move(version1) };
+  const Json& doc = Json::array { version1 };
 
   resp->setJsonBody(doc);
 
 }
 
 void apiServer(HttpRequest* /* req */ , HttpResponse* resp) {
-  Json doc = Json::array {getServerDetail()};
+  const Json& doc = Json::array {getServerDetail()};
   resp->setJsonBody(doc);
 }
 
@@ -140,7 +140,7 @@ void apiServerDetail(HttpRequest* /* req */, HttpResponse* resp) {
 }
 
 void apiServerConfig(HttpRequest* /* req */, HttpResponse* resp) {
-  vector<string> items = ::arg().list();
+  const vector<string>& items = ::arg().list();
   string value;
   Json::array doc;
   for(const string& item : items) {
@@ -162,7 +162,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   Json::array doc;
   string name = req->getvars["statistic"];
   if (!name.empty()) {
-    auto stat = productServerStatisticsFetch(name);
+    const auto& stat = productServerStatisticsFetch(name);
     if (!stat) {
       throw ApiException("Unknown statistic name");
     }
