@@ -45,6 +45,12 @@ def main():
         print("No diagnostics or warnings produced by clang-tidy")
         return 0
 
+    gh_step_summary = os.getenv('GITHUB_STEP_SUMMARY')
+    if gh_step_summary:
+        # Print Markdown summary
+        summaryFp = open(gh_step_summary, 'a', encoding='utf-8')
+        print('### clang-tidy summary', file=summaryFp)
+
     fixes = fixes["Diagnostics"]
     have_warnings = False
     for fix in fixes:
@@ -89,6 +95,9 @@ def main():
 
         # User-friendly printout
         print(f"{level}: {relative_filename}:{line}: {message} ({name})")
+
+        if gh_step_summary:
+            print(f'- **{relative_filename}:{line}** {message} (`{name}`)', file=summaryFp)
 
         have_warnings = True
 
