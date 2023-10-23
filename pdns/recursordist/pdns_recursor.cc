@@ -1842,10 +1842,10 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
     if (comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Query)) {
       if (resolver.d_outqueries != 0 || resolver.d_authzonequeries != 0) {
-        g_recCache->cacheMisses++;
+        g_recCache->incCacheMisses();
       }
       else {
-        g_recCache->cacheHits++;
+        g_recCache->incCacheHits();
       }
     }
 

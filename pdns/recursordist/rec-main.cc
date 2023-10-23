@@ -1072,8 +1072,8 @@ static void doStats()
   static time_t lastOutputTime;
   static uint64_t lastQueryCount;
 
-  uint64_t cacheHits = g_recCache->cacheHits;
-  uint64_t cacheMisses = g_recCache->cacheMisses;
+  uint64_t cacheHits = g_recCache->getCacheHits();
+  uint64_t cacheMisses = g_recCache->getCacheMisses();
   uint64_t cacheSize = g_recCache->size();
   auto rc_stats = g_recCache->stats();
   auto pc_stats = g_packetCache ? g_packetCache->stats() : std::pair<uint64_t, uint64_t>{0, 0};

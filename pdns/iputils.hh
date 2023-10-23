@@ -1257,7 +1257,7 @@ public:
   }
 
   //<! checks whether the container is empty.
-  bool empty() const {
+  [[nodiscard]] bool empty() const {
     return (d_size == 0);
   }
 
