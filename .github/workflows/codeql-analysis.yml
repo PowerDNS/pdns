@@ -9,6 +9,19 @@ on:
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
 
+# clang-tidy fun:
+# We need to invoke clang-tidy from the correct directory, the one the product was compiled in, so that we get the correct include paths.
+# This means the root for the auth, pdns/recursordist for the rec and pdns/dnsdistdist for dnsdist
+# It is important that files that are used by more than one product are processed by all the products using them
+# because they might have difference compilation flags.
+# We have to use our own clang-tidy-diff.py because the line-filter flag only supports file names, not paths.
+# Finally the GH annotations that we generate from clang-tidy.py, have to be relative to the path in the git repository, so we need to
+# follow symlinks.
+# How does that work? We use git diff to get the list of diffs, and git-filter.py to get the right folder depending on the product.
+# Then we call clang-tidy-diff.py, which invokes clang-tidy on the correct file, deducing the line numbers from the diff, and
+# merging the results for all processed files to a YAML file. Finally clang-tidy.py converts the YAML output to GitHub annotations
+# (GitHub only supports 10 of these per job, the rest are not displayed) and to GitHub markdown step summary (which has no such limits).
+
 jobs:
   analyze:
     name: Analyze

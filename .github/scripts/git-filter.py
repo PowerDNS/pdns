@@ -42,6 +42,12 @@ def main():
     diff = sys.stdin.read()
     patch_set = unidiff.PatchSet(diff)
     for patch in patch_set:
+        # We have to deal with several possible cases for input files, as shown by git:
+        # - in ext/: ext/lmdb-safe/lmdb-safe.cc
+        # - in modules/: modules/lmdbbackend/lmdbbackend.cc
+        # - files that live in the dnsdist or rec dir only: pdns/dnsdistdist/dnsdist-dnsparser.cc or pdns/recursordist/rec-tcp.cc
+        # - files that live in pdns/ and are used by several products (but possibly not with the same compilation flags, so
+        #   it is actually important that they are processed for all products: pdns/misc.cc
         path = Path(patch.path)
         if product == 'auth':
             path = Path(cwd).joinpath(path)
