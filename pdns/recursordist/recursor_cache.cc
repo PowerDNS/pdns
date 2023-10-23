@@ -147,10 +147,15 @@ static void ptrAssign(T* ptr, T value)
   }
 }
 
-time_t MemRecursorCache::handleHit(MapCombo::LockedContent& content, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
+time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
 {
   // MUTEX SHOULD BE ACQUIRED (as indicated by the reference to the content which is protected by a lock)
   time_t ttd = entry->d_ttd;
+  if (ttd <= now) {
+    // Expired, don't bother returning contents. Callers *MUST* check return value of get(), and only look at the entry
+    // if it returnded > 0
+    return ttd;
+  }
   origTTL = entry->d_orig_ttl;
 
   if (!entry->d_netmask.empty() || entry->d_rtag) {
@@ -373,11 +378,11 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
       auto entryA = getEntryUsingECSIndex(*lockedShard, now, qname, QType::A, requireAuth, who, serveStale);
       if (entryA != lockedShard->d_map.end()) {
-        ret = handleHit(*lockedShard, entryA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
+        ret = handleHit(now, *lockedShard, entryA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
       }
       auto entryAAAA = getEntryUsingECSIndex(*lockedShard, now, qname, QType::AAAA, requireAuth, who, serveStale);
       if (entryAAAA != lockedShard->d_map.end()) {
-        time_t ttdAAAA = handleHit(*lockedShard, entryAAAA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
+        time_t ttdAAAA = handleHit(now, *lockedShard, entryAAAA, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
         if (ret > 0) {
           ret = std::min(ret, ttdAAAA);
         }
@@ -386,7 +391,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
         }
       }
 
-      if (cachedState) {
+      if (cachedState && ret > 0) {
         ptrAssign(state, *cachedState);
       }
 
@@ -394,8 +399,8 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
     }
     auto entry = getEntryUsingECSIndex(*lockedShard, now, qname, qtype, requireAuth, who, serveStale);
     if (entry != lockedShard->d_map.end()) {
-      time_t ret = handleHit(*lockedShard, entry, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
-      if (cachedState) {
+      time_t ret = handleHit(now, *lockedShard, entry, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
+      if (cachedState && ret > now) {
         ptrAssign(state, *cachedState);
       }
       return fakeTTD(entry, qname, qtype, ret, now, origTTL, refresh);
@@ -426,14 +431,14 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
         handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
-        ttd = handleHit(*lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
+        ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
         if (qtype != QType::ANY && qtype != QType::ADDR) { // normally if we have a hit, we are done
           break;
         }
       }
       if (found) {
-        if (cachedState) {
+        if (cachedState && ttd > now) {
           ptrAssign(state, *cachedState);
         }
         return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, refresh);
@@ -465,14 +470,14 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
       handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
-      ttd = handleHit(*lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
+      ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
       if (qtype != QType::ANY && qtype != QType::ADDR) { // normally if we have a hit, we are done
         break;
       }
     }
     if (found) {
-      if (cachedState) {
+      if (cachedState && ttd > now) {
         ptrAssign(state, *cachedState);
       }
       return fakeTTD(firstIndexIterator, qname, qtype, ttd, now, origTTL, refresh);
