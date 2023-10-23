@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <unordered_map>
+
 #include "config.h"
 #include "dnscrypt.hh"
 #include "dnsname.hh"

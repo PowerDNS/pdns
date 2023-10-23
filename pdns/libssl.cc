@@ -32,6 +32,8 @@
 #include <openssl/core.h>
 #include <openssl/core_names.h>
 #include <openssl/evp.h>
+#else
+#include <openssl/hmac.h>
 #endif
 
 #ifdef HAVE_LIBSODIUM
@@ -288,7 +290,7 @@ int libssl_ticket_key_callback(SSL* /* s */, OpenSSLTLSTicketKeysRing& keyring, 
   return 1;
 }
 
-static long libssl_server_name_callback(SSL* ssl, int* al, void* arg)
+static int libssl_server_name_callback(SSL* ssl, int* al, void* arg)
 {
   (void) al;
   (void) arg;
