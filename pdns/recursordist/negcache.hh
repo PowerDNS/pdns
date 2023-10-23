@@ -95,7 +95,7 @@ public:
   void add(const NegCacheEntry& ne);
   void updateValidationStatus(const DNSName& qname, QType qtype, vState newState, boost::optional<time_t> capTTD);
   bool get(const DNSName& qname, QType qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch = false, bool serverStale = false, bool refresh = false);
-  bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne, bool serveStale, bool refresh);
+  bool getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& negEntry, bool serveStale, bool refresh);
   size_t count(const DNSName& qname);
   size_t count(const DNSName& qname, QType qtype);
   void prune(time_t now, size_t maxEntries);

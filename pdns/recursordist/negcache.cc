@@ -53,35 +53,20 @@ size_t NegCache::size() const
  * \param ne       A NegCacheEntry that is filled when there is a cache entry
  * \return         true if ne was filled out, false otherwise
  */
-bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& ne, bool serveStale, bool refresh)
+bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, NegCacheEntry& negEntry, bool serveStale, bool refresh)
 {
   // Never deny the root.
-  if (qname.isRoot())
+  if (qname.isRoot()) {
     return false;
+  }
 
-  // An 'ENT' QType entry, used as "whole name" in the neg-cache context.
-  static const QType qtnull(0);
   DNSName lastLabel = qname.getLastLabel();
-
-  auto& map = getMap(lastLabel);
-  auto content = map.lock();
-
-  negcache_t::const_iterator ni = content->d_map.find(std::tie(lastLabel, qtnull));
-
-  while (ni != content->d_map.end() && ni->d_name == lastLabel && ni->d_auth.isRoot() && ni->d_qtype == qtnull) {
-    if (!refresh && (serveStale || ni->d_servedStale > 0) && ni->d_ttd <= now.tv_sec && ni->d_servedStale < s_maxServedStaleExtensions) {
-      updateStaleEntry(now.tv_sec, ni, QType::A);
-    }
-    // We have something
-    if (now.tv_sec < ni->d_ttd) {
-      ne = *ni;
-      moveCacheItemToBack<SequenceTag>(content->d_map, ni);
-      return true;
-    }
-    if (ni->d_servedStale == 0 && !serveStale) {
-      moveCacheItemToFront<SequenceTag>(content->d_map, ni);
-    }
-    ++ni;
+  NegCacheEntry found;
+  // An 'ENT' QType entry, used as "whole name" in the neg-cache context.
+  auto exists = get(lastLabel, QType::ENT, now, found, true, serveStale, refresh);
+  if (exists && found.d_auth.isRoot()) {
+    negEntry = found;
+    return true;
   }
   return false;
 }
