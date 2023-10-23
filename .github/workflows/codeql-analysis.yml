@@ -112,7 +112,7 @@ jobs:
       if: matrix.product == 'auth'
     - name: Run clang-tidy for auth
       if: matrix.product == 'auth'
-      run: git diff -U0 HEAD^..HEAD | python3 .github/scripts/git-filter.py --product auth | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-auth.yml
+      run: git diff --no-prefix -U0 HEAD^..HEAD | python3 .github/scripts/git-filter.py --product auth | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-auth.yml
     - name: Print clang-tidy fixes YAML for auth
       if: matrix.product == 'auth'
       shell: bash
@@ -162,7 +162,7 @@ jobs:
     - name: Run clang-tidy for dnsdist
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
-      run: git diff -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py --product dnsdist | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-dnsdist.yml
+      run: git diff --no-prefix -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py --product dnsdist | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-dnsdist.yml
     - name: Print clang-tidy fixes YAML for dnsdist
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
@@ -211,7 +211,7 @@ jobs:
     - name: Run clang-tidy for rec
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
-      run: git diff -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py --product rec | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-rec.yml
+      run: git diff --no-prefix -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py --product rec | /usr/bin/clang-tidy-diff-${CLANG_VERSION}.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-rec.yml
     - name: Print clang-tidy fixes YAML for rec
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
