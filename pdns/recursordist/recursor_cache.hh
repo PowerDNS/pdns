@@ -267,6 +267,22 @@ private:
       {
         d_cachecachevalid = false;
       }
+
+      void preRemoval(const CacheEntry& entry)
+      {
+        if (entry.d_netmask.empty()) {
+          return;
+        }
+
+        auto key = std::tie(entry.d_qname, entry.d_qtype);
+        auto ecsIndexEntry = d_ecsIndex.find(key);
+        if (ecsIndexEntry != d_ecsIndex.end()) {
+          ecsIndexEntry->removeNetmask(entry.d_netmask);
+          if (ecsIndexEntry->isEmpty()) {
+            d_ecsIndex.erase(ecsIndexEntry);
+          }
+        }
+      }
     };
 
     LockGuardedTryHolder<LockedContent> lock()
@@ -320,23 +336,6 @@ private:
   static time_t handleHit(MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone, ComboAddress* fromAuthIP);
   static void updateStaleEntry(time_t now, OrderedTagIterator_t& entry);
   static void handleServeStaleBookkeeping(time_t, bool, OrderedTagIterator_t&);
-
-public:
-  void preRemoval(MapCombo::LockedContent& map, const CacheEntry& entry)
-  {
-    if (entry.d_netmask.empty()) {
-      return;
-    }
-
-    auto key = std::tie(entry.d_qname, entry.d_qtype);
-    auto ecsIndexEntry = map.d_ecsIndex.find(key);
-    if (ecsIndexEntry != map.d_ecsIndex.end()) {
-      ecsIndexEntry->removeNetmask(entry.d_netmask);
-      if (ecsIndexEntry->isEmpty()) {
-        map.d_ecsIndex.erase(ecsIndexEntry);
-      }
-    }
-  }
 };
 
 namespace boost

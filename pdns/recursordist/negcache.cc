@@ -287,7 +287,7 @@ void NegCache::clear()
 void NegCache::prune(time_t now, size_t maxEntries)
 {
   size_t cacheSize = size();
-  pruneMutexCollectionsVector<SequenceTag>(now, *this, d_maps, maxEntries, cacheSize);
+  pruneMutexCollectionsVector<SequenceTag>(now, d_maps, maxEntries, cacheSize);
 }
 
 /*!

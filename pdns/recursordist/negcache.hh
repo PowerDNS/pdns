@@ -140,6 +140,7 @@ private:
       uint64_t d_contended_count{0};
       uint64_t d_acquired_count{0};
       void invalidate() {}
+      void preRemoval(const NegCacheEntry& /* entry */) {}
     };
 
     LockGuardedTryHolder<MapCombo::LockedContent> lock()
@@ -188,7 +189,4 @@ private:
   {
     return d_maps.at(qname.hash() % d_maps.size());
   }
-
-public:
-  void preRemoval(MapCombo::LockedContent& /* map */, const NegCacheEntry& /* entry */) {}
 };

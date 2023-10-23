@@ -130,8 +130,8 @@ uint64_t pruneLockedCollectionsVector(std::vector<T>& maps)
   return totErased;
 }
 
-template <typename S, typename C, typename T>
-uint64_t pruneMutexCollectionsVector(time_t now, C& container, std::vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
+template <typename S, typename T>
+uint64_t pruneMutexCollectionsVector(time_t now, std::vector<T>& maps, uint64_t maxCached, uint64_t cacheSize)
 {
   uint64_t totErased = 0;
   uint64_t toTrim = 0;
@@ -163,7 +163,7 @@ uint64_t pruneMutexCollectionsVector(time_t now, C& container, std::vector<T>& m
     uint64_t lookedAt = 0;
     for (auto i = sidx.begin(); i != sidx.end(); lookedAt++) {
       if (i->isStale(now)) {
-        container.preRemoval(*shard, *i);
+        shard->preRemoval(*i);
         i = sidx.erase(i);
         erased++;
         content.decEntriesCount();
@@ -223,7 +223,7 @@ uint64_t pruneMutexCollectionsVector(time_t now, C& container, std::vector<T>& m
     auto& sidx = boost::multi_index::get<S>(shard->d_map);
     size_t removed = 0;
     for (auto i = sidx.begin(); i != sidx.end() && removed < toTrimForThisShard; removed++) {
-      container.preRemoval(*shard, *i);
+      shard->preRemoval(*i);
       i = sidx.erase(i);
       content.decEntriesCount();
       ++totErased;

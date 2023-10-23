@@ -818,7 +818,7 @@ uint64_t MemRecursorCache::doDump(int fileDesc, size_t maxCacheEntries)
 void MemRecursorCache::doPrune(time_t now, size_t keep)
 {
   size_t cacheSize = size();
-  pruneMutexCollectionsVector<SequencedTag>(now, *this, d_maps, keep, cacheSize);
+  pruneMutexCollectionsVector<SequencedTag>(now, d_maps, keep, cacheSize);
 }
 
 namespace boost
