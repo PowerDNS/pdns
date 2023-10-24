@@ -545,7 +545,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                            if (getOptionalValue<std::string>(vars, "dohPath", valueStr) > 0) {
 #if !defined(HAVE_DNS_OVER_HTTPS) || !defined(HAVE_NGHTTP2)
-                             throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but nghttp2 support is not available");
+                             throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but it is not available");
 #endif
 
                              serverPort = 443;
