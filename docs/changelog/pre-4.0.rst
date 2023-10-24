@@ -2764,7 +2764,6 @@ the financial and moral support of
    DNS <http://www.ipcom.at/en/dns/rcodezero_anycast/>`__, a subsidiary
    of NIC.AT, the Austrian registry
 -  `SIDN, the Dutch registry <http://www.sidn.nl/>`__
--  .. (awaiting details) ..
 
 This release has received exceptional levels of community support, and
 we'd like to thank the following people in addition to those mentioned
