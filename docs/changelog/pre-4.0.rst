@@ -263,7 +263,7 @@ lot of improvements and bug fixes and tremendously increases compliance.
 We want to explicitly thank Kees Monshouwer for digging up all the
 DNSSEC improvements and porting them back to this release.
 
-When upgrading, please run "pdnssec rectify-all-zones" and trigger an
+When upgrading, please run ``pdnssec rectify-all-zones`` and trigger an
 AXFR for all DNSSEC zones to make sure you benefit from all the
 compliance improvements present in this version.
 
@@ -2748,13 +2748,10 @@ important protocol is among the easiest to use available. In addition,
 all important algorithms are supported.
 
 Complete detail can be found in `Serving authoritative DNSSEC
-data <../dnssec/intro.rst>`__. The goal of 'PowerDNSSEC' is to allow
-existing PowerDNS installations to start serving DNSSEC with as little
-hassle as possible, while maintaining performance and achieving high
-levels of security.
-
-Tutorials and examples of how to use DNSSEC in PowerDNS can be found
-linked from http://powerdnssec.org.
+data <../dnssec/intro.rst>`__. The goal of PowerDNS's DNSSEC support
+is to allow existing PowerDNS installations to start serving DNSSEC with
+as little hassle as possible, while maintaining performance and
+achieving high levels of security.
 
 PowerDNS Authoritative Server 3.0 development has been made possible by
 the financial and moral support of
