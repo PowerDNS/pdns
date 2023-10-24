@@ -1010,7 +1010,7 @@ Changes since 3.3
 -  `commit a7aa9be <https://github.com/PowerDNS/pdns/commit/a7aa9be>`__:
    Replace hardcoded make with variable
 -  `commit e4fe901 <https://github.com/PowerDNS/pdns/commit/e4fe901>`__:
-   make sure to run PKG\_PROG\_PKG\_CONFIG before the first PKG\_\*
+   make sure to run ``PKG_PROG_PKG_CONFIG`` before the first ``PKG_*``
    usage
 -  `commit 29bf169 <https://github.com/PowerDNS/pdns/commit/29bf169>`__:
    fix hmac-md5 TSIG key lookup
@@ -4187,7 +4187,7 @@ job, and to let us know the results.
 
 Additionally, the bind2backend is almost ready to replace the stock bind
 backend. If you run with Bind zones, you are cordially invited to
-substitute 'launch=bind2' for 'launch=bind'. This will happen
+substitute ``launch=bind2`` for ``launch=bind``. This will happen
 automatically in 2.9.19!
 
 In other news, the entire Wikipedia constellation now runs on PowerDNS
