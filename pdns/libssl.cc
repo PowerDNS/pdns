@@ -290,12 +290,9 @@ int libssl_ticket_key_callback(SSL* /* s */, OpenSSLTLSTicketKeysRing& keyring, 
   return 1;
 }
 
-static int libssl_server_name_callback(SSL* ssl, int* al, void* arg)
+static int libssl_server_name_callback(SSL* ssl, int* /* alert */, void* /* arg */)
 {
-  (void) al;
-  (void) arg;
-
-  if (SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name)) {
+  if (SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name) != nullptr) {
     return SSL_TLSEXT_ERR_OK;
   }
 
