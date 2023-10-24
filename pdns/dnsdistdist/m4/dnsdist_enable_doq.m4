@@ -1,5 +1,5 @@
 AC_DEFUN([DNSDIST_ENABLE_DNS_OVER_QUIC], [
-  AC_MSG_CHECKING([whether to enable incoming DNS over QUIC (DoH) support])
+  AC_MSG_CHECKING([whether to enable incoming DNS over QUIC (DoQ) support])
   AC_ARG_ENABLE([dns-over-quic],
     AS_HELP_STRING([--enable-dns-over-quic], [enable incoming DNS over QUIC (DoQ) support (requires quiche) @<:@default=no@:>@]),
     [enable_dns_over_quic=$enableval],
