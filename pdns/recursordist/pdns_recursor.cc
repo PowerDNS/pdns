@@ -865,11 +865,11 @@ static void dumpTrace(const string& trace, const timeval& timev)
     close(traceFd);
     return;
   }
-  std::array<char, 64> timebuf{};
-  isoDateTimeMillis(timev, timebuf.data(), timebuf.size());
+  timebuf_t timebuf;
+  isoDateTimeMillis(timev, timebuf);
   fprintf(filep.get(), " us === START OF TRACE %s ===\n", timebuf.data());
   fprintf(filep.get(), "%s", trace.c_str());
-  isoDateTimeMillis(now, timebuf.data(), timebuf.size());
+  isoDateTimeMillis(now, timebuf);
   if (ferror(filep.get()) != 0) {
     int err = errno;
     SLOG(g_log << Logger::Error << "Problems writing to trace file: " << stringerror(err) << endl,
