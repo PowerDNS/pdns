@@ -88,4 +88,4 @@ many people. We would like to thank:
 -  Morten Stevens
 -  Pieter Lexis
 
-This list is far from complete yet ..
+and everyone else who contributed to making this possible.
