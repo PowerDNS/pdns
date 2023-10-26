@@ -383,7 +383,6 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
   // If a backend has no match it may respond with an empty qname.
 
   bool found = false;
-  int cstat = 0;
   DNSName shorter(target);
   vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.wirelength() + 1, SOAData()));
 
@@ -410,9 +409,9 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
 
     // Check cache.
     if (cachedOk && (d_cache_ttl != 0 || d_negcache_ttl != 0)) {
-      cstat = cacheHas(d_question, d_answers);
+      auto cacheResult = cacheHas(d_question, d_answers);
 
-      if (cstat == 1 && !d_answers.empty() && d_cache_ttl != 0) {
+      if (cacheResult == CacheResult::Hit && !d_answers.empty() && d_cache_ttl != 0) {
         DLOG(g_log << Logger::Error << "has pos cache entry: " << shorter << endl);
         fillSOAData(d_answers[0], *soaData);
 
@@ -421,7 +420,7 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
 
         goto found;
       }
-      else if (cstat == 0 && d_negcache_ttl != 0) {
+      else if (cacheResult == CacheResult::NegativeMatch && d_negcache_ttl != 0) {
         DLOG(g_log << Logger::Error << "has neg cache entry: " << shorter << endl);
         continue;
       }
@@ -612,26 +611,26 @@ void UeberBackend::cleanup()
 }
 
 // returns -1 for miss, 0 for negative match, 1 for hit
-int UeberBackend::cacheHas(const Question& q, vector<DNSZoneRecord>& rrs) const
+enum UeberBackend::CacheResult UeberBackend::cacheHas(const Question& question, vector<DNSZoneRecord>& resourceRecords) const
 {
   extern AuthQueryCache QC;
 
   if (d_cache_ttl == 0 && d_negcache_ttl == 0) {
-    return -1;
+    return CacheResult::Miss;
   }
 
-  rrs.clear();
+  resourceRecords.clear();
   //  g_log<<Logger::Warning<<"looking up: '"<<q.qname+"'|N|"+q.qtype.getName()+"|"+itoa(q.zoneId)<<endl;
 
-  bool ret = QC.getEntry(q.qname, q.qtype, rrs, q.zoneId); // think about lowercasing here
+  bool ret = QC.getEntry(question.qname, question.qtype, resourceRecords, question.zoneId); // think about lowercasing here
   if (!ret) {
-    return -1;
+    return CacheResult::Miss;
   }
-  if (rrs.empty()) { // negatively cached
-    return 0;
+  if (resourceRecords.empty()) { // negatively cached
+    return CacheResult::NegativeMatch;
   }
 
-  return 1;
+  return CacheResult::Hit;
 }
 
 void UeberBackend::addNegCache(const Question& q) const
@@ -708,15 +707,15 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
     d_question.qname = qname;
     d_question.zoneId = d_handle.zoneId;
 
-    int cstat = cacheHas(d_question, d_answers);
-    if (cstat < 0) { // nothing
+    auto cacheResult = cacheHas(d_question, d_answers);
+    if (cacheResult == CacheResult::Miss) { // nothing
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
       d_negcached = d_cached = false;
       d_answers.clear();
       (d_handle.d_hinterBackend = backends[d_handle.i++])->lookup(d_handle.qtype, d_handle.qname, d_handle.zoneId, d_handle.pkt_p);
       ++(*s_backendQueries);
     }
-    else if (cstat == 0) {
+    else if (cacheResult == CacheResult::NegativeMatch) {
       //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
       d_negcached = true;
       d_cached = false;

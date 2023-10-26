@@ -165,7 +165,14 @@ private:
   bool d_stale;
   static bool s_doANYLookupsOnly;
 
-  int cacheHas(const Question& q, vector<DNSZoneRecord>& rrs) const;
+  enum CacheResult
+  {
+    Miss = -1,
+    NegativeMatch = 0,
+    Hit = 1,
+  };
+
+  CacheResult cacheHas(const Question& question, vector<DNSZoneRecord>& resourceRecords) const;
   void addNegCache(const Question& q) const;
   void addCache(const Question& q, vector<DNSZoneRecord>&& rrs) const;
 
