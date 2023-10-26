@@ -459,17 +459,23 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
   DNSName shorter(target);
   vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.wirelength() + 1, SOAData()));
 
-  do {
+  bool first = true;
+  while (first || shorter.chopOff()) {
+    first = false;
+
     int zoneId{-1};
 
     if (cachedOk && g_zoneCache.isEnabled()) {
       if (g_zoneCache.getEntry(shorter, zoneId)) {
         if (fillSOAFromZoneRecord(shorter, zoneId, soaData)) {
-          goto found;
+          if (foundTarget(target, shorter, qtype, soaData, found)) {
+            return true;
+          }
+
+          found = true;
         }
-        else {
-          continue;
-        }
+
+        continue;
       }
 
       // Zone does not exist, try again with a shorter name.
@@ -484,8 +490,15 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
     if (cachedOk && (d_cache_ttl != 0 || d_negcache_ttl != 0)) {
       auto cacheResult = fillSOAFromCache(soaData, shorter);
       if (cacheResult == CacheResult::Hit) {
-        goto found;
-      } else if (cacheResult == CacheResult::NegativeMatch) {
+        if (foundTarget(target, shorter, qtype, soaData, found)) {
+          return true;
+        }
+
+        found = true;
+        continue;
+      }
+
+      if (cacheResult == CacheResult::NegativeMatch) {
         continue;
       }
     }
@@ -523,13 +536,12 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
       }
     }
 
-  found:
     if (foundTarget(target, shorter, qtype, soaData, found)) {
       return true;
     }
 
     found = true;
-  } while (shorter.chopOff());
+  }
 
   return found;
 }
