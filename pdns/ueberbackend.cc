@@ -433,6 +433,19 @@ static std::vector<DNSBackend*>::iterator findBestMatchingBackend(std::vector<DN
   return backend;
 }
 
+static bool foundTarget(const DNSName& target, const DNSName& shorter, const QType& qtype, SOAData* soaData, const bool found)
+{
+  auto name = soaData->qname;
+
+  if (found == (qtype == QType::DS) || target != shorter) {
+    DLOG(g_log << Logger::Error << "found: " << name << endl);
+    return true;
+  }
+
+  DLOG(g_log << Logger::Error << "chasing next: " << name << endl);
+  return false;
+}
+
 bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* soaData, bool cachedOk)
 {
   // A backend can respond to our authority request with the 'best' match it
@@ -511,14 +524,11 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
     }
 
   found:
-    if (found == (qtype == QType::DS) || target != shorter) {
-      DLOG(g_log << Logger::Error << "found: " << soaData->qname << endl);
+    if (foundTarget(target, shorter, qtype, soaData, found)) {
       return true;
     }
-    else {
-      DLOG(g_log << Logger::Error << "chasing next: " << soaData->qname << endl);
-      found = true;
-    }
+
+    found = true;
   } while (shorter.chopOff());
 
   return found;
