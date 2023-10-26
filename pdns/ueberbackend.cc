@@ -685,7 +685,7 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
   if (!d_go) {
     g_log << Logger::Error << "UeberBackend is blocked, waiting for 'go'" << endl;
     std::unique_lock<std::mutex> l(d_mut);
-    d_cond.wait(l, [] { return d_go == true; });
+    d_cond.wait(l, [] { return d_go; });
     g_log << Logger::Error << "Broadcast received, unblocked" << endl;
   }
 
@@ -697,36 +697,35 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
   d_handle.zoneId = zoneId;
   d_handle.pkt_p = pkt_p;
 
-  if (!backends.size()) {
+  if (backends.empty()) {
     g_log << Logger::Error << "No database backends available - unable to answer questions." << endl;
     d_stale = true; // please recycle us!
     throw PDNSException("We are stale, please recycle");
   }
-  else {
-    d_question.qtype = d_handle.qtype;
-    d_question.qname = qname;
-    d_question.zoneId = d_handle.zoneId;
 
-    auto cacheResult = cacheHas(d_question, d_answers);
-    if (cacheResult == CacheResult::Miss) { // nothing
-      //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
-      d_negcached = d_cached = false;
-      d_answers.clear();
-      (d_handle.d_hinterBackend = backends[d_handle.i++])->lookup(d_handle.qtype, d_handle.qname, d_handle.zoneId, d_handle.pkt_p);
-      ++(*s_backendQueries);
-    }
-    else if (cacheResult == CacheResult::NegativeMatch) {
-      //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
-      d_negcached = true;
-      d_cached = false;
-      d_answers.clear();
-    }
-    else {
-      // cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): CACHED"<<endl;
-      d_negcached = false;
-      d_cached = true;
-      d_cachehandleiter = d_answers.begin();
-    }
+  d_question.qtype = d_handle.qtype;
+  d_question.qname = qname;
+  d_question.zoneId = d_handle.zoneId;
+
+  auto cacheResult = cacheHas(d_question, d_answers);
+  if (cacheResult == CacheResult::Miss) { // nothing
+    //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
+    d_negcached = d_cached = false;
+    d_answers.clear();
+    (d_handle.d_hinterBackend = backends[d_handle.i++])->lookup(d_handle.qtype, d_handle.qname, d_handle.zoneId, d_handle.pkt_p);
+    ++(*s_backendQueries);
+  }
+  else if (cacheResult == CacheResult::NegativeMatch) {
+    //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): NEGcached"<<endl;
+    d_negcached = true;
+    d_cached = false;
+    d_answers.clear();
+  }
+  else {
+    // cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): CACHED"<<endl;
+    d_negcached = false;
+    d_cached = true;
+    d_cachehandleiter = d_answers.begin();
   }
 
   d_handle.parent = this;
