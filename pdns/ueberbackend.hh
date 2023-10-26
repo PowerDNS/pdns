@@ -168,4 +168,6 @@ private:
   int cacheHas(const Question& q, vector<DNSZoneRecord>& rrs) const;
   void addNegCache(const Question& q) const;
   void addCache(const Question& q, vector<DNSZoneRecord>&& rrs) const;
+
+  bool fillSOAFromZoneRecord(DNSName& shorter, int zoneId, SOAData* soaData);
 };

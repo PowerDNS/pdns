@@ -332,6 +332,47 @@ bool UeberBackend::inTransaction()
   return false;
 }
 
+bool UeberBackend::fillSOAFromZoneRecord(DNSName& shorter, const int zoneId, SOAData* const soaData)
+{
+  // Zone exists in zone cache, directly look up SOA.
+  lookup(QType(QType::SOA), shorter, zoneId, nullptr);
+
+  DNSZoneRecord zoneRecord;
+  if (!get(zoneRecord)) {
+    DLOG(g_log << Logger::Info << "Backend returned no SOA for zone '" << shorter.toLogString() << "', which it reported as existing " << endl);
+    return false;
+  }
+
+  if (zoneRecord.dr.d_name != shorter) {
+    throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + zoneRecord.dr.d_name.toLogString() + "' is not equal to looked up zone '" + shorter.toLogString() + "'");
+  }
+
+  // Fill soaData.
+  soaData->qname = zoneRecord.dr.d_name;
+
+  try {
+    fillSOAData(zoneRecord, *soaData);
+  }
+  catch (...) {
+    g_log << Logger::Warning << "Backend returned a broken SOA for zone '" << shorter.toLogString() << "'" << endl;
+
+    while (get(zoneRecord)) {
+      ;
+    }
+
+    return false;
+  }
+
+  soaData->db = backends.size() == 1 ? *backends.begin() : nullptr;
+
+  // Leave database handle in a consistent state.
+  while (get(zoneRecord)) {
+    ;
+  }
+
+  return true;
+}
+
 bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* soaData, bool cachedOk)
 {
   // A backend can respond to our authority request with the 'best' match it
@@ -351,39 +392,12 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
 
     if (cachedOk && g_zoneCache.isEnabled()) {
       if (g_zoneCache.getEntry(shorter, zoneId)) {
-        // Zone exists in zone cache, directly look up SOA.
-        DNSZoneRecord zoneRecord;
-        lookup(QType(QType::SOA), shorter, zoneId, nullptr);
-        if (!get(zoneRecord)) {
-          DLOG(g_log << Logger::Info << "Backend returned no SOA for zone '" << shorter.toLogString() << "', which it reported as existing " << endl);
-          continue;
-        }
-        if (zoneRecord.dr.d_name != shorter) {
-          throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + zoneRecord.dr.d_name.toLogString() + "' is not equal to looked up zone '" + shorter.toLogString() + "'");
-        }
-        // fill soaData
-        soaData->qname = zoneRecord.dr.d_name;
-        try {
-          fillSOAData(zoneRecord, *soaData);
-        }
-        catch (...) {
-          g_log << Logger::Warning << "Backend returned a broken SOA for zone '" << shorter.toLogString() << "'" << endl;
-          while (get(zoneRecord)) {
-            ;
-          }
-          continue;
-        }
-        if (backends.size() == 1) {
-          soaData->db = *backends.begin();
+        if (fillSOAFromZoneRecord(shorter, zoneId, soaData)) {
+          goto found;
         }
         else {
-          soaData->db = nullptr;
+          continue;
         }
-        // leave database handle in a consistent state
-        while (get(zoneRecord)) {
-          ;
-        }
-        goto found;
       }
 
       // Zone does not exist, try again with a shorter name.
