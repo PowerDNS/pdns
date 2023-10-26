@@ -332,7 +332,7 @@ bool UeberBackend::inTransaction()
   return false;
 }
 
-bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* sd, bool cachedOk)
+bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* soaData, bool cachedOk)
 {
   // A backend can respond to our authority request with the 'best' match it
   // has. For example, when asked for a.b.c.example.com. it might respond with
@@ -340,47 +340,53 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
   // of them has a more specific zone but don't bother asking this specific
   // backend again for b.c.example.com., c.example.com. and example.com.
   // If a backend has no match it may respond with an empty qname.
+
   bool found = false;
-  int cstat;
+  int cstat = 0;
   DNSName shorter(target);
-  vector<pair<size_t, SOAData>> bestmatch(backends.size(), pair(target.wirelength() + 1, SOAData()));
+  vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.wirelength() + 1, SOAData()));
+
   do {
     int zoneId{-1};
+
     if (cachedOk && g_zoneCache.isEnabled()) {
       if (g_zoneCache.getEntry(shorter, zoneId)) {
         // Zone exists in zone cache, directly look up SOA.
-        DNSZoneRecord zr;
+        DNSZoneRecord zoneRecord;
         lookup(QType(QType::SOA), shorter, zoneId, nullptr);
-        if (!get(zr)) {
+        if (!get(zoneRecord)) {
           DLOG(g_log << Logger::Info << "Backend returned no SOA for zone '" << shorter.toLogString() << "', which it reported as existing " << endl);
           continue;
         }
-        if (zr.dr.d_name != shorter) {
-          throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + zr.dr.d_name.toLogString() + "' is not equal to looked up zone '" + shorter.toLogString() + "'");
+        if (zoneRecord.dr.d_name != shorter) {
+          throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + zoneRecord.dr.d_name.toLogString() + "' is not equal to looked up zone '" + shorter.toLogString() + "'");
         }
-        // fill sd
-        sd->qname = zr.dr.d_name;
+        // fill soaData
+        soaData->qname = zoneRecord.dr.d_name;
         try {
-          fillSOAData(zr, *sd);
+          fillSOAData(zoneRecord, *soaData);
         }
         catch (...) {
           g_log << Logger::Warning << "Backend returned a broken SOA for zone '" << shorter.toLogString() << "'" << endl;
-          while (get(zr))
+          while (get(zoneRecord)) {
             ;
+          }
           continue;
         }
         if (backends.size() == 1) {
-          sd->db = *backends.begin();
+          soaData->db = *backends.begin();
         }
         else {
-          sd->db = nullptr;
+          soaData->db = nullptr;
         }
         // leave database handle in a consistent state
-        while (get(zr))
+        while (get(zoneRecord)) {
           ;
+        }
         goto found;
       }
-      // zone does not exist, try again with shorter name
+
+      // Zone does not exist, try again with a shorter name.
       continue;
     }
 
@@ -388,21 +394,17 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
     d_question.qname = shorter;
     d_question.zoneId = zoneId;
 
-    // Check cache
+    // Check cache.
     if (cachedOk && (d_cache_ttl != 0 || d_negcache_ttl != 0)) {
       cstat = cacheHas(d_question, d_answers);
 
       if (cstat == 1 && !d_answers.empty() && d_cache_ttl != 0) {
         DLOG(g_log << Logger::Error << "has pos cache entry: " << shorter << endl);
-        fillSOAData(d_answers[0], *sd);
+        fillSOAData(d_answers[0], *soaData);
 
-        if (backends.size() == 1) {
-          sd->db = *backends.begin();
-        }
-        else {
-          sd->db = nullptr;
-        }
-        sd->qname = shorter;
+        soaData->db = backends.size() == 1 ? *backends.begin() : nullptr;
+        soaData->qname = shorter;
+
         goto found;
       }
       else if (cstat == 0 && d_negcache_ttl != 0) {
@@ -413,78 +415,83 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
 
     // Check backends
     {
-      auto i = backends.begin();
-      auto j = bestmatch.begin();
-      for (; i != backends.end() && j != bestmatch.end(); ++i, ++j) {
+      auto backend = backends.begin();
+      for (auto bestMatch = bestMatches.begin(); backend != backends.end() && bestMatch != bestMatches.end(); ++backend, ++bestMatch) {
 
-        DLOG(g_log << Logger::Error << "backend: " << i - backends.begin() << ", qname: " << shorter << endl);
+        DLOG(g_log << Logger::Error << "backend: " << backend - backends.begin() << ", qname: " << shorter << endl);
 
-        if (j->first < shorter.wirelength()) {
-          DLOG(g_log << Logger::Error << "skipped, we already found a shorter best match in this backend: " << j->second.qname << endl);
+        if (bestMatch->first < shorter.wirelength()) {
+          DLOG(g_log << Logger::Error << "skipped, we already found a shorter best match in this backend: " << bestMatch->second.qname << endl);
           continue;
         }
-        else if (j->first == shorter.wirelength()) {
-          DLOG(g_log << Logger::Error << "use shorter best match: " << j->second.qname << endl);
-          *sd = j->second;
+
+        if (bestMatch->first == shorter.wirelength()) {
+          DLOG(g_log << Logger::Error << "use shorter best match: " << bestMatch->second.qname << endl);
+          *soaData = bestMatch->second;
           break;
         }
+
+        DLOG(g_log << Logger::Error << "lookup: " << shorter << endl);
+
+        if ((*backend)->getAuth(shorter, soaData)) {
+          DLOG(g_log << Logger::Error << "got: " << soaData->qname << endl);
+
+          if (!soaData->qname.empty() && !shorter.isPartOf(soaData->qname)) {
+            throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + soaData->qname.toLogString() + "' is not part of '" + shorter.toLogString() + "'");
+          }
+
+          bestMatch->first = soaData->qname.wirelength();
+          bestMatch->second = *soaData;
+
+          if (soaData->qname == shorter) {
+            break;
+          }
+        }
         else {
-          DLOG(g_log << Logger::Error << "lookup: " << shorter << endl);
-          if ((*i)->getAuth(shorter, sd)) {
-            DLOG(g_log << Logger::Error << "got: " << sd->qname << endl);
-            if (!sd->qname.empty() && !shorter.isPartOf(sd->qname)) {
-              throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + sd->qname.toLogString() + "' is not part of '" + shorter.toLogString() + "'");
-            }
-            j->first = sd->qname.wirelength();
-            j->second = *sd;
-            if (sd->qname == shorter) {
-              break;
-            }
-          }
-          else {
-            DLOG(g_log << Logger::Error << "no match for: " << shorter << endl);
-          }
+          DLOG(g_log << Logger::Error << "no match for: " << shorter << endl);
         }
       }
 
       // Add to cache
-      if (i == backends.end()) {
-        if (d_negcache_ttl) {
+      if (backend == backends.end()) {
+        if (d_negcache_ttl != 0U) {
           DLOG(g_log << Logger::Error << "add neg cache entry:" << shorter << endl);
           d_question.qname = shorter;
           addNegCache(d_question);
         }
+
         continue;
       }
 
       if (d_cache_ttl != 0) {
-        DLOG(g_log << Logger::Error << "add pos cache entry: " << sd->qname << endl);
+        DLOG(g_log << Logger::Error << "add pos cache entry: " << soaData->qname << endl);
+
         d_question.qtype = QType::SOA;
-        d_question.qname = sd->qname;
+        d_question.qname = soaData->qname;
         d_question.zoneId = zoneId;
 
-        DNSZoneRecord rr;
-        rr.dr.d_name = sd->qname;
-        rr.dr.d_type = QType::SOA;
-        rr.dr.setContent(makeSOAContent(*sd));
-        rr.dr.d_ttl = sd->ttl;
-        rr.domain_id = sd->domain_id;
+        DNSZoneRecord resourceRecord;
+        resourceRecord.dr.d_name = soaData->qname;
+        resourceRecord.dr.d_type = QType::SOA;
+        resourceRecord.dr.setContent(makeSOAContent(*soaData));
+        resourceRecord.dr.d_ttl = soaData->ttl;
+        resourceRecord.domain_id = soaData->domain_id;
 
-        addCache(d_question, {rr});
+        addCache(d_question, {resourceRecord});
       }
     }
 
   found:
     if (found == (qtype == QType::DS) || target != shorter) {
-      DLOG(g_log << Logger::Error << "found: " << sd->qname << endl);
+      DLOG(g_log << Logger::Error << "found: " << soaData->qname << endl);
       return true;
     }
     else {
-      DLOG(g_log << Logger::Error << "chasing next: " << sd->qname << endl);
+      DLOG(g_log << Logger::Error << "chasing next: " << soaData->qname << endl);
       found = true;
     }
-
   } while (shorter.chopOff());
+
   return found;
 }
 
