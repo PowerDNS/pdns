@@ -391,6 +391,48 @@ UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, DNSNa
   return cacheResult;
 }
 
+static std::vector<DNSBackend*>::iterator findBestMatchingBackend(std::vector<DNSBackend*>& backends, std::vector<std::pair<std::size_t, SOAData>>& bestMatches, const DNSName& shorter, SOAData* soaData)
+{
+  auto backend = backends.begin();
+  for (auto bestMatch = bestMatches.begin(); backend != backends.end() && bestMatch != bestMatches.end(); ++backend, ++bestMatch) {
+
+    DLOG(g_log << Logger::Error << "backend: " << backend - backends.begin() << ", qname: " << shorter << endl);
+
+    if (bestMatch->first < shorter.wirelength()) {
+      DLOG(g_log << Logger::Error << "skipped, we already found a shorter best match in this backend: " << bestMatch->second.qname << endl);
+      continue;
+    }
+
+    if (bestMatch->first == shorter.wirelength()) {
+      DLOG(g_log << Logger::Error << "use shorter best match: " << bestMatch->second.qname << endl);
+      *soaData = bestMatch->second;
+      break;
+    }
+
+    DLOG(g_log << Logger::Error << "lookup: " << shorter << endl);
+
+    if ((*backend)->getAuth(shorter, soaData)) {
+      DLOG(g_log << Logger::Error << "got: " << soaData->qname << endl);
+
+      if (!soaData->qname.empty() && !shorter.isPartOf(soaData->qname)) {
+        throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + soaData->qname.toLogString() + "' is not part of '" + shorter.toLogString() + "'");
+      }
+
+      bestMatch->first = soaData->qname.wirelength();
+      bestMatch->second = *soaData;
+
+      if (soaData->qname == shorter) {
+        break;
+      }
+    }
+    else {
+      DLOG(g_log << Logger::Error << "no match for: " << shorter << endl);
+    }
+  }
+
+  return backend;
+}
+
 bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* soaData, bool cachedOk)
 {
   // A backend can respond to our authority request with the 'best' match it
@@ -435,44 +477,9 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
       }
     }
 
-    // Check backends
+    // Check backends.
     {
-      auto backend = backends.begin();
-      for (auto bestMatch = bestMatches.begin(); backend != backends.end() && bestMatch != bestMatches.end(); ++backend, ++bestMatch) {
-
-        DLOG(g_log << Logger::Error << "backend: " << backend - backends.begin() << ", qname: " << shorter << endl);
-
-        if (bestMatch->first < shorter.wirelength()) {
-          DLOG(g_log << Logger::Error << "skipped, we already found a shorter best match in this backend: " << bestMatch->second.qname << endl);
-          continue;
-        }
-
-        if (bestMatch->first == shorter.wirelength()) {
-          DLOG(g_log << Logger::Error << "use shorter best match: " << bestMatch->second.qname << endl);
-          *soaData = bestMatch->second;
-          break;
-        }
-
-        DLOG(g_log << Logger::Error << "lookup: " << shorter << endl);
-
-        if ((*backend)->getAuth(shorter, soaData)) {
-          DLOG(g_log << Logger::Error << "got: " << soaData->qname << endl);
-
-          if (!soaData->qname.empty() && !shorter.isPartOf(soaData->qname)) {
-            throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + soaData->qname.toLogString() + "' is not part of '" + shorter.toLogString() + "'");
-          }
-
-          bestMatch->first = soaData->qname.wirelength();
-          bestMatch->second = *soaData;
-
-          if (soaData->qname == shorter) {
-            break;
-          }
-        }
-        else {
-          DLOG(g_log << Logger::Error << "no match for: " << shorter << endl);
-        }
-      }
+      auto backend = findBestMatchingBackend(backends, bestMatches, shorter, soaData);
 
       // Add to cache
       if (backend == backends.end()) {
