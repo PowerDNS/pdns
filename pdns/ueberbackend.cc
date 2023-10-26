@@ -373,6 +373,24 @@ bool UeberBackend::fillSOAFromZoneRecord(DNSName& shorter, const int zoneId, SOA
   return true;
 }
 
+UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, DNSName& shorter)
+{
+  auto cacheResult = cacheHas(d_question, d_answers);
+
+  if (cacheResult == CacheResult::Hit && !d_answers.empty() && d_cache_ttl != 0U) {
+    DLOG(g_log << Logger::Error << "has pos cache entry: " << shorter << endl);
+    fillSOAData(d_answers[0], *soaData);
+
+    soaData->db = backends.size() == 1 ? *backends.begin() : nullptr;
+    soaData->qname = shorter;
+  }
+  else if (cacheResult == CacheResult::NegativeMatch && d_negcache_ttl != 0U) {
+    DLOG(g_log << Logger::Error << "has neg cache entry: " << shorter << endl);
+  }
+
+  return cacheResult;
+}
+
 bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* soaData, bool cachedOk)
 {
   // A backend can respond to our authority request with the 'best' match it
@@ -409,19 +427,10 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
 
     // Check cache.
     if (cachedOk && (d_cache_ttl != 0 || d_negcache_ttl != 0)) {
-      auto cacheResult = cacheHas(d_question, d_answers);
-
-      if (cacheResult == CacheResult::Hit && !d_answers.empty() && d_cache_ttl != 0) {
-        DLOG(g_log << Logger::Error << "has pos cache entry: " << shorter << endl);
-        fillSOAData(d_answers[0], *soaData);
-
-        soaData->db = backends.size() == 1 ? *backends.begin() : nullptr;
-        soaData->qname = shorter;
-
+      auto cacheResult = fillSOAFromCache(soaData, shorter);
+      if (cacheResult == CacheResult::Hit) {
         goto found;
-      }
-      else if (cacheResult == CacheResult::NegativeMatch && d_negcache_ttl != 0) {
-        DLOG(g_log << Logger::Error << "has neg cache entry: " << shorter << endl);
+      } else if (cacheResult == CacheResult::NegativeMatch) {
         continue;
       }
     }

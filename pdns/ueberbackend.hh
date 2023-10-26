@@ -177,4 +177,5 @@ private:
   void addCache(const Question& q, vector<DNSZoneRecord>&& rrs) const;
 
   bool fillSOAFromZoneRecord(DNSName& shorter, int zoneId, SOAData* soaData);
+  CacheResult fillSOAFromCache(SOAData* soaData, DNSName& shorter);
 };
