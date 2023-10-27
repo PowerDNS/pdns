@@ -120,11 +120,13 @@ void UeberBackend::go()
   d_cond.notify_all();
 }
 
-bool UeberBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial)
+bool UeberBackend::getDomainInfo(const DNSName& domain, DomainInfo& domainInfo, bool getSerial)
 {
-  for (auto backend : backends)
-    if (backend->getDomainInfo(domain, di, getSerial))
+  for (auto* backend : backends) {
+    if (backend->getDomainInfo(domain, domainInfo, getSerial)) {
       return true;
+    }
+  }
   return false;
 }
 

@@ -106,8 +106,8 @@ public:
 
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
-  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true);
   bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account);
+  bool getDomainInfo(const DNSName& domain, DomainInfo& domainInfo, bool getSerial = true);
 
   bool doesDNSSEC();
   bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id);
