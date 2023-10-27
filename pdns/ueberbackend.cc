@@ -322,9 +322,10 @@ void UeberBackend::getUpdatedMasters(vector<DomainInfo>& domains, std::unordered
 
 bool UeberBackend::inTransaction()
 {
-  for (auto* b : backends) {
-    if (b->inTransaction())
+  for (auto* backend : backends) {
+    if (backend->inTransaction()) {
       return true;
+    }
   }
   return false;
 }
