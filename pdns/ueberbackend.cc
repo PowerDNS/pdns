@@ -150,48 +150,52 @@ bool UeberBackend::doesDNSSEC()
   return false;
 }
 
-bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id)
+bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& keyID)
 {
-  id = -1;
-  for (DNSBackend* db : backends) {
-    if (db->addDomainKey(name, key, id))
+  keyID = -1;
+  for (DNSBackend* backend : backends) {
+    if (backend->addDomainKey(name, key, keyID)) {
       return true;
+    }
   }
   return false;
 }
 bool UeberBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys)
 {
-  for (DNSBackend* db : backends) {
-    if (db->getDomainKeys(name, keys))
+  for (DNSBackend* backend : backends) {
+    if (backend->getDomainKeys(name, keys)) {
       return true;
+    }
   }
   return false;
 }
 
 bool UeberBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
-  for (DNSBackend* db : backends) {
-    if (db->getAllDomainMetadata(name, meta))
+  for (DNSBackend* backend : backends) {
+    if (backend->getAllDomainMetadata(name, meta)) {
       return true;
+    }
   }
   return false;
 }
 
 bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
 {
-  for (DNSBackend* db : backends) {
-    if (db->getDomainMetadata(name, kind, meta))
+  for (DNSBackend* backend : backends) {
+    if (backend->getDomainMetadata(name, kind, meta)) {
       return true;
+    }
   }
   return false;
 }
 
 bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::string& meta)
 {
-  bool ret;
   meta.clear();
   std::vector<string> tmp;
-  if ((ret = getDomainMetadata(name, kind, tmp)) && !tmp.empty()) {
+  const bool ret = getDomainMetadata(name, kind, tmp);
+  if (ret && !tmp.empty()) {
     meta = *tmp.begin();
   }
   return ret;
@@ -199,9 +203,10 @@ bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kin
 
 bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
-  for (DNSBackend* db : backends) {
-    if (db->setDomainMetadata(name, kind, meta))
+  for (DNSBackend* backend : backends) {
+    if (backend->setDomainMetadata(name, kind, meta)) {
       return true;
+    }
   }
   return false;
 }
@@ -215,47 +220,52 @@ bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kin
   return setDomainMetadata(name, kind, tmp);
 }
 
-bool UeberBackend::activateDomainKey(const DNSName& name, unsigned int id)
+bool UeberBackend::activateDomainKey(const DNSName& name, unsigned int keyID)
 {
-  for (DNSBackend* db : backends) {
-    if (db->activateDomainKey(name, id))
+  for (DNSBackend* backend : backends) {
+    if (backend->activateDomainKey(name, keyID)) {
       return true;
+    }
   }
   return false;
 }
 
-bool UeberBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
+bool UeberBackend::deactivateDomainKey(const DNSName& name, unsigned int keyID)
 {
-  for (DNSBackend* db : backends) {
-    if (db->deactivateDomainKey(name, id))
+  for (DNSBackend* backend : backends) {
+    if (backend->deactivateDomainKey(name, keyID)) {
       return true;
+    }
   }
   return false;
 }
 
-bool UeberBackend::publishDomainKey(const DNSName& name, unsigned int id)
+bool UeberBackend::publishDomainKey(const DNSName& name, unsigned int keyID)
 {
-  for (DNSBackend* db : backends) {
-    if (db->publishDomainKey(name, id))
+  for (DNSBackend* backend : backends) {
+    if (backend->publishDomainKey(name, keyID)) {
       return true;
+    }
   }
   return false;
 }
 
-bool UeberBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
+bool UeberBackend::unpublishDomainKey(const DNSName& name, unsigned int keyID)
 {
-  for (DNSBackend* db : backends) {
-    if (db->unpublishDomainKey(name, id))
+  for (DNSBackend* backend : backends) {
+    if (backend->unpublishDomainKey(name, keyID)) {
       return true;
+    }
   }
   return false;
 }
 
-bool UeberBackend::removeDomainKey(const DNSName& name, unsigned int id)
+bool UeberBackend::removeDomainKey(const DNSName& name, unsigned int keyID)
 {
-  for (DNSBackend* db : backends) {
-    if (db->removeDomainKey(name, id))
+  for (DNSBackend* backend : backends) {
+    if (backend->removeDomainKey(name, keyID)) {
       return true;
+    }
   }
   return false;
 }
