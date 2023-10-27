@@ -38,6 +38,7 @@
 #include <iostream>
 #include <sstream>
 #include <functional>
+#include <string>
 
 #include "dns.hh"
 #include "arguments.hh"
@@ -76,19 +77,27 @@ bool UeberBackend::loadmodule(const string& name)
 bool UeberBackend::loadModules(const vector<string>& modules, const string& path)
 {
   for (const auto& module : modules) {
-    bool res;
+    bool res = false;
+
     if (module.find('.') == string::npos) {
-      res = UeberBackend::loadmodule(path + "/lib" + module + "backend.so");
+      auto fullPath = path;
+      fullPath += "/lib";
+      fullPath += module;
+      fullPath += "backend.so";
+      res = UeberBackend::loadmodule(fullPath);
     }
     else if (module[0] == '/' || (module[0] == '.' && module[1] == '/') || (module[0] == '.' && module[1] == '.')) {
       // absolute or current path
       res = UeberBackend::loadmodule(module);
     }
     else {
-      res = UeberBackend::loadmodule(path + "/" + module);
+      auto fullPath = path;
+      fullPath += "/";
+      fullPath += module;
+      res = UeberBackend::loadmodule(fullPath);
     }
 
-    if (res == false) {
+    if (!res) {
       return false;
     }
   }
