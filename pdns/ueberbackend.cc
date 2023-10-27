@@ -588,11 +588,11 @@ void UeberBackend::cleanup()
 }
 
 // returns -1 for miss, 0 for negative match, 1 for hit
-int UeberBackend::cacheHas(const Question& q, vector<DNSZoneRecord>& rrs)
+int UeberBackend::cacheHas(const Question& q, vector<DNSZoneRecord>& rrs) const
 {
   extern AuthQueryCache QC;
 
-  if (!d_cache_ttl && !d_negcache_ttl) {
+  if (d_cache_ttl == 0 && d_negcache_ttl == 0) {
     return -1;
   }
 
@@ -603,31 +603,35 @@ int UeberBackend::cacheHas(const Question& q, vector<DNSZoneRecord>& rrs)
   if (!ret) {
     return -1;
   }
-  if (rrs.empty()) // negatively cached
+  if (rrs.empty()) { // negatively cached
     return 0;
+  }
 
   return 1;
 }
 
-void UeberBackend::addNegCache(const Question& q)
+void UeberBackend::addNegCache(const Question& q) const
 {
   extern AuthQueryCache QC;
-  if (!d_negcache_ttl)
+  if (d_negcache_ttl == 0) {
     return;
+  }
   // we should also not be storing negative answers if a pipebackend does scopeMask, but we can't pass a negative scopeMask in an empty set!
   QC.insert(q.qname, q.qtype, vector<DNSZoneRecord>(), d_negcache_ttl, q.zoneId);
 }
 
-void UeberBackend::addCache(const Question& q, vector<DNSZoneRecord>&& rrs)
+void UeberBackend::addCache(const Question& q, vector<DNSZoneRecord>&& rrs) const
 {
   extern AuthQueryCache QC;
 
-  if (!d_cache_ttl)
+  if (d_cache_ttl == 0) {
     return;
+  }
 
   for (const auto& rr : rrs) {
-    if (rr.scopeMask)
+    if (rr.scopeMask) {
       return;
+    }
   }
 
   QC.insert(q.qname, q.qtype, std::move(rrs), d_cache_ttl, q.zoneId);

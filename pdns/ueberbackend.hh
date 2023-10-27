@@ -165,7 +165,7 @@ private:
   bool d_stale;
   static bool s_doANYLookupsOnly;
 
-  int cacheHas(const Question& q, vector<DNSZoneRecord>& rrs);
-  void addNegCache(const Question& q);
-  void addCache(const Question& q, vector<DNSZoneRecord>&& rrs);
+  int cacheHas(const Question& q, vector<DNSZoneRecord>& rrs) const;
+  void addNegCache(const Question& q) const;
+  void addCache(const Question& q, vector<DNSZoneRecord>&& rrs) const;
 };
