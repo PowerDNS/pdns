@@ -142,9 +142,10 @@ bool UeberBackend::createDomain(const DNSName& domain, const DomainInfo::DomainK
 
 bool UeberBackend::doesDNSSEC()
 {
-  for (auto* db : backends) {
-    if (db->doesDNSSEC())
+  for (auto* backend : backends) {
+    if (backend->doesDNSSEC()) {
       return true;
+    }
   }
   return false;
 }
