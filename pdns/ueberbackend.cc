@@ -29,16 +29,14 @@
 #include "auth-zonecache.hh"
 #include "utility.hh"
 
-#include <dlfcn.h>
-#include <string>
-#include <map>
-#include <sys/types.h>
-#include <sstream>
 #include <cerrno>
-#include <iostream>
-#include <sstream>
+#include <dlfcn.h>
 #include <functional>
+#include <iostream>
+#include <map>
+#include <sstream>
 #include <string>
+#include <sys/types.h>
 
 #include "dns.hh"
 #include "arguments.hh"
