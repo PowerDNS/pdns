@@ -491,7 +491,7 @@ bool UeberBackend::getSOAUncached(const DNSName& domain, SOAData& sd)
   d_question.qname = domain;
   d_question.zoneId = -1;
 
-  for (auto backend : backends)
+  for (auto* backend : backends) {
     if (backend->getSOA(domain, sd)) {
       if (domain != sd.qname) {
         throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '" + domain.toLogString() + "', answer: '" + sd.qname.toLogString() + "'");
@@ -508,9 +508,11 @@ bool UeberBackend::getSOAUncached(const DNSName& domain, SOAData& sd)
       }
       return true;
     }
+  }
 
-  if (d_negcache_ttl)
+  if (d_negcache_ttl) {
     addNegCache(d_question);
+  }
   return false;
 }
 
