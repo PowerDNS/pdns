@@ -556,14 +556,13 @@ bool UeberBackend::superMasterBackend(const string& ip, const DNSName& domain, c
   return false;
 }
 
-UeberBackend::UeberBackend(const string& pname)
+UeberBackend::UeberBackend(const string& pname) :
+  d_negcached(false), d_cached(false)
 {
   {
     d_instances.lock()->push_back(this); // report to the static list of ourself
   }
 
-  d_negcached = false;
-  d_cached = false;
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
   d_qtype = 0;
