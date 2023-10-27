@@ -2895,7 +2895,7 @@ Note that this option only applies to credentials stored in the configuration as
         'default' : 'normal',
         'help' : 'Amount of logging in the webserver (none, normal, detailed)',
         'doc' : '''
-One of ``one``, ``normal``, ``detailed``.
+One of ``none``, ``normal``, ``detailed``.
 The amount of logging the webserver must do. 'none' means no useful webserver information will be logged.
 When set to 'normal', the webserver will log a line per request that should be familiar::
 
