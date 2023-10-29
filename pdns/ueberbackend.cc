@@ -284,9 +284,9 @@ void UeberBackend::updateZoneCache()
   vector<std::tuple<DNSName, int>> zone_indices;
   g_zoneCache.setReplacePending();
 
-  for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i) {
+  for (auto& backend : backends) {
     vector<DomainInfo> zones;
-    (*i)->getAllDomains(&zones, false, true);
+    backend->getAllDomains(&zones, false, true);
     for (auto& di : zones) {
       zone_indices.emplace_back(std::move(di.zone), (int)di.id); // this cast should not be necessary
     }
@@ -296,11 +296,12 @@ void UeberBackend::updateZoneCache()
 
 void UeberBackend::rediscover(string* status)
 {
-  for (vector<DNSBackend*>::iterator i = backends.begin(); i != backends.end(); ++i) {
+  for (auto i = backends.begin(); i != backends.end(); ++i) {
     string tmpstr;
     (*i)->rediscover(&tmpstr);
-    if (status)
+    if (status != nullptr) {
       *status += tmpstr + (i != backends.begin() ? "\n" : "");
+    }
   }
 
   updateZoneCache();
@@ -387,10 +388,10 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
     d_question.zoneId = zoneId;
 
     // Check cache
-    if (cachedOk && (d_cache_ttl || d_negcache_ttl)) {
+    if (cachedOk && (d_cache_ttl != 0 || d_negcache_ttl != 0)) {
       cstat = cacheHas(d_question, d_answers);
 
-      if (cstat == 1 && !d_answers.empty() && d_cache_ttl) {
+      if (cstat == 1 && !d_answers.empty() && d_cache_ttl != 0) {
         DLOG(g_log << Logger::Error << "has pos cache entry: " << shorter << endl);
         fillSOAData(d_answers[0], *sd);
 
@@ -403,7 +404,7 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
         sd->qname = shorter;
         goto found;
       }
-      else if (cstat == 0 && d_negcache_ttl) {
+      else if (cstat == 0 && d_negcache_ttl != 0) {
         DLOG(g_log << Logger::Error << "has neg cache entry: " << shorter << endl);
         continue;
       }
@@ -411,8 +412,8 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
 
     // Check backends
     {
-      vector<DNSBackend*>::const_iterator i = backends.begin();
-      vector<pair<size_t, SOAData>>::iterator j = bestmatch.begin();
+      auto i = backends.begin();
+      auto j = bestmatch.begin();
       for (; i != backends.end() && j != bestmatch.end(); ++i, ++j) {
 
         DLOG(g_log << Logger::Error << "backend: " << i - backends.begin() << ", qname: " << shorter << endl);
@@ -454,7 +455,8 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
         }
         continue;
       }
-      else if (d_cache_ttl) {
+
+      if (d_cache_ttl != 0) {
         DLOG(g_log << Logger::Error << "add pos cache entry: " << sd->qname << endl);
         d_question.qtype = QType::SOA;
         d_question.qname = sd->qname;
@@ -806,18 +808,22 @@ bool UeberBackend::deleteTSIGKey(const DNSName& name)
 bool UeberBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)
 {
   bool rc = false;
-  for (vector<DNSBackend*>::iterator i = backends.begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && i != backends.end(); ++i)
-    if ((*i)->searchRecords(pattern, maxResults - result.size(), result))
+  for (auto i = backends.begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && i != backends.end(); ++i) {
+    if ((*i)->searchRecords(pattern, maxResults - result.size(), result)) {
       rc = true;
+    }
+  }
   return rc;
 }
 
 bool UeberBackend::searchComments(const string& pattern, int maxResults, vector<Comment>& result)
 {
   bool rc = false;
-  for (vector<DNSBackend*>::iterator i = backends.begin(); result.size() < static_cast<vector<Comment>::size_type>(maxResults) && i != backends.end(); ++i)
-    if ((*i)->searchComments(pattern, maxResults - result.size(), result))
+  for (auto i = backends.begin(); result.size() < static_cast<vector<Comment>::size_type>(maxResults) && i != backends.end(); ++i) {
+    if ((*i)->searchComments(pattern, maxResults - result.size(), result)) {
       rc = true;
+    }
+  }
   return rc;
 }
 
@@ -852,8 +858,9 @@ bool UeberBackend::handle::get(DNSZoneRecord& r)
       d_hinterBackend->lookup(qtype, qname, zoneId, pkt_p);
       ++(*s_backendQueries);
     }
-    else
+    else {
       break;
+    }
 
     DLOG(g_log << "Now asking backend #" << i << endl);
   }

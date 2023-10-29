@@ -95,7 +95,7 @@ public:
     static AtomicCounter instances;
   };
 
-  void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr);
+  void lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p = nullptr);
 
   /** Determines if we are authoritative for a zone, and at what level */
   bool getAuth(const DNSName& target, const QType& qtype, SOAData* sd, bool cachedOk = true);
@@ -106,8 +106,8 @@ public:
 
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
   void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
-  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account);
   bool getDomainInfo(const DNSName& domain, DomainInfo& domainInfo, bool getSerial = true);
+  bool createDomain(const DNSName& domain, DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account);
 
   bool doesDNSSEC();
   bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id);
