@@ -133,8 +133,8 @@ public:
   bool getTSIGKeys(std::vector<struct TSIGKey>& keys);
   bool deleteTSIGKey(const DNSName& name);
 
-  bool searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result);
-  bool searchComments(const string& pattern, int maxResults, vector<Comment>& result);
+  bool searchRecords(const string& pattern, vector<DNSResourceRecord>::size_type maxResults, vector<DNSResourceRecord>& result);
+  bool searchComments(const string& pattern, size_t maxResults, vector<Comment>& result);
 
   void updateZoneCache();
 

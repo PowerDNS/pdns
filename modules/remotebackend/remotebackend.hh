@@ -199,8 +199,8 @@ public:
   bool deleteTSIGKey(const DNSName& name) override;
   bool getTSIGKeys(std::vector<struct TSIGKey>& keys) override;
   string directBackendCmd(const string& querystr) override;
-  bool searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result) override;
-  bool searchComments(const string& pattern, int maxResults, vector<Comment>& result) override;
+  bool searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result) override;
+  bool searchComments(const string& pattern, size_t maxResults, vector<Comment>& result) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
   void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;

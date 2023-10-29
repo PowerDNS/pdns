@@ -860,22 +860,22 @@ bool UeberBackend::deleteTSIGKey(const DNSName& name)
 
 // API Search
 //
-bool UeberBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)
+bool UeberBackend::searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result)
 {
   bool ret = false;
-  for (auto i = backends.begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && i != backends.end(); ++i) {
-    if ((*i)->searchRecords(pattern, maxResults - result.size(), result)) {
+  for (auto backend = backends.begin(); result.size() < maxResults && backend != backends.end(); ++backend) {
+    if ((*backend)->searchRecords(pattern, maxResults - result.size(), result)) {
       ret = true;
     }
   }
   return ret;
 }
 
-bool UeberBackend::searchComments(const string& pattern, int maxResults, vector<Comment>& result)
+bool UeberBackend::searchComments(const string& pattern, size_t maxResults, vector<Comment>& result)
 {
   bool ret = false;
-  for (auto i = backends.begin(); result.size() < static_cast<vector<Comment>::size_type>(maxResults) && i != backends.end(); ++i) {
-    if ((*i)->searchComments(pattern, maxResults - result.size(), result)) {
+  for (auto backend = backends.begin(); result.size() < maxResults && backend != backends.end(); ++backend) {
+    if ((*backend)->searchComments(pattern, maxResults - result.size(), result)) {
       ret = true;
     }
   }

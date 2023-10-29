@@ -2384,8 +2384,8 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp) {
   string sMax = req->getvars["max"];
   string sObjectType = req->getvars["object_type"];
 
-  int maxEnts = 100;
-  int ents = 0;
+  size_t maxEnts = 100;
+  size_t ents = 0;
 
   // the following types of data can be searched for using the api
   enum class ObjectType

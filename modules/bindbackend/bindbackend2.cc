@@ -1447,7 +1447,7 @@ bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, co
   return true;
 }
 
-bool Bind2Backend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)
+bool Bind2Backend::searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result)
 {
   SimpleMatch sm(pattern, true);
   static bool mustlog = ::arg().mustDo("query-logging");
@@ -1469,7 +1469,7 @@ bool Bind2Backend::searchRecords(const string& pattern, int maxResults, vector<D
 
       shared_ptr<const recordstorage_t> rhandle = h.d_records.get();
 
-      for (recordstorage_t::const_iterator ri = rhandle->begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && ri != rhandle->end(); ri++) {
+      for (recordstorage_t::const_iterator ri = rhandle->begin(); result.size() < maxResults && ri != rhandle->end(); ri++) {
         DNSName name = ri->qname.empty() ? i.d_name : (ri->qname + i.d_name);
         if (sm.match(name) || sm.match(ri->content)) {
           DNSResourceRecord r;

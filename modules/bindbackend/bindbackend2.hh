@@ -205,7 +205,7 @@ public:
   bool commitTransaction() override;
   bool abortTransaction() override;
   void alsoNotifies(const DNSName& domain, set<string>* ips) override;
-  bool searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result) override;
+  bool searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result) override;
 
   // the DNSSEC related (getDomainMetadata has broader uses too)
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override;

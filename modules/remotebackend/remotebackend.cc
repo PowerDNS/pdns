@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <limits>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -830,11 +831,16 @@ string RemoteBackend::directBackendCmd(const string& querystr)
   return asString(answer["result"]);
 }
 
-bool RemoteBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)
+bool RemoteBackend::searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result)
 {
+  const auto intMax = static_cast<decltype(maxResults)>(std::numeric_limits<int>::max());
+  if (maxResults > intMax) {
+    throw std::out_of_range("Remote backend: length of list of result (" + std::to_string(maxResults) + ") is larger than what the JSON library supports for serialization (" + std::to_string(intMax) + ")");
+  }
+
   Json query = Json::object{
     {"method", "searchRecords"},
-    {"parameters", Json::object{{"pattern", pattern}, {"maxResults", maxResults}}}};
+    {"parameters", Json::object{{"pattern", pattern}, {"maxResults", static_cast<int>(maxResults)}}}};
 
   Json answer;
   if (!this->send(query) || !this->recv(answer)) {
@@ -866,7 +872,7 @@ bool RemoteBackend::searchRecords(const string& pattern, int maxResults, vector<
   return true;
 }
 
-bool RemoteBackend::searchComments(const string& /* pattern */, int /* maxResults */, vector<Comment>& /* result */)
+bool RemoteBackend::searchComments(const string& /* pattern */, size_t /* maxResults */, vector<Comment>& /* result */)
 {
   // FIXME: Implement Comment API
   return false;
