@@ -496,7 +496,7 @@ class BackendMakerClass
 public:
   void report(BackendFactory *bf);
   void launch(const string &instr);
-  vector<DNSBackend *> all(bool skipBIND=false);
+  vector<std::unique_ptr<DNSBackend>> all(bool metadataOnly=false);
   void load(const string &module);
   [[nodiscard]] size_t numLauncheable() const;
   vector<string> getModules();

@@ -65,9 +65,7 @@ public:
 
   /** This contains all registered backends. The DynListener modifies this list for us when
       new modules are loaded */
-  vector<DNSBackend*> backends;
-
-  void cleanup();
+  vector<std::unique_ptr<DNSBackend>> backends;
 
   //! the very magic handle for UeberBackend questions
   class handle

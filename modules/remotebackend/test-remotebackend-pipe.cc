@@ -75,7 +75,7 @@ struct RemotebackendSetup
       // then get us a instance of it
       ::arg().set("remote-connection-string") = "pipe:command=unittest_pipe.rb";
       ::arg().set("remote-dnssec") = "yes";
-      be = BackendMakers().all()[0];
+      be = BackendMakers().all()[0].get();
       // load few record types to help out
       SOARecordContent::report();
       NSRecordContent::report();

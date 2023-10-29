@@ -75,7 +75,7 @@ struct RemotebackendSetup
       // then get us a instance of it
       ::arg().set("remote-connection-string") = "http:url=http://localhost:62434/dns,post=1";
       ::arg().set("remote-dnssec") = "yes";
-      be = BackendMakers().all()[0];
+      be = BackendMakers().all()[0].get();
     }
     catch (PDNSException& ex) {
       BOOST_TEST_MESSAGE("Cannot start remotebackend: " << ex.reason);

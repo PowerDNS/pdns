@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <memory>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -180,12 +181,13 @@ size_t BackendMakerClass::numLauncheable() const
   return d_instances.size();
 }
 
-vector<DNSBackend *> BackendMakerClass::all(bool metadataOnly)
+vector<std::unique_ptr<DNSBackend>> BackendMakerClass::all(bool metadataOnly)
 {
-  vector<DNSBackend *> ret;
-  if(d_instances.empty())
+  if(d_instances.empty()) {
     throw PDNSException("No database backends configured for launch, unable to function");
+  }
 
+  vector<unique_ptr<DNSBackend>> ret;
   ret.reserve(d_instances.size());
 
   std::string current; // to make the exception text more useful
@@ -193,35 +195,23 @@ vector<DNSBackend *> BackendMakerClass::all(bool metadataOnly)
   try {
     for (const auto& instance : d_instances) {
       current = instance.first + instance.second;
-      DNSBackend *made = nullptr;
-
-      if (metadataOnly) {
-        made = d_repository[instance.first]->makeMetadataOnly(instance.second);
-      }
-      else {
-        made = d_repository[instance.first]->make(instance.second);
-      }
-
-      if (!made) {
+      auto* repo = d_repository[instance.first];
+      std::unique_ptr<DNSBackend> made{metadataOnly ? repo->makeMetadataOnly(instance.second) : repo->make(instance.second)};
+      if (made == nullptr) {
         throw PDNSException("Unable to launch backend '" + instance.first + "'");
       }
-
-      ret.push_back(made);
+      ret.push_back(std::move(made));
     }
   }
   catch(const PDNSException &ae) {
-    g_log<<Logger::Error<<"Caught an exception instantiating a backend (" << current << "): "<<ae.reason<<endl;
-    g_log<<Logger::Error<<"Cleaning up"<<endl;
-    for (auto i : ret) {
-      delete i;
-    }
+    g_log << Logger::Error << "Caught an exception instantiating a backend (" << current << "): " << ae.reason << endl;
+    g_log << Logger::Error << "Cleaning up" << endl;
+    ret.clear();
     throw;
   } catch(...) {
     // and cleanup
-    g_log<<Logger::Error<<"Caught an exception instantiating a backend (" << current <<"), cleaning up"<<endl;
-    for (auto i : ret) {
-      delete i;
-    }
+    g_log << Logger::Error << "Caught an exception instantiating a backend (" << current << "), cleaning up" << endl;
+    ret.clear();
     throw;
   }
 
