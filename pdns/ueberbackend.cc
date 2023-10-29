@@ -639,8 +639,9 @@ void UeberBackend::addCache(const Question& q, vector<DNSZoneRecord>&& rrs) cons
 
 void UeberBackend::alsoNotifies(const DNSName& domain, set<string>* ips)
 {
-  for (auto& backend : backends)
+  for (auto& backend : backends) {
     backend->alsoNotifies(domain, ips);
+  }
 }
 
 UeberBackend::~UeberBackend()
@@ -757,8 +758,8 @@ bool UeberBackend::get(DNSZoneRecord& rr)
 //
 bool UeberBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
 {
-  for (auto* b : backends) {
-    if (b->setTSIGKey(name, algorithm, content)) {
+  for (auto* backend : backends) {
+    if (backend->setTSIGKey(name, algorithm, content)) {
       return true;
     }
   }
@@ -770,8 +771,8 @@ bool UeberBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& c
   algorithm.clear();
   content.clear();
 
-  for (auto* b : backends) {
-    if (b->getTSIGKey(name, algorithm, content)) {
+  for (auto* backend : backends) {
+    if (backend->getTSIGKey(name, algorithm, content)) {
       break;
     }
   }
@@ -782,8 +783,8 @@ bool UeberBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
 {
   keys.clear();
 
-  for (auto* b : backends) {
-    if (b->getTSIGKeys(keys)) {
+  for (auto* backend : backends) {
+    if (backend->getTSIGKeys(keys)) {
       return true;
     }
   }
@@ -792,8 +793,8 @@ bool UeberBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
 
 bool UeberBackend::deleteTSIGKey(const DNSName& name)
 {
-  for (auto* b : backends) {
-    if (b->deleteTSIGKey(name)) {
+  for (auto* backend : backends) {
+    if (backend->deleteTSIGKey(name)) {
       return true;
     }
   }
