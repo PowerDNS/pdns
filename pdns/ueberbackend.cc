@@ -288,8 +288,8 @@ void UeberBackend::updateZoneCache()
   for (auto& backend : backends) {
     vector<DomainInfo> zones;
     backend->getAllDomains(&zones, false, true);
-    for (auto& di : zones) {
-      zone_indices.emplace_back(std::move(di.zone), (int)di.id); // this cast should not be necessary
+    for (auto& domainInfo : zones) {
+      zone_indices.emplace_back(std::move(domainInfo.zone), (int)domainInfo.id); // this cast should not be necessary
     }
   }
   g_zoneCache.replace(zone_indices);
@@ -297,11 +297,11 @@ void UeberBackend::updateZoneCache()
 
 void UeberBackend::rediscover(string* status)
 {
-  for (auto i = backends.begin(); i != backends.end(); ++i) {
+  for (auto backend = backends.begin(); backend != backends.end(); ++backend) {
     string tmpstr;
-    (*i)->rediscover(&tmpstr);
+    (*backend)->rediscover(&tmpstr);
     if (status != nullptr) {
-      *status += tmpstr + (i != backends.begin() ? "\n" : "");
+      *status += tmpstr + (backend != backends.begin() ? "\n" : "");
     }
   }
 
@@ -607,18 +607,17 @@ bool UeberBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   return false;
 }
 
-bool UeberBackend::superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db)
+bool UeberBackend::superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)
 {
   for (auto* backend : backends) {
-    if (backend->superMasterBackend(ip, domain, nsset, nameserver, account, db)) {
+    if (backend->superMasterBackend(ip, domain, nsset, nameserver, account, dnsBackend)) {
       return true;
     }
   }
   return false;
 }
 
-UeberBackend::UeberBackend(const string& pname) :
-  d_negcached(false), d_cached(false)
+UeberBackend::UeberBackend(const string& pname)
 {
   {
     d_instances.lock()->push_back(this); // report to the static list of ourself
@@ -626,15 +625,13 @@ UeberBackend::UeberBackend(const string& pname) :
 
   d_cache_ttl = ::arg().asNum("query-cache-ttl");
   d_negcache_ttl = ::arg().asNum("negquery-cache-ttl");
-  d_qtype = 0;
-  d_stale = false;
 
   backends = BackendMakers().all(pname == "key-only");
 }
 
-static void del(DNSBackend* d)
+static void del(DNSBackend* backend)
 {
-  delete d;
+  delete backend;
 }
 
 void UeberBackend::cleanup()
@@ -671,17 +668,17 @@ enum UeberBackend::CacheResult UeberBackend::cacheHas(const Question& question, 
   return CacheResult::Hit;
 }
 
-void UeberBackend::addNegCache(const Question& q) const
+void UeberBackend::addNegCache(const Question& question) const
 {
   extern AuthQueryCache QC;
   if (d_negcache_ttl == 0) {
     return;
   }
   // we should also not be storing negative answers if a pipebackend does scopeMask, but we can't pass a negative scopeMask in an empty set!
-  QC.insert(q.qname, q.qtype, vector<DNSZoneRecord>(), d_negcache_ttl, q.zoneId);
+  QC.insert(question.qname, question.qtype, vector<DNSZoneRecord>(), d_negcache_ttl, question.zoneId);
 }
 
-void UeberBackend::addCache(const Question& q, vector<DNSZoneRecord>&& rrs) const
+void UeberBackend::addCache(const Question& question, vector<DNSZoneRecord>&& rrs) const
 {
   extern AuthQueryCache QC;
 
@@ -689,13 +686,13 @@ void UeberBackend::addCache(const Question& q, vector<DNSZoneRecord>&& rrs) cons
     return;
   }
 
-  for (const auto& rr : rrs) {
-    if (rr.scopeMask) {
+  for (const auto& resourceRecord : rrs) {
+    if (resourceRecord.scopeMask != 0) {
       return;
     }
   }
 
-  QC.insert(q.qname, q.qtype, std::move(rrs), d_cache_ttl, q.zoneId);
+  QC.insert(question.qname, question.qtype, std::move(rrs), d_cache_ttl, question.zoneId);
 }
 
 void UeberBackend::alsoNotifies(const DNSName& domain, set<string>* ips)
@@ -776,7 +773,7 @@ void UeberBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bo
   }
 }
 
-bool UeberBackend::get(DNSZoneRecord& rr)
+bool UeberBackend::get(DNSZoneRecord& resourceRecord)
 {
   // cout<<"UeberBackend::get(DNSZoneRecord) called"<<endl;
   if (d_negcached) {
@@ -785,18 +782,18 @@ bool UeberBackend::get(DNSZoneRecord& rr)
 
   if (d_cached) {
     while (d_cachehandleiter != d_answers.end()) {
-      rr = *d_cachehandleiter++;
-      if ((d_qtype == QType::ANY || rr.dr.d_type == d_qtype)) {
+      resourceRecord = *d_cachehandleiter++;
+      if ((d_qtype == QType::ANY || resourceRecord.dr.d_type == d_qtype)) {
         return true;
       }
     }
     return false;
   }
 
-  while (d_handle.get(rr)) {
-    rr.dr.d_place = DNSResourceRecord::ANSWER;
-    d_answers.push_back(rr);
-    if ((d_qtype == QType::ANY || rr.dr.d_type == d_qtype)) {
+  while (d_handle.get(resourceRecord)) {
+    resourceRecord.dr.d_place = DNSResourceRecord::ANSWER;
+    d_answers.push_back(resourceRecord);
+    if ((d_qtype == QType::ANY || resourceRecord.dr.d_type == d_qtype)) {
       return true;
     }
   }
@@ -865,24 +862,24 @@ bool UeberBackend::deleteTSIGKey(const DNSName& name)
 //
 bool UeberBackend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)
 {
-  bool rc = false;
+  bool ret = false;
   for (auto i = backends.begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && i != backends.end(); ++i) {
     if ((*i)->searchRecords(pattern, maxResults - result.size(), result)) {
-      rc = true;
+      ret = true;
     }
   }
-  return rc;
+  return ret;
 }
 
 bool UeberBackend::searchComments(const string& pattern, int maxResults, vector<Comment>& result)
 {
-  bool rc = false;
+  bool ret = false;
   for (auto i = backends.begin(); result.size() < static_cast<vector<Comment>::size_type>(maxResults) && i != backends.end(); ++i) {
     if ((*i)->searchComments(pattern, maxResults - result.size(), result)) {
-      rc = true;
+      ret = true;
     }
   }
-  return rc;
+  return ret;
 }
 
 AtomicCounter UeberBackend::handle::instances(0);
@@ -891,11 +888,6 @@ UeberBackend::handle::handle()
 {
   //  g_log<<Logger::Warning<<"Handle instances: "<<instances<<endl;
   ++instances;
-  parent = nullptr;
-  d_hinterBackend = nullptr;
-  pkt_p = nullptr;
-  i = 0;
-  zoneId = -1;
 }
 
 UeberBackend::handle::~handle()
@@ -903,11 +895,11 @@ UeberBackend::handle::~handle()
   --instances;
 }
 
-bool UeberBackend::handle::get(DNSZoneRecord& r)
+bool UeberBackend::handle::get(DNSZoneRecord& record)
 {
   DLOG(g_log << "Ueber get() was called for a " << qtype << " record" << endl);
   bool isMore = false;
-  while (d_hinterBackend && !(isMore = d_hinterBackend->get(r))) { // this backend out of answers
+  while (d_hinterBackend != nullptr && !(isMore = d_hinterBackend->get(record))) { // this backend out of answers
     if (i < parent->backends.size()) {
       DLOG(g_log << "Backend #" << i << " of " << parent->backends.size()
                  << " out of answers, taking next" << endl);

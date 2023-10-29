@@ -47,7 +47,7 @@ public:
   UeberBackend(const string& pname = "default");
   ~UeberBackend();
 
-  bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db);
+  bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend);
 
   bool superMasterAdd(const AutoPrimary& primary);
   bool autoPrimaryRemove(const struct AutoPrimary& primary);
@@ -61,7 +61,7 @@ public:
   static bool loadmodule(const string& name);
   static bool loadModules(const vector<string>& modules, const string& path);
 
-  static void go(void);
+  static void go();
 
   /** This contains all registered backends. The DynListener modifies this list for us when
       new modules are loaded */
@@ -73,23 +73,23 @@ public:
   class handle
   {
   public:
-    bool get(DNSZoneRecord& dr);
+    bool get(DNSZoneRecord& record);
     handle();
     ~handle();
 
     //! The UeberBackend class where this handle belongs to
-    UeberBackend* parent;
+    UeberBackend* parent{nullptr};
     //! The current real backend, which is answering questions
-    DNSBackend* d_hinterBackend;
+    DNSBackend* d_hinterBackend{nullptr};
 
     //! DNSPacket who asked this question
-    DNSPacket* pkt_p;
+    DNSPacket* pkt_p{nullptr};
     DNSName qname;
 
     //! Index of the current backend within the backends vector
-    unsigned int i;
+    unsigned int i{0};
     QType qtype;
-    int zoneId;
+    int zoneId{-1};
 
   private:
     static AtomicCounter instances;
@@ -101,7 +101,7 @@ public:
   bool getAuth(const DNSName& target, const QType& qtype, SOAData* soaData, bool cachedOk = true);
   /** Load SOA info from backends, ignoring the cache.*/
   bool getSOAUncached(const DNSName& domain, SOAData& soaData);
-  bool get(DNSZoneRecord& r);
+  bool get(DNSZoneRecord& resourceRecord);
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
 
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
@@ -110,7 +110,7 @@ public:
   bool createDomain(const DNSName& domain, DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account);
 
   bool doesDNSSEC();
-  bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& id);
+  bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& keyID);
   bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys);
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta);
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta);
@@ -118,14 +118,14 @@ public:
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta);
   bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::string& meta);
 
-  bool removeDomainKey(const DNSName& name, unsigned int id);
-  bool activateDomainKey(const DNSName& name, unsigned int id);
-  bool deactivateDomainKey(const DNSName& name, unsigned int id);
-  bool publishDomainKey(const DNSName& name, unsigned int id);
-  bool unpublishDomainKey(const DNSName& name, unsigned int id);
+  bool removeDomainKey(const DNSName& name, unsigned int keyID);
+  bool activateDomainKey(const DNSName& name, unsigned int keyID);
+  bool deactivateDomainKey(const DNSName& name, unsigned int keyID);
+  bool publishDomainKey(const DNSName& name, unsigned int keyID);
+  bool unpublishDomainKey(const DNSName& name, unsigned int keyID);
 
   void alsoNotifies(const DNSName& domain, set<string>* ips);
-  void rediscover(string* status = 0);
+  void rediscover(string* status = nullptr);
   void reload();
 
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content);
@@ -156,13 +156,13 @@ private:
   } d_question;
 
   unsigned int d_cache_ttl, d_negcache_ttl;
-  uint16_t d_qtype;
+  uint16_t d_qtype{0};
 
-  bool d_negcached;
-  bool d_cached;
+  bool d_negcached{false};
+  bool d_cached{false};
   static AtomicCounter* s_backendQueries;
   static bool d_go;
-  bool d_stale;
+  bool d_stale{false};
   static bool s_doANYLookupsOnly;
 
   enum CacheResult
@@ -173,8 +173,8 @@ private:
   };
 
   CacheResult cacheHas(const Question& question, vector<DNSZoneRecord>& resourceRecords) const;
-  void addNegCache(const Question& q) const;
-  void addCache(const Question& q, vector<DNSZoneRecord>&& rrs) const;
+  void addNegCache(const Question& question) const;
+  void addCache(const Question& question, vector<DNSZoneRecord>&& rrs) const;
 
   bool fillSOAFromZoneRecord(DNSName& shorter, int zoneId, SOAData* soaData);
   CacheResult fillSOAFromCache(SOAData* soaData, DNSName& shorter);
