@@ -39,6 +39,8 @@ using boost::context::detail::make_fcontext;
 #else
 #define CET_ENDBR
 #endif
+#else
+#define CET_ENDBR
 #endif
 
 #ifdef PDNS_USE_VALGRIND
