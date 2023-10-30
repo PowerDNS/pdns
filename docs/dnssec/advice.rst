@@ -4,7 +4,7 @@ DNSSEC advice & precautions
 DNSSEC is a major change in the way DNS works. Furthermore, there is a
 bewildering array of settings that can be configured.
 
-It is well possible to configure DNSSEC in such a way that your domain
+It is easy to (mis)configure DNSSEC in such a way that your domain
 will not operate reliably, or even, at all. We advise operators to stick
 to the keying defaults of ``pdnsutil secure-zone``.
 
