@@ -384,9 +384,8 @@ def get_cxx_compiler():
     return f'clang++-{clang_version}' if compiler == 'clang' else 'g++'
 
 def get_optimizations():
-    if os.getenv('OPTIMIZATIONS', 'yes') == 'yes':
-        return "-O1"
-    return "-O0"
+    optimizations = os.getenv('OPTIMIZATIONS', 'yes')
+    return '-O1' if optimizations == 'yes' else '-O0'
 
 def get_cflags():
     return " ".join([
