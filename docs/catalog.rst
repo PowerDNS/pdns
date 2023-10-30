@@ -104,7 +104,7 @@ In the example below ``example.com`` is the member and ``catalog.example`` is th
 
 Setting catalog values is supported in the :doc:`API <http-api/zone>`, by setting the ``catalog`` property in the zone properties.
 
-Each member zone may have one or more additional properties as defined in the draft.
+Each member zone may have one or more additional properties as defined in the RFC.
 PowerDNS currently supports the following properties:
 
 - coo - A single DNSName
