@@ -214,6 +214,9 @@ def is_coverage_enabled():
             return False
     return os.getenv('COVERAGE') == 'yes'
 
+def get_coverage():
+    return '--enable-coverage=clang' if is_coverage_enabled() else ''
+
 @task
 def install_coverage_deps(c):
     if is_coverage_enabled():
@@ -375,13 +378,26 @@ def get_sanitizers():
         sanitizers = ' '.join(sanitizers)
     return sanitizers
 
-def get_c_compiler():
+def get_unit_tests(auth=False):
+    if os.getenv('UNIT_TESTS') != 'yes':
+        return ''
+    return '--enable-unit-tests --enable-backend-unit-tests' if auth else '--enable-unit-tests'
+
+def get_build_concurrency(default=8):
+    return os.getenv('CONCURRENCY', default)
+
+def get_fuzzing_targets():
+    return '--enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
+
+def is_compiler_clang():
     compiler = os.getenv('COMPILER', 'clang')
-    return f'clang-{clang_version}' if compiler == 'clang' else 'gcc'
+    return compiler == 'clang'
+
+def get_c_compiler():
+    return f'clang-{clang_version}' if is_compiler_clang() else 'gcc'
 
 def get_cxx_compiler():
-    compiler = os.getenv('COMPILER', 'clang')
-    return f'clang++-{clang_version}' if compiler == 'clang' else 'g++'
+    return f'clang++-{clang_version}' if is_compiler_clang() else 'g++'
 
 def get_optimizations():
     optimizations = os.getenv('OPTIMIZATIONS', 'yes')
@@ -394,7 +410,7 @@ def get_cflags():
         "-Werror=shadow",
         "-Wformat=2",
         "-Werror=format-security",
-        "-Werror=string-plus-int" if os.getenv('COMPILER', 'clang') == 'clang' else '',
+        "-Werror=string-plus-int" if is_compiler_clang() else '',
     ])
 
 
@@ -405,35 +421,29 @@ def get_cxxflags():
     ])
 
 
-def get_base_configure_cmd():
+def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', enable_systemd=True, enable_sodium=True):
+    cflags = " ".join([get_cflags(), additional_c_flags])
+    cxxflags = " ".join([get_cxxflags(), additional_cxx_flags])
     return " ".join([
-        f'CFLAGS="{get_cflags()}"',
-        f'CXXFLAGS="{get_cxxflags()}"',
+        f'CFLAGS="{cflags}"',
+        f'CXXFLAGS="{cxxflags}"',
         './configure',
         f"CC='{get_c_compiler()}'",
         f"CXX='{get_cxx_compiler()}'",
         "--enable-option-checking=fatal",
-        "--enable-systemd",
-        "--with-libsodium",
+        "--enable-systemd" if enable_systemd else '',
+        "--with-libsodium" if enable_sodium else '',
         "--enable-fortify-source=auto",
         "--enable-auto-var-init=pattern",
+        get_coverage(),
+        get_sanitizers()
     ])
 
 
 @task
 def ci_auth_configure(c):
-    sanitizers = get_sanitizers()
-
-    unittests = os.getenv('UNIT_TESTS')
-    if unittests == 'yes':
-        unittests = '--enable-unit-tests --enable-backend-unit-tests'
-    else:
-        unittests = ''
-
-    fuzz_targets = os.getenv('FUZZING_TARGETS')
-    fuzz_targets = '--enable-fuzz-targets' if fuzz_targets == 'yes' else ''
-    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
-
+    unittests = get_unit_tests(True)
+    fuzz_targets = get_fuzzing_targets()
     modules = " ".join([
         "bind",
         "geoip",
@@ -461,10 +471,8 @@ def ci_auth_configure(c):
         "--with-libdecaf" if os.getenv('DECAF_SUPPORT', 'no') == 'yes' else '',
         "--prefix=/opt/pdns-auth",
         "--enable-ixfrdist",
-        sanitizers,
         unittests,
-        fuzz_targets,
-        coverage,
+        fuzz_targets
     ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
@@ -474,11 +482,7 @@ def ci_auth_configure(c):
 
 @task
 def ci_rec_configure(c):
-    sanitizers = get_sanitizers()
-
-    unittests = os.getenv('UNIT_TESTS')
-    unittests = '--enable-unit-tests' if unittests == 'yes' else ''
-    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
+    unittests = get_unit_tests()
 
     configure_cmd = " ".join([
         get_base_configure_cmd(),
@@ -488,9 +492,7 @@ def ci_rec_configure(c):
         "--with-libcap",
         "--with-net-snmp",
         "--enable-dns-over-tls",
-        sanitizers,
         unittests,
-        coverage,
     ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
@@ -516,7 +518,7 @@ def ci_dnsdist_configure(c, features):
                       --with-libcap \
                       --with-net-snmp \
                       --with-nghttp2 \
-                      --with-re2 '
+                      --with-re2'
     else:
       features_set = '--disable-dnstap \
                       --disable-dnscrypt \
@@ -531,7 +533,7 @@ def ci_dnsdist_configure(c, features):
                       --without-lmdb \
                       --without-net-snmp \
                       --without-nghttp2 \
-                      --without-re2 '
+                      --without-re2'
       additional_flags = '-DDISABLE_COMPLETION \
                           -DDISABLE_DELAY_PIPE \
                           -DDISABLE_DYNBLOCKS \
@@ -563,59 +565,49 @@ def ci_dnsdist_configure(c, features):
                           -DDISABLE_HASHED_CREDENTIALS \
                           -DDISABLE_FALSE_SHARING_PADDING \
                           -DDISABLE_NPN'
-    unittests = ' --enable-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
-    fuzztargets = '--enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
-    sanitizers = get_sanitizers()
-    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
-    cflags = get_cflags()
-    cxxflags = " ".join([get_cxxflags(), additional_flags])
-    tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if os.getenv('COMPILER', 'clang') == 'clang' else ''
-    res = c.run(f'''CFLAGS="%s" \
-                   CXXFLAGS="%s" \
-                   %s \
-                   ./configure \
-                     CC='{get_c_compiler()}' \
-                     CXX='{get_cxx_compiler()}' \
-                     --enable-option-checking=fatal \
-                     --enable-fortify-source=auto \
-                     --enable-auto-var-init=pattern \
-                     --enable-lto=thin \
-                     --prefix=/opt/dnsdist %s %s %s %s %s''' % (cflags, cxxflags, tools, features_set, sanitizers, unittests, fuzztargets, coverage), warn=True)
+    unittests = get_unit_tests()
+    fuzztargets = get_fuzzing_targets()
+    tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
+    configure_cmd = " ".join([
+        tools,
+        get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, enable_systemd=False, enable_sodium=False),
+        features_set,
+        unittests,
+        fuzztargets,
+        ' --enable-lto=thin',
+        '--prefix=/opt/dnsdist'
+    ])
+
+    res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
 
 @task
 def ci_auth_make(c):
-    concurrency = os.getenv('CONCURRENCY', 8)
-    c.run(f'make -j{concurrency} -k V=1')
+    c.run(f'make -j{get_build_concurrency()} -k V=1')
 
 @task
 def ci_auth_make_bear(c):
-    concurrency = os.getenv('CONCURRENCY', 8)
-    c.run(f'bear --append -- make -j{concurrency} -k V=1')
+    c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
 
 @task
 def ci_rec_make(c):
-    concurrency = os.getenv('CONCURRENCY', 8)
-    c.run(f'make -j{concurrency} -k V=1')
+    c.run(f'make -j{get_build_concurrency()} -k V=1')
 
 @task
 def ci_rec_make_bear(c):
-    concurrency = os.getenv('CONCURRENCY', 8)
     # Assumed to be running under ./pdns/recursordist/
-    c.run(f'bear --append -- make -j{concurrency} -k V=1')
+    c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
 
 @task
 def ci_dnsdist_make(c):
-    concurrency = os.getenv('CONCURRENCY', 4)
-    c.run(f'make -j{concurrency} -k V=1')
+    c.run(f'make -j{get_build_concurrency(4)} -k V=1')
 
 @task
 def ci_dnsdist_make_bear(c):
-    concurrency = os.getenv('CONCURRENCY', 4)
     # Assumed to be running under ./pdns/dnsdistdist/
-    c.run(f'bear --append -- make -j{concurrency} -k V=1')
+    c.run(f'bear --append -- make -j{get_build_concurrency(4)} -k V=1')
 
 @task
 def ci_auth_install_remotebackend_test_deps(c):
