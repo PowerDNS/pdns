@@ -380,9 +380,8 @@ def get_c_compiler():
     return f'clang-{clang_version}' if compiler == 'clang' else 'gcc'
 
 def get_cxx_compiler():
-    if os.getenv('COMPILER', 'clang') == 'clang':
-        return f'clang++-{clang_version}'
-    return 'g++'
+    compiler = os.getenv('COMPILER', 'clang')
+    return f'clang++-{clang_version}' if compiler == 'clang' else 'g++'
 
 def get_optimizations():
     if os.getenv('OPTIMIZATIONS', 'yes') == 'yes':
