@@ -58,9 +58,9 @@ public:
   };
 
   using cont_t = multi_index_container<value_t,
-                                indexed_by<
-                                  ordered_unique<tag<T>, member<value_t, T, &value_t::key>>,
-                                  ordered_non_unique<tag<time_t>, member<value_t, time_t, &value_t::last>>>>;
+                                       indexed_by<
+                                         ordered_unique<tag<T>, member<value_t, T, &value_t::key>>,
+                                         ordered_non_unique<tag<time_t>, member<value_t, time_t, &value_t::last>>>>;
 
   [[nodiscard]] cont_t getMapCopy() const
   {
@@ -260,9 +260,9 @@ public:
     mutable unsigned int count;
   };
   using cont_t = multi_index_container<entry_t,
-                                indexed_by<
-                                  ordered_unique<tag<Thing>, member<entry_t, Thing, &entry_t::thing>>,
-                                  ordered_non_unique<tag<time_t>, member<entry_t, time_t, &entry_t::ttd>>>>;
+                                       indexed_by<
+                                         ordered_unique<tag<Thing>, member<entry_t, Thing, &entry_t::thing>>,
+                                         ordered_non_unique<tag<time_t>, member<entry_t, time_t, &entry_t::ttd>>>>;
 
   bool shouldThrottle(time_t now, const Thing& arg)
   {
@@ -1065,7 +1065,9 @@ bool SyncRes::isForwardOrAuth(const DNSName& qname)
 const char* isoDateTimeMillis(const struct timeval& tval, timebuf_t& buf)
 {
   const std::string s_timestampFormat = "%Y-%m-%dT%T";
-  struct tm tmval{};
+  struct tm tmval
+  {
+  };
   size_t len = strftime(buf.data(), buf.size(), s_timestampFormat.c_str(), localtime_r(&tval.tv_sec, &tmval));
   if (len == 0) {
     int ret = snprintf(buf.data(), buf.size(), "%lld", static_cast<long long>(tval.tv_sec));
@@ -1085,7 +1087,9 @@ const char* isoDateTimeMillis(const struct timeval& tval, timebuf_t& buf)
 static const char* timestamp(time_t arg, timebuf_t& buf)
 {
   const std::string s_timestampFormat = "%Y-%m-%dT%T";
-  struct tm tmval{};
+  struct tm tmval
+  {
+  };
   size_t len = strftime(buf.data(), buf.size(), s_timestampFormat.c_str(), localtime_r(&arg, &tmval));
   if (len == 0) {
     int ret = snprintf(buf.data(), buf.size(), "%lld", static_cast<long long>(arg));
@@ -2100,7 +2104,7 @@ struct speedOrderCA
 
 /** This function explicitly goes out for A or AAAA addresses
  */
-vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, bool cacheOnly, unsigned int& addressQueriesForNS) // NOLINT(readability-function-cognitive-complexity)
+vector<ComboAddress> SyncRes::getAddrs(const DNSName& qname, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, bool cacheOnly, unsigned int& addressQueriesForNS)
 {
   typedef vector<DNSRecord> res_t;
   typedef vector<ComboAddress> ret_t;
@@ -2813,7 +2817,7 @@ void SyncRes::computeNegCacheValidationStatus(const NegCache::NegCacheEntry& neg
   }
 }
 
-bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context) // NOLINT(readability-function-cognitive-complexity)
+bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context)
 {
   bool giveNegative = false;
 
@@ -3641,7 +3645,7 @@ void SyncRes::initZoneCutsFromTA(const DNSName& from, const string& prefix)
   } while (zone.chopOff());
 }
 
-vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& dsMap, bool onlyTA, unsigned int depth, const string& prefix, bool bogusOnNXD, bool* foundCut) // NOLINT(readability-function-cognitive-complexity)
+vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& dsMap, bool onlyTA, unsigned int depth, const string& prefix, bool bogusOnNXD, bool* foundCut)
 {
   vState result = getTA(zone, dsMap, prefix);
 
@@ -4758,7 +4762,7 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& negEntry
   return getDenial(csp, negEntry.d_name, negEntry.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE, LogObject(prefix));
 }
 
-bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth) // NOLINT(readability-function-cognitive-complexity)
+bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth)
 {
   bool done = false;
   DNSName dnameTarget;
@@ -5592,7 +5596,6 @@ bool SyncRes::doDoTtoAuth(const DNSName& nameServer)
  *  -1 in case of no results
  *  rcode otherwise
  */
- // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, const DNSName& qname, const QType qtype,
                          vector<DNSRecord>& ret,
                          unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, Context& context, StopAtDelegation* stopAtDelegation,
@@ -5910,7 +5913,9 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
 {
   auto log = slog->withValues("qname", Logging::Loggable(qname), "qtype", Logging::Loggable(qtype));
 
-  struct timeval now{};
+  struct timeval now
+  {
+  };
   gettimeofday(&now, nullptr);
 
   SyncRes resolver(now);

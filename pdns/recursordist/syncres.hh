@@ -86,7 +86,7 @@ public:
     Log,
     Store
   };
-  using asyncresolve_t = std::function<LWResult::Result (const ComboAddress &, const DNSName &, int, bool, bool, int, struct timeval *, boost::optional<Netmask> &, boost::optional<const ResolveContext &>, LWResult *, bool *)>;
+  using asyncresolve_t = std::function<LWResult::Result(const ComboAddress&, const DNSName&, int, bool, bool, int, struct timeval*, boost::optional<Netmask>&, boost::optional<const ResolveContext&>, LWResult*, bool*)>;
 
   enum class HardenNXD
   {
@@ -909,7 +909,7 @@ extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
 extern bool g_lowercaseOutgoing;
 
 std::string reloadZoneConfiguration(bool yaml);
-using pipefunc_t = std::function<void *()>;
+using pipefunc_t = std::function<void*()>;
 void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& packet, const pipefunc_t& func);
 
