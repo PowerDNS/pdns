@@ -59,7 +59,7 @@ public:
   RemoteLoader();
 };
 
-DNSBackend* be;
+std::unique_ptr<DNSBackend> backendUnderTest;
 
 #ifdef REMOTEBACKEND_ZEROMQ
 #include <boost/test/unit_test.hpp>
@@ -68,7 +68,7 @@ struct RemotebackendSetup
 {
   RemotebackendSetup()
   {
-    be = nullptr;
+    backendUnderTest = nullptr;
     try {
       // setup minimum arguments
       ::arg().set("module-dir") = "./.libs";
@@ -77,7 +77,7 @@ struct RemotebackendSetup
       // then get us a instance of it
       ::arg().set("remote-connection-string") = "zeromq:endpoint=ipc:///tmp/remotebackend.0";
       ::arg().set("remote-dnssec") = "yes";
-      be = BackendMakers().all()[0].get();
+      backendUnderTest = std::move(BackendMakers().all()[0]);
       // load few record types to help out
       SOARecordContent::report();
       NSRecordContent::report();
