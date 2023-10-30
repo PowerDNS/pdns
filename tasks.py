@@ -376,9 +376,8 @@ def get_sanitizers():
     return sanitizers
 
 def get_c_compiler():
-    if os.getenv('COMPILER', 'clang') == 'clang':
-        return f'clang-{clang_version}'
-    return 'gcc'
+    compiler = os.getenv('COMPILER', 'clang')
+    return f'clang-{clang_version}' if compiler == 'clang' else 'gcc'
 
 def get_cxx_compiler():
     if os.getenv('COMPILER', 'clang') == 'clang':
