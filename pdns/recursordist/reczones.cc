@@ -62,16 +62,16 @@ bool primeHints(time_t now)
   return ret;
 }
 
-static void convertServersForAD(const std::string& zone, const std::string& input, SyncRes::AuthDomain& ad, const char* sepa, Logr::log_t log, bool verbose = true)
+static void convertServersForAD(const std::string& zone, const std::string& input, SyncRes::AuthDomain& authDomain, const char* sepa, Logr::log_t log, bool verbose = true)
 {
   vector<string> servers;
   stringtok(servers, input, sepa);
-  ad.d_servers.clear();
+  authDomain.d_servers.clear();
 
   vector<string> addresses;
-  for (auto server = servers.begin(); server != servers.end(); ++server) {
-    ComboAddress addr = parseIPAndPort(*server, 53);
-    ad.d_servers.push_back(addr);
+  for (auto& server : servers) {
+    ComboAddress addr = parseIPAndPort(server, 53);
+    authDomain.d_servers.push_back(addr);
     if (verbose) {
       addresses.push_back(addr.toStringWithPort());
     }
@@ -79,24 +79,24 @@ static void convertServersForAD(const std::string& zone, const std::string& inpu
   if (verbose) {
     if (!g_slogStructured) {
       g_log << Logger::Info << "Redirecting queries for zone '" << zone << "' ";
-      if (ad.d_rdForward) {
+      if (authDomain.d_rdForward) {
         g_log << "with recursion ";
       }
       g_log << "to: ";
       bool first = true;
-      for (const auto& a : addresses) {
+      for (const auto& address : addresses) {
         if (!first) {
           g_log << ", ";
         }
         else {
           first = false;
         }
-        g_log << a;
+        g_log << address;
       }
       g_log << endl;
     }
     else {
-      log->info(Logr::Info, "Redirecting queries", "zone", Logging::Loggable(zone), "recursion", Logging::Loggable(ad.d_rdForward), "addresses", Logging::IterLoggable(addresses.begin(), addresses.end()));
+      log->info(Logr::Info, "Redirecting queries", "zone", Logging::Loggable(zone), "recursion", Logging::Loggable(authDomain.d_rdForward), "addresses", Logging::IterLoggable(addresses.begin(), addresses.end()));
     }
   }
 }
@@ -104,7 +104,7 @@ static void convertServersForAD(const std::string& zone, const std::string& inpu
 static void* pleaseUseNewSDomainsMap(std::shared_ptr<SyncRes::domainmap_t> newmap)
 {
   SyncRes::setDomainMap(std::move(newmap));
-  return 0;
+  return nullptr;
 }
 
 string reloadZoneConfiguration(bool yaml)

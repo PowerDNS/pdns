@@ -451,7 +451,7 @@ BOOST_AUTO_TEST_CASE(test_Overlay)
 
       BOOST_CHECK_EQUAL(record.d_name, target);
       BOOST_CHECK_EQUAL(record.d_class, QClass::IN);
-      BOOST_CHECK_EQUAL(record.d_ttl, 7200);
+      BOOST_CHECK_EQUAL(record.d_ttl, 7200U);
       BOOST_CHECK_EQUAL(record.d_place, 1U);
       BOOST_CHECK_GE(record.d_contentOffset, lastOffset);
       lastOffset = record.d_contentOffset + record.d_contentLength;

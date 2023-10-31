@@ -2354,7 +2354,7 @@ private:
     0, 0
   };
   struct timeval period;
-  const string name;
+  string name;
 };
 
 static void houseKeepingWork(Logr::log_t log)
