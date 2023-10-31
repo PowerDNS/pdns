@@ -200,7 +200,10 @@ static void possiblyConvertACLFile(const string& includeDir, const string& apiDi
   if (rename(tmpfilename.c_str(), yamlfilename.c_str()) != 0) {
     int err = errno;
     log->error(Logr::Error, err, "Rename failed", "file", Logging::Loggable(tmpfilename), "to", Logging::Loggable(yamlfilename));
-    rename((path + ".converted").c_str(), path.c_str());
+    if (rename((path + ".converted").c_str(), path.c_str()) != 0) {
+      err = errno;
+      log->error(Logr::Error, err, "Rename failed", "file", Logging::Loggable(path + ".converted"), "to", Logging::Loggable(path));
+    }
     throw runtime_error("YAML Conversion");
   }
   log->info(Logr::Notice, "Converted to YAML", "file", Logging::Loggable(path), "to", Logging::Loggable(yamlfilename));
