@@ -254,7 +254,7 @@ void RecursorPacketCache::insertResponsePacket(unsigned int tag, uint32_t qhash,
 void RecursorPacketCache::doPruneTo(time_t now, size_t maxSize)
 {
   size_t cacheSize = size();
-  pruneMutexCollectionsVector<SequencedTag>(now, *this, d_maps, maxSize, cacheSize);
+  pruneMutexCollectionsVector<SequencedTag>(now, d_maps, maxSize, cacheSize);
 }
 
 uint64_t RecursorPacketCache::doDump(int file)
