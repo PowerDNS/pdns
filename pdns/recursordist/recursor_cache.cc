@@ -153,7 +153,7 @@ time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content,
   time_t ttd = entry->d_ttd;
   if (ttd <= now) {
     // Expired, don't bother returning contents. Callers *MUST* check return value of get(), and only look at the entry
-    // if it returnded > 0
+    // if it returned > 0
     return ttd;
   }
   origTTL = entry->d_orig_ttl;
