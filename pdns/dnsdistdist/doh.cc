@@ -812,6 +812,10 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
 
       /* this moves du->ids, careful! */
       auto cpq = std::make_unique<DoHCrossProtocolQuery>(std::move(unit), false);
+      if (!cpq) {
+        // make linters happy
+        return;
+      }
       cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
       if (downstream->passCrossProtocolQuery(std::move(cpq))) {
