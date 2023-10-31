@@ -99,7 +99,7 @@ class ixfrdistStats {
     };
 
     std::map<DNSName, perDomainStat> domainStats;
-    std::array<std::atomic<uint64_t>, 16> notimpStats;
+    std::array<std::atomic<uint64_t>, 16> notimpStats{};
     programStats progStats;
 
     std::map<DNSName, perDomainStat>::iterator getRegisteredDomain(const DNSName& d) {
