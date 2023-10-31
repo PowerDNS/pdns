@@ -22,7 +22,7 @@
 #pragma once
 
 #include "config.h"
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 #include <nghttp2/nghttp2.h>
 
 #include "dnsdist-tcp-upstream.hh"
@@ -156,4 +156,4 @@ public:
   static void addCustomDynamicHeader(std::vector<nghttp2_nv>& headers, const std::string& name, const std::string_view& value);
 };
 
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */

@@ -185,8 +185,8 @@ dnsdist_SOURCES = \
 	dnsdist-lua.cc dnsdist-lua.hh \
 	dnsdist-mac-address.cc dnsdist-mac-address.hh \
 	dnsdist-metrics.cc dnsdist-metrics.hh \
-	dnsdist-nghttp2-in.cc dnsdist-nghttp2-in.hh \
-	dnsdist-nghttp2.cc dnsdist-nghttp2.hh \
+	dnsdist-nghttp2-in.hh \
+	dnsdist-nghttp2.hh \
 	dnsdist-prometheus.hh \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
@@ -284,8 +284,8 @@ testrunner_SOURCES = \
 	dnsdist-lua-vars.cc \
 	dnsdist-mac-address.cc dnsdist-mac-address.hh \
 	dnsdist-metrics.cc dnsdist-metrics.hh \
-	dnsdist-nghttp2-in.cc dnsdist-nghttp2-in.hh \
-	dnsdist-nghttp2.cc dnsdist-nghttp2.hh \
+	dnsdist-nghttp2-in.hh \
+	dnsdist-nghttp2.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-random.cc dnsdist-random.hh \
@@ -339,8 +339,6 @@ testrunner_SOURCES = \
 	test-dnsdistkvs_cc.cc \
 	test-dnsdistlbpolicies_cc.cc \
 	test-dnsdistluanetwork.cc \
-	test-dnsdistnghttp2-in_cc.cc \
-	test-dnsdistnghttp2_cc.cc \
 	test-dnsdistnghttp2_common.hh \
 	test-dnsdistpacketcache_cc.cc \
 	test-dnsdistrings_cc.cc \
@@ -435,6 +433,17 @@ dnsdist_SOURCES += doh.cc
 dnsdist_LDADD += $(LIBH2OEVLOOP_LIBS)
 endif
 
+if HAVE_NGHTTP2
+dnsdist_SOURCES += dnsdist-nghttp2-in.cc
+dnsdist_SOURCES += dnsdist-nghttp2.cc
+testrunner_SOURCES += dnsdist-nghttp2-in.cc
+testrunner_SOURCES += dnsdist-nghttp2.cc
+testrunner_SOURCES += test-dnsdistnghttp2-in_cc.cc \
+	test-dnsdistnghttp2_cc.cc
+dnsdist_LDADD += $(NGHTTP2_LDFLAGS) $(NGHTTP2_LIBS)
+testrunner_LDADD += $(NGHTTP2_LDFLAGS) $(NGHTTP2_LIBS)
+endif
+
 endif
 
 if HAVE_DNS_OVER_QUIC
@@ -443,11 +452,6 @@ if HAVE_QUICHE
 AM_CPPFLAGS += $(QUICHE_CFLAGS)
 dnsdist_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
 endif
-endif
-
-if HAVE_NGHTTP2
-dnsdist_LDADD += $(NGHTTP2_LDFLAGS) $(NGHTTP2_LIBS)
-testrunner_LDADD += $(NGHTTP2_LDFLAGS) $(NGHTTP2_LIBS)
 endif
 
 if !HAVE_LUA_HPP

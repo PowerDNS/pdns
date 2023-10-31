@@ -22,9 +22,9 @@
 
 #include "config.h"
 
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 #include <nghttp2/nghttp2.h>
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-nghttp2-in.hh"
@@ -45,7 +45,7 @@ std::atomic<uint64_t> g_dohStatesDumpRequested{0};
 std::unique_ptr<DoHClientCollection> g_dohClientThreads{nullptr};
 std::optional<uint16_t> g_outgoingDoHWorkerThreads{std::nullopt};
 
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 class DoHConnectionToBackend : public ConnectionToBackend
 {
 public:
@@ -932,7 +932,7 @@ static bool select_next_proto_callback(unsigned char** out, unsigned char* outle
   return true;
 }
 
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
 struct DoHClientCollection::DoHWorkerThread
 {
@@ -984,7 +984,7 @@ bool DoHClientCollection::passCrossProtocolQueryToThread(std::unique_ptr<CrossPr
 
 void DoHClientCollection::addThread()
 {
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   try {
     auto [sender, receiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, g_tcpInternalPipeBufferSize);
 
@@ -1014,14 +1014,14 @@ void DoHClientCollection::addThread()
     errlog("Error creating the DoH channel: %s", e.what());
     return;
   }
-#else /* HAVE_NGHTTP2 */
+#else /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
   throw std::runtime_error("DoHClientCollection::addThread() called but nghttp2 support is not available");
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
 bool initDoHWorkers()
 {
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   if (!g_outgoingDoHWorkerThreads) {
     /* Unless the value has been set to 0 explicitly, always start at least one outgoing DoH worker thread, in case a DoH backend
        is added at a later time. */
@@ -1037,7 +1037,7 @@ bool initDoHWorkers()
   return true;
 #else
   return false;
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
 bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
@@ -1045,20 +1045,20 @@ bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
   if (ctx == nullptr) {
     return false;
   }
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   /* we want to set the ALPN to h2, if only to mitigate the ALPACA attack */
   const std::vector<std::vector<uint8_t>> h2Alpns = {{'h', '2'}};
   ctx->setALPNProtos(h2Alpns);
   ctx->setNextProtocolSelectCallback(select_next_proto_callback);
   return true;
-#else /* HAVE_NGHTTP2 */
+#else /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
   return false;
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
 bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query, bool healthCheck)
 {
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   struct timeval now
   {
     .tv_sec = 0, .tv_usec = 0
@@ -1077,24 +1077,24 @@ bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDM
   }
 
   return true;
-#else /* HAVE_NGHTTP2 */
+#else /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
   return false;
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
 size_t clearH2Connections()
 {
   size_t cleared = 0;
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   cleared = t_downstreamDoHConnectionsManager.clear();
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
   return cleared;
 }
 
 size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now)
 {
   size_t got = 0;
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   auto expiredReadConns = mplexer.getTimeouts(now, false);
   for (const auto& cbData : expiredReadConns) {
     if (cbData.second.type() == typeid(std::shared_ptr<DoHConnectionToBackend>)) {
@@ -1114,27 +1114,27 @@ size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now)
       ++got;
     }
   }
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
   return got;
 }
 
 void setDoHDownstreamCleanupInterval(uint16_t max)
 {
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setCleanupInterval(max);
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
 void setDoHDownstreamMaxIdleTime(uint16_t max)
 {
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setMaxIdleTime(max);
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
 void setDoHDownstreamMaxIdleConnectionsPerBackend(size_t max)
 {
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setMaxIdleConnectionsPerDownstream(max);
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }

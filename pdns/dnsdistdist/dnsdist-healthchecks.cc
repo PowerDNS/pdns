@@ -390,6 +390,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
 
       mplexer->addReadFD(data->d_udpSocket.getHandle(), &healthCheckUDPCallback, data, &data->d_ttd);
     }
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
     else if (downstream->isDoH()) {
       InternalQuery query(std::move(packet), InternalQueryState());
       query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
@@ -398,6 +399,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
         data->d_ds->submitHealthCheckResult(data->d_initial, false);
       }
     }
+#endif
     else {
       data->d_tcpHandler = std::make_unique<TCPIOHandler>(downstream->d_config.d_tlsSubjectName, downstream->d_config.d_tlsSubjectIsAddr, sock.releaseHandle(), timeval{downstream->d_config.checkTimeout, 0}, downstream->d_tlsCtx);
       data->d_ioState = std::make_unique<IOStateHandler>(*mplexer, data->d_tcpHandler->getDescriptor());
@@ -464,7 +466,9 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
       continue;
     }
 
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
     handleH2Timeouts(mplexer, now);
+#endif
 
     auto timeouts = mplexer.getTimeouts(now);
     for (const auto& timeout : timeouts) {
