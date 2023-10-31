@@ -4713,7 +4713,7 @@ dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& ne, cons
   return getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE, LogObject(prefix));
 }
 
-bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth)
+bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth) // NOLINT(readability-function-cognitive-complexity)
 {
   bool done = false;
   DNSName dnameTarget, dnameOwner;
@@ -5015,6 +5015,11 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_ttd = d_now.tv_sec + lowestTTL;
         ne.d_orig_ttl = lowestTTL;
         if (qtype.getCode()) { // prevents us from NXDOMAIN'ing a whole domain
+          // doCNAMECacheCheck() checks record cache and does not look into negcache. That means that an old record might be found if
+          // serve-stale is active. Avoid that by explicitly zapping that CNAME record.
+          if (qtype == QType::CNAME && MemRecursorCache::s_maxServedStaleExtensions > 0) {
+            g_recCache->doWipeCache(qname, false, qtype);
+          }
           g_negCache->add(ne);
         }
 
