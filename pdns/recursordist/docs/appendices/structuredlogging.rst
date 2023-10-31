@@ -37,7 +37,7 @@ The following keys are always present:
 |             |                  |                                      |entry together with the value of       |
 |             |                  |                                      |``msg``.                               |
 +-------------+------------------+--------------------------------------+---------------------------------------+
-| ``level``   |``number``        | ``"0"``                              |The detail level of the log entry, do  |
+| ``level``   |``number``        |``"0"``                               |The detail level of the log entry, do  |
 |             |                  |                                      |not confuse with                       |
 |             |                  |                                      |:ref:`setting-loglevel`. Not actively  |
 |             |                  |                                      |used currently.                        |
@@ -49,25 +49,24 @@ The following keys are always present:
 |             |                  |                                      |produced if its ``prio`` is equal or   |
 |             |                  |                                      |lower than :ref:`setting-loglevel`.    |
 +-------------+------------------+--------------------------------------+---------------------------------------+
-| ``tid``     |``number``        | ``"2"``                              |The Posix worker thread id that        |
+| ``tid``     |``number``        |``"2"``                               |The Posix worker thread id that        |
 |             |                  |                                      |produced the log entry. If not produced|
 |             |                  |                                      |by a worker thread, the value is zero. |
 +-------------+------------------+--------------------------------------+---------------------------------------+
-| ``ts``      |``number``        | ``"1697614303.039"``                 |Number of seconds since the Unix epoch,|
+| ``ts``      |``number``        |``"1697614303.039"``                  |Number of seconds since the Unix epoch,|
 |             |                  |                                      |including fractional part.             |
 +-------------+------------------+--------------------------------------+---------------------------------------+
 
 A log entry can also have zero or more additional key-value pairs. Common keys are:
 
 +-------------+---------------------+--------------------------------------+---------------------------------------+
-| **Key**     | **Type**            |**Example**                           | **Remarks**>                          |
+| **Key**     | **Type**            |**Example**                           | **Remarks**                           |
 +-------------+---------------------+--------------------------------------+---------------------------------------+
-|``error``    |``string``           | ``"No such file or directory"``      |An error cause.                        |
+|``error``    |``string``           |``"No such file or directory"``       |An error cause.                        |
 +-------------+---------------------+--------------------------------------+---------------------------------------+
-|``address``  |``ip address:port``  | ``"[::]:5301"``                      |An IP: port combination.               |
+|``address``  |``ip address:port``  |``"[::]:5301"``                       |An IP: port combination.               |
 +-------------+---------------------+--------------------------------------+---------------------------------------+
-|``addresses``|``list of subnets``  |``"127.0.0.0/8                        |A list of subnets, space separated.    |
-|             |                     |::ffff:0:0/96"``                      |                                       |
+|``addresses``|``list of subnets``  |``"127.0.0.0/8 ::ffff:0:0/96"``       |A list of subnets, space separated.    |
 +-------------+---------------------+--------------------------------------+---------------------------------------+
 |``path``     |``filesystem path``  |``"tmp/api-dir/apizones"``            |                                       |
 +-------------+---------------------+--------------------------------------+---------------------------------------+
