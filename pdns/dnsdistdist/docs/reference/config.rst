@@ -1820,6 +1820,11 @@ Other functions
 
   :param str path: The path to the file, usually /etc/resolv.conf
 
+.. function:: getStatisticsCounters()
+
+  This function returns a Lua associative array of metrics, with the metric name as key and the current value
+  of the counter as value.
+
 .. function:: maintenance()
 
   If this function exists, it is called every second to do regular tasks.
