@@ -180,7 +180,7 @@ def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
     with c.cd('/tmp/libdecaf'):
         c.run('git checkout 41f349')
-        c.run(f'CC=clang-{clang_version} CXX=clang-{clang_version} '
+        c.run(f'CC={get_c_compiler()} CXX={get_cxx_compiler()} '
               'cmake -B build '
               '-DCMAKE_INSTALL_PREFIX=/usr/local '
               '-DCMAKE_INSTALL_LIBDIR=lib '
@@ -203,7 +203,8 @@ def install_doc_deps_pdf(c):
 @task
 def install_auth_build_deps(c):
     c.sudo('apt-get install -y --no-install-recommends ' + ' '.join(all_build_deps + git_build_deps + auth_build_deps))
-    install_libdecaf(c, 'pdns-auth')
+    if os.getenv('DECAF_SUPPORT', 'no') == 'yes':
+        install_libdecaf(c, 'pdns-auth')
 
 def is_coverage_enabled():
     sanitizers = os.getenv('SANITIZERS')
@@ -212,6 +213,9 @@ def is_coverage_enabled():
         if 'tsan' in sanitizers:
             return False
     return os.getenv('COVERAGE') == 'yes'
+
+def get_coverage():
+    return '--enable-coverage=clang' if is_coverage_enabled() else ''
 
 @task
 def install_coverage_deps(c):
@@ -266,9 +270,10 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
     # FIXME we may want to start a background recursor here to make ALIAS tests more robust
     setup_authbind(c)
 
-    # Copy libdecaf out
-    c.sudo('mkdir -p /usr/local/lib')
-    c.sudo('cp /opt/pdns-auth/libdecaf/libdecaf.so* /usr/local/lib/.')
+    if os.getenv('DECAF_SUPPORT', 'no') == 'yes':
+        # Copy libdecaf out
+        c.sudo('mkdir -p /usr/local/lib')
+        c.sudo('cp /opt/pdns-auth/libdecaf/libdecaf.so* /usr/local/lib/.')
 
 @task
 def install_rec_bulk_deps(c): # FIXME: rename this, we do way more than apt-get
@@ -366,22 +371,46 @@ def ci_docs_add_ssh(c, ssh_key, host_key):
 
 
 def get_sanitizers():
-    sanitizers = os.getenv('SANITIZERS')
+    sanitizers = os.getenv('SANITIZERS', '')
     if sanitizers != '':
         sanitizers = sanitizers.split('+')
         sanitizers = ['--enable-' + sanitizer for sanitizer in sanitizers]
         sanitizers = ' '.join(sanitizers)
     return sanitizers
 
+def get_unit_tests(auth=False):
+    if os.getenv('UNIT_TESTS') != 'yes':
+        return ''
+    return '--enable-unit-tests --enable-backend-unit-tests' if auth else '--enable-unit-tests'
+
+def get_build_concurrency(default=8):
+    return os.getenv('CONCURRENCY', default)
+
+def get_fuzzing_targets():
+    return '--enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
+
+def is_compiler_clang():
+    compiler = os.getenv('COMPILER', 'clang')
+    return compiler == 'clang'
+
+def get_c_compiler():
+    return f'clang-{clang_version}' if is_compiler_clang() else 'gcc'
+
+def get_cxx_compiler():
+    return f'clang++-{clang_version}' if is_compiler_clang() else 'g++'
+
+def get_optimizations():
+    optimizations = os.getenv('OPTIMIZATIONS', 'yes')
+    return '-O1' if optimizations == 'yes' else '-O0'
 
 def get_cflags():
     return " ".join([
-        "-O1",
+        get_optimizations(),
         "-Werror=vla",
         "-Werror=shadow",
         "-Wformat=2",
         "-Werror=format-security",
-        "-Werror=string-plus-int",
+        "-Werror=string-plus-int" if is_compiler_clang() else '',
     ])
 
 
@@ -392,35 +421,29 @@ def get_cxxflags():
     ])
 
 
-def get_base_configure_cmd():
+def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', enable_systemd=True, enable_sodium=True):
+    cflags = " ".join([get_cflags(), additional_c_flags])
+    cxxflags = " ".join([get_cxxflags(), additional_cxx_flags])
     return " ".join([
-        f'CFLAGS="{get_cflags()}"',
-        f'CXXFLAGS="{get_cxxflags()}"',
+        f'CFLAGS="{cflags}"',
+        f'CXXFLAGS="{cxxflags}"',
         './configure',
-        f"CC='clang-{clang_version}'",
-        f"CXX='clang++-{clang_version}'",
+        f"CC='{get_c_compiler()}'",
+        f"CXX='{get_cxx_compiler()}'",
         "--enable-option-checking=fatal",
-        "--enable-systemd",
-        "--with-libsodium",
+        "--enable-systemd" if enable_systemd else '',
+        "--with-libsodium" if enable_sodium else '',
         "--enable-fortify-source=auto",
         "--enable-auto-var-init=pattern",
+        get_coverage(),
+        get_sanitizers()
     ])
 
 
 @task
 def ci_auth_configure(c):
-    sanitizers = get_sanitizers()
-
-    unittests = os.getenv('UNIT_TESTS')
-    if unittests == 'yes':
-        unittests = '--enable-unit-tests --enable-backend-unit-tests'
-    else:
-        unittests = ''
-
-    fuzz_targets = os.getenv('FUZZING_TARGETS')
-    fuzz_targets = '--enable-fuzz-targets' if fuzz_targets == 'yes' else ''
-    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
-
+    unittests = get_unit_tests(True)
+    fuzz_targets = get_fuzzing_targets()
     modules = " ".join([
         "bind",
         "geoip",
@@ -440,17 +463,16 @@ def ci_auth_configure(c):
         "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
         f"--with-modules='{modules}'",
         "--enable-tools",
+        "--enable-dns-over-tls",
         "--enable-experimental-pkcs11",
         "--enable-experimental-gss-tsig",
         "--enable-remotebackend-zeromq",
         "--with-lmdb=/usr",
-        "--with-libdecaf",
+        "--with-libdecaf" if os.getenv('DECAF_SUPPORT', 'no') == 'yes' else '',
         "--prefix=/opt/pdns-auth",
         "--enable-ixfrdist",
-        sanitizers,
         unittests,
-        fuzz_targets,
-        coverage,
+        fuzz_targets
     ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
@@ -460,11 +482,7 @@ def ci_auth_configure(c):
 
 @task
 def ci_rec_configure(c):
-    sanitizers = get_sanitizers()
-
-    unittests = os.getenv('UNIT_TESTS')
-    unittests = '--enable-unit-tests' if unittests == 'yes' else ''
-    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
+    unittests = get_unit_tests()
 
     configure_cmd = " ".join([
         get_base_configure_cmd(),
@@ -474,9 +492,7 @@ def ci_rec_configure(c):
         "--with-libcap",
         "--with-net-snmp",
         "--enable-dns-over-tls",
-        sanitizers,
         unittests,
-        coverage,
     ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
@@ -502,7 +518,7 @@ def ci_dnsdist_configure(c, features):
                       --with-libcap \
                       --with-net-snmp \
                       --with-nghttp2 \
-                      --with-re2 '
+                      --with-re2'
     else:
       features_set = '--disable-dnstap \
                       --disable-dnscrypt \
@@ -517,7 +533,7 @@ def ci_dnsdist_configure(c, features):
                       --without-lmdb \
                       --without-net-snmp \
                       --without-nghttp2 \
-                      --without-re2 '
+                      --without-re2'
       additional_flags = '-DDISABLE_COMPLETION \
                           -DDISABLE_DELAY_PIPE \
                           -DDISABLE_DYNBLOCKS \
@@ -549,55 +565,49 @@ def ci_dnsdist_configure(c, features):
                           -DDISABLE_HASHED_CREDENTIALS \
                           -DDISABLE_FALSE_SHARING_PADDING \
                           -DDISABLE_NPN'
-    unittests = ' --enable-unit-tests' if os.getenv('UNIT_TESTS') == 'yes' else ''
-    fuzztargets = '--enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
-    sanitizers = ' '.join('--enable-'+x for x in os.getenv('SANITIZERS').split('+')) if os.getenv('SANITIZERS') != '' else ''
-    coverage = '--enable-coverage=clang' if is_coverage_enabled() else ''
-    cflags = get_cflags()
-    cxxflags = " ".join([get_cxxflags(), additional_flags])
-    res = c.run(f'''CFLAGS="%s" \
-                   CXXFLAGS="%s" \
-                   AR=llvm-ar-{clang_version} \
-                   RANLIB=llvm-ranlib-{clang_version} \
-                   ./configure \
-                     CC='clang-{clang_version}' \
-                     CXX='clang++-{clang_version}' \
-                     --enable-option-checking=fatal \
-                     --enable-fortify-source=auto \
-                     --enable-auto-var-init=pattern \
-                     --enable-lto=thin \
-                     --prefix=/opt/dnsdist %s %s %s %s %s''' % (cflags, cxxflags, features_set, sanitizers, unittests, fuzztargets, coverage), warn=True)
+    unittests = get_unit_tests()
+    fuzztargets = get_fuzzing_targets()
+    tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
+    configure_cmd = " ".join([
+        tools,
+        get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, enable_systemd=False, enable_sodium=False),
+        features_set,
+        unittests,
+        fuzztargets,
+        ' --enable-lto=thin',
+        '--prefix=/opt/dnsdist'
+    ])
+
+    res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
         raise UnexpectedExit(res)
 
 @task
 def ci_auth_make(c):
-    c.run('make -j8 -k V=1')
+    c.run(f'make -j{get_build_concurrency()} -k V=1')
 
 @task
 def ci_auth_make_bear(c):
-    # Needed for clang-tidy -line-filter vs project structure shenanigans
-    with c.cd('pdns'):
-        c.run('bear --append -- make -j8 -k V=1 -C ..')
+    c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
 
 @task
 def ci_rec_make(c):
-    c.run('make -j8 -k V=1')
+    c.run(f'make -j{get_build_concurrency()} -k V=1')
 
 @task
 def ci_rec_make_bear(c):
     # Assumed to be running under ./pdns/recursordist/
-    c.run('bear --append -- make -j8 -k V=1')
+    c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
 
 @task
 def ci_dnsdist_make(c):
-    c.run('make -j4 -k V=1')
+    c.run(f'make -j{get_build_concurrency(4)} -k V=1')
 
 @task
 def ci_dnsdist_make_bear(c):
     # Assumed to be running under ./pdns/dnsdistdist/
-    c.run('bear --append -- make -j4 -k V=1')
+    c.run(f'bear --append -- make -j{get_build_concurrency(4)} -k V=1')
 
 @task
 def ci_auth_install_remotebackend_test_deps(c):
