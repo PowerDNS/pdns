@@ -434,16 +434,14 @@ static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBacken
   return backend;
 }
 
-static bool foundTarget(const DNSName& target, const DNSName& shorter, const QType& qtype, SOAData* soaData, const bool found)
+static bool foundTarget(const DNSName& target, const DNSName& shorter, const QType& qtype, [[maybe_unused]] SOAData* soaData, const bool found)
 {
-  auto name = soaData->qname;
-
   if (found == (qtype == QType::DS) || target != shorter) {
-    DLOG(g_log << Logger::Error << "found: " << name << endl);
+    DLOG(g_log << Logger::Error << "found: " << soaData->qname << endl);
     return true;
   }
 
-  DLOG(g_log << Logger::Error << "chasing next: " << name << endl);
+  DLOG(g_log << Logger::Error << "chasing next: " << soaData->qname << endl);
   return false;
 }
 
