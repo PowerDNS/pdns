@@ -35,6 +35,7 @@ AC_DEFINE([RECURSOR], [1],
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
 AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
+PDNS_CHECK_CARGO([1.64])
 
 # Rust runtime used dlopen from its static lib
 LT_INIT([dlopen])
