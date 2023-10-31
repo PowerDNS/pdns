@@ -36,6 +36,7 @@ ansible
 ANSSI
 Antoin
 apikey
+apizones
 AQAB
 ARCHFLAGS
 arecord
@@ -810,6 +811,7 @@ msphinx
 msrv
 mtasker
 mthread
+mtid
 Mulholland
 multimaster
 munmap
