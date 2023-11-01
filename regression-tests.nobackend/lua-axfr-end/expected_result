@@ -1,0 +1,8 @@
+New rrset:
+www.dns.test. 3600 IN A 1.2.3.4
+Set 'dns.test' meta ALLOW-AXFR-FROM = 127.0.0.3
+Set 'dns.test' meta ALSO-NOTIFY = 127.0.0.3
+Set 'dns.test' meta LUA-AXFR-END-SCRIPT = axfr-end-script.lua
+Added to queue
+dns.test.
+0

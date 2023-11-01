@@ -887,6 +887,7 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
     "GSS-ACCEPTOR-PRINCIPAL",
     "IXFR",
     "LUA-AXFR-SCRIPT",
+    "LUA-AXFR-END-SCRIPT",
     "NSEC3NARROW",
     "NSEC3PARAM",
     "PRESIGNED",
@@ -906,6 +907,7 @@ static bool isValidMetadataKind(const string& kind, bool readonly) {
     "NSEC3PARAM",
     "PRESIGNED",
     "LUA-AXFR-SCRIPT",
+    "LUA-AXFR-END-SCRIPT",
     "TSIG-ALLOW-AXFR"
   };
 

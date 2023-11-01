@@ -316,6 +316,7 @@ static void declareArguments()
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial") = "no";
 
   ::arg().set("lua-axfr-script", "Script to be used to edit incoming AXFRs") = "";
+  ::arg().set("lua-axfr-end-script", "Script to be used on AXFRs transfer end") = "";
   ::arg().set("xfr-max-received-mbytes", "Maximum number of megabytes received from an incoming XFR") = "100";
   ::arg().set("axfr-fetch-timeout", "Maximum time in seconds for inbound AXFR to start or be idle after starting") = "10";
 

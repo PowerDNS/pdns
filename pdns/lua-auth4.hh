@@ -15,6 +15,7 @@ public:
   AuthLua4();
   bool updatePolicy(const DNSName &qname, const QType& qtype, const DNSName &zonename, const DNSPacket& packet);
   bool axfrfilter(const ComboAddress&, const DNSName&, const DNSResourceRecord&, std::vector<DNSResourceRecord>&);
+  bool axfr_end(const DNSName&, unsigned int);
   LuaContext* getLua();
 
   std::unique_ptr<DNSPacket> prequery(const DNSPacket& p);
@@ -37,10 +38,13 @@ private:
   typedef std::function<bool(const UpdatePolicyQuery&)> luacall_update_policy_t;
   typedef std::function<std::tuple<int, std::unordered_map<int, std::unordered_map<std::string,boost::variant<unsigned int,std::string> > > >(const ComboAddress&, const DNSName&, const DNSResourceRecord&)> luacall_axfr_filter_t;
   typedef std::function<bool(DNSPacket*)> luacall_prequery_t;
+  typedef std::function<int(const DNSName&, const unsigned int)> luacall_axfr_end_t;
 
   luacall_update_policy_t d_update_policy;
   luacall_axfr_filter_t d_axfr_filter;
   luacall_prequery_t d_prequery;
+  luacall_axfr_end_t d_axfr_end;
 };
+
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& qname,
                                                    const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA);

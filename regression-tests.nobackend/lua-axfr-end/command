@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+trap cleanup EXIT
+
+clean_files() 
+{
+    rm -rf *.conf
+    rm -rf *.sqlite3   
+    rm -rf *.lua
+    rm -rf *.controlsocket
+    #rm -rf *.output
+}
+
+kill_instances()
+{
+    pids=$(cat pdns*.pid 2>/dev/null)
+    kill -9 $pids > /dev/null 2>&1
+}
+
+cleanup()
+{
+    clean_files
+    kill_instances
+}
+
+init() 
+{
+    cat > pdns-master-gsqlite3.conf<<EOF
+launch=gsqlite3
+gsqlite3-database=pdns-master.sqlite3
+gsqlite3-dnssec=yes
+module-dir=../regression-tests/modules
+EOF
+
+    cat > pdns-slave-gsqlite3.conf<<EOF
+launch=gsqlite3
+gsqlite3-database=pdns-slave.sqlite3
+gsqlite3-dnssec=yes
+module-dir=../regression-tests/modules
+EOF
+
+    cat > axfr-end-script.lua<<EOF
+function axfr_end(zone, serial)
+        local file = io.open("lua-axfr-end.output", "w")
+	file:write(tostring(zone).."\n")
+	file:write(tostring(serial).."\n")
+        file:close()
+        return 0
+end
+EOF
+
+    sqlite3 pdns-master.sqlite3 < ../modules/gsqlite3backend/schema.sqlite3.sql
+    sqlite3 pdns-slave.sqlite3 < ../modules/gsqlite3backend/schema.sqlite3.sql
+
+    $PDNSUTIL --config-name=master-gsqlite3 --config-dir=. create-zone dns.test
+    $PDNSUTIL --config-name=master-gsqlite3 --config-dir=. add-record dns.test www A "1.2.3.4"
+
+    $PDNSUTIL --config-name=master-gsqlite3 --config-dir=. set-meta dns.test ALLOW-AXFR-FROM 127.0.0.3
+    $PDNSUTIL --config-name=master-gsqlite3 --config-dir=. set-meta dns.test ALSO-NOTIFY 127.0.0.3
+    $PDNSUTIL --config-name=master-gsqlite3 --config-dir=. set-kind dns.test master
+
+    $PDNSUTIL --config-name=slave-gsqlite3 --config-dir=. create-slave-zone dns.test 127.0.0.2
+
+    $PDNSUTIL --config-name=slave-gsqlite3 --config-dir=. set-meta dns.test LUA-AXFR-END-SCRIPT 'axfr-end-script.lua'
+}
+
+start_master()
+{
+    master_port=53
+    $RUNWRAPPER $PDNS --daemon=no --local-port=$master_port --socket-dir=./          \
+        --config-name=master-gsqlite3 --config-dir=. \
+        --master=yes --local-address=127.0.0.2 \
+        --query-local-address=127.0.0.2 \
+        --allow-axfr-ips=127.0.0.3 \
+        --module-dir=../regression-tests/modules >&2 &
+}
+
+start_slave()
+{
+    slave_port=53
+    $RUNWRAPPER $PDNS --daemon=no --local-port=$slave_port --socket-dir=./          \
+        --config-name=slave-gsqlite3 --config-dir=. \
+        --slave=yes --local-address=127.0.0.3 \
+        --query-local-address=127.0.0.3 \
+        --module-dir=../regression-tests/modules >&2 &
+}
+
+run_test()
+{
+    $PDNSCONTROL --config-name=master-gsqlite3 --config-dir=. --socket-dir=./  notify dns.test
+}
+
+check_result()
+{
+    [[ -f lua-axfr-end.output ]] && cat lua-axfr-end.output
+}
+
+clean_files
+init
+start_master
+sleep 1
+start_slave
+sleep 1
+run_test
+sleep 3
+check_result

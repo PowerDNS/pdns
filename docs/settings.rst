@@ -984,6 +984,16 @@ Not recommended to set this below 3.
 
 Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`
 
+.. _setting-lua-axfr-end-script:
+
+``lua-axfr-end-script``
+-----------------------
+
+-  String
+-  Default: empty
+
+Script to be used after incoming AXFR transfer end, see :ref:`modes-of-operation-axfrend`
+
 .. _setting-lua-health-checks-expire-delay:
 
 ``lua-health-checks-expire-delay``
