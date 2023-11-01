@@ -2788,7 +2788,7 @@ static void recursorThread()
     if (threadInfo.isHandler()) {
       if (::arg().mustDo("webserver")) {
         SLOG(g_log << Logger::Warning << "Enabling web server" << endl,
-             log->info(Logr::Info, "Enabling web server"))
+             log->info(Logr::Info, "Enabling web server"));
         try {
           rws = make_unique<RecursorWebServer>(t_fdm.get());
         }
@@ -2837,11 +2837,11 @@ static void recursorThread()
   }
   catch (PDNSException& ae) {
     SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
-         log->error(Logr::Error, ae.reason, "Exception in RecursorThread", "exception", Logging::Loggable("PDNSException")))
+         log->error(Logr::Error, ae.reason, "Exception in RecursorThread", "exception", Logging::Loggable("PDNSException")));
   }
   catch (std::exception& e) {
     SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
-         log->error(Logr::Error, e.what(), "Exception in RecursorThread", "exception", Logging::Loggable("std::exception")))
+         log->error(Logr::Error, e.what(), "Exception in RecursorThread", "exception", Logging::Loggable("std::exception")));
   }
   catch (...) {
     SLOG(g_log << Logger::Error << "any other exception in main: " << endl,

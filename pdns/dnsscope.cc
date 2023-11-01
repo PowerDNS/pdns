@@ -203,7 +203,7 @@ try
   int dnserrors=0, parsefail=0;
   typedef map<uint32_t,uint32_t> cumul_t;
   cumul_t cumul;
-  unsigned int untracked=0, errorresult=0, nonRDQueries=0, queries=0;
+  unsigned int untracked=0, nonRDQueries=0, queries=0;
   unsigned int ipv4DNSPackets=0, ipv6DNSPackets=0, fragmented=0, rdNonRAAnswers=0;
   unsigned int answers=0, nonDNSIP=0, rdFilterMismatch=0;
   unsigned int dnssecOK=0, edns=0;
@@ -373,8 +373,6 @@ try
             if(!noservfailstats || header.rcode != 2)
               cumul[usecs]++;
 
-            if(header.rcode != 0 && header.rcode!=3)
-              errorresult++;
             ComboAddress rem = pr.getDest();
             rem.sin4.sin_port=0;
 

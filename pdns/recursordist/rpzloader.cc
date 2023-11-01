@@ -508,7 +508,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
 
       if (luaconfsLocal->generation != configGeneration) {
         SLOG(g_log << Logger::Info << "A more recent configuration has been found, stopping the existing RPZ update thread for " << zoneName << endl,
-             logger->info(Logr::Info, "A more recent configuration has been found, stopping the existing RPZ update thread"))
+             logger->info(Logr::Info, "A more recent configuration has been found, stopping the existing RPZ update thread"));
         return;
       }
       oldZone = luaconfsLocal->dfe.getZone(zoneIdx);

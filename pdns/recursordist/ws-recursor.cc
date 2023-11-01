@@ -1570,7 +1570,7 @@ void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) cons
   }
   catch (...) {
     SLOG(g_log << Logger::Error << logprefix << "Unknown exception" << endl,
-         req.d_slog->error(Logr::Error, "Exception handing request"))
+         req.d_slog->error(Logr::Error, "Exception handing request"));
   }
 }
 

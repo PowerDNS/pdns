@@ -22,11 +22,14 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma clang diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
 #include <boost/accumulators/statistics/median.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
 #include <boost/accumulators/accumulators.hpp>
-
 #include <boost/accumulators/statistics.hpp>
+#pragma clang diagnostic pop
 
 #include <thread>
 
