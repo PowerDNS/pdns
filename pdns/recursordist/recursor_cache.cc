@@ -140,7 +140,7 @@ static void updateDNSSECValidationStateFromCache(boost::optional<vState>& state,
 }
 
 template <typename T>
-static void ptrAssign(T* ptr, T value)
+static void ptrAssign(T* ptr, const T& value)
 {
   if (ptr != nullptr) {
     *ptr = value;
