@@ -1816,8 +1816,9 @@ bool setupDoHProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
     return false;
   }
   /* we want to set the ALPN to doh */
-  const std::vector<std::vector<uint8_t>> dohAlpns = {{'h', '2'}};
+  const std::vector<std::vector<uint8_t>> dohAlpns{{'h', '2'},{'h', 't', 't', 'p', '/', '1', '.', '1'}};
   ctx->setALPNProtos(dohAlpns);
+
   return true;
 }
 

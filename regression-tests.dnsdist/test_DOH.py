@@ -377,6 +377,31 @@ class DOHTests(object):
         except:
             pass
 
+    def testDOHHTTP1(self):
+        """
+        DOH: HTTP/1.1
+        """
+        if self._dohLibrary == 'h2o':
+            raise unittest.SkipTest('h2o supports HTTP/1.1, this test is only relevant for nghttp2')
+        name = 'http11.doh.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        wire = query.to_wire()
+        b64 = base64.urlsafe_b64encode(wire).decode('UTF8').rstrip('=')
+        url = self._dohBaseURL + '?dns=' + b64
+        conn = pycurl.Curl()
+        conn.setopt(pycurl.HTTP_VERSION, pycurl.CURL_HTTP_VERSION_1_1)
+        conn.setopt(pycurl.HTTPHEADER, ["Content-type: application/dns-message",
+                                         "Accept: application/dns-message"])
+        conn.setopt(pycurl.URL, url)
+        conn.setopt(pycurl.RESOLVE, ["%s:%d:127.0.0.1" % (self._serverName, self._dohServerPort)])
+        conn.setopt(pycurl.SSL_VERIFYPEER, 1)
+        conn.setopt(pycurl.SSL_VERIFYHOST, 2)
+        conn.setopt(pycurl.CAINFO, self._caCert)
+        data = conn.perform_rb()
+        rcode = conn.getinfo(pycurl.RESPONSE_CODE)
+        self.assertEqual(rcode, 400)
+        self.assertEqual(data, b'<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance to section 5.2 of the RFC.</body></html>\r\n')
+
     def testDOHInvalid(self):
         """
         DOH: Invalid DNS query

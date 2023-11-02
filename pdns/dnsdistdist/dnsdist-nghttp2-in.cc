@@ -271,6 +271,11 @@ bool IncomingHTTP2Connection::checkALPN()
   if (protocols.size() == h2ALPN.size() && memcmp(protocols.data(), h2ALPN.data(), h2ALPN.size()) == 0) {
     return true;
   }
+
+  const std::string data("HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n\r\n<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance to section 5.2 of the RFC.</body></html>\r\n");
+  d_out.insert(d_out.end(), data.begin(), data.end());
+  writeToSocket(false);
+
   vinfolog("DoH connection from %s expected ALPN value 'h2', got '%s'", d_ci.remote.toStringWithPort(), std::string(protocols.begin(), protocols.end()));
   return false;
 }
