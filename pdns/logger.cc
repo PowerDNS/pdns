@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <ostream>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -115,7 +116,7 @@ void Logger::log(const string& msg, Urgency u) noexcept
     else {
       line << msg << endl;
     }
-    clog << line.str();
+    clog << line.str() << std::flush;
 #ifndef RECURSOR
     mustAccount = true;
 #endif
