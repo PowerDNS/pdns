@@ -1416,6 +1416,13 @@ public:
     tree.erase(nm);
   }
 
+  void deleteMasks(const NetmaskGroup& group)
+  {
+    for (const auto& entry : group.tree) {
+      deleteMask(entry.first);
+    }
+  }
+
   void deleteMask(const std::string& ip)
   {
     if (!ip.empty())
