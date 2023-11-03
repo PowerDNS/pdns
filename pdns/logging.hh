@@ -69,7 +69,7 @@ struct is_to_string_available<T, std::void_t<decltype(std::to_string(std::declva
 {
 };
 
-// Same mechanism for t.toLogString()
+// Same mechanism for t.toLogString() and t.toStucturedLogString()
 template <typename T, typename = void>
 struct is_toLogString_available : std::false_type
 {
@@ -77,6 +77,16 @@ struct is_toLogString_available : std::false_type
 
 template <typename T>
 struct is_toLogString_available<T, std::void_t<decltype(std::declval<T>().toLogString())>> : std::true_type
+{
+};
+
+template <typename T, typename = void>
+struct is_toStructuredLogString_available : std::false_type
+{
+};
+
+template <typename T>
+struct is_toStructuredLogString_available<T, std::void_t<decltype(std::declval<T>().toStructuredLogString())>> : std::true_type
 {
 };
 
@@ -102,6 +112,9 @@ struct Loggable : public Logr::Loggable
   {
     if constexpr (std::is_same_v<T, std::string>) {
       return _t;
+    }
+    else if constexpr (is_toStructuredLogString_available<T>::value) {
+      return _t.toStructuredLogString();
     }
     else if constexpr (is_toLogString_available<T>::value) {
       return _t.toLogString();
