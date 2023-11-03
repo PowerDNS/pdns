@@ -424,7 +424,7 @@ These threads cannot be specified in this setting as their thread-ids are left u
         'doc' : '''
 Set CPU affinity for threads, asking the scheduler to run those threads on a single CPU, or a set of CPUs.
 This parameter accepts a space separated list of thread-id=cpu-id, or thread-id=cpu-id-1,cpu-id-2,...,cpu-id-N.
-For example, to make the worker thread 0 run on CPU id 0 and the worker thread 1 on CPUs 1 and 2::
+For example, to make the worker thread 0 run on CPU id 0 and the worker thread 1 on CPUs 1 and 2:
 
 .. code-block:: yaml
 
@@ -481,6 +481,17 @@ Any servers matching the supplied netmasks will never be throttled.
 This can come in handy on lossy networks when forwarding, where the same server is configured multiple times (e.g. with ``forward-zones-recurse=example.com=192.0.2.1;192.0.2.1``).
 By default, the PowerDNS Recursor would throttle the 'first' server on a timeout and hence not retry the 'second' one.
 In this case, ``dont-throttle-netmasks`` could be set to ``192.0.2.1``.
+
+.. warning::
+  Most servers on the internet do not respond for a good reason (overloaded or unreachable), ``dont-throttle-netmasks`` could make this load on the upstream server even higher, resulting in further service degradation.
+ ''',
+        'doc-new' : '''
+When an authoritative server does not answer a query or sends a reply the recursor does not like, it is throttled.
+Any servers matching the supplied netmasks will never be throttled.
+
+This can come in handy on lossy networks when forwarding, where the same server is configured multiple times (e.g. with ``forward_zones_recurse: [ {zone: example.com, forwarders: [ 192.0.2.1, 192.0.2.1 ] } ]``.
+By default, the PowerDNS Recursor would throttle the 'first' server on a timeout and hence not retry the 'second' one.
+In this case, :ref:`setting-dont-throttle-netmasks` could be set to include ``192.0.2.1``.
 
 .. warning::
   Most servers on the internet do not respond for a good reason (overloaded or unreachable), ``dont-throttle-netmasks`` could make this load on the upstream server even higher, resulting in further service degradation.
@@ -1195,6 +1206,24 @@ Examples::
   local-address=0.0.0.0:5353
   local-address=[::]:8053
   local-address=127.0.0.1:53, [::1]:5353
+ ''',
+        'doc-new' : '''
+Local IP addresses to which we bind. Each address specified can
+include a port number; if no port is included then the
+:ref:`setting-local-port` port will be used for that address. If a
+port number is specified, it must be separated from the address with a
+':'; for an IPv6 address the address must be enclosed in square
+brackets.
+
+Example:
+
+.. code-block:: yaml
+
+  incoming:
+    listen:
+      - 127.0.0.1
+      - listen: '[::1]:5353'
+      - listen: '::'
  ''',
     },
     {
