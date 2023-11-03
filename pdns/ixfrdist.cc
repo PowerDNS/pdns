@@ -48,7 +48,10 @@
 #include "logger.hh"
 #include "ixfrdist-stats.hh"
 #include "ixfrdist-web.hh"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshadow"
 #include <yaml-cpp/yaml.h>
+#pragma clang diagnostic pop
 
 /* BEGIN Needed because of deeper dependencies */
 #include "arguments.hh"

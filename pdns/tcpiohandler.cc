@@ -1129,9 +1129,9 @@ public:
 
   /* The callback prototype changed in 3.4.0. */
 #if GNUTLS_VERSION_NUMBER >= 0x030400
-  static int newTicketFromServerCb(gnutls_session_t session, unsigned int htype, unsigned post, unsigned int incoming, const gnutls_datum_t* msg)
+  static int newTicketFromServerCb(gnutls_session_t session, unsigned int htype, unsigned post, unsigned int /* incoming */, const gnutls_datum_t* /* msg */)
 #else
-  static int newTicketFromServerCb(gnutls_session_t session, unsigned int htype, unsigned post, unsigned int incoming)
+  static int newTicketFromServerCb(gnutls_session_t session, unsigned int htype, unsigned post, unsigned int /* incoming */)
 #endif /* GNUTLS_VERSION_NUMBER >= 0x030400 */
   {
     if (htype != GNUTLS_HANDSHAKE_NEW_SESSION_TICKET || post != GNUTLS_HOOK_POST || session == nullptr) {
@@ -1153,7 +1153,7 @@ public:
     return 0;
   }
 
-  IOState tryConnect(bool fastOpen, const ComboAddress& remote) override
+  IOState tryConnect(bool fastOpen, [[maybe_unused]] const ComboAddress& remote) override
   {
     int ret = 0;
 

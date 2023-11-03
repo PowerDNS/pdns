@@ -884,7 +884,8 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     catch (const PDNSException& exp) {
       // exp is the exception that was thrown from inside the lambda
       SLOG(g_log << exp.reason << std::endl,
-           lci.d_slog->error(Logr::Error, exp.reason, "Exception loading Lua", "exception", Logging::Loggable("PDNSException")))    }
+           lci.d_slog->error(Logr::Error, exp.reason, "Exception loading Lua", "exception", Logging::Loggable("PDNSException")));
+    }
     throw;
   }
   catch (std::exception& err) {

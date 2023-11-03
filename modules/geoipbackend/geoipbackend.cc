@@ -34,7 +34,10 @@
 #include <fstream>
 #include <filesystem>
 #include <utility>
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wshadow"
 #include <yaml-cpp/yaml.h>
+#pragma clang diagnostic pop
 
 ReadWriteLock GeoIPBackend::s_state_lock;
 
