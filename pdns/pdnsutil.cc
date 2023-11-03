@@ -1,4 +1,5 @@
 
+#include <boost/smart_ptr/make_shared_array.hpp>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -2361,7 +2362,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout<<"Constructing UeberBackend"<<endl;
   UeberBackend B("default");
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
-  DNSBackend *db = B.backends[0];
+  DNSBackend *db = B.backends[0].get();
   cout << "Creating secondary zone " << zone << endl;
   db->createSlaveDomain("127.0.0.1", zone, "", "_testschema");
   cout << "Secondary zone created" << endl;
@@ -2505,6 +2506,7 @@ static int addOrSetMeta(const DNSName& zone, const string& kind, const vector<st
   return 0;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): TODO Clean this function up.
 int main(int argc, char** argv)
 try
 {
@@ -4080,19 +4082,27 @@ try
   }
   else if (cmds.at(0) == "b2b-migrate") {
     if (cmds.size() < 3) {
-      cerr<<"Usage: b2b-migrate OLD NEW"<<endl;
+      cerr << "Usage: b2b-migrate OLD NEW" << endl;
       return 1;
     }
 
-    DNSBackend *src = nullptr;
-    DNSBackend *tgt = nullptr;
-
-    for(DNSBackend *b : BackendMakers().all()) {
-      if (b->getPrefix() == cmds.at(1))
-        src = b;
-      if (b->getPrefix() == cmds.at(2))
-        tgt = b;
+    if (cmds.at(1) == cmds.at(2)) {
+      cerr << "Error: b2b-migrate OLD NEW: OLD cannot be the same as NEW" << endl;
+      return 1;
     }
+
+    unique_ptr<DNSBackend> src{nullptr};
+    unique_ptr<DNSBackend> tgt{nullptr};
+
+    for (auto& backend : BackendMakers().all()) {
+      if (backend->getPrefix() == cmds.at(1)) {
+         src = std::move(backend);
+      }
+      else if (backend->getPrefix() == cmds.at(2)) {
+         tgt = std::move(backend);
+      }
+    }
+
     if (src == nullptr) {
       cerr << "Unknown source backend '" << cmds.at(1) << "'" << endl;
       return 1;
@@ -4190,21 +4200,22 @@ try
       return 1;
     }
 
-    DNSBackend *db = nullptr;
+    std::unique_ptr<DNSBackend> matchingBackend{nullptr};
 
-    for(DNSBackend *b : BackendMakers().all()) {
-      if (b->getPrefix() == cmds.at(1))
-        db = b;
+    for (auto& backend : BackendMakers().all()) {
+      if (backend->getPrefix() == cmds.at(1)) {
+        matchingBackend = std::move(backend);
+      }
     }
 
-    if (db == nullptr) {
+    if (matchingBackend == nullptr) {
       cerr << "Unknown backend '" << cmds.at(1) << "'" << endl;
       return 1;
     }
 
-    for(auto i=next(begin(cmds),2); i != end(cmds); ++i) {
-      cerr<<"== "<<*i<<endl;
-      cout<<db->directBackendCmd(*i);
+    for (auto i = next(begin(cmds), 2); i != end(cmds); ++i) {
+      cerr << "== " << *i << endl;
+      cout << matchingBackend->directBackendCmd(*i);
     }
 
     return 0;

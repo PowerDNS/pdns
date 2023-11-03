@@ -22,6 +22,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 class DNSPacket;
 
 #include "utility.hh"
@@ -449,13 +450,13 @@ public:
   }
 
   //! Search for records, returns true if search was done successfully.
-  virtual bool searchRecords(const string& /* pattern */, int /* maxResults */, vector<DNSResourceRecord>& /* result */)
+  virtual bool searchRecords(const string& /* pattern */, size_t /* maxResults */, vector<DNSResourceRecord>& /* result */)
   {
     return false;
   }
 
   //! Search for comments, returns true if search was done successfully.
-  virtual bool searchComments(const string& /* pattern */, int /* maxResults */, vector<Comment>& /* result */)
+  virtual bool searchComments(const string& /* pattern */, size_t /* maxResults */, vector<Comment>& /* result */)
   {
     return false;
   }
@@ -495,7 +496,7 @@ class BackendMakerClass
 public:
   void report(BackendFactory *bf);
   void launch(const string &instr);
-  vector<DNSBackend *> all(bool skipBIND=false);
+  vector<std::unique_ptr<DNSBackend>> all(bool metadataOnly=false);
   void load(const string &module);
   [[nodiscard]] size_t numLauncheable() const;
   vector<string> getModules();
