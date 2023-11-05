@@ -595,3 +595,25 @@ libpdns_zone2json = declare_dependency(
     ],
   )
 )
+
+libpdns_sdig = declare_dependency(
+  link_whole: static_library(
+    'pdns-sdig',
+    'ednsextendederror.cc',
+    'libssl.cc',
+    'sdig.cc',
+    'tcpiohandler.cc',
+    extra_files: [
+      'dolog.hh',
+      'ednsextendederror.hh',
+      'libssl.hh',
+      'sstuff.hh',
+      'tcpiohandler.hh',
+    ],
+    dependencies: [
+      deps,
+      libpdns_common,
+      libpdns_minicurl,
+    ],
+  )
+)

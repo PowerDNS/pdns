@@ -268,3 +268,13 @@ pdns_zone2json = executable(
     libpdns_zone2json,
   ],
 )
+
+if get_option('tools')
+  pdns_sdig = executable(
+    'pdns-sdig',
+    config_h,
+    dependencies: [
+      libpdns_sdig,
+    ],
+  )
+endif
