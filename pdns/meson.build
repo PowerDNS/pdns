@@ -490,7 +490,7 @@ if not fs.is_file(libpdns_bind_dnssec_schema_h)
     capture: true,
   )
 endif
-libpdns_bind_dnssec_schema_h = declare_dependency(
+libpdns_bind_dnssec_schema = declare_dependency(
   sources: [libpdns_bind_dnssec_schema_h],
 )
 
@@ -515,7 +515,7 @@ libpdns_util = declare_dependency(
     ],
     dependencies: [
       deps,
-      libpdns_bind_dnssec_schema_h,
+      libpdns_bind_dnssec_schema,
       libpdns_ipcipher,
     ],
   )
