@@ -48,6 +48,7 @@ libpdns_bind_parser = declare_dependency(
     'pdns-bind-parser',
     'zoneparser-tng.cc',
     extra_files: [
+      'bindparserclasses.hh',
       'zoneparser-tng.hh',
     ],
     cpp_args: '-Wno-redundant-decls',
