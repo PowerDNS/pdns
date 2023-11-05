@@ -198,10 +198,27 @@ libpdns_dnslabeltext = declare_dependency(
   sources: [libpdns_dnslabeltext_cc],
 )
 
+libpdns_common = declare_dependency(
+  link_whole: static_library(
+    'pdns-common',
+    'arguments.cc',
+    'dnsname.cc',
+    'logger.cc',
+    'misc.cc',
+    'qtype.cc',
+    'statbag.cc',
+    'unix_utility.cc',
+    extra_files: [],
+    dependencies: [
+      deps,
+      libpdns_dnslabeltext,
+    ],
+  )
+)
+
 libpdns_base = declare_dependency(
   link_whole: static_library(
     'pdns-base',
-    'arguments.cc',
     'axfr-retriever.cc',
     # TODO Move to a separate module
     'backends' / 'gsql' / 'gsqlbackend.cc',
@@ -211,7 +228,6 @@ libpdns_base = declare_dependency(
     'dbdnsseckeeper.cc',
     'dns.cc',
     'dnsbackend.cc',
-    'dnsname.cc',
     'dnspacket.cc',
     'dnsparser.cc',
     'dnsproxy.cc',
@@ -227,12 +243,9 @@ libpdns_base = declare_dependency(
     'iputils.cc',
     'ixfr.cc',
     'json.cc',
-    'logger.cc',
-    'misc.cc',
     'nsecrecords.cc',
     'opensslsigners.cc',
     'proxy-protocol.cc',
-    'qtype.cc',
     'query-local-address.cc',
     'rcpgenerator.cc',
     'resolver.cc',
@@ -242,17 +255,14 @@ libpdns_base = declare_dependency(
     'shuffle.cc',
     'signingpipe.cc',
     'sillyrecords.cc',
-    'statbag.cc',
     'stubresolver.cc',
     'svc-records.cc',
     'threadname.cc',
     'trusted-notification-proxy.cc',
     'ueberbackend.cc',
     'unix_semaphore.cc',
-    'unix_utility.cc',
     'uuid-utils.cc',
     'version.cc',
-    libpdns_dnslabeltext_cc,
     extra_files: [
       'arguments.hh',
       'axfr-retriever.hh',
@@ -321,6 +331,7 @@ libpdns_base = declare_dependency(
     ],
     dependencies: [
       deps,
+      libpdns_common,
       libpdns_bind_parser,
       libpdns_gss,
       libpdns_lua,
