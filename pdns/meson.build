@@ -166,19 +166,22 @@ libpdns_ws = declare_dependency(
   )
 )
 
-libpdns_tsig = declare_dependency(
-  link_whole: static_library(
-    'pdns-tsig',
-    'tsigutils.cc',
-    'tsigverifier.cc',
-    extra_files: [
-      'tsigutils.hh',
-      'tsigverifier.hh',
-    ],
-    cpp_args: '-Wno-redundant-decls',
-    dependencies: deps,
+libpdns_tsig = dependency('', required: false)
+if dep_gss_tsig.found()
+  libpdns_tsig = declare_dependency(
+    link_whole: static_library(
+      'pdns-tsig',
+      'tsigutils.cc',
+      'tsigverifier.cc',
+      extra_files: [
+        'tsigutils.hh',
+        'tsigverifier.hh',
+      ],
+      cpp_args: '-Wno-redundant-decls',
+      dependencies: deps,
+    )
   )
-)
+endif
 
 libpdns_dnslabeltext_cc = 'dnslabeltext.cc'
 if not fs.is_file(libpdns_dnslabeltext_cc)
