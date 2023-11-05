@@ -548,3 +548,17 @@ libpdns_zone2sql = declare_dependency(
     ],
   )
 )
+
+libpdns_zone2ldap = declare_dependency(
+  link_whole: static_library(
+    'pdns-zone2ldap',
+    'zone2ldap.cc',
+    extra_files: [],
+    dependencies: [
+      deps,
+      libpdns_common,
+      libpdns_bind_dnssec_schema,
+      libpdns_bind_parser,
+    ],
+  )
+)

@@ -252,3 +252,13 @@ pdns_zone2sql = executable(
     libpdns_zone2sql,
   ],
 )
+
+if get_option('module-ldap') != 'disabled'
+  pdns_zone2ldap = executable(
+    'pdns-zone2ldap',
+    config_h,
+    dependencies: [
+      libpdns_zone2ldap,
+    ],
+  )
+endif
