@@ -244,3 +244,11 @@ pdns_auth_control = executable(
     libpdns_auth_control,
   ],
 )
+
+pdns_zone2sql = executable(
+  'pdns-zone2sql',
+  config_h,
+  dependencies: [
+    libpdns_zone2sql,
+  ],
+)

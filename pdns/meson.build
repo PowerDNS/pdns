@@ -535,3 +535,16 @@ libpdns_auth_control = declare_dependency(
     ],
   )
 )
+
+libpdns_zone2sql = declare_dependency(
+  link_whole: static_library(
+    'pdns-zone2sql',
+    'zone2sql.cc',
+    extra_files: [],
+    dependencies: [
+      deps,
+      libpdns_common,
+      libpdns_bind_parser,
+    ],
+  )
+)
