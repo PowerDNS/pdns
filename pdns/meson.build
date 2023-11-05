@@ -74,17 +74,31 @@ if dep_lua.found()
   )
 endif
 
+libpdns_minicurl = dependency('', required: false)
+if dep_libcurl.found()
+  libpdns_minicurl = declare_dependency(
+    link_whole: static_library(
+      'pdns-minicurl',
+      'minicurl.cc',
+      extra_files: [
+        'minicurl.hh',
+      ],
+      dependencies: deps,
+    )
+  )
+endif
+
 libpdns_lua_records = dependency('', required: false)
 if dep_lua_records.found()
   libpdns_lua_records = declare_dependency(
     link_whole: static_library(
       'pdns-lua-records',
       'lua-record.cc',
-      'minicurl.cc',
-      extra_files: [
-        'minicurl.hh',
+      extra_files: [],
+      dependencies: [
+        deps,
+        libpdns_minicurl,
       ],
-      dependencies: deps,
     )
   )
 endif
