@@ -426,21 +426,17 @@ if dep_lua.found()
   )
 endif
 
-libpdns_auth_sources = [
-  'auth-caches.cc',
-  'auth-carbon.cc',
-  'auth-catalogzone.cc',
-  'auth-packetcache.cc',
-  'auth-querycache.cc',
-  'auth-zonecache.cc',
-  'responsestats-auth.cc',
-  'secpoll-auth.cc',
-]
-
 libpdns_auth = declare_dependency(
   link_whole: static_library(
     'pdns-auth',
-    libpdns_auth_sources,
+    'auth-caches.cc',
+    'auth-carbon.cc',
+    'auth-catalogzone.cc',
+    'auth-packetcache.cc',
+    'auth-querycache.cc',
+    'auth-zonecache.cc',
+    'responsestats-auth.cc',
+    'secpoll-auth.cc',
     extra_files: [
       'auth-caches.hh',
       'auth-catalogzone.hh',
