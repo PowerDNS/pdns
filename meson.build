@@ -236,3 +236,11 @@ pdns_util = executable(
     libpdns_util,
   ],
 )
+
+pdns_auth_control = executable(
+  'pdns-auth-control',
+  config_h,
+  dependencies: [
+    libpdns_auth_control,
+  ],
+)

@@ -518,3 +518,18 @@ libpdns_util = declare_dependency(
     ],
   )
 )
+
+libpdns_auth_control = declare_dependency(
+  link_whole: static_library(
+    'pdns-auth-control',
+    'dynloader.cc',
+    'dynmessenger.cc',
+    extra_files: [
+      'dynmessenger.hh',
+    ],
+    dependencies: [
+      deps,
+      libpdns_common,
+    ],
+  )
+)
