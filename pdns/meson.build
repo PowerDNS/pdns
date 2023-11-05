@@ -515,6 +515,8 @@ libpdns_util = declare_dependency(
     ],
     dependencies: [
       deps,
+      libpdns_base,
+      libpdns_auth,
       libpdns_bind_dnssec_schema,
       libpdns_ipcipher,
     ],

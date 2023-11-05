@@ -231,8 +231,6 @@ pdns_util = executable(
   'pdns-util',
   config_h,
   dependencies: [
-    libpdns_auth,
-    libpdns_base,
     libpdns_util,
   ],
 )
