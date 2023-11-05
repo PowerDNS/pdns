@@ -262,3 +262,11 @@ if get_option('module-ldap') != 'disabled'
     ],
   )
 endif
+
+pdns_zone2json = executable(
+  'pdns-zone2json',
+  config_h,
+  dependencies: [
+    libpdns_zone2json,
+  ],
+)
