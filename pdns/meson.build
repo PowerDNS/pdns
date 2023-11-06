@@ -538,124 +538,59 @@ if enable_ipcipher
   )
 endif
 
-libpdns_util = declare_dependency(
-  link_whole: static_library(
-    'pdns-util',
-    'pdnsutil.cc',
-    'zonemd.cc',
-    extra_files: [
-      'zonemd.hh',
-    ],
-    dependencies: [
-      deps,
-      libpdns_base,
-      libpdns_auth,
-      libpdns_bind_dnssec_schema,
-      libpdns_ipcipher,
-    ],
-  )
-)
+tool_libs = {
+  'util': {
+    'sources': ['pdnsutil.cc', 'zonemd.cc'],
+    'headers': ['zonemd.hh'],
+    'deps': [deps, libpdns_base, libpdns_auth, libpdns_bind_dnssec_schema, libpdns_ipcipher],
+  },
+  'auth-control': {
+    'sources': ['dynloader.cc', 'dynmessenger.cc'],
+    'headers': ['dynmessenger.hh'],
+    'deps': [deps, libpdns_common],
+  },
+  'zone2sql': {
+    'sources': ['zone2sql.cc'],
+    'headers': [],
+    'deps': [deps, libpdns_common, libpdns_bind_parser],
+  },
+  'zone2ldap': {
+    'sources': ['zone2ldap.cc'],
+    'headers': [],
+    'deps': [deps, libpdns_common, libpdns_bind_parser, libpdns_bind_dnssec_schema],
+  },
+  'zone2json': {
+    'sources': ['zone2json.cc'],
+    'headers': [],
+    'deps': [deps, libpdns_common, libpdns_bind_parser, libpdns_bind_dnssec_schema],
+  },
+  'sdig': {
+    'sources': ['ednsextendederror.cc', 'libssl.cc', 'sdig.cc', 'tcpiohandler.cc'],
+    'headers': ['dolog.hh', 'ednsextendederror.hh', 'libssl.hh', 'sstuff.hh', 'tcpiohandler.hh'],
+    'deps': [deps, libpdns_common, libpdns_minicurl],
+  },
+  'calidns': {
+    'sources': ['calidns.cc'],
+    'headers': ['sstuff.hh'],
+    'deps': [deps, libpdns_common],
+  },
+  'dumresp': {
+    'sources': ['dumresp.cc'],
+    'headers': [],
+    'deps': [deps, libpdns_common],
+  },
+}
 
-libpdns_auth_control = declare_dependency(
-  link_whole: static_library(
-    'pdns-auth-control',
-    'dynloader.cc',
-    'dynmessenger.cc',
-    extra_files: [
-      'dynmessenger.hh',
-    ],
-    dependencies: [
-      deps,
-      libpdns_common,
-    ],
+foreach tool_name, tool_info: tool_libs
+  set_variable(
+    'libpdns_' + tool_name.underscorify(),
+    declare_dependency(
+      link_whole: static_library(
+        'pdns-' + tool_name,
+        sources: tool_info['sources'],
+        extra_files: tool_info['headers'],
+        dependencies: tool_info['deps'],
+      )
+    )
   )
-)
-
-libpdns_zone2sql = declare_dependency(
-  link_whole: static_library(
-    'pdns-zone2sql',
-    'zone2sql.cc',
-    extra_files: [],
-    dependencies: [
-      deps,
-      libpdns_common,
-      libpdns_bind_parser,
-    ],
-  )
-)
-
-libpdns_zone2ldap = declare_dependency(
-  link_whole: static_library(
-    'pdns-zone2ldap',
-    'zone2ldap.cc',
-    extra_files: [],
-    dependencies: [
-      deps,
-      libpdns_common,
-      libpdns_bind_dnssec_schema,
-      libpdns_bind_parser,
-    ],
-  )
-)
-
-libpdns_zone2json = declare_dependency(
-  link_whole: static_library(
-    'pdns-zone2json',
-    'zone2json.cc',
-    extra_files: [],
-    dependencies: [
-      deps,
-      libpdns_common,
-      libpdns_bind_dnssec_schema,
-      libpdns_bind_parser,
-    ],
-  )
-)
-
-libpdns_sdig = declare_dependency(
-  link_whole: static_library(
-    'pdns-sdig',
-    'ednsextendederror.cc',
-    'libssl.cc',
-    'sdig.cc',
-    'tcpiohandler.cc',
-    extra_files: [
-      'dolog.hh',
-      'ednsextendederror.hh',
-      'libssl.hh',
-      'sstuff.hh',
-      'tcpiohandler.hh',
-    ],
-    dependencies: [
-      deps,
-      libpdns_common,
-      libpdns_minicurl,
-    ],
-  )
-)
-
-libpdns_calidns = declare_dependency(
-  link_whole: static_library(
-    'pdns-calidns',
-    'calidns.cc',
-    extra_files: [
-      'sstuff.hh',
-    ],
-    dependencies: [
-      deps,
-      libpdns_common,
-    ],
-  )
-)
-
-libpdns_dumresp = declare_dependency(
-  link_whole: static_library(
-    'pdns-dumresp',
-    'dumresp.cc',
-    extra_files: [],
-    dependencies: [
-      deps,
-      libpdns_common,
-    ],
-  )
-)
+endforeach

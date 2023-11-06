@@ -227,70 +227,27 @@ pdns_auth = executable(
   ],
 )
 
-pdns_util = executable(
-  'pdns-util',
-  config_h,
-  dependencies: [
-    libpdns_util,
-  ],
-)
-
-pdns_auth_control = executable(
-  'pdns-auth-control',
-  config_h,
-  dependencies: [
-    libpdns_auth_control,
-  ],
-)
-
-pdns_zone2sql = executable(
-  'pdns-zone2sql',
-  config_h,
-  dependencies: [
-    libpdns_zone2sql,
-  ],
-)
+tools = ['util', 'auth-control', 'zone2sql', 'zone2json']
 
 if get_option('module-ldap') != 'disabled'
-  pdns_zone2ldap = executable(
-    'pdns-zone2ldap',
-    config_h,
-    dependencies: [
-      libpdns_zone2ldap,
-    ],
-  )
+  tools += 'zone2ldap'
 endif
-
-pdns_zone2json = executable(
-  'pdns-zone2json',
-  config_h,
-  dependencies: [
-    libpdns_zone2json,
-  ],
-)
 
 if get_option('tools')
-  pdns_sdig = executable(
-    'pdns-sdig',
-    config_h,
-    dependencies: [
-      libpdns_sdig,
-    ],
-  )
+  tools += ['sdig', 'calidns', 'dumresp']
 
-  pdns_calidns = executable(
-    'pdns-calidns',
-    config_h,
-    dependencies: [
-      libpdns_calidns,
-    ],
-  )
-
-  pdns_dumresp = executable(
-    'pdns-dumresp',
-    config_h,
-    dependencies: [
-      libpdns_dumresp,
-    ],
-  )
 endif
+
+
+
+
+foreach tool: tools
+  set_variable(
+    'pdns_' + tool.underscorify(),
+    executable(
+      'pdns-' + tool,
+      sources: [config_h],
+      dependencies: [get_variable('libpdns_' + tool.underscorify())],
+    )
+  )
+endforeach
