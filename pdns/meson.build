@@ -32,7 +32,7 @@ if not fs.is_file(libpdns_bindlexer_cc)
 
   libpdns_bindlexer_cc = flex_generator.process('bindlexer.l')
 endif
-libpdns_bindlexer = declare_dependency(
+libpdns_bindlexer_cc = declare_dependency(
   sources: [libpdns_bindlexer_cc],
 )
 
@@ -55,7 +55,7 @@ if not fs.is_file(libpdns_bindparser_cc) and not fs.is_file('bindparser.hh')
 
   libpdns_bindparser_cc = bison_generator.process('bindparser.yy')
 endif
-libpdns_bindparser = declare_dependency(
+libpdns_bindparser_cc = declare_dependency(
   sources: [libpdns_bindparser_cc],
 )
 
@@ -70,8 +70,8 @@ libpdns_bind_parser = declare_dependency(
     cpp_args: '-Wno-redundant-decls',
     dependencies: [
       deps,
-      libpdns_bindlexer,
-      libpdns_bindparser,
+      libpdns_bindlexer_cc,
+      libpdns_bindparser_cc,
     ],
   )
 )
@@ -228,7 +228,7 @@ if not fs.is_file(libpdns_dnslabeltext_cc)
 
   libpdns_dnslabeltext_cc = ragel_generator.process('dnslabeltext.rl')
 endif
-libpdns_dnslabeltext = declare_dependency(
+libpdns_dnslabeltext_cc = declare_dependency(
   sources: [libpdns_dnslabeltext_cc],
 )
 
@@ -284,7 +284,7 @@ libpdns_common = declare_dependency(
     ],
     dependencies: [
       deps,
-      libpdns_dnslabeltext,
+      libpdns_dnslabeltext_cc,
     ],
   )
 )
