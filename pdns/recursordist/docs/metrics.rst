@@ -535,6 +535,14 @@ max-cache-entries
 ^^^^^^^^^^^^^^^^^
 currently configured maximum number of cache entries
 
+max-chain-length
+^^^^^^^^^^^^^^^^
+maximum chain length
+
+max-chain-weight
+^^^^^^^^^^^^^^^^
+maximum chain weight. The weight of a chain of outgoing queries is the product of the number of chained queries by the size of the response received from the external authoritative server. 
+
 max-packetcache-entries
 ^^^^^^^^^^^^^^^^^^^^^^^
 currently configured maximum number of packet cache entries

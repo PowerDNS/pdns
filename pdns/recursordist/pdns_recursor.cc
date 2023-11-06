@@ -291,8 +291,15 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
       assert(chain.first->key->domain == pident->domain); // NOLINT
       // don't chain onto existing chained waiter or a chain already processed
       if (chain.first->key->fd > -1 && !chain.first->key->closed) {
-        chain.first->key->chain.insert(qid); // we can chain
+        if (g_maxChainLength > 0 && chain.first->key->authReqChain.size() >= g_maxChainLength) {
+          return  LWResult::Result::OSLimitError;
+        }
+        chain.first->key->authReqChain.insert(qid); // we can chain
         *fileDesc = -1; // gets used in waitEvent / sendEvent later on
+        auto maxLength = t_Counters.at(rec::Counter::maxChainLength);
+        if (chain.first->key->authReqChain.size() > maxLength) {
+          t_Counters.at(rec::Counter::maxChainLength) = chain.first->key->authReqChain.size();
+        }
         return LWResult::Result::Success;
       }
     }
@@ -2834,13 +2841,20 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
   // We close the chain for new entries, since they won't be processed anyway
   iter->key->closed = true;
 
-  if (iter->key->chain.empty()) {
+  if (iter->key->authReqChain.empty()) {
     return;
   }
-  for (auto i = iter->key->chain.begin(); i != iter->key->chain.end(); ++i) {
+
+  auto maxWeight = t_Counters.at(rec::Counter::maxChainWeight);
+  auto weight = iter->key->authReqChain.size() * content.size();
+  if (weight > maxWeight) {
+    t_Counters.at(rec::Counter::maxChainWeight) = weight;
+  }
+
+  for (auto qid: iter->key->authReqChain) {
     auto packetID = std::make_shared<PacketID>(*resend);
     packetID->fd = -1;
-    packetID->id = *i;
+    packetID->id = qid;
     g_multiTasker->sendEvent(packetID, &content);
     t_Counters.at(rec::Counter::chainResends)++;
   }

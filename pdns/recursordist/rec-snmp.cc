@@ -195,6 +195,8 @@ static const oid10 packetCacheContendedOID = {RECURSOR_STATS_OID, 145};
 static const oid10 packetCacheAcquiredOID = {RECURSOR_STATS_OID, 146};
 static const oid10 nodEventsOID = {RECURSOR_STATS_OID, 147};
 static const oid10 udrEventsOID = {RECURSOR_STATS_OID, 148};
+static const oid10 maxChainLengthOID = {RECURSOR_STATS_OID, 149};
+static const oid10 maxChainWeightOID = {RECURSOR_STATS_OID, 150};
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -451,6 +453,8 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("packetcache-acquired", packetCacheAcquiredOID);
   registerCounter64Stat("nod-events", nodEventsOID);
   registerCounter64Stat("udr-events", udrEventsOID);
+  registerCounter64Stat("max-chain-length", maxChainLengthOID);
+  registerCounter64Stat("max-chain-weight", maxChainWeightOID);
 
 #endif /* HAVE_NET_SNMP */
 }

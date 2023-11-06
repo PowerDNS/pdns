@@ -1452,6 +1452,21 @@ and also smaller than `max-mthreads`.
     'versionadded': '4.3.0'
     },
     {
+        'name': 'max_chain_length',
+        'section': 'recursor',
+        'type': LType.Uint64,
+        'default': '0',
+        'help': 'maximum number of queries that can be chained to an outgoing request, 0 is no limit',
+        'doc': '''
+The maximum number of queries that can be attached to an outgoing request chain. Attaching requests to a chain
+saves on outgoing queries, but the processing of a chain when the reply to the outgoing query comes in
+might result in a large outgoing traffic spikes. Reducing the maximum chain length mitigate this.
+If this value is zero, no maximum is enforced, though the maximum number of mthreads (:ref:`setting-max-mthreads`)
+also limits the chain length.
+''',
+        'versionadded': ['4.8.7', '4.9.4', '5.0.3']
+    },
+    {
         'name' : 'max_include_depth',
         'section' : 'recursor',
         'type' : LType.Uint64,

@@ -762,7 +762,7 @@ struct PacketID
   PacketBuffer outMSG; // the outgoing message that needs to be sent
 
   using chain_t = set<uint16_t>;
-  mutable chain_t chain;
+  mutable chain_t authReqChain;
   shared_ptr<TCPIOHandler> tcphandler{nullptr};
   string::size_type inPos{0}; // how far are we along in the inMSG
   size_t inWanted{0}; // if this is set, we'll read until inWanted bytes are read

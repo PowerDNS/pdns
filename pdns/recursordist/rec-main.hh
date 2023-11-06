@@ -212,6 +212,7 @@ extern double g_balancingFactor;
 extern size_t g_maxUDPQueriesPerRound;
 extern bool g_useKernelTimestamp;
 extern bool g_allowNoRD;
+extern unsigned int g_maxChainLength;
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowNotifyFrom;
 extern thread_local std::shared_ptr<notifyset_t> t_allowNotifyFor;

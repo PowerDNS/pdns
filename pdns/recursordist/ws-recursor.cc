@@ -1246,6 +1246,14 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"udr-events",
    MetricDefinition(PrometheusMetricType::counter,
                     "Count of UDR events")},
+
+  {"max-chain-length",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Maximum chain length")},
+
+  {"max-chain-weight",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Maximum chain weight")},
 };
 
 constexpr bool CHECK_PROMETHEUS_METRICS = false;

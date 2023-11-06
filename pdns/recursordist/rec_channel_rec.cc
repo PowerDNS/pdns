@@ -1566,6 +1566,9 @@ static void registerAllStats1()
   addGetStat("nod-events", [] { return g_Counters.sum(rec::Counter::nodCount); });
   addGetStat("udr-events", [] { return g_Counters.sum(rec::Counter::udrCount); });
 
+  addGetStat("max-chain-length", [] { return g_Counters.max(rec::Counter::maxChainLength); });
+  addGetStat("max-chain-weight", [] { return g_Counters.max(rec::Counter::maxChainWeight); });
+
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
   for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {
