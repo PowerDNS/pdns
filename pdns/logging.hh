@@ -69,7 +69,7 @@ struct is_to_string_available<T, std::void_t<decltype(std::to_string(std::declva
 {
 };
 
-// Same mechanism for t.toLogString() and t.toStucturedLogString()
+// Same mechanism for t.toLogString() and t.toStructuredLogString()
 template <typename T, typename = void>
 struct is_toLogString_available : std::false_type
 {
