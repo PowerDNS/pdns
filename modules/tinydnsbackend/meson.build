@@ -1,15 +1,12 @@
 sources = [
   'tinydnsbackend.cc',
-  # TODO Change this into a libpdns library
-  product_source_dir / 'pdns' / 'cdb.cc',
 ]
 
 extras = [
   'tinydnsbackend.hh',
-  product_source_dir / 'pdns' / 'cdb.hh',
 ]
 
-module_deps = [deps, dep_cdb]
+module_deps = [deps, dep_cdb, libpdns_cdb]
 
 lib = static_library(
   module_backend_name,

@@ -1,5 +1,21 @@
 fs = import('fs')
 
+libpdns_cdb = dependency('', required: false)
+if dep_cdb.found()
+  libpdns_cdb = declare_dependency(
+    link_whole: static_library(
+      'libpdns-cdb',
+      'cdb.cc',
+      extra_files: [
+        'cdb.hh',
+      ],
+      dependencies: [
+        deps,
+      ],
+    )
+  )
+endif
+
 libpdns_bindlexer_cc = 'bindlexer.c'
 if not fs.is_file(libpdns_bindlexer_cc)
   flex = find_program('flex', required: true)
