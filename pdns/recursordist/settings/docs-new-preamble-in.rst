@@ -5,10 +5,19 @@ Each setting can appear on the command line, prefixed by ``--`` and using the ol
 Settings on the command line are processed after the file-based settings are processed.
 
 .. note::
-   Starting with version 5.0.0., :program:`Recursor` supports a new YAML syntax for configuration files
+   Starting with version 5.0.0, :program:`Recursor` supports a new YAML syntax for configuration files
    as described here.
+   If both ``recursor.conf`` and ``recursor.yml`` files are found in the configuration directory the YAML file is used.
    A configuration using the old style syntax can be converted to a YAML configuration using the instructions in :doc:`appendices/yamlconversion`.
-   In a future release support for the "old-style" settings will be dropped.
+
+   Release 5.0.0 will install a default old-style ``recursor.conf`` files only.
+
+   With the release of version 5.1.0, packages will stop installing a default ``recursor.conf`` and start installing a default ``recursor.yml`` file if no existing ``recursor.conf`` is present.
+   In the absense of a ``recursor.yml`` file, an existing ``recursor.conf`` file will be accepted and used.
+
+   With the release of 5.2.0, the default will be to expect a ``recursor.yml`` file and reading of ``recursor.conf`` files will have to be enabled specifically by providing a command line option.
+
+   In a future release support for the "old-style" ``recursor.conf`` settings file will be dropped.
 
 
 YAML settings file
