@@ -332,6 +332,11 @@ union ComboAddress {
     return toStringWithPortExcept(53);
   }
 
+  [[nodiscard]] string toStructuredLogString() const
+  {
+    return toStringWithPort();
+  }
+
   string toByteString() const
   {
     if (isIPv4()) {
