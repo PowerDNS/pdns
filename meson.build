@@ -234,7 +234,7 @@ if get_option('module-ldap') != 'disabled'
 endif
 
 if get_option('tools')
-  tools += ['sdig', 'calidns', 'dumresp']
+  tools += ['sdig', 'calidns', 'dumresp', 'kvresp']
 
 endif
 

@@ -579,6 +579,11 @@ tool_libs = {
     'headers': [],
     'deps': [deps, libpdns_common],
   },
+  'kvresp': {
+    'sources': ['kvresp.cc'],
+    'headers': [],
+    'deps': [deps, libpdns_common],
+  },
 }
 
 foreach tool_name, tool_info: tool_libs
