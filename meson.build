@@ -277,4 +277,12 @@ if get_option('tools')
       libpdns_sdig,
     ],
   )
+
+  pdns_calidns = executable(
+    'pdns-calidns',
+    config_h,
+    dependencies: [
+      libpdns_calidns,
+    ],
+  )
 endif

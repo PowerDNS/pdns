@@ -617,3 +617,17 @@ libpdns_sdig = declare_dependency(
     ],
   )
 )
+
+libpdns_calidns = declare_dependency(
+  link_whole: static_library(
+    'pdns-calidns',
+    'calidns.cc',
+    extra_files: [
+      'sstuff.hh',
+    ],
+    dependencies: [
+      deps,
+      libpdns_common,
+    ],
+  )
+)
