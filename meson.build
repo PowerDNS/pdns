@@ -172,6 +172,12 @@ endforeach
 # Add the sqlite3 dependency for the bind and gsqlite3 backends and pdnsutil.
 deps += get_variable('dep_sqlite3', dependency('', required: false))
 
+# Add the yaml-cpp dependency for geoip and ixfrdist.
+deps += get_variable('dep_yaml_cpp', dependency('', required: false))
+
+# Add the boost-test dependency for unit tests and backend unit tests.
+deps += get_variable('dep_boost_test', dependency('', required: false))
+
 subdir('pdns')
 
 selected_modules = []
