@@ -622,6 +622,11 @@ tool_libs = {
     'headers': [],
     'deps': [deps, libpdns_common, libpdns_stubresolver],
   },
+  'saxfr': {
+    'sources': ['saxfr.cc'],
+    'headers': [],
+    'deps': [deps, libpdns_common, libpdns_gss, libpdns_pkcs11, libpdns_tsig, libpdns_dnssecinfra],
+  },
 }
 
 foreach tool_name, tool_info: tool_libs
