@@ -235,29 +235,30 @@ libpdns_dnslabeltext = declare_dependency(
 libpdns_common = declare_dependency(
   link_whole: static_library(
     'pdns-common',
-    'arguments.cc',
-    'base32.cc',
-    'base64.cc',
-    'dns.cc',
-    'dnsname.cc',
-    'dnsparser.cc',
-    'dnsrecords.cc',
-    'dnswriter.cc',
-    'ednsoptions.cc',
-    'ednssubnet.cc',
-    'iputils.cc',
-    'json.cc',
-    'logger.cc',
-    'misc.cc',
-    'nsecrecords.cc',
-    'proxy-protocol.cc',
-    'qtype.cc',
-    'rcpgenerator.cc',
-    'sillyrecords.cc',
-    'statbag.cc',
-    'stubresolver.cc',
-    'svc-records.cc',
-    'unix_utility.cc',
+    sources: [
+      'arguments.cc',
+      'base32.cc',
+      'base64.cc',
+      'dns.cc',
+      'dnsname.cc',
+      'dnsparser.cc',
+      'dnsrecords.cc',
+      'dnswriter.cc',
+      'ednsoptions.cc',
+      'ednssubnet.cc',
+      'iputils.cc',
+      'json.cc',
+      'logger.cc',
+      'misc.cc',
+      'nsecrecords.cc',
+      'proxy-protocol.cc',
+      'qtype.cc',
+      'rcpgenerator.cc',
+      'sillyrecords.cc',
+      'statbag.cc',
+      'svc-records.cc',
+      'unix_utility.cc',
+    ],
     extra_files: [
       'arguments.hh',
       'base32.hh',
@@ -278,7 +279,6 @@ libpdns_common = declare_dependency(
       'qtype.hh',
       'rcpgenerator.hh',
       'statbag.hh',
-      'stubresolver.hh',
       'svc-records.hh',
       'utility.hh',
     ],
@@ -289,41 +289,73 @@ libpdns_common = declare_dependency(
   )
 )
 
+libpdns_dnssecinfra = declare_dependency(
+  link_whole: static_library(
+    'pdns-dnssecinfra',
+    sources: [
+      'dnssecinfra.cc',
+    ],
+    extra_files: [
+      'dnssecinfra.hh',
+    ],
+    dependencies: [
+      deps,
+      libpdns_common,
+    ],
+  )
+)
+
+libpdns_stubresolver = declare_dependency(
+  link_whole: static_library(
+    'pdns-stubresolver',
+    sources: [
+      'stubresolver.cc',
+    ],
+    extra_files: [
+      'stubresolver.hh',
+    ],
+    dependencies: [
+      deps,
+      libpdns_common,
+    ],
+  )
+)
+
 libpdns_base = declare_dependency(
   link_whole: static_library(
     'pdns-base',
-    'axfr-retriever.cc',
-    # TODO Move to a separate module
-    'backends' / 'gsql' / 'gsqlbackend.cc',
-    'credentials.cc',
-    'dbdnsseckeeper.cc',
-    'dnsbackend.cc',
-    'dnspacket.cc',
-    'dnsproxy.cc',
-    'dnssecinfra.cc',
-    'dnssecsigner.cc',
-    'dynlistener.cc',
-    'ednscookies.cc',
-    'gettime.cc',
-    'ixfr.cc',
-    'opensslsigners.cc',
-    'query-local-address.cc',
-    'resolver.cc',
-    'responsestats.cc',
-    'secpoll.cc',
-    'serialtweaker.cc',
-    'shuffle.cc',
-    'signingpipe.cc',
-    'threadname.cc',
-    'trusted-notification-proxy.cc',
-    'ueberbackend.cc',
-    'unix_semaphore.cc',
-    'uuid-utils.cc',
-    'version.cc',
+    sources: [
+      'axfr-retriever.cc',
+      'backends' / 'gsql' / 'gsqlbackend.cc', # TODO Move to a separate module
+      'credentials.cc',
+      'dbdnsseckeeper.cc',
+      'dnsbackend.cc',
+      'dnspacket.cc',
+      'dnsproxy.cc',
+      'dnssecsigner.cc',
+      'dynlistener.cc',
+      'ednscookies.cc',
+      'gettime.cc',
+      'ixfr.cc',
+      'opensslsigners.cc',
+      'query-local-address.cc',
+      'resolver.cc',
+      'responsestats.cc',
+      'secpoll.cc',
+      'serialtweaker.cc',
+      'shuffle.cc',
+      'signingpipe.cc',
+      'threadname.cc',
+      'trusted-notification-proxy.cc',
+      'ueberbackend.cc',
+      'unix_semaphore.cc',
+      'uuid-utils.cc',
+      'version.cc',
+    ],
     extra_files: [
       'axfr-retriever.hh',
-      'backends/gsql/gsqlbackend.hh',
-      'backends/gsql/ssql.hh',
+      'backends' / 'gsql' / 'gsqlbackend.hh', # TODO Move to a separate module
+      'backends' / 'gsql' / 'ssql.hh',        # TODO Move to a separate module
       'burtle.hh',
       'cachecleaner.hh',
       'circular_buffer.hh',
@@ -334,7 +366,6 @@ libpdns_base = declare_dependency(
       'dnsbackend.hh',
       'dnspacket.hh',
       'dnsproxy.hh',
-      'dnssecinfra.hh',
       'dnsseckeeper.hh',
       'dynhandler.hh',
       'dynlistener.hh',
@@ -367,6 +398,8 @@ libpdns_base = declare_dependency(
     dependencies: [
       deps,
       libpdns_common,
+      libpdns_dnssecinfra,
+      libpdns_stubresolver,
       libpdns_bind_parser,
       libpdns_gss,
       libpdns_lua,
@@ -587,7 +620,7 @@ tool_libs = {
   'stubquery': {
     'sources': ['stubquery.cc'],
     'headers': [],
-    'deps': [deps, libpdns_common],
+    'deps': [deps, libpdns_common, libpdns_stubresolver],
   },
 }
 
