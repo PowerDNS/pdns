@@ -72,7 +72,7 @@ static void recvThread(const std::shared_ptr<std::vector<std::unique_ptr<Socket>
 
   int err;
 
-#if HAVE_RECVMMSG
+#ifdef HAVE_RECVMMSG
   vector<struct mmsghdr> buf(100);
   for(auto& m : buf) {
     cmsgbuf_aligned *cbuf = new cmsgbuf_aligned;
@@ -96,7 +96,7 @@ static void recvThread(const std::shared_ptr<std::vector<std::unique_ptr<Socket>
 
     for(auto &pfd : fds) {
       if (pfd.revents & POLLIN) {
-#if HAVE_RECVMMSG
+#ifdef HAVE_RECVMMSG
         if ((err=recvmmsg(pfd.fd, &buf[0], buf.size(), MSG_WAITFORONE, 0)) < 0 ) {
           if(errno != EAGAIN)
             unixDie("recvmmsg");
@@ -384,7 +384,7 @@ try
   struct sched_param param;
   param.sched_priority=99;
 
-#if HAVE_SCHED_SETSCHEDULER
+#ifdef HAVE_SCHED_SETSCHEDULER
   if(sched_setscheduler(0, SCHED_FIFO, &param) < 0) {
     if (!g_quiet) {
       cerr<<"Unable to set SCHED_FIFO: "<<stringerror()<<endl;
