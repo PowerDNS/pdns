@@ -285,4 +285,12 @@ if get_option('tools')
       libpdns_calidns,
     ],
   )
+
+  pdns_dumresp = executable(
+    'pdns-dumresp',
+    config_h,
+    dependencies: [
+      libpdns_dumresp,
+    ],
+  )
 endif

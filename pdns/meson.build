@@ -647,3 +647,15 @@ libpdns_calidns = declare_dependency(
     ],
   )
 )
+
+libpdns_dumresp = declare_dependency(
+  link_whole: static_library(
+    'pdns-dumresp',
+    'dumresp.cc',
+    extra_files: [],
+    dependencies: [
+      deps,
+      libpdns_common,
+    ],
+  )
+)
