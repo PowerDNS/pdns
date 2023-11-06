@@ -58,7 +58,7 @@ inline void dolog(std::ostream& os, const char*s)
 }
 
 template<typename T, typename... Args>
-void dolog(std::ostream& os, const char* s, T value, Args&&... args)
+void dolog(std::ostream& os, const char* s, T value, const Args&... args)
 {
   while (*s) {
     if (*s == '%') {
@@ -68,7 +68,7 @@ void dolog(std::ostream& os, const char* s, T value, Args&&... args)
       else {
 	os << value;
 	s += 2;
-	dolog(os, s, std::forward<Args>(args)...);
+	dolog(os, s, args...);
 	return;
       }
     }
@@ -91,10 +91,10 @@ inline void setSyslogFacility(int facility)
 }
 
 template<typename... Args>
-void genlog(std::ostream& stream, int level, bool doSyslog, const char* s, Args&&... args)
+void genlog(std::ostream& stream, int level, bool doSyslog, const char* s, const Args&... args)
 {
   std::ostringstream str;
-  dolog(str, s, std::forward<Args>(args)...);
+  dolog(str, s, args...);
 
   auto output = str.str();
 
@@ -120,15 +120,15 @@ void genlog(std::ostream& stream, int level, bool doSyslog, const char* s, Args&
 }
 
 template<typename... Args>
-void verboselog(const char* s, Args&&... args)
+void verboselog(const char* s, const Args&... args)
 {
 #ifdef DNSDIST
   if (g_verboseStream) {
-    genlog(*g_verboseStream, LOG_DEBUG, false, s, std::forward<Args>(args)...);
+    genlog(*g_verboseStream, LOG_DEBUG, false, s, args...);
   }
   else {
 #endif /* DNSDIST */
-    genlog(std::cout, LOG_DEBUG, g_syslog, s, std::forward<Args>(args)...);
+    genlog(std::cout, LOG_DEBUG, g_syslog, s, args...);
 #ifdef DNSDIST
   }
 #endif /* DNSDIST */
@@ -137,21 +137,21 @@ void verboselog(const char* s, Args&&... args)
 #define vinfolog if (g_verbose) verboselog
 
 template<typename... Args>
-void infolog(const char* s, Args&&... args)
+void infolog(const char* s, const Args&... args)
 {
-  genlog(std::cout, LOG_INFO, g_syslog, s, std::forward<Args>(args)...);
+  genlog(std::cout, LOG_INFO, g_syslog, s, args...);
 }
 
 template<typename... Args>
-void warnlog(const char* s, Args&&... args)
+void warnlog(const char* s, const Args&... args)
 {
-  genlog(std::cout, LOG_WARNING, g_syslog, s, std::forward<Args>(args)...);
+  genlog(std::cout, LOG_WARNING, g_syslog, s, args...);
 }
 
 template<typename... Args>
-void errlog(const char* s, Args&&... args)
+void errlog(const char* s, const Args&... args)
 {
-  genlog(std::cout, LOG_ERR, g_syslog, s, std::forward<Args>(args)...);
+  genlog(std::cout, LOG_ERR, g_syslog, s, args...);
 }
 
 #else // RECURSOR
@@ -169,7 +169,7 @@ inline void dolog(const char* s)
 }
 
 template<typename T, typename... Args>
-void dolog(Logger::Urgency u, const char* s, T value, Args&&... args)
+void dolog(Logger::Urgency u, const char* s, T value, const Args&... args)
 {
   g_log << u;
   while (*s) {
@@ -180,7 +180,7 @@ void dolog(Logger::Urgency u, const char* s, T value, Args&&... args)
       else {
 	g_log << value;
 	s += 2;
-	dolog(s, std::forward<Args>(args)...);
+	dolog(s, args...);
 	return;
       }
     }
@@ -191,21 +191,21 @@ void dolog(Logger::Urgency u, const char* s, T value, Args&&... args)
 #define vinfolog if(g_verbose)infolog
 
 template<typename... Args>
-void infolog(const char* s, Args&&... args)
+void infolog(const char* s, const Args&... args)
 {
-  dolog(Logger::Info, s, std::forward<Args>(args)...);
+  dolog(Logger::Info, s, args...);
 }
 
 template<typename... Args>
-void warnlog(const char* s, Args&&... args)
+void warnlog(const char* s, const Args&... args)
 {
-  dolog(Logger::Warning, s, std::forward<Args>(args)...);
+  dolog(Logger::Warning, s, args...);
 }
 
 template<typename... Args>
-void errlog(const char* s, Args&&... args)
+void errlog(const char* s, const Args&... args)
 {
-  dolog(Logger::Error, s, std::forward<Args>(args)...);
+  dolog(Logger::Error, s, args...);
 }
 
 #endif
