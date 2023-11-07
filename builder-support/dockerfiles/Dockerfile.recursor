@@ -12,6 +12,9 @@ ADD builder/helpers/set-configure-ac-version.sh /pdns-recursor/builder/helpers/
 ADD builder-support/gen-version /pdns-recursor/pdns/recursordist/builder-support/gen-version
 WORKDIR /pdns-recursor/pdns/recursordist
 
+ADD builder-support/helpers/ /pdns/builder-support/helpers/
+RUN /pdns/builder-support/helpers/install_rust.sh
+
 RUN mkdir /sdist
 
 ARG BUILDER_VERSION
