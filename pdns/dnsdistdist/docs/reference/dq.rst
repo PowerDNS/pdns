@@ -279,6 +279,15 @@ This state can be modified from the various hooks.
     :param int code: The EDNS option code
     :param string data: The EDNS option raw data
 
+  .. method:: DNSQuestion:setExtendedDNSError(infoCode [, extraText])
+
+    .. versionadded:: 1.9.0
+
+      Set an Extended DNS Error status that will be added to the response corresponding to the current query.
+
+    :param int infoCode: The EDNS Extended DNS Error code
+    :param string extraText: The optional EDNS Extended DNS Error extra text
+
   .. method:: DNSQuestion:setHTTPResponse(status, body, contentType="")
 
     .. versionadded:: 1.4.0

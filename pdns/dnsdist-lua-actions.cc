@@ -2238,6 +2238,58 @@ private:
   double d_ratio{1.0};
 };
 
+class SetExtendedDNSErrorAction : public DNSAction
+{
+public:
+  // this action does not stop the processing
+  SetExtendedDNSErrorAction(uint16_t infoCode, const std::string& extraText)
+  {
+    d_ede.infoCode = infoCode;
+    d_ede.extraText = extraText;
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  {
+    dq->ids.d_extendedError = std::make_unique<EDNSExtendedError>(d_ede);
+
+    return DNSAction::Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "set EDNS Extended DNS Error to " + std::to_string(d_ede.infoCode) + (d_ede.extraText.empty() ? std::string() : std::string(": \"") + d_ede.extraText + std::string("\""));
+  }
+
+private:
+  EDNSExtendedError d_ede;
+};
+
+class SetExtendedDNSErrorResponseAction : public DNSResponseAction
+{
+public:
+  // this action does not stop the processing
+  SetExtendedDNSErrorResponseAction(uint16_t infoCode, const std::string& extraText)
+  {
+    d_ede.infoCode = infoCode;
+    d_ede.extraText = extraText;
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  {
+    dr->ids.d_extendedError = std::make_unique<EDNSExtendedError>(d_ede);
+
+    return DNSResponseAction::Action::None;
+  }
+
+  std::string toString() const override
+  {
+    return "set EDNS Extended DNS Error to " + std::to_string(d_ede.infoCode) + (d_ede.extraText.empty() ? std::string() : std::string(": \"") + d_ede.extraText + std::string("\""));
+  }
+
+private:
+  EDNSExtendedError d_ede;
+};
+
 template<typename T, typename ActionT>
 static void addAction(GlobalStateHolder<vector<T> > *someRuleActions, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params) {
   setLuaSideEffect();
@@ -2772,5 +2824,13 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("SetAdditionalProxyProtocolValueAction", [](uint8_t type, const std::string& value) {
     return std::shared_ptr<DNSAction>(new SetAdditionalProxyProtocolValueAction(type, value));
+  });
+
+  luaCtx.writeFunction("SetExtendedDNSErrorAction", [](uint16_t infoCode, boost::optional<std::string> extraText) {
+    return std::shared_ptr<DNSAction>(new SetExtendedDNSErrorAction(infoCode, extraText ? *extraText : ""));
+  });
+
+  luaCtx.writeFunction("SetExtendedDNSErrorResponseAction", [](uint16_t infoCode, boost::optional<std::string> extraText) {
+    return std::shared_ptr<DNSResponseAction>(new SetExtendedDNSErrorResponseAction(infoCode, extraText ? *extraText : ""));
   });
 }
