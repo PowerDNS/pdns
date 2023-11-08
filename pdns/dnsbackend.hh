@@ -58,7 +58,7 @@ struct DomainInfo
   time_t last_check{};
   string options;
   string account;
-  vector<ComboAddress> masters;
+  vector<ComboAddress> primaries;
   DNSBackend *backend{};
 
   uint32_t id{};
@@ -76,7 +76,7 @@ struct DomainInfo
   // Do not reorder (lmdbbackend)!!! One exception 'All' is always last.
   enum DomainKind : uint8_t
   {
-    Master,
+    Primary,
     Slave,
     Native,
     Producer,
@@ -101,7 +101,7 @@ struct DomainInfo
       return DomainInfo::Slave;
     }
     if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER")) {
-      return DomainInfo::Master;
+      return DomainInfo::Primary;
     }
     if (pdns_iequals(kind, "PRODUCER")) {
       return DomainInfo::Producer;
@@ -113,13 +113,13 @@ struct DomainInfo
     return DomainInfo::Native;
   }
 
-  [[nodiscard]] bool isPrimaryType() const { return (kind == DomainInfo::Master || kind == DomainInfo::Producer); }
+  [[nodiscard]] bool isPrimaryType() const { return (kind == DomainInfo::Primary || kind == DomainInfo::Producer); }
   [[nodiscard]] bool isSecondaryType() const { return (kind == DomainInfo::Slave || kind == DomainInfo::Consumer); }
   [[nodiscard]] bool isCatalogType() const { return (kind == DomainInfo::Producer || kind == DomainInfo::Consumer); }
 
-  [[nodiscard]] bool isMaster(const ComboAddress& ipAddress) const
+  [[nodiscard]] bool isPrimary(const ComboAddress& ipAddress) const
   {
-    return std::any_of(masters.begin(), masters.end(), [ipAddress](auto master) { return ComboAddress::addressOnlyEqual()(ipAddress, master); });
+    return std::any_of(primaries.begin(), primaries.end(), [ipAddress](auto primary) { return ComboAddress::addressOnlyEqual()(ipAddress, primary); });
   }
 };
 
@@ -279,7 +279,7 @@ public:
     return false;
   }
 
-  //! returns true if master ip is master for domain name.
+  //! returns true if primary ip is primary for domain name.
   //! starts the transaction for updating domain qname (FIXME: what is id?)
   virtual bool startTransaction(const DNSName& /* qname */, int /* id */ = -1)
   {
@@ -344,7 +344,7 @@ public:
   }
 
   //! get list of domains that have been changed since their last notification to slaves
-  virtual void getUpdatedMasters(vector<DomainInfo>& /* domains */, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
+  virtual void getUpdatedPrimaries(vector<DomainInfo>& /* domains */, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
   {
   }
 
@@ -369,13 +369,13 @@ public:
   {
   }
 
-  //! Called when the Master list of a domain should be changed
-  virtual bool setMasters(const DNSName& /* domain */, const vector<ComboAddress>& /* masters */)
+  //! Called when the Primary list of a domain should be changed
+  virtual bool setPrimaries(const DNSName& /* domain */, const vector<ComboAddress>& /* primaries */)
   {
     return false;
   }
 
-  //! Called when the Kind of a domain should be changed (master -> native and similar)
+  //! Called when the Kind of a domain should be changed (primary -> native and similar)
   virtual bool setKind(const DNSName& /* domain */, const DomainInfo::DomainKind /* kind */)
   {
     return false;
@@ -402,37 +402,37 @@ public:
   //! Can be called to seed the getArg() function with a prefix
   void setArgPrefix(const string &prefix);
 
-  //! Add an entry for a super master
-  virtual bool superMasterAdd(const struct AutoPrimary& /* primary */)
+  //! Add an entry for a super primary
+  virtual bool autoPrimaryAdd(const struct AutoPrimary& /* primary */)
   {
     return false;
   }
 
-  //! Remove an entry for a super master
+  //! Remove an entry for a super primary
   virtual bool autoPrimaryRemove(const struct AutoPrimary& /* primary */)
   {
     return false;
   }
 
-  //! List all SuperMasters, returns false if feature not supported.
+  //! List all AutoPrimaries, returns false if feature not supported.
   virtual bool autoPrimariesList(std::vector<AutoPrimary>& /* primaries */)
   {
     return false;
   }
 
-  //! determine if ip is a supermaster or a domain
-  virtual bool superMasterBackend(const string& /* ip */, const DNSName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* /* account */, DNSBackend** /* db */)
+  //! determine if ip is a autoprimary or a domain
+  virtual bool autoPrimaryBackend(const string& /* ip */, const DNSName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* /* account */, DNSBackend** /* db */)
   {
     return false;
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const DNSName& /* domain */, const DomainInfo::DomainKind /* kind */, const vector<ComboAddress>& /* masters */, const string& /* account */)
+  virtual bool createDomain(const DNSName& /* domain */, const DomainInfo::DomainKind /* kind */, const vector<ComboAddress>& /* primaries */, const string& /* account */)
   {
     return false;
   }
 
-  //! called by PowerDNS to create a slave record for a superMaster
+  //! called by PowerDNS to create a slave record for a autoPrimary
   virtual bool createSlaveDomain(const string& /* ip */, const DNSName& /* domain */, const string& /* nameserver */, const string& /* account */)
   {
     return false;
@@ -525,7 +525,7 @@ struct SOAData
 
   DNSName qname;
   DNSName nameserver;
-  DNSName hostmaster;
+  DNSName rname;
   uint32_t ttl{};
   uint32_t serial{};
   uint32_t refresh{};

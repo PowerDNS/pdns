@@ -48,12 +48,12 @@
 
 #include "ixfr.hh"
 
-void CommunicatorClass::addSuckRequest(const DNSName &domain, const ComboAddress& master, SuckRequest::RequestPriority priority, bool force)
+void CommunicatorClass::addSuckRequest(const DNSName& domain, const ComboAddress& primary, SuckRequest::RequestPriority priority, bool force)
 {
   auto data = d_data.lock();
   SuckRequest sr;
   sr.domain = domain;
-  sr.master = master;
+  sr.primary = primary;
   sr.force = force;
   sr.priorityAndOrder.first = priority;
   sr.priorityAndOrder.second = data->d_sorthelper++;
@@ -151,18 +151,18 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
             di.backend->setOptions(ciXFR.d_zone, ciDB.toJson());
           }
 
-          if (di.masters != ciDB.d_primaries) { // update primaries
+          if (di.primaries != ciDB.d_primaries) { // update primaries
             if (doTransaction && (inTransaction = di.backend->startTransaction(di.zone))) {
               g_log << Logger::Warning << logPrefix << "backend transaction started" << endl;
               doTransaction = false;
             }
 
             vector<string> primaries;
-            for (const auto& primary : di.masters) {
+            for (const auto& primary : di.primaries) {
               primaries.push_back(primary.toStringWithPortExcept(53));
             }
             g_log << Logger::Warning << logPrefix << "update primaries for zone '" << ciXFR.d_zone << "' to '" << boost::join(primaries, ", ") << "'" << endl;
-            di.backend->setMasters(ciXFR.d_zone, di.masters);
+            di.backend->setPrimaries(ciXFR.d_zone, di.primaries);
 
             retrieve.emplace_back(ciXFR);
           }
@@ -194,7 +194,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
               doTransaction = false;
             }
 
-            di.backend->setMasters(ciCreate.d_zone, di.masters);
+            di.backend->setPrimaries(ciCreate.d_zone, di.primaries);
             di.backend->setOptions(ciCreate.d_zone, ciCreate.toJson());
             di.backend->setCatalog(ciCreate.d_zone, di.zone);
 
@@ -239,7 +239,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
         g_log << Logger::Warning << logPrefix << "create zone '" << ciCreate.d_zone << "'" << endl;
         di.backend->createDomain(ciCreate.d_zone, DomainInfo::Slave, ciCreate.d_primaries, "");
 
-        di.backend->setMasters(ciCreate.d_zone, di.masters);
+        di.backend->setPrimaries(ciCreate.d_zone, di.primaries);
         di.backend->setOptions(ciCreate.d_zone, ciCreate.toJson());
         di.backend->setCatalog(ciCreate.d_zone, di.zone);
 
@@ -274,12 +274,12 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
     }
 
     // retrieve new and updated zones with new primaries
-    auto masters = di.masters;
-    if (!masters.empty()) {
+    auto primaries = di.primaries;
+    if (!primaries.empty()) {
       for (auto& ret : retrieve) {
-        shuffle(masters.begin(), masters.end(), pdns::dns_random_engine());
-        const auto& master = masters.front();
-        Communicator.addSuckRequest(ret.d_zone, master, SuckRequest::Notify);
+        shuffle(primaries.begin(), primaries.end(), pdns::dns_random_engine());
+        const auto& primary = primaries.front();
+        Communicator.addSuckRequest(ret.d_zone, primary, SuckRequest::Notify);
       }
     }
 
@@ -571,7 +571,7 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
 }
 
 /* So this code does a number of things.
-   1) It will AXFR a domain from a master
+   1) It will AXFR a domain from a primary
       The code can retrieve the current serial number in the database itself.
       It may attempt an IXFR
    2) It will filter the zone through a lua *filter* script
@@ -990,7 +990,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
   catch(ResolverException &re) {
     {
       auto data = d_data.lock();
-      // The AXFR probably failed due to a problem on the master server. If SOA-checks against this master
+      // The AXFR probably failed due to a problem on the primary server. If SOA-checks against this primary
       // still succeed, we would constantly try to AXFR the zone. To avoid this, we add the zone to the list of
       // failed slave-checks. This will suspend slave-checks (and subsequent AXFR) for this zone for some time.
       uint64_t newCount = 1;
@@ -1050,17 +1050,16 @@ struct SlaveSenderReceiver
 
   Identifier send(DomainNotificationInfo& dni)
   {
-    shuffle(dni.di.masters.begin(), dni.di.masters.end(), pdns::dns_random_engine());
+    shuffle(dni.di.primaries.begin(), dni.di.primaries.end(), pdns::dns_random_engine());
     try {
       return {dni.di.zone,
-                             *dni.di.masters.begin(),
-                             d_resolver.sendResolve(*dni.di.masters.begin(),
-                                                    dni.localaddr,
-                                                    dni.di.zone,
-                                                    QType::SOA,
-                                                    nullptr,
-                                                    dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)
-      };
+              *dni.di.primaries.begin(),
+              d_resolver.sendResolve(*dni.di.primaries.begin(),
+                                     dni.localaddr,
+                                     dni.di.zone,
+                                     QType::SOA,
+                                     nullptr,
+                                     dni.dnssecOk, dni.tsigkeyname, dni.tsigalgname, dni.tsigsecret)};
     }
     catch(PDNSException& e) {
       throw runtime_error("While attempting to query freshness of '"+dni.di.zone.toLogString()+"': "+e.reason);
@@ -1087,12 +1086,12 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
   ours.backend = nullptr;
 
   // When adding a check, if the remote addr from which notification was
-  // received is a master, clear all other masters so we can be sure the
+  // received is a primary, clear all other primaries so we can be sure the
   // query goes to that one.
-  for (const auto& master : di.masters) {
-    if (ComboAddress::addressOnlyEqual()(remote, master)) {
-      ours.masters.clear();
-      ours.masters.push_back(master);
+  for (const auto& primary : di.primaries) {
+    if (ComboAddress::addressOnlyEqual()(remote, primary)) {
+      ours.primaries.clear();
+      ours.primaries.push_back(primary);
       break;
     }
   }
@@ -1101,11 +1100,11 @@ void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAd
   d_any_sem.post(); // kick the loop!
 }
 
-void CommunicatorClass::addTrySuperMasterRequest(const DNSPacket& p)
+void CommunicatorClass::addTryAutoPrimaryRequest(const DNSPacket& p)
 {
   const DNSPacket& ours = p;
   auto data = d_data.lock();
-  if (data->d_potentialsupermasters.insert(ours).second) {
+  if (data->d_potentialautoprimaries.insert(ours).second) {
     d_any_sem.post(); // kick the loop!
   }
 }
@@ -1129,7 +1128,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
         requeue.insert(di);
       }
       else {
-        // We received a NOTIFY for a zone. This means at least one of the zone's master server is working.
+        // We received a NOTIFY for a zone. This means at least one of the zone's primary server is working.
         // Therefore we delete the zone from the list of failed slave-checks to allow immediate checking.
         const auto wasFailedDomain = data->d_failedSlaveRefresh.find(di.zone);
         if (wasFailedDomain != data->d_failedSlaveRefresh.end()) {
@@ -1143,8 +1142,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     }
     data->d_tocheck.swap(requeue);
 
-    trysuperdomains = std::move(data->d_potentialsupermasters);
-    data->d_potentialsupermasters.clear();
+    trysuperdomains = std::move(data->d_potentialautoprimaries);
+    data->d_potentialautoprimaries.clear();
   }
 
   for(const DNSPacket& dp :  trysuperdomains) {
@@ -1152,7 +1151,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     dp.getTSIGDetails(&trc, &tsigkeyname);
-    P->trySuperMasterSynchronous(dp, tsigkeyname); // FIXME could use some error logging
+    P->tryAutoPrimarySynchronous(dp, tsigkeyname); // FIXME could use some error logging
   }
   if(rdomains.empty()) { // if we have priority domains, check them first
     B->getUnfreshSlaveInfos(&rdomains);
@@ -1175,10 +1174,10 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       std::vector<std::string> localaddr;
       SuckRequest sr;
       sr.domain=di.zone;
-      if(di.masters.empty()) // slave domains w/o masters are ignored
+      if (di.primaries.empty()) // slave domains w/o primaries are ignored
         continue;
       // remove unfresh domains already queued for AXFR, no sense polling them again
-      sr.master=*di.masters.begin();
+      sr.primary = *di.primaries.begin();
       if(nameindex.count(sr)) {  // this does NOT however protect us against AXFRs already in progress!
         continue;
       }
@@ -1190,7 +1189,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       dni.di = di;
       dni.dnssecOk = checkSignatures;
 
-      if(dk.getTSIGForAccess(di.zone, sr.master, &dni.tsigkeyname)) {
+      if (dk.getTSIGForAccess(di.zone, sr.primary, &dni.tsigkeyname)) {
         string secret64;
         if (!B->getTSIGKey(dni.tsigkeyname, dni.tsigalgname, secret64)) {
           g_log<<Logger::Warning<<"TSIG key '"<<dni.tsigkeyname<<"' for domain '"<<di.zone<<"' not found, can not AXFR."<<endl;
@@ -1269,7 +1268,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     // Conversely, if our di came from getUnfreshSlaveInfos, di.backend and di.serial are valid.
     if(!di.backend) {
       // Do not overwrite received DI just to make sure it exists in backend:
-      // di.masters should contain the picked master (as first entry)!
+      // di.primaries should contain the picked primary (as first entry)!
       DomainInfo tempdi;
       if (!B->getDomainInfo(di.zone, tempdi, false)) {
         g_log<<Logger::Info<<"Ignore domain "<< di.zone<<" since it has been removed from our backend"<<endl;
@@ -1325,10 +1324,10 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
     uint32_t theirserial = ssr.d_freshness[di.id].theirSerial;
     uint32_t ourserial = sd.serial;
-    const ComboAddress remote = *di.masters.begin();
+    const ComboAddress remote = *di.primaries.begin();
 
     if(hasSOA && rfc1982LessThan(theirserial, ourserial) && !::arg().mustDo("axfr-lower-serial"))  {
-      g_log<<Logger::Warning<<"Domain '" << di.zone << "' more recent than master " << remote.toStringWithPortExcept(53) << ", our serial "<< ourserial<< " > their serial "<< theirserial << endl;
+      g_log << Logger::Warning << "Domain '" << di.zone << "' more recent than primary " << remote.toStringWithPortExcept(53) << ", our serial " << ourserial << " > their serial " << theirserial << endl;
       di.backend->setFresh(di.id);
     }
     else if(hasSOA && theirserial == ourserial) {
@@ -1351,27 +1350,27 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
 
       if(! maxInception && ! ssr.d_freshness[di.id].theirInception) {
-        g_log<<Logger::Info<<"Domain '"<< di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked master " << remote.toStringWithPortExcept(53) << ")" << endl;
+        g_log << Logger::Info << "Domain '" << di.zone << "' is fresh (no DNSSEC), serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
         di.backend->setFresh(di.id);
       }
       else if(maxInception == ssr.d_freshness[di.id].theirInception && maxExpire == ssr.d_freshness[di.id].theirExpire) {
-        g_log<<Logger::Info<<"Domain '"<< di.zone << "' is fresh and SOA RRSIGs match, serial is " << ourserial << " (checked master " << remote.toStringWithPortExcept(53) << ")" << endl;
+        g_log << Logger::Info << "Domain '" << di.zone << "' is fresh and SOA RRSIGs match, serial is " << ourserial << " (checked primary " << remote.toStringWithPortExcept(53) << ")" << endl;
         di.backend->setFresh(di.id);
       }
       else if(maxExpire >= now && ! ssr.d_freshness[di.id].theirInception ) {
-        g_log<<Logger::Info<<"Domain '"<< di.zone << "' is fresh, master " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still valid, serial is " << ourserial << endl;
+        g_log << Logger::Info << "Domain '" << di.zone << "' is fresh, primary " << remote.toStringWithPortExcept(53) << " is no longer signed but (some) signatures are still valid, serial is " << ourserial << endl;
         di.backend->setFresh(di.id);
       }
       else if(maxInception && ! ssr.d_freshness[di.id].theirInception ) {
-        g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl;
+        g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " is no longer signed and all signatures have expired, serial is " << ourserial << endl;
         addSuckRequest(di.zone, remote, prio);
       }
       else if(dk.doesDNSSEC() && ! maxInception && ssr.d_freshness[di.id].theirInception) {
-        g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl;
+        g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " has signed, serial is " << ourserial << endl;
         addSuckRequest(di.zone, remote, prio);
       }
       else {
-        g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is fresh, but RRSIGs differ on master " << remote.toStringWithPortExcept(53)<<", so DNSSEC is stale, serial is " << ourserial << endl;
+        g_log << Logger::Notice << "Domain '" << di.zone << "' is fresh, but RRSIGs differ on primary " << remote.toStringWithPortExcept(53) << ", so DNSSEC is stale, serial is " << ourserial << endl;
         addSuckRequest(di.zone, remote, prio);
       }
     }
@@ -1382,10 +1381,10 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
 
       if (hasSOA) {
-        g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is stale, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
+        g_log << Logger::Notice << "Domain '" << di.zone << "' is stale, primary " << remote.toStringWithPortExcept(53) << " serial " << theirserial << ", our serial " << ourserial << endl;
       }
       else {
-        g_log<<Logger::Notice<<"Domain '"<< di.zone << "' is empty, master " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
+        g_log << Logger::Notice << "Domain '" << di.zone << "' is empty, primary " << remote.toStringWithPortExcept(53) << " serial " << theirserial << endl;
       }
       addSuckRequest(di.zone, remote, prio);
     }
@@ -1397,7 +1396,7 @@ vector<pair<DNSName, ComboAddress> > CommunicatorClass::getSuckRequests() {
   auto data = d_data.lock();
   ret.reserve(data->d_suckdomains.size());
   for (auto const &d : data->d_suckdomains) {
-    ret.emplace_back(d.domain, d.master);
+    ret.emplace_back(d.domain, d.primary);
   }
   return ret;
 }

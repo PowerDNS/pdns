@@ -254,15 +254,15 @@ string DLNotifyRetrieveHandler(const vector<string>& parts, Utility::pid_t /* pp
     return "Failed to parse zone as valid DNS name";
   }
 
-  ComboAddress master_ip;
-  bool override_master = false;
+  ComboAddress primary_ip;
+  bool override_primary = false;
   if (parts.size() == 3) {
     try {
-      master_ip = ComboAddress{parts[2], 53};
+      primary_ip = ComboAddress{parts[2], 53};
     } catch (...) {
       return "Invalid primary address";
     }
-    override_master = true;
+    override_primary = true;
   }
 
   DomainInfo di;
@@ -271,19 +271,19 @@ string DLNotifyRetrieveHandler(const vector<string>& parts, Utility::pid_t /* pp
     return " Zone '" + domain.toString() + "' unknown";
   }
 
-  if (override_master) {
-    di.masters.clear();
-    di.masters.push_back(master_ip);
+  if (override_primary) {
+    di.primaries.clear();
+    di.primaries.push_back(primary_ip);
   }
 
-  if (!override_master && (!di.isSecondaryType() || di.masters.empty()))
+  if (!override_primary && (!di.isSecondaryType() || di.primaries.empty()))
     return "Zone '" + domain.toString() + "' is not a secondary/consumer zone (or has no primary defined)";
 
-  shuffle(di.masters.begin(), di.masters.end(), pdns::dns_random_engine());
-  const auto& master = di.masters.front();
-  Communicator.addSuckRequest(domain, master, SuckRequest::PdnsControl, override_master);
-  g_log << Logger::Warning << "Retrieval request for zone '" << domain << "' from primary '" << master << "' received from operator" << endl;
-  return "Added retrieval request for '" + domain.toLogString() + "' from primary " + master.toLogString();
+  shuffle(di.primaries.begin(), di.primaries.end(), pdns::dns_random_engine());
+  const auto& primary = di.primaries.front();
+  Communicator.addSuckRequest(domain, primary, SuckRequest::PdnsControl, override_primary);
+  g_log << Logger::Warning << "Retrieval request for zone '" << domain << "' from primary '" << primary << "' received from operator" << endl;
+  return "Added retrieval request for '" + domain.toLogString() + "' from primary " + primary.toLogString();
 }
 
 string DLNotifyHostHandler(const vector<string>& parts, Utility::pid_t /* ppid */)

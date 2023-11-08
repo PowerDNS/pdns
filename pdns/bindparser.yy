@@ -258,7 +258,7 @@ primaries: /* empty */
 
 primary: AWORD
 	{
-		s_di.masters.push_back(ComboAddress($1, 53));
+		s_di.primaries.push_back(ComboAddress($1, 53));
 		free($1);
 	}
 	;

@@ -410,7 +410,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         auto repr = rec.getZoneRepresentation();
         if (rec.qtype == QType::TXT) {
           DLOG(g_log<<msgPrefix<<"Adjusting TXT content from ["<<repr<<"]"<<endl);
-          auto drc = DNSRecordContent::mastermake(rec.qtype.getCode(), QClass::IN, repr);
+          auto drc = DNSRecordContent::make(rec.qtype.getCode(), QClass::IN, repr);
           auto ser = drc->serialize(rec.qname, true, true);
           auto rc = DNSRecordContent::deserialize(rec.qname, rec.qtype.getCode(), ser);
           repr = rc->getZoneRepresentation(true);
@@ -545,12 +545,12 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
   B.getDomainMetadata(p.qdomain, "FORWARD-DNSUPDATE", forward);
 
   if (forward.size() == 0 && ! ::arg().mustDo("forward-dnsupdate")) {
-    g_log<<Logger::Notice<<msgPrefix<<"Not configured to forward to master, returning Refused."<<endl;
+    g_log << Logger::Notice << msgPrefix << "Not configured to forward to primary, returning Refused." << endl;
     return RCode::Refused;
   }
 
-  for(const auto& remote : di.masters) {
-    g_log<<Logger::Notice<<msgPrefix<<"Forwarding packet to master "<<remote<<endl;
+  for (const auto& remote : di.primaries) {
+    g_log << Logger::Notice << msgPrefix << "Forwarding packet to primary " << remote << endl;
 
     if (!pdns::isQueryLocalAddressFamilyEnabled(remote.sin4.sin_family)) {
       continue;
@@ -568,7 +568,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
         closesocket(sock);
       }
       catch(const PDNSException& e) {
-        g_log<<Logger::Error<<"Error closing master forwarding socket after connect() failed: "<<e.reason<<endl;
+        g_log << Logger::Error << "Error closing primary forwarding socket after connect() failed: " << e.reason << endl;
       }
       continue;
     }
@@ -585,29 +585,29 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
         closesocket(sock);
       }
       catch(const PDNSException& e) {
-        g_log<<Logger::Error<<"Error closing master forwarding socket after write() failed: "<<e.reason<<endl;
+        g_log << Logger::Error << "Error closing primary forwarding socket after write() failed: " << e.reason << endl;
       }
       continue;
     }
 
     int res = waitForData(sock, 10, 0);
     if (!res) {
-      g_log<<Logger::Error<<msgPrefix<<"Timeout waiting for reply from master at "<<remote.toStringWithPort()<<endl;
+      g_log << Logger::Error << msgPrefix << "Timeout waiting for reply from primary at " << remote.toStringWithPort() << endl;
       try {
         closesocket(sock);
       }
       catch(const PDNSException& e) {
-        g_log<<Logger::Error<<"Error closing master forwarding socket after a timeout occurred: "<<e.reason<<endl;
+        g_log << Logger::Error << "Error closing primary forwarding socket after a timeout occurred: " << e.reason << endl;
       }
       continue;
     }
     if (res < 0) {
-      g_log<<Logger::Error<<msgPrefix<<"Error waiting for answer from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
+      g_log << Logger::Error << msgPrefix << "Error waiting for answer from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl;
       try {
         closesocket(sock);
       }
       catch(const PDNSException& e) {
-        g_log<<Logger::Error<<"Error closing master forwarding socket after an error occurred: "<<e.reason<<endl;
+        g_log << Logger::Error << "Error closing primary forwarding socket after an error occurred: " << e.reason << endl;
       }
       continue;
     }
@@ -616,12 +616,12 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
     ssize_t recvRes;
     recvRes = recv(sock, &lenBuf, sizeof(lenBuf), 0);
     if (recvRes < 0 || static_cast<size_t>(recvRes) < sizeof(lenBuf)) {
-      g_log<<Logger::Error<<msgPrefix<<"Could not receive data (length) from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
+      g_log << Logger::Error << msgPrefix << "Could not receive data (length) from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl;
       try {
         closesocket(sock);
       }
       catch(const PDNSException& e) {
-        g_log<<Logger::Error<<"Error closing master forwarding socket after recv() failed: "<<e.reason<<endl;
+        g_log << Logger::Error << "Error closing primary forwarding socket after recv() failed: " << e.reason << endl;
       }
       continue;
     }
@@ -630,12 +630,12 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
     buffer.resize(packetLen);
     recvRes = recv(sock, &buffer.at(0), packetLen, 0);
     if (recvRes < 0) {
-      g_log<<Logger::Error<<msgPrefix<<"Could not receive data (dnspacket) from master at "<<remote.toStringWithPort()<<", error:"<<stringerror()<<endl;
+      g_log << Logger::Error << msgPrefix << "Could not receive data (dnspacket) from primary at " << remote.toStringWithPort() << ", error:" << stringerror() << endl;
       try {
         closesocket(sock);
       }
       catch(const PDNSException& e) {
-        g_log<<Logger::Error<<"Error closing master forwarding socket after recv() failed: "<<e.reason<<endl;
+        g_log << Logger::Error << "Error closing primary forwarding socket after recv() failed: " << e.reason << endl;
       }
       continue;
     }
@@ -643,7 +643,7 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
       closesocket(sock);
     }
     catch(const PDNSException& e) {
-      g_log<<Logger::Error<<"Error closing master forwarding socket: "<<e.reason<<endl;
+      g_log << Logger::Error << "Error closing primary forwarding socket: " << e.reason << endl;
     }
 
     try {
@@ -652,11 +652,11 @@ int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, co
       return mdp.d_header.rcode;
     }
     catch (...) {
-      g_log<<Logger::Error<<msgPrefix<<"Failed to parse response packet from master at "<<remote.toStringWithPort()<<endl;
+      g_log << Logger::Error << msgPrefix << "Failed to parse response packet from primary at " << remote.toStringWithPort() << endl;
       continue;
     }
   }
-  g_log<<Logger::Error<<msgPrefix<<"Failed to forward packet to master(s). Returning ServFail."<<endl;
+  g_log << Logger::Error << msgPrefix << "Failed to forward packet to primary(s). Returning ServFail." << endl;
   return RCode::ServFail;
 
 }
@@ -990,7 +990,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       purgeAuthCaches(zone);
 
       // Notify slaves
-      if (di.kind == DomainInfo::Master) {
+      if (di.kind == DomainInfo::Primary) {
         vector<string> notify;
         B.getDomainMetadata(p.qdomain, "NOTIFY-DNSUPDATE", notify);
         if (!notify.empty() && notify.front() == "1") {

@@ -383,13 +383,13 @@ bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* g
 
     if (result.count("PdnsDomainMaster") && !result["PdnsDomainMaster"].empty()) {
       for (const auto& m : result["PdnsDomainMaster"])
-        di.masters.emplace_back(m, 53);
+        di.primaries.emplace_back(m, 53);
     }
 
     if (result.count("PdnsDomainType") && !result["PdnsDomainType"].empty()) {
       string kind = result["PdnsDomainType"][0];
       if (kind == "master")
-        di.kind = DomainInfo::Master;
+        di.kind = DomainInfo::Primary;
       else if (kind == "slave")
         di.kind = DomainInfo::Slave;
       else

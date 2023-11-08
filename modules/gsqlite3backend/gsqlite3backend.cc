@@ -97,13 +97,13 @@ public:
     declare(suffix, "info-zone-query", "", "select id,name,master,last_check,notified_serial,type,options,catalog,account from domains where name=:domain");
 
     declare(suffix, "info-all-slaves-query", "", "select domains.id, domains.name, domains.type, domains.master, domains.last_check, records.content from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name where domains.type in ('SLAVE', 'CONSUMER')");
-    declare(suffix, "supermaster-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
-    declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
-    declare(suffix, "supermaster-add", "", "insert into supermasters (ip, nameserver, account) values (:ip,:nameserver,:account)");
+    declare(suffix, "autoprimary-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
+    declare(suffix, "autoprimary-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
+    declare(suffix, "autoprimary-add", "", "insert into supermasters (ip, nameserver, account) values (:ip,:nameserver,:account)");
     declare(suffix, "autoprimary-remove", "", "delete from supermasters where ip = :ip and nameserver = :nameserver");
     declare(suffix, "list-autoprimaries", "", "select ip,nameserver,account from supermasters");
 
-    declare(suffix, "insert-zone-query", "", "insert into domains (type,name,master,account,last_check,notified_serial) values(:type, :domain, :masters, :account, null, null)");
+    declare(suffix, "insert-zone-query", "", "insert into domains (type,name,master,account,last_check,notified_serial) values(:type, :domain, :primaries, :account, null, null)");
 
     declare(suffix, "insert-record-query", "", "insert into records (content,ttl,prio,type,domain_id,disabled,name,ordername,auth) values (:content,:ttl,:priority,:qtype,:domain_id,:disabled,:qname,:ordername,:auth)");
     declare(suffix, "insert-empty-non-terminal-order-query", "insert empty non-terminal in zone", "insert into records (type,domain_id,disabled,name,ordername,auth,ttl,prio,content) values (null,:domain_id,0,:qname,:ordername,:auth,null,null,null)");
@@ -118,14 +118,14 @@ public:
     declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth for a qname query", "update records set ordername=NULL,auth=:auth where domain_id=:domain_id and name=:qname and disabled=0");
     declare(suffix, "nullify-ordername-and-update-auth-type-query", "DNSSEC nullify ordername and update auth for a rrset query", "update records set ordername=NULL,auth=:auth where domain_id=:domain_id and name=:qname and type=:qtype and disabled=0");
 
-    declare(suffix, "update-master-query", "", "update domains set master=:master where name=:domain");
+    declare(suffix, "update-primary-query", "", "update domains set master=:master where name=:domain");
     declare(suffix, "update-kind-query", "", "update domains set type=:kind where name=:domain");
     declare(suffix, "update-options-query", "", "update domains set options=:options where name=:domain");
     declare(suffix, "update-catalog-query", "", "update domains set catalog=:catalog where name=:domain");
     declare(suffix, "update-account-query", "", "update domains set account=:account where name=:domain");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=:serial where id=:domain_id");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=:last_check where id=:domain_id");
-    declare(suffix, "info-all-master-query", "", "select domains.id, domains.name, domains.type, domains.notified_serial, domains.options, domains.catalog, records.content from records join domains on records.domain_id=domains.id and records.name=domains.name where records.type='SOA' and records.disabled=0 and domains.type in ('MASTER', 'PRODUCER')");
+    declare(suffix, "info-all-primary-query", "", "select domains.id, domains.name, domains.type, domains.notified_serial, domains.options, domains.catalog, records.content from records join domains on records.domain_id=domains.id and records.name=domains.name where records.type='SOA' and records.disabled=0 and domains.type in ('MASTER', 'PRODUCER')");
     declare(suffix, "info-producer-members-query", "", "select domains.id, domains.name, domains.options from records join domains on records.domain_id=domains.id and records.name=domains.name where domains.type='MASTER' and domains.catalog=:catalog and records.type='SOA' and records.disabled=0");
     declare(suffix, "info-consumer-members-query", "", "select id, name, options, master from domains where type='SLAVE' and catalog=:catalog");
     declare(suffix, "delete-domain-query", "", "delete from domains where name=:domain");

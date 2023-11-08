@@ -111,7 +111,8 @@ static void startNewTransaction()
     cout<<"BEGIN TRANSACTION;"<<endl;
 }
 
-static void emitDomain(const DNSName& domain, const vector<ComboAddress> *masters = nullptr) {
+static void emitDomain(const DNSName& domain, const vector<ComboAddress>* primaries = nullptr)
+{
   string iDomain = domain.toStringRootDot();
   if(!::arg().mustDo("slave")) {
     cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(iDomain))<<",'NATIVE');"<<endl;
@@ -119,8 +120,8 @@ static void emitDomain(const DNSName& domain, const vector<ComboAddress> *master
   else
   {
     string mstrs;
-    if (masters != nullptr && ! masters->empty()) {
-      for(const auto& mstr :  *masters) {
+    if (primaries != nullptr && !primaries->empty()) {
+      for (const auto& mstr : *primaries) {
         mstrs.append(mstr.toStringWithPortExcept(53));
         mstrs.append(1, ' ');
       }
@@ -292,7 +293,7 @@ try
           try {
             startNewTransaction();
 
-            emitDomain(domain.name, &(domain.masters));
+            emitDomain(domain.name, &(domain.primaries));
 
             ZoneParserTNG zpt(domain.filename, domain.name, BP.getDirectory());
             zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));

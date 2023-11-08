@@ -185,7 +185,7 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
   }
 }
 
-void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
+void CommunicatorClass::primaryUpdateCheck(PacketHandler* P)
 {
   if(!::arg().mustDo("primary"))
     return;
@@ -194,7 +194,7 @@ void CommunicatorClass::masterUpdateCheck(PacketHandler *P)
   vector<DomainInfo> cmdomains;
   std::unordered_set<DNSName> catalogs;
   CatalogHashMap catalogHashes;
-  B->getUpdatedMasters(cmdomains, catalogs, catalogHashes);
+  B->getUpdatedPrimaries(cmdomains, catalogs, catalogHashes);
   getUpdatedProducers(B, cmdomains, catalogs, catalogHashes);
 
   if(cmdomains.empty()) {

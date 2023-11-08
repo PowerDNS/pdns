@@ -88,7 +88,7 @@ TinyDNSBackend::TinyDNSBackend(const string& suffix)
   d_isWildcardQuery = false;
 }
 
-void TinyDNSBackend::getUpdatedMasters(vector<DomainInfo>& retDomains, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
+void TinyDNSBackend::getUpdatedPrimaries(vector<DomainInfo>& retDomains, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
 {
   auto domainInfo = s_domainInfo.lock(); //TODO: We could actually lock less if we do it per suffix.
   if (!domainInfo->count(d_suffix)) {
@@ -175,7 +175,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, 
       di.id = -1; //TODO: Check if this is ok.
       di.backend = this;
       di.zone = rr.qname;
-      di.kind = DomainInfo::Master;
+      di.kind = DomainInfo::Primary;
       di.last_check = time(0);
 
       if (getSerial) {
@@ -340,7 +340,7 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
         dr.d_type = rr.qtype.getCode();
         dr.d_clen = val.size() - pr.getPosition();
 
-        auto drc = DNSRecordContent::mastermake(dr, pr);
+        auto drc = DNSRecordContent::make(dr, pr);
         rr.content = drc->getZoneRepresentation();
         DLOG(cerr << "CONTENT: " << rr.content << endl);
       }

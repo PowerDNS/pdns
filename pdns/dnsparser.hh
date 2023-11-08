@@ -192,9 +192,9 @@ struct DNSRecord;
 class DNSRecordContent
 {
 public:
-  static std::shared_ptr<DNSRecordContent> mastermake(const DNSRecord &dr, PacketReader& pr);
-  static std::shared_ptr<DNSRecordContent> mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t opcode);
-  static std::shared_ptr<DNSRecordContent> mastermake(uint16_t qtype, uint16_t qclass, const string& zone);
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord& dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord& dr, PacketReader& pr, uint16_t opcode);
+  static std::shared_ptr<DNSRecordContent> make(uint16_t qtype, uint16_t qclass, const string& zone);
   static string upgradeContent(const DNSName& qname, const QType& qtype, const string& content);
 
   virtual std::string getZoneRepresentation(bool noDot=false) const = 0;

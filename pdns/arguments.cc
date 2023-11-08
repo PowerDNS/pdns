@@ -359,7 +359,7 @@ static const map<string, string> deprecateList = {
   {"snmp-master-socket", "snmp-daemon-socket"},
   {"xpf-allow-from", "Proxy Protocol"},
   {"xpf-rr-code", "Proxy Protocol"},
-  {"allow-unsigned-supermaster", "allow-unsigned-autoprimary"},
+  {"allow-unsigned-autoprimary", "allow-unsigned-autoprimary"},
   {"master", "primary"},
   {"slave-cycle-interval", "xfr-cycle-interval"},
   {"slave-renotify", "secondary-do-renotify"},

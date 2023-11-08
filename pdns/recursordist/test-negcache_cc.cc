@@ -15,7 +15,7 @@ static recordsAndSignatures genRecsAndSigs(const DNSName& name, const uint16_t q
   rec.d_type = qtype;
   rec.d_ttl = 600;
   rec.d_place = DNSResourceRecord::AUTHORITY;
-  rec.setContent(DNSRecordContent::mastermake(qtype, QClass::IN, content));
+  rec.setContent(DNSRecordContent::make(qtype, QClass::IN, content));
 
   ret.records.push_back(rec);
 

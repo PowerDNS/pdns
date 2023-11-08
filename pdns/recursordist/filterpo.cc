@@ -681,7 +681,7 @@ std::vector<DNSRecord> DNSFilterEngine::Policy::getRecords(const DNSName& qname)
     dr.d_ttl = static_cast<uint32_t>(d_ttl);
     dr.d_type = QType::CNAME;
     dr.d_class = QClass::IN;
-    dr.setContent(DNSRecordContent::mastermake(QType::CNAME, QClass::IN, getKindToString(d_kind)));
+    dr.setContent(DNSRecordContent::make(QType::CNAME, QClass::IN, getKindToString(d_kind)));
     result.push_back(std::move(dr));
   }
 
@@ -786,7 +786,7 @@ void DNSFilterEngine::Zone::dumpAddrPolicy(FILE* fp, const Netmask& nm, const DN
 void DNSFilterEngine::Zone::dump(FILE* fp) const
 {
   /* fake the SOA record */
-  auto soa = DNSRecordContent::mastermake(QType::SOA, QClass::IN, "fake.RPZ. hostmaster.fake.RPZ. " + std::to_string(d_serial) + " " + std::to_string(d_refresh) + " 600 3600000 604800");
+  auto soa = DNSRecordContent::make(QType::SOA, QClass::IN, "fake.RPZ. hostmaster.fake.RPZ. " + std::to_string(d_serial) + " " + std::to_string(d_refresh) + " 600 3600000 604800");
   fprintf(fp, "%s IN SOA %s\n", d_domain.toString().c_str(), soa->getZoneRepresentation().c_str());
 
   for (const auto& pair : d_qpolName) {

@@ -29,7 +29,7 @@
 #include "zoneparser-tng.hh"
 #include "dnsparser.hh"
 
-uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<const SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
+uint32_t getSerialFromPrimary(const ComboAddress& primary, const DNSName& zone, shared_ptr<const SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, zone, QType::SOA);
@@ -43,8 +43,8 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
     addTSIG(pw, trc, tt.name, tt.secret, "", false);
   }
 
-  Socket s(master.sin4.sin_family, SOCK_DGRAM);
-  s.connect(master);
+  Socket s(primary.sin4.sin_family, SOCK_DGRAM);
+  s.connect(primary);
   string msg((const char*)&packet[0], packet.size());
   s.writen(msg);
 

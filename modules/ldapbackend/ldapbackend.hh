@@ -176,7 +176,7 @@ public:
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
 
-  // Master backend
-  void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
+  // Primary backend
+  void getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   void setNotified(uint32_t id, uint32_t serial) override;
 };

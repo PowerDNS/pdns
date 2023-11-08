@@ -13,7 +13,7 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
   while (zpt.get(dnsResourceRecord)) {
     std::shared_ptr<DNSRecordContent> drc;
     try {
-      drc = DNSRecordContent::mastermake(dnsResourceRecord.qtype, QClass::IN, dnsResourceRecord.content);
+      drc = DNSRecordContent::make(dnsResourceRecord.qtype, QClass::IN, dnsResourceRecord.content);
     }
     catch (const PDNSException& pe) {
       std::string err = "Bad record content in record for '" + dnsResourceRecord.qname.toStringNoDot() + "'|" + dnsResourceRecord.qtype.toString() + ": " + pe.reason;

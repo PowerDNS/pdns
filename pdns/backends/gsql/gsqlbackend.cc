@@ -68,21 +68,21 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
 
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
   d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
-  d_SuperMasterInfoQuery=getArg("supermaster-query");
-  d_GetSuperMasterIPs=getArg("supermaster-name-to-ips");
-  d_AddSuperMaster=getArg("supermaster-add");
+  d_AutoPrimaryInfoQuery = getArg("autoprimary-query");
+  d_GetAutoPrimaryIPs = getArg("autoprimary-name-to-ips");
+  d_AddAutoPrimary = getArg("autoprimary-add");
   d_RemoveAutoPrimaryQuery=getArg("autoprimary-remove");
   d_ListAutoPrimariesQuery=getArg("list-autoprimaries");
   d_InsertZoneQuery=getArg("insert-zone-query");
   d_InsertRecordQuery=getArg("insert-record-query");
-  d_UpdateMasterOfZoneQuery=getArg("update-master-query");
+  d_UpdatePrimaryOfZoneQuery = getArg("update-primary-query");
   d_UpdateKindOfZoneQuery=getArg("update-kind-query");
   d_UpdateSerialOfZoneQuery=getArg("update-serial-query");
   d_UpdateLastCheckOfZoneQuery=getArg("update-lastcheck-query");
   d_UpdateOptionsOfZoneQuery = getArg("update-options-query");
   d_UpdateCatalogOfZoneQuery = getArg("update-catalog-query");
   d_UpdateAccountOfZoneQuery=getArg("update-account-query");
-  d_InfoOfAllMasterDomainsQuery=getArg("info-all-master-query");
+  d_InfoOfAllPrimaryDomainsQuery = getArg("info-all-primary-query");
   d_InfoProducerMembersQuery = getArg("info-producer-members-query");
   d_InfoConsumerMembersQuery = getArg("info-consumer-members-query");
   d_DeleteDomainQuery=getArg("delete-domain-query");
@@ -144,22 +144,22 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_listSubZoneQuery_stmt = nullptr;
   d_InfoOfDomainsZoneQuery_stmt = nullptr;
   d_InfoOfAllSlaveDomainsQuery_stmt = nullptr;
-  d_SuperMasterInfoQuery_stmt = nullptr;
-  d_GetSuperMasterIPs_stmt = nullptr;
-  d_AddSuperMaster_stmt = nullptr;
+  d_AutoPrimaryInfoQuery_stmt = nullptr;
+  d_GetAutoPrimaryIPs_stmt = nullptr;
+  d_AddAutoPrimary_stmt = nullptr;
   d_RemoveAutoPrimary_stmt = nullptr;
   d_ListAutoPrimaries_stmt = nullptr;
   d_InsertZoneQuery_stmt = nullptr;
   d_InsertRecordQuery_stmt = nullptr;
   d_InsertEmptyNonTerminalOrderQuery_stmt = nullptr;
-  d_UpdateMasterOfZoneQuery_stmt = nullptr;
+  d_UpdatePrimaryOfZoneQuery_stmt = nullptr;
   d_UpdateKindOfZoneQuery_stmt = nullptr;
   d_UpdateSerialOfZoneQuery_stmt = nullptr;
   d_UpdateLastCheckOfZoneQuery_stmt = nullptr;
   d_UpdateOptionsOfZoneQuery_stmt = nullptr;
   d_UpdateCatalogOfZoneQuery_stmt = nullptr;
   d_UpdateAccountOfZoneQuery_stmt = nullptr;
-  d_InfoOfAllMasterDomainsQuery_stmt = nullptr;
+  d_InfoOfAllPrimaryDomainsQuery_stmt = nullptr;
   d_InfoProducerMembersQuery_stmt = nullptr;
   d_InfoConsumerMembersQuery_stmt = nullptr;
   d_DeleteDomainQuery_stmt = nullptr;
@@ -248,21 +248,21 @@ void GSQLBackend::setFresh(uint32_t domain_id)
   setLastCheck(domain_id, time(nullptr));
 }
 
-bool GSQLBackend::setMasters(const DNSName &domain, const vector<ComboAddress> &masters)
+bool GSQLBackend::setPrimaries(const DNSName& domain, const vector<ComboAddress>& primaries)
 {
-  vector<string> masters_s;
-  masters_s.reserve(masters.size());
-  for (const auto& master : masters) {
-    masters_s.push_back(master.toStringWithPortExcept(53));
+  vector<string> primaries_s;
+  primaries_s.reserve(primaries.size());
+  for (const auto& primary : primaries) {
+    primaries_s.push_back(primary.toStringWithPortExcept(53));
   }
 
-  auto tmp = boost::join(masters_s, ", ");
+  auto tmp = boost::join(primaries_s, ", ");
 
   try {
     reconnectIfNeeded();
 
     // clang-format off
-    d_UpdateMasterOfZoneQuery_stmt->
+    d_UpdatePrimaryOfZoneQuery_stmt->
       bind("master", tmp)->
       bind("domain", domain)->
       execute()->
@@ -270,7 +270,7 @@ bool GSQLBackend::setMasters(const DNSName &domain, const vector<ComboAddress> &
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to set masters of domain '"+domain.toLogString()+"' to " + tmp + ": "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to set primaries of domain '" + domain.toLogString() + "' to " + tmp + ": " + e.txtReason());
   }
   return true;
 }
@@ -388,10 +388,10 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   di.account = d_result[0][8];
   di.kind = DomainInfo::stringToKind(type);
 
-  vector<string> masters;
-  stringtok(masters, d_result[0][2], " ,\t");
-  for(const auto& m : masters)
-    di.masters.emplace_back(m, 53);
+  vector<string> primaries;
+  stringtok(primaries, d_result[0][2], " ,\t");
+  for (const auto& m : primaries)
+    di.primaries.emplace_back(m, 53);
   pdns::checked_stoi_into(di.last_check, d_result[0][3]);
   pdns::checked_stoi_into(di.notified_serial, d_result[0][4]);
   di.backend=this;
@@ -436,7 +436,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
   SOAData sd;
   DomainInfo di;
-  vector<string> masters;
+  vector<string> primaries;
 
   unfreshDomains->reserve(d_result.size());
   for (const auto& row : d_result) { // id, name, type, master, last_check, catalog, content
@@ -489,18 +489,18 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
       continue;
     }
 
-    di.masters.clear();
-    masters.clear();
-    stringtok(masters, row[3], ", \t");
-    for(const auto& m : masters) {
+    di.primaries.clear();
+    primaries.clear();
+    stringtok(primaries, row[3], ", \t");
+    for (const auto& m : primaries) {
       try {
-        di.masters.emplace_back(m, 53);
+        di.primaries.emplace_back(m, 53);
       } catch(const PDNSException &e) {
-        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse master address '" << m << "' for zone '" << di.zone << "': " << e.reason << endl;
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse primary address '" << m << "' for zone '" << di.zone << "': " << e.reason << endl;
       }
     }
-    if (di.masters.empty()) {
-      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " no masters for secondary zone '" << di.zone << "' found in the database" << endl;
+    if (di.primaries.empty()) {
+      g_log << Logger::Warning << __PRETTY_FUNCTION__ << " no primaries for secondary zone '" << di.zone << "' found in the database" << endl;
       continue;
     }
 
@@ -519,7 +519,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
   }
 }
 
-void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
+void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   /*
     list all domains that need notifications for which we are promary, and insert into
@@ -530,14 +530,14 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
     reconnectIfNeeded();
 
     // clang-format off
-    d_InfoOfAllMasterDomainsQuery_stmt->
+    d_InfoOfAllPrimaryDomainsQuery_stmt->
       execute()->
       getResult(d_result)->
       reset();
     // clang-format on
   }
   catch(SSqlException &e) {
-    throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of master domains: " + e.txtReason());
+    throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of primary domains: " + e.txtReason());
   }
 
   SOAData sd;
@@ -546,7 +546,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
 
   updatedDomains.reserve(d_result.size());
   for (const auto& row : d_result) { // id, name, type, notified_serial, options, catalog, content
-    ASSERT_ROW_COLUMNS("info-all-master-query", row, 7);
+    ASSERT_ROW_COLUMNS("info-all-primary-query", row, 7);
 
     di.backend = this;
 
@@ -623,7 +623,7 @@ void GSQLBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::uno
     }
 
     if (di.notified_serial != sd.serial) {
-      di.kind = DomainInfo::Master;
+      di.kind = DomainInfo::Primary;
       di.serial = sd.serial;
       di.catalog.clear();
 
@@ -707,14 +707,14 @@ bool GSQLBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
     }
 
     if (row.size() >= 4) { // Consumer only
-      vector<string> masters;
-      stringtok(masters, row[3], ", \t");
-      for (const auto& m : masters) {
+      vector<string> primaries;
+      stringtok(primaries, row[3], ", \t");
+      for (const auto& m : primaries) {
         try {
           ci.d_primaries.emplace_back(m, 53);
         }
         catch (const PDNSException& e) {
-          g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse master address '" << m << "' for zone '" << ci.d_zone << "': " << e.reason << endl;
+          g_log << Logger::Warning << __PRETTY_FUNCTION__ << " could not parse primary address '" << m << "' for zone '" << ci.d_zone << "': " << e.reason << endl;
           members.clear();
           return false;
         }
@@ -1536,13 +1536,13 @@ skiprow:
   return false;
 }
 
-bool GSQLBackend::superMasterAdd(const AutoPrimary& primary)
+bool GSQLBackend::autoPrimaryAdd(const AutoPrimary& primary)
 {
   try{
     reconnectIfNeeded();
 
     // clang-format off
-    d_AddSuperMaster_stmt ->
+    d_AddAutoPrimary_stmt ->
       bind("ip",primary.ip)->
       bind("nameserver",primary.nameserver)->
       bind("account",primary.account)->
@@ -1601,7 +1601,7 @@ bool GSQLBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   return true;
 }
 
-bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **ddb)
+bool GSQLBackend::autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
 {
   // check if we know the ip/ns couple in the database
   for(const auto & i : nsset) {
@@ -1609,7 +1609,7 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
       reconnectIfNeeded();
 
       // clang-format off
-      d_SuperMasterInfoQuery_stmt->
+      d_AutoPrimaryInfoQuery_stmt->
         bind("ip", ip)->
         bind("nameserver", i.content)->
         execute()->
@@ -1618,10 +1618,10 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
       // clang-format on
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to search for a supermaster with IP " + ip + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': "+e.txtReason());
+      throw PDNSException("GSQLBackend unable to search for a autoprimary with IP " + ip + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': " + e.txtReason());
     }
     if(!d_result.empty()) {
-      ASSERT_ROW_COLUMNS("supermaster-query", d_result[0], 1);
+      ASSERT_ROW_COLUMNS("autoprimary-query", d_result[0], 1);
       *nameserver=i.content;
       *account=d_result[0][0];
       *ddb=this;
@@ -1631,12 +1631,12 @@ bool GSQLBackend::superMasterBackend(const string &ip, const DNSName &domain, co
   return false;
 }
 
-bool GSQLBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
+bool GSQLBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
 {
-  vector<string> masters_s;
-  masters_s.reserve(masters.size());
-  for (const auto& master : masters) {
-    masters_s.push_back(master.toStringWithPortExcept(53));
+  vector<string> primaries_s;
+  primaries_s.reserve(primaries.size());
+  for (const auto& primary : primaries) {
+    primaries_s.push_back(primary.toStringWithPortExcept(53));
   }
 
   try {
@@ -1646,7 +1646,7 @@ bool GSQLBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
     d_InsertZoneQuery_stmt->
       bind("type", toUpper(DomainInfo::getKindString(kind)))->
       bind("domain", domain)->
-      bind("masters", boost::join(masters_s, ", "))->
+      bind("primaries", boost::join(primaries_s, ", "))->
       bind("account", account)->
       execute()->
       reset();
@@ -1661,14 +1661,14 @@ bool GSQLBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
 bool GSQLBackend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
 {
   string name;
-  vector<ComboAddress> masters({ComboAddress(ip, 53)});
+  vector<ComboAddress> primaries({ComboAddress(ip, 53)});
   try {
     if (!nameserver.empty()) {
-      // figure out all IP addresses for the master
+      // figure out all IP addresses for the primary
       reconnectIfNeeded();
 
       // clang-format off
-      d_GetSuperMasterIPs_stmt->
+      d_GetAutoPrimaryIPs_stmt->
         bind("nameserver", nameserver)->
         bind("account", account)->
         execute()->
@@ -1682,11 +1682,11 @@ bool GSQLBackend::createSlaveDomain(const string& ip, const DNSName& domain, con
           if (account == row[1])
             tmp.emplace_back(row[0], 53);
         }
-        // set them as domain's masters, comma separated
-        masters = tmp;
+        // set them as domain's primaries, comma separated
+        primaries = tmp;
       }
     }
-    createDomain(domain, DomainInfo::Slave, masters, account);
+    createDomain(domain, DomainInfo::Slave, primaries, account);
   }
   catch(SSqlException &e) {
     throw PDNSException("Database error trying to insert new slave domain '"+domain.toLogString()+"': "+ e.txtReason());
@@ -1763,7 +1763,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
       }
 
       if (pdns_iequals(row[3], "MASTER")) {
-        di.kind = DomainInfo::Master;
+        di.kind = DomainInfo::Primary;
       } else if (pdns_iequals(row[3], "SLAVE")) {
         di.kind = DomainInfo::Slave;
       } else if (pdns_iequals(row[3], "NATIVE")) {
@@ -1781,13 +1781,13 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
       }
 
       if (!row[4].empty()) {
-        vector<string> masters;
-        stringtok(masters, row[4], " ,\t");
-        for(const auto& m : masters) {
+        vector<string> primaries;
+        stringtok(primaries, row[4], " ,\t");
+        for (const auto& m : primaries) {
           try {
-            di.masters.emplace_back(m, 53);
+            di.primaries.emplace_back(m, 53);
           } catch(const PDNSException &e) {
-            g_log<<Logger::Warning<<"Could not parse master address ("<<m<<") for zone '"<<di.zone<<"': "<<e.reason;
+            g_log << Logger::Warning << "Could not parse primary address (" << m << ") for zone '" << di.zone << "': " << e.reason;
           }
         }
       }

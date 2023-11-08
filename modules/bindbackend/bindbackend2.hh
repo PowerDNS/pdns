@@ -153,7 +153,7 @@ public:
   DomainInfo::DomainKind d_kind{DomainInfo::Native}; //!< the kind of domain
   string d_filename; //!< full absolute filename of the zone on disk
   string d_status; //!< message describing status of a domain, for human consumption
-  vector<ComboAddress> d_masters; //!< IP address of the master of this domain
+  vector<ComboAddress> d_primaries; //!< IP address of the primary of this domain
   set<string> d_also_notify; //!< IP list of hosts to also notify
   LookButDontTouch<recordstorage_t> d_records; //!< the actual records belonging to this domain
   time_t d_ctime{0}; //!< last known ctime of the file on disk
@@ -184,7 +184,7 @@ public:
   Bind2Backend(const string& suffix = "", bool loadZones = true);
   ~Bind2Backend();
   void getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains) override;
-  void getUpdatedMasters(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
+  void getUpdatedPrimaries(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
   time_t getCtime(const string& fname);
   // DNSSEC
@@ -236,8 +236,8 @@ public:
 
   // for autoprimary support
   bool autoPrimariesList(std::vector<AutoPrimary>& primaries) override;
-  bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
-  static std::mutex s_supermaster_config_lock;
+  bool autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
+  static std::mutex s_autoprimary_config_lock;
   bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
 
 private:

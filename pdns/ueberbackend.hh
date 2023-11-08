@@ -47,9 +47,9 @@ public:
   UeberBackend(const string& pname = "default");
   ~UeberBackend();
 
-  bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend);
+  bool autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend);
 
-  bool superMasterAdd(const AutoPrimary& primary);
+  bool autoPrimaryAdd(const AutoPrimary& primary);
   bool autoPrimaryRemove(const struct AutoPrimary& primary);
   bool autoPrimariesList(std::vector<AutoPrimary>& primaries);
 
@@ -103,9 +103,9 @@ public:
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
 
   void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
-  void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
+  void getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
   bool getDomainInfo(const DNSName& domain, DomainInfo& domainInfo, bool getSerial = true);
-  bool createDomain(const DNSName& domain, DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account);
+  bool createDomain(const DNSName& domain, DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account);
 
   bool doesDNSSEC();
   bool addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& keyID);

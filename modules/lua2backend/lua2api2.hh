@@ -255,8 +255,8 @@ public:
       else if (item.first == "last_check")
         di.last_check = static_cast<time_t>(boost::get<long>(item.second));
       else if (item.first == "masters")
-        for (const auto& master : boost::get<vector<string>>(item.second))
-          di.masters.push_back(ComboAddress(master, 53));
+        for (const auto& primary : boost::get<vector<string>>(item.second))
+          di.primaries.push_back(ComboAddress(primary, 53));
       else if (item.first == "id")
         di.id = static_cast<int>(boost::get<long>(item.second));
       else if (item.first == "notified_serial")

@@ -166,7 +166,7 @@ static void declareArguments()
   ::arg().setSwitch("send-signed-notify", "Send TSIG secured NOTIFY if TSIG key is configured for a zone") = "yes";
   ::arg().set("allow-unsigned-notify", "Allow unsigned notifications for TSIG secured zones") = "yes"; // FIXME: change to 'no' later
   ::arg().set("allow-unsigned-autoprimary", "Allow autoprimaries to create zones without TSIG signed NOTIFY") = "yes";
-  ::arg().setSwitch("forward-dnsupdate", "A global setting to allow DNS update packages that are for a Slave zone, to be forwarded to the master.") = "yes";
+  ::arg().setSwitch("forward-dnsupdate", "A global setting to allow DNS update packages that are for a Slave zone, to be forwarded to the primary.") = "yes";
   ::arg().setSwitch("log-dns-details", "If PDNS should log DNS non-erroneous details") = "no";
   ::arg().setSwitch("log-dns-queries", "If PDNS should log all incoming DNS queries") = "no";
   ::arg().set("local-address", "Local IP addresses to which we bind") = "0.0.0.0, ::";
@@ -266,7 +266,7 @@ static void declareArguments()
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy") = "";
   ::arg().set("slave-renotify", "If we should send out notifications for secondaried updates") = "no";
   ::arg().set("secondary-do-renotify", "If this secondary should send out notifications after receiving zone transfers from a primary") = "no";
-  ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of master or slave settings") = "";
+  ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of primary or slave settings") = "";
 
   ::arg().set("default-ttl", "Seconds a result is valid if not set otherwise") = "3600";
   ::arg().set("max-tcp-connections", "Maximum number of TCP connections") = "20";
@@ -311,7 +311,7 @@ static void declareArguments()
   ::arg().set("lua-health-checks-expire-delay", "Stops doing health checks after the record hasn't been used for that delay (in seconds)") = "3600";
   ::arg().set("lua-health-checks-interval", "LUA records health checks monitoring interval in seconds") = "5";
 #endif
-  ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial") = "no";
+  ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a primary with a lower serial") = "no";
 
   ::arg().set("lua-axfr-script", "Script to be used to edit incoming AXFRs") = "";
   ::arg().set("xfr-max-received-mbytes", "Maximum number of megabytes received from an incoming XFR") = "100";

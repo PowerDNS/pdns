@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 
     /* goal in life:
        in directory/zone-name we leave files with their name the serial number
-       at startup, retrieve current SOA SERIAL for domain from master server
+       at startup, retrieve current SOA SERIAL for domain from primary server
 
        compare with what the best is we have in our directory, IXFR from that.
        Store result in memory, read that best zone in memory, apply deltas, write it out.
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
        Next up, loop this every REFRESH seconds */
 
     DNSName zone(argv[4]);
-    ComboAddress master(argv[2], atoi(argv[3]));
+    ComboAddress primary(argv[2], atoi(argv[3]));
     string directory(argv[5]);
     records_t records;
 
@@ -141,9 +141,9 @@ int main(int argc, char** argv) {
     }
     catch(std::exception& e) {
       cout<<"Could not load zone from disk: "<<e.what()<<endl;
-      cout<<"Retrieving latest from master "<<master.toStringWithPort()<<endl;
-      ComboAddress local = master.sin4.sin_family == AF_INET ? ComboAddress("0.0.0.0") : ComboAddress("::");
-      AXFRRetriever axfr(master, zone, tt, &local);
+      cout << "Retrieving latest from primary " << primary.toStringWithPort() << endl;
+      ComboAddress local = primary.sin4.sin_family == AF_INET ? ComboAddress("0.0.0.0") : ComboAddress("::");
+      AXFRRetriever axfr(primary, zone, tt, &local);
       unsigned int nrecords=0;
       Resolver::res_t nop;
       vector<DNSRecord> chunk;
@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
       cout<<"Checking for update, our serial number is "<<ourSerial<<".. ";
       cout.flush();
       shared_ptr<const SOARecordContent> sr;
-      uint32_t serial = getSerialFromMaster(master, zone, sr, tt);
+      uint32_t serial = getSerialFromPrimary(primary, zone, sr, tt);
       if(ourSerial == serial) {
         unsigned int sleepTime = sr ? sr->d_st.refresh : 60;
         cout<<"still up to date, their serial is "<<serial<<", sleeping "<<sleepTime<<" seconds"<<endl;
@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
       }
 
       cout<<"got new serial: "<<serial<<", initiating IXFR!"<<endl;
-      auto deltas = getIXFRDeltas(master, zone, ourSoa, 20, false, tt);
+      auto deltas = getIXFRDeltas(primary, zone, ourSoa, 20, false, tt);
       cout<<"Got "<<deltas.size()<<" deltas, applying.."<<endl;
 
       for(const auto& delta : deltas) {

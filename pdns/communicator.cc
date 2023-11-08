@@ -60,7 +60,7 @@ void CommunicatorClass::retrievalLoopThread()
         data->d_sorthelper = 0;
       }
     }
-    suck(sr.domain, sr.master, sr.force);
+    suck(sr.domain, sr.primary, sr.force);
   }
 }
 
@@ -130,7 +130,7 @@ void CommunicatorClass::mainloop()
 
     for(;;) {
       slaveRefresh(&P);
-      masterUpdateCheck(&P);
+      primaryUpdateCheck(&P);
       doNotifications(&P); // this processes any notification acknowledgements and actually send out our own notifications
 
       next = time(nullptr) + d_tickinterval;

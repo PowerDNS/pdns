@@ -272,12 +272,12 @@ BOOST_AUTO_TEST_CASE(test_method_getAllDomains)
   BOOST_CHECK_EQUAL(domainInfo.backend, backendUnderTest.get());
 }
 
-BOOST_AUTO_TEST_CASE(test_method_superMasterBackend)
+BOOST_AUTO_TEST_CASE(test_method_autoPrimaryBackend)
 {
   DNSResourceRecord resourceRecord;
   std::vector<DNSResourceRecord> nsset;
   DNSBackend* dbd = nullptr;
-  BOOST_TEST_MESSAGE("Testing superMasterBackend method");
+  BOOST_TEST_MESSAGE("Testing autoPrimaryBackend method");
 
   resourceRecord.qname = DNSName("example.com.");
   resourceRecord.qtype = QType::NS;
@@ -292,7 +292,7 @@ BOOST_AUTO_TEST_CASE(test_method_superMasterBackend)
   resourceRecord.content = "ns2.example.com.";
   nsset.push_back(resourceRecord);
 
-  BOOST_CHECK(backendUnderTest->superMasterBackend("10.0.0.1", DNSName("example.com."), nsset, nullptr, nullptr, &dbd));
+  BOOST_CHECK(backendUnderTest->autoPrimaryBackend("10.0.0.1", DNSName("example.com."), nsset, nullptr, nullptr, &dbd));
 
   // let's see what we got
   BOOST_CHECK_EQUAL(dbd, backendUnderTest.get());
@@ -374,15 +374,15 @@ BOOST_AUTO_TEST_CASE(test_method_directBackendCmd)
   BOOST_CHECK_EQUAL(backendUnderTest->directBackendCmd("PING 1234"), "PING 1234");
 }
 
-BOOST_AUTO_TEST_CASE(test_method_getUpdatedMasters)
+BOOST_AUTO_TEST_CASE(test_method_getUpdatedPrimaries)
 {
   DomainInfo domainInfo;
-  BOOST_TEST_MESSAGE("Testing getUpdatedMasters method");
+  BOOST_TEST_MESSAGE("Testing getUpdatedPrimaries method");
   vector<DomainInfo> result;
   std::unordered_set<DNSName> catalogs;
   CatalogHashMap hashes;
 
-  backendUnderTest->getUpdatedMasters(result, catalogs, hashes);
+  backendUnderTest->getUpdatedPrimaries(result, catalogs, hashes);
 
   BOOST_REQUIRE(!result.empty());
 
@@ -390,7 +390,7 @@ BOOST_AUTO_TEST_CASE(test_method_getUpdatedMasters)
   BOOST_CHECK_EQUAL(domainInfo.zone.toString(), "master.test.");
   BOOST_CHECK_EQUAL(domainInfo.serial, 2);
   BOOST_CHECK_EQUAL(domainInfo.notified_serial, 2);
-  BOOST_CHECK_EQUAL(domainInfo.kind, DomainInfo::Master);
+  BOOST_CHECK_EQUAL(domainInfo.kind, DomainInfo::Primary);
   BOOST_CHECK_EQUAL(domainInfo.backend, backendUnderTest.get());
 }
 
