@@ -1,6 +1,66 @@
 Changelogs for 4.9.X
 ====================
 .. changelog::
+  :version: 4.9.2
+  :released: 8th of November 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13449
+    :tickets: 13383, 13409
+
+    Handle serve stale logic in getRootNXTrust().
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13411
+    :tickets: 13353
+
+    If serving stale, wipe CNAME records from cache when we get a NODATA negative response for them.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13412
+    :tickets: 13408
+
+    Handle stack memory on NetBSD as on OpenBSD.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13286
+    :tickets: 13092
+
+    Prevent two cases of copy of data that can be moved.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13284
+    :tickets: 13210
+
+    Remove Before=nss-lookup.target line from systemd unit file.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13283
+    :tickets: 13278
+
+    Prevent lookups for unsupported qtypes or rcode != 0 to submit refresh tasks.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13282
+    :tickets: 13209
+
+    Implement a more fair way to prune the aggressive cache.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13176
+    :tickets: 13102
+
+    Do not assume the records are in a particular order when determining if an answer is NODATA.
+
+.. changelog::
   :version: 4.9.1
   :released: 25th of August 2023
 
