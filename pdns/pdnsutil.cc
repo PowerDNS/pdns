@@ -261,7 +261,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       return 1;
     }
   } catch(const PDNSException &e) {
-    if (di.kind == DomainInfo::Slave) {
+    if (di.kind == DomainInfo::Secondary) {
       cout << "[Error] non-IP address for primaries: " << e.reason << endl;
       numerrors++;
     }
@@ -1541,7 +1541,8 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
   return EXIT_SUCCESS;
 }
 
-static int createSlaveZone(const vector<string>& cmds) {
+static int createSecondaryZone(const vector<string>& cmds)
+{
   UeberBackend B;
   DomainInfo di;
   DNSName zone(cmds.at(1));
@@ -1554,7 +1555,7 @@ static int createSlaveZone(const vector<string>& cmds) {
     primaries.emplace_back(cmds.at(i), 53);
   }
   cerr << "Creating secondary zone '" << zone << "', with primaries '" << comboAddressVecToString(primaries) << "'" << endl;
-  B.createDomain(zone, DomainInfo::Slave, primaries, "");
+  B.createDomain(zone, DomainInfo::Secondary, primaries, "");
   if(!B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' was not created!" << endl;
     return EXIT_FAILURE;
@@ -1562,7 +1563,7 @@ static int createSlaveZone(const vector<string>& cmds) {
   return EXIT_SUCCESS;
 }
 
-static int changeSlaveZonePrimary(const vector<string>& cmds)
+static int changeSecondaryZonePrimary(const vector<string>& cmds)
 {
   UeberBackend B;
   DomainInfo di;
@@ -2300,8 +2301,7 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     return false;
   }
 
-  if(di.kind == DomainInfo::Slave)
-  {
+  if (di.kind == DomainInfo::Secondary) {
     cerr << "Warning! This is a secondary zone! If this was a mistake, please run" << endl;
     cerr<<"pdnsutil disable-dnssec "<<zone<<" right now!"<<endl;
   }
@@ -2365,7 +2365,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
   DNSBackend *db = B.backends[0].get();
   cout << "Creating secondary zone " << zone << endl;
-  db->createSlaveDomain("127.0.0.1", zone, "", "_testschema");
+  db->createSecondaryDomain("127.0.0.1", zone, "", "_testschema");
   cout << "Secondary zone created" << endl;
 
   DomainInfo di;
@@ -3120,14 +3120,14 @@ try
       cerr << "Syntax: pdnsutil create-secondary-zone ZONE primary-ip [primary-ip..]" << endl;
       return 0;
     }
-    return createSlaveZone(cmds);
+    return createSecondaryZone(cmds);
   }
   else if (cmds.at(0) == "change-secondary-zone-primary" || cmds.at(0) == "change-slave-zone-master") {
     if(cmds.size() < 3 ) {
       cerr << "Syntax: pdnsutil change-secondary-zone-primary ZONE primary-ip [primary-ip..]" << endl;
       return 0;
     }
-    return changeSlaveZonePrimary(cmds);
+    return changeSecondaryZonePrimary(cmds);
   }
   else if (cmds.at(0) == "add-record") {
     if(cmds.size() < 5) {

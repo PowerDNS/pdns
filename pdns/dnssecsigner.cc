@@ -88,7 +88,7 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
   rrc.d_signature = rc->sign(msg);
   (*g_signatureCount)++;
   if(doCache) {
-    /* we add some jitter here so not all your slaves start pruning their caches at the very same millisecond */
+    /* we add some jitter here so not all your secondaries start pruning their caches at the very same millisecond */
     int weekno = (time(nullptr) - dns_random(3600)) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
     const static int maxcachesize=::arg().asNum("max-signature-cache-entries", INT_MAX);
 

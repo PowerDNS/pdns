@@ -78,7 +78,7 @@ SharedLockGuarded<Bind2Backend::state_t> Bind2Backend::s_state;
 int Bind2Backend::s_first = 1;
 bool Bind2Backend::s_ignore_broken_records = false;
 
-std::mutex Bind2Backend::s_autoprimary_config_lock; // protects writes to config file
+std::mutex Bind2Backend::s_autosecondary_config_lock; // protects writes to config file
 std::mutex Bind2Backend::s_startup_lock;
 string Bind2Backend::s_binddirectory;
 
@@ -399,14 +399,14 @@ void Bind2Backend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bo
   }
 }
 
-void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains)
+void Bind2Backend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
 {
   vector<DomainInfo> domains;
   {
     auto state = s_state.read_lock();
     domains.reserve(state->size());
     for (const auto& i : *state) {
-      if (i.d_kind != DomainInfo::Slave)
+      if (i.d_kind != DomainInfo::Secondary)
         continue;
       DomainInfo sd;
       sd.id = i.d_id;
@@ -414,7 +414,7 @@ void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains)
       sd.primaries = i.d_primaries;
       sd.last_check = i.d_lastcheck;
       sd.backend = this;
-      sd.kind = DomainInfo::Slave;
+      sd.kind = DomainInfo::Secondary;
       domains.push_back(std::move(sd));
     }
   }
@@ -627,8 +627,8 @@ static void printDomainExtendedStatus(ostringstream& ret, const BB2DomainInfo& i
   case DomainInfo::Primary:
     ret << "Primary";
     break;
-  case DomainInfo::Slave:
-    ret << "Slave";
+  case DomainInfo::Secondary:
+    ret << "Secondary";
     break;
   default:
     ret << "Native";
@@ -965,7 +965,7 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
         kind = DomainInfo::Primary;
       }
       if (domain.type == "secondary" || domain.type == "slave") {
-        kind = DomainInfo::Slave;
+        kind = DomainInfo::Secondary;
       }
 
       bool kindChanged = (bbd.d_kind != kind);
@@ -992,7 +992,7 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
         catch (std::system_error& ae) {
           ostringstream msg;
           if (ae.code().value() == ENOENT && isNew && domain.type == "slave")
-            msg << " error at " + nowTime() << " no file found for new slave domain '" << domain.name << "'. Has not been AXFR'd yet";
+            msg << " error at " + nowTime() << " no file found for new secondary domain '" << domain.name << "'. Has not been AXFR'd yet";
           else
             msg << " error at " + nowTime() + " parsing '" << domain.name << "' from file '" << domain.filename << "': " << ae.what();
 
@@ -1413,7 +1413,7 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const strin
   return bbd;
 }
 
-bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, const string& /* nameserver */, const string& account)
+bool Bind2Backend::createSecondaryDomain(const string& ip, const DNSName& domain, const string& /* nameserver */, const string& account)
 {
   string filename = getArg("autoprimary-destdir") + '/' + domain.toStringNoDot();
 
@@ -1422,7 +1422,7 @@ bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, co
         << "' from autoprimary " << ip << endl;
 
   {
-    std::lock_guard<std::mutex> l2(s_autoprimary_config_lock);
+    std::lock_guard<std::mutex> l2(s_autosecondary_config_lock);
 
     ofstream c_of(getArg("autoprimary-config").c_str(), std::ios::app);
     if (!c_of) {
@@ -1431,7 +1431,7 @@ bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, co
     }
 
     c_of << endl;
-    c_of << "# Superslave zone '" << domain.toString() << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
+    c_of << "# AutoSecondary zone '" << domain.toString() << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
     c_of << "zone \"" << domain.toStringNoDot() << "\" {" << endl;
     c_of << "\ttype secondary;" << endl;
     c_of << "\tfile \"" << filename << "\";" << endl;
@@ -1441,7 +1441,7 @@ bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, co
   }
 
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
-  bbd.d_kind = DomainInfo::Slave;
+  bbd.d_kind = DomainInfo::Secondary;
   bbd.d_primaries.push_back(ComboAddress(ip, 53));
   bbd.setCtime();
   safePutBBDomainInfo(bbd);
@@ -1503,7 +1503,7 @@ public:
     declare(suffix, "check-interval", "Interval for zonefile changes", "0");
     declare(suffix, "autoprimary-config", "Location of (part of) named.conf where pdns can write zone-statements to", "");
     declare(suffix, "autoprimaries", "List of IP-addresses of autoprimaries", "");
-    declare(suffix, "autoprimary-destdir", "Destination directory for newly added slave zones", ::arg()["config-dir"]);
+    declare(suffix, "autoprimary-destdir", "Destination directory for newly added secondary zones", ::arg()["config-dir"]);
     declare(suffix, "dnssec-db", "Filename to store & access our DNSSEC metadatabase, empty for none", "");
     declare(suffix, "dnssec-db-journal-mode", "SQLite3 journal mode", "WAL");
     declare(suffix, "hybrid", "Store DNSSEC metadata in other backend", "no");

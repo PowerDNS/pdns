@@ -1043,7 +1043,7 @@ int PacketHandler::tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& 
     return RCode::Refused;
   }
   try {
-    db->createSlaveDomain(remote.toString(), p.qdomain, nameserver, account);
+    db->createSecondaryDomain(remote.toString(), p.qdomain, nameserver, account);
     DomainInfo di;
     if (!db->getDomainInfo(p.qdomain, di, false)) {
       g_log << Logger::Error << "Failed to create " << p.qdomain << " for potential autoprimary " << remote << endl;
@@ -1060,7 +1060,7 @@ int PacketHandler::tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& 
     g_log << Logger::Error << "Database error trying to create " << p.qdomain << " for potential autoprimary " << remote << ": " << ae.reason << endl;
     return RCode::ServFail;
   }
-  g_log << Logger::Warning << "Created new slave zone '" << p.qdomain << "' from autoprimary " << remote << endl;
+  g_log << Logger::Warning << "Created new secondary zone '" << p.qdomain << "' from autoprimary " << remote << endl;
   return RCode::NoError;
 }
 
@@ -1077,7 +1077,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
   g_log<<Logger::Debug<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<endl;
 
   if(!::arg().mustDo("secondary") && s_forwardNotify.empty()) {
-    g_log<<Logger::Warning<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" but slave support is disabled in the configuration"<<endl;
+    g_log << Logger::Warning << "Received NOTIFY for " << p.qdomain << " from " << p.getRemoteString() << " but secondary support is disabled in the configuration" << endl;
     return RCode::Refused;
   }
 
@@ -1146,7 +1146,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
   if(::arg().mustDo("secondary")) {
     g_log<<Logger::Notice<<"Received NOTIFY for "<<p.qdomain<<" from "<<p.getRemoteString()<<" - queueing check"<<endl;
     di.receivedNotify = true;
-    Communicator.addSlaveCheckRequest(di, p.getInnerRemote());
+    Communicator.addSecondaryCheckRequest(di, p.getInnerRemote());
   }
   return 0;
 }

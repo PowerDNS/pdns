@@ -158,7 +158,7 @@ public:
   LookButDontTouch<recordstorage_t> d_records; //!< the actual records belonging to this domain
   time_t d_ctime{0}; //!< last known ctime of the file on disk
   time_t d_lastcheck{0}; //!< last time domain was checked for freshness
-  uint32_t d_lastnotified{0}; //!< Last serial number we notified our slaves of
+  uint32_t d_lastnotified{0}; //!< Last serial number we notified our secondaries of
   unsigned int d_id{0}; //!< internal id of the domain
   mutable bool d_checknow; //!< if this domain has been flagged for a check
   bool d_loaded{false}; //!< if a domain is loaded
@@ -183,7 +183,7 @@ class Bind2Backend : public DNSBackend
 public:
   Bind2Backend(const string& suffix = "", bool loadZones = true);
   ~Bind2Backend();
-  void getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains) override;
+  void getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains) override;
   void getUpdatedPrimaries(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
   time_t getCtime(const string& fname);
@@ -237,8 +237,8 @@ public:
   // for autoprimary support
   bool autoPrimariesList(std::vector<AutoPrimary>& primaries) override;
   bool autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
-  static std::mutex s_autoprimary_config_lock;
-  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
+  static std::mutex s_autosecondary_config_lock;
+  bool createSecondaryDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
 
 private:
   void setupDNSSEC();

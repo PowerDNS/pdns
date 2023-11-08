@@ -77,7 +77,7 @@ struct DomainInfo
   enum DomainKind : uint8_t
   {
     Primary,
-    Slave,
+    Secondary,
     Native,
     Producer,
     Consumer,
@@ -98,7 +98,7 @@ struct DomainInfo
   static DomainKind stringToKind(const string& kind)
   {
     if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE")) {
-      return DomainInfo::Slave;
+      return DomainInfo::Secondary;
     }
     if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER")) {
       return DomainInfo::Primary;
@@ -114,7 +114,7 @@ struct DomainInfo
   }
 
   [[nodiscard]] bool isPrimaryType() const { return (kind == DomainInfo::Primary || kind == DomainInfo::Producer); }
-  [[nodiscard]] bool isSecondaryType() const { return (kind == DomainInfo::Slave || kind == DomainInfo::Consumer); }
+  [[nodiscard]] bool isSecondaryType() const { return (kind == DomainInfo::Secondary || kind == DomainInfo::Consumer); }
   [[nodiscard]] bool isCatalogType() const { return (kind == DomainInfo::Producer || kind == DomainInfo::Consumer); }
 
   [[nodiscard]] bool isPrimary(const ComboAddress& ipAddress) const
@@ -330,8 +330,8 @@ public:
   {
     return false;
   }
-  //! slave capable backends should return a list of slaves that should be rechecked for staleness
-  virtual void getUnfreshSlaveInfos(vector<DomainInfo>* /* domains */)
+  //! secondary capable backends should return a list of secondaries that should be rechecked for staleness
+  virtual void getUnfreshSecondaryInfos(vector<DomainInfo>* /* domains */)
   {
   }
 
@@ -343,7 +343,7 @@ public:
     ips->insert(meta.begin(), meta.end());
   }
 
-  //! get list of domains that have been changed since their last notification to slaves
+  //! get list of domains that have been changed since their last notification to secondaries
   virtual void getUpdatedPrimaries(vector<DomainInfo>& /* domains */, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
   {
   }
@@ -364,7 +364,7 @@ public:
   {
   }
 
-  //! Called by PowerDNS to inform a backend that the changes in the domain have been reported to slaves
+  //! Called by PowerDNS to inform a backend that the changes in the domain have been reported to secondaries
   virtual void setNotified(uint32_t /* id */, uint32_t /* serial */)
   {
   }
@@ -432,8 +432,8 @@ public:
     return false;
   }
 
-  //! called by PowerDNS to create a slave record for a autoPrimary
-  virtual bool createSlaveDomain(const string& /* ip */, const DNSName& /* domain */, const string& /* nameserver */, const string& /* account */)
+  //! called by PowerDNS to create a secondary record for a autoPrimary
+  virtual bool createSecondaryDomain(const string& /* ip */, const DNSName& /* domain */, const string& /* nameserver */, const string& /* account */)
   {
     return false;
   }

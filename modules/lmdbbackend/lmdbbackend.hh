@@ -82,7 +82,7 @@ public:
   bool get(DNSZoneRecord& dzr) override;
 
   // secondary support
-  void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
+  void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
 

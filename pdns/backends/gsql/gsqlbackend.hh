@@ -63,7 +63,7 @@ protected:
       d_listSubZoneQuery_stmt = d_db->prepare(d_listSubZoneQuery, 3);
       d_PrimaryOfDomainsZoneQuery_stmt = d_db->prepare(d_PrimaryOfDomainsZoneQuery, 1);
       d_InfoOfDomainsZoneQuery_stmt = d_db->prepare(d_InfoOfDomainsZoneQuery, 1);
-      d_InfoOfAllSlaveDomainsQuery_stmt = d_db->prepare(d_InfoOfAllSlaveDomainsQuery, 0);
+      d_InfoOfAllSecondaryDomainsQuery_stmt = d_db->prepare(d_InfoOfAllSecondaryDomainsQuery, 0);
       d_AutoPrimaryInfoQuery_stmt = d_db->prepare(d_AutoPrimaryInfoQuery, 2);
       d_GetAutoPrimaryIPs_stmt = d_db->prepare(d_GetAutoPrimaryIPs, 2);
       d_AddAutoPrimary_stmt = d_db->prepare(d_AddAutoPrimary, 3);
@@ -133,7 +133,7 @@ protected:
     d_listSubZoneQuery_stmt.reset();
     d_PrimaryOfDomainsZoneQuery_stmt.reset();
     d_InfoOfDomainsZoneQuery_stmt.reset();
-    d_InfoOfAllSlaveDomainsQuery_stmt.reset();
+    d_InfoOfAllSecondaryDomainsQuery_stmt.reset();
     d_AutoPrimaryInfoQuery_stmt.reset();
     d_GetAutoPrimaryIPs_stmt.reset();
     d_AddAutoPrimary_stmt.reset();
@@ -205,7 +205,7 @@ public:
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
   bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
-  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
+  bool createSecondaryDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
   bool deleteDomain(const DNSName &domain) override;
   bool autoPrimaryAdd(const AutoPrimary& primary) override;
   bool autoPrimaryRemove(const AutoPrimary& primary) override;
@@ -213,7 +213,7 @@ public:
   bool autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
-  void getUnfreshSlaveInfos(vector<DomainInfo> *domains) override;
+  void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
   void getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   bool getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type) override;
   bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true) override;
@@ -300,7 +300,7 @@ private:
 
   string d_PrimaryOfDomainsZoneQuery;
   string d_InfoOfDomainsZoneQuery;
-  string d_InfoOfAllSlaveDomainsQuery;
+  string d_InfoOfAllSecondaryDomainsQuery;
   string d_AutoPrimaryInfoQuery;
   string d_GetAutoPrimaryName;
   string d_GetAutoPrimaryIPs;
@@ -379,7 +379,7 @@ private:
   unique_ptr<SSqlStatement> d_listSubZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_PrimaryOfDomainsZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_InfoOfDomainsZoneQuery_stmt;
-  unique_ptr<SSqlStatement> d_InfoOfAllSlaveDomainsQuery_stmt;
+  unique_ptr<SSqlStatement> d_InfoOfAllSecondaryDomainsQuery_stmt;
   unique_ptr<SSqlStatement> d_AutoPrimaryInfoQuery_stmt;
   unique_ptr<SSqlStatement> d_GetAutoPrimaryIPs_stmt;
   unique_ptr<SSqlStatement> d_AddAutoPrimary_stmt;

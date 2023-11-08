@@ -608,7 +608,7 @@ void RemoteBackend::parseDomainInfo(const Json& obj, DomainInfo& di)
     di.kind = DomainInfo::Primary;
   }
   else if (kind == "slave") {
-    di.kind = DomainInfo::Slave;
+    di.kind = DomainInfo::Secondary;
   }
   else {
     di.kind = DomainInfo::Native;
@@ -684,7 +684,7 @@ bool RemoteBackend::autoPrimaryBackend(const string& ip, const DNSName& domain, 
   return true;
 }
 
-bool RemoteBackend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
+bool RemoteBackend::createSecondaryDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
 {
   Json query = Json::object{
     {"method", "createSlaveDomain"},
@@ -923,7 +923,7 @@ void RemoteBackend::getUpdatedPrimaries(vector<DomainInfo>& domains, std::unorde
   }
 }
 
-void RemoteBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
+void RemoteBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 {
   Json query = Json::object{
     {"method", "getUnfreshSlaveInfos"},

@@ -384,9 +384,9 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
   doc["api_rectify"] = (api_rectify == "1");
 
   // TSIG
-  vector<string> tsig_primary, tsig_slave;
+  vector<string> tsig_primary, tsig_secondary;
   di.backend->getDomainMetadata(zonename, "TSIG-ALLOW-AXFR", tsig_primary);
-  di.backend->getDomainMetadata(zonename, "AXFR-MASTER-TSIG", tsig_slave);
+  di.backend->getDomainMetadata(zonename, "AXFR-MASTER-TSIG", tsig_secondary);
 
   Json::array tsig_primary_keys;
   for (const auto& keyname : tsig_primary) {
@@ -394,11 +394,11 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
   }
   doc["master_tsig_key_ids"] = tsig_primary_keys;
 
-  Json::array tsig_slave_keys;
-  for (const auto& keyname : tsig_slave) {
-    tsig_slave_keys.push_back(apiZoneNameToId(DNSName(keyname)));
+  Json::array tsig_secondary_keys;
+  for (const auto& keyname : tsig_secondary) {
+    tsig_secondary_keys.push_back(apiZoneNameToId(DNSName(keyname)));
   }
-  doc["slave_tsig_key_ids"] = tsig_slave_keys;
+  doc["slave_tsig_key_ids"] = tsig_secondary_keys;
 
   if (shouldDoRRSets(req)) {
     vector<DNSResourceRecord> records;
@@ -867,7 +867,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, DomainInfo& di, co
     vector<string> metadata;
     extractJsonTSIGKeyIds(B, document["slave_tsig_key_ids"], metadata);
     if (!di.backend->setDomainMetadata(zonename, "AXFR-MASTER-TSIG", metadata)) {
-      throw HttpInternalServerErrorException("Unable to set new TSIG slave keys for zone '" + zonename.toLogString() + "'");
+      throw HttpInternalServerErrorException("Unable to set new TSIG secondary keys for zone '" + zonename.toLogString() + "'");
     }
   }
 }
@@ -1731,7 +1731,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   }
 
   auto nameservers = document["nameservers"];
-  if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer) {
+  if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Secondary && zonekind != DomainInfo::Consumer) {
     throw ApiException("Nameservers is not a list");
   }
 
@@ -1793,7 +1793,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   autorr.auth = true;
   autorr.ttl = ::arg().asNum("default-ttl");
 
-  if (!have_soa && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer) {
+  if (!have_soa && zonekind != DomainInfo::Secondary && zonekind != DomainInfo::Consumer) {
     // synthesize a SOA record so the zone "really" exists
     string soa = ::arg()["default-soa-content"];
     boost::replace_all(soa, "@", zonename.toStringNoDot());
@@ -2011,7 +2011,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
         }
       }
 
-      if (!haveSoa && newKind != DomainInfo::Slave && newKind != DomainInfo::Consumer) {
+      if (!haveSoa && newKind != DomainInfo::Secondary && newKind != DomainInfo::Consumer) {
         // Require SOA if this is a primary zone.
         throw ApiException("Must give SOA record for zone when replacing all RR sets");
       }
@@ -2032,7 +2032,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
         di.backend->feedComment(c);
       }
 
-      if (!haveSoa && (newKind == DomainInfo::Slave || newKind == DomainInfo::Consumer)) {
+      if (!haveSoa && (newKind == DomainInfo::Secondary || newKind == DomainInfo::Consumer)) {
         di.backend->setStale(di.id);
       }
     } else {
@@ -2135,7 +2135,7 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
   }
 
   if (di.primaries.empty())
-    throw ApiException("Domain '" + zonename.toString() + "' is not a slave domain (or has no primary defined)");
+    throw ApiException("Domain '" + zonename.toString() + "' is not a secondary domain (or has no primary defined)");
 
   shuffle(di.primaries.begin(), di.primaries.end(), pdns::dns_random_engine());
   Communicator.addSuckRequest(zonename, di.primaries.front(), SuckRequest::Api);

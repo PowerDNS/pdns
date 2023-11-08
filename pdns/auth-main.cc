@@ -167,7 +167,7 @@ static void declareArguments()
   ::arg().set("allow-unsigned-notify", "Allow unsigned notifications for TSIG secured zones") = "yes"; // FIXME: change to 'no' later
   ::arg().set("allow-unsigned-supermaster", "Allow supermasters to create zones without TSIG signed NOTIFY") = "yes";
   ::arg().set("allow-unsigned-autoprimary", "Allow autoprimaries to create zones without TSIG signed NOTIFY") = "yes";
-  ::arg().setSwitch("forward-dnsupdate", "A global setting to allow DNS update packages that are for a Slave zone, to be forwarded to the primary.") = "yes";
+  ::arg().setSwitch("forward-dnsupdate", "A global setting to allow DNS update packages that are for a Secondary zone, to be forwarded to the primary.") = "yes";
   ::arg().setSwitch("log-dns-details", "If PDNS should log DNS non-erroneous details") = "no";
   ::arg().setSwitch("log-dns-queries", "If PDNS should log all incoming DNS queries") = "no";
   ::arg().set("local-address", "Local IP addresses to which we bind") = "0.0.0.0, ::";
@@ -178,7 +178,7 @@ static void declareArguments()
   ::arg().set("overload-queue-length", "Maximum queuelength moving to packetcache only") = "0";
   ::arg().set("max-queue-length", "Maximum queuelength before considering situation lost") = "5000";
 
-  ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation") = "2";
+  ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for secondary operation") = "2";
   ::arg().setSwitch("api", "Enable/disable the REST API (including HTTP listener)") = "no";
   ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API") = "";
   ::arg().setSwitch("default-api-rectify", "Default API-RECTIFY value for zones") = "yes";
@@ -212,7 +212,7 @@ static void declareArguments()
   ::arg().set("only-notify", "Only send AXFR NOTIFY to these IP addresses or netmasks") = "0.0.0.0/0,::/0";
   ::arg().set("also-notify", "When notifying a zone, also notify these nameservers") = "";
   ::arg().set("allow-notify-from", "Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.") = "0.0.0.0/0,::/0";
-  ::arg().set("slave-cycle-interval", "Schedule slave freshness checks once every .. seconds") = "";
+  ::arg().set("slave-cycle-interval", "Schedule secondary freshness checks once every .. seconds") = "";
   ::arg().set("xfr-cycle-interval", "Schedule primary/secondary SOA freshness checks once every .. seconds") = "60";
   ::arg().set("secondary-check-signature-freshness", "Check signatures in SOA freshness check. Sets DO flag on SOA queries. Outside some very problematic scenarios, say yes here.") = "yes";
 
@@ -268,7 +268,7 @@ static void declareArguments()
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy") = "";
   ::arg().set("slave-renotify", "If we should send out notifications for secondaried updates") = "no";
   ::arg().set("secondary-do-renotify", "If this secondary should send out notifications after receiving zone transfers from a primary") = "no";
-  ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of primary or slave settings") = "";
+  ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of primary or secondary settings") = "";
 
   ::arg().set("default-ttl", "Seconds a result is valid if not set otherwise") = "3600";
   ::arg().set("max-tcp-connections", "Maximum number of TCP connections") = "20";
@@ -1437,7 +1437,7 @@ int main(int argc, char** argv)
     DynListener::registerFunc("RESPSIZES", &DLRSizesHandler, "get histogram of response sizes");
     DynListener::registerFunc("REMOTES", &DLRemotesHandler, "get top remotes");
     DynListener::registerFunc("SET", &DLSettingsHandler, "set config variables", "<var> <value>");
-    DynListener::registerFunc("RETRIEVE", &DLNotifyRetrieveHandler, "retrieve slave zone", "<zone> [<ip>]");
+    DynListener::registerFunc("RETRIEVE", &DLNotifyRetrieveHandler, "retrieve secondary zone", "<zone> [<ip>]");
     DynListener::registerFunc("CURRENT-CONFIG", &DLCurrentConfigHandler, "retrieve the current configuration", "[diff]");
     DynListener::registerFunc("LIST-ZONES", &DLListZones, "show list of zones", "[primary|secondary|native|consumer|producer]");
     DynListener::registerFunc("TOKEN-LOGIN", &DLTokenLogin, "Login to a PKCS#11 token", "<module> <slot> <pin>");

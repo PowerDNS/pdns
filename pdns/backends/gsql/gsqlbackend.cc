@@ -67,7 +67,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_listSubZoneQuery=getArg("list-subzone-query");
 
   d_InfoOfDomainsZoneQuery=getArg("info-zone-query");
-  d_InfoOfAllSlaveDomainsQuery=getArg("info-all-slaves-query");
+  d_InfoOfAllSecondaryDomainsQuery = getArg("info-all-secondaries-query");
   d_AutoPrimaryInfoQuery = getArg("autoprimary-query");
   d_GetAutoPrimaryIPs = getArg("autoprimary-name-to-ips");
   d_AddAutoPrimary = getArg("autoprimary-add");
@@ -143,7 +143,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_listQuery_stmt = nullptr;
   d_listSubZoneQuery_stmt = nullptr;
   d_InfoOfDomainsZoneQuery_stmt = nullptr;
-  d_InfoOfAllSlaveDomainsQuery_stmt = nullptr;
+  d_InfoOfAllSecondaryDomainsQuery_stmt = nullptr;
   d_AutoPrimaryInfoQuery_stmt = nullptr;
   d_GetAutoPrimaryIPs_stmt = nullptr;
   d_AddAutoPrimary_stmt = nullptr;
@@ -413,7 +413,7 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
   return true;
 }
 
-void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
+void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
 {
   /*
     list all domains that need refreshing for which we are secondary, and insert into
@@ -424,14 +424,14 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     reconnectIfNeeded();
 
     // clang-format off
-    d_InfoOfAllSlaveDomainsQuery_stmt->
+    d_InfoOfAllSecondaryDomainsQuery_stmt->
       execute()->
       getResult(d_result)->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of slave domains: " + e.txtReason());
+    throw PDNSException(std::string(__PRETTY_FUNCTION__) + " unable to retrieve list of secondary domains: " + e.txtReason());
   }
 
   SOAData sd;
@@ -440,7 +440,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
 
   unfreshDomains->reserve(d_result.size());
   for (const auto& row : d_result) { // id, name, type, master, last_check, catalog, content
-    ASSERT_ROW_COLUMNS("info-all-slaves-query", row, 6);
+    ASSERT_ROW_COLUMNS("info-all-secondaries-query", row, 6);
 
     try {
       di.zone = DNSName(row[1]);
@@ -505,7 +505,7 @@ void GSQLBackend::getUnfreshSlaveInfos(vector<DomainInfo> *unfreshDomains)
     }
 
     if (pdns_iequals(row[2], "SLAVE")) {
-      di.kind = DomainInfo::Slave;
+      di.kind = DomainInfo::Secondary;
     }
     else if (pdns_iequals(row[2], "CONSUMER")) {
       di.kind = DomainInfo::Consumer;
@@ -1658,7 +1658,7 @@ bool GSQLBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
   return true;
 }
 
-bool GSQLBackend::createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
+bool GSQLBackend::createSecondaryDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
 {
   string name;
   vector<ComboAddress> primaries({ComboAddress(ip, 53)});
@@ -1686,10 +1686,10 @@ bool GSQLBackend::createSlaveDomain(const string& ip, const DNSName& domain, con
         primaries = tmp;
       }
     }
-    createDomain(domain, DomainInfo::Slave, primaries, account);
+    createDomain(domain, DomainInfo::Secondary, primaries, account);
   }
   catch(SSqlException &e) {
-    throw PDNSException("Database error trying to insert new slave domain '"+domain.toLogString()+"': "+ e.txtReason());
+    throw PDNSException("Database error trying to insert new secondary domain '" + domain.toLogString() + "': " + e.txtReason());
   }
   return true;
 }
@@ -1765,7 +1765,7 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
       if (pdns_iequals(row[3], "MASTER")) {
         di.kind = DomainInfo::Primary;
       } else if (pdns_iequals(row[3], "SLAVE")) {
-        di.kind = DomainInfo::Slave;
+        di.kind = DomainInfo::Secondary;
       } else if (pdns_iequals(row[3], "NATIVE")) {
         di.kind = DomainInfo::Native;
       }

@@ -102,7 +102,7 @@ public:
   bool get(DNSZoneRecord& resourceRecord);
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
 
-  void getUnfreshSlaveInfos(vector<DomainInfo>* domains);
+  void getUnfreshSecondaryInfos(vector<DomainInfo>* domains);
   void getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
   bool getDomainInfo(const DNSName& domain, DomainInfo& domainInfo, bool getSerial = true);
   bool createDomain(const DNSName& domain, DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account);

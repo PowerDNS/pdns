@@ -298,10 +298,10 @@ BOOST_AUTO_TEST_CASE(test_method_autoPrimaryBackend)
   BOOST_CHECK_EQUAL(dbd, backendUnderTest.get());
 }
 
-BOOST_AUTO_TEST_CASE(test_method_createSlaveDomain)
+BOOST_AUTO_TEST_CASE(test_method_createSecondaryDomain)
 {
-  BOOST_TEST_MESSAGE("Testing createSlaveDomain method");
-  BOOST_CHECK(backendUnderTest->createSlaveDomain("10.0.0.1", DNSName("pirate.unit.test."), "", ""));
+  BOOST_TEST_MESSAGE("Testing createSecondaryDomain method");
+  BOOST_CHECK(backendUnderTest->createSecondaryDomain("10.0.0.1", DNSName("pirate.unit.test."), "", ""));
 }
 
 BOOST_AUTO_TEST_CASE(test_method_feedRecord)

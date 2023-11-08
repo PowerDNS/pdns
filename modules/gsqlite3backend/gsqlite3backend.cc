@@ -96,7 +96,7 @@ public:
 
     declare(suffix, "info-zone-query", "", "select id,name,master,last_check,notified_serial,type,options,catalog,account from domains where name=:domain");
 
-    declare(suffix, "info-all-slaves-query", "", "select domains.id, domains.name, domains.type, domains.master, domains.last_check, records.content from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name where domains.type in ('SLAVE', 'CONSUMER')");
+    declare(suffix, "info-all-secondaries-query", "", "select domains.id, domains.name, domains.type, domains.master, domains.last_check, records.content from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name where domains.type in ('SLAVE', 'CONSUMER')");
     declare(suffix, "autoprimary-query", "", "select account from supermasters where ip=:ip and nameserver=:nameserver");
     declare(suffix, "autoprimary-name-to-ips", "", "select ip,account from supermasters where nameserver=:nameserver and account=:account");
     declare(suffix, "autoprimary-add", "", "insert into supermasters (ip, nameserver, account) values (:ip,:nameserver,:account)");

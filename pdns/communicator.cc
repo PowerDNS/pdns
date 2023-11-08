@@ -129,7 +129,7 @@ void CommunicatorClass::mainloop()
     makeNotifySockets();
 
     for(;;) {
-      slaveRefresh(&P);
+      secondaryRefresh(&P);
       primaryUpdateCheck(&P);
       doNotifications(&P); // this processes any notification acknowledgements and actually send out our own notifications
 
@@ -139,16 +139,16 @@ void CommunicatorClass::mainloop()
         rc=d_any_sem.tryWait();
 
         if(rc) {
-          bool extraSlaveRefresh = false;
+          bool extraSecondaryRefresh = false;
           Utility::sleep(1);
           {
             auto data = d_data.lock();
             if (data->d_tocheck.size()) {
-              extraSlaveRefresh = true;
+              extraSecondaryRefresh = true;
             }
           }
-          if (extraSlaveRefresh)
-            slaveRefresh(&P);
+          if (extraSecondaryRefresh)
+            secondaryRefresh(&P);
         }
         else {
           // eat up extra posts to avoid busy looping if many posts were done

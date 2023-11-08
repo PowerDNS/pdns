@@ -1754,7 +1754,7 @@ void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */
   });
 }
 
-void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
+void LMDBBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 {
   uint32_t serial;
   time_t now = time(0);
@@ -1848,7 +1848,7 @@ bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
 
   try {
     getAllDomainsFiltered(&scratch, [&catalog, &members, &type](DomainInfo& di) {
-      if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Primary) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Slave) || di.catalog != catalog) {
+      if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Primary) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Secondary) || di.catalog != catalog) {
         return false;
       }
 

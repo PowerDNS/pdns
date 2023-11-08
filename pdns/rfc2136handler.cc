@@ -759,7 +759,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
     return RCode::NotAuth;
   }
 
-  if (di.kind == DomainInfo::Slave)
+  if (di.kind == DomainInfo::Secondary)
     return forwardPacket(msgPrefix, p, di);
 
   // Check if all the records provided are within the zone
@@ -989,7 +989,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
       zone.append("$");
       purgeAuthCaches(zone);
 
-      // Notify slaves
+      // Notify secondaries
       if (di.kind == DomainInfo::Primary) {
         vector<string> notify;
         B.getDomainMetadata(p.qdomain, "NOTIFY-DNSUPDATE", notify);

@@ -391,7 +391,7 @@ bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* g
       if (kind == "master")
         di.kind = DomainInfo::Primary;
       else if (kind == "slave")
-        di.kind = DomainInfo::Slave;
+        di.kind = DomainInfo::Secondary;
       else
         di.kind = DomainInfo::Native;
     }

@@ -309,10 +309,10 @@ void UeberBackend::rediscover(string* status)
   updateZoneCache();
 }
 
-void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
+void UeberBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 {
   for (auto& backend : backends) {
-    backend->getUnfreshSlaveInfos(domains);
+    backend->getUnfreshSecondaryInfos(domains);
   }
 }
 

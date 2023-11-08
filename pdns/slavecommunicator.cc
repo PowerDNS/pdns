@@ -237,7 +237,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
         }
 
         g_log << Logger::Warning << logPrefix << "create zone '" << ciCreate.d_zone << "'" << endl;
-        di.backend->createDomain(ciCreate.d_zone, DomainInfo::Slave, ciCreate.d_primaries, "");
+        di.backend->createDomain(ciCreate.d_zone, DomainInfo::Secondary, ciCreate.d_primaries, "");
 
         di.backend->setPrimaries(ciCreate.d_zone, di.primaries);
         di.backend->setOptions(ciCreate.d_zone, ciCreate.toJson());
@@ -435,9 +435,9 @@ void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, c
 
     bool wrongDomainKind = false;
     // this checks three error conditions, and sets wrongDomainKind if we hit the third & had an error
-    if(!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, di.kind != DomainInfo::Slave)) { // di.backend and B are mostly identical
+    if (!B.getDomainInfo(domain, di) || !di.backend || (wrongDomainKind = true, di.kind != DomainInfo::Secondary)) { // di.backend and B are mostly identical
       if(wrongDomainKind)
-        g_log<<Logger::Warning<<logPrefix<<"can't determine backend, not configured as slave"<<endl;
+        g_log << Logger::Warning << logPrefix << "can't determine backend, not configured as secondary" << endl;
       else
         g_log<<Logger::Warning<<logPrefix<<"can't determine backend"<<endl;
       return;
@@ -953,7 +953,7 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
 
     g_log<<Logger::Warning<<logPrefix<<"zone committed with serial "<<zs.soa_serial<<endl;
 
-    // Send slave re-notifications
+    // Send secondary re-notifications
     bool doNotify;
     vector<string> meta;
     if(B.getDomainMetadata(domain, "SLAVE-RENOTIFY", meta ) && !meta.empty()) {
@@ -992,16 +992,16 @@ void CommunicatorClass::suck(const DNSName &domain, const ComboAddress& remote, 
       auto data = d_data.lock();
       // The AXFR probably failed due to a problem on the primary server. If SOA-checks against this primary
       // still succeed, we would constantly try to AXFR the zone. To avoid this, we add the zone to the list of
-      // failed slave-checks. This will suspend slave-checks (and subsequent AXFR) for this zone for some time.
+      // failed secondary-checks. This will suspend secondary-checks (and subsequent AXFR) for this zone for some time.
       uint64_t newCount = 1;
       time_t now = time(nullptr);
-      const auto failedEntry = data->d_failedSlaveRefresh.find(domain);
-      if (failedEntry != data->d_failedSlaveRefresh.end()) {
-        newCount = data->d_failedSlaveRefresh[domain].first + 1;
+      const auto failedEntry = data->d_failedSecondaryRefresh.find(domain);
+      if (failedEntry != data->d_failedSecondaryRefresh.end()) {
+        newCount = data->d_failedSecondaryRefresh[domain].first + 1;
       }
       time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
-      data->d_failedSlaveRefresh[domain] = {newCount, nextCheck};
-      g_log<<Logger::Warning<<logPrefix<<"unable to xfr zone (ResolverException): "<<re.reason<<" (This was attempt number "<<newCount<<". Excluding zone from slave-checks until "<<nextCheck<<")"<<endl;
+      data->d_failedSecondaryRefresh[domain] = {newCount, nextCheck};
+      g_log << Logger::Warning << logPrefix << "unable to xfr zone (ResolverException): " << re.reason << " (This was attempt number " << newCount << ". Excluding zone from secondary-checks until " << nextCheck << ")" << endl;
     }
     if(di.backend && transaction) {
       g_log<<Logger::Info<<"aborting possible open transaction"<<endl;
@@ -1027,8 +1027,7 @@ struct DomainNotificationInfo
 };
 }
 
-
-struct SlaveSenderReceiver
+struct SecondarySenderReceiver
 {
   typedef std::tuple<DNSName, ComboAddress, uint16_t> Identifier;
 
@@ -1040,7 +1039,7 @@ struct SlaveSenderReceiver
 
   map<uint32_t, Answer> d_freshness;
 
-  SlaveSenderReceiver()
+  SecondarySenderReceiver()
   {
   }
 
@@ -1079,7 +1078,7 @@ struct SlaveSenderReceiver
   Resolver d_resolver;
 };
 
-void CommunicatorClass::addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote)
+void CommunicatorClass::addSecondaryCheckRequest(const DomainInfo& di, const ComboAddress& remote)
 {
   auto data = d_data.lock();
   DomainInfo ours = di;
@@ -1109,9 +1108,9 @@ void CommunicatorClass::addTryAutoPrimaryRequest(const DNSPacket& p)
   }
 }
 
-void CommunicatorClass::slaveRefresh(PacketHandler *P)
+void CommunicatorClass::secondaryRefresh(PacketHandler* P)
 {
-  // not unless we are slave
+  // not unless we are secondary
   if (!::arg().mustDo("secondary")) return;
 
   UeberBackend *B=P->getBackend();
@@ -1129,12 +1128,13 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       }
       else {
         // We received a NOTIFY for a zone. This means at least one of the zone's primary server is working.
-        // Therefore we delete the zone from the list of failed slave-checks to allow immediate checking.
-        const auto wasFailedDomain = data->d_failedSlaveRefresh.find(di.zone);
-        if (wasFailedDomain != data->d_failedSlaveRefresh.end()) {
-          g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", removing zone from list of failed slave-checks and going to check SOA serial"<<endl;
-          data->d_failedSlaveRefresh.erase(di.zone);
-        } else {
+        // Therefore we delete the zone from the list of failed secondary-checks to allow immediate checking.
+        const auto wasFailedDomain = data->d_failedSecondaryRefresh.find(di.zone);
+        if (wasFailedDomain != data->d_failedSecondaryRefresh.end()) {
+          g_log << Logger::Debug << "Got NOTIFY for " << di.zone << ", removing zone from list of failed secondary-checks and going to check SOA serial" << endl;
+          data->d_failedSecondaryRefresh.erase(di.zone);
+        }
+        else {
           g_log<<Logger::Debug<<"Got NOTIFY for "<<di.zone<<", going to check SOA serial"<<endl;
         }
         rdomains.push_back(di);
@@ -1154,7 +1154,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     P->tryAutoPrimarySynchronous(dp, tsigkeyname); // FIXME could use some error logging
   }
   if(rdomains.empty()) { // if we have priority domains, check them first
-    B->getUnfreshSlaveInfos(&rdomains);
+    B->getUnfreshSecondaryInfos(&rdomains);
   }
   sdomains.reserve(rdomains.size());
   DNSSECKeeper dk(B); // NOW HEAR THIS! This DK uses our B backend, so no interleaved access!
@@ -1165,8 +1165,8 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     time_t now = time(nullptr);
 
     for(DomainInfo& di :  rdomains) {
-      const auto failed = data->d_failedSlaveRefresh.find(di.zone);
-      if (failed != data->d_failedSlaveRefresh.end() && now < failed->second.second ) {
+      const auto failed = data->d_failedSecondaryRefresh.find(di.zone);
+      if (failed != data->d_failedSecondaryRefresh.end() && now < failed->second.second) {
         // If the domain has failed before and the time before the next check has not expired, skip this domain
         g_log<<Logger::Debug<<"Zone '"<<di.zone<<"' is on the list of failed SOA checks. Skipping SOA checks until "<< failed->second.second<<endl;
         continue;
@@ -1174,7 +1174,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
       std::vector<std::string> localaddr;
       SuckRequest sr;
       sr.domain=di.zone;
-      if (di.primaries.empty()) // slave domains w/o primaries are ignored
+      if (di.primaries.empty()) // secondary domains w/o primaries are ignored
         continue;
       // remove unfresh domains already queued for AXFR, no sense polling them again
       sr.primary = *di.primaries.begin();
@@ -1221,23 +1221,21 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
   }
   if(sdomains.empty())
   {
-    if (d_slaveschanged) {
+    if (d_secondarieschanged) {
       auto data = d_data.lock();
-      g_log<<Logger::Info<<"No new unfresh slave domains, "<<data->d_suckdomains.size()<<" queued for AXFR already, "<<data->d_inprogress.size()<<" in progress"<<endl;
+      g_log << Logger::Info << "No new unfresh secondary domains, " << data->d_suckdomains.size() << " queued for AXFR already, " << data->d_inprogress.size() << " in progress" << endl;
     }
-    d_slaveschanged = !rdomains.empty();
+    d_secondarieschanged = !rdomains.empty();
     return;
   }
   else {
     auto data = d_data.lock();
-    g_log<<Logger::Info<<sdomains.size()<<" slave domain"<<(sdomains.size()>1 ? "s" : "")<<" need"<<
-      (sdomains.size()>1 ? "" : "s")<<
-      " checking, "<<data->d_suckdomains.size()<<" queued for AXFR"<<endl;
+    g_log << Logger::Info << sdomains.size() << " secondary domain" << (sdomains.size() > 1 ? "s" : "") << " need" << (sdomains.size() > 1 ? "" : "s") << " checking, " << data->d_suckdomains.size() << " queued for AXFR" << endl;
   }
 
-  SlaveSenderReceiver ssr;
+  SecondarySenderReceiver ssr;
 
-  Inflighter<vector<DomainNotificationInfo>, SlaveSenderReceiver> ifl(sdomains, ssr);
+  Inflighter<vector<DomainNotificationInfo>, SecondarySenderReceiver> ifl(sdomains, ssr);
 
   ifl.d_maxInFlight = 200;
 
@@ -1265,7 +1263,7 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     DomainInfo& di(val.di);
     // If our di comes from packethandler (caused by incoming NOTIFY), di.backend will not be filled out,
     // and di.serial will not either.
-    // Conversely, if our di came from getUnfreshSlaveInfos, di.backend and di.serial are valid.
+    // Conversely, if our di came from getUnfreshSecondaryInfos, di.backend and di.serial are valid.
     if(!di.backend) {
       // Do not overwrite received DI just to make sure it exists in backend:
       // di.primaries should contain the picked primary (as first entry)!
@@ -1282,11 +1280,11 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
     if(!ssr.d_freshness.count(di.id)) { // If we don't have an answer for the domain
       uint64_t newCount = 1;
       auto data = d_data.lock();
-      const auto failedEntry = data->d_failedSlaveRefresh.find(di.zone);
-      if (failedEntry != data->d_failedSlaveRefresh.end())
-        newCount = data->d_failedSlaveRefresh[di.zone].first + 1;
+      const auto failedEntry = data->d_failedSecondaryRefresh.find(di.zone);
+      if (failedEntry != data->d_failedSecondaryRefresh.end())
+        newCount = data->d_failedSecondaryRefresh[di.zone].first + 1;
       time_t nextCheck = now + std::min(newCount * d_tickinterval, (uint64_t)::arg().asNum("default-ttl"));
-      data->d_failedSlaveRefresh[di.zone] = {newCount, nextCheck};
+      data->d_failedSecondaryRefresh[di.zone] = {newCount, nextCheck};
       if (newCount == 1) {
         g_log<<Logger::Warning<<"Unable to retrieve SOA for "<<di.zone<<
           ", this was the first time. NOTE: For every subsequent failed SOA check the domain will be suspended from freshness checks for 'num-errors x "<<
@@ -1303,9 +1301,9 @@ void CommunicatorClass::slaveRefresh(PacketHandler *P)
 
     {
       auto data = d_data.lock();
-      const auto wasFailedDomain = data->d_failedSlaveRefresh.find(di.zone);
-      if (wasFailedDomain != data->d_failedSlaveRefresh.end())
-        data->d_failedSlaveRefresh.erase(di.zone);
+      const auto wasFailedDomain = data->d_failedSecondaryRefresh.find(di.zone);
+      if (wasFailedDomain != data->d_failedSecondaryRefresh.end())
+        data->d_failedSecondaryRefresh.erase(di.zone);
     }
 
     bool hasSOA = false;
