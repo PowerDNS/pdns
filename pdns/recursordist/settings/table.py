@@ -976,12 +976,13 @@ An entry called 'server1.home' will be stored as 'server1.home', regardless of t
         'name' : 'extended_resolution_errors',
         'section' : 'recursor',
         'type' : LType.Bool,
-        'default' : 'false',
+        'default' : 'true',
         'help' : 'If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors',
         'doc' : '''
 If set, the recursor will add an EDNS Extended Error (:rfc:`8914`) to responses when resolution failed, like DNSSEC validation errors, explaining the reason it failed. This setting is not needed to allow setting custom error codes from Lua or from a RPZ hit.
  ''',
-    'versionadded': '4.5.0'
+        'versionadded': '4.5.0',
+        'versionchanged': ('5.0.0', 'Default changed to enabled, previously it was disabled.'),
     },
     {
         'name' : 'forward_zones',
