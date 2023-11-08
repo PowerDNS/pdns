@@ -62,7 +62,7 @@ Allow AXFR NOTIFY from these IP ranges. Setting this to an empty string
 will drop all incoming notifies.
 
 .. note::
-  IPs allowed by this setting, still go through the normal NOTIFY processing as described in :ref:`modes-of-operation-secondary-operation`
+  IPs allowed by this setting, still go through the normal NOTIFY processing as described in :ref:`secondary-operation`
   The IP the NOTIFY is received from, still needs to be a nameserver for the secondary domain. Explicitly setting this paramater will not bypass those checks.
 
 .. _setting-allow-unsigned-autoprimary:
