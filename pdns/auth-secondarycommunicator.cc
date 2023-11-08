@@ -961,7 +961,7 @@ void CommunicatorClass::suck(const DNSName& domain, const ComboAddress& remote, 
       doNotify = (meta.front() == "1");
     }
     else {
-      doNotify = (::arg().mustDo("slave-renotify"));
+      doNotify = (::arg().mustDo("secondary-do-renotify"));
     }
     if (doNotify) {
       notifyDomain(domain, &B);
