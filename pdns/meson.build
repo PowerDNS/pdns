@@ -5,13 +5,9 @@ if dep_cdb.found()
   libpdns_cdb = declare_dependency(
     link_whole: static_library(
       'libpdns-cdb',
-      'cdb.cc',
-      extra_files: [
-        'cdb.hh',
-      ],
-      dependencies: [
-        deps,
-      ],
+      sources: ['cdb.cc'],
+      extra_files: ['cdb.hh'],
+      dependencies: deps,
     )
   )
 endif
@@ -32,9 +28,7 @@ if not fs.is_file(libpdns_bindlexer_cc)
 
   libpdns_bindlexer_cc = flex_generator.process('bindlexer.l')
 endif
-libpdns_bindlexer_cc = declare_dependency(
-  sources: [libpdns_bindlexer_cc],
-)
+libpdns_bindlexer_cc = declare_dependency(sources: [libpdns_bindlexer_cc])
 
 libpdns_bindparser_cc = 'bindparser.cc'
 if not fs.is_file(libpdns_bindparser_cc) and not fs.is_file('bindparser.hh')
@@ -55,14 +49,14 @@ if not fs.is_file(libpdns_bindparser_cc) and not fs.is_file('bindparser.hh')
 
   libpdns_bindparser_cc = bison_generator.process('bindparser.yy')
 endif
-libpdns_bindparser_cc = declare_dependency(
-  sources: [libpdns_bindparser_cc],
-)
+libpdns_bindparser_cc = declare_dependency(sources: [libpdns_bindparser_cc])
 
 libpdns_bind_parser = declare_dependency(
   link_whole: static_library(
     'pdns-bind-parser',
-    'zoneparser-tng.cc',
+    sources: [
+      'zoneparser-tng.cc',
+    ],
     extra_files: [
       'bindparserclasses.hh',
       'zoneparser-tng.hh',
@@ -81,10 +75,8 @@ if dep_lua.found()
   libpdns_lua = declare_dependency(
     link_whole: static_library(
       'pdns-lua',
-      'lua-base4.cc',
-      extra_files: [
-        'lua-base4.hh',
-      ],
+      sources: ['lua-base4.cc'],
+      extra_files: ['lua-base4.hh'],
       dependencies: deps,
     )
   )
@@ -95,10 +87,8 @@ if dep_libcurl.found()
   libpdns_minicurl = declare_dependency(
     link_whole: static_library(
       'pdns-minicurl',
-      'minicurl.cc',
-      extra_files: [
-        'minicurl.hh',
-      ],
+      sources: ['minicurl.cc'],
+      extra_files: ['minicurl.hh'],
       dependencies: deps,
     )
   )
@@ -109,7 +99,7 @@ if dep_lua_records.found()
   libpdns_lua_records = declare_dependency(
     link_whole: static_library(
       'pdns-lua-records',
-      'lua-record.cc',
+      sources: ['lua-record.cc'],
       extra_files: [],
       dependencies: [
         deps,
@@ -123,10 +113,8 @@ libpdns_gss = dependency('', required: false)
 libpdns_gss = declare_dependency(
   link_whole: static_library(
     'pdns-gss',
-    'gss_context.cc',
-    extra_files: [
-      'gss_context.hh',
-    ],
+    sources: ['gss_context.cc'],
+    extra_files: ['gss_context.hh'],
     dependencies: deps,
   )
 )
@@ -136,7 +124,7 @@ if dep_libsodium.found()
   libpdns_sodium = declare_dependency(
     link_whole: static_library(
       'pdns-sodium',
-      'sodiumsigners.cc',
+      sources: ['sodiumsigners.cc'],
       dependencies: deps,
     )
   )
@@ -147,7 +135,7 @@ if dep_libdecaf.found()
   libpdns_decaf = declare_dependency(
     link_whole: static_library(
       'pdns-decaf',
-      'decafsigners.cc',
+      sources: ['decafsigners.cc'],
       dependencies: deps,
       cpp_args: '-Wno-shadow',
     )
@@ -159,10 +147,8 @@ if dep_pkcs11.found()
   libpdns_pkcs11 = declare_dependency(
     link_whole: static_library(
       'pdns-pkcs11',
-      'pkcs11signers.cc',
-      extra_files: [
-        'pkcs11signers.hh',
-      ],
+      sources: ['pkcs11signers.cc'],
+      extra_files: ['pkcs11signers.hh'],
       dependencies: deps,
     )
   )
@@ -173,10 +159,8 @@ if get_variable('dep_sqlite3', dependency('', required: false)).found()
   libpdns_sqlite3 = declare_dependency(
     link_whole: static_library(
       'pdns-sqlite3',
-      'ssqlite3.cc',
-      extra_files: [
-        'ssqlite3.hh',
-      ],
+      sources: ['ssqlite3.cc'],
+      extra_files: ['ssqlite3.hh'],
       dependencies: deps,
     )
   )
@@ -201,14 +185,16 @@ if dep_gss_tsig.found()
   libpdns_tsig = declare_dependency(
     link_whole: static_library(
       'pdns-tsig',
-      'tsigutils.cc',
-      'tsigverifier.cc',
+      sources: [
+        'tsigutils.cc',
+        'tsigverifier.cc',
+      ],
       extra_files: [
         'tsigutils.hh',
         'tsigverifier.hh',
       ],
-      cpp_args: '-Wno-redundant-decls',
       dependencies: deps,
+      cpp_args: '-Wno-redundant-decls',
     )
   )
 endif
@@ -228,9 +214,7 @@ if not fs.is_file(libpdns_dnslabeltext_cc)
 
   libpdns_dnslabeltext_cc = ragel_generator.process('dnslabeltext.rl')
 endif
-libpdns_dnslabeltext_cc = declare_dependency(
-  sources: [libpdns_dnslabeltext_cc],
-)
+libpdns_dnslabeltext = declare_dependency(sources: [libpdns_dnslabeltext_cc])
 
 libpdns_common = declare_dependency(
   link_whole: static_library(
@@ -565,7 +549,7 @@ if enable_ipcipher
   libpdns_ipcipher = declare_dependency(
     link_whole: static_library(
       'pdns-ipcipher',
-      'ipcipher.cc',
+      sources: ['ipcipher.cc'],
       dependencies: deps,
     )
   )
