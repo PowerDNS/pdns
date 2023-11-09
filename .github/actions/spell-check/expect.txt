@@ -346,6 +346,7 @@ domainname
 domainrelatedobject
 Donatas
 dontcare
+doq
 downsides
 downstreams
 dport

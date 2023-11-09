@@ -317,6 +317,12 @@ static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
     doAvg(dnsdist::metrics::g_stats.latencyDoHAvg10000,   udiff,   10000);
     doAvg(dnsdist::metrics::g_stats.latencyDoHAvg1000000, udiff, 1000000);
   }
+  else if (protocol == dnsdist::Protocol::DoQ) {
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg100,     udiff,     100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000,    udiff,    1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg10000,   udiff,   10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000000, udiff, 1000000);
+  }
 }
 
 bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, unsigned int& qnameWireLength)
