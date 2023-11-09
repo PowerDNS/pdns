@@ -68,6 +68,10 @@ doh-response-pipe-full
 ----------------------
 Number of responses dropped because the internal DoH pipe was full.
 
+doq-response-pipe-full
+----------------------
+Number of responses dropped because the internal DoQ pipe was full.
+
 downstream-send-errors
 ----------------------
 Number of errors when sending a query to a backend.
@@ -144,6 +148,22 @@ Average response latency, in microseconds, of the last 10000 packets received ov
 latency-doh-avg1000000
 ----------------------
 Average response latency, in microseconds, of the last 1000000 packets received over DoH.
+
+latency-doq-avg100
+------------------
+Average response latency, in microseconds, of the last 100 packets received over DoQ.
+
+latency-doq-avg1000
+-------------------
+Average response latency, in microseconds, of the last 1000 packets received over DoQ.
+
+latency-doq-avg10000
+--------------------
+Average response latency, in microseconds, of the last 10000 packets received over DoQ.
+
+latency-doq-avg1000000
+----------------------
+Average response latency, in microseconds, of the last 1000000 packets received over DoQ.
 
 latency-dot-avg100
 ------------------
