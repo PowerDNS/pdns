@@ -2248,14 +2248,14 @@ public:
     d_ede.extraText = extraText;
   }
 
-  DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override
+  DNSAction::Action operator()(DNSQuestion* dnsQuestion, std::string* ruleresult) const override
   {
-    dq->ids.d_extendedError = std::make_unique<EDNSExtendedError>(d_ede);
+    dnsQuestion->ids.d_extendedError = std::make_unique<EDNSExtendedError>(d_ede);
 
     return DNSAction::Action::None;
   }
 
-  std::string toString() const override
+  [[nodiscard]] std::string toString() const override
   {
     return "set EDNS Extended DNS Error to " + std::to_string(d_ede.infoCode) + (d_ede.extraText.empty() ? std::string() : std::string(": \"") + d_ede.extraText + std::string("\""));
   }
@@ -2274,14 +2274,14 @@ public:
     d_ede.extraText = extraText;
   }
 
-  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dnsResponse, std::string* ruleresult) const override
   {
-    dr->ids.d_extendedError = std::make_unique<EDNSExtendedError>(d_ede);
+    dnsResponse->ids.d_extendedError = std::make_unique<EDNSExtendedError>(d_ede);
 
     return DNSResponseAction::Action::None;
   }
 
-  std::string toString() const override
+  [[nodiscard]] std::string toString() const override
   {
     return "set EDNS Extended DNS Error to " + std::to_string(d_ede.infoCode) + (d_ede.extraText.empty() ? std::string() : std::string(": \"") + d_ede.extraText + std::string("\""));
   }
@@ -2335,6 +2335,7 @@ void setResponseHeadersFromConfig(dnsheader& dh, const ResponseConfig& config)
   }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaActions(LuaContext& luaCtx)
 {
   luaCtx.writeFunction("newRuleAction", [](luadnsrule_t dnsrule, std::shared_ptr<DNSAction> action, boost::optional<luaruleparams_t> params) {
