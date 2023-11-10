@@ -465,6 +465,16 @@ void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, ui
 #endif
 }
 
+void dnsdist_ffi_dnsquestion_set_extended_dns_error(dnsdist_ffi_dnsquestion_t* dnsQuestion, uint16_t infoCode, const char* extraText, size_t extraTextSize)
+{
+  EDNSExtendedError ede;
+  ede.infoCode = infoCode;
+  if (extraText != nullptr && extraTextSize > 0) {
+    ede.extraText = std::string(extraText, extraTextSize);
+  }
+  dnsQuestion->dq->ids.d_extendedError = std::make_unique<EDNSExtendedError>(ede);
+}
+
 void dnsdist_ffi_dnsquestion_set_rcode(dnsdist_ffi_dnsquestion_t* dq, int rcode)
 {
   dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->dq->getMutableData(), [rcode](dnsheader& header) {

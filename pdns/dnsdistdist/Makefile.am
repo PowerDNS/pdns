@@ -214,6 +214,7 @@ dnsdist_SOURCES = \
 	dolog.hh \
 	doq.hh \
 	ednscookies.cc ednscookies.hh \
+	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	ext/json11/json11.cpp \

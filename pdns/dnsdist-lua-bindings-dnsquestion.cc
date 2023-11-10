@@ -258,6 +258,15 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     setEDNSOption(dq, code, data);
   });
 
+  luaCtx.registerFunction<void(DNSQuestion::*)(uint16_t infoCode, const boost::optional<std::string>& extraText)>("setExtendedDNSError", [](DNSQuestion& dnsQuestion, uint16_t infoCode, const boost::optional<std::string>& extraText) {
+    EDNSExtendedError ede;
+    ede.infoCode = infoCode;
+    if (extraText) {
+      ede.extraText = *extraText;
+    }
+    dnsQuestion.ids.d_extendedError = std::make_unique<EDNSExtendedError>(ede);
+  });
+
   luaCtx.registerFunction<bool(DNSQuestion::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSQuestion& dq, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
     dq.asynchronous = true;
     return dnsdist::suspendQuery(dq, asyncID, queryID, timeoutMs);
@@ -505,6 +514,15 @@ private:
 
       return setNegativeAndAdditionalSOA(dq, nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum, false);
     });
+
+  luaCtx.registerFunction<void(DNSResponse::*)(uint16_t infoCode, const boost::optional<std::string>& extraText)>("setExtendedDNSError", [](DNSResponse& dnsResponse, uint16_t infoCode, const boost::optional<std::string>& extraText) {
+    EDNSExtendedError ede;
+    ede.infoCode = infoCode;
+    if (extraText) {
+      ede.extraText = *extraText;
+    }
+    dnsResponse.ids.d_extendedError = std::make_unique<EDNSExtendedError>(ede);
+  });
 
   luaCtx.registerFunction<bool(DNSResponse::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSResponse& dr, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
     dr.asynchronous = true;

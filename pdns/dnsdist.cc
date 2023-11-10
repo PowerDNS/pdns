@@ -56,6 +56,7 @@
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-edns.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-nghttp2.hh"
@@ -584,6 +585,10 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDist
     std::string result;
     LimitTTLResponseAction ac(0, dr.ids.ttlCap, {});
     ac(&dr, &result);
+  }
+
+  if (dr.ids.d_extendedError) {
+    dnsdist::edns::addExtendedDNSError(dr.getMutableData(), dr.getMaximumSize(), dr.ids.d_extendedError->infoCode, dr.ids.d_extendedError->extraText);
   }
 
 #ifdef HAVE_DNSCRYPT
@@ -1330,6 +1335,10 @@ static bool prepareOutgoingResponse(LocalHolders& holders, const ClientState& cs
     std::string result;
     LimitTTLResponseAction ac(0, dr.ids.ttlCap, {});
     ac(&dr, &result);
+  }
+
+  if (dr.ids.d_extendedError) {
+    dnsdist::edns::addExtendedDNSError(dr.getMutableData(), dr.getMaximumSize(), dr.ids.d_extendedError->infoCode, dr.ids.d_extendedError->extraText);
   }
 
   if (cacheHit) {
