@@ -1407,6 +1407,22 @@ Status, Statistics and More
 Dynamic Blocks
 --------------
 
+.. function:: addDynamicBlock(address, message[, action [, seconds [, clientIPMask [, clientIPPortMask]]]])
+
+  .. versionadded:: 1.9.0
+
+  Manually block an IP address or range with ``message`` for (optionally) a number of seconds.
+  The default number of seconds to block for is 10.
+
+  :param address: A :class:`ComboAddress` or string representing an IPv4 or IPv6 address
+  :param string message: The message to show next to the blocks
+  :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to DNSAction.None, meaning the one set with :func:`setDynBlocksAction` is used)
+  :param int seconds: The number of seconds this block to expire
+  :param int clientIPMask: The network mask to apply to the address. Default is 32 for IPv4, 128 for IPv6.
+  :param int clientIPPortMask: The port mask to use to specify a range of ports to match, when the clients are behind a CG-NAT.
+
+  Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported by the action paramater.
+
 .. function:: addDynBlocks(addresses, message[, seconds=10[, action]])
 
   Block a set of addresses with ``message`` for (optionally) a number of seconds.

@@ -193,32 +193,27 @@ static DNSAction::Action getActualAction(const DynBlock& block)
   return g_dynBlockAction;
 }
 
-void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning)
+namespace dnsdist::DynamicBlocks {
+  bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const std::string& reason, unsigned int duration, DNSAction::Action action, bool warning, bool beQuiet)
 {
-  /* network exclusions are address-based only (no port) */
-  if (d_excludedSubnets.match(requestor.getNetwork())) {
-    /* do not add a block for excluded subnets */
-    return;
-  }
-
-  if (!blocks) {
-    blocks = g_dynblockNMG.getCopy();
-  }
-  struct timespec until = now;
-  until.tv_sec += rule.d_blockDuration;
   unsigned int count = 0;
-  const auto& got = blocks->lookup(requestor);
   bool expired = false;
   bool wasWarning = false;
   bool bpf = false;
+  struct timespec until = now;
+  until.tv_sec += duration;
 
+  DynBlock db{reason, until, DNSName(), warning ? DNSAction::Action::NoOp : action};
+  db.warning = warning;
+
+  const auto& got = blocks.lookup(requestor);
   if (got) {
     bpf = got->second.bpf;
 
     if (warning && !got->second.warning) {
       /* we have an existing entry which is not a warning,
          don't override it */
-      return;
+      return false;
     }
     else if (!warning && got->second.warning) {
       wasWarning = true;
@@ -226,7 +221,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
     else {
       if (until < got->second.until) {
         // had a longer policy
-        return;
+        return false;
       }
     }
 
@@ -239,9 +234,8 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
     }
   }
 
-  DynBlock db{rule.d_blockReason, until, DNSName(), warning ? DNSAction::Action::NoOp : rule.d_action};
   db.blocks = count;
-  db.warning = warning;
+
   if (!got || expired || wasWarning) {
     const auto actualAction = getActualAction(db);
     if (g_defaultBPFFilter &&
@@ -260,28 +254,24 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
       }
     }
 
-    if (!d_beQuiet) {
-      warnlog("Inserting %s%sdynamic block for %s for %d seconds: %s", warning ? "(warning) " :"", bpf ? "eBPF " : "", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
+    if (!beQuiet) {
+      warnlog("Inserting %s%sdynamic block for %s for %d seconds: %s", warning ? "(warning) " :"", bpf ? "eBPF " : "", requestor.toString(), duration, reason);
     }
   }
 
   db.bpf = bpf;
 
-  blocks->insert(requestor).second = std::move(db);
+  blocks.insert(requestor).second = std::move(db);
 
-  updated = true;
+  return true;
 }
 
-void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated)
+bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const std::string& reason, unsigned int duration, DNSAction::Action action, bool beQuiet)
 {
-  if (d_excludedDomains.check(name)) {
-    /* do not add a block for excluded domains */
-    return;
-  }
-
   struct timespec until = now;
-  until.tv_sec += rule.d_blockDuration;
+  until.tv_sec += duration;
   unsigned int count = 0;
+  DynBlock db{reason, until, name.makeLowerCase(), action};
   /* be careful, if you try to insert a longer suffix
      lookup() might return a shorter one if it is
      already in the tree as a final node */
@@ -294,7 +284,7 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
   if (got) {
     if (until < got->until) {
       // had a longer policy
-      return;
+      return false;
     }
 
     if (now < got->until) {
@@ -306,14 +296,39 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
     }
   }
 
-  DynBlock db{rule.d_blockReason, until, name.makeLowerCase(), rule.d_action};
   db.blocks = count;
 
-  if (!d_beQuiet && (!got || expired)) {
-    warnlog("Inserting dynamic block for %s for %d seconds: %s", name, rule.d_blockDuration, rule.d_blockReason);
+  if (!beQuiet && (!got || expired)) {
+    warnlog("Inserting dynamic block for %s for %d seconds: %s", name, duration, reason);
   }
   blocks.add(name, std::move(db));
-  updated = true;
+  return true;
+}
+}
+
+void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning)
+{
+  /* network exclusions are address-based only (no port) */
+  if (d_excludedSubnets.match(requestor.getNetwork())) {
+    /* do not add a block for excluded subnets */
+    return;
+  }
+
+  if (!blocks) {
+    blocks = g_dynblockNMG.getCopy();
+  }
+
+  updated = dnsdist::DynamicBlocks::addOrRefreshBlock(*blocks, now, requestor, rule.d_blockReason, rule.d_blockDuration, rule.d_action, warning, d_beQuiet);
+}
+
+void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated)
+{
+  if (d_excludedDomains.check(name)) {
+    /* do not add a block for excluded domains */
+    return;
+  }
+
+  updated = dnsdist::DynamicBlocks::addOrRefreshBlockSMT(blocks, now, name, rule.d_blockReason, rule.d_blockDuration, rule.d_action, d_beQuiet);
 }
 
 void DynBlockRulesGroup::processQueryRules(counts_t& counts, const struct timespec& now)
@@ -332,7 +347,7 @@ void DynBlockRulesGroup::processQueryRules(counts_t& counts, const struct timesp
 
   for (const auto& shard : g_rings.d_shards) {
     auto rl = shard->queryRing.lock();
-    for(const auto& c : *rl) {
+    for (const auto& c : *rl) {
       if (now < c.when) {
         continue;
       }

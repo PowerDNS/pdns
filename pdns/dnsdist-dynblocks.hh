@@ -449,4 +449,8 @@ private:
   static size_t s_topN;
 };
 
+namespace dnsdist::DynamicBlocks {
+bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const std::string& reason, unsigned int duration, DNSAction::Action action, bool warning, bool beQuiet);
+bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const std::string& reason, unsigned int duration, DNSAction::Action action, bool beQuiet);
+}
 #endif /* DISABLE_DYNBLOCKS */
