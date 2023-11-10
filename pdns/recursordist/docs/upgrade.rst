@@ -32,6 +32,7 @@ New settings
 Changed settings
 ^^^^^^^^^^^^^^^^
 - The :ref:`setting-loglevel` can now be set to a level below 3 (error).
+- The :ref:`setting-extended-resolution-errors` now defaults to enabled.
 
 4.8.0 to 4.9.0
 --------------
