@@ -1698,6 +1698,7 @@ uint16_t dnsdist_ffi_network_message_get_endpoint_id(const dnsdist_ffi_network_m
   return 0;
 }
 
+#ifndef DISABLE_DYNBLOCKS
 bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, uint8_t action, unsigned int duration, uint8_t clientIPMask, uint8_t clientIPPortMask)
 {
   try {
@@ -1735,3 +1736,68 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
   }
   return false;
 }
+
+struct dnsdist_ffi_dynamic_blocks_list_t
+{
+  std::vector<dnsdist_ffi_dynamic_block_entry_t> d_entries;
+};
+
+size_t dnsdist_ffi_dynamic_blocks_get_entries(dnsdist_ffi_dynamic_blocks_list_t** out)
+{
+  if (out == nullptr) {
+    return 0;
+  }
+
+  auto list = std::make_unique<dnsdist_ffi_dynamic_blocks_list_t>();
+
+  struct timespec now;
+  gettime(&now);
+
+  auto fullCopy = g_dynblockNMG.getCopy();
+  for (const auto& entry : fullCopy) {
+    const auto& client = entry.first;
+    const auto& details = entry.second;
+    if (!(now < details.until)) {
+      continue;
+    }
+
+    uint64_t counter = details.blocks;
+    if (g_defaultBPFFilter && details.bpf) {
+      counter += g_defaultBPFFilter->getHits(client.getNetwork());
+    }
+    list->d_entries.push_back({strdup(client.toString().c_str()), strdup(details.reason.c_str()), counter, static_cast<uint64_t>(details.until.tv_sec - now.tv_sec), static_cast<uint8_t>(details.action != DNSAction::Action::None ? details.action : g_dynBlockAction), g_defaultBPFFilter && details.bpf, details.warning});
+  }
+
+  auto count = list->d_entries.size();
+  *out = list.release();
+  return count;
+}
+
+const dnsdist_ffi_dynamic_block_entry_t* dnsdist_ffi_dynamic_blocks_list_get(const dnsdist_ffi_dynamic_blocks_list_t* list, size_t idx)
+{
+  if (list == nullptr) {
+    return nullptr;
+  }
+
+  if (idx >= list->d_entries.size()) {
+    return nullptr;
+  }
+
+  return &list->d_entries.at(idx);
+}
+
+void dnsdist_ffi_dynamic_blocks_list_free(dnsdist_ffi_dynamic_blocks_list_t* list)
+{
+  if (list == nullptr) {
+    return;
+  }
+
+  for (auto& entry : list->d_entries) {
+    free(entry.client);
+    free(entry.reason);
+  }
+
+  delete list;
+}
+
+#endif /* DISABLE_DYNBLOCKS */
