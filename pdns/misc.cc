@@ -1384,13 +1384,16 @@ uint64_t getOpenFileDescriptors(const std::string&)
 
   int ret = 0;
   struct dirent* entry = nullptr;
-  while ((entry = readdir(dirhdl.get()))) {
+  // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
+  while ((entry = readdir(dirhdl.get())) != nullptr) {
     uint32_t num;
     try {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
       pdns::checked_stoi_into(num, entry->d_name);
     } catch (...) {
       continue; // was not a number.
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
     if (std::to_string(num) == entry->d_name) {
       ret++;
     }

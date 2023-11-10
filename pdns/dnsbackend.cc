@@ -119,8 +119,9 @@ void BackendMakerClass::load_all()
     return;
   }
   struct dirent* entry = nullptr;
-  //NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
+  // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
   while ((entry = readdir(dir.get())) != nullptr) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
     auto name = std::string_view(entry->d_name, strlen(entry->d_name));
     if (boost::starts_with(name, "lib") &&
         name.size() > 13 &&

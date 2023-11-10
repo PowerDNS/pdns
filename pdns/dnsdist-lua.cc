@@ -1870,7 +1870,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     struct dirent* ent = nullptr;
-    while ((ent = readdir(dirp.get())) != NULL) {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
+    while ((ent = readdir(dirp.get())) != nullptr) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
       if (ent->d_name[0] == '.') {
         continue;
       }

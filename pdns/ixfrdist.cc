@@ -208,10 +208,13 @@ static void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const str
   }
   vector<uint32_t> zoneVersions;
   struct dirent* entry = nullptr;
+  // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
   while ((entry = readdir(dirHandle.get())) != nullptr) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
     if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
       continue;
     }
+    //  NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
     zoneVersions.push_back(std::stoi(entry->d_name));
   }
   dirHandle.reset();
