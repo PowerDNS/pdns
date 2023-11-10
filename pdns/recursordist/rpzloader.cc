@@ -389,12 +389,10 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
 {
   setThreadName("rec/rpzixfr");
   bool isPreloaded = sr != nullptr;
-  auto luaconfsLocal = g_luaconfs.getLocal();
-
   auto logger = g_slog->withName("rpz");
 
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
-  std::shared_ptr<DNSFilterEngine::Zone> oldZone = luaconfsLocal->dfe.getZone(zoneIdx);
+  std::shared_ptr<DNSFilterEngine::Zone> oldZone = g_luaconfs.getLocal()->dfe.getZone(zoneIdx);
   if (!oldZone) {
     SLOG(g_log << Logger::Error << "Unable to retrieve RPZ zone with index " << zoneIdx << " from the configuration, exiting" << endl,
          logger->error(Logr::Error, "Unable to retrieve RPZ zone from configuration", "index", Logging::Loggable(zoneIdx)));
@@ -444,7 +442,8 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
         incRPZFailedTransfers(polName);
       }
     }
-
+    // Release newZone before (long) sleep to reduce memory usage
+    newZone = nullptr;
     if (!sr) {
       sleep(refresh);
     }
@@ -453,6 +452,8 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
   bool skipRefreshDelay = isPreloaded;
 
   for (;;) {
+    // Don't hold on to oldZone, it well be re-assigned after sleep in the try block
+    oldZone = nullptr;
     DNSRecord dr;
     dr.setContent(sr);
 
@@ -462,6 +463,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
     else {
       sleep(refresh);
     }
+    auto luaconfsLocal = g_luaconfs.getLocal();
 
     if (luaconfsLocal->generation != configGeneration) {
       /* the configuration has been reloaded, meaning that a new thread
