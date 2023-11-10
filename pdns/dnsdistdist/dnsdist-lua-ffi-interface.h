@@ -243,3 +243,12 @@ const char* dnsdist_ffi_network_message_get_payload(const dnsdist_ffi_network_me
 size_t dnsdist_ffi_network_message_get_payload_size(const dnsdist_ffi_network_message_t* msg) __attribute__ ((visibility ("default")));
 uint16_t dnsdist_ffi_network_message_get_endpoint_id(const dnsdist_ffi_network_message_t* msg) __attribute__ ((visibility ("default")));
 
+/* Add a dynamic block:
+   - address should be an IPv4 or IPv6 address, as a string (192.0.2.1). A port might be included (192.0.2.1:).
+   - reason is a description of why the block was inserted
+   - action should be a DNSAction
+   - duration is the duration of the block, in seconds
+   - clientIPMask indicates whether the exact IP address should be blocked (32 for IPv4, 128 for IPv6) or if a range should be used instead, by indicating the number of bits of the address to consider
+   - clientIPPort indicates It is also possible to take the IPv4 UDP and TCP ports into account, for CGNAT deployments, by setting the number of bits of the port to consider. For example passing 2 as the last parameter, which only makes sense if the previous parameters are respectively 32 and 128, will split a given IP address into four port ranges: 0-16383, 16384-32767, 32768-49151 and 49152-65535.
+*/
+bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, uint8_t action, unsigned int duration, uint8_t clientIPMask, uint8_t clientIPPortMask) __attribute__ ((visibility ("default")));

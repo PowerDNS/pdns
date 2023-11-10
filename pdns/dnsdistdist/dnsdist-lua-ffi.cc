@@ -22,6 +22,7 @@
 
 #include "dnsdist-async.hh"
 #include "dnsdist-dnsparser.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-mac-address.hh"
@@ -1695,4 +1696,42 @@ uint16_t dnsdist_ffi_network_message_get_endpoint_id(const dnsdist_ffi_network_m
     return msg->endpointID;
   }
   return 0;
+}
+
+bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, uint8_t action, unsigned int duration, uint8_t clientIPMask, uint8_t clientIPPortMask)
+{
+  try {
+    ComboAddress clientIPCA;
+    try {
+      clientIPCA = ComboAddress(address);
+    }
+    catch (const std::exception& exp) {
+      errlog("addDynamicBlock: Unable to parse '%s': %s", address, exp.what());
+      return false;
+    }
+    catch (const PDNSException& exp) {
+      errlog("addDynamicBlock: Unable to parse '%s': %s", address, exp.reason);
+      return false;
+    }
+
+    AddressAndPortRange target(clientIPCA, clientIPMask, clientIPPortMask);
+
+    struct timespec now;
+    gettime(&now);
+    auto slow = g_dynblockNMG.getCopy();
+    if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, message, duration, static_cast<DNSAction::Action>(action), false, false)) {
+      g_dynblockNMG.setState(slow);
+      return true;
+    }
+  }
+  catch (const std::exception& exp) {
+    errlog("Exception in dnsdist_ffi_dynamic_blocks_add: %s", exp.what());
+  }
+  catch (const PDNSException& exp) {
+    errlog("Exception in dnsdist_ffi_dynamic_blocks_add: %s", exp.reason);
+  }
+  catch (...) {
+    errlog("Exception in dnsdist_ffi_dynamic_blocks_add");
+  }
+  return false;
 }
