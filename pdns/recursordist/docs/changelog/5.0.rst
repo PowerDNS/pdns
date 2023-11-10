@@ -1,5 +1,73 @@
 Changelogs for 5.0.X
 ====================
+
+.. changelog::
+  :version: 5.0.0-beta1
+  :released: 10th of November 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13468
+
+    Fix ubsan error: using a value of 80 for bool.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13462
+
+    Be more memory efficient handling RPZ updates.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13464
+
+    Change default of extended-resolution-errors setting to true.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13455
+
+    Move a few settings from recursor to outgoing section.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13446
+
+    For structured logging always log addresses including port.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13438
+
+    Teach configure to check for cargo version and require >= 1.64.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13410
+    :tickets: 12612
+
+    Tidy cache and only copy values if non-expired entry was found.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13409
+    :tickets: 13383
+
+    Handle serve stale logic in getRootNXTrust().
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13432,13430
+    :tickets: 13430
+
+    Add endbr64 instructions in the right spots for OpenBSD/amd64.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13408
+
+    Handle stack memory on NetBSD as on OpenBSD (Tom Ivar Helbekkmo)
+
 .. changelog::
   :version: 5.0.0-alpha2
   :released: 17th of October 2023
