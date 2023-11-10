@@ -870,11 +870,16 @@ static void dumpTrace(const string& trace, const timeval& timev)
   fprintf(filep.get(), " us === START OF TRACE %s ===\n", timebuf.data());
   fprintf(filep.get(), "%s", trace.c_str());
   isoDateTimeMillis(now, timebuf.data(), timebuf.size());
-  fprintf(filep.get(), "=== END OF TRACE %s ===\n", timebuf.data());
   if (ferror(filep.get()) != 0) {
     int err = errno;
     SLOG(g_log << Logger::Error << "Problems writing to trace file: " << stringerror(err) << endl,
          g_slog->withName("trace")->error(Logr::Error, err, "Problems writing to trace file"));
+    // There's no guarantee the message below will end up in the stream, but we try our best
+    clearerr(filep.get());
+    fprintf(filep.get(), "=== TRACE %s TRUNCATED; USE FILE ARGUMENT INSTEAD OF `-' ===\n", timebuf.data());
+  }
+  else {
+    fprintf(filep.get(), "=== END OF TRACE %s ===\n", timebuf.data());
   }
   // fclose by unique_ptr does implicit flush
 }
