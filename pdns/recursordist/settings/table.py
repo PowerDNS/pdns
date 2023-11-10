@@ -1811,14 +1811,15 @@ without consulting authoritative servers.
         'name' : 'nsec3_max_iterations',
         'section' : 'dnssec',
         'type' : LType.Uint64,
-        'default' : '150',
+        'default' : '50',
         'help' : 'Maximum number of iterations allowed for an NSEC3 record',
         'doc' : '''
 Maximum number of iterations allowed for an NSEC3 record.
-If an answer containing an NSEC3 record with more iterations is received, its DNSSEC validation status is treated as Insecure.
+If an answer containing an NSEC3 record with more iterations is received, its DNSSEC validation status is treated as ``Insecure``.
  ''',
         'versionadded': '4.1.0',
-        'versionchanged': ('4.5.2', 'Default is now 150, was 2500 before.')
+        'versionchanged': [('4.5.2', 'Default is now 150, was 2500 before.'),
+                           ('5.0.0', 'Default is now 50, was 150 before.')]
     },
     {
         'name' : 'ttl',
