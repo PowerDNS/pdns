@@ -16,6 +16,7 @@ class AggressiveNSECCacheBase(RecursorTest):
     _config_template = """
     dnssec=validate
     aggressive-nsec-cache-size=10000
+    nsec3-max-iterations=150
     webserver=yes
     webserver-port=%d
     webserver-address=127.0.0.1
