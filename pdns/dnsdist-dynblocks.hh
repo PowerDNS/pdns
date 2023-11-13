@@ -28,27 +28,31 @@
 #include "dnsdist-rings.hh"
 #include "statnode.hh"
 
-extern "C" {
+extern "C"
+{
 #include "dnsdist-lua-inspection-ffi.h"
 }
 
 // dnsdist_ffi_stat_node_t is a lightuserdata
-template<>
-struct LuaContext::Pusher<dnsdist_ffi_stat_node_t*> {
-    static const int minSize = 1;
-    static const int maxSize = 1;
+template <>
+struct LuaContext::Pusher<dnsdist_ffi_stat_node_t*>
+{
+  static const int minSize = 1;
+  static const int maxSize = 1;
 
-    static PushedObject push(lua_State* state, dnsdist_ffi_stat_node_t* ptr) noexcept {
-        lua_pushlightuserdata(state, ptr);
-        return PushedObject{state, 1};
-    }
+  static PushedObject push(lua_State* state, dnsdist_ffi_stat_node_t* ptr) noexcept
+  {
+    lua_pushlightuserdata(state, ptr);
+    return PushedObject{state, 1};
+  }
 };
 
 using dnsdist_ffi_stat_node_visitor_t = std::function<bool(dnsdist_ffi_stat_node_t*)>;
 
 struct dnsdist_ffi_stat_node_t
 {
-  dnsdist_ffi_stat_node_t(const StatNode& node_, const StatNode::Stat& self_, const StatNode::Stat& children_, std::optional<std::string>& reason_): node(node_), self(self_), children(children_), reason(reason_)
+  dnsdist_ffi_stat_node_t(const StatNode& node_, const StatNode::Stat& self_, const StatNode::Stat& children_, std::optional<std::string>& reason_) :
+    node(node_), self(self_), children(children_), reason(reason_)
   {
   }
 
@@ -63,7 +67,6 @@ using dnsdist_ffi_dynamic_block_inserted_hook = std::function<void(uint8_t type,
 class DynBlockRulesGroup
 {
 private:
-
   struct Counts
   {
     std::map<uint8_t, uint64_t> d_rcodeCounts;
@@ -75,11 +78,13 @@ private:
 
   struct DynBlockRule
   {
-    DynBlockRule(): d_enabled(false)
+    DynBlockRule() :
+      d_enabled(false)
     {
     }
 
-    DynBlockRule(const std::string& blockReason, unsigned int blockDuration, unsigned int rate, unsigned int warningRate, unsigned int seconds, DNSAction::Action action): d_blockReason(blockReason), d_blockDuration(blockDuration), d_rate(rate), d_warningRate(warningRate), d_seconds(seconds), d_action(action), d_enabled(true)
+    DynBlockRule(const std::string& blockReason, unsigned int blockDuration, unsigned int rate, unsigned int warningRate, unsigned int seconds, DNSAction::Action action) :
+      d_blockReason(blockReason), d_blockDuration(blockDuration), d_rate(rate), d_warningRate(warningRate), d_seconds(seconds), d_action(action), d_enabled(true)
     {
     }
 
@@ -160,13 +165,15 @@ private:
     bool d_enabled{false};
   };
 
-  struct DynBlockRatioRule: DynBlockRule
+  struct DynBlockRatioRule : DynBlockRule
   {
-    DynBlockRatioRule(): DynBlockRule()
+    DynBlockRatioRule() :
+      DynBlockRule()
     {
     }
 
-    DynBlockRatioRule(const std::string& blockReason, unsigned int blockDuration, double ratio, double warningRatio, unsigned int seconds, DNSAction::Action action, size_t minimumNumberOfResponses): DynBlockRule(blockReason, blockDuration, 0, 0, seconds, action), d_minimumNumberOfResponses(minimumNumberOfResponses), d_ratio(ratio), d_warningRatio(warningRatio)
+    DynBlockRatioRule(const std::string& blockReason, unsigned int blockDuration, double ratio, double warningRatio, unsigned int seconds, DNSAction::Action action, size_t minimumNumberOfResponses) :
+      DynBlockRule(blockReason, blockDuration, 0, 0, seconds, action), d_minimumNumberOfResponses(minimumNumberOfResponses), d_ratio(ratio), d_warningRatio(warningRatio)
     {
     }
 
@@ -362,18 +369,18 @@ public:
   }
 
 private:
-
+  void applySMT(const struct timespec& now, StatNode& statNodeRoot);
   bool checkIfQueryTypeMatches(const Rings::Query& query);
   bool checkIfResponseCodeMatches(const Rings::Response& response);
-  void addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning);
+  void addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange>>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning);
   void addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated);
 
-  void addBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
+  void addBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange>>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
   {
     addOrRefreshBlock(blocks, now, requestor, rule, updated, false);
   }
 
-  void handleWarning(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
+  void handleWarning(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange>>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
   {
     addOrRefreshBlock(blocks, now, requestor, rule, updated, true);
   }
@@ -457,7 +464,8 @@ private:
   static size_t s_topN;
 };
 
-namespace dnsdist::DynamicBlocks {
+namespace dnsdist::DynamicBlocks
+{
 bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const std::string& reason, unsigned int duration, DNSAction::Action action, bool warning, bool beQuiet);
 bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const std::string& reason, unsigned int duration, DNSAction::Action action, bool beQuiet);
 }

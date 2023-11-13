@@ -1420,7 +1420,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getDynamicBlocks", []() {
     setLuaNoSideEffect();
-    struct timespec now;
+    struct timespec now
+    {
+    };
     gettime(&now);
 
     LuaAssociativeTable<DynBlock> entries;
@@ -1444,7 +1446,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getSMTDynamicBlocks", []() {
     setLuaNoSideEffect();
-    struct timespec now;
+    struct timespec now
+    {
+    };
     gettime(&now);
 
     LuaAssociativeTable<DynBlock> entries;
@@ -1536,7 +1540,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            return;
                          }
                          setLuaSideEffect();
-                         struct timespec now;
+                         struct timespec now
+                         {
+                         };
                          gettime(&now);
                          unsigned int actualSeconds = seconds ? *seconds : 10;
 
@@ -1581,7 +1587,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          AddressAndPortRange target(clientIPCA, clientIPMask ? *clientIPMask : (clientIPCA.isIPv4() ? 32 : 128), clientIPPortMask ? *clientIPPortMask : 0);
                          unsigned int actualSeconds = seconds ? *seconds : 10;
 
-                         struct timespec now;
+                         struct timespec now
+                         {
+                         };
                          gettime(&now);
                          auto slow = g_dynblockNMG.getCopy();
                          if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, msg, actualSeconds, action ? *action : DNSAction::Action::None, false, false)) {

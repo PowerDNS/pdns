@@ -1717,7 +1717,9 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
 
     AddressAndPortRange target(clientIPCA, clientIPMask, clientIPPortMask);
 
-    struct timespec now;
+    struct timespec now
+    {
+    };
     gettime(&now);
     auto slow = g_dynblockNMG.getCopy();
     if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, message, duration, static_cast<DNSAction::Action>(action), false, false)) {
@@ -1754,7 +1756,9 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
       return false;
     }
 
-    struct timespec now;
+    struct timespec now
+    {
+    };
     gettime(&now);
     auto slow = g_dynblockSMT.getCopy();
     if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, domain, message, duration, static_cast<DNSAction::Action>(action), false)) {
@@ -1787,7 +1791,9 @@ size_t dnsdist_ffi_dynamic_blocks_get_entries(dnsdist_ffi_dynamic_blocks_list_t*
 
   auto list = std::make_unique<dnsdist_ffi_dynamic_blocks_list_t>();
 
-  struct timespec now;
+  struct timespec now
+  {
+  };
   gettime(&now);
 
   auto fullCopy = g_dynblockNMG.getCopy();
@@ -1818,7 +1824,9 @@ size_t dnsdist_ffi_dynamic_blocks_smt_get_entries(dnsdist_ffi_dynamic_blocks_lis
 
   auto list = std::make_unique<dnsdist_ffi_dynamic_blocks_list_t>();
 
-  struct timespec now;
+  struct timespec now
+  {
+  };
   gettime(&now);
 
   auto fullCopy = g_dynblockSMT.getCopy();
@@ -1862,10 +1870,13 @@ void dnsdist_ffi_dynamic_blocks_list_free(dnsdist_ffi_dynamic_blocks_list_t* lis
   }
 
   for (auto& entry : list->d_entries) {
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): this is a C API, RAII is not an option
     free(entry.key);
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): this is a C API, RAII is not an option
     free(entry.reason);
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): this is a C API, RAII is not an option
   delete list;
 }
 
