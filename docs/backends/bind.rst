@@ -116,7 +116,9 @@ Autoprimary support (experimental)
 ``bind-autoprimaries``
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Changed in version 4.9.0: This was called ``bind-supermasters`` before 4.9.0.
+.. versionchanged:: 4.9.0
+
+  This was called ``bind-supermasters`` before 4.9.0.
 
 Specifies file where to read list of autoprimaries.
 BIND backend only checks IP address of primary server.
@@ -130,7 +132,9 @@ BIND backend can only read this file, not write it.
 ``bind-autoprimary-config``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Changed in version 4.9.0: This was called ``bind-supermaster-config`` before 4.9.0.
+.. versionchanged:: 4.9.0
+
+  This was called ``bind-supermaster-config`` before 4.9.0.
 
 When a new zone is configured via the autosecondary mechanism, bindbackend *writes* a zone entry to this file.
 
@@ -141,7 +145,9 @@ Your ``bind-config`` file should have an ``include`` statement to make sure this
 ``bind-autoprimary-destdir``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Changed in version 4.9.0: This was called ``bind-supermaster-destdir`` before 4.9.0.
+.. versionchanged:: 4.9.0
+
+  This was called ``bind-supermaster-destdir`` before 4.9.0.
 
 Each new zone configured via the autosecondary mechanism gets a zone file in this directory.
 This directory must be writable.
