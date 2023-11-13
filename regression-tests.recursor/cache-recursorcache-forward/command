@@ -1,4 +1,4 @@
 #!/bin/bash
 $SDIG $nameserver 5302 www.arthur.example.net a recurse
 sleep 3
-$SDIG $nameserver 5302 www.arthur.example.net a recurse | sed 's/\(.*\tIN\tA\t\)\(11\)/\112/'
+$SDIG $nameserver 5302 www.arthur.example.net a recurse | sed 's/\(.*\t\)\(11\tIN\)/\112\tIN/'

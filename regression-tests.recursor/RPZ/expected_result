@@ -7,12 +7,12 @@ Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 ==> srv.arthur.example.net RPZ passthru
 Reply to question for qname='srv.arthur.example.net.', qtype=SRV
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	srv.arthur.example.net.	IN	SRV	15	0 100 389 server2.example.net.
+0	srv.arthur.example.net.	15	IN	SRV	0 100 389 server2.example.net.
 ==> www.example.net RPZ local data to www2.example.net
 Reply to question for qname='www.example.net.', qtype=A
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	www.example.net.	IN	CNAME	7200	www2.example.net.
-0	www2.example.net.	IN	A	15	192.0.2.2
+0	www.example.net.	7200	IN	CNAME	www2.example.net.
+0	www2.example.net.	15	IN	A	192.0.2.2
 ==> www4.example.net RPZ IP trigger action, dropped
 ==> trillian.example.net NXDOMAIN
 Reply to question for qname='trillian.example.net.', qtype=A
@@ -20,8 +20,8 @@ Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 ==> www.trillian.example.net has no RPZ policy attached, so lookup should succeed
 Reply to question for qname='www.trillian.example.net.', qtype=A
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	www.trillian.example.net.	IN	CNAME	15	www3.arthur.example.net.
-0	www3.arthur.example.net.	IN	A	15	192.0.2.6
+0	www.trillian.example.net.	15	IN	CNAME	www3.arthur.example.net.
+0	www3.arthur.example.net.	15	IN	A	192.0.2.6
 ==> www.hijackme.example.net is served on ns.hijackme.example.net, which should be NXDOMAIN
 Reply to question for qname='www.hijackme.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
@@ -31,42 +31,42 @@ Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
 ==> capped-ttl.example.net TTL exceeds the maximum TTL for the zone
 Reply to question for qname='capped-ttl.example.net.', qtype=A
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	capped-ttl.example.net.	IN	A	5	192.0.2.35
+0	capped-ttl.example.net.	5	IN	A	192.0.2.35
 ==> defpol-with-ttl.example.net should use the default policy's TTL and not the zone one
 Reply to question for qname='defpol-with-ttl.example.net.', qtype=A
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	defpol-with-ttl.example.net.	IN	CNAME	10	default.example.net.
-0	default.example.net.	IN	A	15	192.0.2.42
+0	defpol-with-ttl.example.net.	10	IN	CNAME	default.example.net.
+0	default.example.net.	15	IN	A	192.0.2.42
 ==> defpol-with-ttl-capped.example.net should use the default policy's TTL, but capped to maxTTL
 Reply to question for qname='defpol-with-ttl-capped.example.net.', qtype=A
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	defpol-with-ttl-capped.example.net.	IN	CNAME	20	default.example.net.
-0	default.example.net.	IN	A	15	192.0.2.42
+0	defpol-with-ttl-capped.example.net.	20	IN	CNAME	default.example.net.
+0	default.example.net.	15	IN	A	192.0.2.42
 ==> defpol-without-ttl.example.net should use the zone's TTL
 Reply to question for qname='defpol-without-ttl.example.net.', qtype=A
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	defpol-without-ttl.example.net.	IN	CNAME	7200	default.example.net.
-0	default.example.net.	IN	A	15	192.0.2.42
+0	defpol-without-ttl.example.net.	7200	IN	CNAME	default.example.net.
+0	default.example.net.	15	IN	A	192.0.2.42
 ==> defpol-without-ttl-capped.example.net should use the zone's TTL but capped to maxTTL
 Reply to question for qname='defpol-without-ttl-capped.example.net.', qtype=A
 Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	defpol-without-ttl-capped.example.net.	IN	CNAME	50	default.example.net.
-0	default.example.net.	IN	A	15	192.0.2.42
+0	defpol-without-ttl-capped.example.net.	50	IN	CNAME	default.example.net.
+0	default.example.net.	15	IN	A	192.0.2.42
 ==> unsupported.example.net has an unsupported target, should be ignored from the RPZ zone
 Reply to question for qname='unsupported.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-1	example.net.	IN	SOA	15	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
+1	example.net.	15	IN	SOA	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
 ==> unsupported2.example.net has an unsupported target, should be ignored from the RPZ zone
 Reply to question for qname='unsupported2.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-1	example.net.	IN	SOA	15	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
+1	example.net.	15	IN	SOA	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
 ==> not-rpz.example.net is _not_ an RPZ target and should be processed
 Reply to question for qname='not-rpz.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	not-rpz.example.net.	IN	CNAME	5	rpz-not.com.
-1	.	IN	SOA	15	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
+0	not-rpz.example.net.	5	IN	CNAME	rpz-not.com.
+1	.	15	IN	SOA	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
 ==> echo-me.wildcard-target.example.net is an RPZ wildcard target
 Reply to question for qname='echo-me.wildcard-target.example.net.', qtype=A
 Rcode: 3 (Non-Existent domain), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
-0	echo-me.wildcard-target.example.net.	IN	CNAME	7200	echo-me.wildcard-target.example.net.walled-garden.example.net.
-1	example.net.	IN	SOA	15	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300
+0	echo-me.wildcard-target.example.net.	7200	IN	CNAME	echo-me.wildcard-target.example.net.walled-garden.example.net.
+1	example.net.	15	IN	SOA	ns.example.net. hostmaster.example.net. 1 3600 1800 1209600 300

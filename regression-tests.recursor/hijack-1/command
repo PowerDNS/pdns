@@ -1,5 +1,5 @@
 #!/bin/sh
 . vars
-cleandig hijacker.example.net ns | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
-cleandig www.hijackme.example.net a | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+cleandig hijacker.example.net ns | sed 's/\(.*\t\)\([0-9]\+\tIN\)/\13600\tIN/'
+cleandig www.hijackme.example.net a | sed 's/\(.*\t\)\([0-9]\+\tIN\)/\13600\tIN/'
 sleep 5
