@@ -1707,11 +1707,11 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
       clientIPCA = ComboAddress(address);
     }
     catch (const std::exception& exp) {
-      errlog("addDynamicBlock: Unable to parse '%s': %s", address, exp.what());
+      errlog("dnsdist_ffi_dynamic_blocks_add: Unable to parse '%s': %s", address, exp.what());
       return false;
     }
     catch (const PDNSException& exp) {
-      errlog("addDynamicBlock: Unable to parse '%s': %s", address, exp.reason);
+      errlog("dnsdist_ffi_dynamic_blocks_add: Unable to parse '%s': %s", address, exp.reason);
       return false;
     }
 
@@ -1733,6 +1733,43 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
   }
   catch (...) {
     errlog("Exception in dnsdist_ffi_dynamic_blocks_add");
+  }
+  return false;
+}
+
+bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message, uint8_t action, unsigned int duration)
+{
+  try {
+    DNSName domain;
+    try {
+      domain = DNSName(suffix);
+      domain.makeUsLowerCase();
+    }
+    catch (const std::exception& exp) {
+      errlog("dnsdist_ffi_dynamic_blocks_smt_add: Unable to parse '%s': %s", suffix, exp.what());
+      return false;
+    }
+    catch (const PDNSException& exp) {
+      errlog("dnsdist_ffi_dynamic_blocks_smt_add: Unable to parse '%s': %s", suffix, exp.reason);
+      return false;
+    }
+
+    struct timespec now;
+    gettime(&now);
+    auto slow = g_dynblockSMT.getCopy();
+    if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, domain, message, duration, static_cast<DNSAction::Action>(action), false)) {
+      g_dynblockSMT.setState(slow);
+      return true;
+    }
+  }
+  catch (const std::exception& exp) {
+    errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add: %s", exp.what());
+  }
+  catch (const PDNSException& exp) {
+    errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add: %s", exp.reason);
+  }
+  catch (...) {
+    errlog("Exception in dnsdist_ffi_dynamic_blocks_smt_add");
   }
   return false;
 }
@@ -1773,6 +1810,38 @@ size_t dnsdist_ffi_dynamic_blocks_get_entries(dnsdist_ffi_dynamic_blocks_list_t*
   return count;
 }
 
+size_t dnsdist_ffi_dynamic_blocks_smt_get_entries(dnsdist_ffi_dynamic_blocks_list_t** out)
+{
+  if (out == nullptr) {
+    return 0;
+  }
+
+  auto list = std::make_unique<dnsdist_ffi_dynamic_blocks_list_t>();
+
+  struct timespec now;
+  gettime(&now);
+
+  auto fullCopy = g_dynblockSMT.getCopy();
+  fullCopy.visit([&now, &list](const SuffixMatchTree<DynBlock>& node) {
+    if (!(now < node.d_value.until)) {
+      return;
+    }
+    auto entry = node.d_value;
+    string key("empty");
+    if (!entry.domain.empty()) {
+      key = entry.domain.toString();
+    }
+    if (entry.action == DNSAction::Action::None) {
+      entry.action = g_dynBlockAction;
+    }
+    list->d_entries.push_back({strdup(key.c_str()), strdup(entry.reason.c_str()), entry.blocks, static_cast<uint64_t>(entry.until.tv_sec - now.tv_sec), static_cast<uint8_t>(entry.action), entry.bpf, entry.warning});
+  });
+
+  auto count = list->d_entries.size();
+  *out = list.release();
+  return count;
+}
+
 const dnsdist_ffi_dynamic_block_entry_t* dnsdist_ffi_dynamic_blocks_list_get(const dnsdist_ffi_dynamic_blocks_list_t* list, size_t idx)
 {
   if (list == nullptr) {
@@ -1793,7 +1862,7 @@ void dnsdist_ffi_dynamic_blocks_list_free(dnsdist_ffi_dynamic_blocks_list_t* lis
   }
 
   for (auto& entry : list->d_entries) {
-    free(entry.client);
+    free(entry.key);
     free(entry.reason);
   }
 

@@ -252,9 +252,10 @@ uint16_t dnsdist_ffi_network_message_get_endpoint_id(const dnsdist_ffi_network_m
    - clientIPPort indicates It is also possible to take the IPv4 UDP and TCP ports into account, for CGNAT deployments, by setting the number of bits of the port to consider. For example passing 2 as the last parameter, which only makes sense if the previous parameters are respectively 32 and 128, will split a given IP address into four port ranges: 0-16383, 16384-32767, 32768-49151 and 49152-65535.
 */
 bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, uint8_t action, unsigned int duration, uint8_t clientIPMask, uint8_t clientIPPortMask) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message, uint8_t action, unsigned int duration) __attribute__ ((visibility ("default")));
 
 typedef struct dnsdist_ffi_dynamic_block_entry {
-  char* client;
+  char* key; /* Client IP for NMT blocks, domain name for SMT ones */
   char* reason;
   uint64_t blockedQueries;
   uint64_t remainingTime;
@@ -266,5 +267,6 @@ typedef struct dnsdist_ffi_dynamic_block_entry {
 typedef struct dnsdist_ffi_dynamic_blocks_list_t dnsdist_ffi_dynamic_blocks_list_t;
 
 size_t dnsdist_ffi_dynamic_blocks_get_entries(dnsdist_ffi_dynamic_blocks_list_t** out) __attribute__ ((visibility ("default")));
+size_t dnsdist_ffi_dynamic_blocks_smt_get_entries(dnsdist_ffi_dynamic_blocks_list_t** out) __attribute__ ((visibility ("default")));
 const dnsdist_ffi_dynamic_block_entry_t* dnsdist_ffi_dynamic_blocks_list_get(const dnsdist_ffi_dynamic_blocks_list_t* list, size_t idx) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dynamic_blocks_list_free(dnsdist_ffi_dynamic_blocks_list_t*) __attribute__ ((visibility ("default")));
