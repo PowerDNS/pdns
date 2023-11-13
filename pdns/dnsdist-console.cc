@@ -524,6 +524,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getCacheHitResponseRule", true, "selector", "Return the cache-hit response rule corresponding to the selector, if any" },
   { "getCacheInsertedResponseRule", true, "selector", "Return the cache-inserted response rule corresponding to the selector, if any" },
   { "getCurrentTime", true, "", "returns the current time" },
+  { "getDynamicBlocks", true, "", "returns a table of the current network-based dynamic blocks" },
+  { "getSMTDynamicBlocks", true, "", "returns a table of the current suffix-based dynamic blocks" },
   { "getDNSCryptBind", true, "n", "return the `DNSCryptContext` object corresponding to the bind `n`" },
   { "getDNSCryptBindCount", true, "", "returns the number of DNSCrypt listeners" },
   { "getDOHFrontend", true, "n", "returns the DOH frontend with index n" },

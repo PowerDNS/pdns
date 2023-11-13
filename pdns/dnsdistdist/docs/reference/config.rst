@@ -1440,6 +1440,18 @@ Dynamic Blocks
 
   Remove all current dynamic blocks.
 
+.. function:: getDynamicBlocks()
+
+  .. versionadded:: 1.9.0
+
+  Return an associative table of active network-based dynamic blocks. The keys are the network IP or range that are blocked, the value are :class:`DynBlock` objects.
+
+.. function:: getSMTDynamicBlocks()
+
+  .. versionadded:: 1.9.0
+
+  Return an associative table of active domain-based (Suffix Match Tree or SMT) dynamic blocks. The keys are the domains that are blocked, the values are :class:`DynBlock` objects.
+
 .. function:: showDynBlocks()
 
   List all dynamic blocks in effect.
@@ -1459,6 +1471,40 @@ Dynamic Blocks
   Setting this value to 0 disable the purging mechanism, so entries will remain in the tree.
 
   :param int sec: The interval between two runs of the cleaning algorithm, in seconds. Default is 60 (1 minute), 0 means disabled.
+
+.. class:: DynBlock
+
+  .. versionadded:: 1.9.0
+
+  Represent the current state of a dynamic block.
+
+  .. attribute:: DynBlock.action
+
+    The action of this block, as an integer representing a :ref:`DNSAction <DNSAction>`.
+
+  .. attribute:: DynBlock.blocks
+
+    The number of queries blocked.
+
+  .. attribute:: DynBlock.bpf
+
+    Whether this block is using eBPF, as a boolean.
+
+  .. attribute:: DynBlock.domain
+
+    The domain that is blocked, as a string, for Suffix Match Tree blocks.
+
+  .. attribute:: DynBlock.reason
+
+    The reason why this block was inserted, as a string.
+
+  .. attribute:: DynBlock.until
+
+    The time (in seconds since Epoch) at which the block will expire.
+
+  .. attribute:: DynBlock.warning
+
+    Whether this block is only a warning one (true) or is really enforced (false).
 
 .. _exceedfuncs:
 
