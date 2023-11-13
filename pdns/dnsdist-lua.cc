@@ -1880,9 +1880,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
         if (boost::ends_with(ent->d_name, ".conf")) {
           std::ostringstream namebuf;
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
           namebuf << dirname << "/" << ent->d_name;
 
-          if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
+          if (stat(namebuf.str().c_str(), &st) != 0 || !S_ISREG(st.st_mode)) {
             continue;
           }
 
