@@ -1861,33 +1861,37 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
 
-    DIR* dirp;
-    struct dirent* ent;
     std::vector<std::string> files;
-    if (!(dirp = opendir(dirname.c_str()))) {
-      errlog("Error opening the included directory %s!", dirname.c_str());
-      g_outputBuffer = "Error opening the included directory " + dirname + "!";
-      return;
-    }
-
-    while ((ent = readdir(dirp)) != NULL) {
-      if (ent->d_name[0] == '.') {
-        continue;
+    {
+      auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(dirname.c_str()), closedir);
+      if (!dirHandle) {
+        errlog("Error opening the included directory %s!", dirname.c_str());
+        g_outputBuffer = "Error opening the included directory " + dirname + "!";
+        return;
       }
 
-      if (boost::ends_with(ent->d_name, ".conf")) {
-        std::ostringstream namebuf;
-        namebuf << dirname << "/" << ent->d_name;
-
-        if (stat(namebuf.str().c_str(), &st) || !S_ISREG(st.st_mode)) {
+      struct dirent* ent = nullptr;
+      // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
+      while ((ent = readdir(dirHandle.get())) != nullptr) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
+        if (ent->d_name[0] == '.') {
           continue;
         }
 
-        files.push_back(namebuf.str());
+        if (boost::ends_with(ent->d_name, ".conf")) {
+          std::ostringstream namebuf;
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
+          namebuf << dirname << "/" << ent->d_name;
+
+          if (stat(namebuf.str().c_str(), &st) != 0 || !S_ISREG(st.st_mode)) {
+            continue;
+          }
+
+          files.push_back(namebuf.str());
+        }
       }
     }
 
-    closedir(dirp);
     std::sort(files.begin(), files.end());
 
     g_included = true;
