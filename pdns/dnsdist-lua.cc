@@ -1862,34 +1862,27 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     std::vector<std::string> files;
-    {
-      auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(dirname.c_str()), closedir);
-      if (!dirHandle) {
-        errlog("Error opening the included directory %s!", dirname.c_str());
-        g_outputBuffer = "Error opening the included directory " + dirname + "!";
-        return;
+    auto directoryError = pdns::visit_directory(dirname, [&dirname, &files]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
+      if (boost::starts_with(name, ".")) {
+        return true;
       }
-
-      struct dirent* ent = nullptr;
-      // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
-      while ((ent = readdir(dirHandle.get())) != nullptr) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
-        if (ent->d_name[0] == '.') {
-          continue;
-        }
-
-        if (boost::ends_with(ent->d_name, ".conf")) {
-          std::ostringstream namebuf;
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
-          namebuf << dirname << "/" << ent->d_name;
-
-          if (stat(namebuf.str().c_str(), &st) != 0 || !S_ISREG(st.st_mode)) {
-            continue;
-          }
-
+      if (boost::ends_with(name, ".conf")) {
+        std::ostringstream namebuf;
+        namebuf << dirname << "/" << name;
+        struct stat fileStat
+        {
+        };
+        if (stat(namebuf.str().c_str(), &fileStat) == 0 && S_ISREG(fileStat.st_mode)) {
           files.push_back(namebuf.str());
         }
       }
+      return true;
+    });
+
+    if (directoryError) {
+      errlog("Error opening included directory: %s!", *directoryError);
+      g_outputBuffer = "Error opening included directory: " + *directoryError + "!";
+      return;
     }
 
     std::sort(files.begin(), files.end());

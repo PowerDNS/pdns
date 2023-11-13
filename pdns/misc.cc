@@ -1377,34 +1377,29 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 uint64_t getOpenFileDescriptors(const std::string&)
 {
 #ifdef __linux__
-  auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(("/proc/"+std::to_string(getpid())+"/fd/").c_str()), closedir);
-  if (!dirHandle) {
-    return 0;
-  }
-
-  int ret = 0;
-  struct dirent* entry = nullptr;
-  // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
-  while ((entry = readdir(dirHandle.get())) != nullptr) {
+  uint64_t nbFileDescriptors = 0;
+  const auto dirName = "/proc/" + std::to_string(getpid()) + "/fd/";
+  auto directoryError = pdns::visit_directory(dirName, [&nbFileDescriptors]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
     uint32_t num;
     try {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
-      pdns::checked_stoi_into(num, entry->d_name);
+      pdns::checked_stoi_into(num, std::string(name));
+      if (std::to_string(num) == name) {
+        nbFileDescriptors++;
+      }
     } catch (...) {
-      continue; // was not a number.
+      // was not a number.
     }
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
-    if (std::to_string(num) == entry->d_name) {
-      ret++;
-    }
+    return true;
+  });
+  if (directoryError) {
+    return 0U;
   }
-  return ret;
-
+  return nbFileDescriptors;
 #elif defined(__OpenBSD__)
   // FreeBSD also has this in libopenbsd, but I don't know if that's available always
   return getdtablecount();
 #else
-  return 0;
+  return 0U;
 #endif
 }
 
@@ -1744,4 +1739,27 @@ bool constantTimeStringEquals(const std::string& a, const std::string& b)
   return res == 0;
 #endif /* !HAVE_SODIUM_MEMCMP */
 #endif /* !HAVE_CRYPTO_MEMCMP */
+}
+
+namespace pdns
+{
+std::optional<std::string> visit_directory(const std::string& directory, const std::function<bool(ino_t inodeNumber, const std::string_view& name)>& visitor)
+{
+  auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(directory.c_str()), closedir);
+  if (!dirHandle) {
+    auto err = errno;
+    return std::string("Error opening directory '" + directory + "': " + stringerror(err));
+  }
+
+  bool keepGoing = true;
+  struct dirent* ent = nullptr;
+  // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
+  while (keepGoing && (ent = readdir(dirHandle.get())) != nullptr) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay: dirent API
+    auto name = std::string_view(ent->d_name, strlen(ent->d_name));
+    keepGoing = visitor(ent->d_ino, name);
+  }
+
+  return std::nullopt;
+}
 }

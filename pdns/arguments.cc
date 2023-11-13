@@ -579,8 +579,31 @@ void ArgvMap::gatherIncludes(const std::string& directory, const std::string& su
     return; // nothing to do
   }
 
-  auto dir = std::unique_ptr<DIR, decltype(&closedir)>(opendir(directory.c_str()), closedir);
-  if (dir == nullptr) {
+  std::vector<std::string> vec;
+  auto directoryError = pdns::visit_directory(directory, [this, &directory, &suffix, &vec]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
+    (void)this;
+    if (boost::starts_with(name, ".")) {
+      return true; // skip any dots
+    }
+    if (boost::ends_with(name, suffix)) {
+      // build name
+      string fullName = directory + "/" + std::string(name);
+      // ensure it's readable file
+      struct stat statInfo
+      {
+      };
+      if (stat(fullName.c_str(), &statInfo) != 0 || !S_ISREG(statInfo.st_mode)) {
+        string msg = fullName + " is not a regular file";
+        SLOG(g_log << Logger::Error << msg << std::endl,
+             d_log->info(Logr::Error, "Unable to open non-regular file", "name", Logging::Loggable(fullName)));
+        throw ArgException(msg);
+      }
+      vec.emplace_back(fullName);
+    }
+    return true;
+  });
+
+  if (directoryError) {
     int err = errno;
     string msg = directory + " is not accessible: " + stringerror(err);
     SLOG(g_log << Logger::Error << msg << std::endl,
@@ -588,28 +611,6 @@ void ArgvMap::gatherIncludes(const std::string& directory, const std::string& su
     throw ArgException(msg);
   }
 
-  std::vector<std::string> vec;
-  struct dirent* ent = nullptr;
-  while ((ent = readdir(dir.get())) != nullptr) { // NOLINT(concurrency-mt-unsafe): see Linux man page
-    if (ent->d_name[0] == '.') {
-      continue; // skip any dots
-    }
-    if (boost::ends_with(ent->d_name, suffix)) {
-      // build name
-      string name = directory + "/" + ent->d_name; // NOLINT: Posix API
-      // ensure it's readable file
-      struct stat statInfo
-      {
-      };
-      if (stat(name.c_str(), &statInfo) != 0 || !S_ISREG(statInfo.st_mode)) {
-        string msg = name + " is not a regular file";
-        SLOG(g_log << Logger::Error << msg << std::endl,
-             d_log->info(Logr::Error, "Unable to open non-regular file", "name", Logging::Loggable(name)));
-        throw ArgException(msg);
-      }
-      vec.emplace_back(name);
-    }
-  }
   std::sort(vec.begin(), vec.end(), CIStringComparePOSIX());
   extraConfigs.insert(extraConfigs.end(), vec.begin(), vec.end());
 }

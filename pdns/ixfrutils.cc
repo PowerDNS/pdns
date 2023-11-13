@@ -78,20 +78,20 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
 uint32_t getSerialFromDir(const std::string& dir)
 {
   uint32_t ret = 0;
-  auto dirhdl = std::unique_ptr<DIR, decltype(&closedir)>(opendir(dir.c_str()), closedir);
-  if (!dirhdl) {
-    throw runtime_error("Could not open IXFR directory '" + dir + "': " + stringerror());
-  }
-
-  struct dirent* entry = nullptr;
-  // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
-  while ((entry = readdir(dirhdl.get())) != nullptr) {
-    uint32_t num = atoi(entry->d_name);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
-    auto name = std::string_view(entry->d_name, strlen(entry->d_name));
-    if (std::to_string(num) == name) {
-      ret = max(num, ret);
+  auto directoryError = pdns::visit_directory(dir, [&ret]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
+    try {
+      auto version = pdns::checked_stoi<uint32_t>(std::string(name));
+      if (std::to_string(version) == name) {
+        ret = std::max(version, ret);
+      }
     }
+    catch (...) {
+    }
+    return true;
+  });
+
+  if (directoryError) {
+    throw runtime_error("Could not open IXFR directory '" + dir + "': " + *directoryError);
   }
 
   return ret;
