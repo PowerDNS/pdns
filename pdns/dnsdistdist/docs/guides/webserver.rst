@@ -793,6 +793,16 @@ URL Endpoints
   :>json list: A list of metrics related to that pool
   :>json list servers: A list of :json:object:`Server` objects present in that pool
 
+.. http:get:: /api/v1/servers/localhost/rings?maxQueries=NUM&maxResponses=NUM
+
+  .. versionadded:: 1.9.0
+
+  Get the most recent queries and responses from the in-memory ring buffers. Returns up to ``maxQueries``
+  query entries if set, up to ``maxResponses`` responses if set, and the whole content of the ring buffers otherwise.
+
+  :>json list queries: The list of the most recent queries, as :json:object:`RingEntry` objects
+  :>json list responses: The list of the most recent responses, as :json:object:`RingEntry` objects
+
 JSON Objects
 ~~~~~~~~~~~~
 
@@ -969,3 +979,23 @@ JSON Objects
   :property string name: The name of this statistic. See :doc:`../statistics`
   :property string type: "StatisticItem"
   :property integer value: The value for this item
+
+.. json:object:: RingEntry
+
+  This represents an entry in the in-memory ring buffers.
+
+  :property float age: How long ago was the query or response received, in seconds
+  :property integer id: The DNS ID
+  :property string name: The requested domain name
+  :property string requestor: The client IP and port
+  :property integer size: The size of the query or response
+  :property integer qtype: The requested DNS type
+  :property string protocol: The DNS protocol the query or response was received over
+  :property boolean rd: The RD flag
+  :property string mac: The MAC address of the device sending the query
+  :property float latency: The time it took for the response to be sent back to the client, in microseconds
+  :property int rcode: The response code
+  :property boolean tc: The TC flag
+  :property boolean aa: The AA flag
+  :property integer answers: The number of records in the answer section of the response
+  :property string backend: The IP and port of the backend that returned the response, or "Cache" if it was a cache-hit

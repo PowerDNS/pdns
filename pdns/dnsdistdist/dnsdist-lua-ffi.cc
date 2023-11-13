@@ -1317,15 +1317,15 @@ template<typename T> static void addRingEntryToList(std::unique_ptr<dnsdist_ffi_
   constexpr bool response = std::is_same_v<T, Rings::Response>;
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
   if constexpr (!response) {
-    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toString(), entry.hasmac ? std::string(reinterpret_cast<const char*>(entry.macaddress.data()), entry.macaddress.size()) : std::string(), entry.size, entry.qtype, entry.protocol, response};
+    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toStringWithPort(), entry.hasmac ? std::string(reinterpret_cast<const char*>(entry.macaddress.data()), entry.macaddress.size()) : std::string(), entry.size, entry.qtype, entry.protocol, response};
     list->d_entries.push_back(std::move(tmp));
   }
   else {
-    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toString(), std::string(), entry.size, entry.qtype, entry.protocol, response};
+    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toStringWithPort(), std::string(), entry.size, entry.qtype, entry.protocol, response};
     list->d_entries.push_back(std::move(tmp));
   }
 #else
-  dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toString(), std::string(), entry.size, entry.qtype, entry.protocol, response};
+  dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toStringWithPort(), std::string(), entry.size, entry.qtype, entry.protocol, response};
   list->d_entries.push_back(std::move(tmp));
 #endif
 }

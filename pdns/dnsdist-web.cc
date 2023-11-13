@@ -36,6 +36,7 @@
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-prometheus.hh"
+#include "dnsdist-rings.hh"
 #include "dnsdist-web.hh"
 #include "dolog.hh"
 #include "gettime.hh"
@@ -1629,6 +1630,104 @@ static void handleCacheManagement(const YaHTTP::Request& req, YaHTTP::Response& 
 }
 #endif /* DISABLE_WEB_CACHE_MANAGEMENT */
 
+template<typename T> static void addRingEntryToList(const struct timespec& now, Json::array& list, const T& entry)
+{
+  constexpr bool response = std::is_same_v<T, Rings::Response>;
+  Json::object tmp{
+    { "age", static_cast<double>(DiffTime(entry.when, now)) },
+    { "id", ntohs(entry.dh.id) },
+    { "name", entry.name.toString() },
+    { "requestor", entry.requestor.toStringWithPort() },
+    { "size", static_cast<int>(entry.size) },
+    { "qtype", entry.qtype },
+    { "protocol", entry.protocol.toString() },
+    { "rd", static_cast<bool>(entry.dh.rd) },
+  };
+  if constexpr (!response) {
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+    tmp.emplace("mac", entry.hasmac ? std::string(reinterpret_cast<const char*>(entry.macaddress.data()), entry.macaddress.size()) : std::string());
+#endif
+  }
+  else {
+    tmp.emplace("latency", static_cast<double>(entry.usec));
+    tmp.emplace("rcode", static_cast<uint8_t>(entry.dh.rcode));
+    tmp.emplace("tc", static_cast<bool>(entry.dh.tc));
+    tmp.emplace("aa", static_cast<bool>(entry.dh.aa));
+    tmp.emplace("answers", ntohs(entry.dh.ancount));
+    auto server = entry.ds.toStringWithPort();
+    tmp.emplace("backend", server != "0.0.0.0:0" ? std::move(server) : "Cache");
+  }
+  list.push_back(std::move(tmp));
+}
+
+static void handleRings(const YaHTTP::Request& req, YaHTTP::Response& resp)
+{
+  handleCORS(req, resp);
+
+  std::optional<size_t> maxNumberOfQueries{std::nullopt};
+  std::optional<size_t> maxNumberOfResponses{std::nullopt};
+
+  const auto maxQueries = req.getvars.find("maxQueries");
+  if (maxQueries != req.getvars.end()) {
+    try {
+      maxNumberOfQueries = pdns::checked_stoi<size_t>(maxQueries->second);
+    }
+    catch (const std::exception& exp) {
+      vinfolog("Error parsing the 'maxQueries' value from rings HTTP GET query: %s", exp.what());
+    }
+  }
+
+  const auto maxResponses = req.getvars.find("maxResponses");
+  if (maxResponses != req.getvars.end()) {
+    try {
+      maxNumberOfResponses = pdns::checked_stoi<size_t>(maxResponses->second);
+    }
+    catch (const std::exception& exp) {
+      vinfolog("Error parsing the 'maxResponses' value from rings HTTP GET query: %s", exp.what());
+    }
+  }
+
+  resp.status = 200;
+
+  Json::object doc;
+  size_t numberOfQueries = 0;
+  size_t numberOfResponses = 0;
+  Json::array queries;
+  Json::array responses;
+  struct timespec now
+  {
+  };
+  gettime(&now);
+
+  for (const auto& shard : g_rings.d_shards) {
+    if (!maxNumberOfQueries || numberOfQueries < *maxNumberOfQueries) {
+      auto queryRing = shard->queryRing.lock();
+      for (const auto& entry : *queryRing) {
+        addRingEntryToList(now, queries, entry);
+        numberOfQueries++;
+        if (maxNumberOfQueries && numberOfQueries >= *maxNumberOfQueries) {
+          break;
+        }
+      }
+    }
+    if (!maxNumberOfResponses || numberOfResponses < *maxNumberOfResponses) {
+      auto responseRing = shard->respRing.lock();
+      for (const auto& entry : *responseRing) {
+        addRingEntryToList(now, responses, entry);
+        numberOfResponses++;
+        if (maxNumberOfResponses && numberOfResponses >= *maxNumberOfResponses) {
+          break;
+        }
+      }
+    }
+  }
+  doc.emplace("queries", std::move(queries));
+  doc.emplace("responses", std::move(responses));
+  Json my_json = doc;
+  resp.body = my_json.dump();
+  resp.headers["Content-Type"] = "application/json";
+}
+
 static std::unordered_map<std::string, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)>> s_webHandlers;
 
 void registerWebHandler(const std::string& endpoint, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)> handler);
@@ -1693,6 +1792,7 @@ void registerBuiltInWebHandlers()
   registerWebHandler("/api/v1/servers/localhost", handleStats);
   registerWebHandler("/api/v1/servers/localhost/pool", handlePoolStats);
   registerWebHandler("/api/v1/servers/localhost/statistics", handleStatsOnly);
+  registerWebHandler("/api/v1/servers/localhost/rings", handleRings);
 #ifndef DISABLE_WEB_CONFIG
   registerWebHandler("/api/v1/servers/localhost/config", handleConfigDump);
   registerWebHandler("/api/v1/servers/localhost/config/allow-from", handleAllowFrom);
