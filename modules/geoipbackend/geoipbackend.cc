@@ -90,7 +90,6 @@ GeoIPBackend::GeoIPBackend(const string& suffix)
       throw PDNSException("dnssec-keydir " + getArg("dnssec-keydir") + " does not exist");
     }
     d_dnssec = true;
-    dirHandle.reset();
   }
   if (s_rc == 0) { // first instance gets to open everything
     initialize();

@@ -1377,15 +1377,15 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 uint64_t getOpenFileDescriptors(const std::string&)
 {
 #ifdef __linux__
-  auto dirhdl = std::unique_ptr<DIR, decltype(&closedir)>(opendir(("/proc/"+std::to_string(getpid())+"/fd/").c_str()), closedir);
-  if (!dirhdl) {
+  auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(("/proc/"+std::to_string(getpid())+"/fd/").c_str()), closedir);
+  if (!dirHandle) {
     return 0;
   }
 
   int ret = 0;
   struct dirent* entry = nullptr;
   // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
-  while ((entry = readdir(dirhdl.get())) != nullptr) {
+  while ((entry = readdir(dirHandle.get())) != nullptr) {
     uint32_t num;
     try {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
