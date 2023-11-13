@@ -1870,9 +1870,9 @@ void dnsdist_ffi_dynamic_blocks_list_free(dnsdist_ffi_dynamic_blocks_list_t* lis
   }
 
   for (auto& entry : list->d_entries) {
-    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): this is a C API, RAII is not an option
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc): this is a C API, RAII is not an option
     free(entry.key);
-    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): this is a C API, RAII is not an option
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc): this is a C API, RAII is not an option
     free(entry.reason);
   }
 
