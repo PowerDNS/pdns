@@ -1418,6 +1418,54 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     });
   });
 
+  luaCtx.writeFunction("getDynamicBlocks", []() {
+    setLuaNoSideEffect();
+    struct timespec now;
+    gettime(&now);
+
+    LuaAssociativeTable<DynBlock> entries;
+    auto fullCopy = g_dynblockNMG.getCopy();
+    for (const auto& blockPair : fullCopy) {
+      const auto& requestor = blockPair.first;
+      if (!(now < blockPair.second.until)) {
+        continue;
+      }
+      auto entry = blockPair.second;
+      if (g_defaultBPFFilter && entry.bpf) {
+        entry.blocks += g_defaultBPFFilter->getHits(requestor.getNetwork());
+      }
+      if (entry.action == DNSAction::Action::None) {
+        entry.action = g_dynBlockAction;
+      }
+      entries.emplace(requestor.toString(), std::move(entry));
+      }
+    return entries;
+  });
+
+  luaCtx.writeFunction("getSMTDynamicBlocks", []() {
+    setLuaNoSideEffect();
+    struct timespec now;
+    gettime(&now);
+
+    LuaAssociativeTable<DynBlock> entries;
+    auto fullCopy = g_dynblockSMT.getCopy();
+    fullCopy.visit([&now, &entries](const SuffixMatchTree<DynBlock>& node) {
+       if (!(now < node.d_value.until)) {
+        return;
+      }
+      auto entry = node.d_value;
+     string key("empty");
+      if (!entry.domain.empty()) {
+        key = entry.domain.toString();
+      }
+      if (entry.action == DNSAction::Action::None) {
+        entry.action = g_dynBlockAction;
+      }
+      entries.emplace(std::move(key), std::move(entry));
+    });
+    return entries;
+  });
+
   luaCtx.writeFunction("clearDynBlocks", []() {
     setLuaSideEffect();
     nmts_t nmg;

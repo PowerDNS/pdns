@@ -946,5 +946,14 @@ void setupLuaInspection(LuaContext& luaCtx)
   });
   luaCtx.registerFunction("setQuiet", &DynBlockRulesGroup::setQuiet);
   luaCtx.registerFunction("toString", &DynBlockRulesGroup::toString);
+
+  /* DynBlock object accessors */
+  luaCtx.registerMember("reason", &DynBlock::reason);
+  luaCtx.registerMember("domain", &DynBlock::domain);
+  luaCtx.registerMember("until", &DynBlock::until);
+  luaCtx.registerMember<DynBlock, unsigned int>("blocks", [](const DynBlock& block) { return block.blocks.load(); }, [](DynBlock& block, [[maybe_unused]] unsigned int blocks) { });
+  luaCtx.registerMember("action", &DynBlock::action);
+  luaCtx.registerMember("warning", &DynBlock::warning);
+  luaCtx.registerMember("bpf", &DynBlock::bpf);
 #endif /* DISABLE_DYNBLOCKS */
 }
