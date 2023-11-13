@@ -2075,7 +2075,7 @@ string GSQLBackend::pattern2SQLPattern(const string &pattern)
   return escaped_pattern;
 }
 
-bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DNSResourceRecord>& result)
+bool GSQLBackend::searchRecords(const string &pattern, size_t maxResults, vector<DNSResourceRecord>& result)
 {
   d_qname.clear();
   string escaped_pattern = pattern2SQLPattern(pattern);
@@ -2111,7 +2111,7 @@ bool GSQLBackend::searchRecords(const string &pattern, int maxResults, vector<DN
   }
 }
 
-bool GSQLBackend::searchComments(const string &pattern, int maxResults, vector<Comment>& result)
+bool GSQLBackend::searchComments(const string &pattern, size_t maxResults, vector<Comment>& result)
 {
   Comment c;
   string escaped_pattern = pattern2SQLPattern(pattern);

@@ -976,12 +976,13 @@ An entry called 'server1.home' will be stored as 'server1.home', regardless of t
         'name' : 'extended_resolution_errors',
         'section' : 'recursor',
         'type' : LType.Bool,
-        'default' : 'false',
+        'default' : 'true',
         'help' : 'If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors',
         'doc' : '''
 If set, the recursor will add an EDNS Extended Error (:rfc:`8914`) to responses when resolution failed, like DNSSEC validation errors, explaining the reason it failed. This setting is not needed to allow setting custom error codes from Lua or from a RPZ hit.
  ''',
-    'versionadded': '4.5.0'
+        'versionadded': '4.5.0',
+        'versionchanged': ('5.0.0', 'Default changed to enabled, previously it was disabled.'),
     },
     {
         'name' : 'forward_zones',
@@ -1454,7 +1455,7 @@ Maximum number of Packet Cache entries. Sharded and shared by all threads since 
     },
     {
         'name' : 'max_qperq',
-        'section' : 'recursor',
+        'section' : 'outgoing',
         'type' : LType.Uint64,
         'default' : '60',
         'help' : 'Maximum outgoing queries per query',
@@ -1467,7 +1468,7 @@ at a minimum to allow for the extra queries qname-minimization generates when th
     },
     {
         'name' : 'max_ns_address_qperq',
-        'section' : 'recursor',
+        'section' : 'outgoing',
         'type' : LType.Uint64,
         'default' : '10',
         'help' : 'Maximum outgoing NS address queries per query',
@@ -1485,7 +1486,7 @@ number lower than 5.
     },
     {
         'name' : 'max_ns_per_resolve',
-        'section' : 'recursor',
+        'section' : 'outgoing',
         'type' : LType.Uint64,
         'default' : '13',
         'help' : 'Maximum number of NS records to consider to resolve a name, 0 is no limit',
@@ -1755,7 +1756,7 @@ Number of milliseconds to wait for a remote authoritative server to respond.
     },
     {
         'name' : 'non_resolving_ns_max_fails',
-        'section' : 'recursor',
+        'section' : 'outgoing',
         'type' : LType.Uint64,
         'default' : '5',
         'help' : 'Number of failed address resolves of a nameserver to start throttling it, 0 is disabled',
@@ -1767,7 +1768,7 @@ Nameservers matching :ref:`setting-dont-throttle-names` will not be throttled.
     },
     {
         'name' : 'non_resolving_ns_throttle_time',
-        'section' : 'recursor',
+        'section' : 'outgoing',
         'type' : LType.Uint64,
         'default' : '60',
         'help' : 'Number of seconds to throttle a nameserver with a name failing to resolve',
@@ -1810,14 +1811,15 @@ without consulting authoritative servers.
         'name' : 'nsec3_max_iterations',
         'section' : 'dnssec',
         'type' : LType.Uint64,
-        'default' : '150',
+        'default' : '50',
         'help' : 'Maximum number of iterations allowed for an NSEC3 record',
         'doc' : '''
 Maximum number of iterations allowed for an NSEC3 record.
-If an answer containing an NSEC3 record with more iterations is received, its DNSSEC validation status is treated as Insecure.
+If an answer containing an NSEC3 record with more iterations is received, its DNSSEC validation status is treated as ``Insecure``.
  ''',
         'versionadded': '4.1.0',
-        'versionchanged': ('4.5.2', 'Default is now 150, was 2500 before.')
+        'versionchanged': [('4.5.2', 'Default is now 150, was 2500 before.'),
+                           ('5.0.0', 'Default is now 50, was 150 before.')]
     },
     {
         'name' : 'ttl',
@@ -2160,7 +2162,7 @@ See :ref:`serve-stale` for a description of the Serve Stale mechanism.
     },
     {
         'name' : 'server_down_max_fails',
-        'section' : 'recursor',
+        'section' : 'outgoing',
         'type' : LType.Uint64,
         'default' : '64',
         'help' : 'Maximum number of consecutive timeouts (and unreachables) to mark a server as down ( 0 => disabled )',
@@ -2172,7 +2174,7 @@ Even a single response packet will drop the block.
     },
     {
         'name' : 'server_down_throttle_time',
-        'section' : 'recursor',
+        'section' : 'outgoing',
         'type' : LType.Uint64,
         'default' : '60',
         'help' : 'Number of seconds to throttle all queries to a server after being marked as down',
@@ -2182,7 +2184,7 @@ Throttle a server that has failed to respond :ref:`setting-server-down-max-fails
     },
     {
         'name' : 'bypass_server_throttling_probability',
-        'section' : 'recursor',
+        'section' : 'outgoing',
         'type' : LType.Uint64,
         'default' : '25',
         'help' : 'Determines the probability of a server marked down to be used anyway',
@@ -2895,7 +2897,7 @@ Note that this option only applies to credentials stored in the configuration as
         'default' : 'normal',
         'help' : 'Amount of logging in the webserver (none, normal, detailed)',
         'doc' : '''
-One of ``one``, ``normal``, ``detailed``.
+One of ``none``, ``normal``, ``detailed``.
 The amount of logging the webserver must do. 'none' means no useful webserver information will be logged.
 When set to 'normal', the webserver will log a line per request that should be familiar::
 

@@ -140,7 +140,7 @@ public:
     DNSResponse dnsResponse(unit->ids, unit->response, unit->downstream);
 
     dnsheader cleartextDH{};
-    memcpy(&cleartextDH, dnsResponse.getHeader(), sizeof(cleartextDH));
+    memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
 

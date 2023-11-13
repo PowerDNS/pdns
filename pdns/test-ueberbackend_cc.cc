@@ -1053,8 +1053,10 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_best_soa) {
 
     auto testFunction = [](UeberBackend& ub) -> void {
     {
-      auto sbba = dynamic_cast<SimpleBackendBestAuth*>(ub.backends.at(0));
+      auto* sbba = dynamic_cast<SimpleBackendBestAuth*>(ub.backends.at(0).get());
       BOOST_REQUIRE(sbba != nullptr);
+
+      // NOLINTNEXTLINE (clang-analyzer-core.NullDereference): Not sure.
       sbba->d_authLookupCount = 0;
 
       // test getAuth()

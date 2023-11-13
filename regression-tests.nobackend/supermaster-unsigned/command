@@ -30,12 +30,12 @@ options {
         minimal-responses yes;
 };
 zone "example.com"{
-        type master;
+        type primary;
         file "example.com";
 };
 
 zone "test.com"{
-        type master;
+        type primary;
         file "test.com";
 };
 EOF

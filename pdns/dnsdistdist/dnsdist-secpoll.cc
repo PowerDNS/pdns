@@ -49,7 +49,7 @@ static std::string getFirstTXTAnswer(const std::string& answer)
     throw std::runtime_error("Looking for a TXT record in an answer smaller than the DNS header");
   }
 
-  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(answer.data());
+  const dnsheader_aligned dh(answer.data());
   PacketReader pr(answer);
   uint16_t qdcount = ntohs(dh->qdcount);
   uint16_t ancount = ntohs(dh->ancount);

@@ -200,7 +200,10 @@ static void possiblyConvertACLFile(const string& includeDir, const string& apiDi
   if (rename(tmpfilename.c_str(), yamlfilename.c_str()) != 0) {
     int err = errno;
     log->error(Logr::Error, err, "Rename failed", "file", Logging::Loggable(tmpfilename), "to", Logging::Loggable(yamlfilename));
-    rename((path + ".converted").c_str(), path.c_str());
+    if (rename((path + ".converted").c_str(), path.c_str()) != 0) {
+      err = errno;
+      log->error(Logr::Error, err, "Rename failed", "file", Logging::Loggable(path + ".converted"), "to", Logging::Loggable(path));
+    }
     throw runtime_error("YAML Conversion");
   }
   log->info(Logr::Notice, "Converted to YAML", "file", Logging::Loggable(path), "to", Logging::Loggable(yamlfilename));
@@ -515,7 +518,7 @@ static void processLine(const std::string& arg, FieldMap& map, bool mainFile)
   ::rust::String section;
   ::rust::String fieldname;
   ::rust::String type_name;
-  pdns::rust::settings::rec::Value rustvalue;
+  pdns::rust::settings::rec::Value rustvalue = {false, 0, 0.0, "", {}, {}, {}};
   if (pdns::settings::rec::oldKVToBridgeStruct(var, val, section, fieldname, type_name, rustvalue)) {
     auto overriding = !mainFile && !incremental && !simpleRustType(type_name);
     auto [existing, inserted] = map.emplace(std::pair{std::pair{section, fieldname}, pdns::rust::settings::rec::OldStyle{section, fieldname, var, type_name, rustvalue, overriding}});
@@ -615,8 +618,7 @@ std::string pdns::settings::rec::defaultsToYaml()
     ::rust::String section;
     ::rust::String fieldname;
     ::rust::String type_name;
-    pdns::rust::settings::rec::Value rustvalue;
-
+    pdns::rust::settings::rec::Value rustvalue{false, 0, 0.0, "", {}, {}, {}};
     string name = var;
     string val = arg().getDefault(var);
     if (pdns::settings::rec::oldKVToBridgeStruct(name, val, section, fieldname, type_name, rustvalue)) {

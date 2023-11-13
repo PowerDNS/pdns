@@ -154,6 +154,7 @@ $(document).ready(function() {
                 $("#latency-tcp").text((data["latency-tcp-avg10000"]/1000.0).toFixed(2));
                 $("#latency-dot").text((data["latency-dot-avg10000"]/1000.0).toFixed(2));
                 $("#latency-doh").text((data["latency-doh-avg10000"]/1000.0).toFixed(2));
+                $("#latency-doq").text((data["latency-doq-avg10000"]/1000.0).toFixed(2));
                 if(!gdata["cpu-sys-msec"]) 
                     gdata=data;
 

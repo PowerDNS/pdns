@@ -21,10 +21,13 @@
  */
 #pragma once
 
+#include <unordered_map>
+
 #include "config.h"
 #include "dnscrypt.hh"
 #include "dnsname.hh"
 #include "dnsdist-protocols.hh"
+#include "ednsextendederror.hh"
 #include "gettime.hh"
 #include "iputils.hh"
 #include "noinitvector.hh"
@@ -129,6 +132,7 @@ struct InternalQueryState
   std::unique_ptr<QTag> qTag{nullptr}; // 8
   std::unique_ptr<PacketBuffer> d_packet{nullptr}; // Initial packet, so we can restart the query from the response path if needed // 8
   std::unique_ptr<ProtoBufData> d_protoBufData{nullptr};
+  std::unique_ptr<EDNSExtendedError> d_extendedError{nullptr};
   boost::optional<uint32_t> tempFailureTTL{boost::none}; // 8
   ClientState* cs{nullptr}; // 8
   std::unique_ptr<DOHUnitInterface> du; // 8

@@ -183,6 +183,7 @@ private:
       uint64_t d_contended_count{0};
       uint64_t d_acquired_count{0};
       void invalidate() {}
+      void preRemoval(const Entry& /* entry */) {}
     };
 
     LockGuardedTryHolder<MapCombo::LockedContent> lock()
@@ -241,9 +242,4 @@ private:
   static bool checkResponseMatches(MapCombo::LockedContent& shard, std::pair<packetCache_t::index<HashTag>::type::iterator, packetCache_t::index<HashTag>::type::iterator> range, const std::string& queryPacket, const DNSName& qname, uint16_t qtype, uint16_t qclass, time_t now, std::string* responsePacket, uint32_t* age, vState* valState, OptPBData* pbdata);
 
   void setShardSizes(size_t shardSize);
-
-public:
-  void preRemoval(MapCombo::LockedContent& /* map */, const Entry& /* entry */)
-  {
-  }
 };

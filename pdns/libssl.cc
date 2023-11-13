@@ -32,6 +32,8 @@
 #include <openssl/core.h>
 #include <openssl/core_names.h>
 #include <openssl/evp.h>
+#else
+#include <openssl/hmac.h>
 #endif
 
 #ifdef HAVE_LIBSODIUM
@@ -200,7 +202,7 @@ std::pair<bool, std::string> libssl_load_provider(const std::string& providerNam
 #endif /* HAVE_LIBSSL && OPENSSL_VERSION_MAJOR >= 3 && HAVE_TLS_PROVIDERS */
 
 #if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)
-std::pair<bool, std::string> libssl_load_engine(const std::string& engineName, const std::optional<std::string>& defaultString)
+std::pair<bool, std::string> libssl_load_engine([[maybe_unused]] const std::string& engineName, [[maybe_unused]] const std::optional<std::string>& defaultString)
 {
 #ifdef OPENSSL_NO_ENGINE
   return { false, "OpenSSL has been built without engine support" };
@@ -288,12 +290,9 @@ int libssl_ticket_key_callback(SSL* /* s */, OpenSSLTLSTicketKeysRing& keyring, 
   return 1;
 }
 
-static long libssl_server_name_callback(SSL* ssl, int* al, void* arg)
+static int libssl_server_name_callback(SSL* ssl, int* /* alert */, void* /* arg */)
 {
-  (void) al;
-  (void) arg;
-
-  if (SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name)) {
+  if (SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name) != nullptr) {
     return SSL_TLSEXT_ERR_OK;
   }
 

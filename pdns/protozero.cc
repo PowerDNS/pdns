@@ -85,7 +85,7 @@ void pdns::ProtoZero::Message::addRRsFromPacket(const char* packet, const size_t
     return;
   }
 
-  const struct dnsheader* dh = reinterpret_cast<const struct dnsheader*>(packet);
+  const dnsheader_aligned dh(packet);
 
   if (ntohs(dh->ancount) == 0) {
     return;

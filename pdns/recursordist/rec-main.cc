@@ -1072,8 +1072,8 @@ static void doStats()
   static time_t lastOutputTime;
   static uint64_t lastQueryCount;
 
-  uint64_t cacheHits = g_recCache->cacheHits;
-  uint64_t cacheMisses = g_recCache->cacheMisses;
+  uint64_t cacheHits = g_recCache->getCacheHits();
+  uint64_t cacheMisses = g_recCache->getCacheMisses();
   uint64_t cacheSize = g_recCache->size();
   auto rc_stats = g_recCache->stats();
   auto pc_stats = g_packetCache ? g_packetCache->stats() : std::pair<uint64_t, uint64_t>{0, 0};
@@ -2353,7 +2353,7 @@ private:
     0, 0
   };
   struct timeval period;
-  const string name;
+  string name;
 };
 
 static void houseKeepingWork(Logr::log_t log)
@@ -2787,7 +2787,7 @@ static void recursorThread()
     if (threadInfo.isHandler()) {
       if (::arg().mustDo("webserver")) {
         SLOG(g_log << Logger::Warning << "Enabling web server" << endl,
-             log->info(Logr::Info, "Enabling web server"))
+             log->info(Logr::Info, "Enabling web server"));
         try {
           rws = make_unique<RecursorWebServer>(t_fdm.get());
         }
@@ -2836,11 +2836,11 @@ static void recursorThread()
   }
   catch (PDNSException& ae) {
     SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
-         log->error(Logr::Error, ae.reason, "Exception in RecursorThread", "exception", Logging::Loggable("PDNSException")))
+         log->error(Logr::Error, ae.reason, "Exception in RecursorThread", "exception", Logging::Loggable("PDNSException")));
   }
   catch (std::exception& e) {
     SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
-         log->error(Logr::Error, e.what(), "Exception in RecursorThread", "exception", Logging::Loggable("std::exception")))
+         log->error(Logr::Error, e.what(), "Exception in RecursorThread", "exception", Logging::Loggable("std::exception")));
   }
   catch (...) {
     SLOG(g_log << Logger::Error << "any other exception in main: " << endl,

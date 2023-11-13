@@ -30,12 +30,12 @@
 
 bool DownstreamState::passCrossProtocolQuery(std::unique_ptr<CrossProtocolQuery>&& cpq)
 {
-  if (d_config.d_dohPath.empty()) {
-    return g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq));
-  }
-  else {
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
+  if (!d_config.d_dohPath.empty()) {
     return g_dohClientThreads && g_dohClientThreads->passCrossProtocolQueryToThread(std::move(cpq));
   }
+#endif
+  return g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq));
 }
 
 bool DownstreamState::reconnect(bool initialAttempt)

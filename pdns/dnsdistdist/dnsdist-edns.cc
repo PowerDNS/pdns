@@ -22,6 +22,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-edns.hh"
 #include "ednsoptions.hh"
+#include "ednsextendederror.hh"
 
 namespace dnsdist::edns
 {
@@ -54,5 +55,40 @@ std::pair<std::optional<uint16_t>, std::optional<std::string>> getExtendedDNSErr
     memcpy(extraText->data(), &packet.at(optContentStart + sizeof(infoCode)), optContentLen - sizeof(infoCode));
   }
   return {infoCode, std::move(extraText)};
+}
+
+bool addExtendedDNSError(PacketBuffer& packet, size_t maximumPacketSize, uint16_t code, const std::string& extraStatus)
+{
+  uint16_t optStart = 0;
+  size_t optLen = 0;
+  bool last = false;
+
+  int res = locateEDNSOptRR(packet, &optStart, &optLen, &last);
+
+  if (res != 0) {
+    /* no EDNS OPT record in the response, something is not right */
+    return false;
+  }
+
+  EDNSExtendedError ede{.infoCode = code, .extraText = extraStatus};
+  auto edeOptionPayload = makeEDNSExtendedErrorOptString(ede);
+  std::string edeOption;
+  generateEDNSOption(EDNSOptionCode::EXTENDEDERROR, edeOptionPayload, edeOption);
+
+  /* we might have one record after the OPT one, we need to rewrite
+     the whole packet because of compression */
+  PacketBuffer newContent;
+  bool ednsAdded = false;
+  bool edeAdded = false;
+  if (!slowRewriteEDNSOptionInQueryWithRecords(packet, newContent, ednsAdded, EDNSOptionCode::EXTENDEDERROR, edeAdded, true, edeOption)) {
+    return false;
+  }
+
+  if (newContent.size() > maximumPacketSize) {
+    return false;
+  }
+
+  packet = std::move(newContent);
+  return true;
 }
 }

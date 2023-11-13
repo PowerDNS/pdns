@@ -108,7 +108,7 @@ void BindParser::commit(BindDomainInfo DI)
 %}
 
 %token AWORD QUOTEDWORD OBRACE EBRACE SEMICOLON ZONETOK FILETOK OPTIONSTOK
-%token DIRECTORYTOK ACLTOK LOGGINGTOK CLASSTOK TYPETOK MASTERTOK ALSONOTIFYTOK
+%token DIRECTORYTOK ACLTOK LOGGINGTOK CLASSTOK TYPETOK PRIMARYTOK ALSONOTIFYTOK
 
 %%
 
@@ -230,10 +230,10 @@ zone_command: command | global_zone_command | zone_also_notify_command
 	;
 
 /* zone commands that also are available at global scope */
-global_zone_command: zone_file_command | zone_type_command | zone_masters_command
+global_zone_command: zone_file_command | zone_type_command | zone_primaries_command
 	;
 
-zone_masters_command: MASTERTOK OBRACE masters EBRACE
+zone_primaries_command: PRIMARYTOK OBRACE primaries EBRACE
 	;
 
 zone_also_notify_command: ALSONOTIFYTOK OBRACE zone_also_notify_list EBRACE
@@ -251,12 +251,12 @@ zone_also_notify: AWORD
         }
         ;
 
-masters: /* empty */
+primaries: /* empty */
 	| 
-	masters master SEMICOLON 
+	primaries primary SEMICOLON
 	;
 
-master: AWORD
+primary: AWORD
 	{
 		s_di.masters.push_back(ComboAddress($1, 53));
 		free($1);

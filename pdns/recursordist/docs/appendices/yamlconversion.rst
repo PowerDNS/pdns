@@ -59,7 +59,8 @@ API Managed Files
 The format of API managed files was also changed to use YAML format.
 Specifically, the list of API managed zones is now a single file containing a sequence of ``auth_zones`` and a sequence of ``forward_zones`` instead of a settings file per zone.
 The list of ACLs is a YAML sequence of subnets or IP addresses.
-When using YAML settings :ref:`setting-yaml-recursor.include-dir` and :ref:`setting-yaml-webservice.api-config-dir` must have a different value.
+
+When using YAML settings :ref:`setting-yaml-recursor.include_dir` and :ref:`setting-yaml-webservice.api_dir` must have a different value.
 When YAML settings are active the :program:`Recursor` will read old-style API managed files from the include directory on startup, convert them to the new format and write them into the API config directory.
 After conversion, it will inactivate the old-style API managed config files in the include directory by renaming them.
 

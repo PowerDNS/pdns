@@ -938,10 +938,6 @@ Some actions allow further processing of rules, this is noted in their descripti
 - :func:`NoneAction`
 - :func:`RemoteLogAction`
 - :func:`RemoteLogResponseAction`
-- :func:`SetMaxReturnedTTLResponseAction`
-- :func:`SetMaxReturnedTTLAction`
-- :func:`SetMinTTLResponseAction`
-- :func:`SetMaxTTLResponseAction`
 - :func:`SNMPTrapAction`
 - :func:`SNMPTrapResponseAction`
 - :func:`TeeAction`
@@ -1514,6 +1510,26 @@ The following actions exist.
 
   :param int option: The EDNS option number
   :param string data: The EDNS0 option raw content
+
+.. function:: SetExtendedDNSErrorAction(infoCode [, extraText])
+
+  .. versionadded:: 1.9.0
+
+  Set an Extended DNS Error status that will be added to the response corresponding to the current query.
+  Subsequent rules are processed after this action.
+
+  :param int infoCode: The EDNS Extended DNS Error code
+  :param string extraText: The optional EDNS Extended DNS Error extra text
+
+.. function:: SetExtendedDNSErrorResponseAction(infoCode [, extraText])
+
+  .. versionadded:: 1.9.0
+
+  Set an Extended DNS Error status that will be added to this response.
+  Subsequent rules are processed after this action.
+
+  :param int infoCode: The EDNS Extended DNS Error code
+  :param string extraText: The optional EDNS Extended DNS Error extra text
 
 .. function:: SetMacAddrAction(option)
 

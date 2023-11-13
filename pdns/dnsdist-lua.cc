@@ -544,8 +544,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            tlsCtx = getTLSContext(config.d_tlsParams);
 
                            if (getOptionalValue<std::string>(vars, "dohPath", valueStr) > 0) {
-#ifndef HAVE_NGHTTP2
-                             throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but nghttp2 support is not available");
+#if !defined(HAVE_DNS_OVER_HTTPS) || !defined(HAVE_NGHTTP2)
+                             throw std::runtime_error("Outgoing DNS over HTTPS support requested (via 'dohPath' on newServer()) but it is not available");
 #endif
 
                              serverPort = 443;
@@ -1332,6 +1332,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setTCPDownstreamMaxIdleConnectionsPerBackend(max);
   });
 
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   luaCtx.writeFunction("setMaxIdleDoHConnectionsPerDownstream", [](uint64_t max) {
     setDoHDownstreamMaxIdleConnectionsPerBackend(max);
   });
@@ -1342,6 +1343,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     g_outgoingDoHWorkerThreads = workers;
   });
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
   luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint64_t max) {
     if (!checkConfigurationTime("setOutgoingTLSSessionsCacheMaxTicketsPerBackend")) {
@@ -2120,11 +2122,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setTCPDownstreamCleanupInterval(interval);
   });
 
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   luaCtx.writeFunction("setDoHDownstreamCleanupInterval", [](uint64_t interval) {
     setLuaSideEffect();
     checkParameterBound("setDoHDownstreamCleanupInterval", interval);
     setDoHDownstreamCleanupInterval(interval);
   });
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
   luaCtx.writeFunction("setTCPDownstreamMaxIdleTime", [](uint64_t max) {
     setLuaSideEffect();
@@ -2132,11 +2136,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setTCPDownstreamMaxIdleTime(max);
   });
 
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   luaCtx.writeFunction("setDoHDownstreamMaxIdleTime", [](uint64_t max) {
     setLuaSideEffect();
     checkParameterBound("setDoHDownstreamMaxIdleTime", max);
     setDoHDownstreamMaxIdleTime(max);
   });
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
   luaCtx.writeFunction("setConsoleConnectionsLogging", [](bool enabled) {
     g_logConsoleConnections = enabled;

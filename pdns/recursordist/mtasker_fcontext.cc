@@ -32,6 +32,17 @@ using boost::context::make_fcontext;
 using boost::context::detail::make_fcontext;
 #endif /* BOOST_VERSION < 106100 */
 
+// __CET__ is set by the compiler if relevant, so far only relevant/tested for amd64 on OpenBSD
+#if defined(__amd64__)
+#if __CET__ & 0x1
+#define CET_ENDBR __asm("endbr64")
+#else
+#define CET_ENDBR
+#endif
+#else
+#define CET_ENDBR
+#endif
+
 #ifdef PDNS_USE_VALGRIND
 #include <valgrind/valgrind.h>
 #endif /* PDNS_USE_VALGRIND */
@@ -132,6 +143,7 @@ extern "C"
                   static_cast<fcontext_t>(args->prev_ctx), 0);
 #else
     transfer_t res = jump_fcontext(t.fctx, 0);
+    CET_ENDBR;
     /* we got switched back from pdns_swapcontext() */
     if (res.data) {
       /* if res.data is not a nullptr, it holds a pointer to the context
@@ -203,6 +215,7 @@ void pdns_swapcontext(pdns_ucontext_t& __restrict octx, pdns_ucontext_t const& _
     std::rethrow_exception(origctx->exception);
 #else
   transfer_t res = jump_fcontext(static_cast<fcontext_t>(ctx.uc_mcontext), &octx.uc_mcontext);
+  CET_ENDBR;
   if (res.data) {
     /* if res.data is not a nullptr, it holds a pointer to the context
        we just switched from, and we need to fill it to be able to
@@ -235,6 +248,7 @@ void pdns_makecontext(pdns_ucontext_t& ctx, std::function<void(void)>& start)
 #else
   transfer_t res = jump_fcontext(static_cast<fcontext_t>(ctx.uc_mcontext),
                                  &args);
+  CET_ENDBR;
   /* back from threadwrapper, updating the context */
   ctx.uc_mcontext = res.fctx;
 #endif

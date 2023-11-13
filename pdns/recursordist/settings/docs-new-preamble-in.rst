@@ -101,8 +101,7 @@ After processing ``extra.yml`` the value will be set to the empty sequence, as e
            - '::2'
 
    The result will *not* be a a single forward with two IP addresses, but two entries for ``example.net``.
-   It depends on the specific setting how the sequence is processed further.
-   In the future we might add a check for this case.
+   It depends on the specific setting how the sequence is processed and interpreted further.
 
 Socket Address
 ^^^^^^^^^^^^^^

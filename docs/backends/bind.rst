@@ -53,7 +53,10 @@ It supports the following blocks and directives:
    * ``file``
    * ``type``
    * ``masters``
+   * ``primaries`` (added in version 4.9.0)
    * ``also-notify``
+
+Unknown directives will be ignored.
 
 .. _setting-bind-check-interval:
 

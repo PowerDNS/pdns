@@ -310,6 +310,16 @@ public:
     d_excludedSubnets.addMasks(group, false);
   }
 
+  void removeRange(const Netmask& range)
+  {
+    d_excludedSubnets.deleteMask(range);
+  }
+
+  void removeRange(const NetmaskGroup& group)
+  {
+    d_excludedSubnets.deleteMasks(group);
+  }
+
   void excludeDomain(const DNSName& domain)
   {
     d_excludedDomains.add(domain);

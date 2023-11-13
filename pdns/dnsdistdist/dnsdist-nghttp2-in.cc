@@ -21,11 +21,12 @@
  */
 
 #include "base64.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsparser.hh"
 
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 
 #if 0
 class IncomingDoHCrossProtocolContext : public CrossProtocolContext
@@ -197,10 +198,11 @@ void IncomingHTTP2Connection::handleResponse(const struct timeval& now, TCPRespo
     if (responseDH.get()->tc && state.d_packet && state.d_packet->size() > state.d_proxyProtocolPayloadSize && state.d_packet->size() - state.d_proxyProtocolPayloadSize > sizeof(dnsheader)) {
       vinfolog("Response received from backend %s via UDP, for query %d received from %s via DoH, is truncated, retrying over TCP", response.d_ds->getNameWithAddr(), state.d_streamID, state.origRemote.toStringWithPort());
       auto& query = *state.d_packet;
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      auto* queryDH = reinterpret_cast<struct dnsheader*>(&query.at(state.d_proxyProtocolPayloadSize));
-      /* restoring the original ID */
-      queryDH->id = state.origID;
+      dnsdist::PacketMangling::editDNSHeaderFromRawPacket(&query.at(state.d_proxyProtocolPayloadSize), [origID = state.origID](dnsheader& header) {
+        /* restoring the original ID */
+        header.id = origID;
+        return true;
+      });
 
       state.forwardedOverUDP = false;
       bool proxyProtocolPayloadAdded = state.d_proxyProtocolPayloadSize > 0;
@@ -1227,4 +1229,4 @@ bool IncomingHTTP2Connection::active() const
   return !d_connectionDied && d_ioState != nullptr;
 }
 
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */

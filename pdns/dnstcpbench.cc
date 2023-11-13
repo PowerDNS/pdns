@@ -22,11 +22,14 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
 #include <boost/accumulators/statistics/median.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
 #include <boost/accumulators/accumulators.hpp>
-
 #include <boost/accumulators/statistics.hpp>
+#pragma GCC diagnostic pop
 
 #include <thread>
 

@@ -34,7 +34,10 @@
 #include <fstream>
 #include <filesystem>
 #include <utility>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 #include <yaml-cpp/yaml.h>
+#pragma GCC diagnostic pop
 
 ReadWriteLock GeoIPBackend::s_state_lock;
 

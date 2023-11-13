@@ -883,7 +883,7 @@ void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records
   }
 }
 
-void Bind2Backend::loadConfig(string* status)
+void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cognitive-complexity) 13379 https://github.com/PowerDNS/pdns/issues/13379 Habbie: zone2sql.cc, bindbackend2.cc: reduce complexity
 {
   static int domain_id = 1;
 
@@ -935,7 +935,7 @@ void Bind2Backend::loadConfig(string* status)
       if (domain.type.empty()) {
         g_log << Logger::Notice << d_logprefix << " Zone '" << domain.name << "' has no type specified, assuming 'native'" << endl;
       }
-      if (domain.type != "master" && domain.type != "slave" && domain.type != "native" && !domain.type.empty()) {
+      if (domain.type != "primary" && domain.type != "secondary" && domain.type != "native" && !domain.type.empty() && domain.type != "master" && domain.type != "slave") {
         g_log << Logger::Warning << d_logprefix << " Warning! Skipping zone '" << domain.name << "' because type '" << domain.type << "' is invalid" << endl;
         rejected++;
         continue;
@@ -961,10 +961,12 @@ void Bind2Backend::loadConfig(string* status)
       bbd.d_also_notify = domain.alsoNotify;
 
       DomainInfo::DomainKind kind = DomainInfo::Native;
-      if (domain.type == "master")
+      if (domain.type == "primary" || domain.type == "master") {
         kind = DomainInfo::Master;
-      if (domain.type == "slave")
+      }
+      if (domain.type == "secondary" || domain.type == "slave") {
         kind = DomainInfo::Slave;
+      }
 
       bool kindChanged = (bbd.d_kind != kind);
       bbd.d_kind = kind;
@@ -1431,9 +1433,9 @@ bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, co
     c_of << endl;
     c_of << "# Superslave zone '" << domain.toString() << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
     c_of << "zone \"" << domain.toStringNoDot() << "\" {" << endl;
-    c_of << "\ttype slave;" << endl;
+    c_of << "\ttype secondary;" << endl;
     c_of << "\tfile \"" << filename << "\";" << endl;
-    c_of << "\tmasters { " << ip << "; };" << endl;
+    c_of << "\tprimaries { " << ip << "; };" << endl;
     c_of << "};" << endl;
     c_of.close();
   }
@@ -1447,7 +1449,7 @@ bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, co
   return true;
 }
 
-bool Bind2Backend::searchRecords(const string& pattern, int maxResults, vector<DNSResourceRecord>& result)
+bool Bind2Backend::searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result)
 {
   SimpleMatch sm(pattern, true);
   static bool mustlog = ::arg().mustDo("query-logging");
@@ -1469,7 +1471,7 @@ bool Bind2Backend::searchRecords(const string& pattern, int maxResults, vector<D
 
       shared_ptr<const recordstorage_t> rhandle = h.d_records.get();
 
-      for (recordstorage_t::const_iterator ri = rhandle->begin(); result.size() < static_cast<vector<DNSResourceRecord>::size_type>(maxResults) && ri != rhandle->end(); ri++) {
+      for (recordstorage_t::const_iterator ri = rhandle->begin(); result.size() < maxResults && ri != rhandle->end(); ri++) {
         DNSName name = ri->qname.empty() ? i.d_name : (ri->qname + i.d_name);
         if (sm.match(name) || sm.match(ri->content)) {
           DNSResourceRecord r;

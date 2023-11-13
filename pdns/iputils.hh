@@ -332,6 +332,11 @@ union ComboAddress {
     return toStringWithPortExcept(53);
   }
 
+  [[nodiscard]] string toStructuredLogString() const
+  {
+    return toStringWithPort();
+  }
+
   string toByteString() const
   {
     if (isIPv4()) {
@@ -1257,7 +1262,7 @@ public:
   }
 
   //<! checks whether the container is empty.
-  bool empty() const {
+  [[nodiscard]] bool empty() const {
     return (d_size == 0);
   }
 
@@ -1414,6 +1419,13 @@ public:
   void deleteMask(const Netmask& nm)
   {
     tree.erase(nm);
+  }
+
+  void deleteMasks(const NetmaskGroup& group)
+  {
+    for (const auto& entry : group.tree) {
+      deleteMask(entry.first);
+    }
   }
 
   void deleteMask(const std::string& ip)

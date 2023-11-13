@@ -26,6 +26,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-concurrent-connections.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-proxy-protocol.hh"
@@ -511,7 +512,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
       DNSResponse dr(ids, response.d_buffer, ds);
       dr.d_incomingTCPState = state;
 
-      memcpy(&response.d_cleartextDH, dr.getHeader(), sizeof(response.d_cleartextDH));
+      memcpy(&response.d_cleartextDH, dr.getHeader().get(), sizeof(response.d_cleartextDH));
 
       if (!processResponse(response.d_buffer, *state->d_threadData.localRespRuleActions, *state->d_threadData.localCacheInsertedRespRuleActions, dr, false)) {
         state->terminateClientConnection();
@@ -668,16 +669,19 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
 
   {
     /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
-    auto* dh = reinterpret_cast<dnsheader*>(query.data());
-    if (!checkQueryHeaders(dh, *d_ci.cs)) {
+    const dnsheader_aligned dh(query.data());
+    if (!checkQueryHeaders(dh.get(), *d_ci.cs)) {
       return QueryProcessingResult::InvalidHeaders;
     }
 
     if (dh->qdcount == 0) {
       TCPResponse response;
-      dh->rcode = RCode::NotImp;
-      dh->qr = true;
       auto queryID = dh->id;
+      dnsdist::PacketMangling::editDNSHeaderFromPacket(query, [](dnsheader& header) {
+        header.rcode = RCode::NotImp;
+        header.qr = true;
+        return true;
+      });
       response.d_idstate = std::move(ids);
       response.d_idstate.origID = queryID;
       response.d_idstate.selfGenerated = true;
@@ -696,8 +700,11 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
   }
 
   DNSQuestion dq(ids, query);
-  const uint16_t* flags = getFlagsFromDNSHeader(dq.getHeader());
-  ids.origFlags = *flags;
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [&ids](dnsheader& header) {
+    const uint16_t* flags = getFlagsFromDNSHeader(&header);
+    ids.origFlags = *flags;
+    return true;
+  });
   dq.d_incomingTCPState = state;
   dq.sni = d_handler.getServerNameIndication();
 
@@ -714,7 +721,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
   if (forwardViaUDPFirst()) {
     // if there was no EDNS, we add it with a large buffer size
     // so we can use UDP to talk to the backend.
-    auto dh = const_cast<struct dnsheader*>(reinterpret_cast<const struct dnsheader*>(query.data()));
+    const dnsheader_aligned dh(query.data());
     if (!dh->arcount) {
       if (addEDNS(query, 4096, false, 4096, 0)) {
         dq.ids.ednsAdded = true;
@@ -747,15 +754,15 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
   // the buffer might have been invalidated by now
   uint16_t queryID;
   {
-    const dnsheader* dh = dq.getHeader();
+    const auto dh = dq.getHeader();
     queryID = dh->id;
   }
 
   if (result == ProcessQueryResult::SendAnswer) {
     TCPResponse response;
     {
-      const dnsheader* dh = dq.getHeader();
-      memcpy(&response.d_cleartextDH, dh, sizeof(response.d_cleartextDH));
+      const auto dh = dq.getHeader();
+      memcpy(&response.d_cleartextDH, dh.get(), sizeof(response.d_cleartextDH));
     }
     response.d_idstate = std::move(ids);
     response.d_idstate.origID = queryID;
@@ -1245,10 +1252,10 @@ static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param
   gettimeofday(&now, nullptr);
 
   if (citmp->cs->dohFrontend) {
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
     auto state = std::make_shared<IncomingHTTP2Connection>(std::move(*citmp), *threadData, now);
     state->handleIO();
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
   }
   else {
     auto state = std::make_shared<IncomingTCPConnectionState>(std::move(*citmp), *threadData, now);
@@ -1399,7 +1406,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
                 state->handleTimeout(state, false);
               }
             }
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
             else if (cbData.second.type() == typeid(std::shared_ptr<IncomingHTTP2Connection>)) {
               auto state = boost::any_cast<std::shared_ptr<IncomingHTTP2Connection>>(cbData.second);
               if (cbData.first == state->d_handler.getDescriptor()) {
@@ -1408,7 +1415,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
                 state->handleTimeout(parentState, false);
               }
             }
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
             else if (cbData.second.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
               auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(cbData.second);
               vinfolog("Timeout (read) from remote backend %s", conn->getBackendName());
@@ -1425,7 +1432,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
                 state->handleTimeout(state, true);
               }
             }
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
             else if (cbData.second.type() == typeid(std::shared_ptr<IncomingHTTP2Connection>)) {
               auto state = boost::any_cast<std::shared_ptr<IncomingHTTP2Connection>>(cbData.second);
               if (cbData.first == state->d_handler.getDescriptor()) {
@@ -1434,7 +1441,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
                 state->handleTimeout(parentState, true);
               }
             }
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
             else if (cbData.second.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
               auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(cbData.second);
               vinfolog("Timeout (write) from remote backend %s", conn->getBackendName());
@@ -1465,12 +1472,12 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
                   auto state = boost::any_cast<std::shared_ptr<IncomingTCPConnectionState>>(param);
                   infolog(" - %s", state->toString());
                 }
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
                 else if (param.type() == typeid(std::shared_ptr<IncomingHTTP2Connection>)) {
                   auto state = boost::any_cast<std::shared_ptr<IncomingHTTP2Connection>>(param);
                   infolog(" - %s", state->toString());
                 }
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
                 else if (param.type() == typeid(std::shared_ptr<TCPConnectionToBackend>)) {
                   auto conn = boost::any_cast<std::shared_ptr<TCPConnectionToBackend>>(param);
                   infolog(" - %s", conn->toString());
@@ -1570,10 +1577,10 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
       gettimeofday(&now, nullptr);
 
       if (ci.cs->dohFrontend) {
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
         auto state = std::make_shared<IncomingHTTP2Connection>(std::move(ci), *threadData, now);
         state->handleIO();
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
       }
       else {
         auto state = std::make_shared<IncomingTCPConnectionState>(std::move(ci), *threadData, now);

@@ -31,7 +31,7 @@
 #include "dnsdist-nghttp2.hh"
 #include "sstuff.hh"
 
-#ifdef HAVE_NGHTTP2
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 #include <nghttp2/nghttp2.h>
 
 BOOST_AUTO_TEST_SUITE(test_dnsdistnghttp2_cc)
@@ -251,7 +251,7 @@ private:
 
       auto& query = conn->d_queries.at(frame->hd.stream_id);
       BOOST_REQUIRE_GT(query.size(), sizeof(dnsheader));
-      auto dh = reinterpret_cast<const dnsheader*>(query.data());
+      const dnsheader_aligned dh(query.data());
       uint16_t id = ntohs(dh->id);
       // cerr<<"got query ID "<<id<<endl;
 
@@ -500,7 +500,7 @@ public:
     }
 
     BOOST_REQUIRE_GT(response.d_buffer.size(), sizeof(dnsheader));
-    auto dh = reinterpret_cast<const dnsheader*>(response.d_buffer.data());
+    const dnsheader_aligned dh(response.d_buffer.data());
     uint16_t id = ntohs(dh->id);
 
     BOOST_REQUIRE_EQUAL(id, d_id);
@@ -1846,4 +1846,4 @@ BOOST_FIXTURE_TEST_CASE(test_ProxyProtocol, TestFixture)
 }
 
 BOOST_AUTO_TEST_SUITE_END();
-#endif /* HAVE_NGHTTP2 */
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */

@@ -2327,7 +2327,7 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
         auto insertionPair = beenthere.insert(std::move(answer));
         if (!insertionPair.second) {
           brokeloop = true;
-          LOG(prefix << qname << ": We have NS in cache for '" << subdomain << "' but part of LOOP (already seen " << answer.qname << ")! Trying less specific NS" << endl);
+          LOG(prefix << qname << ": We have NS in cache for '" << subdomain << "' but part of LOOP (already seen " << insertionPair.first->qname << ")! Trying less specific NS" << endl);
           ;
           if (doLog())
             for (set<GetBestNSAnswer>::const_iterator j = beenthere.begin(); j != beenthere.end(); ++j) {

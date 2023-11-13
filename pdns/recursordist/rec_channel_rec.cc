@@ -1102,16 +1102,6 @@ static uint64_t doGetCacheBytes()
   return g_recCache->bytes();
 }
 
-static uint64_t doGetCacheHits()
-{
-  return g_recCache->cacheHits;
-}
-
-static uint64_t doGetCacheMisses()
-{
-  return g_recCache->cacheMisses;
-}
-
 static uint64_t doGetMallocated()
 {
   // this turned out to be broken
@@ -1291,8 +1281,8 @@ static void registerAllStats1()
   addGetStat("ipv6-questions", [] { return g_Counters.sum(rec::Counter::ipv6qcounter); });
   addGetStat("tcp-questions", [] { return g_Counters.sum(rec::Counter::tcpqcounter); });
 
-  addGetStat("cache-hits", doGetCacheHits);
-  addGetStat("cache-misses", doGetCacheMisses);
+  addGetStat("cache-hits", []() { return g_recCache->getCacheHits(); });
+  addGetStat("cache-misses", []() { return g_recCache->getCacheMisses(); });
   addGetStat("cache-entries", doGetCacheSize);
   addGetStat("max-cache-entries", []() { return g_maxCacheEntries.load(); });
   addGetStat("max-packetcache-entries", []() { return g_maxPacketCacheEntries.load(); });

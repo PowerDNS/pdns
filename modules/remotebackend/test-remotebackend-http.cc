@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <memory>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -52,7 +53,7 @@ public:
   RemoteLoader();
 };
 
-DNSBackend* be;
+std::unique_ptr<DNSBackend> backendUnderTest;
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MAIN
@@ -67,7 +68,7 @@ struct RemotebackendSetup
 {
   RemotebackendSetup()
   {
-    be = nullptr;
+    backendUnderTest = nullptr;
     try {
       // setup minimum arguments
       ::arg().set("module-dir") = "./.libs";
@@ -76,7 +77,7 @@ struct RemotebackendSetup
       // then get us a instance of it
       ::arg().set("remote-connection-string") = "http:url=http://localhost:62434/dns";
       ::arg().set("remote-dnssec") = "yes";
-      be = BackendMakers().all()[0];
+      backendUnderTest = std::move(BackendMakers().all()[0]);
     }
     catch (PDNSException& ex) {
       BOOST_TEST_MESSAGE("Cannot start remotebackend: " << ex.reason);

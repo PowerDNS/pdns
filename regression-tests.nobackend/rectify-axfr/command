@@ -9,7 +9,7 @@ sed '/directory/ { s@./zones@../regression-tests/zones@ }' ../regression-tests/n
 
 cat >> ./named.conf << __EOF__
 zone "."{
-	type master;
+	type primary;
 	file "../../regression-tests.rootzone/zones/ROOT";
 };
 __EOF__

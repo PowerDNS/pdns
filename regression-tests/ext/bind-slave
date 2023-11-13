@@ -21,7 +21,7 @@ __EOF__
 
 		echo "" >> bind-slave.conf
 		echo "zone \"${zone}\" {" >> bind-slave.conf
-		echo "	type slave;" >> bind-slave.conf
+		echo "	type secondary;" >> bind-slave.conf
 		echo "	file \"${zone}-slave\";" >> bind-slave.conf
 		if [ "${zone}" = "tsig.com" ]
 		then

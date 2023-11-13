@@ -75,7 +75,7 @@ __EOF__
 
 		echo "" >> bind.conf
 		echo "zone \"${zone}\" {" >> bind.conf
-		echo "	type master;" >> bind.conf
+		echo "	type primary;" >> bind.conf
 		if [ "${zone}" = "tsig.com" ]
 		then
 			echo "	allow-transfer { key test; none; };" >> bind.conf

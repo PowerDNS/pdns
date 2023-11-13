@@ -54,7 +54,7 @@ void TCPOutConnectionManager::cleanup(const struct timeval& now)
 void TCPOutConnectionManager::store(const struct timeval& now, const ComboAddress& ip, Connection&& connection)
 {
   ++connection.d_numqueries;
-  if (s_maxQueries > 0 && connection.d_numqueries > s_maxQueries) {
+  if (s_maxQueries > 0 && connection.d_numqueries >= s_maxQueries) {
     return;
   }
 

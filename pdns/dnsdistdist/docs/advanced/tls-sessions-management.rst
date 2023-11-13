@@ -30,11 +30,15 @@ dnsdist supports both server's side (sessions) and client's side (tickets) resum
 
 Since server-side sessions cannot be shared between several instances, and pretty much all clients support tickets anyway, we do recommend disabling the sessions by passing ``numberOfStoredSessions=0`` to the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
 
-By default, dnsdist will generate a new, random STEK at startup and rotate it every 12 hours. It will keep 5 keys in memory, with only the last one marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. The rotation time and the number of keys to keep in memory can be configured via the ``numberOfTicketsKeys`` and ``ticketsKeysRotationDelay`` parameters of the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
+By default, dnsdist will generate a new, random STEK at startup for each :func:`addTLSLocal` and :func:`addDOHLocal` directive, and rotate these STEKs every 12 hours. For each frontend it will keep 5 keys in memory, with only the last one marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. The rotation time and the number of keys to keep in memory can be configured via the ``numberOfTicketsKeys`` and ``ticketsKeysRotationDelay`` parameters of the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
+When the automatic rotation mechanism kicks in a new, random key will be added to the list of keys. With the OpenSSL provider, the new key becomes active, so new tickets will be encrypted with this key, and the existing keys become passive and only be used to decrypt existing tickets. With the GnuTLS provider only one key is currently supported so the existing keys are immediately discarded.
+This automatic rotation can be disabled by setting ``ticketsKeysRotationDelay`` to 0.
 
 It is also possible to manually request a STEK rotation using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``rotateTicketsKey`` method (:meth:`DOHFrontend:rotateTicketsKey`, :meth:`TLSContext:rotateTicketsKey`).
 
-The default settings should be fine for most deployments, but generating a random key for every dnsdist instance will not allow resuming the session from a different instance in a cluster. In that case it is possible to generate the STEK outside of dnsdist, write it to a file, distribute it to all instances using something like rsync over SSH, and load that file from dnsdist. Please remember that the STEK contains very sensitive data, and should be well-protected from access by unauthorized users. It means that special care should be taken to setting the right permissions on that file.
+The default settings should be fine for most deployments, but generating a random key for every dnsdist instance will not allow resuming the session from a different instance in a cluster. It is also not very useful to have a different key for every :func:`addTLSLocal` and :func:`addDOHLocal` directive if you are using the same certificate and key, and it would be much better to use the same STEK to improve the session resumption ratio.
+
+In that case it is possible to generate the STEK outside of dnsdist, write it to a file, distribute it to all instances using something like rsync over SSH, and load that file from dnsdist. Please remember that the STEK contains very sensitive data, and should be well-protected from access by unauthorized users. It means that special care should be taken to setting the right permissions on that file. Automatic rotation should then be disabled by setting ``ticketsKeysRotationDelay`` to 0.
 
 For the OpenSSL provider (DoT, DoH), generating a random STEK in a file is a simple as getting 80 cryptographically secure random bytes and writing them to a file::
 
@@ -49,7 +53,21 @@ The file can then be loaded at startup by using the ``ticketKeyFile`` parameter 
 If the file contains several keys, so for example 240 random bytes, dnsdist will load several STEKs, using the last one for encrypting new tickets and all of them to decrypt existing tickets.
 
 In order to rotate the keys at runtime, it is possible to instruct dnsdist to reload the content of the certificates, keys, and STEKs from the same file used at configuration time, for all DoH and DoH binds, by issuing the :func:`reloadAllCertificates` command.
-It can also be done one bind at a time using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``loadTicketsKeys`` method (:meth:`DOHFrontend.loadTicketsKeys`, :meth:`TLSContext:loadTicketsKeys`).
+It can also be done one bind at a time using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``loadTicketsKeys`` method (:meth:`DOHFrontend:loadTicketsKeys`, :meth:`TLSContext:loadTicketsKeys`).
+
+One possible way of handling manual rotation of the key would be to first:
+
+- generate ``N`` keys in ``N`` (``1..N``) separate files (for example executing ``dd if=/dev/urandom of=/secure-tmp-fs/N.key bs=80 count=1`` ``N`` times)
+- concatenate the ``N`` files into a single file (``/secure-tmp-fs/STEKs.key``) that you pass to dnsdist's ``ticketKeyFile`` parameter
+
+Then, when the STEK should be rotated:
+
+- generate one new key file (``N+1``)
+- delete the first key file (``1``)
+- concatenate the ``2..N+1`` files into one (``/secure-tmp-fs/STEKs.key``)
+- issue :func:`reloadAllCertificates` via the dnsdist console, or call ``loadTicketsKeys('/secure-tmp-fs/STEKs.key')`` for all frontends
+
+This way dnsdist can still decrypt incoming tickets that were encoded via the previous key (the active one is always the one at the end of the file, and we start by removing the one at the beginning of the file).
 
 Content of the STEK file
 ------------------------

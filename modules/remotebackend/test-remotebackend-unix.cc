@@ -60,13 +60,13 @@ public:
   RemoteLoader();
 };
 
-DNSBackend* be;
+std::unique_ptr<DNSBackend> backendUnderTest;
 
 struct RemotebackendSetup
 {
   RemotebackendSetup()
   {
-    be = nullptr;
+    backendUnderTest = nullptr;
     try {
       // setup minimum arguments
       ::arg().set("module-dir") = "./.libs";
@@ -75,7 +75,7 @@ struct RemotebackendSetup
       // then get us a instance of it
       ::arg().set("remote-connection-string") = "unix:path=/tmp/remotebackend.sock";
       ::arg().set("remote-dnssec") = "yes";
-      be = BackendMakers().all()[0];
+      backendUnderTest = std::move(BackendMakers().all()[0]);
       // load few record types to help out
       SOARecordContent::report();
       NSRecordContent::report();
