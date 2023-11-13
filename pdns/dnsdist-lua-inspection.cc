@@ -860,6 +860,11 @@ void setupLuaInspection(LuaContext& luaCtx)
         group->setSuffixMatchRuleFFI(seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, std::move(visitor));
       }
     });
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(dnsdist_ffi_dynamic_block_inserted_hook)>("setNewBlockInsertedHook", [](std::shared_ptr<DynBlockRulesGroup>& group, dnsdist_ffi_dynamic_block_inserted_hook hook) {
+      if (group) {
+        group->setNewBlockHook(hook);
+      }
+    });
   luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>)>("setRCodeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate) {
       if (group) {
         group->setRCodeRate(rcode, rate, warningRate ? *warningRate : 0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None);

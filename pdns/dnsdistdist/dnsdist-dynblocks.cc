@@ -319,6 +319,14 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
   }
 
   updated = dnsdist::DynamicBlocks::addOrRefreshBlock(*blocks, now, requestor, rule.d_blockReason, rule.d_blockDuration, rule.d_action, warning, d_beQuiet);
+  if (updated && d_newBlockHook) {
+    try {
+      d_newBlockHook(dnsdist_ffi_dynamic_block_type_nmt, requestor.toString().c_str(), rule.d_blockReason.c_str(), static_cast<uint8_t>(rule.d_action), rule.d_blockDuration, warning);
+    }
+    catch (const std::exception& exp) {
+      warnlog("Error calling the Lua hook after a dynamic block insertion: %s", exp.what());
+    }
+  }
 }
 
 void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated)
@@ -329,6 +337,14 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
   }
 
   updated = dnsdist::DynamicBlocks::addOrRefreshBlockSMT(blocks, now, name, rule.d_blockReason, rule.d_blockDuration, rule.d_action, d_beQuiet);
+  if (updated && d_newBlockHook) {
+    try {
+      d_newBlockHook(dnsdist_ffi_dynamic_block_type_smt, name.toString().c_str(), rule.d_blockReason.c_str(), static_cast<uint8_t>(rule.d_action), rule.d_blockDuration, false);
+    }
+    catch (const std::exception& exp) {
+      warnlog("Error calling the Lua hook after a dynamic block insertion: %s", exp.what());
+    }
+  }
 }
 
 void DynBlockRulesGroup::processQueryRules(counts_t& counts, const struct timespec& now)

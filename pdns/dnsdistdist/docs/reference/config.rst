@@ -1547,6 +1547,19 @@ faster than the existing rules.
     :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
+  .. method:: DynBlockRulesGroup:setNewBlockInsertedHook(hook)
+
+    .. versionadded:: 1.9.0
+
+    Set a Lua function that will be called everytime a new dynamic block is inserted. The function receives:
+
+    * an integer whose value is 0 if the block is Netmask-based one (Client IP or range) and 1 instead (Domain name suffix)
+    * the key (Client IP/range or domain suffix) as a string
+    * the reason of the block as a string
+    * the action of the block as an integer
+    * the duration of the block in seconds
+    * whether this is a warning block (true) or not (false)
+
   .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action [, warningRate]])
 
     Adds a rate-limiting rule for responses of code ``rcode``, equivalent to:

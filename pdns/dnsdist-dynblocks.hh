@@ -44,7 +44,7 @@ struct LuaContext::Pusher<dnsdist_ffi_stat_node_t*> {
     }
 };
 
-typedef std::function<bool(dnsdist_ffi_stat_node_t*)> dnsdist_ffi_stat_node_visitor_t;
+using dnsdist_ffi_stat_node_visitor_t = std::function<bool(dnsdist_ffi_stat_node_t*)>;
 
 struct dnsdist_ffi_stat_node_t
 {
@@ -57,6 +57,8 @@ struct dnsdist_ffi_stat_node_t
   const StatNode::Stat& children;
   std::optional<std::string>& reason;
 };
+
+using dnsdist_ffi_dynamic_block_inserted_hook = std::function<void(uint8_t type, const char* key, const char* reason, uint8_t action, uint64_t duration, bool warning)>;
 
 class DynBlockRulesGroup
 {
@@ -273,6 +275,11 @@ public:
     d_smtVisitorFFI = std::move(visitor);
   }
 
+  void setNewBlockHook(dnsdist_ffi_dynamic_block_inserted_hook& callback)
+  {
+    d_newBlockHook = std::move(callback);
+  }
+
   void setMasks(uint8_t v4, uint8_t v6, uint8_t port)
   {
     d_v4Mask = v4;
@@ -404,6 +411,7 @@ private:
   SuffixMatchNode d_excludedDomains;
   smtVisitor_t d_smtVisitor;
   dnsdist_ffi_stat_node_visitor_t d_smtVisitorFFI;
+  dnsdist_ffi_dynamic_block_inserted_hook d_newBlockHook;
   uint8_t d_v6Mask{128};
   uint8_t d_v4Mask{32};
   uint8_t d_portMask{0};

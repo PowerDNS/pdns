@@ -44,3 +44,7 @@ uint64_t dnsdist_ffi_stat_node_get_children_hits(const dnsdist_ffi_stat_node_t* 
 
 void dnsdist_ffi_state_node_set_reason(dnsdist_ffi_stat_node_t* node, const char* reason, size_t reasonSize) __attribute__ ((visibility ("default")));
 
+typedef enum {
+ dnsdist_ffi_dynamic_block_type_nmt = 0,
+ dnsdist_ffi_dynamic_block_type_smt = 1,
+} dnsdist_ffi_dynamic_block_type;
