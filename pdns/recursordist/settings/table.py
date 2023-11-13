@@ -1310,6 +1310,16 @@ See :doc:`lua-config/index` for the options that can be set in this file.
  ''',
     },
     {
+        'name' : 'lua_global_include_path',
+        'section' : 'recursor',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'More powerful configuration options',
+        'doc' : '''
+ When creating a Lua context, all matching files are loaded and ran in the Lua context.
+ ''',
+    },
+    {
         'name' : 'lua_dns_script',
         'section' : 'recursor',
         'type' : LType.String,

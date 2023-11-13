@@ -1131,6 +1131,10 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
      !g_LuaRecordSharedState) { // or we want a new one even if we had one
     LUA = make_unique<AuthLua4>();
     setupLuaRecords(*LUA->getLua());
+    const std::string& globalIncludes = ::arg()["lua-global-include-path"];
+    if (!globalIncludes.empty() && LUA->includePath(globalIncludes) != 0) {
+      throw PDNSException("Failed to include Lua scripts");
+    }
   }
 
   std::vector<shared_ptr<DNSRecordContent>> ret;

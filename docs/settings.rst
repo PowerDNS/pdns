@@ -984,6 +984,17 @@ Not recommended to set this below 3.
 
 Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`
 
+.. _setting-lua-global-include-path:
+
+``lua-global-include-path``
+---------------------------
+
+-  String
+-  Default: empty
+-  Example: ``/etc/pdns/lua-global/*.lua``
+
+When creating a Lua context, all matching files are loaded and ran in the Lua context.
+
 .. _setting-lua-health-checks-expire-delay:
 
 ``lua-health-checks-expire-delay``

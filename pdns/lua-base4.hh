@@ -13,9 +13,10 @@ protected:
 
 public:
   BaseLua4();
-  void loadFile(const std::string& fname);
-  void loadString(const std::string& script);
-  void loadStream(std::istream& is);
+  void loadFile(const std::string &fname);
+  void loadString(const std::string &script);
+  void loadStream(std::istream &is);
+  int includePath(const std::string &path);
   virtual ~BaseLua4(); // this is so unique_ptr works with an incomplete type
 protected:
   void prepareContext();

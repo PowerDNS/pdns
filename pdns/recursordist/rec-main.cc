@@ -2730,6 +2730,10 @@ static void recursorThread()
       try {
         if (!::arg()["lua-dns-script"].empty()) {
           t_pdl = std::make_shared<RecursorLua4>();
+          const std::string& path = ::arg()["lua-global-include-path"];
+          if (!path.empty() && t_pdl->includePath(path) != 0) {
+            _exit(99);
+          }
           t_pdl->loadFile(::arg()["lua-dns-script"]);
           SLOG(g_log << Logger::Warning << "Loaded 'lua' script from '" << ::arg()["lua-dns-script"] << "'" << endl,
                log->info(Logr::Warning, "Loading Lua script from file", "name", Logging::Loggable(::arg()["lua-dns-script"])));
@@ -2970,6 +2974,7 @@ static void initArgs()
   ::arg().setSwitch("single-socket", "If set, only use a single socket for outgoing queries") = "off";
   ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ") = "";
   ::arg().set("lua-config-file", "More powerful configuration options") = "";
+  ::arg().set("lua-global-include-path", "Path to load Lua scripts for Lua contextes") = "";
   ::arg().setSwitch("allow-trust-anchor-query", "Allow queries for trustanchor.server CH TXT and negativetrustanchor.server CH TXT") = "no";
 
   ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs") = "";

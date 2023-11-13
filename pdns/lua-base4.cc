@@ -3,6 +3,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <typeinfo>
+#include <filesystem>
 #include "logger.hh"
 #include "logging.hh"
 #include "iputils.hh"
@@ -34,6 +35,31 @@ void BaseLua4::loadFile(const std::string& fname)
 void BaseLua4::loadString(const std::string &script) {
   std::istringstream iss(script);
   loadStream(iss);
+};
+
+int BaseLua4::includePath(const std::string& path) {
+   vector<std::filesystem::path> paths;
+   std::filesystem::path dir{path};
+   SimpleMatch sm(dir.filename().string(), false);
+   dir = dir.parent_path();
+
+   for (const std::filesystem::path& p : std::filesystem::directory_iterator(dir)) {
+     if (!std::filesystem::is_regular_file(p) && !std::filesystem::is_symlink(p)) {
+       continue;
+     }
+     // match against mask
+     if (sm.match(p.filename())) {
+       paths.push_back(p);
+     }
+   }
+   std::sort(paths.begin(), paths.end());
+
+   // then include them
+   for (const std::filesystem::path& p : paths) {
+     g_log<<Logger::Debug<<"Loading Lua script '"<<p<<"'"<<endl;
+     loadFile(p);
+   }
+   return 0;
 };
 
 //  By default no features
