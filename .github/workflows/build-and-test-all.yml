@@ -486,7 +486,7 @@ jobs:
         sanitizers: [ubsan+asan, tsan]
         dist_name: [debian]
         dist_release_name: [bullseye]
-        pdns_repo_version: ['45']
+        pdns_repo_version: ['48']
     container:
       image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
       env:

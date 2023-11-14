@@ -1,2 +1,2 @@
 #!/bin/sh
-cleandig www-d.prefect.example.net cname | sed 's/\(.*\tIN\t[A-Z0-9]\+\t\)\([0-9]\+\)/\13600/'
+cleandig www-d.prefect.example.net cname | sed 's/\(.*\t\)\([0-9]\+\tIN\)/\13600\tIN/'
