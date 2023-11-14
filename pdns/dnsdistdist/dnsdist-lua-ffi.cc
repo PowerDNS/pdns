@@ -1339,7 +1339,7 @@ uint8_t dnsdist_ffi_ring_entry_get_rcode(const dnsdist_ffi_ring_entry_list_t* li
 bool dnsdist_ffi_ring_entry_get_aa(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
 {
   if (list == nullptr || idx >= list->d_entries.size()) {
-    return 0;
+    return false;
   }
 
   return list->d_entries.at(idx).dh.aa == 1;
@@ -1348,7 +1348,7 @@ bool dnsdist_ffi_ring_entry_get_aa(const dnsdist_ffi_ring_entry_list_t* list, si
 bool dnsdist_ffi_ring_entry_get_rd(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
 {
   if (list == nullptr || idx >= list->d_entries.size()) {
-    return 0;
+    return false;
   }
 
   return list->d_entries.at(idx).dh.rd == 1;
@@ -1357,7 +1357,7 @@ bool dnsdist_ffi_ring_entry_get_rd(const dnsdist_ffi_ring_entry_list_t* list, si
 bool dnsdist_ffi_ring_entry_get_tc(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
 {
   if (list == nullptr || idx >= list->d_entries.size()) {
-    return 0;
+    return false;
   }
 
   return list->d_entries.at(idx).dh.tc == 1;
