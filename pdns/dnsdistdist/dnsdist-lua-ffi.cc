@@ -1224,7 +1224,11 @@ struct dnsdist_ffi_ring_entry_list_t
     std::string qname;
     std::string requestor;
     std::string macAddr;
-    size_t size;
+    std::string ds;
+    dnsheader dh;
+    double age;
+    unsigned int latency;
+    uint16_t size;
     uint16_t qtype;
     dnsdist::Protocol protocol;
     bool isResponse;
@@ -1240,6 +1244,15 @@ bool dnsdist_ffi_ring_entry_is_response(const dnsdist_ffi_ring_entry_list_t* lis
   }
 
   return list->d_entries.at(idx).isResponse;
+}
+
+double dnsdist_ffi_ring_entry_get_age(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return list->d_entries.at(idx).age;
 }
 
 const char* dnsdist_ffi_ring_entry_get_name(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
@@ -1258,7 +1271,6 @@ uint16_t dnsdist_ffi_ring_entry_get_type(const dnsdist_ffi_ring_entry_list_t* li
   }
 
   return list->d_entries.at(idx).qtype;
-
 }
 
 const char* dnsdist_ffi_ring_entry_get_requestor(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
@@ -1268,6 +1280,15 @@ const char* dnsdist_ffi_ring_entry_get_requestor(const dnsdist_ffi_ring_entry_li
   }
 
   return list->d_entries.at(idx).requestor.c_str();
+}
+
+const char* dnsdist_ffi_ring_entry_get_backend(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return nullptr;
+  }
+
+  return list->d_entries.at(idx).ds.c_str();
 }
 
 uint8_t dnsdist_ffi_ring_entry_get_protocol(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
@@ -1286,7 +1307,87 @@ uint16_t dnsdist_ffi_ring_entry_get_size(const dnsdist_ffi_ring_entry_list_t* li
   }
 
   return list->d_entries.at(idx).size;
+}
 
+uint16_t dnsdist_ffi_ring_entry_get_latency(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return list->d_entries.at(idx).latency;
+}
+
+uint16_t dnsdist_ffi_ring_entry_get_id(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return ntohs(list->d_entries.at(idx).dh.id);
+}
+
+uint8_t dnsdist_ffi_ring_entry_get_rcode(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return list->d_entries.at(idx).dh.rcode;
+}
+
+bool dnsdist_ffi_ring_entry_get_aa(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return list->d_entries.at(idx).dh.aa;
+}
+
+bool dnsdist_ffi_ring_entry_get_rd(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return list->d_entries.at(idx).dh.rd;
+}
+
+bool dnsdist_ffi_ring_entry_get_tc(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return list->d_entries.at(idx).dh.tc;
+}
+
+uint16_t dnsdist_ffi_ring_entry_get_ancount(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return ntohs(list->d_entries.at(idx).dh.ancount);
+}
+
+uint16_t dnsdist_ffi_ring_entry_get_nscount(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return ntohs(list->d_entries.at(idx).dh.nscount);
+}
+
+uint16_t dnsdist_ffi_ring_entry_get_arcount(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
+{
+  if (list == nullptr || idx >= list->d_entries.size()) {
+    return 0;
+  }
+
+  return ntohs(list->d_entries.at(idx).dh.arcount);
 }
 
 bool dnsdist_ffi_ring_entry_has_mac_address(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
@@ -1305,7 +1406,6 @@ const char* dnsdist_ffi_ring_entry_get_mac_address(const dnsdist_ffi_ring_entry_
   }
 
   return list->d_entries.at(idx).macAddr.data();
-
 }
 
 void dnsdist_ffi_ring_entry_list_free(dnsdist_ffi_ring_entry_list_t* list)
@@ -1313,22 +1413,23 @@ void dnsdist_ffi_ring_entry_list_free(dnsdist_ffi_ring_entry_list_t* list)
   delete list;
 }
 
-template<typename T> static void addRingEntryToList(std::unique_ptr<dnsdist_ffi_ring_entry_list_t>& list, const T& entry)
+template<typename T> static void addRingEntryToList(std::unique_ptr<dnsdist_ffi_ring_entry_list_t>& list, const struct timespec& now, const T& entry)
 {
+  auto age = DiffTime(entry.when, now);
+
   constexpr bool response = std::is_same_v<T, Rings::Response>;
-#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
   if constexpr (!response) {
-    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toStringWithPort(), entry.hasmac ? std::string(reinterpret_cast<const char*>(entry.macaddress.data()), entry.macaddress.size()) : std::string(), entry.size, entry.qtype, entry.protocol, response};
+#if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toStringWithPort(), entry.hasmac ? std::string(reinterpret_cast<const char*>(entry.macaddress.data()), entry.macaddress.size()) : std::string(), std::string(), entry.dh, age, 0, entry.size, entry.qtype, entry.protocol, response};
+#else
+    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toStringWithPort(), std::string(), std::string(), entry.dh, age, 0, entry.size, entry.qtype, entry.protocol, response};
+#endif
     list->d_entries.push_back(std::move(tmp));
   }
   else {
-    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toStringWithPort(), std::string(), entry.size, entry.qtype, entry.protocol, response};
+    dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toStringWithPort(), std::string(), entry.ds.toStringWithPort(), entry.dh, age, entry.usec, entry.size, entry.qtype, entry.protocol, response};
     list->d_entries.push_back(std::move(tmp));
   }
-#else
-  dnsdist_ffi_ring_entry_list_t::entry tmp{entry.name.toString(), entry.requestor.toStringWithPort(), std::string(), entry.size, entry.qtype, entry.protocol, response};
-  list->d_entries.push_back(std::move(tmp));
-#endif
 }
 
 size_t dnsdist_ffi_ring_get_entries(dnsdist_ffi_ring_entry_list_t** out)
@@ -1337,18 +1438,22 @@ size_t dnsdist_ffi_ring_get_entries(dnsdist_ffi_ring_entry_list_t** out)
     return 0;
   }
   auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
+  struct timespec now
+  {
+  };
+  gettime(&now);
 
   for (const auto& shard : g_rings.d_shards) {
     {
       auto ql = shard->queryRing.lock();
       for (const auto& entry : *ql) {
-        addRingEntryToList(list, entry);
+        addRingEntryToList(list, now, entry);
       }
     }
     {
       auto rl = shard->respRing.lock();
       for (const auto& entry : *rl) {
-        addRingEntryToList(list, entry);
+        addRingEntryToList(list, now, entry);
       }
     }
   }
@@ -1379,6 +1484,10 @@ size_t dnsdist_ffi_ring_get_entries_by_addr(const char* addr, dnsdist_ffi_ring_e
   }
 
   auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
+  struct timespec now
+  {
+  };
+  gettime(&now);
 
   auto compare = ComboAddress::addressOnlyEqual();
   for (const auto& shard : g_rings.d_shards) {
@@ -1389,7 +1498,7 @@ size_t dnsdist_ffi_ring_get_entries_by_addr(const char* addr, dnsdist_ffi_ring_e
           continue;
         }
 
-        addRingEntryToList(list, entry);
+        addRingEntryToList(list, now, entry);
       }
     }
     {
@@ -1399,7 +1508,7 @@ size_t dnsdist_ffi_ring_get_entries_by_addr(const char* addr, dnsdist_ffi_ring_e
           continue;
         }
 
-        addRingEntryToList(list, entry);
+        addRingEntryToList(list, now, entry);
       }
     }
   }
@@ -1421,6 +1530,10 @@ size_t dnsdist_ffi_ring_get_entries_by_mac(const char* addr, dnsdist_ffi_ring_en
   return 0;
 #else
   auto list = std::make_unique<dnsdist_ffi_ring_entry_list_t>();
+  struct timespec now
+  {
+  };
+  gettime(&now);
 
   for (const auto& shard : g_rings.d_shards) {
     auto ql = shard->queryRing.lock();
@@ -1429,7 +1542,7 @@ size_t dnsdist_ffi_ring_get_entries_by_mac(const char* addr, dnsdist_ffi_ring_en
         continue;
       }
 
-      addRingEntryToList(list, entry);
+      addRingEntryToList(list, now, entry);
     }
   }
 

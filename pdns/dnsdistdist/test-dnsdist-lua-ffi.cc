@@ -684,6 +684,12 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
 {
   dnsheader dh;
   memset(&dh, 0, sizeof(dh));
+  dh.id = htons(42);
+  dh.rd = 1;
+  dh.ancount = htons(1);
+  dh.nscount = htons(1);
+  dh.arcount = htons(1);
+  dh.rcode = RCode::NXDomain;
   DNSName qname("rings.luaffi.powerdns.com.");
   ComboAddress requestor1("192.0.2.1");
   ComboAddress backend("192.0.2.42");
@@ -716,11 +722,22 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
     BOOST_CHECK_EQUAL(dnsdist_ffi_ring_get_entries_by_mac(nullptr, nullptr), 0U);
     BOOST_CHECK(list == nullptr);
     BOOST_CHECK(!dnsdist_ffi_ring_entry_is_response(nullptr, 0));
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_age(nullptr, 0) == 0.0);
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_name(nullptr, 0) == nullptr);
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_type(nullptr, 0) == 0);
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_requestor(nullptr, 0) == nullptr);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_backend(nullptr, 0) == nullptr);
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_protocol(nullptr, 0) == 0);
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_size(nullptr, 0) == 0);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_latency(nullptr, 0) == 0);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_id(nullptr, 0) == 0);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_rcode(nullptr, 0) == 0);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_aa(nullptr, 0) == false);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_rd(nullptr, 0) == false);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_tc(nullptr, 0) == false);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_ancount(nullptr, 0) == 0);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_nscount(nullptr, 0) == 0);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_arcount(nullptr, 0) == 0);
     BOOST_CHECK(!dnsdist_ffi_ring_entry_has_mac_address(nullptr, 0));
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_mac_address(nullptr, 0) == nullptr);
   }
@@ -732,11 +749,25 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
   BOOST_CHECK(dnsdist_ffi_ring_entry_is_response(list, 1));
 
   for (size_t idx = 0; idx < 2; idx++) {
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_age(list, idx) >= 0.0);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_age(list, idx) < 2.0);
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_name(list, idx) == qname.toString());
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_type(list, idx) == qtype);
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_requestor(list, idx) == requestor1.toStringWithPort());
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_protocol(list, idx) == protocol.toNumber());
     BOOST_CHECK_EQUAL(dnsdist_ffi_ring_entry_get_size(list, idx), size);
+    BOOST_CHECK_EQUAL(dnsdist_ffi_ring_entry_get_id(list, idx), 42U);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_aa(list, idx) == false);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_rd(list, idx) == true);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_tc(list, idx) == false);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_ancount(list, idx) == 1);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_nscount(list, idx) == 1);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_arcount(list, idx) == 1);
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_rcode(list, idx) == RCode::NXDomain);
+    if (dnsdist_ffi_ring_entry_is_response(list, idx)) {
+      BOOST_CHECK(dnsdist_ffi_ring_entry_get_backend(list, idx) == backend.toStringWithPort());
+      BOOST_CHECK_EQUAL(dnsdist_ffi_ring_entry_get_latency(list, idx), responseTime);
+    }
     BOOST_CHECK(!dnsdist_ffi_ring_entry_has_mac_address(list, idx));
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_mac_address(list, idx) == std::string());
   }
@@ -744,7 +775,7 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
   dnsdist_ffi_ring_entry_list_free(list);
   list = nullptr;
 
-  // no the right requestor
+  // not the right requestor
   BOOST_REQUIRE_EQUAL(dnsdist_ffi_ring_get_entries_by_addr("192.0.2.2", &list), 0U);
   BOOST_CHECK(list == nullptr);
 
