@@ -5,7 +5,7 @@ set -e
 ARCH=$(arch)
 
 # Default version
-RUST_VERSION=rust-1.72.0-$ARCH-unknown-linux-gnu
+RUST_VERSION=rust-1.73.0-$ARCH-unknown-linux-gnu
 
 if [ $# -ge 1 ]; then
     RUST_VERSION=$1
@@ -15,7 +15,8 @@ fi
 SITE=https://downloads.powerdns.com/rust
 RUST_TARBALL=$RUST_VERSION.tar.gz
 
-SHA256SUM_x86_64=f2bbe23e685852104fd48d0e34ac981b0917e76c62cfcd6d0ac5283e4710c7b9
+SHA256SUM_x86_64=aa4cf0b7e66a9f5b7c623d4b340bb1ac2864a5f2c2b981f39f796245dc84f2cb
+SHA256SUM_aarch64=e54d7d886ba413ae573151f668e76ea537f9a44406d3d29598269a4a536d12f6
 
 NAME=SHA256SUM_$ARCH
 eval VALUE=\$$NAME
