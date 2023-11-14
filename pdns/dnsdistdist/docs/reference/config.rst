@@ -1629,6 +1629,20 @@ faster than the existing rules.
 
   Represents a group of dynamic block rules.
 
+  .. method:: DynBlockRulesGroup:setCacheMissRatio(ratio, seconds, reason, blockingTime, minimumNumberOfResponses [, action [, warningRate]])
+
+    .. versionadded:: 1.9.0
+
+    Adds a rate-limiting rule for the ratio of cache-misses responses over the total number of responses for a given client.
+
+    :param int ratio: Ratio of cache-miss responses per second over the total number of responses for this client to exceed
+    :param int seconds: Number of seconds the ratio has been exceeded
+    :param string reason: The message to show next to the blocks
+    :param int blockingTime: The number of seconds this block to expire
+    :param int minimumNumberOfResponses: How many total responses is required for this rule to apply
+    :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
+    :param int warningRatio: If set to a non-zero value, the ratio above which a warning message will be issued and a no-op block inserted
+
   .. method:: DynBlockRulesGroup:setMasks(v4, v6, port)
 
     .. versionadded:: 1.7.0

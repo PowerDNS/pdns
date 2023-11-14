@@ -54,6 +54,16 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
       continue;
     }
 
+    if (d_respCacheMissRatioRule.warningRatioExceeded(counters.responses, counters.cacheMisses)) {
+      handleWarning(blocks, now, requestor, d_respCacheMissRatioRule, updated);
+      continue;
+    }
+
+    if (d_respCacheMissRatioRule.ratioExceeded(counters.responses, counters.cacheMisses)) {
+      addBlock(blocks, now, requestor, d_respCacheMissRatioRule, updated);
+      continue;
+    }
+
     for (const auto& pair : d_qtypeRules) {
       const auto qtype = pair.first;
 
@@ -412,6 +422,12 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
     responseCutOff = d_suffixMatchRule.d_cutOff;
   }
 
+  d_respCacheMissRatioRule.d_cutOff = d_respCacheMissRatioRule.d_minTime = now;
+  d_respCacheMissRatioRule.d_cutOff.tv_sec -= d_respCacheMissRatioRule.d_seconds;
+  if (d_respCacheMissRatioRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_respCacheMissRatioRule.d_cutOff;
+  }
+
   for (auto& rule : d_rcodeRules) {
     rule.second.d_cutOff = rule.second.d_minTime = now;
     rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
@@ -445,22 +461,20 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       bool respRateMatches = d_respRateRule.matches(ringEntry.when);
       bool suffixMatchRuleMatches = d_suffixMatchRule.matches(ringEntry.when);
       bool rcodeRuleMatches = checkIfResponseCodeMatches(ringEntry);
+      bool respCacheMissRatioRuleMatches = d_respCacheMissRatioRule.matches(ringEntry.when);
 
-      if (respRateMatches || rcodeRuleMatches) {
-        if (respRateMatches) {
-          entry.respBytes += ringEntry.size;
-        }
-        if (rcodeRuleMatches) {
-          ++entry.d_rcodeCounts[ringEntry.dh.rcode];
-        }
+      if (respRateMatches) {
+        entry.respBytes += ringEntry.size;
+      }
+      if (rcodeRuleMatches) {
+        ++entry.d_rcodeCounts[ringEntry.dh.rcode];
+      }
+      if (respCacheMissRatioRuleMatches && !ringEntry.isACacheHit()) {
+        ++entry.cacheMisses;
       }
 
       if (suffixMatchRuleMatches) {
-        bool hit = ringEntry.ds.sin4.sin_family == 0;
-        if (!hit && ringEntry.ds.isIPv4() && ringEntry.ds.sin4.sin_addr.s_addr == 0 && ringEntry.ds.sin4.sin_port == 0) {
-          hit = true;
-        }
-
+        const bool hit = ringEntry.isACacheHit();
         root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, boost::none);
       }
     }

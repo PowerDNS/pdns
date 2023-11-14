@@ -80,6 +80,7 @@ private:
     uint64_t queries{0};
     uint64_t responses{0};
     uint64_t respBytes{0};
+    uint64_t cacheMisses{0};
   };
 
   struct DynBlockRule
@@ -238,7 +239,7 @@ private:
     double d_warningRatio{0.0};
   };
 
-  typedef std::unordered_map<AddressAndPortRange, Counts, AddressAndPortRange::hash> counts_t;
+  using counts_t = std::unordered_map<AddressAndPortRange, Counts, AddressAndPortRange::hash>;
 
 public:
   DynBlockRulesGroup()
@@ -272,6 +273,11 @@ public:
   {
     auto& entry = d_qtypeRules[qtype];
     entry = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
+  }
+
+  void setCacheMissRatio(double ratio, double warningRatio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action, size_t minimumNumberOfResponses)
+  {
+    d_respCacheMissRatioRule = DynBlockRatioRule(reason, blockDuration, ratio, warningRatio, seconds, action, minimumNumberOfResponses);
   }
 
   using smtVisitor_t = std::function<std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)>;
@@ -398,7 +404,7 @@ private:
 
   bool hasResponseRules() const
   {
-    return d_respRateRule.isEnabled() || !d_rcodeRules.empty() || !d_rcodeRatioRules.empty();
+    return d_respRateRule.isEnabled() || !d_rcodeRules.empty() || !d_rcodeRatioRules.empty() || d_respCacheMissRatioRule.isEnabled();
   }
 
   bool hasSuffixMatchRules() const
@@ -420,6 +426,7 @@ private:
   DynBlockRule d_queryRateRule;
   DynBlockRule d_respRateRule;
   DynBlockRule d_suffixMatchRule;
+  DynBlockRatioRule d_respCacheMissRatioRule;
   NetmaskGroup d_excludedSubnets;
   SuffixMatchNode d_excludedDomains;
   smtVisitor_t d_smtVisitor;

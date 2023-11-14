@@ -831,7 +831,102 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate, TestFixture) {
     BOOST_CHECK_EQUAL(block.blocks, 0U);
     BOOST_CHECK_EQUAL(block.warning, false);
   }
+}
 
+BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_CacheMissRatio, TestFixture) {
+  dnsheader dh;
+  memset(&dh, 0, sizeof(dh));
+  DNSName qname("rings.powerdns.com.");
+  ComboAddress requestor1("192.0.2.1");
+  ComboAddress requestor2("192.0.2.2");
+  ComboAddress backend("192.0.2.42");
+  ComboAddress cacheHit;
+  uint16_t qtype = QType::AAAA;
+  uint16_t size = 42;
+  dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
+  unsigned int responseTime = 100 * 1000; /* 100ms */
+  struct timespec now;
+  gettime(&now);
+  NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
+
+  time_t numberOfSeconds = 10;
+  unsigned int blockDuration = 60;
+  const auto action = DNSAction::Action::Drop;
+  const std::string reason = "Exceeded cache-miss ratio";
+
+  DynBlockRulesGroup dbrg;
+  dbrg.setQuiet(true);
+
+  /* block above 0.5 Cache-Miss/Total ratio over numberOfSeconds seconds, no warning, minimum number of queries should be at least 51 */
+  dbrg.setCacheMissRatio(0.5, 0, numberOfSeconds, reason, blockDuration, action, 51);
+
+  {
+    /* insert 50 cache misses and 50 cache hits from a given client in the last 10s
+       this should not trigger the rule */
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    for (size_t idx = 0; idx < 20; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
+    }
+    for (size_t idx = 0; idx < 80; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, cacheHit, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100U);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
+  }
+
+  {
+    /* insert 51 cache misses and 49 hits from a given client in the last 10s
+       this should trigger the rule this time */
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    for (size_t idx = 0; idx < 51; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
+    }
+    for (size_t idx = 0; idx < 49; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, cacheHit, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100U);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 1U);
+    BOOST_REQUIRE(g_dynblockNMG.getLocal()->lookup(requestor1) != nullptr);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor2) == nullptr);
+    const auto& block = g_dynblockNMG.getLocal()->lookup(requestor1)->second;
+    BOOST_CHECK_EQUAL(block.reason, reason);
+    BOOST_CHECK_EQUAL(block.until.tv_sec, now.tv_sec + blockDuration);
+    BOOST_CHECK(block.domain.empty());
+    BOOST_CHECK(block.action == action);
+    BOOST_CHECK_EQUAL(block.blocks, 0U);
+    BOOST_CHECK_EQUAL(block.warning, false);
+  }
+
+  {
+    /* insert 40 misses and 10 hits from a given client in the last 10s
+       this should NOT trigger the rule since we don't have more than 50 queries */
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    for (size_t idx = 0; idx < 40; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, backend, outgoingProtocol);
+    }
+    for (size_t idx = 0; idx < 10; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dh, cacheHit, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 50U);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+    BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
+  }
 }
 
 BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_Warning, TestFixture) {
