@@ -1342,7 +1342,7 @@ bool dnsdist_ffi_ring_entry_get_aa(const dnsdist_ffi_ring_entry_list_t* list, si
     return 0;
   }
 
-  return list->d_entries.at(idx).dh.aa;
+  return list->d_entries.at(idx).dh.aa == 1;
 }
 
 bool dnsdist_ffi_ring_entry_get_rd(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
@@ -1351,7 +1351,7 @@ bool dnsdist_ffi_ring_entry_get_rd(const dnsdist_ffi_ring_entry_list_t* list, si
     return 0;
   }
 
-  return list->d_entries.at(idx).dh.rd;
+  return list->d_entries.at(idx).dh.rd == 1;
 }
 
 bool dnsdist_ffi_ring_entry_get_tc(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
@@ -1360,7 +1360,7 @@ bool dnsdist_ffi_ring_entry_get_tc(const dnsdist_ffi_ring_entry_list_t* list, si
     return 0;
   }
 
-  return list->d_entries.at(idx).dh.tc;
+  return list->d_entries.at(idx).dh.tc == 1;
 }
 
 uint16_t dnsdist_ffi_ring_entry_get_ancount(const dnsdist_ffi_ring_entry_list_t* list, size_t idx)
