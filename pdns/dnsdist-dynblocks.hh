@@ -282,9 +282,9 @@ public:
     d_smtVisitorFFI = std::move(visitor);
   }
 
-  void setNewBlockHook(dnsdist_ffi_dynamic_block_inserted_hook& callback)
+  void setNewBlockHook(const dnsdist_ffi_dynamic_block_inserted_hook& callback)
   {
-    d_newBlockHook = std::move(callback);
+    d_newBlockHook = callback;
   }
 
   void setMasks(uint8_t v4, uint8_t v6, uint8_t port)

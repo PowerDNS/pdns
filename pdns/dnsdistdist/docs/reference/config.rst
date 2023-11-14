@@ -1446,7 +1446,7 @@ Dynamic Blocks
 
   Return an associative table of active network-based dynamic blocks. The keys are the network IP or range that are blocked, the value are :class:`DynBlock` objects.
 
-.. function:: getSMTDynamicBlocks()
+.. function:: getDynamicBlocksSMT()
 
   .. versionadded:: 1.9.0
 

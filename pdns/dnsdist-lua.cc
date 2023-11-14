@@ -1444,7 +1444,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return entries;
   });
 
-  luaCtx.writeFunction("getSMTDynamicBlocks", []() {
+  luaCtx.writeFunction("getDynamicBlocksSMT", []() {
     setLuaNoSideEffect();
     struct timespec now
     {

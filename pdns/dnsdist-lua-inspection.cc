@@ -860,7 +860,7 @@ void setupLuaInspection(LuaContext& luaCtx)
         group->setSuffixMatchRuleFFI(seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, std::move(visitor));
       }
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(dnsdist_ffi_dynamic_block_inserted_hook)>("setNewBlockInsertedHook", [](std::shared_ptr<DynBlockRulesGroup>& group, dnsdist_ffi_dynamic_block_inserted_hook hook) {
+  luaCtx.registerFunction<void(std::shared_ptr<DynBlockRulesGroup>::*)(const dnsdist_ffi_dynamic_block_inserted_hook&)>("setNewBlockInsertedHook", [](std::shared_ptr<DynBlockRulesGroup>& group, const dnsdist_ffi_dynamic_block_inserted_hook& hook) {
       if (group) {
         group->setNewBlockHook(hook);
       }
