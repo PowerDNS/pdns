@@ -131,23 +131,27 @@ static void rmRule(GlobalStateHolder<vector<T> > *someRuleActions, const boost::
   if (auto str = boost::get<std::string>(&id)) {
     try {
       const auto uuid = getUniqueID(*str);
-      if (rules.erase(std::remove_if(rules.begin(),
+      auto removeIt = std::remove_if(rules.begin(),
                                      rules.end(),
-                                     [uuid](const T& a) { return a.d_id == uuid; }),
-                      rules.end()) == rules.end()) {
+                                     [uuid](const T& rule) { return rule.d_id == uuid; });
+      if (removeIt == rules.end()) {
         g_outputBuffer = "Error: no rule matched\n";
         return;
       }
+      rules.erase(removeIt,
+                  rules.end());
     }
     catch (const std::runtime_error& e) {
       /* it was not an UUID, let's see if it was a name instead */
-      if (rules.erase(std::remove_if(rules.begin(),
+      auto removeIt = std::remove_if(rules.begin(),
                                      rules.end(),
-                                     [&str](const T& a) { return a.d_name == *str; }),
-                      rules.end()) == rules.end()) {
+                                     [&str](const T& rule) { return rule.d_name == *str; });
+      if (removeIt == rules.end()) {
         g_outputBuffer = "Error: no rule matched\n";
         return;
       }
+      rules.erase(removeIt,
+                  rules.end());
     }
   }
   else if (auto pos = boost::get<unsigned int>(&id)) {
