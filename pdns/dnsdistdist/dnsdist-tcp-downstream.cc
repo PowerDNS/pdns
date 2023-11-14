@@ -817,11 +817,11 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
         }
         auto raw = unknownContent->getRawContent();
         auto serial = getSerialFromRawSOAContent(raw);
-        if (query.d_xfrMasterSerial == 0) {
+        if (query.d_xfrPrimarySerial == 0) {
           // store the first SOA in our client's connection metadata
-          query.d_xfrMasterSerial = serial;
-          if (query.d_idstate.qtype == QType::IXFR && (query.d_xfrMasterSerial == query.d_ixfrQuerySerial || rfc1982LessThan(query.d_xfrMasterSerial, query.d_ixfrQuerySerial))) {
-            /* This is the first message with a master SOA:
+          query.d_xfrPrimarySerial = serial;
+          if (query.d_idstate.qtype == QType::IXFR && (query.d_xfrPrimarySerial == query.d_ixfrQuerySerial || rfc1982LessThan(query.d_xfrPrimarySerial, query.d_ixfrQuerySerial))) {
+            /* This is the first message with a primary SOA:
                RFC 1995 Section 2:
                  If an IXFR query with the same or newer version number
                  than that of the server is received, it is replied to
@@ -833,16 +833,16 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
         }
 
         ++query.d_xfrSerialCount;
-        if (serial == query.d_xfrMasterSerial) {
-          ++query.d_xfrMasterSerialCount;
-          // figure out if it's end when receiving master's SOA again
+        if (serial == query.d_xfrPrimarySerial) {
+          ++query.d_xfrPrimarySerialCount;
+          // figure out if it's end when receiving primary's SOA again
           if (query.d_xfrSerialCount == 2) {
             // if there are only two SOA records marks a finished AXFR
             done = true;
             break;
           }
-          if (query.d_xfrMasterSerialCount == 3) {
-            // receiving master's SOA 3 times marks a finished IXFR
+          if (query.d_xfrPrimarySerialCount == 3) {
+            // receiving primary's SOA 3 times marks a finished IXFR
             done = true;
             break;
           }

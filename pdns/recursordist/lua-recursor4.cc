@@ -135,7 +135,7 @@ void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& cont
   dr.d_ttl = ttl.get_value_or(3600);
   dr.d_type = type;
   dr.d_place = place;
-  dr.setContent(DNSRecordContent::mastermake(type, QClass::IN, content));
+  dr.setContent(DNSRecordContent::make(type, QClass::IN, content));
   records.push_back(dr);
 }
 
@@ -239,7 +239,7 @@ void RecursorLua4::postPrepareContext()
     [](DNSFilterEngine::Policy& pol, const std::string& content) {
       // Only CNAMES for now, when we ever add a d_custom_type, there will be pain
       pol.d_custom.clear();
-      pol.d_custom.push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN, content));
+      pol.d_custom.push_back(DNSRecordContent::make(QType::CNAME, QClass::IN, content));
     }
   );
   d_lw->registerFunction("getDH", &DNSQuestion::getDH);
@@ -296,7 +296,7 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerFunction<const ProxyProtocolValue, std::string()>("getContent", [](const ProxyProtocolValue& value) { return value.content; });
   d_lw->registerFunction<const ProxyProtocolValue, uint8_t()>("getType", [](const ProxyProtocolValue& value) { return value.type; });
 
-  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.setContent(DNSRecordContent::mastermake(dr.d_type, QClass::IN, newContent)); });
+  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.setContent(DNSRecordContent::make(dr.d_type, QClass::IN, newContent)); });
   d_lw->registerFunction("addAnswer", &DNSQuestion::addAnswer);
   d_lw->registerFunction("addRecord", &DNSQuestion::addRecord);
   d_lw->registerFunction("getRecords", &DNSQuestion::getRecords);
@@ -1030,7 +1030,7 @@ bool pdns_ffi_param_add_record(pdns_ffi_param_t* ref, const char* name, uint16_t
     dr.d_type = type;
     dr.d_class = QClass::IN;
     dr.d_place = DNSResourceRecord::Place(place);
-    dr.setContent(DNSRecordContent::mastermake(type, QClass::IN, std::string(content, contentSize)));
+    dr.setContent(DNSRecordContent::make(type, QClass::IN, std::string(content, contentSize)));
     ref->params.records.push_back(std::move(dr));
 
     return true;
@@ -1173,7 +1173,7 @@ bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, 
       r.setContent(DNSRecordContent::deserialize(r.d_name, r.d_type, string(content, contentLen)));
     }
     else {
-      r.setContent(DNSRecordContent::mastermake(r.d_type, QClass::IN, string(content, contentLen)));
+      r.setContent(DNSRecordContent::make(r.d_type, QClass::IN, string(content, contentLen)));
     }
 
     return true;
@@ -1202,7 +1202,7 @@ bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, 
       dr.setContent(DNSRecordContent::deserialize(dr.d_name, dr.d_type, string(content, contentLen)));
     }
     else {
-      dr.setContent(DNSRecordContent::mastermake(type, QClass::IN, string(content, contentLen)));
+      dr.setContent(DNSRecordContent::make(type, QClass::IN, string(content, contentLen)));
     }
     ref->handle.d_dq.currentRecords->push_back(std::move(dr));
 

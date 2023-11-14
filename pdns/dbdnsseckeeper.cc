@@ -668,13 +668,13 @@ bool DNSSECKeeper::TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname)
   return false;
 }
 
-bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const ComboAddress& /* master */, DNSName* keyname)
+bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const ComboAddress& /* primary */, DNSName* keyname)
 {
   vector<string> keynames;
   d_keymetadb->getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
   keyname->trimToLabels(0);
 
-  // XXX FIXME this should check for a specific master!
+  // XXX FIXME this should check for a specific primary!
   for(const string& dbkey :  keynames) {
     *keyname=DNSName(dbkey);
     return true;

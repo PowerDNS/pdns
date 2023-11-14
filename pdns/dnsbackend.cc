@@ -315,7 +315,7 @@ void fillSOAData(const DNSZoneRecord& in, SOAData& sd)
 
   auto src=getRR<SOARecordContent>(in.dr);
   sd.nameserver = src->d_mname;
-  sd.hostmaster = src->d_rname;
+  sd.rname = src->d_rname;
   sd.serial = src->d_st.serial;
   sd.refresh = src->d_st.refresh;
   sd.retry = src->d_st.retry;
@@ -331,7 +331,7 @@ std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd)
     st.retry = sd.retry;
     st.expire = sd.expire;
     st.minimum = sd.minimum;
-    return std::make_shared<SOARecordContent>(sd.nameserver, sd.hostmaster, st);
+    return std::make_shared<SOARecordContent>(sd.nameserver, sd.rname, st);
 }
 
 void fillSOAData(const string &content, SOAData &data)
@@ -342,7 +342,7 @@ void fillSOAData(const string &content, SOAData &data)
 
   try {
     data.nameserver = DNSName(parts.at(0));
-    data.hostmaster = DNSName(parts.at(1));
+    data.rname = DNSName(parts.at(1));
     pdns::checked_stoi_into(data.serial, parts.at(2));
     pdns::checked_stoi_into(data.refresh, parts.at(3));
     pdns::checked_stoi_into(data.retry, parts.at(4));

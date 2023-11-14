@@ -146,7 +146,7 @@ struct ixfrinfo_t {
 
 // Why a struct? This way we can add more options to a domain in the future
 struct ixfrdistdomain_t {
-  set<ComboAddress> masters; // A set so we can do multiple master addresses in the future
+  set<ComboAddress> primaries; // A set so we can do multiple primary addresses in the future
   uint32_t maxSOARefresh{0}; // Cap SOA refresh value to the given value in seconds
 };
 
@@ -156,7 +156,7 @@ static map<DNSName, ixfrdistdomain_t> g_domainConfigs;
 // Map domains and their data
 static LockGuarded<std::map<DNSName, std::shared_ptr<ixfrinfo_t>>> g_soas;
 
-// Queue of received NOTIFYs, already verified against their master IPs
+// Queue of received NOTIFYs, already verified against their primary IPs
 // Lazily implemented as a set
 static LockGuarded<std::set<DNSName>> g_notifiesReceived;
 
@@ -368,20 +368,20 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
         continue;
       }
 
-      // TODO Keep track of 'down' masters
-      set<ComboAddress>::const_iterator it(domainConfig.second.masters.begin());
-      std::advance(it, dns_random(domainConfig.second.masters.size()));
-      ComboAddress master = *it;
+      // TODO Keep track of 'down' primaries
+      set<ComboAddress>::const_iterator it(domainConfig.second.primaries.begin());
+      std::advance(it, dns_random(domainConfig.second.primaries.size()));
+      ComboAddress primary = *it;
 
       string dir = workdir + "/" + domain.toString();
-      g_log<<Logger::Info<<"Attempting to retrieve SOA Serial update for '"<<domain<<"' from '"<<master.toStringWithPort()<<"'"<<endl;
+      g_log << Logger::Info << "Attempting to retrieve SOA Serial update for '" << domain << "' from '" << primary.toStringWithPort() << "'" << endl;
       shared_ptr<const SOARecordContent> sr;
       try {
         zoneLastCheck = now;
         g_stats.incrementSOAChecks(domain);
-        auto newSerial = getSerialFromMaster(master, domain, sr); // TODO TSIG
+        auto newSerial = getSerialFromPrimary(primary, domain, sr); // TODO TSIG
         if(current_soa != nullptr) {
-          g_log<<Logger::Info<<"Got SOA Serial for "<<domain<<" from "<<master.toStringWithPort()<<": "<< newSerial<<", had Serial: "<<current_soa->d_st.serial;
+          g_log << Logger::Info << "Got SOA Serial for " << domain << " from " << primary.toStringWithPort() << ": " << newSerial << ", had Serial: " << current_soa->d_st.serial;
           if (newSerial == current_soa->d_st.serial) {
             g_log<<Logger::Info<<", not updating."<<endl;
             continue;
@@ -389,13 +389,13 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
           g_log<<Logger::Info<<", will update."<<endl;
         }
       } catch (runtime_error &e) {
-        g_log<<Logger::Warning<<"Unable to get SOA serial update for '"<<domain<<"' from master "<<master.toStringWithPort()<<": "<<e.what()<<endl;
+        g_log << Logger::Warning << "Unable to get SOA serial update for '" << domain << "' from primary " << primary.toStringWithPort() << ": " << e.what() << endl;
         g_stats.incrementSOAChecksFailed(domain);
         continue;
       }
       // Now get the full zone!
       g_log<<Logger::Info<<"Attempting to receive full zonedata for '"<<domain<<"'"<<endl;
-      ComboAddress local = master.isIPv4() ? ComboAddress("0.0.0.0") : ComboAddress("::");
+      ComboAddress local = primary.isIPv4() ? ComboAddress("0.0.0.0") : ComboAddress("::");
       TSIGTriplet tt;
 
       // The *new* SOA
@@ -403,7 +403,7 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
       uint32_t soaTTL = 0;
       records_t records;
       try {
-        AXFRRetriever axfr(master, domain, tt, &local);
+        AXFRRetriever axfr(primary, domain, tt, &local);
         uint32_t nrecords=0;
         Resolver::res_t nop;
         vector<DNSRecord> chunk;
@@ -512,18 +512,18 @@ static ResponseType maybeHandleNotify(const MOADNSParser& mdp, const ComboAddres
     return ResponseType::RefusedQuery;
   }
 
-  auto masters = found->second.masters;
+  auto primaries = found->second.primaries;
 
-  bool masterFound = false;
+  bool primaryFound = false;
 
-  for(const auto &master : masters) {
-    if (ComboAddress::addressOnlyEqual()(saddr, master)) {
-      masterFound = true;
+  for (const auto& primary : primaries) {
+    if (ComboAddress::addressOnlyEqual()(saddr, primary)) {
+      primaryFound = true;
       break;
     }
   }
 
-  if (masterFound) {
+  if (primaryFound) {
     g_notifiesReceived.lock()->insert(mdp.d_qname);
     return ResponseType::EmptyNoError;
   }
@@ -1271,7 +1271,7 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
       }
       try {
         if (!domain["master"]) {
-          g_log<<Logger::Error<<"Domain '"<<domain["domain"].as<string>()<<"' has no master configured!"<<endl;
+          g_log << Logger::Error << "Domain '" << domain["domain"].as<string>() << "' has no primary configured!" << endl;
           retval = false;
           continue;
         }
@@ -1281,7 +1281,7 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
 
         g_notifySources.addMask(notifySource);
       } catch (const runtime_error &e) {
-        g_log<<Logger::Error<<"Unable to read domain '"<<domain["domain"].as<string>()<<"' master address: "<<e.what()<<endl;
+        g_log << Logger::Error << "Unable to read domain '" << domain["domain"].as<string>() << "' primary address: " << e.what() << endl;
         retval = false;
       }
       if (domain["max-soa-refresh"]) {
@@ -1429,7 +1429,7 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
     for (auto const &domain : config["domains"]) {
       set<ComboAddress> s;
       s.insert(domain["master"].as<ComboAddress>());
-      g_domainConfigs[domain["domain"].as<DNSName>()].masters = s;
+      g_domainConfigs[domain["domain"].as<DNSName>()].primaries = s;
       if (domain["max-soa-refresh"].IsDefined()) {
         g_domainConfigs[domain["domain"].as<DNSName>()].maxSOARefresh = domain["max-soa-refresh"].as<uint32_t>();
       }

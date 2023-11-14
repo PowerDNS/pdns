@@ -196,7 +196,9 @@ pdns_server_SOURCES = \
 	auth-catalogzone.cc auth-catalogzone.hh \
 	auth-main.cc auth-main.hh \
 	auth-packetcache.cc auth-packetcache.hh \
+	auth-primarycommunicator.cc \
 	auth-querycache.cc auth-querycache.hh \
+	auth-secondarycommunicator.cc \
 	auth-zonecache.cc auth-zonecache.hh \
 	axfr-retriever.cc axfr-retriever.hh \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
@@ -246,7 +248,6 @@ pdns_server_SOURCES = \
 	logging.hh \
 	lua-auth4.cc lua-auth4.hh \
 	lua-base4.cc lua-base4.hh \
-	mastercommunicator.cc \
 	misc.cc misc.hh \
 	nameserver.cc nameserver.hh \
 	namespaces.hh \
@@ -270,7 +271,6 @@ pdns_server_SOURCES = \
 	shuffle.cc shuffle.hh \
 	signingpipe.cc signingpipe.hh \
 	sillyrecords.cc \
-	slavecommunicator.cc \
 	stat_t.hh \
 	statbag.cc statbag.hh \
 	stubresolver.cc stubresolver.hh \

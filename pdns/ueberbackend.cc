@@ -130,10 +130,10 @@ bool UeberBackend::getDomainInfo(const DNSName& domain, DomainInfo& domainInfo, 
   return false;
 }
 
-bool UeberBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
+bool UeberBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
 {
   for (auto& backend : backends) {
-    if (backend->createDomain(domain, kind, masters, account)) {
+    if (backend->createDomain(domain, kind, primaries, account)) {
       return true;
     }
   }
@@ -309,17 +309,17 @@ void UeberBackend::rediscover(string* status)
   updateZoneCache();
 }
 
-void UeberBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
+void UeberBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 {
   for (auto& backend : backends) {
-    backend->getUnfreshSlaveInfos(domains);
+    backend->getUnfreshSecondaryInfos(domains);
   }
 }
 
-void UeberBackend::getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
+void UeberBackend::getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   for (auto& backend : backends) {
-    backend->getUpdatedMasters(domains, catalogs, catalogHashes);
+    backend->getUpdatedPrimaries(domains, catalogs, catalogHashes);
   }
 }
 
@@ -576,10 +576,10 @@ bool UeberBackend::getSOAUncached(const DNSName& domain, SOAData& soaData)
   return false;
 }
 
-bool UeberBackend::superMasterAdd(const AutoPrimary& primary)
+bool UeberBackend::autoPrimaryAdd(const AutoPrimary& primary)
 {
   for (auto& backend : backends) {
-    if (backend->superMasterAdd(primary)) {
+    if (backend->autoPrimaryAdd(primary)) {
       return true;
     }
   }
@@ -606,10 +606,10 @@ bool UeberBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   return false;
 }
 
-bool UeberBackend::superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)
+bool UeberBackend::autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)
 {
   for (auto& backend : backends) {
-    if (backend->superMasterBackend(ip, domain, nsset, nameserver, account, dnsBackend)) {
+    if (backend->autoPrimaryBackend(ip, domain, nsset, nameserver, account, dnsBackend)) {
       return true;
     }
   }

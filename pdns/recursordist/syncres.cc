@@ -879,7 +879,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName& qname, const QType qtype, con
     dr.d_ttl = 86400;
     for (const auto& ans : answers) {
       dr.d_type = ans.first;
-      dr.setContent(DNSRecordContent::mastermake(ans.first, qclass, ans.second));
+      dr.setContent(DNSRecordContent::make(ans.first, qclass, ans.second));
       ret.push_back(dr);
     }
   }

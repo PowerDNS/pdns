@@ -8,6 +8,45 @@ Please upgrade to the PowerDNS Authoritative Server 4.0.0 from 3.4.2+.
 See the `3.X <https://doc.powerdns.com/3/authoritative/upgrading/>`__
 upgrade notes if your version is older than 3.4.2.
 
+4.8.0 to 4.9.0
+--------------
+
+Removed options
+^^^^^^^^^^^^^^^
+
+Various settings, deprecated since 4.5.0, have been removed.
+
+* :ref:`setting-allow-unsigned-supermaster` is now :ref:`setting-allow-unsigned-autoprimary`
+* :ref:`setting-master` is now :ref:`setting-primary`
+* :ref:`setting-slave-cycle-interval` is now :ref:`setting-xfr-cycle-interval`
+* :ref:`setting-slave-renotify` is now :ref:`setting-secondary-do-renotify`
+* :ref:`setting-slave` is now :ref:`setting-secondary`
+* :ref:`setting-superslave` is now :ref:`setting-autosecondary`
+
+Renamed options
+^^^^^^^^^^^^^^^
+
+Bind backend
+~~~~~~~~~~~~
+
+Various experimental autoprimary settings have been renamed.
+
+* ``supermaster-config`` is now ``autoprimary-config``
+* ``supermasters`` is now ``autoprimaries``
+* ``supermaster-destdir`` is now ``autoprimary-destdir``
+
+Gsql backends
+~~~~~~~~~~~~~
+
+Various custom queries have been renamed.
+
+* ``info-all-slaves-query`` is now ``info-all-secondaries-query``
+* ``supermaster-query`` is now ``autoprimary-query``
+* ``supermaster-name-to-ips`` is now ``autoprimary-name-to-ips``
+* ``supermaster-add`` is now ``autoprimary-add``
+* ``update-master-query`` is now ``update-primary-query``
+* ``info-all-master-query`` is now ``info-all-primary-query``
+
 any version to 4.8.x
 --------------------
 

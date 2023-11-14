@@ -44,13 +44,13 @@ using namespace boost::multi_index;
 struct SuckRequest
 {
   DNSName domain;
-  ComboAddress master;
+  ComboAddress primary;
   bool force;
   enum RequestPriority : uint8_t { PdnsControl, Api, Notify, SerialRefresh, SignaturesRefresh };
   std::pair<RequestPriority, uint64_t> priorityAndOrder;
   bool operator<(const SuckRequest& b) const
   {
-    return std::tie(domain, master) < std::tie(b.domain, b.master);
+    return std::tie(domain, primary) < std::tie(b.domain, b.primary);
   }
 };
 
@@ -150,7 +150,7 @@ public:
   CommunicatorClass()
   {
     d_tickinterval=60;
-    d_slaveschanged = true;
+    d_secondarieschanged = true;
     d_nsock4 = -1;
     d_nsock6 = -1;
     d_preventSelfNotification = false;
@@ -161,9 +161,9 @@ public:
 
   void drillHole(const DNSName &domain, const string &ip);
   bool justNotified(const DNSName &domain, const string &ip);
-  void addSuckRequest(const DNSName &domain, const ComboAddress& master, SuckRequest::RequestPriority, bool force=false);
-  void addSlaveCheckRequest(const DomainInfo& di, const ComboAddress& remote);
-  void addTrySuperMasterRequest(const DNSPacket& p);
+  void addSuckRequest(const DNSName& domain, const ComboAddress& primary, SuckRequest::RequestPriority, bool force = false);
+  void addSecondaryCheckRequest(const DomainInfo& di, const ComboAddress& remote);
+  void addTryAutoPrimaryRequest(const DNSPacket& p);
   void notify(const DNSName &domain, const string &ip);
   void mainloop();
   void retrievalLoopThread();
@@ -181,8 +181,8 @@ private:
   void suck(const DNSName &domain, const ComboAddress& remote, bool force=false);
   void ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr);
 
-  void slaveRefresh(PacketHandler *P);
-  void masterUpdateCheck(PacketHandler *P);
+  void secondaryRefresh(PacketHandler* P);
+  void primaryUpdateCheck(PacketHandler* P);
   void getUpdatedProducers(UeberBackend* B, vector<DomainInfo>& domains, const std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes);
 
   Semaphore d_suck_sem;
@@ -193,7 +193,7 @@ private:
   NotificationQueue d_nq;
 
   time_t d_tickinterval;
-  bool d_slaveschanged;
+  bool d_secondarieschanged;
   bool d_preventSelfNotification;
 
   struct Data
@@ -209,12 +209,12 @@ private:
       };
     };
 
-    std::set<DNSPacket, cmp> d_potentialsupermasters;
+    std::set<DNSPacket, cmp> d_potentialautoprimaries;
 
     // Used to keep some state on domains that failed their freshness checks.
     // uint64_t == counter of the number of failures (increased by 1 every consecutive slave-cycle-interval that the domain fails)
     // time_t == wait at least until this time before attempting a new check
-    map<DNSName, pair<uint64_t, time_t> > d_failedSlaveRefresh;
+    map<DNSName, pair<uint64_t, time_t>> d_failedSecondaryRefresh;
   };
 
   LockGuarded<Data> d_data;

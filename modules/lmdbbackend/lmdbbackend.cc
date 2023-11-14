@@ -819,7 +819,7 @@ namespace serialization
     ar& g.zone;
     ar& g.last_check;
     ar& g.account;
-    ar& g.masters;
+    ar& g.primaries;
     ar& g.id;
     ar& g.notified_serial;
     ar& g.kind;
@@ -833,7 +833,7 @@ namespace serialization
     ar& g.zone;
     ar& g.last_check;
     ar& g.account;
-    ar& g.masters;
+    ar& g.primaries;
     ar& g.id;
     ar& g.notified_serial;
     ar& g.kind;
@@ -948,7 +948,7 @@ void serFromString(const string_view& str, vector<LMDBBackend::LMDBResourceRecor
 
 static std::string serializeContent(uint16_t qtype, const DNSName& domain, const std::string& content)
 {
-  auto drc = DNSRecordContent::mastermake(qtype, QClass::IN, content);
+  auto drc = DNSRecordContent::make(qtype, QClass::IN, content);
   return drc->serialize(domain, false);
 }
 
@@ -1661,14 +1661,14 @@ bool LMDBBackend::setAccount(const DNSName& domain, const std::string& account)
   });
 }
 
-bool LMDBBackend::setMasters(const DNSName& domain, const vector<ComboAddress>& masters)
+bool LMDBBackend::setPrimaries(const DNSName& domain, const vector<ComboAddress>& primaries)
 {
-  return genChangeDomain(domain, [&masters](DomainInfo& di) {
-    di.masters = masters;
+  return genChangeDomain(domain, [&primaries](DomainInfo& di) {
+    di.primaries = primaries;
   });
 }
 
-bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
+bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
 {
   DomainInfo di;
 
@@ -1680,7 +1680,7 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
 
     di.zone = domain;
     di.kind = kind;
-    di.masters = masters;
+    di.primaries = primaries;
     di.account = account;
 
     txn.put(di, 0, d_random_ids);
@@ -1754,7 +1754,7 @@ void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */
   });
 }
 
-void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
+void LMDBBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 {
   uint32_t serial;
   time_t now = time(0);
@@ -1799,7 +1799,7 @@ void LMDBBackend::setFresh(uint32_t domain_id)
   });
 }
 
-void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
+void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   CatalogInfo ci;
 
@@ -1848,14 +1848,14 @@ bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
 
   try {
     getAllDomainsFiltered(&scratch, [&catalog, &members, &type](DomainInfo& di) {
-      if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Slave) || di.catalog != catalog) {
+      if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Primary) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Secondary) || di.catalog != catalog) {
         return false;
       }
 
       CatalogInfo ci;
       ci.d_id = di.id;
       ci.d_zone = di.zone;
-      ci.d_primaries = di.masters;
+      ci.d_primaries = di.primaries;
       try {
         ci.fromJson(di.options, type);
       }

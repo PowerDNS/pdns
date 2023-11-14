@@ -65,7 +65,7 @@ public:
   bool list(const DNSName& target, int id, bool include_disabled) override;
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getserial = true) override;
-  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account) override;
+  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
 
   bool startTransaction(const DNSName& domain, int domain_id = -1) override;
   bool commitTransaction() override;
@@ -82,12 +82,12 @@ public:
   bool get(DNSZoneRecord& dzr) override;
 
   // secondary support
-  void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
+  void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
 
   // primary support
-  void getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
+  void getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   void setNotified(uint32_t id, uint32_t serial) override;
 
   // catalog zones
@@ -95,7 +95,7 @@ public:
   bool setOptions(const DNSName& domain, const std::string& options) override;
   bool setCatalog(const DNSName& domain, const DNSName& options) override;
 
-  bool setMasters(const DNSName& domain, const vector<ComboAddress>& masters) override;
+  bool setPrimaries(const DNSName& domain, const vector<ComboAddress>& primaries) override;
   bool setKind(const DNSName& domain, const DomainInfo::DomainKind kind) override;
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override;
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override

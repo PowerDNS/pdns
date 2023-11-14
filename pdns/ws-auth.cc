@@ -297,7 +297,7 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 /** Helper to build a record content as needed. */
 static inline string makeRecordContent(const QType& qtype, const string& content, bool noDot) {
   // noDot: for backend storage, pass true. for API users, pass false.
-  auto drc = DNSRecordContent::mastermake(qtype.getCode(), QClass::IN, content);
+  auto drc = DNSRecordContent::make(qtype.getCode(), QClass::IN, content);
   return drc->getZoneRepresentation(noDot);
 }
 
@@ -313,10 +313,10 @@ static inline string makeBackendRecordContent(const QType& qtype, const string& 
 
 static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper* dk) {
   string zoneId = apiZoneNameToId(di.zone);
-  vector<string> masters;
-  masters.reserve(di.masters.size());
-  for(const auto& m : di.masters) {
-    masters.push_back(m.toStringWithPortExcept(53));
+  vector<string> primaries;
+  primaries.reserve(di.primaries.size());
+  for (const auto& m : di.primaries) {
+    primaries.push_back(m.toStringWithPortExcept(53));
   }
 
   auto obj = Json::object{
@@ -327,7 +327,7 @@ static Json::object getZoneInfo(const DomainInfo& di, DNSSECKeeper* dk) {
     {"kind", di.getKindString()},
     {"catalog", (!di.catalog.empty() ? di.catalog.toString() : "")},
     {"account", di.account},
-    {"masters", std::move(masters)},
+    {"masters", std::move(primaries)},
     {"serial", (double)di.serial},
     {"notified_serial", (double)di.notified_serial},
     {"last_check", (double)di.last_check}};
@@ -384,21 +384,21 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
   doc["api_rectify"] = (api_rectify == "1");
 
   // TSIG
-  vector<string> tsig_master, tsig_slave;
-  di.backend->getDomainMetadata(zonename, "TSIG-ALLOW-AXFR", tsig_master);
-  di.backend->getDomainMetadata(zonename, "AXFR-MASTER-TSIG", tsig_slave);
+  vector<string> tsig_primary, tsig_secondary;
+  di.backend->getDomainMetadata(zonename, "TSIG-ALLOW-AXFR", tsig_primary);
+  di.backend->getDomainMetadata(zonename, "AXFR-MASTER-TSIG", tsig_secondary);
 
-  Json::array tsig_master_keys;
-  for (const auto& keyname : tsig_master) {
-    tsig_master_keys.push_back(apiZoneNameToId(DNSName(keyname)));
+  Json::array tsig_primary_keys;
+  for (const auto& keyname : tsig_primary) {
+    tsig_primary_keys.push_back(apiZoneNameToId(DNSName(keyname)));
   }
-  doc["master_tsig_key_ids"] = tsig_master_keys;
+  doc["master_tsig_key_ids"] = tsig_primary_keys;
 
-  Json::array tsig_slave_keys;
-  for (const auto& keyname : tsig_slave) {
-    tsig_slave_keys.push_back(apiZoneNameToId(DNSName(keyname)));
+  Json::array tsig_secondary_keys;
+  for (const auto& keyname : tsig_secondary) {
+    tsig_secondary_keys.push_back(apiZoneNameToId(DNSName(keyname)));
   }
-  doc["slave_tsig_key_ids"] = tsig_slave_keys;
+  doc["slave_tsig_key_ids"] = tsig_secondary_keys;
 
   if (shouldDoRRSets(req)) {
     vector<DNSResourceRecord> records;
@@ -652,7 +652,7 @@ static bool isZoneApiRectifyEnabled(const DomainInfo& di) {
   return api_rectify == "1";
 }
 
-static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& masters, boost::optional<DNSName>& catalog, boost::optional<string>& account)
+static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& primaries, boost::optional<DNSName>& catalog, boost::optional<string>& account)
 {
   if (document["kind"].is_string()) {
     kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
@@ -661,19 +661,19 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
   }
 
   if (document["masters"].is_array()) {
-    masters = vector<ComboAddress>();
+    primaries = vector<ComboAddress>();
     for(const auto& value : document["masters"].array_items()) {
-      string master = value.string_value();
-      if (master.empty())
-        throw ApiException("Master can not be an empty string");
+      string primary = value.string_value();
+      if (primary.empty())
+        throw ApiException("Primary can not be an empty string");
       try {
-        masters->emplace_back(master, 53);
+        primaries->emplace_back(primary, 53);
       } catch (const PDNSException &e) {
-        throw ApiException("Master (" + master + ") is not an IP address: " + e.reason);
+        throw ApiException("Primary (" + primary + ") is not an IP address: " + e.reason);
       }
     }
   } else {
-    masters = boost::none;
+    primaries = boost::none;
   }
 
   if (document["catalog"].is_string()) {
@@ -711,18 +711,18 @@ static void extractJsonTSIGKeyIds(UeberBackend& B, const Json& jsonArray, vector
 // Must be called within backend transaction.
 static void updateDomainSettingsFromDocument(UeberBackend& B, DomainInfo& di, const DNSName& zonename, const Json& document, bool zoneWasModified) {
   boost::optional<DomainInfo::DomainKind> kind;
-  boost::optional<vector<ComboAddress>> masters;
+  boost::optional<vector<ComboAddress>> primaries;
   boost::optional<DNSName> catalog;
   boost::optional<string> account;
 
-  extractDomainInfoFromDocument(document, kind, masters, catalog, account);
+  extractDomainInfoFromDocument(document, kind, primaries, catalog, account);
 
   if (kind) {
     di.backend->setKind(zonename, *kind);
     di.kind = *kind;
   }
-  if (masters) {
-    di.backend->setMasters(zonename, *masters);
+  if (primaries) {
+    di.backend->setPrimaries(zonename, *primaries);
   }
   if (catalog) {
     di.backend->setCatalog(zonename, *catalog);
@@ -860,14 +860,14 @@ static void updateDomainSettingsFromDocument(UeberBackend& B, DomainInfo& di, co
     vector<string> metadata;
     extractJsonTSIGKeyIds(B, document["master_tsig_key_ids"], metadata);
     if (!di.backend->setDomainMetadata(zonename, "TSIG-ALLOW-AXFR", metadata)) {
-      throw HttpInternalServerErrorException("Unable to set new TSIG master keys for zone '" + zonename.toLogString() + "'");
+      throw HttpInternalServerErrorException("Unable to set new TSIG primary keys for zone '" + zonename.toLogString() + "'");
     }
   }
   if (!document["slave_tsig_key_ids"].is_null()) {
     vector<string> metadata;
     extractJsonTSIGKeyIds(B, document["slave_tsig_key_ids"], metadata);
     if (!di.backend->setDomainMetadata(zonename, "AXFR-MASTER-TSIG", metadata)) {
-      throw HttpInternalServerErrorException("Unable to set new TSIG slave keys for zone '" + zonename.toLogString() + "'");
+      throw HttpInternalServerErrorException("Unable to set new TSIG secondary keys for zone '" + zonename.toLogString() + "'");
     }
   }
 }
@@ -1688,7 +1688,7 @@ static void apiServerAutoprimaries(HttpRequest* req, HttpResponse* resp) {
     if (primary.ip=="" or primary.nameserver=="") {
       throw ApiException("ip and nameserver fields must be filled");
     }
-    if (!B.superMasterAdd(primary))
+    if (!B.autoPrimaryAdd(primary))
       throw HttpInternalServerErrorException("Cannot find backend with autoprimary feature");
     resp->body = "";
     resp->status = 201;
@@ -1713,10 +1713,10 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   }
 
   boost::optional<DomainInfo::DomainKind> kind;
-  boost::optional<vector<ComboAddress>> masters;
+  boost::optional<vector<ComboAddress>> primaries;
   boost::optional<DNSName> catalog;
   boost::optional<string> account;
-  extractDomainInfoFromDocument(document, kind, masters, catalog, account);
+  extractDomainInfoFromDocument(document, kind, primaries, catalog, account);
 
   // validate 'kind' is set
   if (!kind) {
@@ -1731,7 +1731,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   }
 
   auto nameservers = document["nameservers"];
-  if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer) {
+  if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Secondary && zonekind != DomainInfo::Consumer) {
     throw ApiException("Nameservers is not a list");
   }
 
@@ -1793,7 +1793,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   autorr.auth = true;
   autorr.ttl = ::arg().asNum("default-ttl");
 
-  if (!have_soa && zonekind != DomainInfo::Slave && zonekind != DomainInfo::Consumer) {
+  if (!have_soa && zonekind != DomainInfo::Secondary && zonekind != DomainInfo::Consumer) {
     // synthesize a SOA record so the zone "really" exists
     string soa = ::arg()["default-soa-content"];
     boost::replace_all(soa, "@", zonename.toStringNoDot());
@@ -1846,7 +1846,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   }
 
   // no going back after this
-  if(!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), masters.get_value_or(vector<ComboAddress>()), account.get_value_or(""))) {
+  if (!B.createDomain(zonename, kind.get_value_or(DomainInfo::Native), primaries.get_value_or(vector<ComboAddress>()), account.get_value_or(""))) {
     throw ApiException("Creating domain '"+zonename.toString()+"' failed: backend refused");
   }
 
@@ -1872,7 +1872,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
 
   updateDomainSettingsFromDocument(B, di, zonename, document, !new_records.empty());
 
-  if (!catalog && kind == DomainInfo::Master) {
+  if (!catalog && kind == DomainInfo::Primary) {
     auto defaultCatalog = ::arg()["default-catalog-zone"];
     if (!defaultCatalog.empty()) {
       di.backend->setCatalog(zonename, DNSName(defaultCatalog));
@@ -2011,7 +2011,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
         }
       }
 
-      if (!haveSoa && newKind != DomainInfo::Slave && newKind != DomainInfo::Consumer) {
+      if (!haveSoa && newKind != DomainInfo::Secondary && newKind != DomainInfo::Consumer) {
         // Require SOA if this is a primary zone.
         throw ApiException("Must give SOA record for zone when replacing all RR sets");
       }
@@ -2032,7 +2032,7 @@ static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp) {
         di.backend->feedComment(c);
       }
 
-      if (!haveSoa && (newKind == DomainInfo::Slave || newKind == DomainInfo::Consumer)) {
+      if (!haveSoa && (newKind == DomainInfo::Secondary || newKind == DomainInfo::Consumer)) {
         di.backend->setStale(di.id);
       }
     } else {
@@ -2134,12 +2134,12 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp) {
     throw HttpNotFoundException();
   }
 
-  if(di.masters.empty())
-    throw ApiException("Domain '"+zonename.toString()+"' is not a slave domain (or has no master defined)");
+  if (di.primaries.empty())
+    throw ApiException("Domain '" + zonename.toString() + "' is not a secondary domain (or has no primary defined)");
 
-  shuffle(di.masters.begin(), di.masters.end(), pdns::dns_random_engine());
-  Communicator.addSuckRequest(zonename, di.masters.front(), SuckRequest::Api);
-  resp->setSuccessResult("Added retrieval request for '"+zonename.toString()+"' from master "+di.masters.front().toLogString());
+  shuffle(di.primaries.begin(), di.primaries.end(), pdns::dns_random_engine());
+  Communicator.addSuckRequest(zonename, di.primaries.front(), SuckRequest::Api);
+  resp->setSuccessResult("Added retrieval request for '" + zonename.toString() + "' from primary " + di.primaries.front().toLogString());
 }
 
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp) {

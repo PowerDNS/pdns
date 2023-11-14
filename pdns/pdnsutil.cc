@@ -261,7 +261,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       return 1;
     }
   } catch(const PDNSException &e) {
-    if (di.kind == DomainInfo::Slave) {
+    if (di.kind == DomainInfo::Secondary) {
       cout << "[Error] non-IP address for primaries: " << e.reason << endl;
       numerrors++;
     }
@@ -410,7 +410,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       rr.content = "\""+rr.content+"\"";
 
     try {
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, rr.content));
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, rr.content));
       string tmp=drc->serialize(rr.qname);
       tmp = drc->getZoneRepresentation(true);
       if (rr.qtype.getCode() != QType::AAAA) {
@@ -446,7 +446,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
 
     if (rr.qtype.getCode() == QType::SVCB || rr.qtype.getCode() == QType::HTTPS) {
-      shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, rr.content));
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, rr.content));
       // I, too, like to live dangerously
       auto svcbrc = std::dynamic_pointer_cast<SVCBBaseRecordContent>(drc);
       if (svcbrc->getPriority() == 0 && svcbrc->hasParams()) {
@@ -776,7 +776,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
 
   for (auto const &rr : checkCNAME) {
     DNSName target;
-    shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, rr.content));
+    shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, rr.content));
     switch (rr.qtype) {
       case QType::MX:
         target = std::dynamic_pointer_cast<MXRecordContent>(drc)->d_mxname;
@@ -1470,7 +1470,7 @@ static int loadZone(const DNSName& zone, const string& fname) {
         haveSOA = true;
     }
     try {
-      DNSRecordContent::mastermake(rr.qtype, QClass::IN, rr.content);
+      DNSRecordContent::make(rr.qtype, QClass::IN, rr.content);
     }
     catch (const PDNSException &pe) {
       cerr<<"Bad record content in record for "<<rr.qname<<"|"<<rr.qtype.toString()<<": "<<pe.reason<<endl;
@@ -1541,7 +1541,8 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
   return EXIT_SUCCESS;
 }
 
-static int createSlaveZone(const vector<string>& cmds) {
+static int createSecondaryZone(const vector<string>& cmds)
+{
   UeberBackend B;
   DomainInfo di;
   DNSName zone(cmds.at(1));
@@ -1549,12 +1550,12 @@ static int createSlaveZone(const vector<string>& cmds) {
     cerr << "Zone '" << zone << "' exists already" << endl;
     return EXIT_FAILURE;
   }
-  vector<ComboAddress> masters;
+  vector<ComboAddress> primaries;
   for (unsigned i=2; i < cmds.size(); i++) {
-    masters.emplace_back(cmds.at(i), 53);
+    primaries.emplace_back(cmds.at(i), 53);
   }
-  cerr << "Creating secondary zone '" << zone << "', with primaries '" << comboAddressVecToString(masters) << "'" << endl;
-  B.createDomain(zone, DomainInfo::Slave, masters, "");
+  cerr << "Creating secondary zone '" << zone << "', with primaries '" << comboAddressVecToString(primaries) << "'" << endl;
+  B.createDomain(zone, DomainInfo::Secondary, primaries, "");
   if(!B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' was not created!" << endl;
     return EXIT_FAILURE;
@@ -1562,7 +1563,8 @@ static int createSlaveZone(const vector<string>& cmds) {
   return EXIT_SUCCESS;
 }
 
-static int changeSlaveZoneMaster(const vector<string>& cmds) {
+static int changeSecondaryZonePrimary(const vector<string>& cmds)
+{
   UeberBackend B;
   DomainInfo di;
   DNSName zone(cmds.at(1));
@@ -1570,13 +1572,13 @@ static int changeSlaveZoneMaster(const vector<string>& cmds) {
     cerr << "Zone '" << zone << "' doesn't exist" << endl;
     return EXIT_FAILURE;
   }
-  vector<ComboAddress> masters;
+  vector<ComboAddress> primaries;
   for (unsigned i=2; i < cmds.size(); i++) {
-    masters.emplace_back(cmds.at(i), 53);
+    primaries.emplace_back(cmds.at(i), 53);
   }
-  cerr << "Updating secondary zone '" << zone << "', primaries to '" << comboAddressVecToString(masters) << "'" << endl;
+  cerr << "Updating secondary zone '" << zone << "', primaries to '" << comboAddressVecToString(primaries) << "'" << endl;
   try {
-    di.backend->setMasters(zone, masters);
+    di.backend->setPrimaries(zone, primaries);
     return EXIT_SUCCESS;
   }
   catch (PDNSException& e) {
@@ -1658,7 +1660,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     cout<<"Current records for "<<rr.qname<<" IN "<<rr.qtype.toString()<<" will be replaced"<<endl;
   }
   for(auto i = contentStart ; i < cmds.size() ; ++i) {
-    rr.content = DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, cmds.at(i))->getZoneRepresentation(true);
+    rr.content = DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, cmds.at(i))->getZoneRepresentation(true);
 
     newrrs.push_back(rr);
   }
@@ -1678,12 +1680,12 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   return EXIT_SUCCESS;
 }
 
-// addSuperMaster add a new autoprimary
-static int addSuperMaster(const std::string &IP, const std::string &nameserver, const std::string &account)
+// addAutoPrimary add a new autoprimary
+static int addAutoPrimary(const std::string& IP, const std::string& nameserver, const std::string& account)
 {
   UeberBackend B("default");
   const AutoPrimary primary(IP, nameserver, account);
-  if ( B.superMasterAdd(primary) ){
+  if (B.autoPrimaryAdd(primary)) {
     return EXIT_SUCCESS;
   }
   cerr<<"could not find a backend with autosecondary support"<<endl;
@@ -1896,19 +1898,19 @@ static void verifyCrypto(const string& zone)
     if(rr.qtype.getCode() == QType::DNSKEY) {
       cerr<<"got DNSKEY!"<<endl;
       apex=rr.qname;
-      drc = *std::dynamic_pointer_cast<DNSKEYRecordContent>(DNSRecordContent::mastermake(QType::DNSKEY, QClass::IN, rr.content));
+      drc = *std::dynamic_pointer_cast<DNSKEYRecordContent>(DNSRecordContent::make(QType::DNSKEY, QClass::IN, rr.content));
     }
     else if(rr.qtype.getCode() == QType::RRSIG) {
       cerr<<"got RRSIG"<<endl;
-      rrc = *std::dynamic_pointer_cast<RRSIGRecordContent>(DNSRecordContent::mastermake(QType::RRSIG, QClass::IN, rr.content));
+      rrc = *std::dynamic_pointer_cast<RRSIGRecordContent>(DNSRecordContent::make(QType::RRSIG, QClass::IN, rr.content));
     }
     else if(rr.qtype.getCode() == QType::DS) {
       cerr<<"got DS"<<endl;
-      dsrc = *std::dynamic_pointer_cast<DSRecordContent>(DNSRecordContent::mastermake(QType::DS, QClass::IN, rr.content));
+      dsrc = *std::dynamic_pointer_cast<DSRecordContent>(DNSRecordContent::make(QType::DS, QClass::IN, rr.content));
     }
     else {
       qname = rr.qname;
-      toSign.insert(DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, rr.content));
+      toSign.insert(DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, rr.content));
     }
   }
 
@@ -2068,8 +2070,8 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
       }
     }
     else if (di.isSecondaryType()) {
-      cout << "Primar" << addS(di.masters, "y", "ies") << ": ";
-      for(const auto& m : di.masters)
+      cout << "Primar" << addS(di.primaries, "y", "ies") << ": ";
+      for (const auto& m : di.primaries)
         cout<<m.toStringWithPort()<<" ";
       cout<<endl;
       struct tm tm;
@@ -2299,8 +2301,7 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
     return false;
   }
 
-  if(di.kind == DomainInfo::Slave)
-  {
+  if (di.kind == DomainInfo::Secondary) {
     cerr << "Warning! This is a secondary zone! If this was a mistake, please run" << endl;
     cerr<<"pdnsutil disable-dnssec "<<zone<<" right now!"<<endl;
   }
@@ -2364,7 +2365,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
   DNSBackend *db = B.backends[0].get();
   cout << "Creating secondary zone " << zone << endl;
-  db->createSlaveDomain("127.0.0.1", zone, "", "_testschema");
+  db->createSecondaryDomain("127.0.0.1", zone, "", "_testschema");
   cout << "Secondary zone created" << endl;
 
   DomainInfo di;
@@ -2757,7 +2758,7 @@ try
     // DNSResourceRecord rr;
     // rr.qtype = DNSRecordContent::TypeToNumber(cmds.at(1));
     // rr.content = cmds.at(2);
-    auto drc = DNSRecordContent::mastermake(DNSRecordContent::TypeToNumber(cmds.at(1)), QClass::IN, cmds.at(2));
+    auto drc = DNSRecordContent::make(DNSRecordContent::TypeToNumber(cmds.at(1)), QClass::IN, cmds.at(2));
     cout<<makeLuaString(drc->serialize(DNSName(), true))<<endl;
 
     return 0;
@@ -3114,19 +3115,19 @@ try
     }
     return createZone(DNSName(cmds.at(1)), cmds.size() > 2 ? DNSName(cmds.at(2)) : DNSName());
   }
-  else if (cmds.at(0) == "create-secondary-zone" || cmds.at(0) == "create-slave-zone") {
+  else if (cmds.at(0) == "create-secondary-zone") {
     if(cmds.size() < 3 ) {
       cerr << "Syntax: pdnsutil create-secondary-zone ZONE primary-ip [primary-ip..]" << endl;
       return 0;
     }
-    return createSlaveZone(cmds);
+    return createSecondaryZone(cmds);
   }
-  else if (cmds.at(0) == "change-secondary-zone-primary" || cmds.at(0) == "change-slave-zone-master") {
+  else if (cmds.at(0) == "change-secondary-zone-primary") {
     if(cmds.size() < 3 ) {
       cerr << "Syntax: pdnsutil change-secondary-zone-primary ZONE primary-ip [primary-ip..]" << endl;
       return 0;
     }
-    return changeSlaveZoneMaster(cmds);
+    return changeSecondaryZonePrimary(cmds);
   }
   else if (cmds.at(0) == "add-record") {
     if(cmds.size() < 5) {
@@ -3135,12 +3136,12 @@ try
     }
     return addOrReplaceRecord(true, cmds);
   }
-  else if (cmds.at(0) == "add-autoprimary" || cmds.at(0) == "add-supermaster") {
+  else if (cmds.at(0) == "add-autoprimary" || cmds.at(0) == "add-autoprimary") {
     if(cmds.size() < 3) {
       cerr << "Syntax: pdnsutil add-autoprimary IP NAMESERVER [account]" << endl;
       return 0;
     }
-    exit(addSuperMaster(cmds.at(1), cmds.at(2), cmds.size() > 3 ? cmds.at(3) : ""));
+    exit(addAutoPrimary(cmds.at(1), cmds.at(2), cmds.size() > 3 ? cmds.at(3) : ""));
   }
   else if (cmds.at(0) == "remove-autoprimary") {
     if(cmds.size() < 3) {
@@ -3798,9 +3799,9 @@ try
     }
     DNSName zname(cmds.at(1));
     string name = cmds.at(2);
-    if (cmds.at(3) == "primary" || cmds.at(3) == "master" || cmds.at(3) == "producer")
+    if (cmds.at(3) == "primary" || cmds.at(3) == "producer")
       metaKey = "TSIG-ALLOW-AXFR";
-    else if (cmds.at(3) == "secondary" || cmds.at(3) == "consumer" || cmds.at(3) == "slave")
+    else if (cmds.at(3) == "secondary" || cmds.at(3) == "consumer")
       metaKey = "AXFR-MASTER-TSIG";
     else {
       cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary type" << endl;
@@ -3843,9 +3844,9 @@ try
     }
     DNSName zname(cmds.at(1));
     string name = cmds.at(2);
-    if (cmds.at(3) == "primary" || cmds.at(3) == "producer" || cmds.at(3) == "master")
+    if (cmds.at(3) == "primary" || cmds.at(3) == "producer")
       metaKey = "TSIG-ALLOW-AXFR";
-    else if (cmds.at(3) == "secondary" || cmds.at(3) == "consumer" || cmds.at(3) == "slave")
+    else if (cmds.at(3) == "secondary" || cmds.at(3) == "consumer")
       metaKey = "AXFR-MASTER-TSIG";
     else {
       cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary type" << endl;
@@ -4128,7 +4129,8 @@ try
       DNSResourceRecord rr;
       cout<<"Processing '"<<di.zone<<"'"<<endl;
       // create zone
-      if (!tgt->createDomain(di.zone, di.kind, di.masters, di.account)) throw PDNSException("Failed to create zone");
+      if (!tgt->createDomain(di.zone, di.kind, di.primaries, di.account))
+         throw PDNSException("Failed to create zone");
       if (!tgt->getDomainInfo(di.zone, di_new)) throw PDNSException("Failed to create zone");
       // move records
       if (!src->list(di.zone, di.id, true)) throw PDNSException("Failed to list records");

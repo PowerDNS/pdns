@@ -33,7 +33,7 @@
 	port=$((port+100))
 
 	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --socket-dir=./ \
-		--no-shuffle --launch=bind --bind-config=./named-slave.conf --slave \
+		--no-shuffle --launch=bind --bind-config=./named-slave.conf --secondary \
 		--retrieval-threads=1  --config-name=bind-slave \
 		--dnsupdate=yes \
 		--cache-ttl=$cachettl --no-config --dname-processing --bind-dnssec-db=./dnssec-slave.sqlite3 \

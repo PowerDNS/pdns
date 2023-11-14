@@ -165,9 +165,8 @@ static void declareArguments()
   ::arg().set("proxy-protocol-maximum-size", "The maximum size of a proxy protocol payload, including the TLV values") = "512";
   ::arg().setSwitch("send-signed-notify", "Send TSIG secured NOTIFY if TSIG key is configured for a zone") = "yes";
   ::arg().set("allow-unsigned-notify", "Allow unsigned notifications for TSIG secured zones") = "yes"; // FIXME: change to 'no' later
-  ::arg().set("allow-unsigned-supermaster", "Allow supermasters to create zones without TSIG signed NOTIFY") = "yes";
   ::arg().set("allow-unsigned-autoprimary", "Allow autoprimaries to create zones without TSIG signed NOTIFY") = "yes";
-  ::arg().setSwitch("forward-dnsupdate", "A global setting to allow DNS update packages that are for a Slave zone, to be forwarded to the master.") = "yes";
+  ::arg().setSwitch("forward-dnsupdate", "A global setting to allow DNS update packages that are for a Secondary zone, to be forwarded to the primary.") = "yes";
   ::arg().setSwitch("log-dns-details", "If PDNS should log DNS non-erroneous details") = "no";
   ::arg().setSwitch("log-dns-queries", "If PDNS should log all incoming DNS queries") = "no";
   ::arg().set("local-address", "Local IP addresses to which we bind") = "0.0.0.0, ::";
@@ -178,7 +177,7 @@ static void declareArguments()
   ::arg().set("overload-queue-length", "Maximum queuelength moving to packetcache only") = "0";
   ::arg().set("max-queue-length", "Maximum queuelength before considering situation lost") = "5000";
 
-  ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for slave operation") = "2";
+  ::arg().set("retrieval-threads", "Number of AXFR-retrieval threads for secondary operation") = "2";
   ::arg().setSwitch("api", "Enable/disable the REST API (including HTTP listener)") = "no";
   ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API") = "";
   ::arg().setSwitch("default-api-rectify", "Default API-RECTIFY value for zones") = "yes";
@@ -212,7 +211,6 @@ static void declareArguments()
   ::arg().set("only-notify", "Only send AXFR NOTIFY to these IP addresses or netmasks") = "0.0.0.0/0,::/0";
   ::arg().set("also-notify", "When notifying a zone, also notify these nameservers") = "";
   ::arg().set("allow-notify-from", "Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.") = "0.0.0.0/0,::/0";
-  ::arg().set("slave-cycle-interval", "Schedule slave freshness checks once every .. seconds") = "";
   ::arg().set("xfr-cycle-interval", "Schedule primary/secondary SOA freshness checks once every .. seconds") = "60";
   ::arg().set("secondary-check-signature-freshness", "Check signatures in SOA freshness check. Sets DO flag on SOA queries. Outside some very problematic scenarios, say yes here.") = "yes";
 
@@ -221,12 +219,9 @@ static void declareArguments()
   ::arg().set("tcp-control-secret", "If set, PowerDNS can be controlled over TCP after passing this secret") = "";
   ::arg().set("tcp-control-range", "If set, remote control of PowerDNS is possible over these networks only") = "127.0.0.0/8, 10.0.0.0/8, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fe80::/10";
 
-  ::arg().setSwitch("slave", "Act as a secondary") = "no";
   ::arg().setSwitch("secondary", "Act as a secondary") = "no";
-  ::arg().setSwitch("master", "Act as a primary") = "no";
   ::arg().setSwitch("primary", "Act as a primary") = "no";
-  ::arg().setSwitch("superslave", "Act as a autosecondary") = "no";
-  ::arg().setSwitch("autosecondary", "Act as an autosecondary (formerly superslave)") = "no";
+  ::arg().setSwitch("autosecondary", "Act as an autosecondary") = "no";
   ::arg().setSwitch("disable-axfr-rectify", "Disable the rectify step during an outgoing AXFR. Only required for regression testing.") = "no";
   ::arg().setSwitch("guardian", "Run within a guardian process") = "no";
   ::arg().setSwitch("prevent-self-notification", "Don't send notifications to what we think is ourself") = "yes";
@@ -266,9 +261,8 @@ static void declareArguments()
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
 
   ::arg().set("trusted-notification-proxy", "IP address of incoming notification proxy") = "";
-  ::arg().set("slave-renotify", "If we should send out notifications for secondaried updates") = "no";
   ::arg().set("secondary-do-renotify", "If this secondary should send out notifications after receiving zone transfers from a primary") = "no";
-  ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of master or slave settings") = "";
+  ::arg().set("forward-notify", "IP addresses to forward received notifications to regardless of primary or secondary settings") = "";
 
   ::arg().set("default-ttl", "Seconds a result is valid if not set otherwise") = "3600";
   ::arg().set("max-tcp-connections", "Maximum number of TCP connections") = "20";
@@ -313,7 +307,7 @@ static void declareArguments()
   ::arg().set("lua-health-checks-expire-delay", "Stops doing health checks after the record hasn't been used for that delay (in seconds)") = "3600";
   ::arg().set("lua-health-checks-interval", "LUA records health checks monitoring interval in seconds") = "5";
 #endif
-  ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a master with a lower serial") = "no";
+  ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a primary with a lower serial") = "no";
 
   ::arg().set("lua-axfr-script", "Script to be used to edit incoming AXFRs") = "";
   ::arg().set("xfr-max-received-mbytes", "Maximum number of megabytes received from an incoming XFR") = "100";
@@ -1242,34 +1236,11 @@ int main(int argc, char** argv)
         g_log << Logger::Error << "Unknown logging facility " << ::arg().asNum("logging-facility") << endl;
     }
 
-    if (::arg().mustDo("master"))
-      ::arg().set("primary") = "yes";
-    if (::arg().mustDo("slave"))
-      ::arg().set("secondary") = "yes";
-    if (::arg().mustDo("slave-renotify"))
-      ::arg().set("secondary-do-renotify") = "yes";
-    if (::arg().mustDo("superslave"))
-      ::arg().set("autosecondary") = "yes";
-    if (::arg().mustDo("allow-unsigned-supermaster"))
-      ::arg().set("allow-unsigned-autoprimary") = "yes";
     if (!::arg().isEmpty("domain-metadata-cache-ttl"))
       ::arg().set("zone-metadata-cache-ttl") = ::arg()["domain-metadata-cache-ttl"];
-    if (!::arg().isEmpty("slave-cycle-interval"))
-      ::arg().set("xfr-cycle-interval") = ::arg()["slave-cycle-interval"];
 
     // this mirroring back is on purpose, so that config dumps reflect the actual setting on both names
-    if (::arg().mustDo("primary"))
-      ::arg().set("master") = "yes";
-    if (::arg().mustDo("secondary"))
-      ::arg().set("slave") = "yes";
-    if (::arg().mustDo("secondary-do-renotify"))
-      ::arg().set("slave-renotify") = "yes";
-    if (::arg().mustDo("autosecondary"))
-      ::arg().set("superslave") = "yes";
-    if (::arg().mustDo("allow-unsigned-autoprimary"))
-      ::arg().set("allow-unsigned-supermaster") = "yes";
     ::arg().set("domain-metadata-cache-ttl") = ::arg()["zone-metadata-cache-ttl"];
-    ::arg().set("slave-cycle-interval") = ::arg()["xfr-cycle-interval"];
 
     g_log.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
     g_log.disableSyslog(::arg().mustDo("disable-syslog"));
@@ -1437,7 +1408,7 @@ int main(int argc, char** argv)
     DynListener::registerFunc("RESPSIZES", &DLRSizesHandler, "get histogram of response sizes");
     DynListener::registerFunc("REMOTES", &DLRemotesHandler, "get top remotes");
     DynListener::registerFunc("SET", &DLSettingsHandler, "set config variables", "<var> <value>");
-    DynListener::registerFunc("RETRIEVE", &DLNotifyRetrieveHandler, "retrieve slave zone", "<zone> [<ip>]");
+    DynListener::registerFunc("RETRIEVE", &DLNotifyRetrieveHandler, "retrieve secondary zone", "<zone> [<ip>]");
     DynListener::registerFunc("CURRENT-CONFIG", &DLCurrentConfigHandler, "retrieve the current configuration", "[diff]");
     DynListener::registerFunc("LIST-ZONES", &DLListZones, "show list of zones", "[primary|secondary|native|consumer|producer]");
     DynListener::registerFunc("TOKEN-LOGIN", &DLTokenLogin, "Login to a PKCS#11 token", "<module> <slot> <pin>");

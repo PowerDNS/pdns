@@ -47,7 +47,7 @@ __EOF__
             fi
             if [ "$zone" = "tsig.com" ]; then
                 $PDNSUTIL --config-dir=. --config-name=lmdb import-tsig-key test $ALGORITHM $KEY
-                $PDNSUTIL --config-dir=. --config-name=lmdb activate-tsig-key tsig.com test master
+                $PDNSUTIL --config-dir=. --config-name=lmdb activate-tsig-key tsig.com test primary
             fi
         done
 

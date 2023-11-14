@@ -22,7 +22,7 @@ static inline std::shared_ptr<DNSRecordContent> getRecordContent(uint16_t type, 
     result = std::make_shared<OPTRecordContent>();
   }
   else {
-    result = DNSRecordContent::mastermake(type, QClass::IN, content);
+    result = DNSRecordContent::make(type, QClass::IN, content);
   }
 
   return result;
