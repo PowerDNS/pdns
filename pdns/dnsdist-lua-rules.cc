@@ -132,7 +132,7 @@ static void rmRule(GlobalStateHolder<vector<T> > *someRuleActions, boost::varian
       const auto uuid = getUniqueID(*str);
       auto removeIt = std::remove_if(rules.begin(),
                                      rules.end(),
-                                     [uuid](const T& rule) { return rule.d_id == uuid; });
+                                     [&uuid](const T& rule) { return rule.d_id == uuid; });
       if (removeIt == rules.end()) {
         g_outputBuffer = "Error: no rule matched\n";
         return;
