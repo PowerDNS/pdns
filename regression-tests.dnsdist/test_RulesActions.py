@@ -1313,6 +1313,46 @@ class TestSetRules(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
 
+class TestRmRules(DNSDistTest):
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%s"}
+    addAction(AllRule(), SpoofAction("192.0.2.1"), {name='myFirstRule', uuid='090736ca-2fb6-41e7-a836-58efaca3d71e'})
+    addAction(AllRule(), SpoofAction("192.0.2.1"), {name='mySecondRule'})
+    addResponseAction(AllRule(), AllowResponseAction(), {name='myFirstResponseRule', uuid='745a03b5-89e0-4eee-a6bf-c9700b0d31f0'})
+    addResponseAction(AllRule(), AllowResponseAction(), {name='mySecondResponseRule'})
+    """
+
+    def testRmRules(self):
+        """
+        Advanced: Remove rules
+        """
+        lines = self.sendConsoleCommand("showRules({showUUIDs=true})").splitlines()
+        self.assertEqual(len(lines), 3)
+        self.assertIn('myFirstRule', lines[1])
+        self.assertIn('mySecondRule', lines[2])
+        self.assertIn('090736ca-2fb6-41e7-a836-58efaca3d71e', lines[1])
+
+        lines = self.sendConsoleCommand("showResponseRules({showUUIDs=true})").splitlines()
+        self.assertEqual(len(lines), 3)
+        self.assertIn('myFirstResponseRule', lines[1])
+        self.assertIn('mySecondResponseRule', lines[2])
+        self.assertIn('745a03b5-89e0-4eee-a6bf-c9700b0d31f0', lines[1])
+
+        self.sendConsoleCommand("rmRule('090736ca-2fb6-41e7-a836-58efaca3d71e')")
+        self.sendConsoleCommand("rmRule('mySecondRule')")
+        lines = self.sendConsoleCommand("showRules({showUUIDs=true})").splitlines()
+        self.assertEqual(len(lines), 1)
+
+        self.sendConsoleCommand("rmResponseRule('745a03b5-89e0-4eee-a6bf-c9700b0d31f0')")
+        self.sendConsoleCommand("rmResponseRule('mySecondResponseRule')")
+        lines = self.sendConsoleCommand("showResponseRules({showUUIDs=true})").splitlines()
+        self.assertEqual(len(lines), 1)
+
 class TestAdvancedContinueAction(DNSDistTest):
 
     _config_template = """
