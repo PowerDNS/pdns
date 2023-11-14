@@ -734,7 +734,7 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
   for (size_t idx = 0; idx < 2; idx++) {
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_name(list, idx) == qname.toString());
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_type(list, idx) == qtype);
-    BOOST_CHECK(dnsdist_ffi_ring_entry_get_requestor(list, idx) == requestor1.toString());
+    BOOST_CHECK(dnsdist_ffi_ring_entry_get_requestor(list, idx) == requestor1.toStringWithPort());
     BOOST_CHECK(dnsdist_ffi_ring_entry_get_protocol(list, idx) == protocol.toNumber());
     BOOST_CHECK_EQUAL(dnsdist_ffi_ring_entry_get_size(list, idx), size);
     BOOST_CHECK(!dnsdist_ffi_ring_entry_has_mac_address(list, idx));

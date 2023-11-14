@@ -2,6 +2,7 @@
 import os.path
 
 import base64
+import dns
 import json
 import requests
 import socket
@@ -350,6 +351,59 @@ class TestAPIBasics(APITestsBase):
 
             for key in ['blocks']:
                 self.assertTrue(content[key] >= 0)
+
+    def testServersLocalhostRings(self):
+        """
+        API: /api/v1/servers/localhost/rings
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/rings'
+        expectedValues = ['age', 'id', 'name', 'requestor', 'size', 'qtype', 'protocol', 'rd']
+        expectedResponseValues = expectedValues + ['latency', 'rcode', 'tc', 'aa', 'answers', 'backend']
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        self.assertIn('queries', content)
+        self.assertIn('responses', content)
+        self.assertEqual(len(content['queries']), 0)
+        self.assertEqual(len(content['responses']), 0)
+
+        name = 'simple.api.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        self.assertIn('queries', content)
+        self.assertIn('responses', content)
+        self.assertEqual(len(content['queries']), 2)
+        self.assertEqual(len(content['responses']), 2)
+        for entry in content['queries']:
+            for value in expectedValues:
+                self.assertIn(value, entry)
+        for entry in content['responses']:
+            for value in expectedResponseValues:
+                self.assertIn(value, entry)
 
 class TestAPIServerDown(APITestsBase):
     __test__ = True
