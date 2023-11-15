@@ -10,7 +10,4 @@ sudo apt-get update
 sudo dpkg --purge --force-all grub-efi-amd64-signed && sudo dpkg --purge --force-all shim-signed
 sudo apt-get autoremove
 sudo apt-get -qq -y --allow-downgrades dist-upgrade
-sudo apt-get -qq -y --no-install-recommends install python3-pip
-sudo pip3 install git+https://github.com/pyinvoke/invoke@faa5728a6f76199a3da1750ed952e7efee17c1da
-sudo pip3 install gitpython
-sudo pip3 install unidiff
+sudo apt-get -qq -y --no-install-recommends install python3-pip python3-invoke
