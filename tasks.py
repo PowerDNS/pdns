@@ -8,7 +8,6 @@ import time
 auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
 
 clang_version = os.getenv('CLANG_VERSION', '13')
-rust_version = 'rust-1.72.0-x86_64-unknown-linux-gnu'
 quiche_version = '0.18.0'
 quiche_hash = 'eb242a14c4d801a90b57b6021dd29f7a62099f3a4d7a7ba889e105f8328e6c1f'
 
@@ -174,7 +173,7 @@ def install_clang_runtime(c):
 
 @task
 def ci_install_rust(c, repo):
-    c.sudo(f'{repo}/builder-support/helpers/install_rust.sh {rust_version}')
+    c.sudo(f'{repo}/builder-support/helpers/install_rust.sh')
 
 def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
