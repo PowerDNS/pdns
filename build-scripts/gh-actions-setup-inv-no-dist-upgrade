@@ -7,5 +7,3 @@ EOF
 sudo chmod 755 /usr/sbin/policy-rc.d
 sudo apt-get update
 sudo apt-get -qq -y --no-install-recommends install python3-pip python3-invoke
-sudo pip3 install gitpython
-sudo pip3 install unidiff
