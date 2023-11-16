@@ -203,22 +203,20 @@ static bool sortSOA(uint32_t i, uint32_t j) {
 static void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const string& workdir) {
   string dir = workdir + "/" + domain.toString();
   vector<uint32_t> zoneVersions;
-  {
-    auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(dir.c_str()), closedir);
-    if (!dirHandle) {
-      return;
-    }
-
-    struct dirent* entry = nullptr;
-    // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
-    while ((entry = readdir(dirHandle.get())) != nullptr) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
-      if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
-        continue;
+  auto directoryError = pdns::visit_directory(dir, [&zoneVersions]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
+    if (name != "." && name != "..") {
+      try {
+        auto version = pdns::checked_stoi<uint32_t>(std::string(name));
+        zoneVersions.push_back(version);
       }
-      //  NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
-      zoneVersions.push_back(std::stoi(entry->d_name));
+      catch (...) {
+      }
     }
+    return true;
+  });
+
+  if (directoryError) {
+    return;
   }
 
   g_log<<Logger::Info<<"Found "<<zoneVersions.size()<<" versions of "<<domain<<", asked to keep "<<keep<<", ";

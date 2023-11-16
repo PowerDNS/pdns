@@ -833,3 +833,8 @@ struct FDWrapper
 private:
   int d_fd{-1};
 };
+
+namespace pdns
+{
+[[nodiscard]] std::optional<std::string> visit_directory(const std::string& directory, const std::function<bool(ino_t inodeNumber, const std::string_view& name)>& visitor);
+}

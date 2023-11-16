@@ -112,22 +112,16 @@ vector<string> BackendMakerClass::getModules()
 
 void BackendMakerClass::load_all()
 {
-  // TODO: Implement this?
-  auto dir = std::unique_ptr<DIR, decltype(&closedir)>(opendir(arg()["module-dir"].c_str()), closedir);
-  if (!dir) {
-    g_log<<Logger::Error<<"Unable to open module directory '"<<arg()["module-dir"]<<"'"<<endl;
-    return;
-  }
-  struct dirent* entry = nullptr;
-  // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
-  while ((entry = readdir(dir.get())) != nullptr) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay): this is what dirent is
-    auto name = std::string_view(entry->d_name, strlen(entry->d_name));
+  auto directoryError = pdns::visit_directory(arg()["module-dir"], [this]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
     if (boost::starts_with(name, "lib") &&
         name.size() > 13 &&
         boost::ends_with(name, "backend.so")) {
-      load(entry->d_name);
+      load(std::string(name));
     }
+    return true;
+  });
+  if (directoryError) {
+    g_log<<Logger::Error<<"Unable to open module directory '"<<arg()["module-dir"]<<"': "<<*directoryError<<endl;
   }
 }
 
