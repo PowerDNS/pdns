@@ -1,0 +1,66 @@
+---
+name: Trigger build-and-test-all workflow for different products/releases
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 22 * * 3'
+
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  actions: read
+  contents: read
+
+jobs:
+  call-build-and-test-all-master:
+    name: Call build-and-test-all master
+    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@master
+    with:
+      branch-name: master
+
+  call-build-and-test-all-auth-48:
+    name: Call build-and-test-all rel/auth-4.8.x
+    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@auth-4.8.x-workflow-call
+    with:
+      branch-name: auth-4.8.x-workflow-call
+
+  call-build-and-test-all-auth-47:
+    name: Call build-and-test-all rel/auth-4.7.x
+    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@rel/auth-4.7.x-workflow-call
+    with:
+      branch-name: rel/auth-4.7.x-workflow-call
+
+  call-build-and-test-all-auth-46:
+    name: Call build-and-test-all rel/auth-4.6.x
+    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@rel/auth-4.6.x-workflow-call
+    with:
+      branch-name: rel/auth-4.6.x-workflow-call
+
+  call-build-and-test-all-rec-49:
+    name: Call build-and-test-all rel/rec-4.9.x
+    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@rel/rec-4.9.x-workflow-call
+    with:
+      branch-name: rel/rec-4.9.x-workflow-call
+
+  call-build-and-test-all-rec-48:
+    name: Call build-and-test-all rel/rec-4.8.x
+    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@rel/rec-4.8.x-workflow-call
+    with:
+      branch-name: rel/rec-4.8.x-workflow-call
+
+  call-build-and-test-all-rec-47:
+    name: Call build-and-test-all rel/rec-4.7.x
+    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@rel/rec-4.7.x-workflow-call
+    with:
+      branch-name: rel/rec-4.7.x-workflow-call
+
+  call-build-and-test-all-dnsdist-18:
+    name: Call build-and-test-all rel/dnsdist-1.8.x
+    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@rel/dnsdist-1.8.x-workflow-call
+    with:
+      branch-name: rel/dnsdist-1.8.x-workflow-call
+
+  call-build-and-test-all-dnsdist-17:
+    name: Call build-and-test-all rel/dnsdist-1.7.x
+    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@rel/dnsdist-1.7.x-workflow-call
+    with:
+      branch-name: rel/dnsdist-1.7.x-workflow-call
