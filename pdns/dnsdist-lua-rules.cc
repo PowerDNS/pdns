@@ -33,7 +33,7 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var, const std::string& ca
   bool suffixSeen = false;
   SuffixMatchNode smn;
   NetmaskGroup nmg;
-  auto add = [&nmg, &smn, &suffixSeen](string src) {
+  auto add = [&nmg, &smn, &suffixSeen](const string& src) {
     try {
       nmg.addMask(src); // need to try mask first, all masks are domain names!
     } catch (...) {
@@ -283,6 +283,7 @@ static boost::optional<T> getRuleFromSelector(const std::vector<T>& rules, const
   return boost::none;
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaRules(LuaContext& luaCtx)
 {
   luaCtx.writeFunction("makeRule", [](const luadnsrule_t& var) -> std::shared_ptr<DNSRule> {
