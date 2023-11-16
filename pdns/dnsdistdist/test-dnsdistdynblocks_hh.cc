@@ -9,6 +9,7 @@
 
 #include "dnsdist.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-metrics.hh"
 #include "dnsdist-rings.hh"
 
 Rings g_rings;
@@ -857,8 +858,10 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_CacheMissRatio, TestFixture) {
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
-  /* block above 0.5 Cache-Miss/Total ratio over numberOfSeconds seconds, no warning, minimum number of queries should be at least 51 */
-  dbrg.setCacheMissRatio(0.5, 0, numberOfSeconds, reason, blockDuration, action, 51);
+  /* block above 0.5 Cache-Miss/Total ratio over numberOfSeconds seconds, no warning, minimum number of queries should be at least 51, global cache hit at least 80% */
+  dnsdist::metrics::g_stats.cacheHits.store(80);
+  dnsdist::metrics::g_stats.cacheMisses.store(20);
+  dbrg.setCacheMissRatio(0.5, 0, numberOfSeconds, reason, blockDuration, action, 51, 0.8);
 
   {
     /* insert 50 cache misses and 50 cache hits from a given client in the last 10s
@@ -926,6 +929,28 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_CacheMissRatio, TestFixture) {
     dbrg.apply(now);
     BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
     BOOST_CHECK(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
+  }
+
+  /* the global cache-hit rate is too low, should not trigger */
+  dnsdist::metrics::g_stats.cacheHits.store(60);
+  dnsdist::metrics::g_stats.cacheMisses.store(40);
+  {
+    /* insert 51 cache misses and 49 hits from a given client in the last 10s */
+    g_rings.clear();
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 0U);
+    g_dynblockNMG.setState(emptyNMG);
+
+    for (size_t idx = 0; idx < 51; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dnsHeader, backend, outgoingProtocol);
+    }
+    for (size_t idx = 0; idx < 49; idx++) {
+      g_rings.insertResponse(now, requestor1, qname, qtype, responseTime, size, dnsHeader, cacheHit, outgoingProtocol);
+    }
+    BOOST_CHECK_EQUAL(g_rings.getNumberOfResponseEntries(), 100U);
+
+    dbrg.apply(now);
+    BOOST_CHECK_EQUAL(g_dynblockNMG.getLocal()->size(), 0U);
+    BOOST_REQUIRE(g_dynblockNMG.getLocal()->lookup(requestor1) == nullptr);
   }
 }
 

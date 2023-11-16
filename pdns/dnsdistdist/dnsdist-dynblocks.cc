@@ -830,4 +830,163 @@ std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaint
 {
   return s_tops.lock()->topSMTsByReason;
 }
+
+std::string DynBlockRulesGroup::DynBlockRule::toString() const
+{
+  if (!isEnabled()) {
+    return "";
+  }
+
+  std::stringstream result;
+  if (d_action != DNSAction::Action::None) {
+    result << DNSAction::typeToString(d_action) << " ";
+  }
+  else {
+    result << "Apply the global DynBlock action ";
+  }
+  result << "for " << std::to_string(d_blockDuration) << " seconds when over " << std::to_string(d_rate) << " during the last " << d_seconds << " seconds, reason: '" << d_blockReason << "'";
+
+  return result.str();
+}
+
+bool DynBlockRulesGroup::DynBlockRule::matches(const struct timespec& when)
+{
+  if (!d_enabled) {
+    return false;
+  }
+
+  if (d_seconds && when < d_cutOff) {
+    return false;
+  }
+
+  if (when < d_minTime) {
+    d_minTime = when;
+  }
+
+  return true;
+}
+
+bool DynBlockRulesGroup::DynBlockRule::rateExceeded(unsigned int count, const struct timespec& now) const
+{
+  if (!d_enabled) {
+    return false;
+  }
+
+  double delta = d_seconds ? d_seconds : DiffTime(now, d_minTime);
+  double limit = delta * d_rate;
+  return (count > limit);
+}
+
+bool DynBlockRulesGroup::DynBlockRule::warningRateExceeded(unsigned int count, const struct timespec& now) const
+{
+  if (!d_enabled) {
+    return false;
+  }
+
+  if (d_warningRate == 0) {
+    return false;
+  }
+
+  double delta = d_seconds ? d_seconds : DiffTime(now, d_minTime);
+  double limit = delta * d_warningRate;
+  return (count > limit);
+}
+
+bool DynBlockRulesGroup::DynBlockRatioRule::ratioExceeded(unsigned int total, unsigned int count) const
+{
+  if (!d_enabled) {
+    return false;
+  }
+
+  if (total < d_minimumNumberOfResponses) {
+    return false;
+  }
+
+  double allowed = d_ratio * static_cast<double>(total);
+  return (count > allowed);
+}
+
+bool DynBlockRulesGroup::DynBlockRatioRule::warningRatioExceeded(unsigned int total, unsigned int count) const
+{
+  if (!d_enabled) {
+    return false;
+  }
+
+  if (d_warningRatio == 0.0) {
+    return false;
+  }
+
+  if (total < d_minimumNumberOfResponses) {
+    return false;
+  }
+
+  double allowed = d_warningRatio * static_cast<double>(total);
+  return (count > allowed);
+}
+
+std::string DynBlockRulesGroup::DynBlockRatioRule::toString() const
+{
+  if (!isEnabled()) {
+    return "";
+  }
+
+  std::stringstream result;
+  if (d_action != DNSAction::Action::None) {
+    result << DNSAction::typeToString(d_action) << " ";
+  }
+  else {
+    result << "Apply the global DynBlock action ";
+  }
+  result << "for " << std::to_string(d_blockDuration) << " seconds when over " << std::to_string(d_ratio) << " ratio during the last " << d_seconds << " seconds, reason: '" << d_blockReason << "'";
+
+  return result.str();
+}
+
+bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::checkGlobalCacheHitRatio() const
+{
+  auto globalMisses = dnsdist::metrics::g_stats.cacheMisses.load();
+  auto globalHits = dnsdist::metrics::g_stats.cacheHits.load();
+  if (globalMisses == 0 || globalHits == 0) {
+    return false;
+  }
+  double globalCacheHitRatio = static_cast<double>(globalHits) / (globalHits + globalMisses);
+  return globalCacheHitRatio >= d_minimumGlobalCacheHitRatio;
+}
+
+bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::ratioExceeded(unsigned int total, unsigned int count) const
+{
+  if (!DynBlockRulesGroup::DynBlockRatioRule::ratioExceeded(total, count)) {
+    return false;
+  }
+
+  return checkGlobalCacheHitRatio();
+}
+
+bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::warningRatioExceeded(unsigned int total, unsigned int count) const
+{
+  if (!DynBlockRulesGroup::DynBlockRatioRule::warningRatioExceeded(total, count)) {
+    return false;
+  }
+
+  return checkGlobalCacheHitRatio();
+}
+
+std::string DynBlockRulesGroup::DynBlockCacheMissRatioRule::toString() const
+{
+  if (!isEnabled()) {
+    return "";
+  }
+
+  std::stringstream result;
+  if (d_action != DNSAction::Action::None) {
+    result << DNSAction::typeToString(d_action) << " ";
+  }
+  else {
+    result << "Apply the global DynBlock action ";
+  }
+  result << "for " << std::to_string(d_blockDuration) << " seconds when over " << std::to_string(d_ratio) << " ratio during the last " << d_seconds << " seconds, with a global cache-hit ratio of at least " << d_minimumGlobalCacheHitRatio << ", reason: '" << d_blockReason << "'";
+
+  return result.str();
+}
+
 #endif /* DISABLE_DYNBLOCKS */
