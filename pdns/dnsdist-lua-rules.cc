@@ -24,39 +24,49 @@
 #include "dnsdist-rules.hh"
 #include "dns_random.hh"
 
-std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var)
+std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var, const std::string& calledFrom)
 {
-  if (var.type() == typeid(std::shared_ptr<DNSRule>))
+  if (var.type() == typeid(std::shared_ptr<DNSRule>)) {
     return *boost::get<std::shared_ptr<DNSRule>>(&var);
+  }
 
+  bool suffixSeen = false;
   SuffixMatchNode smn;
   NetmaskGroup nmg;
-  auto add=[&](string src) {
+  auto add = [&nmg, &smn, &suffixSeen](string src) {
     try {
       nmg.addMask(src); // need to try mask first, all masks are domain names!
-    } catch(...) {
+    } catch (...) {
+      suffixSeen = true;
       smn.add(DNSName(src));
     }
   };
 
-  if (var.type() == typeid(string))
+  if (var.type() == typeid(string)) {
     add(*boost::get<string>(&var));
-
-  else if (var.type() == typeid(LuaArray<std::string>))
-    for(const auto& a : *boost::get<LuaArray<std::string>>(&var))
-      add(a.second);
-
-  else if (var.type() == typeid(DNSName))
+  }
+  else if (var.type() == typeid(LuaArray<std::string>)) {
+    for (const auto& str : *boost::get<LuaArray<std::string>>(&var)) {
+      add(str.second);
+    }
+  }
+  else if (var.type() == typeid(DNSName)) {
     smn.add(*boost::get<DNSName>(&var));
+  }
+  else if (var.type() == typeid(LuaArray<DNSName>)) {
+    smn = SuffixMatchNode();
+    for (const auto& name : *boost::get<LuaArray<DNSName>>(&var)) {
+      smn.add(name.second);
+    }
+  }
 
-  else if (var.type() == typeid(LuaArray<DNSName>))
-    for(const auto& a : *boost::get<LuaArray<DNSName>>(&var))
-      smn.add(a.second);
-
-  if(nmg.empty())
+  if (nmg.empty()) {
     return std::make_shared<SuffixMatchNodeRule>(smn);
-  else
-    return std::make_shared<NetmaskGroupRule>(nmg, true);
+  }
+  if (suffixSeen) {
+    warnlog("At least one parameter to %s has been parsed as a domain name amongst network masks, and will be ignored!", calledFrom);
+  }
+  return std::make_shared<NetmaskGroupRule>(nmg, true);
 }
 
 static boost::uuids::uuid makeRuleID(std::string& id)
@@ -275,7 +285,9 @@ static boost::optional<T> getRuleFromSelector(const std::vector<T>& rules, const
 
 void setupLuaRules(LuaContext& luaCtx)
 {
-  luaCtx.writeFunction("makeRule", makeRule);
+  luaCtx.writeFunction("makeRule", [](const luadnsrule_t& var) -> std::shared_ptr<DNSRule> {
+    return makeRule(var, "makeRule");
+  });
 
   luaCtx.registerFunction<string(std::shared_ptr<DNSRule>::*)()const>("toString", [](const std::shared_ptr<DNSRule>& rule) { return rule->toString(); });
 
@@ -379,7 +391,7 @@ void setupLuaRules(LuaContext& luaCtx)
           for (const auto& pair : newruleactions) {
             const auto& newruleaction = pair.second;
             if (newruleaction->d_action) {
-              auto rule = makeRule(newruleaction->d_rule);
+              auto rule = newruleaction->d_rule;
               gruleactions.push_back({std::move(rule), newruleaction->d_action, newruleaction->d_name, newruleaction->d_id, newruleaction->d_creationOrder});
             }
           }
@@ -508,13 +520,43 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new SNIRule(name));
   });
 
-  luaCtx.writeFunction("SuffixMatchNodeRule", [](const SuffixMatchNode& smn, boost::optional<bool> quiet) {
+  luaCtx.writeFunction("SuffixMatchNodeRule", [](const boost::variant<const SuffixMatchNode&, std::string, const LuaArray<std::string>> names, boost::optional<bool> quiet) {
+    if (names.type() == typeid(string)) {
+      SuffixMatchNode smn;
+      smn.add(DNSName(*boost::get<std::string>(&names)));
       return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
-    });
+    }
 
-  luaCtx.writeFunction("NetmaskGroupRule", [](const NetmaskGroup& nmg, boost::optional<bool> src, boost::optional<bool> quiet) {
+    if (names.type() == typeid(LuaArray<std::string>)) {
+      SuffixMatchNode smn;
+      for (const auto& str : *boost::get<const LuaArray<std::string>>(&names)) {
+        smn.add(DNSName(str.second));
+      }
+      return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
+    }
+
+    const auto& smn = *boost::get<const SuffixMatchNode&>(&names);
+    return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
+  });
+
+  luaCtx.writeFunction("NetmaskGroupRule", [](const boost::variant<const NetmaskGroup&, std::string, const LuaArray<std::string>> netmasks, boost::optional<bool> src, boost::optional<bool> quiet) {
+    if (netmasks.type() == typeid(string)) {
+      NetmaskGroup nmg;
+      nmg.addMask(*boost::get<std::string>(&netmasks));
       return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, src ? *src : true, quiet ? *quiet : false));
-    });
+    }
+
+    if (netmasks.type() == typeid(LuaArray<std::string>)) {
+      NetmaskGroup nmg;
+      for (const auto& str : *boost::get<const LuaArray<std::string>>(&netmasks)) {
+        nmg.addMask(str.second);
+      }
+      return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, src ? *src : true, quiet ? *quiet : false));
+    }
+
+    const auto& nmg = *boost::get<const NetmaskGroup&>(&netmasks);
+    return std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, src ? *src : true, quiet ? *quiet : false));
+  });
 
   luaCtx.writeFunction("benchRule", [](std::shared_ptr<DNSRule> rule, boost::optional<unsigned int> times_, boost::optional<string> suffix_)  {
       setLuaNoSideEffect();

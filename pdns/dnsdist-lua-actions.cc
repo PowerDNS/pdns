@@ -2305,7 +2305,7 @@ static void addAction(GlobalStateHolder<vector<T> > *someRuleActions, const luad
   parseRuleParams(params, uuid, name, creationOrder);
   checkAllParametersConsumed("addAction", params);
 
-  auto rule = makeRule(var);
+  auto rule = makeRule(var, "addAction");
   someRuleActions->modify([&rule, &action, &uuid, creationOrder, &name](vector<T>& ruleactions){
     ruleactions.push_back({std::move(rule), std::move(action), std::move(name), std::move(uuid), creationOrder});
     });
@@ -2350,7 +2350,7 @@ void setupLuaActions(LuaContext& luaCtx)
       parseRuleParams(params, uuid, name, creationOrder);
       checkAllParametersConsumed("newRuleAction", params);
 
-      auto rule = makeRule(dnsrule);
+      auto rule = makeRule(dnsrule, "newRuleAction");
       DNSDistRuleAction ra({std::move(rule), std::move(action), std::move(name), uuid, creationOrder});
       return std::make_shared<DNSDistRuleAction>(ra);
     });
