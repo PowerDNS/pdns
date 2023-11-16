@@ -4,6 +4,13 @@ name: 'Build and test everything'
 on:
   push:
   pull_request:
+  workflow_call:
+    inputs:
+      branch-name:
+        description: 'Checkout to a specific branch'
+        required: true
+        default: ''
+        type: string
   schedule:
     - cron: '0 22 * * 3'
 
@@ -31,6 +38,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -52,10 +60,11 @@ jobs:
       - run: inv ci-dnsdist-run-unit-tests
       - run: inv ci-make-install
       - run: ccache -s
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
         uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
         with:
-          name: dnsdist-${{ matrix.sanitizers }}
+          name: dnsdist-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
           retention-days: 1
 
@@ -78,10 +87,12 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: dnsdist-${{ matrix.sanitizers }}
+          name: dnsdist-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
@@ -102,6 +113,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: Install yq
         run: sudo wget https://github.com/mikefarah/yq/releases/download/v4.9.6/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
       - name: Get full list of jobs for this workflow
