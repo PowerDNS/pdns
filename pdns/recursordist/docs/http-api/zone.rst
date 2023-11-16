@@ -4,7 +4,7 @@ Zones
 Zone
 ----
 
-A Zone object represents an forward or authoritative DNS Zone.
+A Zone object represents a forward or authoritative DNS Zone.
 
 A Resource Record Set (below as "RRset") are all records for a given name and type.
 
