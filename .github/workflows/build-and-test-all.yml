@@ -4,6 +4,13 @@ name: 'Build and test everything'
 on:
   push:
   pull_request:
+  workflow_call:
+    inputs:
+      branch-name:
+        description: 'Checkout to a specific branch'
+        required: true
+        default: ''
+        type: string
   schedule:
     - cron: '0 22 * * 3'
 
@@ -36,6 +43,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -57,10 +65,11 @@ jobs:
       - run: inv ci-dnsdist-run-unit-tests
       - run: inv ci-make-install
       - run: ccache -s
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
         uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
         with:
-          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}
+          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
           retention-days: 1
 
@@ -83,10 +92,12 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: dnsdist-full-${{ matrix.sanitizers }}
+          name: dnsdist-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
@@ -108,6 +119,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: Get list of jobs in the workflow
         run: "yq e '.jobs | keys' .github/workflows/build-and-test-all.yml | awk '{print $2}' | grep -v collect | sort | tee /tmp/workflow-jobs-list.yml"
       - name: Get list of prerequisite jobs
