@@ -156,7 +156,14 @@ includeSOA
 .. versionadded:: 4.9.0
 
 Include the RPZ's SOA record to the reply's additional section if modified by a policy hit.
-Defaults to ``no``.
+Defaults to ``false``.
+
+ignoreDuplicates
+^^^^^^^^^^^^^^^^
+.. versionadded:: 5.0.0
+
+When loading an RPZ, ignore duplicate entries.
+Defaults to ``false``, duplicate entries will cause failure to load the zone.
 
 maxTTL
 ^^^^^^

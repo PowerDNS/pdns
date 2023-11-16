@@ -158,6 +158,9 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
   if (have.count("includeSOA") != 0) {
     zone->setIncludeSOA(boost::get<bool>(have["includeSOA"]));
   }
+  if (have.count("ignoreDuplicates") != 0) {
+    zone->setIgnoreDuplicates(boost::get<bool>(have["ignoreDuplicates"]));
+  }
 }
 
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>> protobufOptions_t;
