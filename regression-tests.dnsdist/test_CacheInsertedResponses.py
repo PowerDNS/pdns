@@ -11,7 +11,7 @@ class TestCacheInsertedResponses(DNSDistTest):
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
-    addCacheInsertedResponseAction(makeRule("cacheinsertedresponses.tests.powerdns.com."), LimitTTLResponseAction(%d, %d))
+    addCacheInsertedResponseAction(SuffixMatchNodeRule("cacheinsertedresponses.tests.powerdns.com."), LimitTTLResponseAction(%d, %d))
     newServer{address="127.0.0.1:%s"}
     """
     _config_params = ['capTTLMax', 'capTTLMin', '_testServerPort']

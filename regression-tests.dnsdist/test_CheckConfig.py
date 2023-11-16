@@ -42,7 +42,7 @@ class TestCheckConfig(unittest.TestCase):
             mySMN:add({"string-one.smn.tests.powerdns.com", "string-two.smn.tests.powerdns.com"})
             mySMN:add({newDNSName("dnsname-one.smn.tests.powerdns.com"), newDNSName("dnsname-two.smn.tests.powerdns.com")})
             addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(DNSRCode.NOTIMP))
-            addAction(makeRule("drop.test.powerdns.com."), DropAction())
+            addAction(SuffixMatchNodeRule("drop.test.powerdns.com."), DropAction())
         """
 
         self.tryDNSDist(configTemplate)

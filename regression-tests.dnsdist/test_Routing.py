@@ -9,14 +9,14 @@ class TestRoutingPoolRouting(DNSDistTest):
 
     _config_template = """
     newServer{address="127.0.0.1:%s", pool="real"}
-    addAction(makeRule("poolaction.routing.tests.powerdns.com"), PoolAction("real"))
+    addAction(SuffixMatchNodeRule("poolaction.routing.tests.powerdns.com"), PoolAction("real"))
     -- by default PoolAction stops the processing so the second rule should not be executed
-    addAction(makeRule("poolaction.routing.tests.powerdns.com"), PoolAction("not-real"))
+    addAction(SuffixMatchNodeRule("poolaction.routing.tests.powerdns.com"), PoolAction("not-real"))
 
     -- this time we configure PoolAction to not stop the processing
-    addAction(makeRule("poolaction-nostop.routing.tests.powerdns.com"), PoolAction("no-real", false))
+    addAction(SuffixMatchNodeRule("poolaction-nostop.routing.tests.powerdns.com"), PoolAction("no-real", false))
     -- so the second rule should be executed
-    addAction(makeRule("poolaction-nostop.routing.tests.powerdns.com"), PoolAction("real"))
+    addAction(SuffixMatchNodeRule("poolaction-nostop.routing.tests.powerdns.com"), PoolAction("real"))
     """
 
     def testPolicyPoolAction(self):
@@ -83,7 +83,7 @@ class TestRoutingPoolRouting(DNSDistTest):
 class TestRoutingQPSPoolRouting(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%s", pool="regular"}
-    addAction(makeRule("qpspoolaction.routing.tests.powerdns.com"), QPSPoolAction(10, "regular"))
+    addAction(SuffixMatchNodeRule("qpspoolaction.routing.tests.powerdns.com"), QPSPoolAction(10, "regular"))
     """
 
     def testQPSPoolAction(self):

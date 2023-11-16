@@ -14,7 +14,7 @@ class TestAdvancedAllow(DNSDistTest):
 
     _config_template = """
     addAction(AllRule(), NoneAction())
-    addAction(makeRule("allowed.advanced.tests.powerdns.com."), AllowAction())
+    addAction(SuffixMatchNodeRule("allowed.advanced.tests.powerdns.com."), AllowAction())
     addAction(AllRule(), DropAction())
     newServer{address="127.0.0.1:%s"}
     """

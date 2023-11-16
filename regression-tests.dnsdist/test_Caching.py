@@ -12,8 +12,8 @@ class TestCaching(DNSDistTest):
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
-    addAction(makeRule("nocache.cache.tests.powerdns.com."), SetSkipCacheAction())
-    addResponseAction(makeRule("nocache-response.cache.tests.powerdns.com."), SetSkipCacheResponseAction())
+    addAction(SuffixMatchNodeRule("nocache.cache.tests.powerdns.com."), SetSkipCacheAction())
+    addResponseAction(SuffixMatchNodeRule("nocache-response.cache.tests.powerdns.com."), SetSkipCacheResponseAction())
     function skipViaLua(dq)
         dq.skipCache = true
         return DNSAction.None, ""
