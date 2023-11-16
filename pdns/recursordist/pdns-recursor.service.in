@@ -10,8 +10,7 @@ ExecStart=@sbindir@/pdns_recursor --daemon=no --write-pid=no --disable-syslog --
 User=@service_user@
 Group=@service_group@
 Type=notify
-Restart=on-failure
-StartLimitInterval=0
+Restart=on-abnormal
 RuntimeDirectory=pdns-recursor
 SyslogIdentifier=pdns-recursor
 

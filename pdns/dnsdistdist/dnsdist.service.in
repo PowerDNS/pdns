@@ -13,10 +13,8 @@ User=@service_user@
 Group=@service_group@
 SyslogIdentifier=dnsdist
 Type=notify
-Restart=on-failure
-RestartSec=2
+Restart=on-abnormal
 TimeoutStopSec=5
-StartLimitInterval=0
 
 # Tuning
 TasksMax=8192
