@@ -598,6 +598,9 @@ Servers
   .. versionchanged:: 1.8.0
     Added ``autoUpgrade``, ``autoUpgradeDoHKey``, ``autoUpgradeInterval``, ``autoUpgradeKeep``, ``autoUpgradePool``, ``maxConcurrentTCPConnections``, ``subjectAddr``, ``lazyHealthCheckSampleSize``, ``lazyHealthCheckMinSampleCount``, ``lazyHealthCheckThreshold``, ``lazyHealthCheckFailedInterval``, ``lazyHealthCheckMode``, ``lazyHealthCheckUseExponentialBackOff``, ``lazyHealthCheckMaxBackOff``, ``lazyHealthCheckWhenUpgraded``, ``healthCheckMode`` and ``ktls`` to server_table.
 
+  :param str server_string: A simple IP:PORT string.
+  :param table server_table: A table with at least an ``address`` key
+
   Add a new backend server. Call this function with either a string::
 
     newServer(
@@ -606,77 +609,81 @@ Servers
 
   or a table::
 
-    newServer({
-      address="IP:PORT",                         -- IP and PORT of the backend server (mandatory)
-      id=STRING,                                 -- Use a pre-defined UUID instead of a random one
-      qps=NUM,                                   -- Limit the number of queries per second to NUM, when using the `firstAvailable` policy
-      order=NUM,                                 -- The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
-      weight=NUM,                                -- The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1
-                                                 -- Supported values are a minimum of 1, and a maximum of 2147483647.
-      pool=STRING|{STRING},                      -- The pools this server belongs to (unset or empty string means default pool) as a string or table of strings
-      retries=NUM,                               -- The number of TCP connection attempts to the backend, for a given query
-      tcpConnectTimeout=NUM,                     -- The timeout (in seconds) of a TCP connection attempt
-      tcpSendTimeout=NUM,                        -- The timeout (in seconds) of a TCP write attempt
-      tcpRecvTimeout=NUM,                        -- The timeout (in seconds) of a TCP read attempt
-      tcpFastOpen=BOOL,                          -- Whether to enable TCP Fast Open
-      ipBindAddrNoPort=BOOL,                     -- Whether to enable IP_BIND_ADDRESS_NO_PORT if available, default: true
-      name=STRING,                               -- The name associated to this backend, for display purpose
-      checkClass=NUM,                            -- Use NUM as QCLASS in the health-check query, default: DNSClass.IN
-      checkName=STRING,                          -- Use STRING as QNAME in the health-check query, default: "a.root-servers.net."
-      checkType=STRING,                          -- Use STRING as QTYPE in the health-check query, default: "A"
-      checkFunction=FUNCTION,                    -- Use this function to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
-      checkTimeout=NUM,                          -- The timeout (in milliseconds) of a health-check query, default: 1000 (1s)
-      setCD=BOOL,                                -- Set the CD (Checking Disabled) flag in the health-check query, default: false
-      maxCheckFailures=NUM,                      -- Allow NUM check failures before declaring the backend down, default: 1
-      checkInterval=NUM                          -- The time in seconds between health checks
-      mustResolve=BOOL,                          -- Set to true when the health check MUST return a RCODE different from NXDomain, ServFail and Refused. Default is false, meaning that every RCODE except ServFail is considered valid
-      useClientSubnet=BOOL,                      -- Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend
-      source=STRING,                             -- The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection
-                                                 -- The following formats are supported:
-                                                 --   "address", e.g. "192.0.2.2"
-                                                 --   "interface name", e.g. "eth0"
-                                                 --   "address@interface", e.g. "192.0.2.2@eth0"
-      addXPF=NUM,                                -- Add the client's IP address and port to the query, along with the original destination address and port,
-                                                 -- using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0). This is a deprecated feature that will be removed in the near future.
-      sockets=NUM,                               -- Number of UDP sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set 'sockets' to a number somewhat higher than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via `reuseport`). See also :func:`setRandomizedOutgoingSockets`.
-      disableZeroScope=BOOL,                     -- Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true
-      rise=NUM,                                  -- Require NUM consecutive successful checks before declaring the backend up, default: 1
-      useProxyProtocol=BOOL,                     -- Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled.
-      reconnectOnUp=BOOL,                        -- Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled.
-      maxInFlight=NUM,                           -- Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends.
-      tcpOnly=BOOL,                              -- Always forward queries to that backend over TCP, never over UDP. Always enabled for TLS backends. Default is false.
-      checkTCP=BOOL,                             -- Whether to do healthcheck queries over TCP, instead of UDP. Always enabled for DNS over TLS backend. Default is false.
-      tls=STRING,                                -- Enable DNS over TLS communications for this backend, or DNS over HTTPS if ``dohPath`` is set, using the TLS provider ("openssl" or "gnutls") passed in parameter. Default is an empty string, which means this backend is used for plain UDP and TCP.
-      caStore=STRING,                            -- Specifies the path to the CA certificate file, in PEM format, to use to check the certificate presented by the backend. Default is an empty string, which means to use the system CA store. Note that this directive is only used if ``validateCertificates`` is set.
-      ciphers=STRING,                            -- The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``.
-      ciphersTLS13=STRING,                       -- The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used.
-      subjectName=STRING,                        -- The subject name passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty. If set this value supersedes any ``subjectAddr`` one.
-      subjectAddr=STRING,                        -- The subject IP address passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty.
-      validateCertificates=BOOL,                 -- Whether the certificate presented by the backend should be validated against the CA store (see ``caStore``). Default is true.
-      dohPath=STRING,                            -- Enable DNS over HTTPS communication for this backend, using POST queries to the HTTP host supplied as ``subjectName`` and the HTTP path supplied in this parameter.
-      addXForwardedHeaders=BOOL,                 -- Whether to add X-Forwarded-For, X-Forwarded-Port and X-Forwarded-Proto headers to a DNS over HTTPS backend.
-      releaseBuffers=BOOL,                       -- Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection. Default to true.
-      enableRenegotiation=BOOL,                  -- Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS.
-      autoUpgrade=BOOL,                          -- Whether to use the 'Discovery of Designated Resolvers' mechanism to automatically upgrade a Do53 backend to DoT or DoH, depending on the priorities present in the SVCB record returned by the backend. Default to false.
-      autoUpgradeInterval=NUM,                   -- If ``autoUpgrade`` is set, how often to check if an upgrade is available, in seconds. Default is 3600 seconds.
-      autoUpgradeKeep=BOOL,                      -- If ``autoUpgrade`` is set, whether to keep the existing Do53 backend around after an upgrade. Default is false which means the Do53 backend will be replaced by the upgraded one.
-      autoUpgradePool=STRING,                    -- If ``autoUpgrade`` is set, in which pool to place the newly upgraded backend. Default is empty which means the backend is placed in the default pool.
-      autoUpgradeDoHKey=NUM,                     -- If ``autoUpgrade`` is set, the value to use for the SVC key corresponding to the DoH path. Default is 7.
-      maxConcurrentTCPConnections=NUM,           -- Maximum number of TCP connections to that backend. When that limit is reached, queries routed to that backend that cannot be forwarded over an existing connection will be dropped. Default is 0 which means no limit.
-      healthCheckMode=STRING                    -- The health-check mode to use: 'auto' which sends health-check queries every ``checkInterval`` seconds, 'up' which considers that the backend is always available, 'down' that it is always not available, and 'lazy' which only sends health-check queries after a configurable amount of regular queries have failed (see ``lazyHealthCheckSampleSize``, ``lazyHealthCheckMinSampleCount``, ``lazyHealthCheckThreshold``, ``lazyHealthCheckFailedInterval`` and ``lazyHealthCheckMode`` for more information). Default is 'auto'. See :ref:`Healthcheck` for a more detailed explanation.
-      lazyHealthCheckFailedInterval=NUM,         -- The interval, in seconds, between health-check queries in 'lazy' mode. Note that when ``lazyHealthCheckUseExponentialBackOff`` is set to true, the interval doubles between every queries. These queries are only sent when a threshold of failing regular queries has been reached, and until the backend is available again. Default is 30 seconds.
-      lazyHealthCheckMinSampleCount=NUM,         -- The minimum amount of regular queries that should have been recorded before the ``lazyHealthCheckThreshold`` threshold can be applied. Default is 1 which means only one query is needed.
-      lazyHealthCheckMode=STRING,                -- The 'lazy' health-check mode: 'TimeoutOnly' means that only timeout and I/O errors of regular queries will be considered for the ``lazyHealthCheckThreshold``, while 'TimeoutOrServFail' will also consider 'Server Failure' answers. Default is 'TimeoutOrServFail'.
-      lazyHealthCheckSampleSize=NUM,             -- The maximum size of the sample of queries to record and consider for the ``lazyHealthCheckThreshold``. Default is 100, which means the result (failure or success) of the last 100 queries will be considered.
-      lazyHealthCheckThreshold=NUM,              -- The threshold, as a percentage, of queries that should fail for the 'lazy' health-check to be triggered when ``healthCheckMode`` is set to ``lazy``. The default is 20 which means 20% of the last ``lazyHealthCheckSampleSize`` queries should fail for a health-check to be triggered.
-      lazyHealthCheckUseExponentialBackOff=BOOL, -- Whether the 'lazy' health-check should use an exponential back-off instead of a fixed value, between health-check probes. The default is false which means that after a backend has been moved to the 'down' state health-check probes are sent every ``lazyHealthCheckFailedInterval`` seconds. When set to true, the delay between each probe starts at ``lazyHealthCheckFailedInterval`` seconds and double between every probe, capped at ``lazyHealthCheckMaxBackOff`` seconds.
-      lazyHealthCheckMaxBackOff=NUM,             -- This value, in seconds, caps the time between two health-check queries when ``lazyHealthCheckUseExponentialBackOff`` is set to true. The default is 3600 which means that at most one hour will pass between two health-check queries.
-      lazyHealthCheckWhenUpgraded=BOOL,          -- Whether the auto-upgraded version of this backend (see ``autoUpgrade``) should use the lazy health-checking mode. Default is false, which means it will use the regular health-checking mode.
-      ktls=BOOL,                                 -- Whether to enable the experimental kernel TLS support on Linux, if both the kernel and the OpenSSL library support it. Default is false. Currently both DoT and DoH backend support this option.
-    })
+    newServer({ ... })
 
-  :param str server_string: A simple IP:PORT string.
-  :param table server_table: A table with at least a 'name' key
+  where the elements in the table can be:
+
+  .. csv-table::
+    :delim: space
+    :header: Keyword, Type, Description
+    :widths: auto
+
+    ``address``                              ``ip:port``           "``ip`` and ``port`` of the backend server (mandatory)"
+    ``id``                                   ``string``            "Use a pre-defined UUID instead of a random one"
+
+    ``qps``                                  ``number``            "Limit the number of queries per second to ``number``, when using the `firstAvailable` policy"
+    ``order``                                ``number``            "The order of this server, used by the `leastOutstanding` and `firstAvailable` policies"
+    ``weight``                               ``number``            "The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1. Supported values are a minimum of 1, and a maximum of 2147483647."
+    ``pool``                                 ``string|{string}``   "The pools this server belongs to (unset or empty string means default pool) as a string or table of strings"
+    ``retries``                              ``number``            "The number of TCP connection attempts to the backend, for a given query"
+    ``tcpConnectTimeout``                    ``number``            "The timeout (in seconds) of a TCP connection attempt"
+    ``tcpSendTimeout``                       ``number``            "The timeout (in seconds) of a TCP write attempt"
+    ``tcpRecvTimeout``                       ``number``            "The timeout (in seconds) of a TCP read attempt"
+    ``tcpFastOpen``                          ``bool``              "Whether to enable TCP Fast Open"
+    ``ipBindAddrNoPort``                     ``bool``              "Whether to enable IP_BIND_ADDRESS_NO_PORT if available, default: true"
+    ``name``                                 ``string``            "The name associated to this backend, for display purpose"
+    ``checkClass``                           ``number``            "Use ``number`` as QCLASS in the health-check query, default: DNSClass.IN"
+    ``checkName``                            ``string``            "Use ``string`` as QNAME in the health-check query, default: ``""a.root-servers.net.""`` "
+    ``checkType``                            ``string``            "Use ``string`` as QTYPE in the health-check query, default: ``""A""`` "
+    ``checkFunction``                        ``function``          "Use this function to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)"
+    ``checkTimeout``                         ``number``            "The timeout (in milliseconds) of a health-check query, default: 1000 (1s)"
+    ``setCD``                                ``bool``              "Set the CD (Checking Disabled) flag in the health-check query, default: false"
+    ``maxCheckFailures``                     ``number``            "Allow ``number`` check failures before declaring the backend down, default: 1"
+    ``checkInterval``                        ``number``            "The time in seconds between health checks"
+    ``mustResolve``                          ``bool``              "Set to true when the health check MUST return a RCODE different from NXDomain, ServFail and Refused. Default is false, meaning that every RCODE except ServFail is considered valid"
+    ``useClientSubnet``                      ``bool``              "Add the client's IP address in the EDNS Client Subnet option when forwarding the query to this backend"
+    ``source``                               ``string``            "The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection.
+                                                             The following formats are supported:
+
+                                                             - address, e.g. ``""192.0.2.2""``
+                                                             - interface name, e.g. ``""eth0""``
+                                                             - address@interface, e.g. ``""192.0.2.2@eth0""`` "
+     ``addXPF``                              ``number``            "Add the client's IP address and port to the query, along with the original destination address and port, using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0). This is a deprecated feature that will be removed in the near future."
+    ``sockets``                              ``number``            "Number of UDP sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set 'sockets' to a number somewhat higher than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via `reuseport`). See also :func:`setRandomizedOutgoingSockets`."
+    ``disableZeroScope``                     ``bool``              "Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true"
+    ``rise``                                 ``number``               "Require ``number`` consecutive successful checks before declaring the backend up, default: 1"
+    ``useProxyProtocol``                     ``bool``              "Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port. Default is disabled."
+    ``reconnectOnUp``                        ``bool``              "Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started. Default is disabled."
+    ``maxInFlight``                          ``number``            "Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. As of 1.6.0, out-of-order processing needs to be enabled on the frontend as well, via :func:`addLocal` and/or :func:`addTLSLocal`. Note that out-of-order is always enabled on DoH frontends."
+    ``tcpOnly``                              ``bool``              "Always forward queries to that backend over TCP, never over UDP. Always enabled for TLS backends. Default is false."
+    ``checkTCP``                             ``bool``              "Whether to do healthcheck queries over TCP, instead of UDP. Always enabled for DNS over TLS backend. Default is false."
+    ``tls``                                  ``string``            "Enable DNS over TLS communications for this backend, or DNS over HTTPS if ``dohPath`` is set, using the TLS provider (``""openssl""`` or ``""gnutls""``) passed in parameter. Default is an empty string, which means this backend is used for plain UDP and TCP."
+    ``caStore``                              ``string``            "Specifies the path to the CA certificate file, in PEM format, to use to check the certificate presented by the backend. Default is an empty string, which means to use the system CA store. Note that this directive is only used if ``validateCertificates`` is set."
+    ``ciphers``                              ``string``            "The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ``ciphersTLS13``."
+    ``ciphersTLS13``                         ``string``            "The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used."
+    ``subjectName``                          ``string``              "The subject name passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty. If set this value supersedes any ``subjectAddr`` one."
+    ``subjectAddr``                          ``string``            "The subject IP address passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty."
+    ``validateCertificates``                 ``bool``              "Whether the certificate presented by the backend should be validated against the CA store (see ``caStore``). Default is true."
+    ``dohPath``                              ``string``            "Enable DNS over HTTPS communication for this backend, using POST queries to the HTTP host supplied as ``subjectName`` and the HTTP path supplied in this parameter."
+    ``addXForwardedHeaders``                 ``bool``              "Whether to add X-Forwarded-For, X-Forwarded-Port and X-Forwarded-Proto headers to a DNS over HTTPS backend."
+    ``releaseBuffers``                       ``bool``              "Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection. Default to true."
+    ``enableRenegotiation``                  ``bool``              "Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS."
+    ``autoUpgrade``                          ``bool``              "Whether to use the 'Discovery of Designated Resolvers' mechanism to automatically upgrade a Do53 backend to DoT or DoH, depending on the priorities present in the SVCB record returned by the backend. Default to false."
+    ``autoUpgradeInterval``                  ``number``            "If ``autoUpgrade`` is set, how often to check if an upgrade is available, in seconds. Default is 3600 seconds."
+    ``autoUpgradeKeep``                      ``bool``              "If ``autoUpgrade`` is set, whether to keep the existing Do53 backend around after an upgrade. Default is false which means the Do53 backend will be replaced by the upgraded one."
+    ``autoUpgradePool``                      ``string``            "If ``autoUpgrade`` is set, in which pool to place the newly upgraded backend. Default is empty which means the backend is placed in the default pool."
+    ``autoUpgradeDoHKey``                    ``number``            "If ``autoUpgrade`` is set, the value to use for the SVC key corresponding to the DoH path. Default is 7."
+    ``maxConcurrentTCPConnections``          ``number``            "Maximum number of TCP connections to that backend. When that limit is reached, queries routed to that backend that cannot be forwarded over an existing connection will be dropped. Default is 0 which means no limit."
+    ``healthCheckMode``                      ``string``            "The health-check mode to use: 'auto' which sends health-check queries every ``checkInterval`` seconds, 'up' which considers that the backend is always available, 'down' that it is always not available, and 'lazy' which only sends health-check queries after a configurable amount of regular queries have failed (see ``lazyHealthCheckSampleSize``, ``lazyHealthCheckMinSampleCount``, ``lazyHealthCheckThreshold``, ``lazyHealthCheckFailedInterval`` and ``lazyHealthCheckMode`` for more information). Default is 'auto'. See :ref:`Healthcheck` for a more detailed explanation."
+     ``lazyHealthCheckFailedInterval``       ``number``            "The interval, in seconds, between health-check queries in 'lazy' mode. Note that when ``lazyHealthCheckUseExponentialBackOff`` is set to true, the interval doubles between every queries. These queries are only sent when a threshold of failing regular queries has been reached, and until the backend is available again. Default is 30 seconds."
+    ``lazyHealthCheckMinSampleCount``        ``number``            "The minimum amount of regular queries that should have been recorded before the ``lazyHealthCheckThreshold`` threshold can be applied. Default is 1 which means only one query is needed."
+    ``lazyHealthCheckMode``                  ``string``            "The 'lazy' health-check mode: 'TimeoutOnly' means that only timeout and I/O errors of regular queries will be considered for the ``lazyHealthCheckThreshold``, while 'TimeoutOrServFail' will also consider 'Server Failure' answers. Default is 'TimeoutOrServFail'."
+    ``lazyHealthCheckSampleSize``            ``number``            "The maximum size of the sample of queries to record and consider for the ``lazyHealthCheckThreshold``. Default is 100, which means the result (failure or success) of the last 100 queries will be considered."
+    ``lazyHealthCheckThreshold``             ``number``            "The threshold, as a percentage, of queries that should fail for the 'lazy' health-check to be triggered when ``healthCheckMode`` is set to ``lazy``. The default is 20 which means 20% of the last ``lazyHealthCheckSampleSize`` queries should fail for a health-check to be triggered."
+    ``lazyHealthCheckUseExponentialBackOff`` ``bool``              "Whether the 'lazy' health-check should use an exponential back-off instead of a fixed value, between health-check probes. The default is false which means that after a backend has been moved to the 'down' state health-check probes are sent every ``lazyHealthCheckFailedInterval`` seconds. When set to true, the delay between each probe starts at ``lazyHealthCheckFailedInterval`` seconds and double between every probe, capped at ``lazyHealthCheckMaxBackOff`` seconds."
+    ``lazyHealthCheckMaxBackOff``            ``number``            "This value, in seconds, caps the time between two health-check queries when ``lazyHealthCheckUseExponentialBackOff`` is set to true. The default is 3600 which means that at most one hour will pass between two health-check queries."
+    ``lazyHealthCheckWhenUpgraded``          ``bool``              "Whether the auto-upgraded version of this backend (see ``autoUpgrade``) should use the lazy health-checking mode. Default is false, which means it will use the regular health-checking mode."
+    ``ktls``                                 ``bool``              "Whether to enable the experimental kernel TLS support on Linux, if both the kernel and the OpenSSL library support it. Default is false. Currently both DoT and DoH backend support this option."
 
 .. function:: getServer(index) -> Server
 
