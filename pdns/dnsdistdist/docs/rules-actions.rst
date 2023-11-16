@@ -298,9 +298,13 @@ For Rules related to responses:
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
-  Add a Rule and Action for responses to the existing rules.
+  .. versionchanged:: 1.9.0
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
 
-  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  Add a Rule and Action for responses to the existing rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, a compounded bunch of rules using e.g. :func:`AndRule`, or a string (or list of) (deprecated since 1.9.0)
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -357,9 +361,13 @@ Functions for manipulating Cache Hit Response Rules:
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
-  Add a Rule and ResponseAction for Cache Hits to the existing rules.
+  .. versionchanged:: 1.9.0
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
 
-  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  Add a Rule and ResponseAction for Cache Hits to the existing rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, a compounded bunch of rules using e.g. :func:`AndRule`, or a string (or list of) (deprecated since 1.9.0)
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -413,9 +421,13 @@ Functions for manipulating Cache Inserted Response Rules:
 
   .. versionadded:: 1.8.0
 
-  Add a Rule and ResponseAction that is executed after a cache entry has been inserted to the existing rules.
+  .. versionchanged:: 1.9.0
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
 
-  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  Add a Rule and ResponseAction that is executed after a cache entry has been inserted to the existing rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, a compounded bunch of rules using e.g. :func:`AndRule`, or a string (or list of) (deprecated since 1.9.0)
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -466,9 +478,13 @@ Functions for manipulating Self-Answered Response Rules:
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
-  Add a Rule and Action for Self-Answered queries to the existing rules.
+  .. versionchanged:: 1.9.0
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
 
-  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  Add a Rule and Action for Self-Answered queries to the existing rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, a compounded bunch of rules using e.g. :func:`AndRule`, or a string (or list of) (deprecated since 1.9.0)
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
