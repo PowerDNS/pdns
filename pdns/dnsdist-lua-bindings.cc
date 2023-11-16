@@ -382,10 +382,17 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
 
   /* NetmaskGroup */
   luaCtx.writeFunction("newNMG", []() { return NetmaskGroup(); });
-  luaCtx.registerFunction<void(NetmaskGroup::*)(const std::string&mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
+  luaCtx.registerFunction<void(NetmaskGroup::*)(const std::string& mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
                          {
                            nmg.addMask(mask);
                          });
+  luaCtx.registerFunction<void(NetmaskGroup::*)(const NetmaskGroup& otherNMG)>("addNMG", [](NetmaskGroup& nmg, const NetmaskGroup& otherNMG) {
+    /* this is not going to be very efficient, sorry */
+    auto entries = otherNMG.toStringVector();
+    for (const auto& entry : entries) {
+      nmg.addMask(entry);
+    }
+  });
   luaCtx.registerFunction<void(NetmaskGroup::*)(const std::map<ComboAddress,int>& map)>("addMasks", [](NetmaskGroup&nmg, const std::map<ComboAddress,int>& map)
                          {
                            for (const auto& entry : map) {

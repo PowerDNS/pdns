@@ -751,6 +751,37 @@ class TestAdvancedNMGRule(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
+class TestAdvancedNMGAddNMG(DNSDistTest):
+    _config_template = """
+    oneNMG = newNMG()
+    anotherNMG = newNMG()
+    anotherNMG:addMask('127.0.0.1/32')
+    oneNMG:addNMG(anotherNMG)
+    addAction(NotRule(NetmaskGroupRule(oneNMG)), DropAction())
+    addAction(AllRule(), SpoofAction('192.0.2.1'))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedNMGRuleAddNMG(self):
+        """
+        Advanced: NMGRule:addNMG()
+        """
+        name = 'nmgrule-addnmg.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_,receivedResponse) = sender(query, response=expectedResponse, useQueue=False)
+            self.assertEqual(receivedResponse, expectedResponse)
+
 class TestDSTPortRule(DNSDistTest):
 
     _config_params = ['_dnsDistPort', '_testServerPort']

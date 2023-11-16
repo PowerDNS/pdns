@@ -1462,11 +1462,14 @@ public:
     return str.str();
   }
 
-  void toStringVector(vector<string>* vec) const
+  std::vector<std::string> toStringVector() const
   {
-    for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
-      vec->push_back((iter->second ? "" : "!") + iter->first.toString());
+    std::vector<std::string> out;
+    out.reserve(tree.size());
+    for (const auto& entry : tree) {
+      out.push_back((entry.second ? "" : "!") + entry.first.toString());
     }
+    return out;
   }
 
   void toMasks(const string &ips)
