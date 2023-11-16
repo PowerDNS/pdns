@@ -112,7 +112,6 @@ vector<string> BackendMakerClass::getModules()
 
 void BackendMakerClass::load_all()
 {
-  // TODO: Implement this?
   auto directoryError = pdns::visit_directory(arg()["module-dir"], [this]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
     if (boost::starts_with(name, "lib") &&
         name.size() > 13 &&
