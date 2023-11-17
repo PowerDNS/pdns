@@ -795,8 +795,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     std::thread newThread(dnsdist::resolver::asynchronousResolver, std::move(hostname), [callback=std::move(callback)](const std::string& resolvedHostname, std::vector<ComboAddress>& ips) {
       LuaArray<ComboAddress> result;
       result.reserve(ips.size());
-      for (auto& entry : ips) {
-        result.emplace_back(result.size() + 1, std::move(entry));
+      for (const auto& entry : ips) {
+        result.emplace_back(result.size() + 1, entry);
       }
       {
         auto lua = g_lua.lock();
