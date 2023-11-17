@@ -5,7 +5,10 @@
 #endif
 #include <decaf.hxx>
 #include <decaf/eddsa.hxx>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 #include <decaf/spongerng.hxx>
+#pragma GCC diagnostic pop
 #include "dnsseckeeper.hh"
 
 #include "dnssecinfra.hh"
