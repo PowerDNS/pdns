@@ -1,38 +1,58 @@
 platforms = [
-  ['linux',   [['HAVE_LINUX',   'On Linux']], [], []],
-  ['darwin',  [['HAVE_DARWIN',  'On Darwin/MacOS']],
-   ['__APPLE_USE_RFC_3542', '_XOPEN_SOURCE', '_DARWIN_C_SOURCE'], []],
-  ['openbsd', [['HAVE_OPENBSD', 'On OpenBSD']], [], []],
-  ['freebsd', [['HAVE_FREEBSD', 'On FreeBSD']], [], []],
-  ['sunos',   [['HAVE_SOLARIS', 'On Solaris/SunOS'],
-               ['NEED_POSIX_TYPEDEF', 'POSIX typedefs need to be defined'],
-               ['NEED_INET_NTOP_PROTO', 'OS is so broken that it needs an additional prototype']],
-   ['_REENTRANT'], ['posix4']],
+  {
+    'name': 'linux',
+    'config-defines': [{ 'name': 'HAVE_LINUX', 'description': 'On Linux' }],
+  },
+  {
+    'name': 'darwin',
+    'config-defines': [{ 'name': 'HAVE_DARWIN', 'description': 'On Darwin/MacOS' }],
+    'cmdline-defines': ['__APPLE_USE_RFC_3542', '_XOPEN_SOURCE', '_DARWIN_C_SOURCE'],
+  },
+  {
+    'name': 'openbsd',
+    'config-defines': [{ 'name': 'HAVE_OPENBSD', 'description': 'On OpenBSD' }],
+  },
+  {
+    'name': 'freebsd',
+    'config-defines': [{ 'name': 'HAVE_FREEBSD', 'description': 'On FreeBSD' }],
+  },
+  {
+    'name': 'sunos',
+    'config-defines': [
+      { 'name': 'HAVE_SOLARIS', 'description': 'On Solaris/SunOS' },
+      { 'name': 'NEED_POSIX_TYPEDEF', 'description': 'POSIX typedefs need to be defined' },
+      { 'name': 'NEED_INET_NTOP_PROTO', 'description': 'OS is so broken that it needs an additional prototype' },
+    ],
+    'cmdline-defines': ['_REENTRANT'],
+    'libraries': ['posix4'],
+  },
 ]
 
 platform_deps = []
 
 foreach platform: platforms
-  name = platform[0]
-  defines = platform[1]
-  args = platform[2]
-  libs = platform[3]
+  name = platform['name']
+  config_defines = 'config-defines' in platform ? platform['config-defines'] : []
+  cmdline_defines = 'cmdline-defines' in platform ? platform['cmdline-defines'] : []
+  libraries = 'libraries' in platform ? platform['libraries'] : []
 
   if system == name
+    set_variable('have_' + name, true)
+
     platform_defines = []
-    foreach define: defines
-      define_name = define[0]
-      define_desc = define[1]
+    foreach define: config_defines
+      define_name = define['name']
+      define_desc = define['description']
       conf.set(define_name, true, description: define_desc)
-      platform_defines += define[0]
+      platform_defines += define_name
     endforeach
 
-    foreach arg: args
-      add_project_arguments('-D' + arg, language: ['c', 'cpp'])
+    foreach cmdline_define: cmdline_defines
+      add_project_arguments('-D' + cmdline_define, language: ['c', 'cpp'])
     endforeach
 
-    foreach lib: libs
-      platform_deps += cxx.find_library(lib, required: true)
+    foreach library: libraries
+      platform_deps += cxx.find_library(library, required: true)
     endforeach
 
     summary('Platform Defines', platform_defines, section: 'System')
