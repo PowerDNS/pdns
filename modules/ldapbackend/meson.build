@@ -2,9 +2,9 @@ sources = [
   'ldapauthenticator.cc',
   'ldapbackend.cc',
   'ldaputils.cc',
-  'master.cc',
   'native.cc',
   'powerldap.cc',
+  'primary.cc',
 ]
 
 extras = [
