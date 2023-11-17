@@ -24,7 +24,10 @@
 #include <string>
 #include <list>
 #include <boost/utility.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
 #include <yahttp/yahttp.hpp>
+#pragma GCC diagnostic pop
 
 #include "json11.hpp"
 
