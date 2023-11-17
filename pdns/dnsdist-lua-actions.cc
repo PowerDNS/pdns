@@ -30,6 +30,7 @@
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-mac-address.hh"
 #include "dnsdist-protobuf.hh"
+#include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-kvs.hh"
 #include "dnsdist-svc.hh"
 
@@ -130,18 +131,18 @@ class TeeAction : public DNSAction
 {
 public:
   // this action does not stop the processing
-  TeeAction(const ComboAddress& rca, const boost::optional<ComboAddress>& lca, bool addECS=false);
+  TeeAction(const ComboAddress& rca, const boost::optional<ComboAddress>& lca, bool addECS = false, bool addProxyProtocol = false);
   ~TeeAction() override;
   DNSAction::Action operator()(DNSQuestion* dq, std::string* ruleresult) const override;
   std::string toString() const override;
   std::map<std::string, double> getStats() const override;
 
 private:
-  ComboAddress d_remote;
-  std::thread d_worker;
   void worker();
 
-  int d_fd{-1};
+  ComboAddress d_remote;
+  std::thread d_worker;
+  Socket d_socket;
   mutable std::atomic<unsigned long> d_senderrors{0};
   unsigned long d_recverrors{0};
   mutable std::atomic<unsigned long> d_queries{0};
@@ -156,32 +157,26 @@ private:
   stat_t d_otherrcode{0};
   std::atomic<bool> d_pleaseQuit{false};
   bool d_addECS{false};
+  bool d_addProxyProtocol{false};
 };
 
-TeeAction::TeeAction(const ComboAddress& rca, const boost::optional<ComboAddress>& lca, bool addECS)
-  : d_remote(rca), d_addECS(addECS)
+TeeAction::TeeAction(const ComboAddress& rca, const boost::optional<ComboAddress>& lca, bool addECS, bool addProxyProtocol)
+  : d_remote(rca), d_socket(d_remote.sin4.sin_family, SOCK_DGRAM, 0), d_addECS(addECS), d_addProxyProtocol(addProxyProtocol)
 {
-  d_fd=SSocket(d_remote.sin4.sin_family, SOCK_DGRAM, 0);
-  try {
-    if (lca) {
-      SBind(d_fd, *lca);
-    }
-    SConnect(d_fd, d_remote);
-    setNonBlocking(d_fd);
-    d_worker=std::thread([this](){worker();});
+  if (lca) {
+    d_socket.bind(*lca, false);
   }
-  catch (...) {
-    if (d_fd != -1) {
-      close(d_fd);
-    }
-    throw;
-  }
+  d_socket.connect(d_remote);
+  d_socket.setNonBlocking();
+  d_worker = std::thread([this]() {
+    worker();
+  });
 }
 
 TeeAction::~TeeAction()
 {
-  d_pleaseQuit=true;
-  close(d_fd);
+  d_pleaseQuit = true;
+  close(d_socket.releaseHandle());
   d_worker.join();
 }
 
@@ -189,28 +184,38 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, std::string* ruleresult
 {
   if (dq->overTCP()) {
     d_tcpdrops++;
+    return DNSAction::Action::None;
   }
-  else {
-    ssize_t res;
-    d_queries++;
 
-    if(d_addECS) {
-      PacketBuffer query(dq->getData());
-      bool ednsAdded = false;
-      bool ecsAdded = false;
+  d_queries++;
 
-      std::string newECSOption;
-      generateECSOption(dq->ecs ? dq->ecs->getNetwork() : dq->ids.origRemote, newECSOption, dq->ecs ? dq->ecs->getBits() : dq->ecsPrefixLength);
+  PacketBuffer query;
+  if (d_addECS) {
+    query = dq->getData();
+    bool ednsAdded = false;
+    bool ecsAdded = false;
 
-      if (!handleEDNSClientSubnet(query, dq->getMaximumSize(), dq->ids.qname.wirelength(), ednsAdded, ecsAdded, dq->ecsOverride, newECSOption)) {
-        return DNSAction::Action::None;
-      }
+    std::string newECSOption;
+    generateECSOption(dq->ecs ? dq->ecs->getNetwork() : dq->ids.origRemote, newECSOption, dq->ecs ? dq->ecs->getBits() : dq->ecsPrefixLength);
 
-      res = send(d_fd, query.data(), query.size(), 0);
+    if (!handleEDNSClientSubnet(query, dq->getMaximumSize(), dq->ids.qname.wirelength(), ednsAdded, ecsAdded, dq->ecsOverride, newECSOption)) {
+      return DNSAction::Action::None;
     }
-    else {
-      res = send(d_fd, dq->getData().data(), dq->getData().size(), 0);
+  }
+
+  if (d_addProxyProtocol) {
+    auto proxyPayload = getProxyProtocolPayload(*dq);
+    if (query.empty()) {
+      query = dq->getData();
     }
+    if (!addProxyProtocol(query, proxyPayload)) {
+      return DNSAction::Action::None;
+    }
+  }
+
+  {
+    const PacketBuffer& payload = query.empty() ? dq->getData() : query;
+    auto res = send(d_socket.getHandle(), payload.data(), payload.size(), 0);
 
     if (res <= 0) {
       d_senderrors++;
@@ -222,7 +227,7 @@ DNSAction::Action TeeAction::operator()(DNSQuestion* dq, std::string* ruleresult
 
 std::string TeeAction::toString() const
 {
-  return "tee to "+d_remote.toStringWithPort();
+  return "tee to " + d_remote.toStringWithPort();
 }
 
 std::map<std::string,double> TeeAction::getStats() const
@@ -247,7 +252,7 @@ void TeeAction::worker()
   ssize_t res = 0;
   const dnsheader_aligned dh(packet.data());
   for (;;) {
-    res = waitForData(d_fd, 0, 250000);
+    res = waitForData(d_socket.getHandle(), 0, 250000);
     if (d_pleaseQuit) {
       break;
     }
@@ -259,7 +264,7 @@ void TeeAction::worker()
     if (res == 0) {
       continue;
     }
-    res = recv(d_fd, packet.data(), packet.size(), 0);
+    res = recv(d_socket.getHandle(), packet.data(), packet.size(), 0);
     if (static_cast<size_t>(res) <= sizeof(struct dnsheader)) {
       d_recverrors++;
     }
@@ -2739,13 +2744,13 @@ void setupLuaActions(LuaContext& luaCtx)
     });
 #endif /* DISABLE_PROTOBUF */
 
-  luaCtx.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS, boost::optional<std::string> local) {
+  luaCtx.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS, boost::optional<std::string> local, boost::optional<bool> addProxyProtocol) {
       boost::optional<ComboAddress> localAddr{boost::none};
       if (local) {
         localAddr = ComboAddress(*local, 0);
       }
 
-      return std::shared_ptr<DNSAction>(new TeeAction(ComboAddress(remote, 53), localAddr, addECS ? *addECS : false));
+      return std::shared_ptr<DNSAction>(new TeeAction(ComboAddress(remote, 53), localAddr, addECS ? *addECS : false, addProxyProtocol ? *addProxyProtocol : false));
     });
 
   luaCtx.writeFunction("SetECSPrefixLengthAction", [](uint16_t v4PrefixLength, uint16_t v6PrefixLength) {
