@@ -48,6 +48,11 @@ public:
   {
   }
 
+  void setMaxEntries(uint64_t number)
+  {
+    d_maxEntries = number;
+  }
+
   static bool nsec3Disabled()
   {
     return s_maxNSEC3CommonPrefix == 0;
