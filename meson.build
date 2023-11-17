@@ -58,7 +58,6 @@ subdir('meson' / 'clock-gettime')           # Clock_gettime
 subdir('meson' / 'boost')                   # Boost
 subdir('meson' / 'boost-program-options')   # Boost Program Options Library
 subdir('meson' / 'reproducible')            # Reproducible Builds
-subdir('meson' / 'fuzz-targets')            # Fuzzing Targets
 subdir('meson' / 'dlopen')                  # dlopen
 subdir('meson' / 'verbose-logging')         # Verbose Logging
 subdir('meson' / 'pkcs11')                  # PKCS11
