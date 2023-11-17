@@ -30,7 +30,7 @@ void asynchronousResolver(const std::string& hostname, const std::function<void(
 {
   addrinfo hints{};
   hints.ai_family = AF_UNSPEC;
-  hints.ai_flags = AI_V4MAPPED | AI_ADDRCONFIG;
+  hints.ai_flags = AI_ADDRCONFIG;
   hints.ai_socktype = SOCK_DGRAM;
   addrinfo* infosRaw{nullptr};
   std::vector<ComboAddress> addresses;
