@@ -22,13 +22,15 @@
 #include "bpf-filter.hh"
 #include "config.h"
 #include "dnsdist.hh"
+#include "dnsdist-async.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-resolver.hh"
 #include "dnsdist-svc.hh"
 
 #include "dolog.hh"
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
-void setupLuaBindings(LuaContext& luaCtx, bool client)
+void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
 {
   luaCtx.writeFunction("vinfolog", [](const string& arg) {
       vinfolog("%s", arg);
@@ -784,5 +786,24 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       unixDie("Getting timestamp");
     }
     return now;
+  });
+
+  luaCtx.writeFunction("getAddressInfo", [client, configCheck](std::string hostname, std::function<void(const std::string& hostname, const LuaArray<ComboAddress>& ips)> callback) {
+    if (client || configCheck) {
+      return;
+    }
+    std::thread newThread(dnsdist::resolver::asynchronousResolver, std::move(hostname), [callback=std::move(callback)](const std::string& resolvedHostname, std::vector<ComboAddress>& ips) {
+      LuaArray<ComboAddress> result;
+      result.reserve(ips.size());
+      for (auto& entry : ips) {
+        result.emplace_back(result.size() + 1, std::move(entry));
+      }
+      {
+        auto lua = g_lua.lock();
+        callback(resolvedHostname, result);
+        dnsdist::handleQueuedAsynchronousEvents();
+      }
+    });
+    newThread.detach();
   });
 }

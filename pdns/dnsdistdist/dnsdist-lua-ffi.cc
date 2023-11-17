@@ -1000,7 +1000,7 @@ const char* getLuaFFIWrappers()
 
 void setupLuaLoadBalancingContext(LuaContext& luaCtx)
 {
-  setupLuaBindings(luaCtx, true);
+  setupLuaBindings(luaCtx, true, false);
   setupLuaBindingsDNSQuestion(luaCtx);
   setupLuaBindingsKVS(luaCtx, true);
   setupLuaVars(luaCtx);

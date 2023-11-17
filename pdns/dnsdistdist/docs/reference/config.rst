@@ -1915,6 +1915,25 @@ These values can be set at configuration time via:
 Other functions
 ---------------
 
+.. function:: getAddressInfo(hostname, callback)
+
+  .. versionadded:: 1.9.0
+
+  Asynchronously resolve, via the system resolver (using ``getaddrinfo()``), the supplied ``hostname`` to IPv4 and IPv6 before invoking the supplied ``callback`` function with the ``hostname`` and a list of IPv4 and IPv6 addresses as :class:`ComboAddress`.
+  For example, to get the addresses of Quad9's and dynamically add them as backends:
+
+  .. code-block:: lua
+
+    function resolveCB(hostname, ips)
+      for _, ip in ipairs(ips) do
+        newServer(ip:toString())
+      end
+    end
+    getAddressInfo('dns.quad9.net.', resolveCB)
+
+  :param str hostname: The hostname to resolve.
+  :param function callback: The function to invoke when the name has been resolved.
+
 .. function:: getCurrentTime -> timespec
 
   .. versionadded:: 1.8.0
