@@ -195,6 +195,18 @@ Like :ref:`setting-allow-notify-from`, except reading a sequence of `Subnet`_ fr
     'versionadded': '4.6.0'
     },
     {
+        'name' : 'allow_no_rd',
+        'section' : 'incoming',
+        'type' : LType.Bool,
+        'default' : 'false',
+        'help' : 'Allow \'no recursion desired (RD=0)\' queries.',
+        'doc' : '''
+Allow ``no recursion desired (RD=0) queries`` to query cache contents.
+If not set (the default), these queries are answered with rcode ``Refused``.
+ ''',
+    'versionadded': '5.5.0'
+    },
+    {
         'name' : 'any_to_tcp',
         'section' : 'recursor',
         'type' : LType.Bool,
@@ -204,7 +216,7 @@ Like :ref:`setting-allow-notify-from`, except reading a sequence of `Subnet`_ fr
 Answer questions for the ANY type on UDP with a truncated packet that refers the remote server to TCP.
 Useful for mitigating ANY reflection attacks.
  ''',
-    }, 
+    },
     {
         'name' : 'allow_trust_anchor_query',
         'section' : 'recursor',

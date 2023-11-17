@@ -71,6 +71,7 @@ unsigned int g_paddingTag;
 PaddingMode g_paddingMode;
 uint16_t g_udpTruncationThreshold;
 std::atomic<bool> g_quiet;
+bool g_allowNoRD;
 bool g_logCommonErrors;
 bool g_reusePort{false};
 bool g_gettagNeedsEDNSOptions{false};
@@ -1154,7 +1155,14 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     }
 
     if (!comboWriter->d_mdp.d_header.rd) {
-      resolver.setCacheOnly();
+      if (g_allowNoRD) {
+        resolver.setCacheOnly();
+      }
+      else {
+        ret.clear();
+        res = RCode::Refused;
+        goto haveAnswer; // NOLINT(cppcoreguidelines-avoid-goto)
+      }
     }
 
     if (comboWriter->d_luaContext) {
