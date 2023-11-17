@@ -855,7 +855,7 @@ bool DynBlockRulesGroup::DynBlockRule::matches(const struct timespec& when)
     return false;
   }
 
-  if (d_seconds && when < d_cutOff) {
+  if (d_seconds > 0 && when < d_cutOff) {
     return false;
   }
 
@@ -872,7 +872,7 @@ bool DynBlockRulesGroup::DynBlockRule::rateExceeded(unsigned int count, const st
     return false;
   }
 
-  double delta = d_seconds ? d_seconds : DiffTime(now, d_minTime);
+  double delta = d_seconds > 0 ? d_seconds : DiffTime(now, d_minTime);
   double limit = delta * d_rate;
   return (count > limit);
 }
@@ -887,7 +887,7 @@ bool DynBlockRulesGroup::DynBlockRule::warningRateExceeded(unsigned int count, c
     return false;
   }
 
-  double delta = d_seconds ? d_seconds : DiffTime(now, d_minTime);
+  double delta = d_seconds > 0 ? d_seconds : DiffTime(now, d_minTime);
   double limit = delta * d_warningRate;
   return (count > limit);
 }
@@ -949,7 +949,7 @@ bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::checkGlobalCacheHitRatio() 
   if (globalMisses == 0 || globalHits == 0) {
     return false;
   }
-  double globalCacheHitRatio = static_cast<double>(globalHits) / (globalHits + globalMisses);
+  double globalCacheHitRatio = (globalHits * static_cast<double>(1.0)) / (globalHits + globalMisses);
   return globalCacheHitRatio >= d_minimumGlobalCacheHitRatio;
 }
 

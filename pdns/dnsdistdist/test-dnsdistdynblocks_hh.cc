@@ -846,7 +846,9 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_CacheMissRatio, TestFixture) {
   uint16_t size = 42;
   dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
   unsigned int responseTime = 100 * 1000; /* 100ms */
-  struct timespec now;
+  struct timespec now
+  {
+  };
   gettime(&now);
   NetmaskTree<DynBlock, AddressAndPortRange> emptyNMG;
 
