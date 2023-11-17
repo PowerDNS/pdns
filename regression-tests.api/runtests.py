@@ -284,7 +284,10 @@ if not available:
     sys.exit(2)
 
 print("Query for example.com/A to create statistic data...")
-run_check_call([sdig, "127.0.0.1", str(DNSPORT), "example.com", "A"])
+if daemon == 'authoritative':
+  run_check_call([sdig, "127.0.0.1", str(DNSPORT), "example.com", "A"])
+else:
+  run_check_call([sdig, "127.0.0.1", str(DNSPORT), "example.com", "A", "recurse"])
 
 print("Running tests...")
 returncode = 0
