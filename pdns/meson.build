@@ -214,7 +214,13 @@ if not fs.is_file(libpdns_dnslabeltext_cc)
 
   libpdns_dnslabeltext_cc = ragel_generator.process('dnslabeltext.rl')
 endif
-libpdns_dnslabeltext = declare_dependency(sources: [libpdns_dnslabeltext_cc])
+libpdns_dnslabeltext = declare_dependency(
+  link_whole: static_library(
+    'pdns-dnslabeltext',
+    sources: [libpdns_dnslabeltext_cc],
+    dependencies: [deps],
+  )
+)
 
 libpdns_common = declare_dependency(
   link_whole: static_library(
