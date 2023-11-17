@@ -224,35 +224,53 @@ pdns_auth = executable(
   export_dynamic: true,
   dependencies: [
     dep_modules,
-    libpdns,
     libpdns_auth,
-    libpdns_auth_main,
-    libpdns_auth_ws,
-    libpdns_lua_records,
   ],
 )
 
-tools = ['util', 'auth-control', 'zone2sql', 'zone2json']
+tools = ['pdns-auth-util', 'pdns-auth-control', 'zone2sql', 'zone2json']
 
 if get_option('module-ldap') != 'disabled'
   tools += 'zone2ldap'
 endif
 
 if get_option('tools')
-  tools += ['sdig', 'calidns', 'dumresp', 'kvresp', 'stubquery', 'saxfr']
+  # TODO Broken: comfun
+  tools += [
+    'sdig', 'calidns', 'dumresp', 'kvresp', 'stubquery', 'saxfr', 'nsec3dig',
+    'dnswasher', 'dnsreplay', 'dnsscan', 'nproxy', 'pdns-auth-notify', 'dnsscope',
+    'dnsgram', 'dnsdemog', 'dnspcap2calidns', 'dnspcap2protobuf'
+  ]
 
+  if have_boost_1_48_0
+    tools += ['dnstcpbench', 'dnsbulktest']
+  endif
 endif
 
+if get_option('tools-ixfrdist')
+  tools += ['ixfrdist', 'ixplore']
+endif
 
+if get_option('unit-tests') or get_option('unit-tests-backends')
+  # TODO: NOINSTALL speedtest and pdns-auth-testrunner
+  tools += ['tsig_tests', 'speedtest', 'pdns-auth-testrunner']
+endif
 
+if get_option('fuzz-targets')
+  tools += [
+    'fuzz_target_moadnsparser',
+    'fuzz_target_packetcache',
+    'fuzz_target_proxyprotocol',
+    'fuzz_target_yahttp',
+    'fuzz_target_zoneparsertng',
+    'fuzz_target_dnslabeltext_parseRFC1035CharString',
+  ]
+endif
 
 foreach tool: tools
-  set_variable(
-    'pdns_' + tool.underscorify(),
-    executable(
-      'pdns-' + tool,
-      sources: [config_h],
-      dependencies: [get_variable('libpdns_' + tool.underscorify())],
-    )
+  executable(
+    tool,
+    sources: [config_h],
+    dependencies: [get_variable('lib' + tool.underscorify())],
   )
 endforeach
