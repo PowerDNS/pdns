@@ -1,5 +1,6 @@
 fs = import('fs')
 
+dep_cdb = get_variable('dep_cdb', dependency('', required: false))
 libpdns_cdb = dependency('', required: false)
 if dep_cdb.found()
   libpdns_cdb = declare_dependency(
