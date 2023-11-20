@@ -307,7 +307,7 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
         sr = getRR<SOARecordContent>(dr);
         domain = dr.d_name;
         zone->setDomain(domain);
-        soaRecord = dr;
+        soaRecord = std::move(dr);
       }
       else if (dr.d_type == QType::NS) {
         continue;
@@ -324,7 +324,7 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
 
   if (sr != nullptr) {
     zone->setRefresh(sr->d_st.refresh);
-    zone->setSOA(soaRecord);
+    zone->setSOA(std::move(soaRecord));
     setRPZZoneNewState(zone->getName(), sr->d_st.serial, zone->size(), true, false);
   }
   return sr;
@@ -568,7 +568,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
             auto tempSR = getRR<SOARecordContent>(rr);
             //	  g_log<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<currentSR->d_st.serial<<endl;
             if (tempSR) {
-              currentSR = tempSR;
+              currentSR = std::move(tempSR);
             }
           }
           else {
@@ -582,7 +582,7 @@ void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::opt
 
       /* only update sr now that all changes have been converted */
       if (currentSR) {
-        sr = currentSR;
+        sr = std::move(currentSR);
       }
       SLOG(g_log << Logger::Info << "Had " << totremove << " RPZ removal" << addS(totremove) << ", " << totadd << " addition" << addS(totadd) << " for " << zoneName << " New serial: " << sr->d_st.serial << endl,
            logger->info(Logr::Info, "RPZ mutations", "removals", Logging::Loggable(totremove), "additions", Logging::Loggable(totadd), "newserial", Logging::Loggable(sr->d_st.serial)));
