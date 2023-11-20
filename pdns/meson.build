@@ -87,8 +87,8 @@ libpdns_dnslabeltext = declare_dependency(
   )
 )
 
-libpdns_auth_apidocfiles_h = 'apidocfiles.h'
-if not fs.is_file(libpdns_auth_apidocfiles_h)
+libpdns_apidocfiles_h = 'apidocfiles.h'
+if not fs.is_file(libpdns_apidocfiles_h)
   py = import('python')
   python = py.find_installation('python3', modules: 'yaml', required: true)
 
@@ -96,8 +96,8 @@ if not fs.is_file(libpdns_auth_apidocfiles_h)
   summary('Path', python.full_path(), section: 'Swagger API')
   summary('Version', python.version(), section: 'Swagger API')
 
-  libpdns_auth_apidocfiles_h = custom_target(
-    'pdns-auth-apidocfiles-h',
+  libpdns_apidocfiles_h = custom_target(
+    'pdns-apidocfiles-h',
     command: [
       python,
       '@INPUT0@',
@@ -111,10 +111,10 @@ if not fs.is_file(libpdns_auth_apidocfiles_h)
     capture: true,
   )
 endif
-libpdns_auth_apidocfiles = declare_dependency(
+libpdns_apidocfiles = declare_dependency(
   link_whole: static_library(
     'pdns-auth-apidocfiles',
-    sources: [libpdns_auth_apidocfiles_h],
+    sources: [libpdns_apidocfiles_h],
   )
 )
 
@@ -327,6 +327,7 @@ tool_libs = {
       libpdns_bind_parser,
       libpdns_bind_dnssec_schema,
       libpdns_dnslabeltext,
+      libpdns_apidocfiles,
     ]
   },
   'pdns-auth-util': {
