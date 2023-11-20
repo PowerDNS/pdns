@@ -2,6 +2,7 @@
 name: Trigger build-and-test-all workflow for different products/releases
 
 on:
+  push: # only for testing purposes. remove before creating MR
   workflow_dispatch:
   schedule:
     - cron: '0 22 * * 3'
