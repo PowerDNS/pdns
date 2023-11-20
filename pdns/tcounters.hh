@@ -151,6 +151,7 @@ public:
   }
 
   template <typename Enum>
+  // coverity[auto_causes_copy]
   auto snapAt(Enum index)
   {
     return d_snapshot.lock()->at(index);
