@@ -58,7 +58,7 @@ struct Rings {
     struct timespec when;
     struct dnsheader dh;
     unsigned int usec;
-    unsigned int size;
+    uint16_t size;
     uint16_t qtype;
     // outgoing protocol
     dnsdist::Protocol protocol;
@@ -236,7 +236,7 @@ private:
 #endif
   }
 
-  void insertResponseLocked(boost::circular_buffer<Response>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, unsigned int size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
+  void insertResponseLocked(boost::circular_buffer<Response>& ring, const struct timespec& when, const ComboAddress& requestor, const DNSName& name, uint16_t qtype, unsigned int usec, uint16_t size, const struct dnsheader& dh, const ComboAddress& backend, dnsdist::Protocol protocol)
   {
     if (!ring.full()) {
       d_nbResponseEntries++;

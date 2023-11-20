@@ -1414,6 +1414,22 @@ Status, Statistics and More
 Dynamic Blocks
 --------------
 
+.. function:: addDynamicBlock(address, message[, action [, seconds [, clientIPMask [, clientIPPortMask]]]])
+
+  .. versionadded:: 1.9.0
+
+  Manually block an IP address or range with ``message`` for (optionally) a number of seconds.
+  The default number of seconds to block for is 10.
+
+  :param address: A :class:`ComboAddress` or string representing an IPv4 or IPv6 address
+  :param string message: The message to show next to the blocks
+  :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to DNSAction.None, meaning the one set with :func:`setDynBlocksAction` is used)
+  :param int seconds: The number of seconds this block to expire
+  :param int clientIPMask: The network mask to apply to the address. Default is 32 for IPv4, 128 for IPv6.
+  :param int clientIPPortMask: The port mask to use to specify a range of ports to match, when the clients are behind a CG-NAT.
+
+  Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported by the action paramater.
+
 .. function:: addDynBlocks(addresses, message[, seconds=10[, action]])
 
   Block a set of addresses with ``message`` for (optionally) a number of seconds.
@@ -1430,6 +1446,18 @@ Dynamic Blocks
 .. function:: clearDynBlocks()
 
   Remove all current dynamic blocks.
+
+.. function:: getDynamicBlocks()
+
+  .. versionadded:: 1.9.0
+
+  Return an associative table of active network-based dynamic blocks. The keys are the network IP or range that are blocked, the value are :class:`DynBlock` objects.
+
+.. function:: getDynamicBlocksSMT()
+
+  .. versionadded:: 1.9.0
+
+  Return an associative table of active domain-based (Suffix Match Tree or SMT) dynamic blocks. The keys are the domains that are blocked, the values are :class:`DynBlock` objects.
 
 .. function:: showDynBlocks()
 
@@ -1450,6 +1478,40 @@ Dynamic Blocks
   Setting this value to 0 disable the purging mechanism, so entries will remain in the tree.
 
   :param int sec: The interval between two runs of the cleaning algorithm, in seconds. Default is 60 (1 minute), 0 means disabled.
+
+.. class:: DynBlock
+
+  .. versionadded:: 1.9.0
+
+  Represent the current state of a dynamic block.
+
+  .. attribute:: DynBlock.action
+
+    The action of this block, as an integer representing a :ref:`DNSAction <DNSAction>`.
+
+  .. attribute:: DynBlock.blocks
+
+    The number of queries blocked.
+
+  .. attribute:: DynBlock.bpf
+
+    Whether this block is using eBPF, as a boolean.
+
+  .. attribute:: DynBlock.domain
+
+    The domain that is blocked, as a string, for Suffix Match Tree blocks.
+
+  .. attribute:: DynBlock.reason
+
+    The reason why this block was inserted, as a string.
+
+  .. attribute:: DynBlock.until
+
+    The time (in seconds since Epoch) at which the block will expire.
+
+  .. attribute:: DynBlock.warning
+
+    Whether this block is only a warning one (true) or is really enforced (false).
 
 .. _exceedfuncs:
 
@@ -1537,6 +1599,19 @@ faster than the existing rules.
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
+
+  .. method:: DynBlockRulesGroup:setNewBlockInsertedHook(hook)
+
+    .. versionadded:: 1.9.0
+
+    Set a Lua function that will be called everytime a new dynamic block is inserted. The function receives:
+
+    * an integer whose value is 0 if the block is Netmask-based one (Client IP or range) and 1 instead (Domain name suffix)
+    * the key (Client IP/range or domain suffix) as a string
+    * the reason of the block as a string
+    * the action of the block as an integer
+    * the duration of the block in seconds
+    * whether this is a warning block (true) or not (false)
 
   .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action [, warningRate]])
 

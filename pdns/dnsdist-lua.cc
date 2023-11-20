@@ -1418,6 +1418,58 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     });
   });
 
+  luaCtx.writeFunction("getDynamicBlocks", []() {
+    setLuaNoSideEffect();
+    struct timespec now
+    {
+    };
+    gettime(&now);
+
+    LuaAssociativeTable<DynBlock> entries;
+    auto fullCopy = g_dynblockNMG.getCopy();
+    for (const auto& blockPair : fullCopy) {
+      const auto& requestor = blockPair.first;
+      if (!(now < blockPair.second.until)) {
+        continue;
+      }
+      auto entry = blockPair.second;
+      if (g_defaultBPFFilter && entry.bpf) {
+        entry.blocks += g_defaultBPFFilter->getHits(requestor.getNetwork());
+      }
+      if (entry.action == DNSAction::Action::None) {
+        entry.action = g_dynBlockAction;
+      }
+      entries.emplace(requestor.toString(), std::move(entry));
+    }
+    return entries;
+  });
+
+  luaCtx.writeFunction("getDynamicBlocksSMT", []() {
+    setLuaNoSideEffect();
+    struct timespec now
+    {
+    };
+    gettime(&now);
+
+    LuaAssociativeTable<DynBlock> entries;
+    auto fullCopy = g_dynblockSMT.getCopy();
+    fullCopy.visit([&now, &entries](const SuffixMatchTree<DynBlock>& node) {
+      if (!(now < node.d_value.until)) {
+        return;
+      }
+      auto entry = node.d_value;
+      string key("empty");
+      if (!entry.domain.empty()) {
+        key = entry.domain.toString();
+      }
+      if (entry.action == DNSAction::Action::None) {
+        entry.action = g_dynBlockAction;
+      }
+      entries.emplace(std::move(key), std::move(entry));
+    });
+    return entries;
+  });
+
   luaCtx.writeFunction("clearDynBlocks", []() {
     setLuaSideEffect();
     nmts_t nmg;
@@ -1468,43 +1520,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          g_dynblockNMG.setState(slow);
                        });
 
-  luaCtx.writeFunction("addDynBlockSMT",
-                       [](const LuaArray<std::string>& names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
-                         if (names.empty()) {
-                           return;
-                         }
-                         setLuaSideEffect();
-                         auto slow = g_dynblockSMT.getCopy();
-                         struct timespec until, now;
-                         gettime(&now);
-                         until = now;
-                         int actualSeconds = seconds ? *seconds : 10;
-                         until.tv_sec += actualSeconds;
-
-                         for (const auto& capair : names) {
-                           unsigned int count = 0;
-                           DNSName domain(capair.second);
-                           domain.makeUsLowerCase();
-                           auto got = slow.lookup(domain);
-                           bool expired = false;
-                           if (got) {
-                             if (until < got->until) // had a longer policy
-                               continue;
-                             if (now < got->until) // only inherit count on fresh query we are extending
-                               count = got->blocks;
-                             else
-                               expired = true;
-                           }
-
-                           DynBlock db{msg, until, domain, (action ? *action : DNSAction::Action::None)};
-                           db.blocks = count;
-                           if (!got || expired)
-                             warnlog("Inserting dynamic block for %s for %d seconds: %s", domain, actualSeconds, msg);
-                           slow.add(domain, std::move(db));
-                         }
-                         g_dynblockSMT.setState(slow);
-                       });
-
   luaCtx.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {
     if (!checkConfigurationTime("setDynBlocksAction")) {
       return;
@@ -1518,6 +1533,69 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 #endif /* DISABLE_DEPRECATED_DYNBLOCK */
+
+  luaCtx.writeFunction("addDynBlockSMT",
+                       [](const LuaArray<std::string>& names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
+                         if (names.empty()) {
+                           return;
+                         }
+                         setLuaSideEffect();
+                         struct timespec now
+                         {
+                         };
+                         gettime(&now);
+                         unsigned int actualSeconds = seconds ? *seconds : 10;
+
+                         bool needUpdate = false;
+                         auto slow = g_dynblockSMT.getCopy();
+                         for (const auto& capair : names) {
+                           DNSName domain(capair.second);
+                           domain.makeUsLowerCase();
+
+                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, domain, msg, actualSeconds, action ? *action : DNSAction::Action::None, false)) {
+                             needUpdate = true;
+                           }
+                         }
+
+                         if (needUpdate) {
+                           g_dynblockSMT.setState(slow);
+                         }
+                       });
+
+  luaCtx.writeFunction("addDynamicBlock",
+                       [](const boost::variant<ComboAddress, std::string>& clientIP, const std::string& msg, const boost::optional<DNSAction::Action> action, const boost::optional<int> seconds, boost::optional<uint8_t> clientIPMask, boost::optional<uint8_t> clientIPPortMask) {
+                         setLuaSideEffect();
+
+                         ComboAddress clientIPCA;
+                         if (clientIP.type() == typeid(ComboAddress)) {
+                           clientIPCA = boost::get<ComboAddress>(clientIP);
+                         }
+                         else {
+                           auto clientIPStr = boost::get<std::string>(clientIP);
+                           try {
+                             clientIPCA = ComboAddress(clientIPStr);
+                           }
+                           catch (const std::exception& exp) {
+                             errlog("addDynamicBlock: Unable to parse '%s': %s", clientIPStr, exp.what());
+                             return;
+                           }
+                           catch (const PDNSException& exp) {
+                             errlog("addDynamicBlock: Unable to parse '%s': %s", clientIPStr, exp.reason);
+                             return;
+                           }
+                         }
+                         AddressAndPortRange target(clientIPCA, clientIPMask ? *clientIPMask : (clientIPCA.isIPv4() ? 32 : 128), clientIPPortMask ? *clientIPPortMask : 0);
+                         unsigned int actualSeconds = seconds ? *seconds : 10;
+
+                         struct timespec now
+                         {
+                         };
+                         gettime(&now);
+                         auto slow = g_dynblockNMG.getCopy();
+                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, msg, actualSeconds, action ? *action : DNSAction::Action::None, false, false)) {
+                           g_dynblockNMG.setState(slow);
+                         }
+                       });
 
   luaCtx.writeFunction("setDynBlocksPurgeInterval", [](uint64_t interval) {
     DynBlockMaintenance::s_expiredDynBlocksPurgeInterval = interval;

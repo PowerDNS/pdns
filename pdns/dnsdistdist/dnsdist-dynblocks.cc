@@ -8,7 +8,6 @@ GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
 
 #ifndef DISABLE_DYNBLOCKS
-
 void DynBlockRulesGroup::apply(const struct timespec& now)
 {
   counts_t counts;
@@ -30,7 +29,7 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
     return;
   }
 
-  boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> > blocks;
+  boost::optional<NetmaskTree<DynBlock, AddressAndPortRange>> blocks;
   bool updated = false;
 
   for (const auto& entry : counts) {
@@ -109,49 +108,57 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
     g_dynblockNMG.setState(std::move(*blocks));
   }
 
-  if (!statNodeRoot.empty()) {
-    StatNode::Stat node;
-    std::unordered_map<DNSName, std::optional<std::string>> namesToBlock;
-    statNodeRoot.visit([this,&namesToBlock](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
-                         bool block = false;
-                         std::optional<std::string> reason;
+  applySMT(now, statNodeRoot);
+}
 
-                         if (d_smtVisitorFFI) {
-                           dnsdist_ffi_stat_node_t tmp(*node_, self, children, reason);
-                           block = d_smtVisitorFFI(&tmp);
-                         }
-                         else {
-                           auto ret = d_smtVisitor(*node_, self, children);
-                           block = std::get<0>(ret);
-                           if (block) {
-                             if (boost::optional<std::string> tmp = std::get<1>(ret)) {
-                               reason = std::move(*tmp);
-                             }
-                           }
-                         }
+void DynBlockRulesGroup::applySMT(const struct timespec& now, StatNode& statNodeRoot)
+{
+  if (statNodeRoot.empty()) {
+    return;
+  }
 
-                         if (block) {
-                           namesToBlock.insert({DNSName(node_->fullname), std::move(reason)});
-                         }
-                       },
-      node);
+  bool updated = false;
+  StatNode::Stat node;
+  std::unordered_map<DNSName, std::optional<std::string>> namesToBlock;
+  statNodeRoot.visit([this, &namesToBlock](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
+    bool block = false;
+    std::optional<std::string> reason;
 
-    if (!namesToBlock.empty()) {
-      updated = false;
-      SuffixMatchTree<DynBlock> smtBlocks = g_dynblockSMT.getCopy();
-      for (auto& [name, reason] : namesToBlock) {
-        if (reason) {
-          DynBlockRule rule(d_suffixMatchRule);
-          rule.d_blockReason = std::move(*reason);
-          addOrRefreshBlockSMT(smtBlocks, now, std::move(name), std::move(rule), updated);
-        }
-        else {
-          addOrRefreshBlockSMT(smtBlocks, now, std::move(name), d_suffixMatchRule, updated);
+    if (d_smtVisitorFFI) {
+      dnsdist_ffi_stat_node_t tmp(*node_, self, children, reason);
+      block = d_smtVisitorFFI(&tmp);
+    }
+    else {
+      auto ret = d_smtVisitor(*node_, self, children);
+      block = std::get<0>(ret);
+      if (block) {
+        if (boost::optional<std::string> tmp = std::get<1>(ret)) {
+          reason = std::move(*tmp);
         }
       }
-      if (updated) {
-        g_dynblockSMT.setState(std::move(smtBlocks));
+    }
+
+    if (block) {
+      namesToBlock.insert({DNSName(node_->fullname), std::move(reason)});
+    }
+  },
+                     node);
+
+  if (!namesToBlock.empty()) {
+    updated = false;
+    SuffixMatchTree<DynBlock> smtBlocks = g_dynblockSMT.getCopy();
+    for (auto& [name, reason] : namesToBlock) {
+      if (reason) {
+        DynBlockRule rule(d_suffixMatchRule);
+        rule.d_blockReason = std::move(*reason);
+        addOrRefreshBlockSMT(smtBlocks, now, name, rule, updated);
       }
+      else {
+        addOrRefreshBlockSMT(smtBlocks, now, name, d_suffixMatchRule, updated);
+      }
+    }
+    if (updated) {
+      g_dynblockSMT.setState(std::move(smtBlocks));
     }
   }
 }
@@ -174,11 +181,7 @@ bool DynBlockRulesGroup::checkIfResponseCodeMatches(const Rings::Response& respo
   }
 
   auto ratio = d_rcodeRatioRules.find(response.dh.rcode);
-  if (ratio != d_rcodeRatioRules.end() && ratio->second.matches(response.when)) {
-    return true;
-  }
-
-  return false;
+  return ratio != d_rcodeRatioRules.end() && ratio->second.matches(response.when);
 }
 
 /* return the actual action that will be taken by that block:
@@ -193,40 +196,36 @@ static DNSAction::Action getActualAction(const DynBlock& block)
   return g_dynBlockAction;
 }
 
-void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange> >& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning)
+namespace dnsdist::DynamicBlocks
 {
-  /* network exclusions are address-based only (no port) */
-  if (d_excludedSubnets.match(requestor.getNetwork())) {
-    /* do not add a block for excluded subnets */
-    return;
-  }
-
-  if (!blocks) {
-    blocks = g_dynblockNMG.getCopy();
-  }
-  struct timespec until = now;
-  until.tv_sec += rule.d_blockDuration;
+bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const std::string& reason, unsigned int duration, DNSAction::Action action, bool warning, bool beQuiet)
+{
   unsigned int count = 0;
-  const auto& got = blocks->lookup(requestor);
   bool expired = false;
   bool wasWarning = false;
   bool bpf = false;
+  struct timespec until = now;
+  until.tv_sec += duration;
 
-  if (got) {
+  DynBlock dblock{reason, until, DNSName(), warning ? DNSAction::Action::NoOp : action};
+  dblock.warning = warning;
+
+  const auto& got = blocks.lookup(requestor);
+  if (got != nullptr) {
     bpf = got->second.bpf;
 
     if (warning && !got->second.warning) {
       /* we have an existing entry which is not a warning,
          don't override it */
-      return;
+      return false;
     }
-    else if (!warning && got->second.warning) {
+    if (!warning && got->second.warning) {
       wasWarning = true;
     }
     else {
       if (until < got->second.until) {
         // had a longer policy
-        return;
+        return false;
       }
     }
 
@@ -239,14 +238,11 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
     }
   }
 
-  DynBlock db{rule.d_blockReason, until, DNSName(), warning ? DNSAction::Action::NoOp : rule.d_action};
-  db.blocks = count;
-  db.warning = warning;
-  if (!got || expired || wasWarning) {
-    const auto actualAction = getActualAction(db);
-    if (g_defaultBPFFilter &&
-        ((requestor.isIPv4() && requestor.getBits() == 32) || (requestor.isIPv6() && requestor.getBits() == 128)) &&
-        (actualAction == DNSAction::Action::Drop || actualAction == DNSAction::Action::Truncate)) {
+  dblock.blocks = count;
+
+  if (got == nullptr || expired || wasWarning) {
+    const auto actualAction = getActualAction(dblock);
+    if (g_defaultBPFFilter && ((requestor.isIPv4() && requestor.getBits() == 32) || (requestor.isIPv6() && requestor.getBits() == 128)) && (actualAction == DNSAction::Action::Drop || actualAction == DNSAction::Action::Truncate)) {
       try {
         BPFFilter::MatchAction bpfAction = actualAction == DNSAction::Action::Drop ? BPFFilter::MatchAction::Drop : BPFFilter::MatchAction::Truncate;
         if (g_defaultBPFFilter->supportsMatchAction(bpfAction)) {
@@ -260,41 +256,37 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
       }
     }
 
-    if (!d_beQuiet) {
-      warnlog("Inserting %s%sdynamic block for %s for %d seconds: %s", warning ? "(warning) " :"", bpf ? "eBPF " : "", requestor.toString(), rule.d_blockDuration, rule.d_blockReason);
+    if (!beQuiet) {
+      warnlog("Inserting %s%sdynamic block for %s for %d seconds: %s", warning ? "(warning) " : "", bpf ? "eBPF " : "", requestor.toString(), duration, reason);
     }
   }
 
-  db.bpf = bpf;
+  dblock.bpf = bpf;
 
-  blocks->insert(requestor).second = std::move(db);
+  blocks.insert(requestor).second = std::move(dblock);
 
-  updated = true;
+  return true;
 }
 
-void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated)
+bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const std::string& reason, unsigned int duration, DNSAction::Action action, bool beQuiet)
 {
-  if (d_excludedDomains.check(name)) {
-    /* do not add a block for excluded domains */
-    return;
-  }
-
   struct timespec until = now;
-  until.tv_sec += rule.d_blockDuration;
+  until.tv_sec += duration;
   unsigned int count = 0;
+  DynBlock dblock{reason, until, name.makeLowerCase(), action};
   /* be careful, if you try to insert a longer suffix
      lookup() might return a shorter one if it is
      already in the tree as a final node */
   const DynBlock* got = blocks.lookup(name);
-  if (got && got->domain != name) {
+  if (got != nullptr && got->domain != name) {
     got = nullptr;
   }
   bool expired = false;
 
-  if (got) {
+  if (got != nullptr) {
     if (until < got->until) {
       // had a longer policy
-      return;
+      return false;
     }
 
     if (now < got->until) {
@@ -306,14 +298,55 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
     }
   }
 
-  DynBlock db{rule.d_blockReason, until, name.makeLowerCase(), rule.d_action};
-  db.blocks = count;
+  dblock.blocks = count;
 
-  if (!d_beQuiet && (!got || expired)) {
-    warnlog("Inserting dynamic block for %s for %d seconds: %s", name, rule.d_blockDuration, rule.d_blockReason);
+  if (!beQuiet && (got == nullptr || expired)) {
+    warnlog("Inserting dynamic block for %s for %d seconds: %s", name, duration, reason);
   }
-  blocks.add(name, std::move(db));
-  updated = true;
+  blocks.add(name, std::move(dblock));
+  return true;
+}
+}
+
+void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange>>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning)
+{
+  /* network exclusions are address-based only (no port) */
+  if (d_excludedSubnets.match(requestor.getNetwork())) {
+    /* do not add a block for excluded subnets */
+    return;
+  }
+
+  if (!blocks) {
+    blocks = g_dynblockNMG.getCopy();
+  }
+
+  updated = dnsdist::DynamicBlocks::addOrRefreshBlock(*blocks, now, requestor, rule.d_blockReason, rule.d_blockDuration, rule.d_action, warning, d_beQuiet);
+  if (updated && d_newBlockHook) {
+    try {
+      d_newBlockHook(dnsdist_ffi_dynamic_block_type_nmt, requestor.toString().c_str(), rule.d_blockReason.c_str(), static_cast<uint8_t>(rule.d_action), rule.d_blockDuration, warning);
+    }
+    catch (const std::exception& exp) {
+      warnlog("Error calling the Lua hook after a dynamic block insertion: %s", exp.what());
+    }
+  }
+}
+
+void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated)
+{
+  if (d_excludedDomains.check(name)) {
+    /* do not add a block for excluded domains */
+    return;
+  }
+
+  updated = dnsdist::DynamicBlocks::addOrRefreshBlockSMT(blocks, now, name, rule.d_blockReason, rule.d_blockDuration, rule.d_action, d_beQuiet);
+  if (updated && d_newBlockHook) {
+    try {
+      d_newBlockHook(dnsdist_ffi_dynamic_block_type_smt, name.toString().c_str(), rule.d_blockReason.c_str(), static_cast<uint8_t>(rule.d_action), rule.d_blockDuration, false);
+    }
+    catch (const std::exception& exp) {
+      warnlog("Error calling the Lua hook after a dynamic block insertion: %s", exp.what());
+    }
+  }
 }
 
 void DynBlockRulesGroup::processQueryRules(counts_t& counts, const struct timespec& now)
@@ -331,22 +364,22 @@ void DynBlockRulesGroup::processQueryRules(counts_t& counts, const struct timesp
   }
 
   for (const auto& shard : g_rings.d_shards) {
-    auto rl = shard->queryRing.lock();
-    for(const auto& c : *rl) {
-      if (now < c.when) {
+    auto queryRing = shard->queryRing.lock();
+    for (const auto& ringEntry : *queryRing) {
+      if (now < ringEntry.when) {
         continue;
       }
 
-      bool qRateMatches = d_queryRateRule.matches(c.when);
-      bool typeRuleMatches = checkIfQueryTypeMatches(c);
+      bool qRateMatches = d_queryRateRule.matches(ringEntry.when);
+      bool typeRuleMatches = checkIfQueryTypeMatches(ringEntry);
 
       if (qRateMatches || typeRuleMatches) {
-        auto& entry = counts[AddressAndPortRange(c.requestor, c.requestor.isIPv4() ? d_v4Mask : d_v6Mask, d_portMask)];
+        auto& entry = counts[AddressAndPortRange(ringEntry.requestor, ringEntry.requestor.isIPv4() ? d_v4Mask : d_v6Mask, d_portMask)];
         if (qRateMatches) {
           ++entry.queries;
         }
         if (typeRuleMatches) {
-          ++entry.d_qtypeCounts[c.qtype];
+          ++entry.d_qtypeCounts[ringEntry.qtype];
         }
       }
     }
@@ -390,39 +423,39 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
   }
 
   for (const auto& shard : g_rings.d_shards) {
-    auto rl = shard->respRing.lock();
-    for(const auto& c : *rl) {
-      if (now < c.when) {
+    auto responseRing = shard->respRing.lock();
+    for (const auto& ringEntry : *responseRing) {
+      if (now < ringEntry.when) {
         continue;
       }
 
-      if (c.when < responseCutOff) {
+      if (ringEntry.when < responseCutOff) {
         continue;
       }
 
-      auto& entry = counts[AddressAndPortRange(c.requestor, c.requestor.isIPv4() ? d_v4Mask : d_v6Mask, d_portMask)];
+      auto& entry = counts[AddressAndPortRange(ringEntry.requestor, ringEntry.requestor.isIPv4() ? d_v4Mask : d_v6Mask, d_portMask)];
       ++entry.responses;
 
-      bool respRateMatches = d_respRateRule.matches(c.when);
-      bool suffixMatchRuleMatches = d_suffixMatchRule.matches(c.when);
-      bool rcodeRuleMatches = checkIfResponseCodeMatches(c);
+      bool respRateMatches = d_respRateRule.matches(ringEntry.when);
+      bool suffixMatchRuleMatches = d_suffixMatchRule.matches(ringEntry.when);
+      bool rcodeRuleMatches = checkIfResponseCodeMatches(ringEntry);
 
       if (respRateMatches || rcodeRuleMatches) {
         if (respRateMatches) {
-          entry.respBytes += c.size;
+          entry.respBytes += ringEntry.size;
         }
         if (rcodeRuleMatches) {
-          ++entry.d_rcodeCounts[c.dh.rcode];
+          ++entry.d_rcodeCounts[ringEntry.dh.rcode];
         }
       }
 
       if (suffixMatchRuleMatches) {
-        bool hit = c.ds.sin4.sin_family == 0;
-        if (!hit && c.ds.isIPv4() && c.ds.sin4.sin_addr.s_addr == 0 && c.ds.sin4.sin_port == 0) {
+        bool hit = ringEntry.ds.sin4.sin_family == 0;
+        if (!hit && ringEntry.ds.isIPv4() && ringEntry.ds.sin4.sin_addr.s_addr == 0 && ringEntry.ds.sin4.sin_port == 0) {
           hit = true;
         }
 
-        root.submit(c.name, ((c.dh.rcode == 0 && c.usec == std::numeric_limits<unsigned int>::max()) ? -1 : c.dh.rcode), c.size, hit, boost::none);
+        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, boost::none);
       }
     }
   }
@@ -508,10 +541,10 @@ std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> D
         topsForReason.pop_front();
       }
 
-      topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<AddressAndPortRange, unsigned int>& a, const std::pair<AddressAndPortRange, unsigned int>& b) {
-        return a.second < b.second;
-      }),
-        newEntry);
+      topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<AddressAndPortRange, unsigned int>& rhs, const std::pair<AddressAndPortRange, unsigned int>& lhs) {
+                             return rhs.second < lhs.second;
+                           }),
+                           newEntry);
     }
   }
 
@@ -535,10 +568,10 @@ std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaint
         topsForReason.pop_front();
       }
 
-      topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, unsigned int>& a, const std::pair<DNSName, unsigned int>& b) {
-        return a.second < b.second;
-      }),
-        newEntry);
+      topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, unsigned int>& rhs, const std::pair<DNSName, unsigned int>& lhs) {
+                             return rhs.second < lhs.second;
+                           }),
+                           newEntry);
     }
   });
 
@@ -547,7 +580,7 @@ std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaint
 
 struct DynBlockEntryStat
 {
-  size_t sum;
+  size_t sum{0};
   unsigned int lastSeenValue{0};
 };
 
@@ -578,9 +611,9 @@ void DynBlockMaintenance::generateMetrics()
   }
 
   /* do NMG */
-  std::map<std::string, std::map<AddressAndPortRange, DynBlockEntryStat>> nm;
+  std::map<std::string, std::map<AddressAndPortRange, DynBlockEntryStat>> netmasks;
   for (const auto& reason : s_metricsData.front().nmgData) {
-    auto& reasonStat = nm[reason.first];
+    auto& reasonStat = netmasks[reason.first];
 
     /* prepare the counters by scanning the oldest entry (N+1) */
     for (const auto& entry : reason.second) {
@@ -598,9 +631,9 @@ void DynBlockMaintenance::generateMetrics()
       continue;
     }
 
-    auto& nmgData = snap.nmgData;
+    const auto& nmgData = snap.nmgData;
     for (const auto& reason : nmgData) {
-      auto& reasonStat = nm[reason.first];
+      auto& reasonStat = netmasks[reason.first];
       for (const auto& entry : reason.second) {
         auto& stat = reasonStat[entry.first];
         if (entry.second < stat.lastSeenValue) {
@@ -618,20 +651,20 @@ void DynBlockMaintenance::generateMetrics()
   /* now we need to get the top N entries (for each "reason") based on our counters (sum of the last N entries) */
   std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> topNMGs;
   {
-    for (const auto& reason : nm) {
+    for (const auto& reason : netmasks) {
       auto& topsForReason = topNMGs[reason.first];
       for (const auto& entry : reason.second) {
         if (topsForReason.size() < s_topN || topsForReason.front().second < entry.second.sum) {
           /* Note that this is a gauge, so we need to divide by the number of elapsed seconds */
-          auto newEntry = std::pair<AddressAndPortRange, unsigned int>(entry.first, std::round(entry.second.sum / 60.0));
+          auto newEntry = std::pair<AddressAndPortRange, unsigned int>(entry.first, std::round(static_cast<double>(entry.second.sum) / 60.0));
           if (topsForReason.size() >= s_topN) {
             topsForReason.pop_front();
           }
 
-          topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<AddressAndPortRange, unsigned int>& a, const std::pair<AddressAndPortRange, unsigned int>& b) {
-            return a.second < b.second;
-          }),
-            newEntry);
+          topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<AddressAndPortRange, unsigned int>& rhs, const std::pair<AddressAndPortRange, unsigned int>& lhs) {
+                                 return rhs.second < lhs.second;
+                               }),
+                               newEntry);
         }
       }
     }
@@ -658,7 +691,7 @@ void DynBlockMaintenance::generateMetrics()
       continue;
     }
 
-    auto& smtData = snap.smtData;
+    const auto& smtData = snap.smtData;
     for (const auto& reason : smtData) {
       auto& reasonStat = smt[reason.first];
       for (const auto& entry : reason.second) {
@@ -683,15 +716,15 @@ void DynBlockMaintenance::generateMetrics()
       for (const auto& entry : reason.second) {
         if (topsForReason.size() < s_topN || topsForReason.front().second < entry.second.sum) {
           /* Note that this is a gauge, so we need to divide by the number of elapsed seconds */
-          auto newEntry = std::pair<DNSName, unsigned int>(entry.first, std::round(entry.second.sum / 60.0));
+          auto newEntry = std::pair<DNSName, unsigned int>(entry.first, std::round(static_cast<double>(entry.second.sum) / 60.0));
           if (topsForReason.size() >= s_topN) {
             topsForReason.pop_front();
           }
 
-          topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, unsigned int>& a, const std::pair<DNSName, unsigned int>& b) {
-            return a.second < b.second;
-          }),
-            newEntry);
+          topsForReason.insert(std::lower_bound(topsForReason.begin(), topsForReason.end(), newEntry, [](const std::pair<DNSName, unsigned int>& lhs, const std::pair<DNSName, unsigned int>& rhs) {
+                                 return lhs.second < rhs.second;
+                               }),
+                               newEntry);
         }
       }
     }
@@ -728,7 +761,7 @@ void DynBlockMaintenance::run()
     sleepDelay = std::min(sleepDelay, (nextMetricsGeneration - now));
 
     // coverity[store_truncates_time_t]
-    sleep(sleepDelay);
+    std::this_thread::sleep_for(std::chrono::seconds(sleepDelay));
 
     try {
       now = time(nullptr);
@@ -750,7 +783,9 @@ void DynBlockMaintenance::run()
       }
 
       if (s_expiredDynBlocksPurgeInterval > 0 && now >= nextExpiredPurge) {
-        struct timespec tspec;
+        struct timespec tspec
+        {
+        };
         gettime(&tspec);
         purgeExpired(tspec);
 

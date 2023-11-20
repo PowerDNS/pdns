@@ -46,7 +46,6 @@
 ./pdns/dnsdist-cache.hh
 ./pdns/dnsdist-console.cc
 ./pdns/dnsdist-console.hh
-./pdns/dnsdist-dynblocks.hh
 ./pdns/dnsdist-dynbpf.cc
 ./pdns/dnsdist-dynbpf.hh
 ./pdns/dnsdist-ecs.cc
@@ -73,7 +72,6 @@
 ./pdns/dnsdist.hh
 ./pdns/dnsdistdist/connection-management.hh
 ./pdns/dnsdistdist/dnsdist-backend.cc
-./pdns/dnsdistdist/dnsdist-dynblocks.cc
 ./pdns/dnsdistdist/dnsdist-kvs.cc
 ./pdns/dnsdistdist/dnsdist-kvs.hh
 ./pdns/dnsdistdist/dnsdist-lbpolicies.cc
