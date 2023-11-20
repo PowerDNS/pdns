@@ -3,7 +3,10 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #include <decaf.hxx>
+#pragma GCC diagnostic pop
 #include <decaf/eddsa.hxx>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
