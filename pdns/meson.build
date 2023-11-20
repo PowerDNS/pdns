@@ -1755,12 +1755,6 @@ conditional_sources = {
   'epollmplexer.cc': get_variable('have_linux', false),
   'kqueuemplexer.cc': get_variable('have_openbsd', false) or get_variable('have_freebsd', false),
 
-  'tsigutils.cc': dep_gss_tsig.found(),
-  'tsigutils.hh': dep_gss_tsig.found(),
-
-  'tsigverifier.cc': dep_gss_tsig.found(),
-  'tsigverifier.hh': dep_gss_tsig.found(),
-
   'ssqlite3.cc': get_variable('dep_sqlite3', dependency('', required: false)).found(),
   'ssqlite3.hh': get_variable('dep_sqlite3', dependency('', required: false)).found(),
 
