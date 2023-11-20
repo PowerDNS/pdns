@@ -590,7 +590,7 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
   else {
     pbMessage.setSocketFamily(mappedSource.sin4.sin_family);
     Netmask requestorNM(mappedSource, mappedSource.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-    auto requestor = requestorNM.getMaskedNetwork();
+    const auto& requestor = requestorNM.getMaskedNetwork();
     pbMessage.setFrom(requestor);
     pbMessage.setFromPort(mappedSource.getPort());
   }
@@ -1348,12 +1348,12 @@ void parseACLs()
   }
 
   g_initialAllowFrom = allowFrom;
-  broadcastFunction([=] { return pleaseSupplantAllowFrom(allowFrom); });
+  broadcastFunction([=] { return pleaseSupplantAllowFrom(std::move(allowFrom)); });
 
   auto allowNotifyFrom = parseACL("allow-notify-from-file", "allow-notify-from", log);
 
   g_initialAllowNotifyFrom = allowNotifyFrom;
-  broadcastFunction([=] { return pleaseSupplantAllowNotifyFrom(allowNotifyFrom); });
+  broadcastFunction([=] { return pleaseSupplantAllowNotifyFrom(std::move(allowNotifyFrom)); });
 
   l_initialized = true;
 }

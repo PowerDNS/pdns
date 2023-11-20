@@ -217,5 +217,5 @@ RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int
     str.append(buffer, recvd);
   }
 
-  return {err, str};
+  return {err, std::move(str)};
 }

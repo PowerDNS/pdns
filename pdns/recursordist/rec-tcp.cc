@@ -362,9 +362,9 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   const struct dnsheader* dnsheader = headerdata.get();
 
   if (t_protobufServers.servers || t_outgoingProtobufServers.servers) {
-    comboWriter->d_requestorId = requestorId;
-    comboWriter->d_deviceId = deviceId;
-    comboWriter->d_deviceName = deviceName;
+    comboWriter->d_requestorId = std::move(requestorId);
+    comboWriter->d_deviceId = std::move(deviceId);
+    comboWriter->d_deviceName = std::move(deviceName);
     comboWriter->d_uuid = getUniqueID();
   }
 

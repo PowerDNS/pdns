@@ -59,32 +59,29 @@ thread_local TCPOutConnectionManager t_tcp_manager;
 std::shared_ptr<Logr::Logger> g_slogout;
 bool g_paddingOutgoing;
 
-void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
+void remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data)
 {
-  auto ret = r.queueData(data);
+  auto ret = rli.queueData(data);
 
   switch (ret) {
   case RemoteLoggerInterface::Result::Queued:
     break;
   case RemoteLoggerInterface::Result::PipeFull: {
-    const auto msg = RemoteLoggerInterface::toErrorString(ret);
-    const auto name = r.name();
-    SLOG(g_log << Logger::Debug << name << ": " << msg << std::endl,
-         g_slog->withName(name)->info(Logr::Debug, msg));
+    const auto& msg = RemoteLoggerInterface::toErrorString(ret);
+    SLOG(g_log << Logger::Debug << rli.name() << ": " << msg << std::endl,
+         g_slog->withName(rli.name())->info(Logr::Debug, msg));
     break;
   }
   case RemoteLoggerInterface::Result::TooLarge: {
-    const auto msg = RemoteLoggerInterface::toErrorString(ret);
-    const auto name = r.name();
-    SLOG(g_log << Logger::Notice << name << ": " << msg << endl,
-         g_slog->withName(name)->info(Logr::Debug, msg));
+    const auto& msg = RemoteLoggerInterface::toErrorString(ret);
+    SLOG(g_log << Logger::Notice << rli.name() << ": " << msg << endl,
+         g_slog->withName(rli.name())->info(Logr::Debug, msg));
     break;
   }
   case RemoteLoggerInterface::Result::OtherError: {
-    const auto msg = RemoteLoggerInterface::toErrorString(ret);
-    const auto name = r.name();
-    SLOG(g_log << Logger::Warning << name << ": " << msg << std::endl,
-         g_slog->withName(name)->info(Logr::Warning, msg));
+    const auto& msg = RemoteLoggerInterface::toErrorString(ret);
+    SLOG(g_log << Logger::Warning << rli.name() << ": " << msg << std::endl,
+         g_slog->withName(rli.name())->info(Logr::Warning, msg));
     break;
   }
   }

@@ -152,7 +152,7 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
     name = getPrometheusName(name);
   }
 
-  auto ret = dynmetrics{new std::atomic<unsigned long>(), name};
+  auto ret = dynmetrics{new std::atomic<unsigned long>(), std::move(name)};
   (*dm)[str] = ret;
   return ret.d_ptr;
 }
@@ -1208,7 +1208,7 @@ static StatsMap toRPZStatsMap(const string& name, const std::unordered_map<std::
       sname = name + "-rpz-" + key;
       pname = pbasename + "{type=\"rpz\",policyname=\"" + key + "\"}";
     }
-    entries.emplace(sname, StatsMapEntry{pname, std::to_string(count)});
+    entries.emplace(sname, StatsMapEntry{std::move(pname), std::to_string(count)});
     total += count;
   }
   entries.emplace(name, StatsMapEntry{pbasename, std::to_string(total)});

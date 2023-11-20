@@ -272,7 +272,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
           // we are up to date
           return ret;
         }
-        primarySOA = sr;
+        primarySOA = std::move(sr);
         ++primarySOACount;
       } else if (r.first.d_type == QType::SOA) {
         auto sr = getRR<SOARecordContent>(r.first);
