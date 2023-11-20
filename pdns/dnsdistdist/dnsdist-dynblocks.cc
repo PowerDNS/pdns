@@ -949,7 +949,7 @@ bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::checkGlobalCacheHitRatio() 
   if (globalMisses == 0 || globalHits == 0) {
     return false;
   }
-  double globalCacheHitRatio = (globalHits * static_cast<double>(1.0)) / (globalHits + globalMisses);
+  double globalCacheHitRatio = (static_cast<double>(globalHits) * static_cast<double>(1.0)) / static_cast<double>(globalHits + globalMisses);
   return globalCacheHitRatio >= d_minimumGlobalCacheHitRatio;
 }
 
