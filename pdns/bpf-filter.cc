@@ -348,6 +348,22 @@ static FDWrapper loadProgram(const struct bpf_insn* filter, size_t filterSize)
   return fd;
 }
 
+bool setRandomReusePortPolicy([[maybe_unused]] int socketDesc, [[maybe_unused]] uint32_t numberOfSockets)
+{
+#if defined(HAVE_BPF_FUNC_get_prandom_u32) && defined(SO_ATTACH_REUSEPORT_EBPF)
+  const struct bpf_insn randomReusePortPolicy[] = {
+#include "random-reuseport-policy.ebpf"
+    };
+  auto program = loadProgram(randomReusePortPolicy, sizeof(randomReusePortPolicy));
+  if (SSetsockopt(socketDesc, SOL_SOCKET, SO_ATTACH_REUSEPORT_EBPF, program.getHandle()) != 0) {
+    // SSetsockopt will actually throw on errors so don't bother doing too much work here
+    return false;
+  }
+  return true;
+#else
+  throw std::runtime_error("Unable to set a random reuseport policy because it is not supported by the OS");
+#endif
+}
 
 BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs, BPFFilter::MapFormat format, bool external) :
   d_mapFormat(format), d_external(external)

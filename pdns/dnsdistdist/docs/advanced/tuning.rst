@@ -31,7 +31,8 @@ To be able to use more CPU cores for UDP queries processing, it is possible to u
   addLocal("192.0.2.1:53", {reusePort=true})
 
 :program:`dnsdist` will then add four identical local binds as if they were different IPs or ports, start four threads to handle incoming queries and let the kernel load balance those randomly to the threads, thus using four CPU cores for rules processing.
-Note that this require ``SO_REUSEPORT`` support in the underlying operating system (added for example in Linux 3.9).
+Note that this require ``SO_REUSEPORT`` support in the underlying operating system (added for example in Linux 3.9). On Linux, ``reuseport`` distributes queries to sockets based on the source and destination addresses and ports, which might be an issue
+if all queries comes from the source IP and port, and go to the same IP and port as well, since it will result in only one thread getting queries. Since 1.9.0, the ``randomReusePortPolicy`` option can be used to get random load-balancing of queries to all threads instead.
 Please also be aware that doing so will increase lock contention and might not therefore scale linearly, as discussed below.
 
 Another possibility is to use the reuseport option to run several dnsdist processes in parallel on the same host, thus avoiding the lock contention issue at the cost of having to deal with the fact that the different processes will not share informations, like statistics or DDoS offenders.

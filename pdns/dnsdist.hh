@@ -512,6 +512,7 @@ struct ClientState
   bool tcp;
   bool reuseport;
   bool ready{false};
+  bool randomReusePortPolicy{false};
 
   int getSocket() const
   {

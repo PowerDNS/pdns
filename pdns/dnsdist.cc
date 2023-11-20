@@ -2276,6 +2276,29 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
 
 static bool g_warned_ipv6_recvpktinfo = false;
 
+static std::map<std::pair<ComboAddress, bool>, uint32_t> s_reusePortPolicyMap;
+
+static void setupReuseportPolicy(ClientState& clientState)
+{
+  if (!clientState.reuseport || !clientState.randomReusePortPolicy) {
+    return;
+  }
+
+  auto it = s_reusePortPolicyMap.find({clientState.local, clientState.tcp});
+  if (it == s_reusePortPolicyMap.end() || it->second == 1) {
+    return;
+  }
+  int& descriptor = !clientState.tcp ? clientState.udpFD : clientState.tcpFD;
+  try {
+    setRandomReusePortPolicy(descriptor, it->second);
+    infolog("Applied random reuseport policy to %s - %s", clientState.local.toStringWithPort(), (clientState.tcp ? "TCP" : "UDP"));
+  }
+  catch (const std::exception& excep) {
+    warnlog("Unable to apply random reuseport policy to %s - %s: %s", clientState.local.toStringWithPort(), (clientState.tcp ? "TCP" : "UDP"), excep.what());
+  }
+  s_reusePortPolicyMap.erase(it);
+}
+
 static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr, int& socket, bool tcp, bool warn)
 {
   (void) warn;
@@ -2329,6 +2352,10 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
         /* no need to warn again if configured but support is not available, we already did for UDP */
         warnlog("SO_REUSEPORT has been configured on local address '%s' but is not supported", addr.toStringWithPort());
       }
+    }
+    auto [mapIt, inserted] = s_reusePortPolicyMap.insert({{addr, tcp}, 1});
+    if (!inserted) {
+      ++mapIt->second;
     }
   }
 
@@ -2946,6 +2973,10 @@ int main(int argc, char** argv)
       else {
         ++tcpBindsCount;
       }
+    }
+
+    for (auto& frontend: g_frontends) {
+      setupReuseportPolicy(*frontend);
     }
 
     vector<string> vec;
