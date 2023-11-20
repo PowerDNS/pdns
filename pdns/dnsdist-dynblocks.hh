@@ -86,7 +86,8 @@ private:
   struct DynBlockRule
   {
     DynBlockRule() = default;
-    DynBlockRule(const std::string& blockReason, unsigned int blockDuration, unsigned int rate, unsigned int warningRate, unsigned int seconds, DNSAction::Action action): d_blockReason(blockReason), d_blockDuration(blockDuration), d_rate(rate), d_warningRate(warningRate), d_seconds(seconds), d_action(action), d_enabled(true)
+    DynBlockRule(const std::string& blockReason, unsigned int blockDuration, unsigned int rate, unsigned int warningRate, unsigned int seconds, DNSAction::Action action) :
+      d_blockReason(blockReason), d_blockDuration(blockDuration), d_rate(rate), d_warningRate(warningRate), d_seconds(seconds), d_action(action), d_enabled(true)
     {
     }
 
@@ -115,7 +116,8 @@ private:
   struct DynBlockRatioRule : DynBlockRule
   {
     DynBlockRatioRule() = default;
-    DynBlockRatioRule(const std::string& blockReason, unsigned int blockDuration, double ratio, double warningRatio, unsigned int seconds, DNSAction::Action action, size_t minimumNumberOfResponses): DynBlockRule(blockReason, blockDuration, 0, 0, seconds, action), d_minimumNumberOfResponses(minimumNumberOfResponses), d_ratio(ratio), d_warningRatio(warningRatio)
+    DynBlockRatioRule(const std::string& blockReason, unsigned int blockDuration, double ratio, double warningRatio, unsigned int seconds, DNSAction::Action action, size_t minimumNumberOfResponses) :
+      DynBlockRule(blockReason, blockDuration, 0, 0, seconds, action), d_minimumNumberOfResponses(minimumNumberOfResponses), d_ratio(ratio), d_warningRatio(warningRatio)
     {
     }
 
@@ -131,7 +133,8 @@ private:
   struct DynBlockCacheMissRatioRule : public DynBlockRatioRule
   {
     DynBlockCacheMissRatioRule() = default;
-    DynBlockCacheMissRatioRule(const std::string& blockReason, unsigned int blockDuration, double ratio, double warningRatio, unsigned int seconds, DNSAction::Action action, size_t minimumNumberOfResponses, double minimumGlobalCacheHitRatio): DynBlockRatioRule(blockReason, blockDuration, ratio, warningRatio, seconds, action, minimumNumberOfResponses), d_minimumGlobalCacheHitRatio(minimumGlobalCacheHitRatio)
+    DynBlockCacheMissRatioRule(const std::string& blockReason, unsigned int blockDuration, double ratio, double warningRatio, unsigned int seconds, DNSAction::Action action, size_t minimumNumberOfResponses, double minimumGlobalCacheHitRatio) :
+      DynBlockRatioRule(blockReason, blockDuration, ratio, warningRatio, seconds, action, minimumNumberOfResponses), d_minimumGlobalCacheHitRatio(minimumGlobalCacheHitRatio)
     {
     }
 
