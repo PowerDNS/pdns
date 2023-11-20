@@ -1651,25 +1651,25 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       auto ctx = std::make_shared<DNSCryptContext>(providerName, certKeys);
 
       /* UDP */
-      auto cs = std::make_unique<ClientState>(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
-      cs->dnscryptCtx = ctx;
+      auto clientState = std::make_unique<ClientState>(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
+      clientState->dnscryptCtx = ctx;
       g_dnsCryptLocals.push_back(ctx);
-      g_frontends.push_back(std::move(cs));
+      g_frontends.push_back(std::move(clientState));
 
       /* TCP */
-      cs = std::make_unique<ClientState>(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
-      cs->dnscryptCtx = std::move(ctx);
+      clientState = std::make_unique<ClientState>(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
+      clientState->dnscryptCtx = std::move(ctx);
       if (tcpListenQueueSize > 0) {
-        cs->tcpListenQueueSize = tcpListenQueueSize;
+        clientState->tcpListenQueueSize = tcpListenQueueSize;
       }
       if (maxInFlightQueriesPerConn > 0) {
-        cs->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
+        clientState->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
       }
       if (tcpMaxConcurrentConnections > 0) {
-        cs->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
+        clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
       }
 
-      g_frontends.push_back(std::move(cs));
+      g_frontends.push_back(std::move(clientState));
     }
     catch (const std::exception& e) {
       errlog("Error during addDNSCryptBind() processing: %s", e.what());
@@ -2574,17 +2574,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     g_dohlocals.push_back(frontend);
-    auto cs = std::make_unique<ClientState>(frontend->d_tlsContext.d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
-    cs->dohFrontend = std::move(frontend);
-    cs->d_additionalAddresses = std::move(additionalAddresses);
+    auto clientState = std::make_unique<ClientState>(frontend->d_tlsContext.d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
+    clientState->dohFrontend = std::move(frontend);
+    clientState->d_additionalAddresses = std::move(additionalAddresses);
 
     if (tcpListenQueueSize > 0) {
-      cs->tcpListenQueueSize = tcpListenQueueSize;
+      clientState->tcpListenQueueSize = tcpListenQueueSize;
     }
     if (tcpMaxConcurrentConnections > 0) {
-      cs->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
+      clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
     }
-    g_frontends.push_back(std::move(cs));
+    g_frontends.push_back(std::move(clientState));
 #else /* HAVE_DNS_OVER_HTTPS */
       throw std::runtime_error("addDOHLocal() called but DNS over HTTPS support is not present!");
 #endif /* HAVE_DNS_OVER_HTTPS */
@@ -2655,11 +2655,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       checkAllParametersConsumed("addDOQLocal", vars);
     }
     g_doqlocals.push_back(frontend);
-    auto cs = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
-    cs->doqFrontend = std::move(frontend);
-    cs->d_additionalAddresses = std::move(additionalAddresses);
+    auto clientState = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
+    clientState->doqFrontend = std::move(frontend);
+    clientState->d_additionalAddresses = std::move(additionalAddresses);
 
-    g_frontends.push_back(std::move(cs));
+    g_frontends.push_back(std::move(clientState));
 #else
       throw std::runtime_error("addDOQLocal() called but DNS over QUIC support is not present!");
 #endif
@@ -2896,21 +2896,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         vinfolog("Loading default TLS provider '%s'", provider);
       }
       // only works pre-startup, so no sync necessary
-      auto cs = std::make_unique<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
-      cs->tlsFrontend = frontend;
-      cs->d_additionalAddresses = std::move(additionalAddresses);
+      auto clientState = std::make_unique<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
+      clientState->tlsFrontend = frontend;
+      clientState->d_additionalAddresses = std::move(additionalAddresses);
       if (tcpListenQueueSize > 0) {
-        cs->tcpListenQueueSize = tcpListenQueueSize;
+        clientState->tcpListenQueueSize = tcpListenQueueSize;
       }
       if (maxInFlightQueriesPerConn > 0) {
-        cs->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
+        clientState->d_maxInFlightQueriesPerConn = maxInFlightQueriesPerConn;
       }
       if (tcpMaxConcurrentConns > 0) {
-        cs->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConns;
+        clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConns;
       }
 
-      g_tlslocals.push_back(cs->tlsFrontend);
-      g_frontends.push_back(std::move(cs));
+      g_tlslocals.push_back(clientState->tlsFrontend);
+      g_frontends.push_back(std::move(clientState));
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error: " + string(e.what()) + "\n";
