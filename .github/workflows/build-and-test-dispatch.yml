@@ -14,9 +14,9 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   call-build-and-test-all-master:
     name: Call build-and-test-all master
-    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@master
+    uses: romeroalx/pdns/.github/workflows/build-and-test-all.yml@test-pdns-releases-dev
     with:
-      branch-name: master
+      branch-name: test-pdns-releases-dev
 
   call-build-and-test-all-auth-48:
     name: Call build-and-test-all rel/auth-4.8.x
