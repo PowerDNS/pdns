@@ -307,7 +307,7 @@ IOState IncomingHTTP2Connection::handleHandshake(const struct timeval& now)
       }
     }
 
-    if (!isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
+    if (d_ci.cs != nullptr && d_ci.cs->d_allowProxyProtocol && !isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
       d_state = State::readingProxyProtocolHeader;
       d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
       d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
@@ -337,7 +337,7 @@ void IncomingHTTP2Connection::handleIO()
     }
 
     if (d_state == State::starting) {
-      if (isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
+      if (d_ci.cs != nullptr && d_ci.cs->d_allowProxyProtocol && isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
         d_state = State::readingProxyProtocolHeader;
         d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
         d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;

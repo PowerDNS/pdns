@@ -111,12 +111,13 @@ void resetLuaSideEffect()
 
 using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>>>;
 
-static void parseLocalBindVars(boost::optional<localbind_t>& vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections)
+static void parseLocalBindVars(boost::optional<localbind_t>& vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections, bool& allowProxyProtocol)
 {
   if (vars) {
     LuaArray<int> setCpus;
 
     getOptionalValue<bool>(vars, "reusePort", reusePort);
+    getOptionalValue<bool>(vars, "allowProxyProtocol", allowProxyProtocol);
     getOptionalValue<int>(vars, "tcpFastOpenQueueSize", tcpFastOpenQueueSize);
     getOptionalValue<int>(vars, "tcpListenQueueSize", tcpListenQueueSize);
     getOptionalValue<int>(vars, "maxConcurrentTCPConnections", tcpMaxConcurrentConnections);
@@ -723,8 +724,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     uint64_t tcpMaxConcurrentConnections = 0;
     std::string interface;
     std::set<int> cpus;
+    bool allowProxyProtocol = true;
 
-    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, allowProxyProtocol);
 
     checkAllParametersConsumed("setLocal", vars);
 
@@ -741,8 +743,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       // only works pre-startup, so no sync necessary
-      g_frontends.push_back(std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus));
-      auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      g_frontends.push_back(std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol));
+      auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
       if (tcpListenQueueSize > 0) {
         tcpCS->tcpListenQueueSize = tcpListenQueueSize;
       }
@@ -775,15 +777,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     uint64_t tcpMaxConcurrentConnections = 0;
     std::string interface;
     std::set<int> cpus;
+    bool allowProxyProtocol = true;
 
-    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, allowProxyProtocol);
     checkAllParametersConsumed("addLocal", vars);
 
     try {
       ComboAddress loc(addr, 53);
       // only works pre-startup, so no sync necessary
-      g_frontends.push_back(std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus));
-      auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      g_frontends.push_back(std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol));
+      auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
       if (tcpListenQueueSize > 0) {
         tcpCS->tcpListenQueueSize = tcpListenQueueSize;
       }
@@ -1614,8 +1617,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::string interface;
     std::set<int> cpus;
     std::vector<DNSCryptContext::CertKeyPaths> certKeys;
+    bool allowProxyProtocol = true;
 
-    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+    parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, allowProxyProtocol);
     checkAllParametersConsumed("addDNSCryptBind", vars);
 
     if (certFiles.type() == typeid(std::string) && keyFiles.type() == typeid(std::string)) {
@@ -1647,13 +1651,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       auto ctx = std::make_shared<DNSCryptContext>(providerName, certKeys);
 
       /* UDP */
-      auto cs = std::make_unique<ClientState>(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      auto cs = std::make_unique<ClientState>(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
       cs->dnscryptCtx = ctx;
       g_dnsCryptLocals.push_back(ctx);
       g_frontends.push_back(std::move(cs));
 
       /* TCP */
-      cs = std::make_unique<ClientState>(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      cs = std::make_unique<ClientState>(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
       cs->dnscryptCtx = std::move(ctx);
       if (tcpListenQueueSize > 0) {
         cs->tcpListenQueueSize = tcpListenQueueSize;
@@ -2497,9 +2501,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::string interface;
     std::set<int> cpus;
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
+    bool allowProxyProtocol = true;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, allowProxyProtocol);
       getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
       getOptionalValue<std::string>(vars, "serverTokens", frontend->d_serverTokens);
       getOptionalValue<std::string>(vars, "provider", frontend->d_tlsContext.d_provider);
@@ -2569,7 +2574,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     g_dohlocals.push_back(frontend);
-    auto cs = std::make_unique<ClientState>(frontend->d_tlsContext.d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
+    auto cs = std::make_unique<ClientState>(frontend->d_tlsContext.d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
     cs->dohFrontend = std::move(frontend);
     cs->d_additionalAddresses = std::move(additionalAddresses);
 
@@ -2610,9 +2615,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::string interface;
     std::set<int> cpus;
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
+    bool allowProxyProtocol = true;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, allowProxyProtocol);
       if (maxInFlightQueriesPerConn > 0) {
         frontend->d_maxInFlight = maxInFlightQueriesPerConn;
       }
@@ -2649,7 +2655,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       checkAllParametersConsumed("addDOQLocal", vars);
     }
     g_doqlocals.push_back(frontend);
-    auto cs = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus);
+    auto cs = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
     cs->doqFrontend = std::move(frontend);
     cs->d_additionalAddresses = std::move(additionalAddresses);
 
@@ -2834,9 +2840,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::string interface;
     std::set<int> cpus;
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
+    bool allowProxyProtocol = true;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConns);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConns, allowProxyProtocol);
 
       getOptionalValue<std::string>(vars, "provider", frontend->d_provider);
       boost::algorithm::to_lower(frontend->d_provider);
@@ -2889,7 +2896,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         vinfolog("Loading default TLS provider '%s'", provider);
       }
       // only works pre-startup, so no sync necessary
-      auto cs = std::make_unique<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
+      auto cs = std::make_unique<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, allowProxyProtocol);
       cs->tlsFrontend = frontend;
       cs->d_additionalAddresses = std::move(additionalAddresses);
       if (tcpListenQueueSize > 0) {
