@@ -27,6 +27,7 @@
 
 #include "dolog.hh"
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaBindings(LuaContext& luaCtx, bool client)
 {
   luaCtx.writeFunction("vinfolog", [](const string& arg) {
@@ -357,7 +358,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
       }
       return Netmask(comboAddr);
     }
-    else if (addrOrStr.type() == typeid(std::string)) {
+    if (addrOrStr.type() == typeid(std::string)) {
       const auto& str = boost::get<std::string>(addrOrStr);
       return Netmask(str);
     }
