@@ -139,7 +139,7 @@ latency01 OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-	"Number of queries answered in less than 1 ms"
+	"Number of UDP queries answered in less than 1 ms"
     ::= { stats 14 }
 
 latency110 OBJECT-TYPE
@@ -147,7 +147,7 @@ latency110 OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-	"Number of queries answered in 1-10 ms"
+	"Number of UDP queries answered in 1-10 ms"
     ::= { stats 15 }
 
 latency1050 OBJECT-TYPE
@@ -155,7 +155,7 @@ latency1050 OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-	"Number of queries answered in 10-50 ms"
+	"Number of UDP queries answered in 10-50 ms"
     ::= { stats 16 }
 
 latency50100 OBJECT-TYPE
@@ -163,7 +163,7 @@ latency50100 OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-	"Number of queries answered in 50-100 ms"
+	"Number of UDP queries answered in 50-100 ms"
     ::= { stats 17 }
 
 latency1001000 OBJECT-TYPE
@@ -171,7 +171,7 @@ latency1001000 OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-	"Number of queries answered in 100-1000 ms"
+	"Number of UDP queries answered in 100-1000 ms"
     ::= { stats 18 }
 
 latencySlow OBJECT-TYPE
@@ -179,7 +179,7 @@ latencySlow OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-	"Number of queries answered in more than 1s"
+	"Number of UDP queries answered in more than 1s"
     ::= { stats 19 }
 
 latencyAVG100 OBJECT-TYPE
