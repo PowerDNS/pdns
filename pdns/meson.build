@@ -111,12 +111,7 @@ if not fs.is_file(libpdns_apidocfiles_h)
     capture: true,
   )
 endif
-libpdns_apidocfiles = declare_dependency(
-  link_whole: static_library(
-    'pdns-auth-apidocfiles',
-    sources: [libpdns_apidocfiles_h],
-  )
-)
+libpdns_apidocfiles = declare_dependency(sources: libpdns_apidocfiles_h)
 
 libpdns_bind_dnssec_schema_h = 'bind-dnssec.schema.sqlite3.sql.h'
 if not fs.is_file(libpdns_bind_dnssec_schema_h)
