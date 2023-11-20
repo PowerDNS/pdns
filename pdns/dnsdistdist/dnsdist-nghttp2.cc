@@ -94,7 +94,7 @@ private:
     uint16_t d_responseCode{0};
     bool d_finished{false};
   };
-  void updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback, bool noTTD = false);
+  void updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback, bool noTTD = false);
   void watchForRemoteHostClosingConnection();
   void handleResponse(PendingRequest&& request);
   void handleResponseError(PendingRequest&& request, const struct timeval& now);
@@ -468,7 +468,7 @@ void DoHConnectionToBackend::stopIO()
   }
 }
 
-void DoHConnectionToBackend::updateIO(IOState newState, FDMultiplexer::callbackfunc_t callback, bool noTTD)
+void DoHConnectionToBackend::updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback, bool noTTD)
 {
   struct timeval now
   {
@@ -496,10 +496,10 @@ void DoHConnectionToBackend::updateIO(IOState newState, FDMultiplexer::callbackf
   auto shared = std::dynamic_pointer_cast<DoHConnectionToBackend>(shared_from_this());
   if (shared) {
     if (newState == IOState::NeedRead) {
-      d_ioState->update(newState, callback, shared, ttd);
+      d_ioState->update(newState, callback, std::move(shared), ttd);
     }
     else if (newState == IOState::NeedWrite) {
-      d_ioState->update(newState, callback, shared, ttd);
+      d_ioState->update(newState, callback, std::move(shared), ttd);
     }
   }
 }

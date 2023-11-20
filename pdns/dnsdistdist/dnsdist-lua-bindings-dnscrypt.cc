@@ -102,7 +102,7 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
         ret << (fmt % "#" % "Serial" % "Version" % "From" % "To" ) << endl;
 
         for (const auto& pair : ctx->getCertificates()) {
-          const auto cert = pair->cert;
+          const auto& cert = pair->cert;
           const DNSCryptExchangeVersion version = DNSCryptContext::getExchangeVersion(cert);
 
           ret << (fmt % idx % cert.getSerial() % (version == DNSCryptExchangeVersion::VERSION1 ? 1 : 2) % DNSCryptContext::certificateDateToStr(cert.getTSStart()) % DNSCryptContext::certificateDateToStr(cert.getTSEnd())) << endl;

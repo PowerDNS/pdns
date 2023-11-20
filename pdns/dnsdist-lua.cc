@@ -1230,7 +1230,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       errlog("%s", g_outputBuffer);
     }
     else
-      g_consoleKey = newkey;
+      g_consoleKey = std::move(newkey);
   });
 
   luaCtx.writeFunction("clearConsoleHistory", []() {
@@ -1463,7 +1463,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            if (!got || expired) {
                              warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
                            }
-                           slow.insert(requestor).second = db;
+                           slow.insert(requestor).second = std::move(db);
                          }
                          g_dynblockNMG.setState(slow);
                        });
@@ -1577,7 +1577,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       /* TCP */
       cs = std::make_unique<ClientState>(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus);
-      cs->dnscryptCtx = ctx;
+      cs->dnscryptCtx = std::move(ctx);
       if (tcpListenQueueSize > 0) {
         cs->tcpListenQueueSize = tcpListenQueueSize;
       }
@@ -2318,7 +2318,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         password = boost::get<const string>((*opts)["password"]);
       }
     }
-    result = std::make_shared<TLSCertKeyPair>(TLSCertKeyPair{cert, key, password});
+    result = std::make_shared<TLSCertKeyPair>(cert, std::move(key), std::move(password));
 #endif
     return result;
   });
@@ -2472,7 +2472,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     g_dohlocals.push_back(frontend);
     auto cs = std::make_unique<ClientState>(frontend->d_tlsContext.d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus);
-    cs->dohFrontend = frontend;
+    cs->dohFrontend = std::move(frontend);
     cs->d_additionalAddresses = std::move(additionalAddresses);
 
     if (tcpListenQueueSize > 0) {
@@ -2552,7 +2552,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     g_doqlocals.push_back(frontend);
     auto cs = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus);
-    cs->doqFrontend = frontend;
+    cs->doqFrontend = std::move(frontend);
     cs->d_additionalAddresses = std::move(additionalAddresses);
 
     g_frontends.push_back(std::move(cs));

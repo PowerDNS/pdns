@@ -1728,7 +1728,7 @@ void H2ODOHFrontend::reloadCertificates()
 {
   auto newAcceptContext = std::make_shared<DOHAcceptContext>();
   setupAcceptContext(*newAcceptContext, *d_dsc, true);
-  std::atomic_store_explicit(&d_dsc->accept_ctx, newAcceptContext, std::memory_order_release);
+  std::atomic_store_explicit(&d_dsc->accept_ctx, std::move(newAcceptContext), std::memory_order_release);
 }
 
 void H2ODOHFrontend::setup()

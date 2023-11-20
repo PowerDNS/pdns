@@ -226,7 +226,7 @@ static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& exis
     tempConfig.d_subjectName = resolver.target.toStringNoDot();
     tempConfig.d_addr.sin4.sin_port = tempConfig.d_port;
 
-    config = tempConfig;
+    config = std::move(tempConfig);
     return true;
   }
 

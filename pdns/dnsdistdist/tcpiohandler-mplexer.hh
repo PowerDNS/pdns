@@ -128,11 +128,11 @@ public:
 
       if (isWaitingForWrite()) {
         d_isWaitingForWrite = false;
-        d_mplexer.alterFDToRead(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
+        d_mplexer.alterFDToRead(d_fd, std::move(callback), callbackData, ttd ? &*ttd : nullptr);
         DEBUGLOG(__PRETTY_FUNCTION__<<": alter from write to read FD "<<d_fd);
       }
       else {
-        d_mplexer.addReadFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
+        d_mplexer.addReadFD(d_fd, std::move(callback), callbackData, ttd ? &*ttd : nullptr);
         DEBUGLOG(__PRETTY_FUNCTION__<<": add read FD "<<d_fd);
       }
 
@@ -149,11 +149,11 @@ public:
 
       if (isWaitingForRead()) {
         d_isWaitingForRead = false;
-        d_mplexer.alterFDToWrite(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
+        d_mplexer.alterFDToWrite(d_fd, std::move(callback), callbackData, ttd ? &*ttd : nullptr);
         DEBUGLOG(__PRETTY_FUNCTION__<<": alter from read to write FD "<<d_fd);
       }
       else {
-        d_mplexer.addWriteFD(d_fd, callback, callbackData, ttd ? &*ttd : nullptr);
+        d_mplexer.addWriteFD(d_fd, std::move(callback), callbackData, ttd ? &*ttd : nullptr);
         DEBUGLOG(__PRETTY_FUNCTION__<<": add write FD "<<d_fd);
       }
 

@@ -1854,7 +1854,7 @@ bool TLSFrontend::setupTLS()
     setupDoHProtocolNegotiation(newCtx);
   }
 
-  std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
+  std::atomic_store_explicit(&d_ctx, std::move(newCtx), std::memory_order_release);
 #endif /* HAVE_DNS_OVER_TLS || HAVE_DNS_OVER_HTTPS */
   return true;
 }

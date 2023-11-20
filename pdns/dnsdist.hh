@@ -604,7 +604,7 @@ struct ClientState
     }
   }
 
-  void attachFilter(shared_ptr<BPFFilter> bpf, int socket)
+  void attachFilter(shared_ptr<BPFFilter>& bpf, int socket)
   {
     detachFilter(socket);
 
@@ -627,7 +627,7 @@ struct ClientState
     }
   }
 
-  void attachFilter(shared_ptr<BPFFilter> bpf)
+  void attachFilter(shared_ptr<BPFFilter>& bpf)
   {
     detachFilter();
 

@@ -765,7 +765,7 @@ bool dnsdist_ffi_dnsresponse_rebase(dnsdist_ffi_dnsresponse_t* dr, const char* i
     }
 
     // set qname to new one
-    dr->dr->ids.qname = parsed;
+    dr->dr->ids.qname = std::move(parsed);
     dr->dr->ids.skipCache = true;
   }
   catch (const std::exception& e) {

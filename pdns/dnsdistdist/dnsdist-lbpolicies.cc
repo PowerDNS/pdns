@@ -290,7 +290,7 @@ void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<Serve
   } else {
     vinfolog("Setting default pool server selection policy to %s", policy->getName());
   }
-  pool->policy = policy;
+  pool->policy = std::move(policy);
 }
 
 void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)

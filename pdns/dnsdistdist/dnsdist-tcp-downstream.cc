@@ -191,7 +191,7 @@ static bool getSerialFromIXFRQuery(TCPQuery& query)
       if (!unknownContent) {
         return false;
       }
-      auto raw = unknownContent->getRawContent();
+      const auto& raw = unknownContent->getRawContent();
       query.d_ixfrQuerySerial = getSerialFromRawSOAContent(raw);
       return true;
     }
