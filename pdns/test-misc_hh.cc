@@ -403,6 +403,9 @@ BOOST_AUTO_TEST_CASE(test_CleanSlashes) {
     cleanSlashes(fullStr);
     return fullStr;
   };
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper(""), "");
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper("/"), "/");
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper("//"), "/");
   BOOST_CHECK_EQUAL(cleanSlashesWrapper("/test"), "/test");
   BOOST_CHECK_EQUAL(cleanSlashesWrapper("//test"), "/test");
   BOOST_CHECK_EQUAL(cleanSlashesWrapper("///test"), "/test");
