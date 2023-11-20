@@ -163,9 +163,21 @@ def get_default_newdoc_value(typ, val):
         return '(empty)'
     if typ == LType.String:
         return '``' + val + '``'
-    if val == '':
-        return '``[]``'
-    return '``[' + val + ']``'
+    parts = re.split('[ \t,]+', val)
+    if len(parts) > 0:
+        ret = ''
+        for part in parts:
+            if part == '':
+                continue
+            if ret != '':
+                ret += ', '
+            if ':' in part or '!' in part:
+                ret += "'" + part + "'"
+            else:
+                ret += part
+    else:
+        ret = ''
+    return '``[' + ret + ']``'
 
 def get_rust_type(typ):
     """Determine which Rust type is used for a logical type"""

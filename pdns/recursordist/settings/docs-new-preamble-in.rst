@@ -43,7 +43,7 @@ An example :program:`Recursor` YAML configuration file looks like:
     loglevel: 6
 
 Take care when listing IPv6 addresses, as characters used for these are special to YAML.
-If in doubt, quote any string containing ``:``, ``[`` or ``]`` and use (online) tools to check your YAML syntax.
+If in doubt, quote any string containing ``:``, ``!``, ``[`` or ``]`` and use (online) tools to check your YAML syntax.
 Specify an empty sequence using ``[]``.
 
 The main setting file is called ``recursor.yml`` and will be processed first.
@@ -127,7 +127,7 @@ For example, ``alow-from`` takes a sequence of subnets:
    allow_from:
      - '2001:DB8::/32'
      - 128.66.0.0/16
-     - !128.66.1.2
+     - '!128.66.1.2'
 
 In this case the address ``128.66.1.2`` is excluded from the addresses allowed access.
 
