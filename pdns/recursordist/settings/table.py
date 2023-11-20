@@ -204,7 +204,7 @@ Like :ref:`setting-allow-notify-from`, except reading a sequence of `Subnet`_ fr
 Allow ``no recursion desired (RD=0) queries`` to query cache contents.
 If not set (the default), these queries are answered with rcode ``Refused``.
  ''',
-    'versionadded': '5.5.0'
+    'versionadded': '5.0.0'
     },
     {
         'name' : 'any_to_tcp',
