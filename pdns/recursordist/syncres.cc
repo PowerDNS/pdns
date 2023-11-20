@@ -5213,32 +5213,38 @@ bool SyncRes::tryDoT(const DNSName& qname, const QType qtype, const DNSName& nsN
   return ok;
 }
 
+void SyncRes::updateQueryCounts(const string& prefix, const DNSName& qname, const ComboAddress& address, bool doTCP, bool doDoT)
+{
+  t_Counters.at(rec::Counter::outqueries)++;
+  d_outqueries++;
+  checkMaxQperQ(qname);
+  if (address.sin4.sin_family == AF_INET6) {
+    t_Counters.at(rec::Counter::ipv6queries)++;
+  }
+  if (doTCP) {
+    if (doDoT) {
+      LOG(prefix << qname << ": Using DoT with " << address.toStringWithPort() << endl);
+      t_Counters.at(rec::Counter::dotoutqueries)++;
+      d_dotoutqueries++;
+    }
+    else {
+      LOG(prefix << qname << ": Using TCP with " << address.toStringWithPort() << endl);
+      t_Counters.at(rec::Counter::tcpoutqueries)++;
+      d_tcpoutqueries++;
+    }
+  }
+}
+
 bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
-  t_Counters.at(rec::Counter::outqueries)++;
-  d_outqueries++;
-  checkMaxQperQ(qname);
 
   if (s_maxtotusec && d_totUsec > s_maxtotusec) {
     if (s_addExtendedResolutionDNSErrors) {
       extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::NoReachableAuthority), "Timeout waiting for answer(s)"};
     }
     throw ImmediateServFailException("Too much time waiting for " + qname.toLogString() + "|" + qtype.toString() + ", timeouts: " + std::to_string(d_timeouts) + ", throttles: " + std::to_string(d_throttledqueries) + ", queries: " + std::to_string(d_outqueries) + ", " + std::to_string(d_totUsec / 1000) + " ms");
-  }
-
-  if (doTCP) {
-    if (doDoT) {
-      LOG(prefix << qname << ": Using DoT with " << remoteIP.toStringWithPort() << endl);
-      t_Counters.at(rec::Counter::dotoutqueries)++;
-      d_dotoutqueries++;
-    }
-    else {
-      LOG(prefix << qname << ": Using TCP with " << remoteIP.toStringWithPort() << endl);
-      t_Counters.at(rec::Counter::tcpoutqueries)++;
-      d_tcpoutqueries++;
-    }
   }
 
   int preOutQueryRet = RCode::NoError;
@@ -5251,6 +5257,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix << qname << ": Adding EDNS Client Subnet Mask " << ednsmask->toString() << " to query" << endl);
       s_ecsqueries++;
     }
+    updateQueryCounts(prefix, qname, remoteIP, doTCP, doDoT);
     resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
                                      doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained, nsName); // <- we go out on the wire!
     if (ednsmask) {

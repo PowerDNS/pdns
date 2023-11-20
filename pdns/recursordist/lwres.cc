@@ -468,9 +468,6 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
 
   if (!doTCP) {
     int queryfd;
-    if (address.sin4.sin_family == AF_INET6) {
-      t_Counters.at(rec::Counter::ipv6queries)++;
-    }
 
     ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, weWantEDNSSubnet, &queryfd);
 

@@ -616,6 +616,7 @@ private:
   bool addAdditionals(QType qtype, vector<DNSRecord>& ret, unsigned int depth);
 
   bool doDoTtoAuth(const DNSName& ns) const;
+  void updateQueryCounts(const string& prefix, const DNSName& qname, const ComboAddress& address, bool doTCP, bool doDoT);
   int doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, const DNSName& qname, QType qtype, vector<DNSRecord>& ret,
                   unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, Context& context, StopAtDelegation* stopAtDelegation,
                   std::map<DNSName, std::vector<ComboAddress>>* fallback);
