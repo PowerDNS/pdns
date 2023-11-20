@@ -49,17 +49,23 @@ struct LuaContext::Pusher<dnsdist_ffi_stat_node_t*>
 
 using dnsdist_ffi_stat_node_visitor_t = std::function<bool(dnsdist_ffi_stat_node_t*)>;
 
+struct SMTBlockParameters
+{
+  std::optional<std::string> d_reason;
+  std::optional<DNSAction::Action> d_action;
+};
+
 struct dnsdist_ffi_stat_node_t
 {
-  dnsdist_ffi_stat_node_t(const StatNode& node_, const StatNode::Stat& self_, const StatNode::Stat& children_, std::optional<std::string>& reason_) :
-    node(node_), self(self_), children(children_), reason(reason_)
+  dnsdist_ffi_stat_node_t(const StatNode& node_, const StatNode::Stat& self_, const StatNode::Stat& children_, SMTBlockParameters& blockParameters) :
+    node(node_), self(self_), children(children_), d_blockParameters(blockParameters)
   {
   }
 
   const StatNode& node;
   const StatNode::Stat& self;
   const StatNode::Stat& children;
-  std::optional<std::string>& reason;
+  SMTBlockParameters& d_blockParameters;
 };
 
 using dnsdist_ffi_dynamic_block_inserted_hook = std::function<void(uint8_t type, const char* key, const char* reason, uint8_t action, uint64_t duration, bool warning)>;
@@ -268,7 +274,7 @@ public:
     entry = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
   }
 
-  typedef std::function<std::tuple<bool, boost::optional<std::string>>(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)> smtVisitor_t;
+  using smtVisitor_t = std::function<std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)>;
 
   void setSuffixMatchRule(unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action, smtVisitor_t visitor)
   {

@@ -1132,9 +1132,9 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
 
     dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
       if (self.queries > 0) {
-        return std::tuple<bool, boost::optional<std::string>>(true, boost::none);
+        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, boost::none, boost::none);
       }
-      return std::tuple<bool, boost::optional<std::string>>(false, boost::none);
+      return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
     });
 
     /* insert one fake response for 255 DNS names */
@@ -1150,6 +1150,7 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
       const DNSName name(DNSName(std::to_string(idx)) + qname);
       const auto* block = g_dynblockSMT.getLocal()->lookup(name);
       BOOST_REQUIRE(block != nullptr);
+      BOOST_REQUIRE(block->action == action);
       /* simulate that:
          - 1.rings.powerdns.com. got 1 query
          ...
@@ -1188,9 +1189,9 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
 
     dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
       if (self.queries > 0) {
-        return std::tuple<bool, boost::optional<std::string>>(true, "blocked for a different reason");
+        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, "blocked for a different reason", static_cast<int>(DNSAction::Action::Truncate));
       }
-      return std::tuple<bool, boost::optional<std::string>>(false, boost::none);
+      return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
     });
 
     /* insert one fake response for 255 DNS names */
@@ -1206,6 +1207,7 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
       const DNSName name(DNSName(std::to_string(idx)) + qname);
       const auto* block = g_dynblockSMT.getLocal()->lookup(name);
       BOOST_REQUIRE(block != nullptr);
+      BOOST_REQUIRE(block->action == DNSAction::Action::Truncate);
       /* simulate that:
          - 1.rings.powerdns.com. got 1 query
          ...
@@ -1245,9 +1247,9 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
 
     dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
       if (self.queries > 0) {
-        return std::tuple<bool, boost::optional<std::string>>(true, boost::none);
+        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, boost::none, boost::none);
       }
-      return std::tuple<bool, boost::optional<std::string>>(false, boost::none);
+      return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
     });
 
     bool done = false;
