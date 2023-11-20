@@ -616,7 +616,7 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
 const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics = {
   {"all-outqueries",
    MetricDefinition(PrometheusMetricType::counter,
-                    "Number of outgoing UDP queries since starting")},
+                    "Number of outgoing queries since starting")},
 
   {"answers-slow",
    MetricDefinition(PrometheusMetricType::counter,
