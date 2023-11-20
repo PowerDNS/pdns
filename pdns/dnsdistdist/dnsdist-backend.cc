@@ -21,6 +21,7 @@
  */
 
 #include "dnsdist.hh"
+#include "dnsdist-backoff.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
@@ -676,14 +677,14 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, boo
       }
 
       time_t backOff = d_config.d_lazyHealthCheckMaxBackOff;
-      double backOffCoeffTmp = std::pow(2.0, failedTests);
-      if (backOffCoeffTmp != HUGE_VAL && static_cast<uint64_t>(backOffCoeffTmp) <= static_cast<uint64_t>(std::numeric_limits<time_t>::max())) {
-        time_t backOffCoeff = static_cast<time_t>(backOffCoeffTmp);
-        if ((std::numeric_limits<time_t>::max() / d_config.d_lazyHealthCheckFailedInterval) >= backOffCoeff) {
-          backOff = d_config.d_lazyHealthCheckFailedInterval * backOffCoeff;
-          if (backOff > d_config.d_lazyHealthCheckMaxBackOff || (std::numeric_limits<time_t>::max() - now) <= backOff) {
-            backOff = d_config.d_lazyHealthCheckMaxBackOff;
-          }
+      const ExponentialBackOffTimer backOffTimer(d_config.d_lazyHealthCheckMaxBackOff);
+      auto backOffCoeffTmp = backOffTimer.get(failedTests);
+      /* backOffCoeffTmp cannot be higher than d_config.d_lazyHealthCheckMaxBackOff */
+      const auto backOffCoeff = static_cast<time_t>(backOffCoeffTmp);
+      if ((std::numeric_limits<time_t>::max() / d_config.d_lazyHealthCheckFailedInterval) >= backOffCoeff) {
+        backOff = d_config.d_lazyHealthCheckFailedInterval * backOffCoeff;
+        if (backOff > d_config.d_lazyHealthCheckMaxBackOff || (std::numeric_limits<time_t>::max() - now) <= backOff) {
+          backOff = d_config.d_lazyHealthCheckMaxBackOff;
         }
       }
 
