@@ -68,7 +68,6 @@ public:
 private:
   void remove_tmp_files(const boost::filesystem::path&, std::lock_guard<std::mutex>&);
 
-  bool d_init{false};
   LockGuarded<bf::stableBF> d_sbf; // Stable Bloom Filter
   std::string d_cachedir;
   std::string d_prefix = sbf_prefix;

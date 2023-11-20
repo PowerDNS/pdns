@@ -57,9 +57,6 @@ void PersistentSBF::remove_tmp_files(const filesystem::path& p, std::lock_guard<
 // instances iterating and writing to the cache dir at the same time
 bool PersistentSBF::init(bool ignore_pid)
 {
-  if (d_init)
-    return false;
-
   auto log = g_slog->withName("nod");
   std::lock_guard<std::mutex> lock(d_cachedir_mutex);
   if (d_cachedir.length()) {
@@ -111,20 +108,19 @@ bool PersistentSBF::init(bool ignore_pid)
       return false;
     }
   }
-  d_init = true;
   return true;
 }
 
 void PersistentSBF::setCacheDir(const std::string& cachedir)
 {
-  if (!d_init) {
-    filesystem::path p(cachedir);
-    if (!exists(p))
-      throw PDNSException("NODDB setCacheDir specified nonexistent directory: " + cachedir);
-    else if (!is_directory(p))
-      throw PDNSException("NODDB setCacheDir specified a file not a directory: " + cachedir);
-    d_cachedir = cachedir;
+  filesystem::path path(cachedir);
+  if (!exists(path)) {
+    throw PDNSException("NODDB setCacheDir specified nonexistent directory: " + cachedir);
   }
+  if (!is_directory(path)) {
+    throw PDNSException("NODDB setCacheDir specified a file not a directory: " + cachedir);
+  }
+  d_cachedir = cachedir;
 }
 
 // Dump the SBF to a file
