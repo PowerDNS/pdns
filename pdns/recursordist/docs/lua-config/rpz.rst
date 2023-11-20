@@ -162,7 +162,7 @@ ignoreDuplicates
 ^^^^^^^^^^^^^^^^
 .. versionadded:: 5.0.0
 
-When loading an RPZ, ignore duplicate entries.
+When loading an RPZ, ignore duplicate entries, keeping only the first one present in the zone.
 Defaults to ``false``, duplicate entries will cause failure to load the zone.
 
 maxTTL

@@ -108,7 +108,6 @@ BOOST_AUTO_TEST_CASE(load_rpz_ok)
   ::arg().set("max-generate-steps") = "1";
   ::arg().set("max-include-depth") = "20";
   auto zone = std::make_shared<DNSFilterEngine::Zone>();
-  cerr << "rpz " << rpz << endl;
   auto soa = loadRPZFromFile(rpz, zone, boost::none, false, 3600);
   unlink(rpz.c_str());
 
