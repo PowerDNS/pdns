@@ -283,54 +283,54 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   /* SuffixMatchNode */
   luaCtx.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, std::string, LuaArray<DNSName>, LuaArray<std::string>> &name)>("add", [](SuffixMatchNode &smn, const boost::variant<DNSName, std::string, LuaArray<DNSName>, LuaArray<std::string>> &name) {
       if (name.type() == typeid(DNSName)) {
-          const auto& n = boost::get<DNSName>(name);
-          smn.add(n);
+          const auto& actualName = boost::get<DNSName>(name);
+          smn.add(actualName);
           return;
       }
       if (name.type() == typeid(std::string)) {
-          const auto& n = boost::get<std::string>(name);
-          smn.add(n);
+          const auto& actualName = boost::get<std::string>(name);
+          smn.add(actualName);
           return;
       }
       if (name.type() == typeid(LuaArray<DNSName>)) {
           const auto& names = boost::get<LuaArray<DNSName>>(name);
-          for (const auto& n : names) {
-            smn.add(n.second);
+          for (const auto& actualName : names) {
+            smn.add(actualName.second);
           }
           return;
       }
       if (name.type() == typeid(LuaArray<std::string>)) {
           const auto& names = boost::get<LuaArray<string>>(name);
-          for (const auto& n : names) {
-            smn.add(n.second);
+          for (const auto& actualName : names) {
+            smn.add(actualName.second);
           }
           return;
       }
   });
   luaCtx.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, string, LuaArray<DNSName>, LuaArray<std::string>> &name)>("remove", [](SuffixMatchNode &smn, const boost::variant<DNSName, string, LuaArray<DNSName>, LuaArray<std::string>> &name) {
       if (name.type() == typeid(DNSName)) {
-          auto n = boost::get<DNSName>(name);
-          smn.remove(n);
+          auto actualName = boost::get<DNSName>(name);
+          smn.remove(actualName);
           return;
       }
       if (name.type() == typeid(string)) {
-          const auto& n = boost::get<string>(name);
-          DNSName d(n);
-          smn.remove(d);
+          const auto& actualName = boost::get<string>(name);
+          DNSName dnsName(actualName);
+          smn.remove(dnsName);
           return;
       }
       if (name.type() == typeid(LuaArray<DNSName>)) {
           auto names = boost::get<LuaArray<DNSName>>(name);
-          for (const auto& n : names) {
-            smn.remove(n.second);
+          for (const auto& actualName : names) {
+            smn.remove(actualName.second);
           }
           return;
       }
       if (name.type() == typeid(LuaArray<std::string>)) {
           auto names = boost::get<LuaArray<std::string>>(name);
-          for (const auto& n : names) {
-            DNSName d(n.second);
-            smn.remove(d);
+          for (const auto& actualName : names) {
+            DNSName dnsName(actualName.second);
+            smn.remove(dnsName);
           }
           return;
       }
@@ -349,16 +349,16 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
 
 #ifndef DISABLE_NETMASK_BINDINGS
   /* Netmask */
-  luaCtx.writeFunction("newNetmask", [](boost::variant<std::string,ComboAddress> s, boost::optional<uint8_t> bits) {
-    if (s.type() == typeid(ComboAddress)) {
-      const auto& ca = boost::get<ComboAddress>(s);
+  luaCtx.writeFunction("newNetmask", [](boost::variant<std::string,ComboAddress> addrOrStr, boost::optional<uint8_t> bits) {
+    if (addrOrStr.type() == typeid(ComboAddress)) {
+      const auto& comboAddr = boost::get<ComboAddress>(addrOrStr);
       if (bits) {
-        return Netmask(ca, *bits);
+        return Netmask(comboAddr, *bits);
       }
-      return Netmask(ca);
+      return Netmask(comboAddr);
     }
-    else if (s.type() == typeid(std::string)) {
-      const auto& str = boost::get<std::string>(s);
+    else if (addrOrStr.type() == typeid(std::string)) {
+      const auto& str = boost::get<std::string>(addrOrStr);
       return Netmask(str);
     }
     throw std::runtime_error("Invalid parameter passed to 'newNetmask()'");
