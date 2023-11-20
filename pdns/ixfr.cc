@@ -185,6 +185,7 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
   s.connect(primary, xfrTimeout);
 
   time_t elapsed = timeoutChecker();
+  // coverity[store_truncates_time_t]
   s.writenWithTimeout(msg.data(), msg.size(), xfrTimeout - elapsed);
 
   // CURRENT PRIMARY SOA

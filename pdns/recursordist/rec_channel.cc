@@ -159,6 +159,7 @@ static void waitForRead(int fd, unsigned int timeout, time_t start)
   if (elapsed >= timeout) {
     throw PDNSException("Timeout waiting for control channel data");
   }
+  // coverity[store_truncates_time_t]
   int ret = waitForData(fd, timeout - elapsed, 0);
   if (ret == 0) {
     throw PDNSException("Timeout waiting for control channel data");

@@ -217,6 +217,7 @@ static shared_ptr<const SOARecordContent> loadRPZFromServer(Logr::log_t plogger,
   time_t axfrStart = time(nullptr);
   time_t axfrNow = time(nullptr);
   shared_ptr<const SOARecordContent> sr;
+  // coverity[store_truncates_time_t]
   while (axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow))) {
     for (auto& dr : chunk) {
       if (dr.d_type == QType::NS || dr.d_type == QType::TSIG) {

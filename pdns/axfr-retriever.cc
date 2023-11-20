@@ -175,7 +175,8 @@ void AXFRRetriever::timeoutReadn(uint16_t bytes, uint16_t timeoutsec)
   int n=0;
   int numread;
   while(n<bytes) {
-    int res=waitForData(d_sock, timeoutsec-(time(nullptr)-start));
+    // coverity[store_truncates_time_t]
+    int res=waitForData(d_sock, timeoutsec - (time(nullptr) - start));
     if(res<0)
       throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
     if(!res)

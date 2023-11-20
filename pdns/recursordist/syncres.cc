@@ -3130,6 +3130,7 @@ static uint32_t getRRSIGTTL(const time_t now, const std::shared_ptr<const RRSIGR
 {
   uint32_t res = 0;
   if (now < rrsig->d_sigexpire) {
+    // coverity[store_truncates_time_t]
     res = static_cast<uint32_t>(rrsig->d_sigexpire) - now;
   }
   return res;
