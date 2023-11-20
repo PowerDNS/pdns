@@ -271,7 +271,7 @@ bool ZoneParserTNG::getTemplateLine()
     d_templatecounter += d_templatestep;
   }
 
-  d_line = retline;
+  d_line = std::move(retline);
   return true;
 }
 

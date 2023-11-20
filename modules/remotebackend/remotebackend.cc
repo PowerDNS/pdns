@@ -162,7 +162,7 @@ int RemoteBackend::build()
       key = opt.substr(0, pos);
       val = opt.substr(pos + 1);
     }
-    options[key] = val;
+    options[key] = std::move(val);
   }
 
   // connectors know what they are doing

@@ -441,7 +441,7 @@ void ArgvMap::parseOne(const string& arg, const string& parseOnly, bool lax)
       vector<string> parts;
       stringtok(parts, d_params["ignore-unknown-settings"], " ,\t\n\r");
       if (find(parts.begin(), parts.end(), var) != parts.end()) {
-        d_unknownParams[var] = val;
+        d_unknownParams[var] = std::move(val);
         SLOG(g_log << Logger::Warning << "Ignoring unknown setting '" << var << "' as requested" << endl,
              d_log->info(Logr::Warning, "Ignoring unknown setting as requested", "name", Logging::Loggable(var)));
         return;

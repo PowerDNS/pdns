@@ -1873,7 +1873,7 @@ static void apiServerZonesPost(HttpRequest* req, HttpResponse* resp) {
   updateDomainSettingsFromDocument(B, di, zonename, document, !new_records.empty());
 
   if (!catalog && kind == DomainInfo::Primary) {
-    auto defaultCatalog = ::arg()["default-catalog-zone"];
+    const auto& defaultCatalog = ::arg()["default-catalog-zone"];
     if (!defaultCatalog.empty()) {
       di.backend->setCatalog(zonename, DNSName(defaultCatalog));
     }

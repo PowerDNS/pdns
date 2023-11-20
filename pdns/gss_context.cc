@@ -556,7 +556,7 @@ bool gss_add_signature(const DNSName& context, const std::string& message, std::
     }
     return false;
   }
-  mac = tmp_mac;
+  mac = std::move(tmp_mac);
   return true;
 }
 
