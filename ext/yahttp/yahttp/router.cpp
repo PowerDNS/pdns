@@ -88,10 +88,10 @@ namespace YaHTTP {
       funcptr::tie(p1,p2) = i->second;
       std::string value(req->url.path.begin() + p1, req->url.path.begin() + p2);
       value = Utility::decodeURL(value);
-      req->parameters[i->first] = value;
+      req->parameters[i->first] = std::move(value);
     }
 
-    req->routeName = rname;
+    req->routeName = std::move(rname);
 
     return true;
   };

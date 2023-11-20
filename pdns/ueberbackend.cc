@@ -564,7 +564,7 @@ bool UeberBackend::getSOAUncached(const DNSName& domain, SOAData& soaData)
         zoneRecord.dr.d_ttl = soaData.ttl;
         zoneRecord.domain_id = soaData.domain_id;
 
-        addCache(d_question, {zoneRecord});
+        addCache(d_question, {std::move(zoneRecord)});
       }
       return true;
     }

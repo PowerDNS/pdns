@@ -1194,7 +1194,7 @@ private:
       setbuf(fp.get(), 0);
     }
 
-    std::atomic_store_explicit(&d_fp, fp, std::memory_order_release);
+    std::atomic_store_explicit(&d_fp, std::move(fp), std::memory_order_release);
     return true;
   }
 
@@ -1283,7 +1283,7 @@ private:
       setbuf(fp.get(), 0);
     }
 
-    std::atomic_store_explicit(&d_fp, fp, std::memory_order_release);
+    std::atomic_store_explicit(&d_fp, std::move(fp), std::memory_order_release);
     return true;
   }
 
@@ -2660,7 +2660,7 @@ void setupLuaActions(LuaContext& luaCtx)
 
       std::string tags;
       RemoteLogActionConfiguration config;
-      config.logger = logger;
+      config.logger = std::move(logger);
       config.alterQueryFunc = std::move(alterFunc);
       getOptionalValue<std::string>(vars, "serverID", config.serverID);
       getOptionalValue<std::string>(vars, "ipEncryptKey", config.ipEncryptKey);
@@ -2700,7 +2700,7 @@ void setupLuaActions(LuaContext& luaCtx)
 
       std::string tags;
       RemoteLogActionConfiguration config;
-      config.logger = logger;
+      config.logger = std::move(logger);
       config.alterResponseFunc = alterFunc;
       config.includeCNAME = includeCNAME ? *includeCNAME : false;
       getOptionalValue<std::string>(vars, "serverID", config.serverID);

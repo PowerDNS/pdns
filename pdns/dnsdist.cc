@@ -1962,7 +1962,7 @@ static void udpClientThread(std::vector<ClientState*> states)
       }
 
       if (params.size() == 1) {
-        auto param = params.at(0);
+        const auto& param = params.at(0);
         remote.sin4.sin_family = param.cs->local.sin4.sin_family;
         /* used by HarvestDestinationAddress */
         cmsgbuf_aligned cbuf;

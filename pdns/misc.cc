@@ -582,16 +582,24 @@ string bitFlip(const string &str)
 
 void cleanSlashes(string &str)
 {
-  string::const_iterator i;
   string out;
-  for(i=str.begin();i!=str.end();++i) {
-    if(*i=='/' && i!=str.begin() && *(i-1)=='/')
-      continue;
-    out.append(1,*i);
+  bool keepNextSlash = true;
+  for (const auto& value : str) {
+    if (value == '/') {
+      if (keepNextSlash) {
+        keepNextSlash = false;
+      }
+      else {
+        continue;
+      }
+    }
+    else {
+      keepNextSlash = true;
+    }
+    out.append(1, value);
   }
-  str=out;
+  str = std::move(out);
 }
-
 
 bool IpToU32(const string &str, uint32_t *ip)
 {

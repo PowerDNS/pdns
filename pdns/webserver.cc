@@ -346,7 +346,7 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
       resp.body = "<!html><title>" + what + "</title><h1>" + what + "</h1>";
     } else {
       resp.headers["Content-Type"] = "text/plain; charset=utf-8";
-      resp.body = what;
+      resp.body = std::move(what);
     }
   }
 
@@ -385,7 +385,7 @@ void WebServer::logRequest(const HttpRequest& req, [[maybe_unused]] const ComboA
 #ifdef RECURSOR
     if (!g_slogStructured) {
 #endif
-      auto logprefix = req.logprefix;
+      const auto& logprefix = req.logprefix;
       g_log<<Logger::Notice<<logprefix<<"Request details:"<<endl;
 
       bool first = true;

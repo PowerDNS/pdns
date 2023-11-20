@@ -283,24 +283,24 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   /* SuffixMatchNode */
   luaCtx.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, std::string, LuaArray<DNSName>, LuaArray<std::string>> &name)>("add", [](SuffixMatchNode &smn, const boost::variant<DNSName, std::string, LuaArray<DNSName>, LuaArray<std::string>> &name) {
       if (name.type() == typeid(DNSName)) {
-          auto n = boost::get<DNSName>(name);
+          const auto& n = boost::get<DNSName>(name);
           smn.add(n);
           return;
       }
       if (name.type() == typeid(std::string)) {
-          auto n = boost::get<std::string>(name);
+          const auto& n = boost::get<std::string>(name);
           smn.add(n);
           return;
       }
       if (name.type() == typeid(LuaArray<DNSName>)) {
-          auto names = boost::get<LuaArray<DNSName>>(name);
+          const auto& names = boost::get<LuaArray<DNSName>>(name);
           for (const auto& n : names) {
             smn.add(n.second);
           }
           return;
       }
       if (name.type() == typeid(LuaArray<std::string>)) {
-          auto names = boost::get<LuaArray<string>>(name);
+          const auto& names = boost::get<LuaArray<string>>(name);
           for (const auto& n : names) {
             smn.add(n.second);
           }
@@ -314,7 +314,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
           return;
       }
       if (name.type() == typeid(string)) {
-          auto n = boost::get<string>(name);
+          const auto& n = boost::get<string>(name);
           DNSName d(n);
           smn.remove(d);
           return;
@@ -351,14 +351,14 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   /* Netmask */
   luaCtx.writeFunction("newNetmask", [](boost::variant<std::string,ComboAddress> s, boost::optional<uint8_t> bits) {
     if (s.type() == typeid(ComboAddress)) {
-      auto ca = boost::get<ComboAddress>(s);
+      const auto& ca = boost::get<ComboAddress>(s);
       if (bits) {
         return Netmask(ca, *bits);
       }
       return Netmask(ca);
     }
     else if (s.type() == typeid(std::string)) {
-      auto str = boost::get<std::string>(s);
+      const auto& str = boost::get<std::string>(s);
       return Netmask(str);
     }
     throw std::runtime_error("Invalid parameter passed to 'newNetmask()'");
@@ -479,7 +479,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
           auto& params = boost::get<string>(tmp);
           config.d_pinnedPath = std::move(params);
         }
-        mapsConfig[name] = config;
+        mapsConfig[name] = std::move(config);
       };
 
       convertParamsToConfig("ipv4", BPFFilter::MapType::IPv4);

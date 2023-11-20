@@ -136,7 +136,7 @@ namespace YaHTTP {
           if (target->headers.find(key) != target->headers.end()) {
             target->headers[key] = target->headers[key] + ";" + value;
           } else {
-            target->headers[key] = value;
+            target->headers[key] = std::move(value);
           }
         }
       }

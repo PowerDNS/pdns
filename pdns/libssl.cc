@@ -1013,7 +1013,7 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
 #ifndef DISABLE_OCSP_STAPLING
   if (!config.d_ocspFiles.empty()) {
     try {
-      ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, keyTypes, warnings);
+      ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, std::move(keyTypes), warnings);
     }
     catch(const std::exception& e) {
       throw std::runtime_error("Unable to load OCSP responses: " + std::string(e.what()));

@@ -85,15 +85,15 @@ void setupLuaBindingsRings(LuaContext& luaCtx, bool client)
     return results;
   });
 
-  luaCtx.registerMember<DNSName(LuaRingEntry::*)>(std::string("qname"), [](const LuaRingEntry& entry) {
+  luaCtx.registerMember<DNSName(LuaRingEntry::*)>(std::string("qname"), [](const LuaRingEntry& entry) -> const DNSName& {
     return entry.qname;
   });
 
-  luaCtx.registerMember<ComboAddress(LuaRingEntry::*)>(std::string("requestor"), [](const LuaRingEntry& entry) {
+  luaCtx.registerMember<ComboAddress(LuaRingEntry::*)>(std::string("requestor"), [](const LuaRingEntry& entry) -> const ComboAddress& {
     return entry.requestor;
   });
 
-  luaCtx.registerMember<ComboAddress(LuaRingEntry::*)>(std::string("backend"), [](const LuaRingEntry& entry) {
+  luaCtx.registerMember<ComboAddress(LuaRingEntry::*)>(std::string("backend"), [](const LuaRingEntry& entry) -> const ComboAddress& {
     return entry.ds;
   });
 
@@ -101,7 +101,7 @@ void setupLuaBindingsRings(LuaContext& luaCtx, bool client)
     return entry.when;
   });
 
-  luaCtx.registerMember<std::string(LuaRingEntry::*)>(std::string("macAddress"), [](const LuaRingEntry& entry) {
+  luaCtx.registerMember<std::string(LuaRingEntry::*)>(std::string("macAddress"), [](const LuaRingEntry& entry) -> const std::string& {
     return entry.macAddr;
   });
 

@@ -419,7 +419,7 @@ bool DNSCryptQuery::parsePlaintextQuery(const PacketBuffer& packet)
     return false;
   }
 
-  d_qname = qname;
+  d_qname = std::move(qname);
   d_id = dh->id;
   d_valid = true;
 
