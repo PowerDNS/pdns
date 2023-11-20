@@ -383,11 +383,17 @@ void DNSFilterEngine::Zone::addNameTrigger(std::unordered_map<DNSName, Policy>& 
     auto& existingPol = it->second;
 
     if (pol.d_kind != PolicyKind::Custom && !ignoreDuplicate) {
+      if (d_zoneData->d_ignoreDuplicates) {
+        return;
+      }
       throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following name: " + n.toLogString());
     }
 
-    if (existingPol.d_kind != PolicyKind::Custom && ignoreDuplicate) {
-      throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following name: " + n.toLogString());
+    if (existingPol.d_kind != PolicyKind::Custom && !ignoreDuplicate) {
+      if (d_zoneData->d_ignoreDuplicates) {
+        return;
+      }
+      throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for for the following name: " + n.toLogString());
     }
 
     existingPol.d_custom.reserve(existingPol.d_custom.size() + pol.d_custom.size());
@@ -411,11 +417,17 @@ void DNSFilterEngine::Zone::addNetmaskTrigger(NetmaskTree<Policy>& nmt, const Ne
     auto& existingPol = const_cast<Policy&>(nmt.lookup(nm)->second);
 
     if (pol.d_kind != PolicyKind::Custom && !ignoreDuplicate) {
+      if (d_zoneData->d_ignoreDuplicates) {
+        return;
+      }
       throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following netmask: " + nm.toString());
     }
 
-    if (existingPol.d_kind != PolicyKind::Custom && ignoreDuplicate) {
-      throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(existingPol.d_kind) + " but there was already an existing policy for the following netmask: " + nm.toString());
+    if (existingPol.d_kind != PolicyKind::Custom && !ignoreDuplicate) {
+      if (d_zoneData->d_ignoreDuplicates) {
+        return;
+      }
+      throw std::runtime_error("Adding a " + getTypeToString(ptype) + "-based filter policy of kind " + getKindToString(pol.d_kind) + " but a policy of kind " + getKindToString(existingPol.d_kind) + " already exists for the following netmask: " + nm.toString());
     }
 
     existingPol.d_custom.reserve(existingPol.d_custom.size() + pol.d_custom.size());

@@ -102,6 +102,7 @@ public:
     Priority d_priority{maximumPriority};
     bool d_policyOverridesGettag{true};
     bool d_includeSOA{false};
+    bool d_ignoreDuplicates{false};
   };
 
   struct Policy
@@ -304,6 +305,11 @@ public:
     void setIncludeSOA(bool flag)
     {
       d_zoneData->d_includeSOA = flag;
+    }
+
+    void setIgnoreDuplicates(bool flag)
+    {
+      d_zoneData->d_ignoreDuplicates = flag;
     }
 
     void dump(FILE* fp) const;
