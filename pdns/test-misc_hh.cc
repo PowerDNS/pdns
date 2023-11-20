@@ -397,4 +397,20 @@ BOOST_AUTO_TEST_CASE(test_makeHexDump) {
   BOOST_CHECK_EQUAL(out, "12 34 56 78 90 ab cd ef ");
 }
 
+BOOST_AUTO_TEST_CASE(test_CleanSlashes) {
+  auto cleanSlashesWrapper = [](const char* str) {
+    std::string fullStr(str);
+    cleanSlashes(fullStr);
+    return fullStr;
+  };
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper("/test"), "/test");
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper("//test"), "/test");
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper("///test"), "/test");
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper("/test/"), "/test/");
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper("//test/"), "/test/");
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper("//test//"), "/test/");
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper("///test//"), "/test/");
+  BOOST_CHECK_EQUAL(cleanSlashesWrapper("test///"), "test/");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
