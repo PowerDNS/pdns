@@ -197,10 +197,10 @@ static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, tim
 {
   if (maxConnectionDuration) {
     time_t elapsed = time(nullptr) - start;
-    if (elapsed >= maxConnectionDuration) {
+    if (elapsed > 0 && elapsed >= maxConnectionDuration) {
       return true;
     }
-    remainingTime = maxConnectionDuration - elapsed;
+    remainingTime = static_cast<unsigned int >(maxConnectionDuration - elapsed);
   }
   return false;
 }

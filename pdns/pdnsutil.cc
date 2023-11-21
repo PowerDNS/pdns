@@ -677,7 +677,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       }
     }
 
-    auto trueTarget = target.isRoot() ? name : target;
+    const auto& trueTarget = target.isRoot() ? name : target;
     if (prio > 0) {
       if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
         cout << "[warning] SVCB record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;

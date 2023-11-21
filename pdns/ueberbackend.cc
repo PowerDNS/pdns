@@ -531,7 +531,7 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
         resourceRecord.dr.d_ttl = soaData->ttl;
         resourceRecord.domain_id = soaData->domain_id;
 
-        addCache(d_question, {resourceRecord});
+        addCache(d_question, {std::move(resourceRecord)});
       }
     }
 

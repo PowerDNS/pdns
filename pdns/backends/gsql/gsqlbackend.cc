@@ -1678,12 +1678,13 @@ bool GSQLBackend::createSecondaryDomain(const string& ip, const DNSName& domain,
       if (!d_result.empty()) {
         // collect all IP addresses
         vector<ComboAddress> tmp;
-        for(const auto& row: d_result) {
-          if (account == row[1])
+        for (const auto& row: d_result) {
+          if (account == row[1]) {
             tmp.emplace_back(row[0], 53);
+          }
         }
         // set them as domain's primaries, comma separated
-        primaries = tmp;
+        primaries = std::move(tmp);
       }
     }
     createDomain(domain, DomainInfo::Secondary, primaries, account);
