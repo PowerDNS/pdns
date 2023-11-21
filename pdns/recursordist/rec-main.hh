@@ -624,6 +624,7 @@ string doTraceRegex(FDWrapper file, vector<string>::const_iterator begin, vector
 extern bool g_luaSettingsInYAML;
 void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t generation);
 void activateLuaConfig(LuaConfigItems& lci);
+unsigned int authWaitTime(const std::unique_ptr<MT_t>& mtasker);
 
 #define LOCAL_NETS "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
 #define LOCAL_NETS_INVERSE "!127.0.0.0/8, !10.0.0.0/8, !100.64.0.0/10, !169.254.0.0/16, !192.168.0.0/16, !172.16.0.0/12, !::1/128, !fc00::/7, !fe80::/10"

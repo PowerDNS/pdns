@@ -5400,6 +5400,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     // don't account for resource limits, they are our own fault
     // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
     if (resolveret != LWResult::Result::OSLimitError && !chained && !dontThrottle) {
+      cerr << "THROTTLING !!!!" << remoteIP.toString() << ' ' << int(resolveret) << endl;
       s_nsSpeeds.lock()->find_or_enter(nsName.empty() ? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
 
       // make sure we don't throttle the root

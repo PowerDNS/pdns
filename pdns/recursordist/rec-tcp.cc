@@ -681,7 +681,7 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
   socklen_t addrlen = sizeof(addr);
   int newsock = accept(fileDesc, reinterpret_cast<struct sockaddr*>(&addr), &addrlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   if (newsock >= 0) {
-    if (g_multiTasker->numProcesses() > g_maxMThreads) {
+    if (g_multiTasker->numProcesses() >= g_maxMThreads) {
       t_Counters.at(rec::Counter::overCapacityDrops)++;
       try {
         closesocket(newsock);
@@ -1060,7 +1060,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   // Will set pident->lowState
   TCPIOHandlerStateChange(IOState::Done, state, pident);
 
-  int ret = g_multiTasker->waitEvent(pident, &data, g_networkTimeoutMsec);
+  int ret = g_multiTasker->waitEvent(pident, &data, authWaitTime(g_multiTasker));
   TCPLOG(pident->tcpsock, "arecvtcp " << ret << ' ' << data.size() << ' ');
   if (ret == 0) {
     TCPLOG(pident->tcpsock, "timeout" << endl);
