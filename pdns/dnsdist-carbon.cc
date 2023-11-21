@@ -25,6 +25,7 @@
 
 #include "dnsdist-carbon.hh"
 #include "dnsdist.hh"
+#include "dnsdist-backoff.hh"
 
 #ifndef DISABLE_CARBON
 #include "dolog.hh"
@@ -272,6 +273,8 @@ static void carbonHandler(Carbon::Endpoint&& endpoint)
 {
   setThreadName("dnsdist/carbon");
   const auto intervalUSec = endpoint.interval * 1000 * 1000;
+  /* maximum interval between two attempts is 10 minutes */
+  const ExponentialBackOffTimer backOffTimer(10 * 60);
 
   try {
     uint8_t consecutiveFailures = 0;
@@ -290,16 +293,7 @@ static void carbonHandler(Carbon::Endpoint&& endpoint)
         consecutiveFailures = 0;
       }
       else {
-        /* maximum interval between two attempts is 10 minutes */
-        const time_t maxBackOff = 10 * 60;
-        time_t backOff = 1;
-        double backOffTmp = std::pow(2.0, static_cast<double>(consecutiveFailures));
-        if (backOffTmp != HUGE_VAL && static_cast<uint64_t>(backOffTmp) <= static_cast<uint64_t>(std::numeric_limits<time_t>::max())) {
-          backOff = static_cast<time_t>(backOffTmp);
-          if (backOff > maxBackOff) {
-            backOff = maxBackOff;
-          }
-        }
+        const auto backOff = backOffTimer.get(consecutiveFailures);
         if (consecutiveFailures < std::numeric_limits<decltype(consecutiveFailures)>::max()) {
           consecutiveFailures++;
         }
