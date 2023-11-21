@@ -310,7 +310,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
   });
   luaCtx.registerFunction<void (SuffixMatchNode::*)(const boost::variant<DNSName, string, LuaArray<DNSName>, LuaArray<std::string>> &name)>("remove", [](SuffixMatchNode &smn, const boost::variant<DNSName, string, LuaArray<DNSName>, LuaArray<std::string>> &name) {
       if (name.type() == typeid(DNSName)) {
-          auto actualName = boost::get<DNSName>(name);
+          const auto& actualName = boost::get<DNSName>(name);
           smn.remove(actualName);
           return;
       }
@@ -321,14 +321,14 @@ void setupLuaBindings(LuaContext& luaCtx, bool client)
           return;
       }
       if (name.type() == typeid(LuaArray<DNSName>)) {
-          auto names = boost::get<LuaArray<DNSName>>(name);
+          const auto& names = boost::get<LuaArray<DNSName>>(name);
           for (const auto& actualName : names) {
             smn.remove(actualName.second);
           }
           return;
       }
       if (name.type() == typeid(LuaArray<std::string>)) {
-          auto names = boost::get<LuaArray<std::string>>(name);
+          const auto& names = boost::get<LuaArray<std::string>>(name);
           for (const auto& actualName : names) {
             DNSName dnsName(actualName.second);
             smn.remove(dnsName);
