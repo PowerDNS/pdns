@@ -50,6 +50,11 @@ std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dq, bool
     return getDOQCrossProtocolQueryFromDQ(dq, isResponse);
   }
 #endif
+#ifdef HAVE_DNS_OVER_HTTP3
+  else if (protocol == dnsdist::Protocol::DoH3) {
+    return getDOH3CrossProtocolQueryFromDQ(dq, isResponse);
+  }
+#endif
   else {
     return getTCPCrossProtocolQueryFromDQ(dq);
   }

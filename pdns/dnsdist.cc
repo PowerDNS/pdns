@@ -109,6 +109,7 @@ string g_outputBuffer;
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
 std::vector<std::shared_ptr<DOHFrontend>> g_dohlocals;
 std::vector<std::shared_ptr<DOQFrontend>> g_doqlocals;
+std::vector<std::shared_ptr<DOH3Frontend>> g_doh3locals;
 std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
@@ -322,6 +323,12 @@ static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
     doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000,    udiff,    1000);
     doAvg(dnsdist::metrics::g_stats.latencyDoQAvg10000,   udiff,   10000);
     doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000000, udiff, 1000000);
+  }
+  else if (protocol == dnsdist::Protocol::DoH3) {
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg100,     udiff,     100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000,    udiff,    1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg10000,   udiff,   10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000000, udiff, 1000000);
   }
 }
 
@@ -2414,6 +2421,8 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   } else {
     if (clientState.doqFrontend != nullptr) {
       infolog("Listening on %s for DoQ", addr.toStringWithPort());
+    } else if (clientState.doh3Frontend != nullptr) {
+      infolog("Listening on %s for DoH3", addr.toStringWithPort());
     }
   }
 }
@@ -2443,6 +2452,9 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
   }
   if (cstate->doqFrontend != nullptr) {
     cstate->doqFrontend->setup();
+  }
+  if (cstate->doh3Frontend != nullptr) {
+    cstate->doh3Frontend->setup();
   }
 
   cstate->ready = true;
@@ -2830,7 +2842,7 @@ static void initFrontends()
   if (!g_cmdLine.locals.empty()) {
     for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
       /* DoH, DoT and DNSCrypt frontends are separate */
-      if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->doqFrontend == nullptr) {
+      if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->doqFrontend == nullptr && (*it)->doh3Frontend == nullptr) {
         it = g_frontends.erase(it);
       }
       else {
@@ -3083,6 +3095,16 @@ int main(int argc, char** argv)
         }
         t1.detach();
 #endif /* HAVE_DNS_OVER_QUIC */
+        continue;
+      }
+      if (cs->doh3Frontend != nullptr) {
+#ifdef HAVE_DNS_OVER_HTTP3
+        std::thread t1(doh3Thread, cs.get());
+        if (!cs->cpus.empty()) {
+          mapThreadToCPUList(t1.native_handle(), cs->cpus);
+        }
+        t1.detach();
+#endif /* HAVE_DNS_OVER_HTTP3 */
         continue;
       }
       if (cs->udpFD >= 0) {

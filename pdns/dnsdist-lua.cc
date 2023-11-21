@@ -2585,6 +2585,79 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_DNS_OVER_HTTPS */
   });
 
+  luaCtx.writeFunction("addDOH3Local", [client](const std::string& addr, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const boost::variant<std::string, LuaArray<std::string>>& keyFiles, boost::optional<localbind_t> vars) {
+    if (client) {
+      return;
+    }
+#ifdef HAVE_DNS_OVER_HTTP3
+    if (!checkConfigurationTime("addDOH3Local")) {
+      return;
+    }
+    setLuaSideEffect();
+
+    auto frontend = std::make_shared<DOH3Frontend>();
+    if (!loadTLSCertificateAndKeys("addDOH3Local", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
+      return;
+    }
+    frontend->d_local = ComboAddress(addr, 853);
+
+    bool reusePort = false;
+    int tcpFastOpenQueueSize = 0;
+    int tcpListenQueueSize = 0;
+    uint64_t maxInFlightQueriesPerConn = 0;
+    uint64_t tcpMaxConcurrentConnections = 0;
+    std::string interface;
+    std::set<int> cpus;
+    std::vector<std::pair<ComboAddress, int>> additionalAddresses;
+
+    if (vars) {
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+      if (maxInFlightQueriesPerConn > 0) {
+        frontend->d_maxInFlight = maxInFlightQueriesPerConn;
+      }
+      getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
+      getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
+      getOptionalValue<std::string>(vars, "keyLogFile", frontend->d_keyLogFile);
+      {
+        std::string valueStr;
+        if (getOptionalValue<std::string>(vars, "congestionControlAlgo", valueStr) > 0) {
+          if (DOH3Frontend::s_available_cc_algorithms.count(valueStr) > 0) {
+            frontend->d_ccAlgo = valueStr;
+          }
+          else {
+            warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOH3Local'", valueStr);
+          }
+        }
+      }
+      parseTLSConfig(frontend->d_tlsConfig, "addDOH3Local", vars);
+
+      bool ignoreTLSConfigurationErrors = false;
+      if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
+        // we are asked to try to load the certificates so we can return a potential error
+        // and properly ignore the frontend before actually launching it
+        try {
+          std::map<int, std::string> ocspResponses = {};
+          auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
+        }
+        catch (const std::runtime_error& e) {
+          errlog("Ignoring DoH3 frontend: '%s'", e.what());
+          return;
+        }
+      }
+
+      checkAllParametersConsumed("addDOH3Local", vars);
+    }
+    g_doh3locals.push_back(frontend);
+    auto cs = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus);
+    cs->doh3Frontend = frontend;
+    cs->d_additionalAddresses = std::move(additionalAddresses);
+
+    g_frontends.push_back(std::move(cs));
+#else
+      throw std::runtime_error("addDOH3Local() called but DNS over HTTP/3 support is not present!");
+#endif
+  });
+
   // NOLINTNEXTLINE(performance-unnecessary-value-param): somehow clang-tidy gets confused about the fact vars could be const while it cannot
   luaCtx.writeFunction("addDOQLocal", [client](const std::string& addr, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const boost::variant<std::string, LuaArray<std::string>>& keyFiles, boost::optional<localbind_t> vars) {
     if (client) {
