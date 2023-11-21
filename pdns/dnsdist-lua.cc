@@ -1571,7 +1571,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            clientIPCA = boost::get<ComboAddress>(clientIP);
                          }
                          else {
-                           auto clientIPStr = boost::get<std::string>(clientIP);
+                           const auto& clientIPStr = boost::get<std::string>(clientIP);
                            try {
                              clientIPCA = ComboAddress(clientIPStr);
                            }
