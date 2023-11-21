@@ -83,9 +83,11 @@ PDNS_ENABLE_DNS_OVER_TLS
 DNSDIST_ENABLE_DNS_OVER_HTTPS
 DNSDIST_ENABLE_DNS_OVER_QUIC
 
-AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xno"], [
+AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xno" -o "x$enable_dns_over_quic" != "xno" ], [
   PDNS_WITH_LIBSSL
-  PDNS_WITH_GNUTLS
+  AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xno"], [
+    PDNS_WITH_GNUTLS
+  ])
 ])
 
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
@@ -110,6 +112,9 @@ AS_IF([test "x$enable_dns_over_https" != "xno"], [
 AS_IF([test "x$enable_dns_over_quic" != "xno"], [
   AS_IF([test "x$HAVE_QUICHE" != "x1"], [
     AC_MSG_ERROR([DNS over QUIC support requested but quiche was not found])
+  ])
+  AS_IF([test "x$HAVE_LIBSSL" != "x1"], [
+    AC_MSG_ERROR([DNS over QUIC support requested but OpenSSL is not available])
   ])
 ])
 
