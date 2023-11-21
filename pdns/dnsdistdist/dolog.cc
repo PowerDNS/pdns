@@ -86,7 +86,7 @@ void logTime(std::ostream& stream)
   }
 
   if (dnsdist::logging::LoggingConfiguration::getStructuredLogging()) {
-    stream << "tm=\"" << buffer.data() << "\" ";
+    stream << "ts=" << std::quoted(buffer.data()) << " ";
   }
   else {
     stream << buffer.data();
