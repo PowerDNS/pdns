@@ -59,7 +59,7 @@ void logTime(std::ostream& stream)
     {
     };
     gettimeofday(&now, nullptr);
-    snprintf(buffer.data(), buffer.size(), "%lld.%03ld", static_cast<long long>(now.tv_sec), now.tv_usec / 1000);
+    snprintf(buffer.data(), buffer.size(), "%lld.%03ld", static_cast<long long>(now.tv_sec), static_cast<long>(now.tv_usec / 1000));
   }
   else {
     const auto* timeFormat = getTimeFormat();
