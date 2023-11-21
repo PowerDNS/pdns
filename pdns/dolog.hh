@@ -178,14 +178,14 @@ namespace
 inline const char* syslogLevelToStr(int level)
 {
   static constexpr std::array levelStrs{
-    "emergency",
-    "alert",
-    "critical",
-    "error",
-    "warning",
-    "notice",
-    "info",
-    "debug"};
+    "Emergency",
+    "Alert",
+    "Critical",
+    "Error",
+    "Warning",
+    "Notice",
+    "Info",
+    "Debug"};
   return levelStrs.at(level);
 }
 }
