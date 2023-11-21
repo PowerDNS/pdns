@@ -27,16 +27,12 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
-#include "statbag.hh"
 #include "base32.hh"
 #include "dnssecinfra.hh"
 
-
-StatBag S;
-
-typedef std::pair<string,string> nsec3;
-typedef set<nsec3> nsec3set;
-typedef map<string, int> nsec3types;
+using nsec3 = std::pair<string,string>;
+using nsec3set = std::set<nsec3>;
+using nsec3types = std::map<std::string, int>;
 
 static string nsec3Hash(const DNSName &qname, const string &salt, unsigned int iters)
 {

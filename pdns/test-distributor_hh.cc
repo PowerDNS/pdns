@@ -48,8 +48,8 @@ BOOST_AUTO_TEST_CASE(test_distributor_basic) {
   ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500";
-  S.declare("servfail-packets","Number of times a server-failed packet was sent out");
-  S.declare("timedout-packets", "timedout-packets");
+  StatBag::getStatBag().declare("servfail-packets","Number of times a server-failed packet was sent out");
+  StatBag::getStatBag().declare("timedout-packets", "timedout-packets");
 
   auto d=Distributor<DNSPacket, Question, Backend>::Create(2);
 
@@ -82,8 +82,8 @@ BOOST_AUTO_TEST_CASE(test_distributor_queue) {
   ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="1000";
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500";
-  S.declare("servfail-packets","Number of times a server-failed packet was sent out");
-  S.declare("timedout-packets", "timedout-packets");
+  StatBag::getStatBag().declare("servfail-packets","Number of times a server-failed packet was sent out");
+  StatBag::getStatBag().declare("timedout-packets", "timedout-packets");
 
   auto d=Distributor<DNSPacket, Question, BackendSlow>::Create(2);
 
@@ -135,8 +135,8 @@ BOOST_AUTO_TEST_CASE(test_distributor_dies) {
   ::arg().set("overload-queue-length","Maximum queuelength moving to packetcache only")="0";
   ::arg().set("max-queue-length","Maximum queuelength before considering situation lost")="5000";
   ::arg().set("queue-limit","Maximum number of milliseconds to queue a query")="1500";
-  S.declare("servfail-packets","Number of times a server-failed packet was sent out");
-  S.declare("timedout-packets", "timedout-packets");
+  StatBag::getStatBag().declare("servfail-packets","Number of times a server-failed packet was sent out");
+  StatBag::getStatBag().declare("timedout-packets", "timedout-packets");
 
   auto d=Distributor<DNSPacket, Question, BackendDies>::Create(10);
 

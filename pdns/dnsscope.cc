@@ -27,7 +27,6 @@
 #include "histog.hh"
 #endif
 
-#include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
 #include "dnsname.hh"
@@ -53,9 +52,6 @@ ArgvMap& arg()
   static ArgvMap theArg;
   return theArg;
 }
-StatBag S;
-
-
 
 struct QuestionData
 {

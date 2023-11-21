@@ -30,12 +30,10 @@
 #include "pdns/logger.hh"
 #include "pdns/arguments.hh"
 #include "pdns/json.hh"
-#include "pdns/statbag.hh"
 #include "pdns/auth-packetcache.hh"
 #include "pdns/auth-querycache.hh"
 #include "pdns/auth-zonecache.hh"
 
-StatBag S;
 AuthPacketCache PC;
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;

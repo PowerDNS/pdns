@@ -32,7 +32,6 @@
 #include <stdio.h>
 #include "arguments.hh"
 #include "bindparserclasses.hh"
-#include "statbag.hh"
 #include "dnsrecords.hh"
 #include "misc.hh"
 #include "dns.hh"
@@ -42,7 +41,6 @@ using std::map;
 using std::string;
 using std::vector;
 
-StatBag S;
 ArgvMap args;
 bool g_dnsttl;
 bool g_pdnsinfo;

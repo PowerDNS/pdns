@@ -24,11 +24,9 @@
 #endif
 #include "iputils.hh"
 #include "sstuff.hh"
-#include "statbag.hh"
 #include <atomic>
 #include <sys/mman.h>
 #include <thread>
-StatBag S;
 
 static std::atomic<uint64_t>* g_counter;
 

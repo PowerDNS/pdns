@@ -44,7 +44,6 @@
 #include "bind-dnssec.schema.sqlite3.sql.h"
 #endif
 
-StatBag S;
 AuthPacketCache PC;
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
@@ -134,7 +133,7 @@ static void loadMainConfig(const std::string& configdir)
 
   //cerr<<"Backend: "<<::arg()["launch"]<<", '" << ::arg()["gmysql-dbname"] <<"'" <<endl;
 
-  S.declare("qsize-q","Number of questions waiting for database attention");
+  StatBag::getStatBag().declare("qsize-q","Number of questions waiting for database attention");
 
   ::arg().set("max-cache-entries", "Maximum number of cache entries")="1000000";
   ::arg().set("cache-ttl","Seconds to store packets in the PacketCache")="20";
@@ -226,7 +225,7 @@ static void dbBench(const std::string& fname)
   }
   cout<<0.001*dt.udiff()/n<<" millisecond/lookup"<<endl;
   cout<<"Retrieved "<<hits<<" records, did "<<misses<<" queries which should have no match"<<endl;
-  cout<<"Packet cache reports: "<<S.read("query-cache-hit")<<" hits (should be 0) and "<<S.read("query-cache-miss") <<" misses"<<endl;
+  cout<<"Packet cache reports: "<<StatBag::getStatBag().read("query-cache-hit")<<" hits (should be 0) and "<<StatBag::getStatBag().read("query-cache-miss") <<" misses"<<endl;
 }
 
 static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)

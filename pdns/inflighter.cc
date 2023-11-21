@@ -33,7 +33,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include "iputils.hh"
-#include "statbag.hh"
 #include <sys/socket.h>
 
 #include "namespaces.hh"
@@ -184,8 +183,6 @@ template<typename Container, typename SendReceive> bool Inflighter<Container, Se
 }
 
 #if 0
-StatBag S;
-
 struct SendReceive
 {
   typedef int Identifier;

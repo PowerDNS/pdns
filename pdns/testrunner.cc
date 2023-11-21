@@ -13,7 +13,6 @@
 #include "auth-zonecache.hh"
 #include "statbag.hh"
 
-StatBag S;
 AuthPacketCache PC;
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
@@ -34,6 +33,6 @@ static bool init_unit_test()
 // entry point:
 int main(int argc, char* argv[])
 {
-  S.d_allowRedeclare = true;
+  StatBag::getStatBag().setAllowRedeclare(true);
   return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
 }

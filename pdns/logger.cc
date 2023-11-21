@@ -31,7 +31,6 @@
 #include "misc.hh"
 #ifndef RECURSOR
 #include "statbag.hh"
-extern StatBag S;
 #endif
 #include "namespaces.hh"
 
@@ -131,7 +130,7 @@ void Logger::log(const string& msg, Urgency u) noexcept
 #ifndef RECURSOR
   if (mustAccount) {
     try {
-      S.ringAccount("logmessages", msg);
+      StatBag::getStatBag().ringAccount("logmessages", msg);
     }
     catch (const runtime_error& e) {
       cerr << e.what() << endl;

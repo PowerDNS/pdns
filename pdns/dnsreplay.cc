@@ -63,7 +63,6 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 #include "config.h"
 #endif
 #include <bitset>
-#include "statbag.hh"
 #include "dnspcap.hh"
 #include "sstuff.hh"
 #include "anadns.hh"
@@ -85,7 +84,6 @@ What to do with timeouts. We keep around at most 65536 outstanding answers.
 using namespace ::boost::multi_index;
 #include "namespaces.hh"
 
-StatBag S;
 bool g_quiet=true;
 int g_timeoutMsec=0;
 

@@ -5,9 +5,6 @@
 #include "dnsrecords.hh"
 #include "dns_random.hh"
 #include "stubresolver.hh"
-#include "statbag.hh"
-
-StatBag S;
 
 ArgvMap &arg()
 {

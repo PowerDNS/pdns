@@ -50,8 +50,6 @@
 
 using json11::Json;
 
-extern StatBag S;
-
 static void patchZone(UeberBackend& B, HttpRequest* req, HttpResponse* resp);
 
 // QTypes that MUST NOT have multiple records of the same type in a given RRset.
@@ -87,7 +85,7 @@ AuthWebServer::AuthWebServer() :
 
 void AuthWebServer::go()
 {
-  S.doRings();
+  StatBag::getStatBag().doRings();
   std::thread webT([this](){webThread();});
   webT.detach();
   std::thread statT([this](){statThread();});
@@ -99,11 +97,11 @@ void AuthWebServer::statThread()
   try {
     setThreadName("pdns/statHelper");
     for(;;) {
-      d_queries.submit(S.read("udp-queries"));
-      d_cachehits.submit(S.read("packetcache-hit"));
-      d_cachemisses.submit(S.read("packetcache-miss"));
-      d_qcachehits.submit(S.read("query-cache-hit"));
-      d_qcachemisses.submit(S.read("query-cache-miss"));
+      d_queries.submit(StatBag::getStatBag().read("udp-queries"));
+      d_cachehits.submit(StatBag::getStatBag().read("packetcache-hit"));
+      d_cachemisses.submit(StatBag::getStatBag().read("packetcache-miss"));
+      d_qcachehits.submit(StatBag::getStatBag().read("query-cache-hit"));
+      d_qcachemisses.submit(StatBag::getStatBag().read("query-cache-miss"));
       Utility::sleep(1);
     }
   }
@@ -140,7 +138,7 @@ static void printtable(ostringstream &ret, const string &ringname, const string 
 {
   int tot=0;
   int entries=0;
-  vector<pair <string,unsigned int> >ring=S.getRing(ringname);
+  vector<pair <string,unsigned int> >ring=StatBag::getStatBag().getRing(ringname);
 
   for(const auto & i : ring) {
     tot+=i.second;
@@ -155,7 +153,7 @@ static void printtable(ostringstream &ret, const string &ringname, const string 
   ret<<"<span class=resizering>Resize: ";
   unsigned int sizes[]={10,100,500,1000,10000,500000,0};
   for(int i=0;sizes[i];++i) {
-    if(S.getRingSize(ringname)!=sizes[i])
+    if(StatBag::getStatBag().getRingSize(ringname)!=sizes[i])
       ret<<"<a href=\"?resizering="<<htmlescape(ringname)<<"&amp;size="<<sizes[i]<<"\">"<<sizes[i]<<"</a> ";
     else
       ret<<"("<<sizes[i]<<") ";
@@ -181,9 +179,9 @@ void AuthWebServer::printvars(ostringstream &ret)
 {
   ret<<"<div class=panel><h2>Variables</h2><table class=\"data\">"<<endl;
 
-  vector<string>entries=S.getEntries();
+  vector<string>entries=StatBag::getStatBag().getEntries();
   for(const auto & entry : entries) {
-    ret<<"<tr><td>"<<entry<<"</td><td>"<<S.read(entry)<<"</td><td>"<<S.getDescrip(entry)<<"</td>"<<endl;
+    ret<<"<tr><td>"<<entry<<"</td><td>"<<StatBag::getStatBag().read(entry)<<"</td><td>"<<StatBag::getStatBag().getDescrip(entry)<<"</td>"<<endl;
   }
 
   ret<<"</table></div>"<<endl;
@@ -207,16 +205,16 @@ string AuthWebServer::makePercentage(const double& val)
 void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 {
   if(!req->getvars["resetring"].empty()) {
-    if (S.ringExists(req->getvars["resetring"]))
-      S.resetRing(req->getvars["resetring"]);
+    if (StatBag::getStatBag().ringExists(req->getvars["resetring"]))
+      StatBag::getStatBag().resetRing(req->getvars["resetring"]);
     resp->status = 302;
     resp->headers["Location"] = req->url.path;
     return;
   }
   if(!req->getvars["resizering"].empty()){
     int size=std::stoi(req->getvars["size"]);
-    if (S.ringExists(req->getvars["resizering"]) && size > 0 && size <= 500000)
-      S.resizeRing(req->getvars["resizering"], std::stoi(req->getvars["size"]));
+    if (StatBag::getStatBag().ringExists(req->getvars["resizering"]) && size > 0 && size <= 500000)
+      StatBag::getStatBag().resizeRing(req->getvars["resizering"], std::stoi(req->getvars["size"]));
     resp->status = 302;
     resp->headers["Location"] = req->url.path;
     return;
@@ -272,19 +270,19 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     (int)d_qcachemisses.get10()<<". Max queries/second: "<<(int)d_qcachemisses.getMax()<<
     "<br>"<<endl;
 
-  ret<<"Total queries: "<<S.read("udp-queries")<<". Question/answer latency: "<<S.read("latency")/1000.0<<"ms</p><br>"<<endl;
+  ret<<"Total queries: "<<StatBag::getStatBag().read("udp-queries")<<". Question/answer latency: "<<StatBag::getStatBag().read("latency")/1000.0<<"ms</p><br>"<<endl;
   if(req->getvars["ring"].empty()) {
-    auto entries = S.listRings();
+    auto entries = StatBag::getStatBag().listRings();
     for(const auto &i: entries) {
-      printtable(ret, i, S.getRingTitle(i));
+      printtable(ret, i, StatBag::getStatBag().getRingTitle(i));
     }
 
     printvars(ret);
     if(arg().mustDo("webserver-print-arguments"))
       printargs(ret);
   }
-  else if(S.ringExists(req->getvars["ring"]))
-    printtable(ret,req->getvars["ring"],S.getRingTitle(req->getvars["ring"]),100);
+  else if(StatBag::getStatBag().ringExists(req->getvars["ring"]))
+    printtable(ret,req->getvars["ring"],StatBag::getStatBag().getRingTitle(req->getvars["ring"]),100);
 
   ret<<"</div></div>"<<endl;
   ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; <a href=\"https://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;
@@ -510,9 +508,9 @@ static void fillZone(UeberBackend& B, const DNSName& zonename, HttpResponse* res
 
 void productServerStatisticsFetch(map<string,string>& out)
 {
-  vector<string> items = S.getEntries();
+  vector<string> items = StatBag::getStatBag().getEntries();
   for(const string& item :  items) {
-    out[item] = std::to_string(S.read(item));
+    out[item] = std::to_string(StatBag::getStatBag().read(item));
   }
 
   // add uptime
@@ -523,7 +521,7 @@ std::optional<uint64_t> productServerStatisticsFetch(const std::string& name)
 {
   try {
     // ::read() calls ::exists() which throws a PDNSException when the key does not exist
-    return S.read(name);
+    return StatBag::getStatBag().read(name);
   }
   catch (...) {
     return std::nullopt;
@@ -2526,13 +2524,13 @@ static void prometheusMetrics(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 
   std::ostringstream output;
-  for (const auto &metricName : S.getEntries()) {
+  for (const auto &metricName : StatBag::getStatBag().getEntries()) {
     // Prometheus suggest using '_' instead of '-'
     std::string prometheusMetricName = "pdns_auth_" + boost::replace_all_copy(metricName, "-", "_");
 
-    output << "# HELP " << prometheusMetricName << " " << S.getDescrip(metricName) << "\n";
-    output << "# TYPE " << prometheusMetricName << " " << S.getStatType(metricName) << "\n";
-    output << prometheusMetricName << " " << S.read(metricName) << "\n";
+    output << "# HELP " << prometheusMetricName << " " << StatBag::getStatBag().getDescrip(metricName) << "\n";
+    output << "# TYPE " << prometheusMetricName << " " << StatBag::getStatBag().getStatType(metricName) << "\n";
+    output << prometheusMetricName << " " << StatBag::getStatBag().read(metricName) << "\n";
   }
 
   output << "# HELP pdns_auth_info " << "Info from PowerDNS, value is always 1" << "\n";

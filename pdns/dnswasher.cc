@@ -39,8 +39,6 @@ otherwise, obfuscate the response IP address
 #endif
 
 #include "namespaces.hh"
-#include "statbag.hh"
-StatBag S;
 
 #ifdef HAVE_IPCIPHER
 #include "dnspcap.hh"

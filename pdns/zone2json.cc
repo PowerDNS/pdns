@@ -50,7 +50,6 @@
 
 using namespace json11;
 
-StatBag S;
 static int g_numRecords;
 
 static Json::object emitRecord(const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl)
@@ -109,7 +108,7 @@ try
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print the version");
 
-    S.declare("logmessages");
+    StatBag::getStatBag().declare("logmessages");
 
     string namedfile="";
     string zonefile="";

@@ -32,9 +32,6 @@
 #include "protozero.hh"
 #include "uuid-utils.hh"
 
-#include "statbag.hh"
-StatBag S;
-
 static void usage()
 {
   cerr<<"This program reads DNS queries and responses from a PCAP file and stores them into our protobuf format."<<endl;

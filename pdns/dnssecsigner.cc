@@ -31,7 +31,6 @@
 #include "lock.hh"
 #include "arguments.hh"
 #include "statbag.hh"
-extern StatBag S;
 
 typedef map<pair<string, string>, string> signaturecache_t;
 static SharedLockGuarded<signaturecache_t> g_signatures;
@@ -63,8 +62,9 @@ static std::string getLookupKeyFromPublicKey(const std::string& pubKey)
 
 static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, const sortedRecords_t& toSign)
 {
-  if(!g_signatureCount)
-    g_signatureCount = S.getPointer("signatures");
+  if (!g_signatureCount) {
+    g_signatureCount = StatBag::getStatBag().getPointer("signatures");
+  }
 
   DNSKEYRecordContent drc = dpk.getDNSKEY();
   const std::shared_ptr<DNSCryptoKeyEngine>& rc = dpk.getKey();

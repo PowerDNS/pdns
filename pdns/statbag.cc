@@ -36,10 +36,16 @@
 
 #include "namespaces.hh"
 
-StatBag::StatBag()
+StatBag& StatBag::getStatBag()
 {
-  d_doRings=false;
-  d_allowRedeclare=false;
+  static StatBag theGlobalStatBag;
+  return theGlobalStatBag;
+}
+
+// only set this true during tests, never in production code
+void StatBag::setAllowRedeclare(bool allow)
+{
+  d_allowRedeclare = allow;
 }
 
 void StatBag::exists(const string &key)
@@ -164,10 +170,6 @@ AtomicCounter *StatBag::getPointer(const string &key)
 {
   exists(key);
   return d_stats[key].get();
-}
-
-StatBag::~StatBag()
-{
 }
 
 template<typename T, typename Comp>

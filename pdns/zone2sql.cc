@@ -46,10 +46,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-
-
-StatBag S;
-
 enum dbmode_t {MYSQL, POSTGRES, SQLITE};
 static dbmode_t g_mode;
 static bool g_intransaction;
@@ -219,7 +215,7 @@ try
     ::arg().setCmd("help","Provide a helpful message");
     ::arg().setCmd("version","Print the version");
 
-    S.declare("logmessages");
+    StatBag::getStatBag().declare("logmessages");
 
     string namedfile="";
     string zonefile="";

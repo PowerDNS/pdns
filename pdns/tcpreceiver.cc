@@ -63,7 +63,6 @@
 #include "gss_context.hh"
 #include "pdnsexception.hh"
 extern AuthPacketCache PC;
-extern StatBag S;
 
 /**
 \file tcpreceiver.cc
@@ -346,11 +345,11 @@ void TCPNameserver::doConnection(int fd)
       }
 
       getQuestion(fd, mesg.get(), pktlen, remote, remainingTime);
-      S.inc("tcp-queries");
+      StatBag::getStatBag().inc("tcp-queries");
       if (accountremote.sin4.sin_family == AF_INET6)
-        S.inc("tcp6-queries");
+        StatBag::getStatBag().inc("tcp6-queries");
       else
-        S.inc("tcp4-queries");
+        StatBag::getStatBag().inc("tcp4-queries");
 
       packet=make_unique<DNSPacket>(true);
       packet->setRemote(&remote);
@@ -364,7 +363,7 @@ void TCPNameserver::doConnection(int fd)
         break;
 
       if (packet->hasEDNSCookie())
-        S.inc("tcp-cookie-queries");
+        StatBag::getStatBag().inc("tcp-cookie-queries");
 
       if(packet->qtype.getCode()==QType::AXFR) {
         doAXFR(packet->qdomain, packet, fd);

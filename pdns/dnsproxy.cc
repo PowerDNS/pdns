@@ -38,13 +38,11 @@
 #include "arguments.hh"
 #include "threadname.hh"
 
-extern StatBag S;
-
 DNSProxy::DNSProxy(const string &remote): d_xor(dns_random_uint16())
 {
-  d_resanswers=S.getPointer("recursing-answers");
-  d_resquestions=S.getPointer("recursing-questions");
-  d_udpanswers=S.getPointer("udp-answers");
+  d_resanswers=StatBag::getStatBag().getPointer("recursing-answers");
+  d_resquestions=StatBag::getStatBag().getPointer("recursing-questions");
+  d_udpanswers=StatBag::getStatBag().getPointer("udp-answers");
 
   vector<string> addresses;
   stringtok(addresses, remote, " ,\t");
@@ -176,7 +174,7 @@ int DNSProxy::getID_locked(map_t& conntrack)
           i->second.remote.toStringWithPort()<<" with internal id "<<n<<
           " was not answered by backend within timeout, reusing id"<<endl;
 	i->second.complete.reset();
-	S.inc("recursion-unanswered");
+	StatBag::getStatBag().inc("recursion-unanswered");
       }
       return n;
     }

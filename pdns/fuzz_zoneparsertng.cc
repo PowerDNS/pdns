@@ -23,10 +23,7 @@
 #include "dnsname.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
-#include "statbag.hh"
 #include "zoneparser-tng.hh"
-
-StatBag S;
 
 static void init()
 {

@@ -28,18 +28,17 @@
 #include "statbag.hh"
 #include "arguments.hh"
 #include "cachecleaner.hh"
-extern StatBag S;
 
 AuthZoneCache::AuthZoneCache(size_t mapsCount) :
   d_maps(mapsCount)
 {
-  S.declare("zone-cache-hit", "Number of zone cache hits");
-  S.declare("zone-cache-miss", "Number of zone cache misses");
-  S.declare("zone-cache-size", "Number of entries in the zone cache", StatType::gauge);
+  StatBag::getStatBag().declare("zone-cache-hit", "Number of zone cache hits");
+  StatBag::getStatBag().declare("zone-cache-miss", "Number of zone cache misses");
+  StatBag::getStatBag().declare("zone-cache-size", "Number of entries in the zone cache", StatType::gauge);
 
-  d_statnumhit = S.getPointer("zone-cache-hit");
-  d_statnummiss = S.getPointer("zone-cache-miss");
-  d_statnumentries = S.getPointer("zone-cache-size");
+  d_statnumhit = StatBag::getStatBag().getPointer("zone-cache-hit");
+  d_statnummiss = StatBag::getStatBag().getPointer("zone-cache-miss");
+  d_statnumentries = StatBag::getStatBag().getPointer("zone-cache-size");
 }
 
 bool AuthZoneCache::getEntry(const DNSName& zone, int& zoneId)

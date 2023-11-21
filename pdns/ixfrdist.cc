@@ -55,8 +55,6 @@
 
 /* BEGIN Needed because of deeper dependencies */
 #include "arguments.hh"
-#include "statbag.hh"
-StatBag S;
 
 ArgvMap &arg()
 {

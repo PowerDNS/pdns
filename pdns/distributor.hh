@@ -41,8 +41,6 @@
 #include "statbag.hh"
 #include "gss_context.hh"
 
-extern StatBag S;
-
 /** the Distributor template class enables you to multithread slow question/answer 
     processes. 
     
@@ -201,7 +199,7 @@ template<class Answer, class Question, class Backend>void MultiThreadDistributor
       auto questionData = std::move(*tempQD);
       std::unique_ptr<Answer> a = nullptr;
       if (queuetimeout && questionData->Q.d_dt.udiff() > queuetimeout * 1000) {
-        S.inc("timedout-packets");
+        StatBag::getStatBag().inc("timedout-packets");
         continue;
       }
 
@@ -222,8 +220,8 @@ retry:
           a = questionData->Q.replyPacket();
 
           a->setRcode(RCode::ServFail);
-          S.inc("servfail-packets");
-          S.ringAccount("servfail-queries", questionData->Q.qdomain, questionData->Q.qtype);
+          StatBag::getStatBag().inc("servfail-packets");
+          StatBag::getStatBag().ringAccount("servfail-queries", questionData->Q.qdomain, questionData->Q.qtype);
         } else {
           g_log<<Logger::Notice<<"Backend error (retry once): "<<e.reason<<endl;
           goto retry;
@@ -236,8 +234,8 @@ retry:
           a = questionData->Q.replyPacket();
 
           a->setRcode(RCode::ServFail);
-          S.inc("servfail-packets");
-          S.ringAccount("servfail-queries", questionData->Q.qdomain, questionData->Q.qtype);
+          StatBag::getStatBag().inc("servfail-packets");
+          StatBag::getStatBag().ringAccount("servfail-queries", questionData->Q.qdomain, questionData->Q.qtype);
         } else {
           g_log<<Logger::Warning<<"Caught unknown exception in Distributor thread "<<std::this_thread::get_id()<<" (retry once)"<<endl;
           goto retry;
@@ -289,8 +287,8 @@ retry:
       a=q.replyPacket();
 
       a->setRcode(RCode::ServFail);
-      S.inc("servfail-packets");
-      S.ringAccount("servfail-queries", q.qdomain, q.qtype);
+      StatBag::getStatBag().inc("servfail-packets");
+      StatBag::getStatBag().ringAccount("servfail-queries", q.qdomain, q.qtype);
     } else {
       g_log<<Logger::Notice<<"Backend error (retry once): "<<e.reason<<endl;
       goto retry;
@@ -303,8 +301,8 @@ retry:
       a=q.replyPacket();
 
       a->setRcode(RCode::ServFail);
-      S.inc("servfail-packets");
-      S.ringAccount("servfail-queries", q.qdomain, q.qtype);
+      StatBag::getStatBag().inc("servfail-packets");
+      StatBag::getStatBag().ringAccount("servfail-queries", q.qdomain, q.qtype);
     } else {
       g_log<<Logger::Warning<<"Caught unknown exception in Distributor thread "<<std::this_thread::get_id()<<" (retry once)"<<endl;
       goto retry;

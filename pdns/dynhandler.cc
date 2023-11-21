@@ -92,15 +92,14 @@ string DLPingHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid *
 string DLShowHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
 {
   try {
-    extern StatBag S;
     string ret("Wrong number of parameters");
     if (parts.size() == 2) {
       if (parts[1] == "*")
-        ret = S.directory();
+        ret = StatBag::getStatBag().directory();
       else if (parts[1].length() && parts[1][parts[1].length() - 1 ] == '*')
-        ret = S.directory(parts[1].substr(0, parts[1].length() - 1));
+        ret = StatBag::getStatBag().directory(parts[1].substr(0, parts[1].length() - 1));
       else
-        ret = S.getValueStr(parts[1]);
+        ret = StatBag::getStatBag().getValueStr(parts[1]);
     }
 
     return ret;
@@ -202,9 +201,8 @@ string DLRSizesHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid
 
 string DLRemotesHandler(const vector<string>& /* parts */, Utility::pid_t /* ppid */)
 {
-  extern StatBag S;
   typedef vector<pair<string, unsigned int> > totals_t;
-  totals_t totals = S.getRing("remotes");
+  totals_t totals = StatBag::getStatBag().getRing("remotes");
   string ret;
   boost::format fmt("%s\t%d\n");
   for(totals_t::value_type& val :  totals) {

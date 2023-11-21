@@ -45,8 +45,6 @@
 
 #include "namespaces.hh"
 
-extern StatBag S;
-
 /** \mainpage 
     PowerDNS is a very versatile nameserver that can answer questions from different backends. To implement your
     own backend, see the documentation for the DNSBackend class.
@@ -79,7 +77,7 @@ extern StatBag S;
     asking this question. If so, the entire Distributor is shunted, and the answer is sent back *directly*, within a few microseconds.
 
     \section misc Miscellaneous
-    Configuration details are available via the ArgvMap instance arg. Statistics are created by making calls to the StatBag object called S. 
+    Configuration details are available via the ArgvMap instance arg. Statistics are created by making calls to the StatBag object. 
     These statistics are made available via the UeberBackend on the same socket that is used for dynamic module commands.
 
     \section Main Main 
@@ -240,7 +238,6 @@ void UDPNameserver::send(DNSPacket& p)
 bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
 {
   ComboAddress remote;
-  extern StatBag S;
   ssize_t len=-1;
   Utility::sock_t sock=-1;
 
@@ -313,8 +310,8 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
     buffer.resize(len);
     ssize_t used = parseProxyHeader(buffer, proxyProto, psource, pdestination, tcp, ppvalues);
     if (used <= 0 || (size_t) used > g_proxyProtocolMaximumSize || (len - used) > DNSPacket::s_udpTruncationThreshold) {
-      S.inc("corrupt-packets");
-      S.ringAccount("remotes-corrupt", packet.d_remote);
+      StatBag::getStatBag().inc("corrupt-packets");
+      StatBag::getStatBag().ringAccount("remotes-corrupt", packet.d_remote);
       return false;
     }
     buffer.erase(0, used);
@@ -326,8 +323,8 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
   }
 
   if(packet.parse(&buffer.at(0), (size_t) len)<0) {
-    S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", packet.getInnerRemote());
+    StatBag::getStatBag().inc("corrupt-packets");
+    StatBag::getStatBag().ringAccount("remotes-corrupt", packet.getInnerRemote());
 
     return false; // unable to parse
   }

@@ -40,12 +40,9 @@
 #include "ednssubnet.hh"
 #include "misc.hh"
 #include "sstuff.hh"
-#include "statbag.hh"
 
 using std::thread;
 using std::unique_ptr;
-
-StatBag S;
 
 static std::atomic<unsigned int> g_recvcounter, g_recvbytes;
 static volatile bool g_done;

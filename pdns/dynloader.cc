@@ -40,7 +40,6 @@
 #include "misc.hh"
 #include "dynmessenger.hh"
 #include "arguments.hh"
-#include "statbag.hh"
 #include "misc.hh"
 #include "namespaces.hh"
 
@@ -49,8 +48,6 @@ ArgvMap &arg()
   static ArgvMap arg;
   return arg;
 }
-
-StatBag S;
 
 int main(int argc, char **argv)
 {

@@ -7,7 +7,6 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
-#include "statbag.hh"
 #include "digests.hh"
 #include "base64.hh"
 #include "dnssecinfra.hh"
@@ -15,8 +14,6 @@
 #include "arguments.hh"
 #include "dns_random.hh"
 #include "query-local-address.hh"
-
-StatBag S;
 
 ArgvMap& arg()
 {

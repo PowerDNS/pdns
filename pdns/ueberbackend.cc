@@ -47,8 +47,6 @@
 #include "logger.hh"
 #include "statbag.hh"
 
-extern StatBag S;
-
 LockGuarded<vector<UeberBackend*>> UeberBackend::d_instances;
 
 // initially we are blocked
@@ -110,8 +108,8 @@ void UeberBackend::go()
     s_doANYLookupsOnly = true;
   }
 
-  S.declare("backend-queries", "Number of queries sent to the backend(s)");
-  s_backendQueries = S.getPointer("backend-queries");
+  StatBag::getStatBag().declare("backend-queries", "Number of queries sent to the backend(s)");
+  s_backendQueries = StatBag::getStatBag().getPointer("backend-queries");
 
   {
     std::unique_lock<std::mutex> l(d_mut);

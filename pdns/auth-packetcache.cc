@@ -26,21 +26,20 @@
 #include "logger.hh"
 #include "statbag.hh"
 #include "cachecleaner.hh"
-extern StatBag S;
 
 const unsigned int AuthPacketCache::s_mincleaninterval, AuthPacketCache::s_maxcleaninterval;
 
 AuthPacketCache::AuthPacketCache(size_t mapsCount): d_maps(mapsCount), d_lastclean(time(nullptr))
 {
-  S.declare("packetcache-hit", "Number of hits on the packet cache");
-  S.declare("packetcache-miss", "Number of misses on the packet cache");
-  S.declare("packetcache-size", "Number of entries in the packet cache", StatType::gauge);
-  S.declare("deferred-packetcache-inserts","Amount of packet cache inserts that were deferred because of maintenance");
-  S.declare("deferred-packetcache-lookup","Amount of packet cache lookups that were deferred because of maintenance");
+  StatBag::getStatBag().declare("packetcache-hit", "Number of hits on the packet cache");
+  StatBag::getStatBag().declare("packetcache-miss", "Number of misses on the packet cache");
+  StatBag::getStatBag().declare("packetcache-size", "Number of entries in the packet cache", StatType::gauge);
+  StatBag::getStatBag().declare("deferred-packetcache-inserts","Amount of packet cache inserts that were deferred because of maintenance");
+  StatBag::getStatBag().declare("deferred-packetcache-lookup","Amount of packet cache lookups that were deferred because of maintenance");
 
-  d_statnumhit=S.getPointer("packetcache-hit");
-  d_statnummiss=S.getPointer("packetcache-miss");
-  d_statnumentries=S.getPointer("packetcache-size");
+  d_statnumhit=StatBag::getStatBag().getPointer("packetcache-hit");
+  d_statnummiss=StatBag::getStatBag().getPointer("packetcache-miss");
+  d_statnumentries=StatBag::getStatBag().getPointer("packetcache-size");
 }
 
 void AuthPacketCache::MapCombo::reserve(size_t numberOfEntries)
@@ -69,7 +68,7 @@ bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
   {
     auto map = mc.d_map.try_read_lock();
     if (!map.owns_lock()) {
-      S.inc("deferred-packetcache-lookup");
+      StatBag::getStatBag().inc("deferred-packetcache-lookup");
       return false;
     }
 
@@ -135,7 +134,7 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
   {
     auto map = mc.d_map.try_write_lock();
     if (!map.owns_lock()) {
-      S.inc("deferred-packetcache-inserts");
+      StatBag::getStatBag().inc("deferred-packetcache-inserts");
       return;
     }
 

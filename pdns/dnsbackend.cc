@@ -36,8 +36,6 @@
 #include "dns.hh"
 #include "statbag.hh"
 
-extern StatBag S;
-
 // this has to be somewhere central, and not in a file that requires Lua
 // this is so the geoipbackend can set this pointer if loaded for lua-record.cc
 std::function<std::string(const std::string&, int)> g_getGeo;
@@ -233,7 +231,7 @@ vector<std::unique_ptr<DNSBackend>> BackendMakerClass::all(bool metadataOnly)
 bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
 {
   this->lookup(QType(QType::SOA),domain,-1);
-  S.inc("backend-queries");
+  StatBag::getStatBag().inc("backend-queries");
 
   DNSResourceRecord rr;
   int hits=0;

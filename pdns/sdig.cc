@@ -10,7 +10,6 @@
 #include "misc.hh"
 #include "proxy-protocol.hh"
 #include "sstuff.hh"
-#include "statbag.hh"
 #include <boost/array.hpp>
 
 #ifdef HAVE_LIBCURL
@@ -18,8 +17,6 @@
 #endif
 
 #include "tcpiohandler.hh"
-
-StatBag S;
 
 // Vars below used by tcpiohandler.cc
 bool g_verbose = true;

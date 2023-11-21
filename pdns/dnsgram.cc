@@ -23,7 +23,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsrecords.hh"
 #include "dnsparser.hh"
@@ -34,9 +33,6 @@
 #include "anadns.hh"
 
 #include "namespaces.hh"
-#include "namespaces.hh"
-
-StatBag S;
 
 static struct tm* pdns_localtime_r(const uint32_t* then, struct tm* tm)
 {

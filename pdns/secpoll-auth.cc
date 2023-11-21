@@ -24,8 +24,6 @@
 
 string g_security_message;
 
-extern StatBag S;
-
 /** Do an actual secpoll for the current version
  * @param first bool that tells if this is the first secpoll run since startup
  */
@@ -47,7 +45,7 @@ void doSecPoll(bool first)
   boost::replace_all(query, "+", "_");
   boost::replace_all(query, "~", "_");
 
-  int security_status = std::stoi(S.getValueStr("security-status"));
+  int security_status = std::stoi(StatBag::getStatBag().getValueStr("security-status"));
 
   vector<DNSRecord> ret;
   int res = stubDoResolve(DNSName(query), QType::TXT, ret);
@@ -62,13 +60,13 @@ void doSecPoll(bool first)
   try {
     processSecPoll(res, ret, security_status, security_message);
   } catch(const PDNSException &pe) {
-    S.set("security-status", security_status);
+    StatBag::getStatBag().set("security-status", security_status);
     g_log<<Logger::Warning<<"Failed to retrieve security status update for '" + pkgv + "' on '"+ query + "': "<<pe.reason<<endl;
     return;
   }
 
 
-  S.set("security-status", security_status);
+  StatBag::getStatBag().set("security-status", security_status);
   g_security_message = security_message;
 
   if(security_status == 1 && first) {

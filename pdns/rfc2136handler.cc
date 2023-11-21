@@ -21,7 +21,6 @@
 #include "gss_context.hh"
 #include "auth-main.hh"
 
-extern StatBag S;
 extern CommunicatorClass Communicator;
 
 std::mutex PacketHandler::s_rfc2136lock;
@@ -981,7 +980,7 @@ int PacketHandler::processUpdate(DNSPacket& p) {
         return RCode::ServFail;
       }
 
-      S.deposit("dnsupdate-changes", changedRecords);
+      StatBag::getStatBag().deposit("dnsupdate-changes", changedRecords);
 
       d_dk.clearMetaCache(di.zone);
       // Purge the records!

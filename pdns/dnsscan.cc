@@ -23,7 +23,6 @@
 #include "config.h"
 #endif
 #include <bitset>
-#include "statbag.hh"
 #include "dnspcap.hh"
 #include "sstuff.hh"
 #include "anadns.hh"
@@ -41,8 +40,6 @@
 
 #include "namespaces.hh"
 using namespace ::boost::multi_index;
-#include "namespaces.hh"
-StatBag S;
 
 static void usage() {
   cerr<<"syntax: dnsscan INFILE ..."<<endl;

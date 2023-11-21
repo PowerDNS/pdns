@@ -76,15 +76,17 @@ class StatBag
   typedef std::function<uint64_t(const std::string&)> func_t;
   typedef map<string, func_t> funcstats_t;
   funcstats_t d_funcstats;
-  bool d_doRings;
+  bool d_doRings{false};
+  bool d_allowRedeclare{false}; // only set this true during tests, never in production code
 
   std::set<string> d_blacklist;
 
   void registerRingStats(const string& name);
 
 public:
-  StatBag(); //!< Naked constructor. You need to declare keys before this class becomes useful
-  ~StatBag();
+  static StatBag& getStatBag();
+
+  StatBag() = default; //!< Naked constructor. You need to declare keys before this class becomes useful
   void declare(const string &key, const string &descrip="", StatType statType=StatType::counter); //!< Before you can store or access a key, you need to declare it
   void declare(const string &key, const string &descrip, func_t func, StatType statType); //!< Before you can store or access a key, you need to declare it
 
@@ -149,8 +151,7 @@ public:
   AtomicCounter *getPointer(const string &key); //!< get a direct pointer to the value behind a key. Use this for high performance increments
   string getValueStr(const string &key); //!< read a value behind a key, and return it as a string
   void blacklist(const string &str);
-
-  bool d_allowRedeclare; // only set this true during tests, never in production code
+  void setAllowRedeclare(bool allow); // only set this true during tests, never in production code
 };
 
 inline void StatBag::deposit(const string &key, int value)

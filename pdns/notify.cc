@@ -35,7 +35,6 @@
 #include <boost/multi_index/key_extractors.hpp>
 
 #include "mplexer.hh"
-#include "statbag.hh"
 #include "arguments.hh"
 #include "version.hh"
 #include "namespaces.hh"
@@ -44,7 +43,6 @@ using namespace ::boost::multi_index;
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
-StatBag S;
 ArgvMap &arg()
 {
   static ArgvMap arg;

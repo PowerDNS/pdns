@@ -31,9 +31,6 @@
 #include "dnspcap.hh"
 #include "dnsparser.hh"
 
-#include "statbag.hh"
-StatBag S;
-
 static void usage()
 {
   cerr<<"This program reads DNS queries from a PCAP file and outputs them in the calidns format."<<endl;

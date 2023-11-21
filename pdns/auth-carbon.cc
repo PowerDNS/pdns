@@ -36,7 +36,6 @@ void carbonDumpThread()
 try
 {
   setThreadName("pdns/carbonDump");
-  extern StatBag S;
 
   string namespace_name=arg()["carbon-namespace"];
   string hostname=arg()["carbon-ourname"];
@@ -60,11 +59,11 @@ try
     }
 
     string msg;
-    vector<string> entries = S.getEntries();
+    vector<string> entries = StatBag::getStatBag().getEntries();
     ostringstream str;
     time_t now=time(nullptr);
     for(const string& entry : entries) {
-      str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<S.read(entry)<<' '<<now<<"\r\n";
+      str<<namespace_name<<'.'<<hostname<<'.'<<instance_name<<'.'<<entry<<' '<<StatBag::getStatBag().read(entry)<<' '<<now<<"\r\n";
     }
     msg = str.str();
 

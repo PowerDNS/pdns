@@ -46,10 +46,6 @@
 
 using json11::Json;
 
-#ifndef RECURSOR
-extern StatBag S;
-#endif
-
 #ifndef HAVE_STRCASESTR
 
 /*
@@ -276,9 +272,9 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
 #ifndef RECURSOR
   if (!req->getvars.count("includerings") ||
        req->getvars["includerings"] != "false") {
-    for(const auto& ringName : S.listRings()) {
+    for(const auto& ringName : StatBag::getStatBag().listRings()) {
       Json::array values;
-      const auto& ring = S.getRing(ringName);
+      const auto& ring = StatBag::getStatBag().getRing(ringName);
       for(const auto& item : ring) {
         if (item.second == 0)
           continue;
@@ -292,7 +288,7 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
       doc.push_back(Json::object {
         { "type", "RingStatisticItem" },
         { "name", ringName },
-        { "size", std::to_string(S.getRingSize(ringName)) },
+        { "size", std::to_string(StatBag::getStatBag().getRingSize(ringName)) },
         { "value", values },
       });
     }

@@ -52,10 +52,7 @@
 #include "dynlistener.hh"
 #include "dnspacket.hh"
 #include "logger.hh"
-#include "statbag.hh"
 #include "threadname.hh"
-
-extern StatBag S;
 
 DynListener::g_funkdb_t DynListener::s_funcdb;
 DynListener::g_funk_t* DynListener::s_restfunc;

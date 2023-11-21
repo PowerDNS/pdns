@@ -27,21 +27,20 @@
 #include "logger.hh"
 #include "statbag.hh"
 #include "cachecleaner.hh"
-extern StatBag S;
 
 const unsigned int AuthQueryCache::s_mincleaninterval, AuthQueryCache::s_maxcleaninterval;
 
 AuthQueryCache::AuthQueryCache(size_t mapsCount): d_maps(mapsCount), d_lastclean(time(nullptr))
 {
-  S.declare("query-cache-hit","Number of hits on the query cache");
-  S.declare("query-cache-miss","Number of misses on the query cache");
-  S.declare("query-cache-size", "Number of entries in the query cache", StatType::gauge);
-  S.declare("deferred-cache-inserts","Amount of cache inserts that were deferred because of maintenance");
-  S.declare("deferred-cache-lookup","Amount of cache lookups that were deferred because of maintenance");
+  StatBag::getStatBag().declare("query-cache-hit","Number of hits on the query cache");
+  StatBag::getStatBag().declare("query-cache-miss","Number of misses on the query cache");
+  StatBag::getStatBag().declare("query-cache-size", "Number of entries in the query cache", StatType::gauge);
+  StatBag::getStatBag().declare("deferred-cache-inserts","Amount of cache inserts that were deferred because of maintenance");
+  StatBag::getStatBag().declare("deferred-cache-lookup","Amount of cache lookups that were deferred because of maintenance");
 
-  d_statnumhit=S.getPointer("query-cache-hit");
-  d_statnummiss=S.getPointer("query-cache-miss");
-  d_statnumentries=S.getPointer("query-cache-size");
+  d_statnumhit=StatBag::getStatBag().getPointer("query-cache-hit");
+  d_statnummiss=StatBag::getStatBag().getPointer("query-cache-miss");
+  d_statnumentries=StatBag::getStatBag().getPointer("query-cache-size");
 }
 
 void AuthQueryCache::MapCombo::reserve(size_t numberOfEntries)
@@ -62,7 +61,7 @@ bool AuthQueryCache::getEntry(const DNSName &qname, const QType& qtype, vector<D
   {
     auto map = mc.d_map.try_read_lock();
     if (!map.owns_lock()) {
-      S.inc("deferred-cache-lookup");
+      StatBag::getStatBag().inc("deferred-cache-lookup");
       return false;
     }
 
@@ -90,7 +89,7 @@ void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, vector<DNS
   {
     auto map = mc.d_map.try_write_lock();
     if (!map.owns_lock()) {
-      S.inc("deferred-cache-inserts"); 
+      StatBag::getStatBag().inc("deferred-cache-inserts"); 
       return;
     }
 

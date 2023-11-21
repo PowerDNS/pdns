@@ -23,7 +23,6 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "statbag.hh"
 #include "dnspcap.hh"
 #include "dnsparser.hh"
 #include <map>
@@ -33,8 +32,6 @@
 #include "anadns.hh"
 
 #include "namespaces.hh"
-
-StatBag S;
 
 struct Entry
 {

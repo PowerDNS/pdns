@@ -7,14 +7,11 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
-#include "statbag.hh"
 #include "base32.hh"
 #include "dnssecinfra.hh"
 
 #include "dns_random.hh"
 #include "gss_context.hh"
-
-StatBag S;
 
 int main(int argc, char** argv)
 try

@@ -22,7 +22,6 @@
 #ifndef RECURSOR
 #include "statbag.hh"
 #include "base64.hh"
-StatBag S;
 #endif
 
 volatile bool g_ret; // make sure the optimizer does not get too smart
@@ -893,7 +892,7 @@ struct StatRingDNSNameQTypeToStringTest
   string getName() const { return "StatRing test with DNSName and QType to string"; }
 
   void operator()() const {
-    S.ringAccount("testring", d_name.toLogString()+"/"+d_type.toString());
+    StatBag::getStatBag().ringAccount("testring", d_name.toLogString()+"/"+d_type.toString());
   };
 
   DNSName d_name;
@@ -907,7 +906,7 @@ struct StatRingDNSNameQTypeTest
   string getName() const { return "StatRing test with DNSName and QType"; }
 
   void operator()() const {
-    S.ringAccount("testringdnsname", d_name, d_type);
+    StatBag::getStatBag().ringAccount("testringdnsname", d_name, d_type);
   };
 
   DNSName d_name;
@@ -1321,12 +1320,12 @@ int main()
 #endif
 
 #ifndef RECURSOR
-    S.doRings();
+    StatBag::getStatBag().doRings();
 
-    S.declareRing("testring", "Just some ring where we'll account things");
+    StatBag::getStatBag().declareRing("testring", "Just some ring where we'll account things");
     doRun(StatRingDNSNameQTypeToStringTest(DNSName("example.com"), QType(1)));
 
-    S.declareDNSNameQTypeRing("testringdnsname", "Just some ring where we'll account things");
+    StatBag::getStatBag().declareDNSNameQTypeRing("testringdnsname", "Just some ring where we'll account things");
     doRun(StatRingDNSNameQTypeTest(DNSName("example.com"), QType(1)));
 #endif
 

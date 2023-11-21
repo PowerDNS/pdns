@@ -1171,7 +1171,7 @@ std::unique_ptr<DNSPacket> PacketHandler::question(DNSPacket& p)
   }
 
   if(p.d.rd) {
-    static AtomicCounter &rdqueries=*S.getPointer("rd-queries");
+    static AtomicCounter &rdqueries=*StatBag::getStatBag().getPointer("rd-queries");
     rdqueries++;
   }
 
@@ -1204,8 +1204,8 @@ void PacketHandler::makeNOError(DNSPacket& p, std::unique_ptr<DNSPacket>& r, con
     addNSECX(p, r, target, wildcard, mode);
   }
 
-  S.inc("noerror-packets");
-  S.ringAccount("noerror-queries", p.qdomain, p.qtype);
+  StatBag::getStatBag().inc("noerror-packets");
+  StatBag::getStatBag().ringAccount("noerror-queries", p.qdomain, p.qtype);
 }
 
 
@@ -1342,16 +1342,16 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   if(p.d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails)
       g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemoteString()<<", dropping"<<endl;
-    S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", p.getInnerRemote());
+    StatBag::getStatBag().inc("corrupt-packets");
+    StatBag::getStatBag().ringAccount("remotes-corrupt", p.getInnerRemote());
     return nullptr;
   }
 
   if(p.d.tc) { // truncated query. MOADNSParser would silently parse this packet in an incomplete way.
     if(d_logDNSDetails)
       g_log<<Logger::Error<<"Received truncated query packet from "<<p.getRemoteString()<<", dropping"<<endl;
-    S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", p.getInnerRemote());
+    StatBag::getStatBag().inc("corrupt-packets");
+    StatBag::getStatBag().ringAccount("remotes-corrupt", p.getInnerRemote());
     return nullptr;
   }
 
@@ -1420,26 +1420,26 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     if(!validDNSName(p.qdomain)) {
       if(d_logDNSDetails)
         g_log<<Logger::Error<<"Received a malformed qdomain from "<<p.getRemoteString()<<", '"<<p.qdomain<<"': sending servfail"<<endl;
-      S.inc("corrupt-packets");
-      S.ringAccount("remotes-corrupt", p.getInnerRemote());
-      S.inc("servfail-packets");
+      StatBag::getStatBag().inc("corrupt-packets");
+      StatBag::getStatBag().ringAccount("remotes-corrupt", p.getInnerRemote());
+      StatBag::getStatBag().inc("servfail-packets");
       r->setRcode(RCode::ServFail);
       return r;
     }
     if(p.d.opcode) { // non-zero opcode (again thanks RA!)
       if(p.d.opcode==Opcode::Update) {
-        S.inc("dnsupdate-queries");
+        StatBag::getStatBag().inc("dnsupdate-queries");
         int res=processUpdate(p);
         if (res == RCode::Refused)
-          S.inc("dnsupdate-refused");
+          StatBag::getStatBag().inc("dnsupdate-refused");
         else if (res != RCode::ServFail)
-          S.inc("dnsupdate-answers");
+          StatBag::getStatBag().inc("dnsupdate-answers");
         r->setRcode(res);
         r->setOpcode(Opcode::Update);
         return r;
       }
       else if(p.d.opcode==Opcode::Notify) {
-        S.inc("incoming-notifications");
+        StatBag::getStatBag().inc("incoming-notifications");
         int res=processNotify(p);
         if(res>=0) {
           r->setRcode(res);
@@ -1812,8 +1812,8 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     g_log<<Logger::Error<<"Backend reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
     r=p.replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);
-    S.inc("servfail-packets");
-    S.ringAccount("servfail-queries", p.qdomain, p.qtype);
+    StatBag::getStatBag().inc("servfail-packets");
+    StatBag::getStatBag().ringAccount("servfail-queries", p.qdomain, p.qtype);
   }
   catch(const PDNSException &e) {
     g_log<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+"), aborting"<<endl;
@@ -1823,8 +1823,8 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     g_log<<Logger::Error<<"Exception building answer packet for "<<p.qdomain<<"/"<<p.qtype.toString()<<" ("<<e.what()<<") sending out servfail"<<endl;
     r=p.replyPacket(); // generate an empty reply packet
     r->setRcode(RCode::ServFail);
-    S.inc("servfail-packets");
-    S.ringAccount("servfail-queries", p.qdomain, p.qtype);
+    StatBag::getStatBag().inc("servfail-packets");
+    StatBag::getStatBag().ringAccount("servfail-queries", p.qdomain, p.qtype);
   }
   return r;
 

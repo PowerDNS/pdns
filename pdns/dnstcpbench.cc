@@ -38,14 +38,12 @@
 #include "misc.hh"
 #include "dnswriter.hh"
 #include "dnsrecords.hh"
-#include "statbag.hh"
 #include "threadname.hh"
 #include <netinet/tcp.h>
 #include <boost/array.hpp>
 #include <boost/program_options.hpp>
 
 
-StatBag S;
 namespace po = boost::program_options;
 
 po::variables_map g_vm;

@@ -22,9 +22,6 @@
 
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
-#include "statbag.hh"
-
-StatBag S;
 
 static void init()
 {

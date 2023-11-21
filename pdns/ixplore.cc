@@ -27,7 +27,6 @@
 
 #include "misc.hh"
 #include "dnsrecords.hh"
-#include "statbag.hh"
 #include "base32.hh"
 #include "dnssecinfra.hh"
 
@@ -38,7 +37,6 @@
 #include <fstream>
 #include "ixfr.hh"
 #include "ixfrutils.hh"
-StatBag S;
 
 ArgvMap &arg()
 {

@@ -30,7 +30,7 @@
 #include <deque>
 #include "inflighter.cc"
 //#include "malloctrace.hh"
-StatBag S;
+
 bool g_quiet;
 std::unique_ptr<ofstream> g_powerdns;
 std::atomic<unsigned int> g_count;

@@ -116,7 +116,6 @@ bool g_doGssTSIG;
 typedef Distributor<DNSPacket, DNSPacket, PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
-StatBag S; //!< Statistics are gathered across PDNS via the StatBag class S
 AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
@@ -401,101 +400,102 @@ static uint64_t getSendLatency(const std::string& /* str */)
 
 static void declareStats()
 {
-  S.declare("udp-queries", "Number of UDP queries received");
-  S.declare("udp-do-queries", "Number of UDP queries received with DO bit");
-  S.declare("udp-cookie-queries", "Number of UDP queries received with the COOKIE EDNS option");
-  S.declare("udp-answers", "Number of answers sent out over UDP");
-  S.declare("udp-answers-bytes", "Total size of answers sent out over UDP");
-  S.declare("udp4-answers-bytes", "Total size of answers sent out over UDPv4");
-  S.declare("udp6-answers-bytes", "Total size of answers sent out over UDPv6");
+  auto& theStatBag = StatBag::getStatBag();
+  theStatBag.declare("udp-queries", "Number of UDP queries received");
+  theStatBag.declare("udp-do-queries", "Number of UDP queries received with DO bit");
+  theStatBag.declare("udp-cookie-queries", "Number of UDP queries received with the COOKIE EDNS option");
+  theStatBag.declare("udp-answers", "Number of answers sent out over UDP");
+  theStatBag.declare("udp-answers-bytes", "Total size of answers sent out over UDP");
+  theStatBag.declare("udp4-answers-bytes", "Total size of answers sent out over UDPv4");
+  theStatBag.declare("udp6-answers-bytes", "Total size of answers sent out over UDPv6");
 
-  S.declare("udp4-answers", "Number of IPv4 answers sent out over UDP");
-  S.declare("udp4-queries", "Number of IPv4 UDP queries received");
-  S.declare("udp6-answers", "Number of IPv6 answers sent out over UDP");
-  S.declare("udp6-queries", "Number of IPv6 UDP queries received");
-  S.declare("overload-drops", "Queries dropped because backends overloaded");
+  theStatBag.declare("udp4-answers", "Number of IPv4 answers sent out over UDP");
+  theStatBag.declare("udp4-queries", "Number of IPv4 UDP queries received");
+  theStatBag.declare("udp6-answers", "Number of IPv6 answers sent out over UDP");
+  theStatBag.declare("udp6-queries", "Number of IPv6 UDP queries received");
+  theStatBag.declare("overload-drops", "Queries dropped because backends overloaded");
 
-  S.declare("rd-queries", "Number of recursion desired questions");
-  S.declare("recursion-unanswered", "Number of packets unanswered by configured recursor");
-  S.declare("recursing-answers", "Number of recursive answers sent out");
-  S.declare("recursing-questions", "Number of questions sent to recursor");
-  S.declare("corrupt-packets", "Number of corrupt packets received");
-  S.declare("signatures", "Number of DNSSEC signatures made");
-  S.declare("tcp-queries", "Number of TCP queries received");
-  S.declare("tcp-cookie-queries", "Number of TCP queries received with the COOKIE option");
-  S.declare("tcp-answers", "Number of answers sent out over TCP");
-  S.declare("tcp-answers-bytes", "Total size of answers sent out over TCP");
-  S.declare("tcp4-answers-bytes", "Total size of answers sent out over TCPv4");
-  S.declare("tcp6-answers-bytes", "Total size of answers sent out over TCPv6");
+  theStatBag.declare("rd-queries", "Number of recursion desired questions");
+  theStatBag.declare("recursion-unanswered", "Number of packets unanswered by configured recursor");
+  theStatBag.declare("recursing-answers", "Number of recursive answers sent out");
+  theStatBag.declare("recursing-questions", "Number of questions sent to recursor");
+  theStatBag.declare("corrupt-packets", "Number of corrupt packets received");
+  theStatBag.declare("signatures", "Number of DNSSEC signatures made");
+  theStatBag.declare("tcp-queries", "Number of TCP queries received");
+  theStatBag.declare("tcp-cookie-queries", "Number of TCP queries received with the COOKIE option");
+  theStatBag.declare("tcp-answers", "Number of answers sent out over TCP");
+  theStatBag.declare("tcp-answers-bytes", "Total size of answers sent out over TCP");
+  theStatBag.declare("tcp4-answers-bytes", "Total size of answers sent out over TCPv4");
+  theStatBag.declare("tcp6-answers-bytes", "Total size of answers sent out over TCPv6");
 
-  S.declare("tcp4-queries", "Number of IPv4 TCP queries received");
-  S.declare("tcp4-answers", "Number of IPv4 answers sent out over TCP");
+  theStatBag.declare("tcp4-queries", "Number of IPv4 TCP queries received");
+  theStatBag.declare("tcp4-answers", "Number of IPv4 answers sent out over TCP");
 
-  S.declare("tcp6-queries", "Number of IPv6 TCP queries received");
-  S.declare("tcp6-answers", "Number of IPv6 answers sent out over TCP");
+  theStatBag.declare("tcp6-queries", "Number of IPv6 TCP queries received");
+  theStatBag.declare("tcp6-answers", "Number of IPv6 answers sent out over TCP");
 
-  S.declare("open-tcp-connections", "Number of currently open TCP connections", getTCPConnectionCount, StatType::gauge);
+  theStatBag.declare("open-tcp-connections", "Number of currently open TCP connections", getTCPConnectionCount, StatType::gauge);
 
-  S.declare("qsize-q", "Number of questions waiting for database attention", getQCount, StatType::gauge);
+  theStatBag.declare("qsize-q", "Number of questions waiting for database attention", getQCount, StatType::gauge);
 
-  S.declare("dnsupdate-queries", "DNS update packets received.");
-  S.declare("dnsupdate-answers", "DNS update packets successfully answered.");
-  S.declare("dnsupdate-refused", "DNS update packets that are refused.");
-  S.declare("dnsupdate-changes", "DNS update changes to records in total.");
+  theStatBag.declare("dnsupdate-queries", "DNS update packets received.");
+  theStatBag.declare("dnsupdate-answers", "DNS update packets successfully answered.");
+  theStatBag.declare("dnsupdate-refused", "DNS update packets that are refused.");
+  theStatBag.declare("dnsupdate-changes", "DNS update changes to records in total.");
 
-  S.declare("incoming-notifications", "NOTIFY packets received.");
+  theStatBag.declare("incoming-notifications", "NOTIFY packets received.");
 
-  S.declare("uptime", "Uptime of process in seconds", uptimeOfProcess, StatType::counter);
-  S.declare("real-memory-usage", "Actual unique use of memory in bytes (approx)", getRealMemoryUsage, StatType::gauge);
-  S.declare("special-memory-usage", "Actual unique use of memory in bytes (approx)", getSpecialMemoryUsage, StatType::gauge);
-  S.declare("fd-usage", "Number of open filedescriptors", getOpenFileDescriptors, StatType::gauge);
+  theStatBag.declare("uptime", "Uptime of process in seconds", uptimeOfProcess, StatType::counter);
+  theStatBag.declare("real-memory-usage", "Actual unique use of memory in bytes (approx)", getRealMemoryUsage, StatType::gauge);
+  theStatBag.declare("special-memory-usage", "Actual unique use of memory in bytes (approx)", getSpecialMemoryUsage, StatType::gauge);
+  theStatBag.declare("fd-usage", "Number of open filedescriptors", getOpenFileDescriptors, StatType::gauge);
 #ifdef __linux__
-  S.declare("udp-recvbuf-errors", "UDP 'recvbuf' errors", udpErrorStats, StatType::counter);
-  S.declare("udp-sndbuf-errors", "UDP 'sndbuf' errors", udpErrorStats, StatType::counter);
-  S.declare("udp-noport-errors", "UDP 'noport' errors", udpErrorStats, StatType::counter);
-  S.declare("udp-in-errors", "UDP 'in' errors", udpErrorStats, StatType::counter);
-  S.declare("udp-in-csum-errors", "UDP 'in checksum' errors", udpErrorStats, StatType::counter);
-  S.declare("udp6-in-errors", "UDP 'in' errors over IPv6", udp6ErrorStats, StatType::counter);
-  S.declare("udp6-recvbuf-errors", "UDP 'recvbuf' errors over IPv6", udp6ErrorStats, StatType::counter);
-  S.declare("udp6-sndbuf-errors", "UDP 'sndbuf' errors over IPv6", udp6ErrorStats, StatType::counter);
-  S.declare("udp6-noport-errors", "UDP 'noport' errors over IPv6", udp6ErrorStats, StatType::counter);
-  S.declare("udp6-in-csum-errors", "UDP 'in checksum' errors over IPv6", udp6ErrorStats, StatType::counter);
+  theStatBag.declare("udp-recvbuf-errors", "UDP 'recvbuf' errors", udpErrorStats, StatType::counter);
+  theStatBag.declare("udp-sndbuf-errors", "UDP 'sndbuf' errors", udpErrorStats, StatType::counter);
+  theStatBag.declare("udp-noport-errors", "UDP 'noport' errors", udpErrorStats, StatType::counter);
+  theStatBag.declare("udp-in-errors", "UDP 'in' errors", udpErrorStats, StatType::counter);
+  theStatBag.declare("udp-in-csum-errors", "UDP 'in checksum' errors", udpErrorStats, StatType::counter);
+  theStatBag.declare("udp6-in-errors", "UDP 'in' errors over IPv6", udp6ErrorStats, StatType::counter);
+  theStatBag.declare("udp6-recvbuf-errors", "UDP 'recvbuf' errors over IPv6", udp6ErrorStats, StatType::counter);
+  theStatBag.declare("udp6-sndbuf-errors", "UDP 'sndbuf' errors over IPv6", udp6ErrorStats, StatType::counter);
+  theStatBag.declare("udp6-noport-errors", "UDP 'noport' errors over IPv6", udp6ErrorStats, StatType::counter);
+  theStatBag.declare("udp6-in-csum-errors", "UDP 'in checksum' errors over IPv6", udp6ErrorStats, StatType::counter);
 #endif
 
-  S.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec, StatType::counter);
-  S.declare("user-msec", "Number of msec spent in user time", getSysUserTimeMsec, StatType::counter);
+  theStatBag.declare("sys-msec", "Number of msec spent in system time", getSysUserTimeMsec, StatType::counter);
+  theStatBag.declare("user-msec", "Number of msec spent in user time", getSysUserTimeMsec, StatType::counter);
 
 #ifdef __linux__
-  S.declare("cpu-iowait", "Time spent waiting for I/O to complete by the whole system, in units of USER_HZ", getCPUIOWait, StatType::counter);
-  S.declare("cpu-steal", "Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ", getCPUSteal, StatType::counter);
+  theStatBag.declare("cpu-iowait", "Time spent waiting for I/O to complete by the whole system, in units of USER_HZ", getCPUIOWait, StatType::counter);
+  theStatBag.declare("cpu-steal", "Stolen time, which is the time spent by the whole system in other operating systems when running in a virtualized environment, in units of USER_HZ", getCPUSteal, StatType::counter);
 #endif
 
-  S.declare("meta-cache-size", "Number of entries in the metadata cache", DNSSECKeeper::dbdnssecCacheSizes, StatType::gauge);
-  S.declare("key-cache-size", "Number of entries in the key cache", DNSSECKeeper::dbdnssecCacheSizes, StatType::gauge);
-  S.declare("signature-cache-size", "Number of entries in the signature cache", signatureCacheSize, StatType::gauge);
+  theStatBag.declare("meta-cache-size", "Number of entries in the metadata cache", DNSSECKeeper::dbdnssecCacheSizes, StatType::gauge);
+  theStatBag.declare("key-cache-size", "Number of entries in the key cache", DNSSECKeeper::dbdnssecCacheSizes, StatType::gauge);
+  theStatBag.declare("signature-cache-size", "Number of entries in the signature cache", signatureCacheSize, StatType::gauge);
 
-  S.declare("nxdomain-packets", "Number of times an NXDOMAIN packet was sent out");
-  S.declare("noerror-packets", "Number of times a NOERROR packet was sent out");
-  S.declare("servfail-packets", "Number of times a server-failed packet was sent out");
-  S.declare("unauth-packets", "Number of times a zone we are not auth for was queried");
-  S.declare("latency", "Average number of microseconds needed to answer a question", getLatency, StatType::gauge);
-  S.declare("receive-latency", "Average number of microseconds needed to receive a query", getReceiveLatency, StatType::gauge);
-  S.declare("cache-latency", "Average number of microseconds needed for a packet cache lookup", getCacheLatency, StatType::gauge);
-  S.declare("backend-latency", "Average number of microseconds needed for a backend lookup", getBackendLatency, StatType::gauge);
-  S.declare("send-latency", "Average number of microseconds needed to send the answer", getSendLatency, StatType::gauge);
-  S.declare("timedout-packets", "Number of packets which weren't answered within timeout set");
-  S.declare("security-status", "Security status based on regular polling", StatType::gauge);
-  S.declare(
+  theStatBag.declare("nxdomain-packets", "Number of times an NXDOMAIN packet was sent out");
+  theStatBag.declare("noerror-packets", "Number of times a NOERROR packet was sent out");
+  theStatBag.declare("servfail-packets", "Number of times a server-failed packet was sent out");
+  theStatBag.declare("unauth-packets", "Number of times a zone we are not auth for was queried");
+  theStatBag.declare("latency", "Average number of microseconds needed to answer a question", getLatency, StatType::gauge);
+  theStatBag.declare("receive-latency", "Average number of microseconds needed to receive a query", getReceiveLatency, StatType::gauge);
+  theStatBag.declare("cache-latency", "Average number of microseconds needed for a packet cache lookup", getCacheLatency, StatType::gauge);
+  theStatBag.declare("backend-latency", "Average number of microseconds needed for a backend lookup", getBackendLatency, StatType::gauge);
+  theStatBag.declare("send-latency", "Average number of microseconds needed to send the answer", getSendLatency, StatType::gauge);
+  theStatBag.declare("timedout-packets", "Number of packets which weren't answered within timeout set");
+  theStatBag.declare("security-status", "Security status based on regular polling", StatType::gauge);
+  theStatBag.declare(
     "xfr-queue", "Size of the queue of zones to be XFRd", [](const string&) { return Communicator.getSuckRequestsWaiting(); }, StatType::gauge);
-  S.declareDNSNameQTypeRing("queries", "UDP Queries Received");
-  S.declareDNSNameQTypeRing("nxdomain-queries", "Queries for nonexistent records within existent zones");
-  S.declareDNSNameQTypeRing("noerror-queries", "Queries for existing records, but for type we don't have");
-  S.declareDNSNameQTypeRing("servfail-queries", "Queries that could not be answered due to backend errors");
-  S.declareDNSNameQTypeRing("unauth-queries", "Queries for zones that we are not authoritative for");
-  S.declareRing("logmessages", "Log Messages");
-  S.declareComboRing("remotes", "Remote server IP addresses");
-  S.declareComboRing("remotes-unauth", "Remote hosts querying zones for which we are not auth");
-  S.declareComboRing("remotes-corrupt", "Remote hosts sending corrupt packets");
+  theStatBag.declareDNSNameQTypeRing("queries", "UDP Queries Received");
+  theStatBag.declareDNSNameQTypeRing("nxdomain-queries", "Queries for nonexistent records within existent zones");
+  theStatBag.declareDNSNameQTypeRing("noerror-queries", "Queries for existing records, but for type we don't have");
+  theStatBag.declareDNSNameQTypeRing("servfail-queries", "Queries that could not be answered due to backend errors");
+  theStatBag.declareDNSNameQTypeRing("unauth-queries", "Queries for zones that we are not authoritative for");
+  theStatBag.declareRing("logmessages", "Log Messages");
+  theStatBag.declareComboRing("remotes", "Remote server IP addresses");
+  theStatBag.declareComboRing("remotes-unauth", "Remote hosts querying zones for which we are not auth");
+  theStatBag.declareComboRing("remotes-corrupt", "Remote hosts sending corrupt packets");
 }
 
 static int isGuarded(char** argv)
@@ -537,14 +537,14 @@ try {
   DNSPacket question(true);
   DNSPacket cached(false);
 
-  AtomicCounter& numreceived = *S.getPointer("udp-queries");
-  AtomicCounter& numreceiveddo = *S.getPointer("udp-do-queries");
-  AtomicCounter& numreceivedcookie = *S.getPointer("udp-cookie-queries");
+  AtomicCounter& numreceived = *StatBag::getStatBag().getPointer("udp-queries");
+  AtomicCounter& numreceiveddo = *StatBag::getStatBag().getPointer("udp-do-queries");
+  AtomicCounter& numreceivedcookie = *StatBag::getStatBag().getPointer("udp-cookie-queries");
 
-  AtomicCounter& numreceived4 = *S.getPointer("udp4-queries");
+  AtomicCounter& numreceived4 = *StatBag::getStatBag().getPointer("udp4-queries");
 
-  AtomicCounter& numreceived6 = *S.getPointer("udp6-queries");
-  AtomicCounter& overloadDrops = *S.getPointer("overload-drops");
+  AtomicCounter& numreceived6 = *StatBag::getStatBag().getPointer("udp6-queries");
+  AtomicCounter& overloadDrops = *StatBag::getStatBag().getPointer("overload-drops");
 
   int diff, start;
   bool logDNSQueries = ::arg().mustDo("log-dns-queries");
@@ -600,8 +600,8 @@ try {
       if (question.d.qr)
         continue;
 
-      S.ringAccount("queries", question.qdomain, question.qtype);
-      S.ringAccount("remotes", question.getInnerRemote());
+      StatBag::getStatBag().ringAccount("queries", question.qdomain, question.qtype);
+      StatBag::getStatBag().ringAccount("remotes", question.getInnerRemote());
       if (logDNSQueries) {
         g_log << Logger::Notice << "Remote " << question.getRemoteString() << " wants '" << question.qdomain << "|" << question.qtype << "', do = " << question.d_dnssecOk << ", bufsize = " << question.getMaxReplyLen();
         if (question.d_ednsRawPacketSizeLimit > 0 && question.getMaxReplyLen() != (unsigned int)question.d_ednsRawPacketSizeLimit)
@@ -1483,7 +1483,7 @@ int main(int argc, char** argv)
     g_log << Logger::Error << "Invalid value '" << ::arg()["default-catalog-zone"] << "' for default-catalog-zone: " << e.what() << endl;
     exit(1);
   }
-  S.blacklist("special-memory-usage");
+  StatBag::getStatBag().blacklist("special-memory-usage");
 
   DLOG(g_log << Logger::Warning << "Verbose logging in effect" << endl);
 
