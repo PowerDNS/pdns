@@ -29,6 +29,7 @@ import pycurl
 from io import BytesIO
 
 from doqclient import quic_query
+from doh3client import doh3_query
 
 from eqdnsmessage import AssertEqualDNSMessageMixin
 from proxyprotocol import ProxyProtocol
@@ -1114,6 +1115,29 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 cls._toResponderQueue.put(response, True, timeout)
 
         message = quic_query(query, '127.0.0.1', timeout, port, verify=caFile, server_hostname=serverName)
+
+        receivedQuery = None
+
+        if useQueue:
+            if fromQueue:
+                if not fromQueue.empty():
+                    receivedQuery = fromQueue.get(True, timeout)
+            else:
+                if not cls._fromResponderQueue.empty():
+                    receivedQuery = cls._fromResponderQueue.get(True, timeout)
+
+        return (receivedQuery, message)
+
+    @classmethod
+    def sendDOH3Query(cls, port, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, fromQueue=None, toQueue=None, connection=None, serverName=None):
+
+        if response:
+            if toQueue:
+                toQueue.put(response, True, timeout)
+            else:
+                cls._toResponderQueue.put(response, True, timeout)
+
+        message = doh3_query(query, baseurl, timeout, port, verify=caFile, server_hostname=serverName)
 
         receivedQuery = None
 
