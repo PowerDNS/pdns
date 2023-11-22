@@ -244,7 +244,7 @@ endif
 
 if get_option('unit-tests')
   # TODO: NOINSTALL speedtest and pdns-auth-testrunner
-  tools += ['tsig_tests', 'speedtest', 'pdns-auth-testrunner']
+  tools += ['tsig-tests', 'speedtest', 'pdns-auth-testrunner']
 endif
 
 if get_option('fuzz-targets')

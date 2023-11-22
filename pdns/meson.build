@@ -1355,7 +1355,7 @@ endif
 
 if get_option('unit-tests')
   tool_libs += {
-    'tsig_tests': {
+    'tsig-tests': {
       'main': 'tsig-tests.cc',
       'sources': [
         'arguments.cc',
