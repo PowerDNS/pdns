@@ -139,6 +139,80 @@ if not fs.is_file(libpdns_bind_dnssec_schema_h)
 endif
 libpdns_bind_dnssec_schema = declare_dependency(sources: libpdns_bind_dnssec_schema_h)
 
+conditional_sources = {
+  'sunos-devpollmplexer': {
+    'sources': ['devpollmplexer.cc', 'portsmplexer.cc'],
+    'condition': get_variable('have_sunos', false),
+  },
+  'linux-epollmplexer': {
+    'sources': ['epollmplexer.cc'],
+    'condition': get_variable('have_linux', false),
+  },
+  'bsd-kqueuemplexer': {
+    'sources': ['kqueuemplexer.cc'],
+    'condition': get_variable('have_openbsd', false) or get_variable('have_freebsd', false),
+  },
+  'ssqlite3': {
+    'sources': ['ssqlite3.cc'],
+    'headers': ['ssqlite3.hh'],
+    'condition': get_variable('dep_sqlite3', dependency('', required: false)).found(),
+  },
+  'minicurl': {
+    'sources': ['minicurl.cc'],
+    'headers': ['minicurl.hh'],
+    'condition': dep_lua_records.found() or dep_libcurl.found(),
+  },
+  'lua-record': {
+    'sources': ['lua-record.cc'],
+    'condition': dep_lua_records.found(),
+  },
+  'ipcipher': {
+    'sources': ['ipcipher.cc'],
+    'headers': ['ipcipher.hh'],
+    'condition': enable_ipcipher,
+  },
+  'lua-base4': {
+    'sources': ['lua-base4.cc'],
+    'headers': ['lua-base4.hh'],
+    'condition': dep_lua.found(),
+  },
+  'sodiumsigners': {
+    'sources': ['sodiumsigners.cc'],
+    'condition': dep_libsodium.found(),
+  },
+  'decafsigners': {
+    'sources': ['decafsigners.cc'],
+    'condition': dep_libdecaf.found(),
+  },
+  'pkcs11signers': {
+    'sources': ['pkcs11signers.cc'],
+    'headers': ['pkcs11signers.hh'],
+    'condition': dep_pkcs11.found(),
+  },
+  'standalone-fuzz-target-runner': {
+    'sources': ['standalone_fuzz_target_runner.cc'],
+    'condition': get_option('fuzz-targets'),
+  },
+}
+
+foreach name, info: conditional_sources
+  var_name = 'libpdns_' + name.underscorify()
+  set_variable(var_name, dependency('', required: false))
+  if info['condition']
+    set_variable(
+      var_name,
+      declare_dependency(
+        link_whole: static_library(
+          'pdns-' + name,
+          sources: info['sources'],
+          extra_files: 'headers' in info ? info['headers'] : [],
+          dependencies: [deps],
+        )
+      )
+    )
+  endif
+endforeach
+
 tool_libs = {
   'pdns-auth': {
     'main': 'auth-main.cc',
@@ -301,16 +375,6 @@ tool_libs = {
       'ws-auth.cc',
       'ws-auth.hh',
       'zoneparser-tng.cc',
-
-      'lua-record.cc',
-      'minicurl.cc',
-      'minicurl.hh',
-      'sodiumsigners.cc',
-      'decafsigners.cc',
-      'ssqlite3.cc',
-      'ssqlite3.hh',
-      'pkcs11signers.cc',
-      'pkcs11signers.hh',
     ],
     'deps': [
       deps,
@@ -318,6 +382,12 @@ tool_libs = {
       libpdns_bind_dnssec_schema,
       libpdns_dnslabeltext,
       libpdns_apidocfiles,
+      libpdns_lua_record,
+      libpdns_minicurl,
+      libpdns_sodiumsigners,
+      libpdns_decafsigners,
+      libpdns_ssqlite3,
+      libpdns_pkcs11signers,
     ]
   },
   'pdns-auth-util': {
@@ -409,18 +479,15 @@ tool_libs = {
       'zonemd.hh',
       'zonemd.cc',
       'zoneparser-tng.cc',
-
-      'sodiumsigners.cc',
-      'decafsigners.cc',
-      'ssqlite3.cc',
-      'ssqlite3.hh',
-      'pkcs11signers.cc',
-      'pkcs11signers.hh',
     ],
     'deps': [
       deps,
       libpdns_bind_parser,
       libpdns_dnslabeltext,
+      libpdns_sodiumsigners,
+      libpdns_decafsigners,
+      libpdns_ssqlite3,
+      libpdns_pkcs11signers,
     ],
   },
   'pdns-auth-control': {
@@ -583,13 +650,11 @@ if get_option('tools')
         'tcpiohandler.cc',
         'tcpiohandler.hh',
         'unix_utility.cc',
-
-        'minicurl.cc',
-        'minicurl.hh',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_minicurl,
       ],
     },
     'calidns': {
@@ -1000,13 +1065,11 @@ if get_option('tools')
         'svc-records.cc',
         'svc-records.hh',
         'unix_utility.cc',
-
-        'pkcs11signers.cc',
-        'pkcs11signers.hh',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_pkcs11signers,
       ],
     },
     'pdns-auth-notify': {
@@ -1139,13 +1202,11 @@ if get_option('tools')
         'svc-records.cc',
         'svc-records.hh',
         'unix_utility.cc',
-
-        'pkcs11signers.cc',
-        'pkcs11signers.hh',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_pkcs11signers,
       ],
     },
     'ixplore': {
@@ -1192,13 +1253,11 @@ if get_option('tools')
         'tsigverifier.hh',
         'unix_utility.cc',
         'zoneparser-tng.cc',
-
-        'pkcs11signers.cc',
-        'pkcs11signers.hh',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_pkcs11signers,
       ],
     },
   }
@@ -1337,17 +1396,14 @@ if get_option('tools-ixfrdist')
         'webserver.hh',
         'webserver.cc',
         'zoneparser-tng.cc',
-
-        'pkcs11signers.cc',
-        'pkcs11signers.hh',
-        'kqueuemplexer.cc',
-        'epollmplexer.cc',
-        'devpollmplexer.cc',
-        'portsmplexer.cc',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_pkcs11signers,
+        libpdns_sunos_devpollmplexer,
+        libpdns_linux_epollmplexer,
+        libpdns_bsd_kqueuemplexer,
       ],
     },
   }
@@ -1394,13 +1450,11 @@ if get_option('unit-tests')
         'tsigverifier.cc',
         'tsigverifier.hh',
         'unix_utility.cc',
-
-        'pkcs11signers.cc',
-        'pkcs11signers.hh',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_pkcs11signers,
       ],
     },
     'speedtest': {
@@ -1439,13 +1493,11 @@ if get_option('unit-tests')
         'svc-records.hh',
         'unix_utility.cc',
         'uuid-utils.cc',
-
-        'pkcs11signers.cc',
-        'pkcs11signers.hh',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_pkcs11signers,
       ],
     },
     'pdns-auth-testrunner': {
@@ -1577,20 +1629,17 @@ if get_option('unit-tests')
         'zonemd.hh',
         'zoneparser-tng.cc',
         'zoneparser-tng.hh',
-
-        'pkcs11signers.cc',
-        'pkcs11signers.hh',
-        'sodiumsigners.cc',
-        'decafsigners.cc',
-        'kqueuemplexer.cc',
-        'epollmplexer.cc',
-        'devpollmplexer.cc',
-        'portsmplexer.cc',
       ],
       'deps': [
         deps,
         libpdns_bind_parser,
         libpdns_dnslabeltext,
+        libpdns_pkcs11signers,
+        libpdns_sodiumsigners,
+        libpdns_decafsigners,
+        libpdns_sunos_devpollmplexer,
+        libpdns_linux_epollmplexer,
+        libpdns_bsd_kqueuemplexer,
       ],
     },
   }
@@ -1629,12 +1678,11 @@ if get_option('fuzz-targets')
         'svc-records.hh',
 	'unix_utility.cc',
 	'utility.hh',
-
-        'standalone_fuzz_target_runner.cc',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_standalone_fuzz_target_runner,
       ],
     },
     'fuzz_target_packetcache': {
@@ -1653,12 +1701,11 @@ if get_option('fuzz-targets')
         'statbag.hh',
 	'svc-records.cc',
         'svc-records.hh',
-
-        'standalone_fuzz_target_runner.cc',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_standalone_fuzz_target_runner,
       ],
     },
     'fuzz_target_proxyprotocol': {
@@ -1667,32 +1714,29 @@ if get_option('fuzz-targets')
 	'iputils.hh',
 	'proxy-protocol.cc',
 	'proxy-protocol.hh',
-
-        'standalone_fuzz_target_runner.cc',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_standalone_fuzz_target_runner,
       ],
     },
     'fuzz_target_dnslabeltext_parseRFC1035CharString': {
       'main': 'fuzz_dnslabeltext_parseRFC1035CharString.cc',
-      'sources': [
-        'standalone_fuzz_target_runner.cc',
-      ],
+      'sources': [],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_standalone_fuzz_target_runner,
       ],
     },
     'fuzz_target_yahttp': {
       'main': 'fuzz_yahttp.cc',
-      'sources': [
-        'standalone_fuzz_target_runner.cc',
-      ],
+      'sources': [],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_standalone_fuzz_target_runner,
       ],
     },
     'fuzz_target_zoneparsertng': {
@@ -1728,46 +1772,15 @@ if get_option('fuzz-targets')
 	'utility.hh',
 	'zoneparser-tng.cc',
         'zoneparser-tng.hh',
-
-        'standalone_fuzz_target_runner.cc',
       ],
       'deps': [
         deps,
         libpdns_dnslabeltext,
+        libpdns_standalone_fuzz_target_runner,
       ],
     },
   }
 endif
-
-conditional_sources = {
-  'devpollmplexer.cc': get_variable('have_sunos', false),
-  'portsmplexer.cc': get_variable('have_sunos', false),
-  'epollmplexer.cc': get_variable('have_linux', false),
-  'kqueuemplexer.cc': get_variable('have_openbsd', false) or get_variable('have_freebsd', false),
-
-  'ssqlite3.cc': get_variable('dep_sqlite3', dependency('', required: false)).found(),
-  'ssqlite3.hh': get_variable('dep_sqlite3', dependency('', required: false)).found(),
-
-  'minicurl.cc': dep_lua_records.found() or dep_libcurl.found(),
-  'minicurl.hh': dep_lua_records.found() or dep_libcurl.found(),
-
-  'ipcipher.cc': enable_ipcipher,
-  'ipcipher.hh': enable_ipcipher,
-
-  'lua-base4.cc': dep_lua.found(),
-  'lua-base4.hh': dep_lua.found(),
-
-  'lua-record.cc': dep_lua_records.found(),
-
-  'sodiumsigners.cc': dep_libsodium.found(),
-
-  'decafsigners.cc': dep_libdecaf.found(),
-
-  'pkcs11signers.cc': dep_pkcs11.found(),
-  'pkcs11signers.hh': dep_pkcs11.found(),
-
-  'standalone_fuzz_target_runner.cc': get_option('fuzz-targets'),
-}
 
 source_deps = {}
 
@@ -1781,33 +1794,24 @@ foreach tool_name, tool_info: tool_libs
 
   foreach source: all_sources
     if source.endswith('.cc')
-      # name = source.underscorify().replace('/', '__')
-
       if source not in source_deps
-        # Check if the source is conditionally built.
-        if source not in conditional_sources or (source in conditional_sources and conditional_sources[source])
-          # Create a new cached dependency for this source file.
-          source_deps += {
-            source: declare_dependency(
-              link_whole: static_library(
-                'pdns-' + source.replace('/', '__'),
-                sources: [source],
-                dependencies: deps,
-              )
+        # Create a new cached dependency for this source file.
+        source_deps += {
+          source: declare_dependency(
+            link_whole: static_library(
+              'pdns-' + source.replace('/', '__'),
+              sources: [source],
+              dependencies: deps,
             )
-          }
-        elif not conditional_sources[source]
-          source_deps += {
-            source: dependency('', required: false)
-          }
-        endif
+          )
+        }
       endif
 
       tool_sources += source_deps[source]
     elif source.endswith('.hh')
       tool_headers += source
     else
-      error('Unsupported extension for source file ' + source)
+      error('Unsupported extension for source file `' + source + '`')
     endif
   endforeach
 
