@@ -1353,7 +1353,7 @@ if get_option('tools-ixfrdist')
   }
 endif
 
-if get_option('unit-tests') or get_option('unit-tests-backends')
+if get_option('unit-tests')
   tool_libs += {
     'tsig_tests': {
       'main': 'tsig-tests.cc',

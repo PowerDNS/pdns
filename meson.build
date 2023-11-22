@@ -242,7 +242,7 @@ if get_option('tools-ixfrdist')
   tools += ['ixfrdist', 'ixplore']
 endif
 
-if get_option('unit-tests') or get_option('unit-tests-backends')
+if get_option('unit-tests')
   # TODO: NOINSTALL speedtest and pdns-auth-testrunner
   tools += ['tsig_tests', 'speedtest', 'pdns-auth-testrunner']
 endif
