@@ -468,7 +468,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   if (!doTCP) {
     int queryfd;
 
-    ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, weWantEDNSSubnet, &queryfd);
+    ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, weWantEDNSSubnet, &queryfd, *now);
 
     if (ret != LWResult::Result::Success) {
       return ret;

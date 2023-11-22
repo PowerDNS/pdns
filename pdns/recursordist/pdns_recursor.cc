@@ -273,18 +273,17 @@ unsigned int authWaitTime(const std::unique_ptr<MT_t>& mtasker)
 {
   const auto max = g_maxMThreads;
   const auto current = mtasker->numProcesses();
-  const unsigned int cutoff = max / 10; /// if we have less than 10% used,  do not reduce auth timeout
+  const unsigned int cutoff = max / 10; // if we have less than 10% used,  do not reduce auth timeout
   if (current < cutoff) {
     return g_networkTimeoutMsec;
   }
-  // current is between cutoff and max
   const auto avail = max - current;
   return std::max(g_networkTimeoutMsec / 10, g_networkTimeoutMsec * avail / (max - cutoff));
 }
 
 /* these two functions are used by LWRes */
 LWResult::Result asendto(const void* data, size_t len, int /* flags */,
-                         const ComboAddress& toAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc)
+                         const ComboAddress& toAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc, timeval& now)
 {
 
   auto pident = std::make_shared<PacketID>();
@@ -307,13 +306,19 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
       // don't chain onto existing chained waiter or a chain already processed
       if (chain.first->key->fd > -1 && !chain.first->key->closed) {
         *fileDesc = -1; // gets used in waitEvent / sendEvent later on
-        if (g_maxChainLength > 0 && chain.first->key->authReqChain.size() >= g_maxChainLength) {
+        auto currentChainSize = chain.first->key->authReqChain.size();
+        if (g_maxChainLength > 0 && currentChainSize >= g_maxChainLength) {
+          return  LWResult::Result::OSLimitError;
+        }
+        assert(uSec(chain.first->key->creationTime) != 0);
+        auto age = now - chain.first->key->creationTime;
+        if (uSec(age) > static_cast<uint64_t>(1000) * authWaitTime(g_multiTasker) * 2 / 3) {
           return  LWResult::Result::OSLimitError;
         }
         chain.first->key->authReqChain.insert(qid); // we can chain
         auto maxLength = t_Counters.at(rec::Counter::maxChainLength);
-        if (chain.first->key->authReqChain.size() > maxLength) {
-          t_Counters.at(rec::Counter::maxChainLength) = chain.first->key->authReqChain.size();
+        if (currentChainSize > maxLength) {
+          t_Counters.at(rec::Counter::maxChainLength) = currentChainSize;
         }
         return LWResult::Result::Success;
       }
@@ -353,6 +358,7 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
   pident->domain = domain;
   pident->type = qtype;
   pident->remote = fromAddr;
+  pident->creationTime = now;
 
   int ret = g_multiTasker->waitEvent(pident, &packet, authWaitTime(g_multiTasker), &now);
   len = 0;

@@ -764,6 +764,7 @@ struct PacketID
   using chain_t = set<uint16_t>;
   mutable chain_t authReqChain;
   shared_ptr<TCPIOHandler> tcphandler{nullptr};
+  timeval creationTime{};
   string::size_type inPos{0}; // how far are we along in the inMSG
   size_t inWanted{0}; // if this is set, we'll read until inWanted bytes are read
   string::size_type outPos{0}; // how far we are along in the outMSG

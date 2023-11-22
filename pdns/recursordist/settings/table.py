@@ -1499,7 +1499,7 @@ means unlimited.
         'default' : '2048',
         'help' : 'Maximum number of simultaneous Mtasker threads',
         'doc' : '''
-Maximum number of simultaneous MTasker threads.
+Maximum number of simultaneous MTasker threads, per worker thread.
  ''',
     },
     {
@@ -1816,6 +1816,7 @@ a new domain is observed.
         'help' : 'Wait this number of milliseconds for network i/o',
         'doc' : '''
 Number of milliseconds to wait for a remote authoritative server to respond.
+If the number of concurrent requests is high, the :program:Recursor uses a lower value.
  ''',
     },
     {
