@@ -277,9 +277,12 @@ if get_option('fuzz-targets')
 endif
 
 foreach tool: tools
-  executable(
-    tool,
-    sources: [config_h],
-    dependencies: [get_variable('lib' + tool.underscorify())],
+  set_variable(
+    tool.underscorify(),
+    executable(
+      tool,
+      sources: [config_h],
+      dependencies: [get_variable('lib' + tool.underscorify())],
+    )
   )
 endforeach
