@@ -226,20 +226,38 @@ if get_option('module-ldap') != 'disabled'
 endif
 
 if get_option('tools')
-  # TODO Broken: comfun
   tools += [
-    'sdig', 'calidns', 'dumresp', 'kvresp', 'stubquery', 'saxfr', 'nsec3dig',
-    'dnswasher', 'dnsreplay', 'dnsscan', 'nproxy', 'pdns-auth-notify', 'dnsscope',
-    'dnsgram', 'dnsdemog', 'dnspcap2calidns', 'dnspcap2protobuf'
+    'calidns',
+    # 'comfun',                   # TODO: Broken
+    'dnsdemog',
+    'dnsgram',
+    'dnspcap2calidns',
+    'dnspcap2protobuf',
+    'dnsreplay',
+    'dnsscan',
+    'dnsscope',
+    'dnswasher',
+    'dumresp',
+    'ixplore',
+    'kvresp',
+    'nproxy',
+    'nsec3dig',
+    'pdns-auth-notify',
+    'saxfr',
+    'sdig',
+    'stubquery',
   ]
 
   if have_boost_1_48_0
-    tools += ['dnstcpbench', 'dnsbulktest']
+    tools += [
+      'dnsbulktest',
+      'dnstcpbench',
+    ]
   endif
 endif
 
 if get_option('tools-ixfrdist')
-  tools += ['ixfrdist', 'ixplore']
+  tools += ['ixfrdist']
 endif
 
 if get_option('unit-tests')
