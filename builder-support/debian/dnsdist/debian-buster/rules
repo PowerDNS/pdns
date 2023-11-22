@@ -48,6 +48,7 @@ override_dh_auto_configure:
 	  --enable-lto=thin \
 	  --enable-dns-over-https \
 	  --enable-dns-over-quic \
+	  --enable-dns-over-http3 \
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
 	  --enable-dnstap \
