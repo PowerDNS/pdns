@@ -277,7 +277,7 @@ private:
 
 std::shared_ptr<DOH3TCPCrossQuerySender> DOH3CrossProtocolQuery::s_sender = std::make_shared<DOH3TCPCrossQuerySender>();
 
-static void h3_send_response(quiche_conn *quic_conn, quiche_h3_conn *conn, const uint64_t streamID, uint16_t statusCode, const uint8_t* body, size_t len)
+static void h3_send_response(quiche_conn* quic_conn, quiche_h3_conn* conn, const uint64_t streamID, uint16_t statusCode, const uint8_t* body, size_t len)
 {
   std::string status = std::to_string(statusCode);
   std::string lenStr = std::to_string(len);
@@ -285,21 +285,21 @@ static void h3_send_response(quiche_conn *quic_conn, quiche_h3_conn *conn, const
     {
       .name = reinterpret_cast<const uint8_t*>(":status"),
       .name_len = sizeof(":status") - 1,
-      
+
       .value = reinterpret_cast<const uint8_t*>(status.data()),
       .value_len = status.size(),
     },
     {
       .name = reinterpret_cast<const uint8_t*>("content-length"),
       .name_len = sizeof("content-length") - 1,
-      
+
       .value = reinterpret_cast<const uint8_t*>(lenStr.data()),
       .value_len = lenStr.size(),
     },
   };
   quiche_h3_send_response(conn, quic_conn,
                           streamID, headers, 2, false);
- 
+
   size_t pos = 0;
   while (pos < len) {
     auto res = quiche_h3_send_body(conn, quic_conn,
@@ -313,7 +313,7 @@ static void h3_send_response(quiche_conn *quic_conn, quiche_h3_conn *conn, const
   }
 }
 
-static void h3_send_response(quiche_conn *quic_conn, quiche_h3_conn *conn, const uint64_t streamID, uint16_t statusCode, const std::string& content)
+static void h3_send_response(quiche_conn* quic_conn, quiche_h3_conn* conn, const uint64_t streamID, uint16_t statusCode, const std::string& content)
 {
   h3_send_response(quic_conn, conn, streamID, statusCode, reinterpret_cast<const uint8_t*>(content.data()), content.size());
 }
@@ -326,7 +326,8 @@ static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uin
 {
   if (statusCode == 200) {
     ++frontend.d_validResponses;
-  } else {
+  }
+  else {
     ++frontend.d_errorResponses;
   }
   h3_send_response(conn, streamID, statusCode, &response.at(0), response.size());
@@ -359,7 +360,7 @@ void DOH3Frontend::setup()
 
   {
     auto res = quiche_config_set_application_protos(config.get(),
-                                                    (uint8_t *) QUICHE_H3_APPLICATION_PROTOCOL,
+                                                    (uint8_t*)QUICHE_H3_APPLICATION_PROTOCOL,
                                                     sizeof(QUICHE_H3_APPLICATION_PROTOCOL) - 1);
     if (res != 0) {
       throw std::runtime_error("Error setting ALPN: " + std::to_string(res));
@@ -772,7 +773,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
   }
   catch (const std::exception& e) {
     vinfolog("Got an error in DOH3 question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
-      unit->status_code = 500;
+    unit->status_code = 500;
     handleImmediateResponse(std::move(unit), "DoH3 internal error");
     return;
   }
@@ -934,13 +935,13 @@ void doh3Thread(ClientState* clientState)
             conn->get().d_http3 = QuicheHTTP3Connection(quiche_h3_conn_new_with_transport(conn->get().d_conn.get(), frontend->d_server_config->http3config.get()),
                                                         quiche_h3_conn_free);
             if (!conn->get().d_http3) {
-              continue ;
+              continue;
             }
             DEBUGLOG("Successfully created HTTP/3 connection");
           }
 
           while (1) {
-            quiche_h3_event *ev;
+            quiche_h3_event* ev;
             // Processes HTTP/3 data received from the peer
             int64_t streamID = quiche_h3_conn_poll(conn->get().d_http3.get(),
                                                    conn->get().d_conn.get(),
@@ -953,23 +954,25 @@ void doh3Thread(ClientState* clientState)
             switch (quiche_h3_event_type(ev)) {
             case QUICHE_H3_EVENT_HEADERS: {
               std::string path;
-              int rc = quiche_h3_event_for_each_header(ev,
-                                                       [](uint8_t *name, size_t name_len, uint8_t *value, size_t value_len, void *argp) -> int {
-                                                         std::string_view key(reinterpret_cast<char*>(name), name_len);
-                                                         std::string_view content(reinterpret_cast<char*>(value), value_len);
-                                                         if (key == ":path") {
-                                                           auto pathptr = reinterpret_cast<std::string*>(argp);
-                                                           *pathptr = content;
-                                                         }
-                                                         return 0;
-                                                       }, &path);
+              int rc = quiche_h3_event_for_each_header(
+                ev,
+                [](uint8_t* name, size_t name_len, uint8_t* value, size_t value_len, void* argp) -> int {
+                  std::string_view key(reinterpret_cast<char*>(name), name_len);
+                  std::string_view content(reinterpret_cast<char*>(value), value_len);
+                  if (key == ":path") {
+                    auto pathptr = reinterpret_cast<std::string*>(argp);
+                    *pathptr = content;
+                  }
+                  return 0;
+                },
+                &path);
               if (rc != 0) {
                 DEBUGLOG("Failed to process headers");
                 ++dnsdist::metrics::g_stats.nonCompliantQueries;
                 ++clientState->nonCompliantQueries;
                 ++frontend->d_errorResponses;
                 h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unable to process query headers");
-                break ;
+                break;
               }
               if (path.empty()) {
                 DEBUGLOG("Path not found");
@@ -1013,7 +1016,7 @@ void doh3Thread(ClientState* clientState)
                     ++clientState->nonCompliantQueries;
                     ++frontend->d_errorResponses;
                     h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unable to decode BASE64-URL");
-                    break ;
+                    break;
                   }
 
                   if (decoded.size() < sizeof(dnsheader)) {
@@ -1033,7 +1036,7 @@ void doh3Thread(ClientState* clientState)
                   ++clientState->nonCompliantQueries;
                   ++frontend->d_errorResponses;
                   h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unable to find the DNS parameter");
-                  break ;
+                  break;
                 }
               }
               break;
@@ -1049,7 +1052,6 @@ void doh3Thread(ClientState* clientState)
 
             quiche_h3_event_free(ev);
           }
-
         }
         else {
           DEBUGLOG("Connection not established");
