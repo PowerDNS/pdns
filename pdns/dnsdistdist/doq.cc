@@ -293,6 +293,7 @@ static void handleResponse(DOQFrontend& frontend, Connection& conn, const uint64
 
   pos = 0;
   while (pos < response.size()) {
+    // stream_send sets fin to false itself when the capacity of the stream is less than the desired writing length
     auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, &response.at(pos), response.size() - pos, true);
     if (res < 0) {
       quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_INTERNAL_ERROR));

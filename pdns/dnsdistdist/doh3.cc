@@ -306,6 +306,7 @@ static void h3_send_response(quiche_conn* quic_conn, quiche_h3_conn* conn, const
 
   size_t pos = 0;
   while (pos < len) {
+    // send_body takes care of setting fin to false if it cannot send the entire content so we can try again.
     auto res = quiche_h3_send_body(conn, quic_conn,
                                    streamID, const_cast<uint8_t*>(body) + pos, len - pos, true);
     if (res < 0) {
