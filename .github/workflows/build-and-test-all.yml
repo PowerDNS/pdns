@@ -16,7 +16,7 @@ env:
   # github.workspace variable points to the Runner home folder. Container home folder defined below.
   REPO_HOME: '/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}'
   BUILDER_VERSION: '0.0.0-git1'
-  COVERAGE: yes
+  COVERAGE: ${{ github.repository == 'PowerDNS/pdns' && 'yes' || 'no' }}
   LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
   OPTIMIZATIONS: yes
   DECAF_SUPPORT: yes
@@ -70,6 +70,7 @@ jobs:
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}/pdns
       - name: Coveralls Parallel auth unit
+        if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: auth-unit-${{ matrix.sanitizers }}
@@ -134,9 +135,9 @@ jobs:
       - run: inv ci-rec-make-bear
       - run: inv ci-rec-run-unit-tests
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel rec unit
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: rec-unit-${{ matrix.sanitizers }}
@@ -208,9 +209,9 @@ jobs:
       - run: inv ci-dnsdist-make-bear
       - run: inv ci-dnsdist-run-unit-tests
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel dnsdist unit
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: dnsdist-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
@@ -278,6 +279,7 @@ jobs:
       - run: inv test-api auth -b ${{ matrix.backend }}
       - run: inv generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
       - name: Coveralls Parallel auth API ${{ matrix.backend }}
+        if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: auth-api-${{ matrix.backend }}
@@ -398,6 +400,7 @@ jobs:
       - run: inv test-auth-backend -b ${{ matrix.backend }}
       - run: inv generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
       - name: Coveralls Parallel auth backend ${{ matrix.backend }}
+        if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: auth-backend-${{ matrix.backend }}
@@ -429,6 +432,7 @@ jobs:
       - run: inv test-ixfrdist
       - run: inv generate-coverage-info /opt/pdns-auth/bin/ixfrdist $GITHUB_WORKSPACE
       - name: Coveralls Parallel ixfrdist
+        if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: ixfrdist
@@ -468,9 +472,9 @@ jobs:
       - run: inv install-rec-test-deps
       - run: inv test-api recursor
       - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor API
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: rec-api
@@ -511,9 +515,9 @@ jobs:
       - run: inv install-rec-test-deps
       - run: inv test-regression-recursor
       - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor regression
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: rec-regression
@@ -552,9 +556,9 @@ jobs:
       - run: inv install-rec-bulk-deps
       - run: inv test-bulk-recursor ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }}
       - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor bulk
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: rec-regression-bulk
@@ -594,9 +598,9 @@ jobs:
       - run: inv install-dnsdist-test-deps
       - run: inv test-dnsdist
       - run: inv generate-coverage-info /opt/dnsdist/bin/dnsdist $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel dnsdist regression
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: dnsdist-regression-full-${{ matrix.sanitizers }}
@@ -638,6 +642,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Coveralls Parallel Finished
+        if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
         with:
           parallel-finished: true
