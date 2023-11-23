@@ -359,7 +359,7 @@ jobs:
             image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
             env:
               ACCEPT_EULA: Y
-              SA_PASSWORD: 'SAsa12%%'
+              SA_PASSWORD: 'SAsa12%%-not-a-secret-password'
             ports:
               - 1433:1433
           - backend: ldap
