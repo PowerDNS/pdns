@@ -28,6 +28,7 @@
 #include "iputils.hh"
 #include "libssl.hh"
 #include "noinitvector.hh"
+#include "doq.hh"
 #include "stat_t.hh"
 #include "dnsdist-idstate.hh"
 
@@ -35,6 +36,17 @@ struct DOQServerConfig;
 struct DownstreamState;
 
 #ifdef HAVE_DNS_OVER_QUIC
+
+/* from rfc9250 section-4.3 */
+enum class DOQ_Error_Codes : uint64_t
+{
+  DOQ_NO_ERROR = 0,
+  DOQ_INTERNAL_ERROR = 1,
+  DOQ_PROTOCOL_ERROR = 2,
+  DOQ_REQUEST_CANCELLED = 3,
+  DOQ_EXCESSIVE_LOAD = 4,
+  DOQ_UNSPECIFIED_ERROR = 5
+};
 
 struct DOQFrontend
 {

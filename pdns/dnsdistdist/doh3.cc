@@ -298,7 +298,11 @@ static void h3_send_response(quiche_conn* quic_conn, quiche_h3_conn* conn, const
     },
   };
   quiche_h3_send_response(conn, quic_conn,
-                          streamID, headers, 2, false);
+                          streamID, headers, 2, len == 0);
+
+  if (len == 0) {
+    return;
+  }
 
   size_t pos = 0;
   while (pos < len) {
@@ -330,7 +334,12 @@ static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uin
   else {
     ++frontend.d_errorResponses;
   }
-  h3_send_response(conn, streamID, statusCode, &response.at(0), response.size());
+  if (response.empty()) {
+    quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_UNSPECIFIED_ERROR));
+  }
+  else {
+    h3_send_response(conn, streamID, statusCode, &response.at(0), response.size());
+  }
 }
 
 static void fillRandom(PacketBuffer& buffer, size_t size)

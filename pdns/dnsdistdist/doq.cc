@@ -271,17 +271,6 @@ private:
 
 std::shared_ptr<DOQTCPCrossQuerySender> DOQCrossProtocolQuery::s_sender = std::make_shared<DOQTCPCrossQuerySender>();
 
-/* from rfc9250 section-4.3 */
-enum class DOQ_Error_Codes : uint64_t
-{
-  DOQ_NO_ERROR = 0,
-  DOQ_INTERNAL_ERROR = 1,
-  DOQ_PROTOCOL_ERROR = 2,
-  DOQ_REQUEST_CANCELLED = 3,
-  DOQ_EXCESSIVE_LOAD = 4,
-  DOQ_UNSPECIFIED_ERROR = 5
-};
-
 static void handleResponse(DOQFrontend& frontend, Connection& conn, const uint64_t streamID, const PacketBuffer& response)
 {
   if (response.empty()) {
