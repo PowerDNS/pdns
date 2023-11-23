@@ -23,9 +23,11 @@ from aioquic.h3.events import (
     PushPromiseReceived,
 )
 from aioquic.quic.configuration import QuicConfiguration
-from aioquic.quic.events import QuicEvent
+from aioquic.quic.events import QuicEvent, StreamDataReceived, StreamReset
 #from aioquic.quic.logger import QuicFileLogger
 from aioquic.tls import CipherSuite, SessionTicket
+
+from doqclient import StreamResetError
 #
 #class DnsClientProtocol(QuicConnectionProtocol):
 #    def __init__(self, *args, **kwargs):
@@ -155,6 +157,10 @@ class HttpClient(QuicConnectionProtocol):
             self.pushes[event.push_id].append(event)
 
     def quic_event_received(self, event: QuicEvent) -> None:
+        if isinstance(event, StreamReset):
+            waiter = self._request_waiter.pop(event.stream_id)
+            waiter.set_result([event])
+
         #  pass event to the HTTP layer
         if self._http is not None:
             for http_event in self._http.handle_event(event):
@@ -215,9 +221,11 @@ async def perform_http_request(
     for http_event in http_events:
         if isinstance(http_event, DataReceived):
             result += http_event.data
+        if isinstance(http_event, StreamReset):
+            result = http_event
     return result
-            
-    
+
+
 async def async_h3_query(
     configuration: QuicConfiguration,
     baseurl: str,
@@ -228,7 +236,6 @@ async def async_h3_query(
 ) -> None:
 
     url = "{}?dns={}".format(baseurl, base64.urlsafe_b64encode(query.to_wire()).decode('UTF8').rstrip('='))
-    print("Querying for {}".format(url))
     async with connect(
         "127.0.0.1",
         port,
@@ -237,7 +244,6 @@ async def async_h3_query(
     ) as client:
         client = cast(HttpClient, client)
 
-        print("Sending DNS query")
         try:
             async with async_timeout.timeout(timeout):
 
@@ -253,11 +259,6 @@ async def async_h3_query(
         except asyncio.TimeoutError as e:
             return e
 
-class StreamResetError(Exception):
-    def __init__(self, error, message="Stream reset by peer"):
-        self.error = error
-        super().__init__(message)
-
 def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname=None):
     configuration = QuicConfiguration(alpn_protocols=H3_ALPN, is_client=True)
     if verify:
@@ -272,9 +273,9 @@ def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname
             create_protocol=HttpClient
         )
     )
-  #  if (isinstance(result, StreamReset)):
-  #      raise StreamResetError(result.error_code)
+
+    if (isinstance(result, StreamReset)):
+        raise StreamResetError(result.error_code)
     if (isinstance(result, asyncio.TimeoutError)):
         raise TimeoutError()
-    return result
-
+    return dns.message.from_wire(result)
