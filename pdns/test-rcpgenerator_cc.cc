@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(test_xfrIP6) {
         loopback6.append(15, 0);
         loopback6.append(1,1);
         BOOST_CHECK_EQUAL(makeHexDump(rawIPv6), makeHexDump(loopback6));
-        
+
         RecordTextReader rtr2("2a01:4f8:d12:1880::5");
         rtr2.xfrIP6(rawIPv6);
         string ip6("\x2a\x01\x04\xf8\x0d\x12\x18\x80\x00\x00\x00\x00\x00\x00\x00\x05", 16);
