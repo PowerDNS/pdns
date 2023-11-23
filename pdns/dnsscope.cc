@@ -23,7 +23,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#if HAVE_BOOST_GE_148
+#ifdef HAVE_BOOST_GE_148
 #include "histog.hh"
 #endif
 
@@ -139,7 +139,7 @@ try
     ("rd", po::value<bool>(), "If set to true, only process RD packets, to false only non-RD, unset: both")
     ("ipv4", po::value<bool>()->default_value(true), "Process IPv4 packets")
     ("ipv6", po::value<bool>()->default_value(true), "Process IPv6 packets")
-#if HAVE_BOOST_GE_148
+#ifdef HAVE_BOOST_GE_148
     ("log-histogram", "Write a log-histogram to file 'log-histogram'")
     ("full-histogram", po::value<double>(), "Write a log-histogram to file 'full-histogram' with this millisecond bin size")
 #endif
@@ -472,7 +472,7 @@ try
   cout.precision(4);
   sum=0;
 
-#if HAVE_BOOST_GE_148
+#ifdef HAVE_BOOST_GE_148
   if(g_vm.count("log-histogram")) {
     string fname = g_vm["stats-dir"].as<string>()+"/log-histogram";
     ofstream loglog(fname);

@@ -1,5 +1,9 @@
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
+
 #include <boost/test/unit_test.hpp>
 
 #include <cmath>
@@ -19,10 +23,10 @@ BOOST_AUTO_TEST_SUITE(test_dnsname_cc)
 BOOST_AUTO_TEST_CASE(test_basic) {
   DNSName aroot("a.root-servers.net"), broot("b.root-servers.net");
   BOOST_CHECK(aroot < broot);
-  BOOST_CHECK(!(broot < aroot));  
+  BOOST_CHECK(!(broot < aroot));
   BOOST_CHECK(aroot.canonCompare(broot));
-  BOOST_CHECK(!broot.canonCompare(aroot));  
-  
+  BOOST_CHECK(!broot.canonCompare(aroot));
+
 
   string before("www.ds9a.nl.");
   DNSName b(before);
@@ -108,14 +112,14 @@ BOOST_AUTO_TEST_CASE(test_basic) {
     DNSName name;
     BOOST_CHECK(name.empty());
   }
-  
+
   { // empty() root
     DNSName name(".");
     BOOST_CHECK(!name.empty());
-    
+
     DNSName rootnodot("");
     BOOST_CHECK_EQUAL(name, rootnodot);
-    
+
     string empty;
     DNSName rootnodot2(empty);
     BOOST_CHECK_EQUAL(rootnodot2, name);
@@ -128,7 +132,7 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   left.appendRawLabel("com");
 
   BOOST_CHECK( left == DNSName("WwW.Ds9A.Nl.com."));
-  
+
   DNSName unset;
 
   unset.appendRawLabel("www");
@@ -208,7 +212,7 @@ BOOST_AUTO_TEST_CASE(test_empty) {
   BOOST_CHECK(!empty.isWildcard());
   BOOST_CHECK_EQUAL(empty, empty);
   BOOST_CHECK(!(empty < empty));
-  
+
   DNSName root(".");
   BOOST_CHECK(empty < root);
 
@@ -218,7 +222,7 @@ BOOST_AUTO_TEST_CASE(test_empty) {
 
 BOOST_AUTO_TEST_CASE(test_specials) {
   DNSName root(".");
-  
+
   BOOST_CHECK(root.isRoot());
   BOOST_CHECK(root != DNSName());
 
@@ -251,7 +255,7 @@ BOOST_AUTO_TEST_CASE(test_chopping) {
 BOOST_AUTO_TEST_CASE(test_Append) {
   DNSName dn("www."), powerdns("powerdns.com.");
   DNSName tot=dn+powerdns;
-  
+
   BOOST_CHECK_EQUAL(tot.toString(), "www.powerdns.com.");
   BOOST_CHECK(tot == DNSName("www.powerdns.com."));
 
@@ -280,14 +284,14 @@ BOOST_AUTO_TEST_CASE(test_packetCompress) {
   aaaa.toPacket(dpw);
   dpw.commit();
   string str((const char*)&packet[0], (const char*)&packet[0] + packet.size());
-  size_t pos = 0; 
+  size_t pos = 0;
   int count=0;
   while((pos = str.find("ds9a", pos)) != string::npos) {
     ++pos;
     ++count;
   }
   BOOST_CHECK_EQUAL(count, 1);
-  pos = 0; 
+  pos = 0;
   count=0;
   while((pos = str.find("powerdns", pos)) != string::npos) {
     ++pos;
@@ -309,7 +313,7 @@ BOOST_AUTO_TEST_CASE(test_packetCompressLong) {
   dpw.commit();
   DNSName roundtrip((char*)&packet[0], packet.size(), 12, false);
   BOOST_CHECK_EQUAL(loopback,roundtrip);
-  
+
   packet.clear();
   DNSName longer("1.2.3.4.5.6.7.8.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa");
   DNSPacketWriter dpw2(packet, longer, QType::PTR);
@@ -346,26 +350,26 @@ BOOST_AUTO_TEST_CASE(test_PacketParse) {
 BOOST_AUTO_TEST_CASE(test_hash) {
   DNSName a("wwW.Ds9A.Nl"), b("www.ds9a.nl");
   BOOST_CHECK_EQUAL(a.hash(), b.hash());
-  
+
   vector<uint32_t> counts(1500);
- 
+
   for(unsigned int n=0; n < 100000; ++n) {
     DNSName dn(std::to_string(n)+"."+std::to_string(n*2)+"ds9a.nl");
     DNSName dn2(std::to_string(n)+"."+std::to_string(n*2)+"Ds9a.nL");
     BOOST_CHECK_EQUAL(dn.hash(), dn2.hash());
     counts[dn.hash() % counts.size()]++;
   }
-  
+
   double sum = std::accumulate(std::begin(counts), std::end(counts), 0.0);
   double m =  sum / counts.size();
-  
+
   double accum = 0.0;
   std::for_each (std::begin(counts), std::end(counts), [&](const double d) {
       accum += (d - m) * (d - m);
   });
-      
+
   double stdev = sqrt(accum / (counts.size()-1));
-  BOOST_CHECK(stdev < 10);      
+  BOOST_CHECK(stdev < 10);
 }
 
 BOOST_AUTO_TEST_CASE(test_hashContainer) {
@@ -451,7 +455,7 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
   vector<unsigned char> packet;
   reportBasicTypes();
   DNSPacketWriter dpw(packet, DNSName("www.ds9a.nl."), QType::AAAA);
-  
+
   uint16_t qtype, qclass;
   DNSName dn((char*)&packet[0], packet.size(), 12, false, &qtype, &qclass);
   BOOST_CHECK_EQUAL(dn.toString(), "www.ds9a.nl.");
@@ -475,15 +479,15 @@ BOOST_AUTO_TEST_CASE(test_packetParse) {
      content name */
 
   DNSName dn2((char*)&packet[0], packet.size(), 12+13+4, true, &qtype, &qclass);
-  BOOST_CHECK_EQUAL(dn2.toString(), "ds9a.nl."); 
+  BOOST_CHECK_EQUAL(dn2.toString(), "ds9a.nl.");
   BOOST_CHECK(qtype == QType::NS);
   BOOST_CHECK_EQUAL(qclass, 1);
 
   DNSName dn3((char*)&packet[0], packet.size(), 12+13+4+2 + 4 + 4 + 2, true);
-  BOOST_CHECK_EQUAL(dn3.toString(), "ns1.powerdns.com."); 
+  BOOST_CHECK_EQUAL(dn3.toString(), "ns1.powerdns.com.");
   try {
     DNSName dn4((char*)&packet[0], packet.size(), 12+13+4, false); // compressed, should fail
-    BOOST_CHECK(0); 
+    BOOST_CHECK(0);
   }
   catch(...){}
 }
@@ -716,7 +720,7 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
 
   vector<DNSName> vec;
   for(const char* b : {"bert.com.", "alpha.nl.", "articles.xxx.",
-	"Aleph1.powerdns.com.", "ZOMG.powerdns.com.", "aaa.XXX.", "yyy.XXX.", 
+	"Aleph1.powerdns.com.", "ZOMG.powerdns.com.", "aaa.XXX.", "yyy.XXX.",
 	"test.powerdns.com.", "\\128.com"}) {
     vec.push_back(DNSName(b));
   }
@@ -735,7 +739,7 @@ BOOST_AUTO_TEST_CASE(test_compare_canonical) {
 	"yyy.XXX."})
     right.push_back(DNSName(b));
 
-  
+
   BOOST_CHECK(vec==right);
 }
 

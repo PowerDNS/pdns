@@ -53,7 +53,10 @@ public:
 
 std::unique_ptr<DNSBackend> backendUnderTest;
 
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE unit
 

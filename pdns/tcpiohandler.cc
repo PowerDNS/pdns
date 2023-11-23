@@ -133,7 +133,7 @@ public:
 #endif
     }
     else {
-#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL) && HAVE_SSL_SET_HOSTFLAGS // grrr libressl
+#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL) && defined(HAVE_SSL_SET_HOSTFLAGS) // grrr libressl
       SSL_set_hostflags(d_conn.get(), X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
       if (SSL_set1_host(d_conn.get(), d_hostname.c_str()) != 1) {
         throw std::runtime_error("Error setting TLS hostname for certificate validation");
@@ -1110,7 +1110,7 @@ public:
     gnutls_handshake_set_timeout(d_conn.get(),  timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
     gnutls_record_set_timeout(d_conn.get(),  timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
 
-#if HAVE_GNUTLS_SESSION_SET_VERIFY_CERT
+#ifdef HAVE_GNUTLS_SESSION_SET_VERIFY_CERT
     if (validateCerts && !d_host.empty()) {
       gnutls_session_set_verify_cert(d_conn.get(), d_host.c_str(), GNUTLS_VERIFY_ALLOW_UNSORTED_CHAIN);
       rc = gnutls_server_name_set(d_conn.get(), GNUTLS_NAME_DNS, d_host.c_str(), d_host.size());
@@ -1258,7 +1258,7 @@ public:
       else if (gnutls_error_is_fatal(ret) || ret == GNUTLS_E_WARNING_ALERT_RECEIVED) {
         if (d_client) {
           std::string error;
-#if HAVE_GNUTLS_SESSION_GET_VERIFY_CERT_STATUS
+#ifdef HAVE_GNUTLS_SESSION_GET_VERIFY_CERT_STATUS
           if (ret == GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR) {
             gnutls_datum_t out;
             if (gnutls_certificate_verification_status_print(gnutls_session_get_verify_cert_status(d_conn.get()), gnutls_certificate_type_get(d_conn.get()), &out, 0) == 0) {

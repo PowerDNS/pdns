@@ -939,7 +939,7 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
   /* load certificate and private key */
   for (const auto& pair : config.d_certKeyPairs) {
     if (!pair.d_key) {
-#if defined(HAVE_SSL_CTX_USE_CERT_AND_KEY) && HAVE_SSL_CTX_USE_CERT_AND_KEY == 1
+#if defined(HAVE_SSL_CTX_USE_CERT_AND_KEY) && defined(HAVE_SSL_CTX_USE_CERT_AND_KEY)
       // If no separate key is given, treat it as a pkcs12 file
       auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(pair.d_cert.c_str(), "r"), fclose);
       if (!fp) {

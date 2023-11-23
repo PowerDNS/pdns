@@ -1,10 +1,10 @@
 #pragma once
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#pragma clang diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
-#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 #include <vector>
 #include <fstream>
@@ -45,13 +45,13 @@ std::vector<LogHistogramBin> createLogHistogram(const T& bins)
       break;
     sum += c.second;
     bincount += c.second;
-      
+
     acc(c.first/1000.0, ba::weight=c.second);
     for(unsigned int i=0; i < c.second; ++i)
       cumulstats(c.first/1000.0, ba::weight=1); // "weighted" does not work for median
     if(sum > percentiles.front() * totcumul / 100.0) {
       ret.push_back({100.0-percentiles.front(), (double)c.first/1000.0, ba::mean(acc), ba::median(acc), sqrt(ba::variance(acc)), bincount, ba::mean(cumulstats), ba::median(cumulstats)});
-      
+
       percentiles.pop_front();
       acc=decltype(acc)();
       bincount=0;
@@ -81,8 +81,8 @@ void writeLogHistogramFile(const T& bins, std::ostream& out)
 #	'log-histogram' using 1:7 with linespoints title 'Cumulative median latency')"<<"\n";
 
   out<<"# slow-percentile usec-latency-mean usec-latency-max usec-latency-median usec-latency-stddev usec-latency-cumul usec-latency-median-cumul num-queries\n";
-  
-  
+
+
   for(const auto& e : vec) {
     out<<e.percentile<<" "<<e.latAverage<<" "<<e.latLimit<<" "<<e.latMedian<<" "<<e.latStddev<<" "<<e.cumulLatAverage<<" "<<e.cumulLatMedian<<" "<<e.count<<"\n";
   }
