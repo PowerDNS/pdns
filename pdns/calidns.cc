@@ -167,7 +167,6 @@ static void sendPackets(const vector<std::unique_ptr<Socket>>& sockets, const ve
     cmsgbuf_aligned cbuf;
   };
   vector<unique_ptr<Unit> > units;
-  int ret;
 
   for(const auto& p : packets) {
     count++;
@@ -179,11 +178,14 @@ static void sendPackets(const vector<std::unique_ptr<Socket>>& sockets, const ve
     }
 
     fillMSGHdr(&u.msgh, &u.iov, nullptr, 0, (char*)&(*p)[0], p->size(), &dest);
-    if((ret=sendmsg(sockets[count % sockets.size()]->getHandle(),
-		    &u.msgh, 0)))
-      if(ret < 0)
-	      unixDie("sendmsg");
 
+    auto socketHandle = sockets[count % sockets.size()]->getHandle();
+    ssize_t sendmsgRet = sendmsg(socketHandle, &u.msgh, 0);
+    if (sendmsgRet != 0) {
+      if (sendmsgRet < 0) {
+        unixDie("sendmsg");
+      }
+    }
 
     if(!(count%burst)) {
       nBursts++;
