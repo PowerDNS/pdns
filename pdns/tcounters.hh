@@ -127,7 +127,7 @@ template <typename Counters>
 class TLocalCounters
 {
 public:
-  static const suseconds_t defaultSnapUpdatePeriodus = 100000;
+  static constexpr suseconds_t defaultSnapUpdatePeriodus = 100000;
   TLocalCounters(GlobalCounters<Counters>& collector, timeval interval = timeval{0, defaultSnapUpdatePeriodus}) :
     d_collector(collector), d_interval(interval)
   {
