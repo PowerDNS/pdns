@@ -756,7 +756,8 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
   auto localRespRuleActions = g_respruleactions.getLocal();
   auto localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
   const size_t initialBufferSize = getInitialUDPPacketBufferSize();
-  PacketBuffer response(initialBufferSize);
+  /* allocate one more byte so we can detect truncation */
+  PacketBuffer response(initialBufferSize + 1);
   uint16_t queryId = 0;
   std::vector<int> sockets;
   sockets.reserve(dss->sockets.size());
@@ -785,14 +786,15 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
       }
 
       for (const auto& fd : sockets) {
-        response.resize(initialBufferSize);
+        /* allocate one more byte so we can detect truncation */
+        response.resize(initialBufferSize + 1);
         ssize_t got = recv(fd, response.data(), response.size(), 0);
 
         if (got == 0 && dss->isStopped()) {
           break;
         }
 
-        if (got < 0 || static_cast<size_t>(got) < sizeof(dnsheader)) {
+        if (got < 0 || static_cast<size_t>(got) < sizeof(dnsheader) || static_cast<size_t>(got) == (initialBufferSize + 1)) {
           continue;
         }
 
