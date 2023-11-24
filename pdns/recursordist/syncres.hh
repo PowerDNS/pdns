@@ -741,6 +741,7 @@ private:
 /* external functions, opaque to us */
 LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>&);
 LWResult::Result arecvtcp(PacketBuffer& data, size_t len, shared_ptr<TCPIOHandler>&, bool incompleteOkay);
+void mthreadSleep(unsigned int jitterMsec);
 
 enum TCPAction : uint8_t
 {

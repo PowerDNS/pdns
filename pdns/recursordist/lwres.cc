@@ -538,6 +538,16 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     return ret;
   }
 
+  if (*chained) {
+    auto msec = lwr->d_usec / 1000;
+    if (msec > g_networkTimeoutMsec * 2 / 3) {
+      auto jitterMsec = dns_random(msec);
+      if (jitterMsec > 0) {
+        mthreadSleep(jitterMsec);
+      }
+    }
+  }
+
   buf.resize(len);
 
 #ifdef HAVE_FSTRM

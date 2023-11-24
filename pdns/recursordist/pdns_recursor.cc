@@ -268,7 +268,7 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
 thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 
 // If we have plenty of mthreads slot left, use default timeout.
-// Othwerwise reduce the timeout to be between g_networkTimeoutMsec/10 and g_networkTimeoutMsec
+// Otherwise reduce the timeout to be between g_networkTimeoutMsec/10 and g_networkTimeoutMsec
 unsigned int authWaitTimeMSec(const std::unique_ptr<MT_t>& mtasker)
 {
   const auto max = g_maxMThreads;
@@ -2872,7 +2872,7 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
     t_Counters.at(rec::Counter::maxChainWeight) = weight;
   }
 
-  for (auto qid: iter->key->authReqChain) {
+  for (auto qid : iter->key->authReqChain) {
     auto packetID = std::make_shared<PacketID>(*resend);
     packetID->fd = -1;
     packetID->id = qid;
@@ -2880,6 +2880,18 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
     t_Counters.at(rec::Counter::chainResends)++;
   }
 }
+
+void mthreadSleep(unsigned int jitterMsec)
+{
+  auto neverHappens = std::make_shared<PacketID>();
+  neverHappens->id = dns_random_uint16();
+  neverHappens->type = dns_random_uint16();
+  neverHappens->remote = ComboAddress("100::"); // discard-only
+  neverHappens->remote.setPort(dns_random_uint16());
+  neverHappens->fd = -1;
+  assert(g_multiTasker->waitEvent(neverHappens, nullptr, jitterMsec) != -1); // NOLINT
+}
+
 
 static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& var)
 {

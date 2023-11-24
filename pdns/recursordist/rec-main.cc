@@ -2765,7 +2765,8 @@ static void recLoop()
       }
       runLuaMaintenance(threadInfo, last_lua_maintenance, luaMaintenanceInterval);
 
-      t_fdm->run(&g_now);
+      auto timeoutUsec = g_multiTasker->nextWaiterDelayUsec(500000);
+      t_fdm->run(&g_now, static_cast<int>(timeoutUsec / 1000));
       // 'run' updates g_now for us
 
       runTCPMaintenance(threadInfo, listenOnTCP, maxTcpClients);
