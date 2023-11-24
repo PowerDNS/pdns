@@ -166,11 +166,6 @@ conditional_sources = {
     'sources': ['lua-record.cc'],
     'condition': dep_lua_records.found(),
   },
-  'lua-base4': {
-    'sources': ['lua-base4.cc'],
-    'headers': ['lua-base4.hh'],
-    'condition': dep_lua.found(),
-  },
   'sodiumsigners': {
     'sources': ['sodiumsigners.cc'],
     'condition': dep_libsodium.found(),
