@@ -787,6 +787,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 
       for (const auto& fd : sockets) {
         /* allocate one more byte so we can detect truncation */
+        // NOLINTNEXTLINE(bugprone-use-after-move): resizing a vector has no preconditions so it is valid to do so after moving it 
         response.resize(initialBufferSize + 1);
         ssize_t got = recv(fd, response.data(), response.size(), 0);
 
