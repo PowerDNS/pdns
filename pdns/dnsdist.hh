@@ -1134,7 +1134,6 @@ extern bool g_addEDNSToSelfGeneratedResponses;
 
 extern std::set<std::string> g_capabilitiesToRetain;
 static const uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries larger than this value
-static const size_t s_maxPacketCacheEntrySize{4096}; // don't cache responses larger than this value
 
 enum class ProcessQueryResult : uint8_t { Drop, SendAnswer, PassToBackend, Asynchronous };
 ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);

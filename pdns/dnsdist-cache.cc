@@ -119,9 +119,10 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, std::unordered_map<uint
 
 void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
 {
-  if (response.size() < sizeof(dnsheader)) {
+  if (response.size() < sizeof(dnsheader) || response.size() > getMaximumEntrySize()) {
     return;
   }
+
   if (qtype == QType::AXFR || qtype == QType::IXFR) {
     return;
   }
@@ -619,4 +620,9 @@ std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain(const DNSName& do
   }
 
   return addresses;
+}
+
+void DNSDistPacketCache::setMaximumEntrySize(size_t maxSize)
+{
+  d_maximumEntrySize = maxSize;
 }

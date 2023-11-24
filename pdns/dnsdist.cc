@@ -153,7 +153,9 @@ uint32_t g_socketUDPRecvBuffer{0};
 
 std::set<std::string> g_capabilitiesToRetain;
 
-static size_t const s_initialUDPPacketBufferSize = s_maxPacketCacheEntrySize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
+// we are not willing to receive a bigger UDP response than that, no matter what
+static constexpr size_t s_maxUDPResponsePacketSize{4096U};
+static size_t const s_initialUDPPacketBufferSize = s_maxUDPResponsePacketSize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
 static_assert(s_initialUDPPacketBufferSize <= UINT16_MAX, "Packet size should fit in a uint16_t");
 
 static ssize_t sendfromto(int sock, const void* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& to)
@@ -550,7 +552,7 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDist
     return false;
   }
 
-  if (dr.ids.packetCache && !dr.ids.selfGenerated && !dr.ids.skipCache && response.size() <= s_maxPacketCacheEntrySize) {
+  if (dr.ids.packetCache && !dr.ids.selfGenerated && !dr.ids.skipCache && (!dr.ids.forwardedOverUDP || response.size() <= s_maxUDPResponsePacketSize)) {
     if (!dr.ids.useZeroScope) {
       /* if the query was not suitable for zero-scope, for
          example because it had an existing ECS entry so the hash is

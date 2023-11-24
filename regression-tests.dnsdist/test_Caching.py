@@ -2916,3 +2916,71 @@ class TestAPICache(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(receivedResponse, response)
+
+class TestCachingOfVeryLargeAnswers(DNSDistTest):
+
+    _config_template = """
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1, maximumEntrySize=8192})
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testVeryLargeAnswer(self):
+        """
+        Cache: Check that we can cache (and retrieve) VERY large answers
+
+        We should be able to get answers as large as 8192 bytes this time
+        """
+        numberOfQueries = 10
+        name = 'very-large-answer.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'TXT', 'IN')
+        response = dns.message.make_response(query)
+        # we prepare a large answer
+        #         for i in range(44):
+        #             if len(content) > 0:
+        #                 content = content + ', '
+        #             content = content + (str(i)*50)
+        #         # pad up to 4096
+        #         content = content + 'A'*42
+        content = ''
+        for i in range(31):
+            if len(content) > 0:
+                content = content + ' '
+            content = content + 'A' * 255
+        # pad up to 8192
+        content = content + ' ' + 'B' * 183
+
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.TXT,
+                                    content)
+        response.answer.append(rrset)
+        self.assertEqual(len(response.to_wire()), 8192)
+
+        # # first query to fill the cache, over TCP
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
+
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, response)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+            TestCachingOfVeryLargeAnswers._responsesCounter[key] = 0
+
+        self.assertEqual(total, 1)
+
+        # UDP should not be cached, dnsdist has a hard limit to 4096 bytes for UDP
+        # actually we will never get an answer, because dnsdist will not be able to get it from the backend
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertFalse(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)

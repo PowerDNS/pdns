@@ -75,11 +75,13 @@ public:
     d_keepStaleData = keep;
   }
 
-
   void setECSParsingEnabled(bool enabled)
   {
     d_parseECS = enabled;
   }
+
+  void setMaximumEntrySize(size_t maxSize);
+  size_t getMaximumEntrySize() const { return d_maximumEntrySize; }
 
   uint32_t getKey(const DNSName::string_t& qname, size_t qnameWireLength, const PacketBuffer& packet, bool receivedOverUDP);
 
@@ -139,15 +141,16 @@ private:
   pdns::stat_t d_ttlTooShorts{0};
   pdns::stat_t d_cleanupCount{0};
 
-  size_t d_maxEntries;
-  uint32_t d_shardCount;
-  uint32_t d_maxTTL;
-  uint32_t d_tempFailureTTL;
-  uint32_t d_maxNegativeTTL;
-  uint32_t d_minTTL;
-  uint32_t d_staleTTL;
-  bool d_dontAge;
-  bool d_deferrableInsertLock;
+  const size_t d_maxEntries;
+  size_t d_maximumEntrySize{4096};
+  const uint32_t d_shardCount;
+  const uint32_t d_maxTTL;
+  const uint32_t d_tempFailureTTL;
+  const uint32_t d_maxNegativeTTL;
+  const uint32_t d_minTTL;
+  const uint32_t d_staleTTL;
+  const bool d_dontAge;
+  const bool d_deferrableInsertLock;
   bool d_parseECS;
   bool d_keepStaleData{false};
 };

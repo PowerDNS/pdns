@@ -512,6 +512,155 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_PacketCacheMaximumSize) {
+  const size_t maxEntries = 150000;
+  DNSDistPacketCache packetCache(maxEntries, 86400, 1);
+  InternalQueryState ids;
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.protocol = dnsdist::Protocol::DoUDP;
+
+  ComboAddress remote;
+  bool dnssecOK = false;
+  ids.qname = DNSName("maximum.size");
+
+  PacketBuffer query;
+  uint16_t queryID{0};
+  {
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::AAAA, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+    queryID = pwQ.getHeader()->id;
+  }
+
+  PacketBuffer response;
+  {
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, ids.qname, QType::AAAA, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->id = queryID;
+    pwR.startRecord(ids.qname, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+    ComboAddress v6("2001:db8::1");
+    pwR.xfrCAWithoutPort(6, v6);
+    pwR.commit();
+  }
+
+  /* first, we set the maximum entry size to the response packet size */
+  packetCache.setMaximumEntrySize(response.size());
+
+  {
+    /* UDP */
+    uint32_t key = 0;
+    boost::optional<Netmask> subnet;
+    DNSQuestion dq(ids, query);
+    bool found = packetCache.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
+    BOOST_CHECK_EQUAL(found, false);
+    BOOST_CHECK(!subnet);
+
+    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
+    found = packetCache.get(dq, queryID, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
+    BOOST_CHECK_EQUAL(found, true);
+    BOOST_CHECK(!subnet);
+  }
+
+  {
+    /* same but over TCP */
+    uint32_t key = 0;
+    boost::optional<Netmask> subnet;
+    ids.protocol = dnsdist::Protocol::DoTCP;
+    DNSQuestion dq(ids, query);
+    bool found = packetCache.get(dq, 0, &key, subnet, dnssecOK, !receivedOverUDP);
+    BOOST_CHECK_EQUAL(found, false);
+    BOOST_CHECK(!subnet);
+
+    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
+    found = packetCache.get(dq, queryID, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
+    BOOST_CHECK_EQUAL(found, true);
+    BOOST_CHECK(!subnet);
+  }
+
+  /* then we set it slightly below response packet size */
+  packetCache.expunge(0);
+  packetCache.setMaximumEntrySize(response.size() - 1);
+  {
+    /* UDP */
+    uint32_t key = 0;
+    boost::optional<Netmask> subnet;
+    DNSQuestion dq(ids, query);
+    bool found = packetCache.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
+    BOOST_CHECK_EQUAL(found, false);
+    BOOST_CHECK(!subnet);
+
+    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
+    found = packetCache.get(dq, queryID, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
+    BOOST_CHECK_EQUAL(found, false);
+  }
+
+  {
+    /* same but over TCP */
+    uint32_t key = 0;
+    boost::optional<Netmask> subnet;
+    ids.protocol = dnsdist::Protocol::DoTCP;
+    DNSQuestion dq(ids, query);
+    bool found = packetCache.get(dq, 0, &key, subnet, dnssecOK, !receivedOverUDP);
+    BOOST_CHECK_EQUAL(found, false);
+    BOOST_CHECK(!subnet);
+
+    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
+    found = packetCache.get(dq, queryID, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
+    BOOST_CHECK_EQUAL(found, false);
+  }
+
+  /* now we generate a very big response packet, it should be cached over TCP and UDP (although in practice dnsdist will refuse to cache it for the UDP case)  */
+  packetCache.expunge(0);
+  response.clear();
+  {
+    GenericDNSPacketWriter<PacketBuffer> pwR(response, ids.qname, QType::AAAA, QClass::IN, 0);
+    pwR.getHeader()->rd = 1;
+    pwR.getHeader()->ra = 1;
+    pwR.getHeader()->qr = 1;
+    pwR.getHeader()->id = queryID;
+    for (size_t idx = 0; idx < 1000; idx++) {
+      pwR.startRecord(ids.qname, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
+      ComboAddress v6("2001:db8::1");
+      pwR.xfrCAWithoutPort(6, v6);
+    }
+    pwR.commit();
+  }
+
+  BOOST_REQUIRE_GT(response.size(), 4096U);
+  packetCache.setMaximumEntrySize(response.size());
+
+  {
+    /* UDP */
+    uint32_t key = 0;
+    boost::optional<Netmask> subnet;
+    DNSQuestion dq(ids, query);
+    bool found = packetCache.get(dq, 0, &key, subnet, dnssecOK, receivedOverUDP);
+    BOOST_CHECK_EQUAL(found, false);
+    BOOST_CHECK(!subnet);
+
+    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
+    found = packetCache.get(dq, queryID, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
+    BOOST_CHECK_EQUAL(found, true);
+  }
+
+  {
+    /* same but over TCP */
+    uint32_t key = 0;
+    boost::optional<Netmask> subnet;
+    ids.protocol = dnsdist::Protocol::DoTCP;
+    DNSQuestion dq(ids, query);
+    bool found = packetCache.get(dq, 0, &key, subnet, dnssecOK, !receivedOverUDP);
+    BOOST_CHECK_EQUAL(found, false);
+    BOOST_CHECK(!subnet);
+
+    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
+    found = packetCache.get(dq, queryID, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
+    BOOST_CHECK_EQUAL(found, true);
+  }
+}
+
 static DNSDistPacketCache g_PC(500000);
 
 static void threadMangler(unsigned int offset)
