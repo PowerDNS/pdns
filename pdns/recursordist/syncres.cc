@@ -5158,7 +5158,7 @@ static void updateDoTStatus(ComboAddress address, DoTStatus::Status status, time
   auto iter = lock->d_map.find(address);
   if (iter != lock->d_map.end()) {
     iter->d_status = status;
-    lock->d_map.modify(iter, [=](DoTStatus& status) { status.d_ttd = time; });
+    lock->d_map.modify(iter, [=](DoTStatus& statusToModify) { statusToModify.d_ttd = time; });
     if (updateBusy) {
       --lock->d_numBusy;
     }
