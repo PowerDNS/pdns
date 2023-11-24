@@ -94,8 +94,6 @@ void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
 #include "dnstap.hh"
 #include "fstrm_logger.hh"
 
-bool g_syslog;
-
 static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
 {
   if (fstreamLoggers == nullptr) {

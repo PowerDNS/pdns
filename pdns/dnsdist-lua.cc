@@ -1782,11 +1782,32 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     try {
       auto stream = std::ofstream(dest.c_str());
-      g_verboseStream = std::move(stream);
+      dnsdist::logging::LoggingConfiguration::setVerboseStream(std::move(stream));
     }
     catch (const std::exception& e) {
       errlog("Error while opening the verbose logging destination file %s: %s", dest, e.what());
     }
+  });
+  luaCtx.writeFunction("setStructuredLogging", [](bool enable, boost::optional<LuaAssociativeTable<std::string>> options) {
+    std::string levelPrefix;
+    std::string timeFormat;
+    if (options) {
+      getOptionalValue<std::string>(options, "levelPrefix", levelPrefix);
+      if (getOptionalValue<std::string>(options, "timeFormat", timeFormat) == 1) {
+        if (timeFormat == "numeric") {
+          dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::Numeric);
+        }
+        else if (timeFormat == "ISO8601") {
+          dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::ISO8601);
+        }
+        else {
+          warnlog("Unknown value '%s' to setStructuredLogging's 'timeFormat' parameter", timeFormat);
+        }
+      }
+      checkAllParametersConsumed("setStructuredLogging", options);
+    }
+
+    dnsdist::logging::LoggingConfiguration::setStructuredLogging(enable, levelPrefix);
   });
 
   luaCtx.writeFunction("setStaleCacheEntriesTTL", [](uint64_t ttl) {

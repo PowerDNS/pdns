@@ -35,9 +35,6 @@
 #include <unistd.h>
 
 bool g_verbose{false};
-bool g_syslog{true};
-bool g_logtimestamps{false};
-std::optional<std::ofstream> g_verboseStream{std::nullopt};
 
 BOOST_AUTO_TEST_SUITE(test_dnscrypt_cc)
 
