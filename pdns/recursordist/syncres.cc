@@ -922,25 +922,25 @@ bool SyncRes::AuthDomain::operator==(const AuthDomain& rhs) const
 [[nodiscard]] std::string SyncRes::AuthDomain::print(const std::string& indent,
                                                      const std::string& indentLevel) const
 {
-  std::stringstream str;
-  str << indent << "DNSName = " << d_name << std::endl;
-  str << indent << "rdForward = " << d_rdForward << std::endl;
-  str << indent << "Records {" << std::endl;
+  std::stringstream outputsStream;
+  outputsStream << indent << "DNSName = " << d_name << std::endl;
+  outputsStream << indent << "rdForward = " << d_rdForward << std::endl;
+  outputsStream << indent << "Records {" << std::endl;
   auto recordContentIndentation = indent;
   recordContentIndentation += indentLevel;
   recordContentIndentation += indentLevel;
   for (const auto& record : d_records) {
-    str << indent << indentLevel << "Record `" << record.d_name << "` {" << std::endl;
-    str << record.print(recordContentIndentation);
-    str << indent << indentLevel << "}" << std::endl;
+    outputsStream << indent << indentLevel << "Record `" << record.d_name << "` {" << std::endl;
+    outputsStream << record.print(recordContentIndentation);
+    outputsStream << indent << indentLevel << "}" << std::endl;
   }
-  str << indent << "}" << std::endl;
-  str << indent << "Servers {" << std::endl;
+  outputsStream << indent << "}" << std::endl;
+  outputsStream << indent << "Servers {" << std::endl;
   for (const auto& server : d_servers) {
-    str << indent << indentLevel << server.toString() << std::endl;
+    outputsStream << indent << indentLevel << server.toString() << std::endl;
   }
-  str << indent << "}" << std::endl;
-  return str.str();
+  outputsStream << indent << "}" << std::endl;
+  return outputsStream.str();
 }
 
 int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std::vector<DNSRecord>& records) const
@@ -1621,15 +1621,15 @@ unsigned int SyncRes::s_max_minimize_count; // default is 10
 /* number of iterations that should only have one label appended */
 unsigned int SyncRes::s_minimize_one_label; // default is 4
 
-static unsigned int qmStepLen(unsigned int labels, unsigned int qnamelen, unsigned int iter)
+static unsigned int qmStepLen(unsigned int labels, unsigned int qnamelen, unsigned int qmIteration)
 {
   unsigned int step{};
 
-  if (iter < SyncRes::s_minimize_one_label) {
+  if (qmIteration < SyncRes::s_minimize_one_label) {
     step = 1;
   }
-  else if (iter < SyncRes::s_max_minimize_count) {
-    step = std::max(1U, (qnamelen - labels) / (SyncRes::s_max_minimize_count - iter));
+  else if (qmIteration < SyncRes::s_max_minimize_count) {
+    step = std::max(1U, (qnamelen - labels) / (SyncRes::s_max_minimize_count - qmIteration));
   }
   else {
     step = qnamelen - labels;
@@ -4505,9 +4505,9 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     }
   }
 
-  for (auto i = tcache.begin(); i != tcache.end(); ++i) {
+  for (auto tCacheEntry = tcache.begin(); tCacheEntry != tcache.end(); ++tCacheEntry) {
 
-    if (i->second.records.empty()) { // this happens when we did store signatures, but passed on the records themselves
+    if (tCacheEntry->second.records.empty()) { // this happens when we did store signatures, but passed on the records themselves
       continue;
     }
 
@@ -4523,17 +4523,17 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
        dropping the RRSIG RRs.  If this happens, the name server MUST NOT
        set the TC bit solely because these RRSIG RRs didn't fit."
     */
-    bool isAA = lwr.d_aabit && i->first.place != DNSResourceRecord::ADDITIONAL;
+    bool isAA = lwr.d_aabit && tCacheEntry->first.place != DNSResourceRecord::ADDITIONAL;
     /* if we forwarded the query to a recursor, we can expect the answer to be signed,
        even if the answer is not AA. Of course that's not only true inside a Secure
        zone, but we check that below. */
-    bool expectSignature = i->first.place == DNSResourceRecord::ANSWER || ((lwr.d_aabit || wasForwardRecurse) && i->first.place != DNSResourceRecord::ADDITIONAL);
+    bool expectSignature = tCacheEntry->first.place == DNSResourceRecord::ANSWER || ((lwr.d_aabit || wasForwardRecurse) && tCacheEntry->first.place != DNSResourceRecord::ADDITIONAL);
     /* in a non authoritative answer, we only care about the DS record (or lack of)  */
-    if (!isAA && (i->first.type == QType::DS || i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && i->first.place == DNSResourceRecord::AUTHORITY) {
+    if (!isAA && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NSEC || tCacheEntry->first.type == QType::NSEC3) && tCacheEntry->first.place == DNSResourceRecord::AUTHORITY) {
       expectSignature = true;
     }
 
-    if (isCNAMEAnswer && (i->first.place != DNSResourceRecord::ANSWER || i->first.type != QType::CNAME || i->first.name != qname)) {
+    if (isCNAMEAnswer && (tCacheEntry->first.place != DNSResourceRecord::ANSWER || tCacheEntry->first.type != QType::CNAME || tCacheEntry->first.name != qname)) {
       /*
         rfc2181 states:
         Note that the answer section of an authoritative answer normally
@@ -4547,13 +4547,13 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
       isAA = false;
       expectSignature = false;
     }
-    if (isDNAMEAnswer && (i->first.place != DNSResourceRecord::ANSWER || i->first.type != QType::DNAME || !qname.isPartOf(i->first.name))) {
+    if (isDNAMEAnswer && (tCacheEntry->first.place != DNSResourceRecord::ANSWER || tCacheEntry->first.type != QType::DNAME || !qname.isPartOf(tCacheEntry->first.name))) {
       /* see above */
       isAA = false;
       expectSignature = false;
     }
 
-    if ((isCNAMEAnswer || isDNAMEAnswer) && i->first.place == DNSResourceRecord::AUTHORITY && i->first.type == QType::NS && auth == i->first.name) {
+    if ((isCNAMEAnswer || isDNAMEAnswer) && tCacheEntry->first.place == DNSResourceRecord::AUTHORITY && tCacheEntry->first.type == QType::NS && auth == tCacheEntry->first.name) {
       /* These NS can't be authoritative since we have a CNAME/DNAME answer for which (see above) only the
          record describing that alias is necessarily authoritative.
          But if we allow the current auth, which might be serving the child zone, to raise the TTL
@@ -4561,7 +4561,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
          even after the delegation is gone from the parent.
          So let's just do nothing with them, we can fetch them directly if we need them.
       */
-      LOG(prefix << qname << ": Skipping authority NS from '" << auth << "' nameservers in CNAME/DNAME answer " << i->first.name << "|" << DNSRecordContent::NumberToType(i->first.type) << endl);
+      LOG(prefix << qname << ": Skipping authority NS from '" << auth << "' nameservers in CNAME/DNAME answer " << tCacheEntry->first.name << "|" << DNSRecordContent::NumberToType(tCacheEntry->first.type) << endl);
       continue;
     }
 
@@ -4577,24 +4577,24 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
      * We do the synthesis check in processRecords, here we make sure we
      * don't validate the CNAME.
      */
-    if (isDNAMEAnswer && i->first.type == QType::CNAME) {
+    if (isDNAMEAnswer && tCacheEntry->first.type == QType::CNAME) {
       expectSignature = false;
     }
 
     vState recordState = vState::Indeterminate;
 
     if (expectSignature && shouldValidate()) {
-      vState initialState = getValidationStatus(i->first.name, !i->second.signatures.empty(), i->first.type == QType::DS, depth, prefix);
-      LOG(prefix << qname << ": Got initial zone status " << initialState << " for record " << i->first.name << "|" << DNSRecordContent::NumberToType(i->first.type) << endl);
+      vState initialState = getValidationStatus(tCacheEntry->first.name, !tCacheEntry->second.signatures.empty(), tCacheEntry->first.type == QType::DS, depth, prefix);
+      LOG(prefix << qname << ": Got initial zone status " << initialState << " for record " << tCacheEntry->first.name << "|" << DNSRecordContent::NumberToType(tCacheEntry->first.type) << endl);
 
       if (initialState == vState::Secure) {
-        if (i->first.type == QType::DNSKEY && i->first.place == DNSResourceRecord::ANSWER && i->first.name == getSigner(i->second.signatures)) {
-          LOG(prefix << qname << ": Validating DNSKEY for " << i->first.name << endl);
-          recordState = validateDNSKeys(i->first.name, i->second.records, i->second.signatures, depth, prefix);
+        if (tCacheEntry->first.type == QType::DNSKEY && tCacheEntry->first.place == DNSResourceRecord::ANSWER && tCacheEntry->first.name == getSigner(tCacheEntry->second.signatures)) {
+          LOG(prefix << qname << ": Validating DNSKEY for " << tCacheEntry->first.name << endl);
+          recordState = validateDNSKeys(tCacheEntry->first.name, tCacheEntry->second.records, tCacheEntry->second.signatures, depth, prefix);
         }
         else {
-          LOG(prefix << qname << ": Validating non-additional " << QType(i->first.type).toString() << " record for " << i->first.name << endl);
-          recordState = validateRecordsWithSigs(depth, prefix, qname, qtype, i->first.name, QType(i->first.type), i->second.records, i->second.signatures);
+          LOG(prefix << qname << ": Validating non-additional " << QType(tCacheEntry->first.type).toString() << " record for " << tCacheEntry->first.name << endl);
+          recordState = validateRecordsWithSigs(depth, prefix, qname, qtype, tCacheEntry->first.name, QType(tCacheEntry->first.type), tCacheEntry->second.records, tCacheEntry->second.signatures);
         }
       }
       else {
@@ -4610,11 +4610,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
 
     if (vStateIsBogus(recordState)) {
       /* this is a TTD by now, be careful */
-      for (auto& record : i->second.records) {
+      for (auto& record : tCacheEntry->second.records) {
         auto newval = std::min(record.d_ttl, static_cast<uint32_t>(s_maxbogusttl + d_now.tv_sec));
         record.d_ttl = newval;
       }
-      i->second.d_ttl_time = d_now.tv_sec;
+      tCacheEntry->second.d_ttl_time = d_now.tv_sec;
     }
 
     /* We don't need to store NSEC3 records in the positive cache because:
@@ -4626,10 +4626,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
        - DS (special case)
        - NS, A and AAAA (used for infra queries)
     */
-    if (i->first.type != QType::NSEC3 && (i->first.type == QType::DS || i->first.type == QType::NS || i->first.type == QType::A || i->first.type == QType::AAAA || isAA || wasForwardRecurse)) {
+    if (tCacheEntry->first.type != QType::NSEC3 && (tCacheEntry->first.type == QType::DS || tCacheEntry->first.type == QType::NS || tCacheEntry->first.type == QType::A || tCacheEntry->first.type == QType::AAAA || isAA || wasForwardRecurse)) {
 
       bool doCache = true;
-      if (i->first.place == DNSResourceRecord::ANSWER && ednsmask) {
+      if (tCacheEntry->first.place == DNSResourceRecord::ANSWER && ednsmask) {
         const bool isv4 = ednsmask->isIPv4();
         if ((isv4 && s_ecsipv4nevercache) || (!isv4 && s_ecsipv6nevercache)) {
           doCache = false;
@@ -4640,7 +4640,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
 
           if (manyMaskBits) {
             uint32_t minttl = UINT32_MAX;
-            for (const auto& iter : i->second.records) {
+            for (const auto& iter : tCacheEntry->second.records) {
               if (iter.d_ttl < minttl) {
                 minttl = iter.d_ttl;
               }
@@ -4658,49 +4658,49 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
 
       if (doCache) {
         // Check if we are going to replace a non-auth (parent) NS recordset
-        if (isAA && i->first.type == QType::NS && s_save_parent_ns_set) {
-          rememberParentSetIfNeeded(i->first.name, i->second.records, depth, prefix);
+        if (isAA && tCacheEntry->first.type == QType::NS && s_save_parent_ns_set) {
+          rememberParentSetIfNeeded(tCacheEntry->first.name, tCacheEntry->second.records, depth, prefix);
         }
-        g_recCache->replace(d_now.tv_sec, i->first.name, i->first.type, i->second.records, i->second.signatures, authorityRecs, i->first.type == QType::DS ? true : isAA, auth, i->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, i->second.d_ttl_time);
+        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, authorityRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, tCacheEntry->second.d_ttl_time);
 
         // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
         // be served, as negcache entries are checked before record cache entries
         if (NegCache::s_maxServedStaleExtensions > 0) {
-          g_negCache->wipeTyped(i->first.name, i->first.type);
+          g_negCache->wipeTyped(tCacheEntry->first.name, tCacheEntry->first.type);
         }
 
-        if (g_aggressiveNSECCache && needWildcardProof && recordState == vState::Secure && i->first.place == DNSResourceRecord::ANSWER && i->first.name == qname && !i->second.signatures.empty() && !d_routingTag && !ednsmask) {
+        if (g_aggressiveNSECCache && needWildcardProof && recordState == vState::Secure && tCacheEntry->first.place == DNSResourceRecord::ANSWER && tCacheEntry->first.name == qname && !tCacheEntry->second.signatures.empty() && !d_routingTag && !ednsmask) {
           /* we have an answer synthesized from a wildcard and aggressive NSEC is enabled, we need to store the
              wildcard in its non-expanded form in the cache to be able to synthesize wildcard answers later */
-          const auto& rrsig = i->second.signatures.at(0);
+          const auto& rrsig = tCacheEntry->second.signatures.at(0);
 
-          if (isWildcardExpanded(labelCount, *rrsig) && !isWildcardExpandedOntoItself(i->first.name, labelCount, *rrsig)) {
-            DNSName realOwner = getNSECOwnerName(i->first.name, i->second.signatures);
+          if (isWildcardExpanded(labelCount, *rrsig) && !isWildcardExpandedOntoItself(tCacheEntry->first.name, labelCount, *rrsig)) {
+            DNSName realOwner = getNSECOwnerName(tCacheEntry->first.name, tCacheEntry->second.signatures);
 
             std::vector<DNSRecord> content;
-            content.reserve(i->second.records.size());
-            for (const auto& record : i->second.records) {
+            content.reserve(tCacheEntry->second.records.size());
+            for (const auto& record : tCacheEntry->second.records) {
               DNSRecord nonExpandedRecord(record);
               nonExpandedRecord.d_name = realOwner;
               content.push_back(std::move(nonExpandedRecord));
             }
 
-            g_recCache->replace(d_now.tv_sec, realOwner, QType(i->first.type), content, i->second.signatures, /* no additional records in that case */ {}, i->first.type == QType::DS ? true : isAA, auth, boost::none, boost::none, recordState, remoteIP, d_refresh, i->second.d_ttl_time);
+            g_recCache->replace(d_now.tv_sec, realOwner, QType(tCacheEntry->first.type), content, tCacheEntry->second.signatures, /* no additional records in that case */ {}, tCacheEntry->first.type == QType::DS ? true : isAA, auth, boost::none, boost::none, recordState, remoteIP, d_refresh, tCacheEntry->second.d_ttl_time);
           }
         }
       }
     }
 
-    if (seenAuth.empty() && !i->second.signatures.empty()) {
-      seenAuth = getSigner(i->second.signatures);
+    if (seenAuth.empty() && !tCacheEntry->second.signatures.empty()) {
+      seenAuth = getSigner(tCacheEntry->second.signatures);
     }
 
-    if (g_aggressiveNSECCache && (i->first.type == QType::NSEC || i->first.type == QType::NSEC3) && recordState == vState::Secure && !seenAuth.empty()) {
+    if (g_aggressiveNSECCache && (tCacheEntry->first.type == QType::NSEC || tCacheEntry->first.type == QType::NSEC3) && recordState == vState::Secure && !seenAuth.empty()) {
       // Good candidate for NSEC{,3} caching
-      g_aggressiveNSECCache->insertNSEC(seenAuth, i->first.name, i->second.records.at(0), i->second.signatures, i->first.type == QType::NSEC3);
+      g_aggressiveNSECCache->insertNSEC(seenAuth, tCacheEntry->first.name, tCacheEntry->second.records.at(0), tCacheEntry->second.signatures, tCacheEntry->first.type == QType::NSEC3);
     }
 
-    if (i->first.place == DNSResourceRecord::ANSWER && ednsmask) {
+    if (tCacheEntry->first.place == DNSResourceRecord::ANSWER && ednsmask) {
       d_wasVariable = true;
     }
   }
