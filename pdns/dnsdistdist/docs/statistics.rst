@@ -14,8 +14,11 @@ To make sense of the statistics, the following relation should hold:
 
 	queries - noncompliant-queries
 	=
-	responses - noncompliant-responses + cache-hits + downstream-timeouts + self-answered + no-policy
-	+ rule-drop
+	responses - noncompliant-responses + downstream-timeouts + no-policy + rule-drop
+
+Before 1.8.0, cache hits and self-answered responses were not accounted in the responses counters, so the relation was:
+
+	responses - noncompliant-responses + cache-hits + downstream-timeouts + self-answered + no-policy + rule-drop
 
 Note that packets dropped by eBPF (see :doc:`../advanced/ebpf`) are
 accounted for in the eBPF statistics, and do not show up in the metrics
@@ -261,9 +264,9 @@ Current memory usage.
 
 responses
 ---------
-Number of responses received from backends. Note! This is not the number of
-responses sent to clients. To get that number, add 'cache-hits' and
-'responses'.
+Number of response sent to clients.
+
+Before 1.8.0, it was the number of responses received from backends, not accounting for cache hits or self-answered responses.
 
 rule-drop
 ---------
