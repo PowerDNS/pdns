@@ -36,6 +36,8 @@ struct DownstreamState;
 
 #ifdef HAVE_DNS_OVER_HTTP3
 
+#include "doq-common.hh"
+
 struct DOH3Frontend
 {
   DOH3Frontend();
@@ -48,9 +50,7 @@ struct DOH3Frontend
   void setup();
 
   std::unique_ptr<DOH3ServerConfig> d_server_config;
-  TLSConfig d_tlsConfig;
   ComboAddress d_local;
-  std::string d_keyLogFile;
 
 #ifdef __linux__
   // On Linux this gives us 128k pending queries (default is 8192 queries),
@@ -59,16 +59,12 @@ struct DOH3Frontend
 #else
   uint32_t d_internalPipeBufferSize{0};
 #endif
-  uint64_t d_idleTimeout{5};
-  uint64_t d_maxInFlight{65535};
-  std::string d_ccAlgo{"reno"};
 
+  dnsdist::doq::QuicheParams d_quicheParams;
   pdns::stat_t d_doh3UnsupportedVersionErrors{0}; // Unsupported protocol version errors
   pdns::stat_t d_doh3InvalidTokensReceived{0}; // Discarded received tokens
   pdns::stat_t d_validResponses{0}; // Valid responses sent
   pdns::stat_t d_errorResponses{0}; // Empty responses (no backend, drops, invalid queries, etc.)
-
-  static std::map<const string, int> s_available_cc_algorithms;
 };
 
 struct DOH3Unit

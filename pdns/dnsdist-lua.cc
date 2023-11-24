@@ -59,6 +59,7 @@
 #include "base64.hh"
 #include "coverage.hh"
 #include "doh.hh"
+#include "doq-common.hh"
 #include "dolog.hh"
 #include "sodcrypto.hh"
 #include "threadname.hh"
@@ -2597,7 +2598,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaSideEffect();
 
     auto frontend = std::make_shared<DOH3Frontend>();
-    if (!loadTLSCertificateAndKeys("addDOH3Local", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
+    if (!loadTLSCertificateAndKeys("addDOH3Local", frontend->d_quicheParams.d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
       return;
     }
     frontend->d_local = ComboAddress(addr, 853);
@@ -2614,23 +2615,23 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (vars) {
       parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
       if (maxInFlightQueriesPerConn > 0) {
-        frontend->d_maxInFlight = maxInFlightQueriesPerConn;
+        frontend->d_quicheParams.d_maxInFlight = maxInFlightQueriesPerConn;
       }
       getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
-      getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
-      getOptionalValue<std::string>(vars, "keyLogFile", frontend->d_keyLogFile);
+      getOptionalValue<int>(vars, "idleTimeout", frontend->d_quicheParams.d_idleTimeout);
+      getOptionalValue<std::string>(vars, "keyLogFile", frontend->d_quicheParams.d_keyLogFile);
       {
         std::string valueStr;
         if (getOptionalValue<std::string>(vars, "congestionControlAlgo", valueStr) > 0) {
-          if (DOH3Frontend::s_available_cc_algorithms.count(valueStr) > 0) {
-            frontend->d_ccAlgo = valueStr;
+          if (dnsdist::doq::s_available_cc_algorithms.count(valueStr) > 0) {
+            frontend->d_quicheParams.d_ccAlgo = valueStr;
           }
           else {
             warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOH3Local'", valueStr);
           }
         }
       }
-      parseTLSConfig(frontend->d_tlsConfig, "addDOH3Local", vars);
+      parseTLSConfig(frontend->d_quicheParams.d_tlsConfig, "addDOH3Local", vars);
 
       bool ignoreTLSConfigurationErrors = false;
       if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
@@ -2638,7 +2639,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         // and properly ignore the frontend before actually launching it
         try {
           std::map<int, std::string> ocspResponses = {};
-          auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
+          auto ctx = libssl_init_server_context(frontend->d_quicheParams.d_tlsConfig, ocspResponses);
         }
         catch (const std::runtime_error& e) {
           errlog("Ignoring DoH3 frontend: '%s'", e.what());
@@ -2671,7 +2672,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaSideEffect();
 
     auto frontend = std::make_shared<DOQFrontend>();
-    if (!loadTLSCertificateAndKeys("addDOQLocal", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
+    if (!loadTLSCertificateAndKeys("addDOQLocal", frontend->d_quicheParams.d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
       return;
     }
     frontend->d_local = ComboAddress(addr, 853);
@@ -2688,23 +2689,23 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (vars) {
       parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
       if (maxInFlightQueriesPerConn > 0) {
-        frontend->d_maxInFlight = maxInFlightQueriesPerConn;
+        frontend->d_quicheParams.d_maxInFlight = maxInFlightQueriesPerConn;
       }
       getOptionalValue<int>(vars, "internalPipeBufferSize", frontend->d_internalPipeBufferSize);
-      getOptionalValue<int>(vars, "idleTimeout", frontend->d_idleTimeout);
-      getOptionalValue<std::string>(vars, "keyLogFile", frontend->d_keyLogFile);
+      getOptionalValue<int>(vars, "idleTimeout", frontend->d_quicheParams.d_idleTimeout);
+      getOptionalValue<std::string>(vars, "keyLogFile", frontend->d_quicheParams.d_keyLogFile);
       {
         std::string valueStr;
         if (getOptionalValue<std::string>(vars, "congestionControlAlgo", valueStr) > 0) {
-          if (DOQFrontend::s_available_cc_algorithms.count(valueStr) > 0) {
-            frontend->d_ccAlgo = valueStr;
+          if (dnsdist::doq::s_available_cc_algorithms.count(valueStr) > 0) {
+            frontend->d_quicheParams.d_ccAlgo = valueStr;
           }
           else {
             warnlog("Ignoring unknown value '%s' for 'congestionControlAlgo' on 'addDOQLocal'", valueStr);
           }
         }
       }
-      parseTLSConfig(frontend->d_tlsConfig, "addDOQLocal", vars);
+      parseTLSConfig(frontend->d_quicheParams.d_tlsConfig, "addDOQLocal", vars);
 
       bool ignoreTLSConfigurationErrors = false;
       if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
@@ -2712,7 +2713,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         // and properly ignore the frontend before actually launching it
         try {
           std::map<int, std::string> ocspResponses = {};
-          auto ctx = libssl_init_server_context(frontend->d_tlsConfig, ocspResponses);
+          auto ctx = libssl_init_server_context(frontend->d_quicheParams.d_tlsConfig, ocspResponses);
         }
         catch (const std::runtime_error& e) {
           errlog("Ignoring DoQ frontend: '%s'", e.what());

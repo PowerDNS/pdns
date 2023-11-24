@@ -40,19 +40,9 @@
 #include "dnsdist-tcp.hh"
 #include "dnsdist-random.hh"
 
-// FIXME : to be renamed ?
-static std::string s_quicRetryTokenKey = newKey(false);
+#include "doq-common.hh"
 
-std::map<const string, int> DOH3Frontend::s_available_cc_algorithms = {
-  {"reno", QUICHE_CC_RENO},
-  {"cubic", QUICHE_CC_CUBIC},
-  {"bbr", QUICHE_CC_BBR},
-};
-
-using QuicheConnection = std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>;
-using QuicheHTTP3Connection = std::unique_ptr<quiche_h3_conn, decltype(&quiche_h3_conn_free)>;
-using QuicheConfig = std::unique_ptr<quiche_config, decltype(&quiche_config_free)>;
-using QuicheHTTP3Config = std::unique_ptr<quiche_h3_config, decltype(&quiche_h3_config_free)>;
+using namespace dnsdist::doq;
 
 class H3Connection
 {
@@ -110,15 +100,6 @@ struct DOH3ServerConfig
 DOH3Frontend::DOH3Frontend() = default;
 DOH3Frontend::~DOH3Frontend() = default;
 
-#if 0
-#define DEBUGLOG_ENABLED
-#define DEBUGLOG(x) std::cerr << x << std::endl;
-#else
-#define DEBUGLOG(x)
-#endif
-
-static constexpr size_t MAX_DATAGRAM_SIZE = 1200;
-static constexpr size_t LOCAL_CONN_ID_LEN = 16;
 
 class DOH3TCPCrossQuerySender final : public TCPQuerySender
 {
@@ -343,201 +324,17 @@ static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uin
   }
 }
 
-static void fillRandom(PacketBuffer& buffer, size_t size)
-{
-  buffer.reserve(size);
-  while (size > 0) {
-    buffer.insert(buffer.end(), dnsdist::getRandomValue(std::numeric_limits<uint8_t>::max()));
-    --size;
-  }
-}
-
 void DOH3Frontend::setup()
 {
   auto config = QuicheConfig(quiche_config_new(QUICHE_PROTOCOL_VERSION), quiche_config_free);
-  for (const auto& pair : d_tlsConfig.d_certKeyPairs) {
-    auto res = quiche_config_load_cert_chain_from_pem_file(config.get(), pair.d_cert.c_str());
-    if (res != 0) {
-      throw std::runtime_error("Error loading the server certificate: " + std::to_string(res));
-    }
-    if (pair.d_key) {
-      res = quiche_config_load_priv_key_from_pem_file(config.get(), pair.d_key->c_str());
-      if (res != 0) {
-        throw std::runtime_error("Error loading the server key: " + std::to_string(res));
-      }
-    }
-  }
 
-  {
-    auto res = quiche_config_set_application_protos(config.get(),
-                                                    (uint8_t*)QUICHE_H3_APPLICATION_PROTOCOL,
-                                                    sizeof(QUICHE_H3_APPLICATION_PROTOCOL) - 1);
-    if (res != 0) {
-      throw std::runtime_error("Error setting ALPN: " + std::to_string(res));
-    }
-  }
-
-  quiche_config_set_max_idle_timeout(config.get(), d_idleTimeout * 1000);
-  /* maximum size of an outgoing packet, which means the buffer we pass to quiche_conn_send() should be at least that big */
-  quiche_config_set_max_send_udp_payload_size(config.get(), MAX_DATAGRAM_SIZE);
-  quiche_config_set_max_recv_udp_payload_size(config.get(), MAX_DATAGRAM_SIZE);
-
-  // The number of concurrent remotely-initiated bidirectional streams to be open at any given time
-  // https://docs.rs/quiche/latest/quiche/struct.Config.html#method.set_initial_max_streams_bidi
-  // 0 means none will get accepted, that's why we have a default value of 65535
-  quiche_config_set_initial_max_streams_bidi(config.get(), d_maxInFlight);
-  quiche_config_set_initial_max_streams_uni(config.get(), d_maxInFlight);
-
-  // The number of bytes of incoming stream data to be buffered for each localy or remotely-initiated bidirectional stream
-  quiche_config_set_initial_max_stream_data_bidi_local(config.get(), 1000000);
-  quiche_config_set_initial_max_stream_data_bidi_remote(config.get(), 1000000);
-  quiche_config_set_initial_max_stream_data_uni(config.get(), 1000000);
-
-  quiche_config_set_disable_active_migration(config.get(), true);
-
-  // The number of total bytes of incoming stream data to be buffered for the whole connection
-  // https://docs.rs/quiche/latest/quiche/struct.Config.html#method.set_initial_max_data
-  quiche_config_set_initial_max_data(config.get(), 8192 * d_maxInFlight);
-  if (!d_keyLogFile.empty()) {
-    quiche_config_log_keys(config.get());
-  }
-
-  auto algo = DOH3Frontend::s_available_cc_algorithms.find(d_ccAlgo);
-  if (algo != DOH3Frontend::s_available_cc_algorithms.end()) {
-    quiche_config_set_cc_algorithm(config.get(), static_cast<enum quiche_cc_algorithm>(algo->second));
-  }
-
-  {
-    PacketBuffer resetToken;
-    fillRandom(resetToken, 16);
-    quiche_config_set_stateless_reset_token(config.get(), resetToken.data());
-  }
+  d_quicheParams.d_alpn = std::string(DOH3_ALPN.begin(), DOH3_ALPN.end());
+  configureQuiche(config, d_quicheParams);
 
   // quiche_h3_config_new
   auto http3config = QuicheHTTP3Config(quiche_h3_config_new(), quiche_h3_config_free);
 
   d_server_config = std::make_unique<DOH3ServerConfig>(std::move(config), std::move(http3config), d_internalPipeBufferSize);
-}
-
-static std::optional<PacketBuffer> getCID()
-{
-  PacketBuffer buffer;
-
-  fillRandom(buffer, LOCAL_CONN_ID_LEN);
-
-  return buffer;
-}
-
-static constexpr size_t MAX_TOKEN_LEN = dnsdist::crypto::authenticated::getEncryptedSize(std::tuple_size<decltype(SodiumNonce::value)>{} /* nonce */ + sizeof(uint64_t) /* TTD */ + 16 /* IPv6 */ + QUICHE_MAX_CONN_ID_LEN);
-
-static PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer)
-{
-  try {
-    SodiumNonce nonce;
-    nonce.init();
-
-    const auto addrBytes = peer.toByteString();
-    // this token will be valid for 60s
-    const uint64_t ttd = time(nullptr) + 60U;
-    PacketBuffer plainTextToken;
-    plainTextToken.reserve(sizeof(ttd) + addrBytes.size() + dcid.size());
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    plainTextToken.insert(plainTextToken.end(), reinterpret_cast<const uint8_t*>(&ttd), reinterpret_cast<const uint8_t*>(&ttd) + sizeof(ttd));
-    plainTextToken.insert(plainTextToken.end(), addrBytes.begin(), addrBytes.end());
-    plainTextToken.insert(plainTextToken.end(), dcid.begin(), dcid.end());
-    //	NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    const auto encryptedToken = sodEncryptSym(std::string_view(reinterpret_cast<const char*>(plainTextToken.data()), plainTextToken.size()), s_quicRetryTokenKey, nonce, false);
-    // a bit sad, let's see if we can do better later
-    auto encryptedTokenPacket = PacketBuffer(encryptedToken.begin(), encryptedToken.end());
-    encryptedTokenPacket.insert(encryptedTokenPacket.begin(), nonce.value.begin(), nonce.value.end());
-    return encryptedTokenPacket;
-  }
-  catch (const std::exception& exp) {
-    vinfolog("Error while minting DoH3 token: %s", exp.what());
-    throw;
-  }
-}
-
-// returns the original destination ID if the token is valid, nothing otherwise
-static std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const ComboAddress& peer)
-{
-  try {
-    SodiumNonce nonce;
-    auto addrBytes = peer.toByteString();
-    const uint64_t now = time(nullptr);
-    const auto minimumSize = nonce.value.size() + sizeof(now) + addrBytes.size();
-    if (token.size() <= minimumSize) {
-      return std::nullopt;
-    }
-
-    memcpy(nonce.value.data(), token.data(), nonce.value.size());
-
-    //	NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto cipher = std::string_view(reinterpret_cast<const char*>(&token.at(nonce.value.size())), token.size() - nonce.value.size());
-    auto plainText = sodDecryptSym(cipher, s_quicRetryTokenKey, nonce, false);
-
-    if (plainText.size() <= sizeof(now) + addrBytes.size()) {
-      return std::nullopt;
-    }
-
-    uint64_t ttd{0};
-    memcpy(&ttd, plainText.data(), sizeof(ttd));
-    if (ttd < now) {
-      return std::nullopt;
-    }
-
-    if (std::memcmp(&plainText.at(sizeof(ttd)), &*addrBytes.begin(), addrBytes.size()) != 0) {
-      return std::nullopt;
-    }
-    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-    return PacketBuffer(plainText.begin() + (sizeof(ttd) + addrBytes.size()), plainText.end());
-  }
-  catch (const std::exception& exp) {
-    vinfolog("Error while validating DoH3 token: %s", exp.what());
-    return std::nullopt;
-  }
-}
-
-static void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, uint32_t version)
-{
-  auto newServerConnID = getCID();
-  if (!newServerConnID) {
-    return;
-  }
-
-  auto token = mintToken(serverConnID, peer);
-
-  PacketBuffer out(MAX_DATAGRAM_SIZE);
-  auto written = quiche_retry(clientConnID.data(), clientConnID.size(),
-                              serverConnID.data(), serverConnID.size(),
-                              newServerConnID->data(), newServerConnID->size(),
-                              token.data(), token.size(),
-                              version,
-                              out.data(), out.size());
-
-  if (written < 0) {
-    DEBUGLOG("failed to create retry packet " << written);
-    return;
-  }
-
-  out.resize(written);
-  sock.sendTo(std::string(out.begin(), out.end()), peer);
-}
-
-static void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer)
-{
-  PacketBuffer out(MAX_DATAGRAM_SIZE);
-
-  auto written = quiche_negotiate_version(clientConnID.data(), clientConnID.size(),
-                                          serverConnID.data(), serverConnID.size(),
-                                          out.data(), out.size());
-
-  if (written < 0) {
-    DEBUGLOG("failed to create vneg packet " << written);
-    return;
-  }
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  sock.sendTo(reinterpret_cast<const char*>(out.data()), written, peer);
 }
 
 static std::optional<std::reference_wrapper<H3Connection>> getConnection(DOH3ServerConfig::ConnectionsMap& connMap, const PacketBuffer& connID)
@@ -578,33 +375,13 @@ static std::optional<std::reference_wrapper<H3Connection>> createConnection(DOH3
                                                    config.config.get()),
                                      quiche_conn_free);
 
-  if (config.df && !config.df->d_keyLogFile.empty()) {
-    quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_keyLogFile.c_str());
+  if (config.df && !config.df->d_quicheParams.d_keyLogFile.empty()) {
+    quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
   auto conn = H3Connection(peer, std::move(quicheConn));
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
-}
-
-static void flushEgress(Socket& sock, H3Connection& conn)
-{
-  std::array<uint8_t, MAX_DATAGRAM_SIZE> out{};
-  quiche_send_info send_info;
-
-  while (true) {
-    auto written = quiche_conn_send(conn.d_conn.get(), out.data(), out.size(), &send_info);
-    if (written == QUICHE_ERR_DONE) {
-      return;
-    }
-
-    if (written < 0) {
-      return;
-    }
-    // FIXME pacing (as send_info.at should tell us when to send the packet) ?
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    sock.sendTo(reinterpret_cast<const char*>(out.data()), written, conn.d_peer);
-  }
 }
 
 std::unique_ptr<CrossProtocolQuery> getDOH3CrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion, bool isResponse)
@@ -950,7 +727,7 @@ void doh3Thread(ClientState* clientState)
             DEBUGLOG("Successfully created HTTP/3 connection");
           }
 
-          while (1) {
+          while (true) {
             quiche_h3_event* ev;
             // Processes HTTP/3 data received from the peer
             int64_t streamID = quiche_h3_conn_poll(conn->get().d_http3.get(),
@@ -1075,7 +852,7 @@ void doh3Thread(ClientState* clientState)
       for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
         quiche_conn_on_timeout(conn->second.d_conn.get());
 
-        flushEgress(sock, conn->second);
+        flushEgress(sock, conn->second.d_conn, conn->second.d_peer);
 
         if (quiche_conn_is_closed(conn->second.d_conn.get())) {
 #ifdef DEBUGLOG_ENABLED

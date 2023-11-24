@@ -216,6 +216,7 @@ dnsdist_SOURCES = \
 	doh3.hh \
 	dolog.cc dolog.hh \
 	doq.hh \
+	doq-common.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
@@ -464,6 +465,7 @@ endif
 if HAVE_QUICHE
 AM_CPPFLAGS += $(QUICHE_CFLAGS)
 dnsdist_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
+dnsdist_SOURCES += doq-common.cc
 endif
 
 if !HAVE_LUA_HPP
