@@ -1348,12 +1348,14 @@ void parseACLs()
   }
 
   g_initialAllowFrom = allowFrom;
-  broadcastFunction([=] { return pleaseSupplantAllowFrom(std::move(allowFrom)); });
+  // coverity[copy_contructor_call] maybe this can be avoided, but be careful as pointers get passed to other threads
+  broadcastFunction([=] { return pleaseSupplantAllowFrom(allowFrom); });
 
   auto allowNotifyFrom = parseACL("allow-notify-from-file", "allow-notify-from", log);
 
   g_initialAllowNotifyFrom = allowNotifyFrom;
-  broadcastFunction([=] { return pleaseSupplantAllowNotifyFrom(std::move(allowNotifyFrom)); });
+  // coverity[copy_contructor_call] maybe this can be avoided, but be careful as pointers get passed to other threads
+  broadcastFunction([=] { return pleaseSupplantAllowNotifyFrom(allowNotifyFrom); });
 
   l_initialized = true;
 }
