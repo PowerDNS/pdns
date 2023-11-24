@@ -1112,7 +1112,7 @@ struct LocalHolders
   LocalStateHolder<pools_t> pools;
 };
 
-void tcpAcceptorThread(std::vector<ClientState*> states);
+void tcpAcceptorThread(const std::vector<ClientState*>& states);
 
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
 void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls

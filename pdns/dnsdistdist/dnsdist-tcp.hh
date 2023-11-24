@@ -218,7 +218,7 @@ struct CrossProtocolQuery
 class TCPClientCollection
 {
 public:
-  TCPClientCollection(size_t maxThreads, std::vector<ClientState*> tcpStates);
+  TCPClientCollection(size_t maxThreads, std::vector<ClientState*> tcpAcceptStates);
 
   bool passConnectionToThread(std::unique_ptr<ConnectionInfo>&& conn)
   {
@@ -307,4 +307,4 @@ private:
 
 extern std::unique_ptr<TCPClientCollection> g_tcpclientthreads;
 
-std::unique_ptr<CrossProtocolQuery> getTCPCrossProtocolQueryFromDQ(DNSQuestion& dq);
+std::unique_ptr<CrossProtocolQuery> getTCPCrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion);
