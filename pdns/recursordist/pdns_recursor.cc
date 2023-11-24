@@ -251,7 +251,7 @@ PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query)
   t_fdm->addReadFD(socket.getHandle(), handleGenUDPQueryResponse, pident);
 
   PacketBuffer data;
-  int ret = g_multiTasker->waitEvent(pident, &data, authWaitTime(g_multiTasker));
+  int ret = g_multiTasker->waitEvent(pident, &data, authWaitTimeMSec(g_multiTasker));
 
   if (ret == 0 || ret == -1) { // timeout
     t_fdm->removeReadFD(socket.getHandle());
@@ -269,7 +269,7 @@ thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 
 // If we have plenty of mthreads slot left, use default timeout.
 // Othwerwise reduce the timeout to be between g_networkTimeoutMsec/10 and g_networkTimeoutMsec
-unsigned int authWaitTime(const std::unique_ptr<MT_t>& mtasker)
+unsigned int authWaitTimeMSec(const std::unique_ptr<MT_t>& mtasker)
 {
   const auto max = g_maxMThreads;
   const auto current = mtasker->numProcesses();
@@ -308,12 +308,12 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
         *fileDesc = -1; // gets used in waitEvent / sendEvent later on
         auto currentChainSize = chain.first->key->authReqChain.size();
         if (g_maxChainLength > 0 && currentChainSize >= g_maxChainLength) {
-          return  LWResult::Result::OSLimitError;
+          return LWResult::Result::OSLimitError;
         }
-        assert(uSec(chain.first->key->creationTime) != 0);
+        assert(uSec(chain.first->key->creationTime) != 0); // NOLINT
         auto age = now - chain.first->key->creationTime;
-        if (uSec(age) > static_cast<uint64_t>(1000) * authWaitTime(g_multiTasker) * 2 / 3) {
-          return  LWResult::Result::OSLimitError;
+        if (uSec(age) > static_cast<uint64_t>(1000) * authWaitTimeMSec(g_multiTasker) * 2 / 3) {
+          return LWResult::Result::OSLimitError;
         }
         chain.first->key->authReqChain.insert(qid); // we can chain
         auto maxLength = t_Counters.at(rec::Counter::maxChainLength);
@@ -360,7 +360,7 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
   pident->remote = fromAddr;
   pident->creationTime = now;
 
-  int ret = g_multiTasker->waitEvent(pident, &packet, authWaitTime(g_multiTasker), &now);
+  int ret = g_multiTasker->waitEvent(pident, &packet, authWaitTimeMSec(g_multiTasker), &now);
   len = 0;
 
   /* -1 means error, 0 means timeout, 1 means a result from handleUDPServerResponse() which might still be an error */
@@ -513,7 +513,7 @@ public:
   }
 
 private:
-  std::unique_ptr<DNSComboWriter>& d_dc;
+  std::unique_ptr<DNSComboWriter>& d_dc; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   bool d_handled{false};
 };
 
