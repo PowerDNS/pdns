@@ -166,11 +166,6 @@ conditional_sources = {
     'sources': ['lua-record.cc'],
     'condition': dep_lua_records.found(),
   },
-  'ipcipher': {
-    'sources': ['ipcipher.cc'],
-    'headers': ['ipcipher.hh'],
-    'condition': enable_ipcipher,
-  },
   'lua-base4': {
     'sources': ['lua-base4.cc'],
     'headers': ['lua-base4.hh'],
