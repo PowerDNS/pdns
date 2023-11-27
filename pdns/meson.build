@@ -1772,7 +1772,7 @@ if get_option('fuzz-targets')
   }
 endif
 
-source_deps = {}
+source_deps_cache = {}
 
 foreach tool_name, tool_info: tool_libs
   tool_deps = tool_info['deps']
@@ -1784,9 +1784,9 @@ foreach tool_name, tool_info: tool_libs
 
   foreach source: all_sources
     if source.endswith('.cc')
-      if source not in source_deps
+      if source not in source_deps_cache
         # Create a new cached dependency for this source file.
-        source_deps += {
+        source_deps_cache += {
           source: declare_dependency(
             link_whole: static_library(
               'pdns-' + source.replace('/', '__'),
@@ -1797,7 +1797,7 @@ foreach tool_name, tool_info: tool_libs
         }
       endif
 
-      tool_sources += source_deps[source]
+      tool_sources += source_deps_cache[source]
     elif source.endswith('.hh')
       tool_headers += source
     else
