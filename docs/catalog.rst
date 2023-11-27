@@ -103,6 +103,7 @@ In the example below ``example.com`` is the member and ``catalog.example`` is th
   pdnsutil set-catalog example.com catalog.example
 
 Setting catalog values is supported in the :doc:`API <http-api/zone>`, by setting the ``catalog`` property in the zone properties.
+Setting the catalog to an empty ``""`` removes the member zone from the catalog it is in.
 
 Each member zone may have one or more additional properties as defined in the RFC.
 PowerDNS currently supports the following properties:

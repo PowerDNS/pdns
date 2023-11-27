@@ -2632,7 +2632,7 @@ try
     cout << "  [producer|consumer]" << endl;
     cout << "  [coo|unique|group] VALUE" << endl;
     cout << "  [VALUE ...]" << endl;
-    cout << "set-catalog ZONE CATALOG           Change the catalog of ZONE to CATALOG" << endl;
+    cout << "set-catalog ZONE CATALOG           Change the catalog of ZONE to CATALOG. Setting CATALOG to an empty "" removes ZONE from the catalog it is in" << endl;
     cout << "set-account ZONE ACCOUNT           Change the account (owner) of ZONE to ACCOUNT" << endl;
     cout << "set-nsec3 ZONE ['PARAMS' [narrow]] Enable NSEC3 with PARAMS. Optionally narrow" << endl;
     cout << "set-presigned ZONE                 Use presigned RRSIGs from storage" << endl;
