@@ -1622,6 +1622,7 @@ if get_option('unit-tests')
       ],
       'deps': [
         deps,
+        dep_boost_test,
         libpdns_bind_parser,
         libpdns_dnslabeltext,
         libpdns_pkcs11signers,

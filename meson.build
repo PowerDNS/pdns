@@ -57,6 +57,7 @@ subdir('meson' / 'ipcipher')                # IPCipher
 subdir('meson' / 'clock-gettime')           # Clock_gettime
 subdir('meson' / 'boost')                   # Boost
 subdir('meson' / 'boost-program-options')   # Boost Program Options Library
+subdir('meson' / 'boost-test')              # Boost Testing Library
 subdir('meson' / 'reproducible')            # Reproducible Builds
 subdir('meson' / 'dlopen')                  # dlopen
 subdir('meson' / 'verbose-logging')         # Verbose Logging
@@ -70,10 +71,6 @@ subdir('meson' / 'malloc-trace')            # Malloc-trace
 subdir('meson' / 'socket-dir')              # Socket Dir
 subdir('meson' / 'various-functions')       # Various Functions
 subdir('meson' / 'various-headers')         # Various Headers
-
-if get_option('unit-tests') or get_option('unit-tests-backends')
-  subdir('meson' / 'boost-test')
-endif
 
 if get_option('module-geoip') != 'disabled' or get_option('tools-ixfrdist')
   subdir('meson' / 'yaml-cpp')
@@ -173,9 +170,6 @@ deps += get_variable('dep_sqlite3', dependency('', required: false))
 
 # Add the yaml-cpp dependency for geoip and ixfrdist.
 deps += get_variable('dep_yaml_cpp', dependency('', required: false))
-
-# Add the boost-test dependency for unit tests and backend unit tests.
-deps += get_variable('dep_boost_test', dependency('', required: false))
 
 subdir('pdns')
 
