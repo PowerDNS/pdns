@@ -39,7 +39,7 @@ public:
   SSQLite3(const std::string& database, const std::string& journalmode, bool creat = false);
 
   //! Destructor.
-  ~SSQLite3();
+  ~SSQLite3() override;
 
   std::unique_ptr<SSqlStatement> prepare(const string& query, int nparams) override;
   void execute(const string& query) override;
@@ -51,7 +51,7 @@ public:
 
   sqlite3* db() { return this->m_pDB; };
 
-  bool inTransaction() { return m_in_transaction; };
+  [[nodiscard]] bool inTransaction() const { return m_in_transaction; };
 
   //! Used to create an backend specific exception message.
   SSqlException sPerrorException(const std::string& reason) override;
