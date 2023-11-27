@@ -71,10 +71,7 @@ subdir('meson' / 'malloc-trace')            # Malloc-trace
 subdir('meson' / 'socket-dir')              # Socket Dir
 subdir('meson' / 'various-functions')       # Various Functions
 subdir('meson' / 'various-headers')         # Various Headers
-
-if get_option('module-geoip') != 'disabled' or get_option('tools-ixfrdist')
-  subdir('meson' / 'yaml-cpp')
-endif
+subdir('meson' / 'yaml-cpp')                # YAML C++
 
 # Manpages
 # if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
@@ -121,6 +118,7 @@ deps = [
   dep_luawrapper,
   dep_protozero,
   dep_yahttp,
+  dep_yaml_cpp,
 ]
 
 # Modules
@@ -167,9 +165,6 @@ endforeach
 
 # Add the sqlite3 dependency for the bind and gsqlite3 backends and pdnsutil.
 deps += get_variable('dep_sqlite3', dependency('', required: false))
-
-# Add the yaml-cpp dependency for geoip and ixfrdist.
-deps += get_variable('dep_yaml_cpp', dependency('', required: false))
 
 subdir('pdns')
 
