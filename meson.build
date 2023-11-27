@@ -72,6 +72,7 @@ subdir('meson' / 'socket-dir')              # Socket Dir
 subdir('meson' / 'various-functions')       # Various Functions
 subdir('meson' / 'various-headers')         # Various Headers
 subdir('meson' / 'yaml-cpp')                # YAML C++
+subdir('meson' / 'sqlite3')                 # Sqlite3
 
 # Manpages
 # if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
@@ -119,6 +120,7 @@ deps = [
   dep_protozero,
   dep_yahttp,
   dep_yaml_cpp,
+  dep_sqlite3,
 ]
 
 # Modules
@@ -128,7 +130,6 @@ all_modules = {
   'gmysql':   {'deps': ['mysql'],                       'exts': []},
   'godbc':    {'deps': ['odbc'],                        'exts': []},
   'gpgsql':   {'deps': ['pgsql'],                       'exts': []},
-  'gsqlite3': {'deps': ['sqlite3'],                     'exts': []},
   'ldap':     {'deps': ['ldap'],                        'exts': []},
   'lua2':     {'deps': [],                              'exts': []},
   'remote':   {'deps': ['prog-curl', 'zeromq'],         'exts': []},
@@ -162,9 +163,6 @@ foreach module_name, module_props: all_modules
     subdir('meson' / dep)
   endforeach
 endforeach
-
-# Add the sqlite3 dependency for the bind and gsqlite3 backends and pdnsutil.
-deps += get_variable('dep_sqlite3', dependency('', required: false))
 
 subdir('pdns')
 

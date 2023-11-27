@@ -155,7 +155,7 @@ conditional_sources = {
   'ssqlite3': {
     'sources': ['ssqlite3.cc'],
     'headers': ['ssqlite3.hh'],
-    'condition': get_variable('dep_sqlite3', dependency('', required: false)).found(),
+    'condition': dep_sqlite3.found(),
   },
   'minicurl': {
     'sources': ['minicurl.cc'],
