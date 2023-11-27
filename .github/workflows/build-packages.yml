@@ -78,7 +78,7 @@ jobs:
       pkghashes-ubuntu-jammy: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-jammy }}
       srchashes: ${{ steps.srchashes.outputs.srchashes }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # for correct version numbers
           submodules: recursive
