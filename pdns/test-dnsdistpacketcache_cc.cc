@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
       pwR.getHeader()->id = pwQ.getHeader()->id;
       pwR.startRecord(ids.qname, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
       ComboAddress v6addr("2001:db8::1");
-      pwR.xfrIP6(std::string(reinterpret_cast<const char*>(v6addr.sin6.sin6_addr.s6_addr), 16));
+      pwR.xfrCAWithoutPort(6, v6addr);
       pwR.commit();
 
       uint32_t key = 0;
@@ -256,7 +256,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
     pwR.getHeader()->id = pwQ.getHeader()->id;
     pwR.startRecord(a, QType::AAAA, 7200, QClass::IN, DNSResourceRecord::ANSWER);
     ComboAddress v6addr("2001:db8::1");
-    pwR.xfrIP6(std::string(reinterpret_cast<const char*>(v6addr.sin6.sin6_addr.s6_addr), 16));
+    pwR.xfrCAWithoutPort(6, v6addr);
     pwR.commit();
 
     {
