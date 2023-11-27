@@ -21,8 +21,9 @@
  */
 #pragma once
 #include <string>
+#include <utility>
 #include <vector>
-#include <inttypes.h>
+#include <cinttypes>
 #include "../../dnsname.hh"
 #include "../../namespaces.hh"
 #include "../../misc.hh"
@@ -30,8 +31,8 @@
 class SSqlException
 {
 public:
-  SSqlException(const string& reason) :
-    d_reason(reason)
+  SSqlException(string reason) :
+    d_reason(std::move(reason))
   {
   }
 
@@ -47,8 +48,8 @@ private:
 class SSqlStatement
 {
 public:
-  typedef vector<string> row_t;
-  typedef vector<row_t> result_t;
+  using row_t = vector<string>;
+  using result_t = vector<row_t>;
 
   virtual SSqlStatement* bind(const string& name, bool value) = 0;
   virtual SSqlStatement* bind(const string& name, int value) = 0;
@@ -92,5 +93,5 @@ public:
     return true;
   }
   virtual void reconnect(){};
-  virtual ~SSql(){};
+  virtual ~SSql() = default;
 };
