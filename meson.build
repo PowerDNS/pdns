@@ -58,6 +58,7 @@ subdir('meson' / 'clock-gettime')           # Clock_gettime
 subdir('meson' / 'boost')                   # Boost
 subdir('meson' / 'boost-program-options')   # Boost Program Options Library
 subdir('meson' / 'boost-test')              # Boost Testing Library
+subdir('meson' / 'boost-serialization')     # Boost Serialization Library
 subdir('meson' / 'reproducible')            # Reproducible Builds
 subdir('meson' / 'dlopen')                  # dlopen
 subdir('meson' / 'verbose-logging')         # Verbose Logging
@@ -73,6 +74,7 @@ subdir('meson' / 'various-functions')       # Various Functions
 subdir('meson' / 'various-headers')         # Various Headers
 subdir('meson' / 'yaml-cpp')                # YAML C++
 subdir('meson' / 'sqlite3')                 # Sqlite3
+subdir('meson' / 'lmdb')                    # LMDB
 
 # Manpages
 # if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
@@ -91,6 +93,9 @@ ext_modules = [
   'protozero',
   'yahttp',
 ]
+if get_option('module-lmdb') != 'disabled'
+  ext_modules += 'lmdb-safe'
+endif
 subdir('ext')
 
 deps = [
@@ -121,21 +126,23 @@ deps = [
   dep_yahttp,
   dep_yaml_cpp,
   dep_sqlite3,
+  dep_lmdb,
+  dep_boost_serialization,
 ]
 
 # Modules
 all_modules = {
-  'bind':     {'deps': [],                              'exts': []},
-  'pipe':     {'deps': [],                              'exts': []},
-  'gmysql':   {'deps': ['mysql'],                       'exts': []},
-  'godbc':    {'deps': ['odbc'],                        'exts': []},
-  'gpgsql':   {'deps': ['pgsql'],                       'exts': []},
-  'ldap':     {'deps': ['ldap'],                        'exts': []},
-  'lua2':     {'deps': [],                              'exts': []},
-  'remote':   {'deps': ['prog-curl', 'zeromq'],         'exts': []},
-  'tinydns':  {'deps': ['cdb'],                         'exts': []},
-  'geoip':    {'deps': ['geoip', 'mmdb', 'cxx-fs'],     'exts': []},
-  'lmdb':     {'deps': ['lmdb', 'boost-serialization'], 'exts': ['lmdb-safe']},
+  'bind':     {'deps': [],                             },
+  'pipe':     {'deps': [],                             },
+  'gmysql':   {'deps': ['mysql'],                      },
+  'godbc':    {'deps': ['odbc'],                       },
+  'gpgsql':   {'deps': ['pgsql'],                      },
+  'ldap':     {'deps': ['ldap'],                       },
+  'lua2':     {'deps': [],                             },
+  'remote':   {'deps': ['prog-curl', 'zeromq'],        },
+  'tinydns':  {'deps': ['cdb'],                        },
+  'geoip':    {'deps': ['geoip', 'mmdb', 'cxx-fs'],    },
+  'lmdb':     {'deps': [],},
 }
 
 # Configure module dependencies
@@ -172,7 +179,6 @@ dep_modules = []
 foreach module_name, module_props: all_modules
   module_backend_name = module_name + 'backend'
   module_opt = get_option('module-' + module_name)
-  module_exts = module_props['exts']
 
   if module_opt == 'disabled'
     continue
@@ -181,10 +187,6 @@ foreach module_name, module_props: all_modules
   else
     selected_dyn_modules += module_name
   endif
-
-  foreach ext: module_exts
-    subdir('ext' / ext)
-  endforeach
 
   subdir('modules' / module_backend_name)
   dep_modules += get_variable('dep_' + module_backend_name)
