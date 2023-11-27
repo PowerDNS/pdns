@@ -32,13 +32,13 @@ platform_deps = []
 
 foreach platform: platforms
   name = platform['name']
+  set_variable('have_' + name, system == name)
+
   config_defines = 'config-defines' in platform ? platform['config-defines'] : []
   cmdline_defines = 'cmdline-defines' in platform ? platform['cmdline-defines'] : []
   libraries = 'libraries' in platform ? platform['libraries'] : []
 
   if system == name
-    set_variable('have_' + name, true)
-
     platform_defines = []
     foreach define: config_defines
       define_name = define['name']
@@ -56,8 +56,6 @@ foreach platform: platforms
     endforeach
 
     summary('Platform Defines', platform_defines, section: 'System')
-
-    break
   endif
 endforeach
 

@@ -142,15 +142,15 @@ libpdns_bind_dnssec_schema = declare_dependency(sources: libpdns_bind_dnssec_sch
 conditional_sources = {
   'sunos-devpollmplexer': {
     'sources': ['devpollmplexer.cc', 'portsmplexer.cc'],
-    'condition': get_variable('have_sunos', false),
+    'condition': have_sunos,
   },
   'linux-epollmplexer': {
     'sources': ['epollmplexer.cc'],
-    'condition': get_variable('have_linux', false),
+    'condition': have_linux,
   },
   'bsd-kqueuemplexer': {
     'sources': ['kqueuemplexer.cc'],
-    'condition': get_variable('have_openbsd', false) or get_variable('have_freebsd', false),
+    'condition': have_openbsd or have_freebsd,
   },
   'ssqlite3': {
     'sources': ['ssqlite3.cc'],
