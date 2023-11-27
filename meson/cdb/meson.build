@@ -1,9 +1,13 @@
-dep_cdb = dependency('libcdb', required: false)
+dep_cdb = dependency('', required: false)
 
-if not dep_cdb.found()
-  if cxx.has_header('cdb.h', required: true)
-    if cxx.has_function('cdb_find', args: ['-lcdb'])
-      dep_cdb = declare_dependency(link_args: ['-lcdb'])
+if get_option('module-tinydns') != 'disabled'
+  dep_cdb = dependency('libcdb', required: false)
+
+  if not dep_cdb.found()
+    if cxx.has_header('cdb.h', required: true)
+      if cxx.has_function('cdb_find', args: ['-lcdb'])
+        dep_cdb = declare_dependency(link_args: ['-lcdb'])
+      endif
     endif
   endif
 endif

@@ -1,8 +1,7 @@
-opt_zeromq = get_option('module-remote-zeromq')
-
 dep_zeromq = dependency('', required: false)
-if opt_zeromq
-  dep_zeromq = dependency('libzmq', required: opt_zeromq)
+
+if get_option('module-remote') != 'disabled' and get_option('module-remote-zeromq')
+  dep_zeromq = dependency('libzmq', required: true)
 endif
 
 conf.set('HAVE_LIBZMQ', dep_zeromq.found(), description: 'Have libzmq')

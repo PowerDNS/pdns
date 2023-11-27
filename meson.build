@@ -75,6 +75,16 @@ subdir('meson' / 'various-headers')         # Various Headers
 subdir('meson' / 'yaml-cpp')                # YAML C++
 subdir('meson' / 'sqlite3')                 # Sqlite3
 subdir('meson' / 'lmdb')                    # LMDB
+subdir('meson' / 'mysql')                   # MySQL
+subdir('meson' / 'odbc')                    # ODBC
+subdir('meson' / 'pgsql')                   # PostgreSQL
+subdir('meson' / 'ldap')                    # LDAP
+subdir('meson' / 'prog-curl')               # cURL Program
+subdir('meson' / 'zeromq')                  # ZeroMQ
+subdir('meson' / 'cdb')                     # CDB
+subdir('meson' / 'geoip')                   # GeoIP
+subdir('meson' / 'mmdb')                    # MaxMindDB
+subdir('meson' / 'cxx-fs')                  # C++ stdlib Filesystem Module
 
 # Manpages
 # if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
@@ -128,55 +138,37 @@ deps = [
   dep_sqlite3,
   dep_lmdb,
   dep_boost_serialization,
+  dep_mysql,
+  dep_odbc,
+  dep_pgsql,
+  dep_ldap,
+  dep_cdb,
+  dep_geoip,
+  dep_mmdb,
+  dep_cxx_fs,
 ]
 
-# Modules
-all_modules = {
-  'bind':     {'deps': [],                             },
-  'pipe':     {'deps': [],                             },
-  'gmysql':   {'deps': ['mysql'],                      },
-  'godbc':    {'deps': ['odbc'],                       },
-  'gpgsql':   {'deps': ['pgsql'],                      },
-  'ldap':     {'deps': ['ldap'],                       },
-  'lua2':     {'deps': [],                             },
-  'remote':   {'deps': ['prog-curl', 'zeromq'],        },
-  'tinydns':  {'deps': ['cdb'],                        },
-  'geoip':    {'deps': ['geoip', 'mmdb', 'cxx-fs'],    },
-  'lmdb':     {'deps': [],},
-}
-
-# Configure module dependencies
-foreach module_name, module_props: all_modules
-  module_opt = get_option('module-' + module_name)
-  module_deps = module_props['deps']
-
-  if module_opt == 'disabled'
-    continue
-  endif
-
-  foreach dep: module_deps
-    if module_name == 'remote'
-      if dep == 'prog-curl'
-        if not get_option('unit-tests')
-          continue                # We only need cURL for unit tests.
-        endif
-      elif dep == 'zeromq'
-        if not get_option('module-remote-zeromq')
-          continue
-        endif
-      endif
-    endif
-
-    subdir('meson' / dep)
-  endforeach
-endforeach
-
 subdir('pdns')
+
+# Modules
+all_modules = [
+  'bind',
+  'pipe',
+  'gmysql',
+  'godbc',
+  'gpgsql',
+  'ldap',
+  'lua2',
+  'remote',
+  'tinydns',
+  'geoip',
+  'lmdb',
+]
 
 selected_modules = []
 selected_dyn_modules = []
 dep_modules = []
-foreach module_name, module_props: all_modules
+foreach module_name: all_modules
   module_backend_name = module_name + 'backend'
   module_opt = get_option('module-' + module_name)
 
