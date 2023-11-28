@@ -59,7 +59,7 @@ if get_option('unit-tests-backends')
       dependencies: [
         deps,
         libpdns_dnslabeltext,
-        libpdns_pkcs11signers,
+        libpdns_signers_pkcs11,
 
         source_deps_cache['arguments.cc'],
         source_deps_cache['auth-packetcache.cc'],

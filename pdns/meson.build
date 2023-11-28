@@ -139,15 +139,15 @@ endif
 libpdns_bind_dnssec_schema = declare_dependency(sources: libpdns_bind_dnssec_schema_h)
 
 conditional_sources = {
-  'sunos-devpollmplexer': {
+  'mplexer-sunos-devpoll': {
     'sources': ['devpollmplexer.cc', 'portsmplexer.cc'],
     'condition': have_sunos,
   },
-  'linux-epollmplexer': {
+  'mplexer-linux-epoll': {
     'sources': ['epollmplexer.cc'],
     'condition': have_linux,
   },
-  'bsd-kqueuemplexer': {
+  'mplexer-bsd-kqueue': {
     'sources': ['kqueuemplexer.cc'],
     'condition': have_openbsd or have_freebsd,
   },
@@ -165,15 +165,15 @@ conditional_sources = {
     'sources': ['lua-record.cc'],
     'condition': dep_lua_records.found(),
   },
-  'sodiumsigners': {
+  'signers-sodium': {
     'sources': ['sodiumsigners.cc'],
     'condition': dep_libsodium.found(),
   },
-  'decafsigners': {
+  'signers-decaf': {
     'sources': ['decafsigners.cc'],
     'condition': dep_libdecaf.found(),
   },
-  'pkcs11signers': {
+  'signers-pkcs11': {
     'sources': ['pkcs11signers.cc'],
     'headers': ['pkcs11signers.hh'],
     'condition': dep_pkcs11.found(),
@@ -367,16 +367,16 @@ tool_libs = {
     ],
     'deps': [
       deps,
-      libpdns_bind_parser,
-      libpdns_bind_dnssec_schema,
-      libpdns_dnslabeltext,
       libpdns_apidocfiles,
+      libpdns_bind_dnssec_schema,
+      libpdns_bind_parser,
+      libpdns_dnslabeltext,
       libpdns_lua_record,
       libpdns_minicurl,
-      libpdns_sodiumsigners,
-      libpdns_decafsigners,
+      libpdns_signers_decaf,
+      libpdns_signers_pkcs11,
+      libpdns_signers_sodium,
       libpdns_ssqlite3,
-      libpdns_pkcs11signers,
     ]
   },
   'pdns-auth-util': {
@@ -473,10 +473,10 @@ tool_libs = {
       deps,
       libpdns_bind_parser,
       libpdns_dnslabeltext,
-      libpdns_sodiumsigners,
-      libpdns_decafsigners,
+      libpdns_signers_decaf,
+      libpdns_signers_pkcs11,
+      libpdns_signers_sodium,
       libpdns_ssqlite3,
-      libpdns_pkcs11signers,
     ],
   },
   'pdns-auth-control': {
@@ -1058,7 +1058,7 @@ if get_option('tools')
       'deps': [
         deps,
         libpdns_dnslabeltext,
-        libpdns_pkcs11signers,
+        libpdns_signers_pkcs11,
       ],
     },
     'pdns-auth-notify': {
@@ -1195,7 +1195,7 @@ if get_option('tools')
       'deps': [
         deps,
         libpdns_dnslabeltext,
-        libpdns_pkcs11signers,
+        libpdns_signers_pkcs11,
       ],
     },
     'ixplore': {
@@ -1246,7 +1246,7 @@ if get_option('tools')
       'deps': [
         deps,
         libpdns_dnslabeltext,
-        libpdns_pkcs11signers,
+        libpdns_signers_pkcs11,
       ],
     },
   }
@@ -1389,10 +1389,10 @@ if get_option('tools-ixfrdist')
       'deps': [
         deps,
         libpdns_dnslabeltext,
-        libpdns_pkcs11signers,
-        libpdns_sunos_devpollmplexer,
-        libpdns_linux_epollmplexer,
-        libpdns_bsd_kqueuemplexer,
+        libpdns_mplexer_bsd_kqueue,
+        libpdns_mplexer_linux_epoll,
+        libpdns_mplexer_sunos_devpoll,
+        libpdns_signers_pkcs11,
       ],
     },
   }
@@ -1443,7 +1443,7 @@ if get_option('unit-tests')
       'deps': [
         deps,
         libpdns_dnslabeltext,
-        libpdns_pkcs11signers,
+        libpdns_signers_pkcs11,
       ],
     },
     'speedtest': {
@@ -1486,7 +1486,7 @@ if get_option('unit-tests')
       'deps': [
         deps,
         libpdns_dnslabeltext,
-        libpdns_pkcs11signers,
+        libpdns_signers_pkcs11,
       ],
     },
     'pdns-auth-testrunner': {
@@ -1624,12 +1624,12 @@ if get_option('unit-tests')
         dep_boost_test,
         libpdns_bind_parser,
         libpdns_dnslabeltext,
-        libpdns_pkcs11signers,
-        libpdns_sodiumsigners,
-        libpdns_decafsigners,
-        libpdns_sunos_devpollmplexer,
-        libpdns_linux_epollmplexer,
-        libpdns_bsd_kqueuemplexer,
+        libpdns_mplexer_bsd_kqueue,
+        libpdns_mplexer_linux_epoll,
+        libpdns_mplexer_sunos_devpoll,
+        libpdns_signers_decaf,
+        libpdns_signers_pkcs11,
+        libpdns_signers_sodium,
       ],
     },
   }
