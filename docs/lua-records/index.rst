@@ -80,7 +80,15 @@ LUA records can also contain more complex code, for example::
 
     www    IN    LUA    A    ";if countryCode('US') then return {'192.0.2.1','192.0.2.2','198.51.100.1'} else return '192.0.2.2' end"
 
-As you can see you can return both single string value or array of strings. 
+As you can see you can return both single string value or array of strings.
+
+An example Lua record accessing ``qname``::
+
+    *.example.net   10      IN      LUA     TXT "; return 'Got a TXT query for ' .. qname:toString() .. '; First label is: ' .. qname:getRawLabels()[1]"
+
+``qtype`` cannot be accessed from a Lua script, the value is fixed per Lua record.
+See :doc:`functions` for available variables.
+
 
 Using LUA Records with Generic SQL backends
 -------------------------------------------
