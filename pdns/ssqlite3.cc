@@ -290,24 +290,24 @@ SSQLite3::SSQLite3(const std::string& database, const std::string& journalmode, 
 {
   if (access(database.c_str(), F_OK) == -1) {
     if (!creat) {
-      throw sPerrorException("SQLite database '" + database + "' does not exist yet");
+      throw SSqlException("SQLite database '" + database + "' does not exist yet");
     }
   }
   else {
     if (creat) {
-      throw sPerrorException("SQLite database '" + database + "' already exists");
+      throw SSqlException("SQLite database '" + database + "' already exists");
     }
   }
 
   if (sqlite3_open(database.c_str(), &m_pDB) != SQLITE_OK) {
-    throw sPerrorException("Could not connect to the SQLite database '" + database + "'");
+    throw SSqlException("Could not connect to the SQLite database '" + database + "'");
   }
   m_dolog = false;
   m_in_transaction = false;
   sqlite3_busy_handler(m_pDB, busyHandler, nullptr);
 
   if (journalmode.length() != 0) {
-    execute("PRAGMA journal_mode=" + journalmode);
+    executeImpl("PRAGMA journal_mode=" + journalmode);
   }
 }
 
@@ -338,7 +338,7 @@ std::unique_ptr<SSqlStatement> SSQLite3::prepare(const string& query, int nparam
   return std::make_unique<SSQLite3Statement>(this, m_dolog, query);
 }
 
-void SSQLite3::execute(const string& query)
+void SSQLite3::executeImpl(const string& query)
 {
   char* errmsg = nullptr;
   std::string errstr1;
@@ -362,6 +362,11 @@ void SSQLite3::execute(const string& query)
   else if (execRet != SQLITE_OK) {
     throw SSqlException("Failed to execute query: " + errstr1);
   }
+}
+
+void SSQLite3::execute(const string& query)
+{
+  executeImpl(query);
 }
 
 int SSQLite3::busyHandler([[maybe_unused]] void* userData, [[maybe_unused]] int invocationsSoFar)

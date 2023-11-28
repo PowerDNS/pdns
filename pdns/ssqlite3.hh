@@ -33,7 +33,8 @@ private:
   bool m_in_transaction;
   static int busyHandler(void*, int);
 
-protected:
+  void executeImpl(const string& query);
+
 public:
   //! Constructor.
   SSQLite3(const std::string& database, const std::string& journalmode, bool creat = false);
