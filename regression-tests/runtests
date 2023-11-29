@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+if [ -z "$testsdir" ]; then
+  echo "Incorrect usage. You probably want ./start-test-stop help"
+  exit 1
+fi
+
 PATH=.:$PATH:/usr/sbin
 MAKE=${MAKE:-make}
 
