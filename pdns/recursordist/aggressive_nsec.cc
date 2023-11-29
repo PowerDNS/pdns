@@ -261,6 +261,10 @@ static bool commonPrefixIsLong(const string& one, const string& two, size_t boun
 bool AggressiveNSECCache::isSmallCoveringNSEC3(const DNSName& owner, const std::string& nextHash)
 {
   std::string ownerHash(fromBase32Hex(owner.getRawLabel(0)));
+  // Special case: empty zone, so the single NSEC3 covers everything. Prefix is long but we still want it cached.
+  if (ownerHash == nextHash) {
+    return false;
+  }
   return commonPrefixIsLong(ownerHash, nextHash, AggressiveNSECCache::s_maxNSEC3CommonPrefix);
 }
 
