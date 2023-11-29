@@ -14,7 +14,6 @@
 ./pdns/axfr-retriever.hh
 ./pdns/backends/gsql/gsqlbackend.cc
 ./pdns/backends/gsql/gsqlbackend.hh
-./pdns/backends/gsql/ssql.hh
 ./pdns/base32.cc
 ./pdns/base64.cc
 ./pdns/base64.hh
@@ -232,8 +231,6 @@
 ./pdns/sortlist.cc
 ./pdns/sortlist.hh
 ./pdns/speedtest.cc
-./pdns/ssqlite3.cc
-./pdns/ssqlite3.hh
 ./pdns/sstuff.hh
 ./pdns/standalone_fuzz_target_runner.cc
 ./pdns/stat_t.hh
