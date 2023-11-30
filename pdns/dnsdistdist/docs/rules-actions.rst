@@ -726,6 +726,15 @@ These ``DNSRule``\ s be one of the following items:
 
   :param int code: The opcode to match
 
+.. function:: PayloadSizeRule(comparison, size)
+
+  .. versionadded:: 1.9.0
+
+  Matches queries or responses whose DNS payload size is equal, greater, greater or equal, smaller or smaller or equal to the specified size.
+
+  :param str comparison: The comparison operator to use. Supported values are ``equal``, ``greater``, ``greaterOrEqual``, ``smaller`` and ``smallerOrEqual``.
+  :param int size: The size to compare to.w
+
 .. function:: ProbaRule(probability)
 
   Matches queries with a given probability. 1.0 means "always"

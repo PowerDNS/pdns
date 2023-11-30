@@ -1350,3 +1350,66 @@ private:
   boost::optional<std::string> d_value;
   uint8_t d_type;
 };
+
+class PayloadSizeRule : public DNSRule
+{
+  enum class Comparisons : uint8_t { equal, greater, greaterOrEqual, smaller, smallerOrEqual };
+public:
+  PayloadSizeRule(const std::string& comparison, uint16_t size): d_size(size)
+  {
+    if (comparison == "equal") {
+      d_comparison = Comparisons::equal;
+    }
+    else if (comparison == "greater") {
+      d_comparison = Comparisons::greater;
+    }
+    else if (comparison == "greaterOrEqual") {
+      d_comparison = Comparisons::greaterOrEqual;
+    }
+    else if (comparison == "smaller") {
+      d_comparison = Comparisons::smaller;
+    }
+    else if (comparison == "smallerOrEqual") {
+      d_comparison = Comparisons::smallerOrEqual;
+    }
+    else {
+      throw std::runtime_error("Unsupported comparison '" + comparison + "'");
+    }
+  }
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    const auto size = dq->getData().size();
+
+    switch (d_comparison) {
+    case Comparisons::equal:
+      return size == d_size;
+    case Comparisons::greater:
+      return size > d_size;
+    case Comparisons::greaterOrEqual:
+      return size >= d_size;
+    case Comparisons::smaller:
+      return size < d_size;
+    case Comparisons::smallerOrEqual:
+      return size <= d_size;
+    default:
+      return false;
+    }
+  }
+
+  string toString() const override
+  {
+    static const std::array<const std::string, 5> comparisonStr{
+      "equal to" ,
+      "greater than",
+      "equal to or greater than",
+      "smaller than",
+      "equal to or smaller than"
+    };
+    return "payload size is " + comparisonStr.at(static_cast<size_t>(d_comparison)) + " " + std::to_string(d_size);
+  }
+
+private:
+  uint16_t d_size;
+  Comparisons d_comparison;
+};
