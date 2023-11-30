@@ -801,16 +801,16 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
 
         queries = [
             {
+                'query': dns.message.make_query('test.namehashed.example.org', 'A'),
                 'expected': dns.rrset.from_text('test.namehashed.example.org.', 0,
                                        dns.rdataclass.IN, 'A',
                                        '1.2.3.4'),
-                'query': dns.message.make_query('test.namehashed.example.org', 'A')
             },
             {
+                'query': dns.message.make_query('test2.namehashed.example.org', 'A'),
                 'expected': dns.rrset.from_text('test2.namehashed.example.org.', 0,
                                        dns.rdataclass.IN, 'A',
                                        '4.3.2.1'),
-                'query': dns.message.make_query('test2.namehashed.example.org', 'A')
             }
         ]
         for query in queries :
