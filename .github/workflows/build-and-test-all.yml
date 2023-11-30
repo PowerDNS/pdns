@@ -68,6 +68,7 @@ jobs:
       - run: inv ci-auth-install-remotebackend-test-deps
       - run: inv ci-auth-run-unit-tests
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+        if: ${{ env.COVERAGE == 'yes' }}
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}/pdns
       - name: Coveralls Parallel auth unit
         if: ${{ env.COVERAGE == 'yes' }}
@@ -278,6 +279,7 @@ jobs:
       - run: inv install-auth-test-deps -b ${{ matrix.backend }}
       - run: inv test-api auth -b ${{ matrix.backend }}
       - run: inv generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
+        if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth API ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
@@ -399,6 +401,7 @@ jobs:
       - run: inv install-auth-test-deps -b ${{ matrix.backend }}
       - run: inv test-auth-backend -b ${{ matrix.backend }}
       - run: inv generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
+        if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth backend ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
@@ -431,6 +434,7 @@ jobs:
       - run: inv install-auth-test-deps
       - run: inv test-ixfrdist
       - run: inv generate-coverage-info /opt/pdns-auth/bin/ixfrdist $GITHUB_WORKSPACE
+        if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel ixfrdist
         if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
