@@ -382,7 +382,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
 
   /* NetmaskGroup */
   luaCtx.writeFunction("newNMG", []() { return NetmaskGroup(); });
-  luaCtx.registerFunction<void(NetmaskGroup::*)(const std::string& mask)>("addMask", [](NetmaskGroup&nmg, const std::string& mask)
+  luaCtx.registerFunction<void(NetmaskGroup::*)(const std::string& mask)>("addMask", [](NetmaskGroup& nmg, const std::string& mask)
                          {
                            nmg.addMask(mask);
                          });
