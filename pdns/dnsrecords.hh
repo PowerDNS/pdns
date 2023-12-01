@@ -61,7 +61,6 @@ public:
   {
     return d_replacement;
   }
-private:
   uint16_t d_order, d_preference;
   string d_flags, d_services, d_regexp;
   DNSName d_replacement;
