@@ -21,7 +21,7 @@ NetmaskGroup
 
     .. versionadded:: 1.9.0
 
-    Add one or more masks from an existing to this NMG.
+    Add all masks from an existing NMG to this NMG.
 
     :param NetmaskGroup otherNMG: Add the masks from a :class:`NetmaskGroup` to this one.
 
