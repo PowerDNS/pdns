@@ -230,27 +230,25 @@ Record creation functions
 
 .. function:: picknamehashed(values)
 
-  Based on the hash of the DNS record name, returns a string from the list
-  supplied, as weighted by the various ``weight`` parameters.
+  Based on the hash of the DNS record name, returns a string from the list supplied, as weighted by the various ``weight`` parameters.
   Performs no uptime checking.
 
   :param values: table of weight, string (such as IPv4 or IPv6 address).
 
-  This allows basic persistent load balancing across a number of backends.  It means that
-  test.mydomain.example.com will always resolve to the same IP, but test2.mydomain.example.com
-  may go elsewhere.  This function is only useful for wildcard records.
+  This allows basic persistent load balancing across a number of backends.
+  It means that ``test.mydomain.example.com`` will always resolve to the same IP, but ``test2.mydomain.example.com`` may go elsewhere.
+  This function is only useful for wildcard records.
 
-  This works similar to round-robin load balancing, but has the advantage of making traffic
-  for the same domain always end up on the same server which can help cache hit rates.
+  This works similar to round-robin load balancing, but has the advantage of making traffic for the same domain always end up on the same server which can help cache hit rates.
 
   This function also works for CNAME or TXT records.
 
   An example::
 
     *.mydomain.example.com    IN    LUA    A ("picknamehashed({                        "
-                                            "        {15,  "192.0.2.1"},               "
-                                            "        {100, "198.51.100.5"}             "
-                                            "})                                        ")
+                                              "        {15,  "192.0.2.1"},             "
+                                              "        {100, "198.51.100.5"}           "
+                                              "})                                      ")
 
 
 .. function:: pickwrandom(values)
