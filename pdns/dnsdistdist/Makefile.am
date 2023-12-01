@@ -193,6 +193,7 @@ dnsdist_SOURCES = \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-random.cc dnsdist-random.hh \
+	dnsdist-resolver.cc dnsdist-resolver.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rules.cc dnsdist-rules.hh \
 	dnsdist-secpoll.cc dnsdist-secpoll.hh \
@@ -292,6 +293,7 @@ testrunner_SOURCES = \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
 	dnsdist-random.cc dnsdist-random.hh \
+	dnsdist-resolver.cc dnsdist-resolver.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rules.cc dnsdist-rules.hh \
 	dnsdist-session-cache.cc dnsdist-session-cache.hh \
