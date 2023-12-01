@@ -192,6 +192,7 @@ static void declareArguments()
   ::arg().set("version-string", "PowerDNS version in packets - full, anonymous, powerdns or custom") = "full";
   ::arg().set("control-console", "Debugging switch - don't use") = "no"; // but I know you will!
   ::arg().set("loglevel", "Amount of logging. Higher is more. Do not set below 3") = "4";
+  ::arg().setSwitch("loglevel-show", "Include log level indicator in log output") = "no";
   ::arg().set("disable-syslog", "Disable logging to syslog, useful when running inside a supervisor that logs stdout") = "no";
   ::arg().set("log-timestamp", "Print timestamps in log lines") = "yes";
   ::arg().set("distributor-threads", "Default number of Distributor (backend) threads to start") = "3";
@@ -1243,6 +1244,7 @@ int main(int argc, char** argv)
     ::arg().set("domain-metadata-cache-ttl") = ::arg()["zone-metadata-cache-ttl"];
 
     g_log.setLoglevel((Logger::Urgency)(::arg().asNum("loglevel")));
+    g_log.setPrefixed(::arg().mustDo("loglevel-show"));
     g_log.disableSyslog(::arg().mustDo("disable-syslog"));
     g_log.setTimestamps(::arg().mustDo("log-timestamp"));
     g_log.toConsole((Logger::Urgency)(::arg().asNum("loglevel")));

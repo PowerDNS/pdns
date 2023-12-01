@@ -156,7 +156,7 @@ private:
   bool opened;
   bool d_disableSyslog;
   bool d_timestamps{true};
-  bool d_prefixed{false};
+  bool d_prefixed{false}; // this used to prefix the loglevel, but now causes formatting like structured logging
 };
 
 Logger& getLogger();
