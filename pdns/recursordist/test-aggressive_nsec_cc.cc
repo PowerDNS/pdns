@@ -21,6 +21,9 @@ BOOST_AUTO_TEST_CASE(test_small_coverering_nsec3)
     {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "7ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 2, false},
     {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "fujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, false},
     {"0ujhshp2lhmnpoo9qde4blg4gq3hgl99", "8ujhshp2lhmnpoo9qde4blg4gq3hgl9a", 1, false},
+    {"8ujhshp2lhmnpoo9qde4blg4gq3hgl99", "8ujhshp2lhmnpoo9qde4blg4gq3hgl99", 0, false},
+    {"8ujhshp2lhmnpoo9qde4blg4gq3hgl99", "8ujhshp2lhmnpoo9qde4blg4gq3hgl99", 1, false},
+    {"8ujhshp2lhmnpoo9qde4blg4gq3hgl99", "8ujhshp2lhmnpoo9qde4blg4gq3hgl99", 157, false},
   };
 
   for (const auto& [owner, next, boundary, result] : table) {
