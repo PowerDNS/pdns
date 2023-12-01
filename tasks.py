@@ -675,7 +675,7 @@ backend_regress_tests = dict(
         'bind-dnssec-nsec3-both',
         'bind-dnssec-nsec3-optout-both',
         'bind-dnssec-nsec3-narrow',
-        # FIXME  'bind-dnssec-pkcs11'
+        'bind-dnssec-pkcs11'
     ],
     geoip = [
         'geoip',
@@ -784,6 +784,12 @@ def setup_ldap_client(c):
     c.sudo('DEBIAN_FRONTEND=noninteractive apt-get install -y ldap-utils')
     c.sudo(f'sh -c \'echo "{auth_backend_ip_addr} ldapserver" | tee -a /etc/hosts\'')
 
+def setup_softhsm(c):
+    # Modify the location of the softhsm tokens and configuration directory.
+    # Enables token generation by non-root users (runner)
+    c.run('mkdir -p /opt/pdns-auth/softhsm/tokens')
+    c.run('echo "directories.tokendir = /opt/pdns-auth/softhsm/tokens" > /opt/pdns-auth/softhsm/softhsm2.conf')
+
 @task
 def test_auth_backend(c, backend):
     pdns_auth_env_vars = f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST={auth_backend_ip_addr} GMYSQL2HOST={auth_backend_ip_addr} MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432'
@@ -795,6 +801,13 @@ def test_auth_backend(c, backend):
         c.sudo(f'sh -c \'echo "{auth_backend_ip_addr} kerberos-server" | tee -a /etc/hosts\'')
         with c.cd('regression-tests.auth-py'):
             c.run(f'{pdns_auth_env_vars} WITHKERBEROS=YES ./runtests')
+        return
+
+    if backend == 'bind':
+        setup_softhsm(c)
+        with c.cd('regression-tests'):
+            for variant in backend_regress_tests[backend]:
+                c.run(f'{pdns_auth_env_vars} SOFTHSM2_CONF=/opt/pdns-auth/softhsm/softhsm2.conf ./start-test-stop 5300 {variant}')
         return
 
     if backend == 'godbc_sqlite3':
