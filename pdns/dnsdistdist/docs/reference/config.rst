@@ -1919,7 +1919,7 @@ Other functions
 
   .. versionadded:: 1.9.0
 
-  Asynchronously resolve, via the system resolver (using ``getaddrinfo()``), the supplied ``hostname`` to IPv4 and IPv6 before invoking the supplied ``callback`` function with the ``hostname`` and a list of IPv4 and IPv6 addresses as :class:`ComboAddress`.
+  Asynchronously resolve, via the system resolver (using ``getaddrinfo()``), the supplied ``hostname`` to IPv4 and IPv6 addresses (if configured on the host) before invoking the supplied ``callback`` function with the ``hostname`` and a list of IPv4 and IPv6 addresses as :class:`ComboAddress`.
   For example, to get the addresses of Quad9's resolver and dynamically add them as backends:
 
   .. code-block:: lua
