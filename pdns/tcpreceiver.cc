@@ -203,7 +203,7 @@ static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, tim
       return true;
     }
     if (elapsed > 0) {
-      remainingTime = static_cast<unsigned int >(maxConnectionDuration - elapsed);
+      remainingTime = static_cast<unsigned int>(maxConnectionDuration - elapsed);
     }
   }
   return false;
