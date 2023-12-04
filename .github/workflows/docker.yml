@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        product: ['auth', 'recursor', 'dnsdist']
+        product: ['recursor']
     steps:
       - uses: actions/checkout@v4
         with:
