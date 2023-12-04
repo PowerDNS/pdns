@@ -602,7 +602,7 @@ void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dq, const dnsd
   }
 
   std::string result;
-  SpoofAction sa(data);
+  SpoofAction sa(data, std::nullopt);
   sa(dq->dq, &result);
 }
 

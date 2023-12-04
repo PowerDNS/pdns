@@ -62,7 +62,7 @@ public:
   {
   }
 
-  SpoofAction(const vector<std::string>& raws): d_rawResponses(raws)
+  SpoofAction(const vector<std::string>& raws, std::optional<uint16_t> typeForAny): d_rawResponses(raws), d_rawTypeForAny(typeForAny)
   {
   }
 
@@ -93,6 +93,7 @@ private:
   std::vector<std::string> d_rawResponses;
   PacketBuffer d_raw;
   DNSName d_cname;
+  std::optional<uint16_t> d_rawTypeForAny{};
 };
 
 class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyable

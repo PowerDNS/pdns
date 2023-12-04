@@ -943,6 +943,9 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dq, std::string* ruleresu
     });
   }
   else if (!rawResponses.empty()) {
+    if (qtype == QType::ANY && d_rawTypeForAny) {
+      qtype = *d_rawTypeForAny;
+    }
     qtype = htons(qtype);
     for(const auto& rawResponse : rawResponses){
       uint16_t rdataLen = htons(rawResponse.size());
@@ -2494,16 +2497,20 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("SpoofRawAction", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<responseParams_t> vars) {
       vector<string> raws;
-      if(auto s = boost::get<std::string>(&inp)) {
-        raws.push_back(*s);
+      if (auto str = boost::get<std::string>(&inp)) {
+        raws.push_back(*str);
       } else {
-        const auto& v = boost::get<LuaArray<std::string>>(inp);
-        for(const auto& raw: v) {
+        const auto& vect = boost::get<LuaArray<std::string>>(inp);
+        for(const auto& raw: vect) {
           raws.push_back(raw.second);
         }
       }
-
-      auto ret = std::shared_ptr<DNSAction>(new SpoofAction(raws));
+      uint32_t qtypeForAny{0};
+      getOptionalValue<uint32_t>(vars, "typeForAny", qtypeForAny);
+      if (qtypeForAny > std::numeric_limits<uint16_t>::max()) {
+        qtypeForAny = 0;
+      }
+      auto ret = std::shared_ptr<DNSAction>(new SpoofAction(raws, qtypeForAny > 0 ? static_cast<uint16_t>(qtypeForAny) : std::optional<uint16_t>()));
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
       checkAllParametersConsumed("SpoofRawAction", vars);

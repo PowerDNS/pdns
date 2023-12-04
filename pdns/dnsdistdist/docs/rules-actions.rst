@@ -1792,6 +1792,9 @@ The following actions exist.
   .. versionchanged:: 1.6.0
     Up to 1.6.0, it was only possible to spoof one answer.
 
+  .. versionchanged:: 1.9.0
+    Added the optional parameter ``typeForAny``.
+
   Forge a response with the specified raw bytes as record data.
 
   .. code-block:: Lua
@@ -1802,6 +1805,8 @@ The following actions exist.
     addAction(AndRule({QNameRule('raw-srv.powerdns.com.'), QTypeRule(DNSQType.SRV)}), SpoofRawAction("\000\000\000\000\255\255\003srv\008powerdns\003com\000", { aa=true, ttl=3600 }))
     -- select reverse queries for '127.0.0.1' and answer with 'localhost'
     addAction(AndRule({QNameRule('1.0.0.127.in-addr.arpa.'), QTypeRule(DNSQType.PTR)}), SpoofRawAction("\009localhost\000"))
+    -- rfc8482: Providing Minimal-Sized Responses to DNS Queries That Have QTYPE=ANY via HINFO of value "rfc8482"
+    addAction(QTypeRule(DNSQType.ANY), SpoofRawAction("\007rfc\056\052\056\050\000", { typeForAny=DNSQType.HINFO }))
 
   :func:`DNSName:toDNSString` is convenient for converting names to wire format for passing to ``SpoofRawAction``.
 
@@ -1828,6 +1833,7 @@ The following actions exist.
   * ``ad``: bool - Set the AD bit to this value (true means the bit is set, false means it's cleared). Default is to clear it.
   * ``ra``: bool - Set the RA bit to this value (true means the bit is set, false means it's cleared). Default is to copy the value of the RD bit from the incoming query.
   * ``ttl``: int - The TTL of the record.
+  * ``typeForAny``: int - The record type to use when responding to queries of type ``ANY``, as using ``ANY`` for the type of the response record would not make sense.
 
 .. function:: SpoofSVCAction(svcParams [, options])
 

@@ -362,9 +362,12 @@ This state can be modified from the various hooks.
     :param string tail: The new data
     :returns: true if the operation succeeded, false otherwise
 
-  .. method:: DNSQuestion:spoof(ip|ips|raw|raws)
+  .. method:: DNSQuestion:spoof(ip|ips|raw|raws [, typeForAny])
 
     .. versionadded:: 1.6.0
+
+    .. versionchanged:: 1.9.0
+      Optional parameter ``typeForAny`` added.
 
     Forge a response with the specified record data as raw bytes. If you specify list of raws (it is assumed they match the query type), all will get spoofed in.
 
@@ -372,6 +375,7 @@ This state can be modified from the various hooks.
     :param table ComboAddresses ips: The `ComboAddress`es to be spoofed, e.g. `{ newCA("192.0.2.1"), newCA("192.0.2.2") }`.
     :param string raw: The raw string to be spoofed, e.g. `"\\192\\000\\002\\001"`.
     :param table raws: The raw strings to be spoofed, e.g. `{ "\\192\\000\\002\\001", "\\192\\000\\002\\002" }`.
+    :param int typeForAny: The type to use for raw responses when the requested type is ``ANY``, as using ``ANY` for the type of the response record would not make sense.
 
   .. method:: DNSQuestion:suspend(asyncID, queryID, timeoutMS) -> bool
 

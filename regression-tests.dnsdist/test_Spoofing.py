@@ -19,6 +19,8 @@ class TestSpoofingSpoof(DNSDistTest):
     addAction(AndRule{SuffixMatchNodeRule("rawchaos.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT), QClassRule(DNSClass.CHAOS)}, SpoofRawAction("\\005chaos"))
     addAction(AndRule{SuffixMatchNodeRule("multiraw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.TXT)}, SpoofRawAction({"\\003aaa\\004bbbb", "\\011ccccccccccc"}))
     addAction(AndRule{SuffixMatchNodeRule("multiraw.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.A)}, SpoofRawAction({"\\192\\000\\002\\001", "\\192\\000\\002\\002"}))
+    -- rfc8482
+    addAction(AndRule{SuffixMatchNodeRule("raw-any.spoofing.tests.powerdns.com"), QTypeRule(DNSQType.ANY)}, SpoofRawAction("\\007rfc\\056\\052\\056\\050\\000", { typeForAny=DNSQType.HINFO }))
     newServer{address="127.0.0.1:%s"}
     """
 
@@ -385,6 +387,29 @@ class TestSpoofingSpoof(DNSDistTest):
             self.assertEqual(expectedResponse, receivedResponse)
             self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
+    def testSpoofRawANYAction(self):
+        """
+        Spoofing: Spoof a HINFO response for ANY queries
+        """
+        name = 'raw-any.spoofing.tests.powerdns.com.'
+
+        query = dns.message.make_query(name, 'ANY', 'IN')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.flags &= ~dns.flags.AA
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.HINFO,
+                                    '"rfc8482" ""')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+            self.assertEqual(receivedResponse.answer[0].ttl, 60)
 
     def testSpoofRawActionMulti(self):
         """
