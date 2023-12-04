@@ -103,6 +103,7 @@ export RANLIB=gcc-ranlib
 %endif
 %if 0%{?rhel} >= 8 || 0%{?amzn} == 2023
   --enable-dns-over-quic \
+  --enable-dns-over-http3 \
   --with-quiche \
 %endif
   PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig

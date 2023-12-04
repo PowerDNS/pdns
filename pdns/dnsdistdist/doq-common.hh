@@ -46,7 +46,7 @@
 namespace dnsdist::doq
 {
 
-static std::map<const std::string, int> s_available_cc_algorithms = {
+static const std::map<const std::string, int> s_available_cc_algorithms = {
   {"reno", QUICHE_CC_RENO},
   {"cubic", QUICHE_CC_CUBIC},
   {"bbr", QUICHE_CC_BBR},
