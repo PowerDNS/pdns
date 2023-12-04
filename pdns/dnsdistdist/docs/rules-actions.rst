@@ -159,7 +159,7 @@ For Rules related to the incoming query:
   Add a Rule and Action to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
 
-  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, a compounded bunch of rules using e.g. :func:`AndRule`, or a string (or list of) (deprecated since 1.9.0)
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -304,7 +304,7 @@ For Rules related to responses:
   Add a Rule and Action for responses to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
 
-  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, a compounded bunch of rules using e.g. :func:`AndRule`, or a string (or list of) (deprecated since 1.9.0)
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -367,7 +367,7 @@ Functions for manipulating Cache Hit Response Rules:
   Add a Rule and ResponseAction for Cache Hits to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
 
-  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, a compounded bunch of rules using e.g. :func:`AndRule`, or a string (or list of) (deprecated since 1.9.0)
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -427,7 +427,7 @@ Functions for manipulating Cache Inserted Response Rules:
   Add a Rule and ResponseAction that is executed after a cache entry has been inserted to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
 
-  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, a compounded bunch of rules using e.g. :func:`AndRule`, or a string (or list of) (deprecated since 1.9.0)
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -484,7 +484,7 @@ Functions for manipulating Self-Answered Response Rules:
   Add a Rule and Action for Self-Answered queries to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
 
-  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, a compounded bunch of rules using e.g. :func:`AndRule`, or a string (or list of) (deprecated since 1.9.0)
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
