@@ -2948,26 +2948,28 @@ int main(int argc, char** argv)
       }
     }
 
-    vector<string> vec;
-    std::string acls;
-    g_ACL.getLocal()->toStringVector(&vec);
-    for (const auto& aclEntry : vec) {
-      if (!acls.empty()) {
-        acls += ", ";
+    {
+      std::string acls;
+      auto aclEntries = g_ACL.getLocal()->toStringVector();
+      for (const auto& aclEntry : aclEntries) {
+        if (!acls.empty()) {
+          acls += ", ";
+        }
+        acls += aclEntry;
       }
-      acls += aclEntry;
+      infolog("ACL allowing queries from: %s", acls);
     }
-    infolog("ACL allowing queries from: %s", acls);
-    vec.clear();
-    acls.clear();
-    g_consoleACL.getLocal()->toStringVector(&vec);
-    for (const auto& entry : vec) {
-      if (!acls.empty()) {
-        acls += ", ";
+    {
+      std::string acls;
+      auto aclEntries = g_consoleACL.getLocal()->toStringVector();
+      for (const auto& entry : aclEntries) {
+        if (!acls.empty()) {
+          acls += ", ";
+        }
+        acls += entry;
       }
-      acls += entry;
+      infolog("Console ACL allowing connections from: %s", acls.c_str());
     }
-    infolog("Console ACL allowing connections from: %s", acls.c_str());
 
 #ifdef HAVE_LIBSODIUM
     if (g_consoleEnabled && g_consoleKey.empty()) {

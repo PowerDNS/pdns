@@ -151,10 +151,10 @@ static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, Htt
   // Return currently configured ACLs
   vector<string> entries;
   if (t_allowFrom && aclType == "allow-from") {
-    t_allowFrom->toStringVector(&entries);
+    entries = t_allowFrom->toStringVector();
   }
   else if (t_allowNotifyFrom && aclType == "allow-notify-from") {
-    t_allowNotifyFrom->toStringVector(&entries);
+    entries = t_allowNotifyFrom->toStringVector();
   }
 
   resp->setJsonBody(Json::object{

@@ -253,15 +253,14 @@ static bool apiWriteConfigFile(const string& filebasename, const string& content
 
 static void apiSaveACL(const NetmaskGroup& nmg)
 {
-  vector<string> vec;
-  nmg.toStringVector(&vec);
+  auto aclEntries = nmg.toStringVector();
 
   string acl;
-  for(const auto& s : vec) {
+  for (const auto& entry : aclEntries) {
     if (!acl.empty()) {
       acl += ", ";
     }
-    acl += "\"" + s + "\"";
+    acl += "\"" + entry + "\"";
   }
 
   string content = "setACL({" + acl + "})";
@@ -1284,14 +1283,13 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   string acl;
   {
-    vector<string> vec;
-    g_ACL.getLocal()->toStringVector(&vec);
+    auto aclEntries = g_ACL.getLocal()->toStringVector();
 
-    for (const auto& s : vec) {
+    for (const auto& entry : aclEntries) {
       if (!acl.empty()) {
         acl += ", ";
       }
-      acl += s;
+      acl += entry;
     }
   }
 
@@ -1526,18 +1524,12 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
     }
   }
   if (resp.status == 200) {
-    Json::array acl;
-    vector<string> vec;
-    g_ACL.getLocal()->toStringVector(&vec);
-
-    for(const auto& s : vec) {
-      acl.push_back(s);
-    }
+    auto aclEntries = g_ACL.getLocal()->toStringVector();
 
     Json::object obj{
       { "type", "ConfigSetting" },
       { "name", "allow-from" },
-      { "value", acl }
+      { "value", aclEntries }
     };
     Json my_json = obj;
     resp.body = my_json.dump();
