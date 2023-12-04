@@ -1,5 +1,5 @@
 DNS-over-HTTP/3 (DoH3)
-====================
+======================
 
 :program:`dnsdist` supports DNS-over-HTTP/3 (DoH3) for incoming queries since 1.9.0.
 To see if the installation supports this, run ``dnsdist --version``.

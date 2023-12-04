@@ -100,7 +100,6 @@ struct DOH3ServerConfig
 DOH3Frontend::DOH3Frontend() = default;
 DOH3Frontend::~DOH3Frontend() = default;
 
-
 class DOH3TCPCrossQuerySender final : public TCPQuerySender
 {
 public:

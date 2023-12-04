@@ -26,7 +26,8 @@
 
 #ifdef HAVE_DNS_OVER_QUIC
 
-namespace dnsdist::doq {
+namespace dnsdist::doq
+{
 
 static const std::string s_quicRetryTokenKey = newKey(false);
 

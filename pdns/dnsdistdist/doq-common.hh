@@ -84,7 +84,6 @@ static constexpr size_t LOCAL_CONN_ID_LEN = 16;
 static constexpr std::array<uint8_t, 4> DOQ_ALPN{'\x03', 'd', 'o', 'q'};
 static constexpr std::array<uint8_t, 3> DOH3_ALPN{'\x02', 'h', '3'};
 
-
 void fillRandom(PacketBuffer& buffer, size_t size);
 std::optional<PacketBuffer> getCID();
 PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer);
