@@ -108,9 +108,7 @@ template <typename T>
 class LookButDontTouch
 {
 public:
-  LookButDontTouch()
-  {
-  }
+  LookButDontTouch() = default;
   LookButDontTouch(shared_ptr<T>&& records) :
     d_records(std::move(records))
   {

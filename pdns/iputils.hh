@@ -1358,8 +1358,7 @@ private:
 class NetmaskGroup
 {
 public:
-  NetmaskGroup() noexcept {
-  }
+  NetmaskGroup() noexcept = default;
 
   //! If this IP address is matched by any of the classes within
 

@@ -198,7 +198,7 @@ public:
   static string upgradeContent(const DNSName& qname, const QType& qtype, const string& content);
 
   virtual std::string getZoneRepresentation(bool noDot=false) const = 0;
-  virtual ~DNSRecordContent() {}
+  virtual ~DNSRecordContent() = default;
   virtual void toPacket(DNSPacketWriter& pw) const = 0;
   // returns the wire format of the content, possibly including compressed pointers pointing to the owner name (unless canonic or lowerCase are set)
   string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) const

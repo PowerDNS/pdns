@@ -55,7 +55,7 @@ struct Bucket
 struct AtomicBucket
 {
   // We need the constructors in this case, since atomics have a disabled copy constructor.
-  AtomicBucket() {}
+  AtomicBucket() = default;
   AtomicBucket(std::string name, uint64_t boundary, uint64_t val) :
     d_name(std::move(name)), d_boundary(boundary), d_count(val) {}
   AtomicBucket(const AtomicBucket& rhs) :

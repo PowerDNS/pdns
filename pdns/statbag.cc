@@ -166,9 +166,7 @@ AtomicCounter *StatBag::getPointer(const string &key)
   return d_stats[key].get();
 }
 
-StatBag::~StatBag()
-{
-}
+StatBag::~StatBag() = default;
 
 template<typename T, typename Comp>
 StatRing<T,Comp>::StatRing(unsigned int size)

@@ -80,9 +80,7 @@ public:
   {
     d_checkerThreadStarted.clear();
   }
-  ~IsUpOracle()
-  {
-  }
+  ~IsUpOracle() = default;
   bool isUp(const ComboAddress& remote, const opts_t& opts);
   bool isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts);
   bool isUp(const CheckDesc& cd);

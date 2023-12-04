@@ -131,9 +131,8 @@ stringtok (Container &container, string const &in,
 
 template<typename T> bool rfc1982LessThan(T a, T b)
 {
-  static_assert(std::is_unsigned<T>::value, "rfc1982LessThan only works for unsigned types");
-  typedef typename std::make_signed<T>::type signed_t;
-  return static_cast<signed_t>(a - b) < 0;
+  static_assert(std::is_unsigned_v<T>, "rfc1982LessThan only works for unsigned types");
+  return std::make_signed_t<T>(a - b) < 0;
 }
 
 // fills container with ranges, so {posbegin,posend}
@@ -620,7 +619,7 @@ T valueOrEmpty(const P val) {
 
 // I'm not very OCD, but I appreciate loglines like "processing 1 delta", "processing 2 deltas" :-)
 template <typename Integer,
-typename std::enable_if_t<std::is_integral<Integer>::value, bool> = true>
+typename std::enable_if_t<std::is_integral_v<Integer>, bool> = true>
 const char* addS(Integer siz, const char* singular = "", const char *plural = "s")
 {
   if (siz == 1) {
@@ -630,7 +629,7 @@ const char* addS(Integer siz, const char* singular = "", const char *plural = "s
 }
 
 template <typename C,
-typename std::enable_if_t<std::is_class<C>::value, bool> = true>
+typename std::enable_if_t<std::is_class_v<C>, bool> = true>
 const char* addS(const C& c, const char* singular = "", const char *plural = "s")
 {
   return addS(c.size(), singular, plural);

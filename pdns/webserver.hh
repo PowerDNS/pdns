@@ -165,7 +165,7 @@ public:
     d_server_socket.bind(d_local);
     d_server_socket.listen();
   }
-  virtual ~Server() { };
+  virtual ~Server() = default;
 
   ComboAddress d_local;
 
@@ -181,7 +181,7 @@ class WebServer : public boost::noncopyable
 {
 public:
   WebServer(string listenaddress, int port);
-  virtual ~WebServer() { };
+  virtual ~WebServer() = default;
 
 #ifdef RECURSOR
   void setSLog(Logr::log_t log)

@@ -780,8 +780,7 @@ Pkcs11Token::Pkcs11Token(const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, c
   if (this->d_slot->lock()->LoggedIn()) LoadAttributes();
 }
 
-Pkcs11Token::~Pkcs11Token() {
-}
+Pkcs11Token::~Pkcs11Token() = default;
 
 bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin)
 {
@@ -791,7 +790,7 @@ bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, con
 }
 
 PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(unsigned int algorithm): DNSCryptoKeyEngine(algorithm) {}
-PKCS11DNSCryptoKeyEngine::~PKCS11DNSCryptoKeyEngine() {}
+PKCS11DNSCryptoKeyEngine::~PKCS11DNSCryptoKeyEngine() = default;
 PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(const PKCS11DNSCryptoKeyEngine& orig) : DNSCryptoKeyEngine(orig.d_algorithm) {}
 
 void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {

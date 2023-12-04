@@ -30,10 +30,7 @@ public:
 
   struct Stat
   {
-    Stat()
-    {
-    }
-
+    Stat() {};
     uint64_t queries{0};
     uint64_t noerrors{0};
     uint64_t nxdomains{0};

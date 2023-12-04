@@ -1042,10 +1042,6 @@ struct SecondarySenderReceiver
 
   map<uint32_t, Answer> d_freshness;
 
-  SecondarySenderReceiver()
-  {
-  }
-
   void deliverTimeout(const Identifier& /* i */)
   {
   }

@@ -62,10 +62,6 @@ public:
   {
   }
 
-  virtual ~OpenSSLSession()
-  {
-  }
-
   std::unique_ptr<SSL_SESSION, void(*)(SSL_SESSION*)> getNative()
   {
     return std::move(d_sess);

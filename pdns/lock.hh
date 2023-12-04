@@ -81,9 +81,7 @@
 class ReadWriteLock
 {
 public:
-  ReadWriteLock()
-  {
-  }
+  ReadWriteLock() = default;
 
   ReadWriteLock(const ReadWriteLock& rhs) = delete;
   ReadWriteLock(ReadWriteLock&& rhs) = delete;
@@ -275,9 +273,7 @@ public:
   {
   }
 
-  explicit LockGuarded()
-  {
-  }
+  explicit LockGuarded() = default;
 
   LockGuardedTryHolder<T> try_lock()
   {
@@ -423,9 +419,7 @@ public:
   {
   }
 
-  explicit SharedLockGuarded()
-  {
-  }
+  explicit SharedLockGuarded() = default;
 
   SharedLockGuardedTryHolder<T> try_write_lock()
   {

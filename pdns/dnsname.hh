@@ -80,7 +80,7 @@ class DNSName
 public:
   static const size_t s_maxDNSNameLength = 255;
 
-  DNSName()  {}          //!< Constructs an *empty* DNSName, NOT the root!
+  DNSName() = default; //!< Constructs an *empty* DNSName, NOT the root!
   // Work around assertion in some boost versions that do not like self-assignment of boost::container::string
   DNSName& operator=(const DNSName& rhs)
   {
@@ -561,8 +561,7 @@ private:
 struct SuffixMatchNode
 {
   public:
-    SuffixMatchNode()
-    {}
+    SuffixMatchNode() = default;
     SuffixMatchTree<bool> d_tree;
 
     void add(const DNSName& dnsname)

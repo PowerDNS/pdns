@@ -2327,6 +2327,5 @@ void GSQLBackend::extractComment(SSqlStatement::row_t& row, Comment& comment)
   comment.content = std::move(row[5]);
 }
 
-SSqlStatement::~SSqlStatement() {
 // make sure vtable won't break
-}
+SSqlStatement::~SSqlStatement() = default;

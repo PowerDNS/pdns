@@ -71,7 +71,7 @@ namespace pdns {
     }
 
   private:
-    typename std::aligned_storage<sizeof(base_t), CPU_LEVEL1_DCACHE_LINESIZE>::type counter;
+    typename std::aligned_storage_t<sizeof(base_t), CPU_LEVEL1_DCACHE_LINESIZE> counter;
   };
 
   typedef stat_t_trait<uint64_t> stat_t;

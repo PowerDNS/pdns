@@ -243,7 +243,7 @@ public:
   class LMDBResourceRecord : public DNSResourceRecord
   {
   public:
-    LMDBResourceRecord() {}
+    LMDBResourceRecord() = default;
     LMDBResourceRecord(const DNSResourceRecord& rr) :
       DNSResourceRecord(rr), ordername(false) {}
 

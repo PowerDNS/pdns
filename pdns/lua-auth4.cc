@@ -170,4 +170,4 @@ std::unique_ptr<DNSPacket> AuthLua4::prequery(const DNSPacket& q) {
   return nullptr;
 }
 
-AuthLua4::~AuthLua4() { }
+AuthLua4::~AuthLua4() = default;
