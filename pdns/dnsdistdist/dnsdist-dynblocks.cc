@@ -119,13 +119,12 @@ void DynBlockRulesGroup::applySMT(const struct timespec& now, StatNode& statNode
 
   bool updated = false;
   StatNode::Stat node;
-  std::unordered_map<DNSName, std::optional<std::string>> namesToBlock;
+  std::unordered_map<DNSName, SMTBlockParameters> namesToBlock;
   statNodeRoot.visit([this, &namesToBlock](const StatNode* node_, const StatNode::Stat& self, const StatNode::Stat& children) {
     bool block = false;
-    std::optional<std::string> reason;
-
+    SMTBlockParameters blockParameters;
     if (d_smtVisitorFFI) {
-      dnsdist_ffi_stat_node_t tmp(*node_, self, children, reason);
+      dnsdist_ffi_stat_node_t tmp(*node_, self, children, blockParameters);
       block = d_smtVisitorFFI(&tmp);
     }
     else {
@@ -133,13 +132,15 @@ void DynBlockRulesGroup::applySMT(const struct timespec& now, StatNode& statNode
       block = std::get<0>(ret);
       if (block) {
         if (boost::optional<std::string> tmp = std::get<1>(ret)) {
-          reason = std::move(*tmp);
+          blockParameters.d_reason = std::move(*tmp);
+        }
+        if (boost::optional<int> tmp = std::get<2>(ret)) {
+          blockParameters.d_action = static_cast<DNSAction::Action>(*tmp);
         }
       }
     }
-
     if (block) {
-      namesToBlock.insert({DNSName(node_->fullname), std::move(reason)});
+      namesToBlock.insert({DNSName(node_->fullname), std::move(blockParameters)});
     }
   },
                      node);
@@ -147,10 +148,15 @@ void DynBlockRulesGroup::applySMT(const struct timespec& now, StatNode& statNode
   if (!namesToBlock.empty()) {
     updated = false;
     SuffixMatchTree<DynBlock> smtBlocks = g_dynblockSMT.getCopy();
-    for (auto& [name, reason] : namesToBlock) {
-      if (reason) {
+    for (auto& [name, parameters] : namesToBlock) {
+      if (parameters.d_reason || parameters.d_action) {
         DynBlockRule rule(d_suffixMatchRule);
-        rule.d_blockReason = std::move(*reason);
+        if (parameters.d_reason) {
+          rule.d_blockReason = std::move(*parameters.d_reason);
+        }
+        if (parameters.d_action) {
+          rule.d_action = *parameters.d_action;
+        }
         addOrRefreshBlockSMT(smtBlocks, now, name, rule, updated);
       }
       else {

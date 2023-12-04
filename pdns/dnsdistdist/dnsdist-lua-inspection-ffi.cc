@@ -113,6 +113,11 @@ uint64_t dnsdist_ffi_stat_node_get_children_hits(const dnsdist_ffi_stat_node_t* 
 
 void dnsdist_ffi_state_node_set_reason(dnsdist_ffi_stat_node_t* node, const char* reason, size_t reasonSize)
 {
-  node->reason = std::string(reason, reasonSize);
+  node->d_blockParameters.d_reason = std::string(reason, reasonSize);
+}
+
+void dnsdist_ffi_state_node_set_action(dnsdist_ffi_stat_node_t* node, int blockAction)
+{
+  node->d_blockParameters.d_action = static_cast<DNSAction::Action>(blockAction);
 }
 #endif /* DISABLE_DYNBLOCKS */

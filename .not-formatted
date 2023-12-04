@@ -80,7 +80,6 @@
 ./pdns/dnsdistdist/dnsdist-lua-bindings-protobuf.cc
 ./pdns/dnsdistdist/dnsdist-lua-ffi.cc
 ./pdns/dnsdistdist/dnsdist-lua-ffi.hh
-./pdns/dnsdistdist/dnsdist-lua-inspection-ffi.hh
 ./pdns/dnsdistdist/dnsdist-lua-web.cc
 ./pdns/dnsdistdist/dnsdist-prometheus.hh
 ./pdns/dnsdistdist/dnsdist-rules.hh
