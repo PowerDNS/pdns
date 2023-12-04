@@ -250,7 +250,7 @@ jobs:
 
   check-clang-tidy:
     needs: analyze
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     name: Check whether clang-tidy succeeded
     steps:
       - run: |
@@ -266,3 +266,14 @@ jobs:
             echo "::error::Rec clang-tidy failed"
             exit 1
           fi
+
+  check-for-binaries:
+    runs-on: ubuntu-22.04
+    name: Force failure in case there are binaries present in a pull request
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+    - run: if [[ "$(file -i --dereference $(git diff --name-only HEAD^..HEAD) | grep binary | grep -v 'image/' | grep -v 'inode/x-empty')" != "" ]]; then exit 1; fi
