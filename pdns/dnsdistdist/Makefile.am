@@ -215,8 +215,8 @@ dnsdist_SOURCES = \
 	doh.hh \
 	doh3.hh \
 	dolog.cc dolog.hh \
-	doq.hh \
 	doq-common.hh \
+	doq.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \

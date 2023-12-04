@@ -26,6 +26,13 @@
 
 #ifdef HAVE_DNS_OVER_QUIC
 
+#if 0
+#define DEBUGLOG_ENABLED
+#define DEBUGLOG(x) std::cerr << x << std::endl;
+#else
+#define DEBUGLOG(x)
+#endif
+
 namespace dnsdist::doq
 {
 

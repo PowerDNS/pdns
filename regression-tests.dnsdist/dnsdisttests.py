@@ -1129,7 +1129,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return (receivedQuery, message)
 
     @classmethod
-    def sendDOH3Query(cls, port, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, fromQueue=None, toQueue=None, connection=None, serverName=None):
+    def sendDOH3Query(cls, port, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, fromQueue=None, toQueue=None, connection=None, serverName=None, post=False):
 
         if response:
             if toQueue:
@@ -1137,7 +1137,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             else:
                 cls._toResponderQueue.put(response, True, timeout)
 
-        message = doh3_query(query, baseurl, timeout, port, verify=caFile, server_hostname=serverName)
+        message = doh3_query(query, baseurl, timeout, port, verify=caFile, server_hostname=serverName, post=post)
 
         receivedQuery = None
 

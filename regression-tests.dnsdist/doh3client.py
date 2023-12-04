@@ -24,53 +24,10 @@ from aioquic.h3.events import (
 )
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent, StreamDataReceived, StreamReset
-#from aioquic.quic.logger import QuicFileLogger
 from aioquic.tls import CipherSuite, SessionTicket
 
 from doqclient import StreamResetError
-#
-#class DnsClientProtocol(QuicConnectionProtocol):
-#    def __init__(self, *args, **kwargs):
-#        super().__init__(*args, **kwargs)
-#        self._ack_waiter: Any = None
-#
-#    def pack(self, data):
-#        # serialize query
-#        data = bytes(data)
-#        data = struct.pack("!H", len(data)) + data
-#        return data
-#
-#    async def query(self, query: dns.message) -> None:
-#        data = self.pack(query.to_wire())
-#        # send query and wait for answer
-#        stream_id = self._quic.get_next_available_stream_id()
-#        self._quic.send_stream_data(stream_id, data, end_stream=True)
-#        waiter = self._loop.create_future()
-#        self._ack_waiter = waiter
-#        self.transmit()
-#
-#        return await asyncio.shield(waiter)
-#
-#    def quic_event_received(self, event: QuicEvent) -> None:
-#        if self._ack_waiter is not None:
-#            if isinstance(event, StreamDataReceived):
-#                length = struct.unpack("!H", bytes(event.data[:2]))[0]
-#                answer = dns.message.from_wire(event.data[2 : 2 + length], ignore_trailing=True)
-#
-#                waiter = self._ack_waiter
-#                self._ack_waiter = None
-#                waiter.set_result(answer)
-#            if isinstance(event, StreamReset):
-#                waiter = self._ack_waiter
-#                self._ack_waiter = None
-#                waiter.set_result(event)
-#
-#class BogusDnsClientProtocol(DnsClientProtocol):
-#    def pack(self, data):
-#        # serialize query
-#        data = bytes(data)
-#        data = struct.pack("!H", len(data) * 2) + data
-#        return data
+
 HttpConnection = Union[H0Connection, H3Connection]
 
 class URL:
@@ -195,20 +152,19 @@ class HttpClient(QuicConnectionProtocol):
 async def perform_http_request(
     client: HttpClient,
     url: str,
-    data: Optional[str],
+    data: Optional[bytes],
     include: bool,
     output_dir: Optional[str],
 ) -> None:
     # perform request
     start = time.time()
     if data is not None:
-        data_bytes = data.encode()
         http_events = await client.post(
             url,
-            data=data_bytes,
+            data=data,
             headers={
-                "content-length": str(len(data_bytes)),
-                "content-type": "application/x-www-form-urlencoded",
+                "content-length": str(len(data)),
+                "content-type": "application/dns-message",
             },
         )
         method = "POST"
@@ -232,10 +188,13 @@ async def async_h3_query(
     port: int,
     query: dns.message,
     timeout: float,
-    create_protocol=HttpClient
+    post: bool,
+    create_protocol=HttpClient,
 ) -> None:
 
-    url = "{}?dns={}".format(baseurl, base64.urlsafe_b64encode(query.to_wire()).decode('UTF8').rstrip('='))
+    url = baseurl
+    if not post:
+        url = "{}?dns={}".format(baseurl, base64.urlsafe_b64encode(query.to_wire()).decode('UTF8').rstrip('='))
     async with connect(
         "127.0.0.1",
         port,
@@ -250,7 +209,7 @@ async def async_h3_query(
                 answer = await perform_http_request(
                     client=client,
                     url=url,
-                    data=None,
+                    data=query.to_wire() if post else None,
                     include=False,
                     output_dir=None,
                 )
@@ -259,10 +218,12 @@ async def async_h3_query(
         except asyncio.TimeoutError as e:
             return e
 
-def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname=None):
+
+def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname=None, post=False):
     configuration = QuicConfiguration(alpn_protocols=H3_ALPN, is_client=True)
     if verify:
         configuration.load_verify_locations(verify)
+
     result = asyncio.run(
         async_h3_query(
             configuration=configuration,
@@ -270,7 +231,8 @@ def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname
             port=port,
             query=query,
             timeout=timeout,
-            create_protocol=HttpClient
+            create_protocol=HttpClient,
+            post=post
         )
     )
 

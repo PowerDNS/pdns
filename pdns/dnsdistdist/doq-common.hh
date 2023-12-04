@@ -36,13 +36,6 @@
 #include "sstuff.hh"
 #include "libssl.hh"
 
-#if 0
-#define DEBUGLOG_ENABLED
-#define DEBUGLOG(x) std::cerr << x << std::endl;
-#else
-#define DEBUGLOG(x)
-#endif
-
 namespace dnsdist::doq
 {
 

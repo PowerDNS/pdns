@@ -42,6 +42,13 @@
 
 #include "doq-common.hh"
 
+#if 0
+#define DEBUGLOG_ENABLED
+#define DEBUGLOG(x) std::cerr << x << std::endl;
+#else
+#define DEBUGLOG(x)
+#endif
+
 using namespace dnsdist::doq;
 
 class H3Connection
@@ -626,7 +633,6 @@ void doh3Thread(ClientState* clientState)
 
     Socket sock(clientState->udpFD);
 
-    PacketBuffer buffer(std::numeric_limits<uint16_t>::max());
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
 
     auto responseReceiverFD = frontend->d_server_config->d_responseReceiver.getDescriptor();
@@ -726,6 +732,7 @@ void doh3Thread(ClientState* clientState)
             DEBUGLOG("Successfully created HTTP/3 connection");
           }
 
+          std::map<std::string, std::string> headers;
           while (true) {
             quiche_h3_event* ev;
             // Processes HTTP/3 data received from the peer
@@ -739,20 +746,17 @@ void doh3Thread(ClientState* clientState)
 
             switch (quiche_h3_event_type(ev)) {
             case QUICHE_H3_EVENT_HEADERS: {
-              std::string path;
               int rc = quiche_h3_event_for_each_header(
                 ev,
                 [](uint8_t* name, size_t name_len, uint8_t* value, size_t value_len, void* argp) -> int {
                   std::string_view key(reinterpret_cast<char*>(name), name_len);
                   std::string_view content(reinterpret_cast<char*>(value), value_len);
-                  if (key == ":path") {
-                    auto pathptr = reinterpret_cast<std::string*>(argp);
-                    *pathptr = content;
-                  }
+                  auto headersptr = reinterpret_cast<std::map<std::string, std::string>*>(argp);
+                  headersptr->emplace(key, content);
                   return 0;
                 },
-                &path);
-              if (rc != 0) {
+                &headers);
+              if (rc != 0 || !headers.count(":method")) {
                 DEBUGLOG("Failed to process headers");
                 ++dnsdist::metrics::g_stats.nonCompliantQueries;
                 ++clientState->nonCompliantQueries;
@@ -760,63 +764,20 @@ void doh3Thread(ClientState* clientState)
                 h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unable to process query headers");
                 break;
               }
-              if (path.empty()) {
-                DEBUGLOG("Path not found");
-                ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                ++clientState->nonCompliantQueries;
-                ++frontend->d_errorResponses;
-                h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Path not found");
-                break;
-              }
-              {
-                auto pos = path.find("?dns=");
+              if (headers.at(":method") == "GET") {
+                if (!headers.count(":path") || headers.at(":path").empty()) {
+                  DEBUGLOG("Path not found");
+                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                  ++clientState->nonCompliantQueries;
+                  ++frontend->d_errorResponses;
+                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Path not found");
+                  break;
+                }
+                auto pos = headers.at(":path").find("?dns=");
                 if (pos == string::npos) {
-                  pos = path.find("&dns=");
+                  pos = headers.at(":path").find("&dns=");
                 }
-                if (pos != string::npos) {
-                  // need to base64url decode this
-                  string sdns(path.substr(pos + 5));
-                  boost::replace_all(sdns, "-", "+");
-                  boost::replace_all(sdns, "_", "/");
-                  // re-add padding that may have been missing
-                  switch (sdns.size() % 4) {
-                  case 2:
-                    sdns.append(2, '=');
-                    break;
-                  case 3:
-                    sdns.append(1, '=');
-                    break;
-                  }
-
-                  PacketBuffer decoded;
-
-                  /* 1 byte for the root label, 2 type, 2 class, 4 TTL (fake), 2 record length, 2 option length, 2 option code, 2 family, 1 source, 1 scope, 16 max for a full v6 */
-                  const size_t maxAdditionalSizeForEDNS = 35U;
-                  /* rough estimate so we hopefully don't need a new allocation later */
-                  /* We reserve at few additional bytes to be able to add EDNS later */
-                  const size_t estimate = ((sdns.size() * 3) / 4);
-                  decoded.reserve(estimate + maxAdditionalSizeForEDNS);
-                  if (B64Decode(sdns, decoded) < 0) {
-                    DEBUGLOG("Unable to base64 decode()");
-                    ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                    ++clientState->nonCompliantQueries;
-                    ++frontend->d_errorResponses;
-                    h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unable to decode BASE64-URL");
-                    break;
-                  }
-
-                  if (decoded.size() < sizeof(dnsheader)) {
-                    ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                    ++clientState->nonCompliantQueries;
-                    ++frontend->d_errorResponses;
-                    h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "DoH3 non-compliant query");
-                    break;
-                  }
-                  DEBUGLOG("Dispatching query");
-                  doh3_dispatch_query(*(frontend->d_server_config), std::move(decoded), clientState->local, client, serverConnID, streamID);
-                  conn->get().d_streamBuffers.erase(streamID);
-                }
-                else {
+                if (pos == string::npos) {
                   DEBUGLOG("User error, unable to find the DNS parameter");
                   ++dnsdist::metrics::g_stats.nonCompliantQueries;
                   ++clientState->nonCompliantQueries;
@@ -824,11 +785,99 @@ void doh3Thread(ClientState* clientState)
                   h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unable to find the DNS parameter");
                   break;
                 }
+                // need to base64url decode this
+                string sdns(headers.at(":path").substr(pos + 5));
+                boost::replace_all(sdns, "-", "+");
+                boost::replace_all(sdns, "_", "/");
+                // re-add padding that may have been missing
+                switch (sdns.size() % 4) {
+                case 2:
+                  sdns.append(2, '=');
+                  break;
+                case 3:
+                  sdns.append(1, '=');
+                  break;
+                }
+
+                PacketBuffer decoded;
+                /* 1 byte for the root label, 2 type, 2 class, 4 TTL (fake), 2 record length, 2 option length, 2 option code, 2 family, 1 source, 1 scope, 16 max for a full v6 */
+                const size_t maxAdditionalSizeForEDNS = 35U;
+                /* rough estimate so we hopefully don't need a new allocation later */
+                /* We reserve at few additional bytes to be able to add EDNS later */
+                const size_t estimate = ((sdns.size() * 3) / 4);
+                decoded.reserve(estimate + maxAdditionalSizeForEDNS);
+                if (B64Decode(sdns, decoded) < 0) {
+                  DEBUGLOG("Unable to base64 decode()");
+                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                  ++clientState->nonCompliantQueries;
+                  ++frontend->d_errorResponses;
+                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unable to decode BASE64-URL");
+                  break;
+                }
+                if (decoded.size() < sizeof(dnsheader)) {
+                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                  ++clientState->nonCompliantQueries;
+                  ++frontend->d_errorResponses;
+                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "DoH3 non-compliant query");
+                  break;
+                }
+                DEBUGLOG("Dispatching GET query");
+                doh3_dispatch_query(*(frontend->d_server_config), std::move(decoded), clientState->local, client, serverConnID, streamID);
+                conn->get().d_streamBuffers.erase(streamID);
+              }
+              else if (headers.at(":method") == "POST") {
+                if (!quiche_h3_event_headers_has_body(ev)) {
+                  DEBUGLOG("Empty POST query");
+                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                  ++clientState->nonCompliantQueries;
+                  ++frontend->d_errorResponses;
+                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Empty POST query");
+                  break;
+                }
+              }
+              else {
+                DEBUGLOG("Unsupported HTTP method");
+                ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                ++clientState->nonCompliantQueries;
+                ++frontend->d_errorResponses;
+                h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unsupported HTTP method");
+                break;
               }
               break;
             }
+            case QUICHE_H3_EVENT_DATA: {
+              if (!headers.count("content-type") || headers.at("content-type") != "application/dns-message") {
+                DEBUGLOG("Unsupported content-type");
+                ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                ++clientState->nonCompliantQueries;
+                ++frontend->d_errorResponses;
+                h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unsupported content-type");
+                break;
+              }
+              PacketBuffer buffer(std::numeric_limits<uint16_t>::max());
+              PacketBuffer decoded;
 
-            case QUICHE_H3_EVENT_DATA:
+              while (true) {
+                ssize_t len = quiche_h3_recv_body(conn->get().d_http3.get(),
+                                                  conn->get().d_conn.get(), streamID,
+                                                  buffer.data(), buffer.capacity());
+
+                if (len <= 0) {
+                  break;
+                }
+                decoded.insert(decoded.end(), buffer.begin(), buffer.begin() + len);
+              }
+              if (decoded.size() < sizeof(dnsheader)) {
+                ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                ++clientState->nonCompliantQueries;
+                ++frontend->d_errorResponses;
+                h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "DoH3 non-compliant query");
+                break;
+              }
+              DEBUGLOG("Dispatching POST query");
+              doh3_dispatch_query(*(frontend->d_server_config), std::move(decoded), clientState->local, client, serverConnID, streamID);
+              conn->get().d_streamBuffers.erase(streamID);
+            }
             case QUICHE_H3_EVENT_FINISHED:
             case QUICHE_H3_EVENT_RESET:
             case QUICHE_H3_EVENT_PRIORITY_UPDATE:

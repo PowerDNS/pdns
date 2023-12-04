@@ -43,6 +43,13 @@
 
 using namespace dnsdist::doq;
 
+#if 0
+#define DEBUGLOG_ENABLED
+#define DEBUGLOG(x) std::cerr << x << std::endl;
+#else
+#define DEBUGLOG(x)
+#endif
+
 class Connection
 {
 public:
@@ -576,7 +583,6 @@ void doqThread(ClientState* clientState)
 
     Socket sock(clientState->udpFD);
 
-    PacketBuffer buffer(std::numeric_limits<uint16_t>::max());
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
 
     auto responseReceiverFD = frontend->d_server_config->d_responseReceiver.getDescriptor();
