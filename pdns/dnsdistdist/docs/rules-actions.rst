@@ -1850,18 +1850,24 @@ The following actions exist.
   Before 1.7.0 this action was performed even when the query had been received over TCP, which required the use of :func:`TCPRule` to
   prevent the TC bit from being set over TCP transports.
 
-.. function:: TeeAction(remote[, addECS[, local]])
+.. function:: TeeAction(remote[, addECS[, local [, addProxyProtocol]]])
 
   .. versionchanged:: 1.8.0
     Added the optional parameter ``local``.
 
+  .. versionchanged:: 1.9.0
+    Added the optional parameter ``addProxyProtocol``.
+
   Send copy of query to ``remote``, keep stats on responses.
   If ``addECS`` is set to true, EDNS Client Subnet information will be added to the query.
+  If ``addProxyProtocol`` is set to true, a Proxy Protocol v2 payload will be prepended in front of the query. The payload will contain the protocol the initial query was received over (UDP or TCP), as well as the initial source and destination addresses and ports.
   If ``local`` has provided a value like "192.0.2.53", :program:`dnsdist` will try binding that address as local address when sending the queries.
   Subsequent rules are processed after this action.
 
   :param string remote: An IP:PORT combination to send the copied queries to
-  :param bool addECS: Whether or not to add ECS information. Default false
+  :param bool addECS: Whether to add ECS information. Default false.
+  :param str local: The local address to use to send queries. The default is to let the kernel pick one.
+  :param bool addProxyProtocol: Whether to prepend a proxy protocol v2 payload in front of the query. Default to false.
 
 .. function:: TempFailureCacheTTLAction(ttl)
 
