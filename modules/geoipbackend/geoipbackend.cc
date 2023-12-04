@@ -197,7 +197,7 @@ void GeoIPBackend::setupNetmasks(const YAML::Node& domain, GeoIPDomain& dom)
         throw PDNSException(string("%mp is not allowed in mapping lookup formats of domain ") + dom.domain.toLogString());
       }
 
-      dom.mapping_lookup_formats = mapping_lookup_formats;
+      dom.mapping_lookup_formats = std::move(mapping_lookup_formats);
     }
     else {
       dom.mapping_lookup_formats = d_global_mapping_lookup_formats;
@@ -654,9 +654,10 @@ static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribut
       break;
     }
 
-    if (!found || val.empty() || val == "--")
+    if (!found || val.empty() || val == "--") {
       continue; // try next database
-    ret = val;
+    }
+    ret = std::move(val);
     std::transform(ret.begin(), ret.end(), ret.begin(), ::tolower);
     break;
   }

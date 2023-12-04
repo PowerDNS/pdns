@@ -815,7 +815,7 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
         if (!unknownContent) {
           continue;
         }
-        auto raw = unknownContent->getRawContent();
+        const auto& raw = unknownContent->getRawContent();
         auto serial = getSerialFromRawSOAContent(raw);
         if (query.d_xfrPrimarySerial == 0) {
           // store the first SOA in our client's connection metadata

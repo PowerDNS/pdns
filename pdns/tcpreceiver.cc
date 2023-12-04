@@ -131,12 +131,14 @@ static int readnWithTimeout(int fd, void* buffer, unsigned int n, unsigned int i
     bytes -= ret;
     if (totalTimeout) {
       time_t now = time(nullptr);
-      unsigned int elapsed = now - start;
-      if (elapsed >= remainingTotal) {
+      const auto elapsed = now - start;
+      if (elapsed >= static_cast<decltype(elapsed)>(remainingTotal)) {
         throw NetworkError("Timeout while reading data");
       }
       start = now;
-      remainingTotal -= elapsed;
+      if (elapsed > 0) {
+        remainingTotal -= elapsed;
+      }
     }
   }
   return n;
@@ -200,7 +202,9 @@ static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, tim
     if (elapsed >= maxConnectionDuration) {
       return true;
     }
-    remainingTime = maxConnectionDuration - elapsed;
+    if (elapsed > 0) {
+      remainingTime = static_cast<unsigned int>(maxConnectionDuration - elapsed);
+    }
   }
   return false;
 }

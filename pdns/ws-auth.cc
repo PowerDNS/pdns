@@ -1597,7 +1597,7 @@ static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
   struct TSIGKey tsk;
   tsk.name = keyname;
   tsk.algorithm = algo;
-  tsk.key = content;
+  tsk.key = std::move(content);
 
   if (req->method == "GET") {
     resp->setJsonBody(makeJSONTSIGKey(tsk));
@@ -1623,7 +1623,7 @@ static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
       if (B64Decode(new_content, decoded) == -1) {
         throw ApiException("Can not base64 decode key content '" + new_content + "'");
       }
-      tsk.key = new_content;
+      tsk.key = std::move(new_content);
     }
     if (!B.setTSIGKey(tsk.name, tsk.algorithm, tsk.key)) {
       throw HttpInternalServerErrorException("Unable to save TSIG Key");

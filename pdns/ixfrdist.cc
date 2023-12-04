@@ -471,7 +471,7 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
 
         g_log<<Logger::Debug<<"Zone "<<domain<<" previously contained "<<(oldZoneInfo ? oldZoneInfo->latestAXFR.size() : 0)<<" entries, "<<records.size()<<" now"<<endl;
         ixfrInfo->latestAXFR = std::move(records);
-        ixfrInfo->soa = soa;
+        ixfrInfo->soa = std::move(soa);
         ixfrInfo->soaTTL = soaTTL;
         updateCurrentZoneInfo(domain, ixfrInfo);
       } catch (PDNSException &e) {

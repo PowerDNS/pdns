@@ -143,7 +143,7 @@ public:
     if (!cred->valid()) {
       throw PDNSException("Invalid credential " + cred->d_nameS);
     }
-    d_cred = cred;
+    d_cred = std::move(cred);
   }
 
   ~GssSecContext()

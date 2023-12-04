@@ -520,7 +520,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
   bbd->d_status = "parsed into memory at " + nowTime();
   bbd->d_records = LookButDontTouch<recordstorage_t>(std::move(records));
   bbd->d_nsec3zone = nsec3zone;
-  bbd->d_nsec3param = ns3pr;
+  bbd->d_nsec3param = std::move(ns3pr);
 }
 
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedance matching
@@ -1475,7 +1475,7 @@ bool Bind2Backend::searchRecords(const string& pattern, size_t maxResults, vecto
         DNSName name = ri->qname.empty() ? i.d_name : (ri->qname + i.d_name);
         if (sm.match(name) || sm.match(ri->content)) {
           DNSResourceRecord r;
-          r.qname = name;
+          r.qname = std::move(name);
           r.domain_id = i.d_id;
           r.content = ri->content;
           r.qtype = ri->qtype;
