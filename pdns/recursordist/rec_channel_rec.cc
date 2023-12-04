@@ -2091,6 +2091,7 @@ static RecursorControlChannel::Answer help()
           "set-carbon-server                set a carbon server for telemetry\n"
           "set-dnssec-log-bogus SETTING     enable (SETTING=yes) or disable (SETTING=no) logging of DNSSEC validation failures\n"
           "set-event-trace-enabled SETTING  set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 3 = both\n"
+          "show-yaml [file]                 show yaml config derived from old-style config\n"
           "trace-regex [regex file]         emit resolution trace for matching queries (no arguments clears tracing)\n"
           "top-largeanswer-remotes          show top remotes receiving large answers\n"
           "top-queries                      show top queries\n"
@@ -2106,8 +2107,7 @@ static RecursorControlChannel::Answer help()
           "unload-lua-script                unload Lua script\n"
           "version                          return Recursor version number\n"
           "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
-          "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"
-          "show-yaml [file]                 EXPERIMENTAL command to show yaml config derived from old-style config\n"};
+          "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"};
 }
 
 template <typename T>
