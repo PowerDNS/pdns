@@ -244,6 +244,9 @@ set-event-trace-enabled *NUM*
     Set logging of event trace messages, ``0`` = disabled, ``1`` = protobuf,
     ``2`` = log file, ``3`` = protobuf and log file.
 
+show-yaml [*FILE*]
+    Show Yaml representation of odl-style config.
+
 top-queries
     Shows the top-20 queries. Statistics are over the last
     'stats-ringbuffer-entries' queries.
@@ -337,9 +340,6 @@ wipe-cache *DOMAIN* [*DOMAIN*] [...]
 
 wipe-cache-typed *qtype* *DOMAIN* [*DOMAIN*] [...]
     Same as wipe-cache, but only wipe records of type *qtype*.
-
-show-yaml [*FILE*]
-    Show Yaml representation of config. EXPERIMENTAL.
 
 See also
 --------

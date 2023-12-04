@@ -202,7 +202,6 @@ static RecursorControlChannel::Answer showYAML(const std::string& path)
   try {
     std::string msg;
     auto converted = pdns::settings::rec::oldStyleSettingsFileToYaml(configName, true);
-    msg += "# THIS IS A PROOF OF CONCEPT! STRUCTURE, TYPES AND NAMES ARE SUBJECT TO CHANGE\n";
     msg += "# Start of converted recursor.yml based on " + configName + "\n";
     msg += converted;
     msg += "# Validation result: ";
