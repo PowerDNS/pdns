@@ -2575,6 +2575,9 @@ static void reportFeatures()
 #ifdef HAVE_DNS_OVER_QUIC
   cout<<"dns-over-quic ";
 #endif
+#ifdef HAVE_DNS_OVER_HTTP3
+  cout<<"dns-over-http3 ";
+#endif
 #ifdef HAVE_DNS_OVER_TLS
   cout<<"dns-over-tls(";
 #ifdef HAVE_GNUTLS
