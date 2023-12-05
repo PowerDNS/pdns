@@ -1015,9 +1015,7 @@ void IncomingTCPConnectionState::handleIO()
             return;
           }
 
-          /* allocate a bit more memory to be able to spoof the content, get an answer from the cache
-             or to add ECS without allocating a new buffer */
-          d_buffer.resize(std::max(d_querySize + static_cast<size_t>(512), s_maxPacketCacheEntrySize));
+          d_buffer.resize(d_querySize);
           d_currentPos = 0;
         }
         else {

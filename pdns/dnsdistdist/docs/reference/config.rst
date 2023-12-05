@@ -920,6 +920,9 @@ See :doc:`../guides/cache` for a how to.
   .. versionchanged:: 1.7.0
     ``skipOptions`` parameter added.
 
+  .. versionchanged:: 1.9.0
+    ``maximumEntrySize`` parameter added.
+
   Creates a new :class:`PacketCache` with the settings specified.
 
   :param int maxEntries: The maximum number of entries in this cache
@@ -938,6 +941,7 @@ See :doc:`../guides/cache` for a how to.
   * ``temporaryFailureTTL=60``: int - On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds..
   * ``cookieHashing=false``: bool - If true, EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies, otherwise a client might receive an answer with the wrong cookie.
   * ``skipOptions={}``: Extra list of EDNS option codes to skip when hashing the packet (if ``cookieHashing`` above is false, EDNS cookie option number will be added to this list internally).
+  * ``maximumEntrySize=4096``: int - The maximum size, in bytes, of a DNS packet that can be inserted into the packet cache. Default is 4096 bytes, which was the fixed size before 1.9.0, and is also a hard limit for UDP responses.
 
 .. class:: PacketCache
 
