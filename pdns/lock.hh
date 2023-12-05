@@ -109,7 +109,8 @@ public:
 
   ReadLock(const ReadLock& rhs) = delete;
   ReadLock& operator=(const ReadLock& rhs) = delete;
-  ReadLock(ReadLock&& rhs) : d_lock(std::move(rhs.d_lock))
+  ReadLock(ReadLock&& rhs) noexcept :
+    d_lock(std::move(rhs.d_lock))
   {
   }
 
@@ -134,7 +135,8 @@ public:
 
   WriteLock(const WriteLock& rhs) = delete;
   WriteLock& operator=(const WriteLock& rhs) = delete;
-  WriteLock(WriteLock&& rhs) : d_lock(std::move(rhs.d_lock))
+  WriteLock(WriteLock&& rhs) noexcept :
+    d_lock(std::move(rhs.d_lock))
   {
   }
 

@@ -1288,7 +1288,8 @@ public:
   }
 
   //<! swaps the contents with another NetmaskTree
-  void swap(NetmaskTree& rhs) {
+  void swap(NetmaskTree& rhs) noexcept
+  {
     std::swap(d_root, rhs.d_root);
     std::swap(d_left, rhs.d_left);
     std::swap(d_size, rhs.d_size);

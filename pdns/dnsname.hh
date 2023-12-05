@@ -89,7 +89,7 @@ public:
     }
     return *this;
   }
-  DNSName& operator=(DNSName&& rhs)
+  DNSName& operator=(DNSName&& rhs) noexcept
   {
     if (this != &rhs) {
       d_storage = std::move(rhs.d_storage);

@@ -58,12 +58,13 @@ public:
     setCloseOnExec(d_socket);
   }
 
-  Socket(Socket&& rhs): d_buffer(std::move(rhs.d_buffer)), d_socket(rhs.d_socket)
+  Socket(Socket&& rhs) noexcept :
+    d_buffer(std::move(rhs.d_buffer)), d_socket(rhs.d_socket)
   {
     rhs.d_socket = -1;
   }
 
-  Socket& operator=(Socket&& rhs)
+  Socket& operator=(Socket&& rhs) noexcept
   {
     if (d_socket != -1) {
       close(d_socket);

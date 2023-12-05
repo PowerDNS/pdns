@@ -638,7 +638,8 @@ public:
 
     return *this;
   }
-  NSECBitmap(NSECBitmap&& rhs): d_bitset(std::move(rhs.d_bitset)), d_set(std::move(rhs.d_set))
+  NSECBitmap(NSECBitmap&& rhs) noexcept :
+    d_bitset(std::move(rhs.d_bitset)), d_set(std::move(rhs.d_set))
   {
   }
   bool isSet(uint16_t type) const
