@@ -2936,12 +2936,6 @@ class TestCachingOfVeryLargeAnswers(DNSDistTest):
         query = dns.message.make_query(name, 'TXT', 'IN')
         response = dns.message.make_response(query)
         # we prepare a large answer
-        #         for i in range(44):
-        #             if len(content) > 0:
-        #                 content = content + ', '
-        #             content = content + (str(i)*50)
-        #         # pad up to 4096
-        #         content = content + 'A'*42
         content = ''
         for i in range(31):
             if len(content) > 0:
