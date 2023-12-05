@@ -2780,6 +2780,29 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
+  luaCtx.writeFunction("showDOH3Frontends", []() {
+#ifdef HAVE_DNS_OVER_HTTP3
+    setLuaNoSideEffect();
+    try {
+      ostringstream ret;
+      boost::format fmt("%-3d %-20.20s %-15d %-15d %-15d %-15d");
+      ret << (fmt % "#" % "Address" % "Bad Version" % "Invalid Token" % "Errors" % "Valid") << endl;
+      size_t counter = 0;
+      for (const auto& ctx : g_doh3locals) {
+        ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_doh3UnsupportedVersionErrors % ctx->d_doh3InvalidTokensReceived % ctx->d_errorResponses % ctx->d_validResponses) << endl;
+        counter++;
+      }
+      g_outputBuffer = ret.str();
+    }
+    catch (const std::exception& e) {
+      g_outputBuffer = e.what();
+      throw;
+    }
+#else
+      g_outputBuffer = "DNS over HTTP3 support is not present!\n";
+#endif
+  });
+
   luaCtx.writeFunction("showDOHResponseCodes", []() {
 #ifdef HAVE_DNS_OVER_HTTPS
     setLuaNoSideEffect();
