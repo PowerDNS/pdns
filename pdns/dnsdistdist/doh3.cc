@@ -734,29 +734,30 @@ void doh3Thread(ClientState* clientState)
 
           std::map<std::string, std::string> headers;
           while (true) {
-            quiche_h3_event* ev;
+            quiche_h3_event* event{nullptr};
             // Processes HTTP/3 data received from the peer
             int64_t streamID = quiche_h3_conn_poll(conn->get().d_http3.get(),
                                                    conn->get().d_conn.get(),
-                                                   &ev);
+                                                   &event);
 
             if (streamID < 0) {
               break;
             }
 
-            switch (quiche_h3_event_type(ev)) {
+            switch (quiche_h3_event_type(event)) {
             case QUICHE_H3_EVENT_HEADERS: {
-              int rc = quiche_h3_event_for_each_header(
-                ev,
+              // Callback result. Any value other than 0 will interrupt further header processing.
+              int cbresult = quiche_h3_event_for_each_header(
+                event,
                 [](uint8_t* name, size_t name_len, uint8_t* value, size_t value_len, void* argp) -> int {
                   std::string_view key(reinterpret_cast<char*>(name), name_len);
                   std::string_view content(reinterpret_cast<char*>(value), value_len);
-                  auto headersptr = reinterpret_cast<std::map<std::string, std::string>*>(argp);
+                  auto* headersptr = reinterpret_cast<std::map<std::string, std::string>*>(argp);
                   headersptr->emplace(key, content);
                   return 0;
                 },
                 &headers);
-              if (rc != 0 || !headers.count(":method")) {
+              if (cbresult != 0 || headers.count(":method") == 0) {
                 DEBUGLOG("Failed to process headers");
                 ++dnsdist::metrics::g_stats.nonCompliantQueries;
                 ++clientState->nonCompliantQueries;
@@ -765,7 +766,7 @@ void doh3Thread(ClientState* clientState)
                 break;
               }
               if (headers.at(":method") == "GET") {
-                if (!headers.count(":path") || headers.at(":path").empty()) {
+                if (headers.count(":path") == 0 || headers.at(":path").empty()) {
                   DEBUGLOG("Path not found");
                   ++dnsdist::metrics::g_stats.nonCompliantQueries;
                   ++clientState->nonCompliantQueries;
@@ -826,7 +827,7 @@ void doh3Thread(ClientState* clientState)
                 conn->get().d_streamBuffers.erase(streamID);
               }
               else if (headers.at(":method") == "POST") {
-                if (!quiche_h3_event_headers_has_body(ev)) {
+                if (!quiche_h3_event_headers_has_body(event)) {
                   DEBUGLOG("Empty POST query");
                   ++dnsdist::metrics::g_stats.nonCompliantQueries;
                   ++clientState->nonCompliantQueries;
@@ -846,37 +847,39 @@ void doh3Thread(ClientState* clientState)
               break;
             }
             case QUICHE_H3_EVENT_DATA: {
-              if (!headers.count("content-type") || headers.at("content-type") != "application/dns-message") {
-                DEBUGLOG("Unsupported content-type");
-                ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                ++clientState->nonCompliantQueries;
-                ++frontend->d_errorResponses;
-                h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unsupported content-type");
-                break;
-              }
-              PacketBuffer buffer(std::numeric_limits<uint16_t>::max());
-              PacketBuffer decoded;
-
-              while (true) {
-                ssize_t len = quiche_h3_recv_body(conn->get().d_http3.get(),
-                                                  conn->get().d_conn.get(), streamID,
-                                                  buffer.data(), buffer.capacity());
-
-                if (len <= 0) {
+              if (headers.at(":method") == "POST") {
+                if (headers.count("content-type") == 0 || headers.at("content-type") != "application/dns-message") {
+                  DEBUGLOG("Unsupported content-type");
+                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                  ++clientState->nonCompliantQueries;
+                  ++frontend->d_errorResponses;
+                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unsupported content-type");
                   break;
                 }
-                decoded.insert(decoded.end(), buffer.begin(), buffer.begin() + len);
+                PacketBuffer buffer(std::numeric_limits<uint16_t>::max());
+                PacketBuffer decoded;
+
+                while (true) {
+                  ssize_t len = quiche_h3_recv_body(conn->get().d_http3.get(),
+                                                    conn->get().d_conn.get(), streamID,
+                                                    buffer.data(), buffer.capacity());
+
+                  if (len <= 0) {
+                    break;
+                  }
+                  decoded.insert(decoded.end(), buffer.begin(), buffer.begin() + len);
+                }
+                if (decoded.size() < sizeof(dnsheader)) {
+                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
+                  ++clientState->nonCompliantQueries;
+                  ++frontend->d_errorResponses;
+                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "DoH3 non-compliant query");
+                  break;
+                }
+                DEBUGLOG("Dispatching POST query");
+                doh3_dispatch_query(*(frontend->d_server_config), std::move(decoded), clientState->local, client, serverConnID, streamID);
+                conn->get().d_streamBuffers.erase(streamID);
               }
-              if (decoded.size() < sizeof(dnsheader)) {
-                ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                ++clientState->nonCompliantQueries;
-                ++frontend->d_errorResponses;
-                h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "DoH3 non-compliant query");
-                break;
-              }
-              DEBUGLOG("Dispatching POST query");
-              doh3_dispatch_query(*(frontend->d_server_config), std::move(decoded), clientState->local, client, serverConnID, streamID);
-              conn->get().d_streamBuffers.erase(streamID);
             }
             case QUICHE_H3_EVENT_FINISHED:
             case QUICHE_H3_EVENT_RESET:
@@ -885,7 +888,7 @@ void doh3Thread(ClientState* clientState)
               break;
             }
 
-            quiche_h3_event_free(ev);
+            quiche_h3_event_free(event);
           }
         }
         else {
