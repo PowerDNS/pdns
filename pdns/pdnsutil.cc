@@ -652,13 +652,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
   }
 
-  for (const auto &svcb : svcbTargets) {
-    const auto& name = std::get<0>(svcb);
-    const auto& target = std::get<2>(svcb);
-    auto prio = std::get<1>(svcb);
-    auto v4hintsAuto = std::get<3>(svcb);
-    auto v6hintsAuto = std::get<4>(svcb);
-
+  for (const auto& [name, prio, target, v4hintsAuto, v6hintsAuto] : svcbTargets) {
     if (name == target) {
       cout<<"[Error] SVCB record "<<name<<" has itself as target."<<endl;
       numerrors++;
@@ -690,13 +684,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
   }
 
-  for (const auto &httpsRecord : httpsTargets) {
-    const auto& name = std::get<0>(httpsRecord);
-    const auto& target = std::get<2>(httpsRecord);
-    auto prio = std::get<1>(httpsRecord);
-    auto v4hintsAuto = std::get<3>(httpsRecord);
-    auto v6hintsAuto = std::get<4>(httpsRecord);
-
+  for (const auto& [name, prio, target, v4hintsAuto, v6hintsAuto] : httpsTargets) {
     if (name == target) {
       cout<<"[Error] HTTPS record "<<name<<" has itself as target."<<endl;
       numerrors++;
