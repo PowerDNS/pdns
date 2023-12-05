@@ -2497,11 +2497,11 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("SpoofRawAction", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<responseParams_t> vars) {
       vector<string> raws;
-      if (auto str = boost::get<std::string>(&inp)) {
+      if (const auto* str = boost::get<std::string>(&inp)) {
         raws.push_back(*str);
       } else {
         const auto& vect = boost::get<LuaArray<std::string>>(inp);
-        for(const auto& raw: vect) {
+        for (const auto& raw: vect) {
           raws.push_back(raw.second);
         }
       }
