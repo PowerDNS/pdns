@@ -39,7 +39,7 @@ class CoProcess : public CoRemote
 {
 public:
   CoProcess(const string& command, int timeout = 0, int infd = 0, int outfd = 1);
-  ~CoProcess();
+  ~CoProcess() override;
   void sendReceive(const string& send, string& receive) override;
   void receive(string& rcv) override;
   void send(const string& send) override;

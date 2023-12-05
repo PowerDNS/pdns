@@ -37,7 +37,7 @@ class EpollFDMultiplexer : public FDMultiplexer
 {
 public:
   EpollFDMultiplexer(unsigned int maxEventsHint);
-  ~EpollFDMultiplexer()
+  ~EpollFDMultiplexer() override
   {
     if (d_epollfd >= 0) {
       close(d_epollfd);

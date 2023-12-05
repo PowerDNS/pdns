@@ -36,7 +36,7 @@ class GSQLBackend : public DNSBackend
 {
 public:
   GSQLBackend(const string &mode, const string &suffix); //!< Makes our connection to the database. Throws an exception if it fails.
-  virtual ~GSQLBackend()
+  ~GSQLBackend() override
   {
     freeStatements();
     d_db.reset();
@@ -277,7 +277,7 @@ protected:
     reconnect();
   }
   virtual void reconnect() { }
-  virtual bool inTransaction() override
+  bool inTransaction() override
   {
     return d_inTransaction;
   }

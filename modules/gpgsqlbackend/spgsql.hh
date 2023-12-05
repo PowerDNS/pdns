@@ -31,7 +31,7 @@ public:
          const string& user = "", const string& password = "",
          const string& extra_connection_parameters = "", const bool use_prepared = true);
 
-  ~SPgSQL();
+  ~SPgSQL() override;
 
   SSqlException sPerrorException(const string& reason) override;
   void setLog(bool state) override;

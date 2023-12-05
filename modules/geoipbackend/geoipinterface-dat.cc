@@ -463,7 +463,7 @@ public:
     return false;
   }
 
-  ~GeoIPInterfaceDAT() = default;
+  ~GeoIPInterfaceDAT() override = default;
 
 private:
   unsigned int d_db_type;

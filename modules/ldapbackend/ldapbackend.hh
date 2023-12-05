@@ -167,7 +167,7 @@ class LdapBackend : public DNSBackend
 
 public:
   LdapBackend(const string& suffix = "");
-  ~LdapBackend();
+  ~LdapBackend() override;
 
   // Native backend
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;

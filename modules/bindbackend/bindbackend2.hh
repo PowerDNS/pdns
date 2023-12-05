@@ -180,7 +180,7 @@ class Bind2Backend : public DNSBackend
 {
 public:
   Bind2Backend(const string& suffix = "", bool loadZones = true);
-  ~Bind2Backend();
+  ~Bind2Backend() override;
   void getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains) override;
   void getUpdatedPrimaries(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
