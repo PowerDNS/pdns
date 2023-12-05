@@ -439,7 +439,7 @@ SODBC::SODBC(
 }
 
 // Destructor.
-SODBC::~SODBC(void)
+SODBC::~SODBC()
 {
   // Disconnect from database and free all used resources.
   // SQLFreeHandle( SQL_HANDLE_STMT, m_statement );

@@ -700,7 +700,7 @@ private:
 class NSECRecordContent : public DNSRecordContent
 {
 public:
-  static void report(void);
+  static void report();
   NSECRecordContent() = default;
   NSECRecordContent(const string& content, const DNSName& zone=DNSName());
 
@@ -737,7 +737,7 @@ private:
 class NSEC3RecordContent : public DNSRecordContent
 {
 public:
-  static void report(void);
+  static void report();
   NSEC3RecordContent() = default;
   NSEC3RecordContent(const string& content, const DNSName& zone=DNSName());
 
@@ -783,7 +783,7 @@ private:
 class CSYNCRecordContent : public DNSRecordContent
 {
 public:
-  static void report(void);
+  static void report();
   CSYNCRecordContent() = default;
   CSYNCRecordContent(const string& content, const DNSName& zone=DNSName());
 
@@ -811,7 +811,7 @@ private:
 class NSEC3PARAMRecordContent : public DNSRecordContent
 {
 public:
-  static void report(void);
+  static void report();
   NSEC3PARAMRecordContent() = default;
   NSEC3PARAMRecordContent(const string& content, const DNSName& zone=DNSName());
 
@@ -835,7 +835,7 @@ public:
 class LOCRecordContent : public DNSRecordContent
 {
 public:
-  static void report(void);
+  static void report();
   LOCRecordContent() = default;
   LOCRecordContent(const string& content, const string& zone="");
 
@@ -899,7 +899,7 @@ class EUI48RecordContent : public DNSRecordContent
 {
 public:
   EUI48RecordContent() = default;
-  static void report(void);
+  static void report();
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
@@ -914,7 +914,7 @@ class EUI64RecordContent : public DNSRecordContent
 {
 public:
   EUI64RecordContent() = default;
-  static void report(void);
+  static void report();
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;

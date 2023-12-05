@@ -55,7 +55,7 @@ public:
     const std::string& password);
 
   //! Destructor.
-  virtual ~SODBC(void);
+  virtual ~SODBC();
 
   //! Sets the logging state.
   void setLog(bool state) override;
