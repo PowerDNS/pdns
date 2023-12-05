@@ -1,6 +1,84 @@
 Changelogs for 5.0.X
 ====================
 
+Before upgrading, it is advised to read the :doc:`../upgrade`.
+
+.. changelog::
+  :version: 5.0.0-rc1
+  :released: 6th of December 2023
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13557
+
+    Remove experimental warnings for YAML.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13507
+    :tickets: 13386
+
+    Disallow (by answering Refused) RD=0 by default.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13543
+    :tickets: 13542
+
+    A single NSEC3 record covering everything is a special case.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13434
+
+    Make syncres code clang-tidy.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13511
+    :tickets: 13463
+
+    Document outgoing querycounts better, including a small fix.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13501
+    :tickets: 12842
+
+    Introduce a setting to allow RPZ duplicates, including a dup handling fix.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13497
+    :tickets: 13483
+
+    Take into account throttled queries when determining if we had a cachehit.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13387
+
+    Update new b-root-server.net addresses in built-in hints.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13480
+    :tickets: 13467
+
+    Correctly apply outgoing.tcp_max_queries bound.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13478
+
+    Change default of nsec3-max-iterations to 50.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13477
+
+    Warn if truncation occurred dumping the trace.
+
 .. changelog::
   :version: 5.0.0-beta1
   :released: 10th of November 2023

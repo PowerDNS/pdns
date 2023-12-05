@@ -17,7 +17,7 @@ Refer to :doc:`yamlsettings` for details and the :doc:`appendices/yamlconversion
 Rust
 ^^^^
 Some parts of the Recursor code are now written in Rust.
-This has impact if you do local builds or are third-package maintainer.
+This has impact if you do local builds or are a third-party package maintainer.
 According to `cargo msrv` the minimum version to compile the Rust code and its dependencies is 1.64.
 Some distributions ship with an older Rust compiler, see `Rustup <https://rustup.rs/>`__ for a way to install a more recent one.
 For our package builds, we install a Rust compiler from the ``Standalone`` section of `Other Rust Installation Methods <https://forge.rust-lang.org/infra/other-installation-methods.html>`__.
@@ -28,11 +28,17 @@ New settings
 - The :ref:`setting-tcp-threads` setting has been introduced to set the number of threads dedicated to processing incoming queries over TCP.
   Previously either the distributor thread(s) or the general worker threads would process TCP queries.
 - The :ref:`setting-qname-max-minimize-count` and :ref:`setting-qname-minimize-one-label` have been introduced to allow tuning of the parameters specified in :rfc:`9156`.
+- The :ref:`setting-allow-no-rd` has been introduced, default disabled, *disallowing* queries that do not have the ``Recursion Desired (RD)`` flag set.
+  This is a change in behviour compared to previous releases.
+- The setting ``ignoreDuplicates`` was added to the RPZ loading Lua functions :func:`rpzPrimary` and :func:`rpzFile`.
+  If set, duplicate records in RPZs will be allowed but ignored.
+  The default is to fail loading an RPZ with duplicate records.
 
 Changed settings
 ^^^^^^^^^^^^^^^^
 - The :ref:`setting-loglevel` can now be set to a level below 3 (error).
 - The :ref:`setting-extended-resolution-errors` now defaults to enabled.
+- The :ref:`setting-nsec3-max-iterations` now defaults to 50.
 
 4.8.0 to 4.9.0
 --------------
