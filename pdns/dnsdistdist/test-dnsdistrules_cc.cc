@@ -157,4 +157,75 @@ BOOST_AUTO_TEST_CASE(test_poolOutstandingRule) {
   BOOST_CHECK_EQUAL(pOR2.matches(&dq), false);
 }
 
+BOOST_AUTO_TEST_CASE(test_payloadSizeRule) {
+  auto dq = getDQ();
+
+  {
+    PayloadSizeRule rule("equal", dq.getData().size());
+    BOOST_CHECK_EQUAL(rule.matches(&dq), true);
+    BOOST_CHECK_EQUAL(rule.toString(), "payload size is equal to " + std::to_string(dq.getData().size()));
+  }
+
+  {
+    PayloadSizeRule rule("equal", dq.getData().size() + 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dq), false);
+  }
+
+  {
+    PayloadSizeRule rule("greater", dq.getData().size());
+    BOOST_CHECK_EQUAL(rule.matches(&dq), false);
+    BOOST_CHECK_EQUAL(rule.toString(), "payload size is greater than " + std::to_string(dq.getData().size()));
+  }
+
+  {
+    PayloadSizeRule rule("greater", dq.getData().size() - 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dq), true);
+  }
+
+  {
+    PayloadSizeRule rule("smaller", dq.getData().size());
+    BOOST_CHECK_EQUAL(rule.matches(&dq), false);
+    BOOST_CHECK_EQUAL(rule.toString(), "payload size is smaller than " + std::to_string(dq.getData().size()));
+  }
+
+  {
+    PayloadSizeRule rule("smaller", dq.getData().size() + 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dq), true);
+  }
+
+  {
+    PayloadSizeRule rule("greaterOrEqual", dq.getData().size());
+    BOOST_CHECK_EQUAL(rule.matches(&dq), true);
+    BOOST_CHECK_EQUAL(rule.toString(), "payload size is equal to or greater than " + std::to_string(dq.getData().size()));
+  }
+
+  {
+    PayloadSizeRule rule("greaterOrEqual", dq.getData().size() - 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dq), true);
+  }
+
+  {
+    PayloadSizeRule rule("greaterOrEqual", dq.getData().size() + 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dq), false);
+  }
+
+  {
+    PayloadSizeRule rule("smallerOrEqual", dq.getData().size());
+    BOOST_CHECK_EQUAL(rule.matches(&dq), true);
+    BOOST_CHECK_EQUAL(rule.toString(), "payload size is equal to or smaller than " + std::to_string(dq.getData().size()));
+  }
+
+  {
+    PayloadSizeRule rule("smallerOrEqual", dq.getData().size() + 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dq), true);
+  }
+
+  {
+    PayloadSizeRule rule("smallerOrEqual", dq.getData().size() - 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dq), false);
+  }
+
+  BOOST_CHECK_THROW(PayloadSizeRule("invalid", 42U), std::runtime_error);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
