@@ -520,7 +520,7 @@ public:
   {
     return Action::Truncate;
   }
-  std::string toString() const override
+  [[nodiscard]] std::string toString() const override
   {
     return "tc=1 answer";
   }
