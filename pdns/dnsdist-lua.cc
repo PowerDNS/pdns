@@ -2650,11 +2650,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       checkAllParametersConsumed("addDOH3Local", vars);
     }
     g_doh3locals.push_back(frontend);
-    auto cs = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus);
-    cs->doh3Frontend = frontend;
-    cs->d_additionalAddresses = std::move(additionalAddresses);
+    auto clientState = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus);
+    clientState->doh3Frontend = frontend;
+    clientState->d_additionalAddresses = std::move(additionalAddresses);
 
-    g_frontends.push_back(std::move(cs));
+    g_frontends.push_back(std::move(clientState));
 #else
       throw std::runtime_error("addDOH3Local() called but DNS over HTTP/3 support is not present!");
 #endif
