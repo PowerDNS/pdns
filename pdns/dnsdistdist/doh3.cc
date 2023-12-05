@@ -25,7 +25,6 @@
 #ifdef HAVE_DNS_OVER_HTTP3
 #include <quiche.h>
 
-#include "dnsparser.hh"
 #include "dolog.hh"
 #include "iputils.hh"
 #include "misc.hh"
@@ -34,8 +33,8 @@
 #include "threadname.hh"
 #include "base64.hh"
 
-#include "dnsdist-ecs.hh"
 #include "dnsdist-dnsparser.hh"
+#include "dnsdist-ecs.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-random.hh"
@@ -417,9 +416,6 @@ std::unique_ptr<CrossProtocolQuery> getDOH3CrossProtocolQueryFromDQ(DNSQuestion&
   return std::make_unique<DOH3CrossProtocolQuery>(std::move(unit), isResponse);
 }
 
-/*
-   We are not in the main DoH3 thread but in the DoH3 'client' thread.
-*/
 static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
 {
   const auto handleImmediateResponse = [](DOH3UnitUniquePtr&& unit, [[maybe_unused]] const char* reason) {
@@ -575,12 +571,6 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
 static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID)
 {
   try {
-    /* we only parse it there as a sanity check, we will parse it again later */
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    DNSPacketMangler mangler(reinterpret_cast<char*>(query.data()), query.size());
-    mangler.skipDomainName();
-    mangler.skipBytes(4);
-
     auto unit = std::make_unique<DOH3Unit>(std::move(query));
     unit->dsc = &dsc;
     unit->ids.origDest = local;
@@ -592,7 +582,7 @@ static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, con
     processDOH3Query(std::move(unit));
   }
   catch (const std::exception& exp) {
-    vinfolog("Had error parsing DoH3 DNS packet from %s: %s", remote.toStringWithPort(), exp.what());
+    vinfolog("Had error handling DoH3 DNS packet from %s: %s", remote.toStringWithPort(), exp.what());
   }
 }
 
@@ -619,6 +609,143 @@ static void flushResponses(pdns::channel::Receiver<DOH3Unit>& receiver)
     }
   }
 }
+
+static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, PacketBuffer& serverConnID)
+{
+  std::map<std::string, std::string> headers;
+  while (true) {
+    quiche_h3_event* event{nullptr};
+    // Processes HTTP/3 data received from the peer
+    int64_t streamID = quiche_h3_conn_poll(conn.d_http3.get(),
+                                           conn.d_conn.get(),
+                                           &event);
+
+    if (streamID < 0) {
+      break;
+    }
+
+    switch (quiche_h3_event_type(event)) {
+    case QUICHE_H3_EVENT_HEADERS: {
+      // Callback result. Any value other than 0 will interrupt further header processing.
+      int cbresult = quiche_h3_event_for_each_header(
+        event,
+        [](uint8_t* name, size_t name_len, uint8_t* value, size_t value_len, void* argp) -> int {
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+          std::string_view key(reinterpret_cast<char*>(name), name_len);
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+          std::string_view content(reinterpret_cast<char*>(value), value_len);
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+          auto* headersptr = reinterpret_cast<std::map<std::string, std::string>*>(argp);
+          headersptr->emplace(key, content);
+          return 0;
+        },
+        &headers);
+
+      if (cbresult != 0 || headers.count(":method") == 0) {
+        DEBUGLOG("Failed to process headers");
+        ++dnsdist::metrics::g_stats.nonCompliantQueries;
+        ++clientState.nonCompliantQueries;
+        ++frontend.d_errorResponses;
+        h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, 400, "Unable to process query headers");
+        break;
+      }
+
+      if (headers.at(":method") == "GET") {
+        if (headers.count(":path") == 0 || headers.at(":path").empty()) {
+          DEBUGLOG("Path not found");
+          ++dnsdist::metrics::g_stats.nonCompliantQueries;
+          ++clientState.nonCompliantQueries;
+          ++frontend.d_errorResponses;
+          h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, 400, "Path not found");
+          break;
+        }
+        const auto& path = headers.at(":path");
+        auto payload = dnsdist::doh::getPayloadFromPath(path);
+        if (!payload) {
+          DEBUGLOG("User error, unable to find the DNS parameter");
+          ++dnsdist::metrics::g_stats.nonCompliantQueries;
+          ++clientState.nonCompliantQueries;
+          ++frontend.d_errorResponses;
+          h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, 400, "Unable to find the DNS parameter");
+          break;
+        }
+        if (payload->size() < sizeof(dnsheader)) {
+          ++dnsdist::metrics::g_stats.nonCompliantQueries;
+          ++clientState.nonCompliantQueries;
+          ++frontend.d_errorResponses;
+          h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, 400, "DoH3 non-compliant query");
+          break;
+        }
+        DEBUGLOG("Dispatching GET query");
+        doh3_dispatch_query(*(frontend.d_server_config), std::move(*payload), clientState.local, client, serverConnID, streamID);
+        conn.d_streamBuffers.erase(streamID);
+      }
+      else if (headers.at(":method") == "POST") {
+        if (!quiche_h3_event_headers_has_body(event)) {
+          DEBUGLOG("Empty POST query");
+          ++dnsdist::metrics::g_stats.nonCompliantQueries;
+          ++clientState.nonCompliantQueries;
+          ++frontend.d_errorResponses;
+          h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, 400, "Empty POST query");
+          break;
+        }
+      }
+      else {
+        DEBUGLOG("Unsupported HTTP method");
+        ++dnsdist::metrics::g_stats.nonCompliantQueries;
+        ++clientState.nonCompliantQueries;
+        ++frontend.d_errorResponses;
+        h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, 400, "Unsupported HTTP method");
+        break;
+      }
+      break;
+    }
+    case QUICHE_H3_EVENT_DATA: {
+      if (headers.at(":method") == "POST") {
+        if (headers.count("content-type") == 0 || headers.at("content-type") != "application/dns-message") {
+          DEBUGLOG("Unsupported content-type");
+          ++dnsdist::metrics::g_stats.nonCompliantQueries;
+          ++clientState.nonCompliantQueries;
+          ++frontend.d_errorResponses;
+          h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, 400, "Unsupported content-type");
+          break;
+        }
+        PacketBuffer buffer(std::numeric_limits<uint16_t>::max());
+        PacketBuffer decoded;
+
+        while (true) {
+          ssize_t len = quiche_h3_recv_body(conn.d_http3.get(),
+                                            conn.d_conn.get(), streamID,
+                                            buffer.data(), buffer.capacity());
+
+          if (len <= 0) {
+            break;
+          }
+          decoded.insert(decoded.end(), buffer.begin(), buffer.begin() + len);
+        }
+        if (decoded.size() < sizeof(dnsheader)) {
+          ++dnsdist::metrics::g_stats.nonCompliantQueries;
+          ++clientState.nonCompliantQueries;
+          ++frontend.d_errorResponses;
+          h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, 400, "DoH3 non-compliant query");
+          break;
+        }
+        DEBUGLOG("Dispatching POST query");
+        doh3_dispatch_query(*(frontend.d_server_config), std::move(decoded), clientState.local, client, serverConnID, streamID);
+        conn.d_streamBuffers.erase(streamID);
+      }
+    }
+    case QUICHE_H3_EVENT_FINISHED:
+    case QUICHE_H3_EVENT_RESET:
+    case QUICHE_H3_EVENT_PRIORITY_UPDATE:
+    case QUICHE_H3_EVENT_GOAWAY:
+      break;
+    }
+
+    quiche_h3_event_free(event);
+  }
+}
+
 
 // this is the entrypoint from dnsdist.cc
 void doh3Thread(ClientState* clientState)
@@ -732,164 +859,7 @@ void doh3Thread(ClientState* clientState)
             DEBUGLOG("Successfully created HTTP/3 connection");
           }
 
-          std::map<std::string, std::string> headers;
-          while (true) {
-            quiche_h3_event* event{nullptr};
-            // Processes HTTP/3 data received from the peer
-            int64_t streamID = quiche_h3_conn_poll(conn->get().d_http3.get(),
-                                                   conn->get().d_conn.get(),
-                                                   &event);
-
-            if (streamID < 0) {
-              break;
-            }
-
-            switch (quiche_h3_event_type(event)) {
-            case QUICHE_H3_EVENT_HEADERS: {
-              // Callback result. Any value other than 0 will interrupt further header processing.
-              int cbresult = quiche_h3_event_for_each_header(
-                event,
-                [](uint8_t* name, size_t name_len, uint8_t* value, size_t value_len, void* argp) -> int {
-                  std::string_view key(reinterpret_cast<char*>(name), name_len);
-                  std::string_view content(reinterpret_cast<char*>(value), value_len);
-                  auto* headersptr = reinterpret_cast<std::map<std::string, std::string>*>(argp);
-                  headersptr->emplace(key, content);
-                  return 0;
-                },
-                &headers);
-              if (cbresult != 0 || headers.count(":method") == 0) {
-                DEBUGLOG("Failed to process headers");
-                ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                ++clientState->nonCompliantQueries;
-                ++frontend->d_errorResponses;
-                h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unable to process query headers");
-                break;
-              }
-              if (headers.at(":method") == "GET") {
-                if (headers.count(":path") == 0 || headers.at(":path").empty()) {
-                  DEBUGLOG("Path not found");
-                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                  ++clientState->nonCompliantQueries;
-                  ++frontend->d_errorResponses;
-                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Path not found");
-                  break;
-                }
-                auto pos = headers.at(":path").find("?dns=");
-                if (pos == string::npos) {
-                  pos = headers.at(":path").find("&dns=");
-                }
-                if (pos == string::npos) {
-                  DEBUGLOG("User error, unable to find the DNS parameter");
-                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                  ++clientState->nonCompliantQueries;
-                  ++frontend->d_errorResponses;
-                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unable to find the DNS parameter");
-                  break;
-                }
-                // need to base64url decode this
-                string sdns(headers.at(":path").substr(pos + 5));
-                boost::replace_all(sdns, "-", "+");
-                boost::replace_all(sdns, "_", "/");
-                // re-add padding that may have been missing
-                switch (sdns.size() % 4) {
-                case 2:
-                  sdns.append(2, '=');
-                  break;
-                case 3:
-                  sdns.append(1, '=');
-                  break;
-                }
-
-                PacketBuffer decoded;
-                /* 1 byte for the root label, 2 type, 2 class, 4 TTL (fake), 2 record length, 2 option length, 2 option code, 2 family, 1 source, 1 scope, 16 max for a full v6 */
-                const size_t maxAdditionalSizeForEDNS = 35U;
-                /* rough estimate so we hopefully don't need a new allocation later */
-                /* We reserve at few additional bytes to be able to add EDNS later */
-                const size_t estimate = ((sdns.size() * 3) / 4);
-                decoded.reserve(estimate + maxAdditionalSizeForEDNS);
-                if (B64Decode(sdns, decoded) < 0) {
-                  DEBUGLOG("Unable to base64 decode()");
-                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                  ++clientState->nonCompliantQueries;
-                  ++frontend->d_errorResponses;
-                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unable to decode BASE64-URL");
-                  break;
-                }
-                if (decoded.size() < sizeof(dnsheader)) {
-                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                  ++clientState->nonCompliantQueries;
-                  ++frontend->d_errorResponses;
-                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "DoH3 non-compliant query");
-                  break;
-                }
-                DEBUGLOG("Dispatching GET query");
-                doh3_dispatch_query(*(frontend->d_server_config), std::move(decoded), clientState->local, client, serverConnID, streamID);
-                conn->get().d_streamBuffers.erase(streamID);
-              }
-              else if (headers.at(":method") == "POST") {
-                if (!quiche_h3_event_headers_has_body(event)) {
-                  DEBUGLOG("Empty POST query");
-                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                  ++clientState->nonCompliantQueries;
-                  ++frontend->d_errorResponses;
-                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Empty POST query");
-                  break;
-                }
-              }
-              else {
-                DEBUGLOG("Unsupported HTTP method");
-                ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                ++clientState->nonCompliantQueries;
-                ++frontend->d_errorResponses;
-                h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unsupported HTTP method");
-                break;
-              }
-              break;
-            }
-            case QUICHE_H3_EVENT_DATA: {
-              if (headers.at(":method") == "POST") {
-                if (headers.count("content-type") == 0 || headers.at("content-type") != "application/dns-message") {
-                  DEBUGLOG("Unsupported content-type");
-                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                  ++clientState->nonCompliantQueries;
-                  ++frontend->d_errorResponses;
-                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "Unsupported content-type");
-                  break;
-                }
-                PacketBuffer buffer(std::numeric_limits<uint16_t>::max());
-                PacketBuffer decoded;
-
-                while (true) {
-                  ssize_t len = quiche_h3_recv_body(conn->get().d_http3.get(),
-                                                    conn->get().d_conn.get(), streamID,
-                                                    buffer.data(), buffer.capacity());
-
-                  if (len <= 0) {
-                    break;
-                  }
-                  decoded.insert(decoded.end(), buffer.begin(), buffer.begin() + len);
-                }
-                if (decoded.size() < sizeof(dnsheader)) {
-                  ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                  ++clientState->nonCompliantQueries;
-                  ++frontend->d_errorResponses;
-                  h3_send_response(conn->get().d_conn.get(), conn->get().d_http3.get(), streamID, 400, "DoH3 non-compliant query");
-                  break;
-                }
-                DEBUGLOG("Dispatching POST query");
-                doh3_dispatch_query(*(frontend->d_server_config), std::move(decoded), clientState->local, client, serverConnID, streamID);
-                conn->get().d_streamBuffers.erase(streamID);
-              }
-            }
-            case QUICHE_H3_EVENT_FINISHED:
-            case QUICHE_H3_EVENT_RESET:
-            case QUICHE_H3_EVENT_PRIORITY_UPDATE:
-            case QUICHE_H3_EVENT_GOAWAY:
-              break;
-            }
-
-            quiche_h3_event_free(event);
-          }
+          processH3Events(*clientState, *frontend, conn->get(), client, serverConnID);
         }
         else {
           DEBUGLOG("Connection not established");

@@ -25,7 +25,6 @@
 #ifdef HAVE_DNS_OVER_QUIC
 #include <quiche.h>
 
-#include "dnsparser.hh"
 #include "dolog.hh"
 #include "iputils.hh"
 #include "misc.hh"
@@ -33,8 +32,8 @@
 #include "sstuff.hh"
 #include "threadname.hh"
 
-#include "dnsdist-ecs.hh"
 #include "dnsdist-dnsparser.hh"
+#include "dnsdist-ecs.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-random.hh"
@@ -375,9 +374,6 @@ std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& 
   return std::make_unique<DOQCrossProtocolQuery>(std::move(unit), isResponse);
 }
 
-/*
-   We are not in the main DoQ thread but in the DoQ 'client' thread.
-*/
 static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
 {
   const auto handleImmediateResponse = [](DOQUnitUniquePtr&& unit, [[maybe_unused]] const char* reason) {
@@ -525,12 +521,6 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
 static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID)
 {
   try {
-    /* we only parse it there as a sanity check, we will parse it again later */
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    DNSPacketMangler mangler(reinterpret_cast<char*>(query.data()), query.size());
-    mangler.skipDomainName();
-    mangler.skipBytes(4);
-
     auto unit = std::make_unique<DOQUnit>(std::move(query));
     unit->dsc = &dsc;
     unit->ids.origDest = local;
@@ -542,7 +532,7 @@ static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const
     processDOQQuery(std::move(unit));
   }
   catch (const std::exception& exp) {
-    vinfolog("Had error parsing DoQ DNS packet from %s: %s", remote.toStringWithPort(), exp.what());
+    vinfolog("Had error handling DoQ DNS packet from %s: %s", remote.toStringWithPort(), exp.what());
   }
 }
 
