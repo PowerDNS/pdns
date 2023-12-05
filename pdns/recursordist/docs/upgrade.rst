@@ -29,7 +29,7 @@ New settings
   Previously either the distributor thread(s) or the general worker threads would process TCP queries.
 - The :ref:`setting-qname-max-minimize-count` and :ref:`setting-qname-minimize-one-label` have been introduced to allow tuning of the parameters specified in :rfc:`9156`.
 - The :ref:`setting-allow-no-rd` has been introduced, default disabled, *disallowing* queries that do not have the ``Recursion Desired (RD)`` flag set.
-  This is a change in behviour compared to previous releases.
+  This is a change in behaviour compared to previous releases.
 - The setting ``ignoreDuplicates`` was added to the RPZ loading Lua functions :func:`rpzPrimary` and :func:`rpzFile`.
   If set, duplicate records in RPZs will be allowed but ignored.
   The default is to fail loading an RPZ with duplicate records.

@@ -38,7 +38,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :pullreq: 13511
     :tickets: 13463
 
-    Document outgoing querycounts better, including a small fix.
+    Document outgoing query counts better, including a small fix.
 
   .. change::
     :tags: Improvements
@@ -52,7 +52,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :pullreq: 13497
     :tickets: 13483
 
-    Take into account throttled queries when determining if we had a cachehit.
+    Take into account throttled queries when determining if we had a cache hit.
 
   .. change::
     :tags: Improvements
