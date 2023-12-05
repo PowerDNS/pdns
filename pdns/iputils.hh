@@ -1517,7 +1517,8 @@ public:
     d_addr.sin4.sin_port = 0; // this guarantees d_network compares identical
   }
 
-  AddressAndPortRange(ComboAddress ca, uint8_t addrMask, uint8_t portMask = 0): d_addr(std::move(ca)), d_addrMask(addrMask), d_portMask(portMask)
+  AddressAndPortRange(ComboAddress ca, uint8_t addrMask, uint8_t portMask = 0) :
+    d_addr(ca), d_addrMask(addrMask), d_portMask(portMask)
   {
     if (!d_addr.isIPv4()) {
       d_portMask = 0;

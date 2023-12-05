@@ -30,21 +30,23 @@ using json11::Json;
 
 static inline int intFromJsonInternal(const Json& container, const std::string& key, const bool have_default, const int default_value)
 {
-  auto val = container[key];
+  const auto& val = container[key];
   if (val.is_number()) {
     return val.int_value();
-  } else if (val.is_string()) {
+  }
+
+  if (val.is_string()) {
     try {
       return std::stoi(val.string_value());
     } catch (std::out_of_range&) {
       throw JsonException("Key '" + string(key) + "' is out of range");
     }
-  } else {
-    if (have_default) {
-      return default_value;
-    }
-    throw JsonException("Key '" + string(key) + "' not an Integer or not present");
   }
+
+  if (have_default) {
+    return default_value;
+  }
+  throw JsonException("Key '" + string(key) + "' not an Integer or not present");
 }
 
 int intFromJson(const Json& container, const std::string& key)
@@ -78,21 +80,23 @@ unsigned int uintFromJson(const Json& container, const std::string& key, const u
 
 static inline double doubleFromJsonInternal(const Json& container, const std::string& key, const bool have_default, const double default_value)
 {
-  auto val = container[key];
+  const auto& val = container[key];
   if (val.is_number()) {
     return val.number_value();
-  } else if (val.is_string()) {
+  }
+
+  if (val.is_string()) {
     try {
       return std::stod(val.string_value());
     } catch (std::out_of_range&) {
       throw JsonException("Value for key '" + string(key) + "' is out of range");
     }
-  } else {
-    if (have_default) {
-      return default_value;
-    }
-    throw JsonException("Key '" + string(key) + "' not an Integer or not present");
   }
+
+  if (have_default) {
+    return default_value;
+  }
+  throw JsonException("Key '" + string(key) + "' not an Integer or not present");
 }
 
 double doubleFromJson(const Json& container, const std::string& key)
@@ -107,17 +111,16 @@ double doubleFromJson(const Json& container, const std::string& key, const doubl
 
 string stringFromJson(const Json& container, const std::string &key)
 {
-  const Json val = container[key];
+  const auto& val = container[key];
   if (val.is_string()) {
     return val.string_value();
-  } else {
-    throw JsonException("Key '" + string(key) + "' not present or not a String");
   }
+  throw JsonException("Key '" + string(key) + "' not present or not a String");
 }
 
 static inline bool boolFromJsonInternal(const Json& container, const std::string& key, const bool have_default, const bool default_value)
 {
-  auto val = container[key];
+  const auto& val = container[key];
   if (val.is_bool()) {
     return val.bool_value();
   }

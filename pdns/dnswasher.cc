@@ -127,7 +127,7 @@ public:
     }
   }
 
-  static std::unique_ptr<IPObfuscator> make(std::string key, bool decrypt)
+  static std::unique_ptr<IPObfuscator> make(const std::string& key, bool decrypt)
   {
     return std::make_unique<IPCipherObfuscator>(key, decrypt);
   }
