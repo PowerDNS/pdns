@@ -6,10 +6,10 @@ class TestSelfAnsweredResponses(DNSDistTest):
 
     _config_template = """
     -- this is a silly test config, please do not do this in production.
-    addAction(makeRule("udp.selfanswered.tests.powerdns.com."), SpoofAction("192.0.2.1"))
-    addSelfAnsweredResponseAction(AndRule({makeRule("udp.selfanswered.tests.powerdns.com."), NotRule(MaxQPSRule(1))}), DropResponseAction())
-    addAction(makeRule("tcp.selfanswered.tests.powerdns.com."), SpoofAction("192.0.2.1"))
-    addSelfAnsweredResponseAction(AndRule({makeRule("tcp.selfanswered.tests.powerdns.com."), NotRule(MaxQPSRule(1))}), DropResponseAction())
+    addAction(SuffixMatchNodeRule("udp.selfanswered.tests.powerdns.com."), SpoofAction("192.0.2.1"))
+    addSelfAnsweredResponseAction(AndRule({SuffixMatchNodeRule("udp.selfanswered.tests.powerdns.com."), NotRule(MaxQPSRule(1))}), DropResponseAction())
+    addAction(SuffixMatchNodeRule("tcp.selfanswered.tests.powerdns.com."), SpoofAction("192.0.2.1"))
+    addSelfAnsweredResponseAction(AndRule({SuffixMatchNodeRule("tcp.selfanswered.tests.powerdns.com."), NotRule(MaxQPSRule(1))}), DropResponseAction())
     newServer{address="127.0.0.1:%s"}
     """
 

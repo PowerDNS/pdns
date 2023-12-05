@@ -14,7 +14,7 @@ class TestAdvancedAllow(DNSDistTest):
 
     _config_template = """
     addAction(AllRule(), NoneAction())
-    addAction(makeRule("allowed.advanced.tests.powerdns.com."), AllowAction())
+    addAction(SuffixMatchNodeRule("allowed.advanced.tests.powerdns.com."), AllowAction())
     addAction(AllRule(), DropAction())
     newServer{address="127.0.0.1:%s"}
     """
@@ -780,6 +780,50 @@ class TestAdvancedNMGAddNMG(DNSDistTest):
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
             (_,receivedResponse) = sender(query, response=expectedResponse, useQueue=False)
+            self.assertEqual(receivedResponse, expectedResponse)
+
+class TestAdvancedNMGRuleFromString(DNSDistTest):
+
+    _config_template = """
+    addAction(NotRule(NetmaskGroupRule('192.0.2.1')), RCodeAction(DNSRCode.REFUSED))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedNMGRule(self):
+        """
+        Advanced: NMGRule (from string) should refuse our queries
+        """
+        name = 'nmgrule-from-string.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, expectedResponse)
+
+class TestAdvancedNMGRuleFromMultipleStrings(DNSDistTest):
+
+    _config_template = """
+    addAction(NotRule(NetmaskGroupRule({'192.0.2.1', '192.0.2.128/25'})), RCodeAction(DNSRCode.REFUSED))
+    newServer{address="127.0.0.1:%s"}
+    """
+
+    def testAdvancedNMGRule(self):
+        """
+        Advanced: NMGRule (from multiple strings) should refuse our queries
+        """
+        name = 'nmgrule-from-multiple-strings.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
 
 class TestDSTPortRule(DNSDistTest):

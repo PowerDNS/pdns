@@ -60,14 +60,14 @@
 
 -- send the queries for selected domain suffixes to the servers
 -- in the 'abuse' pool
--- addAction({"abuse.example.org.", "xxx."}, PoolAction("abuse"))
+-- addAction(SuffixMatchNodeRule({"abuse.example.org.", "xxx."}), PoolAction("abuse"))
 
 -- drop queries for this exact qname
 -- addAction(QNameRule("drop-me.example.org."), DropAction())
 
 -- send the queries from a selected subnet to the
 -- abuse pool
--- addAction("192.0.2.0/24", PoolAction("abuse"))
+-- addAction(NetmaskGroupRule("192.0.2.0/24"), PoolAction("abuse"))
 
 -- Refuse incoming AXFR, IXFR, NOTIFY and UPDATE
 -- Add trusted sources (slaves, masters) explicitely in front of this rule

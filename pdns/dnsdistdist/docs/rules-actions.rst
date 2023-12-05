@@ -74,7 +74,6 @@ The regex is applied case insensitively.
 Alternatively, if compiled in, :func:`RE2Rule` provides similar functionality, but against libre2.
 
 Note that to check if a name is in a list of domains, :func:`SuffixMatchNodeRule` is preferred over complex regular expressions or multiple instances of :func:`RegexRule`.
-The :func:`makeRule` convenience function can be used to create a :func:`SuffixMatchNodeRule`.
 
 Rule Generators
 ---------------
@@ -154,9 +153,13 @@ For Rules related to the incoming query:
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
-  Add a Rule and Action to the existing rules.
+  .. versionchanged:: 1.9.0
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
 
-  :param DNSrule rule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  Add a Rule and Action to the existing rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -295,9 +298,13 @@ For Rules related to responses:
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
-  Add a Rule and Action for responses to the existing rules.
+  .. versionchanged:: 1.9.0
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
 
-  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  Add a Rule and Action for responses to the existing rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -354,9 +361,13 @@ Functions for manipulating Cache Hit Response Rules:
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
-  Add a Rule and ResponseAction for Cache Hits to the existing rules.
+  .. versionchanged:: 1.9.0
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
 
-  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  Add a Rule and ResponseAction for Cache Hits to the existing rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -410,9 +421,13 @@ Functions for manipulating Cache Inserted Response Rules:
 
   .. versionadded:: 1.8.0
 
-  Add a Rule and ResponseAction that is executed after a cache entry has been inserted to the existing rules.
+  .. versionchanged:: 1.9.0
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
 
-  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  Add a Rule and ResponseAction that is executed after a cache entry has been inserted to the existing rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -463,9 +478,13 @@ Functions for manipulating Self-Answered Response Rules:
   .. versionchanged:: 1.6.0
     Added ``name`` to the ``options``.
 
-  Add a Rule and Action for Self-Answered queries to the existing rules.
+  .. versionchanged:: 1.9.0
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
 
-  :param DNSRule: A DNSRule, e.g. an :func:`AllRule` or a compounded bunch of rules using e.g. :func:`AndRule`
+  Add a Rule and Action for Self-Answered queries to the existing rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
@@ -687,12 +706,16 @@ These ``DNSRule``\ s be one of the following items:
   .. versionchanged:: 1.4.0
     ``quiet`` parameter added
 
-  Matches traffic from/to the network range specified in ``nmg``.
+  .. versionchanged:: 1.9.0
+    The ``nmg`` parameter now accepts a string or a list of strings in addition to a class:`NetmaskGroup` object.
+
+  Matches traffic from/to the network range specified in the ``nmg``, which can be a string, a list of strings,
+  or a :class:`NetmaskGroup` object created via :func:`newNMG`.
 
   Set the ``src`` parameter to false to match ``nmg`` against destination address instead of source address.
   This can be used to differentiate between clients
 
-  :param NetMaskGroup nmg: The NetMaskGroup to match on
+  :param NetmaskGroup nmg: The netmasks to match, can be a string, a list of strings or a :class:`NetmaskGroup` object.
   :param bool src: Whether to match source or destination address of the packet. Defaults to true (matches source)
   :param bool quiet: Do not display the list of matched netmasks in Rules. Default is false.
 
@@ -838,12 +861,16 @@ These ``DNSRule``\ s be one of the following items:
 
 .. function:: SuffixMatchNodeRule(smn[, quiet])
 
+  .. versionchanged:: 1.9.0
+    The ``smn`` parameter now accepts a string or a list of strings in addition to a class:`SuffixMatchNode` object.
+
   Matches based on a group of domain suffixes for rapid testing of membership.
+  The first parameter, ``smn``, can be a string, list of strings or a class:`SuffixMatchNode` object created with :func:`newSuffixMatchNode`.
   Pass true as second parameter to prevent listing of all domains matched.
 
   To match domain names exactly, see :func:`QNameSetRule`.
 
-  :param SuffixMatchNode smn: The SuffixMatchNode to match on
+  :param SuffixMatchNode smn: A string, list of strings, or a :class:`SuffixMatchNode` to match on
   :param bool quiet: Do not display the list of matched domains in Rules. Default is false.
 
 .. function:: TagRule(name [, value])
@@ -917,10 +944,20 @@ Convenience Functions
 
 .. function:: makeRule(rule)
 
-  Make a :func:`NetmaskGroupRule` or a :func:`SuffixMatchNodeRule`, depending on it is called.
+  .. versionchanged:: 1.9.0
+    This function is deprecated, please use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
+
+  Make a :func:`NetmaskGroupRule` or a :func:`SuffixMatchNodeRule`, depending on how it is called.
+  The `rule` parameter can be a string, or a list of strings, that should contain either:
+
+  * netmasks: in which case it will behave as :func:`NetmaskGroupRule`, or
+  * domain names: in which case it will behave as :func:`SuffixMatchNodeRule`
+
+  Mixing both netmasks and domain names is not supported, and will result in domain names being ignored!
+
   ``makeRule("0.0.0.0/0")`` will for example match all IPv4 traffic, ``makeRule({"be","nl","lu"})`` will match all Benelux DNS traffic.
 
-  :param string rule: A string to convert to a rule.
+  :param string rule: A string, or list of strings, to convert to a rule.
 
 
 Actions

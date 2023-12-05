@@ -156,11 +156,12 @@ template <class T> using LuaArray = std::vector<std::pair<int, T>>;
 template <class T> using LuaAssociativeTable = std::unordered_map<std::string, T>;
 template <class T> using LuaTypeOrArrayOf = boost::variant<T, LuaArray<T>>;
 
-using luadnsrule_t = boost::variant<string, LuaArray<std::string>, std::shared_ptr<DNSRule>, DNSName, LuaArray<DNSName>>;
 using luaruleparams_t = LuaAssociativeTable<std::string>;
 using nmts_t = NetmaskTree<DynBlock, AddressAndPortRange>;
 
-std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var);
+using luadnsrule_t = boost::variant<string, LuaArray<std::string>, std::shared_ptr<DNSRule>, DNSName, LuaArray<DNSName>>;
+std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var, const std::string& calledFrom);
+
 void parseRuleParams(boost::optional<luaruleparams_t>& params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder);
 void checkParameterBound(const std::string& parameter, uint64_t value, size_t max = std::numeric_limits<uint16_t>::max());
 

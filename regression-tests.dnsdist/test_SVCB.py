@@ -8,20 +8,20 @@ class TestSVCB(DNSDistTest):
     local basicSVC = { newSVCRecordParameters(1, "dot.powerdns.com.", { mandatory={"port"}, alpn={"dot"}, noDefaultAlpn=true, port=853, ipv4hint={ "192.0.2.1" }, ipv6hint={ "2001:db8::1" } }),
                        newSVCRecordParameters(2, "doh.powerdns.com.", { mandatory={"port"}, alpn={"h2"}, port=443, ipv4hint={ "192.0.2.2" }, ipv6hint={ "2001:db8::2" }, key7="/dns-query{?dns}" })
                      }
-    addAction(AndRule{QTypeRule(64), makeRule("basic.svcb.tests.powerdns.com.")}, SpoofSVCAction(basicSVC, {aa=true}))
+    addAction(AndRule{QTypeRule(64), SuffixMatchNodeRule("basic.svcb.tests.powerdns.com.")}, SpoofSVCAction(basicSVC, {aa=true}))
 
     local noHintsSVC = { newSVCRecordParameters(1, "dot.powerdns.com.", { mandatory={"port"}, alpn={"dot"}, noDefaultAlpn=true, port=853}),
                          newSVCRecordParameters(2, "doh.powerdns.com.", { mandatory={"port"}, alpn={"h2"}, port=443, key7="/dns-query{?dns}" })
                      }
-    addAction(AndRule{QTypeRule(64), makeRule("no-hints.svcb.tests.powerdns.com.")}, SpoofSVCAction(noHintsSVC, {aa=true}))
+    addAction(AndRule{QTypeRule(64), SuffixMatchNodeRule("no-hints.svcb.tests.powerdns.com.")}, SpoofSVCAction(noHintsSVC, {aa=true}))
 
     local effectiveTargetSVC = { newSVCRecordParameters(1, ".", { mandatory={"port"}, alpn={ "dot" }, noDefaultAlpn=true, port=853, ipv4hint={ "192.0.2.1" }, ipv6hint={ "2001:db8::1" }}),
                                  newSVCRecordParameters(2, ".", { mandatory={"port"}, alpn={ "h2" }, port=443, ipv4hint={ "192.0.2.1" }, ipv6hint={ "2001:db8::1" }, key7="/dns-query{?dns}"})
                      }
-    addAction(AndRule{QTypeRule(64), makeRule("effective-target.svcb.tests.powerdns.com.")}, SpoofSVCAction(effectiveTargetSVC, {aa=true}))
+    addAction(AndRule{QTypeRule(64), SuffixMatchNodeRule("effective-target.svcb.tests.powerdns.com.")}, SpoofSVCAction(effectiveTargetSVC, {aa=true}))
 
     local httpsSVC = { newSVCRecordParameters(1, ".", { mandatory={"port"}, alpn={ "h2" }, noDefaultAlpn=true, port=8002, ipv4hint={ "192.0.2.2" }, ipv6hint={ "2001:db8::2" }}) }
-    addAction(AndRule{QTypeRule(65), makeRule("https.svcb.tests.powerdns.com.")}, SpoofSVCAction(httpsSVC))
+    addAction(AndRule{QTypeRule(65), SuffixMatchNodeRule("https.svcb.tests.powerdns.com.")}, SpoofSVCAction(httpsSVC))
 
     newServer{address="127.0.0.1:%s"}
     """
