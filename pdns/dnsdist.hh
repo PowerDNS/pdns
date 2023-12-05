@@ -712,6 +712,7 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     bool mustResolve{false};
     bool useECS{false};
     bool useProxyProtocol{false};
+    bool d_proxyProtocolAdvertiseTLS{false};
     bool setCD{false};
     bool disableZeroScope{false};
     bool tcpFastOpen{false};

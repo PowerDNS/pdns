@@ -57,6 +57,7 @@ public:
   const std::string& toString() const;
   const std::string& toPrettyString() const;
   bool isUDP() const;
+  bool isEncrypted() const;
   uint8_t toNumber() const;
 
 private:

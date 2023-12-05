@@ -1506,6 +1506,13 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
       addXPF(dq, selectedBackend->d_config.xpfRRCode);
     }
 
+    if (selectedBackend->d_config.useProxyProtocol && dq.getProtocol().isEncrypted() && selectedBackend->d_config.d_proxyProtocolAdvertiseTLS) {
+      if (!dq.proxyProtocolValues) {
+        dq.proxyProtocolValues = std::make_unique<std::vector<ProxyProtocolValue>>();
+      }
+      dq.proxyProtocolValues->push_back(ProxyProtocolValue{"", static_cast<uint8_t>(ProxyProtocolValue::Types::PP_TLV_SSL)});
+    }
+
     selectedBackend->incQueriesCount();
     return ProcessQueryResult::PassToBackend;
   }

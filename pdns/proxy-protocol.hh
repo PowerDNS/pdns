@@ -33,6 +33,8 @@ struct ProxyProtocolValue
   {
     return type == rhs.type && content == rhs.content;
   }
+
+  enum class Types : uint8_t { PP_TLV_ALPN = 0x01, PP_TLV_SSL = 0x20 };
 };
 
 static const size_t s_proxyProtocolMinimumHeaderSize = 16;

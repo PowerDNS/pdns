@@ -81,6 +81,11 @@ bool Protocol::isUDP() const
   return d_protocol == DoUDP || d_protocol == DNSCryptUDP;
 }
 
+bool Protocol::isEncrypted() const
+{
+  return d_protocol != DoUDP && d_protocol != DoTCP;
+}
+
 uint8_t Protocol::toNumber() const
 {
   return static_cast<uint8_t>(d_protocol);
