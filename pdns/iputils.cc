@@ -35,14 +35,14 @@
 
 /** these functions provide a very lightweight wrapper to the Berkeley sockets API. Errors -> exceptions! */
 
-static void RuntimeError(std::string&& error)
+static void RuntimeError(const std::string& error)
 {
-  throw runtime_error(std::move(error));
+  throw runtime_error(error);
 }
 
-static void NetworkErr(std::string&& error)
+static void NetworkErr(const std::string& error)
 {
-  throw NetworkError(std::move(error));
+  throw NetworkError(error);
 }
 
 int SSocket(int family, int type, int flags)
