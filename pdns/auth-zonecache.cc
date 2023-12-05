@@ -83,14 +83,13 @@ void AuthZoneCache::replace(const vector<std::tuple<DNSName, int>>& zone_indices
   vector<cmap_t> newMaps(d_maps.size());
 
   // build new maps
-  for (const std::tuple<DNSName, int>& tup : zone_indices) {
-    const DNSName& zone = std::get<0>(tup);
+  for (const auto& [zone, id] : zone_indices) {
     CacheValue val;
-    val.zoneId = std::get<1>(tup);
+    val.zoneId = id;
     auto& mc = newMaps[getMapIndex(zone)];
     auto iter = mc.find(zone);
     if (iter != mc.end()) {
-      iter->second = std::move(val);
+      iter->second = val;
     }
     else {
       mc.emplace(zone, val);
@@ -101,16 +100,14 @@ void AuthZoneCache::replace(const vector<std::tuple<DNSName, int>>& zone_indices
     // process zone updates done while data collection for replace() was already in progress.
     auto pending = d_pending.lock();
     assert(pending->d_replacePending); // make sure we never forget to call setReplacePending()
-    for (const std::tuple<DNSName, int, bool>& tup : pending->d_pendingUpdates) {
-      const DNSName& zone = std::get<0>(tup);
+    for (const auto& [zone, id, insert] : pending->d_pendingUpdates) {
       CacheValue val;
-      val.zoneId = std::get<1>(tup);
-      bool insert = std::get<2>(tup);
+      val.zoneId = id;
       auto& mc = newMaps[getMapIndex(zone)];
       auto iter = mc.find(zone);
       if (iter != mc.end()) {
         if (insert) {
-          iter->second = std::move(val);
+          iter->second = val;
         }
         else {
           mc.erase(iter);
@@ -157,7 +154,7 @@ void AuthZoneCache::add(const DNSName& zone, const int zoneId)
     auto map = mc.d_map.write_lock();
     auto iter = map->find(zone);
     if (iter != map->end()) {
-      iter->second = std::move(val);
+      iter->second = val;
     }
     else {
       map->emplace(zone, val);
