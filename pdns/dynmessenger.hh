@@ -40,8 +40,6 @@ class DynMessenger
 
   struct sockaddr_un d_remote; // our remote address
 
-  DynMessenger(const DynMessenger &); // NOT IMPLEMENTED
-  
 public:
   // CREATORS
 
@@ -53,6 +51,9 @@ public:
     const string &password,
     int timeout_sec = 7,
     int timeout_usec = 0);  //!< Create a DynMessenger sending to this file
+
+  DynMessenger(const DynMessenger&) = delete; // NOT IMPLEMENTED
+  DynMessenger& operator=(const DynMessenger&) = delete; // NOT IMPLEMENTED
 
   ~DynMessenger();
 

@@ -258,6 +258,9 @@ private:
 
     handle();
 
+    handle(const handle&) = delete;
+    handle& operator=(const handle&) = delete; // don't go copying this
+
     shared_ptr<const recordstorage_t> d_records;
     recordstorage_t::index<UnorderedNameTag>::type::const_iterator d_iter, d_end_iter;
 
@@ -274,9 +277,6 @@ private:
   private:
     bool get_normal(DNSResourceRecord&);
     bool get_list(DNSResourceRecord&);
-
-    void operator=(const handle&); // don't go copying this
-    handle(const handle&);
   };
 
   unique_ptr<SSqlStatement> d_getAllDomainMetadataQuery_stmt;
