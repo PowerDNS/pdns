@@ -3009,6 +3009,9 @@ int main(int argc, char** argv)
     g_log.setLoglevel(s_logUrgency);
     g_log.toConsole(s_logUrgency);
     showProductVersion();
+    if (!g_slogStructured) {
+      g_log << Logger::Warning << "Disabling structured logging is deprecated, old-style logging wil be removed in a future release" << endl;
+    }
 
     g_yamlSettings = false;
     string configname = ::arg()["config-dir"] + "/recursor";
