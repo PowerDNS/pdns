@@ -46,4 +46,4 @@ bool checkDNSSECDisabled();
 bool warnIfDNSSECDisabled(const string& msg);
 vState increaseDNSSECStateCounter(const vState& state);
 vState increaseXDNSSECStateCounter(const vState& state);
-bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsmap_t>& dsAnchors, Logr::log_t);
+bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsset_t>& dsAnchors, Logr::log_t);

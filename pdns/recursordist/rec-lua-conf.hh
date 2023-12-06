@@ -105,7 +105,7 @@ public:
   SortList sortlist;
   DNSFilterEngine dfe;
   TrustAnchorFileInfo trustAnchorFileInfo; // Used to update the Trust Anchors from file periodically
-  map<DNSName, dsmap_t> dsAnchors;
+  map<DNSName, dsset_t> dsAnchors;
   map<DNSName, std::string> negAnchors;
   map<DNSName, RecZoneToCache::Config> ztcConfigs;
   std::map<QType, std::pair<std::set<QType>, AdditionalMode>> allowAdditionalQTypes;
