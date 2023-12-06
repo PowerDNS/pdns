@@ -27,6 +27,26 @@ pub struct AuthZone {
     file: String,
 }
 
+// A single trust anchor
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct TrustAnchor {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    dsrecords: Vec<String>,
+}
+
+// A single negative trust anchor
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct NegativeTrustAnchor {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    reason: String,
+}
+
 // A struct holding bot a vector of forward zones and a vector o auth zones, used by REST API code
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -47,6 +67,8 @@ struct Value {
     vec_string_val: Vec<String>,
     vec_forwardzone_val: Vec<ForwardZone>,
     vec_authzone_val: Vec<AuthZone>,
+    vec_trustanchor_val: Vec<TrustAnchor>,
+    vec_negativetrustanchor_val: Vec<NegativeTrustAnchor>,
 }
 
 struct OldStyle {
@@ -92,6 +114,8 @@ extern "Rust" {
     // The validate function bewlo are "hand-crafted" as their structs afre mnot generated
     fn validate(self: &AuthZone, field: &str) -> Result<()>;
     fn validate(self: &ForwardZone, field: &str) -> Result<()>;
+    fn validate(self: &TrustAnchor, field: &str) -> Result<()>;
+    fn validate(self: &NegativeTrustAnchor, field: &str) -> Result<()>;
     fn validate(self: &ApiZones, field: &str) -> Result<()>;
 
     // Helper functions to call the proper validate function on vectors of various kinds
@@ -106,5 +130,7 @@ extern "Rust" {
     fn api_add_auth_zone(file: &str, authzone: AuthZone) -> Result<()>;
     fn api_add_forward_zone(file: &str, forwardzone: ForwardZone) -> Result<()>;
     fn api_add_forward_zones(file: &str, forwardzones: &mut Vec<ForwardZone>) -> Result<()>;
+    fn validate_trustanchors(field: &str, vec: &Vec<TrustAnchor>) -> Result<()>;
+    fn validate_negativetrustanchors(field: &str, vec: &Vec<NegativeTrustAnchor>) -> Result<()>;
     fn api_delete_zone(file: &str, zone: &str) -> Result<()>;
 }

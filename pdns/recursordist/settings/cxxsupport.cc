@@ -518,7 +518,7 @@ static void processLine(const std::string& arg, FieldMap& map, bool mainFile)
   ::rust::String section;
   ::rust::String fieldname;
   ::rust::String type_name;
-  pdns::rust::settings::rec::Value rustvalue = {false, 0, 0.0, "", {}, {}, {}};
+  pdns::rust::settings::rec::Value rustvalue = {false, 0, 0.0, "", {}, {}, {}, {}, {}};
   if (pdns::settings::rec::oldKVToBridgeStruct(var, val, section, fieldname, type_name, rustvalue)) {
     auto overriding = !mainFile && !incremental && !simpleRustType(type_name);
     auto [existing, inserted] = map.emplace(std::pair{std::pair{section, fieldname}, pdns::rust::settings::rec::OldStyle{section, fieldname, var, std::move(type_name), rustvalue, overriding}});
@@ -618,7 +618,7 @@ std::string pdns::settings::rec::defaultsToYaml()
     ::rust::String section;
     ::rust::String fieldname;
     ::rust::String type_name;
-    pdns::rust::settings::rec::Value rustvalue{false, 0, 0.0, "", {}, {}, {}};
+    pdns::rust::settings::rec::Value rustvalue{false, 0, 0.0, "", {}, {}, {}, {}, {}};
     string name = var;
     string val = arg().getDefault(var);
     if (pdns::settings::rec::oldKVToBridgeStruct(name, val, section, fieldname, type_name, rustvalue)) {

@@ -39,12 +39,13 @@
 #   default: default value, use 'true' and 'false' for Booleans
 #   help: short help text
 #   doc: the docs text will be put here
-#   doc-rst: optional .rst annotations, typically used for ..version_added/changed::
+#   doc-rst: optional .rst annotations
 #   doc-new: optional docs text specific to YAML format, e.g. not talking about comma separated
 #            lists and giving YAML examples. (optional)
-#   skip-yamL: optional if this key is present, the field wil be skipped in the new style settings.
+#   skip-yaml: optional if this key is present, the field will be skipped in the new style settings.
 #            Use for deprecated settings, the generated code will use deprecated map from arg()
 #            to handle old names when converting .conf to .yml
+#   skip-old: optional if this key is present, the field will be skipped in the old style settings.
 #   versionadded: string or list of strings
 #
 # The above struct will generate in cxxsettings-generated.cc:
@@ -94,12 +95,17 @@ class LType(Enum):
     Command = auto()
     Double = auto()
     ListAuthZones = auto()
+    ListForwardZones = auto()
+    ListNegativeTrustAnchors = auto()
     ListSocketAddresses = auto()
     ListStrings = auto()
     ListSubnets = auto()
-    ListForwardZones = auto()
+    ListTrustAnchors = auto()
     String = auto()
     Uint64 = auto()
+
+listOfStringTypes = (LType.ListSocketAddresses,  LType.ListStrings, LType.ListSubnets)
+listOfStructuredTypes = (LType.ListAuthZones, LType.ListForwardZones, LType.ListTrustAnchors, LType.ListNegativeTrustAnchors)
 
 def get_olddoc_typename(typ):
     """Given a type from table.py, return the old-style type name"""
@@ -143,6 +149,10 @@ def get_newdoc_typename(typ):
         return 'Sequence of `Forward Zone`_'
     if typ == LType.ListAuthZones:
         return 'Sequence of `Auth Zone`_'
+    if typ == LType.ListTrustAnchors:
+        return 'Sequence of `TrustAnchors`_'
+    if typ == LType.ListNegativeTrustAnchors:
+        return 'Sequence of `NegativeTrustAnchors`_'
     return 'Unknown' + str(typ)
 
 def get_default_olddoc_value(typ, val):
@@ -179,6 +189,13 @@ def get_default_newdoc_value(typ, val):
         ret = ''
     return '``[' + ret + ']``'
 
+def list_to_base_type(typ):
+    typeName = typ.name
+    if typeName.startswith('List') and typeName.endswith('s'):
+        baseName = typeName[4:len(typeName) - 1]
+        return baseName
+    return 'Unknown: ' + typeName
+
 def get_rust_type(typ):
     """Determine which Rust type is used for a logical type"""
     if typ == LType.Bool:
@@ -189,17 +206,15 @@ def get_rust_type(typ):
         return 'f64'
     if typ == LType.String:
         return 'String'
+    # These vectors map to Vec<String>
     if typ == LType.ListSocketAddresses:
         return 'Vec<String>'
     if typ == LType.ListSubnets:
         return 'Vec<String>'
     if typ == LType.ListStrings:
         return 'Vec<String>'
-    if typ == LType.ListForwardZones:
-        return 'Vec<ForwardZone>'
-    if typ == LType.ListAuthZones:
-        return 'Vec<AuthZone>'
-    return 'Unknown' + str(typ)
+    # These vectors map to Vec<Type>
+    return 'Vec<' + list_to_base_type(typ) + '>'
 
 def quote(arg):
     """Return a quoted string"""
@@ -236,6 +251,8 @@ def gen_cxx_oldstylesettingstobridgestruct(file, entries):
         if entry['type'] == LType.Command:
             continue
         if 'skip-yaml' in entry:
+            continue
+        if 'skip-old' in entry:
             continue
         rust_type = get_rust_type(entry['type'])
         name = entry['name']
@@ -275,6 +292,8 @@ def gen_cxx_oldkvtobridgestruct(file, entries):
         if entry['type'] == LType.Command:
             continue
         if 'skip-yaml' in entry:
+            continue
+        if 'skip-old' in entry:
             continue
         rust_type = get_rust_type(entry['type'])
         extra = ''
@@ -322,6 +341,8 @@ def gen_cxx_brigestructtoldstylesettings(file, entries):
             continue
         if 'skip-yaml' in entry:
             continue
+        if 'skip-old' in entry:
+            continue
         section = entry['section'].lower()
         name = entry['name']
         oldname = entry['oldname']
@@ -353,26 +374,13 @@ def is_value_rust_default(typ, value):
         return value == ''
     return False
 
-def gen_rust_forwardzonevec_default_functions(name):
-    """Generate Rust code for the default handling of a vector for ForwardZones"""
+def gen_rust_vec_default_functions(name, typeName):
+    """Generate Rust code for the default handling of a vector for typeName"""
     ret = f'// DEFAULT HANDLING for {name}\n'
-    ret += f'fn default_value_{name}() -> Vec<recsettings::ForwardZone> {{\n'
+    ret += f'fn default_value_{name}() -> Vec<recsettings::{typeName}> {{\n'
     ret += '    Vec::new()\n'
     ret += '}\n'
-    ret += f'fn default_value_equal_{name}(value: &Vec<recsettings::ForwardZone>)'
-    ret += '-> bool {\n'
-    ret += f'    let def = default_value_{name}();\n'
-    ret += '    &def == value\n'
-    ret += '}\n\n'
-    return ret
-
-def gen_rust_authzonevec_default_functions(name):
-    """Generate Rust code for the default handling of a vector for AuthZones"""
-    ret = f'// DEFAULT HANDLING for {name}\n'
-    ret += f'fn default_value_{name}() -> Vec<recsettings::AuthZone> {{\n'
-    ret += '    Vec::new()\n'
-    ret += '}\n'
-    ret += f'fn default_value_equal_{name}(value: &Vec<recsettings::AuthZone>)'
+    ret += f'fn default_value_equal_{name}(value: &Vec<recsettings::{typeName}>)'
     ret += '-> bool {\n'
     ret += f'    let def = default_value_{name}();\n'
     ret += '    &def == value\n'
@@ -394,7 +402,7 @@ def gen_rust_stringvec_default_functions(entry, name):
     parts = re.split('[ \t,]+', entry['default'])
     if len(parts) > 0:
         ret += '    vec![\n'
-        for part in  parts:
+        for part in parts:
             if part == '':
                 continue
             ret += f'        String::from({quote(part)}),\n'
@@ -410,12 +418,11 @@ def gen_rust_stringvec_default_functions(entry, name):
 
 def gen_rust_default_functions(entry, name, rust_type):
     """Generate Rust code for the default handling"""
-    if entry['type'] in (LType.ListSocketAddresses, LType.ListSubnets, LType.ListStrings):
+    if entry['type'] in listOfStringTypes:
         return gen_rust_stringvec_default_functions(entry, name)
-    if entry['type'] == LType.ListForwardZones:
-        return gen_rust_forwardzonevec_default_functions(name)
-    if entry['type'] == LType.ListAuthZones:
-        return gen_rust_authzonevec_default_functions(name)
+    if entry['type'] in listOfStructuredTypes:
+        baseName = list_to_base_type(entry['type'])
+        return gen_rust_vec_default_functions(name, baseName)
     ret = f'// DEFAULT HANDLING for {name}\n'
     ret += f'fn default_value_{name}() -> {rust_type} {{\n'
     defvalue = entry['default']
@@ -501,9 +508,7 @@ def write_validator(file, section, entries):
             validator = 'validate_subnet'
         elif typ == LType.ListSocketAddresses:
             validator = 'validate_socket_address'
-        elif typ == LType.ListForwardZones:
-            validator = '|field, element| element.validate(field)'
-        elif typ == LType.ListAuthZones:
+        elif typ in listOfStructuredTypes:
             validator = '|field, element| element.validate(field)'
         else:
             continue
@@ -637,6 +642,8 @@ def gen_oldstyle_docs(entries):
             if entry['type'] == LType.Command:
                 continue
             if entry['doc'].strip() == 'SKIP':
+                continue
+            if 'skip-old' in entry:
                 continue
             oldname = entry['oldname']
             section = entry['section']
