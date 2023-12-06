@@ -2894,7 +2894,7 @@ static void recursorThread()
   }
 }
 
-static pair<int, bool> doYamlConfig(Logr::log_t /* startupLog */, int argc, char* argv[]) // NOLINT: Posix API
+static pair<int, bool> doYamlConfig(Logr::log_t startupLog, int argc, char* argv[]) // NOLINT: Posix API
 {
   if (!::arg().mustDo("config")) {
     return {0, false};
@@ -2904,6 +2904,31 @@ static pair<int, bool> doYamlConfig(Logr::log_t /* startupLog */, int argc, char
     ::arg().parse(argc, argv);
     pdns::rust::settings::rec::Recursorsettings settings;
     pdns::settings::rec::oldStyleSettingsToBridgeStruct(settings);
+    luaConfigDelayedThreads delayedLuaThreads;
+    try {
+      ProxyMapping proxyMapping;
+      loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
+    }
+    catch (PDNSException& e) {
+      SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
+           startupLog->error(Logr::Error, e.reason, "Cannot load Lua configuration"));
+    }
+    auto luaConfig = g_luaconfs.getLocal();
+    settings.dnssec.trustanchorfile = luaConfig->trustAnchorFileInfo.fname;
+    settings.dnssec.trustanchorfile_interval = luaConfig->trustAnchorFileInfo.interval;
+    for (const auto& anchors : luaConfig->dsAnchors) {
+      rust::Vec<rust::String> dsRecords;
+      for (const auto& dsRecord : anchors.second) {
+        dsRecords.emplace_back(dsRecord.getZoneRepresentation());
+      }
+      pdns::rust::settings::rec::TrustAnchor trustAnchor{anchors.first.toString(), dsRecords};
+      settings.dnssec.trustanchors.emplace_back(trustAnchor);
+    }
+    for (const auto& anchors : luaConfig->negAnchors) {
+      pdns::rust::settings::rec::NegativeTrustAnchor negtrustAnchor{anchors.first.toString(), anchors.second};
+      settings.dnssec.negative_trustanchors.emplace_back(negtrustAnchor);
+    }
+
     auto yaml = settings.to_yaml_string();
     cout << yaml << endl;
   }

@@ -3187,6 +3187,54 @@ If set to zero (the default), the value :ref:`setting-system-resolver-ttl` is us
 Warn on potential self-resolve.
 If this check draws the wrong conclusion, you can disable it.
 ''',
-    'versionadded': '5.1.0'
+        'versionadded': '5.1.0'
+    },
+    {
+        'name' : 'trustanchors',
+        'section' : 'dnssec',
+        'type' : LType.ListTrustAnchors,
+        'default' : '',
+        'help' : 'XXX',
+        'doc' : ''',
+XXX
+        ''',
+        'skip-old' : True,
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'negative_trustanchors',
+        'section' : 'dnssec',
+        'type' : LType.ListNegativeTrustAnchors,
+        'default' : '',
+        'help' : 'XXX',
+        'doc' : ''',
+XXX
+        ''',
+        'skip-old' : True,
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'trustanchorfile',
+        'section' : 'dnssec',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'XXX',
+        'doc' : ''',
+        XXX
+        ''',
+        'skip-old' : True,
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'trustanchorfile_interval',
+        'section' : 'dnssec',
+        'type' : LType.Uint64,
+        'default' : '24',
+        'help' : 'XXX',
+        'doc' : ''',
+XXX
+        ''',
+        'skip-old' : True,
+        'versionadded': '5.1.0',
     },
 ]

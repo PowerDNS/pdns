@@ -45,6 +45,21 @@ impl Default for AuthZone {
     }
 }
 
+impl Default for TrustAnchor {
+    fn default() -> Self {
+        let deserialized: TrustAnchor = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+impl Default for NegativeTrustAnchor {
+    fn default() -> Self {
+        let deserialized: NegativeTrustAnchor = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+
 impl Default for ApiZones {
     fn default() -> Self {
         let deserialized: ApiZones = serde_yaml::from_str("").unwrap();
@@ -232,6 +247,48 @@ impl AuthZone {
     }
 }
 
+impl TrustAnchor {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.dsrecords {
+            seq.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        let mut map = serde_yaml::Mapping::new();
+        map.insert(
+            serde_yaml::Value::String("name".to_owned()),
+            serde_yaml::Value::String(self.name.to_owned()),
+        );
+        map.insert(
+            serde_yaml::Value::String("dsrecord".to_owned()),
+            serde_yaml::Value::Sequence(seq),
+        );
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl NegativeTrustAnchor {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        map.insert(
+            serde_yaml::Value::String("name".to_owned()),
+            serde_yaml::Value::String(self.name.to_owned()),
+        );
+        map.insert(
+            serde_yaml::Value::String("reason".to_owned()),
+            serde_yaml::Value::String(self.reason.to_owned()),
+        );
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
 #[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))
@@ -239,6 +296,22 @@ pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), Valid
 
 #[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_forward_zones(field: &str, vec: &Vec<ForwardZone>) -> Result<(), ValidationError> {
+    validate_vec(field, vec, |field, element| element.validate(field))
+}
+
+#[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
+pub fn validate_trustanchors(
+    field: &str,
+    vec: &Vec<TrustAnchor>,
+) -> Result<(), ValidationError> {
+    validate_vec(field, vec, |field, element| element.validate(field))
+}
+
+#[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
+pub fn validate_negativetrustanchors(
+    field: &str,
+    vec: &Vec<NegativeTrustAnchor>,
+) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))
 }
 
@@ -370,9 +443,21 @@ pub fn map_to_yaml_string(vec: &Vec<OldStyle>) -> Result<String, serde_yaml::Err
                         }
                         serde_yaml::Value::Sequence(seq)
                     }
-                    other => serde_yaml::Value::String(
-                        "map_to_yaml_string: Unknown type: ".to_owned() + other,
-                    ),
+                    "Vec<TrustAnchor>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_trustanchor_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<NegativeTrustAnchor>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_negativetrustanchor_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    other => serde_yaml::Value::String("map_to_yaml_string: Unknown type: ".to_owned() + other),
                 };
                 if entry.overriding {
                     let tagged_value = Box::new(serde_yaml::value::TaggedValue {
