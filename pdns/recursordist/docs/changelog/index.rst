@@ -3,6 +3,8 @@ Changelogs
 
 The changelogs for the recursor are split between release trains.
 
+Before upgrading, it is advised to read the :doc:`../upgrade`.
+
 .. toctree::
     :maxdepth: 2
 
