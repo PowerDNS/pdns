@@ -1299,17 +1299,36 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNS
     nodata=true;
   }
   else {
-    for(auto& rr: rrset) {
+    // see if we have a CNAME.
+    for (auto& rr: rrset) {
       rr.wildcardname = rr.dr.d_name;
-      rr.dr.d_name=bestmatch=target;
+      rr.dr.d_name = bestmatch = target;
+      rr.dr.d_place = DNSResourceRecord::ANSWER;
 
-      if(rr.dr.d_type == QType::CNAME)  {
-        retargeted=true;
-        target=getRR<CNAMERecordContent>(rr.dr)->getTarget();
+      if (rr.dr.d_type == QType::CNAME) {
+        retargeted = true;
+        break;
       }
+    }
 
-      rr.dr.d_place=DNSResourceRecord::ANSWER;
-      r->addRecord(std::move(rr));
+    if (retargeted) {
+      // Found a CNAME in rrset. Put ONLY the (first) record into the answer packet.
+      // Mixing a CNAME with anything else is forbidden.
+      DLOG(g_log<<"Wildcard found CNAME, bestmatch="<<bestmatch.toLogString()<<", target="<<target.toLogString()<<endl);
+      for (auto& rr: rrset) {
+        if (rr.dr.d_type == QType::CNAME) {
+          target = getRR<CNAMERecordContent>(rr.dr)->getTarget();
+          DLOG(g_log<<"Wildcard CNAME changed target to: "<<target.toLogString()<<endl);
+          r->addRecord(std::move(rr));
+          break;
+        }
+      }
+    } else {
+      // Put all RRsets into the answer packet.
+      DLOG(g_log<<"Wildcard found normal records, bestmatch="<<bestmatch.toLogString()<<", target="<<target.toLogString()<<endl);
+      for (auto& rr: rrset) {
+        r->addRecord(std::move(rr));
+      }
     }
   }
   if(d_dnssec && !nodata) {
