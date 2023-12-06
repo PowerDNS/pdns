@@ -349,7 +349,7 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         ++d_entriesCount;
       }
       else {
-        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, realOwner, next, record.d_ttl});
+        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, std::move(realOwner), next, record.d_ttl});
       }
     }
     else {
@@ -358,7 +358,7 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         ++d_entriesCount;
       }
       else {
-        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, owner, next, record.d_ttl});
+        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, owner, std::move(next), record.d_ttl});
       }
     }
   }
@@ -507,8 +507,9 @@ bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName&
     return false;
   }
 
-  addToRRSet(now, wcSet, wcSignatures, name, doDNSSEC, ret, DNSResourceRecord::ANSWER);
+  addToRRSet(now, wcSet, std::move(wcSignatures), name, doDNSSEC, ret, DNSResourceRecord::ANSWER);
   /* no need for closest encloser proof, the wildcard is there */
+  // coverity[store_truncates_time_t]
   addRecordToRRSet(nextCloser.d_owner, QType::NSEC3, nextCloser.d_ttd - now, nextCloser.d_record, nextCloser.d_signatures, doDNSSEC, ret);
   /* and of course we won't deny the wildcard either */
 
@@ -530,7 +531,8 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
     return false;
   }
 
-  addToRRSet(now, wcSet, wcSignatures, name, doDNSSEC, ret, DNSResourceRecord::ANSWER);
+  addToRRSet(now, wcSet, std::move(wcSignatures), name, doDNSSEC, ret, DNSResourceRecord::ANSWER);
+  // coverity[store_truncates_time_t]
   addRecordToRRSet(nsec.d_owner, QType::NSEC, nsec.d_ttd - now, nsec.d_record, nsec.d_signatures, doDNSSEC, ret);
 
   VLOG(log, name << ": Synthesized valid answer from NSECs and wildcard!" << endl);
@@ -756,6 +758,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
     addRecordToRRSet(nextCloserEntry.d_owner, QType::NSEC3, nextCloserEntry.d_ttd - now, nextCloserEntry.d_record, nextCloserEntry.d_signatures, doDNSSEC, ret);
   }
   if (wcEntry.d_owner != closestNSEC3.d_owner && wcEntry.d_owner != nextCloserEntry.d_owner) {
+    // coverity[store_truncates_time_t]
     addRecordToRRSet(wcEntry.d_owner, QType::NSEC3, wcEntry.d_ttd - now, wcEntry.d_record, wcEntry.d_signatures, doDNSSEC, ret);
   }
 
@@ -884,10 +887,11 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
 
   ret.reserve(ret.size() + soaSet.size() + soaSignatures.size() + /* NSEC */ 1 + entry.d_signatures.size() + (needWildcard ? (/* NSEC */ 1 + wcEntry.d_signatures.size()) : 0));
 
-  addToRRSet(now, soaSet, soaSignatures, zone, doDNSSEC, ret);
+  addToRRSet(now, soaSet, std::move(soaSignatures), zone, doDNSSEC, ret);
   addRecordToRRSet(entry.d_owner, QType::NSEC, entry.d_ttd - now, entry.d_record, entry.d_signatures, doDNSSEC, ret);
 
   if (needWildcard) {
+    // coverity[store_truncates_time_t]
     addRecordToRRSet(wcEntry.d_owner, QType::NSEC, wcEntry.d_ttd - now, wcEntry.d_record, wcEntry.d_signatures, doDNSSEC, ret);
   }
 

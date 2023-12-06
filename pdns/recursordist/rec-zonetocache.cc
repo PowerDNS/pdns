@@ -152,6 +152,7 @@ pdns::ZoneMD::Result ZoneData::getByAXFR(const RecZoneToCache::Config& config, p
   time_t axfrStart = time(nullptr);
   time_t axfrNow = time(nullptr);
 
+  // coverity[store_truncates_time_t]
   while (axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow)) != 0) {
     for (auto& dnsRecord : chunk) {
       if (config.d_zonemd != pdns::ZoneMD::Config::Ignore) {

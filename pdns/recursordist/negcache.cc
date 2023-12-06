@@ -65,7 +65,7 @@ bool NegCache::getRootNXTrust(const DNSName& qname, const struct timeval& now, N
   // An 'ENT' QType entry, used as "whole name" in the neg-cache context.
   auto exists = get(lastLabel, QType::ENT, now, found, true, serveStale, refresh);
   if (exists && found.d_auth.isRoot()) {
-    negEntry = found;
+    negEntry = std::move(found);
     return true;
   }
   return false;

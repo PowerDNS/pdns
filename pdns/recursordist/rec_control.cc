@@ -222,7 +222,7 @@ static RecursorControlChannel::Answer showYAML(const std::string& path)
     msg += showAllowYAML(mainsettings.incoming.allow_from_file, "incoming", "allow_from_file", pdns::rust::settings::rec::validate_allow_from);
     msg += showAllowYAML(mainsettings.incoming.allow_notify_from_file, "incoming", "allow_notify_from_file", pdns::rust::settings::rec::validate_allow_from);
     msg += showAllowYAML(mainsettings.incoming.allow_notify_for_file, "incoming", "allow_notify_for_file", pdns::rust::settings::rec::validate_allow_for);
-    return {0, msg};
+    return {0, std::move(msg)};
   }
   catch (const rust::Error& err) {
     return {1, std::string(err.what())};
@@ -343,7 +343,7 @@ int main(int argc, char** argv)
     auto timeout = arg().asNum("timeout");
     RecursorControlChannel rccS;
     rccS.connect(arg()["socket-dir"], sockname);
-    rccS.send(rccS.d_fd, {0, command}, timeout, fd);
+    rccS.send(rccS.d_fd, {0, std::move(command)}, timeout, fd);
 
     auto receive = rccS.recv(rccS.d_fd, timeout);
     if (receive.d_ret != 0) {

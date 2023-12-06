@@ -335,7 +335,7 @@ static void processApiZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, shared
 
 static void processForwardZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, shared_ptr<notifyset_t>& newSet, Logr::log_t log)
 {
-  const auto filename = ::arg()["forward-zones-file"];
+  const auto& filename = ::arg()["forward-zones-file"];
   if (filename.empty()) {
     return;
   }
@@ -493,7 +493,7 @@ static void processAllowNotifyFor(shared_ptr<notifyset_t>& newSet)
 
 static void processAllowNotifyForFile(shared_ptr<notifyset_t>& newSet, Logr::log_t log)
 {
-  const auto filename = ::arg()["allow-notify-for-file"];
+  const auto& filename = ::arg()["allow-notify-for-file"];
   if (filename.empty()) {
     return;
   }

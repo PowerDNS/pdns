@@ -123,6 +123,7 @@ bool RecursorPacketCache::checkResponseMatches(MapCombo::LockedContent& shard, s
     }
 
     if (now < iter->d_ttd) { // it is right, it is fresh!
+      // coverity[store_truncates_time_t]
       *age = static_cast<uint32_t>(now - iter->d_creation);
       // we know ttl is > 0
       auto ttl = static_cast<uint32_t>(iter->d_ttd - now);

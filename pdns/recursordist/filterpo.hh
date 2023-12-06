@@ -143,7 +143,7 @@ public:
         newZoneData = std::make_shared<PolicyZoneData>();
       }
       newZoneData->d_name = name;
-      d_zoneData = newZoneData;
+      d_zoneData = std::move(newZoneData);
     }
 
     const std::unordered_set<std::string>& getTags() const
@@ -426,7 +426,7 @@ public:
     if (newZone) {
       assureZones(zoneIdx);
       newZone->setPriority(zoneIdx);
-      d_zones[zoneIdx] = newZone;
+      d_zones[zoneIdx] = std::move(newZone);
     }
   }
 

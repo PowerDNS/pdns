@@ -2359,9 +2359,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   if (t_protobufServers.servers || t_outgoingProtobufServers.servers) {
     comboWriter->d_uuid = uniqueId;
   }
-  comboWriter->d_requestorId = requestorId;
-  comboWriter->d_deviceId = deviceId;
-  comboWriter->d_deviceName = deviceName;
+  comboWriter->d_requestorId = std::move(requestorId);
+  comboWriter->d_deviceId = std::move(deviceId);
+  comboWriter->d_deviceName = std::move(deviceName);
   comboWriter->d_kernelTimestamp = tval;
   comboWriter->d_proxyProtocolValues = std::move(proxyProtocolValues);
   comboWriter->d_routingTag = std::move(routingTag);

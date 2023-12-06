@@ -134,7 +134,7 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
     }
   }
   if (have.count("tags") != 0) {
-    const auto tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have["tags"]);
+    const auto& tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have["tags"]);
     std::unordered_set<std::string> tags;
     for (const auto& tag : tagsTable) {
       tags.insert(tag.second);
@@ -466,7 +466,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
            log->info(Logr::Info, "Loading RPZ from file"));
       zone->setName(polName);
       loadRPZFromFile(filename, zone, defpol, defpolOverrideLocal, maxTTL);
-      lci.dfe.addZone(zone);
+      lci.dfe.addZone(std::move(zone));
       SLOG(g_log << Logger::Warning << "Done loading RPZ from file '" << filename << "'" << endl,
            log->info(Logr::Info,  "Done loading RPZ from file"));
     }
@@ -560,7 +560,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         }
       }
 
-      lci.ztcConfigs[validZoneName] = conf;
+      lci.ztcConfigs[validZoneName] = std::move(conf);
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << "Problem configuring zoneToCache for zone '" << zoneName << "': " << e.what() << endl,

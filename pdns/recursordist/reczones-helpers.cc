@@ -133,6 +133,7 @@ void putDefaultHintsIntoCache(time_t now, std::vector<DNSRecord>& nsvec)
   arr.d_type = QType::A;
   aaaarr.d_type = QType::AAAA;
   nsrr.d_type = QType::NS;
+  // coverity[store_truncates_time_t]
   arr.d_ttl = aaaarr.d_ttl = nsrr.d_ttl = now + 3600000;
 
   string templ = "a.root-servers.net.";

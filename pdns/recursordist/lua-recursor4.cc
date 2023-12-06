@@ -293,7 +293,7 @@ void RecursorLua4::postPrepareContext()
       return ret;
     });
 
-  d_lw->registerFunction<const ProxyProtocolValue, std::string()>("getContent", [](const ProxyProtocolValue& value) { return value.content; });
+  d_lw->registerFunction<const ProxyProtocolValue, std::string()>("getContent", [](const ProxyProtocolValue& value) -> std::string { return value.content; });
   d_lw->registerFunction<const ProxyProtocolValue, uint8_t()>("getType", [](const ProxyProtocolValue& value) { return value.type; });
 
   d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.setContent(DNSRecordContent::make(dr.d_type, QClass::IN, newContent)); });
@@ -637,7 +637,7 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
 
     auto ret = d_gettag(remote, ednssubnet, local, qname, qtype, ednsOptions, tcp, proxyProtocolValuesMap);
 
-    if (policyTags) {
+    if (policyTags != nullptr) {
       const auto& tags = std::get<1>(ret);
       if (tags) {
         policyTags->reserve(policyTags->size() + tags->size());
@@ -646,25 +646,25 @@ unsigned int RecursorLua4::gettag(const ComboAddress& remote, const Netmask& edn
         }
       }
     }
-    const auto dataret = std::get<2>(ret);
+    const auto& dataret = std::get<2>(ret);
     if (dataret) {
       data = *dataret;
     }
-    const auto reqIdret = std::get<3>(ret);
+    const auto& reqIdret = std::get<3>(ret);
     if (reqIdret) {
       requestorId = *reqIdret;
     }
-    const auto deviceIdret = std::get<4>(ret);
+    const auto& deviceIdret = std::get<4>(ret);
     if (deviceIdret) {
       deviceId = *deviceIdret;
     }
 
-    const auto deviceNameret = std::get<5>(ret);
+    const auto& deviceNameret = std::get<5>(ret);
     if (deviceNameret) {
       deviceName = *deviceNameret;
     }
 
-    const auto routingTarget = std::get<6>(ret);
+    const auto& routingTarget = std::get<6>(ret);
     if (routingTarget) {
       routingTag = *routingTarget;
     }
@@ -745,7 +745,8 @@ bool RecursorLua4::genhook(const luacall_t& func, DNSQuestion& dq, int& ret) con
       else if (dq.followupFunction == "udpQueryResponse") {
         PacketBuffer p = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);
         dq.udpAnswer = std::string(reinterpret_cast<const char*>(p.data()), p.size());
-        auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(0);
+        // coverity[auto_causes_copy] not copying produces a dangling ref
+        const auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>&>(dq.udpCallback).get_value_or(nullptr);
         if (!cbFunc) {
           SLOG(g_log << Logger::Error << "Attempted callback for Lua UDP Query/Response which could not be found" << endl,
                g_slog->withName("lua")->info(Logr::Error, "Attempted callback for Lua UDP Query/Response which could not be found"));

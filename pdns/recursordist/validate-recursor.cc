@@ -75,7 +75,7 @@ bool updateTrustAnchorsFromFile(const std::string& fname, map<DNSName, dsmap_t>&
     }
     SLOG(g_log << Logger::Info << "Read changed Trust Anchors from file, updating" << endl,
          log->info(Logr::Info, "Read changed Trust Anchors from file, updating"));
-    dsAnchors = newDSAnchors;
+    dsAnchors = std::move(newDSAnchors);
     return true;
   }
   catch (const std::exception& e) {
