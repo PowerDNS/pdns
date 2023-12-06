@@ -5,7 +5,7 @@ End of life statements
 
 We aim to have a major release every six months.
 The latest major release train receives correctness, stability and security updates by the way of minor releases.
-We support older releases with critical updates for one year after the next following major release.
+We support older releases with critical updates for one year after the following major release.
 
 Older releases are marked end of life and receive no updates at all.
 Pre-releases do not receive immediate security updates.
