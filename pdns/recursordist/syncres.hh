@@ -101,7 +101,7 @@ public:
     vState state{vState::Indeterminate};
   };
 
-  vState getDSRecords(const DNSName& zone, dsmap_t& dsMap, bool onlyTA, unsigned int depth, const string& prefix, bool bogusOnNXD = true, bool* foundCut = nullptr);
+  vState getDSRecords(const DNSName& zone, dsset_t& dsSet, bool onlyTA, unsigned int depth, const string& prefix, bool bogusOnNXD = true, bool* foundCut = nullptr);
 
   class AuthDomain
   {
@@ -671,11 +671,11 @@ private:
   dState getDenialValidationState(const NegCache::NegCacheEntry& negEntry, dState expectedState, bool referralToUnsigned, const string& prefix);
   void updateDenialValidationState(const DNSName& qname, vState& neValidationState, const DNSName& neName, vState& state, dState denialState, dState expectedState, bool isDS, unsigned int depth, const string& prefix);
   void computeNegCacheValidationStatus(const NegCache::NegCacheEntry& negEntry, const DNSName& qname, QType qtype, int res, vState& state, unsigned int depth, const string& prefix);
-  vState getTA(const DNSName& zone, dsmap_t& dsMap, const string& prefix);
+  vState getTA(const DNSName& zone, dsset_t& dsSet, const string& prefix);
   vState getValidationStatus(const DNSName& name, bool wouldBeValid, bool typeIsDS, unsigned int depth, const string& prefix);
   void updateValidationStatusInCache(const DNSName& qname, QType qtype, bool aaFlag, vState newState) const;
   void initZoneCutsFromTA(const DNSName& from, const string& prefix);
-  size_t countSupportedDS(const dsmap_t& dsmap, const string& prefix);
+  size_t countSupportedDS(const dsset_t& dsSet, const string& prefix);
 
   void handleNewTarget(const std::string& prefix, const DNSName& qname, const DNSName& newtarget, QType qtype, std::vector<DNSRecord>& ret, int& rcode, unsigned int depth, const std::vector<DNSRecord>& recordsFromAnswer, vState& state);
 

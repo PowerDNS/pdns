@@ -1106,7 +1106,7 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
   return vState::BogusNoValidRRSIG;
 }
 
-bool getTrustAnchor(const map<DNSName,dsmap_t>& anchors, const DNSName& zone, dsmap_t &res)
+bool getTrustAnchor(const map<DNSName,dsset_t>& anchors, const DNSName& zone, dsset_t &res)
 {
   const auto& iter = anchors.find(zone);
 
@@ -1130,14 +1130,14 @@ bool haveNegativeTrustAnchor(const map<DNSName,std::string>& negAnchors, const D
   return true;
 }
 
-vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog& log, pdns::validation::ValidationContext& context) // NOLINT(readability-function-cognitive-complexity): FIXME
+vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsset_t& dsset, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog& log, pdns::validation::ValidationContext& context)
 {
   /*
    * Check all DNSKEY records against all DS records and place all DNSKEY records
    * that have DS records (that we support the algo for) in the tentative key storage
    */
   uint16_t dssConsidered = 0;
-  for (const auto& dsrc : dsmap) {
+  for (const auto& dsrc : dsset) {
     if (g_maxDSsToConsider > 0 && dssConsidered > g_maxDSsToConsider) {
       VLOG(log, zone << ": We have already considered "<<std::to_string(dssConsidered)<<" DS"<<addS(dssConsidered)<<", not considering the remaining ones"<<endl;);
       return vState::BogusNoValidDNSKEY;
@@ -1260,7 +1260,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
     bool dnskeyAlgoSupported = false;
     bool dsDigestSupported = false;
 
-    for (const auto& dsrc : dsmap)
+    for (const auto& dsrc : dsset)
     {
       if (DNSCryptoKeyEngine::isAlgorithmSupported(dsrc.d_algorithm)) {
         dnskeyAlgoSupported = true;
