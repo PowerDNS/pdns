@@ -1,0 +1,3 @@
+This test relies on non-RFC-compliant data in the zone.
+We cannot import this into the tinydns data files, at
+least not with the current test setup.
