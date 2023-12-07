@@ -831,7 +831,7 @@ class TestProxyProtocolNotAllowedOnBind(DNSDistTest):
     _skipListeningOnCL = True
     _config_template = """
     -- proxy protocol payloads are not allowed on this bind address!
-    addLocal('127.0.0.1:%d', {allowProxyProtocol=false})
+    addLocal('127.0.0.1:%d', {enableProxyProtocol=false})
     setProxyProtocolACL( { "127.0.0.1/8" } )
     newServer{address="127.0.0.1:%d"}
     """

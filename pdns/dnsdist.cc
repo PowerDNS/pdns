@@ -628,10 +628,10 @@ static size_t getInitialUDPPacketBufferSize(bool expectProxyProtocol)
 static size_t getMaximumIncomingPacketSize(const ClientState& cs)
 {
   if (cs.dnscryptCtx) {
-    return getInitialUDPPacketBufferSize(cs.d_allowProxyProtocol);
+    return getInitialUDPPacketBufferSize(cs.d_enableProxyProtocol);
   }
 
-  if (!cs.d_allowProxyProtocol || g_proxyProtocolACL.empty()) {
+  if (!cs.d_enableProxyProtocol || g_proxyProtocolACL.empty()) {
     return s_udpIncomingBufferSize;
   }
 
@@ -1223,7 +1223,7 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
     return false;
   }
 
-  expectProxyProtocol = cs.d_allowProxyProtocol && expectProxyProtocolFrom(remote);
+  expectProxyProtocol = cs.d_enableProxyProtocol && expectProxyProtocolFrom(remote);
   if (!holders.acl->match(remote) && !expectProxyProtocol) {
     vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
     ++dnsdist::metrics::g_stats.aclDrops;
@@ -1848,7 +1848,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
      - we use it for self-generated responses (from rule or cache)
      but we only accept incoming payloads up to that size
   */
-  const size_t initialBufferSize = getInitialUDPPacketBufferSize(cs->d_allowProxyProtocol);
+  const size_t initialBufferSize = getInitialUDPPacketBufferSize(cs->d_enableProxyProtocol);
   const size_t maxIncomingPacketSize = getMaximumIncomingPacketSize(*cs);
 
   /* initialize the structures needed to receive our messages */

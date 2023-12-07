@@ -465,7 +465,7 @@ extern QueryCount g_qcount;
 
 struct ClientState
 {
-  ClientState(const ComboAddress& local_, bool isTCP_, bool doReusePort, int fastOpenQueue, const std::string& itfName, const std::set<int>& cpus_, bool allowProxyProtocol): cpus(cpus_), interface(itfName), local(local_), fastOpenQueueSize(fastOpenQueue), tcp(isTCP_), reuseport(doReusePort), d_allowProxyProtocol(allowProxyProtocol)
+  ClientState(const ComboAddress& local_, bool isTCP_, bool doReusePort, int fastOpenQueue, const std::string& itfName, const std::set<int>& cpus_, bool enableProxyProtocol): cpus(cpus_), interface(itfName), local(local_), fastOpenQueueSize(fastOpenQueue), tcp(isTCP_), reuseport(doReusePort), d_enableProxyProtocol(enableProxyProtocol)
   {
   }
 
@@ -511,7 +511,7 @@ struct ClientState
   bool muted{false};
   bool tcp;
   bool reuseport;
-  bool d_allowProxyProtocol{true}; // the global proxy protocol ACL still applies
+  bool d_enableProxyProtocol{true}; // the global proxy protocol ACL still applies
   bool ready{false};
 
   int getSocket() const

@@ -928,7 +928,7 @@ IOState IncomingTCPConnectionState::handleHandshake(const struct timeval& now)
     DEBUGLOG("handshake done");
     handleHandshakeDone(now);
 
-    if (d_ci.cs != nullptr && d_ci.cs->d_allowProxyProtocol && !isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
+    if (d_ci.cs != nullptr && d_ci.cs->d_enableProxyProtocol && !isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
       d_state = State::readingProxyProtocolHeader;
       d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
       d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
@@ -1074,7 +1074,7 @@ void IncomingTCPConnectionState::handleIO()
 
     try {
       if (d_state == State::starting) {
-        if (d_ci.cs != nullptr && d_ci.cs->d_allowProxyProtocol && isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
+        if (d_ci.cs != nullptr && d_ci.cs->d_enableProxyProtocol && isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
           d_state = State::readingProxyProtocolHeader;
           d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
           d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
