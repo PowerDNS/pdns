@@ -1299,9 +1299,10 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNS
     nodata=true;
   }
   else {
+    bestmatch = target;
     for(auto& rr: rrset) {
       rr.wildcardname = rr.dr.d_name;
-      rr.dr.d_name=bestmatch=target;
+      rr.dr.d_name = bestmatch;
 
       if(rr.dr.d_type == QType::CNAME)  {
         retargeted=true;
