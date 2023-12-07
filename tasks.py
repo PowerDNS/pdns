@@ -737,7 +737,7 @@ backend_regress_tests = dict(
     geoip_mmdb = ['geoip'],
 )
 
-godbc_mssql_credentials = {"username": "sa", "password": "SAsa12%%"}
+godbc_mssql_credentials = {"username": "sa", "password": "SAsa12%%-not-a-secret-password"}
 
 godbc_config = f'''
 [pdns-mssql-docker]
