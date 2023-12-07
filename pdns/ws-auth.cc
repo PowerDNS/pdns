@@ -1716,14 +1716,19 @@ static void apiServerTSIGKeyDetail(HttpRequest* req, HttpResponse* resp) {
     throw HttpMethodNotAllowedException();
 }
 
+static void apiServerAutoprimaryDetailDELETE(HttpRequest* req, HttpResponse* resp) {
+  UeberBackend B; // NOLINT(readability-identifier-length)
+  const AutoPrimary& primary{req->parameters["ip"], req->parameters["nameserver"], ""};
+  if (!B.autoPrimaryRemove(primary)) {
+     throw HttpInternalServerErrorException("Cannot find backend with autoprimary feature");
+  }
+  resp->body = "";
+  resp->status = 204;
+}
+
 static void apiServerAutoprimaryDetail(HttpRequest* req, HttpResponse* resp) {
-  UeberBackend B;
   if (req->method == "DELETE") {
-    const AutoPrimary primary(req->parameters["ip"], req->parameters["nameserver"], "");
-    if (!B.autoPrimaryRemove(primary))
-       throw HttpInternalServerErrorException("Cannot find backend with autoprimary feature");
-    resp->body = "";
-    resp->status = 204;
+    apiServerAutoprimaryDetailDELETE(req, resp);
   } else {
     throw HttpMethodNotAllowedException();
   }
