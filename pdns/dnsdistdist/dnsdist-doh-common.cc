@@ -129,7 +129,8 @@ void DOHFrontend::setup()
 
 #endif /* HAVE_DNS_OVER_HTTPS */
 
-namespace dnsdist::doh {
+namespace dnsdist::doh
+{
 std::optional<PacketBuffer> getPayloadFromPath(const std::string_view& path)
 {
   std::optional<PacketBuffer> result{std::nullopt};

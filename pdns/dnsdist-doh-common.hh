@@ -33,7 +33,8 @@
 #include "stat_t.hh"
 #include "tcpiohandler.hh"
 
-namespace dnsdist::doh {
+namespace dnsdist::doh
+{
 std::optional<PacketBuffer> getPayloadFromPath(const std::string_view& path);
 }
 

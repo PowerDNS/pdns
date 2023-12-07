@@ -2875,57 +2875,57 @@ static void startFrontends()
 {
   std::vector<ClientState*> tcpStates;
   std::vector<ClientState*> udpStates;
-  for (auto& cs : g_frontends) {
-    if (cs->dohFrontend != nullptr && cs->dohFrontend->d_library == "h2o") {
+  for (auto& clientState : g_frontends) {
+    if (clientState->dohFrontend != nullptr && clientState->dohFrontend->d_library == "h2o") {
 #ifdef HAVE_DNS_OVER_HTTPS
 #ifdef HAVE_LIBH2OEVLOOP
-      std::thread dotThreadHandle(dohThread, cs.get());
-      if (!cs->cpus.empty()) {
-        mapThreadToCPUList(dotThreadHandle.native_handle(), cs->cpus);
+      std::thread dotThreadHandle(dohThread, clientState.get());
+      if (!clientState->cpus.empty()) {
+        mapThreadToCPUList(dotThreadHandle.native_handle(), clientState->cpus);
       }
       dotThreadHandle.detach();
 #endif /* HAVE_LIBH2OEVLOOP */
 #endif /* HAVE_DNS_OVER_HTTPS */
         continue;
       }
-      if (cs->doqFrontend != nullptr) {
+      if (clientState->doqFrontend != nullptr) {
 #ifdef HAVE_DNS_OVER_QUIC
-        std::thread doqThreadHandle(doqThread, cs.get());
-        if (!cs->cpus.empty()) {
-          mapThreadToCPUList(doqThreadHandle.native_handle(), cs->cpus);
+        std::thread doqThreadHandle(doqThread, clientState.get());
+        if (!clientState->cpus.empty()) {
+          mapThreadToCPUList(doqThreadHandle.native_handle(), clientState->cpus);
         }
         doqThreadHandle.detach();
 #endif /* HAVE_DNS_OVER_QUIC */
         continue;
       }
-      if (cs->doh3Frontend != nullptr) {
+      if (clientState->doh3Frontend != nullptr) {
 #ifdef HAVE_DNS_OVER_HTTP3
-        std::thread doh3ThreadHandle(doh3Thread, cs.get());
-        if (!cs->cpus.empty()) {
-          mapThreadToCPUList(doh3ThreadHandle.native_handle(), cs->cpus);
+        std::thread doh3ThreadHandle(doh3Thread, clientState.get());
+        if (!clientState->cpus.empty()) {
+          mapThreadToCPUList(doh3ThreadHandle.native_handle(), clientState->cpus);
         }
         doh3ThreadHandle.detach();
 #endif /* HAVE_DNS_OVER_HTTP3 */
         continue;
       }
-      if (cs->udpFD >= 0) {
+      if (clientState->udpFD >= 0) {
 #ifdef USE_SINGLE_ACCEPTOR_THREAD
-        udpStates.push_back(cs.get());
+        udpStates.push_back(clientState.get());
 #else /* USE_SINGLE_ACCEPTOR_THREAD */
-        std::thread udpClientThreadHandle(udpClientThread, std::vector<ClientState*>{ cs.get() });
-        if (!cs->cpus.empty()) {
-          mapThreadToCPUList(udpClientThreadHandle.native_handle(), cs->cpus);
+        std::thread udpClientThreadHandle(udpClientThread, std::vector<ClientState*>{ clientState.get() });
+        if (!clientState->cpus.empty()) {
+          mapThreadToCPUList(udpClientThreadHandle.native_handle(), clientState->cpus);
         }
         udpClientThreadHandle.detach();
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
       }
-      else if (cs->tcpFD >= 0) {
+      else if (clientState->tcpFD >= 0) {
 #ifdef USE_SINGLE_ACCEPTOR_THREAD
-        tcpStates.push_back(cs.get());
+        tcpStates.push_back(clientState.get());
 #else /* USE_SINGLE_ACCEPTOR_THREAD */
-        std::thread tcpAcceptorThreadHandle(tcpAcceptorThread, std::vector<ClientState*>{cs.get() });
-        if (!cs->cpus.empty()) {
-          mapThreadToCPUList(tcpAcceptorThreadHandle.native_handle(), cs->cpus);
+        std::thread tcpAcceptorThreadHandle(tcpAcceptorThread, std::vector<ClientState*>{clientState.get() });
+        if (!clientState->cpus.empty()) {
+          mapThreadToCPUList(tcpAcceptorThreadHandle.native_handle(), clientState->cpus);
         }
         tcpAcceptorThreadHandle.detach();
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
