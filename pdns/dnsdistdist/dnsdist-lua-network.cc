@@ -28,9 +28,19 @@
 
 namespace dnsdist
 {
-NetworkListener::NetworkListener() :
+NetworkListener::ListenerData::ListenerData() :
   d_mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(10)))
 {
+}
+
+NetworkListener::NetworkListener() :
+  d_data(std::make_shared<ListenerData>())
+{
+}
+
+NetworkListener::~NetworkListener()
+{
+  d_data->d_exiting = true;
 }
 
 void NetworkListener::readCB(int desc, FDMultiplexer::funcparam_t& param)
@@ -74,7 +84,7 @@ void NetworkListener::readCB(int desc, FDMultiplexer::funcparam_t& param)
 
 bool NetworkListener::addUnixListeningEndpoint(const std::string& path, NetworkListener::EndpointID id, NetworkListener::NetworkDatagramCB cb)
 {
-  if (d_running == true) {
+  if (d_data->d_running == true) {
     throw std::runtime_error("NetworkListener should not be altered at runtime");
   }
 
@@ -114,36 +124,48 @@ bool NetworkListener::addUnixListeningEndpoint(const std::string& path, NetworkL
   auto cbData = std::make_shared<CBData>();
   cbData->d_endpoint = id;
   cbData->d_cb = std::move(cb);
-  d_mplexer->addReadFD(sock.getHandle(), readCB, cbData);
+  d_data->d_mplexer->addReadFD(sock.getHandle(), readCB, cbData);
 
-  d_sockets.insert({path, std::move(sock)});
+  d_data->d_sockets.insert({path, std::move(sock)});
   return true;
 }
 
-void NetworkListener::runOnce(struct timeval& now, uint32_t timeout)
+void NetworkListener::runOnce(ListenerData& data, timeval& now, uint32_t timeout)
 {
-  d_running = true;
-  if (d_sockets.empty()) {
+  if (data.d_exiting) {
+    return;
+  }
+
+  data.d_running = true;
+  if (data.d_sockets.empty()) {
     throw runtime_error("NetworkListener started with no sockets");
   }
 
-  d_mplexer->run(&now, timeout);
+  data.d_mplexer->run(&now, timeout);
 }
 
-void NetworkListener::mainThread()
+void NetworkListener::runOnce(timeval& now, uint32_t timeout)
 {
-  setThreadName("dnsdist/lua-net");
-  struct timeval now;
+  runOnce(*d_data, now, timeout);
+}
 
-  while (true) {
-    runOnce(now, -1);
+void NetworkListener::mainThread(std::shared_ptr<ListenerData>& dataArg)
+{
+  /* take our own copy of the shared_ptr so it's still alive if the NetworkListener object
+     gets destroyed while we are still running */
+  auto data = dataArg;
+  setThreadName("dnsdist/lua-net");
+  timeval now{};
+
+  while (!data->d_exiting) {
+    runOnce(*data, now, -1);
   }
 }
 
 void NetworkListener::start()
 {
   std::thread main = std::thread([this] {
-    mainThread();
+    mainThread(d_data);
   });
   main.detach();
 }
