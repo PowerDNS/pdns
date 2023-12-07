@@ -746,7 +746,7 @@ bool RecursorLua4::genhook(const luacall_t& func, DNSQuestion& dq, int& ret) con
         PacketBuffer p = GenUDPQueryResponse(dq.udpQueryDest, dq.udpQuery);
         dq.udpAnswer = std::string(reinterpret_cast<const char*>(p.data()), p.size());
         // coverity[auto_causes_copy] not copying produces a dangling ref
-        const auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>&>(dq.udpCallback).get_value_or(nullptr);
+        const auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dq.udpCallback).get_value_or(nullptr);
         if (!cbFunc) {
           SLOG(g_log << Logger::Error << "Attempted callback for Lua UDP Query/Response which could not be found" << endl,
                g_slog->withName("lua")->info(Logr::Error, "Attempted callback for Lua UDP Query/Response which could not be found"));
