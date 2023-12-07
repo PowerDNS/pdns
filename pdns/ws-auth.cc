@@ -1785,9 +1785,9 @@ static void apiServerAutoprimaries(HttpRequest* req, HttpResponse* resp) {
 
 // create new zone
 static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp) {
-  UeberBackend B;
-  DNSSECKeeper dk(&B);
-  DomainInfo di;
+  UeberBackend B; // NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(&B); // NOLINT(readability-identifier-length)
+  DomainInfo di; // NOLINT(readability-identifier-length)
   const auto& document = req->json();
   DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
   apiCheckNameAllowedCharacters(zonename.toString());
@@ -1816,7 +1816,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp) {
     throw ApiException("You cannot give rrsets AND zone data as text");
   }
 
-  auto nameservers = document["nameservers"];
+  const auto& nameservers = document["nameservers"];
   if (!nameservers.is_null() && !nameservers.is_array() && zonekind != DomainInfo::Secondary && zonekind != DomainInfo::Consumer) {
     throw ApiException("Nameservers is not a list");
   }
@@ -1849,15 +1849,15 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp) {
       gatherRecordsFromZone(zonestring, new_records, zonename);
     }
   }
-  catch (const JsonException& e) {
-    throw ApiException("New RRsets are invalid: " + string(e.what()));
+  catch (const JsonException& exc) {
+    throw ApiException("New RRsets are invalid: " + string(exc.what()));
   }
 
   if (zonekind == DomainInfo::Consumer && !new_records.empty()) {
     throw ApiException("Zone data MUST NOT be given for Consumer zones");
   }
 
-  for(auto& rr : new_records) {
+  for(auto& rr : new_records) { // NOLINT(readability-identifier-length)
     rr.qname.makeUsLowerCase();
     if (!rr.qname.isPartOf(zonename) && rr.qname != zonename) {
       throw ApiException("RRset "+rr.qname.toString()+" IN "+rr.qtype.toString()+": Name is out of zone");
@@ -1883,7 +1883,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp) {
     // synthesize a SOA record so the zone "really" exists
     string soa = ::arg()["default-soa-content"];
     boost::replace_all(soa, "@", zonename.toStringNoDot());
-    SOAData sd;
+    SOAData sd; // NOLINT(readability-identifier-length)
     fillSOAData(soa, sd);
     sd.serial=document["serial"].int_value();
     autorr.qtype = QType::SOA;
@@ -1945,13 +1945,13 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp) {
   // will be overridden by updateDomainSettingsFromDocument, if given in document.
   di.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
 
-  for(auto& rr : new_records) {
+  for(auto& rr : new_records) { // NOLINT(readability-identifier-length)
     rr.domain_id = static_cast<int>(di.id);
     di.backend->feedRecord(rr, DNSName());
   }
-  for(Comment& c : new_comments) {
-    c.domain_id = static_cast<int>(di.id);
-    if (!di.backend->feedComment(c)) {
+  for(Comment& comment : new_comments) {
+    comment.domain_id = static_cast<int>(di.id);
+    if (!di.backend->feedComment(comment)) {
       throw ApiException("Hosting backend does not support editing comments.");
     }
   }
@@ -1975,8 +1975,8 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp) {
 
 // list known zones
 static void apiServerZonesGET(HttpRequest* req, HttpResponse* resp) {
-  UeberBackend B;
-  DNSSECKeeper dk(&B);
+  UeberBackend B; // NOLINT(readability-identifier-length)
+  DNSSECKeeper dk(&B); // NOLINT(readability-identifier-length)
   vector<DomainInfo> domains;
 
   if (req->getvars.count("zone")) {
@@ -1984,14 +1984,14 @@ static void apiServerZonesGET(HttpRequest* req, HttpResponse* resp) {
     apiCheckNameAllowedCharacters(zone);
     DNSName zonename = apiNameToDNSName(zone);
     zonename.makeUsLowerCase();
-    DomainInfo di;
+    DomainInfo di; // NOLINT(readability-identifier-length)
     if (B.getDomainInfo(zonename, di)) {
       domains.push_back(di);
     }
   } else {
     try {
       B.getAllDomains(&domains, true, true); // incl. serial and disabled
-    } catch(const PDNSException &e) {
+    } catch(const PDNSException &e) { // NOLINT(readability-identifier-length)
       throw HttpInternalServerErrorException("Could not retrieve all domain information: " + e.reason);
     }
   }
