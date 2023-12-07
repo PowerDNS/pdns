@@ -105,7 +105,7 @@ void stubParseResolveConf()
 }
 
 // s_resolversForStub contains the ComboAddresses that are used to resolve the
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret, EDNSSubnetOpts* d_eso)
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret, const EDNSSubnetOpts* d_eso)
 {
   // ensure resolver gets always configured
   if (!s_stubResolvConfigured) {
@@ -125,7 +125,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   pw.getHeader()->id=dns_random_uint16();
   pw.getHeader()->rd=1;
   
-  if(d_eso != nullptr)
+  if (d_eso != nullptr)
   {
     // pass along EDNS subnet from client if given - issue #5469
     string origECSOptionStr = makeEDNSSubnetOptsString(*d_eso);
@@ -183,7 +183,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   return RCode::ServFail;
 }
 
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret, EDNSSubnetOpts* d_eso) {
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret, const EDNSSubnetOpts* d_eso) {
   vector<DNSZoneRecord> ret2;
   int res = stubDoResolve(qname, qtype, ret2, d_eso);
   for (const auto &r : ret2) {

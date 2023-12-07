@@ -270,12 +270,12 @@ void DNSProxy::mainloop()
         MOADNSParser mdp(false, p.getString());
         if (p.d_eso.scope.isValid()){
           // update the EDNS options with info from the resolver - issue #5469
-          i->second.complete->d_eso = p.d_eso;
+          i->second.complete->d_eso.scope = p.d_eso.scope;
           DLOG(g_log<<"from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: "<<i->second.complete->d_eso.source.toString()<<" EDNS scope: "<<i->second.complete->d_eso.scope.toString()<<endl);
         }
 
         if (mdp.d_header.rcode == RCode::NoError) {
-          for(const auto & answer : mdp.d_answers) {        
+          for (const auto & answer : mdp.d_answers) {        
             if(answer.first.d_place == DNSResourceRecord::ANSWER || (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA)) {
 
               if(answer.first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (answer.first.d_type == QType::A || answer.first.d_type == QType::AAAA))) {
