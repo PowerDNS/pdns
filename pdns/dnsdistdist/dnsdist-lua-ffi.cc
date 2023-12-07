@@ -68,13 +68,13 @@ void dnsdist_ffi_dnsquestion_get_localaddr(const dnsdist_ffi_dnsquestion_t* dq, 
   dnsdist_ffi_comboaddress_to_raw(dq->dq->ids.origDest, addr, addrSize);
 }
 
-bool dnsdist_ffi_dnsquestion_is_remote_v6(const dnsdist_ffi_dnsquestion_t* dq)
+bool dnsdist_ffi_dnsquestion_is_remote_v6(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
-  if (dq == nullptr || dq->dq == nullptr) {
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr) {
     return false;
   }
 
-  return dq->dq->ids.origRemote.isIPv6();
+  return dnsQuestion->dq->ids.origRemote.isIPv6();
 }
 
 void dnsdist_ffi_dnsquestion_get_remoteaddr(const dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize)
