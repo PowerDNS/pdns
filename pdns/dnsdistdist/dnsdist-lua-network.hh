@@ -42,7 +42,7 @@ public:
 
   using EndpointID = uint16_t;
   using NetworkDatagramCB = std::function<void(EndpointID endpoint, std::string&& dgram, const std::string& from)>;
-  bool addUnixListeningEndpoint(const std::string& path, EndpointID id, NetworkDatagramCB cb);
+  bool addUnixListeningEndpoint(const std::string& path, EndpointID endpointID, NetworkDatagramCB callback);
   void start();
   void runOnce(timeval& now, uint32_t timeout);
 
