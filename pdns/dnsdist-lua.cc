@@ -2656,7 +2656,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       checkAllParametersConsumed("addDOH3Local", vars);
     }
     g_doh3locals.push_back(frontend);
-    auto clientState = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus);
+    auto clientState = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
     clientState->doh3Frontend = frontend;
     clientState->d_additionalAddresses = std::move(additionalAddresses);
 
@@ -2691,9 +2691,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::string interface;
     std::set<int> cpus;
     std::vector<std::pair<ComboAddress, int>> additionalAddresses;
+    bool enableProxyProtocol = true;
 
     if (vars) {
-      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections);
+      parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
       if (maxInFlightQueriesPerConn > 0) {
         frontend->d_quicheParams.d_maxInFlight = maxInFlightQueriesPerConn;
       }
