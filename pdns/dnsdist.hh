@@ -466,7 +466,7 @@ extern QueryCount g_qcount;
 
 struct ClientState
 {
-  ClientState(const ComboAddress& local_, bool isTCP_, bool doReusePort, int fastOpenQueue, const std::string& itfName, const std::set<int>& cpus_): cpus(cpus_), interface(itfName), local(local_), fastOpenQueueSize(fastOpenQueue), tcp(isTCP_), reuseport(doReusePort)
+  ClientState(const ComboAddress& local_, bool isTCP_, bool doReusePort, int fastOpenQueue, const std::string& itfName, const std::set<int>& cpus_, bool enableProxyProtocol): cpus(cpus_), interface(itfName), local(local_), fastOpenQueueSize(fastOpenQueue), tcp(isTCP_), reuseport(doReusePort), d_enableProxyProtocol(enableProxyProtocol)
   {
   }
 
@@ -513,6 +513,7 @@ struct ClientState
   bool muted{false};
   bool tcp;
   bool reuseport;
+  bool d_enableProxyProtocol{true}; // the global proxy protocol ACL still applies
   bool ready{false};
 
   int getSocket() const
@@ -1117,7 +1118,7 @@ struct LocalHolders
   LocalStateHolder<pools_t> pools;
 };
 
-void tcpAcceptorThread(std::vector<ClientState*> states);
+void tcpAcceptorThread(const std::vector<ClientState*>& states);
 
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
 void setLuaSideEffect();   // set to report a side effect, cancelling all _no_ side effect calls

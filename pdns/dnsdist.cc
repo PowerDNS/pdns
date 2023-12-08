@@ -621,11 +621,11 @@ bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRu
   return processResponseAfterRules(response, cacheInsertedRespRuleActions, dr, muted);
 }
 
-static size_t getInitialUDPPacketBufferSize()
+static size_t getInitialUDPPacketBufferSize(bool expectProxyProtocol)
 {
   static_assert(s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "The incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
 
-  if (g_proxyProtocolACL.empty()) {
+  if (!expectProxyProtocol || g_proxyProtocolACL.empty()) {
     return s_initialUDPPacketBufferSize;
   }
 
@@ -635,10 +635,10 @@ static size_t getInitialUDPPacketBufferSize()
 static size_t getMaximumIncomingPacketSize(const ClientState& cs)
 {
   if (cs.dnscryptCtx) {
-    return getInitialUDPPacketBufferSize();
+    return getInitialUDPPacketBufferSize(cs.d_enableProxyProtocol);
   }
 
-  if (g_proxyProtocolACL.empty()) {
+  if (!cs.d_enableProxyProtocol || g_proxyProtocolACL.empty()) {
     return s_udpIncomingBufferSize;
   }
 
@@ -761,7 +761,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
   setThreadName("dnsdist/respond");
   auto localRespRuleActions = g_respruleactions.getLocal();
   auto localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
-  const size_t initialBufferSize = getInitialUDPPacketBufferSize();
+  const size_t initialBufferSize = getInitialUDPPacketBufferSize(false);
   /* allocate one more byte so we can detect truncation */
   PacketBuffer response(initialBufferSize + 1);
   uint16_t queryId = 0;
@@ -1230,7 +1230,7 @@ static bool isUDPQueryAcceptable(ClientState& cs, LocalHolders& holders, const s
     return false;
   }
 
-  expectProxyProtocol = expectProxyProtocolFrom(remote);
+  expectProxyProtocol = cs.d_enableProxyProtocol && expectProxyProtocolFrom(remote);
   if (!holders.acl->match(remote) && !expectProxyProtocol) {
     vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
     ++dnsdist::metrics::g_stats.aclDrops;
@@ -1855,7 +1855,7 @@ static void MultipleMessagesUDPClientThread(ClientState* cs, LocalHolders& holde
      - we use it for self-generated responses (from rule or cache)
      but we only accept incoming payloads up to that size
   */
-  const size_t initialBufferSize = getInitialUDPPacketBufferSize();
+  const size_t initialBufferSize = getInitialUDPPacketBufferSize(cs->d_enableProxyProtocol);
   const size_t maxIncomingPacketSize = getMaximumIncomingPacketSize(*cs);
 
   /* initialize the structures needed to receive our messages */
@@ -1945,7 +1945,7 @@ static void udpClientThread(std::vector<ClientState*> states)
         size_t maxIncomingPacketSize{0};
         int socket{-1};
       };
-      const size_t initialBufferSize = getInitialUDPPacketBufferSize();
+      const size_t initialBufferSize = getInitialUDPPacketBufferSize(true);
       PacketBuffer packet(initialBufferSize);
 
       struct msghdr msgh;
@@ -2855,17 +2855,17 @@ static void initFrontends()
 
     for (const auto& loc : g_cmdLine.locals) {
       /* UDP */
-      g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), false, false, 0, "", std::set<int>{}));
+      g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), false, false, 0, "", std::set<int>{}, true));
       /* TCP */
-      g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), true, false, 0, "", std::set<int>{}));
+      g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), true, false, 0, "", std::set<int>{}, true));
     }
   }
 
   if (g_frontends.empty()) {
     /* UDP */
-    g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), false, false, 0, "",  std::set<int>{}));
+    g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), false, false, 0, "",  std::set<int>{}, true));
     /* TCP */
-    g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "",  std::set<int>{}));
+    g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "",  std::set<int>{}, true));
   }
 }
 

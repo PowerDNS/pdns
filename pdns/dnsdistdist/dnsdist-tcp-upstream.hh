@@ -116,14 +116,14 @@ public:
     return false;
   }
 
-  std::shared_ptr<TCPConnectionToBackend> getOwnedDownstreamConnection(const std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs);
-  std::shared_ptr<TCPConnectionToBackend> getDownstreamConnection(std::shared_ptr<DownstreamState>& ds, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now);
+  std::shared_ptr<TCPConnectionToBackend> getOwnedDownstreamConnection(const std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs);
+  std::shared_ptr<TCPConnectionToBackend> getDownstreamConnection(std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now);
   void registerOwnedDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>& conn);
 
   static size_t clearAllDownstreamConnections();
 
-  static void handleIOCallback(int fd, FDMultiplexer::funcparam_t& param);
-  static void handleAsyncReady(int fd, FDMultiplexer::funcparam_t& param);
+  static void handleIOCallback(int desc, FDMultiplexer::funcparam_t& param);
+  static void handleAsyncReady(int desc, FDMultiplexer::funcparam_t& param);
   static void updateIO(std::shared_ptr<IncomingTCPConnectionState>& state, IOState newState, const struct timeval& now);
 
   static void queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response, bool fromBackend);
@@ -172,7 +172,7 @@ public:
     throw std::runtime_error("Restoring a DOHUnit state to a generic TCP/DoT connection is not supported");
   }
 
-  std::unique_ptr<CrossProtocolQuery> getCrossProtocolQuery(PacketBuffer&& query, InternalQueryState&& state, const std::shared_ptr<DownstreamState>& ds);
+  std::unique_ptr<CrossProtocolQuery> getCrossProtocolQuery(PacketBuffer&& query, InternalQueryState&& state, const std::shared_ptr<DownstreamState>& backend);
 
   std::string toString() const
   {
@@ -182,6 +182,9 @@ public:
   }
 
   dnsdist::Protocol getProtocol() const;
+  IOState handleIncomingQueryReceived(const struct timeval& now);
+  void handleExceptionDuringIO(const std::exception& exp);
+  bool readIncomingQuery(const timeval& now, IOState& iostate);
 
   enum class State : uint8_t { starting, doingHandshake, readingProxyProtocolHeader, waitingForQuery, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
 

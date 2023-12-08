@@ -479,7 +479,7 @@ private:
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {});
+  ClientState localCS(local, true, false, 0, "", {}, true);
   localCS.dohFrontend = std::make_shared<DOHFrontend>(std::make_shared<MockupTLSCtx>());
   localCS.dohFrontend->d_urls.insert("/dns-query");
 
@@ -667,7 +667,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {});
+  ClientState localCS(local, true, false, 0, "", {}, true);
   localCS.dohFrontend = std::make_shared<DOHFrontend>(std::make_shared<MockupTLSCtx>());
   localCS.dohFrontend->d_urls.insert("/dns-query");
 
