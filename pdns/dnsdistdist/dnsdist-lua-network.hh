@@ -34,16 +34,32 @@ class NetworkListener
 {
 public:
   NetworkListener();
+  NetworkListener(const NetworkListener&) = delete;
+  NetworkListener(NetworkListener&&) = delete;
+  NetworkListener& operator=(const NetworkListener&) = delete;
+  NetworkListener& operator=(NetworkListener&&) = delete;
+  ~NetworkListener();
 
   using EndpointID = uint16_t;
   using NetworkDatagramCB = std::function<void(EndpointID endpoint, std::string&& dgram, const std::string& from)>;
-  bool addUnixListeningEndpoint(const std::string& path, EndpointID id, NetworkDatagramCB cb);
+  bool addUnixListeningEndpoint(const std::string& path, EndpointID endpointID, NetworkDatagramCB callback);
   void start();
-  void runOnce(struct timeval& now, uint32_t timeout);
+  void runOnce(timeval& now, uint32_t timeout);
 
 private:
+  struct ListenerData
+  {
+    ListenerData();
+
+    std::unique_ptr<FDMultiplexer> d_mplexer;
+    std::unordered_map<std::string, Socket> d_sockets;
+    std::atomic<bool> d_running{false};
+    std::atomic<bool> d_exiting{false};
+  };
+
   static void readCB(int desc, FDMultiplexer::funcparam_t& param);
-  void mainThread();
+  static void mainThread(std::shared_ptr<ListenerData>& data);
+  static void runOnce(ListenerData& data, timeval& now, uint32_t timeout);
 
   struct CBData
   {
@@ -51,9 +67,7 @@ private:
     EndpointID d_endpoint;
   };
 
-  std::unique_ptr<FDMultiplexer> d_mplexer;
-  std::unordered_map<std::string, Socket> d_sockets;
-  std::atomic<bool> d_running{false};
+  std::shared_ptr<ListenerData> d_data;
 };
 
 class NetworkEndpoint
