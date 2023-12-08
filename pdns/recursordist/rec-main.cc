@@ -2942,6 +2942,13 @@ static void handleRuntimeDefaults(Logr::log_t log)
   }
 
   if (::arg()["socket-dir"].empty()) {
+    auto* runtimeDir = getenv("RUNTIME_DIRECTORY"); // NOLINT(concurrency-mt-unsafe,cppcoreguidelines-pro-type-vararg)
+    if (runtimeDir != nullptr) {
+      ::arg().set("socket-dir") = runtimeDir;
+    }
+  }
+
+  if (::arg()["socket-dir"].empty()) {
     if (::arg()["chroot"].empty()) {
       ::arg().set("socket-dir") = std::string(LOCALSTATEDIR) + "/pdns-recursor";
     }
