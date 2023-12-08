@@ -45,6 +45,7 @@
 #include "dnsname.hh"
 #include "dnsdist-doh-common.hh"
 #include "doq.hh"
+#include "doh3.hh"
 #include "ednsoptions.hh"
 #include "iputils.hh"
 #include "misc.hh"
@@ -501,6 +502,7 @@ struct ClientState
   std::shared_ptr<TLSFrontend> tlsFrontend{nullptr};
   std::shared_ptr<DOHFrontend> dohFrontend{nullptr};
   std::shared_ptr<DOQFrontend> doqFrontend{nullptr};
+  std::shared_ptr<DOH3Frontend> doh3Frontend{nullptr};
   std::shared_ptr<BPFFilter> d_filter{nullptr};
   size_t d_maxInFlightQueriesPerConn{1};
   size_t d_tcpConcurrentConnectionsLimit{0};
@@ -577,6 +579,9 @@ struct ClientState
 
     if (doqFrontend) {
       result += " (DNS over QUIC)";
+    }
+    else if (doh3Frontend) {
+      result += " (DNS over HTTP/3)";
     }
     else if (dohFrontend) {
       if (dohFrontend->isHTTPS()) {
@@ -1067,6 +1072,7 @@ extern ComboAddress g_serverControl; // not changed during runtime
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
 extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
 extern std::vector<shared_ptr<DOQFrontend>> g_doqlocals;
+extern std::vector<shared_ptr<DOH3Frontend>> g_doh3locals;
 extern std::vector<std::unique_ptr<ClientState>> g_frontends;
 extern bool g_truncateTC;
 extern bool g_fixupCase;

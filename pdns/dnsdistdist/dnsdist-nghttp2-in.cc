@@ -20,8 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "base64.hh"
 #include "dnsdist-dnsparser.hh"
+#include "dnsdist-doh-common.hh"
 #include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsparser.hh"
@@ -740,66 +740,6 @@ static void processForwardedForHeader(const std::unique_ptr<HeadersMap>& headers
   }
 }
 
-static std::optional<PacketBuffer> getPayloadFromPath(const std::string_view& path)
-{
-  std::optional<PacketBuffer> result{std::nullopt};
-
-  if (path.size() <= 5) {
-    return result;
-  }
-
-  auto pos = path.find("?dns=");
-  if (pos == string::npos) {
-    pos = path.find("&dns=");
-  }
-
-  if (pos == string::npos) {
-    return result;
-  }
-
-  // need to base64url decode this
-  string sdns;
-  const size_t payloadSize = path.size() - pos - 5;
-  size_t neededPadding = 0;
-  switch (payloadSize % 4) {
-  case 2:
-    neededPadding = 2;
-    break;
-  case 3:
-    neededPadding = 1;
-    break;
-  }
-  sdns.reserve(payloadSize + neededPadding);
-  sdns = path.substr(pos + 5);
-  for (auto& entry : sdns) {
-    switch (entry) {
-    case '-':
-      entry = '+';
-      break;
-    case '_':
-      entry = '/';
-      break;
-    }
-  }
-
-  if (neededPadding != 0) {
-    // re-add padding that may have been missing
-    sdns.append(neededPadding, '=');
-  }
-
-  PacketBuffer decoded;
-  /* rough estimate so we hopefully don't need a new allocation later */
-  /* We reserve at few additional bytes to be able to add EDNS later */
-  const size_t estimate = ((sdns.size() * 3) / 4);
-  decoded.reserve(estimate);
-  if (B64Decode(sdns, decoded) < 0) {
-    return result;
-  }
-
-  result = std::move(decoded);
-  return result;
-}
-
 void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::PendingQuery&& query, IncomingHTTP2Connection::StreamID streamID)
 {
   const auto handleImmediateResponse = [this, &query, streamID](uint16_t code, const std::string& reason, PacketBuffer&& response = PacketBuffer()) {
@@ -878,7 +818,7 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
   }
 
   if (query.d_buffer.empty() && query.d_method == PendingQuery::Method::Get && !query.d_queryString.empty()) {
-    auto payload = getPayloadFromPath(query.d_queryString);
+    auto payload = dnsdist::doh::getPayloadFromPath(query.d_queryString);
     if (payload) {
       query.d_buffer = std::move(*payload);
     }

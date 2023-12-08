@@ -36,6 +36,7 @@
 struct ClientState;
 struct DOHUnitInterface;
 struct DOQUnit;
+struct DOH3Unit;
 class DNSCryptQuery;
 class DNSDistPacketCache;
 
@@ -139,6 +140,7 @@ struct InternalQueryState
   size_t d_proxyProtocolPayloadSize{0}; // 8
   int32_t d_streamID{-1}; // 4
   std::unique_ptr<DOQUnit> doqu{nullptr}; // 8
+  std::unique_ptr<DOH3Unit> doh3u{nullptr}; // 8
   uint32_t cacheKey{0}; // 4
   uint32_t cacheKeyNoECS{0}; // 4
   // DoH-only */

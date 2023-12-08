@@ -28,30 +28,28 @@
 #include "iputils.hh"
 #include "libssl.hh"
 #include "noinitvector.hh"
-#include "doq.hh"
 #include "stat_t.hh"
 #include "dnsdist-idstate.hh"
 
-struct DOQServerConfig;
+struct DOH3ServerConfig;
 struct DownstreamState;
 
-#ifdef HAVE_DNS_OVER_QUIC
+#ifdef HAVE_DNS_OVER_HTTP3
 
 #include "doq-common.hh"
 
-struct DOQFrontend
+struct DOH3Frontend
 {
-  DOQFrontend();
-  DOQFrontend(const DOQFrontend&) = delete;
-  DOQFrontend(DOQFrontend&&) = delete;
-  DOQFrontend& operator=(const DOQFrontend&) = delete;
-  DOQFrontend& operator=(DOQFrontend&&) = delete;
-  ~DOQFrontend();
+  DOH3Frontend();
+  DOH3Frontend(const DOH3Frontend&) = delete;
+  DOH3Frontend(DOH3Frontend&&) = delete;
+  DOH3Frontend& operator=(const DOH3Frontend&) = delete;
+  DOH3Frontend& operator=(DOH3Frontend&&) = delete;
+  ~DOH3Frontend();
 
   void setup();
 
-  std::unique_ptr<DOQServerConfig> d_server_config;
-  dnsdist::doq::QuicheParams d_quicheParams;
+  std::unique_ptr<DOH3ServerConfig> d_server_config;
   ComboAddress d_local;
 
 #ifdef __linux__
@@ -62,52 +60,54 @@ struct DOQFrontend
   uint32_t d_internalPipeBufferSize{0};
 #endif
 
-  pdns::stat_t d_doqUnsupportedVersionErrors{0}; // Unsupported protocol version errors
-  pdns::stat_t d_doqInvalidTokensReceived{0}; // Discarded received tokens
+  dnsdist::doq::QuicheParams d_quicheParams;
+  pdns::stat_t d_doh3UnsupportedVersionErrors{0}; // Unsupported protocol version errors
+  pdns::stat_t d_doh3InvalidTokensReceived{0}; // Discarded received tokens
   pdns::stat_t d_validResponses{0}; // Valid responses sent
   pdns::stat_t d_errorResponses{0}; // Empty responses (no backend, drops, invalid queries, etc.)
 };
 
-struct DOQUnit
+struct DOH3Unit
 {
-  DOQUnit(PacketBuffer&& query_) :
+  DOH3Unit(PacketBuffer&& query_) :
     query(std::move(query_))
   {
   }
 
-  DOQUnit(const DOQUnit&) = delete;
-  DOQUnit& operator=(const DOQUnit&) = delete;
+  DOH3Unit(const DOH3Unit&) = delete;
+  DOH3Unit& operator=(const DOH3Unit&) = delete;
 
   InternalQueryState ids;
   PacketBuffer query;
   PacketBuffer response;
   PacketBuffer serverConnID;
   std::shared_ptr<DownstreamState> downstream{nullptr};
-  DOQServerConfig* dsc{nullptr};
+  DOH3ServerConfig* dsc{nullptr};
   uint64_t streamID{0};
   size_t proxyProtocolPayloadSize{0};
+  uint16_t status_code{200};
   /* whether the query was re-sent to the backend over
      TCP after receiving a truncated answer over UDP */
   bool tcp{false};
 };
 
-using DOQUnitUniquePtr = std::unique_ptr<DOQUnit>;
+using DOH3UnitUniquePtr = std::unique_ptr<DOH3Unit>;
 
 struct CrossProtocolQuery;
 struct DNSQuestion;
-std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion, bool isResponse);
+std::unique_ptr<CrossProtocolQuery> getDOH3CrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion, bool isResponse);
 
-void doqThread(ClientState* clientState);
+void doh3Thread(ClientState* clientState);
 
 #else
 
-struct DOQUnit
+struct DOH3Unit
 {
 };
 
-struct DOQFrontend
+struct DOH3Frontend
 {
-  DOQFrontend()
+  DOH3Frontend()
   {
   }
   void setup()

@@ -505,6 +505,7 @@ def ci_dnsdist_configure(c, features):
                       --enable-dns-over-tls \
                       --enable-dns-over-https \
                       --enable-dns-over-quic \
+                      --enable-dns-over-http3 \
                       --enable-systemd \
                       --prefix=/opt/dnsdist \
                       --with-gnutls \

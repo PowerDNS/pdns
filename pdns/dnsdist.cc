@@ -109,6 +109,7 @@ string g_outputBuffer;
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
 std::vector<std::shared_ptr<DOHFrontend>> g_dohlocals;
 std::vector<std::shared_ptr<DOQFrontend>> g_doqlocals;
+std::vector<std::shared_ptr<DOH3Frontend>> g_doh3locals;
 std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
@@ -322,6 +323,12 @@ static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
     doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000,    udiff,    1000);
     doAvg(dnsdist::metrics::g_stats.latencyDoQAvg10000,   udiff,   10000);
     doAvg(dnsdist::metrics::g_stats.latencyDoQAvg1000000, udiff, 1000000);
+  }
+  else if (protocol == dnsdist::Protocol::DoH3) {
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg100,     udiff,     100);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000,    udiff,    1000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg10000,   udiff,   10000);
+    doAvg(dnsdist::metrics::g_stats.latencyDoH3Avg1000000, udiff, 1000000);
   }
 }
 
@@ -2414,6 +2421,8 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   } else {
     if (clientState.doqFrontend != nullptr) {
       infolog("Listening on %s for DoQ", addr.toStringWithPort());
+    } else if (clientState.doh3Frontend != nullptr) {
+      infolog("Listening on %s for DoH3", addr.toStringWithPort());
     }
   }
 }
@@ -2443,6 +2452,9 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
   }
   if (cstate->doqFrontend != nullptr) {
     cstate->doqFrontend->setup();
+  }
+  if (cstate->doh3Frontend != nullptr) {
+    cstate->doh3Frontend->setup();
   }
 
   cstate->ready = true;
@@ -2562,6 +2574,9 @@ static void reportFeatures()
 #endif
 #ifdef HAVE_DNS_OVER_QUIC
   cout<<"dns-over-quic ";
+#endif
+#ifdef HAVE_DNS_OVER_HTTP3
+  cout<<"dns-over-http3 ";
 #endif
 #ifdef HAVE_DNS_OVER_TLS
   cout<<"dns-over-tls(";
@@ -2830,7 +2845,7 @@ static void initFrontends()
   if (!g_cmdLine.locals.empty()) {
     for (auto it = g_frontends.begin(); it != g_frontends.end(); ) {
       /* DoH, DoT and DNSCrypt frontends are separate */
-      if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->doqFrontend == nullptr) {
+      if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->doqFrontend == nullptr && (*it)->doh3Frontend == nullptr) {
         it = g_frontends.erase(it);
       }
       else {
@@ -2852,6 +2867,80 @@ static void initFrontends()
     /* TCP */
     g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "",  std::set<int>{}));
   }
+}
+
+namespace dnsdist
+{
+static void startFrontends()
+{
+  std::vector<ClientState*> tcpStates;
+  std::vector<ClientState*> udpStates;
+  for (auto& clientState : g_frontends) {
+    if (clientState->dohFrontend != nullptr && clientState->dohFrontend->d_library == "h2o") {
+#ifdef HAVE_DNS_OVER_HTTPS
+#ifdef HAVE_LIBH2OEVLOOP
+      std::thread dotThreadHandle(dohThread, clientState.get());
+      if (!clientState->cpus.empty()) {
+        mapThreadToCPUList(dotThreadHandle.native_handle(), clientState->cpus);
+      }
+      dotThreadHandle.detach();
+#endif /* HAVE_LIBH2OEVLOOP */
+#endif /* HAVE_DNS_OVER_HTTPS */
+        continue;
+      }
+      if (clientState->doqFrontend != nullptr) {
+#ifdef HAVE_DNS_OVER_QUIC
+        std::thread doqThreadHandle(doqThread, clientState.get());
+        if (!clientState->cpus.empty()) {
+          mapThreadToCPUList(doqThreadHandle.native_handle(), clientState->cpus);
+        }
+        doqThreadHandle.detach();
+#endif /* HAVE_DNS_OVER_QUIC */
+        continue;
+      }
+      if (clientState->doh3Frontend != nullptr) {
+#ifdef HAVE_DNS_OVER_HTTP3
+        std::thread doh3ThreadHandle(doh3Thread, clientState.get());
+        if (!clientState->cpus.empty()) {
+          mapThreadToCPUList(doh3ThreadHandle.native_handle(), clientState->cpus);
+        }
+        doh3ThreadHandle.detach();
+#endif /* HAVE_DNS_OVER_HTTP3 */
+        continue;
+      }
+      if (clientState->udpFD >= 0) {
+#ifdef USE_SINGLE_ACCEPTOR_THREAD
+        udpStates.push_back(clientState.get());
+#else /* USE_SINGLE_ACCEPTOR_THREAD */
+        std::thread udpClientThreadHandle(udpClientThread, std::vector<ClientState*>{ clientState.get() });
+        if (!clientState->cpus.empty()) {
+          mapThreadToCPUList(udpClientThreadHandle.native_handle(), clientState->cpus);
+        }
+        udpClientThreadHandle.detach();
+#endif /* USE_SINGLE_ACCEPTOR_THREAD */
+      }
+      else if (clientState->tcpFD >= 0) {
+#ifdef USE_SINGLE_ACCEPTOR_THREAD
+        tcpStates.push_back(clientState.get());
+#else /* USE_SINGLE_ACCEPTOR_THREAD */
+        std::thread tcpAcceptorThreadHandle(tcpAcceptorThread, std::vector<ClientState*>{clientState.get() });
+        if (!clientState->cpus.empty()) {
+          mapThreadToCPUList(tcpAcceptorThreadHandle.native_handle(), clientState->cpus);
+        }
+        tcpAcceptorThreadHandle.detach();
+#endif /* USE_SINGLE_ACCEPTOR_THREAD */
+      }
+    }
+#ifdef USE_SINGLE_ACCEPTOR_THREAD
+    if (!udpStates.empty()) {
+      std::thread udpThreadHandle(udpClientThread, udpStates);
+      udpThreadHandle.detach();
+    }
+    if (!tcpStates.empty()) {
+      g_tcpclientthreads = std::make_unique<TCPClientCollection>(1, tcpStates);
+    }
+#endif /* USE_SINGLE_ACCEPTOR_THREAD */
+}
 }
 
 int main(int argc, char** argv)
@@ -3060,63 +3149,8 @@ int main(int argc, char** argv)
       handleQueuedHealthChecks(*mplexer, true);
     }
 
-    std::vector<ClientState*> tcpStates;
-    std::vector<ClientState*> udpStates;
-    for (auto& cs : g_frontends) {
-      if (cs->dohFrontend != nullptr && cs->dohFrontend->d_library == "h2o") {
-#ifdef HAVE_DNS_OVER_HTTPS
-#ifdef HAVE_LIBH2OEVLOOP
-        std::thread t1(dohThread, cs.get());
-        if (!cs->cpus.empty()) {
-          mapThreadToCPUList(t1.native_handle(), cs->cpus);
-        }
-        t1.detach();
-#endif /* HAVE_LIBH2OEVLOOP */
-#endif /* HAVE_DNS_OVER_HTTPS */
-        continue;
-      }
-      if (cs->doqFrontend != nullptr) {
-#ifdef HAVE_DNS_OVER_QUIC
-        std::thread t1(doqThread, cs.get());
-        if (!cs->cpus.empty()) {
-          mapThreadToCPUList(t1.native_handle(), cs->cpus);
-        }
-        t1.detach();
-#endif /* HAVE_DNS_OVER_QUIC */
-        continue;
-      }
-      if (cs->udpFD >= 0) {
-#ifdef USE_SINGLE_ACCEPTOR_THREAD
-        udpStates.push_back(cs.get());
-#else /* USE_SINGLE_ACCEPTOR_THREAD */
-        thread t1(udpClientThread, std::vector<ClientState*>{ cs.get() });
-        if (!cs->cpus.empty()) {
-          mapThreadToCPUList(t1.native_handle(), cs->cpus);
-        }
-        t1.detach();
-#endif /* USE_SINGLE_ACCEPTOR_THREAD */
-      }
-      else if (cs->tcpFD >= 0) {
-#ifdef USE_SINGLE_ACCEPTOR_THREAD
-        tcpStates.push_back(cs.get());
-#else /* USE_SINGLE_ACCEPTOR_THREAD */
-        thread t1(tcpAcceptorThread, std::vector<ClientState*>{cs.get() });
-        if (!cs->cpus.empty()) {
-          mapThreadToCPUList(t1.native_handle(), cs->cpus);
-        }
-        t1.detach();
-#endif /* USE_SINGLE_ACCEPTOR_THREAD */
-      }
-    }
-#ifdef USE_SINGLE_ACCEPTOR_THREAD
-    if (!udpStates.empty()) {
-      thread udp(udpClientThread, udpStates);
-      udp.detach();
-    }
-    if (!tcpStates.empty()) {
-      g_tcpclientthreads = std::make_unique<TCPClientCollection>(1, tcpStates);
-    }
-#endif /* USE_SINGLE_ACCEPTOR_THREAD */
+    dnsdist::startFrontends();
+
     dnsdist::ServiceDiscovery::run();
 
 #ifndef DISABLE_CARBON

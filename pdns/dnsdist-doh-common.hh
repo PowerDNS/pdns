@@ -21,8 +21,10 @@
  */
 #pragma once
 
+#include <optional>
 #include <unordered_map>
 #include <set>
+#include <string_view>
 
 #include "config.h"
 #include "iputils.hh"
@@ -30,6 +32,11 @@
 #include "noinitvector.hh"
 #include "stat_t.hh"
 #include "tcpiohandler.hh"
+
+namespace dnsdist::doh
+{
+std::optional<PacketBuffer> getPayloadFromPath(const std::string_view& path);
+}
 
 struct DOHServerConfig;
 

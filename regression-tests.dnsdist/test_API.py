@@ -34,13 +34,14 @@ class APITestsBase(DNSDistTest):
                         'latency-tcp-avg10000', 'latency-tcp-avg1000000', 'latency-dot-avg100', 'latency-dot-avg1000',
                         'latency-dot-avg10000', 'latency-dot-avg1000000', 'latency-doh-avg100', 'latency-doh-avg1000',
                         'latency-doh-avg10000', 'latency-doh-avg1000000', 'latency-doq-avg100', 'latency-doq-avg1000',
-                        'latency-doq-avg10000', 'latency-doq-avg1000000','uptime', 'real-memory-usage', 'noncompliant-queries',
+                        'latency-doq-avg10000', 'latency-doq-avg1000000', 'latency-doh3-avg100', 'latency-doh3-avg1000',
+                        'latency-doh3-avg10000', 'latency-doh3-avg1000000','uptime', 'real-memory-usage', 'noncompliant-queries',
                         'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
                         'cache-misses', 'cpu-iowait', 'cpu-steal', 'cpu-sys-msec', 'cpu-user-msec', 'fd-usage', 'dyn-blocked',
                         'dyn-block-nmg-size', 'rule-servfail', 'rule-truncated', 'security-status',
                         'udp-in-csum-errors', 'udp-in-errors', 'udp-noport-errors', 'udp-recvbuf-errors', 'udp-sndbuf-errors',
                         'udp6-in-errors', 'udp6-recvbuf-errors', 'udp6-sndbuf-errors', 'udp6-noport-errors', 'udp6-in-csum-errors',
-                        'doh-query-pipe-full', 'doh-response-pipe-full', 'doq-response-pipe-full', 'proxy-protocol-invalid', 'tcp-listen-overflows',
+                        'doh-query-pipe-full', 'doh-response-pipe-full', 'doq-response-pipe-full', 'doh3-response-pipe-full', 'proxy-protocol-invalid', 'tcp-listen-overflows',
                         'outgoing-doh-query-pipe-full', 'tcp-query-pipe-full', 'tcp-cross-protocol-query-pipe-full',
                         'tcp-cross-protocol-response-pipe-full']
     _verboseMode = True

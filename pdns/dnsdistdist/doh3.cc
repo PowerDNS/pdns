@@ -20,9 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "doq.hh"
+#include "doh3.hh"
 
-#ifdef HAVE_DNS_OVER_QUIC
+#ifdef HAVE_DNS_OVER_HTTP3
 #include <quiche.h>
 
 #include "dolog.hh"
@@ -31,6 +31,7 @@
 #include "sodcrypto.hh"
 #include "sstuff.hh"
 #include "threadname.hh"
+#include "base64.hh"
 
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
@@ -40,8 +41,6 @@
 
 #include "doq-common.hh"
 
-using namespace dnsdist::doq;
-
 #if 0
 #define DEBUGLOG_ENABLED
 #define DEBUGLOG(x) std::cerr << x << std::endl;
@@ -49,64 +48,68 @@ using namespace dnsdist::doq;
 #define DEBUGLOG(x)
 #endif
 
-class Connection
+using namespace dnsdist::doq;
+
+class H3Connection
 {
 public:
-  Connection(const ComboAddress& peer, QuicheConnection&& conn) :
+  H3Connection(const ComboAddress& peer, QuicheConnection&& conn) :
     d_peer(peer), d_conn(std::move(conn))
   {
   }
-  Connection(const Connection&) = delete;
-  Connection(Connection&&) = default;
-  Connection& operator=(const Connection&) = delete;
-  Connection& operator=(Connection&&) = default;
-  ~Connection() = default;
+  H3Connection(const H3Connection&) = delete;
+  H3Connection(H3Connection&&) = default;
+  H3Connection& operator=(const H3Connection&) = delete;
+  H3Connection& operator=(H3Connection&&) = default;
+  ~H3Connection() = default;
 
   ComboAddress d_peer;
   QuicheConnection d_conn;
+  QuicheHTTP3Connection d_http3{nullptr, quiche_h3_conn_free};
   std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
 };
 
-static void sendBackDOQUnit(DOQUnitUniquePtr&& unit, const char* description);
+static void sendBackDOH3Unit(DOH3UnitUniquePtr&& unit, const char* description);
 
-struct DOQServerConfig
+struct DOH3ServerConfig
 {
-  DOQServerConfig(QuicheConfig&& config_, uint32_t internalPipeBufferSize) :
-    config(std::move(config_))
+  DOH3ServerConfig(QuicheConfig&& config_, QuicheHTTP3Config&& http3config_, uint32_t internalPipeBufferSize) :
+    config(std::move(config_)), http3config(std::move(http3config_))
   {
     {
-      auto [sender, receiver] = pdns::channel::createObjectQueue<DOQUnit>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
+      auto [sender, receiver] = pdns::channel::createObjectQueue<DOH3Unit>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
       d_responseSender = std::move(sender);
       d_responseReceiver = std::move(receiver);
     }
   }
-  DOQServerConfig(const DOQServerConfig&) = delete;
-  DOQServerConfig(DOQServerConfig&&) = default;
-  DOQServerConfig& operator=(const DOQServerConfig&) = delete;
-  DOQServerConfig& operator=(DOQServerConfig&&) = default;
-  ~DOQServerConfig() = default;
+  DOH3ServerConfig(const DOH3ServerConfig&) = delete;
+  DOH3ServerConfig(DOH3ServerConfig&&) = default;
+  DOH3ServerConfig& operator=(const DOH3ServerConfig&) = delete;
+  DOH3ServerConfig& operator=(DOH3ServerConfig&&) = default;
+  ~DOH3ServerConfig() = default;
 
-  using ConnectionsMap = std::map<PacketBuffer, Connection>;
+  using ConnectionsMap = std::map<PacketBuffer, H3Connection>;
 
   LocalHolders holders;
   ConnectionsMap d_connections;
   QuicheConfig config;
+  QuicheHTTP3Config http3config;
   ClientState* clientState{nullptr};
-  std::shared_ptr<DOQFrontend> df{nullptr};
-  pdns::channel::Sender<DOQUnit> d_responseSender;
-  pdns::channel::Receiver<DOQUnit> d_responseReceiver;
+  std::shared_ptr<DOH3Frontend> df{nullptr};
+  pdns::channel::Sender<DOH3Unit> d_responseSender;
+  pdns::channel::Receiver<DOH3Unit> d_responseReceiver;
 };
 
 /* these might seem useless, but they are needed because
-   they need to be declared _after_ the definition of DOQServerConfig
-   so that we can use a unique_ptr in DOQFrontend */
-DOQFrontend::DOQFrontend() = default;
-DOQFrontend::~DOQFrontend() = default;
+   they need to be declared _after_ the definition of DOH3ServerConfig
+   so that we can use a unique_ptr in DOH3Frontend */
+DOH3Frontend::DOH3Frontend() = default;
+DOH3Frontend::~DOH3Frontend() = default;
 
-class DOQTCPCrossQuerySender final : public TCPQuerySender
+class DOH3TCPCrossQuerySender final : public TCPQuerySender
 {
 public:
-  DOQTCPCrossQuerySender() = default;
+  DOH3TCPCrossQuerySender() = default;
 
   [[nodiscard]] bool active() const override
   {
@@ -115,11 +118,11 @@ public:
 
   void handleResponse([[maybe_unused]] const struct timeval& now, TCPResponse&& response) override
   {
-    if (!response.d_idstate.doqu) {
+    if (!response.d_idstate.doh3u) {
       return;
     }
 
-    auto unit = std::move(response.d_idstate.doqu);
+    auto unit = std::move(response.d_idstate.doh3u);
     if (unit->dsc == nullptr) {
       return;
     }
@@ -136,12 +139,12 @@ public:
       static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
       static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
 
-      dnsResponse.ids.doqu = std::move(unit);
+      dnsResponse.ids.doh3u = std::move(unit);
 
-      if (!processResponse(dnsResponse.ids.doqu->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
-        if (dnsResponse.ids.doqu) {
+      if (!processResponse(dnsResponse.ids.doh3u->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
+        if (dnsResponse.ids.doh3u) {
 
-          sendBackDOQUnit(std::move(dnsResponse.ids.doqu), "Response dropped by rules");
+          sendBackDOH3Unit(std::move(dnsResponse.ids.doh3u), "Response dropped by rules");
         }
         return;
       }
@@ -150,12 +153,12 @@ public:
         return;
       }
 
-      unit = std::move(dnsResponse.ids.doqu);
+      unit = std::move(dnsResponse.ids.doh3u);
     }
 
     if (!unit->ids.selfGenerated) {
       double udiff = unit->ids.queryRealTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s (quic), took %f us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), udiff);
+      vinfolog("Got answer from %s, relayed to %s (http/3), took %f us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), udiff);
 
       auto backendProtocol = unit->downstream->getProtocol();
       if (backendProtocol == dnsdist::Protocol::DoUDP && unit->tcp) {
@@ -169,7 +172,7 @@ public:
       ++unit->ids.cs->responses;
     }
 
-    sendBackDOQUnit(std::move(unit), "Cross-protocol response");
+    sendBackDOH3Unit(std::move(unit), "Cross-protocol response");
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
@@ -179,11 +182,11 @@ public:
 
   void notifyIOError([[maybe_unused]] const struct timeval& now, TCPResponse&& response) override
   {
-    if (!response.d_idstate.doqu) {
+    if (!response.d_idstate.doh3u) {
       return;
     }
 
-    auto unit = std::move(response.d_idstate.doqu);
+    auto unit = std::move(response.d_idstate.doh3u);
     if (unit->dsc == nullptr) {
       return;
     }
@@ -191,14 +194,14 @@ public:
     /* this will signal an error */
     unit->response.clear();
     unit->ids = std::move(response.d_idstate);
-    sendBackDOQUnit(std::move(unit), "Cross-protocol error");
+    sendBackDOH3Unit(std::move(unit), "Cross-protocol error");
   }
 };
 
-class DOQCrossProtocolQuery : public CrossProtocolQuery
+class DOH3CrossProtocolQuery : public CrossProtocolQuery
 {
 public:
-  DOQCrossProtocolQuery(DOQUnitUniquePtr&& unit, bool isResponse)
+  DOH3CrossProtocolQuery(DOH3UnitUniquePtr&& unit, bool isResponse)
   {
     if (isResponse) {
       /* happens when a response becomes async */
@@ -212,7 +215,7 @@ public:
 
     /* it might have been moved when we moved unit->ids */
     if (unit) {
-      query.d_idstate.doqu = std::move(unit);
+      query.d_idstate.doh3u = std::move(unit);
     }
 
     /* we _could_ remove it from the query buffer and put in query's d_proxyProtocolPayload,
@@ -220,18 +223,18 @@ public:
        Leave it for now because we know that the onky case where the payload has been
        added is when we tried over UDP, got a TC=1 answer and retried over TCP/DoT,
        and we know the TCP/DoT code can handle it. */
-    query.d_proxyProtocolPayloadAdded = query.d_idstate.doqu->proxyProtocolPayloadSize > 0;
-    downstream = query.d_idstate.doqu->downstream;
+    query.d_proxyProtocolPayloadAdded = query.d_idstate.doh3u->proxyProtocolPayloadSize > 0;
+    downstream = query.d_idstate.doh3u->downstream;
   }
 
   void handleInternalError()
   {
-    sendBackDOQUnit(std::move(query.d_idstate.doqu), "DOQ internal error");
+    sendBackDOH3Unit(std::move(query.d_idstate.doh3u), "DOH3 internal error");
   }
 
   std::shared_ptr<TCPQuerySender> getTCPQuerySender() override
   {
-    query.d_idstate.doqu->downstream = downstream;
+    query.d_idstate.doh3u->downstream = downstream;
     return s_sender;
   }
 
@@ -249,58 +252,103 @@ public:
     return dnsResponse;
   }
 
-  DOQUnitUniquePtr&& releaseDU()
+  DOH3UnitUniquePtr&& releaseDU()
   {
-    return std::move(query.d_idstate.doqu);
+    return std::move(query.d_idstate.doh3u);
   }
 
 private:
-  static std::shared_ptr<DOQTCPCrossQuerySender> s_sender;
+  static std::shared_ptr<DOH3TCPCrossQuerySender> s_sender;
 };
 
-std::shared_ptr<DOQTCPCrossQuerySender> DOQCrossProtocolQuery::s_sender = std::make_shared<DOQTCPCrossQuerySender>();
+std::shared_ptr<DOH3TCPCrossQuerySender> DOH3CrossProtocolQuery::s_sender = std::make_shared<DOH3TCPCrossQuerySender>();
 
-static void handleResponse(DOQFrontend& frontend, Connection& conn, const uint64_t streamID, const PacketBuffer& response)
+static void h3_send_response(quiche_conn* quic_conn, quiche_h3_conn* conn, const uint64_t streamID, uint16_t statusCode, const uint8_t* body, size_t len)
 {
-  if (response.empty()) {
-    ++frontend.d_errorResponses;
-    quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_UNSPECIFIED_ERROR));
+  std::string status = std::to_string(statusCode);
+  std::string lenStr = std::to_string(len);
+  std::array<quiche_h3_header, 2> headers{
+    (quiche_h3_header){
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+      .name = reinterpret_cast<const uint8_t*>(":status"),
+      .name_len = sizeof(":status") - 1,
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+      .value = reinterpret_cast<const uint8_t*>(status.data()),
+      .value_len = status.size(),
+    },
+    (quiche_h3_header){
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+      .name = reinterpret_cast<const uint8_t*>("content-length"),
+      .name_len = sizeof("content-length") - 1,
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+      .value = reinterpret_cast<const uint8_t*>(lenStr.data()),
+      .value_len = lenStr.size(),
+    },
+  };
+  quiche_h3_send_response(conn, quic_conn,
+                          streamID, headers.data(), headers.size(), len == 0);
+
+  if (len == 0) {
     return;
   }
-  ++frontend.d_validResponses;
-  auto responseSize = static_cast<uint16_t>(response.size());
-  const std::array<uint8_t, 2> sizeBytes = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
-  size_t pos = 0;
-  while (pos < sizeBytes.size()) {
-    auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, &sizeBytes.at(pos), sizeBytes.size() - pos, false);
-    if (res < 0) {
-      quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_INTERNAL_ERROR));
-      return;
-    }
-    pos += res;
-  }
 
-  pos = 0;
-  while (pos < response.size()) {
-    // stream_send sets fin to false itself when the capacity of the stream is less than the desired writing length
-    auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, &response.at(pos), response.size() - pos, true);
+  size_t pos = 0;
+  while (pos < len) {
+    // send_body takes care of setting fin to false if it cannot send the entire content so we can try again.
+    auto res = quiche_h3_send_body(conn, quic_conn,
+                                   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic): Quiche API
+                                   streamID, const_cast<uint8_t*>(body) + pos, len - pos, true);
     if (res < 0) {
-      quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_INTERNAL_ERROR));
+      // Shutdown with internal error code
+      quiche_conn_stream_shutdown(quic_conn, streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(1));
       return;
     }
     pos += res;
   }
 }
 
-void DOQFrontend::setup()
+static void h3_send_response(quiche_conn* quic_conn, quiche_h3_conn* conn, const uint64_t streamID, uint16_t statusCode, const std::string& content)
+{
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+  h3_send_response(quic_conn, conn, streamID, statusCode, reinterpret_cast<const uint8_t*>(content.data()), content.size());
+}
+
+static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const uint8_t* body, size_t len)
+{
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+  h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, statusCode, body, len);
+}
+
+static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const PacketBuffer& response)
+{
+  if (statusCode == 200) {
+    ++frontend.d_validResponses;
+  }
+  else {
+    ++frontend.d_errorResponses;
+  }
+  if (response.empty()) {
+    quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_UNSPECIFIED_ERROR));
+  }
+  else {
+    h3_send_response(conn, streamID, statusCode, &response.at(0), response.size());
+  }
+}
+
+void DOH3Frontend::setup()
 {
   auto config = QuicheConfig(quiche_config_new(QUICHE_PROTOCOL_VERSION), quiche_config_free);
-  d_quicheParams.d_alpn = std::string(DOQ_ALPN.begin(), DOQ_ALPN.end());
+
+  d_quicheParams.d_alpn = std::string(DOH3_ALPN.begin(), DOH3_ALPN.end());
   configureQuiche(config, d_quicheParams);
-  d_server_config = std::make_unique<DOQServerConfig>(std::move(config), d_internalPipeBufferSize);
+
+  // quiche_h3_config_new
+  auto http3config = QuicheHTTP3Config(quiche_h3_config_new(), quiche_h3_config_free);
+
+  d_server_config = std::make_unique<DOH3ServerConfig>(std::move(config), std::move(http3config), d_internalPipeBufferSize);
 }
 
-static std::optional<std::reference_wrapper<Connection>> getConnection(DOQServerConfig::ConnectionsMap& connMap, const PacketBuffer& connID)
+static std::optional<std::reference_wrapper<H3Connection>> getConnection(DOH3ServerConfig::ConnectionsMap& connMap, const PacketBuffer& connID)
 {
   auto iter = connMap.find(connID);
   if (iter == connMap.end()) {
@@ -309,23 +357,23 @@ static std::optional<std::reference_wrapper<Connection>> getConnection(DOQServer
   return iter->second;
 }
 
-static void sendBackDOQUnit(DOQUnitUniquePtr&& unit, const char* description)
+static void sendBackDOH3Unit(DOH3UnitUniquePtr&& unit, const char* description)
 {
   if (unit->dsc == nullptr) {
     return;
   }
   try {
     if (!unit->dsc->d_responseSender.send(std::move(unit))) {
-      ++dnsdist::metrics::g_stats.doqResponsePipeFull;
-      vinfolog("Unable to pass a %s to the DoQ worker thread because the pipe is full", description);
+      ++dnsdist::metrics::g_stats.doh3ResponsePipeFull;
+      vinfolog("Unable to pass a %s to the DoH3 worker thread because the pipe is full", description);
     }
   }
   catch (const std::exception& e) {
-    vinfolog("Unable to pass a %s to the DoQ worker thread because we couldn't write to the pipe: %s", description, e.what());
+    vinfolog("Unable to pass a %s to the DoH3 worker thread because we couldn't write to the pipe: %s", description, e.what());
   }
 }
 
-static std::optional<std::reference_wrapper<Connection>> createConnection(DOQServerConfig& config, const PacketBuffer& serverSideID, const PacketBuffer& originalDestinationID, const ComboAddress& local, const ComboAddress& peer)
+static std::optional<std::reference_wrapper<H3Connection>> createConnection(DOH3ServerConfig& config, const PacketBuffer& serverSideID, const PacketBuffer& originalDestinationID, const ComboAddress& local, const ComboAddress& peer)
 {
   auto quicheConn = QuicheConnection(quiche_accept(serverSideID.data(), serverSideID.size(),
                                                    originalDestinationID.data(), originalDestinationID.size(),
@@ -342,18 +390,18 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(DOQSer
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
-  auto conn = Connection(peer, std::move(quicheConn));
+  auto conn = H3Connection(peer, std::move(quicheConn));
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
 }
 
-std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion, bool isResponse)
+std::unique_ptr<CrossProtocolQuery> getDOH3CrossProtocolQueryFromDQ(DNSQuestion& dnsQuestion, bool isResponse)
 {
-  if (!dnsQuestion.ids.doqu) {
-    throw std::runtime_error("Trying to create a DoQ cross protocol query without a valid DoQ unit");
+  if (!dnsQuestion.ids.doh3u) {
+    throw std::runtime_error("Trying to create a DoH3 cross protocol query without a valid DoH3 unit");
   }
 
-  auto unit = std::move(dnsQuestion.ids.doqu);
+  auto unit = std::move(dnsQuestion.ids.doh3u);
   if (&dnsQuestion.ids != &unit->ids) {
     unit->ids = std::move(dnsQuestion.ids);
   }
@@ -371,28 +419,28 @@ std::unique_ptr<CrossProtocolQuery> getDOQCrossProtocolQueryFromDQ(DNSQuestion& 
     }
   }
 
-  return std::make_unique<DOQCrossProtocolQuery>(std::move(unit), isResponse);
+  return std::make_unique<DOH3CrossProtocolQuery>(std::move(unit), isResponse);
 }
 
-static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
+static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
 {
-  const auto handleImmediateResponse = [](DOQUnitUniquePtr&& unit, [[maybe_unused]] const char* reason) {
+  const auto handleImmediateResponse = [](DOH3UnitUniquePtr&& unit, [[maybe_unused]] const char* reason) {
     DEBUGLOG("handleImmediateResponse() reason=" << reason);
     auto conn = getConnection(unit->dsc->df->d_server_config->d_connections, unit->serverConnID);
-    handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->response);
-    unit->ids.doqu.reset();
+    handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response);
+    unit->ids.doh3u.reset();
   };
 
-  auto& ids = doqUnit->ids;
-  ids.doqu = std::move(doqUnit);
-  auto& unit = ids.doqu;
+  auto& ids = doh3Unit->ids;
+  ids.doh3u = std::move(doh3Unit);
+  auto& unit = ids.doh3u;
   uint16_t queryId = 0;
   ComboAddress remote;
 
   try {
 
     remote = unit->ids.origRemote;
-    DOQServerConfig* dsc = unit->dsc;
+    DOH3ServerConfig* dsc = unit->dsc;
     auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
@@ -401,7 +449,8 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
       ++clientState.nonCompliantQueries;
       unit->response.clear();
 
-      handleImmediateResponse(std::move(unit), "DoQ non-compliant query");
+      unit->status_code = 400;
+      handleImmediateResponse(std::move(unit), "DoH3 non-compliant query");
       return;
     }
 
@@ -421,7 +470,8 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
         });
         unit->response = std::move(unit->query);
 
-        handleImmediateResponse(std::move(unit), "DoQ invalid headers");
+        unit->status_code = 400;
+        handleImmediateResponse(std::move(unit), "DoH3 invalid headers");
         return;
       }
 
@@ -433,7 +483,8 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
         });
         unit->response = std::move(unit->query);
 
-        handleImmediateResponse(std::move(unit), "DoQ empty query");
+        unit->status_code = 400;
+        handleImmediateResponse(std::move(unit), "DoH3 empty query");
         return;
       }
 
@@ -453,7 +504,8 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
 
     auto result = processQuery(dnsQuestion, holders, downstream);
     if (result == ProcessQueryResult::Drop) {
-      handleImmediateResponse(std::move(unit), "DoQ dropped query");
+      unit->status_code = 403;
+      handleImmediateResponse(std::move(unit), "DoH3 dropped query");
       return;
     }
     if (result == ProcessQueryResult::Asynchronous) {
@@ -466,9 +518,9 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
       if (unit->response.size() >= sizeof(dnsheader)) {
         const dnsheader_aligned dnsHeader(unit->response.data());
 
-        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0., unit->ids.origDest, ComboAddress(), unit->response.size(), *dnsHeader, dnsdist::Protocol::DoQ, dnsdist::Protocol::DoQ, false);
+        handleResponseSent(unit->ids.qname, QType(unit->ids.qtype), 0., unit->ids.origDest, ComboAddress(), unit->response.size(), *dnsHeader, dnsdist::Protocol::DoH3, dnsdist::Protocol::DoH3, false);
       }
-      handleImmediateResponse(std::move(unit), "DoQ self-answered response");
+      handleImmediateResponse(std::move(unit), "DoH3 self-answered response");
       return;
     }
 
@@ -478,12 +530,14 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     }
 
     if (result != ProcessQueryResult::PassToBackend) {
-      handleImmediateResponse(std::move(unit), "DoQ no backend available");
+      unit->status_code = 500;
+      handleImmediateResponse(std::move(unit), "DoH3 no backend available");
       return;
     }
 
     if (downstream == nullptr) {
-      handleImmediateResponse(std::move(unit), "DoQ no backend available");
+      unit->status_code = 502;
+      handleImmediateResponse(std::move(unit), "DoH3 no backend available");
       return;
     }
 
@@ -500,7 +554,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     unit->tcp = true;
 
     /* this moves unit->ids, careful! */
-    auto cpq = std::make_unique<DOQCrossProtocolQuery>(std::move(unit), false);
+    auto cpq = std::make_unique<DOH3CrossProtocolQuery>(std::move(unit), false);
     cpq->query.d_proxyProtocolPayload = std::move(proxyProtocolPayload);
 
     if (downstream->passCrossProtocolQuery(std::move(cpq))) {
@@ -508,35 +562,37 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     }
     // NOLINTNEXTLINE(bugprone-use-after-move): it was only moved if the call succeeded
     unit = cpq->releaseDU();
-    handleImmediateResponse(std::move(unit), "DoQ internal error");
+    unit->status_code = 500;
+    handleImmediateResponse(std::move(unit), "DoH3 internal error");
     return;
   }
   catch (const std::exception& e) {
-    vinfolog("Got an error in DOQ question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
-    handleImmediateResponse(std::move(unit), "DoQ internal error");
+    vinfolog("Got an error in DOH3 question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
+    unit->status_code = 500;
+    handleImmediateResponse(std::move(unit), "DoH3 internal error");
     return;
   }
 }
 
-static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID)
+static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID)
 {
   try {
-    auto unit = std::make_unique<DOQUnit>(std::move(query));
+    auto unit = std::make_unique<DOH3Unit>(std::move(query));
     unit->dsc = &dsc;
     unit->ids.origDest = local;
     unit->ids.origRemote = remote;
-    unit->ids.protocol = dnsdist::Protocol::DoQ;
+    unit->ids.protocol = dnsdist::Protocol::DoH3;
     unit->serverConnID = serverConnID;
     unit->streamID = streamID;
 
-    processDOQQuery(std::move(unit));
+    processDOH3Query(std::move(unit));
   }
   catch (const std::exception& exp) {
-    vinfolog("Had error handling DoQ DNS packet from %s: %s", remote.toStringWithPort(), exp.what());
+    vinfolog("Had error handling DoH3 DNS packet from %s: %s", remote.toStringWithPort(), exp.what());
   }
 }
 
-static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver)
+static void flushResponses(pdns::channel::Receiver<DOH3Unit>& receiver)
 {
   for (;;) {
     try {
@@ -548,28 +604,163 @@ static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver)
       auto unit = std::move(*tmp);
       auto conn = getConnection(unit->dsc->df->d_server_config->d_connections, unit->serverConnID);
       if (conn) {
-        handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->response);
+        handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response);
       }
     }
     catch (const std::exception& e) {
-      errlog("Error while processing response received over DoQ: %s", e.what());
+      errlog("Error while processing response received over DoH3: %s", e.what());
     }
     catch (...) {
-      errlog("Unspecified error while processing response received over DoQ");
+      errlog("Unspecified error while processing response received over DoH3");
     }
   }
 }
 
+static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, PacketBuffer& serverConnID, std::map<std::string, std::string>& headers, int64_t streamID, quiche_h3_event* event)
+{
+  auto handleImmediateError = [&clientState, &frontend, &conn, streamID](const char* msg) {
+    DEBUGLOG(msg);
+    ++dnsdist::metrics::g_stats.nonCompliantQueries;
+    ++clientState.nonCompliantQueries;
+    ++frontend.d_errorResponses;
+    h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, 400, msg);
+  };
+
+  // Callback result. Any value other than 0 will interrupt further header processing.
+  int cbresult = quiche_h3_event_for_each_header(
+    event,
+    [](uint8_t* name, size_t name_len, uint8_t* value, size_t value_len, void* argp) -> int {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+      std::string_view key(reinterpret_cast<char*>(name), name_len);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+      std::string_view content(reinterpret_cast<char*>(value), value_len);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+      auto* headersptr = reinterpret_cast<std::map<std::string, std::string>*>(argp);
+      headersptr->emplace(key, content);
+      return 0;
+    },
+    &headers);
+
+  if (cbresult != 0 || headers.count(":method") == 0) {
+    handleImmediateError("Unable to process query headers");
+    return;
+  }
+
+  if (headers.at(":method") == "GET") {
+    if (headers.count(":path") == 0 || headers.at(":path").empty()) {
+      handleImmediateError("Path not found");
+      return;
+    }
+    const auto& path = headers.at(":path");
+    auto payload = dnsdist::doh::getPayloadFromPath(path);
+    if (!payload) {
+      handleImmediateError("Unable to find the DNS parameter");
+      return;
+    }
+    if (payload->size() < sizeof(dnsheader)) {
+      handleImmediateError("DoH3 non-compliant query");
+      return;
+    }
+    DEBUGLOG("Dispatching GET query");
+    doh3_dispatch_query(*(frontend.d_server_config), std::move(*payload), clientState.local, client, serverConnID, streamID);
+    conn.d_streamBuffers.erase(streamID);
+    return;
+  }
+
+  if (headers.at(":method") == "POST") {
+    if (!quiche_h3_event_headers_has_body(event)) {
+      handleImmediateError("Empty POST query");
+    }
+    return;
+  }
+
+  handleImmediateError("Unsupported HTTP method");
+}
+
+static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, PacketBuffer& serverConnID, std::map<std::string, std::string>& headers, int64_t streamID, quiche_h3_event* event)
+{
+  auto handleImmediateError = [&clientState, &frontend, &conn, streamID](const char* msg) {
+    DEBUGLOG(msg);
+    ++dnsdist::metrics::g_stats.nonCompliantQueries;
+    ++clientState.nonCompliantQueries;
+    ++frontend.d_errorResponses;
+    h3_send_response(conn.d_conn.get(), conn.d_http3.get(), streamID, 400, msg);
+  };
+
+  if (headers.at(":method") == "POST") {
+    if (headers.count("content-type") == 0 || headers.at("content-type") != "application/dns-message") {
+      handleImmediateError("Unsupported content-type");
+      return;
+    }
+    PacketBuffer buffer(std::numeric_limits<uint16_t>::max());
+    PacketBuffer decoded;
+
+    while (true) {
+      ssize_t len = quiche_h3_recv_body(conn.d_http3.get(),
+                                        conn.d_conn.get(), streamID,
+                                        buffer.data(), buffer.capacity());
+
+      if (len <= 0) {
+        break;
+      }
+      decoded.insert(decoded.end(), buffer.begin(), buffer.begin() + len);
+    }
+
+    if (decoded.size() < sizeof(dnsheader)) {
+      handleImmediateError("DoH3 non-compliant query");
+      return;
+    }
+
+    DEBUGLOG("Dispatching POST query");
+    doh3_dispatch_query(*(frontend.d_server_config), std::move(decoded), clientState.local, client, serverConnID, streamID);
+    conn.d_streamBuffers.erase(streamID);
+  }
+}
+
+static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, PacketBuffer& serverConnID)
+{
+  std::map<std::string, std::string> headers;
+  while (true) {
+    quiche_h3_event* event{nullptr};
+    // Processes HTTP/3 data received from the peer
+    int64_t streamID = quiche_h3_conn_poll(conn.d_http3.get(),
+                                           conn.d_conn.get(),
+                                           &event);
+
+    if (streamID < 0) {
+      break;
+    }
+
+    switch (quiche_h3_event_type(event)) {
+    case QUICHE_H3_EVENT_HEADERS: {
+      processH3HeaderEvent(clientState, frontend, conn, client, serverConnID, headers, streamID, event);
+      break;
+    }
+    case QUICHE_H3_EVENT_DATA: {
+      processH3DataEvent(clientState, frontend, conn, client, serverConnID, headers, streamID, event);
+      break;
+    }
+    case QUICHE_H3_EVENT_FINISHED:
+    case QUICHE_H3_EVENT_RESET:
+    case QUICHE_H3_EVENT_PRIORITY_UPDATE:
+    case QUICHE_H3_EVENT_GOAWAY:
+      break;
+    }
+
+    quiche_h3_event_free(event);
+  }
+}
+
 // this is the entrypoint from dnsdist.cc
-void doqThread(ClientState* clientState)
+void doh3Thread(ClientState* clientState)
 {
   try {
-    std::shared_ptr<DOQFrontend>& frontend = clientState->doqFrontend;
+    std::shared_ptr<DOH3Frontend>& frontend = clientState->doh3Frontend;
 
     frontend->d_server_config->clientState = clientState;
-    frontend->d_server_config->df = clientState->doqFrontend;
+    frontend->d_server_config->df = clientState->doh3Frontend;
 
-    setThreadName("dnsdist/doq");
+    setThreadName("dnsdist/doh3");
 
     Socket sock(clientState->udpFD);
 
@@ -618,7 +809,7 @@ void doqThread(ClientState* clientState)
           DEBUGLOG("Connection not found");
           if (!quiche_version_is_supported(version)) {
             DEBUGLOG("Unsupported version");
-            ++frontend->d_doqUnsupportedVersionErrors;
+            ++frontend->d_doh3UnsupportedVersionErrors;
             handleVersionNegociation(sock, clientConnID, serverConnID, client);
             continue;
           }
@@ -633,7 +824,7 @@ void doqThread(ClientState* clientState)
           PacketBuffer tokenBuf(token.begin(), token.begin() + token_len);
           auto originalDestinationID = validateToken(tokenBuf, client);
           if (!originalDestinationID) {
-            ++frontend->d_doqInvalidTokensReceived;
+            ++frontend->d_doh3InvalidTokensReceived;
             DEBUGLOG("Discarding invalid token");
             continue;
           }
@@ -661,38 +852,18 @@ void doqThread(ClientState* clientState)
         }
 
         if (quiche_conn_is_established(conn->get().d_conn.get())) {
-          auto readable = std::unique_ptr<quiche_stream_iter, decltype(&quiche_stream_iter_free)>(quiche_conn_readable(conn->get().d_conn.get()), quiche_stream_iter_free);
+          DEBUGLOG("Connection is established");
 
-          uint64_t streamID = 0;
-          while (quiche_stream_iter_next(readable.get(), &streamID)) {
-            auto& streamBuffer = conn->get().d_streamBuffers[streamID];
-            auto existingLength = streamBuffer.size();
-            bool fin = false;
-            streamBuffer.resize(existingLength + 512);
-            auto received = quiche_conn_stream_recv(conn->get().d_conn.get(), streamID,
-                                                    &streamBuffer.at(existingLength), 512,
-                                                    &fin);
-            streamBuffer.resize(existingLength + received);
-            if (fin) {
-              if (streamBuffer.size() < (sizeof(uint16_t) + sizeof(dnsheader))) {
-                ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                ++clientState->nonCompliantQueries;
-                quiche_conn_stream_shutdown(conn->get().d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
-                break;
-              }
-              uint16_t payloadLength = streamBuffer.at(0) * 256 + streamBuffer.at(1);
-              streamBuffer.erase(streamBuffer.begin(), streamBuffer.begin() + 2);
-              if (payloadLength != streamBuffer.size()) {
-                ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                ++clientState->nonCompliantQueries;
-                quiche_conn_stream_shutdown(conn->get().d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
-                break;
-              }
-              DEBUGLOG("Dispatching query");
-              doq_dispatch_query(*(frontend->d_server_config), std::move(streamBuffer), clientState->local, client, serverConnID, streamID);
-              conn->get().d_streamBuffers.erase(streamID);
+          if (!conn->get().d_http3) {
+            conn->get().d_http3 = QuicheHTTP3Connection(quiche_h3_conn_new_with_transport(conn->get().d_conn.get(), frontend->d_server_config->http3config.get()),
+                                                        quiche_h3_conn_free);
+            if (!conn->get().d_http3) {
+              continue;
             }
+            DEBUGLOG("Successfully created HTTP/3 connection");
           }
+
+          processH3Events(*clientState, *frontend, conn->get(), client, serverConnID);
         }
         else {
           DEBUGLOG("Connection not established");
@@ -731,4 +902,4 @@ void doqThread(ClientState* clientState)
   }
 }
 
-#endif /* HAVE_DNS_OVER_QUIC */
+#endif /* HAVE_DNS_OVER_HTTP3 */
