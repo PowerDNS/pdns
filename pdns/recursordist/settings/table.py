@@ -1715,7 +1715,7 @@ have no effect unless you remove the existing files.
         'section' : 'nod',
         'oldname' : 'new-domain-history-dir',
         'type' : LType.String,
-        'default' : '/usr/local/var/lib/pdns-recursor/nod',
+        'default' : 'NODCACHEDIRNOD',
         'help' : 'Persist new domain tracking data here to persist between restarts',
         'doc' : '''
 This setting controls which directory is used to store the on-disk
@@ -2358,6 +2358,7 @@ Where to store the control socket and pidfile.
 The default depends on ``LOCALSTATEDIR`` or the ``--with-socketdir`` setting when building (usually ``/var/run`` or ``/run``).
 
 When using :ref:`setting-chroot` the default becomes ``/``.
+Defaults to the ``RUNTIME_DIRECTORY`` environment variable when that variable has a value (e.g. under systemd).
  ''',
     },
     {
@@ -2820,7 +2821,7 @@ have no effect unless you remove the existing files.
         'name' : 'unique_response_history_dir',
         'section' : 'nod',
         'type' : LType.String,
-        'default' : '/usr/local/var/lib/pdns-recursor/udr',
+        'default' : 'NODCACHEDIRUDR',
         'help' : 'Persist unique response tracking data here to persist between restarts',
         'doc' : '''
 This setting controls which directory is used to store the on-disk
