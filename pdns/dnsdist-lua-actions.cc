@@ -2510,7 +2510,11 @@ void setupLuaActions(LuaContext& luaCtx)
       if (qtypeForAny > std::numeric_limits<uint16_t>::max()) {
         qtypeForAny = 0;
       }
-      auto ret = std::shared_ptr<DNSAction>(new SpoofAction(raws, qtypeForAny > 0 ? static_cast<uint16_t>(qtypeForAny) : std::optional<uint16_t>()));
+      std::optional<uint16_t> qtypeForAnyParam;
+      if (qtypeForAny > 0) {
+        qtypeForAnyParam = static_cast<uint16_t>(qtypeForAny);
+      }
+      auto ret = std::shared_ptr<DNSAction>(new SpoofAction(raws, qtypeForAnyParam));
       auto sa = std::dynamic_pointer_cast<SpoofAction>(ret);
       parseResponseConfig(vars, sa->d_responseConfig);
       checkAllParametersConsumed("SpoofRawAction", vars);
