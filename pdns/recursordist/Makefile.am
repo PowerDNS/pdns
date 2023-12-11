@@ -23,7 +23,7 @@ AM_CXXFLAGS = \
 
 if NOD_ENABLED
 AM_CXXFLAGS += \
-	-DNODCACHEDIR=\"$(nodcachedir)\"
+	-DNODCACHEDIRNOD=\"$(nodcachedir)/nod\" -DNODCACHEDIRUDR=\"$(nodcachedir)/udr\"
 endif
 
 if FSTRM

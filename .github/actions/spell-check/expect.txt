@@ -872,6 +872,8 @@ noaction
 noad
 noall
 nocookie
+NODCACHEDIRNOD
+NODCACHEDIRUDR
 noedns
 noerrors
 NOLOCK
