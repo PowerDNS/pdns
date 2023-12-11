@@ -393,6 +393,7 @@ EMPTY?  '''
         'section' : 'recursor',
         'type' : LType.String,
         'default' : 'SYSCONFDIR',
+        'docdefault': 'Determined by distribution',
         'help' : 'Location of configuration directory (recursor.conf or recursor.yml)',
         'doc' : '''
 Location of configuration directory (where ``recursor.conf`` or ``recursor.yml`` is stored).
@@ -1716,6 +1717,7 @@ have no effect unless you remove the existing files.
         'oldname' : 'new-domain-history-dir',
         'type' : LType.String,
         'default' : 'NODCACHEDIRNOD',
+        'docdefault': 'Determined by distribution',
         'help' : 'Persist new domain tracking data here to persist between restarts',
         'doc' : '''
 This setting controls which directory is used to store the on-disk
@@ -2358,7 +2360,7 @@ Where to store the control socket and pidfile.
 The default depends on ``LOCALSTATEDIR`` or the ``--with-socketdir`` setting when building (usually ``/var/run`` or ``/run``).
 
 When using :ref:`setting-chroot` the default becomes ``/``.
-Defaults to the ``RUNTIME_DIRECTORY`` environment variable when that variable has a value (e.g. under systemd).
+The default value is overruled by the ``RUNTIME_DIRECTORY`` environment variable when that variable has a value (e.g. under systemd).
  ''',
     },
     {
@@ -2822,6 +2824,7 @@ have no effect unless you remove the existing files.
         'section' : 'nod',
         'type' : LType.String,
         'default' : 'NODCACHEDIRUDR',
+        'docdefault': 'Determined by distribution',
         'help' : 'Persist unique response tracking data here to persist between restarts',
         'doc' : '''
 This setting controls which directory is used to store the on-disk
