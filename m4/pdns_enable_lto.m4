@@ -5,10 +5,10 @@ AC_DEFUN([PDNS_ENABLE_LTO],[
     [enable_lto=no]
   )
 
-  AS_IF([test "x$enable_lto" != "xno"], [
+  AS_IF([test "$enable_lto" != "no"], [
 
     dnl If thin is not supported, we try to fallback to auto
-    AS_IF([test "x$enable_lto" == "xthin"], [
+    AS_IF([test "$enable_lto" = "thin"], [
       gl_COMPILER_OPTION_IF([-flto=thin], [
         CFLAGS="-flto=thin $CFLAGS"
         CXXFLAGS="-flto=thin $CXXFLAGS"
@@ -17,7 +17,7 @@ AC_DEFUN([PDNS_ENABLE_LTO],[
     ])
 
     dnl If auto is not supported, we try to fallback -flto
-    AS_IF([test "x$enable_lto" == "xauto"], [
+    AS_IF([test "$enable_lto" = "auto"], [
       gl_COMPILER_OPTION_IF([-flto=auto], [
         CFLAGS="-flto=auto $CFLAGS"
         CXXFLAGS="-flto=auto $CXXFLAGS"
@@ -25,7 +25,7 @@ AC_DEFUN([PDNS_ENABLE_LTO],[
       ], [enable_lto=yes])
     ])
 
-    AS_IF([test "x$enable_lto" == "xyes"], [
+    AS_IF([test "$enable_lto" = "yes"], [
       gl_COMPILER_OPTION_IF([-flto], [
         CFLAGS="-flto $CFLAGS"
         CXXFLAGS="-flto $CXXFLAGS"
