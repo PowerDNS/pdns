@@ -94,6 +94,8 @@ BOOST_AUTO_TEST_CASE(test_Query)
     BOOST_REQUIRE_EQUAL(bufferSize, sizeof(ids.origRemote.sin4.sin_addr.s_addr));
     BOOST_CHECK(memcmp(buffer, &ids.origRemote.sin4.sin_addr.s_addr, sizeof(ids.origRemote.sin4.sin_addr.s_addr)) == 0);
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_remote_port(&lightDQ), 4242U);
+    BOOST_CHECK(!dnsdist_ffi_dnsquestion_is_remote_v6(nullptr));
+    BOOST_CHECK(!dnsdist_ffi_dnsquestion_is_remote_v6(&lightDQ));
   }
 
   {
@@ -811,6 +813,33 @@ BOOST_AUTO_TEST_CASE(test_NetworkEndpoint)
 
   {
     dnsdist_ffi_network_endpoint_free(nullptr);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_hash)
+{
+  const uint32_t seed = 0x42;
+  const std::array<unsigned char, 10> data{{'0', 'x', 'd', 'e', 'a', 'd', 'b', 'E', 'e', 'F'}};
+  const std::array<unsigned char, 10> capitalizedData{{'0', 'X', 'D', 'E', 'A', 'D', 'B', 'E', 'E', 'F'}};
+
+  {
+    /* invalid */
+    BOOST_CHECK_EQUAL(dnsdist_ffi_hash(0, nullptr, 0, false), 0U);
+    BOOST_CHECK_EQUAL(dnsdist_ffi_hash(seed, nullptr, 0, false), seed);
+  }
+  {
+    /* case sensitive */
+    auto hash = dnsdist_ffi_hash(seed, data.data(), data.size(), false);
+    BOOST_CHECK_EQUAL(hash, burtle(data.data(), data.size(), seed));
+    BOOST_CHECK_NE(hash, burtle(capitalizedData.data(), capitalizedData.size(), seed));
+    BOOST_CHECK_NE(hash, burtleCI(capitalizedData.data(), capitalizedData.size(), seed));
+  }
+  {
+    /* case insensitive */
+    auto hash = dnsdist_ffi_hash(seed, data.data(), data.size(), true);
+    BOOST_CHECK_EQUAL(hash, burtleCI(data.data(), data.size(), seed));
+    BOOST_CHECK_NE(hash, burtle(capitalizedData.data(), capitalizedData.size(), seed));
+    BOOST_CHECK_EQUAL(hash, burtleCI(capitalizedData.data(), capitalizedData.size(), seed));
   }
 }
 

@@ -68,6 +68,15 @@ void dnsdist_ffi_dnsquestion_get_localaddr(const dnsdist_ffi_dnsquestion_t* dq, 
   dnsdist_ffi_comboaddress_to_raw(dq->dq->ids.origDest, addr, addrSize);
 }
 
+bool dnsdist_ffi_dnsquestion_is_remote_v6(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
+{
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr) {
+    return false;
+  }
+
+  return dnsQuestion->dq->ids.origRemote.isIPv6();
+}
+
 void dnsdist_ffi_dnsquestion_get_remoteaddr(const dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize)
 {
   dnsdist_ffi_comboaddress_to_raw(dq->dq->ids.origRemote, addr, addrSize);
@@ -1994,3 +2003,16 @@ void dnsdist_ffi_dynamic_blocks_list_free(dnsdist_ffi_dynamic_blocks_list_t* lis
 }
 
 #endif /* DISABLE_DYNBLOCKS */
+
+uint32_t dnsdist_ffi_hash(uint32_t seed, const unsigned char* data, size_t dataSize, bool caseInsensitive)
+{
+  if (data == nullptr || dataSize == 0) {
+    return seed;
+  }
+
+  if (caseInsensitive) {
+    return burtleCI(data, dataSize, seed);
+  }
+
+  return burtle(data, dataSize, seed);
+}
