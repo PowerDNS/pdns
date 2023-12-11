@@ -54,6 +54,16 @@ void DynBlockRulesGroup::apply(const struct timespec& now)
       continue;
     }
 
+    if (d_respCacheMissRatioRule.warningRatioExceeded(counters.responses, counters.cacheMisses)) {
+      handleWarning(blocks, now, requestor, d_respCacheMissRatioRule, updated);
+      continue;
+    }
+
+    if (d_respCacheMissRatioRule.ratioExceeded(counters.responses, counters.cacheMisses)) {
+      addBlock(blocks, now, requestor, d_respCacheMissRatioRule, updated);
+      continue;
+    }
+
     for (const auto& pair : d_qtypeRules) {
       const auto qtype = pair.first;
 
@@ -412,6 +422,12 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
     responseCutOff = d_suffixMatchRule.d_cutOff;
   }
 
+  d_respCacheMissRatioRule.d_cutOff = d_respCacheMissRatioRule.d_minTime = now;
+  d_respCacheMissRatioRule.d_cutOff.tv_sec -= d_respCacheMissRatioRule.d_seconds;
+  if (d_respCacheMissRatioRule.d_cutOff < responseCutOff) {
+    responseCutOff = d_respCacheMissRatioRule.d_cutOff;
+  }
+
   for (auto& rule : d_rcodeRules) {
     rule.second.d_cutOff = rule.second.d_minTime = now;
     rule.second.d_cutOff.tv_sec -= rule.second.d_seconds;
@@ -445,22 +461,20 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
       bool respRateMatches = d_respRateRule.matches(ringEntry.when);
       bool suffixMatchRuleMatches = d_suffixMatchRule.matches(ringEntry.when);
       bool rcodeRuleMatches = checkIfResponseCodeMatches(ringEntry);
+      bool respCacheMissRatioRuleMatches = d_respCacheMissRatioRule.matches(ringEntry.when);
 
-      if (respRateMatches || rcodeRuleMatches) {
-        if (respRateMatches) {
-          entry.respBytes += ringEntry.size;
-        }
-        if (rcodeRuleMatches) {
-          ++entry.d_rcodeCounts[ringEntry.dh.rcode];
-        }
+      if (respRateMatches) {
+        entry.respBytes += ringEntry.size;
+      }
+      if (rcodeRuleMatches) {
+        ++entry.d_rcodeCounts[ringEntry.dh.rcode];
+      }
+      if (respCacheMissRatioRuleMatches && !ringEntry.isACacheHit()) {
+        ++entry.cacheMisses;
       }
 
       if (suffixMatchRuleMatches) {
-        bool hit = ringEntry.ds.sin4.sin_family == 0;
-        if (!hit && ringEntry.ds.isIPv4() && ringEntry.ds.sin4.sin_addr.s_addr == 0 && ringEntry.ds.sin4.sin_port == 0) {
-          hit = true;
-        }
-
+        const bool hit = ringEntry.isACacheHit();
         root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, boost::none);
       }
     }
@@ -816,4 +830,163 @@ std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaint
 {
   return s_tops.lock()->topSMTsByReason;
 }
+
+std::string DynBlockRulesGroup::DynBlockRule::toString() const
+{
+  if (!isEnabled()) {
+    return "";
+  }
+
+  std::stringstream result;
+  if (d_action != DNSAction::Action::None) {
+    result << DNSAction::typeToString(d_action) << " ";
+  }
+  else {
+    result << "Apply the global DynBlock action ";
+  }
+  result << "for " << std::to_string(d_blockDuration) << " seconds when over " << std::to_string(d_rate) << " during the last " << d_seconds << " seconds, reason: '" << d_blockReason << "'";
+
+  return result.str();
+}
+
+bool DynBlockRulesGroup::DynBlockRule::matches(const struct timespec& when)
+{
+  if (!d_enabled) {
+    return false;
+  }
+
+  if (d_seconds > 0 && when < d_cutOff) {
+    return false;
+  }
+
+  if (when < d_minTime) {
+    d_minTime = when;
+  }
+
+  return true;
+}
+
+bool DynBlockRulesGroup::DynBlockRule::rateExceeded(unsigned int count, const struct timespec& now) const
+{
+  if (!d_enabled) {
+    return false;
+  }
+
+  double delta = d_seconds > 0 ? d_seconds : DiffTime(now, d_minTime);
+  double limit = delta * d_rate;
+  return (count > limit);
+}
+
+bool DynBlockRulesGroup::DynBlockRule::warningRateExceeded(unsigned int count, const struct timespec& now) const
+{
+  if (!d_enabled) {
+    return false;
+  }
+
+  if (d_warningRate == 0) {
+    return false;
+  }
+
+  double delta = d_seconds > 0 ? d_seconds : DiffTime(now, d_minTime);
+  double limit = delta * d_warningRate;
+  return (count > limit);
+}
+
+bool DynBlockRulesGroup::DynBlockRatioRule::ratioExceeded(unsigned int total, unsigned int count) const
+{
+  if (!d_enabled) {
+    return false;
+  }
+
+  if (total < d_minimumNumberOfResponses) {
+    return false;
+  }
+
+  double allowed = d_ratio * static_cast<double>(total);
+  return (count > allowed);
+}
+
+bool DynBlockRulesGroup::DynBlockRatioRule::warningRatioExceeded(unsigned int total, unsigned int count) const
+{
+  if (!d_enabled) {
+    return false;
+  }
+
+  if (d_warningRatio == 0.0) {
+    return false;
+  }
+
+  if (total < d_minimumNumberOfResponses) {
+    return false;
+  }
+
+  double allowed = d_warningRatio * static_cast<double>(total);
+  return (count > allowed);
+}
+
+std::string DynBlockRulesGroup::DynBlockRatioRule::toString() const
+{
+  if (!isEnabled()) {
+    return "";
+  }
+
+  std::stringstream result;
+  if (d_action != DNSAction::Action::None) {
+    result << DNSAction::typeToString(d_action) << " ";
+  }
+  else {
+    result << "Apply the global DynBlock action ";
+  }
+  result << "for " << std::to_string(d_blockDuration) << " seconds when over " << std::to_string(d_ratio) << " ratio during the last " << d_seconds << " seconds, reason: '" << d_blockReason << "'";
+
+  return result.str();
+}
+
+bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::checkGlobalCacheHitRatio() const
+{
+  auto globalMisses = dnsdist::metrics::g_stats.cacheMisses.load();
+  auto globalHits = dnsdist::metrics::g_stats.cacheHits.load();
+  if (globalMisses == 0 || globalHits == 0) {
+    return false;
+  }
+  double globalCacheHitRatio = static_cast<double>(globalHits) / static_cast<double>(globalHits + globalMisses);
+  return globalCacheHitRatio >= d_minimumGlobalCacheHitRatio;
+}
+
+bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::ratioExceeded(unsigned int total, unsigned int count) const
+{
+  if (!DynBlockRulesGroup::DynBlockRatioRule::ratioExceeded(total, count)) {
+    return false;
+  }
+
+  return checkGlobalCacheHitRatio();
+}
+
+bool DynBlockRulesGroup::DynBlockCacheMissRatioRule::warningRatioExceeded(unsigned int total, unsigned int count) const
+{
+  if (!DynBlockRulesGroup::DynBlockRatioRule::warningRatioExceeded(total, count)) {
+    return false;
+  }
+
+  return checkGlobalCacheHitRatio();
+}
+
+std::string DynBlockRulesGroup::DynBlockCacheMissRatioRule::toString() const
+{
+  if (!isEnabled()) {
+    return "";
+  }
+
+  std::stringstream result;
+  if (d_action != DNSAction::Action::None) {
+    result << DNSAction::typeToString(d_action) << " ";
+  }
+  else {
+    result << "Apply the global DynBlock action ";
+  }
+  result << "for " << std::to_string(d_blockDuration) << " seconds when over " << std::to_string(d_ratio) << " ratio during the last " << d_seconds << " seconds, with a global cache-hit ratio of at least " << d_minimumGlobalCacheHitRatio << ", reason: '" << d_blockReason << "'";
+
+  return result.str();
+}
+
 #endif /* DISABLE_DYNBLOCKS */

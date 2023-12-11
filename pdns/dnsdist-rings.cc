@@ -214,3 +214,12 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
 
   return inserted;
 }
+
+bool Rings::Response::isACacheHit() const
+{
+  bool hit = ds.sin4.sin_family == 0;
+  if (!hit && ds.isIPv4() && ds.sin4.sin_addr.s_addr == 0 && ds.sin4.sin_port == 0) {
+    hit = true;
+  }
+  return hit;
+}

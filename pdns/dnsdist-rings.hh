@@ -62,6 +62,8 @@ struct Rings {
     uint16_t qtype;
     // outgoing protocol
     dnsdist::Protocol protocol;
+
+    bool isACacheHit() const;
   };
 
   struct Shard
