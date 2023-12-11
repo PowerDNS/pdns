@@ -588,8 +588,8 @@ void dnsdist_ffi_dnsquestion_send_trap(dnsdist_ffi_dnsquestion_t* dq, const char
 void dnsdist_ffi_dnsquestion_spoof_packet(dnsdist_ffi_dnsquestion_t* dq, const char* raw, size_t len)
 {
   std::string result;
-  SpoofAction sa(raw, len);
-  sa(dq->dq, &result);
+  SpoofAction tempSpoofAction(raw, len);
+  tempSpoofAction(dq->dq, &result);
 }
 
 void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_raw_value_t* values, size_t valuesCount)
@@ -602,8 +602,8 @@ void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dq, const dnsd
   }
 
   std::string result;
-  SpoofAction sa(data);
-  sa(dq->dq, &result);
+  SpoofAction tempSpoofAction(data, std::nullopt);
+  tempSpoofAction(dq->dq, &result);
 }
 
 void dnsdist_ffi_dnsquestion_spoof_addrs(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_raw_value_t* values, size_t valuesCount)
@@ -631,8 +631,8 @@ void dnsdist_ffi_dnsquestion_spoof_addrs(dnsdist_ffi_dnsquestion_t* dq, const dn
   }
 
   std::string result;
-  SpoofAction sa(data);
-  sa(dq->dq, &result);
+  SpoofAction tempSpoofAction(data);
+  tempSpoofAction(dq->dq, &result);
 }
 
 void dnsdist_ffi_dnsquestion_set_max_returned_ttl(dnsdist_ffi_dnsquestion_t* dq, uint32_t max)

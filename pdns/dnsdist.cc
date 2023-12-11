@@ -872,8 +872,8 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent,
   if (raw) {
     std::vector<std::string> raws;
     stringtok(raws, spoofContent, ",");
-    SpoofAction sa(raws);
-    sa(&dq, &result);
+    SpoofAction tempSpoofAction(raws, std::nullopt);
+    tempSpoofAction(&dq, &result);
   }
   else {
     std::vector<std::string> addrs;
@@ -882,13 +882,13 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent,
     if (addrs.size() == 1) {
       try {
         ComboAddress spoofAddr(spoofContent);
-        SpoofAction sa({spoofAddr});
-        sa(&dq, &result);
+        SpoofAction tempSpoofAction({spoofAddr});
+        tempSpoofAction(&dq, &result);
       }
       catch(const PDNSException &e) {
         DNSName cname(spoofContent);
-        SpoofAction sa(cname); // CNAME then
-        sa(&dq, &result);
+        SpoofAction tempSpoofAction(cname); // CNAME then
+        tempSpoofAction(&dq, &result);
       }
     } else {
       std::vector<ComboAddress> cas;
@@ -899,8 +899,8 @@ static void spoofResponseFromString(DNSQuestion& dq, const string& spoofContent,
         catch (...) {
         }
       }
-      SpoofAction sa(cas);
-      sa(&dq, &result);
+      SpoofAction tempSpoofAction(cas);
+      tempSpoofAction(&dq, &result);
     }
   }
 }
@@ -909,8 +909,8 @@ static void spoofPacketFromString(DNSQuestion& dq, const string& spoofContent)
 {
   string result;
 
-  SpoofAction sa(spoofContent.c_str(), spoofContent.size());
-  sa(&dq, &result);
+  SpoofAction tempSpoofAction(spoofContent.c_str(), spoofContent.size());
+  tempSpoofAction(&dq, &result);
 }
 
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop)

@@ -227,7 +227,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return true;
   });
 
-  luaCtx.registerFunction<void(DNSQuestion::*)(const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response)>("spoof", [](DNSQuestion& dq, const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response) {
+  luaCtx.registerFunction<void(DNSQuestion::*)(const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>&, boost::optional<uint16_t>)>("spoof", [](DNSQuestion& dnsQuestion, const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response, boost::optional<uint16_t> typeForAny) {
       if (response.type() == typeid(LuaArray<ComboAddress>)) {
           std::vector<ComboAddress> data;
           auto responses = boost::get<LuaArray<ComboAddress>>(response);
@@ -236,8 +236,8 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
             data.push_back(resp.second);
           }
           std::string result;
-          SpoofAction sa(data);
-          sa(&dq, &result);
+          SpoofAction tempSpoofAction(data);
+          tempSpoofAction(&dnsQuestion, &result);
 	  return;
       }
       if (response.type() == typeid(LuaArray<std::string>)) {
@@ -248,8 +248,8 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
             data.push_back(resp.second);
           }
           std::string result;
-          SpoofAction sa(data);
-          sa(&dq, &result);
+          SpoofAction tempSpoofAction(data, typeForAny ? *typeForAny : std::optional<uint16_t>());
+          tempSpoofAction(&dnsQuestion, &result);
 	  return;
       }
   });
