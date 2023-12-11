@@ -1247,11 +1247,11 @@ Status, Statistics and More
   Set whether log messages should be in a structured-logging-like format. This is turned off by default.
   The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and with ``levelPrefix="prio"`` and ``timeFormat="ISO8601"``)::
 
-  ts="2023-11-06T12:04:58+0100" prio="Info" msg="Added downstream server 127.0.0.1:53"
+    ts="2023-11-06T12:04:58+0100" prio="Info" msg="Added downstream server 127.0.0.1:53"
 
   And with ``levelPrefix="level"`` and ``timeFormat="numeric"``)::
 
-  ts="1699268815.133" level="Info" msg="Added downstream server 127.0.0.1:53"
+    ts="1699268815.133" level="Info" msg="Added downstream server 127.0.0.1:53"
 
   :param bool enable: Set to true if you want to enable structured logging
   :param table options: A table with key: value pairs with options described below.
