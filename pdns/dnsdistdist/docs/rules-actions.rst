@@ -73,7 +73,7 @@ The regex is applied case insensitively.
 
 Alternatively, if compiled in, :func:`RE2Rule` provides similar functionality, but against libre2.
 
-Note that to check if a name is in a list of domains, :func:`SuffixMatchNodeRule` is preferred over complex regular expressions or multiple instances of :func:`RegexRule`.
+Note that to check if a name is in a list of domains, :func:`QNameSuffixRule` is preferred over complex regular expressions or multiple instances of :func:`RegexRule`.
 
 Rule Generators
 ---------------
@@ -154,7 +154,7 @@ For Rules related to the incoming query:
     Added ``name`` to the ``options``.
 
   .. versionchanged:: 1.9.0
-    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
 
   Add a Rule and Action to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
@@ -299,7 +299,7 @@ For Rules related to responses:
     Added ``name`` to the ``options``.
 
   .. versionchanged:: 1.9.0
-    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
 
   Add a Rule and Action for responses to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
@@ -362,7 +362,7 @@ Functions for manipulating Cache Hit Response Rules:
     Added ``name`` to the ``options``.
 
   .. versionchanged:: 1.9.0
-    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
 
   Add a Rule and ResponseAction for Cache Hits to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
@@ -422,7 +422,7 @@ Functions for manipulating Cache Inserted Response Rules:
   .. versionadded:: 1.8.0
 
   .. versionchanged:: 1.9.0
-    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
 
   Add a Rule and ResponseAction that is executed after a cache entry has been inserted to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
@@ -479,7 +479,7 @@ Functions for manipulating Self-Answered Response Rules:
     Added ``name`` to the ``options``.
 
   .. versionchanged:: 1.9.0
-    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
+    Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
 
   Add a Rule and Action for Self-Answered queries to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
@@ -761,9 +761,28 @@ These ``DNSRule``\ s be one of the following items:
 
    Matches if the set contains exact qname.
 
-   To match subdomain names, see :func:`SuffixMatchNodeRule`.
+   To match subdomain names, see :func:`QNameSuffixRule`.
 
    :param DNSNameSet set: Set with qnames.
+
+.. function:: QNameSuffixRule(suffixes [, quiet@)
+
+  .. versionadded:: 1.9.0
+
+  Matches based on a group of domain suffixes for rapid testing of membership.
+  The first parameter, ``suffixes``, can be a string, list of strings or a class:`SuffixMatchNode` object created with :func:`newSuffixMatchNode`.
+  Pass true as second parameter to prevent listing of all domains matched.
+
+  To match domain names exactly, see :func:`QNameSetRule`.
+
+  This rule existed before 1.9.0 but was called :func:`SuffixMatchNodeRule`, only accepting a :class:`SuffixMatchNode` parameter.
+
+  :param suffixes: A string, list of strings, or a :class:`SuffixMatchNode` to match on
+  :param bool quiet: Do not display the list of matched domains in Rules. Default is false.
+
+   Matches queries with the specified qname exactly.
+
+   :param string qname: Qname to match
 
 .. function:: QNameLabelsCountRule(min, max)
 
@@ -870,6 +889,8 @@ These ``DNSRule``\ s be one of the following items:
 
   To match domain names exactly, see :func:`QNameSetRule`.
 
+  Since 1.9.0, this rule can also be used via the alias :func:`QNameSuffixRule`.
+
   :param SuffixMatchNode smn: A string, list of strings, or a :class:`SuffixMatchNode` to match on
   :param bool quiet: Do not display the list of matched domains in Rules. Default is false.
 
@@ -945,7 +966,7 @@ Convenience Functions
 .. function:: makeRule(rule)
 
   .. versionchanged:: 1.9.0
-    This function is deprecated, please use :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule` instead
+    This function is deprecated, please use :func:`NetmaskGroupRule` or :func:`QnameSuffixRule` instead
 
   Make a :func:`NetmaskGroupRule` or a :func:`SuffixMatchNodeRule`, depending on how it is called.
   The `rule` parameter can be a string, or a list of strings, that should contain either:

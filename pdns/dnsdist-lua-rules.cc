@@ -283,6 +283,29 @@ static boost::optional<T> getRuleFromSelector(const std::vector<T>& rules, const
   return boost::none;
 }
 
+namespace
+{
+std::shared_ptr<DNSRule> qnameSuffixRule(const boost::variant<const SuffixMatchNode&, std::string, const LuaArray<std::string>> names, boost::optional<bool> quiet)
+{
+  if (names.type() == typeid(string)) {
+    SuffixMatchNode smn;
+    smn.add(DNSName(*boost::get<std::string>(&names)));
+    return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
+  }
+
+  if (names.type() == typeid(LuaArray<std::string>)) {
+    SuffixMatchNode smn;
+    for (const auto& str : *boost::get<const LuaArray<std::string>>(&names)) {
+      smn.add(DNSName(str.second));
+    }
+    return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
+  }
+
+  const auto& smn = *boost::get<const SuffixMatchNode&>(&names);
+  return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
+}
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaRules(LuaContext& luaCtx)
 {
@@ -521,24 +544,7 @@ void setupLuaRules(LuaContext& luaCtx)
       return std::shared_ptr<DNSRule>(new SNIRule(name));
   });
 
-  luaCtx.writeFunction("SuffixMatchNodeRule", [](const boost::variant<const SuffixMatchNode&, std::string, const LuaArray<std::string>> names, boost::optional<bool> quiet) {
-    if (names.type() == typeid(string)) {
-      SuffixMatchNode smn;
-      smn.add(DNSName(*boost::get<std::string>(&names)));
-      return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
-    }
-
-    if (names.type() == typeid(LuaArray<std::string>)) {
-      SuffixMatchNode smn;
-      for (const auto& str : *boost::get<const LuaArray<std::string>>(&names)) {
-        smn.add(DNSName(str.second));
-      }
-      return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
-    }
-
-    const auto& smn = *boost::get<const SuffixMatchNode&>(&names);
-    return std::shared_ptr<DNSRule>(new SuffixMatchNodeRule(smn, quiet ? *quiet : false));
-  });
+  luaCtx.writeFunction("SuffixMatchNodeRule", qnameSuffixRule);
 
   luaCtx.writeFunction("NetmaskGroupRule", [](const boost::variant<const NetmaskGroup&, std::string, const LuaArray<std::string>> netmasks, boost::optional<bool> src, boost::optional<bool> quiet) {
     if (netmasks.type() == typeid(string)) {
@@ -611,6 +617,8 @@ void setupLuaRules(LuaContext& luaCtx)
   luaCtx.writeFunction("QNameRule", [](const std::string& qname) {
       return std::shared_ptr<DNSRule>(new QNameRule(DNSName(qname)));
     });
+
+  luaCtx.writeFunction("QNameSuffixRule", qnameSuffixRule);
 
   luaCtx.writeFunction("QTypeRule", [](boost::variant<unsigned int, std::string> str) {
       uint16_t qtype;
