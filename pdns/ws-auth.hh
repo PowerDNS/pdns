@@ -27,6 +27,7 @@
 #include "misc.hh"
 #include "namespaces.hh"
 #include "webserver.hh"
+#include "statbag.hh"
 
 class Ewma
 {
@@ -49,7 +50,7 @@ class AuthWebServer
 {
 public:
   AuthWebServer();
-  void go();
+  void go(StatBag& stats);
   static string makePercentage(const double& val);
 
 private:
@@ -60,7 +61,7 @@ private:
   void printvars(ostringstream& ret);
   void printargs(ostringstream& ret);
   void webThread();
-  void statThread();
+  void statThread(StatBag& stats);
 
   time_t d_start;
   double d_min10, d_min5, d_min1;

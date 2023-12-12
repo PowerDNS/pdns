@@ -844,8 +844,9 @@ static void mainthread()
   // NOW SAFE TO CREATE THREADS!
   s_dynListener->go();
 
-  if (::arg().mustDo("webserver") || ::arg().mustDo("api"))
-    webserver.go();
+  if (::arg().mustDo("webserver") || ::arg().mustDo("api")) {
+    webserver.go(S);
+  }
 
   if (::arg().mustDo("primary") || ::arg().mustDo("secondary") || !::arg()["forward-notify"].empty())
     Communicator.go();

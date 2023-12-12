@@ -50,8 +50,6 @@
 
 using json11::Json;
 
-extern StatBag S;
-
 Ewma::Ewma() { dt.set(); }
 
 void Ewma::submit(int val)
@@ -122,25 +120,25 @@ AuthWebServer::AuthWebServer() :
   }
 }
 
-void AuthWebServer::go()
+void AuthWebServer::go(StatBag& stats)
 {
   S.doRings();
   std::thread webT([this]() { webThread(); });
   webT.detach();
-  std::thread statT([this]() { statThread(); });
+  std::thread statT([this, &stats]() { statThread(stats); });
   statT.detach();
 }
 
-void AuthWebServer::statThread()
+void AuthWebServer::statThread(StatBag& stats)
 {
   try {
     setThreadName("pdns/statHelper");
     for (;;) {
-      d_queries.submit(S.read("udp-queries"));
-      d_cachehits.submit(S.read("packetcache-hit"));
-      d_cachemisses.submit(S.read("packetcache-miss"));
-      d_qcachehits.submit(S.read("query-cache-hit"));
-      d_qcachemisses.submit(S.read("query-cache-miss"));
+      d_queries.submit(static_cast<int>(stats.read("udp-queries")));
+      d_cachehits.submit(static_cast<int>(stats.read("packetcache-hit")));
+      d_cachemisses.submit(static_cast<int>(stats.read("packetcache-miss")));
+      d_qcachehits.submit(static_cast<int>(stats.read("query-cache-hit")));
+      d_qcachemisses.submit(static_cast<int>(stats.read("query-cache-miss")));
       Utility::sleep(1);
     }
   }
