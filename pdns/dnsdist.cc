@@ -539,6 +539,18 @@ static bool applyRulesToResponse(const std::vector<DNSDistResponseRuleAction>& r
         });
         return true;
         break;
+      case DNSResponseAction::Action::Truncate:
+        if (!dr.overTCP()) {
+          dnsdist::PacketMangling::editDNSHeaderFromPacket(dr.getMutableData(), [](dnsheader& header) {
+            header.tc = true;
+            header.qr = true;
+            return true;
+          });
+          truncateTC(dr.getMutableData(), dr.getMaximumSize(), dr.ids.qname.wirelength());
+          ++dnsdist::metrics::g_stats.ruleTruncated;
+          return true;
+        }
+        break;
         /* non-terminal actions follow */
       case DNSResponseAction::Action::Delay:
         pdns::checked_stoi_into(dr.ids.delayMsec, ruleresult); // sorry

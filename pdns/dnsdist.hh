@@ -267,7 +267,7 @@ public:
 class DNSResponseAction
 {
 public:
-  enum class Action : uint8_t { Allow, Delay, Drop, HeaderModify, ServFail, None };
+  enum class Action : uint8_t { Allow, Delay, Drop, HeaderModify, ServFail, Truncate, None };
   virtual Action operator()(DNSResponse*, string* ruleresult) const =0;
   virtual ~DNSResponseAction()
   {

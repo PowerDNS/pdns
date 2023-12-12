@@ -726,6 +726,15 @@ These ``DNSRule``\ s be one of the following items:
 
   :param int code: The opcode to match
 
+.. function:: PayloadSizeRule(comparison, size)
+
+  .. versionadded:: 1.9.0
+
+  Matches queries or responses whose DNS payload size fits the given comparison.
+
+  :param str comparison: The comparison operator to use. Supported values are ``equal``, ``greater``, ``greaterOrEqual``, ``smaller`` and ``smallerOrEqual``.
+  :param int size: The size to compare to.
+
 .. function:: ProbaRule(probability)
 
   Matches queries with a given probability. 1.0 means "always"
@@ -1913,6 +1922,13 @@ The following actions exist.
   Create answer to query with the TC bit set, and the RA bit set to the value of RD in the query, to force the client to TCP.
   Before 1.7.0 this action was performed even when the query had been received over TCP, which required the use of :func:`TCPRule` to
   prevent the TC bit from being set over TCP transports.
+
+.. function:: TCResponseAction()
+
+  .. versionadded:: 1.9.0
+
+  Truncate an existing answer, to force the client to TCP. Only applied to answers that will be sent to the client over TCP.
+  In addition to the TC bit being set, all records are removed from the answer, authority and additional sections.
 
 .. function:: TeeAction(remote[, addECS[, local [, addProxyProtocol]]])
 

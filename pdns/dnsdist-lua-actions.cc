@@ -513,6 +513,19 @@ public:
   }
 };
 
+class TCResponseAction : public DNSResponseAction
+{
+public:
+  DNSResponseAction::Action operator()(DNSResponse* dnsResponse, std::string* ruleresult) const override
+  {
+    return Action::Truncate;
+  }
+  [[nodiscard]] std::string toString() const override
+  {
+    return "tc=1 answer";
+  }
+};
+
 class LuaAction : public DNSAction
 {
 public:
@@ -2547,6 +2560,10 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("TCAction", []() {
       return std::shared_ptr<DNSAction>(new TCAction);
+    });
+
+  luaCtx.writeFunction("TCResponseAction", []() {
+      return std::shared_ptr<DNSResponseAction>(new TCResponseAction);
     });
 
   luaCtx.writeFunction("SetDisableValidationAction", []() {
