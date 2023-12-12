@@ -1815,9 +1815,15 @@ bool setupDoHProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
   if (ctx == nullptr) {
     return false;
   }
-  /* we want to set the ALPN to doh */
-  const std::vector<std::vector<uint8_t>> dohAlpns = {{'h', '2'}};
+  /* This code is only called for incoming/server TLS contexts (not outgoing/client),
+     and h2o sets it own ALPN values.
+     We want to set the ALPN for DoH:
+     - HTTP/1.1 so that the OpenSSL callback ALPN accepts it, letting us later return a static response
+     - HTTP/2
+  */
+  const std::vector<std::vector<uint8_t>> dohAlpns{{'h', '2'},{'h', 't', 't', 'p', '/', '1', '.', '1'}};
   ctx->setALPNProtos(dohAlpns);
+
   return true;
 }
 
