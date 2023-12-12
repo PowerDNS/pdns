@@ -23,14 +23,13 @@
 #include <cstdint>
 #include <ctime>
 #include <queue>
-#include <map>
 #include <memory>
 #include <stack>
-#include <vector>
 
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
+
 #include "namespaces.hh"
 #include "misc.hh"
 #include "mtasker_context.hh"
@@ -58,8 +57,8 @@ private:
   {
     std::shared_ptr<pdns_ucontext_t> context;
     std::function<void(void)> start;
-    const char* startOfStack;
-    const char* highestStackSeen;
+    const char* startOfStack{};
+    const char* highestStackSeen{};
 #ifdef MTASKERTIMING
     CPUTime dt;
     unsigned int totTime;
@@ -90,19 +89,18 @@ public:
   {
     EventKey key;
     std::shared_ptr<pdns_ucontext_t> context;
-    struct timeval ttd;
-    int tid;
+    struct timeval ttd{};
+    int tid{};
   };
   struct KeyTag
   {
   };
 
-  typedef multi_index_container<
+  using waiters_t = multi_index_container<
     Waiter,
     indexed_by<
       ordered_unique<member<Waiter, EventKey, &Waiter::key>, Cmp>,
-      ordered_non_unique<tag<KeyTag>, member<Waiter, struct timeval, &Waiter::ttd>>>>
-    waiters_t;
+      ordered_non_unique<tag<KeyTag>, member<Waiter, struct timeval, &Waiter::ttd>>>>;
 
   waiters_t d_waiters;
 
@@ -131,7 +129,7 @@ public:
       This limit applies solely to the stack, the heap is not limited in any way. If threads need to allocate a lot of data,
       the use of new/delete is suggested.
    */
-  MTasker(size_t stacksize = 16 * 8192, size_t stackCacheSize = 0) :
+  MTasker(size_t stacksize = static_cast<size_t>(16 * 8192), size_t stackCacheSize = 0) :
     d_stacksize(stacksize), d_maxCachedStacks(stackCacheSize), d_waitstatus(Error)
   {
     initMainStackBounds();
@@ -140,16 +138,16 @@ public:
     d_stacksize = d_stacksize >> 4 << 4;
   }
 
-  typedef void tfunc_t(void*); //!< type of the pointer that starts a thread
+  using tfunc_t = void (void *); //!< type of the pointer that starts a thread
   int waitEvent(EventKey& key, EventVal* val = nullptr, unsigned int timeoutMsec = 0, const struct timeval* now = nullptr);
   void yield();
   int sendEvent(const EventKey& key, const EventVal* val = nullptr);
   void getEvents(std::vector<EventKey>& events);
   void makeThread(tfunc_t* start, void* val);
   bool schedule(const struct timeval* now = nullptr);
-  bool noProcesses() const;
-  unsigned int numProcesses() const;
-  int getTid() const;
+  [[nodiscard]] bool noProcesses() const;
+  [[nodiscard]] unsigned int numProcesses() const;
+  [[nodiscard]] int getTid() const;
   uint64_t getMaxStackUsage();
   unsigned int getUsec();
 

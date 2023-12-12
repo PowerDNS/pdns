@@ -24,7 +24,7 @@
 #endif
 #include "mtasker.hh"
 #include "misc.hh"
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 
 #ifdef PDNS_USE_VALGRIND
@@ -177,27 +177,28 @@ int MTasker<EventKey, EventVal, Cmp>::waitEvent(EventKey& key, EventVal* val, un
     return -1;
   }
 
-  Waiter w;
-  w.context = std::make_shared<pdns_ucontext_t>();
-  w.ttd.tv_sec = 0;
-  w.ttd.tv_usec = 0;
-  if (timeoutMsec) {
-    struct timeval increment;
+  Waiter waiter;
+  waiter.context = std::make_shared<pdns_ucontext_t>();
+  waiter.ttd.tv_sec = 0;
+  waiter.ttd.tv_usec = 0;
+  if (timeoutMsec != 0) {
+    struct timeval increment{};
     increment.tv_sec = timeoutMsec / 1000;
-    increment.tv_usec = 1000 * (timeoutMsec % 1000);
-    if (now)
-      w.ttd = increment + *now;
+    increment.tv_usec = static_cast<decltype(increment.tv_usec)>(1000 * (timeoutMsec % 1000));
+    if (now != nullptr) {
+      waiter.ttd = increment + *now;
+    }
     else {
-      struct timeval realnow;
-      gettimeofday(&realnow, 0);
-      w.ttd = increment + realnow;
+      struct timeval realnow{};
+      gettimeofday(&realnow, nullptr);
+      waiter.ttd = increment + realnow;
     }
   }
 
-  w.tid = d_tid;
-  w.key = key;
+  waiter.tid = d_tid;
+  waiter.key = key;
 
-  d_waiters.insert(w);
+  d_waiters.insert(waiter);
 #ifdef MTASKERTIMING
   unsigned int diff = d_threads[d_tid].dt.ndiff() / 1000;
   d_threads[d_tid].totTime += diff;
@@ -208,11 +209,12 @@ int MTasker<EventKey, EventVal, Cmp>::waitEvent(EventKey& key, EventVal* val, un
 #ifdef MTASKERTIMING
   d_threads[d_tid].dt.start();
 #endif
-  if (val && d_waitstatus == Answer)
+  if (val && d_waitstatus == Answer) {
     *val = d_waitval;
-  d_tid = w.tid;
-  if ((char*)&w < d_threads[d_tid].highestStackSeen) {
-    d_threads[d_tid].highestStackSeen = (char*)&w;
+  }
+  d_tid = waiter.tid;
+  if ((char*)&waiter < d_threads[d_tid].highestStackSeen) {
+    d_threads[d_tid].highestStackSeen = (char*)&waiter;
   }
   key = d_eventkey;
   return d_waitstatus;
@@ -248,9 +250,9 @@ int MTasker<EventKey, EventVal, Cmp>::sendEvent(const EventKey& key, const Event
     return 0;
   }
   d_waitstatus = Answer;
-  if (val)
+  if (val) {
     d_waitval = *val;
-
+  }
   d_tid = waiter->tid; // set tid
   d_eventkey = waiter->key; // pass waitEvent the exact key it was woken for
   auto userspace = std::move(waiter->context);
@@ -270,23 +272,23 @@ int MTasker<EventKey, EventVal, Cmp>::sendEvent(const EventKey& key, const Event
 template <class Key, class Val, class Cmp>
 std::shared_ptr<pdns_ucontext_t> MTasker<Key, Val, Cmp>::getUContext()
 {
-  auto uc = std::make_shared<pdns_ucontext_t>();
+  auto ucontext = std::make_shared<pdns_ucontext_t>();
   if (d_cachedStacks.empty()) {
-    uc->uc_stack.resize(d_stacksize + 1);
+    ucontext->uc_stack.resize(d_stacksize + 1);
   }
   else {
-    uc->uc_stack = std::move(d_cachedStacks.top());
+    ucontext->uc_stack = std::move(d_cachedStacks.top());
     d_cachedStacks.pop();
   }
 
-  uc->uc_link = &d_kernel; // come back to kernel after dying
+  ucontext->uc_link = &d_kernel; // come back to kernel after dying
 
 #ifdef PDNS_USE_VALGRIND
   uc->valgrind_id = VALGRIND_STACK_REGISTER(&uc->uc_stack[0],
                                             &uc->uc_stack[uc->uc_stack.size() - 1]);
 #endif /* PDNS_USE_VALGRIND */
 
-  return uc;
+  return ucontext;
 }
 
 //! launches a new thread
@@ -297,24 +299,23 @@ std::shared_ptr<pdns_ucontext_t> MTasker<Key, Val, Cmp>::getUContext()
 template <class Key, class Val, class Cmp>
 void MTasker<Key, Val, Cmp>::makeThread(tfunc_t* start, void* val)
 {
-  auto uc = getUContext();
+  auto ucontext = getUContext();
 
   ++d_threadsCount;
   auto& thread = d_threads[d_maxtid];
-  auto mt = this;
   // we will get a better approximation when the task is executed, but that prevents notifying a stack at nullptr
   // on the first invocation
-  d_threads[d_maxtid].startOfStack = &uc->uc_stack[uc->uc_stack.size() - 1];
-  thread.start = [start, val, mt]() {
-    char dummy;
-    mt->d_threads[mt->d_tid].startOfStack = mt->d_threads[mt->d_tid].highestStackSeen = &dummy;
-    auto const tid = mt->d_tid;
+  d_threads[d_maxtid].startOfStack = &ucontext->uc_stack[ucontext->uc_stack.size() - 1];
+  thread.start = [start, val, this]() {
+    char dummy{};
+    d_threads[d_tid].startOfStack = d_threads[d_tid].highestStackSeen = &dummy;
+    auto const tid = d_tid;
     start(val);
-    mt->d_zombiesQueue.push(tid);
+    d_zombiesQueue.push(tid);
   };
-  pdns_makecontext(*uc, thread.start);
+  pdns_makecontext(*ucontext, thread.start);
 
-  thread.context = std::move(uc);
+  thread.context = std::move(ucontext);
   d_runQueue.push(d_maxtid++); // will run at next schedule invocation
 }
 
@@ -367,12 +368,13 @@ bool MTasker<Key, Val, Cmp>::schedule(const struct timeval* now)
     return true;
   }
   if (!d_waiters.empty()) {
-    struct timeval rnow;
-    if (!now)
-      gettimeofday(&rnow, 0);
-    else
+    struct timeval rnow{};
+    if (now != nullptr) {
+      gettimeofday(&rnow, nullptr);
+    }
+    else {
       rnow = *now;
-
+    }
     typedef typename waiters_t::template index<KeyTag>::type waiters_by_ttd_index_t;
     //    waiters_by_ttd_index_t& ttdindex=d_waiters.template get<KeyTag>();
     waiters_by_ttd_index_t& ttdindex = boost::multi_index::get<KeyTag>(d_waiters);
@@ -381,13 +383,13 @@ bool MTasker<Key, Val, Cmp>::schedule(const struct timeval* now)
       if (i->ttd.tv_sec && i->ttd < rnow) {
         d_waitstatus = TimeOut;
         d_eventkey = i->key; // pass waitEvent the exact key it was woken for
-        auto uc = i->context;
+        auto ucontext = i->context;
         d_tid = i->tid;
         ttdindex.erase(i++); // removes the waitpoint
 
         notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
         try {
-          pdns_swapcontext(d_kernel, *uc); // swaps back to the above point 'A'
+          pdns_swapcontext(d_kernel, *ucontext); // swaps back to the above point 'A'
         }
         catch (...) {
           notifyStackSwitchDone();
@@ -395,10 +397,12 @@ bool MTasker<Key, Val, Cmp>::schedule(const struct timeval* now)
         }
         notifyStackSwitchDone();
       }
-      else if (i->ttd.tv_sec)
+      else if (i->ttd.tv_sec != 0) {
         break;
-      else
+      }
+      else {
         ++i;
+      }
     }
   }
   return false;
