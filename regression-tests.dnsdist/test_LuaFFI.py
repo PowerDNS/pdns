@@ -322,24 +322,33 @@ class TestLuaFFIHeader(DNSDistTest):
     local bit = require("bit")
     local ffi = require("ffi")
 
-    function setAAResponseAction(dr)
+    -- check that the AA bit is clear, set the rcode to REFUSED otherwise
+    function checkAAResponseAction(dr)
       local header_void = ffi.C.dnsdist_ffi_dnsquestion_get_header(dr)
       local header = ffi.cast("unsigned char *", header_void)
       -- get AA
       local aa = bit.band(header[2], bit.lshift(1, 2)) ~= 0
       if aa then
           ffi.C.dnsdist_ffi_dnsquestion_set_rcode(dr, DNSRCode.REFUSED)
+          -- prevent subsequent rules from being applied
           return DNSResponseAction.HeaderModify
       end
+      return DNSResponseAction.None
+    end
+
+    -- set the AA bit to 1
+    function setAAResponseAction(dr)
+      local header_void = ffi.C.dnsdist_ffi_dnsquestion_get_header(dr)
+      local header = ffi.cast("unsigned char *", header_void)
       -- set AA=1
       header[2] = bit.bor(header[2], bit.lshift(1, 2))
       return DNSResponseAction.None
     end
 
+    addResponseAction(AllRule(), LuaFFIResponseAction(checkAAResponseAction))
     addResponseAction(AllRule(), LuaFFIResponseAction(setAAResponseAction))
     newServer{address="127.0.0.1:%d"}
     """
-    _verboseMode = True
 
     def testLuaFFISetAAHeader(self):
         """
@@ -371,9 +380,9 @@ class TestLuaFFIHeader(DNSDistTest):
             self.assertEqual(query, receivedQuery)
             self.assertEqual(expectedResponse, receivedResponse)
 
-    def testLuaFFIgetAAHeader(self):
+    def testLuaFFIGetAAHeader(self):
         """
-        Lua FFI: check AA=0
+        Lua FFI: check AA=0, return REFUSED otherwise
         """
         name = 'dnsheader-get-aa.luaffi.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
