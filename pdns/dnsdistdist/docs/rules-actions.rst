@@ -730,10 +730,10 @@ These ``DNSRule``\ s be one of the following items:
 
   .. versionadded:: 1.9.0
 
-  Matches queries or responses whose DNS payload size is equal, greater, greater or equal, smaller or smaller or equal to the specified size.
+  Matches queries or responses whose DNS payload size fits the given comparison.
 
   :param str comparison: The comparison operator to use. Supported values are ``equal``, ``greater``, ``greaterOrEqual``, ``smaller`` and ``smallerOrEqual``.
-  :param int size: The size to compare to.w
+  :param int size: The size to compare to.
 
 .. function:: ProbaRule(probability)
 
@@ -1900,7 +1900,7 @@ The following actions exist.
 
   .. versionadded:: 1.9.0
 
-  Truncate an existing answer, to force the client to TCP.
+  Truncate an existing answer, to force the client to TCP. Only applied to answers that will be sent to the client over TCP.
 
 .. function:: TeeAction(remote[, addECS[, local [, addProxyProtocol]]])
 

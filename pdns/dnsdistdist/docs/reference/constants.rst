@@ -154,7 +154,7 @@ All named `QTypes <https://www.iana.org/assignments/dns-parameters/dns-parameter
 DNSResponseAction
 -----------------
 
-.. versionchanged:: 1.8.0
+.. versionchanged:: 1.9.0
   The ``DNSResponseAction.Truncate`` value was added.
 
 These constants represent an Action that can be returned from :func:`LuaResponseAction` functions.
