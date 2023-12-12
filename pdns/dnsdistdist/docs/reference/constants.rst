@@ -165,4 +165,4 @@ These constants represent an Action that can be returned from :func:`LuaResponse
  * ``DNSResponseAction.HeaderModify``: indicate that the query has been turned into a response
  * ``DNSResponseAction.None``: continue to the next rule
  * ``DNSResponseAction.ServFail``: return a response with a ServFail rcode
- * ``DNSResponseAction.Truncate``: truncate the response
+ * ``DNSResponseAction.Truncate``: truncate the response, removing all records from the answer, authority and additional sections if any

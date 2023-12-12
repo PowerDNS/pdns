@@ -1901,6 +1901,7 @@ The following actions exist.
   .. versionadded:: 1.9.0
 
   Truncate an existing answer, to force the client to TCP. Only applied to answers that will be sent to the client over TCP.
+  In addition to the TC bit being set, all records are removed from the answer, authority and additional sections.
 
 .. function:: TeeAction(remote[, addECS[, local [, addProxyProtocol]]])
 
