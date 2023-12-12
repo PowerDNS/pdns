@@ -124,7 +124,7 @@ class TestAdvancedLuaFFI(DNSDistTest):
     addAction(AllRule(), LuaFFIAction(luaffiactionsettag))
     addAction(AllRule(), LuaFFIAction(luaffiactionsettagraw))
     addAction(LuaFFIRule(luaffirulefunction), LuaFFIAction(luaffiactionfunction))
-    -- newServer{address="127.0.0.1:%s"}
+    -- newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedLuaFFI(self):
@@ -273,7 +273,7 @@ class TestAdvancedLuaFFIPerThread(DNSDistTest):
 
     addAction(AllRule(), LuaFFIPerThreadAction(settagfunction))
     addAction(LuaFFIPerThreadRule(rulefunction), LuaFFIPerThreadAction(actionfunction))
-    -- newServer{address="127.0.0.1:%s"}
+    -- newServer{address="127.0.0.1:%d"}
     """
 
     def testAdvancedLuaPerthreadFFI(self):
@@ -315,3 +315,94 @@ class TestAdvancedLuaFFIPerThread(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, response)
+
+class TestLuaFFIHeader(DNSDistTest):
+
+    _config_template = """
+    local bit = require("bit")
+    local ffi = require("ffi")
+
+    -- check that the AA bit is clear, set the rcode to REFUSED otherwise
+    function checkAAResponseAction(dr)
+      local header_void = ffi.C.dnsdist_ffi_dnsquestion_get_header(dr)
+      local header = ffi.cast("unsigned char *", header_void)
+      -- get AA
+      local aa = bit.band(header[2], bit.lshift(1, 2)) ~= 0
+      if aa then
+          ffi.C.dnsdist_ffi_dnsquestion_set_rcode(dr, DNSRCode.REFUSED)
+          -- prevent subsequent rules from being applied
+          return DNSResponseAction.HeaderModify
+      end
+      return DNSResponseAction.None
+    end
+
+    -- set the AA bit to 1
+    function setAAResponseAction(dr)
+      local header_void = ffi.C.dnsdist_ffi_dnsquestion_get_header(dr)
+      local header = ffi.cast("unsigned char *", header_void)
+      -- set AA=1
+      header[2] = bit.bor(header[2], bit.lshift(1, 2))
+      return DNSResponseAction.None
+    end
+
+    addResponseAction(AllRule(), LuaFFIResponseAction(checkAAResponseAction))
+    addResponseAction(AllRule(), LuaFFIResponseAction(setAAResponseAction))
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testLuaFFISetAAHeader(self):
+        """
+        Lua FFI: Set AA=1
+        """
+        name = 'dnsheader-set-aa.luaffi.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        expectedResponse.answer.append(rrset)
+        expectedResponse.flags |= dns.flags.AA
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+    def testLuaFFIGetAAHeader(self):
+        """
+        Lua FFI: check AA=0, return REFUSED otherwise
+        """
+        name = 'dnsheader-get-aa.luaffi.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+        response.answer.append(rrset)
+        response.flags |= dns.flags.AA
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.flags |= dns.flags.AA
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(expectedResponse, receivedResponse)
