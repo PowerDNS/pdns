@@ -66,7 +66,6 @@ EXTRA_DIST = \
 	lua_hpp.mk \
 	malloctrace.cc malloctrace.hh \
 	mkpubsuffixcc \
-	mtasker.cc \
 	mtasker_fcontext.cc mtasker_ucontext.cc \
 	NOTICE \
 	opensslsigners.hh opensslsigners.cc \
