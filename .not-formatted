@@ -297,7 +297,6 @@
 ./pdns/version.hh
 ./pdns/webserver.cc
 ./pdns/webserver.hh
-./pdns/ws-api.cc
 ./pdns/xpf.cc
 ./pdns/xpf.hh
 ./pdns/zone2json.cc
