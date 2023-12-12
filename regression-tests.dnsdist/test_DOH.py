@@ -400,7 +400,7 @@ class DOHTests(object):
         data = conn.perform_rb()
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         self.assertEqual(rcode, 400)
-        self.assertEqual(data, b'<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance to section 5.2 of the RFC.</body></html>\r\n')
+        self.assertEqual(data, b'<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n')
 
     def testDOHInvalid(self):
         """

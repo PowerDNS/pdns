@@ -272,7 +272,7 @@ bool IncomingHTTP2Connection::checkALPN()
     return true;
   }
 
-  const std::string data("HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n\r\n<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance to section 5.2 of the RFC.</body></html>\r\n");
+  const std::string data("HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n\r\n<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n");
   d_out.insert(d_out.end(), data.begin(), data.end());
   writeToSocket(false);
 
