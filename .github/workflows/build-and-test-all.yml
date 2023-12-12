@@ -4,6 +4,13 @@ name: 'Build and test everything'
 on:
   push:
   pull_request:
+  workflow_call:
+    inputs:
+      branch-name:
+        description: 'Checkout to a specific branch'
+        required: true
+        default: ''
+        type: string
   schedule:
     - cron: '0 22 * * 3'
 
@@ -43,6 +50,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -80,10 +88,11 @@ jobs:
           allow-empty: true
       - run: inv ci-make-install
       - run: ccache -s
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
         uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
           retention-days: 1
 
@@ -110,6 +119,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -147,10 +157,11 @@ jobs:
           allow-empty: true
       - run: inv ci-make-install
       - run: ccache -s
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
         uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}
+          name: pdns-recursor-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
           retention-days: 1
 
@@ -182,6 +193,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -221,10 +233,11 @@ jobs:
           allow-empty: true
       - run: inv ci-make-install
       - run: ccache -s
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
         uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
         with:
-          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}
+          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
           retention-days: 1
 
@@ -269,10 +282,12 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - run: inv apt-fresh
       - run: inv install-clang-runtime
@@ -391,10 +406,12 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       # FIXME: install recursor for backends that have ALIAS
       - run: inv install-clang-runtime
@@ -425,10 +442,12 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps
@@ -465,10 +484,12 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}
+          name: pdns-recursor-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: inv apt-fresh
       - run: inv add-auth-repo  ${{ matrix.dist_name }} ${{ matrix.dist_release_name }} ${{ matrix.pdns_repo_version }}
@@ -508,10 +529,12 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}
+          name: pdns-recursor-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: inv apt-fresh
       - run: inv add-auth-repo ${{ matrix.dist_name }} ${{ matrix.dist_release_name }} ${{ matrix.pdns_repo_version }}
@@ -551,10 +574,12 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}
+          name: pdns-recursor-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: inv install-clang-runtime
       - run: inv install-rec-bulk-deps
@@ -593,10 +618,12 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: dnsdist-full-${{ matrix.sanitizers }}
+          name: dnsdist-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
       - run: inv install-clang-runtime
       - run: inv install-dnsdist-test-deps
@@ -625,6 +652,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-swagger-tools
       - run: inv swagger-syntax-check
@@ -658,6 +686,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: Get list of jobs in the workflow
         run: "yq e '.jobs | keys' .github/workflows/build-and-test-all.yml | awk '{print $2}' | grep -v collect | sort | tee /tmp/workflow-jobs-list.yml"
       - name: Get list of prerequisite jobs
