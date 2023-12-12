@@ -515,7 +515,7 @@ static void apiServerRPZStats(HttpRequest* /* req */, HttpResponse* resp)
   resp->setJsonBody(ret);
 }
 
-static void prometheusMetrics(HttpRequest* req, HttpResponse* resp)
+static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
 {
   static MetricDefinitionStorage s_metricDefinitions;
 

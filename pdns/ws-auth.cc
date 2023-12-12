@@ -2477,7 +2477,7 @@ static std::ostream& operator<<(std::ostream& os, StatType statType)
   return os << static_cast<uint16_t>(statType);
 }
 
-static void prometheusMetrics(HttpRequest* req, HttpResponse* resp) {
+static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp) {
   std::ostringstream output;
   for (const auto &metricName : S.getEntries()) {
     // Prometheus suggest using '_' instead of '-'
