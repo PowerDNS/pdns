@@ -765,7 +765,7 @@ These ``DNSRule``\ s be one of the following items:
 
    :param DNSNameSet set: Set with qnames.
 
-.. function:: QNameSuffixRule(suffixes [, quiet@)
+.. function:: QNameSuffixRule(suffixes [, quiet])
 
   .. versionadded:: 1.9.0
 
