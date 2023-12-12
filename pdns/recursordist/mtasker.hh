@@ -39,14 +39,15 @@ using namespace ::boost::multi_index;
 
 // #define MTASKERTIMING 1
 
-//! The main MTasker class    
+//! The main MTasker class
 /** The main MTasker class. See the main page for more information.
     \tparam EventKey Type of the key with which events are to be identified. Defaults to int.
     \tparam EventVal Type of the content or value of an event. Defaults to int. Cannot be set to void.
     \note The EventKey needs to have an operator< defined because it is used as the key of an associative array
 */
 
-template<class EventKey=int, class EventVal=int, class Cmp = std::less<EventKey>> class MTasker
+template <class EventKey = int, class EventVal = int, class Cmp = std::less<EventKey>>
+class MTasker
 {
 private:
   pdns_ucontext_t d_kernel;
@@ -55,13 +56,13 @@ private:
 
   struct ThreadInfo
   {
-	std::shared_ptr<pdns_ucontext_t> context;
-	std::function<void(void)> start;
-	const char* startOfStack;
-	const char* highestStackSeen;
+    std::shared_ptr<pdns_ucontext_t> context;
+    std::function<void(void)> start;
+    const char* startOfStack;
+    const char* highestStackSeen;
 #ifdef MTASKERTIMING
-    	CPUTime dt;
-	unsigned int totTime;
+    CPUTime dt;
+    unsigned int totTime;
 #endif
   };
 
@@ -77,7 +78,12 @@ private:
   int d_maxtid{0};
 
   EventVal d_waitval;
-  enum waitstatusenum : int8_t {Error=-1,TimeOut=0,Answer} d_waitstatus;
+  enum waitstatusenum : int8_t
+  {
+    Error = -1,
+    TimeOut = 0,
+    Answer
+  } d_waitstatus;
 
 public:
   struct Waiter
@@ -87,15 +93,16 @@ public:
     struct timeval ttd;
     int tid;
   };
-  struct KeyTag {};
+  struct KeyTag
+  {
+  };
 
   typedef multi_index_container<
     Waiter,
-    indexed_by <
-      ordered_unique<member<Waiter,EventKey,&Waiter::key>, Cmp>,
-      ordered_non_unique<tag<KeyTag>, member<Waiter,struct timeval,&Waiter::ttd> >
-      >
-    > waiters_t;
+    indexed_by<
+      ordered_unique<member<Waiter, EventKey, &Waiter::key>, Cmp>,
+      ordered_non_unique<tag<KeyTag>, member<Waiter, struct timeval, &Waiter::ttd>>>>
+    waiters_t;
 
   waiters_t d_waiters;
 
@@ -120,11 +127,12 @@ public:
   }
 
   //! Constructor
-  /** Constructor with a small default stacksize. If any of your threads exceeds this stack, your application will crash. 
+  /** Constructor with a small default stacksize. If any of your threads exceeds this stack, your application will crash.
       This limit applies solely to the stack, the heap is not limited in any way. If threads need to allocate a lot of data,
-      the use of new/delete is suggested. 
+      the use of new/delete is suggested.
    */
-  MTasker(size_t stacksize=16*8192, size_t stackCacheSize=0) : d_stacksize(stacksize), d_maxCachedStacks(stackCacheSize), d_waitstatus(Error)
+  MTasker(size_t stacksize = 16 * 8192, size_t stackCacheSize = 0) :
+    d_stacksize(stacksize), d_maxCachedStacks(stackCacheSize), d_waitstatus(Error)
   {
     initMainStackBounds();
 
@@ -132,13 +140,13 @@ public:
     d_stacksize = d_stacksize >> 4 << 4;
   }
 
-  typedef void tfunc_t(void *); //!< type of the pointer that starts a thread 
-  int waitEvent(EventKey &key, EventVal *val=nullptr, unsigned int timeoutMsec=0, const struct timeval* now=nullptr);
+  typedef void tfunc_t(void*); //!< type of the pointer that starts a thread
+  int waitEvent(EventKey& key, EventVal* val = nullptr, unsigned int timeoutMsec = 0, const struct timeval* now = nullptr);
   void yield();
-  int sendEvent(const EventKey& key, const EventVal* val=nullptr);
+  int sendEvent(const EventKey& key, const EventVal* val = nullptr);
   void getEvents(std::vector<EventKey>& events);
-  void makeThread(tfunc_t *start, void* val);
-  bool schedule(const struct timeval* now=nullptr);
+  void makeThread(tfunc_t* start, void* val);
+  bool schedule(const struct timeval* now = nullptr);
   bool noProcesses() const;
   unsigned int numProcesses() const;
   int getTid() const;
@@ -148,6 +156,6 @@ public:
 private:
   std::shared_ptr<pdns_ucontext_t> getUContext();
 
-  EventKey d_eventkey;   // for waitEvent, contains exact key it was awoken for
+  EventKey d_eventkey; // for waitEvent, contains exact key it was awoken for
 };
 #include "mtasker.cc"
