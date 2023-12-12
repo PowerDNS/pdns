@@ -300,7 +300,6 @@
 ./pdns/ws-api.cc
 ./pdns/ws-api.hh
 ./pdns/ws-auth.cc
-./pdns/ws-auth.hh
 ./pdns/xpf.cc
 ./pdns/xpf.hh
 ./pdns/zone2json.cc

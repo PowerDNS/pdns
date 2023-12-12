@@ -79,8 +79,8 @@ private:
   void cssfunction(HttpRequest* req, HttpResponse* resp);
   void jsonstat(HttpRequest* req, HttpResponse* resp);
   void registerApiHandler(const string& url, std::function<void(HttpRequest*, HttpResponse*)> handler);
-  void printvars(ostringstream &ret);
-  void printargs(ostringstream &ret);
+  void printvars(ostringstream& ret);
+  void printargs(ostringstream& ret);
   void webThread();
   void statThread();
 
