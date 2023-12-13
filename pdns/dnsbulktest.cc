@@ -24,7 +24,9 @@
 #endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#if __clang_major__ >= 15
 #pragma GCC diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
+#endif
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/array.hpp>
 #include <boost/accumulators/statistics.hpp>
@@ -77,7 +79,7 @@ struct SendReceive
   using Answer = DNSResult; // ip
   Socket d_socket;
   std::deque<uint16_t> d_idqueue;
-    
+
   using acc_t = accumulator_set<
         double
       , stats<boost::accumulators::tag::extended_p_square,
@@ -96,7 +98,7 @@ struct SendReceive
   unsigned int d_received{0};
   unsigned int d_receiveerrors{0};
   unsigned int d_senderrors{0};
-  
+
   SendReceive(const std::string& remoteAddr, uint16_t port) :
     d_socket(AF_INET, SOCK_DGRAM),
     d_acc(make_unique<acc_t>(acc_t(boost::accumulators::tag::extended_p_square::probabilities=s_probs)))
@@ -108,49 +110,49 @@ struct SendReceive
       d_idqueue.push_back(id);
     }
   }
-  
+
   Identifier send(TypedQuery& domain)
   {
     //cerr<<"Sending query for '"<<domain<<"'"<<endl;
-    
+
     // send it, copy code from 'sdig'
     vector<uint8_t> packet;
-  
+
     DNSPacketWriter pw(packet, domain.name, domain.type);
 
     if (d_idqueue.empty()) {
       cerr<<"Exhausted ids!"<<endl;
       exit(1);
-    }    
+    }
     pw.getHeader()->id = d_idqueue.front();
     d_idqueue.pop_front();
     pw.getHeader()->rd = 1;
     pw.getHeader()->qr = 0;
-    
+
     if (::send(d_socket.getHandle(), &*packet.begin(), packet.size(), 0) < 0) {
       d_senderrors++;
     }
-    
+
     if (!g_quiet) {
       cout<<"Sent out query for '"<<domain.name<<"' with id "<<pw.getHeader()->id<<endl;
     }
     return pw.getHeader()->id;
   }
-  
+
   bool receive(Identifier& id, DNSResult& dr)
   {
     if (waitForData(d_socket.getHandle(), 0, 500000) > 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): no need to initialize the buffer
       std::array<char, 512> buf;
-          
+
       auto len = recv(d_socket.getHandle(), buf.data(), buf.size(), 0);
       if (len < 0) {
         d_receiveerrors++;
         return false;
       }
       d_received++;
-      // parse packet, set 'id', fill out 'ip' 
-      
+      // parse packet, set 'id', fill out 'ip'
+
       MOADNSParser mdp(false, string(buf.data(), static_cast<size_t>(len)));
       if(!g_quiet) {
         cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
@@ -158,7 +160,7 @@ struct SendReceive
         cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
       }
       dr.rcode = mdp.d_header.rcode;
-      for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {          
+      for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
         if(i->first.d_place == 1 && i->first.d_type == mdp.d_qtype)
           dr.ips.push_back(ComboAddress(i->first.getContent()->getZoneRepresentation()));
         if(i->first.d_place == 2 && i->first.d_type == QType::SOA) {
@@ -170,15 +172,15 @@ struct SendReceive
           cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.getContent()->getZoneRepresentation()<<"\n";
         }
       }
-      
+
       id = mdp.d_header.id;
       d_idqueue.push_back(id);
-    
+
       return true;
     }
     return false;
   }
-  
+
   void deliverTimeout(const Identifier& id)
   {
     if(!g_quiet) {
@@ -186,7 +188,7 @@ struct SendReceive
     }
     d_idqueue.push_back(id);
   }
-  
+
   void deliverAnswer(TypedQuery& domain, const DNSResult& dr, unsigned int usec)
   {
     (*d_acc)(usec/1000.0);
@@ -205,7 +207,7 @@ struct SendReceive
     else if(dr.rcode) {
       d_errors++;
     }
-    else if(dr.ips.empty() && dr.seenauthsoa) 
+    else if(dr.ips.empty() && dr.seenauthsoa)
       d_nodatas++;
     else if(!dr.ips.empty())
       d_oks++;
@@ -284,15 +286,15 @@ try
 
   SendReceive sr(g_vm["ip-address"].as<string>(), g_vm["portnumber"].as<uint16_t>());
   unsigned int limit = g_vm["limit"].as<unsigned int>();
-    
+
   vector<TypedQuery> domains;
-    
+
   Inflighter<vector<TypedQuery>, SendReceive> inflighter(domains, sr);
   inflighter.d_maxInFlight = 1000;
   inflighter.d_timeoutSeconds = 3;
   inflighter.d_burst = 100;
   string line;
-  
+
   pair<string, string> split;
   string::size_type pos;
   while(stringfgets(stdin, line)) {
@@ -337,25 +339,25 @@ try
   cerr<< datafmt % "  Queued " % domains.size() % "  Received" % sr.d_received;
   cerr<< datafmt % "  Error -/-" % sr.d_senderrors %  "  Timeouts" % inflighter.getTimeouts();
   cerr<< datafmt % " " % "" %  "  Unexpected" % inflighter.getUnexpecteds();
-  
+
   cerr<< datafmt % " Sent" % (domains.size() - sr.d_senderrors) %  " Total" % (sr.d_received + inflighter.getTimeouts() + inflighter.getUnexpecteds());
-  
-  cerr<<endl;  
+
+  cerr<<endl;
   cerr<< datafmt % "DNS Status" % ""       % "" % "";
   cerr<< datafmt % "  OK" % sr.d_oks       % "" % "";
-  cerr<< datafmt % "  Error" % sr.d_errors       % "" % "";  
-  cerr<< datafmt % "  No Data" % sr.d_nodatas       % "" % "";  
+  cerr<< datafmt % "  Error" % sr.d_errors       % "" % "";
+  cerr<< datafmt % "  No Data" % sr.d_nodatas       % "" % "";
   cerr<< datafmt % "  NXDOMAIN" % sr.d_nxdomains      % "" % "";
-  cerr<< datafmt % "  Unknowns" % sr.d_unknowns      % "" % "";  
+  cerr<< datafmt % "  Unknowns" % sr.d_unknowns      % "" % "";
   cerr<< datafmt % "Answers" % (sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns) % "" % "";
   cerr<< datafmt % "  Timeouts " % (inflighter.getTimeouts()) % "" % "";
   cerr<< datafmt % "Total " % (sr.d_oks      +      sr.d_errors      +      sr.d_nodatas      + sr.d_nxdomains           +      sr.d_unknowns + inflighter.getTimeouts()) % "" % "";
-  
+
   cerr<<"\n";
   cerr<< "Mean response time: "<<mean(*sr.d_acc) << " ms"<<", median: "<<median(*sr.d_acc)<< " ms\n";
-  
+
   boost::format statfmt("Time < %6.03f ms %|30t|%6.03f%% cumulative\n");
-  
+
   for (unsigned int i = 0; i < SendReceive::s_probs.size(); ++i) {
     cerr << statfmt % extended_p_square(*sr.d_acc)[i] % (100*SendReceive::s_probs.at(i));
   }

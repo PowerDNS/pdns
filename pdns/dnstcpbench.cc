@@ -24,7 +24,9 @@
 #endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#if __clang_major__ >= 15
 #pragma GCC diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
+#endif
 #include <boost/accumulators/statistics/median.hpp>
 #include <boost/accumulators/statistics/mean.hpp>
 #include <boost/accumulators/accumulators.hpp>
@@ -61,7 +63,7 @@ static unsigned int makeUsec(const struct timeval& tv)
   return 1000000*tv.tv_sec + tv.tv_usec;
 }
 
-/* On Linux, run echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle 
+/* On Linux, run echo 1 > /proc/sys/net/ipv4/tcp_tw_recycle
    to prevent running out of free TCP ports */
 
 struct BenchQuery
@@ -87,7 +89,7 @@ try
 
   if(!g_onlyTCP) {
     Socket udpsock(g_dest.sin4.sin_family, SOCK_DGRAM);
-    
+
     udpsock.sendTo(string(packet.begin(), packet.end()), g_dest);
     ComboAddress origin;
     res = waitForData(udpsock.getHandle(), 0, 1000 * g_timeoutMsec);
@@ -112,10 +114,10 @@ try
 
   Socket sock(g_dest.sin4.sin_family, SOCK_STREAM);
   int tmp=1;
-  if(setsockopt(sock.getHandle(),SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0) 
+  if(setsockopt(sock.getHandle(),SOL_SOCKET,SO_REUSEADDR,(char*)&tmp,sizeof tmp)<0)
     throw runtime_error("Unable to set socket reuse: "+stringerror());
-    
-  if(g_tcpNoDelay && setsockopt(sock.getHandle(), IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof tmp)<0) 
+
+  if(g_tcpNoDelay && setsockopt(sock.getHandle(), IPPROTO_TCP, TCP_NODELAY,(char*)&tmp,sizeof tmp)<0)
     throw runtime_error("Unable to set socket no delay: "+stringerror());
 
   sock.connect(g_dest);
@@ -132,10 +134,10 @@ try
     g_timeOuts++;
     return;
   }
-  
+
   if(sock.read((char *) &len, 2) != 2)
     throw PDNSException("tcp read failed");
-  
+
   len=ntohs(len);
   auto creply = std::make_unique<char[]>(len);
   int n=0;
@@ -146,9 +148,9 @@ try
       throw PDNSException("tcp read failed");
     n+=numread;
   }
-  
+
   reply=string(creply.get(), len);
-  
+
   gettimeofday(&now, 0);
   q->tcpUsec = makeUsec(now - tv);
   q->answerSecond = now.tv_sec;
@@ -181,7 +183,7 @@ static void worker()
 {
   setThreadName("dnstcpb/worker");
   for(;;) {
-    unsigned int pos = g_pos++; 
+    unsigned int pos = g_pos++;
     if(pos >= g_queries.size())
       break;
 
@@ -212,7 +214,7 @@ try
   hidden.add_options()
     ("remote-host", po::value<string>(), "remote-host")
     ("remote-port", po::value<int>()->default_value(53), "remote-port");
-  alloptions.add(desc).add(hidden); 
+  alloptions.add(desc).add(hidden);
 
   po::positional_options_description p;
   p.add("remote-host", 1);
@@ -246,7 +248,7 @@ try
   g_dest = ComboAddress(g_vm["remote-host"].as<string>().c_str(), g_vm["remote-port"].as<int>());
 
   unsigned int numworkers=g_vm["workers"].as<int>();
-  
+
   if(g_verbose) {
     cout<<"Sending queries to: "<<g_dest.toStringWithPort()<<endl;
     cout<<"Attempting UDP first: " << (g_onlyTCP ? "no" : "yes") <<endl;
@@ -283,7 +285,7 @@ try
   for (auto& w : workers) {
     w.join();
   }
-  
+
   using namespace boost::accumulators;
   typedef accumulator_set<
     double
@@ -293,7 +295,7 @@ try
   > acc_t;
 
   acc_t udpspeeds, tcpspeeds, qps;
-  
+
   typedef map<time_t, uint32_t> counts_t;
   counts_t counts;
 

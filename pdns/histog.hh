@@ -1,7 +1,9 @@
 #pragma once
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#if __clang_major__ >= 15
 #pragma GCC diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
+#endif
 #include <boost/accumulators/accumulators.hpp>
 #include <boost/accumulators/statistics.hpp>
 #pragma GCC diagnostic pop
