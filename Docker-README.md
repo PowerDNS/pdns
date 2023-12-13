@@ -64,9 +64,9 @@ Note: Docker Engine 20.10.0 (released december 2020) removed the need to set the
 The auth image uses `tini` as init process to run auth via the startup.py wrapper. However, it also has `supervisord` available for special use cases. Example scenarios for using `supervisord` include:
 
 * Running multiple processes (ie: auth + ixfrdist) within the same container - Generally not advisable, but has benefits in some cases
-* Allowing restarts of processes within a container without having the entire container restart - Primarily has benefits in Kubernetes where you could have a process (ixfrdist for example) restart when a mounted configmap containing the process' configuration is observed to be modified.
+* Allowing restarts of processes within a container without having the entire container restart - Primarily has benefits in Kubernetes where you could have a process (ixfrdist for example) restart when a script/agent detects changes in a mounted configmap containing the process' configuration.
 
-To use `supervisord` as within Kubernetes, you can configure the container with the following:
+To use `supervisord` within Kubernetes, you can configure the container with the following:
 
 ```yaml
 command: ["supervisord"]
