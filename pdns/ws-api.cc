@@ -38,9 +38,9 @@
 #include "responsestats.hh"
 #include "statbag.hh"
 #endif
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+#include <cstdio>
+#include <cstring>
+#include <cctype>
 #include <sys/types.h>
 #include <iomanip>
 
@@ -147,10 +147,12 @@ void apiServerConfig(HttpRequest* /* req */, HttpResponse* resp)
   string value;
   Json::array doc;
   for (const string& item : items) {
-    if (item.find("password") != string::npos || item.find("api-key") != string::npos)
+    if (item.find("password") != string::npos || item.find("api-key") != string::npos) {
       value = "***";
-    else
+    }
+    else {
       value = ::arg()[item];
+    }
 
     doc.push_back(Json::object{
       {"type", "ConfigSetting"},
@@ -207,8 +209,9 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp)
   {
     Json::array values;
     for (const auto& item : resp_qtype_stats) {
-      if (item.second == 0)
+      if (item.second == 0) {
         continue;
+      }
       values.push_back(Json::object{
         {"name", DNSRecordContent::NumberToType(item.first)},
         {"value", std::to_string(item.second)},
@@ -225,8 +228,9 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp)
   {
     Json::array values;
     for (const auto& item : resp_size_stats) {
-      if (item.second == 0)
+      if (item.second == 0) {
         continue;
+      }
 
       values.push_back(Json::object{
         {"name", std::to_string(item.first)},
@@ -244,8 +248,10 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp)
   {
     Json::array values;
     for (const auto& item : resp_rcode_stats) {
-      if (item.second == 0)
+      if (item.second == 0) {
         continue;
+      }
+
       values.push_back(Json::object{
         {"name", RCode::to_s(item.first)},
         {"value", std::to_string(item.second)},
@@ -260,13 +266,14 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp)
   }
 
 #ifndef RECURSOR
-  if (!req->getvars.count("includerings") || req->getvars["includerings"] != "false") {
+  if ((req->getvars.count("includerings") == 0) || req->getvars["includerings"] != "false") {
     for (const auto& ringName : S.listRings()) {
       Json::array values;
       const auto& ring = S.getRing(ringName);
       for (const auto& item : ring) {
-        if (item.second == 0)
+        if (item.second == 0) {
           continue;
+        }
 
         values.push_back(Json::object{
           {"name", item.first},
@@ -300,50 +307,52 @@ DNSName apiNameToDNSName(const string& name)
   }
 }
 
-DNSName apiZoneIdToName(const string& id)
+DNSName apiZoneIdToName(const string& identifier)
 {
   string zonename;
-  ostringstream ss;
+  ostringstream outputStringStream;
 
-  if (id.empty())
+  if (identifier.empty()) {
     throw HttpBadRequestException();
+  }
 
-  std::size_t lastpos = 0, pos = 0;
-  while ((pos = id.find('=', lastpos)) != string::npos) {
-    ss << id.substr(lastpos, pos - lastpos);
-    char c;
+  std::size_t lastpos = 0;
+  std::size_t pos = 0;
+  while ((pos = identifier.find('=', lastpos)) != string::npos) {
+    outputStringStream << identifier.substr(lastpos, pos - lastpos);
+    char currentChar{};
     // decode tens
-    if (id[pos + 1] >= '0' && id[pos + 1] <= '9') {
-      c = id[pos + 1] - '0';
+    if (identifier[pos + 1] >= '0' && identifier[pos + 1] <= '9') {
+      currentChar = static_cast<char>(identifier[pos + 1] - '0');
     }
-    else if (id[pos + 1] >= 'A' && id[pos + 1] <= 'F') {
-      c = id[pos + 1] - 'A' + 10;
+    else if (identifier[pos + 1] >= 'A' && identifier[pos + 1] <= 'F') {
+      currentChar = static_cast<char>(identifier[pos + 1] - 'A' + 10);
     }
     else {
       throw HttpBadRequestException();
     }
-    c = c * 16;
+    currentChar = static_cast<char>(currentChar * 16);
 
     // decode unit place
-    if (id[pos + 2] >= '0' && id[pos + 2] <= '9') {
-      c += id[pos + 2] - '0';
+    if (identifier[pos + 2] >= '0' && identifier[pos + 2] <= '9') {
+      currentChar = static_cast<char>(currentChar + identifier[pos + 2] - '0');
     }
-    else if (id[pos + 2] >= 'A' && id[pos + 2] <= 'F') {
-      c += id[pos + 2] - 'A' + 10;
+    else if (identifier[pos + 2] >= 'A' && identifier[pos + 2] <= 'F') {
+      currentChar = static_cast<char>(currentChar + identifier[pos + 2] - 'A' + 10);
     }
     else {
       throw HttpBadRequestException();
     }
 
-    ss << c;
+    outputStringStream << currentChar;
 
     lastpos = pos + 3;
   }
   if (lastpos < pos) {
-    ss << id.substr(lastpos, pos - lastpos);
+    outputStringStream << identifier.substr(lastpos, pos - lastpos);
   }
 
-  zonename = ss.str();
+  zonename = outputStringStream.str();
 
   try {
     return DNSName(zonename);
@@ -356,42 +365,45 @@ DNSName apiZoneIdToName(const string& id)
 string apiZoneNameToId(const DNSName& dname)
 {
   string name = dname.toString();
-  ostringstream ss;
+  ostringstream outputStringStream;
 
   for (char iter : name) {
     if ((iter >= 'A' && iter <= 'Z') || (iter >= 'a' && iter <= 'z') || (iter >= '0' && iter <= '9') || (iter == '.') || (iter == '-')) {
-      ss << iter;
+      outputStringStream << iter;
     }
     else {
-      ss << (boost::format("=%02X") % (int)iter);
+      outputStringStream << (boost::format("=%02X") % (int)iter);
     }
   }
 
-  string id = ss.str();
+  string identifier = outputStringStream.str();
 
   // add trailing dot
-  if (id.size() == 0 || id.substr(id.size() - 1) != ".") {
-    id += ".";
+  if (identifier.empty() || identifier.substr(identifier.size() - 1) != ".") {
+    identifier += ".";
   }
 
   // special handling for the root zone, as a dot on it's own doesn't work
   // everywhere.
-  if (id == ".") {
-    id = (boost::format("=%02X") % (int)('.')).str();
+  if (identifier == ".") {
+    identifier = (boost::format("=%02X") % (int)('.')).str();
   }
-  return id;
+  return identifier;
 }
 
 void apiCheckNameAllowedCharacters(const string& name)
 {
-  if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos)
+  if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos) {
     throw ApiException("Name '" + name + "' contains unsupported characters");
+  }
 }
 
 void apiCheckQNameAllowedCharacters(const string& qname)
 {
-  if (qname.compare(0, 2, "*.") == 0)
+  if (qname.compare(0, 2, "*.") == 0) {
     apiCheckNameAllowedCharacters(qname.substr(2));
-  else
+  }
+  else {
     apiCheckNameAllowedCharacters(qname);
+  }
 }

@@ -32,7 +32,7 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp);
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp);
 
 // helpers
-DNSName apiZoneIdToName(const string& id);
+DNSName apiZoneIdToName(const string& identifier);
 string apiZoneNameToId(const DNSName& name);
 void apiCheckNameAllowedCharacters(const string& name);
 void apiCheckQNameAllowedCharacters(const string& name);
