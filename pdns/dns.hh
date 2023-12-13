@@ -120,7 +120,7 @@ static_assert(sizeof(EDNS0Record) == 4, "EDNS0Record size must be 4");
 #elif __linux__ || __GNU__
 # include <endian.h>
 
-#else  // with thanks to <arpa/nameser.h> 
+#else  // with thanks to <arpa/nameser.h>
 
 # define LITTLE_ENDIAN   1234    /* least-significant byte first (vax, pc) */
 # define BIG_ENDIAN      4321    /* most-significant byte first (IBM, net) */
