@@ -4,6 +4,13 @@ name: 'Build and test everything'
 on:
   push:
   pull_request:
+  workflow_call:
+    inputs:
+      branch-name:
+        description: 'Checkout to a specific branch'
+        required: true
+        default: ''
+        type: string
   schedule:
     - cron: '0 22 * * 3'
 
@@ -19,17 +26,18 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: get timestamp for cache
         id: get-stamp
         run: |
           echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
         shell: bash
       - name: let GitHub cache our ccache data
-        uses: actions/cache@v3.0.11
+        uses: actions/cache@v3
         with:
           path: ~/.ccache
           key: auth-ccache-${{ steps.get-stamp.outputs.stamp }}
@@ -44,10 +52,11 @@ jobs:
       - run: inv ci-auth-run-unit-tests
       - run: inv ci-make-install
       - run: ccache -s
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
         uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
           retention-days: 1
 
@@ -85,14 +94,16 @@ jobs:
           --restart always
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1
@@ -195,14 +206,16 @@ jobs:
           --restart always
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       # - name: Setup upterm session
       #   uses: lhotari/action-upterm@v1
@@ -220,14 +233,16 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v3
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-clang-runtime
@@ -238,10 +253,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-swagger-tools
       - run: inv swagger-syntax-check
@@ -260,10 +276,11 @@ jobs:
         run: "sudo snap install jq yq"
       - name: Fail job if any of the previous jobs failed
         run: "for i in `echo '${{ toJSON(needs) }}' | jq '.[].result' | tr -d '\"'`; do if [[ $i == 'failure' ]]; then echo '${{ toJSON(needs) }}'; exit 1; fi; done;"
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: Get list of jobs in the workflow
         run: "yq e '.jobs | keys' .github/workflows/build-and-test-all.yml | awk '{print $2}' | grep -v collect | sort | tee /tmp/workflow-jobs-list.yml"
       - name: Get list of prerequisite jobs
