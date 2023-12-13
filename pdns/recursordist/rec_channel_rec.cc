@@ -1050,13 +1050,13 @@ static string* pleaseGetCurrentQueries()
   struct timeval now;
   gettimeofday(&now, 0);
 
-  ostr << getMT()->d_waiters.size() << " currently outstanding questions\n";
+  ostr << getMT()->getWaiters().size() << " currently outstanding questions\n";
 
   boost::format fmt("%1% %|40t|%2% %|47t|%3% %|63t|%4% %|68t|%5% %|78t|%6%\n");
 
   ostr << (fmt % "qname" % "qtype" % "remote" % "tcp" % "chained" % "spent(ms)");
   unsigned int n = 0;
-  for (const auto& mthread : getMT()->d_waiters) {
+  for (const auto& mthread : getMT()->getWaiters()) {
     const std::shared_ptr<PacketID>& pident = mthread.key;
     const double spent = g_networkTimeoutMsec - (DiffTime(now, mthread.ttd) * 1000);
     ostr << (fmt

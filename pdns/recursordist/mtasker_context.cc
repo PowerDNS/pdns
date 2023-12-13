@@ -24,7 +24,7 @@
 #endif
 
 #if defined(HAVE_BOOST_CONTEXT)
-#include "mtasker_fcontext.cc"
+#include "mtasker_fcontext.cc" // NOLINT(bugprone-suspicious-include)
 #else
-#include "mtasker_ucontext.cc"
+#include "mtasker_ucontext.cc" // NOLINT(bugprone-suspicious-include)
 #endif
