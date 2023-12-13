@@ -1,4 +1,3 @@
-
 #include <boost/smart_ptr/make_shared_array.hpp>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -12,6 +11,7 @@
 #include "statbag.hh"
 #include "base32.hh"
 #include "base64.hh"
+#include "dns.hh"
 
 #include <boost/program_options.hpp>
 #include <boost/assign/std/vector.hpp>
@@ -925,7 +925,7 @@ static int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
 
   sd.db->startTransaction(zone, -1);
 
-  if (!sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
+  if (!sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, {rr})) {
    sd.db->abortTransaction();
    cerr<<"Backend did not replace SOA record. Backend might not support this operation."<<endl;
    return -1;
