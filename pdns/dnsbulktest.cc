@@ -139,7 +139,7 @@ struct SendReceive
     return pw.getHeader()->id;
   }
 
-  bool receive(Identifier& id, DNSResult& dr)
+  bool receive(Identifier& iden, DNSResult& dnsResult)
   {
     if (waitForData(d_socket.getHandle(), 0, 500000) > 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): no need to initialize the buffer
@@ -154,30 +154,31 @@ struct SendReceive
       // parse packet, set 'id', fill out 'ip'
 
       MOADNSParser mdp(false, string(buf.data(), static_cast<size_t>(len)));
-      if(!g_quiet) {
-        cout<<"Reply to question for qname='"<<mdp.d_qname<<"', qtype="<<DNSRecordContent::NumberToType(mdp.d_qtype)<<endl;
-        cout<<"Rcode: "<<mdp.d_header.rcode<<", RD: "<<mdp.d_header.rd<<", QR: "<<mdp.d_header.qr;
-        cout<<", TC: "<<mdp.d_header.tc<<", AA: "<<mdp.d_header.aa<<", opcode: "<<mdp.d_header.opcode<<endl;
+      if (!g_quiet) {
+        cout << "Reply to question for qname='" << mdp.d_qname << "', qtype=" << DNSRecordContent::NumberToType(mdp.d_qtype) << endl;
+        cout << "Rcode: " << mdp.d_header.rcode << ", RD: " << mdp.d_header.rd << ", QR: " << mdp.d_header.qr;
+        cout << ", TC: " << mdp.d_header.tc << ", AA: " << mdp.d_header.aa << ", opcode: " << mdp.d_header.opcode << endl;
       }
-      dr.rcode = mdp.d_header.rcode;
-      for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-        if(i->first.d_place == 1 && i->first.d_type == mdp.d_qtype)
-          dr.ips.push_back(ComboAddress(i->first.getContent()->getZoneRepresentation()));
-        if(i->first.d_place == 2 && i->first.d_type == QType::SOA) {
-          dr.seenauthsoa = true;
+      dnsResult.rcode = mdp.d_header.rcode;
+      for (auto i = mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
+        if (i->first.d_place == 1 && i->first.d_type == mdp.d_qtype) {
+          dnsResult.ips.emplace_back(i->first.getContent()->getZoneRepresentation());
         }
-        if(!g_quiet)
-        {
-          cout<<i->first.d_place-1<<"\t"<<i->first.d_name<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
-          cout<<"\t"<<i->first.d_ttl<<"\t"<< i->first.getContent()->getZoneRepresentation()<<"\n";
+        if (i->first.d_place == 2 && i->first.d_type == QType::SOA) {
+          dnsResult.seenauthsoa = true;
+        }
+        if (!g_quiet) {
+          cout << i->first.d_place - 1 << "\t" << i->first.d_name << "\tIN\t" << DNSRecordContent::NumberToType(i->first.d_type);
+          cout << "\t" << i->first.d_ttl << "\t" << i->first.getContent()->getZoneRepresentation() << "\n";
         }
       }
 
-      id = mdp.d_header.id;
-      d_idqueue.push_back(id);
+      iden = mdp.d_header.id;
+      d_idqueue.push_back(iden);
 
       return true;
     }
+
     return false;
   }
 
@@ -189,30 +190,34 @@ struct SendReceive
     d_idqueue.push_back(id);
   }
 
-  void deliverAnswer(TypedQuery& domain, const DNSResult& dr, unsigned int usec)
+  void deliverAnswer(TypedQuery& domain, const DNSResult& dnsResult, unsigned int usec)
   {
-    (*d_acc)(usec/1000.0);
-//    if(usec > 1000000)
-  //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" ms)\n";
-    if(!g_quiet) {
-      cout<<domain.name<<"|"<<DNSRecordContent::NumberToType(domain.type)<<": ("<<usec/1000.0<<" ms) rcode: "<<dr.rcode;
-      for(const ComboAddress& ca :  dr.ips) {
-        cout<<", "<<ca.toString();
+    (*d_acc)(usec / 1000.0);
+    //  if(usec > 1000000)
+    //    cerr<<"Slow: "<<domain<<" ("<<usec/1000.0<<" ms)\n";
+    if (!g_quiet) {
+      cout << domain.name << "|" << DNSRecordContent::NumberToType(domain.type) << ": (" << usec / 1000.0 << " ms) rcode: " << dnsResult.rcode;
+      for (const ComboAddress& comboAddress : dnsResult.ips) {
+        cout << ", " << comboAddress.toString();
       }
-      cout<<endl;
+      cout << endl;
     }
-    if(dr.rcode == RCode::NXDomain) {
+    if (dnsResult.rcode == RCode::NXDomain) {
       d_nxdomains++;
     }
-    else if(dr.rcode) {
+    else if (dnsResult.rcode != 0) {
       d_errors++;
     }
-    else if(dr.ips.empty() && dr.seenauthsoa)
+    else if (dnsResult.ips.empty() && dnsResult.seenauthsoa) {
       d_nodatas++;
-    else if(!dr.ips.empty())
+    }
+    else if (!dnsResult.ips.empty()) {
       d_oks++;
+    }
     else {
-      if(!g_quiet) cout<<"UNKNOWN!! ^^"<<endl;
+      if (!g_quiet) {
+        cout << "UNKNOWN!! ^^" << endl;
+      }
       d_unknowns++;
     }
   }
