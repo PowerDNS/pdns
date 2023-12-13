@@ -56,13 +56,20 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), scopeMask(0), auth(1), disabled(0) {};
+  DNSResourceRecord() :
+    last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), scopeMask(0), auth(1), disabled(0){};
   static DNSResourceRecord fromWire(const DNSRecord& d);
 
-  enum Place : uint8_t {QUESTION=0, ANSWER=1, AUTHORITY=2, ADDITIONAL=3}; //!< Type describing the positioning within, say, a DNSPacket
+  enum Place : uint8_t
+  {
+    QUESTION = 0,
+    ANSWER = 1,
+    AUTHORITY = 2,
+    ADDITIONAL = 3
+  }; //!< Type describing the positioning within, say, a DNSPacket
 
   void setContent(const string& content);
-  string getZoneRepresentation(bool noDot=false) const;
+  string getZoneRepresentation(bool noDot = false) const;
 
   // data
   DNSName qname; //!< the name of this record, for example: www.powerdns.com
@@ -87,12 +94,12 @@ public:
 
   bool operator==(const DNSResourceRecord& rhs);
 
-  bool operator<(const DNSResourceRecord &b) const
+  bool operator<(const DNSResourceRecord& b) const
   {
-    if(qname < b.qname)
+    if (qname < b.qname)
       return true;
-    if(qname == b.qname)
-      return(content < b.content);
+    if (qname == b.qname)
+      return (content < b.content);
     return false;
   }
 };
