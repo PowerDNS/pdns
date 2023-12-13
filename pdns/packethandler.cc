@@ -384,6 +384,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
   DNSZoneRecord rr;
   DNSName subdomain(target);
   bool haveSomething=false;
+  bool haveCNAME = false;
 
 #ifdef HAVE_LUA_RECORDS
   bool doLua=g_doLuaRecord;
@@ -402,6 +403,9 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
       B.lookup(QType(QType::ANY), g_wildcarddnsname+subdomain, d_sd.domain_id, &p);
     }
     while(B.get(rr)) {
+      if (haveCNAME) {
+        continue;
+      }
 #ifdef HAVE_LUA_RECORDS
       if (rr.dr.d_type == QType::LUA && !d_dk.isPresigned(d_sd.qname)) {
         if(!doLua) {
@@ -424,6 +428,11 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
               rr.dr.d_type = rec->d_type; // might be CNAME
               rr.dr.setContent(r);
               rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
+              if (rr.dr.d_type == QType::CNAME) {
+                haveCNAME = true;
+                *ret = {rr};
+                break;
+              }
               ret->push_back(rr);
             }
           }
@@ -437,6 +446,10 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
       else
 #endif
       if(rr.dr.d_type != QType::ENT && (rr.dr.d_type == p.qtype.getCode() || rr.dr.d_type == QType::CNAME || (p.qtype.getCode() == QType::ANY && rr.dr.d_type != QType::RRSIG))) {
+        if (rr.dr.d_type == QType::CNAME) {
+          haveCNAME = true;
+          ret->clear();
+        }
         ret->push_back(rr);
       }
 
