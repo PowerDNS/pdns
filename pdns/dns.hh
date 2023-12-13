@@ -56,9 +56,7 @@ public:
 class DNSResourceRecord
 {
 public:
-  DNSResourceRecord() :
-    last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), scopeMask(0), auth(1), disabled(0){};
-  static DNSResourceRecord fromWire(const DNSRecord& d);
+  static DNSResourceRecord fromWire(const DNSRecord& wire);
 
   enum Place : uint8_t
   {
@@ -69,7 +67,7 @@ public:
   }; //!< Type describing the positioning within, say, a DNSPacket
 
   void setContent(const string& content);
-  string getZoneRepresentation(bool noDot = false) const;
+  [[nodiscard]] string getZoneRepresentation(bool noDot = false) const;
 
   // data
   DNSName qname; //!< the name of this record, for example: www.powerdns.com
@@ -79,27 +77,29 @@ public:
 
   // Aligned on 8-byte boundaries on systems where time_t is 8 bytes and int
   // is 4 bytes, aka modern linux on x86_64
-  time_t last_modified; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
+  time_t last_modified{}; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
 
-  uint32_t ttl; //!< Time To Live of this record
-  uint32_t signttl; //!< If non-zero, use this TTL as original TTL in the RRSIG
+  uint32_t ttl{}; //!< Time To Live of this record
+  uint32_t signttl{}; //!< If non-zero, use this TTL as original TTL in the RRSIG
 
-  int domain_id; //!< If a backend implements this, the domain_id of the zone this record is in
+  int domain_id{-1}; //!< If a backend implements this, the domain_id of the zone this record is in
   QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
-  uint16_t qclass; //!< class of this record
+  uint16_t qclass{1}; //!< class of this record
 
-  uint8_t scopeMask;
-  bool auth;
-  bool disabled;
+  uint8_t scopeMask{};
+  bool auth{true};
+  bool disabled{};
 
   bool operator==(const DNSResourceRecord& rhs);
 
-  bool operator<(const DNSResourceRecord& b) const
+  bool operator<(const DNSResourceRecord& other) const
   {
-    if (qname < b.qname)
+    if (qname < other.qname) {
       return true;
-    if (qname == b.qname)
-      return (content < b.content);
+    }
+    if (qname == other.qname) {
+      return (content < other.content);
+    }
     return false;
   }
 };
