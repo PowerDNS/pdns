@@ -75,4 +75,5 @@ args:
   - "/path/to/supervisord.conf"
 ```
 
-In the above example `/path/to/supervisord.conf` is the path where a configmap containing your supervisord configuration is mounted. Further details about `supervisord` and how to configure it can be found here: http://supervisord.org/configuration.html
+In the above example `/path/to/supervisord.conf` is the path where a configmap containing your supervisord configuration is mounted.
+Further details about `supervisord` and how to configure it can be found here: http://supervisord.org/configuration.html
