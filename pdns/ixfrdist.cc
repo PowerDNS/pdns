@@ -1123,7 +1123,7 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
       }
       if (domain["max-soa-refresh"]) {
         try {
-          config["max-soa-refresh"].as<uint32_t>();
+          domain["max-soa-refresh"].as<uint32_t>();
         } catch (const runtime_error &e) {
           g_log<<Logger::Error<<"Unable to read 'max-soa-refresh' value for domain '"<<domain["domain"].as<string>()<<"': "<<e.what()<<endl;
         }
