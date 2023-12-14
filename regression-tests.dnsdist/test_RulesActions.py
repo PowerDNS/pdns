@@ -2,6 +2,7 @@
 import base64
 from datetime import datetime, timedelta
 import os
+import sys
 import time
 import unittest
 import dns
@@ -1195,6 +1196,9 @@ class TestAdvancedEDNSVersionRule(DNSDistTest):
         """
         Advanced: A question with ECS version larger than 0 yields BADVERS
         """
+
+        if sys.version_info >= (3, 11) and sys.version_info < (3, 12):
+            raise unittest.SkipTest("Test skipped, see https://github.com/PowerDNS/pdns/pull/12912")
 
         name = 'ednsversionrule.advanced.tests.powerdns.com.'
 
