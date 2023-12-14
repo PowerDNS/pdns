@@ -1615,6 +1615,14 @@ faster than the existing rules.
 
     :param list netmasks: A :class:`NetmaskGroup` object, or a netmask or list of netmasks as strings, like for example "192.0.2.1/24"
 
+  .. method:: DynBlockRulesGroup:removeRange(netmasks)
+
+    .. versionadded:: 1.9.0
+
+    Remove a previously included or excluded range. The range should be an exact match of the existing entry to remove.
+
+    :param list netmasks: A :class:`NetmaskGroup` object, or a netmask or list of netmasks as strings, like for example "192.0.2.1/24"
+
   .. method:: DynBlockRulesGroup:toString()
 
     Return a string describing the rules and range exclusions of this DynBlockRulesGroup.
