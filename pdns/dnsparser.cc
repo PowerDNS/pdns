@@ -212,15 +212,16 @@ DNSRecord::DNSRecord(const DNSResourceRecord& rr): d_name(rr.qname)
 }
 
 // If you call this and you are not parsing a packet coming from a socket, you are doing it wrong.
-DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& d) {
-  DNSResourceRecord rr;
-  rr.qname = d.d_name;
-  rr.qtype = QType(d.d_type);
-  rr.ttl = d.d_ttl;
-  rr.content = d.getContent()->getZoneRepresentation(true);
-  rr.auth = false;
-  rr.qclass = d.d_class;
-  return rr;
+DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& wire)
+{
+  DNSResourceRecord resourceRecord;
+  resourceRecord.qname = wire.d_name;
+  resourceRecord.qtype = QType(wire.d_type);
+  resourceRecord.ttl = wire.d_ttl;
+  resourceRecord.content = wire.getContent()->getZoneRepresentation(true);
+  resourceRecord.auth = false;
+  resourceRecord.qclass = wire.d_class;
+  return resourceRecord;
 }
 
 void MOADNSParser::init(bool query, const std::string_view& packet)
