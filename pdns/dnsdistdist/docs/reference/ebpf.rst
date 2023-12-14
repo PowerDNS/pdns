@@ -7,6 +7,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
   This is the eBPF equivalent of :func:`addDynBlocks`, blocking a set of addresses for (optionally) a number of seconds, using an eBPF dynamic filter.
   The default number of seconds to block for is 10.
+  Since 1.6.0, the use of a :ref:`DynBlockRulesGroup` is a much more efficient way of doing the same thing.
 
   :param addresses: set of Addresses as returned by an :ref:`exceed function <exceedfuncs>`
   :param DynBPFFilter dynbpf: The dynamic eBPF filter to use

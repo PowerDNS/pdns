@@ -1399,15 +1399,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto slow = g_dynblockNMG.getCopy();
     struct timespec now;
     gettime(&now);
-    boost::format fmt("%-24s %8d %8d %-10s %-20s %s\n");
-    g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Warning" % "Action" % "Reason").str();
+    boost::format fmt("%-24s %8d %8d %-10s %-20s %-10s %s\n");
+    g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Warning" % "Action" % "eBPF" % "Reason").str();
     for (const auto& e : slow) {
       if (now < e.second.until) {
         uint64_t counter = e.second.blocks;
         if (g_defaultBPFFilter && e.second.bpf) {
           counter += g_defaultBPFFilter->getHits(e.first.getNetwork());
         }
-        g_outputBuffer += (fmt % e.first.toString() % (e.second.until.tv_sec - now.tv_sec) % counter % (e.second.warning ? "true" : "false") % DNSAction::typeToString(e.second.action != DNSAction::Action::None ? e.second.action : g_dynBlockAction) % e.second.reason).str();
+        g_outputBuffer += (fmt % e.first.toString() % (e.second.until.tv_sec - now.tv_sec) % counter % (e.second.warning ? "true" : "false") % DNSAction::typeToString(e.second.action != DNSAction::Action::None ? e.second.action : g_dynBlockAction) % (g_defaultBPFFilter && e.second.bpf ? "*" : "") % e.second.reason).str();
       }
     }
     auto slow2 = g_dynblockSMT.getCopy();
@@ -1416,7 +1416,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         string dom("empty");
         if (!node.d_value.domain.empty())
           dom = node.d_value.domain.toString();
-        g_outputBuffer += (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % (node.d_value.warning ? "true" : "false") % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) % node.d_value.reason).str();
+        g_outputBuffer += (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % (node.d_value.warning ? "true" : "false") % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) % "" % node.d_value.reason).str();
       }
     });
   });

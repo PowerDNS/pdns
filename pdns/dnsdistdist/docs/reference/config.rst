@@ -1364,6 +1364,7 @@ Dynamic Blocks
 
   Block a set of addresses with ``message`` for (optionally) a number of seconds.
   The default number of seconds to block for is 10.
+  Since 1.3.0, the use of a :ref:`DynBlockRulesGroup` is a much more efficient way of doing the same thing.
 
   :param addresses: set of Addresses as returned by an exceed function
   :param string message: The message to show next to the blocks
