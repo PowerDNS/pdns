@@ -132,7 +132,7 @@ static int readnWithTimeout(int fd, void* buffer, unsigned int n, unsigned int i
     if (totalTimeout) {
       time_t now = time(nullptr);
       const auto elapsed = now - start;
-      if (elapsed >= static_cast<decltype(elapsed)>(remainingTotal)) {
+      if (elapsed >= static_cast<time_t>(remainingTotal)) {
         throw NetworkError("Timeout while reading data");
       }
       start = now;
