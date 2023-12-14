@@ -96,12 +96,13 @@ void AuthWebServer::statThread()
 {
   try {
     setThreadName("pdns/statHelper");
-    for(;;) {
-      d_queries.submit(StatBag::getStatBag().read("udp-queries"));
-      d_cachehits.submit(StatBag::getStatBag().read("packetcache-hit"));
-      d_cachemisses.submit(StatBag::getStatBag().read("packetcache-miss"));
-      d_qcachehits.submit(StatBag::getStatBag().read("query-cache-hit"));
-      d_qcachemisses.submit(StatBag::getStatBag().read("query-cache-miss"));
+    auto& statBag = StatBag::getStatBag();
+    for (;;) {
+      d_queries.submit(statBag.read("udp-queries"));
+      d_cachehits.submit(statBag.read("packetcache-hit"));
+      d_cachemisses.submit(statBag.read("packetcache-miss"));
+      d_qcachehits.submit(statBag.read("query-cache-hit"));
+      d_qcachemisses.submit(statBag.read("query-cache-miss"));
       Utility::sleep(1);
     }
   }
@@ -151,12 +152,14 @@ static void printtable(ostringstream &ret, const string &ringname, const string 
   ret<<"<div class=ringmeta>";
   ret<<"<a class=topXofY href=\"?ring="<<htmlescape(ringname)<<"\">Showing: Top "<<limit<<" of "<<entries<<"</a>"<<endl;
   ret<<"<span class=resizering>Resize: ";
-  unsigned int sizes[]={10,100,500,1000,10000,500000,0};
-  for(int i=0;sizes[i];++i) {
-    if(StatBag::getStatBag().getRingSize(ringname)!=sizes[i])
-      ret<<"<a href=\"?resizering="<<htmlescape(ringname)<<"&amp;size="<<sizes[i]<<"\">"<<sizes[i]<<"</a> ";
-    else
-      ret<<"("<<sizes[i]<<") ";
+  const std::array<unsigned int, 7> sizes{10,100,500,1000,10000,500000,0};
+  for (auto size : sizes) {
+    if (StatBag::getStatBag().getRingSize(ringname) != size) {
+      ret<<"<a href=\"?resizering="<<htmlescape(ringname)<<"&amp;size="<<size<<"\">"<<size<<"</a> ";
+    }
+    else {
+      ret<<"("<<size<<") ";
+    }
   }
   ret<<"</span></div>";
 
@@ -168,8 +171,9 @@ static void printtable(ostringstream &ret, const string &ringname, const string 
     printed+=i->second;
   }
   ret<<"<tr><td colspan=3></td></tr>"<<endl;
-  if(printed!=tot)
+  if(printed!=tot) {
     ret<<"<tr><td><b>Rest:</b></td><td><b>"<<tot-printed<<"</b></td><td align=right><b>"<< AuthWebServer::makePercentage((tot-printed)*100.0/total)<<"</b></td>"<<endl;
+  }
 
   ret<<"<tr><td><b>Total:</b></td><td><b>"<<tot<<"</b></td><td align=right><b>100%</b></td>";
   ret<<"</table></div>"<<endl;
@@ -205,16 +209,18 @@ string AuthWebServer::makePercentage(const double& val)
 void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
 {
   if(!req->getvars["resetring"].empty()) {
-    if (StatBag::getStatBag().ringExists(req->getvars["resetring"]))
+    if (StatBag::getStatBag().ringExists(req->getvars["resetring"])) {
       StatBag::getStatBag().resetRing(req->getvars["resetring"]);
+    }
     resp->status = 302;
     resp->headers["Location"] = req->url.path;
     return;
   }
   if(!req->getvars["resizering"].empty()){
     int size=std::stoi(req->getvars["size"]);
-    if (StatBag::getStatBag().ringExists(req->getvars["resizering"]) && size > 0 && size <= 500000)
+    if (StatBag::getStatBag().ringExists(req->getvars["resizering"]) && size > 0 && size <= 500000) {
       StatBag::getStatBag().resizeRing(req->getvars["resizering"], std::stoi(req->getvars["size"]));
+    }
     resp->status = 302;
     resp->headers["Location"] = req->url.path;
     return;
@@ -270,19 +276,21 @@ void AuthWebServer::indexfunction(HttpRequest* req, HttpResponse* resp)
     (int)d_qcachemisses.get10()<<". Max queries/second: "<<(int)d_qcachemisses.getMax()<<
     "<br>"<<endl;
 
-  ret<<"Total queries: "<<StatBag::getStatBag().read("udp-queries")<<". Question/answer latency: "<<StatBag::getStatBag().read("latency")/1000.0<<"ms</p><br>"<<endl;
+  ret<<"Total queries: "<<StatBag::getStatBag().read("udp-queries")<<". Question/answer latency: "<<static_cast<double>(StatBag::getStatBag().read("latency"))/1000.0<<"ms</p><br>"<<endl;
   if(req->getvars["ring"].empty()) {
     auto entries = StatBag::getStatBag().listRings();
-    for(const auto &i: entries) {
-      printtable(ret, i, StatBag::getStatBag().getRingTitle(i));
+    for (const auto& entry: entries) {
+      printtable(ret, entry, StatBag::getStatBag().getRingTitle(entry));
     }
 
     printvars(ret);
-    if(arg().mustDo("webserver-print-arguments"))
+    if (arg().mustDo("webserver-print-arguments")) {
       printargs(ret);
+    }
   }
-  else if(StatBag::getStatBag().ringExists(req->getvars["ring"]))
+  else if (StatBag::getStatBag().ringExists(req->getvars["ring"])) {
     printtable(ret,req->getvars["ring"],StatBag::getStatBag().getRingTitle(req->getvars["ring"]),100);
+  }
 
   ret<<"</div></div>"<<endl;
   ret<<"<footer class=\"row\">"<<fullVersionString()<<"<br>&copy; <a href=\"https://www.powerdns.com/\">PowerDNS.COM BV</a>.</footer>"<<endl;

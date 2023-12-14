@@ -32,9 +32,9 @@ class Ewma
 {
 public:
   Ewma() : d_last(0), d_10(0), d_5(0), d_1(0), d_max(0){dt.set();}
-  void submit(int val) 
+  void submit(unsigned int val)
   {
-    int rate=val-d_last;
+    auto rate=val-d_last;
     double difft=dt.udiff()/1000000.0;
     dt.set();
     
@@ -45,25 +45,25 @@ public:
       
     d_last=val;
   }
-  double get10()
+  double get10() const
   {
     return d_10;
   }
-  double get5()
+  double get5() const
   {
     return d_5;
   }
-  double get1()
+  double get1() const
   {
     return d_1;
   }
-  double getMax()
+  double getMax() const
   {
     return d_max;
   }
 private:
   DTime dt;
-  int d_last;
+  unsigned int d_last;
   double d_10, d_5, d_1, d_max;
 };
 

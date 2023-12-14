@@ -144,7 +144,7 @@ public:
   string getDescrip(const string &item); //!< Returns the description of this datum/item
   StatType getStatType(const string &item); //!< Returns the stats type for the metrics endpoint
   void exists(const string &key); //!< call this function to throw an exception in case a key does not exist
-  inline void deposit(const string &key, int value); //!< increment the statistics behind this key by value amount
+  inline void deposit(const string &key, unsigned int value); //!< increment the statistics behind this key by value amount
   inline void inc(const string &key); //!< increase this key's value by one
   void set(const string &key, unsigned long value); //!< set this key's value
   unsigned long read(const string &key); //!< read the value behind this key
@@ -154,7 +154,7 @@ public:
   void setAllowRedeclare(bool allow); // only set this true during tests, never in production code
 };
 
-inline void StatBag::deposit(const string &key, int value)
+inline void StatBag::deposit(const string &key, unsigned int value)
 {
   exists(key);
 

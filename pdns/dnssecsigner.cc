@@ -62,7 +62,7 @@ static std::string getLookupKeyFromPublicKey(const std::string& pubKey)
 
 static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, const sortedRecords_t& toSign)
 {
-  if (!g_signatureCount) {
+  if (g_signatureCount == nullptr) {
     g_signatureCount = StatBag::getStatBag().getPointer("signatures");
   }
 
