@@ -863,3 +863,46 @@ class TestFlagsOnTimeout(DNSDistTest):
 
         self.assertEqual(len(timeouts), 2)
         self.assertEqual(len(queries), 2)
+
+class TestTruncatedUDPLargeAnswers(DNSDistTest):
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    """
+    def testVeryLargeAnswer(self):
+        """
+        Advanced: Check that UDP responses that are too large for our buffer are dismissed
+        """
+        name = 'very-large-answer-dismissed.advanced.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'TXT', 'IN')
+        response = dns.message.make_response(query)
+        # we prepare a large answer
+        content = ''
+        for i in range(31):
+            if len(content) > 0:
+                content = content + ' '
+            content = content + 'A' * 255
+        # pad up to 8192
+        content = content + ' ' + 'B' * 170
+
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.TXT,
+                                    content)
+        response.answer.append(rrset)
+        self.assertEqual(len(response.to_wire()), 8192)
+
+        # TCP should be OK
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(receivedResponse, response)
+
+        # UDP should  never get an answer, because dnsdist will not be able to get it from the backend
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertFalse(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
