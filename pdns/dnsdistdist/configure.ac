@@ -262,6 +262,10 @@ AS_IF([test "x$enable_dns_over_quic" != "xno"],
   [AC_MSG_NOTICE([DNS over QUIC (DoQ): yes])],
   [AC_MSG_NOTICE([DNS over QUIC (DoQ): no])]
 )
+AS_IF([test "x$enable_dns_over_http3" != "xno"],
+  [AC_MSG_NOTICE([DNS over HTTP/3 (DoH3): yes])],
+  [AC_MSG_NOTICE([DNS over HTTP/3 (DoH3): no])]
+)
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   AS_IF([test "x$GNUTLS_LIBS" != "x"],
     [AC_MSG_NOTICE([GnuTLS: yes])],
