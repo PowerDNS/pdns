@@ -2,6 +2,193 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.0-alpha4
+  :released: 14th of December 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13023
+
+    Remove legacy terms from the codebase (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13191
+
+    Wrap `DIR*` objects in unique pointers to prevent memory leaks
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13342
+
+    Add a DynBlockRulesGroup:removeRange() binding
+
+  .. change::
+    :tags: Bugs, DNS over HTTPS
+    :pullreq: 13381
+
+    Fix the case where nghttp2 is available but DoH is disabled
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13435
+
+    Fix a few Coverity warnings
+
+  .. change::
+    :tags: Improvements, DNS over QUIC
+    :pullreq: 13437
+
+    Require Quiche >= 0.15.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13445
+
+    Fix Coverity CID 1523748: Performance inefficiencies in dolog.hh
+
+  .. change::
+    :tags: Improvements, DNS over QUIC
+    :pullreq: 13472
+
+    Add missing DoQ latency metrics
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13473
+
+    Add support for setting Extended DNS Error statuses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13485
+    :tickets: 13191
+
+    Add `pdns::visit_directory()`, wrapping opendir/readdir/closedir
+
+  .. change::
+    :tags: Bugs
+    :pullreq: 13488
+
+    Fix the removal of the last rule by name or UUID
+
+  .. change::
+    :tags: New Features, Webserver
+    :pullreq: 13489
+
+    Add a 'rings' endpoint to the REST API
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13492
+
+    Add a cache-miss ratio dynamic block rule
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13500
+
+    Improve `NetmaskGroupRule`/`SuffixMatchNodeRule`, deprecate `makeRule`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13503
+
+    Add `NetmaskGroup:addNMG()` to merge Netmask groups
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13505
+
+    Add `getAddressInfo()` for asynchronous DNS resolution
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13506
+
+    Add an option to set the SSL proxy protocol TLV
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13509
+
+    Add Proxy Protocol v2 support to `TeeAction`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13515
+
+    Allow setting the action from `setSuffixMatchRule{,FFI}()`'s visitor
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13517
+
+    Allow enabling incoming PROXY protocol on a per-bind basis
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13520
+
+    Refactor the exponential back-off timer code
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC
+    :pullreq: 13524
+
+    Fix building with DoQ but without DoH or DoT
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13536
+
+    Detect and dismiss truncated UDP responses from a backend
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13537
+
+    Make the max size of entries in the packet cache configurable
+
+  .. change::
+    :tags: New Features, DNS over HTTP3, DNS over HTTPS
+    :pullreq: 13556
+
+    Add support for incoming DNS over HTTP/3
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13560
+
+    Spoof a raw response for ANY queries
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13564
+
+    Add `PayloadSizeRule` and `TCResponseAction`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13565
+
+    Add Lua FFI bindings: hashing arbitrary data and knowing if the query was received over IPv6
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13592
+
+    Add `QNameSuffixRule`
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 13594
+
+    Send a HTTP 400 response to HTTP/1.1 clients
+
+.. changelog::
   :version: 1.9.0-alpha3
   :released: 20th of October 2023
 

@@ -13,6 +13,15 @@ support HTTP/2, but might be one in setups running dnsdist behind a reverse-prox
 
 SNMP support is no longer enabled by default during ``configure``, requiring ``--with-net-snmp`` to be built.
 
+The use of :func:`makeRule` is now deprecated, please use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead.
+Passing a string or list of strings instead of a :class:`DNSRule` to these functions is deprecated as well, :func:`NetmaskGroupRule` and :func:`QNameSuffixRule` should there again be used instead:
+
+* :func:`addAction`
+* :func:`addResponseAction`
+* :func:`addCacheHitResponseAction`
+* :func:`addCacheInsertedResponseAction`
+* :func:`addSelfAnsweredResponseAction`
+
 1.7.x to 1.8.0
 --------------
 
