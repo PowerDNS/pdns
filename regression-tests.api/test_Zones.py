@@ -90,7 +90,7 @@ class Zones(ApiTestCase):
         print(example_com)
         required_fields = ['id', 'url', 'name', 'kind']
         if is_auth():
-            required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial', 'account']
+            required_fields = required_fields + ['masters', 'last_check', 'notified_serial', 'serial', 'account', 'catalog']
             if dnssec:
                 required_fields = required_fields = ['dnssec', 'edited_serial']
             self.assertNotEqual(example_com['serial'], 0)
@@ -236,6 +236,15 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             self.assertIn(k, data)
             if k in payload:
                 self.assertEqual(data[k], payload[k])
+
+        # check that the catalog is reflected in the /zones output (#13633)
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
+        self.assert_success_json(r)
+        domains = r.json()
+        domain = [domain for domain in domains if domain['name'] == name]
+        self.assertEqual(len(domain), 1)
+        domain = domain[0]
+        self.assertEqual(domain["catalog"], "catalog.invalid.")
 
     def test_create_zone_with_account(self):
         # soa_edit_api wins over serial

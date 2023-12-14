@@ -30,7 +30,7 @@ godbc-delete-rrset-query=delete from records where domain_id=? and name=? and ty
 godbc-delete-tsig-key-query=delete from tsigkeys where name=?
 godbc-delete-zone-query=delete from records where domain_id=?
 godbc-get-all-domain-metadata-query=select kind,content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=?
-godbc-get-all-domains-query=select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR ?
+godbc-get-all-domains-query=select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account, domains.catalog from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR ?
 godbc-get-domain-metadata-query=select content from domains, domainmetadata where domainmetadata.domain_id=domains.id and name=? and domainmetadata.kind=?
 godbc-get-last-inserted-key-id-query=select last_insert_rowid()
 godbc-get-order-after-query=select min(ordername) from records where disabled=0 and ordername > ? and domain_id=? and ordername is not null
