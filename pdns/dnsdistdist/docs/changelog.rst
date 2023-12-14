@@ -2,6 +2,57 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.8.3
+  :released: 15th of December 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 13523
+    :tickets: 13519
+
+    Refactor the exponential back-off timer code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13598
+
+    Detect and dismiss truncated UDP responses from a backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13599
+
+    Fix the removal of the last rule by name or UUID
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13601
+
+    Add a `DynBlockRulesGroup:removeRange()` binding
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13602
+    :tickets: 13307
+
+    Fix several cosmetic issues in eBPF dynamic blocks, update documentation
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13605
+
+    Add a `DNSHeader:getTC()` Lua binding
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 13607
+    :tickets: 13050
+
+    Fix code producing JSON
+
+.. changelog::
   :version: 1.9.0-alpha4
   :released: 14th of December 2023
 
@@ -26,7 +77,7 @@ Changelog
     Add a DynBlockRulesGroup:removeRange() binding
 
   .. change::
-    :tags: Bugs, DNS over HTTPS
+    :tags: Bugs Fixes, DNS over HTTPS
     :pullreq: 13381
 
     Fix the case where nghttp2 is available but DoH is disabled
@@ -69,7 +120,7 @@ Changelog
     Add `pdns::visit_directory()`, wrapping opendir/readdir/closedir
 
   .. change::
-    :tags: Bugs
+    :tags: Bugs Fixes
     :pullreq: 13488
 
     Fix the removal of the last rule by name or UUID
