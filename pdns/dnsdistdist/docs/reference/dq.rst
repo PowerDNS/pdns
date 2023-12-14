@@ -504,6 +504,12 @@ DNSHeader (``dh``) object
 
     Get recursion desired flag.
 
+  .. method:: DNSHeader:getTC() -> bool
+
+    .. versionadded:: 1.8.1
+
+    Get the TC flag.
+
   .. method:: DNSHeader:setAA(aa)
 
     Set authoritative answer flag.
