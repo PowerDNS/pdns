@@ -50,7 +50,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     });
 
   /* Exceptions */
-  luaCtx.registerFunction<string(std::exception_ptr::*)()const>("__tostring", [](const std::exception_ptr& eptr) {
+  luaCtx.registerFunction<string(std::exception_ptr::*)()const>("__tostring", [](const std::exception_ptr& eptr) -> std::string {
       try {
         if (eptr) {
           std::rethrow_exception(eptr);
@@ -138,8 +138,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       }
       s.setLazyAuto();
     });
-  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getName", [](const DownstreamState& s) { return s.getName(); });
-  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getNameWithAddr", [](const DownstreamState& s) { return s.getNameWithAddr(); });
+  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getName", [](const DownstreamState& s) -> const std::string& { return s.getName(); });
+  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getNameWithAddr", [](const DownstreamState& s) -> const std::string& { return s.getNameWithAddr(); });
   luaCtx.registerMember("upStatus", &DownstreamState::upStatus);
   luaCtx.registerMember<int (DownstreamState::*)>("weight",
     [](const DownstreamState& s) -> int {return s.d_config.d_weight;},
