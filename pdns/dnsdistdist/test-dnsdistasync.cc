@@ -49,7 +49,7 @@ public:
     errorRaised = true;
   }
 
-  bool errorRaised{false};
+  std::atomic<bool> errorRaised{false};
 };
 
 struct DummyCrossProtocolQuery : public CrossProtocolQuery
@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(test_TimeoutFailClose)
   usleep(20000);
 
   BOOST_CHECK(holder->empty());
-  BOOST_CHECK(sender->errorRaised);
+  BOOST_CHECK(sender->errorRaised.load());
 
   holder->stop();
 }
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(test_AddingExpiredEvent)
   usleep(20000);
 
   BOOST_CHECK(holder->empty());
-  BOOST_CHECK(sender->errorRaised);
+  BOOST_CHECK(sender->errorRaised.load());
 
   holder->stop();
 }
