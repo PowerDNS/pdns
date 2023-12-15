@@ -2064,7 +2064,7 @@ static void apiServerZoneDetailDELETE(HttpRequest* req, HttpResponse* resp) {
 
     di.backend->commitTransaction();
 
-    purgeAuthCaches(zonename.toString() + "$");
+    g_zoneCache.remove(zonename);
   } catch (...) {
     di.backend->abortTransaction();
     throw;
