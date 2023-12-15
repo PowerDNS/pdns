@@ -1501,14 +1501,13 @@ Maximum number of Packet Cache entries. Sharded and shared by all threads since 
         'name' : 'max_qperq',
         'section' : 'outgoing',
         'type' : LType.Uint64,
-        'default' : '60',
+        'default' : '50',
         'help' : 'Maximum outgoing queries per query',
         'doc' : '''
 The maximum number of outgoing queries that will be sent out during the resolution of a single client query.
-This is used to limit endlessly chasing CNAME redirections.
-If qname-minimization is enabled, the number will be forced to be 100
-at a minimum to allow for the extra queries qname-minimization generates when the cache is empty.
+This is used to avoid cycles resolving names.
  ''',
+        'versionchanged': ('5.1.0', 'The default used to be 60, with an extra allowance if qname minimization was enabled. Having better algorithms allows for a lower default limit.'),
     },
     {
         'name' : 'max_ns_address_qperq',

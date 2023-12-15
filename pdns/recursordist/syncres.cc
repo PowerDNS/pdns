@@ -3471,17 +3471,8 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
 
 void SyncRes::checkMaxQperQ(const DNSName& qname) const
 {
-  auto bound = s_maxqperq;
-  if (d_qNameMinimization) {
-    // With an empty cache, a rev ipv6 query with dnssec enabled takes
-    // almost 100 queries. Default maxqperq is 60
-    // Note: This no longer seems to be true. The examples taken from #8646 take now way less
-    // queries. The main reason seems to be a much better zone cut determination.
-    bound = std::max(100U, bound);
-  }
-
-  if (d_outqueries + d_throttledqueries > bound) {
-    throw ImmediateServFailException("more than " + std::to_string(bound) + " (adjusted max-qperq) queries sent or throttled while resolving " + qname.toLogString());
+  if (d_outqueries + d_throttledqueries > s_maxqperq) {
+    throw ImmediateServFailException("more than " + std::to_string(s_maxqperq) + " (max-qperq) queries sent or throttled while resolving " + qname.toLogString());
   }
 }
 
