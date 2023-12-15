@@ -65,6 +65,7 @@ public:
   ComboAddress d_peer;
   QuicheConnection d_conn;
   std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
+  std::unordered_map<uint64_t, PacketBuffer> d_streamOutBuffers;
 };
 
 static void sendBackDOQUnit(DOQUnitUniquePtr&& unit, const char* description);
@@ -260,7 +261,26 @@ private:
 
 std::shared_ptr<DOQTCPCrossQuerySender> DOQCrossProtocolQuery::s_sender = std::make_shared<DOQTCPCrossQuerySender>();
 
-static void handleResponse(DOQFrontend& frontend, Connection& conn, const uint64_t streamID, const PacketBuffer& response)
+static bool tryWriteResponse(Connection& conn, const uint64_t streamID, PacketBuffer& response)
+{
+  size_t pos = 0;
+  while (pos < response.size()) {
+    auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, &response.at(pos), response.size() - pos, true);
+    if (res == QUICHE_ERR_DONE) {
+      response.erase(response.begin(), response.begin() + static_cast<ssize_t>(pos));
+      return false;
+    }
+    if (res < 0) {
+      quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_INTERNAL_ERROR));
+      return true;
+    }
+    pos += res;
+  }
+
+  return true;
+}
+
+static void handleResponse(DOQFrontend& frontend, Connection& conn, const uint64_t streamID, PacketBuffer& response)
 {
   if (response.empty()) {
     ++frontend.d_errorResponses;
@@ -270,25 +290,9 @@ static void handleResponse(DOQFrontend& frontend, Connection& conn, const uint64
   ++frontend.d_validResponses;
   auto responseSize = static_cast<uint16_t>(response.size());
   const std::array<uint8_t, 2> sizeBytes = {static_cast<uint8_t>(responseSize / 256), static_cast<uint8_t>(responseSize % 256)};
-  size_t pos = 0;
-  while (pos < sizeBytes.size()) {
-    auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, &sizeBytes.at(pos), sizeBytes.size() - pos, false);
-    if (res < 0) {
-      quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_INTERNAL_ERROR));
-      return;
-    }
-    pos += res;
-  }
-
-  pos = 0;
-  while (pos < response.size()) {
-    // stream_send sets fin to false itself when the capacity of the stream is less than the desired writing length
-    auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, &response.at(pos), response.size() - pos, true);
-    if (res < 0) {
-      quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_INTERNAL_ERROR));
-      return;
-    }
-    pos += res;
+  response.insert(response.begin(), sizeBytes.begin(), sizeBytes.end());
+  if (!tryWriteResponse(conn, streamID, response)) {
+    conn.d_streamOutBuffers[streamID] = std::move(response);
   }
 }
 
@@ -560,6 +564,21 @@ static void flushResponses(pdns::channel::Receiver<DOQUnit>& receiver)
   }
 }
 
+static void flushStalledResponses(Connection& conn)
+{
+  for (auto streamIt = conn.d_streamOutBuffers.begin(); streamIt != conn.d_streamOutBuffers.end();) {
+    const auto& streamID = streamIt->first;
+    auto& response = streamIt->second;
+    if (quiche_conn_stream_writable(conn.d_conn.get(), streamID, response.size()) == 1) {
+      if (tryWriteResponse(conn, streamID, response)) {
+        streamIt = conn.d_streamOutBuffers.erase(streamIt);
+        continue;
+      }
+    }
+    ++streamIt;
+  }
+}
+
 // this is the entrypoint from dnsdist.cc
 void doqThread(ClientState* clientState)
 {
@@ -721,6 +740,7 @@ void doqThread(ClientState* clientState)
           conn = frontend->d_server_config->d_connections.erase(conn);
         }
         else {
+          flushStalledResponses(conn->second);
           ++conn;
         }
       }
