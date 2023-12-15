@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2023121400 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2023121500 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -523,6 +523,7 @@ dnsdist-1.8.0-rc3.security-status                          60 IN TXT "3 Unsuppor
 dnsdist-1.8.0.security-status                              60 IN TXT "3 Upgrade now, see https://blog.cloudflare.com/technical-breakdown-http2-rapid-reset-ddos-attack/"
 dnsdist-1.8.1.security-status                              60 IN TXT "3 Upgrade now, see https://blog.cloudflare.com/technical-breakdown-http2-rapid-reset-ddos-attack/"
 dnsdist-1.8.2.security-status                              60 IN TXT "1 OK"
+dnsdist-1.8.3.security-status                              60 IN TXT "1 OK"
 dnsdist-1.9.0-alpha1.security-status                       60 IN TXT "3 Unsupported pre-release (known vulnerabilities)"
 dnsdist-1.9.0-alpha2.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 dnsdist-1.9.0-alpha3.security-status                       60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
