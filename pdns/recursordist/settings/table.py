@@ -950,6 +950,8 @@ This is used for generating random numbers which are very hard to predict.
 Generally on UNIX platforms, this source will be ``/dev/urandom``, which will always supply random numbers, even if entropy is lacking.
 Change to ``/dev/random`` if PowerDNS should block waiting for enough entropy to arrive.
  ''',
+        'skip-yaml': True,
+        'versionchanged': ('4.9.0', 'This setting is no longer used.'),
     },
     {
         'name' : 'etc_hosts_file',
@@ -2141,6 +2143,8 @@ Specify which random number generator to use. Permissible choices are
  - urandom - Use ``/dev/urandom``
  - kiss - Use simple settable deterministic RNG. **FOR TESTING PURPOSES ONLY!**
  ''',
+        'skip-yaml': True,
+        'versionchanged': ('4.9.0', 'This setting is no longer used.')
     },
     {
         'name' : 'root_nx_trust',
