@@ -1,7 +1,7 @@
 import requests
 import socket
 import time
-from test_helper import ApiTestCase
+from test_helper import ApiTestCase, is_auth
 
 
 class TestBasics(ApiTestCase):
@@ -43,6 +43,22 @@ class TestBasics(ApiTestCase):
         self.assertEqual(r.status_code, requests.codes.ok)
         self.assertEqual(r.headers['access-control-allow-origin'], "*")
         self.assertEqual(r.headers['access-control-allow-headers'], 'Content-Type, X-API-Key')
-        self.assertEqual(r.headers['access-control-allow-methods'], 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+        self.assertEqual(r.headers['access-control-allow-methods'], 'GET, OPTIONS')
+
+        print("response", repr(r.headers))
+
+        r = self.session.options(self.url("/api/v1/servers/localhost/zones/test"))
+        self.assertEqual(r.status_code, requests.codes.ok)
+        self.assertEqual(r.headers['access-control-allow-origin'], "*")
+        self.assertEqual(r.headers['access-control-allow-headers'], 'Content-Type, X-API-Key')
+        if is_auth():
+            self.assertEqual(r.headers['access-control-allow-methods'], 'GET, PATCH, PUT, DELETE, OPTIONS')
+        else:
+            self.assertEqual(r.headers['access-control-allow-methods'], 'GET, PUT, DELETE, OPTIONS')
+
+        print("response", repr(r.headers))
+
+        r = self.session.options(self.url("/api/v1/servers/localhost/invalid"))
+        self.assertEqual(r.status_code, requests.codes.not_found)
 
         print("response", repr(r.headers))

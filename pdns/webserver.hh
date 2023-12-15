@@ -225,8 +225,8 @@ public:
   void handleRequest(HttpRequest& request, HttpResponse& resp) const;
 
   typedef std::function<void(HttpRequest* req, HttpResponse* resp)> HandlerFunction;
-  void registerApiHandler(const string& url, const HandlerFunction& handler, bool allowPassword=false);
-  void registerWebHandler(const string& url, const HandlerFunction& handler);
+  void registerApiHandler(const string& url, const HandlerFunction& handler, const std::string& method = "", bool allowPassword=false);
+  void registerWebHandler(const string& url, const HandlerFunction& handler, const std::string& method = "");
 
   enum class LogLevel : uint8_t {
     None = 0,                // No logs from requests at all
@@ -266,7 +266,7 @@ public:
 #endif
 
 protected:
-  void registerBareHandler(const string& url, const HandlerFunction& handler);
+  static void registerBareHandler(const string& url, const HandlerFunction& handler, const std::string& method);
   void logRequest(const HttpRequest& req, const ComboAddress& remote) const;
   void logResponse(const HttpResponse& resp, const ComboAddress& remote, const string& logprefix) const;
 
