@@ -1504,7 +1504,7 @@ Maximum number of Packet Cache entries. Sharded and shared by all threads since 
 The maximum number of outgoing queries that will be sent out during the resolution of a single client query.
 This is used to avoid cycles resolving names.
  ''',
-        'versionchanged': ('5.0.0', 'The default used to be 60, with an extra allowance if qname minimization was enabled. Having better algorithms allows for a lower default limit.'),
+        'versionchanged': ('5.1.0', 'The default used to be 60, with an extra allowance if qname minimization was enabled. Having better algorithms allows for a lower default limit.'),
     },
     {
         'name' : 'max_ns_address_qperq',
