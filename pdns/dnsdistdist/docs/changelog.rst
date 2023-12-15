@@ -77,7 +77,7 @@ Changelog
     Add a DynBlockRulesGroup:removeRange() binding
 
   .. change::
-    :tags: Bugs Fixes, DNS over HTTPS
+    :tags: Bug Fixes, DNS over HTTPS
     :pullreq: 13381
 
     Fix the case where nghttp2 is available but DoH is disabled
@@ -120,7 +120,7 @@ Changelog
     Add `pdns::visit_directory()`, wrapping opendir/readdir/closedir
 
   .. change::
-    :tags: Bugs Fixes
+    :tags: Bug Fixes
     :pullreq: 13488
 
     Fix the removal of the last rule by name or UUID
