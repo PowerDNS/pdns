@@ -1302,6 +1302,12 @@ Status, Statistics and More
 
   Print the list of all available DNS over HTTPS frontends.
 
+.. function:: showDOH3Frontends()
+
+  .. versionadded:: 1.9.0
+
+  Print the list of all available DNS over HTTP/3 frontends.
+
 .. function:: showDOHResponseCodes()
 
   .. versionadded:: 1.4.0
