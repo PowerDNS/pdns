@@ -131,6 +131,7 @@ Listen Sockets
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
+  More information is available in :doc:`../guides/dns-over-https`.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 443.
@@ -181,6 +182,7 @@ Listen Sockets
   .. versionadded:: 1.9.0
 
   Listen on the specified address and UDP port for incoming DNS over HTTP3 connections, presenting the specified X.509 certificate.
+  More information is available in :doc:`../guides/dns-over-http3`.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 853.

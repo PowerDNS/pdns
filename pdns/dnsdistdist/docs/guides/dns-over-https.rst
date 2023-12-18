@@ -1,6 +1,9 @@
 DNS-over-HTTPS (DoH)
 ====================
 
+.. note::
+  This guide is about DNS over HTTP/1 and DNS over HTTP/2. For DNS over HTTP/3, please see :doc:`dns-over-http3`
+
 :program:`dnsdist` supports DNS-over-HTTPS (DoH, standardized in RFC 8484) for incoming queries since 1.4.0, and for outgoing queries since 1.7.0.
 To see if the installation supports this, run ``dnsdist --version``.
 If the output shows ``dns-over-https(DOH)`` (``dns-over-https(h2o nghttp2)``, ``dns-over-https(h2o)`` or ``dns-over-https(nghttp2)`` since 1.9.0) , incoming DNS-over-HTTPS is supported. If ``outgoing-dns-over-https(nghttp2)`` shows up then outgoing DNS-over-HTTPS is supported.
@@ -34,6 +37,15 @@ A more complicated (and more realistic) example is when you want to indicate met
 A particular attention should be taken to the permissions of the certificate and key files. Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root, which is no longer true for dnsdist as of 1.5.0. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.
 
 More information about sessions management can also be found in :doc:`../advanced/tls-sessions-management`.
+
+Advertising DNS over HTTP/3 support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If DNS over HTTP/3 is also enabled in the configuration via :func:`addDOH3Local` (see :doc:`dns-over-http3` for more information), it might be useful to advertise this support via the ``Alt-Svc`` header::
+
+  addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/dns", {customResponseHeaders={["alt-svc"]="h3\":443\""}})
+
+This will advertise that HTTP/3 is available on the same IP, port UDP/443.
 
 Custom responses
 ^^^^^^^^^^^^^^^^
