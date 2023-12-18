@@ -26,8 +26,6 @@
 ./pdns/cdb.hh
 ./pdns/comfun.cc
 ./pdns/comment.hh
-./pdns/communicator.cc
-./pdns/communicator.hh
 ./pdns/dbdnsseckeeper.cc
 ./pdns/delaypipe.cc
 ./pdns/delaypipe.hh
