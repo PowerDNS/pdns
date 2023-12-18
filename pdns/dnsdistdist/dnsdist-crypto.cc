@@ -328,7 +328,8 @@ bool isValidKey(const std::string& key)
 
 #include <cinttypes>
 
-namespace anonpdns {
+namespace anonpdns
+{
 static char B64Decode1(char cInChar)
 {
   // The incoming character will be A-Z, a-z, 0-9, +, /, or =.
@@ -340,7 +341,7 @@ static char B64Decode1(char cInChar)
   //
   // To do that, we'll play some tricks...
   unsigned char iIndex = '\0';
-  switch ( cInChar ) {
+  switch (cInChar) {
   case '+':
     iIndex = 62;
     break;
@@ -362,13 +363,13 @@ static char B64Decode1(char cInChar)
     // so we check for numerals first, then capital letters,
     // and finally small letters.
     iIndex = '9' - cInChar;
-    if ( iIndex > 0x3F ) {
+    if (iIndex > 0x3F) {
       // Not from '0' to '9'...
       iIndex = 'Z' - cInChar;
-      if ( iIndex > 0x3F ) {
+      if (iIndex > 0x3F) {
         // Not from 'A' to 'Z'...
         iIndex = 'z' - cInChar;
-        if ( iIndex > 0x3F ) {
+        if (iIndex > 0x3F) {
           // Invalid character...cannot
           // decode!
           iIndex = 0x80; // set the high bit
@@ -396,31 +397,26 @@ static char B64Decode1(char cInChar)
 
 static inline char B64Encode1(unsigned char uc)
 {
-  if (uc < 26)
-    {
-      return 'A'+uc;
-    }
-  if (uc < 52)
-    {
-      return 'a'+(uc-26);
-    }
-  if (uc < 62)
-    {
-      return '0'+(uc-52);
-    }
-  if (uc == 62)
-    {
-      return '+';
-    }
+  if (uc < 26) {
+    return 'A' + uc;
+  }
+  if (uc < 52) {
+    return 'a' + (uc - 26);
+  }
+  if (uc < 62) {
+    return '0' + (uc - 52);
+  }
+  if (uc == 62) {
+    return '+';
+  }
   return '/';
 };
-
-
 
 }
 using namespace anonpdns;
 
-template<typename Container> int B64Decode(const std::string& strInput, Container& strOutput)
+template <typename Container>
+int B64Decode(const std::string& strInput, Container& strOutput)
 {
   // Set up a decoding buffer
   long cBuf = 0;
@@ -442,16 +438,16 @@ template<typename Container> int B64Decode(const std::string& strInput, Containe
   int iInSize = strInput.size();
   unsigned char cChar = '\0';
   uint8_t pad = 0;
-  while ( iInNum < iInSize ) {
+  while (iInNum < iInSize) {
     // Fill the decode buffer with 4 groups of 6 bits
     cBuf = 0; // clear
     pad = 0;
-    for ( iBitGroup = 0; iBitGroup < 4; ++iBitGroup ) {
-      if ( iInNum < iInSize ) {
+    for (iBitGroup = 0; iBitGroup < 4; ++iBitGroup) {
+      if (iInNum < iInSize) {
         // Decode a character
-       if(strInput.at(iInNum)=='=')
-         pad++;
-        while(isspace(strInput.at(iInNum)))
+        if (strInput.at(iInNum) == '=')
+          pad++;
+        while (isspace(strInput.at(iInNum)))
           iInNum++;
         cChar = B64Decode1(strInput.at(iInNum++));
 
@@ -462,11 +458,11 @@ template<typename Container> int B64Decode(const std::string& strInput, Containe
       } // else
 
       // Check for valid decode
-      if ( cChar > 0x7F )
+      if (cChar > 0x7F)
         return -1;
 
       // Adjust the bits
-      switch ( iBitGroup ) {
+      switch (iBitGroup) {
       case 0:
         // The first group is copied into
         // the least significant 6 bits of
@@ -492,17 +488,17 @@ template<typename Container> int B64Decode(const std::string& strInput, Containe
     // may have been padding, so those padded bytes
     // are actually ignored.
 #if BYTE_ORDER == BIG_ENDIAN
-    strOutput.push_back(pBuf[sizeof(long)-3]);
-    strOutput.push_back(pBuf[sizeof(long)-2]);
-    strOutput.push_back(pBuf[sizeof(long)-1]);
+    strOutput.push_back(pBuf[sizeof(long) - 3]);
+    strOutput.push_back(pBuf[sizeof(long) - 2]);
+    strOutput.push_back(pBuf[sizeof(long) - 1]);
 #else
     strOutput.push_back(pBuf[2]);
     strOutput.push_back(pBuf[1]);
     strOutput.push_back(pBuf[0]);
 #endif
   } // while
-  if(pad)
-    strOutput.resize(strOutput.size()-pad);
+  if (pad)
+    strOutput.resize(strOutput.size() - pad);
 
   return 1;
 }
@@ -517,53 +513,44 @@ Copyright 2001-2002 Randy Charles Morin
 The Encode static method takes an array of 8-bit values and returns a base-64 stream.
 */
 
-
-std::string Base64Encode (const std::string& vby)
+std::string Base64Encode(const std::string& vby)
 {
   std::string retval;
-  if (vby.size () == 0)
-    {
-      return retval;
+  if (vby.size() == 0) {
+    return retval;
+  };
+  for (unsigned int i = 0; i < vby.size(); i += 3) {
+    unsigned char by1 = 0, by2 = 0, by3 = 0;
+    by1 = vby[i];
+    if (i + 1 < vby.size()) {
+      by2 = vby[i + 1];
     };
-  for (unsigned int i = 0; i < vby.size (); i += 3)
-    {
-      unsigned char by1 = 0, by2 = 0, by3 = 0;
-      by1 = vby[i];
-      if (i + 1 < vby.size ())
-        {
-          by2 = vby[i + 1];
-        };
-      if (i + 2 < vby.size ())
-        {
-          by3 = vby[i + 2];
-        }
-      unsigned char by4 = 0, by5 = 0, by6 = 0, by7 = 0;
-      by4 = by1 >> 2;
-      by5 = ((by1 & 0x3) << 4) | (by2 >> 4);
-      by6 = ((by2 & 0xf) << 2) | (by3 >> 6);
-      by7 = by3 & 0x3f;
-      retval += B64Encode1 (by4);
-      retval += B64Encode1 (by5);
-      if (i + 1 < vby.size ())
-        {
-          retval += B64Encode1 (by6);
-        }
-      else
-        {
-          retval += "=";
-        };
-      if (i + 2 < vby.size ())
-        {
-          retval += B64Encode1 (by7);
-        }
-      else
-        {
-          retval += "=";
-        };
-      /*      if ((i % (76 / 4 * 3)) == 0)
-        {
-          retval += "\r\n";
-          }*/
+    if (i + 2 < vby.size()) {
+      by3 = vby[i + 2];
+    }
+    unsigned char by4 = 0, by5 = 0, by6 = 0, by7 = 0;
+    by4 = by1 >> 2;
+    by5 = ((by1 & 0x3) << 4) | (by2 >> 4);
+    by6 = ((by2 & 0xf) << 2) | (by3 >> 6);
+    by7 = by3 & 0x3f;
+    retval += B64Encode1(by4);
+    retval += B64Encode1(by5);
+    if (i + 1 < vby.size()) {
+      retval += B64Encode1(by6);
+    }
+    else {
+      retval += "=";
     };
+    if (i + 2 < vby.size()) {
+      retval += B64Encode1(by7);
+    }
+    else {
+      retval += "=";
+    };
+    /*      if ((i % (76 / 4 * 3)) == 0)
+      {
+        retval += "\r\n";
+        }*/
+  };
   return retval;
 };
