@@ -21,10 +21,8 @@ AM_CXXFLAGS = \
 	-DPKGLIBDIR=\"$(pkglibdir)\" \
 	-DLOCALSTATEDIR=\"$(socketdir)\"
 
-if NOD_ENABLED
 AM_CXXFLAGS += \
-	-DNODCACHEDIR=\"$(nodcachedir)\"
-endif
+	-DNODCACHEDIRNOD=\"$(nodcachedir)/nod\" -DNODCACHEDIRUDR=\"$(nodcachedir)/udr\"
 
 if FSTRM
 AM_CPPFLAGS += \
