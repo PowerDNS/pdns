@@ -12,7 +12,7 @@ Adding a listen port for DNS-over-HTTP/3 can be done with the :func:`addDOH3Loca
 
   addDOH3Local('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key')
 
-This will make :program:`dnsdist` listen on [2001:db8:1:f00::1]:853 on UDP, and will use the provided certificate and key to serve incoming DoH3 connections.
+This will make :program:`dnsdist` listen on [2001:db8:1:f00::1]:443 on UDP, and will use the provided certificate and key to serve incoming DoH3 connections.
 
 The fourth parameter, if present, indicates various options. For instance, you can change the congestion control algorithm used. An example is::
 
