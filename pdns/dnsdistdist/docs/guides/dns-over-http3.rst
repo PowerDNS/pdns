@@ -30,6 +30,6 @@ Advertising DNS over HTTP/3 support
 
 If DNS over HTTP/2 is also enabled in the configuration via :func:`addDOHLocal` (see :doc:`dns-over-https` for more information), it might be useful to advertise DNS over HTTP/3 support via the ``Alt-Svc`` header::
 
-  addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/dns", {customResponseHeaders={["alt-svc"]="h3\":443\""}})
+  addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/dns", {customResponseHeaders={["alt-svc"]="h3=\":443\""}})
 
 This will advertise that HTTP/3 is available on the same IP, port UDP/443.
