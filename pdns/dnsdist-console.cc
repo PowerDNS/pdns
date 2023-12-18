@@ -751,6 +751,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "showConsoleACL", true, "", "show our current console ACL set" },
   { "showDNSCryptBinds", true, "", "display the currently configured DNSCrypt binds" },
   { "showDOHFrontends", true, "", "list all the available DOH frontends" },
+  { "showDOH3Frontends", true, "", "list all the available DOH3 frontends" },
   { "showDOHResponseCodes", true, "", "show the HTTP response code statistics for the DoH frontends"},
   { "showDOQFrontends", true, "", "list all the available DOQ frontends" },
   { "showDynBlocks", true, "", "show dynamic blocks in force" },
