@@ -2606,7 +2606,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (!loadTLSCertificateAndKeys("addDOH3Local", frontend->d_quicheParams.d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
       return;
     }
-    frontend->d_local = ComboAddress(addr, 853);
+    frontend->d_local = ComboAddress(addr, 443);
 
     bool reusePort = false;
     int tcpFastOpenQueueSize = 0;

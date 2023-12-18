@@ -183,7 +183,7 @@ Listen Sockets
   Listen on the specified address and UDP port for incoming DNS over HTTP3 connections, presenting the specified X.509 certificate.
 
   :param str address: The IP Address with an optional port to listen on.
-                      The default port is 853.
+                      The default port is 443.
   :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
   :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains TLSCertificate objects.
   :param table options: A table with key: value pairs with listen options.
