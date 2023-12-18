@@ -228,6 +228,7 @@ static void declareArguments()
   ::arg().setSwitch("prevent-self-notification", "Don't send notifications to what we think is ourself") = "yes";
   ::arg().setSwitch("any-to-tcp", "Answer ANY queries with tc=1, shunting to TCP") = "yes";
   ::arg().setSwitch("edns-subnet-processing", "If we should act on EDNS Subnet options") = "no";
+  ::arg().set("delay-notifications", "Configure a delay to send out notifications, no delay by default") = "0";
 
   ::arg().set("edns-cookie-secret", "When set, set a server cookie when responding to a query with a Client cookie (in hex)") = "";
 
@@ -326,6 +327,7 @@ static void declareArguments()
   ::arg().set("rng", "Specify the random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.") = "auto";
 
   ::arg().set("default-catalog-zone", "Catalog zone to assign newly created primary zones (via the API) to") = "";
+
 #ifdef ENABLE_GSS_TSIG
   ::arg().setSwitch("enable-gss-tsig", "Enable GSS TSIG processing") = "no";
 #endif

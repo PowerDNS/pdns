@@ -75,7 +75,7 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 
       for (const auto& ip : ips) {
         g_log << Logger::Notice << "Queued notification of domain '" << di.zone << "' to " << ip << endl;
-        d_nq.add(di.zone, ip);
+        d_nq.add(di.zone, ip, d_delayNotifications);
         hasQueuedItem = true;
       }
     }
@@ -98,7 +98,7 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
       g_log << Logger::Notice << "Queued also-notification of domain '" << di.zone << "' to " << caIp.toStringWithPort() << endl;
       if (!ips.count(caIp.toStringWithPort())) {
         ips.insert(caIp.toStringWithPort());
-        d_nq.add(di.zone, caIp.toStringWithPort());
+        d_nq.add(di.zone, caIp.toStringWithPort(), d_delayNotifications);
       }
       hasQueuedItem = true;
     }

@@ -68,7 +68,7 @@ typedef UniQueue::index<IDTag>::type domains_by_name_t;
 class NotificationQueue
 {
 public:
-  void add(const DNSName &domain, const string &ip)
+  void add(const DNSName &domain, const string &ip, time_t delay = 0)
   {
     const ComboAddress caIp(ip);
 
@@ -77,7 +77,7 @@ public:
     nr.ip       = caIp.toStringWithPort();
     nr.attempts = 0;
     nr.id       = dns_random_uint16();
-    nr.next     = time(0);
+    nr.next     = time(nullptr) + delay;
 
     d_nqueue.push_back(nr);
   }
@@ -195,6 +195,7 @@ private:
   time_t d_tickinterval;
   bool d_secondarieschanged;
   bool d_preventSelfNotification;
+  time_t d_delayNotifications{0};
 
   struct Data
   {

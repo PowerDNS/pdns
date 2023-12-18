@@ -100,6 +100,11 @@ void CommunicatorClass::go()
 
   d_preventSelfNotification = ::arg().mustDo("prevent-self-notification");
 
+  auto delay = ::arg().asNum("delay-notifications");
+  if (delay > 0) {
+    d_delayNotifications = static_cast<time_t>(delay);
+  }
+
   try {
     d_onlyNotify.toMasks(::arg()["only-notify"]);
   }
