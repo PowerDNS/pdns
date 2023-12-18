@@ -2331,6 +2331,7 @@ static void patchZone(UeberBackend& B, const DNSName& zonename, DomainInfo& di, 
 
   di.backend->commitTransaction();
 
+  DNSSECKeeper::clearCaches(zonename);
   purgeAuthCaches(zonename.toString() + "$");
 
   resp->body = "";
@@ -2459,6 +2460,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp) {
     }
   }
 
+  DNSSECKeeper::clearCaches(canon);
   // purge entire zone from cache, not just zone-level records.
   uint64_t count = purgeAuthCaches(canon.toString() + "$");
   resp->setJsonBody(Json::object {
