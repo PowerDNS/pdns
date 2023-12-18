@@ -8,6 +8,7 @@
 &italy.example.com::italy-ns2.example.com.:120
 &usa.example.com::usa-ns1.usa.example.com.:120
 &usa.example.com::usa-ns2.usa.example.com.:120
++\052.mixed-wc.example.com:192.168.1.1:120
 +\052.w5.example.com:1.2.3.5:120
 +bar.svcb.example.com:192.0.2.1:120
 +double.example.com:192.168.5.1:120
@@ -20141,6 +20142,7 @@
 @mail.example.com::smtp1.example.com.:25:120
 @together-too-much.example.com::toomuchinfo-a.example.com.:25:120
 @together-too-much.example.com::toomuchinfo-b.example.com.:25:120
+C\052.mixed-wc.example.com:outpost.example.com.:120
 C\052.w1.example.com:x.y.z.w2.example.com.:120
 C\052.w2.example.com:x.y.z.w3.example.com.:120
 C\052.w3.example.com:x.y.z.w4.example.com.:120
