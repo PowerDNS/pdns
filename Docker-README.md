@@ -57,4 +57,23 @@ There are multiple ways of dealing with these restrictions if you encounter them
     * dnsdist: `setLocal()`
     * Auth & Recursor: `local-address` and/or `local-port`
 
-Note: Docker Engine 20.10.0 (released december 2020) removed the need to set the `NET_BIND_SERVICE` capability when attempting to bind to a privileged port. 
+Note: Docker Engine 20.10.0 (released december 2020) removed the need to set the `NET_BIND_SERVICE` capability when attempting to bind to a privileged port.
+
+## Auth and Supervisord
+
+The auth image uses `tini` as init process to run auth via the startup.py wrapper. However, it also has `supervisord` available for special use cases. Example scenarios for using `supervisord` include:
+
+* Running multiple processes (ie: auth + ixfrdist) within the same container - Generally not advisable, but has benefits in some cases
+* Allowing restarts of processes within a container without having the entire container restart - Primarily has benefits in Kubernetes where you could have a process (ixfrdist for example) restart when a script/agent detects changes in a mounted configmap containing the process' configuration.
+
+To use `supervisord` within Kubernetes, you can configure the container with the following:
+
+```yaml
+command: ["supervisord"]
+args:
+  - "--configuration"
+  - "/path/to/supervisord.conf"
+```
+
+In the above example `/path/to/supervisord.conf` is the path where a configmap containing your supervisord configuration is mounted.
+Further details about `supervisord` and how to configure it can be found here: http://supervisord.org/configuration.html
