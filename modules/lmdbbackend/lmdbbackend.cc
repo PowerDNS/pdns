@@ -48,6 +48,10 @@
 
 #include <boost/iostreams/device/back_inserter.hpp>
 
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 #include <stdio.h>
 #include <unistd.h>
 
@@ -384,6 +388,13 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     mdb_env_close(env);
     throw std::runtime_error("mdb_txn_begin failed");
   }
+
+#ifdef HAVE_SYSTEMD
+  /* A schema migration may take a long time. Extend the startup service timeout to 1 day,
+   * but only if this is beyond the original maximum time of TimeoutStartSec=.
+   */
+  sd_notify(0, "EXTEND_TIMEOUT_USEC=86400000000");
+#endif
 
   std::cerr << "migrating shards" << std::endl;
   for (uint32_t i = 0; i < shards; i++) {
