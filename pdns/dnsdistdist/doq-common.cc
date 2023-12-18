@@ -36,12 +36,12 @@
 namespace dnsdist::doq
 {
 
-static const std::string s_quicRetryTokenKey = newKey(false);
+static const std::string s_quicRetryTokenKey = dnsdist::crypto::authenticated::newKey(false);
 
 PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer)
 {
   try {
-    SodiumNonce nonce;
+    dnsdist::crypto::authenticated::Nonce nonce;
     nonce.init();
 
     const auto addrBytes = peer.toByteString();
@@ -54,7 +54,7 @@ PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer)
     plainTextToken.insert(plainTextToken.end(), addrBytes.begin(), addrBytes.end());
     plainTextToken.insert(plainTextToken.end(), dcid.begin(), dcid.end());
     //	NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    const auto encryptedToken = sodEncryptSym(std::string_view(reinterpret_cast<const char*>(plainTextToken.data()), plainTextToken.size()), s_quicRetryTokenKey, nonce, false);
+    const auto encryptedToken = dnsdist::crypto::authenticated::encryptSym(std::string_view(reinterpret_cast<const char*>(plainTextToken.data()), plainTextToken.size()), s_quicRetryTokenKey, nonce, false);
     // a bit sad, let's see if we can do better later
     auto encryptedTokenPacket = PacketBuffer(encryptedToken.begin(), encryptedToken.end());
     encryptedTokenPacket.insert(encryptedTokenPacket.begin(), nonce.value.begin(), nonce.value.end());
@@ -88,7 +88,7 @@ std::optional<PacketBuffer> getCID()
 std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const ComboAddress& peer)
 {
   try {
-    SodiumNonce nonce;
+    dnsdist::crypto::authenticated::Nonce nonce;
     auto addrBytes = peer.toByteString();
     const uint64_t now = time(nullptr);
     const auto minimumSize = nonce.value.size() + sizeof(now) + addrBytes.size();
@@ -100,7 +100,7 @@ std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const Combo
 
     //	NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto cipher = std::string_view(reinterpret_cast<const char*>(&token.at(nonce.value.size())), token.size() - nonce.value.size());
-    auto plainText = sodDecryptSym(cipher, s_quicRetryTokenKey, nonce, false);
+    auto plainText = dnsdist::crypto::authenticated::decryptSym(cipher, s_quicRetryTokenKey, nonce, false);
 
     if (plainText.size() <= sizeof(now) + addrBytes.size()) {
       return std::nullopt;

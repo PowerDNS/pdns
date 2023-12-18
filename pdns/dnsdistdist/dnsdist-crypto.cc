@@ -22,14 +22,16 @@
 #include <iostream>
 #include <arpa/inet.h>
 
+#include "dnsdist-crypto.hh"
+
 #include "namespaces.hh"
 #include "noinitvector.hh"
 #include "misc.hh"
 #include "base64.hh"
-#include "sodcrypto.hh"
 
+namespace dnsdist::crypto::authenticated
+{
 #ifdef HAVE_LIBSODIUM
-
 string newKey(bool base64Encoded)
 {
   std::string key;
@@ -44,14 +46,14 @@ string newKey(bool base64Encoded)
   return "\"" + Base64Encode(key) + "\"";
 }
 
-bool sodIsValidKey(const std::string& key)
+bool isValidKey(const std::string& key)
 {
   return key.size() == crypto_secretbox_KEYBYTES;
 }
 
-std::string sodEncryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce)
+std::string encryptSym(const std::string_view& msg, const std::string& key, Nonce& nonce, bool incrementNonce)
 {
-  if (!sodIsValidKey(key)) {
+  if (!isValidKey(key)) {
     throw std::runtime_error("Invalid encryption key of size " + std::to_string(key.size()) + " (" + std::to_string(crypto_secretbox_KEYBYTES) + " expected), use setKey() to set a valid key");
   }
 
@@ -73,7 +75,7 @@ std::string sodEncryptSym(const std::string_view& msg, const std::string& key, S
   return ciphertext;
 }
 
-std::string sodDecryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce)
+std::string decryptSym(const std::string_view& msg, const std::string& key, Nonce& nonce, bool incrementNonce)
 {
   std::string decrypted;
 
@@ -81,7 +83,7 @@ std::string sodDecryptSym(const std::string_view& msg, const std::string& key, S
     throw std::runtime_error("Could not decrypt message of size " + std::to_string(msg.length()));
   }
 
-  if (!sodIsValidKey(key)) {
+  if (!isValidKey(key)) {
     throw std::runtime_error("Invalid decryption key of size " + std::to_string(key.size()) + ", use setKey() to set a valid key");
   }
 
@@ -94,7 +96,8 @@ std::string sodDecryptSym(const std::string_view& msg, const std::string& key, S
                                  msg.length(),
                                  nonce.value.data(),
                                  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-                                 reinterpret_cast<const unsigned char*>(key.data())) != 0) {
+                                 reinterpret_cast<const unsigned char*>(key.data()))
+      != 0) {
     throw std::runtime_error("Could not decrypt message, please check that the key configured with setKey() is correct");
   }
 
@@ -105,19 +108,182 @@ std::string sodDecryptSym(const std::string_view& msg, const std::string& key, S
   return decrypted;
 }
 
-void SodiumNonce::init()
+void Nonce::init()
 {
   randombytes_buf(value.data(), value.size());
 }
 
-void SodiumNonce::merge(const SodiumNonce& lower, const SodiumNonce& higher)
+#elif defined(HAVE_LIBCRYPTO)
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+
+static constexpr size_t s_CHACHA20_POLY1305_KEY_SIZE = 32U;
+static constexpr size_t s_POLY1305_BLOCK_SIZE = 16U;
+
+string newKey(bool base64Encoded)
+{
+  std::string key;
+  key.resize(s_CHACHA20_POLY1305_KEY_SIZE);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (RAND_priv_bytes(reinterpret_cast<unsigned char*>(key.data()), key.size()) != 1) {
+    throw std::runtime_error("Could not initialize random number generator for cryptographic functions");
+  }
+  if (!base64Encoded) {
+    return key;
+  }
+  return "\"" + Base64Encode(key) + "\"";
+}
+
+bool isValidKey(const std::string& key)
+{
+  return key.size() == s_CHACHA20_POLY1305_KEY_SIZE;
+}
+
+std::string encryptSym(const std::string_view& msg, const std::string& key, Nonce& nonce, bool incrementNonce)
+{
+  if (!isValidKey(key)) {
+    throw std::runtime_error("Invalid encryption key of size " + std::to_string(key.size()) + " (" + std::to_string(s_CHACHA20_POLY1305_KEY_SIZE) + " expected), use setKey() to set a valid key");
+  }
+
+  // Each thread gets its own cipher context
+  static thread_local auto ctx = std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)>(nullptr, EVP_CIPHER_CTX_free);
+
+  if (!ctx) {
+    ctx = std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)>(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
+    if (!ctx) {
+      throw std::runtime_error("encryptSym: EVP_CIPHER_CTX_new() could not initialize cipher context");
+    }
+
+    if (EVP_EncryptInit_ex(ctx.get(), EVP_chacha20_poly1305(), nullptr, nullptr, nullptr) != 1) {
+      throw std::runtime_error("encryptSym: EVP_EncryptInit_ex() could not initialize encryption operation");
+    }
+  }
+
+  std::string ciphertext;
+  /* plus one so we can access the last byte in EncryptFinal which does nothing for this algo */
+  ciphertext.resize(s_POLY1305_BLOCK_SIZE + msg.length() + 1);
+  int outLength{0};
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (EVP_EncryptInit_ex(ctx.get(), nullptr, nullptr, reinterpret_cast<const unsigned char*>(key.c_str()), nonce.value.data()) != 1) {
+    throw std::runtime_error("encryptSym: EVP_EncryptInit_ex() could not initialize encryption key and IV");
+  }
+
+  if (!msg.empty()) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    if (EVP_EncryptUpdate(ctx.get(),
+                          reinterpret_cast<unsigned char*>(&ciphertext.at(s_POLY1305_BLOCK_SIZE)), &outLength,
+                          reinterpret_cast<const unsigned char*>(msg.data()), msg.length())
+        != 1) {
+      throw std::runtime_error("encryptSym: EVP_EncryptUpdate() could not encrypt message");
+    }
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (EVP_EncryptFinal_ex(ctx.get(), reinterpret_cast<unsigned char*>(&ciphertext.at(s_POLY1305_BLOCK_SIZE + outLength)), &outLength) != 1) {
+    throw std::runtime_error("encryptSym: EVP_EncryptFinal_ex() could finalize message encryption");
+    ;
+  }
+
+  /* Get the tag */
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_AEAD_GET_TAG, s_POLY1305_BLOCK_SIZE, ciphertext.data()) != 1) {
+    throw std::runtime_error("encryptSym: EVP_CIPHER_CTX_ctrl() could not get tag");
+  }
+
+  if (incrementNonce) {
+    nonce.increment();
+  }
+
+  ciphertext.resize(ciphertext.size() - 1);
+  return ciphertext;
+}
+
+std::string decryptSym(const std::string_view& msg, const std::string& key, Nonce& nonce, bool incrementNonce)
+{
+  if (msg.length() < s_POLY1305_BLOCK_SIZE) {
+    throw std::runtime_error("Could not decrypt message of size " + std::to_string(msg.length()));
+  }
+
+  if (!isValidKey(key)) {
+    throw std::runtime_error("Invalid decryption key of size " + std::to_string(key.size()) + ", use setKey() to set a valid key");
+  }
+
+  if (msg.length() == s_POLY1305_BLOCK_SIZE) {
+    if (incrementNonce) {
+      nonce.increment();
+    }
+    return std::string();
+  }
+
+  // Each thread gets its own cipher context
+  static thread_local auto ctx = std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)>(nullptr, EVP_CIPHER_CTX_free);
+  if (!ctx) {
+    ctx = std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)>(EVP_CIPHER_CTX_new(), EVP_CIPHER_CTX_free);
+    if (!ctx) {
+      throw std::runtime_error("decryptSym: EVP_CIPHER_CTX_new() could not initialize cipher context");
+    }
+
+    if (EVP_DecryptInit_ex(ctx.get(), EVP_chacha20_poly1305(), nullptr, nullptr, nullptr) != 1) {
+      throw std::runtime_error("decryptSym: EVP_DecryptInit_ex() could not initialize decryption operation");
+    }
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (EVP_DecryptInit_ex(ctx.get(), nullptr, nullptr, reinterpret_cast<const unsigned char*>(key.c_str()), nonce.value.data()) != 1) {
+    throw std::runtime_error("decryptSym: EVP_DecryptInit_ex() could not initialize decryption key and IV");
+  }
+
+  const auto tag = msg.substr(0, s_POLY1305_BLOCK_SIZE);
+  std::string decrypted;
+  /* plus one so we can access the last byte in DecryptFinal, which does nothing */
+  decrypted.resize(msg.length() - s_POLY1305_BLOCK_SIZE + 1);
+  int outLength{0};
+  if (msg.size() > s_POLY1305_BLOCK_SIZE) {
+    if (!EVP_DecryptUpdate(ctx.get(),
+                           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                           reinterpret_cast<unsigned char*>(decrypted.data()), &outLength,
+                           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+                           reinterpret_cast<const unsigned char*>(&msg.at(s_POLY1305_BLOCK_SIZE)), msg.size() - s_POLY1305_BLOCK_SIZE)) {
+      throw std::runtime_error("Could not decrypt message (update failed), please check that the key configured with setKey() is correct");
+    }
+  }
+
+  /* Set expected tag value. Works in OpenSSL 1.0.1d and later */
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): sorry, OpenSSL's API is terrible
+  if (!EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_AEAD_SET_TAG, s_POLY1305_BLOCK_SIZE, const_cast<char*>(tag.data()))) {
+    throw std::runtime_error("Could not decrypt message (invalid tag), please check that the key configured with setKey() is correct");
+  }
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (!EVP_DecryptFinal_ex(ctx.get(), reinterpret_cast<unsigned char*>(&decrypted.at(outLength)), &outLength)) {
+    throw std::runtime_error("Could not decrypt message (final failed), please check that the key configured with setKey() is correct");
+  }
+
+  if (incrementNonce) {
+    nonce.increment();
+  }
+
+  decrypted.resize(decrypted.size() - 1);
+  return decrypted;
+}
+
+void Nonce::init()
+{
+  if (RAND_priv_bytes(value.data(), value.size()) != 1) {
+    throw std::runtime_error("Could not initialize random number generator for cryptographic functions");
+  }
+}
+#endif
+
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
+void Nonce::merge(const Nonce& lower, const Nonce& higher)
 {
   constexpr size_t halfSize = std::tuple_size<decltype(value)>{} / 2;
   memcpy(value.data(), lower.value.data(), halfSize);
   memcpy(value.data() + halfSize, higher.value.data() + halfSize, halfSize);
 }
 
-void SodiumNonce::increment()
+void Nonce::increment()
 {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   auto* ptr = reinterpret_cast<uint32_t*>(value.data());
@@ -126,23 +292,23 @@ void SodiumNonce::increment()
 }
 
 #else
-void SodiumNonce::init()
+void Nonce::init()
 {
 }
 
-void SodiumNonce::merge(const SodiumNonce& lower, const SodiumNonce& higher)
+void Nonce::merge(const Nonce& lower, const Nonce& higher)
 {
 }
 
-void SodiumNonce::increment()
+void Nonce::increment()
 {
 }
 
-std::string sodEncryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce)
+std::string encryptSym(const std::string_view& msg, const std::string& key, Nonce& nonce, bool incrementNonce)
 {
   return std::string(msg);
 }
-std::string sodDecryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce)
+std::string decryptSym(const std::string_view& msg, const std::string& key, Nonce& nonce, bool incrementNonce)
 {
   return std::string(msg);
 }
@@ -152,12 +318,13 @@ string newKey(bool base64Encoded)
   return "\"plaintext\"";
 }
 
-bool sodIsValidKey(const std::string& key)
+bool isValidKey(const std::string& key)
 {
   return true;
 }
 
 #endif
+}
 
 #include <cinttypes>
 

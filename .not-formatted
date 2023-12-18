@@ -225,8 +225,6 @@
 ./pdns/sillyrecords.cc
 ./pdns/snmp-agent.cc
 ./pdns/snmp-agent.hh
-./pdns/sodcrypto.cc
-./pdns/sodcrypto.hh
 ./pdns/sortlist.cc
 ./pdns/sortlist.hh
 ./pdns/speedtest.cc

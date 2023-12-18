@@ -39,6 +39,7 @@
 #include "dnsdist-carbon.hh"
 #include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-crypto.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-discovery.hh"
 #include "dnsdist-ecs.hh"
@@ -61,7 +62,6 @@
 #include "doh.hh"
 #include "doq-common.hh"
 #include "dolog.hh"
-#include "sodcrypto.hh"
 #include "threadname.hh"
 
 #ifdef HAVE_LIBSSL
@@ -1106,7 +1106,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     g_consoleEnabled = true;
-#ifdef HAVE_LIBSODIUM
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
     if (g_configurationDone && g_consoleKey.empty()) {
       warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
     }
@@ -1136,8 +1136,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("addConsoleACL", [](const std::string& netmask) {
     setLuaSideEffect();
-#ifndef HAVE_LIBSODIUM
-    warnlog("Allowing remote access to the console while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
+    warnlog("Allowing remote access to the console while neither libsodium not libcrypto support has been enabled is not secure, and will result in cleartext communications");
 #endif
 
     g_consoleACL.modify([netmask](NetmaskGroup& nmg) { nmg.addMask(netmask); });
@@ -1146,8 +1146,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setConsoleACL", [](LuaTypeOrArrayOf<std::string> inp) {
     setLuaSideEffect();
 
-#ifndef HAVE_LIBSODIUM
-    warnlog("Allowing remote access to the console while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
+    warnlog("Allowing remote access to the console while neither libsodium nor libcrypto support has not been enabled is not secure, and will result in cleartext communications");
 #endif
 
     NetmaskGroup nmg;
@@ -1164,8 +1164,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("showConsoleACL", []() {
     setLuaNoSideEffect();
 
-#ifndef HAVE_LIBSODIUM
-    warnlog("Allowing remote access to the console while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
+    warnlog("Allowing remote access to the console while neither libsodium nor libcrypto support has not been enabled is not secure, and will result in cleartext communications");
 #endif
 
     auto aclEntries = g_consoleACL.getLocal()->toStringVector();
@@ -1215,15 +1215,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("makeKey", []() {
     setLuaNoSideEffect();
-    g_outputBuffer = "setKey(" + newKey() + ")\n";
+    g_outputBuffer = "setKey(" + dnsdist::crypto::authenticated::newKey() + ")\n";
   });
 
   luaCtx.writeFunction("setKey", [](const std::string& key) {
     if (!g_configurationDone && !g_consoleKey.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
       return; // but later setKeys() trump the -k value again
     }
-#ifndef HAVE_LIBSODIUM
-    warnlog("Calling setKey() while libsodium support has not been enabled is not secure, and will result in cleartext communications");
+#if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
+    warnlog("Calling setKey() while neither libsodium nor libcrypto support has been enabled is not secure, and will result in cleartext communications");
 #endif
 
     setLuaSideEffect();
@@ -1242,7 +1242,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("testCrypto", [](boost::optional<string> optTestMsg) {
     setLuaNoSideEffect();
-#ifdef HAVE_LIBSODIUM
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
     try {
       string testmsg;
 
@@ -1253,17 +1253,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         testmsg = "testStringForCryptoTests";
       }
 
-      SodiumNonce sn, sn2;
+      dnsdist::crypto::authenticated::Nonce sn, sn2;
       sn.init();
       sn2 = sn;
-      string encrypted = sodEncryptSym(testmsg, g_consoleKey, sn);
-      string decrypted = sodDecryptSym(encrypted, g_consoleKey, sn2);
+      string encrypted = dnsdist::crypto::authenticated::encryptSym(testmsg, g_consoleKey, sn);
+      string decrypted = dnsdist::crypto::authenticated::decryptSym(encrypted, g_consoleKey, sn2);
 
       sn.increment();
       sn2.increment();
 
-      encrypted = sodEncryptSym(testmsg, g_consoleKey, sn);
-      decrypted = sodDecryptSym(encrypted, g_consoleKey, sn2);
+      encrypted = dnsdist::crypto::authenticated::encryptSym(testmsg, g_consoleKey, sn);
+      decrypted = dnsdist::crypto::authenticated::decryptSym(encrypted, g_consoleKey, sn2);
 
       if (testmsg == decrypted)
         g_outputBuffer = "Everything is ok!\n";

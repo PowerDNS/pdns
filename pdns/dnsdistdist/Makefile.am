@@ -151,6 +151,7 @@ dnsdist_SOURCES = \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
 	dnsdist-concurrent-connections.hh \
 	dnsdist-console.cc dnsdist-console.hh \
+	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-discovery.cc dnsdist-discovery.hh \
 	dnsdist-dnscrypt.cc \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
@@ -245,7 +246,6 @@ dnsdist_SOURCES = \
 	remote_logger.cc remote_logger.hh \
 	sholder.hh \
 	snmp-agent.cc snmp-agent.hh \
-	sodcrypto.cc sodcrypto.hh \
 	sstuff.hh \
 	stat_t.hh \
 	statnode.cc statnode.hh \
@@ -271,6 +271,7 @@ testrunner_SOURCES = \
 	dnsdist-backoff.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-concurrent-connections.hh \
+	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
 	dnsdist-doh-common.cc dnsdist-doh-common.hh \
 	dnsdist-downstream-connection.hh \
@@ -324,7 +325,6 @@ testrunner_SOURCES = \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc qtype.hh \
 	sholder.hh \
-	sodcrypto.cc \
 	sstuff.hh \
 	stat_t.hh \
 	statnode.cc statnode.hh \

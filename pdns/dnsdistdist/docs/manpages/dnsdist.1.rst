@@ -58,7 +58,7 @@ Options
                                        that is used on the server (set with **setKey()**). Note that this
                                        will leak the key into your shell's history and into the systems
                                        running process list. Only available when dnsdist is compiled with
-                                       libsodium support.
+                                       libsodium or libcrypto support.
 -e, --execute <command>                Connect to dnsdist and execute *command*.
 -h, --help                             Display a helpful message and exit.
 -l, --local <address>                  Bind to *address*, Supply as many addresses (using multiple

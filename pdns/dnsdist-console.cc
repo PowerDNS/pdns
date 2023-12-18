@@ -43,7 +43,7 @@
 #include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
-#include "sodcrypto.hh"
+#include "dnsdist-crypto.hh"
 #include "threadname.hh"
 
 GlobalStateHolder<NetmaskGroup> g_consoleACL;
@@ -171,9 +171,9 @@ static bool putMsgLen32(int fd, uint32_t len)
   }
 }
 
-static ConsoleCommandResult sendMessageToServer(int fd, const std::string& line, SodiumNonce& readingNonce, SodiumNonce& writingNonce, const bool outputEmptyLine)
+static ConsoleCommandResult sendMessageToServer(int fd, const std::string& line, dnsdist::crypto::authenticated::Nonce& readingNonce, dnsdist::crypto::authenticated::Nonce& writingNonce, const bool outputEmptyLine)
 {
-  string msg = sodEncryptSym(line, g_consoleKey, writingNonce);
+  string msg = dnsdist::crypto::authenticated::encryptSym(line, g_consoleKey, writingNonce);
   const auto msgLen = msg.length();
   if (msgLen > std::numeric_limits<uint32_t>::max()) {
     cerr << "Encrypted message is too long to be sent to the server, "<< std::to_string(msgLen) << " > " << std::numeric_limits<uint32_t>::max() << endl;
@@ -208,7 +208,7 @@ static ConsoleCommandResult sendMessageToServer(int fd, const std::string& line,
   msg.clear();
   msg.resize(len);
   readn2(fd, msg.data(), len);
-  msg = sodDecryptSym(msg, g_consoleKey, readingNonce);
+  msg = dnsdist::crypto::authenticated::decryptSym(msg, g_consoleKey, readingNonce);
   cout << msg;
   cout.flush();
 
@@ -217,7 +217,7 @@ static ConsoleCommandResult sendMessageToServer(int fd, const std::string& line,
 
 void doClient(ComboAddress server, const std::string& command)
 {
-  if (!sodIsValidKey(g_consoleKey)) {
+  if (!dnsdist::crypto::authenticated::isValidKey(g_consoleKey)) {
     cerr << "The currently configured console key is not valid, please configure a valid key using the setKey() directive" << endl;
     return;
   }
@@ -233,7 +233,7 @@ void doClient(ComboAddress server, const std::string& command)
   }
   SConnect(fd.getHandle(), server);
   setTCPNoDelay(fd.getHandle());
-  SodiumNonce theirs, ours, readingNonce, writingNonce;
+  dnsdist::crypto::authenticated::Nonce theirs, ours, readingNonce, writingNonce;
   ours.init();
 
   writen2(fd.getHandle(), ours.value.data(), ours.value.size());
@@ -875,7 +875,7 @@ static void controlClientThread(ConsoleConnection&& conn)
 
     setTCPNoDelay(conn.getFD());
 
-    SodiumNonce theirs, ours, readingNonce, writingNonce;
+    dnsdist::crypto::authenticated::Nonce theirs, ours, readingNonce, writingNonce;
     ours.init();
     readn2(conn.getFD(), theirs.value.data(), theirs.value.size());
     writen2(conn.getFD(), ours.value.data(), ours.value.size());
@@ -899,7 +899,7 @@ static void controlClientThread(ConsoleConnection&& conn)
       line.resize(len);
       readn2(conn.getFD(), line.data(), len);
 
-      line = sodDecryptSym(line, g_consoleKey, readingNonce);
+      line = dnsdist::crypto::authenticated::decryptSym(line, g_consoleKey, readingNonce);
 
       string response;
       try {
@@ -990,7 +990,7 @@ static void controlClientThread(ConsoleConnection&& conn)
       catch (const LuaContext::SyntaxErrorException& e) {
         response = "Error: " + string(e.what()) + ": ";
       }
-      response = sodEncryptSym(response, g_consoleKey, writingNonce);
+      response = dnsdist::crypto::authenticated::encryptSym(response, g_consoleKey, writingNonce);
       putMsgLen32(conn.getFD(), response.length());
       writen2(conn.getFD(), response.c_str(), response.length());
     }
@@ -1017,7 +1017,7 @@ void controlThread(int fd, ComboAddress local)
     while ((sock = SAccept(acceptFD.getHandle(), client)) >= 0) {
 
       FDWrapper socket(sock);
-      if (!sodIsValidKey(g_consoleKey)) {
+      if (!dnsdist::crypto::authenticated::isValidKey(g_consoleKey)) {
         vinfolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort());
         continue;
       }
