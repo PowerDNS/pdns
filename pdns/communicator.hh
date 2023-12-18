@@ -65,24 +65,23 @@ struct IDTag
 {
 };
 
-typedef multi_index_container<
+using UniQueue = multi_index_container<
   SuckRequest,
   indexed_by<
     ordered_unique<member<SuckRequest, std::pair<SuckRequest::RequestPriority, uint64_t>, &SuckRequest::priorityAndOrder>>,
-    ordered_unique<tag<IDTag>, identity<SuckRequest>>>>
-  UniQueue;
-typedef UniQueue::index<IDTag>::type domains_by_name_t;
+    ordered_unique<tag<IDTag>, identity<SuckRequest>>>>;
+using domains_by_name_t = UniQueue::index<IDTag>::type;
 
 class NotificationQueue
 {
 public:
-  void add(const DNSName& domain, const string& ip, time_t delay = 0)
+  void add(const DNSName& domain, const string& ipstring, time_t delay = 0)
   {
-    const ComboAddress caIp(ip);
+    const ComboAddress ipaddress(ipstring);
 
     NotificationRequest nr;
     nr.domain = domain;
-    nr.ip = caIp.toStringWithPort();
+    nr.ip = ipaddress.toStringWithPort();
     nr.attempts = 0;
     nr.id = dns_random_uint16();
     nr.next = time(nullptr) + delay;
@@ -105,10 +104,10 @@ public:
   bool getOne(DNSName& domain, string& ip, uint16_t* id, bool& purged)
   {
     for (d_nqueue_t::iterator i = d_nqueue.begin(); i != d_nqueue.end(); ++i)
-      if (i->next <= time(0)) {
+      if (i->next <= time(nullptr)) {
         i->attempts++;
         purged = false;
-        i->next = time(0) + 1 + (1 << i->attempts);
+        i->next = time(nullptr) + 1 + (1 << i->attempts);
         domain = i->domain;
         ip = i->ip;
         *id = i->id;
@@ -127,7 +126,7 @@ public:
     time_t early = std::numeric_limits<time_t>::max() - 1;
     for (d_nqueue_t::const_iterator i = d_nqueue.begin(); i != d_nqueue.end(); ++i)
       early = min(early, i->next);
-    return early - time(0);
+    return early - time(nullptr);
   }
 
   void dump();
@@ -142,7 +141,7 @@ private:
     uint16_t id;
   };
 
-  typedef std::list<NotificationRequest> d_nqueue_t;
+  using d_nqueue_t = std::list<NotificationRequest>;
   d_nqueue_t d_nqueue;
 };
 
@@ -179,7 +178,7 @@ public:
   size_t getSuckRequestsWaiting();
 
 private:
-  void loadArgsIntoSet(const char* listname, set<string>& listset);
+  static void loadArgsIntoSet(const char* listname, set<string>& listset);
   void makeNotifySockets();
   void queueNotifyDomain(const DomainInfo& di, UeberBackend* B);
   int d_nsock4, d_nsock6;

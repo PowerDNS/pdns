@@ -93,7 +93,7 @@ void CommunicatorClass::go()
   std::thread mainT([this]() { mainloop(); });
   mainT.detach();
 
-  for (int n = 0; n < ::arg().asNum("retrieval-threads", 1); ++n) {
+  for (int nthreads = 0; nthreads < ::arg().asNum("retrieval-threads", 1); ++nthreads) {
     std::thread retrieve([this]() { retrievalLoopThread(); });
     retrieve.detach();
   }
@@ -143,7 +143,7 @@ void CommunicatorClass::mainloop()
       while (time(nullptr) < next) {
         rc = d_any_sem.tryWait();
 
-        if (rc) {
+        if (rc != 0) {
           bool extraSecondaryRefresh = false;
           Utility::sleep(1);
           {
