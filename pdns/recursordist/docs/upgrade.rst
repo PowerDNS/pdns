@@ -39,6 +39,7 @@ Changed settings
 - The :ref:`setting-loglevel` can now be set to a level below 3 (error).
 - The :ref:`setting-extended-resolution-errors` now defaults to enabled.
 - The :ref:`setting-nsec3-max-iterations` now defaults to 50.
+- Disabling :ref:`setting-structured-logging` has been deprecated and will be removed in a future release.
 
 4.8.0 to 4.9.0
 --------------
