@@ -96,15 +96,15 @@ endif
 
 # use a $(wildcard) wrapper here to allow build to proceed if output
 # file is present but input file is not (e.g. in a dist tarball)
-api-swagger.yaml: $(wildcard ../docs/http-api/swagger/authoritative-api-swagger.yaml)
+api-swagger.yaml: $(wildcard ${srcdir}/../docs/http-api/swagger/authoritative-api-swagger.yaml)
 	cp $< $@
 
 if HAVE_VENV
 api-swagger.json: api-swagger.yaml requirements.txt
 	$(PYTHON) -m venv .venv
 	.venv/bin/pip install -U pip setuptools setuptools-git wheel
-	.venv/bin/pip install -r requirements.txt
-	.venv/bin/python convert-yaml-to-json.py $< $@
+	.venv/bin/pip install -r ${srcdir}/requirements.txt
+	.venv/bin/python ${srcdir}/convert-yaml-to-json.py $< $@
 else # if HAVE_VENV
 if !HAVE_API_SWAGGER_JSON
 api-swagger.json:
@@ -114,7 +114,8 @@ endif
 endif
 
 apidocfiles.h: api-swagger.yaml api-swagger.json
-	./incfiles $^ > $@
+	$(AM_V_GEN)$(srcdir)/incfiles $^ > $@.tmp
+	@mv $@.tmp $@
 
 sysconf_DATA = pdns.conf-dist
 
