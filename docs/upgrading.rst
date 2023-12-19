@@ -153,6 +153,7 @@ Changed defaults
 - The default value of the :ref:`setting-max-nsec3-iterations` option has been changed from ``500`` to ``100``.
 - The default value of the ``timeout`` parameter for :func:`ifportup` and :func:`ifurlup` functions has been changed from ``1`` to ``2`` seconds.
 - The default value of the new :ref:`setting-zone-cache-refresh-interval` option is ``300``.
+- The default mode for DNSSEC  from :ref:`process-no-validate` to :ref:`process`
 
 Zone cache
 ~~~~~~~~~~
