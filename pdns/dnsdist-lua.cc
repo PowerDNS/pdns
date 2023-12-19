@@ -1113,16 +1113,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
 
     try {
-      int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
-      SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
-      SBind(sock, local);
-      SListen(sock, 5);
+      auto sock = std::make_shared<Socket>(local.sin4.sin_family, SOCK_STREAM, 0);
+      sock->bind(local, true);
+      sock->listen(5);
       auto launch = [sock, local]() {
-        thread t(controlThread, sock, local);
-        t.detach();
+        std::thread consoleControlThread(controlThread, sock, local);
+        consoleControlThread.detach();
       };
       if (g_launchWork) {
-        g_launchWork->push_back(launch);
+        g_launchWork->emplace_back(std::move(launch));
       }
       else {
         launch();
@@ -1253,22 +1252,25 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         testmsg = "testStringForCryptoTests";
       }
 
-      dnsdist::crypto::authenticated::Nonce sn, sn2;
-      sn.init();
-      sn2 = sn;
-      string encrypted = dnsdist::crypto::authenticated::encryptSym(testmsg, g_consoleKey, sn);
-      string decrypted = dnsdist::crypto::authenticated::decryptSym(encrypted, g_consoleKey, sn2);
+      dnsdist::crypto::authenticated::Nonce nonce1;
+      dnsdist::crypto::authenticated::Nonce nonce2;
+      nonce1.init();
+      nonce2 = nonce1;
+      string encrypted = dnsdist::crypto::authenticated::encryptSym(testmsg, g_consoleKey, nonce1);
+      string decrypted = dnsdist::crypto::authenticated::decryptSym(encrypted, g_consoleKey, nonce2);
 
-      sn.increment();
-      sn2.increment();
+      nonce1.increment();
+      nonce2.increment();
 
-      encrypted = dnsdist::crypto::authenticated::encryptSym(testmsg, g_consoleKey, sn);
-      decrypted = dnsdist::crypto::authenticated::decryptSym(encrypted, g_consoleKey, sn2);
+      encrypted = dnsdist::crypto::authenticated::encryptSym(testmsg, g_consoleKey, nonce1);
+      decrypted = dnsdist::crypto::authenticated::decryptSym(encrypted, g_consoleKey, nonce2);
 
-      if (testmsg == decrypted)
+      if (testmsg == decrypted) {
         g_outputBuffer = "Everything is ok!\n";
-      else
+      }
+      else {
         g_outputBuffer = "Crypto failed.. (the decoded value does not match the cleartext one)\n";
+      }
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Crypto failed: " + std::string(e.what()) + "\n";
