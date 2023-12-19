@@ -22,6 +22,7 @@
 #pragma once
 
 #include "config.h"
+#include "sstuff.hh"
 
 #ifndef DISABLE_COMPLETION
 struct ConsoleKeyword {
