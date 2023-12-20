@@ -34,7 +34,12 @@ ns2.example.org.             3600 IN A    {prefix}.11
 
 noerror.example.org.         3600 IN ALIAS noerror.example.com.
 nxd.example.org.             3600 IN ALIAS nxd.example.com.
+nodata.example.org.          3600 IN ALIAS nodata.example.com.
 servfail.example.org.        3600 IN ALIAS servfail.example.com
+
+nodataupstream.example.org.  3600 IN TXT   "test"
+nodataupstream.example.org.  3600 IN ALIAS nodata.example.com.
+
         """,
     }
 
@@ -81,11 +86,40 @@ servfail.example.org.        3600 IN ALIAS servfail.example.com
         self.assertAnyRRsetInAnswer(res, expected_a)
         self.assertAnyRRsetInAnswer(res, expected_aaaa)
 
-        # NODATA
+        # NODATA based on unhandled type for ALIAS
         query = dns.message.make_query('noerror.example.org', 'MX')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 0)
+        self.assertEqual(len(res.authority), 1)
+
+    def testNoData(self):
+        expected_soa = dns.rrset.from_text('example.org.',
+                                                0, dns.rdataclass.IN, 'SOA',
+                                                self._SOA)
+
+        # NODATA based on upstream NODATA response
+        query = dns.message.make_query('nodata.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 0)
+        self.assertEqual(len(res.authority), 1)
+        self.assertRRsetInAuthority(res, expected_soa)
+
+        # NODATA based on upstream NODATA and no matching records locally
+        query = dns.message.make_query('nodataupstream.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 0)
+        self.assertEqual(len(res.authority), 1)
+        self.assertRRsetInAuthority(res, expected_soa)
+
+        # NOERROR based on upstream NODATA and matching records locally
+        query = dns.message.make_query('nodataupstream.example.org', 'ANY')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 1)
+        self.assertEqual(len(res.authority), 0)
 
     def testNxDomain(self):
         query = dns.message.make_query('nxd.example.org', 'A')
@@ -139,11 +173,40 @@ servfail.example.org.        3600 IN ALIAS servfail.example.com
         self.assertAnyRRsetInAnswer(res, expected_a)
         self.assertAnyRRsetInAnswer(res, expected_aaaa)
 
-        # NODATA
+        # NODATA based on unhandled type for ALIAS
         query = dns.message.make_query('noerror.example.org', 'MX')
         res = self.sendTCPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 0)
+        self.assertEqual(len(res.authority), 1)
+
+    def testNoDataTCP(self):
+        expected_soa = dns.rrset.from_text('example.org.',
+                                                0, dns.rdataclass.IN, 'SOA',
+                                                self._SOA)
+
+        # NODATA based on upstream NODATA response
+        query = dns.message.make_query('nodata.example.org', 'A')
+        res = self.sendTCPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 0)
+        self.assertEqual(len(res.authority), 1)
+        self.assertRRsetInAuthority(res, expected_soa)
+
+        # NODATA based on upstream NODATA and no matching records locally
+        query = dns.message.make_query('nodataupstream.example.org', 'A')
+        res = self.sendTCPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 0)
+        self.assertEqual(len(res.authority), 1)
+        self.assertRRsetInAuthority(res, expected_soa)
+
+        # NOERROR based on upstream NODATA and matching records locally
+        query = dns.message.make_query('nodataupstream.example.org', 'ANY')
+        res = self.sendTCPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(len(res.answer), 1)
+        self.assertEqual(len(res.authority), 0)
 
     def testNxDomainTCP(self):
         query = dns.message.make_query('nxd.example.org', 'A')
@@ -195,6 +258,18 @@ class AliasUDPResponder(DatagramProtocol):
                     dns.rrset.from_text(request.question[0].name,
                                         0, dns.rdataclass.IN, 'AAAA',
                                         '2001:DB8::1'))
+
+        if request.question[0].name == dns.name.from_text(
+                'nodata.example.com.'):
+            response.set_rcode(dns.rcode.NOERROR)
+            if request.question[0].rdtype in [dns.rdatatype.A,
+                                              dns.rdatatype.AAAA,
+                                              dns.rdatatype.ANY]:
+                response.authority.append(
+                    dns.rrset.from_text('example.com.',
+                                        0, dns.rdataclass.IN, 'SOA',
+                                        'ns1.example.com. hostmaster.example.com. 2018062101 1 2 3 4'))
+
         if request.question[0].name == dns.name.from_text(
                 'nxd.example.com.'):
             response.set_rcode(dns.rcode.NXDOMAIN)

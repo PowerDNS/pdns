@@ -52,7 +52,7 @@ public:
   DNSProxy(const string &ip); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
-  bool completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask);
+  bool completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask, const DNSZoneRecord& soa);
 
   void mainloop();                  //!< this is the main loop that receives reply packets and sends them out again
 private:
@@ -68,6 +68,7 @@ private:
     uint16_t id;
     uint16_t qtype;
     int outsock;
+    DNSZoneRecord soa;
   };
 
   typedef map<int,ConntrackEntry> map_t;

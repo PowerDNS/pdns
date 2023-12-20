@@ -89,7 +89,7 @@ void DNSProxy::go()
 }
 
 //! look up qname target with r->qtype, plonk it in the answer section of 'r' with name aname
-bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask)
+bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask, const DNSZoneRecord& soa)
 {
   if(r->d_tcp) {
     vector<DNSZoneRecord> ips;
@@ -112,10 +112,17 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
       r->clearRecords();
       r->setRcode(RCode::ServFail);
     } else {
-      for (auto &ip : ips)
-      {
-        ip.dr.d_name = aname;
-        r->addRecord(std::move(ip));
+
+      // Check if NODATA
+      if (ips.size() == 0 && r->getAnswerRecords().size() == 0) {
+        r->clearRecords();
+        r->addRecord(DNSZoneRecord(soa));
+      } else {
+        for (auto &ip : ips)
+        {
+          ip.dr.d_name = aname;
+          r->addRecord(std::move(ip));
+        }
       }
     }
 
@@ -144,6 +151,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
     ce.complete = std::move(r);
     ce.aname=aname;
     ce.anameScopeMask = scopeMask;
+    ce.soa = soa;
     (*conntrack)[id]=std::move(ce);
   }
 
@@ -254,7 +262,12 @@ void DNSProxy::mainloop()
         if (mdp.d_header.rcode == RCode::NoError) {
           for (auto& answer : mdp.d_answers) {
             //	    cerr<<"comp: "<<(int)j->first.d_place-1<<" "<<j->first.d_label<<" " << DNSRecordContent::NumberToType(j->first.d_type)<<" "<<j->first.d_content->getZoneRepresentation()<<endl;
-            if(answer.first.d_place == DNSResourceRecord::ANSWER || (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA)) {
+            if (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA && i->second.complete->getAnswerRecords().size() == 0) {
+              i->second.complete->clearRecords();
+              i->second.complete->addRecord(std::move(i->second.soa));
+              break;
+            }
+            if(answer.first.d_place == DNSResourceRecord::ANSWER) {
 
               if(answer.first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (answer.first.d_type == QType::A || answer.first.d_type == QType::AAAA))) {
                 DNSZoneRecord dzr;

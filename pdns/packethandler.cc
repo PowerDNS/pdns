@@ -1669,7 +1669,6 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
         rrset.push_back(rr);
     }
 
-
     DLOG(g_log<<"After first ANY query for '"<<target<<"', id="<<d_sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<haveAlias<<"'"<<endl);
     if(p.qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected) {
       DLOG(g_log<<"Q for DS of a name for which we do have NS, but for which we don't have DS; need to provide an AUTH answer that shows we don't"<<endl);
@@ -1679,7 +1678,20 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     if(!haveAlias.empty() && (!weDone || p.qtype.getCode() == QType::ANY)) {
       DLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
-      DP->completePacket(r, haveAlias, target, aliasScopeMask);
+
+      // If looking up ANY, make sure we have any already found records in place before processing ALIAS
+      if (p.qtype.getCode() == QType::ANY) {
+        for (auto& loopRR: rrset) {
+          if (loopRR.dr.d_type != QType::ALIAS && loopRR.dr.d_type != QType::LUA) {
+            r->addRecord(DNSZoneRecord(loopRR));
+          }
+        }
+      }
+
+      // Pass along SOA that may be needed in case of NODATA
+      auto soa=makeEditedDNSZRFromSOAData(d_dk, d_sd, DNSResourceRecord::AUTHORITY);
+      DP->completePacket(r, haveAlias, target, aliasScopeMask, soa);
+
       return nullptr;
     }
 
