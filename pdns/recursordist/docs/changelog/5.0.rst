@@ -4,6 +4,24 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.0.0-rc2
+  :released: 20th of December 2023
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13646
+    :tickets: 13588, 13612
+
+    Fix handling of RUNTIME_DIRECTORY and NOD dirs.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13645
+    :tickets: 13567
+
+    Warn that disabling structured logging is now deprecated.
+
+.. changelog::
   :version: 5.0.0-rc1
   :released: 6th of December 2023
 
