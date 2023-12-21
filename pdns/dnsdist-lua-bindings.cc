@@ -50,7 +50,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     });
 
   /* Exceptions */
-  luaCtx.registerFunction<string(std::exception_ptr::*)()const>("__tostring", [](const std::exception_ptr& eptr) {
+  luaCtx.registerFunction<string(std::exception_ptr::*)()const>("__tostring", [](const std::exception_ptr& eptr) -> std::string {
       try {
         if (eptr) {
           std::rethrow_exception(eptr);
@@ -107,50 +107,50 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
 
 #ifndef DISABLE_DOWNSTREAM_BINDINGS
   /* DownstreamState */
-  luaCtx.registerFunction<void(DownstreamState::*)(int)>("setQPS", [](DownstreamState& s, int lim) { s.qps = lim ? QPSLimiter(lim, lim) : QPSLimiter(); });
-  luaCtx.registerFunction<void(std::shared_ptr<DownstreamState>::*)(string)>("addPool", [](std::shared_ptr<DownstreamState> s, string pool) {
+  luaCtx.registerFunction<void(DownstreamState::*)(int)>("setQPS", [](DownstreamState& state, int lim) { state.qps = lim > 0 ? QPSLimiter(lim, lim) : QPSLimiter(); });
+  luaCtx.registerFunction<void(std::shared_ptr<DownstreamState>::*)(string)>("addPool", [](const std::shared_ptr<DownstreamState>& state, const string& pool) {
       auto localPools = g_pools.getCopy();
-      addServerToPool(localPools, pool, s);
+      addServerToPool(localPools, pool, state);
       g_pools.setState(localPools);
-      s->d_config.pools.insert(pool);
+      state->d_config.pools.insert(pool);
     });
-  luaCtx.registerFunction<void(std::shared_ptr<DownstreamState>::*)(string)>("rmPool", [](std::shared_ptr<DownstreamState> s, string pool) {
+  luaCtx.registerFunction<void(std::shared_ptr<DownstreamState>::*)(string)>("rmPool", [](const std::shared_ptr<DownstreamState>& state, const string& pool) {
       auto localPools = g_pools.getCopy();
-      removeServerFromPool(localPools, pool, s);
+      removeServerFromPool(localPools, pool, state);
       g_pools.setState(localPools);
-      s->d_config.pools.erase(pool);
+      state->d_config.pools.erase(pool);
     });
-  luaCtx.registerFunction<uint64_t(DownstreamState::*)()const>("getOutstanding", [](const DownstreamState& s) { return s.outstanding.load(); });
-  luaCtx.registerFunction<uint64_t(DownstreamState::*)()const>("getDrops", [](const DownstreamState& s) { return s.reuseds.load(); });
-  luaCtx.registerFunction<double(DownstreamState::*)()const>("getLatency", [](const DownstreamState& s) { return s.getRelevantLatencyUsec(); });
+  luaCtx.registerFunction<uint64_t(DownstreamState::*)()const>("getOutstanding", [](const DownstreamState& state) { return state.outstanding.load(); });
+  luaCtx.registerFunction<uint64_t(DownstreamState::*)()const>("getDrops", [](const DownstreamState& state) { return state.reuseds.load(); });
+  luaCtx.registerFunction<double(DownstreamState::*)()const>("getLatency", [](const DownstreamState& state) { return state.getRelevantLatencyUsec(); });
   luaCtx.registerFunction("isUp", &DownstreamState::isUp);
   luaCtx.registerFunction("setDown", &DownstreamState::setDown);
   luaCtx.registerFunction("setUp", &DownstreamState::setUp);
-  luaCtx.registerFunction<void(DownstreamState::*)(boost::optional<bool> newStatus)>("setAuto", [](DownstreamState& s, boost::optional<bool> newStatus) {
+  luaCtx.registerFunction<void(DownstreamState::*)(boost::optional<bool> newStatus)>("setAuto", [](DownstreamState& state, boost::optional<bool> newStatus) {
       if (newStatus) {
-        s.setUpStatus(*newStatus);
+        state.setUpStatus(*newStatus);
       }
-      s.setAuto();
+      state.setAuto();
     });
-  luaCtx.registerFunction<void(DownstreamState::*)(boost::optional<bool> newStatus)>("setLazyAuto", [](DownstreamState& s, boost::optional<bool> newStatus) {
+  luaCtx.registerFunction<void(DownstreamState::*)(boost::optional<bool> newStatus)>("setLazyAuto", [](DownstreamState& state, boost::optional<bool> newStatus) {
       if (newStatus) {
-        s.setUpStatus(*newStatus);
+        state.setUpStatus(*newStatus);
       }
-      s.setLazyAuto();
+      state.setLazyAuto();
     });
-  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getName", [](const DownstreamState& s) { return s.getName(); });
-  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getNameWithAddr", [](const DownstreamState& s) { return s.getNameWithAddr(); });
+  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getName", [](const DownstreamState& state) -> const std::string& { return state.getName(); });
+  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getNameWithAddr", [](const DownstreamState& state) -> const std::string& { return state.getNameWithAddr(); });
   luaCtx.registerMember("upStatus", &DownstreamState::upStatus);
   luaCtx.registerMember<int (DownstreamState::*)>("weight",
-    [](const DownstreamState& s) -> int {return s.d_config.d_weight;},
-    [](DownstreamState& s, int newWeight) { s.setWeight(newWeight); }
+    [](const DownstreamState& state) -> int {return state.d_config.d_weight;},
+    [](DownstreamState& state, int newWeight) { state.setWeight(newWeight); }
   );
   luaCtx.registerMember<int (DownstreamState::*)>("order",
-    [](const DownstreamState& s) -> int {return s.d_config.order; },
-    [](DownstreamState& s, int newOrder) { s.d_config.order = newOrder; }
+    [](const DownstreamState& state) -> int {return state.d_config.order; },
+    [](DownstreamState& state, int newOrder) { state.d_config.order = newOrder; }
   );
   luaCtx.registerMember<const std::string(DownstreamState::*)>("name", [](const DownstreamState& backend) -> const std::string { return backend.getName(); }, [](DownstreamState& backend, const std::string& newName) { backend.setName(newName); });
-  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getID", [](const DownstreamState& s) { return boost::uuids::to_string(*s.d_config.id); });
+  luaCtx.registerFunction<std::string(DownstreamState::*)()const>("getID", [](const DownstreamState& state) { return boost::uuids::to_string(*state.d_config.id); });
 #endif /* DISABLE_DOWNSTREAM_BINDINGS */
 
 #ifndef DISABLE_DNSHEADER_BINDINGS

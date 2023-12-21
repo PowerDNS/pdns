@@ -984,7 +984,7 @@ void IncomingTCPConnectionState::handleExceptionDuringIO(const std::exception& e
   if (d_state == State::idle || d_state == State::waitingForQuery) {
     /* no need to increase any counters in that case, the client is simply done with us */
   }
-  else if (d_state == State::doingHandshake || d_state != State::readingProxyProtocolHeader || d_state == State::waitingForQuery || d_state == State::readingQuerySize || d_state == State::readingQuery) {
+  else if (d_state == State::doingHandshake || d_state == State::readingProxyProtocolHeader || d_state == State::waitingForQuery || d_state == State::readingQuerySize || d_state == State::readingQuery) {
     ++d_ci.cs->tcpDiedReadingQuery;
   }
   else if (d_state == State::sendingResponse) {
