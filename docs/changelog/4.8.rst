@@ -2,6 +2,32 @@ Changelogs for 4.8.x
 ====================
 
 .. changelog::
+  :version: 4.8.4
+  :released: 21st of December 2023
+
+  This is release 4.8.4 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.8.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13626
+
+    extend the systemd startup timeout during lmdb schema migrations
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13625
+
+    Add supervisor to Auth container image
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13624
+
+    ixfrdist: Fix the validation of 'max-soa-refresh'
+
+.. changelog::
   :version: 4.8.3
   :released: 5th of October 2023
 
