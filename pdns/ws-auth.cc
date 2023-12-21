@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "dnsbackend.hh"
+#include "webserver.hh"
 #include <array>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -993,23 +995,6 @@ static bool isValidMetadataKind(const string& kind, bool readonly)
   return found;
 }
 
-// this is easier as macro since we need UeberBackend instance in most places
-// NOLINTBEGIN(cppcoreguidelines-macro-usage, readability-identifier-length)
-#define zoneFromId(req)                                                                    \
-  DNSName zonename = apiZoneIdToName((req)->parameters["id"]);                             \
-  UeberBackend B;                                                                          \
-  DNSSECKeeper dk(&B);                                                                     \
-  DomainInfo di;                                                                           \
-  try {                                                                                    \
-    if (!B.getDomainInfo(zonename, di)) {                                                  \
-      throw HttpNotFoundException();                                                       \
-    }                                                                                      \
-  }                                                                                        \
-  catch (const PDNSException& e) {                                                         \
-    throw HttpInternalServerErrorException("Could not retrieve Domain Info: " + e.reason); \
-  }
-// NOLINTEND(cppcoreguidelines-macro-usage, readability-identifier-length)
-
 /* Return OpenAPI document describing the supported API.
  */
 #include "apidocfiles.h"
@@ -1027,14 +1012,37 @@ void apiDocs(HttpRequest* req, HttpResponse* resp)
   }
 }
 
+class ZoneData
+{
+public:
+  ZoneData(HttpRequest* req) :
+    zoneName(apiZoneIdToName((req)->parameters["id"])),
+    dnssecKeeper(DNSSECKeeper{&backend})
+  {
+    try {
+      if (!backend.getDomainInfo(zoneName, domainInfo)) {
+        throw HttpNotFoundException();
+      }
+    }
+    catch (const PDNSException& e) {
+      throw HttpInternalServerErrorException("Could not retrieve Domain Info: " + e.reason);
+    }
+  }
+
+  DNSName zoneName;
+  UeberBackend backend{};
+  DNSSECKeeper dnssecKeeper;
+  DomainInfo domainInfo{};
+};
+
 static void apiZoneMetadataGET(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
   map<string, vector<string>> metas;
   Json::array document;
 
-  if (!B.getAllDomainMetadata(zonename, metas)) {
+  if (!zoneData.backend.getAllDomainMetadata(zoneData.zoneName, metas)) {
     throw HttpNotFoundException();
   }
 
@@ -1055,7 +1063,7 @@ static void apiZoneMetadataGET(HttpRequest* req, HttpResponse* resp)
 
 static void apiZoneMetadataPOST(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
   const auto& document = req->json();
   string kind;
@@ -1074,8 +1082,8 @@ static void apiZoneMetadataPOST(HttpRequest* req, HttpResponse* resp)
 
   vector<string> vecMetadata;
 
-  if (!B.getDomainMetadata(zonename, kind, vecMetadata)) {
-    throw ApiException("Could not retrieve metadata entries for domain '" + zonename.toString() + "'");
+  if (!zoneData.backend.getDomainMetadata(zoneData.zoneName, kind, vecMetadata)) {
+    throw ApiException("Could not retrieve metadata entries for domain '" + zoneData.zoneName.toString() + "'");
   }
 
   const auto& metadata = document["metadata"];
@@ -1095,11 +1103,11 @@ static void apiZoneMetadataPOST(HttpRequest* req, HttpResponse* resp)
     }
   }
 
-  if (!B.setDomainMetadata(zonename, kind, vecMetadata)) {
-    throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
+  if (!zoneData.backend.setDomainMetadata(zoneData.zoneName, kind, vecMetadata)) {
+    throw ApiException("Could not update metadata entries for domain '" + zoneData.zoneName.toString() + "'");
   }
 
-  DNSSECKeeper::clearMetaCache(zonename);
+  DNSSECKeeper::clearMetaCache(zoneData.zoneName);
 
   Json::array respMetadata;
   for (const string& value : vecMetadata) {
@@ -1117,7 +1125,7 @@ static void apiZoneMetadataPOST(HttpRequest* req, HttpResponse* resp)
 
 static void apiZoneMetadataKindGET(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
   string kind = req->parameters["kind"];
 
@@ -1125,7 +1133,7 @@ static void apiZoneMetadataKindGET(HttpRequest* req, HttpResponse* resp)
   Json::object document;
   Json::array entries;
 
-  if (!B.getDomainMetadata(zonename, kind, metadata)) {
+  if (!zoneData.backend.getDomainMetadata(zoneData.zoneName, kind, metadata)) {
     throw HttpNotFoundException();
   }
   if (!isValidMetadataKind(kind, true)) {
@@ -1145,7 +1153,7 @@ static void apiZoneMetadataKindGET(HttpRequest* req, HttpResponse* resp)
 
 static void apiZoneMetadataKindPUT(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
   string kind = req->parameters["kind"];
 
@@ -1167,11 +1175,11 @@ static void apiZoneMetadataKindPUT(HttpRequest* req, HttpResponse* resp)
     vecMetadata.push_back(value.string_value());
   }
 
-  if (!B.setDomainMetadata(zonename, kind, vecMetadata)) {
-    throw ApiException("Could not update metadata entries for domain '" + zonename.toString() + "'");
+  if (!zoneData.backend.setDomainMetadata(zoneData.zoneName, kind, vecMetadata)) {
+    throw ApiException("Could not update metadata entries for domain '" + zoneData.zoneName.toString() + "'");
   }
 
-  DNSSECKeeper::clearMetaCache(zonename);
+  DNSSECKeeper::clearMetaCache(zoneData.zoneName);
 
   Json::object key{
     {"type", "Metadata"},
@@ -1183,7 +1191,7 @@ static void apiZoneMetadataKindPUT(HttpRequest* req, HttpResponse* resp)
 
 static void apiZoneMetadataKindDELETE(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
   const string& kind = req->parameters["kind"];
   if (!isValidMetadataKind(kind, false)) {
@@ -1191,11 +1199,11 @@ static void apiZoneMetadataKindDELETE(HttpRequest* req, HttpResponse* resp)
   }
 
   vector<string> metadata; // an empty vector will do it
-  if (!B.setDomainMetadata(zonename, kind, metadata)) {
-    throw ApiException("Could not delete metadata for domain '" + zonename.toString() + "' (" + kind + ")");
+  if (!zoneData.backend.setDomainMetadata(zoneData.zoneName, kind, metadata)) {
+    throw ApiException("Could not delete metadata for domain '" + zoneData.zoneName.toString() + "' (" + kind + ")");
   }
 
-  DNSSECKeeper::clearMetaCache(zonename);
+  DNSSECKeeper::clearMetaCache(zoneData.zoneName);
   resp->status = 204;
 }
 
@@ -1313,10 +1321,10 @@ static void apiZoneCryptokeysExport(const DNSName& zonename, int64_t inquireKeyI
 
 static void apiZoneCryptokeysGET(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
-  const auto inquireKeyId = getInquireKeyId(req, zonename, &dk);
+  ZoneData zoneData{req};
+  const auto inquireKeyId = getInquireKeyId(req, zoneData.zoneName, &zoneData.dnssecKeeper);
 
-  apiZoneCryptokeysExport(zonename, inquireKeyId, resp, &dk);
+  apiZoneCryptokeysExport(zoneData.zoneName, inquireKeyId, resp, &zoneData.dnssecKeeper);
 }
 
 /*
@@ -1332,14 +1340,14 @@ static void apiZoneCryptokeysGET(HttpRequest* req, HttpResponse* resp)
  * */
 static void apiZoneCryptokeysDELETE(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
-  const auto inquireKeyId = getInquireKeyId(req, zonename, &dk);
+  ZoneData zoneData{req};
+  const auto inquireKeyId = getInquireKeyId(req, zoneData.zoneName, &zoneData.dnssecKeeper);
 
   if (inquireKeyId == -1) {
     throw HttpBadRequestException();
   }
 
-  if (dk.removeKey(zonename, inquireKeyId)) {
+  if (zoneData.dnssecKeeper.removeKey(zoneData.zoneName, inquireKeyId)) {
     resp->body = "";
     resp->status = 204;
   }
@@ -1386,7 +1394,7 @@ static void apiZoneCryptokeysDELETE(HttpRequest* req, HttpResponse* resp)
 
 static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
   const auto& document = req->json();
   string privatekey_fieldname = "privatekey";
@@ -1438,7 +1446,7 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
     }
 
     try {
-      if (!dk.addKey(zonename, keyOrZone, algorithm, insertedId, bits, active, published)) {
+      if (!zoneData.dnssecKeeper.addKey(zoneData.zoneName, keyOrZone, algorithm, insertedId, bits, active, published)) {
         throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
       }
     }
@@ -1474,7 +1482,7 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Key could not be parsed. Make sure your key format is correct.");
     }
     try {
-      if (!dk.addKey(zonename, dpk, insertedId, active, published)) {
+      if (!zoneData.dnssecKeeper.addKey(zoneData.zoneName, dpk, insertedId, active, published)) {
         throw ApiException("Adding key failed, perhaps DNSSEC not enabled in configuration?");
       }
     }
@@ -1488,7 +1496,7 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
   else {
     throw ApiException("Either you submit just the 'privatekey' field or you leave 'privatekey' empty and submit the other fields.");
   }
-  apiZoneCryptokeysExport(zonename, insertedId, resp, &dk);
+  apiZoneCryptokeysExport(zoneData.zoneName, insertedId, resp, &zoneData.dnssecKeeper);
   resp->status = 201;
 }
 
@@ -1505,8 +1513,8 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
  * */
 static void apiZoneCryptokeysPUT(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
-  const auto inquireKeyId = getInquireKeyId(req, zonename, &dk);
+  ZoneData zoneData{req};
+  const auto inquireKeyId = getInquireKeyId(req, zoneData.zoneName, &zoneData.dnssecKeeper);
 
   if (inquireKeyId == -1) {
     throw HttpBadRequestException();
@@ -1517,27 +1525,27 @@ static void apiZoneCryptokeysPUT(HttpRequest* req, HttpResponse* resp)
   bool active = boolFromJson(document, "active");
   bool published = boolFromJson(document, "published", true);
   if (active) {
-    if (!dk.activateKey(zonename, inquireKeyId)) {
-      resp->setErrorResult("Could not activate Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
+    if (!zoneData.dnssecKeeper.activateKey(zoneData.zoneName, inquireKeyId)) {
+      resp->setErrorResult("Could not activate Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toString(), 422);
       return;
     }
   }
   else {
-    if (!dk.deactivateKey(zonename, inquireKeyId)) {
-      resp->setErrorResult("Could not deactivate Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
+    if (!zoneData.dnssecKeeper.deactivateKey(zoneData.zoneName, inquireKeyId)) {
+      resp->setErrorResult("Could not deactivate Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toString(), 422);
       return;
     }
   }
 
   if (published) {
-    if (!dk.publishKey(zonename, inquireKeyId)) {
-      resp->setErrorResult("Could not publish Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
+    if (!zoneData.dnssecKeeper.publishKey(zoneData.zoneName, inquireKeyId)) {
+      resp->setErrorResult("Could not publish Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toString(), 422);
       return;
     }
   }
   else {
-    if (!dk.unpublishKey(zonename, inquireKeyId)) {
-      resp->setErrorResult("Could not unpublish Key: " + req->parameters["key_id"] + " in Zone: " + zonename.toString(), 422);
+    if (!zoneData.dnssecKeeper.unpublishKey(zoneData.zoneName, inquireKeyId)) {
+      resp->setErrorResult("Could not unpublish Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toString(), 422);
       return;
     }
   }
@@ -2075,14 +2083,14 @@ static void apiServerZonesGET(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
   // update domain contents and/or settings
   const auto& document = req->json();
 
   auto rrsets = document["rrsets"];
   bool zoneWasModified = false;
-  DomainInfo::DomainKind newKind = di.kind;
+  DomainInfo::DomainKind newKind = zoneData.domainInfo.kind;
   if (document["kind"].is_string()) {
     newKind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
   }
@@ -2093,8 +2101,8 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
     bool haveSoa = false;
     string soaEditApiKind;
     string soaEditKind;
-    di.backend->getDomainMetadataOne(zonename, "SOA-EDIT-API", soaEditApiKind);
-    di.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soaEditKind);
+    zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT-API", soaEditApiKind);
+    zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT", soaEditKind);
 
     vector<DNSResourceRecord> new_records;
     vector<Comment> new_comments;
@@ -2123,12 +2131,12 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
 
     for (auto& rr : new_records) { // NOLINT(readability-identifier-length)
       rr.qname.makeUsLowerCase();
-      if (!rr.qname.isPartOf(zonename) && rr.qname != zonename) {
+      if (!rr.qname.isPartOf(zoneData.zoneName) && rr.qname != zoneData.zoneName) {
         throw ApiException("RRset " + rr.qname.toString() + " IN " + rr.qtype.toString() + ": Name is out of zone");
       }
       apiCheckQNameAllowedCharacters(rr.qname.toString());
 
-      if (rr.qtype.getCode() == QType::SOA && rr.qname == zonename) {
+      if (rr.qtype.getCode() == QType::SOA && rr.qname == zoneData.zoneName) {
         haveSoa = true;
       }
     }
@@ -2142,32 +2150,32 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
       throw ApiException("Modifying RRsets in Consumer zones is unsupported");
     }
 
-    checkNewRecords(new_records, zonename);
+    checkNewRecords(new_records, zoneData.zoneName);
 
-    di.backend->startTransaction(zonename, static_cast<int>(di.id));
+    zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, static_cast<int>(zoneData.domainInfo.id));
     for (auto& rr : new_records) { // NOLINT(readability-identifier-length)
-      rr.domain_id = static_cast<int>(di.id);
-      di.backend->feedRecord(rr, DNSName());
+      rr.domain_id = static_cast<int>(zoneData.domainInfo.id);
+      zoneData.domainInfo.backend->feedRecord(rr, DNSName());
     }
     for (Comment& comment : new_comments) {
-      comment.domain_id = static_cast<int>(di.id);
-      di.backend->feedComment(comment);
+      comment.domain_id = static_cast<int>(zoneData.domainInfo.id);
+      zoneData.domainInfo.backend->feedComment(comment);
     }
 
     if (!haveSoa && (newKind == DomainInfo::Secondary || newKind == DomainInfo::Consumer)) {
-      di.backend->setStale(di.id);
+      zoneData.domainInfo.backend->setStale(zoneData.domainInfo.id);
     }
   }
   else {
     // avoid deleting current zone contents
-    di.backend->startTransaction(zonename, -1);
+    zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, -1);
   }
 
   // updateDomainSettingsFromDocument will rectify the zone and update SOA serial.
-  updateDomainSettingsFromDocument(B, di, zonename, document, zoneWasModified);
-  di.backend->commitTransaction();
+  updateDomainSettingsFromDocument(zoneData.backend, zoneData.domainInfo, zoneData.zoneName, document, zoneWasModified);
+  zoneData.domainInfo.backend->commitTransaction();
 
-  purgeAuthCaches(zonename.toString() + "$");
+  purgeAuthCaches(zoneData.zoneName.toString() + "$");
 
   resp->body = "";
   resp->status = 204; // No Content, but indicate success
@@ -2175,28 +2183,28 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerZoneDetailDELETE(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
   // delete domain
 
-  di.backend->startTransaction(zonename, -1);
+  zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, -1);
   try {
-    if (!di.backend->deleteDomain(zonename)) {
-      throw ApiException("Deleting domain '" + zonename.toString() + "' failed: backend delete failed/unsupported");
+    if (!zoneData.domainInfo.backend->deleteDomain(zoneData.zoneName)) {
+      throw ApiException("Deleting domain '" + zoneData.zoneName.toString() + "' failed: backend delete failed/unsupported");
     }
 
-    di.backend->commitTransaction();
+    zoneData.domainInfo.backend->commitTransaction();
 
-    g_zoneCache.remove(zonename);
+    g_zoneCache.remove(zoneData.zoneName);
   }
   catch (...) {
-    di.backend->abortTransaction();
+    zoneData.domainInfo.backend->abortTransaction();
     throw;
   }
 
   // clear caches
-  DNSSECKeeper::clearCaches(zonename);
-  purgeAuthCaches(zonename.toString() + "$");
+  DNSSECKeeper::clearCaches(zoneData.zoneName);
+  purgeAuthCaches(zoneData.zoneName.toString() + "$");
 
   // empty body on success
   resp->body = "";
@@ -2205,26 +2213,26 @@ static void apiServerZoneDetailDELETE(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerZoneDetailPATCH(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
-  patchZone(B, zonename, di, req, resp);
+  ZoneData zoneData{req};
+  patchZone(zoneData.backend, zoneData.zoneName, zoneData.domainInfo, req, resp);
 }
 
 static void apiServerZoneDetailGET(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
-  fillZone(B, zonename, resp, req);
+  ZoneData zoneData{req};
+  fillZone(zoneData.backend, zoneData.zoneName, resp, req);
 }
 
 static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
   ostringstream outputStringStream;
 
   DNSResourceRecord resourceRecord;
   SOAData soaData;
-  di.backend->list(zonename, static_cast<int>(di.id));
-  while (di.backend->get(resourceRecord)) {
+  zoneData.domainInfo.backend->list(zoneData.zoneName, static_cast<int>(zoneData.domainInfo.id));
+  while (zoneData.domainInfo.backend->get(resourceRecord)) {
     if (resourceRecord.qtype.getCode() == 0) {
       continue; // skip empty non-terminals
     }
@@ -2245,22 +2253,22 @@ static void apiServerZoneExport(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
-  if (di.primaries.empty()) {
-    throw ApiException("Domain '" + zonename.toString() + "' is not a secondary domain (or has no primary defined)");
+  if (zoneData.domainInfo.primaries.empty()) {
+    throw ApiException("Domain '" + zoneData.zoneName.toString() + "' is not a secondary domain (or has no primary defined)");
   }
 
-  shuffle(di.primaries.begin(), di.primaries.end(), pdns::dns_random_engine());
-  Communicator.addSuckRequest(zonename, di.primaries.front(), SuckRequest::Api);
-  resp->setSuccessResult("Added retrieval request for '" + zonename.toString() + "' from primary " + di.primaries.front().toLogString());
+  shuffle(zoneData.domainInfo.primaries.begin(), zoneData.domainInfo.primaries.end(), pdns::dns_random_engine());
+  Communicator.addSuckRequest(zoneData.zoneName, zoneData.domainInfo.primaries.front(), SuckRequest::Api);
+  resp->setSuccessResult("Added retrieval request for '" + zoneData.zoneName.toString() + "' from primary " + zoneData.domainInfo.primaries.front().toLogString());
 }
 
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
-  if (!Communicator.notifyDomain(zonename, &B)) {
+  if (!Communicator.notifyDomain(zoneData.zoneName, &zoneData.backend)) {
     throw ApiException("Failed to add to the queue - see server log");
   }
 
@@ -2269,16 +2277,16 @@ static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp)
 {
-  zoneFromId(req);
+  ZoneData zoneData{req};
 
-  if (dk.isPresigned(zonename)) {
-    throw ApiException("Zone '" + zonename.toString() + "' is pre-signed, not rectifying.");
+  if (zoneData.dnssecKeeper.isPresigned(zoneData.zoneName)) {
+    throw ApiException("Zone '" + zoneData.zoneName.toString() + "' is pre-signed, not rectifying.");
   }
 
   string error_msg;
   string info;
-  if (!dk.rectifyZone(zonename, error_msg, info, true)) {
-    throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+  if (!zoneData.dnssecKeeper.rectifyZone(zoneData.zoneName, error_msg, info, true)) {
+    throw ApiException("Failed to rectify '" + zoneData.zoneName.toString() + "' " + error_msg);
   }
 
   resp->setSuccessResult("Rectified");
