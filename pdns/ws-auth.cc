@@ -1718,48 +1718,55 @@ static void apiServerTSIGKeysPOST(HttpRequest* req, HttpResponse* resp)
   resp->setJsonBody(makeJSONTSIGKey(keyname, algo, content));
 }
 
-// NOLINTBEGIN(cppcoreguidelines-macro-usage, readability-identifier-length)
-#define TSIGKeyFromId(req)                                                                         \
-  UeberBackend B;                                                                                  \
-  DNSName keyname = apiZoneIdToName((req)->parameters["id"]);                                      \
-  DNSName algo;                                                                                    \
-  string content;                                                                                  \
-  try {                                                                                            \
-    if (!B.getTSIGKey(keyname, algo, content)) {                                                   \
-      throw HttpNotFoundException("TSIG key with name '" + keyname.toLogString() + "' not found"); \
-    }                                                                                              \
-  }                                                                                                \
-  catch (const PDNSException& e) {                                                                 \
-    throw HttpInternalServerErrorException("Could not retrieve Domain Info: " + e.reason);         \
-  }                                                                                                \
-  struct TSIGKey tsk;                                                                              \
-  tsk.name = keyname;                                                                              \
-  tsk.algorithm = algo;                                                                            \
-  tsk.key = std::move(content);
-// NOLINTEND(cppcoreguidelines-macro-usage, readability-identifier-length)
+class TSIGKeyData
+{
+public:
+  TSIGKeyData(HttpRequest* req) :
+    keyName(apiZoneIdToName(req->parameters["id"]))
+  {
+    try {
+      if (!backend.getTSIGKey(keyName, algo, content)) {
+        throw HttpNotFoundException("TSIG key with name '" + keyName.toLogString() + "' not found");
+      }
+    }
+    catch (const PDNSException& e) {
+      throw HttpInternalServerErrorException("Could not retrieve Domain Info: " + e.reason);
+    }
+
+    tsigKey.name = keyName;
+    tsigKey.algorithm = algo;
+    tsigKey.key = std::move(content);
+  }
+
+  UeberBackend backend;
+  DNSName keyName;
+  DNSName algo;
+  string content;
+  struct TSIGKey tsigKey;
+};
 
 static void apiServerTSIGKeyDetailGET(HttpRequest* req, HttpResponse* resp)
 {
-  TSIGKeyFromId(req);
+  TSIGKeyData tsigKeyData{req};
 
-  resp->setJsonBody(makeJSONTSIGKey(tsk));
+  resp->setJsonBody(makeJSONTSIGKey(tsigKeyData.tsigKey));
 }
 
 static void apiServerTSIGKeyDetailPUT(HttpRequest* req, HttpResponse* resp)
 {
-  TSIGKeyFromId(req);
+  TSIGKeyData tsigKeyData{req};
 
   const auto& document = req->json();
 
   if (document["name"].is_string()) {
-    tsk.name = DNSName(document["name"].string_value());
+    tsigKeyData.tsigKey.name = DNSName(document["name"].string_value());
   }
   if (document["algorithm"].is_string()) {
-    tsk.algorithm = DNSName(document["algorithm"].string_value());
+    tsigKeyData.tsigKey.algorithm = DNSName(document["algorithm"].string_value());
 
     TSIGHashEnum the{};
-    if (!getTSIGHashEnum(tsk.algorithm, the)) {
-      throw ApiException("Unknown TSIG algorithm: " + tsk.algorithm.toLogString());
+    if (!getTSIGHashEnum(tsigKeyData.tsigKey.algorithm, the)) {
+      throw ApiException("Unknown TSIG algorithm: " + tsigKeyData.tsigKey.algorithm.toLogString());
     }
   }
   if (document["key"].is_string()) {
@@ -1768,25 +1775,25 @@ static void apiServerTSIGKeyDetailPUT(HttpRequest* req, HttpResponse* resp)
     if (B64Decode(new_content, decoded) == -1) {
       throw ApiException("Can not base64 decode key content '" + new_content + "'");
     }
-    tsk.key = std::move(new_content);
+    tsigKeyData.tsigKey.key = std::move(new_content);
   }
-  if (!B.setTSIGKey(tsk.name, tsk.algorithm, tsk.key)) {
+  if (!tsigKeyData.backend.setTSIGKey(tsigKeyData.tsigKey.name, tsigKeyData.tsigKey.algorithm, tsigKeyData.tsigKey.key)) {
     throw HttpInternalServerErrorException("Unable to save TSIG Key");
   }
-  if (tsk.name != keyname) {
+  if (tsigKeyData.tsigKey.name != tsigKeyData.keyName) {
     // Remove the old key
-    if (!B.deleteTSIGKey(keyname)) {
-      throw HttpInternalServerErrorException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
+    if (!tsigKeyData.backend.deleteTSIGKey(tsigKeyData.keyName)) {
+      throw HttpInternalServerErrorException("Unable to remove TSIG key '" + tsigKeyData.keyName.toStringNoDot() + "'");
     }
   }
-  resp->setJsonBody(makeJSONTSIGKey(tsk));
+  resp->setJsonBody(makeJSONTSIGKey(tsigKeyData.tsigKey));
 }
 
 static void apiServerTSIGKeyDetailDELETE(HttpRequest* req, HttpResponse* resp)
 {
-  TSIGKeyFromId(req);
-  if (!B.deleteTSIGKey(keyname)) {
-    throw HttpInternalServerErrorException("Unable to remove TSIG key '" + keyname.toStringNoDot() + "'");
+  TSIGKeyData tsigKeyData{req};
+  if (!tsigKeyData.backend.deleteTSIGKey(tsigKeyData.keyName)) {
+    throw HttpInternalServerErrorException("Unable to remove TSIG key '" + tsigKeyData.keyName.toStringNoDot() + "'");
   }
   resp->body = "";
   resp->status = 204;
