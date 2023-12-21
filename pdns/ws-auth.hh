@@ -22,7 +22,7 @@
 #pragma once
 #include <string>
 #include <map>
-#include <time.h>
+#include <ctime>
 #include <pthread.h>
 #include "misc.hh"
 #include "namespaces.hh"
@@ -35,10 +35,10 @@ public:
   Ewma();
 
   void submit(int val);
-  double get10() const;
-  double get5() const;
-  double get1() const;
-  double getMax() const;
+  [[nodiscard]] double get10() const;
+  [[nodiscard]] double get5() const;
+  [[nodiscard]] double get1() const;
+  [[nodiscard]] double getMax() const;
 
 private:
   DTime dt;
@@ -55,11 +55,8 @@ public:
 
 private:
   void indexfunction(HttpRequest* req, HttpResponse* resp);
-  void cssfunction(HttpRequest* req, HttpResponse* resp);
   void jsonstat(HttpRequest* req, HttpResponse* resp);
   void registerApiHandler(const string& url, std::function<void(HttpRequest*, HttpResponse*)> handler);
-  void printvars(ostringstream& ret);
-  void printargs(ostringstream& ret);
   void webThread();
   void statThread(StatBag& stats);
 
