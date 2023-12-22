@@ -626,15 +626,15 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
   conn.d_streamBuffers.erase(streamID);
 }
 
-static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState, Socket& sock)
+static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState, Socket& sock, PacketBuffer& buffer)
 {
   while (true) {
-    DEBUGLOG("Received datagram");
-    std::string bufferStr;
     ComboAddress client;
-    if (!sock.recvFromAsync(bufferStr, client) || bufferStr.size() == 0) {
+    buffer.resize(4096);
+    if (!sock.recvFromAsync(buffer, client) || buffer.size() == 0) {
       return;
     }
+    DEBUGLOG("Received DoQ datagram of size "<<buffer.size()<<" from "<<client.toStringWithPort());
 
     uint32_t version{0};
     uint8_t type{0};
@@ -645,8 +645,7 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
     std::array<uint8_t, MAX_TOKEN_LEN> token{};
     size_t token_len = token.size();
 
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto res = quiche_header_info(reinterpret_cast<const uint8_t*>(bufferStr.data()), bufferStr.size(), LOCAL_CONN_ID_LEN,
+    auto res = quiche_header_info(buffer.data(), buffer.size(), LOCAL_CONN_ID_LEN,
                                   &version, &type,
                                   scid.data(), &scid_len,
                                   dcid.data(), &dcid_len,
@@ -702,8 +701,7 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
       clientState.local.getSocklen(),
     };
 
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto done = quiche_conn_recv(conn->get().d_conn.get(), reinterpret_cast<uint8_t*>(bufferStr.data()), bufferStr.size(), &recv_info);
+    auto done = quiche_conn_recv(conn->get().d_conn.get(), buffer.data(), buffer.size(), &recv_info);
     if (done < 0) {
       continue;
     }
@@ -742,13 +740,14 @@ void doqThread(ClientState* clientState)
     mplexer->addReadFD(sock.getHandle(), [](int, FDMultiplexer::funcparam_t&) {});
     mplexer->addReadFD(responseReceiverFD, [](int, FDMultiplexer::funcparam_t&) {});
     std::vector<int> readyFDs;
+    PacketBuffer buffer(4096);
     while (true) {
       readyFDs.clear();
       mplexer->getAvailableFDs(readyFDs, 500);
 
       try {
         if (std::find(readyFDs.begin(), readyFDs.end(), sock.getHandle()) != readyFDs.end()) {
-          handleSocketReadable(*frontend, *clientState, sock);
+          handleSocketReadable(*frontend, *clientState, sock, buffer);
         }
 
         if (std::find(readyFDs.begin(), readyFDs.end(), responseReceiverFD) != readyFDs.end()) {
@@ -768,7 +767,7 @@ void doqThread(ClientState* clientState)
             quiche_conn_stats(conn->second.d_conn.get(), &stats);
             quiche_conn_path_stats(conn->second.d_conn.get(), 0, &path_stats);
 
-            DEBUGLOG("Connection closed, recv=" << stats.recv << " sent=" << stats.sent << " lost=" << stats.lost << " rtt=" << path_stats.rtt << "ns cwnd=" << path_stats.cwnd);
+            DEBUGLOG("Connection (DoQ) closed, recv=" << stats.recv << " sent=" << stats.sent << " lost=" << stats.lost << " rtt=" << path_stats.rtt << "ns cwnd=" << path_stats.cwnd);
 #endif
             conn = frontend->d_server_config->d_connections.erase(conn);
           }
