@@ -2380,6 +2380,15 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
       catch (const std::exception& e) {
         warnlog(e.what());
       }
+    } else {
+      try {
+        auto result = raiseSocketSendBufferToMax(socket);
+        if (result > 0) {
+          infolog("Raised send buffer to %u for local address '%s'", result, addr.toStringWithPort());
+        }
+      } catch (const std::exception& e) {
+        warnlog(e.what());
+      }
     }
 
     if (g_socketUDPRecvBuffer > 0) {
@@ -2387,6 +2396,15 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
         setSocketReceiveBuffer(socket, g_socketUDPRecvBuffer);
       }
       catch (const std::exception& e) {
+        warnlog(e.what());
+      }
+    } else {
+      try {
+        auto result = raiseSocketReceiveBufferToMax(socket);
+        if (result > 0) {
+          infolog("Raised receive buffer to %u for local address '%s'", result, addr.toStringWithPort());
+        }
+      } catch (const std::exception& e) {
         warnlog(e.what());
       }
     }
