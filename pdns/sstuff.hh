@@ -184,19 +184,16 @@ public:
     dgram.assign(d_buffer, 0, static_cast<size_t>(bytes));
   }
 
-  bool recvFromAsync(string &dgram)
+  bool recvFromAsync(string& dgram, ComboAddress& remote)
   {
-    struct sockaddr_in remote;
     socklen_t remlen = sizeof(remote);
-    ssize_t bytes;
     d_buffer.resize(s_buflen);
-    if((bytes=recvfrom(d_socket, &d_buffer[0], s_buflen, 0, reinterpret_cast<sockaddr *>(&remote), &remlen))<0) {
-      if(errno!=EAGAIN) {
-        throw NetworkError("After async recvfrom: "+stringerror());
+    const auto bytes = recvfrom(d_socket, d_buffer.data(), s_buflen, 0, reinterpret_cast<sockaddr *>(&remote), &remlen);
+    if (bytes < 0) {
+      if (errno != EAGAIN) {
+        throw NetworkError("After async recvfrom: " + stringerror());
       }
-      else {
-        return false;
-      }
+      return false;
     }
     dgram.assign(d_buffer, 0, static_cast<size_t>(bytes));
     return true;

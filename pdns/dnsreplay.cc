@@ -394,7 +394,7 @@ try
   if(res < 0 || res==0)
     return;
 
-  while(s_socket->recvFromAsync(packet)) {
+  while (s_socket->recvFromAsync(packet, remote)) {
     try {
       s_weanswers++;
       MOADNSParser mdp(false, packet.c_str(), packet.length());
