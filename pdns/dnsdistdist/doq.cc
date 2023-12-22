@@ -706,7 +706,7 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
       continue;
     }
 
-    if (quiche_conn_is_established(conn->get().d_conn.get())) {
+    if (quiche_conn_is_established(conn->get().d_conn.get()) || quiche_conn_is_in_early_data(conn->get().d_conn.get())) {
       auto readable = std::unique_ptr<quiche_stream_iter, decltype(&quiche_stream_iter_free)>(quiche_conn_readable(conn->get().d_conn.get()), quiche_stream_iter_free);
 
       uint64_t streamID = 0;

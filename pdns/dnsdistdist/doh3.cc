@@ -885,7 +885,7 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
       continue;
     }
 
-    if (quiche_conn_is_established(conn->get().d_conn.get())) {
+    if (quiche_conn_is_established(conn->get().d_conn.get()) || quiche_conn_is_in_early_data(conn->get().d_conn.get())) {
       DEBUGLOG("Connection is established");
 
       if (!conn->get().d_http3) {
