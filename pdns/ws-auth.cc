@@ -960,7 +960,8 @@ static bool isValidMetadataKind(const string& kind, bool readonly)
     "SLAVE-RENOTIFY",
     "SOA-EDIT",
     "TSIG-ALLOW-AXFR",
-    "TSIG-ALLOW-DNSUPDATE"};
+    "TSIG-ALLOW-DNSUPDATE",
+  };
 
   // the following options do not allow modifications via API
   static vector<string> protectedOptions{
@@ -970,7 +971,8 @@ static bool isValidMetadataKind(const string& kind, bool readonly)
     "NSEC3PARAM",
     "PRESIGNED",
     "LUA-AXFR-SCRIPT",
-    "TSIG-ALLOW-AXFR"};
+    "TSIG-ALLOW-AXFR",
+  };
 
   if (kind.find("X-") == 0) {
     return true;
