@@ -32,12 +32,12 @@ void apiServerConfig(HttpRequest* req, HttpResponse* resp);
 void apiServerStatistics(HttpRequest* req, HttpResponse* resp);
 
 // helpers
-DNSName apiZoneIdToName(const string& id);
+DNSName apiZoneIdToName(const string& identifier);
 string apiZoneNameToId(const DNSName& name);
 void apiCheckNameAllowedCharacters(const string& name);
 void apiCheckQNameAllowedCharacters(const string& name);
 DNSName apiNameToDNSName(const string& name);
 
 // To be provided by product code.
-void productServerStatisticsFetch(std::map<string,string>& out);
+void productServerStatisticsFetch(std::map<string, string>& out);
 std::optional<uint64_t> productServerStatisticsFetch(const std::string& name);
