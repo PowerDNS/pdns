@@ -807,99 +807,103 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
 
 static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientState, Socket& sock)
 {
-  DEBUGLOG("Received datagram");
-  std::string bufferStr;
-  ComboAddress client;
-  sock.recvFrom(bufferStr, client);
-
-  uint32_t version{0};
-  uint8_t type{0};
-  std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> scid{};
-  size_t scid_len = scid.size();
-  std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> dcid{};
-  size_t dcid_len = dcid.size();
-  std::array<uint8_t, MAX_TOKEN_LEN> token{};
-  size_t token_len = token.size();
-
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  auto res = quiche_header_info(reinterpret_cast<const uint8_t*>(bufferStr.data()), bufferStr.size(), LOCAL_CONN_ID_LEN,
-                                &version, &type,
-                                scid.data(), &scid_len,
-                                dcid.data(), &dcid_len,
-                                token.data(), &token_len);
-  if (res != 0) {
-    DEBUGLOG("Error in quiche_header_info: " << res);
-    return;
-  }
-
-  // destination connection ID, will have to be sent as original destination connection ID
-  PacketBuffer serverConnID(dcid.begin(), dcid.begin() + dcid_len);
-  // source connection ID, will have to be sent as destination connection ID
-  PacketBuffer clientConnID(scid.begin(), scid.begin() + scid_len);
-  auto conn = getConnection(frontend.d_server_config->d_connections, serverConnID);
-
-  if (!conn) {
-    DEBUGLOG("Connection not found");
-    if (!quiche_version_is_supported(version)) {
-      DEBUGLOG("Unsupported version");
-      ++frontend.d_doh3UnsupportedVersionErrors;
-      handleVersionNegociation(sock, clientConnID, serverConnID, client);
+  while (true) {
+    DEBUGLOG("Received datagram");
+    std::string bufferStr;
+    ComboAddress client;
+    if (!sock.recvFromAsync(bufferStr, client) || bufferStr.size() == 0) {
       return;
     }
 
-    if (token_len == 0) {
-      /* stateless retry */
-      DEBUGLOG("No token received");
-      handleStatelessRetry(sock, clientConnID, serverConnID, client, version);
-      return;
+    uint32_t version{0};
+    uint8_t type{0};
+    std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> scid{};
+    size_t scid_len = scid.size();
+    std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> dcid{};
+    size_t dcid_len = dcid.size();
+    std::array<uint8_t, MAX_TOKEN_LEN> token{};
+    size_t token_len = token.size();
+
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto res = quiche_header_info(reinterpret_cast<const uint8_t*>(bufferStr.data()), bufferStr.size(), LOCAL_CONN_ID_LEN,
+                                  &version, &type,
+                                  scid.data(), &scid_len,
+                                  dcid.data(), &dcid_len,
+                                  token.data(), &token_len);
+    if (res != 0) {
+      DEBUGLOG("Error in quiche_header_info: " << res);
+      continue;
     }
 
-    PacketBuffer tokenBuf(token.begin(), token.begin() + token_len);
-    auto originalDestinationID = validateToken(tokenBuf, client);
-    if (!originalDestinationID) {
-      ++frontend.d_doh3InvalidTokensReceived;
-      DEBUGLOG("Discarding invalid token");
-      return;
-    }
+    // destination connection ID, will have to be sent as original destination connection ID
+    PacketBuffer serverConnID(dcid.begin(), dcid.begin() + dcid_len);
+    // source connection ID, will have to be sent as destination connection ID
+    PacketBuffer clientConnID(scid.begin(), scid.begin() + scid_len);
+    auto conn = getConnection(frontend.d_server_config->d_connections, serverConnID);
 
-    DEBUGLOG("Creating a new connection");
-    conn = createConnection(*frontend.d_server_config, serverConnID, *originalDestinationID, clientState.local, client);
     if (!conn) {
-      return;
-    }
-  }
-  DEBUGLOG("Connection found");
-  quiche_recv_info recv_info = {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    reinterpret_cast<struct sockaddr*>(&client),
-    client.getSocklen(),
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    reinterpret_cast<struct sockaddr*>(&clientState.local),
-    clientState.local.getSocklen(),
-  };
-
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  auto done = quiche_conn_recv(conn->get().d_conn.get(), reinterpret_cast<uint8_t*>(bufferStr.data()), bufferStr.size(), &recv_info);
-  if (done < 0) {
-    return;
-  }
-
-  if (quiche_conn_is_established(conn->get().d_conn.get())) {
-    DEBUGLOG("Connection is established");
-
-    if (!conn->get().d_http3) {
-      conn->get().d_http3 = QuicheHTTP3Connection(quiche_h3_conn_new_with_transport(conn->get().d_conn.get(), frontend.d_server_config->http3config.get()),
-                                                  quiche_h3_conn_free);
-      if (!conn->get().d_http3) {
-        return;
+      DEBUGLOG("Connection not found");
+      if (!quiche_version_is_supported(version)) {
+        DEBUGLOG("Unsupported version");
+        ++frontend.d_doh3UnsupportedVersionErrors;
+        handleVersionNegociation(sock, clientConnID, serverConnID, client);
+        continue;
       }
-      DEBUGLOG("Successfully created HTTP/3 connection");
+
+      if (token_len == 0) {
+        /* stateless retry */
+        DEBUGLOG("No token received");
+        handleStatelessRetry(sock, clientConnID, serverConnID, client, version);
+        continue;
+      }
+
+      PacketBuffer tokenBuf(token.begin(), token.begin() + token_len);
+      auto originalDestinationID = validateToken(tokenBuf, client);
+      if (!originalDestinationID) {
+        ++frontend.d_doh3InvalidTokensReceived;
+        DEBUGLOG("Discarding invalid token");
+        continue;
+      }
+
+      DEBUGLOG("Creating a new connection");
+      conn = createConnection(*frontend.d_server_config, serverConnID, *originalDestinationID, clientState.local, client);
+      if (!conn) {
+        continue;
+      }
+    }
+    DEBUGLOG("Connection found");
+    quiche_recv_info recv_info = {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      reinterpret_cast<struct sockaddr*>(&client),
+      client.getSocklen(),
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      reinterpret_cast<struct sockaddr*>(&clientState.local),
+      clientState.local.getSocklen(),
+    };
+
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    auto done = quiche_conn_recv(conn->get().d_conn.get(), reinterpret_cast<uint8_t*>(bufferStr.data()), bufferStr.size(), &recv_info);
+    if (done < 0) {
+      continue;
     }
 
-    processH3Events(clientState, frontend, conn->get(), client, serverConnID);
-  }
-  else {
-    DEBUGLOG("Connection not established");
+    if (quiche_conn_is_established(conn->get().d_conn.get())) {
+      DEBUGLOG("Connection is established");
+
+      if (!conn->get().d_http3) {
+        conn->get().d_http3 = QuicheHTTP3Connection(quiche_h3_conn_new_with_transport(conn->get().d_conn.get(), frontend.d_server_config->http3config.get()),
+                                                    quiche_h3_conn_free);
+        if (!conn->get().d_http3) {
+          continue;
+        }
+        DEBUGLOG("Successfully created HTTP/3 connection");
+      }
+
+      processH3Events(clientState, frontend, conn->get(), client, serverConnID);
+    }
+    else {
+      DEBUGLOG("Connection not established");
+    }
   }
 }
 
@@ -915,50 +919,60 @@ void doh3Thread(ClientState* clientState)
     setThreadName("dnsdist/doh3");
 
     Socket sock(clientState->udpFD);
+    sock.setNonBlocking();
 
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
 
     auto responseReceiverFD = frontend->d_server_config->d_responseReceiver.getDescriptor();
     mplexer->addReadFD(sock.getHandle(), [](int, FDMultiplexer::funcparam_t&) {});
     mplexer->addReadFD(responseReceiverFD, [](int, FDMultiplexer::funcparam_t&) {});
+    std::vector<int> readyFDs;
     while (true) {
-      std::vector<int> readyFDs;
+      readyFDs.clear();
       mplexer->getAvailableFDs(readyFDs, 500);
 
-      if (std::find(readyFDs.begin(), readyFDs.end(), sock.getHandle()) != readyFDs.end()) {
-        handleSocketReadable(*frontend, *clientState, sock);
-      }
+      try {
+        if (std::find(readyFDs.begin(), readyFDs.end(), sock.getHandle()) != readyFDs.end()) {
+          handleSocketReadable(*frontend, *clientState, sock);
+        }
 
-      if (std::find(readyFDs.begin(), readyFDs.end(), responseReceiverFD) != readyFDs.end()) {
-        flushResponses(frontend->d_server_config->d_responseReceiver);
-      }
+        if (std::find(readyFDs.begin(), readyFDs.end(), responseReceiverFD) != readyFDs.end()) {
+          flushResponses(frontend->d_server_config->d_responseReceiver);
+        }
 
-      for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
-        quiche_conn_on_timeout(conn->second.d_conn.get());
+        for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
+          quiche_conn_on_timeout(conn->second.d_conn.get());
 
-        flushEgress(sock, conn->second.d_conn, conn->second.d_peer);
+          flushEgress(sock, conn->second.d_conn, conn->second.d_peer);
 
-        if (quiche_conn_is_closed(conn->second.d_conn.get())) {
+          if (quiche_conn_is_closed(conn->second.d_conn.get())) {
 #ifdef DEBUGLOG_ENABLED
-          quiche_stats stats;
-          quiche_path_stats path_stats;
+            quiche_stats stats;
+            quiche_path_stats path_stats;
 
-          quiche_conn_stats(conn->second.d_conn.get(), &stats);
-          quiche_conn_path_stats(conn->second.d_conn.get(), 0, &path_stats);
+            quiche_conn_stats(conn->second.d_conn.get(), &stats);
+            quiche_conn_path_stats(conn->second.d_conn.get(), 0, &path_stats);
 
-          DEBUGLOG("Connection closed, recv=" << stats.recv << " sent=" << stats.sent << " lost=" << stats.lost << " rtt=" << path_stats.rtt << "ns cwnd=" << path_stats.cwnd);
+            DEBUGLOG("Connection closed, recv=" << stats.recv << " sent=" << stats.sent << " lost=" << stats.lost << " rtt=" << path_stats.rtt << "ns cwnd=" << path_stats.cwnd);
 #endif
-          conn = frontend->d_server_config->d_connections.erase(conn);
+            conn = frontend->d_server_config->d_connections.erase(conn);
+          }
+          else {
+            flushStalledResponses(conn->second);
+            ++conn;
+          }
         }
-        else {
-          flushStalledResponses(conn->second);
-          ++conn;
-        }
+      }
+      catch (const std::exception& exp) {
+        vinfolog("Caught exception in the main DoH3 thread: %s", exp.what());
+      }
+      catch (...) {
+        vinfolog("Unknown exception in the main DoH3 thread");
       }
     }
   }
   catch (const std::exception& e) {
-    DEBUGLOG("Caught fatal error: " << e.what());
+    DEBUGLOG("Caught fatal error in the main DoH3 thread: " << e.what());
   }
 }
 
