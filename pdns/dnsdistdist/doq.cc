@@ -713,6 +713,8 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
       while (quiche_stream_iter_next(readable.get(), &streamID)) {
         handleReadableStream(frontend, clientState, *conn, streamID, client, serverConnID);
       }
+
+      flushEgress(sock, conn->get().d_conn, client);
     }
     else {
       DEBUGLOG("Connection not established");

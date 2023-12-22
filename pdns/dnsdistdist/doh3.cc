@@ -898,6 +898,8 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
       }
 
       processH3Events(clientState, frontend, conn->get(), client, serverConnID);
+
+      flushEgress(sock, conn->get().d_conn, client);
     }
     else {
       DEBUGLOG("Connection not established");
