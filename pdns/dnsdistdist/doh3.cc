@@ -813,7 +813,7 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
     if (!sock.recvFromAsync(buffer, client) || buffer.empty()) {
       return;
     }
-    DEBUGLOG("Received DoH3 datagram of size "<<buffer.size()<<" from "<<client.toStringWithPort());
+    DEBUGLOG("Received DoH3 datagram of size " << buffer.size() << " from " << client.toStringWithPort());
 
     uint32_t version{0};
     uint8_t type{0};

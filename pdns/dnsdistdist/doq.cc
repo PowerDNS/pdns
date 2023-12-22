@@ -634,7 +634,7 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
     if (!sock.recvFromAsync(buffer, client) || buffer.empty()) {
       return;
     }
-    DEBUGLOG("Received DoQ datagram of size "<<buffer.size()<<" from "<<client.toStringWithPort());
+    DEBUGLOG("Received DoQ datagram of size " << buffer.size() << " from " << client.toStringWithPort());
 
     uint32_t version{0};
     uint8_t type{0};
