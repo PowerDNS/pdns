@@ -593,7 +593,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
       streamBuffer.resize(existingLength);
       return;
     }
-    else if (received < 0) {
+    if (received < 0) {
       ++dnsdist::metrics::g_stats.nonCompliantQueries;
       ++clientState.nonCompliantQueries;
       quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
@@ -631,7 +631,7 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
   while (true) {
     ComboAddress client;
     buffer.resize(4096);
-    if (!sock.recvFromAsync(buffer, client) || buffer.size() == 0) {
+    if (!sock.recvFromAsync(buffer, client) || buffer.empty()) {
       return;
     }
     DEBUGLOG("Received DoQ datagram of size "<<buffer.size()<<" from "<<client.toStringWithPort());

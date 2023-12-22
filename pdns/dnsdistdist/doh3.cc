@@ -810,7 +810,7 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
   while (true) {
     ComboAddress client;
     buffer.resize(4096);
-    if (!sock.recvFromAsync(buffer, client) || buffer.size() == 0) {
+    if (!sock.recvFromAsync(buffer, client) || buffer.empty()) {
       return;
     }
     DEBUGLOG("Received DoH3 datagram of size "<<buffer.size()<<" from "<<client.toStringWithPort());
