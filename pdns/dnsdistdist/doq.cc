@@ -628,6 +628,11 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
 
 static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState, Socket& sock, PacketBuffer& buffer)
 {
+  // destination connection ID, will have to be sent as original destination connection ID
+  PacketBuffer serverConnID;
+  // source connection ID, will have to be sent as destination connection ID
+  PacketBuffer clientConnID;
+  PacketBuffer tokenBuf;
   while (true) {
     ComboAddress client;
     buffer.resize(4096);
@@ -655,10 +660,8 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
       continue;
     }
 
-    // destination connection ID, will have to be sent as original destination connection ID
-    PacketBuffer serverConnID(dcid.begin(), dcid.begin() + dcid_len);
-    // source connection ID, will have to be sent as destination connection ID
-    PacketBuffer clientConnID(scid.begin(), scid.begin() + scid_len);
+    serverConnID.assign(dcid.begin(), dcid.begin() + dcid_len);
+    clientConnID.assign(scid.begin(), scid.begin() + scid_len);
     auto conn = getConnection(frontend.d_server_config->d_connections, serverConnID);
 
     if (!conn) {
@@ -666,18 +669,18 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
       if (!quiche_version_is_supported(version)) {
         DEBUGLOG("Unsupported version");
         ++frontend.d_doqUnsupportedVersionErrors;
-        handleVersionNegociation(sock, clientConnID, serverConnID, client);
+        handleVersionNegociation(sock, clientConnID, serverConnID, client, buffer);
         continue;
       }
 
       if (token_len == 0) {
         /* stateless retry */
         DEBUGLOG("No token received");
-        handleStatelessRetry(sock, clientConnID, serverConnID, client, version);
+        handleStatelessRetry(sock, clientConnID, serverConnID, client, version, buffer);
         continue;
       }
 
-      PacketBuffer tokenBuf(token.begin(), token.begin() + token_len);
+      tokenBuf.assign(token.begin(), token.begin() + token_len);
       auto originalDestinationID = validateToken(tokenBuf, client);
       if (!originalDestinationID) {
         ++frontend.d_doqInvalidTokensReceived;
@@ -714,7 +717,7 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
         handleReadableStream(frontend, clientState, *conn, streamID, client, serverConnID);
       }
 
-      flushEgress(sock, conn->get().d_conn, client);
+      flushEgress(sock, conn->get().d_conn, client, buffer);
     }
     else {
       DEBUGLOG("Connection not established");
@@ -759,7 +762,7 @@ void doqThread(ClientState* clientState)
         for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
           quiche_conn_on_timeout(conn->second.d_conn.get());
 
-          flushEgress(sock, conn->second.d_conn, conn->second.d_peer);
+          flushEgress(sock, conn->second.d_conn, conn->second.d_peer, buffer);
 
           if (quiche_conn_is_closed(conn->second.d_conn.get())) {
 #ifdef DEBUGLOG_ENABLED

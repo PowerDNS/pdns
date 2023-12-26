@@ -56,7 +56,9 @@ PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer)
     //	NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto encryptedToken = sodEncryptSym(std::string_view(reinterpret_cast<const char*>(plainTextToken.data()), plainTextToken.size()), s_quicRetryTokenKey, nonce, false);
     // a bit sad, let's see if we can do better later
-    auto encryptedTokenPacket = PacketBuffer(encryptedToken.begin(), encryptedToken.end());
+    PacketBuffer encryptedTokenPacket;
+    encryptedTokenPacket.reserve(encryptedToken.size() + nonce.value.size());
+    encryptedTokenPacket.insert(encryptedTokenPacket.begin(), encryptedToken.begin(), encryptedToken.end());
     encryptedTokenPacket.insert(encryptedTokenPacket.begin(), nonce.value.begin(), nonce.value.end());
     return encryptedTokenPacket;
   }
@@ -98,7 +100,7 @@ std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const Combo
 
     memcpy(nonce.value.data(), token.data(), nonce.value.size());
 
-    //	NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto cipher = std::string_view(reinterpret_cast<const char*>(&token.at(nonce.value.size())), token.size() - nonce.value.size());
     auto plainText = sodDecryptSym(cipher, s_quicRetryTokenKey, nonce, false);
 
@@ -124,7 +126,7 @@ std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const Combo
   }
 }
 
-void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, uint32_t version)
+void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, uint32_t version, PacketBuffer& buffer)
 {
   auto newServerConnID = getCID();
   if (!newServerConnID) {
@@ -133,46 +135,46 @@ void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const 
 
   auto token = mintToken(serverConnID, peer);
 
-  PacketBuffer out(MAX_DATAGRAM_SIZE);
+  buffer.resize(MAX_DATAGRAM_SIZE);
   auto written = quiche_retry(clientConnID.data(), clientConnID.size(),
                               serverConnID.data(), serverConnID.size(),
                               newServerConnID->data(), newServerConnID->size(),
                               token.data(), token.size(),
                               version,
-                              out.data(), out.size());
+                              buffer.data(), buffer.size());
 
   if (written < 0) {
     DEBUGLOG("failed to create retry packet " << written);
     return;
   }
 
-  out.resize(written);
-  sock.sendTo(std::string(out.begin(), out.end()), peer);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  sock.sendTo(reinterpret_cast<const char*>(buffer.data()), static_cast<size_t>(written), peer);
 }
 
-void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer)
+void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, PacketBuffer& buffer)
 {
-  PacketBuffer out(MAX_DATAGRAM_SIZE);
+  buffer.resize(MAX_DATAGRAM_SIZE);
 
   auto written = quiche_negotiate_version(clientConnID.data(), clientConnID.size(),
                                           serverConnID.data(), serverConnID.size(),
-                                          out.data(), out.size());
+                                          buffer.data(), buffer.size());
 
   if (written < 0) {
     DEBUGLOG("failed to create vneg packet " << written);
     return;
   }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  sock.sendTo(reinterpret_cast<const char*>(out.data()), written, peer);
+  sock.sendTo(reinterpret_cast<const char*>(buffer.data()), static_cast<size_t>(written), peer);
 }
 
-void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer)
+void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer, PacketBuffer& buffer)
 {
-  std::array<uint8_t, MAX_DATAGRAM_SIZE> out{};
+  buffer.resize(MAX_DATAGRAM_SIZE);
   quiche_send_info send_info;
 
   while (true) {
-    auto written = quiche_conn_send(conn.get(), out.data(), out.size(), &send_info);
+    auto written = quiche_conn_send(conn.get(), buffer.data(), buffer.size(), &send_info);
     if (written == QUICHE_ERR_DONE) {
       return;
     }
@@ -182,7 +184,7 @@ void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer)
     }
     // FIXME pacing (as send_info.at should tell us when to send the packet) ?
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    sock.sendTo(reinterpret_cast<const char*>(out.data()), written, peer);
+    sock.sendTo(reinterpret_cast<const char*>(buffer.data()), static_cast<size_t>(written), peer);
   }
 }
 
@@ -203,6 +205,7 @@ void configureQuiche(QuicheConfig& config, const QuicheParams& params)
 
   {
     auto res = quiche_config_set_application_protos(config.get(),
+                                                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                                                     reinterpret_cast<const uint8_t*>(params.d_alpn.data()),
                                                     params.d_alpn.size());
     if (res != 0) {

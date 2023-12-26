@@ -658,7 +658,7 @@ static void flushStalledResponses(H3Connection& conn)
   }
 }
 
-static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, PacketBuffer& serverConnID, std::map<std::string, std::string>& headers, int64_t streamID, quiche_h3_event* event)
+static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, std::map<std::string, std::string>& headers, int64_t streamID, quiche_h3_event* event)
 {
   auto handleImmediateError = [&clientState, &frontend, &conn, streamID](const char* msg) {
     DEBUGLOG(msg);
@@ -719,7 +719,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
   handleImmediateError("Unsupported HTTP method");
 }
 
-static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, PacketBuffer& serverConnID, std::map<std::string, std::string>& headers, int64_t streamID, quiche_h3_event* event)
+static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, std::map<std::string, std::string>& headers, int64_t streamID, quiche_h3_event* event, PacketBuffer& buffer)
 {
   auto handleImmediateError = [&clientState, &frontend, &conn, streamID](const char* msg) {
     DEBUGLOG(msg);
@@ -739,14 +739,14 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
     return;
   }
 
-  PacketBuffer buffer(std::numeric_limits<uint16_t>::max());
+  buffer.resize(std::numeric_limits<uint16_t>::max());
   auto& streamBuffer = conn.d_streamBuffers[streamID];
 
   while (true) {
     buffer.resize(std::numeric_limits<uint16_t>::max());
     ssize_t len = quiche_h3_recv_body(conn.d_http3.get(),
                                       conn.d_conn.get(), streamID,
-                                      buffer.data(), buffer.capacity());
+                                      buffer.data(), buffer.size());
 
     if (len <= 0) {
       break;
@@ -771,7 +771,7 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
   conn.d_streamBuffers.erase(streamID);
 }
 
-static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, PacketBuffer& serverConnID)
+static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, PacketBuffer& buffer)
 {
   std::map<std::string, std::string> headers;
   while (true) {
@@ -791,7 +791,7 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
       break;
     }
     case QUICHE_H3_EVENT_DATA: {
-      processH3DataEvent(clientState, frontend, conn, client, serverConnID, headers, streamID, event);
+      processH3DataEvent(clientState, frontend, conn, client, serverConnID, headers, streamID, event, buffer);
       break;
     }
     case QUICHE_H3_EVENT_FINISHED:
@@ -807,6 +807,11 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
 
 static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientState, Socket& sock, PacketBuffer& buffer)
 {
+  // destination connection ID, will have to be sent as original destination connection ID
+  PacketBuffer serverConnID;
+  // source connection ID, will have to be sent as destination connection ID
+  PacketBuffer clientConnID;
+  PacketBuffer tokenBuf;
   while (true) {
     ComboAddress client;
     buffer.resize(4096);
@@ -834,10 +839,9 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
       continue;
     }
 
-    // destination connection ID, will have to be sent as original destination connection ID
-    PacketBuffer serverConnID(dcid.begin(), dcid.begin() + dcid_len);
+    serverConnID.assign(dcid.begin(), dcid.begin() + dcid_len);
     // source connection ID, will have to be sent as destination connection ID
-    PacketBuffer clientConnID(scid.begin(), scid.begin() + scid_len);
+    clientConnID.assign(scid.begin(), scid.begin() + scid_len);
     auto conn = getConnection(frontend.d_server_config->d_connections, serverConnID);
 
     if (!conn) {
@@ -845,18 +849,18 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
       if (!quiche_version_is_supported(version)) {
         DEBUGLOG("Unsupported version");
         ++frontend.d_doh3UnsupportedVersionErrors;
-        handleVersionNegociation(sock, clientConnID, serverConnID, client);
+        handleVersionNegociation(sock, clientConnID, serverConnID, client, buffer);
         continue;
       }
 
       if (token_len == 0) {
         /* stateless retry */
         DEBUGLOG("No token received");
-        handleStatelessRetry(sock, clientConnID, serverConnID, client, version);
+        handleStatelessRetry(sock, clientConnID, serverConnID, client, version, buffer);
         continue;
       }
 
-      PacketBuffer tokenBuf(token.begin(), token.begin() + token_len);
+      tokenBuf.assign(token.begin(), token.begin() + token_len);
       auto originalDestinationID = validateToken(tokenBuf, client);
       if (!originalDestinationID) {
         ++frontend.d_doh3InvalidTokensReceived;
@@ -897,9 +901,9 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
         DEBUGLOG("Successfully created HTTP/3 connection");
       }
 
-      processH3Events(clientState, frontend, conn->get(), client, serverConnID);
+      processH3Events(clientState, frontend, conn->get(), client, serverConnID, buffer);
 
-      flushEgress(sock, conn->get().d_conn, client);
+      flushEgress(sock, conn->get().d_conn, client, buffer);
     }
     else {
       DEBUGLOG("Connection not established");
@@ -944,7 +948,7 @@ void doh3Thread(ClientState* clientState)
         for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
           quiche_conn_on_timeout(conn->second.d_conn.get());
 
-          flushEgress(sock, conn->second.d_conn, conn->second.d_peer);
+          flushEgress(sock, conn->second.d_conn, conn->second.d_peer, buffer);
 
           if (quiche_conn_is_closed(conn->second.d_conn.get())) {
 #ifdef DEBUGLOG_ENABLED
