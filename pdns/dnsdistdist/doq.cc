@@ -579,6 +579,152 @@ static void flushStalledResponses(Connection& conn)
   }
 }
 
+static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState, Connection& conn, uint64_t streamID, const ComboAddress& client, const PacketBuffer& serverConnID)
+{
+  auto& streamBuffer = conn.d_streamBuffers[streamID];
+  while (true) {
+    bool fin = false;
+    auto existingLength = streamBuffer.size();
+    streamBuffer.resize(existingLength + 512);
+    auto received = quiche_conn_stream_recv(conn.d_conn.get(), streamID,
+                                            &streamBuffer.at(existingLength), 512,
+                                            &fin);
+    if (received == 0 || received == QUICHE_ERR_DONE) {
+      streamBuffer.resize(existingLength);
+      return;
+    }
+    if (received < 0) {
+      ++dnsdist::metrics::g_stats.nonCompliantQueries;
+      ++clientState.nonCompliantQueries;
+      quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
+      return;
+    }
+
+    streamBuffer.resize(existingLength + received);
+    if (fin) {
+      break;
+    }
+  }
+
+  if (streamBuffer.size() < (sizeof(uint16_t) + sizeof(dnsheader))) {
+    ++dnsdist::metrics::g_stats.nonCompliantQueries;
+    ++clientState.nonCompliantQueries;
+    quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
+    return;
+  }
+
+  uint16_t payloadLength = streamBuffer.at(0) * 256 + streamBuffer.at(1);
+  streamBuffer.erase(streamBuffer.begin(), streamBuffer.begin() + 2);
+  if (payloadLength != streamBuffer.size()) {
+    ++dnsdist::metrics::g_stats.nonCompliantQueries;
+    ++clientState.nonCompliantQueries;
+    quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
+    return;
+  }
+  DEBUGLOG("Dispatching query");
+  doq_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), clientState.local, client, serverConnID, streamID);
+  conn.d_streamBuffers.erase(streamID);
+}
+
+static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState, Socket& sock, PacketBuffer& buffer)
+{
+  // destination connection ID, will have to be sent as original destination connection ID
+  PacketBuffer serverConnID;
+  // source connection ID, will have to be sent as destination connection ID
+  PacketBuffer clientConnID;
+  PacketBuffer tokenBuf;
+  while (true) {
+    ComboAddress client;
+    buffer.resize(4096);
+    if (!sock.recvFromAsync(buffer, client) || buffer.empty()) {
+      return;
+    }
+    DEBUGLOG("Received DoQ datagram of size " << buffer.size() << " from " << client.toStringWithPort());
+
+    uint32_t version{0};
+    uint8_t type{0};
+    std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> scid{};
+    size_t scid_len = scid.size();
+    std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> dcid{};
+    size_t dcid_len = dcid.size();
+    std::array<uint8_t, MAX_TOKEN_LEN> token{};
+    size_t token_len = token.size();
+
+    auto res = quiche_header_info(buffer.data(), buffer.size(), LOCAL_CONN_ID_LEN,
+                                  &version, &type,
+                                  scid.data(), &scid_len,
+                                  dcid.data(), &dcid_len,
+                                  token.data(), &token_len);
+    if (res != 0) {
+      DEBUGLOG("Error in quiche_header_info: " << res);
+      continue;
+    }
+
+    serverConnID.assign(dcid.begin(), dcid.begin() + dcid_len);
+    clientConnID.assign(scid.begin(), scid.begin() + scid_len);
+    auto conn = getConnection(frontend.d_server_config->d_connections, serverConnID);
+
+    if (!conn) {
+      DEBUGLOG("Connection not found");
+      if (!quiche_version_is_supported(version)) {
+        DEBUGLOG("Unsupported version");
+        ++frontend.d_doqUnsupportedVersionErrors;
+        handleVersionNegociation(sock, clientConnID, serverConnID, client, buffer);
+        continue;
+      }
+
+      if (token_len == 0) {
+        /* stateless retry */
+        DEBUGLOG("No token received");
+        handleStatelessRetry(sock, clientConnID, serverConnID, client, version, buffer);
+        continue;
+      }
+
+      tokenBuf.assign(token.begin(), token.begin() + token_len);
+      auto originalDestinationID = validateToken(tokenBuf, client);
+      if (!originalDestinationID) {
+        ++frontend.d_doqInvalidTokensReceived;
+        DEBUGLOG("Discarding invalid token");
+        continue;
+      }
+
+      DEBUGLOG("Creating a new connection");
+      conn = createConnection(*frontend.d_server_config, serverConnID, *originalDestinationID, clientState.local, client);
+      if (!conn) {
+        continue;
+      }
+    }
+    DEBUGLOG("Connection found");
+    quiche_recv_info recv_info = {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      reinterpret_cast<struct sockaddr*>(&client),
+      client.getSocklen(),
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      reinterpret_cast<struct sockaddr*>(&clientState.local),
+      clientState.local.getSocklen(),
+    };
+
+    auto done = quiche_conn_recv(conn->get().d_conn.get(), buffer.data(), buffer.size(), &recv_info);
+    if (done < 0) {
+      continue;
+    }
+
+    if (quiche_conn_is_established(conn->get().d_conn.get()) || quiche_conn_is_in_early_data(conn->get().d_conn.get())) {
+      auto readable = std::unique_ptr<quiche_stream_iter, decltype(&quiche_stream_iter_free)>(quiche_conn_readable(conn->get().d_conn.get()), quiche_stream_iter_free);
+
+      uint64_t streamID = 0;
+      while (quiche_stream_iter_next(readable.get(), &streamID)) {
+        handleReadableStream(frontend, clientState, *conn, streamID, client, serverConnID);
+      }
+
+      flushEgress(sock, conn->get().d_conn, client, buffer);
+    }
+    else {
+      DEBUGLOG("Connection not established");
+    }
+  }
+}
+
 // this is the entrypoint from dnsdist.cc
 void doqThread(ClientState* clientState)
 {
@@ -591,163 +737,61 @@ void doqThread(ClientState* clientState)
     setThreadName("dnsdist/doq");
 
     Socket sock(clientState->udpFD);
+    sock.setNonBlocking();
 
     auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent());
 
     auto responseReceiverFD = frontend->d_server_config->d_responseReceiver.getDescriptor();
     mplexer->addReadFD(sock.getHandle(), [](int, FDMultiplexer::funcparam_t&) {});
     mplexer->addReadFD(responseReceiverFD, [](int, FDMultiplexer::funcparam_t&) {});
+    std::vector<int> readyFDs;
+    PacketBuffer buffer(4096);
     while (true) {
-      std::vector<int> readyFDs;
+      readyFDs.clear();
       mplexer->getAvailableFDs(readyFDs, 500);
 
-      if (std::find(readyFDs.begin(), readyFDs.end(), sock.getHandle()) != readyFDs.end()) {
-        DEBUGLOG("Received datagram");
-        std::string bufferStr;
-        ComboAddress client;
-        sock.recvFrom(bufferStr, client);
-
-        uint32_t version{0};
-        uint8_t type{0};
-        std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> scid{};
-        size_t scid_len = scid.size();
-        std::array<uint8_t, QUICHE_MAX_CONN_ID_LEN> dcid{};
-        size_t dcid_len = dcid.size();
-        std::array<uint8_t, MAX_TOKEN_LEN> token{};
-        size_t token_len = token.size();
-
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        auto res = quiche_header_info(reinterpret_cast<const uint8_t*>(bufferStr.data()), bufferStr.size(), LOCAL_CONN_ID_LEN,
-                                      &version, &type,
-                                      scid.data(), &scid_len,
-                                      dcid.data(), &dcid_len,
-                                      token.data(), &token_len);
-        if (res != 0) {
-          DEBUGLOG("Error in quiche_header_info: " << res);
-          continue;
+      try {
+        if (std::find(readyFDs.begin(), readyFDs.end(), sock.getHandle()) != readyFDs.end()) {
+          handleSocketReadable(*frontend, *clientState, sock, buffer);
         }
 
-        // destination connection ID, will have to be sent as original destination connection ID
-        PacketBuffer serverConnID(dcid.begin(), dcid.begin() + dcid_len);
-        // source connection ID, will have to be sent as destination connection ID
-        PacketBuffer clientConnID(scid.begin(), scid.begin() + scid_len);
-        auto conn = getConnection(frontend->d_server_config->d_connections, serverConnID);
-
-        if (!conn) {
-          DEBUGLOG("Connection not found");
-          if (!quiche_version_is_supported(version)) {
-            DEBUGLOG("Unsupported version");
-            ++frontend->d_doqUnsupportedVersionErrors;
-            handleVersionNegociation(sock, clientConnID, serverConnID, client);
-            continue;
-          }
-
-          if (token_len == 0) {
-            /* stateless retry */
-            DEBUGLOG("No token received");
-            handleStatelessRetry(sock, clientConnID, serverConnID, client, version);
-            continue;
-          }
-
-          PacketBuffer tokenBuf(token.begin(), token.begin() + token_len);
-          auto originalDestinationID = validateToken(tokenBuf, client);
-          if (!originalDestinationID) {
-            ++frontend->d_doqInvalidTokensReceived;
-            DEBUGLOG("Discarding invalid token");
-            continue;
-          }
-
-          DEBUGLOG("Creating a new connection");
-          conn = createConnection(*frontend->d_server_config, serverConnID, *originalDestinationID, clientState->local, client);
-          if (!conn) {
-            continue;
-          }
-        }
-        DEBUGLOG("Connection found");
-        quiche_recv_info recv_info = {
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-          reinterpret_cast<struct sockaddr*>(&client),
-          client.getSocklen(),
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-          reinterpret_cast<struct sockaddr*>(&clientState->local),
-          clientState->local.getSocklen(),
-        };
-
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        auto done = quiche_conn_recv(conn->get().d_conn.get(), reinterpret_cast<uint8_t*>(bufferStr.data()), bufferStr.size(), &recv_info);
-        if (done < 0) {
-          continue;
+        if (std::find(readyFDs.begin(), readyFDs.end(), responseReceiverFD) != readyFDs.end()) {
+          flushResponses(frontend->d_server_config->d_responseReceiver);
         }
 
-        if (quiche_conn_is_established(conn->get().d_conn.get())) {
-          auto readable = std::unique_ptr<quiche_stream_iter, decltype(&quiche_stream_iter_free)>(quiche_conn_readable(conn->get().d_conn.get()), quiche_stream_iter_free);
+        for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
+          quiche_conn_on_timeout(conn->second.d_conn.get());
 
-          uint64_t streamID = 0;
-          while (quiche_stream_iter_next(readable.get(), &streamID)) {
-            auto& streamBuffer = conn->get().d_streamBuffers[streamID];
-            auto existingLength = streamBuffer.size();
-            bool fin = false;
-            streamBuffer.resize(existingLength + 512);
-            auto received = quiche_conn_stream_recv(conn->get().d_conn.get(), streamID,
-                                                    &streamBuffer.at(existingLength), 512,
-                                                    &fin);
-            streamBuffer.resize(existingLength + received);
-            if (fin) {
-              if (streamBuffer.size() < (sizeof(uint16_t) + sizeof(dnsheader))) {
-                ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                ++clientState->nonCompliantQueries;
-                quiche_conn_stream_shutdown(conn->get().d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
-                break;
-              }
-              uint16_t payloadLength = streamBuffer.at(0) * 256 + streamBuffer.at(1);
-              streamBuffer.erase(streamBuffer.begin(), streamBuffer.begin() + 2);
-              if (payloadLength != streamBuffer.size()) {
-                ++dnsdist::metrics::g_stats.nonCompliantQueries;
-                ++clientState->nonCompliantQueries;
-                quiche_conn_stream_shutdown(conn->get().d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_PROTOCOL_ERROR));
-                break;
-              }
-              DEBUGLOG("Dispatching query");
-              doq_dispatch_query(*(frontend->d_server_config), std::move(streamBuffer), clientState->local, client, serverConnID, streamID);
-              conn->get().d_streamBuffers.erase(streamID);
-            }
-          }
-        }
-        else {
-          DEBUGLOG("Connection not established");
-        }
-      }
+          flushEgress(sock, conn->second.d_conn, conn->second.d_peer, buffer);
 
-      if (std::find(readyFDs.begin(), readyFDs.end(), responseReceiverFD) != readyFDs.end()) {
-        flushResponses(frontend->d_server_config->d_responseReceiver);
-      }
-
-      for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
-        quiche_conn_on_timeout(conn->second.d_conn.get());
-
-        flushEgress(sock, conn->second.d_conn, conn->second.d_peer);
-
-        if (quiche_conn_is_closed(conn->second.d_conn.get())) {
+          if (quiche_conn_is_closed(conn->second.d_conn.get())) {
 #ifdef DEBUGLOG_ENABLED
-          quiche_stats stats;
-          quiche_path_stats path_stats;
+            quiche_stats stats;
+            quiche_path_stats path_stats;
 
-          quiche_conn_stats(conn->second.d_conn.get(), &stats);
-          quiche_conn_path_stats(conn->second.d_conn.get(), 0, &path_stats);
+            quiche_conn_stats(conn->second.d_conn.get(), &stats);
+            quiche_conn_path_stats(conn->second.d_conn.get(), 0, &path_stats);
 
-          DEBUGLOG("Connection closed, recv=" << stats.recv << " sent=" << stats.sent << " lost=" << stats.lost << " rtt=" << path_stats.rtt << "ns cwnd=" << path_stats.cwnd);
+            DEBUGLOG("Connection (DoQ) closed, recv=" << stats.recv << " sent=" << stats.sent << " lost=" << stats.lost << " rtt=" << path_stats.rtt << "ns cwnd=" << path_stats.cwnd);
 #endif
-          conn = frontend->d_server_config->d_connections.erase(conn);
+            conn = frontend->d_server_config->d_connections.erase(conn);
+          }
+          else {
+            flushStalledResponses(conn->second);
+            ++conn;
+          }
         }
-        else {
-          flushStalledResponses(conn->second);
-          ++conn;
-        }
+      }
+      catch (const std::exception& exp) {
+        vinfolog("Caught exception in the main DoQ thread: %s", exp.what());
+      }
+      catch (...) {
+        vinfolog("Unknown exception in the main DoQ thread");
       }
     }
   }
   catch (const std::exception& e) {
-    DEBUGLOG("Caught fatal error: " << e.what());
+    DEBUGLOG("Caught fatal error in the main DoQ thread: " << e.what());
   }
 }
 

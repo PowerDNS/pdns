@@ -387,17 +387,18 @@ std::unique_ptr<Socket> s_socket = nullptr;
 static void receiveFromReference()
 try
 {
-  string packet;
+  PacketBuffer packet;
   ComboAddress remote;
   int res=waitForData(s_socket->getHandle(), g_timeoutMsec/1000, 1000*(g_timeoutMsec%1000));
 
   if(res < 0 || res==0)
     return;
 
-  while(s_socket->recvFromAsync(packet)) {
+  while (s_socket->recvFromAsync(packet, remote)) {
     try {
       s_weanswers++;
-      MOADNSParser mdp(false, packet.c_str(), packet.length());
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      MOADNSParser mdp(false, reinterpret_cast<const char*>(packet.data()), packet.size());
       if(!mdp.d_header.qr) {
         cout<<"Received a question from our reference nameserver!"<<endl;
         continue;
