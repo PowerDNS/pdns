@@ -406,6 +406,9 @@ def get_cflags():
         "-Werror=shadow",
         "-Wformat=2",
         "-Werror=format-security",
+        "-fstack-clash-protection",
+        "-fstack-protector-strong",
+        "-fcf-protection=full",
         "-Werror=string-plus-int" if is_compiler_clang() else '',
     ])
 
