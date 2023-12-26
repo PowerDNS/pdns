@@ -1729,5 +1729,5 @@ std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf);
 void setSocketBuffer(int fd, int optname, uint32_t size);
 void setSocketReceiveBuffer(int fd, uint32_t size);
 void setSocketSendBuffer(int fd, uint32_t size);
-uint32_t raiseSocketReceiveBufferToMax(int fd);
-uint32_t raiseSocketSendBufferToMax(int fd);
+uint32_t raiseSocketReceiveBufferToMax(int socket);
+uint32_t raiseSocketSendBufferToMax(int socket);

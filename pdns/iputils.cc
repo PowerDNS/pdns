@@ -538,33 +538,33 @@ void setSocketSendBuffer(int fd, uint32_t size)
   setSocketBuffer(fd, SO_SNDBUF, size);
 }
 
-static uint32_t raiseSocketBufferToMax(int fd, int optname, const std::string& readMaxFromFile)
+static uint32_t raiseSocketBufferToMax(int socket, int optname, const std::string& readMaxFromFile)
 {
   std::ifstream ifs(readMaxFromFile);
   if (ifs) {
     std::string line;
     if (getline(ifs, line)) {
       auto max = pdns::checked_stoi<uint32_t>(line);
-      setSocketBuffer(fd, optname, max);
+      setSocketBuffer(socket, optname, max);
       return max;
     }
   }
   return 0;
 }
 
-uint32_t raiseSocketReceiveBufferToMax(int fd)
+uint32_t raiseSocketReceiveBufferToMax(int socket)
 {
 #ifdef __linux__
-  return raiseSocketBufferToMax(fd, SO_RCVBUF, "/proc/sys/net/core/rmem_max");
+  return raiseSocketBufferToMax(socket, SO_RCVBUF, "/proc/sys/net/core/rmem_max");
 #else
   return 0;
 #endif
 }
 
-uint32_t raiseSocketSendBufferToMax(int fd)
+uint32_t raiseSocketSendBufferToMax(int socket)
 {
 #ifdef __linux__
-  return raiseSocketBufferToMax(fd, SO_SNDBUF, "/proc/sys/net/core/wmem_max");
+  return raiseSocketBufferToMax(socket, SO_SNDBUF, "/proc/sys/net/core/wmem_max");
 #else
   return 0;
 #endif
