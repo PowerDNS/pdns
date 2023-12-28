@@ -217,6 +217,7 @@ private:
   string_t d_storage;
 
   void packetParser(const char* qpos, size_t len, size_t offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset);
+  const unsigned char* parsePacketUncompressed(const unsigned char* start, const unsigned char* pos, const unsigned char* end, bool uncompress);
   static void appendEscapedLabel(std::string& appendTo, const char* orig, size_t len);
   static std::string unescapeLabel(const std::string& orig);
   static void throwSafeRangeError(const std::string& msg, const char* buf, size_t length);
