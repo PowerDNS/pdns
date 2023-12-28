@@ -101,7 +101,7 @@ class XskSocket
   // number of entries (frames) in the umem
   const size_t frameNum;
   // responses that have been delayed
-  std::priority_queue<XskPacketPtr> waitForDelay;
+  std::priority_queue<XskPacket> waitForDelay;
   const std::string ifName;
   const std::string poolName;
   // AF_XDP socket then worker waker sockets
@@ -147,12 +147,12 @@ public:
   // wait until one event has occurred
   [[nodiscard]] int wait(int timeout);
   // add as many packets as possible to the rx queue for sending */
-  void send(std::vector<XskPacketPtr>& packets);
+  void send(std::vector<XskPacket>& packets);
   // look at incoming packets in rx, return them if parsing succeeeded
-  [[nodiscard]] std::vector<XskPacketPtr> recv(uint32_t recvSizeMax, uint32_t* failedCount);
+  [[nodiscard]] std::vector<XskPacket> recv(uint32_t recvSizeMax, uint32_t* failedCount);
   void addWorker(std::shared_ptr<XskWorker> s, const ComboAddress& dest);
   [[nodiscard]] std::string getMetrics() const;
-  void markAsFree(XskPacketPtr&& packet);
+  void markAsFree(XskPacket&& packet);
   [[nodiscard]] WorkerContainer& getWorkers()
   {
     return workers;
@@ -167,8 +167,8 @@ public:
   // picks up entries that have been processed (sent) from cq and push them into uniqueEmptyFrameOffset
   void recycle(size_t size) noexcept;
   // look at delayed packets, and send the ones that are ready
-  void pickUpReadyPacket(std::vector<XskPacketPtr>& packets);
-  void pushDelayed(XskPacketPtr&& packet)
+  void pickUpReadyPacket(std::vector<XskPacket>& packets);
+  void pushDelayed(XskPacket&& packet)
   {
     waitForDelay.push(std::move(packet));
   }
@@ -238,11 +238,11 @@ public:
   [[nodiscard]] uint32_t getFrameLen() const noexcept;
   [[nodiscard]] PacketBuffer clonePacketBuffer() const;
   void cloneIntoPacketBuffer(PacketBuffer& buffer) const;
-  [[nodiscard]] std::unique_ptr<PacketBuffer> cloneHeadertoPacketBuffer() const;
+  [[nodiscard]] PacketBuffer cloneHeadertoPacketBuffer() const;
   void setAddr(const ComboAddress& from_, MACAddr fromMAC, const ComboAddress& to_, MACAddr toMAC) noexcept;
   bool setPayload(const PacketBuffer& buf);
   void rewrite() noexcept;
-  void setHeader(const PacketBuffer& buf);
+  void setHeader(PacketBuffer& buf);
   XskPacket(uint8_t* frame, size_t dataSize, size_t frameSize);
   void addDelay(int relativeMilliseconds) noexcept;
   void updatePacket() noexcept;
@@ -258,7 +258,7 @@ public:
     return frame - base;
   }
 };
-bool operator<(const XskPacketPtr& s1, const XskPacketPtr& s2) noexcept;
+bool operator<(const XskPacket& s1, const XskPacket& s2) noexcept;
 
 /* g++ defines __SANITIZE_THREAD__
    clang++ supports the nice __has_feature(thread_sanitizer),
@@ -275,9 +275,9 @@ bool operator<(const XskPacketPtr& s1, const XskPacketPtr& s2) noexcept;
 class XskWorker
 {
 #if defined(__SANITIZE_THREAD__)
-  using XskPacketRing = LockGuarded<boost::lockfree::spsc_queue<XskPacket*, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS*2>>>;
+  using XskPacketRing = LockGuarded<boost::lockfree::spsc_queue<XskPacket, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS*2>>>;
 #else
-  using XskPacketRing = boost::lockfree::spsc_queue<XskPacket*, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS*2>>;
+  using XskPacketRing = boost::lockfree::spsc_queue<XskPacket, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS*2>>;
 #endif
 
 public:
@@ -300,9 +300,9 @@ public:
   static int createEventfd();
   static void notify(int fd);
   static std::shared_ptr<XskWorker> create();
-  void pushToProcessingQueue(XskPacketPtr&& packet);
-  void pushToSendQueue(XskPacketPtr&& packet);
-  void markAsFree(XskPacketPtr&& packet);
+  void pushToProcessingQueue(XskPacket&& packet);
+  void pushToSendQueue(XskPacket&& packet);
+  void markAsFree(XskPacket&& packet);
   // notify worker that at least one packet is available for processing
   void notifyWorker() noexcept;
   // notify the router that packets are ready to be sent
@@ -315,7 +315,7 @@ public:
   void fillUniqueEmptyOffset();
   // look for an empty umem entry in uniqueEmptyFrameOffset
   // then sharedEmptyFrameOffset if needed
-  XskPacketPtr getEmptyFrame();
+  std::optional<XskPacket> getEmptyFrame();
 };
 std::vector<pollfd> getPollFdsForWorker(XskWorker& info);
 #else

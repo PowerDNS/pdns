@@ -750,7 +750,7 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   }
 
   bool muted = true;
-  if (ids.cs && !ids.cs->muted && !ids.xskPacketHeader) {
+  if (ids.cs && !ids.cs->muted && !ids.isXSK()) {
     sendUDPResponse(ids.cs->udpFD, response, dr.ids.delayMsec, ids.hopLocal, ids.hopRemote);
     muted = false;
   }
@@ -761,7 +761,7 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
       vinfolog("Got answer from %s, relayed to %s (UDP), took %f us", ds->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
     }
     else {
-      if (!ids.xskPacketHeader) {
+      if (!ids.isXSK()) {
         vinfolog("Got answer from %s, NOT relayed to %s (UDP) since that frontend is muted, took %f us", ds->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), udiff);
       }
       else {
@@ -829,7 +829,7 @@ static void doHealthCheck(std::shared_ptr<DownstreamState>& dss, std::unordered_
   xskPacket->setAddr(dss->d_config.sourceAddr, dss->d_config.sourceMACAddr, dss->d_config.remote, dss->d_config.destMACAddr);
   xskPacket->setPayload(packet);
   xskPacket->rewrite();
-  xskInfo->pushToSendQueue(std::move(xskPacket));
+  xskInfo->pushToSendQueue(std::move(*xskPacket));
   const auto queryId = data->d_queryID;
   map[queryId] = std::move(data);
 }
@@ -863,20 +863,19 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
       if (pollfds[0].revents & POLLIN) {
         needNotify = true;
 #if defined(__SANITIZE_THREAD__)
-        xskInfo->incomingPacketsQueue.lock()->consume_all([&](XskPacket* packetRaw) {
+        xskInfo->incomingPacketsQueue.lock()->consume_all([&](XskPacket& packet) {
 #else
-        xskInfo->incomingPacketsQueue.consume_all([&](XskPacket* packetRaw) {
+        xskInfo->incomingPacketsQueue.consume_all([&](XskPacket& packet) {
 #endif
-          auto packet = XskPacketPtr(packetRaw);
-          if (packet->getDataLen() < sizeof(dnsheader)) {
+          if (packet.getDataLen() < sizeof(dnsheader)) {
             xskInfo->markAsFree(std::move(packet));
             return;
           }
-          const dnsheader_aligned dnsHeader(packet->getPayloadData());
+          const dnsheader_aligned dnsHeader(packet.getPayloadData());
           const auto queryId = dnsHeader->id;
           auto ids = dss->getState(queryId);
           if (ids) {
-            if (xskFd != ids->backendFD || !ids->xskPacketHeader) {
+            if (xskFd != ids->backendFD || !ids->isXSK()) {
               dss->restoreState(queryId, std::move(*ids));
               ids = std::nullopt;
             }
@@ -887,16 +886,16 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             if (iter != healthCheckMap.end()) {
               auto data = std::move(iter->second);
               healthCheckMap.erase(iter);
-              packet->cloneIntoPacketBuffer(data->d_buffer);
+              packet.cloneIntoPacketBuffer(data->d_buffer);
               data->d_ds->submitHealthCheckResult(data->d_initial, handleResponse(data));
             }
             xskInfo->markAsFree(std::move(packet));
             return;
           }
-          auto response = packet->clonePacketBuffer();
-          if (response.size() > packet->getCapacity()) {
+          auto response = packet.clonePacketBuffer();
+          if (response.size() > packet.getCapacity()) {
             /* fallback to sending the packet via normal socket */
-            ids->xskPacketHeader.reset();
+            ids->xskPacketHeader.clear();
           }
           if (!processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids))) {
             xskInfo->markAsFree(std::move(packet));
@@ -904,7 +903,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             return;
           }
           vinfolog("XSK packet - processResponderPacket OK");
-          if (response.size() > packet->getCapacity()) {
+          if (response.size() > packet.getCapacity()) {
             /* fallback to sending the packet via normal socket */
             sendUDPResponse(ids->cs->udpFD, response, ids->delayMsec, ids->hopLocal, ids->hopRemote);
             vinfolog("XSK packet falling back because packet is too large");
@@ -912,17 +911,17 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             return;
           }
           //vinfolog("XSK packet - set header");
-          packet->setHeader(*ids->xskPacketHeader);
+          packet.setHeader(ids->xskPacketHeader);
           //vinfolog("XSK packet - set payload");
-          if (!packet->setPayload(response)) {
+          if (!packet.setPayload(response)) {
             vinfolog("Unable to set payload !");
           }
           if (ids->delayMsec > 0) {
             vinfolog("XSK packet - adding delay");
-            packet->addDelay(ids->delayMsec);
+            packet.addDelay(ids->delayMsec);
           }
           //vinfolog("XSK packet - update packet");
-          packet->updatePacket();
+          packet.updatePacket();
           //vinfolog("XSK packet pushed to send queue");
           xskInfo->pushToSendQueue(std::move(packet));
         });
@@ -993,7 +992,7 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
   setThreadName("dnsdist/XskRouter");
   uint32_t failed;
   // packets to be submitted for sending
-  vector<XskPacketPtr> fillInTx;
+  vector<XskPacket> fillInTx;
   const auto& fds = xsk->getDescriptors();
   // list of workers that need to be notified
   std::set<int> needNotify;
@@ -1007,7 +1006,7 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
         auto packets = xsk->recv(64, &failed);
         dnsdist::metrics::g_stats.nonCompliantQueries += failed;
         for (auto &packet : packets) {
-          const auto dest = packet->getToAddr();
+          const auto dest = packet.getToAddr();
           auto res = destIdx.find(dest);
           if (res == destIdx.end()) {
             xsk->markAsFree(std::move(packet));
@@ -1034,16 +1033,15 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
           ready--;
           auto& info = xskWakerIdx.find(fds.at(fdIndex).fd)->worker;
 #if defined(__SANITIZE_THREAD__)
-          info->outgoingPacketsQueue.lock()->consume_all([&](XskPacket* packetRaw) {
+          info->outgoingPacketsQueue.lock()->consume_all([&](XskPacket& packet) {
 #else
-          info->outgoingPacketsQueue.consume_all([&](XskPacket* packetRaw) {
+          info->outgoingPacketsQueue.consume_all([&](XskPacket& packet) {
 #endif
-            auto packet = XskPacketPtr(packetRaw);
-            if (!(packet->getFlags() & XskPacket::UPDATE)) {
+            if (!(packet.getFlags() & XskPacket::UPDATE)) {
               xsk->markAsFree(std::move(packet));
               return;
             }
-            if (packet->getFlags() & XskPacket::DELAY) {
+            if (packet.getFlags() & XskPacket::DELAY) {
               xsk->pushDelayed(std::move(packet));
               return;
             }
@@ -1131,7 +1129,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           continue;
         }
 
-        if (processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids)) && ids->xskPacketHeader && ids->cs->xskInfo) {
+        if (processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfo) {
 #ifdef HAVE_XSK
           //vinfolog("processResponderPacket OK");
           auto& xskInfo = ids->cs->xskInfo;
@@ -1140,13 +1138,13 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             continue;
           }
           //vinfolog("XSK setHeader");
-          xskPacket->setHeader(*ids->xskPacketHeader);
+          xskPacket->setHeader(ids->xskPacketHeader);
           //vinfolog("XSK payload");
           xskPacket->setPayload(response);
           //vinfolog("XSK update packet");
           xskPacket->updatePacket();
           //vinfolog("XSK pushed to send queue");
-          xskInfo->pushToSendQueue(std::move(xskPacket));
+          xskInfo->pushToSendQueue(std::move(*xskPacket));
           xskInfo->notifyXskSocket();
 #endif /* HAVE_XSK */
         }
@@ -2284,13 +2282,12 @@ static void xskClientThread(ClientState* cs)
       xskInfo->waitForXskSocket();
     }
 #if defined(__SANITIZE_THREAD__)
-    xskInfo->incomingPacketsQueue.lock()->consume_all([&](XskPacket* packetRaw) {
+    xskInfo->incomingPacketsQueue.lock()->consume_all([&](XskPacket& packet) {
 #else
-    xskInfo->incomingPacketsQueue.consume_all([&](XskPacket* packetRaw) {
+    xskInfo->incomingPacketsQueue.consume_all([&](XskPacket& packet) {
 #endif
-      auto packet = XskPacketPtr(packetRaw);
-      if (ProcessXskQuery(*cs, holders, *packet)) {
-        packet->updatePacket();
+      if (ProcessXskQuery(*cs, holders, packet)) {
+        packet.updatePacket();
         xskInfo->pushToSendQueue(std::move(packet));
       }
       else {

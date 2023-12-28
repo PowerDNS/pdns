@@ -58,7 +58,6 @@ extern "C"
 #include "gettime.hh"
 #include "xsk.hh"
 
-#define DEBUG_UMEM 0
 #ifdef DEBUG_UMEM
 namespace {
 struct UmemEntryStatus
@@ -97,7 +96,7 @@ int XskSocket::firstTimeout()
   }
   timespec now;
   gettime(&now);
-  const auto& firstTime = waitForDelay.top()->getSendTime();
+  const auto& firstTime = waitForDelay.top().getSendTime();
   const auto res = timeDifference(now, firstTime);
   if (res <= 0) {
     return 0;
@@ -226,7 +225,7 @@ int XskSocket::wait(int timeout)
   return xsk_socket__fd(socket.get());
 }
 
-void XskSocket::send(std::vector<XskPacketPtr>& packets)
+void XskSocket::send(std::vector<XskPacket>& packets)
 {
   while (packets.size() > 0) {
     auto packetSize = packets.size();
@@ -246,11 +245,11 @@ void XskSocket::send(std::vector<XskPacketPtr>& packets)
         break;
       }
       *xsk_ring_prod__tx_desc(&tx, idx++) = {
-        .addr = frameOffset(*packet),
-        .len = packet->getFrameLen(),
+        .addr = frameOffset(packet),
+        .len = packet.getFrameLen(),
         .options = 0};
 #ifdef DEBUG_UMEM
-      checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, frameOffset(*packet), {UmemEntryStatus::Status::Free, UmemEntryStatus::Status::Received}, UmemEntryStatus::Status::TXQueue);
+      checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, frameOffset(packet), {UmemEntryStatus::Status::Free, UmemEntryStatus::Status::Received}, UmemEntryStatus::Status::TXQueue);
 #endif /* DEBUG_UMEM */
       queued++;
     }
@@ -259,10 +258,10 @@ void XskSocket::send(std::vector<XskPacketPtr>& packets)
   }
 }
 
-std::vector<XskPacketPtr> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failedCount)
+std::vector<XskPacket> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failedCount)
 {
   uint32_t idx{0};
-  std::vector<XskPacketPtr> res;
+  std::vector<XskPacket> res;
   // how many descriptors to packets have been filled
   const auto recvSize = xsk_ring_cons__peek(&rx, recvSizeMax, &idx);
   if (recvSize == 0) {
@@ -276,17 +275,17 @@ std::vector<XskPacketPtr> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failed
   for (; processed < recvSize; processed++) {
     try {
       const auto* desc = xsk_ring_cons__rx_desc(&rx, idx++);
-      auto ptr = std::make_unique<XskPacket>(reinterpret_cast<uint8_t*>(desc->addr + baseAddr), desc->len, frameSize);
+      XskPacket packet = XskPacket(reinterpret_cast<uint8_t*>(desc->addr + baseAddr), desc->len, frameSize);
 #ifdef DEBUG_UMEM
-      checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, frameOffset(*ptr), {UmemEntryStatus::Status::Free, UmemEntryStatus::Status::FillQueue}, UmemEntryStatus::Status::Received);
+      checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, frameOffset(packet), {UmemEntryStatus::Status::Free, UmemEntryStatus::Status::FillQueue}, UmemEntryStatus::Status::Received);
 #endif /* DEBUG_UMEM */
 
-      if (!ptr->parse(false)) {
+      if (!packet.parse(false)) {
         ++failed;
-        markAsFree(std::move(ptr));
+        markAsFree(std::move(packet));
       }
       else {
-        res.push_back(std::move(ptr));
+        res.push_back(std::move(packet));
       }
     }
     catch (const std::exception& exp) {
@@ -310,12 +309,12 @@ std::vector<XskPacketPtr> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failed
   return res;
 }
 
-void XskSocket::pickUpReadyPacket(std::vector<XskPacketPtr>& packets)
+void XskSocket::pickUpReadyPacket(std::vector<XskPacket>& packets)
 {
   timespec now;
   gettime(&now);
-  while (!waitForDelay.empty() && timeDifference(now, waitForDelay.top()->getSendTime()) <= 0) {
-    auto& top = const_cast<XskPacketPtr&>(waitForDelay.top());
+  while (!waitForDelay.empty() && timeDifference(now, waitForDelay.top().getSendTime()) <= 0) {
+    auto& top = const_cast<XskPacket&>(waitForDelay.top());
     packets.push_back(std::move(top));
     waitForDelay.pop();
   }
@@ -375,15 +374,14 @@ std::string XskSocket::getMetrics() const
   return ret.str();
 }
 
-void XskSocket::markAsFree(XskPacketPtr&& packet)
+void XskSocket::markAsFree(XskPacket&& packet)
 {
-  auto offset = frameOffset(*packet);
+  auto offset = frameOffset(packet);
 #ifdef DEBUG_UMEM
   checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, offset, {UmemEntryStatus::Status::Received, UmemEntryStatus::Status::TXQueue}, UmemEntryStatus::Status::Free);
 #endif /* DEBUG_UMEM */
 
   uniqueEmptyFrameOffset.push_back(offset);
-  packet.release();
 }
 
 XskSocket::XskUmem::~XskUmem()
@@ -674,9 +672,9 @@ void XskPacket::addDelay(const int relativeMilliseconds) noexcept
   sendTime.tv_nsec %= 1000000000L;
 }
 
-bool operator<(const XskPacketPtr& s1, const XskPacketPtr& s2) noexcept
+bool operator<(const XskPacket& s1, const XskPacket& s2) noexcept
 {
-  return s1->getSendTime() < s2->getSendTime();
+  return s1.getSendTime() < s2.getSendTime();
 }
 
 const ComboAddress& XskPacket::getFromAddr() const noexcept
@@ -705,27 +703,25 @@ XskWorker::XskWorker() :
 {
 }
 
-void XskWorker::pushToProcessingQueue(XskPacketPtr&& packet)
+void XskWorker::pushToProcessingQueue(XskPacket&& packet)
 {
-  auto raw = packet.release();
 #if defined(__SANITIZE_THREAD__)
-  if (!incomingPacketsQueue.lock()->push(std::move(raw))) {
+  if (!incomingPacketsQueue.lock()->push(std::move(packet))) {
 #else
-  if (!incomingPacketsQueue.push(std::move(raw))) {
+  if (!incomingPacketsQueue.push(std::move(packet))) {
 #endif
-    markAsFree(XskPacketPtr(raw));
+    markAsFree(std::move(packet));
   }
 }
 
-void XskWorker::pushToSendQueue(XskPacketPtr&& packet)
+void XskWorker::pushToSendQueue(XskPacket&& packet)
 {
-  auto raw = packet.release();
 #if defined(__SANITIZE_THREAD__)
-  if (!outgoingPacketsQueue.lock()->push(raw)) {
+  if (!outgoingPacketsQueue.lock()->push(std::move(packet))) {
 #else
-  if (!outgoingPacketsQueue.push(raw)) {
+  if (!outgoingPacketsQueue.push(std::move(packet))) {
 #endif
-    markAsFree(XskPacketPtr(raw));
+    markAsFree(std::move(packet));
   }
 }
 
@@ -924,21 +920,22 @@ void XskPacket::rewrite() noexcept
   return ip_checksum_partial(&pseudo_header, sizeof(pseudo_header), 0);
 }
 
-void XskPacket::setHeader(const PacketBuffer& buf)
+void XskPacket::setHeader(PacketBuffer& buf)
 {
   memcpy(frame, buf.data(), buf.size());
   frameLength = buf.size();
+  buf.clear();
   flags = 0;
   if (!parse(true)) {
     throw std::runtime_error("Error setting the XSK frame header");
   }
 }
 
-std::unique_ptr<PacketBuffer> XskPacket::cloneHeadertoPacketBuffer() const
+PacketBuffer XskPacket::cloneHeadertoPacketBuffer() const
 {
   const auto size = getFrameLen() - getDataSize();
-  auto tmp = std::make_unique<PacketBuffer>(size);
-  memcpy(tmp->data(), frame, size);
+  PacketBuffer tmp(size);
+  memcpy(tmp.data(), frame, size);
   return tmp;
 }
 
@@ -1068,31 +1065,29 @@ void XskWorker::fillUniqueEmptyOffset()
   }
 }
 
-XskPacketPtr XskWorker::getEmptyFrame()
+std::optional<XskPacket> XskWorker::getEmptyFrame()
 {
   if (!uniqueEmptyFrameOffset.empty()) {
     auto offset = uniqueEmptyFrameOffset.back();
     uniqueEmptyFrameOffset.pop_back();
-    return std::make_unique<XskPacket>(offset + umemBufBase, 0, frameSize);
+    return XskPacket(offset + umemBufBase, 0, frameSize);
   }
   fillUniqueEmptyOffset();
   if (!uniqueEmptyFrameOffset.empty()) {
     auto offset = uniqueEmptyFrameOffset.back();
     uniqueEmptyFrameOffset.pop_back();
-    return std::make_unique<XskPacket>(offset + umemBufBase, 0, frameSize);
+    return XskPacket(offset + umemBufBase, 0, frameSize);
   }
-  return nullptr;
+  return std::nullopt;
 }
 
-void XskWorker::markAsFree(XskPacketPtr&& packet)
+void XskWorker::markAsFree(XskPacket&& packet)
 {
-
-  auto offset = frameOffset(*packet);
+  auto offset = frameOffset(packet);
 #ifdef DEBUG_UMEM
   checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, offset, {UmemEntryStatus::Status::Received, UmemEntryStatus::Status::TXQueue}, UmemEntryStatus::Status::Free);
 #endif /* DEBUG_UMEM */
   uniqueEmptyFrameOffset.push_back(offset);
-  packet.release();
 }
 
 uint32_t XskPacket::getFlags() const noexcept
