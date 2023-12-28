@@ -5,7 +5,7 @@ import clientsubnetoption
 from dnsdisttests import DNSDistTest
 from dnsdisttests import pickAvailablePort
 from doqclient import quic_bogus_query
-from quictests import QUICTests, QUICWithCacheTests
+from quictests import QUICTests, QUICWithCacheTests, QUICACLTests
 import doqclient
 
 class TestDOQBogus(DNSDistTest):
@@ -76,6 +76,27 @@ class TestDOQWithCache(QUICWithCacheTests, DNSDistTest):
 
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
     getPool(""):setCache(pc)
+    """
+    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+    _verboseMode = True
+
+    def getQUICConnection(self):
+        return self.getDOQConnection(self._doqServerPort, self._caCert)
+
+    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
+        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
+
+class TestDOQWithACL(QUICACLTests, DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    setACL("192.0.2.1/32")
+    addDOQLocal("127.0.0.1:%d", "%s", "%s")
     """
     _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
     _verboseMode = True
