@@ -149,11 +149,12 @@ void XskSocket::fillFq(uint32_t fillSize) noexcept
   if (xsk_ring_prod__reserve(&fq, fillSize, &idx) != fillSize) {
     return;
   }
-  for (uint32_t i = 0; i < fillSize; i++) {
+  uint32_t processed = 0;
+  for (; processed < fillSize; processed++) {
     *xsk_ring_prod__fill_addr(&fq, idx++) = uniqueEmptyFrameOffset.back();
     uniqueEmptyFrameOffset.pop_back();
   }
-  xsk_ring_prod__submit(&fq, idx);
+  xsk_ring_prod__submit(&fq, processed);
 }
 int XskSocket::wait(int timeout)
 {
@@ -177,10 +178,10 @@ void XskSocket::send(std::vector<XskPacketPtr>& packets)
     return;
   }
 
-  for (const auto& i : packets) {
+  for (const auto& packet : packets) {
     *xsk_ring_prod__tx_desc(&tx, idx++) = {
-      .addr = frameOffset(*i),
-      .len = i->FrameLen(),
+      .addr = frameOffset(*packet),
+      .len = packet->FrameLen(),
       .options = 0};
   }
   xsk_ring_prod__submit(&tx, packetSize);
@@ -197,12 +198,13 @@ std::vector<XskPacketPtr> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failed
   }
 
   const auto baseAddr = reinterpret_cast<uint64_t>(umem.bufBase);
-  uint32_t count = 0;
-  for (uint32_t i = 0; i < recvSize; i++) {
+  uint32_t failed = 0;
+  uint32_t processed = 0;
+  for (; processed < recvSize; processed++) {
     const auto* desc = xsk_ring_cons__rx_desc(&rx, idx++);
     auto ptr = std::make_unique<XskPacket>(reinterpret_cast<void*>(desc->addr + baseAddr), desc->len, frameSize);
     if (!ptr->parse()) {
-      ++count;
+      ++failed;
       uniqueEmptyFrameOffset.push_back(frameOffset(*ptr));
     }
     else {
@@ -213,9 +215,9 @@ std::vector<XskPacketPtr> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failed
   // this releases the descriptor, but not the packet (umem entries)
   // which will only be made available again when pushed into the fill
   // queue
-  xsk_ring_cons__release(&rx, recvSize);
+  xsk_ring_cons__release(&rx, processed);
   if (failedCount) {
-    *failedCount = count;
+    *failedCount = failed;
   }
 
   return res;
@@ -237,7 +239,7 @@ void XskSocket::recycle(size_t size) noexcept
   if (completeSize <= 0) {
     return;
   }
-  for (uint32_t i = 0; i < completeSize; ++i) {
+  for (uint32_t processed = 0; processed < completeSize; ++processed) {
     uniqueEmptyFrameOffset.push_back(*xsk_ring_cons__comp_addr(&cq, idx++));
   }
   xsk_ring_cons__release(&cq, completeSize);
