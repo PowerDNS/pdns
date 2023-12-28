@@ -87,12 +87,12 @@ class XskSocket
     ~XskUmem();
     XskUmem() = default;
   };
-  boost::multi_index_container<
+  using WorkerContainer = boost::multi_index_container<
     XskRouteInfo,
     boost::multi_index::indexed_by<
       boost::multi_index::hashed_unique<boost::multi_index::member<XskRouteInfo, int, &XskRouteInfo::xskSocketWaker>>,
-      boost::multi_index::hashed_unique<boost::multi_index::member<XskRouteInfo, ComboAddress, &XskRouteInfo::dest>, ComboAddress::addressPortOnlyHash>>>
-    workers;
+      boost::multi_index::hashed_unique<boost::multi_index::member<XskRouteInfo, ComboAddress, &XskRouteInfo::dest>, ComboAddress::addressPortOnlyHash>>>;
+  WorkerContainer workers;
   // number of frames to keep in sharedEmptyFrameOffset
   static constexpr size_t holdThreshold = 256;
   // number of frames to insert into the fill queue
@@ -100,8 +100,6 @@ class XskSocket
   static constexpr size_t frameSize = 2048;
   // number of entries (frames) in the umem
   const size_t frameNum;
-  // ID of the network queue
-  const uint32_t queueId;
   // responses that have been delayed
   std::priority_queue<XskPacketPtr> waitForDelay;
   const std::string ifName;
@@ -123,7 +121,6 @@ class XskSocket
   xsk_ring_prod tx;
   std::unique_ptr<xsk_socket, void (*)(xsk_socket*)> socket;
   XskUmem umem;
-  bpf_object* prog;
 
   static constexpr uint32_t fqCapacity = XSK_RING_PROD__DEFAULT_NUM_DESCS * 4;
   static constexpr uint32_t cqCapacity = XSK_RING_CONS__DEFAULT_NUM_DESCS * 4;
@@ -132,18 +129,10 @@ class XskSocket
 
   constexpr static bool isPowOfTwo(uint32_t value) noexcept;
   [[nodiscard]] static int timeDifference(const timespec& t1, const timespec& t2) noexcept;
-  friend void XskRouter(std::shared_ptr<XskSocket> xsk);
 
   [[nodiscard]] uint64_t frameOffset(const XskPacket& packet) const noexcept;
   [[nodiscard]] int firstTimeout();
-  // pick ups available frames from uniqueEmptyFrameOffset
-  // insert entries from uniqueEmptyFrameOffset into fq
-  void fillFq(uint32_t fillSize = fillThreshold) noexcept;
-  // picks up entries that have been processed (sent) from cq and push them into uniqueEmptyFrameOffset
-  void recycle(size_t size) noexcept;
   void getMACFromIfName();
-  // look at delayed packets, and send the ones that are ready
-  void pickUpReadyPacket(std::vector<XskPacketPtr>& packets);
 
 public:
   static constexpr size_t getFrameSize()
@@ -164,6 +153,25 @@ public:
   void addWorker(std::shared_ptr<XskWorker> s, const ComboAddress& dest);
   [[nodiscard]] std::string getMetrics() const;
   void markAsFree(XskPacketPtr&& packet);
+  [[nodiscard]] WorkerContainer& getWorkers()
+  {
+    return workers;
+  }
+  [[nodiscard]] const std::vector<pollfd>& getDescriptors() const
+  {
+    return fds;
+  }
+  // pick ups available frames from uniqueEmptyFrameOffset
+  // insert entries from uniqueEmptyFrameOffset into fq
+  void fillFq(uint32_t fillSize = fillThreshold) noexcept;
+  // picks up entries that have been processed (sent) from cq and push them into uniqueEmptyFrameOffset
+  void recycle(size_t size) noexcept;
+  // look at delayed packets, and send the ones that are ready
+  void pickUpReadyPacket(std::vector<XskPacketPtr>& packets);
+  void pushDelayed(XskPacketPtr&& packet)
+  {
+    waitForDelay.push(std::move(packet));
+  }
 };
 
 struct iphdr;
@@ -216,13 +224,7 @@ private:
   void setIPv6Header(const ipv6hdr& ipv6Header) noexcept;
   [[nodiscard]] udphdr getUDPHeader() const noexcept;
   void setUDPHeader(const udphdr& udpHeader) noexcept;
-  // parse IP and UDP payloads
-  bool parse(bool fromSetHeader);
   void changeDirectAndUpdateChecksum() noexcept;
-
-  friend XskSocket;
-  friend XskWorker;
-  friend bool operator<(const XskPacketPtr& s1, const XskPacketPtr& s2) noexcept;
 
   constexpr static uint8_t DefaultTTL = 64;
 
@@ -244,7 +246,17 @@ public:
   XskPacket(uint8_t* frame, size_t dataSize, size_t frameSize);
   void addDelay(int relativeMilliseconds) noexcept;
   void updatePacket() noexcept;
+  // parse IP and UDP payloads
+  bool parse(bool fromSetHeader);
   [[nodiscard]] uint32_t getFlags() const noexcept;
+  [[nodiscard]] timespec getSendTime() const noexcept
+  {
+    return sendTime;
+  }
+  [[nodiscard]] uint64_t getFrameOffsetFrom(const uint8_t* base) const noexcept
+  {
+    return frame - base;
+  }
 };
 bool operator<(const XskPacketPtr& s1, const XskPacketPtr& s2) noexcept;
 
@@ -298,7 +310,7 @@ public:
   void waitForXskSocket() noexcept;
   void cleanWorkerNotification() noexcept;
   void cleanSocketNotification() noexcept;
-  [[nodiscard]] uint64_t frameOffset(const XskPacket& s) const noexcept;
+  [[nodiscard]] uint64_t frameOffset(const XskPacket& packet) const noexcept;
   // reap empty umem entry from sharedEmptyFrameOffset into uniqueEmptyFrameOffset
   void fillUniqueEmptyOffset();
   // look for an empty umem entry in uniqueEmptyFrameOffset

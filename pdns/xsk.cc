@@ -97,7 +97,7 @@ int XskSocket::firstTimeout()
   }
   timespec now;
   gettime(&now);
-  const auto& firstTime = waitForDelay.top()->sendTime;
+  const auto& firstTime = waitForDelay.top()->getSendTime();
   const auto res = timeDifference(now, firstTime);
   if (res <= 0) {
     return 0;
@@ -106,7 +106,7 @@ int XskSocket::firstTimeout()
 }
 
 XskSocket::XskSocket(size_t frameNum_, const std::string& ifName_, uint32_t queue_id, const std::string& xskMapPath, const std::string& poolName_) :
-  frameNum(frameNum_), queueId(queue_id), ifName(ifName_), poolName(poolName_), socket(nullptr, xsk_socket__delete), sharedEmptyFrameOffset(std::make_shared<LockGuarded<vector<uint64_t>>>())
+  frameNum(frameNum_), ifName(ifName_), poolName(poolName_), socket(nullptr, xsk_socket__delete), sharedEmptyFrameOffset(std::make_shared<LockGuarded<vector<uint64_t>>>())
 {
   if (!isPowOfTwo(frameNum_) || !isPowOfTwo(frameSize)
       || !isPowOfTwo(fqCapacity) || !isPowOfTwo(cqCapacity) || !isPowOfTwo(rxCapacity) || !isPowOfTwo(txCapacity)) {
@@ -219,7 +219,7 @@ int XskSocket::wait(int timeout)
 
 [[nodiscard]] uint64_t XskSocket::frameOffset(const XskPacket& packet) const noexcept
 {
-  return packet.frame - umem.bufBase;
+  return packet.getFrameOffsetFrom(umem.bufBase);
 }
 
 [[nodiscard]] int XskSocket::xskFd() const noexcept {
@@ -314,7 +314,7 @@ void XskSocket::pickUpReadyPacket(std::vector<XskPacketPtr>& packets)
 {
   timespec now;
   gettime(&now);
-  while (!waitForDelay.empty() && timeDifference(now, waitForDelay.top()->sendTime) <= 0) {
+  while (!waitForDelay.empty() && timeDifference(now, waitForDelay.top()->getSendTime()) <= 0) {
     auto& top = const_cast<XskPacketPtr&>(waitForDelay.top());
     packets.push_back(std::move(top));
     waitForDelay.pop();
@@ -676,7 +676,7 @@ void XskPacket::addDelay(const int relativeMilliseconds) noexcept
 
 bool operator<(const XskPacketPtr& s1, const XskPacketPtr& s2) noexcept
 {
-  return s1->sendTime < s2->sendTime;
+  return s1->getSendTime() < s2->getSendTime();
 }
 
 const ComboAddress& XskPacket::getFromAddr() const noexcept
@@ -992,9 +992,9 @@ void XskSocket::addWorker(std::shared_ptr<XskWorker> s, const ComboAddress& dest
     .revents = 0});
 };
 
-uint64_t XskWorker::frameOffset(const XskPacket& s) const noexcept
+uint64_t XskWorker::frameOffset(const XskPacket& packet) const noexcept
 {
-  return s.frame - umemBufBase;
+  return packet.getFrameOffsetFrom(umemBufBase);
 }
 
 void XskWorker::notifyWorker() noexcept
