@@ -14,7 +14,7 @@ DROP_ACTION = 1
 TC_ACTION = 2
 
 # The interface on wich the filter will be attached 
-DEV = "eth0"
+DEV = "eth1"
 
 # The list of blocked IPv4, IPv6 and QNames
 # IP format : (IPAddress, Action)

@@ -783,9 +783,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (socket) {
         udpCS->xskInfo = XskWorker::create();
         udpCS->xskInfo->sharedEmptyFrameOffset = socket->sharedEmptyFrameOffset;
-        socket->addWorker(udpCS->xskInfo, loc, false);
-        // tcpCS->xskInfo=XskWorker::create();
-        // TODO: socket->addWorker(tcpCS->xskInfo, loc, true);
+        socket->addWorker(udpCS->xskInfo, loc);
       }
 #endif /* HAVE_XSK */
       g_frontends.push_back(std::move(udpCS));
@@ -837,9 +835,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (socket) {
         udpCS->xskInfo = XskWorker::create();
         udpCS->xskInfo->sharedEmptyFrameOffset = socket->sharedEmptyFrameOffset;
-        socket->addWorker(udpCS->xskInfo, loc, false);
-        // TODO tcpCS->xskInfo=XskWorker::create();
-        // TODO socket->addWorker(tcpCS->xskInfo, loc, true);
+        socket->addWorker(udpCS->xskInfo, loc);
       }
 #endif /* HAVE_XSK */
       g_frontends.push_back(std::move(udpCS));
