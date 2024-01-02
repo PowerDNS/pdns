@@ -45,11 +45,11 @@ def main():
         print("No diagnostics or warnings produced by clang-tidy")
         return 0
 
-    gh_step_summary = os.getenv('GITHUB_STEP_SUMMARY')
+    gh_step_summary = os.getenv("GITHUB_STEP_SUMMARY")
     if gh_step_summary:
         # Print Markdown summary
-        summaryFp = open(gh_step_summary, 'a', encoding='utf-8')
-        print('### clang-tidy summary', file=summaryFp)
+        summary_fp = open(gh_step_summary, "a", encoding="utf-8")
+        print("### clang-tidy summary", file=summary_fp)
 
     fixes = fixes["Diagnostics"]
     have_warnings = False
@@ -84,20 +84,23 @@ def main():
 
         line = helpers.get_line_from_offset(file_contents, offset)
 
-        relative_filename = Path(full_filename).resolve().relative_to(repo_root_dir)
+        rel_filename = Path(full_filename).resolve().relative_to(repo_root_dir)
         annotation = "".join(
             [
-                f"::warning file={relative_filename},line={line}",
+                f"::warning file={rel_filename},line={line}",
                 f"::{message} ({name} - Level={level})",
             ]
         )
         print(annotation)
 
         # User-friendly printout
-        print(f"{level}: {relative_filename}:{line}: {message} ({name})")
+        print(f"{level}: {rel_filename}:{line}: {message} ({name})")
 
         if gh_step_summary:
-            print(f'- **{relative_filename}:{line}** {message} (`{name}`)', file=summaryFp)
+            print(
+                f"- **{rel_filename}:{line}** {message} (`{name}`)",
+                file=summary_fp,
+            )
 
         have_warnings = True
 
