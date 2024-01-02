@@ -562,6 +562,15 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
           res = RCode::ServFail;
           break;
         }
+        catch (const pdns::validation::TooManySEC3IterationsException& e) {
+          if (g_logCommonErrors) {
+            SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << dc->d_mdp.d_qname << "' because: " << e.what() << endl,
+                 sr.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during resolve of the custom filter policy",
+                                  "policyName", Logging::Loggable(appliedPolicy.getName()), "exception", Logging::Loggable("TooManySEC3IterationsException")));
+          }
+          res = RCode::ServFail;
+          break;
+        }
         catch (const PolicyHitException& e) {
           if (g_logCommonErrors) {
             SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << dc->d_mdp.d_qname << "' because another RPZ policy was hit" << endl,
@@ -1245,6 +1254,13 @@ void startDoResolve(void* p) // NOLINT(readability-function-cognitive-complexity
         }
         res = RCode::ServFail;
       }
+      catch (const pdns::validation::TooManySEC3IterationsException& e) {
+        if (g_logCommonErrors) {
+          SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during resolve of '" << dc->d_mdp.d_qname << "' because: " << e.what() << endl,
+               sr.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during resolve"));
+        }
+        res = RCode::ServFail;
+      }
       catch (const SendTruncatedAnswerException& e) {
         ret.clear();
         sr.d_appliedPolicy.addSOAtoRPZResult(ret);
@@ -1419,6 +1435,13 @@ void startDoResolve(void* p) // NOLINT(readability-function-cognitive-complexity
             SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during validation of '" << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << "' because: " << e.reason << endl,
                  sr.d_slog->error(Logr::Notice, e.reason, "Sending SERVFAIL during validation", "exception", Logging::Loggable("ImmediateServFailException")));
           goto sendit;
+        }
+        catch (const pdns::validation::TooManySEC3IterationsException& e) {
+          if (g_logCommonErrors) {
+            SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << dc->getRemote() << " during validation of '" << dc->d_mdp.d_qname << "|" << QType(dc->d_mdp.d_qtype) << "' because: " << e.what() << endl,
+                 sr.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during validation", "exception", Logging::Loggable("TooManySEC3IterationsException")));
+          }
+          goto sendit; // NOLINT(cppcoreguidelines-avoid-goto)
         }
       }
 

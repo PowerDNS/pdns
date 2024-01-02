@@ -442,6 +442,8 @@ unsigned int SyncRes::s_serverdownthrottletime;
 unsigned int SyncRes::s_nonresolvingnsmaxfails;
 unsigned int SyncRes::s_nonresolvingnsthrottletime;
 unsigned int SyncRes::s_ecscachelimitttl;
+unsigned int SyncRes::s_maxvalidationsperq;
+unsigned int SyncRes::s_maxnsec3iterationsperq;
 pdns::stat_t SyncRes::s_ecsqueries;
 pdns::stat_t SyncRes::s_ecsresponses;
 std::map<uint8_t, pdns::stat_t> SyncRes::s_ecsResponsesBySubnetSize4;
@@ -521,8 +523,8 @@ static inline void accountAuthLatency(uint64_t usec, int family)
 
 SyncRes::SyncRes(const struct timeval& now) :
   d_authzonequeries(0), d_outqueries(0), d_tcpoutqueries(0), d_dotoutqueries(0), d_throttledqueries(0), d_timeouts(0), d_unreachables(0), d_totUsec(0), d_fixednow(now), d_now(now), d_cacheonly(false), d_doDNSSEC(false), d_doEDNS0(false), d_qNameMinimization(s_qnameminimization), d_lm(s_lm)
-
 {
+  d_validationContext.d_nsec3IterationsRemainingQuota = s_maxnsec3iterationsperq > 0 ? s_maxnsec3iterationsperq : std::numeric_limits<decltype(d_validationContext.d_nsec3IterationsRemainingQuota)>::max();
 }
 
 static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec);
@@ -2997,7 +2999,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
 
   /* let's check if we have a NSEC covering that record */
   if (g_aggressiveNSECCache && !wasForwardedOrAuthZone) {
-    if (g_aggressiveNSECCache->getDenial(d_now.tv_sec, qname, qtype, ret, res, d_cacheRemote, d_routingTag, d_doDNSSEC, LogObject(prefix))) {
+    if (g_aggressiveNSECCache->getDenial(d_now.tv_sec, qname, qtype, ret, res, d_cacheRemote, d_routingTag, d_doDNSSEC, d_validationContext, LogObject(prefix))) {
       context.state = vState::Secure;
       if (s_addExtendedResolutionDNSErrors) {
         context.extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::Synthesized), "Result synthesized from aggressive NSEC cache (RFC8198)"};
@@ -3668,7 +3670,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& ds, bool taOnly, unsi
            - a delegation to a non-DNSSEC signed zone
            - no delegation, we stay in the same zone
         */
-        if (gotCNAME || denialProvesNoDelegation(zone, dsrecords)) {
+        if (gotCNAME || denialProvesNoDelegation(zone, dsrecords, d_validationContext)) {
           /* we are still inside the same zone */
 
           if (foundCut) {
@@ -3841,7 +3843,11 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
 
   LOG(prefix << zone << ": Trying to validate " << std::to_string(tentativeKeys.size()) << " DNSKEYs with " << std::to_string(ds.size()) << " DS" << endl);
   skeyset_t validatedKeys;
-  auto state = validateDNSKeysAgainstDS(d_now.tv_sec, zone, ds, tentativeKeys, toSign, signatures, validatedKeys, LogObject(prefix));
+  auto state = validateDNSKeysAgainstDS(d_now.tv_sec, zone, ds, tentativeKeys, toSign, signatures, validatedKeys, LogObject(prefix), d_validationContext);
+
+  if (s_maxvalidationsperq != 0 && d_validationContext.d_validationsCounter > s_maxvalidationsperq) {
+    throw ImmediateServFailException("Server Failure while validating DNSKEYs, too many signature validations for this query");
+  }
 
   LOG(prefix << zone << ": We now have " << std::to_string(validatedKeys.size()) << " DNSKEYs" << endl);
 
@@ -4006,7 +4012,11 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const string& prefix
   }
 
   LOG(prefix << name << ": Going to validate " << recordcontents.size() << " record contents with " << signatures.size() << " sigs and " << keys.size() << " keys for " << name << "|" << type.toString() << endl);
-  vState state = validateWithKeySet(d_now.tv_sec, name, recordcontents, signatures, keys, LogObject(prefix), false);
+  vState state = validateWithKeySet(d_now.tv_sec, name, recordcontents, signatures, keys, LogObject(prefix), d_validationContext, false);
+  if (s_maxvalidationsperq != 0 && d_validationContext.d_validationsCounter > s_maxvalidationsperq) {
+    throw ImmediateServFailException("Server Failure while validating records, too many signature validations for this query");
+  }
+
   if (state == vState::Secure) {
     LOG(prefix << name << ": Secure!" << endl);
     return vState::Secure;
@@ -4710,7 +4720,7 @@ void SyncRes::updateDenialValidationState(const DNSName& qname, vState& neValida
 dState SyncRes::getDenialValidationState(const NegCache::NegCacheEntry& ne, const dState expectedState, bool referralToUnsigned, const string& prefix)
 {
   cspmap_t csp = harvestCSPFromNE(ne);
-  return getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE, LogObject(prefix));
+  return getDenial(csp, ne.d_name, ne.d_qtype.getCode(), referralToUnsigned, expectedState == dState::NXQTYPE, d_validationContext, LogObject(prefix));
 }
 
 bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, const QType qtype, const DNSName& auth, LWResult& lwr, const bool sendRDQuery, vector<DNSRecord>& ret, set<DNSName>& nsset, DNSName& newtarget, DNSName& newauth, bool& realreferral, bool& negindic, vState& state, const bool needWildcardProof, const bool gatherWildcardProof, const unsigned int wildcardLabelsCount, int& rcode, bool& negIndicHasSignatures, unsigned int depth) // NOLINT(readability-function-cognitive-complexity)
@@ -4874,7 +4884,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
                as described in section 5.3.4 of RFC 4035 and 5.3 of RFC 7129.
             */
             cspmap_t csp = harvestCSPFromNE(ne);
-            dState res = getDenial(csp, qname, ne.d_qtype.getCode(), false, false, LogObject(prefix), false, wildcardLabelsCount);
+            dState res = getDenial(csp, qname, ne.d_qtype.getCode(), false, false, d_validationContext, LogObject(prefix), false, wildcardLabelsCount);
             if (res != dState::NXDOMAIN) {
               vState st = vState::BogusInvalidDenial;
               if (res == dState::INSECURE || res == dState::OPTOUT) {

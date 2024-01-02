@@ -1492,6 +1492,9 @@ static int initDNSSEC(Logr::log_t log)
 
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
   g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
+  g_maxRRSIGsPerRecordToConsider = ::arg().asNum("max-rrsigs-per-record");
+  g_maxNSEC3sPerRecordToConsider = ::arg().asNum("max-nsec3s-per-record");
+  g_maxDNSKEYsToConsider = ::arg().asNum("max-dnskeys");
 
   vector<string> nums;
   bool automatic = true;
@@ -1579,6 +1582,8 @@ static int initSyncRes(Logr::log_t log, const std::optional<std::string>& myHost
   SyncRes::s_maxnsaddressqperq = ::arg().asNum("max-ns-address-qperq");
   SyncRes::s_maxtotusec = 1000 * ::arg().asNum("max-total-msec");
   SyncRes::s_maxdepth = ::arg().asNum("max-recursion-depth");
+  SyncRes::s_maxvalidationsperq = ::arg().asNum("max-signature-validations-per-query");
+  SyncRes::s_maxnsec3iterationsperq = ::arg().asNum("max-nsec3-hash-computations-per-query");
   SyncRes::s_rootNXTrust = ::arg().mustDo("root-nx-trust");
   SyncRes::s_refresh_ttlperc = ::arg().asNum("refresh-on-ttl-perc");
   SyncRes::s_locked_ttlperc = ::arg().asNum("record-cache-locked-ttl-perc");
@@ -2109,6 +2114,7 @@ static int serviceMain(Logr::log_t log)
     }
   }
 
+  AggressiveNSECCache::s_nsec3DenialProofMaxCost = ::arg().asNum("aggressive-cache-max-nsec3-hash-cost");
   AggressiveNSECCache::s_maxNSEC3CommonPrefix = static_cast<uint8_t>(std::round(std::log2(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio"))));
   SLOG(g_log << Logger::Debug << "NSEC3 aggressive cache tuning: aggressive-cache-min-nsec3-hit-ratio: " << ::arg().asNum("aggressive-cache-min-nsec3-hit-ratio") << " max common prefix bits: " << std::to_string(AggressiveNSECCache::s_maxNSEC3CommonPrefix) << endl,
        log->info(Logr::Debug, "NSEC3 aggressive cache tuning", "aggressive-cache-min-nsec3-hit-ratio", Logging::Loggable(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio")), "maxCommonPrefixBits", Logging::Loggable(AggressiveNSECCache::s_maxNSEC3CommonPrefix)));
@@ -2996,6 +3002,12 @@ static void initArgs()
   ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size") = "0";
   ::arg().set("tcp-fast-open-connect", "Enable TCP Fast Open support on outgoing sockets") = "no";
   ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record") = "150";
+  ::arg().set("max-rrsigs-per-record", "Maximum number of RRSIGs to consider when validating a given record") = "0";
+  ::arg().set("max-nsec3s-per-record", "Maximum number of NSEC3s to consider when validating a given denial of existence") = "0";
+  ::arg().set("max-signature-validations-per-query", "Maximum number of RRSIG signatures we are willing to validate per incoming query") = "0";
+  ::arg().set("max-nsec3-hash-computations-per-query", "Maximum number of NSEC3 hashes that we are willing to compute during DNSSEC validation, per incoming query") = "0";
+  ::arg().set("aggressive-cache-max-nsec3-hash-cost", "Maximum estimated NSEC3 cost for a given query to consider aggressive use of the NSEC3 cache") = "0";
+  ::arg().set("max-dnskeys", "Maximum number of DNSKEYs with the same algorithm and tag to consider when validating a given record") = "0";
 
   ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs") = "";
 
