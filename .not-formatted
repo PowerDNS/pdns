@@ -178,8 +178,6 @@
 ./pdns/minicurl.hh
 ./pdns/misc.cc
 ./pdns/misc.hh
-./pdns/mtasker.cc
-./pdns/mtasker.hh
 ./pdns/nameserver.cc
 ./pdns/nameserver.hh
 ./pdns/namespaces.hh

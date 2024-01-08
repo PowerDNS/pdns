@@ -280,7 +280,7 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
     // See if there is an existing outstanding request we can chain on to, using partial equivalence
     // function looking for the same query (qname and qtype) to the same host, but with a different
     // message ID.
-    auto chain = g_multiTasker->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
+    auto chain = g_multiTasker->getWaiters().equal_range(pident, PacketIDBirthdayCompare());
 
     for (; chain.first != chain.second; chain.first++) {
       // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
@@ -2835,8 +2835,8 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
     t_udpclientsocks->returnSocket(fileDesc);
 
     PacketBuffer empty;
-    MT_t::waiters_t::iterator iter = g_multiTasker->d_waiters.find(pid);
-    if (iter != g_multiTasker->d_waiters.end()) {
+    auto iter = g_multiTasker->getWaiters().find(pid);
+    if (iter != g_multiTasker->getWaiters().end()) {
       doResends(iter, pid, empty);
     }
     g_multiTasker->sendEvent(pid, &empty); // this denotes error (does retry lookup using other NS)
@@ -2896,8 +2896,8 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
   }
 
   if (!pident->domain.empty()) {
-    MT_t::waiters_t::iterator iter = g_multiTasker->d_waiters.find(pident);
-    if (iter != g_multiTasker->d_waiters.end()) {
+    auto iter = g_multiTasker->getWaiters().find(pident);
+    if (iter != g_multiTasker->getWaiters().end()) {
       doResends(iter, pident, packet);
     }
   }
@@ -2908,7 +2908,7 @@ retryWithName:
     /* we did not find a match for this response, something is wrong */
 
     // we do a full scan for outstanding queries on unexpected answers. not too bad since we only accept them on the right port number, which is hard enough to guess
-    for (const auto& d_waiter : g_multiTasker->d_waiters) {
+    for (const auto& d_waiter : g_multiTasker->getWaiters()) {
       if (pident->fd == d_waiter.key->fd && d_waiter.key->remote == pident->remote && d_waiter.key->type == pident->type && pident->domain == d_waiter.key->domain) {
         /* we are expecting an answer from that exact source, on that exact port (since we are using connected sockets), for that qname/qtype,
            but with a different message ID. That smells like a spoofing attempt. For now we will just increase the counter and will deal with
@@ -2926,11 +2926,11 @@ retryWithName:
     }
     t_Counters.at(rec::Counter::unexpectedCount)++; // if we made it here, it really is an unexpected answer
     if (g_logCommonErrors) {
-      SLOG(g_log << Logger::Warning << "Discarding unexpected packet from " << fromaddr.toStringWithPort() << ": " << (pident->domain.empty() ? "<empty>" : pident->domain.toString()) << ", " << pident->type << ", " << g_multiTasker->d_waiters.size() << " waiters" << endl,
+      SLOG(g_log << Logger::Warning << "Discarding unexpected packet from " << fromaddr.toStringWithPort() << ": " << (pident->domain.empty() ? "<empty>" : pident->domain.toString()) << ", " << pident->type << ", " << g_multiTasker->getWaiters().size() << " waiters" << endl,
            g_slogudpin->info(Logr::Warning, "Discarding unexpected packet", "from", Logging::Loggable(fromaddr),
                              "qname", Logging::Loggable(pident->domain),
                              "qtype", Logging::Loggable(QType(pident->type)),
-                             "waiters", Logging::Loggable(g_multiTasker->d_waiters.size())));
+                             "waiters", Logging::Loggable(g_multiTasker->getWaiters().size())));
     }
   }
   else if (fileDesc >= 0) {

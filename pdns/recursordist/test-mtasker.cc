@@ -42,6 +42,9 @@ BOOST_AUTO_TEST_CASE(test_Simple)
       break;
   }
   BOOST_CHECK_EQUAL(g_result, o);
+  vector<int> events;
+  mt.getEvents(events);
+  BOOST_CHECK_EQUAL(events.size(), 0U);
 }
 
 static const size_t stackSize = 8 * 1024;

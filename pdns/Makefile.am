@@ -53,7 +53,6 @@ EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
 	dnsmessage.proto \
-	mtasker.cc \
 	inflighter.cc \
 	bindparser.hh \
 	named.conf.parsertest \
