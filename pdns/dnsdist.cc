@@ -2553,8 +2553,8 @@ static void usage()
 #ifdef COVERAGE
 static void cleanupLuaObjects()
 {
-  /* when our coverage mode is enabled, we need to make
-     that the Lua objects destroyed before the Lua contexts. */
+  /* when our coverage mode is enabled, we need to make sure
+     that the Lua objects are destroyed before the Lua contexts. */
   g_ruleactions.setState({});
   g_respruleactions.setState({});
   g_cachehitrespruleactions.setState({});
@@ -3243,6 +3243,7 @@ int main(int argc, char** argv)
       errlog("Fatal pdns error: %s", ae.reason);
     }
 #ifdef COVERAGE
+    cleanupLuaObjects();
     exit(EXIT_FAILURE);
 #else
     _exit(EXIT_FAILURE);
@@ -3252,6 +3253,7 @@ int main(int argc, char** argv)
   {
     errlog("Fatal error: %s", e.what());
 #ifdef COVERAGE
+    cleanupLuaObjects();
     exit(EXIT_FAILURE);
 #else
     _exit(EXIT_FAILURE);
@@ -3261,6 +3263,7 @@ int main(int argc, char** argv)
   {
     errlog("Fatal pdns error: %s", ae.reason);
 #ifdef COVERAGE
+    cleanupLuaObjects();
     exit(EXIT_FAILURE);
 #else
     _exit(EXIT_FAILURE);
