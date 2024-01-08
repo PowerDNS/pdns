@@ -118,6 +118,23 @@ class QUICTests(object):
         except StreamResetError as e :
             self.assertEqual(e.error, 5);
 
+class QUICACLTests(object):
+
+    def testDropped(self):
+        """
+        QUIC: Dropped query because of ACL
+        """
+        name = 'acl.doq.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        dropped = False
+        try:
+            (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
+            self.assertTrue(False)
+        except StreamResetError as e:
+            self.assertEqual(e.error, 5);
+            dropped = True
+        self.assertTrue(dropped)
+
 class QUICWithCacheTests(object):
     def testCached(self):
         """
