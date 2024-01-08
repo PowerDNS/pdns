@@ -300,7 +300,7 @@ void DOQFrontend::setup()
 {
   auto config = QuicheConfig(quiche_config_new(QUICHE_PROTOCOL_VERSION), quiche_config_free);
   d_quicheParams.d_alpn = std::string(DOQ_ALPN.begin(), DOQ_ALPN.end());
-  configureQuiche(config, d_quicheParams);
+  configureQuiche(config, d_quicheParams, false);
   d_server_config = std::make_unique<DOQServerConfig>(std::move(config), d_internalPipeBufferSize);
 }
 

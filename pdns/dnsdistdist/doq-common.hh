@@ -84,7 +84,7 @@ std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const Combo
 void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, uint32_t version, PacketBuffer& buffer);
 void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, PacketBuffer& buffer);
 void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer, PacketBuffer& buffer);
-void configureQuiche(QuicheConfig& config, const QuicheParams& params);
+void configureQuiche(QuicheConfig& config, const QuicheParams& params, bool isHTTP);
 
 };
 

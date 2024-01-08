@@ -367,7 +367,7 @@ void DOH3Frontend::setup()
   auto config = QuicheConfig(quiche_config_new(QUICHE_PROTOCOL_VERSION), quiche_config_free);
 
   d_quicheParams.d_alpn = std::string(DOH3_ALPN.begin(), DOH3_ALPN.end());
-  configureQuiche(config, d_quicheParams);
+  configureQuiche(config, d_quicheParams, true);
 
   // quiche_h3_config_new
   auto http3config = QuicheHTTP3Config(quiche_h3_config_new(), quiche_h3_config_free);
