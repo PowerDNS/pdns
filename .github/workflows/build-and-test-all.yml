@@ -67,7 +67,7 @@ jobs:
       - run: ccache -s
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
-        uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
           name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
@@ -95,7 +95,7 @@ jobs:
           ref: ${{ inputs.branch-name }}
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dnsdist-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
