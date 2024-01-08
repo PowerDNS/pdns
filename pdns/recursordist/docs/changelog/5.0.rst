@@ -4,6 +4,10 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.0.1
+  :released: 10th of January 2024, with no changes compared to the second release candidate. Version 5.0.0 was never released publicly.
+
+.. changelog::
   :version: 5.0.0-rc2
   :released: 20th of December 2023
 
