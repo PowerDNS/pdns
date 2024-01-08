@@ -2360,10 +2360,20 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
     }
   }
 
-  /* Only set this on IPv4 UDP sockets.
-     Don't set it for DNSCrypt binds. DNSCrypt pads queries for privacy
-     purposes, so we do receive large, sometimes fragmented datagrams. */
-  if (!tcp && !clientState.dnscryptCtx) {
+  const bool isQUIC = clientState.doqFrontend != nullptr || clientState.doh3Frontend != nullptr;
+  if (isQUIC) {
+    /* disable fragmentation and force PMTU discovery for QUIC-enabled sockets */
+    try {
+      setSocketForcePMTU(socket, addr.sin4.sin_family);
+    }
+    catch (const std::exception& e) {
+      warnlog("Failed to set IP_MTU_DISCOVER on QUIC server socket for local address '%s': %s", addr.toStringWithPort(), e.what());
+    }
+  }
+  else if (!tcp && !clientState.dnscryptCtx) {
+    /* Only set this on IPv4 UDP sockets.
+       Don't set it for DNSCrypt binds. DNSCrypt pads queries for privacy
+       purposes, so we do receive large, sometimes fragmented datagrams. */
     try {
       setSocketIgnorePMTU(socket, addr.sin4.sin_family);
     }

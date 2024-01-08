@@ -192,6 +192,27 @@ void setSocketIgnorePMTU([[maybe_unused]] int sockfd, [[maybe_unused]] int famil
   }
 }
 
+void setSocketForcePMTU([[maybe_unused]] int sockfd, [[maybe_unused]] int family)
+{
+  if (family == AF_INET) {
+#if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DO)
+    /* IP_PMTUDISC_DO enables Path MTU discovery and prevents fragmentation */
+    SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DO);
+#elif defined(IP_DONTFRAG)
+    /* at least this prevents fragmentation */
+    SSetsockopt(sockfd, IPPROTO_IP, IP_DONTFRAG, 1);
+#endif /* defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DO) */
+  }
+  else {
+#if defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DO)
+    /* IPV6_PMTUDISC_DO enables Path MTU discovery and prevents fragmentation */
+    SSetsockopt(sockfd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, IPV6_PMTUDISC_DO);
+#elif defined(IPV6_DONTFRAG)
+    /* at least this prevents fragmentation */
+    SSetsockopt(sockfd, IPPROTO_IPV6, IPV6_DONTFRAG, 1);
+#endif /* defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DO) */
+  }
+}
 
 bool setReusePort(int sockfd)
 {
