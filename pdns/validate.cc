@@ -1200,19 +1200,17 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
         continue;
       }
 
-      if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
-        VLOG(log, zone << ": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
-        // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
-        break;
-      }
-      signaturesConsidered++;
-      context.d_validationsCounter++;
-
       //        cerr<<"got sig for keytag "<<i->d_tag<<" matching "<<getByTag(tkeys, i->d_tag).size()<<" keys of which "<<getByTag(validkeys, i->d_tag).size()<<" valid"<<endl;
       auto bytag = getByTag(validkeys, sig->d_tag, sig->d_algorithm, log);
 
       if (bytag.empty()) {
         continue;
+      }
+
+      if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
+        VLOG(log, zone << ": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
+        // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
+        break;
       }
 
       string msg = getMessageForRRSET(zone, *sig, toSign);
@@ -1224,8 +1222,15 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
         }
         dnskeysConsidered++;
 
+        if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
+          VLOG(log, zone << ": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
+          // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
+          break;
+        }
         //          cerr<<"validating : ";
         bool signIsValid = checkSignatureWithKey(zone, *sig, *key, msg, ede, log);
+        signaturesConsidered++;
+        context.d_validationsCounter++;
 
         if (signIsValid) {
           VLOG(log, zone << ": Validation succeeded - whole DNSKEY set is valid"<<endl);
