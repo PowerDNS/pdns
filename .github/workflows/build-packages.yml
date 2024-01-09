@@ -187,12 +187,12 @@ jobs:
     steps:
       - name: Download source tarball provenance for ${{ inputs.product }} (${{ inputs.ref }})
         id: download-src-provenance
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3 # we need v3, see https://github.com/slsa-framework/slsa-github-generator/pull/3067/files
         with:
           name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-src.intoto.jsonl"
       - name: Download provenance for ${{ inputs.product }} (${{ inputs.ref }}) for ${{ matrix.os }}
         id: download-provenance
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3 # we need v3, see https://github.com/slsa-framework/slsa-github-generator/pull/3067/files
         with:
           name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-${{ matrix.os}}.intoto.jsonl"
       - name: Upload provenance artifacts to downloads.powerdns.com
