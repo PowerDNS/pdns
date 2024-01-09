@@ -73,6 +73,7 @@ subnetwrong.example.org.     3600 IN ALIAS subnetwrong.example.com.
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected_a)
+        self.assertEqual(len(res.options), 0)  # this checks that we don't invent ECS on non-ECS queries
 
         query = dns.message.make_query('noerror.example.org', 'AAAA')
         res = self.sendUDPQuery(query)
@@ -218,6 +219,30 @@ subnetwrong.example.org.     3600 IN ALIAS subnetwrong.example.com.
         ecso = clientsubnetoption.ClientSubnetOption('2001:db8:db6:db5::', 64)
         ecso2 = clientsubnetoption.ClientSubnetOption('2001:db8:db6:db5::', 64, 48)
         query = dns.message.make_query('subnetwrong.example.org', 'A', use_edns=True, options=[ecso])
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected_a)
+        self.assertEqual(res.options[0], ecso2)
+
+    def testECSNone(self):
+        expected_a = [dns.rrset.from_text('noerror.example.org.',
+                                          0, dns.rdataclass.IN, 'A',
+                                          '192.0.2.1')]
+        expected_aaaa = [dns.rrset.from_text('noerror.example.org.',
+                                             0, dns.rdataclass.IN, 'AAAA',
+                                             '2001:DB8::1')]
+
+        ecso = clientsubnetoption.ClientSubnetOption('1.2.3.0', 24)
+        ecso2 = clientsubnetoption.ClientSubnetOption('1.2.3.0', 24, 0)
+        query = dns.message.make_query('noerror.example.org', 'A', use_edns=True, options=[ecso])
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected_a)
+        self.assertEqual(res.options[0], ecso2)
+
+        ecso = clientsubnetoption.ClientSubnetOption('2001:db8:db6:db5::', 64)
+        ecso2 = clientsubnetoption.ClientSubnetOption('2001:db8:db6:db5::', 64, 0)
+        query = dns.message.make_query('noerror.example.org', 'A', use_edns=True, options=[ecso])
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected_a)

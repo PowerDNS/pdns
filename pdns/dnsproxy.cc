@@ -270,6 +270,7 @@ void DNSProxy::mainloop()
         MOADNSParser mdp(false, p.getString());
         if (p.d_eso.scope.isValid()){
           // update the EDNS options with info from the resolver - issue #5469
+          // note that this relies on the ECS string encoder to use the source network, and only take the prefix length from scope
           i->second.complete->d_eso.scope = p.d_eso.scope;
           DLOG(g_log<<"from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: "<<i->second.complete->d_eso.source.toString()<<" EDNS scope: "<<i->second.complete->d_eso.scope.toString()<<endl);
         }
