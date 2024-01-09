@@ -32,8 +32,9 @@ BOOST_AUTO_TEST_CASE(test_Simple)
   bool first = true;
   int o = 24;
   for (;;) {
-    while (mt.schedule(now))
-      ;
+    while (mt.schedule(now)) {
+    }
+
     if (first) {
       mt.sendEvent(12, &o);
       first = false;
