@@ -387,7 +387,7 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
          lci.d_slog->error(Logr::Error, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException")));
   }
 
-  delayedThreads.rpzPrimaryThreads.emplace_back(primaries, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile);
+  delayedThreads.rpzPrimaryThreads.emplace_back(RPZTrackerParams{primaries, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile});
 }
 
 // A wrapper class that loads the standard Lua defintions into the context, so that we can use things like pdns.A
@@ -904,8 +904,8 @@ void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads,
     try {
       // The get calls all return a value object here. That is essential, since we want copies so that RPZIXFRTracker gets values
       // with the proper lifetime.
-      std::thread t(RPZIXFRTracker, std::get<0>(rpzPrimary), std::get<1>(rpzPrimary), std::get<2>(rpzPrimary), std::get<3>(rpzPrimary), std::get<4>(rpzPrimary), std::get<5>(rpzPrimary), std::get<6>(rpzPrimary) * 1024 * 1024, std::get<7>(rpzPrimary), std::get<8>(rpzPrimary), std::get<9>(rpzPrimary), std::get<10>(rpzPrimary), std::get<11>(rpzPrimary), generation);
-      t.detach();
+      std::thread theThread(RPZIXFRTracker, rpzPrimary, generation);
+      theThread.detach();
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.what() << endl,
