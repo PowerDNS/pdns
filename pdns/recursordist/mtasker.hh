@@ -85,7 +85,7 @@ public:
   void yield();
   int sendEvent(const EventKey& key, const EventVal* val = nullptr);
   void makeThread(tfunc_t* start, void* val);
-  bool schedule(const struct timeval* now = nullptr);
+  bool schedule(const struct timeval& now);
 
   const waiters_t& getWaiters() const
   {
@@ -395,7 +395,7 @@ void MTasker<Key, Val, Cmp>::makeThread(tfunc_t* start, void* val)
 
 */
 template <class Key, class Val, class Cmp>
-bool MTasker<Key, Val, Cmp>::schedule(const struct timeval* now)
+bool MTasker<Key, Val, Cmp>::schedule(const struct timeval& now)
 {
   if (!d_runQueue.empty()) {
     d_tid = d_runQueue.front();
@@ -433,21 +433,12 @@ bool MTasker<Key, Val, Cmp>::schedule(const struct timeval* now)
     return true;
   }
   if (!d_waiters.empty()) {
-    struct timeval rnow
-    {
-    };
-    if (now != nullptr) {
-      gettimeofday(&rnow, nullptr);
-    }
-    else {
-      rnow = *now;
-    }
     typedef typename waiters_t::template index<KeyTag>::type waiters_by_ttd_index_t;
     //    waiters_by_ttd_index_t& ttdindex=d_waiters.template get<KeyTag>();
     waiters_by_ttd_index_t& ttdindex = boost::multi_index::get<KeyTag>(d_waiters);
 
     for (typename waiters_by_ttd_index_t::iterator i = ttdindex.begin(); i != ttdindex.end();) {
-      if (i->ttd.tv_sec && i->ttd < rnow) {
+      if (i->ttd.tv_sec && i->ttd < now) {
         d_waitstatus = TimeOut;
         d_eventkey = i->key; // pass waitEvent the exact key it was woken for
         auto ucontext = i->context;

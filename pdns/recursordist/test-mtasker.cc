@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(test_Simple)
   bool first = true;
   int o = 24;
   for (;;) {
-    while (mt.schedule(&now))
+    while (mt.schedule(now))
       ;
     if (first) {
       mt.sendEvent(12, &o);
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(test_AlmostStackOverflow)
   bool first = true;
   int o = 25;
   for (;;) {
-    while (mt.schedule(&now)) {
+    while (mt.schedule(now)) {
       ;
     }
     if (first) {
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(test_MtaskerException)
     now.tv_sec = now.tv_usec = 0;
 
     for (;;) {
-      mt.schedule(&now);
+      mt.schedule(now);
     }
   },
                     std::exception);
