@@ -2630,7 +2630,7 @@ static void recLoop()
   auto& threadInfo = RecThreadInfo::self();
 
   while (!RecursorControlChannel::stop) {
-    while (g_multiTasker->schedule(&g_now)) {
+    while (g_multiTasker->schedule(g_now)) {
       ; // MTasker letting the mthreads do their thing
     }
 
