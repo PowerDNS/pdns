@@ -50,6 +50,8 @@
 
 using namespace dnsdist::doq;
 
+using h3_headers_t = std::map<std::string, std::string>;
+
 class H3Connection
 {
 public:
@@ -66,6 +68,8 @@ public:
   ComboAddress d_peer;
   QuicheConnection d_conn;
   QuicheHTTP3Connection d_http3{nullptr, quiche_h3_conn_free};
+  // buffer request headers by streamID
+  std::unordered_map<uint64_t, h3_headers_t> d_headersBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamOutBuffers;
 };
@@ -668,7 +672,7 @@ static void flushStalledResponses(H3Connection& conn)
   }
 }
 
-static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, std::map<std::string, std::string>& headers, int64_t streamID, quiche_h3_event* event)
+static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, const uint64_t streamID, quiche_h3_event* event)
 {
   auto handleImmediateError = [&clientState, &frontend, &conn, streamID](const char* msg) {
     DEBUGLOG(msg);
@@ -678,6 +682,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
     h3_send_response(conn, streamID, 400, msg);
   };
 
+  auto& headers = conn.d_headersBuffers.at(streamID);
   // Callback result. Any value other than 0 will interrupt further header processing.
   int cbresult = quiche_h3_event_for_each_header(
     event,
@@ -687,12 +692,18 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
       std::string_view content(reinterpret_cast<char*>(value), value_len);
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      auto* headersptr = reinterpret_cast<std::map<std::string, std::string>*>(argp);
+      auto* headersptr = reinterpret_cast<h3_headers_t*>(argp);
       headersptr->emplace(key, content);
       return 0;
     },
     &headers);
 
+#ifdef DEBUGLOG_ENABLED
+  DEBUGLOG("Processed headers of stream " << streamID);
+  for (const auto& [key, value] : headers) {
+    DEBUGLOG(" " << key << ": " << value);
+  }
+#endif
   if (cbresult != 0 || headers.count(":method") == 0) {
     handleImmediateError("Unable to process query headers");
     return;
@@ -716,6 +727,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
     DEBUGLOG("Dispatching GET query");
     doh3_dispatch_query(*(frontend.d_server_config), std::move(*payload), clientState.local, client, serverConnID, streamID);
     conn.d_streamBuffers.erase(streamID);
+    conn.d_headersBuffers.erase(streamID);
     return;
   }
 
@@ -729,7 +741,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
   handleImmediateError("Unsupported HTTP method");
 }
 
-static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, std::map<std::string, std::string>& headers, int64_t streamID, quiche_h3_event* event, PacketBuffer& buffer)
+static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, const uint64_t streamID, quiche_h3_event* event, PacketBuffer& buffer)
 {
   auto handleImmediateError = [&clientState, &frontend, &conn, streamID](const char* msg) {
     DEBUGLOG(msg);
@@ -738,6 +750,7 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
     ++frontend.d_errorResponses;
     h3_send_response(conn, streamID, 400, msg);
   };
+  auto& headers = conn.d_headersBuffers.at(streamID);
 
   if (headers.at(":method") != "POST") {
     handleImmediateError("DATA frame for non-POST method");
@@ -778,30 +791,31 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
 
   DEBUGLOG("Dispatching POST query");
   doh3_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), clientState.local, client, serverConnID, streamID);
+  conn.d_headersBuffers.erase(streamID);
   conn.d_streamBuffers.erase(streamID);
 }
 
 static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, PacketBuffer& buffer)
 {
-  std::map<std::string, std::string> headers;
   while (true) {
     quiche_h3_event* event{nullptr};
     // Processes HTTP/3 data received from the peer
-    int64_t streamID = quiche_h3_conn_poll(conn.d_http3.get(),
-                                           conn.d_conn.get(),
-                                           &event);
+    const int64_t streamID = quiche_h3_conn_poll(conn.d_http3.get(),
+                                                 conn.d_conn.get(),
+                                                 &event);
 
     if (streamID < 0) {
       break;
     }
+    conn.d_headersBuffers.try_emplace(streamID, h3_headers_t{});
 
     switch (quiche_h3_event_type(event)) {
     case QUICHE_H3_EVENT_HEADERS: {
-      processH3HeaderEvent(clientState, frontend, conn, client, serverConnID, headers, streamID, event);
+      processH3HeaderEvent(clientState, frontend, conn, client, serverConnID, streamID, event);
       break;
     }
     case QUICHE_H3_EVENT_DATA: {
-      processH3DataEvent(clientState, frontend, conn, client, serverConnID, headers, streamID, event, buffer);
+      processH3DataEvent(clientState, frontend, conn, client, serverConnID, streamID, event, buffer);
       break;
     }
     case QUICHE_H3_EVENT_FINISHED:
