@@ -44,6 +44,7 @@ struct RPZTrackerParams {
 
 std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL);
 void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration);
+bool notifyRPZTracker(const DNSName& name);
 
 struct rpzStats
 {
