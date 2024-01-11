@@ -111,8 +111,6 @@
 ./pdns/dnspcap.hh
 ./pdns/dnspcap2calidns.cc
 ./pdns/dnspcap2protobuf.cc
-./pdns/dnsproxy.cc
-./pdns/dnsproxy.hh
 ./pdns/dnsrecords.cc
 ./pdns/dnsrecords.hh
 ./pdns/dnsreplay.cc
@@ -140,8 +138,6 @@
 ./pdns/ednsoptions.cc
 ./pdns/ednsoptions.hh
 ./pdns/ednspadding.cc
-./pdns/ednssubnet.cc
-./pdns/ednssubnet.hh
 ./pdns/fstrm_logger.cc
 ./pdns/fstrm_logger.hh
 ./pdns/gettime.cc
@@ -236,7 +232,6 @@
 ./pdns/statnode.cc
 ./pdns/statnode.hh
 ./pdns/stubquery.cc
-./pdns/stubresolver.cc
 ./pdns/svc-records.cc
 ./pdns/svc-records.hh
 ./pdns/tcpiohandler.cc

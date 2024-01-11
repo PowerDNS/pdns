@@ -38,7 +38,7 @@ This is a thread that just throws packets around. Should handle ~1000 packets/se
 
 Consists of a thread receiving packets back from the backend and retransmitting them to the original client.
 
-Furthermore, it provides a member function that reports the packet to the connection tracker and actually sends it out. 
+Furthermore, it provides a member function that reports the packet to the connection tracker and actually sends it out.
 
 The sending happens from a source port that is determined by the constructor, but IS random. Furthermore, the ID is XOR-ed with a random value
 to make sure outside parties can't spoof us.
@@ -49,12 +49,12 @@ To fix: how to remove the stale entries that will surely accumulate
 class DNSProxy
 {
 public:
-  DNSProxy(const string &ip); //!< creates socket
+  DNSProxy(const string& ip); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
-  bool completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target,const DNSName& aname, const uint8_t scopeMask);
+  bool completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& aname, const uint8_t scopeMask);
 
-  void mainloop();                  //!< this is the main loop that receives reply packets and sends them out again
+  void mainloop(); //!< this is the main loop that receives reply packets and sends them out again
 private:
   struct ConntrackEntry
   {
@@ -70,7 +70,7 @@ private:
     int outsock;
   };
 
-  typedef map<int,ConntrackEntry> map_t;
+  typedef map<int, ConntrackEntry> map_t;
 
   // Data
   ComboAddress d_remote;
