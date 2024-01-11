@@ -49,10 +49,10 @@ To fix: how to remove the stale entries that will surely accumulate
 class DNSProxy
 {
 public:
-  DNSProxy(const string& ip); //!< creates socket
+  DNSProxy(const string& remote); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
-  bool completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& aname, const uint8_t scopeMask);
+  bool completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, uint8_t scopeMask);
 
   void mainloop(); //!< this is the main loop that receives reply packets and sends them out again
 private:
@@ -70,7 +70,7 @@ private:
     int outsock;
   };
 
-  typedef map<int, ConntrackEntry> map_t;
+  using map_t = map<int, ConntrackEntry>;
 
   // Data
   ComboAddress d_remote;
@@ -81,5 +81,5 @@ private:
   int d_sock;
   const uint16_t d_xor;
 
-  int getID_locked(map_t&);
+  static int getID_locked(map_t&);
 };

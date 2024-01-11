@@ -65,20 +65,21 @@ DNSProxy::DNSProxy(const string& remote) :
     local = ComboAddress("::");
   }
 
-  unsigned int n = 0;
-  for (; n < 10; n++) {
+  unsigned int attempts = 0;
+  for (; attempts < 10; attempts++) {
     local.sin4.sin_port = htons(10000 + dns_random(50000));
 
-    if (::bind(d_sock, (struct sockaddr*)&local, local.getSocklen()) >= 0)
+    if (::bind(d_sock, (struct sockaddr*)&local, local.getSocklen()) >= 0) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
       break;
+    }
   }
-  if (n == 10) {
+  if (attempts == 10) {
     closesocket(d_sock);
     d_sock = -1;
     throw PDNSException(string("binding dnsproxy socket: ") + stringerror());
   }
 
-  if (connect(d_sock, (sockaddr*)&d_remote, d_remote.getSocklen()) < 0) {
+  if (connect(d_sock, (sockaddr*)&d_remote, d_remote.getSocklen()) < 0) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
     throw PDNSException("Unable to UDP connect to remote nameserver " + d_remote.toStringWithPort() + ": " + stringerror());
   }
 
@@ -87,29 +88,32 @@ DNSProxy::DNSProxy(const string& remote) :
 
 void DNSProxy::go()
 {
-  std::thread t([this]() { mainloop(); });
-  t.detach();
+  std::thread proxythread([this]() { mainloop(); });
+  proxythread.detach();
 }
 
 //! look up qname target with r->qtype, plonk it in the answer section of 'r' with name aname
-bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& aname, const uint8_t scopeMask)
+bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, const uint8_t scopeMask)
 {
   string ECSOptionStr;
 
-  if (r->hasEDNSSubnet()) {
+  if (reply->hasEDNSSubnet()) {
     DLOG(g_log << "dnsproxy::completePacket: Parsed edns source: " << r->d_eso.source.toString() << ", scope: " << r->d_eso.scope.toString() << ", family = " << r->d_eso.scope.getNetwork().sin4.sin_family << endl);
-    ECSOptionStr = makeEDNSSubnetOptsString(r->d_eso);
+    ECSOptionStr = makeEDNSSubnetOptsString(reply->d_eso);
     DLOG(g_log << "from dnsproxy::completePacket: Creating ECS option string " << makeHexDump(ECSOptionStr) << endl);
   }
 
-  if (r->d_tcp) {
+  if (reply->d_tcp) {
     vector<DNSZoneRecord> ips;
-    int ret1 = 0, ret2 = 0;
+    int ret1 = 0;
+    int ret2 = 0;
     // rip out edns info here, pass it to the stubDoResolve
-    if (r->qtype == QType::A || r->qtype == QType::ANY)
-      ret1 = stubDoResolve(target, QType::A, ips, r->hasEDNSSubnet() ? &r->d_eso : nullptr);
-    if (r->qtype == QType::AAAA || r->qtype == QType::ANY)
-      ret2 = stubDoResolve(target, QType::AAAA, ips, r->hasEDNSSubnet() ? &r->d_eso : nullptr);
+    if (reply->qtype == QType::A || reply->qtype == QType::ANY) {
+      ret1 = stubDoResolve(target, QType::A, ips, reply->hasEDNSSubnet() ? &reply->d_eso : nullptr);
+    }
+    if (reply->qtype == QType::AAAA || reply->qtype == QType::ANY) {
+      ret2 = stubDoResolve(target, QType::AAAA, ips, reply->hasEDNSSubnet() ? &reply->d_eso : nullptr);
+    }
 
     if (ret1 != RCode::NoError || ret2 != RCode::NoError) {
       g_log << Logger::Error << "Error resolving for " << aname << " ALIAS " << target << " over UDP, original query came in over TCP";
@@ -120,39 +124,39 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
         g_log << Logger::Error << ", AAAA-record query returned " << RCode::to_s(ret2);
       }
       g_log << Logger::Error << ", returning SERVFAIL" << endl;
-      r->clearRecords();
-      r->setRcode(RCode::ServFail);
+      reply->clearRecords();
+      reply->setRcode(RCode::ServFail);
     }
     else {
-      for (auto& ip : ips) {
+      for (auto& ip : ips) { // NOLINT(readability-identifier-length)
         ip.dr.d_name = aname;
-        r->addRecord(std::move(ip));
+        reply->addRecord(std::move(ip));
       }
     }
 
-    uint16_t len = htons(r->getString().length());
+    uint16_t len = htons(reply->getString().length());
     string buffer((const char*)&len, 2);
-    buffer.append(r->getString());
-    writen2WithTimeout(r->getSocket(), buffer.c_str(), buffer.length(), timeval{::arg().asNum("tcp-idle-timeout"), 0});
+    buffer.append(reply->getString());
+    writen2WithTimeout(reply->getSocket(), buffer.c_str(), buffer.length(), timeval{::arg().asNum("tcp-idle-timeout"), 0});
 
     return true;
   }
 
   uint16_t id;
-  uint16_t qtype = r->qtype.getCode();
+  uint16_t qtype = reply->qtype.getCode();
   {
     auto conntrack = d_conntrack.lock();
     id = getID_locked(*conntrack);
 
     ConntrackEntry ce;
-    ce.id = r->d.id;
-    ce.remote = r->d_remote;
-    ce.outsock = r->getSocket();
+    ce.id = reply->d.id;
+    ce.remote = reply->d_remote;
+    ce.outsock = reply->getSocket();
     ce.created = time(nullptr);
-    ce.qtype = r->qtype.getCode();
+    ce.qtype = reply->qtype.getCode();
     ce.qname = target;
-    ce.anyLocal = r->d_anyLocal;
-    ce.complete = std::move(r);
+    ce.anyLocal = reply->d_anyLocal;
+    ce.complete = std::move(reply);
     ce.aname = aname;
     ce.anameScopeMask = scopeMask;
     (*conntrack)[id] = std::move(ce);
@@ -171,7 +175,7 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
     pw.commit();
   }
 
-  if (send(d_sock, &packet[0], packet.size(), 0) < 0) { // zoom
+  if (send(d_sock, packet.data(), packet.size(), 0) < 0) { // zoom
     g_log << Logger::Error << "Unable to send a packet to our recursing backend: " << stringerror() << endl;
   }
 
@@ -181,16 +185,16 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& r, const DNSName& targ
 /** This finds us an unused or stale ID. Does not actually clean the contents */
 int DNSProxy::getID_locked(map_t& conntrack)
 {
-  map_t::iterator i;
-  for (int n = 0;; ++n) {
-    i = conntrack.find(n);
-    if (i == conntrack.end()) {
+  map_t::iterator iter;
+  for (int n = 0;; ++n) { // NOLINT(readability-identifier-length)
+    iter = conntrack.find(n);
+    if (iter == conntrack.end()) {
       return n;
     }
-    else if (i->second.created < time(nullptr) - 60) {
-      if (i->second.created) {
-        g_log << Logger::Warning << "Recursive query for remote " << i->second.remote.toStringWithPort() << " with internal id " << n << " was not answered by backend within timeout, reusing id" << endl;
-        i->second.complete.reset();
+    if (iter->second.created < time(nullptr) - 60) {
+      if (iter->second.created != 0) {
+        g_log << Logger::Warning << "Recursive query for remote " << iter->second.remote.toStringWithPort() << " with internal id " << n << " was not answered by backend within timeout, reusing id" << endl;
+        iter->second.complete.reset();
         S.inc("recursion-unanswered");
       }
       return n;
@@ -212,14 +216,17 @@ void DNSProxy::mainloop()
 
     for (;;) {
       socklen_t fromaddrSize = sizeof(fromaddr);
-      len = recvfrom(d_sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&fromaddr, &fromaddrSize); // answer from our backend
+      len = recvfrom(d_sock, &buffer[0], sizeof(buffer), 0, (struct sockaddr*)&fromaddr, &fromaddrSize); // answer from our backend  NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
       if (len < (ssize_t)sizeof(dnsheader)) {
-        if (len < 0)
+        if (len < 0) {
           g_log << Logger::Error << "Error receiving packet from recursor backend: " << stringerror() << endl;
-        else if (len == 0)
+        }
+        else if (len == 0) {
           g_log << Logger::Error << "Error receiving packet from recursor backend, EOF" << endl;
-        else
+        }
+        else {
           g_log << Logger::Error << "Short packet from recursor backend, " << len << " bytes" << endl;
+        }
 
         continue;
       }
@@ -229,85 +236,85 @@ void DNSProxy::mainloop()
       }
       (*d_resanswers)++;
       (*d_udpanswers)++;
-      dnsheader d;
-      memcpy(&d, buffer, sizeof(d));
+      dnsheader dHead{};
+      memcpy(&dHead, &buffer[0], sizeof(dHead));
       {
         auto conntrack = d_conntrack.lock();
 #if BYTE_ORDER == BIG_ENDIAN
         // this is needed because spoof ID down below does not respect the native byteorder
         d.id = (256 * (uint16_t)buffer[1]) + (uint16_t)buffer[0];
 #endif
-        map_t::iterator i = conntrack->find(d.id ^ d_xor);
-        if (i == conntrack->end()) {
-          g_log << Logger::Error << "Discarding untracked packet from recursor backend with id " << (d.id ^ d_xor) << ". Conntrack table size=" << conntrack->size() << endl;
+        auto iter = conntrack->find(dHead.id ^ d_xor);
+        if (iter == conntrack->end()) {
+          g_log << Logger::Error << "Discarding untracked packet from recursor backend with id " << (dHead.id ^ d_xor) << ". Conntrack table size=" << conntrack->size() << endl;
           continue;
         }
-        else if (i->second.created == 0) {
-          g_log << Logger::Error << "Received packet from recursor backend with id " << (d.id ^ d_xor) << " which is a duplicate" << endl;
+        if (iter->second.created == 0) {
+          g_log << Logger::Error << "Received packet from recursor backend with id " << (dHead.id ^ d_xor) << " which is a duplicate" << endl;
           continue;
         }
 
-        d.id = i->second.id;
-        memcpy(buffer, &d, sizeof(d)); // commit spoofed id
+        dHead.id = iter->second.id;
+        memcpy(&buffer[0], &dHead, sizeof(dHead)); // commit spoofed id
 
-        DNSPacket p(false);
-        p.parse(buffer, (size_t)len);
+        DNSPacket packet(false);
+        packet.parse(&buffer[0], (size_t)len);
 
-        if (p.qtype.getCode() != i->second.qtype || p.qdomain != i->second.qname) {
-          g_log << Logger::Error << "Discarding packet from recursor backend with id " << (d.id ^ d_xor) << ", qname or qtype mismatch (" << p.qtype.getCode() << " v " << i->second.qtype << ", " << p.qdomain << " v " << i->second.qname << ")" << endl;
+        if (packet.qtype.getCode() != iter->second.qtype || packet.qdomain != iter->second.qname) {
+          g_log << Logger::Error << "Discarding packet from recursor backend with id " << (dHead.id ^ d_xor) << ", qname or qtype mismatch (" << packet.qtype.getCode() << " v " << iter->second.qtype << ", " << packet.qdomain << " v " << iter->second.qname << ")" << endl;
           continue;
         }
 
         /* Set up iov and msgh structures. */
         memset(&msgh, 0, sizeof(struct msghdr));
         string reply; // needs to be alive at time of sendmsg!
-        MOADNSParser mdp(false, p.getString());
+        MOADNSParser mdp(false, packet.getString());
         // update the EDNS options with info from the resolver - issue #5469
         // note that this relies on the ECS string encoder to use the source network, and only take the prefix length from scope
-        i->second.complete->d_eso.scope = p.d_eso.scope;
+        iter->second.complete->d_eso.scope = packet.d_eso.scope;
         DLOG(g_log << "from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: " << i->second.complete->d_eso.source.toString() << " EDNS scope: " << i->second.complete->d_eso.scope.toString() << endl);
 
         if (mdp.d_header.rcode == RCode::NoError) {
           for (const auto& answer : mdp.d_answers) {
             if (answer.first.d_place == DNSResourceRecord::ANSWER || (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA)) {
 
-              if (answer.first.d_type == i->second.qtype || (i->second.qtype == QType::ANY && (answer.first.d_type == QType::A || answer.first.d_type == QType::AAAA))) {
+              if (answer.first.d_type == iter->second.qtype || (iter->second.qtype == QType::ANY && (answer.first.d_type == QType::A || answer.first.d_type == QType::AAAA))) {
                 DNSZoneRecord dzr;
-                dzr.dr.d_name = i->second.aname;
+                dzr.dr.d_name = iter->second.aname;
                 dzr.dr.d_type = answer.first.d_type;
                 dzr.dr.d_ttl = answer.first.d_ttl;
                 dzr.dr.d_place = answer.first.d_place;
                 dzr.dr.setContent(answer.first.getContent());
-                i->second.complete->addRecord(std::move(dzr));
+                iter->second.complete->addRecord(std::move(dzr));
               }
             }
           }
 
-          i->second.complete->setRcode(mdp.d_header.rcode);
+          iter->second.complete->setRcode(mdp.d_header.rcode);
         }
         else {
-          g_log << Logger::Error << "Error resolving for " << i->second.aname << " ALIAS " << i->second.qname << " over UDP, " << QType(i->second.qtype).toString() << "-record query returned " << RCode::to_s(mdp.d_header.rcode) << ", returning SERVFAIL" << endl;
-          i->second.complete->clearRecords();
-          i->second.complete->setRcode(RCode::ServFail);
+          g_log << Logger::Error << "Error resolving for " << iter->second.aname << " ALIAS " << iter->second.qname << " over UDP, " << QType(iter->second.qtype).toString() << "-record query returned " << RCode::to_s(mdp.d_header.rcode) << ", returning SERVFAIL" << endl;
+          iter->second.complete->clearRecords();
+          iter->second.complete->setRcode(RCode::ServFail);
         }
-        reply = i->second.complete->getString();
+        reply = iter->second.complete->getString();
         iov.iov_base = (void*)reply.c_str();
         iov.iov_len = reply.length();
-        i->second.complete.reset();
+        iter->second.complete.reset();
         msgh.msg_iov = &iov;
         msgh.msg_iovlen = 1;
-        msgh.msg_name = (struct sockaddr*)&i->second.remote;
-        msgh.msg_namelen = i->second.remote.getSocklen();
+        msgh.msg_name = (struct sockaddr*)&iter->second.remote; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+        msgh.msg_namelen = iter->second.remote.getSocklen();
         msgh.msg_control = nullptr;
 
-        if (i->second.anyLocal) {
-          addCMsgSrcAddr(&msgh, &cbuf, i->second.anyLocal.get_ptr(), 0);
+        if (iter->second.anyLocal) {
+          addCMsgSrcAddr(&msgh, &cbuf, iter->second.anyLocal.get_ptr(), 0);
         }
-        if (sendmsg(i->second.outsock, &msgh, 0) < 0) {
+        if (sendmsg(iter->second.outsock, &msgh, 0) < 0) {
           int err = errno;
-          g_log << Logger::Warning << "dnsproxy.cc: Error sending reply with sendmsg (socket=" << i->second.outsock << "): " << stringerror(err) << endl;
+          g_log << Logger::Warning << "dnsproxy.cc: Error sending reply with sendmsg (socket=" << iter->second.outsock << "): " << stringerror(err) << endl;
         }
-        i->second.created = 0;
+        iter->second.created = 0;
       }
     }
   }
