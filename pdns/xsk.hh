@@ -71,13 +71,6 @@ using XskPacketPtr = std::unique_ptr<XskPacket>;
 
 class XskSocket
 {
-  struct XskRouteInfo
-  {
-    std::shared_ptr<XskWorker> worker;
-    ComboAddress dest;
-    int xskSocketWaker;
-    int workerWaker;
-  };
   struct XskUmem
   {
     xsk_umem* umem{nullptr};
@@ -87,12 +80,11 @@ class XskSocket
     ~XskUmem();
     XskUmem() = default;
   };
-  using WorkerContainer = boost::multi_index_container<
-    XskRouteInfo,
-    boost::multi_index::indexed_by<
-      boost::multi_index::hashed_unique<boost::multi_index::member<XskRouteInfo, int, &XskRouteInfo::xskSocketWaker>>,
-      boost::multi_index::hashed_unique<boost::multi_index::member<XskRouteInfo, ComboAddress, &XskRouteInfo::dest>, ComboAddress::addressPortOnlyHash>>>;
-  WorkerContainer workers;
+  using WorkerContainer = std::unordered_map<int, std::shared_ptr<XskWorker>>;
+  WorkerContainer d_workers;
+  using WorkerRoutesMap = std::unordered_map<ComboAddress, std::shared_ptr<XskWorker>, ComboAddress::addressPortOnlyHash>;
+  // it might be better to move to a StateHolder for performance
+  LockGuarded<WorkerRoutesMap> d_workerRoutes;
   // number of frames to keep in sharedEmptyFrameOffset
   static constexpr size_t holdThreshold = 256;
   // number of frames to insert into the fill queue
@@ -102,8 +94,8 @@ class XskSocket
   const size_t frameNum;
   // responses that have been delayed
   std::priority_queue<XskPacket> waitForDelay;
+  MACAddr source;
   const std::string ifName;
-  const std::string poolName;
   // AF_XDP socket then worker waker sockets
   vector<pollfd> fds;
   // list of frames, aka (indexes of) umem entries that can be reused to fill fq,
@@ -135,14 +127,16 @@ class XskSocket
   void getMACFromIfName();
 
 public:
+  static void clearDestinationAddresses();
+  static void addDestinationAddress(const ComboAddress& destination);
+  static void removeDestinationAddress(const ComboAddress& destination);
   static constexpr size_t getFrameSize()
   {
     return frameSize;
   }
   // list of free umem entries that can be reused
   std::shared_ptr<LockGuarded<vector<uint64_t>>> sharedEmptyFrameOffset;
-  XskSocket(size_t frameNum, const std::string& ifName, uint32_t queue_id, const std::string& xskMapPath, const std::string& poolName_);
-  MACAddr source;
+  XskSocket(size_t frameNum, const std::string& ifName, uint32_t queue_id, const std::string& xskMapPath);
   [[nodiscard]] int xskFd() const noexcept;
   // wait until one event has occurred
   [[nodiscard]] int wait(int timeout);
@@ -150,16 +144,35 @@ public:
   void send(std::vector<XskPacket>& packets);
   // look at incoming packets in rx, return them if parsing succeeeded
   [[nodiscard]] std::vector<XskPacket> recv(uint32_t recvSizeMax, uint32_t* failedCount);
-  void addWorker(std::shared_ptr<XskWorker> s, const ComboAddress& dest);
+  void addWorker(std::shared_ptr<XskWorker> s);
+  void addWorkerRoute(const std::shared_ptr<XskWorker>& worker, const ComboAddress& dest);
+  void removeWorkerRoute(const ComboAddress& dest);
   [[nodiscard]] std::string getMetrics() const;
   void markAsFree(XskPacket&& packet);
-  [[nodiscard]] WorkerContainer& getWorkers()
+  [[nodiscard]] const std::shared_ptr<XskWorker>& getWorkerByDescriptor(int desc) const
   {
-    return workers;
+    return d_workers.at(desc);
+  }
+  [[nodiscard]] std::shared_ptr<XskWorker> getWorkerByDestination(const ComboAddress& destination)
+  {
+    auto routes = d_workerRoutes.lock();
+    auto workerIt = routes->find(destination);
+    if (workerIt == routes->end()) {
+      return nullptr;
+    }
+    return workerIt->second;
   }
   [[nodiscard]] const std::vector<pollfd>& getDescriptors() const
   {
     return fds;
+  }
+  [[nodiscard]] MACAddr getSourceMACAddress() const
+  {
+    return source;
+  }
+  [[nodiscard]] const std::string& getInterfaceName() const
+  {
+    return ifName;
   }
   // pick ups available frames from uniqueEmptyFrameOffset
   // insert entries from uniqueEmptyFrameOffset into fq
@@ -291,7 +304,6 @@ public:
   std::shared_ptr<LockGuarded<vector<uint64_t>>> sharedEmptyFrameOffset;
   // list of frames that we own, used to generate new packets (health-check)
   vector<uint64_t> uniqueEmptyFrameOffset;
-  std::string poolName;
   const size_t frameSize{XskSocket::getFrameSize()};
   FDWrapper workerWaker;
   FDWrapper xskSocketWaker;

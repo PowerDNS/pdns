@@ -754,11 +754,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     else {
       throw std::runtime_error("xskMapPath field is required!");
     }
-    if (opts.count("pool") == 1) {
-      poolName = boost::get<std::string>(opts.at("pool"));
-    }
     extern std::vector<std::shared_ptr<XskSocket>> g_xsk;
-    auto socket = std::make_shared<XskSocket>(frameNums, ifName, queue_id, path, poolName);
+    auto socket = std::make_shared<XskSocket>(frameNums, ifName, queue_id, path);
     g_xsk.push_back(socket);
     return socket;
   });

@@ -46,6 +46,9 @@ cidr4filter = xdp.get_table("cidr4filter")
 cidr6filter = xdp.get_table("cidr6filter")
 qnamefilter = xdp.get_table("qnamefilter")
 
+if useXsk:
+  xskDestinations = xdp.get_table("xskDestinationsV4")
+
 for ip in blocked_ipv4:
   print(f"Blocking {ip}")
   key = v4filter.Key(int(netaddr.IPAddress(ip[0]).value))
@@ -106,7 +109,7 @@ for qname in blocked_qnames:
 
 print("Filter is ready")
 try:
-  xdp.trace_print() 
+  xdp.trace_print()
 except KeyboardInterrupt:
   pass
 

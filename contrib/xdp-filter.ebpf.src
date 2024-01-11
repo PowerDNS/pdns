@@ -35,6 +35,8 @@ BPF_TABLE_PINNED7("lpm_trie", struct CIDR6, struct map_value, cidr6filter, 1024,
   __attribute__((section("maps/xskmap:" _pinned))) struct _name##_table_t _name = {.max_entries = (_max_entries)}
 
 BPF_XSKMAP_PIN(xsk_map, 16, "/sys/fs/bpf/dnsdist/xskmap");
+BPF_TABLE_PINNED("hash", struct IPv4AndPort, bool, xskDestinationsV4, 1024, "/sys/fs/bpf/dnsdist/xsk-destinations-v4");
+BPF_TABLE_PINNED("hash", struct IPv6AndPort, bool, xskDestinationsV6, 1024, "/sys/fs/bpf/dnsdist/xsk-destinations-v6");
 #endif /* UseXsk */
 
 #define COMPARE_PORT(x, p) ((x) == bpf_htons(p))
@@ -159,9 +161,19 @@ static inline enum xdp_action parseIPV4(struct xdp_md* ctx, struct cursor* c)
     if (!(udp = parse_udphdr(c))) {
       return XDP_PASS;
     }
+#ifdef UseXsk
+    struct IPv4AndPort v4Dest;
+    memset(&v4Dest, 0, sizeof(v4Dest));
+    v4Dest.port = udp->dest;
+    v4Dest.addr = ipv4->daddr;
+    if (!xskDestinationsV4.lookup(&v4Dest)) {
+      return XDP_PASS;
+    }
+#else /* UseXsk */
     if (!IN_DNS_PORT_SET(udp->dest)) {
       return XDP_PASS;
     }
+#endif /* UseXsk */
     if (!(dns = parse_dnshdr(c))) {
       return XDP_DROP;
     }
@@ -253,10 +265,20 @@ static inline enum xdp_action parseIPV6(struct xdp_md* ctx, struct cursor* c)
     if (!(udp = parse_udphdr(c))) {
       return XDP_PASS;
     }
+#ifdef UseXsk
+    struct IPv6AndPort v6Dest;
+    memset(&v6Dest, 0, sizeof(v6Dest));
+    v6Dest.port = udp->dest;
+    memcpy(&v6Dest.addr, &ipv6->daddr, sizeof(v6Dest.addr));
+    if (!xskDestinationsV6.lookup(&v6Dest)) {
+      return XDP_PASS;
+    }
+#else /* UseXsk */
     if (!IN_DNS_PORT_SET(udp->dest)) {
       return XDP_PASS;
     }
-    if (!(dns = parse_dnshdr(c))) {
+#endif /* UseXsk */
+  if (!(dns = parse_dnshdr(c))) {
       return XDP_DROP;
     }
     break;

@@ -35,7 +35,6 @@
 
 #ifdef HAVE_XSK
 #include <sys/poll.h>
-#include <sys/timerfd.h>
 #endif /* HAVE_XSK */
 
 #ifdef HAVE_LIBEDIT
@@ -815,25 +814,6 @@ static bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, Packet
 #ifdef HAVE_XSK
 namespace dnsdist::xsk
 {
-static void doHealthCheck(std::shared_ptr<DownstreamState>& dss, std::unordered_map<uint16_t, std::shared_ptr<HealthCheckData>>& map, bool initial = false)
-{
-  auto& xskInfo = dss->xskInfo;
-  std::shared_ptr<HealthCheckData> data;
-  auto packet = getHealthCheckPacket(dss, nullptr, data);
-  data->d_initial = initial;
-  setHealthCheckTime(dss, data);
-  auto xskPacket = xskInfo->getEmptyFrame();
-  if (!xskPacket) {
-    return;
-  }
-  xskPacket->setAddr(dss->d_config.sourceAddr, dss->d_config.sourceMACAddr, dss->d_config.remote, dss->d_config.destMACAddr);
-  xskPacket->setPayload(packet);
-  xskPacket->rewrite();
-  xskInfo->pushToSendQueue(std::move(*xskPacket));
-  const auto queryId = data->d_queryID;
-  map[queryId] = std::move(data);
-}
-
 void responderThread(std::shared_ptr<DownstreamState> dss)
 {
   if (dss->xskInfo == nullptr) {
@@ -846,16 +826,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
     auto localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
     auto xskInfo = dss->xskInfo;
     auto pollfds = getPollFdsForWorker(*xskInfo);
-    std::unordered_map<uint16_t, std::shared_ptr<HealthCheckData>> healthCheckMap;
-    dnsdist::xsk::doHealthCheck(dss, healthCheckMap, true);
-    itimerspec tm;
-    tm.it_value.tv_sec = dss->d_config.checkTimeout / 1000;
-    tm.it_value.tv_nsec = (dss->d_config.checkTimeout % 1000) * 1000000;
-    tm.it_interval = tm.it_value;
-    auto res = timerfd_settime(pollfds[1].fd, 0, &tm, nullptr);
-    if (res) {
-      throw std::runtime_error("timerfd_settime failed:" + stringerror(errno));
-    }
     const auto xskFd = xskInfo->workerWaker.getHandle();
     while (!dss->isStopped()) {
       poll(pollfds.data(), pollfds.size(), -1);
@@ -881,14 +851,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             }
           }
           if (!ids) {
-            // this has to go before we can refactor the duplicated response handling code
-            auto iter = healthCheckMap.find(queryId);
-            if (iter != healthCheckMap.end()) {
-              auto data = std::move(iter->second);
-              healthCheckMap.erase(iter);
-              packet.cloneIntoPacketBuffer(data->d_buffer);
-              data->d_ds->submitHealthCheckResult(data->d_initial, handleResponse(data));
-            }
             xskInfo->markAsFree(std::move(packet));
             return;
           }
@@ -902,7 +864,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             vinfolog("XSK packet pushed to queue because processResponderPacket failed");
             return;
           }
-          vinfolog("XSK packet - processResponderPacket OK");
           if (response.size() > packet.getCapacity()) {
             /* fallback to sending the packet via normal socket */
             sendUDPResponse(ids->cs->udpFD, response, ids->delayMsec, ids->hopLocal, ids->hopRemote);
@@ -910,9 +871,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             xskInfo->markAsFree(std::move(packet));
             return;
           }
-          //vinfolog("XSK packet - set header");
           packet.setHeader(ids->xskPacketHeader);
-          //vinfolog("XSK packet - set payload");
           if (!packet.setPayload(response)) {
             vinfolog("Unable to set payload !");
           }
@@ -920,41 +879,10 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             vinfolog("XSK packet - adding delay");
             packet.addDelay(ids->delayMsec);
           }
-          //vinfolog("XSK packet - update packet");
           packet.updatePacket();
-          //vinfolog("XSK packet pushed to send queue");
           xskInfo->pushToSendQueue(std::move(packet));
         });
         xskInfo->cleanSocketNotification();
-      }
-      if (pollfds[1].revents & POLLIN) {
-        timeval now;
-        gettimeofday(&now, nullptr);
-        for (auto i = healthCheckMap.begin(); i != healthCheckMap.end();) {
-          auto& ttd = i->second->d_ttd;
-          if (ttd < now) {
-            dss->submitHealthCheckResult(i->second->d_initial, false);
-            i = healthCheckMap.erase(i);
-          }
-          else {
-            ++i;
-          }
-        }
-        needNotify = true;
-        dss->updateStatisticsInfo();
-        dss->handleUDPTimeouts();
-        if (dss->d_nextCheck <= 1) {
-          dss->d_nextCheck = dss->d_config.checkInterval;
-          if (dss->d_config.availability == DownstreamState::Availability::Auto) {
-            doHealthCheck(dss, healthCheckMap);
-          }
-        }
-        else {
-          --dss->d_nextCheck;
-        }
-
-        uint64_t tmp;
-        res = read(pollfds[1].fd, &tmp, sizeof(tmp));
       }
       if (needNotify) {
         xskInfo->notifyXskSocket();
@@ -987,7 +915,7 @@ static bool isXskQueryAcceptable(const XskPacket& packet, ClientState& cs, Local
   return true;
 }
 
-void XskRouter(std::shared_ptr<XskSocket> xsk)
+static void XskRouter(std::shared_ptr<XskSocket> xsk)
 {
   setThreadName("dnsdist/XskRouter");
   uint32_t failed;
@@ -996,8 +924,6 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
   const auto& fds = xsk->getDescriptors();
   // list of workers that need to be notified
   std::set<int> needNotify;
-  const auto& xskWakerIdx = xsk->getWorkers().get<0>();
-  const auto& destIdx = xsk->getWorkers().get<1>();
   while (true) {
     try {
       auto ready = xsk->wait(-1);
@@ -1007,13 +933,13 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
         dnsdist::metrics::g_stats.nonCompliantQueries += failed;
         for (auto &packet : packets) {
           const auto dest = packet.getToAddr();
-          auto res = destIdx.find(dest);
-          if (res == destIdx.end()) {
+          auto worker = xsk->getWorkerByDestination(dest);
+          if (!worker) {
             xsk->markAsFree(std::move(packet));
             continue;
           }
-          res->worker->pushToProcessingQueue(std::move(packet));
-          needNotify.insert(res->workerWaker);
+          worker->pushToProcessingQueue(std::move(packet));
+          needNotify.insert(worker->workerWaker.getHandle());
         }
         for (auto i : needNotify) {
           uint64_t x = 1;
@@ -1031,7 +957,7 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
       for (size_t fdIndex = 1; fdIndex < fds.size() && ready > 0; fdIndex++) {
         if (fds.at(fdIndex).revents & POLLIN) {
           ready--;
-          auto& info = xskWakerIdx.find(fds.at(fdIndex).fd)->worker;
+          auto& info = xsk->getWorkerByDescriptor(fds.at(fdIndex).fd);
 #if defined(__SANITIZE_THREAD__)
           info->outgoingPacketsQueue.lock()->consume_all([&](XskPacket& packet) {
 #else
@@ -1131,19 +1057,14 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 
         if (processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfo) {
 #ifdef HAVE_XSK
-          //vinfolog("processResponderPacket OK");
           auto& xskInfo = ids->cs->xskInfo;
           auto xskPacket = xskInfo->getEmptyFrame();
           if (!xskPacket) {
             continue;
           }
-          //vinfolog("XSK setHeader");
           xskPacket->setHeader(ids->xskPacketHeader);
-          //vinfolog("XSK payload");
           xskPacket->setPayload(response);
-          //vinfolog("XSK update packet");
           xskPacket->updatePacket();
-          //vinfolog("XSK pushed to send queue");
           xskInfo->pushToSendQueue(std::move(*xskPacket));
           xskInfo->notifyXskSocket();
 #endif /* HAVE_XSK */
@@ -1701,11 +1622,6 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
       ++dq.ids.cs->responses;
       return ProcessQueryResult::SendAnswer;
     }
-#ifdef HAVE_XSK
-    if (dq.ids.cs->xskInfo) {
-      dq.ids.poolName = dq.ids.cs->xskInfo->poolName;
-    }
-#endif /* HAVE_XSK */
     std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, dq.ids.poolName);
     std::shared_ptr<ServerPolicy> poolPolicy = serverPool->policy;
     dq.ids.packetCache = serverPool->packetCache;
@@ -2222,6 +2138,8 @@ static bool ProcessXskQuery(ClientState& cs, LocalHolders& holders, XskPacket& p
       if (dq.ids.delayMsec > 0) {
         packet.addDelay(dq.ids.delayMsec);
       }
+      const auto dh = dq.getHeader();
+      handleResponseSent(ids.qname, ids.qtype, 0., remote, ComboAddress(), query.size(), *dh, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
       return true;
     }
 
@@ -2247,6 +2165,7 @@ static bool ProcessXskQuery(ClientState& cs, LocalHolders& holders, XskPacket& p
       return false;
     }
 
+#ifdef HAVE_XSK
     if (!ss->xskInfo) {
       assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query, true);
       return false;
@@ -2255,11 +2174,16 @@ static bool ProcessXskQuery(ClientState& cs, LocalHolders& holders, XskPacket& p
       int fd = ss->xskInfo->workerWaker;
       ids.backendFD = fd;
       assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query, false);
-      packet.setAddr(ss->d_config.sourceAddr,ss->d_config.sourceMACAddr, ss->d_config.remote,ss->d_config.destMACAddr);
+      auto sourceAddr = ss->pickSourceAddressForSending();
+      packet.setAddr(sourceAddr, ss->d_config.sourceMACAddr, ss->d_config.remote, ss->d_config.destMACAddr);
       packet.setPayload(query);
       packet.rewrite();
       return true;
     }
+#else /* HAVE_XSK */
+    assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query, true);
+    return false;
+#endif /* HAVE_XSK */
   }
   catch (const std::exception& e) {
     vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
@@ -2638,11 +2562,6 @@ static void healthChecksThread()
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
     for (auto& dss : *states) {
-#ifdef HAVE_XSK
-      if (dss->xskInfo) {
-        continue;
-      }
-#endif /* HAVE_XSK */
       dss->updateStatisticsInfo();
 
       dss->handleUDPTimeouts();
@@ -3387,6 +3306,8 @@ static void startFrontends()
   for (auto& clientState : g_frontends) {
 #ifdef HAVE_XSK
     if (clientState->xskInfo) {
+      XskSocket::addDestinationAddress(clientState->local);
+
       std::thread xskCT(dnsdist::xsk::xskClientThread, clientState.get());
       if (!clientState->cpus.empty()) {
         mapThreadToCPUList(xskCT.native_handle(), clientState->cpus);
@@ -3492,6 +3413,10 @@ int main(int argc, char** argv)
 #endif
     dnsdist::initRandom();
     g_hashperturb = dnsdist::getRandomValue(0xffffffff);
+
+#ifdef HAVE_XSK
+    XskSocket::clearDestinationAddresses();
+#endif /* HAVE_XSK */
 
     ComboAddress clientAddress = ComboAddress();
     g_cmdLine.config=SYSCONFDIR "/dnsdist.conf";
@@ -3655,11 +3580,6 @@ int main(int argc, char** argv)
       auto states = g_dstates.getCopy(); // it is a copy, but the internal shared_ptrs are the real deal
       auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states.size()));
       for (auto& dss : states) {
-#ifdef HAVE_XSK
-        if (dss->xskInfo) {
-          continue;
-        }
-#endif /* HAVE_XSK */
 
         if (dss->d_config.availability == DownstreamState::Availability::Auto || dss->d_config.availability == DownstreamState::Availability::Lazy) {
           if (dss->d_config.availability == DownstreamState::Availability::Auto) {

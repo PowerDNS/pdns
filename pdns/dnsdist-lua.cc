@@ -636,13 +636,22 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_XSK
                          std::shared_ptr<XskSocket> xskSocket;
                          if (getOptionalValue<std::shared_ptr<XskSocket>>(vars, "xskSocket", xskSocket) > 0) {
+                           if (g_configurationDone) {
+                             throw std::runtime_error("Adding a server with xsk at runtime is not supported");
+                           }
                            ret->registerXsk(xskSocket);
                            std::string mac;
-                           if (getOptionalValue<std::string>(vars, "MACAddr", mac) != 1) {
-                             throw runtime_error("field MACAddr is required!");
+                           if (getOptionalValue<std::string>(vars, "MACAddr", mac) > 0) {
+                             auto* addr = &ret->d_config.destMACAddr[0];
+                             sscanf(mac.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", addr, addr + 1, addr + 2, addr + 3, addr + 4, addr + 5);
                            }
-                           auto* addr = &ret->d_config.destMACAddr[0];
-                           sscanf(mac.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", addr, addr + 1, addr + 2, addr + 3, addr + 4, addr + 5);
+                           else {
+                             mac = getMACAddress(ret->d_config.remote);
+                             if (mac.size() != ret->d_config.destMACAddr.size()) {
+                               throw runtime_error("Field 'MACAddr' is not set on 'newServer' directive for '" + ret->d_config.remote.toStringWithPort() + "' and cannot be retriever from the system either!");
+                             }
+                             memcpy(ret->d_config.destMACAddr.data(), mac.data(), ret->d_config.destMACAddr.size());
+                           }
                          }
 #endif /* HAVE_XSK */
                          if (autoUpgrade && ret->getProtocol() != dnsdist::Protocol::DoT && ret->getProtocol() != dnsdist::Protocol::DoH) {
@@ -783,7 +792,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (socket) {
         udpCS->xskInfo = XskWorker::create();
         udpCS->xskInfo->sharedEmptyFrameOffset = socket->sharedEmptyFrameOffset;
-        socket->addWorker(udpCS->xskInfo, loc);
+        socket->addWorker(udpCS->xskInfo);
+        socket->addWorkerRoute(udpCS->xskInfo, loc);
       }
 #endif /* HAVE_XSK */
       g_frontends.push_back(std::move(udpCS));
@@ -835,7 +845,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (socket) {
         udpCS->xskInfo = XskWorker::create();
         udpCS->xskInfo->sharedEmptyFrameOffset = socket->sharedEmptyFrameOffset;
-        socket->addWorker(udpCS->xskInfo, loc);
+        socket->addWorker(udpCS->xskInfo);
+        socket->addWorkerRoute(udpCS->xskInfo, loc);
       }
 #endif /* HAVE_XSK */
       g_frontends.push_back(std::move(udpCS));

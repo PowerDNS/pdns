@@ -819,7 +819,10 @@ public:
   std::vector<int> sockets;
   StopWatch sw;
   QPSLimiter qps;
+#ifdef HAVE_XSK
   std::shared_ptr<XskWorker> xskInfo{nullptr};
+  std::shared_ptr<XskSocket> d_xskSocket{nullptr};
+#endif
   std::atomic<uint64_t> idOffset{0};
   size_t socketsOffset{0};
   double latencyUsec{0.0};
@@ -834,10 +837,17 @@ private:
   void handleUDPTimeout(IDState& ids);
   void updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled, std::optional<time_t> currentTime = std::nullopt);
   void connectUDPSockets();
+#ifdef HAVE_XSK
+  void addXSKDestination(int fd);
+  void removeXSKDestination(int fd);
+#endif /* HAVE_XSK */
 
   std::thread tid;
   std::mutex connectLock;
   std::condition_variable d_connectedWait;
+#ifdef HAVE_XSK
+  SharedLockGuarded<std::vector<ComboAddress>> d_socketSourceAddresses;
+#endif
   std::atomic_flag threadStarted;
   uint8_t consecutiveSuccessfulChecks{0};
   bool d_stopped{false};
@@ -979,16 +989,8 @@ public:
   std::optional<InternalQueryState> getState(uint16_t id);
 
 #ifdef HAVE_XSK
-  void registerXsk(std::shared_ptr<XskSocket>& xsk)
-  {
-    xskInfo = XskWorker::create();
-    if (d_config.sourceAddr.sin4.sin_family == 0) {
-      throw runtime_error("invalid source addr");
-    }
-    xsk->addWorker(xskInfo, d_config.sourceAddr);
-    d_config.sourceMACAddr = xsk->source;
-    xskInfo->sharedEmptyFrameOffset = xsk->sharedEmptyFrameOffset;
-  }
+  void registerXsk(std::shared_ptr<XskSocket>& xsk);
+  [[nodiscard]] ComboAddress pickSourceAddressForSending();
 #endif /* HAVE_XSK */
 
   dnsdist::Protocol getProtocol() const
@@ -1194,3 +1196,10 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote);
 void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend);
 void handleResponseSent(const InternalQueryState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, bool fromBackend);
+
+#ifdef HAVE_XSK
+namespace dnsdist::xsk
+{
+void responderThread(std::shared_ptr<DownstreamState> dss);
+}
+#endif /* HAVE_XSK */

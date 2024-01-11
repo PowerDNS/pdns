@@ -104,8 +104,8 @@ int XskSocket::firstTimeout()
   return res;
 }
 
-XskSocket::XskSocket(size_t frameNum_, const std::string& ifName_, uint32_t queue_id, const std::string& xskMapPath, const std::string& poolName_) :
-  frameNum(frameNum_), ifName(ifName_), poolName(poolName_), socket(nullptr, xsk_socket__delete), sharedEmptyFrameOffset(std::make_shared<LockGuarded<vector<uint64_t>>>())
+XskSocket::XskSocket(size_t frameNum_, const std::string& ifName_, uint32_t queue_id, const std::string& xskMapPath) :
+  frameNum(frameNum_), ifName(ifName_), socket(nullptr, xsk_socket__delete), sharedEmptyFrameOffset(std::make_shared<LockGuarded<vector<uint64_t>>>())
 {
   if (!isPowOfTwo(frameNum_) || !isPowOfTwo(frameSize)
       || !isPowOfTwo(fqCapacity) || !isPowOfTwo(cqCapacity) || !isPowOfTwo(rxCapacity) || !isPowOfTwo(txCapacity)) {
@@ -172,6 +172,113 @@ XskSocket::XskSocket(size_t frameNum_, const std::string& ifName_, uint32_t queu
   auto ret = bpf_map_update_elem(xskMapFd.getHandle(), &queue_id, &xskfd, 0);
   if (ret) {
     throw std::runtime_error("Error inserting into xsk_map '" + xskMapPath + "': " + std::to_string(ret));
+  }
+}
+
+// see xdp.h in contrib/
+
+struct IPv4AndPort
+{
+  uint32_t addr;
+  uint16_t port;
+};
+struct IPv6AndPort
+{
+  struct in6_addr addr;
+  uint16_t port;
+};
+
+static void clearDestinationMap(bool v6)
+{
+  const std::string mapPath = !v6 ? "/sys/fs/bpf/dnsdist/xsk-destinations-v4" : "/sys/fs/bpf/dnsdist/xsk-destinations-v6";
+
+  const auto destMapFd = FDWrapper(bpf_obj_get(mapPath.c_str()));
+  if (destMapFd.getHandle() < 0) {
+    throw std::runtime_error("Error getting the XSK destination addresses map path '" + mapPath + "'");
+  }
+
+  if (!v6) {
+    IPv4AndPort prevKey{};
+    IPv4AndPort key{};
+    while (bpf_map_get_next_key(destMapFd.getHandle(), &prevKey, &key) == 0) {
+      bpf_map_delete_elem(destMapFd.getHandle(), &key);
+      prevKey = key;
+    }
+  }
+  else {
+    IPv6AndPort prevKey{};
+    IPv6AndPort key{};
+    while (bpf_map_get_next_key(destMapFd.getHandle(), &prevKey, &key) == 0) {
+      bpf_map_delete_elem(destMapFd.getHandle(), &key);
+      prevKey = key;
+    }
+  }
+}
+
+void XskSocket::clearDestinationAddresses()
+{
+  clearDestinationMap(false);
+  clearDestinationMap(true);
+}
+
+void XskSocket::addDestinationAddress(const ComboAddress& destination)
+{
+  // see xdp.h in contrib/
+
+  const std::string mapPath = destination.isIPv4() ? "/sys/fs/bpf/dnsdist/xsk-destinations-v4" : "/sys/fs/bpf/dnsdist/xsk-destinations-v6";
+  //if (!s_destinationAddressesMap) {
+  //  throw std::runtime_error("The path of the XSK (AF_XDP) destination addresses map has not been set! Please consider using setXSKDestinationAddressesMapPath().");
+  //}
+
+  const auto destMapFd = FDWrapper(bpf_obj_get(mapPath.c_str()));
+  if (destMapFd.getHandle() < 0) {
+    throw std::runtime_error("Error getting the XSK destination addresses map path '" + mapPath + "'");
+  }
+
+  bool value = true;
+  if (destination.isIPv4()) {
+    IPv4AndPort key{};
+    key.addr = destination.sin4.sin_addr.s_addr;
+    key.port = destination.sin4.sin_port;
+    auto ret = bpf_map_update_elem(destMapFd.getHandle(), &key, &value, 0);
+    if (ret) {
+      throw std::runtime_error("Error inserting into xsk_map '" + mapPath + "': " + std::to_string(ret));
+    }
+  }
+  else {
+    IPv6AndPort key{};
+    key.addr = destination.sin6.sin6_addr;
+    key.port = destination.sin6.sin6_port;
+    auto ret = bpf_map_update_elem(destMapFd.getHandle(), &key, &value, 0);
+    if (ret) {
+      throw std::runtime_error("Error inserting into XSK destination addresses map '" + mapPath + "': " + std::to_string(ret));
+    }
+  }
+}
+
+void XskSocket::removeDestinationAddress(const ComboAddress& destination)
+{
+  const std::string mapPath = destination.isIPv4() ? "/sys/fs/bpf/dnsdist/xsk-destinations-v4" : "/sys/fs/bpf/dnsdist/xsk-destinations-v6";
+  //if (!s_destinationAddressesMap) {
+  //  throw std::runtime_error("The path of the XSK (AF_XDP) destination addresses map has not been set! Please consider using setXSKDestinationAddressesMapPath().");
+  //}
+
+  const auto destMapFd = FDWrapper(bpf_obj_get(mapPath.c_str()));
+  if (destMapFd.getHandle() < 0) {
+    throw std::runtime_error("Error getting the XSK destination addresses map path '" + mapPath + "'");
+  }
+
+  if (destination.isIPv4()) {
+    IPv4AndPort key{};
+    key.addr = destination.sin4.sin_addr.s_addr;
+    key.port = destination.sin4.sin_port;
+    bpf_map_delete_elem(destMapFd.getHandle(), &key);
+  }
+  else {
+    IPv6AndPort key{};
+    key.addr = destination.sin6.sin6_addr;
+    key.port = destination.sin6.sin6_port;
+    bpf_map_delete_elem(destMapFd.getHandle(), &key);
   }
 }
 
@@ -412,14 +519,17 @@ XskSocket::XskUmem::~XskUmem()
 [[nodiscard]] ethhdr XskPacket::getEthernetHeader() const noexcept
 {
   ethhdr ethHeader{};
-  assert(frameLength >= sizeof(ethHeader));
-  memcpy(&ethHeader, frame, sizeof(ethHeader));
+  if (frameLength >= sizeof(ethHeader)) {
+    memcpy(&ethHeader, frame, sizeof(ethHeader));
+  }
   return ethHeader;
 }
 
 void XskPacket::setEthernetHeader(const ethhdr& ethHeader) noexcept
 {
-  assert(frameLength >= sizeof(ethHeader));
+  if (frameLength < sizeof(ethHeader)) {
+    frameLength = sizeof(ethHeader);
+  }
   memcpy(frame, &ethHeader, sizeof(ethHeader));
 }
 
@@ -631,8 +741,8 @@ bool XskPacket::isIPV6() const noexcept
   return v6;
 }
 
-XskPacket::XskPacket(uint8_t* frame_, size_t dataSize, size_t frameSize) :
-  frame(frame_), frameLength(dataSize), frameSize(frameSize - XDP_PACKET_HEADROOM)
+XskPacket::XskPacket(uint8_t* frame_, size_t dataSize, size_t frameSize_) :
+  frame(frame_), frameLength(dataSize), frameSize(frameSize_ - XDP_PACKET_HEADROOM)
 {
 }
 
@@ -757,7 +867,7 @@ void XskPacket::rewrite() noexcept
     ipHeader.protocol = IPPROTO_UDP;
     udpHeader.source = from.sin4.sin_port;
     udpHeader.dest = to.sin4.sin_port;
-    udpHeader.len = htons(getDataSize());
+    udpHeader.len = htons(getDataSize() + sizeof(udpHeader));
     udpHeader.check = 0;
     /* needed to get the correct checksum */
     setIPv4Header(ipHeader);
@@ -963,31 +1073,26 @@ std::shared_ptr<XskWorker> XskWorker::create()
   return std::make_shared<XskWorker>();
 }
 
-void XskSocket::addWorker(std::shared_ptr<XskWorker> s, const ComboAddress& dest)
+void XskSocket::addWorker(std::shared_ptr<XskWorker> worker)
 {
-  extern std::atomic<bool> g_configurationDone;
-  if (g_configurationDone) {
-    throw runtime_error("Adding a server with xsk at runtime is not supported");
-  }
-  s->poolName = poolName;
-  const auto socketWaker = s->xskSocketWaker.getHandle();
-  const auto workerWaker = s->workerWaker.getHandle();
-  const auto& socketWakerIdx = workers.get<0>();
-  if (socketWakerIdx.contains(socketWaker)) {
-    throw runtime_error("Server already exist");
-  }
-  s->umemBufBase = umem.bufBase;
-  workers.insert(XskRouteInfo{
-    .worker = std::move(s),
-    .dest = dest,
-    .xskSocketWaker = socketWaker,
-    .workerWaker = workerWaker,
-  });
+  const auto socketWaker = worker->xskSocketWaker.getHandle();
+  worker->umemBufBase = umem.bufBase;
+  d_workers.insert({socketWaker, std::move(worker)});
   fds.push_back(pollfd{
     .fd = socketWaker,
     .events = POLLIN,
     .revents = 0});
 };
+
+void XskSocket::addWorkerRoute(const std::shared_ptr<XskWorker>& worker, const ComboAddress& dest)
+{
+  d_workerRoutes.lock()->insert({dest, worker});
+}
+
+void XskSocket::removeWorkerRoute(const ComboAddress& dest)
+{
+  d_workerRoutes.lock()->erase(dest);
+}
 
 uint64_t XskWorker::frameOffset(const XskPacket& packet) const noexcept
 {
