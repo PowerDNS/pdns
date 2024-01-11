@@ -95,18 +95,15 @@ subdir('meson' / 'cxx-fs')                  # C++ stdlib Filesystem Module
 # TODO Generate pdns_server.1 manpage
 
 # Ext
-ext_modules = [
-  'arc4random',
-  'ipcrypt',
-  'json11',
-  'luawrapper',
-  'protozero',
-  'yahttp',
-]
+subdir('ext' / 'arc4random')
+subdir('ext' / 'ipcrypt')
+subdir('ext' / 'json11')
+subdir('ext' / 'luawrapper')
+subdir('ext' / 'protozero')
+subdir('ext' / 'yahttp')
 if get_option('module-lmdb') != 'disabled'
-  ext_modules += 'lmdb-safe'
+  subdir('ext' / 'lmdb-safe')
 endif
-subdir('ext')
 
 deps = [
   dep_pdns,
