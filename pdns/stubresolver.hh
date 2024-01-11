@@ -22,8 +22,9 @@
 #pragma once
 #include "namespaces.hh"
 #include "dnsparser.hh"
+#include "ednssubnet.hh"
 
 void stubParseResolveConf();
 bool resolversDefined();
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret);
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret);
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret, const EDNSSubnetOpts* d_eso = nullptr);
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret, const EDNSSubnetOpts* d_eso = nullptr);
