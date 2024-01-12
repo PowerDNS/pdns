@@ -2270,7 +2270,7 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
         vector<DNSRecord> selected;
         selected.reserve(s_maxnsperresolve);
         std::sample(nsVector.cbegin(), nsVector.cend(), std::back_inserter(selected), s_maxnsperresolve, pdns::dns_random_engine());
-        nsVector = selected;
+        nsVector = std::move(selected);
       }
       bestns.reserve(nsVector.size());
 
