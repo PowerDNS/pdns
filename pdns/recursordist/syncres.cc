@@ -2671,12 +2671,12 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       if (CNAMELoop) {
         string msg = "got a CNAME referral (from cache) that causes a loop";
         LOG(prefix << qname << ": Status=" << msg << endl);
-        throw ImmediateServFailException(msg);
+        throw ImmediateServFailException(std::move(msg));
       }
       if (numCNAMEs > s_max_CNAMES_followed) {
         string msg = "max number of CNAMEs exceeded";
         LOG(prefix << qname << ": Status=" << msg << endl);
-        throw ImmediateServFailException(msg);
+        throw ImmediateServFailException(std::move(msg));
       }
 
       set<GetBestNSAnswer> beenthere;
