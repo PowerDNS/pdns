@@ -31,6 +31,7 @@ jobs:
           - centos-9-stream
           - ubuntu-lunar
           - ubuntu-mantic
+          - ubuntu-noble
           - debian-bookworm
           - debian-trixie
           - amazon-2023
