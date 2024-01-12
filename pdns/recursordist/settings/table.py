@@ -171,7 +171,7 @@ Note that specifying an IP address without a netmask uses an implicit
 netmask of /32 or /128.
 
 NOTIFY operations received from a client listed in one of these netmasks
-will be accepted and used to wipe any cache entries whose zones match
+will be accepted and used to initiate a freshness check for an RPZ zone or wipe any cache entries whose zones match
 the zone specified in the NOTIFY operation, but only if that zone (or
 one of its parents) is included in :ref:`setting-allow-notify-for`,
 :ref:`setting-allow-notify-for-file`, or :ref:`setting-forward-zones-file` with a ``allow_notify`` set to ``true``.
