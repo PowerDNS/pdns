@@ -564,7 +564,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
         if (resourceRecord.d_type == QType::SOA) {
           auto oldsr = getRR<SOARecordContent>(resourceRecord);
           if (oldsr && oldsr->d_st.serial == currentSR->d_st.serial) {
-            //	    cout<<"Got good removal of SOA serial "<<oldsr->d_st.serial<<endl;
+            //	Got good removal of SOA serial, no work to be done
           }
           else {
             if (!oldsr) {
@@ -587,7 +587,6 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
         }
         if (resourceRecord.d_type == QType::SOA) {
           auto tempSR = getRR<SOARecordContent>(resourceRecord);
-          //	  g_log<<Logger::Info<<"New SOA serial for "<<zoneName<<": "<<currentSR->d_st.serial<<endl;
           if (tempSR) {
             currentSR = std::move(tempSR);
           }
