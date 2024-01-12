@@ -583,7 +583,7 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
   if (!luaconfsLocal->protobufExportConfig.logMappedFrom) {
     pbMessage.setSocketFamily(source.sin4.sin_family);
     Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-    auto requestor = requestorNM.getMaskedNetwork();
+    const auto& requestor = requestorNM.getMaskedNetwork();
     pbMessage.setFrom(requestor);
     pbMessage.setFromPort(source.getPort());
   }
