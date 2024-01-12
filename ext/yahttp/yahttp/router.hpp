@@ -59,7 +59,7 @@ is consumed but not stored. Note that only path is matched, scheme, host and url
 /*! Map an URL.
 If method is left empty, it will match any method. Name is also optional, but needed if you want to find it for making URLs
 */
-    static void Map(const std::string& method, const std::string& url, THandlerFunction handler, const std::string& name = "") { router.map(method, std::move(url), handler, name); };
+    static void Map(const std::string& method, const std::string& url, THandlerFunction handler, const std::string& name = "") { router.map(method, url, std::move(handler), name); };
     static void Get(const std::string& url, THandlerFunction handler, const std::string& name = "") { router.map("GET", url, std::move(handler), name); }; //<! Helper for mapping GET
     static void Post(const std::string& url, THandlerFunction handler, const std::string& name = "") { router.map("POST", url, std::move(handler), name); }; //<! Helper for mapping POST
     static void Put(const std::string& url, THandlerFunction handler, const std::string& name = "") { router.map("PUT", url, std::move(handler), name); }; //<! Helper for mapping PUT
