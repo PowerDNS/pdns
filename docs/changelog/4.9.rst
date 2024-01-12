@@ -1,0 +1,224 @@
+Changelogs for 4.9.x
+====================
+
+.. changelog::
+  :version: 4.9.0-alpha1
+  :released: 12th of January 2024
+
+  This is release 4.9.0-alpha1 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  This version contains improvements to the API, ALIAS handling, catalog zones, and some tool improvements.
+  It also contains various bug fixes and smaller improvements, please see the list below.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13441
+
+    forward EDNS Client Subnet option during ALIAS processing
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13693
+
+    iputils: avoid unused warnings on !linux
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13613
+
+    Remove the `extern`ed `StatBag` from `ws-auth`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13642
+
+    allow building in separate build directory (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13635
+
+    improve wildcard CNAME handling (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13514
+
+    auth api: flush all caches when flushing (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13153, 13641
+
+    Move method checking to Router (Aki Tuomi)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13619
+
+    Add supervisor to Auth container image
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13062
+
+    add loglevel-show setting to get logs formatted like structured logs
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13072
+
+    CAA records: handle empty value more gracefully, fixes #13070
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13023
+
+    Remove legacy terms from the codebase (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13191
+
+    Wrap ``DIR*`` objects in unique pointers to prevent memory leaks
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13322
+
+    ixfrdist: add NOTIFY receive support
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13028
+
+    bindparser add primary/secondary/etc. keywords (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13340
+
+    Netmask: Normalize subnet masks coming from a string
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13287
+
+    dnsscope: Add a `--port` option to select a custom port
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13014
+
+    Report auth settings deprecated in 4.5 (Josh Soref)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13293
+
+    sdig: add rudimentary EDE output
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13192
+
+    Improve error message for missing GSS-TSIG feature (Andreas Jakum)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13238
+
+    add default-catalog-zone setting
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12086
+
+    API: replace zone contents et al (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11597
+
+    geoipbackend: Support reading zones from directory (Aki Tuomi)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13162
+
+    Print the list of loaded modules next to the config.h preset
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13168
+
+    Change the default for building with net-snmp from `auto` to `no`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12565
+
+    harmonize \*xfr log messages (Josh Soref)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12949
+
+    Refactor the MultiThreadDistributor using `pdns::channel`
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13018
+
+    calidns: Fix setting an ECS source of 0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13019
+
+    calidns: Prevent a crash on an empty domains file
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13065
+
+    report which backend failed to instantiate
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13063
+
+    add remote to logs when tcp thread dies (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13049
+
+    Add missing tools to pdns-tools package description (control) (Andreas Jakum)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12753
+
+    pkcs11signers: If private key object has `CKA_ALWAYS_AUTHENTICATE` attribute, perform `CKU_CONTEXT_SPECIFIC` login after `OperationInit` to make it actually work. (Aki Tuomi)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13029
+
+    wait for `mysql.service` (Andras Kovacs)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 12877
+
+    bump sdist builders to alpine 3.18
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 11510
+
+    new option 'ignore-errors' for setting 'outgoing-axfr-expand-alias' (Klaus Darilion)
+
