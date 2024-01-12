@@ -319,7 +319,7 @@ static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16
   auto returnValue = quiche_h3_send_response(conn.d_http3.get(), conn.d_conn.get(),
                                              streamID, headers.data(),
                                              // do not include content-type header info if there is no content
-                                             (len > 0 ? headers.size() : headers.size() - 1),
+                                             (len > 0 && statusCode == 200U ? headers.size() : headers.size() - 1),
                                              len == 0);
   if (returnValue != 0) {
     /* in theory it could be QUICHE_H3_ERR_STREAM_BLOCKED if the stream is not writable / congested, but we are not going to handle this case */
