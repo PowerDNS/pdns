@@ -27,7 +27,8 @@
 extern bool g_logRPZChanges;
 
 // Please make sure that the struct below only contains value types since they are used as parameters in a thread ct
-struct RPZTrackerParams {
+struct RPZTrackerParams
+{
   std::vector<ComboAddress> primaries;
   boost::optional<DNSFilterEngine::Policy> defpol;
   bool defpolOverrideLocal;
