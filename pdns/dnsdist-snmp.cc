@@ -384,8 +384,8 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const DownstreamState& dss)
   netsnmp_variable_list* varList = nullptr;
 
   snmp_varlist_add_variable(&varList,
-                            snmpTrapOID,
-                            snmpTrapOIDLen,
+                            snmpTrapOID.data(),
+                            snmpTrapOID.size(),
                             ASN_OBJECT_ID,
                             backendStatusChangeTrapOID,
                             OID_LENGTH(backendStatusChangeTrapOID)  * sizeof(oid));
@@ -424,8 +424,8 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
   netsnmp_variable_list* varList = nullptr;
 
   snmp_varlist_add_variable(&varList,
-                            snmpTrapOID,
-                            snmpTrapOIDLen,
+                            snmpTrapOID.data(),
+                            snmpTrapOID.size(),
                             ASN_OBJECT_ID,
                             customTrapOID,
                             OID_LENGTH(customTrapOID)  * sizeof(oid));
@@ -460,8 +460,8 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
   netsnmp_variable_list* varList = nullptr;
 
   snmp_varlist_add_variable(&varList,
-                            snmpTrapOID,
-                            snmpTrapOIDLen,
+                            snmpTrapOID.data(),
+                            snmpTrapOID.size(),
                             ASN_OBJECT_ID,
                             actionTrapOID,
                             OID_LENGTH(actionTrapOID)  * sizeof(oid));
