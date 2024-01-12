@@ -3002,12 +3002,12 @@ static void initArgs()
   ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size") = "0";
   ::arg().set("tcp-fast-open-connect", "Enable TCP Fast Open support on outgoing sockets") = "no";
   ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record") = "150";
-  ::arg().set("max-rrsigs-per-record", "Maximum number of RRSIGs to consider when validating a given record") = "0";
-  ::arg().set("max-nsec3s-per-record", "Maximum number of NSEC3s to consider when validating a given denial of existence") = "0";
-  ::arg().set("max-signature-validations-per-query", "Maximum number of RRSIG signatures we are willing to validate per incoming query") = "0";
-  ::arg().set("max-nsec3-hash-computations-per-query", "Maximum number of NSEC3 hashes that we are willing to compute during DNSSEC validation, per incoming query") = "0";
-  ::arg().set("aggressive-cache-max-nsec3-hash-cost", "Maximum estimated NSEC3 cost for a given query to consider aggressive use of the NSEC3 cache") = "0";
-  ::arg().set("max-dnskeys", "Maximum number of DNSKEYs with the same algorithm and tag to consider when validating a given record") = "0";
+  ::arg().set("max-rrsigs-per-record", "Maximum number of RRSIGs to consider when validating a given record") = "2";
+  ::arg().set("max-nsec3s-per-record", "Maximum number of NSEC3s to consider when validating a given denial of existence") = "10";
+  ::arg().set("max-signature-validations-per-query", "Maximum number of RRSIG signatures we are willing to validate per incoming query") = "30";
+  ::arg().set("max-nsec3-hash-computations-per-query", "Maximum number of NSEC3 hashes that we are willing to compute during DNSSEC validation, per incoming query") = "600";
+  ::arg().set("aggressive-cache-max-nsec3-hash-cost", "Maximum estimated NSEC3 cost for a given query to consider aggressive use of the NSEC3 cache") = "150";
+  ::arg().set("max-dnskeys", "Maximum number of DNSKEYs with the same algorithm and tag to consider when validating a given record") = "2";
 
   ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs") = "";
 
