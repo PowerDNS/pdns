@@ -5574,7 +5574,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
     }
     LOG("looping to them" << endl);
     *gotNewServers = true;
-    auth = newauth;
+    auth = std::move(newauth);
 
     return false;
   }
