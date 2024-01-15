@@ -41,8 +41,7 @@ public:
 protected:
 #ifdef HAVE_NET_SNMP
   /* OID for snmpTrapOID.0 */
-  static const oid snmpTrapOID[];
-  static const size_t snmpTrapOIDLen;
+  static const std::array<oid, 11> snmpTrapOID;
 
   static bool sendTrap(pdns::channel::Sender<netsnmp_variable_list, void(*)(netsnmp_variable_list*)>& sender,
                        netsnmp_variable_list* varList);
