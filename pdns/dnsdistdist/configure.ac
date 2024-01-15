@@ -219,6 +219,10 @@ AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
 )
+AS_IF([test x"$BPF_LIBS" != "x" -a x"$XDP_LIBS" != "x"],
+  [AC_MSG_NOTICE([AF_XDP/XSK: yes])],
+  [AC_MSG_NOTICE([AF_XDP/XSK: no])]
+)
 AS_IF([test "x$HAVE_IPCIPHER" = "x1"],
   [AC_MSG_NOTICE([ipcipher: yes])],
   [AC_MSG_NOTICE([ipcipher: no])]

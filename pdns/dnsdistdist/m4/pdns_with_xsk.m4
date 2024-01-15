@@ -17,8 +17,12 @@ AC_DEFUN([PDNS_WITH_XSK],[
       ], [:])
     ])
   ])
-  AC_DEFINE([HAVE_XSK], [test x"$BPF_LIBS" != "x" -a x"$XDP_LIBS" != "x"], [Define to 1 if you have AF_XDP (XSK) support enabled])
+
   AM_CONDITIONAL([HAVE_XSK], [test x"$BPF_LIBS" != "x" -a x"$XDP_LIBS" != "x"])
+  AM_COND_IF([HAVE_XSK], [
+    AC_DEFINE([HAVE_XSK], [1], [Define to 1 if you have AF_XDP (XSK) support enabled])
+  ])
+
   AS_IF([test "x$with_xsk" = "xyes"], [
     AS_IF([test x"$BPF_LIBS" = "x" -o x"$XDP_LIBS" = "x" ], [
       AC_MSG_ERROR([AF_XDP (XSK) support requested but required libbpf and/or libxdp were not found])
