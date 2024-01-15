@@ -27,6 +27,7 @@ class DNSPacket;
 
 #include "utility.hh"
 #include <string>
+#include <utility>
 #include <vector>
 #include <map>
 #include <sys/types.h>
@@ -51,8 +52,7 @@ struct SOAData;
 
 struct DomainInfo
 {
-  DomainInfo() :
-    last_check(0), backend(nullptr), id(0), notified_serial(0), receivedNotify(false), serial(0), kind(DomainInfo::Native) {}
+  DomainInfo() = default;
 
   DNSName zone;
   DNSName catalog;
@@ -83,7 +83,7 @@ struct DomainInfo
     Producer,
     Consumer,
     All
-  } kind;
+  } kind{DomainInfo::Native};
 
   [[nodiscard]] const char* getKindString() const
   {
@@ -92,8 +92,8 @@ struct DomainInfo
 
   static const char* getKindString(enum DomainKind kind)
   {
-    const char* kinds[] = {"Master", "Slave", "Native", "Producer", "Consumer", "All"};
-    return kinds[kind];
+    std::array<const char*, 6> kinds{"Master", "Slave", "Native", "Producer", "Consumer", "All"};
+    return kinds.at(kind);
   }
 
   static DomainKind stringToKind(const string& kind)
@@ -133,8 +133,8 @@ struct TSIGKey
 
 struct AutoPrimary
 {
-  AutoPrimary(const string& new_ip, const string& new_nameserver, const string& new_account) :
-    ip(new_ip), nameserver(new_nameserver), account(new_account){};
+  AutoPrimary(string new_ip, string new_nameserver, string new_account) :
+    ip(std::move(new_ip)), nameserver(std::move(new_nameserver)), account(std::move(new_account)){};
   std::string ip;
   std::string nameserver;
   std::string account;
@@ -159,7 +159,7 @@ public:
   //! lookup() initiates a lookup. A lookup without results should not throw!
   virtual void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = nullptr) = 0;
   virtual bool get(DNSResourceRecord&) = 0; //!< retrieves one DNSResource record, returns false if no more were available
-  virtual bool get(DNSZoneRecord& r);
+  virtual bool get(DNSZoneRecord& zoneRecord);
 
   //! Initiates a list of the specified domain
   /** Once initiated, DNSResourceRecord objects can be retrieved using get(). Should return false
@@ -171,7 +171,7 @@ public:
   virtual ~DNSBackend() = default;
 
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
-  virtual bool getSOA(const DNSName& name, SOAData& soadata);
+  virtual bool getSOA(const DNSName& domain, SOAData& soaData);
 
   virtual bool replaceRRSet(uint32_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<DNSResourceRecord>& /* rrset */)
   {
@@ -494,22 +494,22 @@ protected:
   void declare(const string& suffix, const string& param, const string& explanation, const string& value);
 
 private:
-  const string d_name;
+  string d_name;
 };
 
 class BackendMakerClass
 {
 public:
-  void report(BackendFactory* bf);
+  void report(BackendFactory* backendFactory);
   void launch(const string& instr);
   vector<std::unique_ptr<DNSBackend>> all(bool metadataOnly = false);
-  void load(const string& module);
+  static void load(const string& module);
   [[nodiscard]] size_t numLauncheable() const;
   vector<string> getModules();
   void clear();
 
 private:
-  void load_all();
+  static void load_all();
   using d_repository_t = map<string, BackendFactory*>;
   d_repository_t d_repository;
   vector<pair<string, string>> d_instances;
@@ -546,8 +546,8 @@ struct SOAData
 };
 
 /** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
-void fillSOAData(const string& content, SOAData& data);
+void fillSOAData(const string& content, SOAData& soaData);
 // same but more karmic
-void fillSOAData(const DNSZoneRecord& in, SOAData& data);
+void fillSOAData(const DNSZoneRecord& inZoneRecord, SOAData& soaData);
 // the reverse
-std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd);
+std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& soaData);
