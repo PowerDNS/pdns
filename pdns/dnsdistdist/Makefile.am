@@ -207,6 +207,7 @@ dnsdist_SOURCES = \
 	dnsdist-tcp.cc dnsdist-tcp.hh \
 	dnsdist-web.cc dnsdist-web.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
+	dnsdist-xsk.cc dnsdist-xsk.hh \
 	dnsdist.cc dnsdist.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
@@ -305,6 +306,7 @@ testrunner_SOURCES = \
 	dnsdist-tcp-downstream.cc \
 	dnsdist-tcp.cc dnsdist-tcp.hh \
 	dnsdist-xpf.cc dnsdist-xpf.hh \
+	dnsdist-xsk.cc dnsdist-xsk.hh \
 	dnsdist.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \

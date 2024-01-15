@@ -26,6 +26,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-resolver.hh"
 #include "dnsdist-svc.hh"
+#include "dnsdist-xsk.hh"
 
 #include "dolog.hh"
 #include "xsk.hh"
@@ -754,9 +755,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     else {
       throw std::runtime_error("xskMapPath field is required!");
     }
-    extern std::vector<std::shared_ptr<XskSocket>> g_xsk;
     auto socket = std::make_shared<XskSocket>(frameNums, ifName, queue_id, path);
-    g_xsk.push_back(socket);
+    dnsdist::xsk::g_xsk.push_back(socket);
     return socket;
   });
   luaCtx.registerFunction<std::string(std::shared_ptr<XskSocket>::*)()const>("getMetrics", [](const std::shared_ptr<XskSocket>& xsk) {

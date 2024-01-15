@@ -27,6 +27,7 @@
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-tcp.hh"
+#include "dnsdist-xsk.hh"
 #include "dolog.hh"
 #include "xsk.hh"
 
@@ -53,7 +54,7 @@ void DownstreamState::addXSKDestination(int fd)
     auto addresses = d_socketSourceAddresses.write_lock();
     addresses->push_back(local);
   }
-  XskSocket::addDestinationAddress(local);
+  dnsdist::xsk::addDestinationAddress(local);
   d_xskSocket->addWorkerRoute(xskInfo, local);
 }
 
@@ -65,7 +66,7 @@ void DownstreamState::removeXSKDestination(int fd)
     return;
   }
 
-  XskSocket::removeDestinationAddress(local);
+  dnsdist::xsk::removeDestinationAddress(local);
   d_xskSocket->removeWorkerRoute(local);
 }
 #endif /* HAVE_XSK */
@@ -329,7 +330,7 @@ void DownstreamState::start()
   if (connected && !threadStarted.test_and_set()) {
 #ifdef HAVE_XSK
     if (xskInfo != nullptr) {
-      tid = std::thread(dnsdist::xsk::responderThread, shared_from_this());
+      tid = std::thread(dnsdist::xsk::XskResponderThread, shared_from_this());
     }
     else {
       tid = std::thread(responderThread, shared_from_this());

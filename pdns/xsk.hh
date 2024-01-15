@@ -54,7 +54,7 @@ class XskPacket;
 class XskWorker;
 class XskSocket;
 
-using MACAddr = std::array<uint8_t,6>;
+using MACAddr = std::array<uint8_t, 6>;
 
 #ifdef HAVE_XSK
 using XskPacketPtr = std::unique_ptr<XskPacket>;
@@ -76,7 +76,7 @@ class XskSocket
     xsk_umem* umem{nullptr};
     uint8_t* bufBase{nullptr};
     size_t size{0};
-    void umemInit(size_t memSize, xsk_ring_cons* cq, xsk_ring_prod* fq, xsk_umem_config* config);
+    void umemInit(size_t memSize, xsk_ring_cons* completionQueue, xsk_ring_prod* fillQueue, xsk_umem_config* config);
     ~XskUmem();
     XskUmem() = default;
   };
@@ -94,7 +94,7 @@ class XskSocket
   const size_t frameNum;
   // responses that have been delayed
   std::priority_queue<XskPacket> waitForDelay;
-  MACAddr source;
+  MACAddr source{};
   const std::string ifName;
   // AF_XDP socket then worker waker sockets
   vector<pollfd> fds;
@@ -104,13 +104,13 @@ class XskSocket
   // simply recycled from cq after being processed by the kernel
   vector<uint64_t> uniqueEmptyFrameOffset;
   // completion ring: queue where sent packets are stored by the kernel
-  xsk_ring_cons cq;
+  xsk_ring_cons cq{};
   // rx ring: queue where the incoming packets are stored, read by XskRouter
-  xsk_ring_cons rx;
+  xsk_ring_cons rx{};
   // fill ring: queue where umem entries available to be filled (put into rx) are stored
-  xsk_ring_prod fq;
+  xsk_ring_prod fq{};
   // tx ring: queue where outgoing packets are stored
-  xsk_ring_prod tx;
+  xsk_ring_prod tx{};
   std::unique_ptr<xsk_socket, void (*)(xsk_socket*)> socket;
   XskUmem umem;
 
@@ -127,16 +127,16 @@ class XskSocket
   void getMACFromIfName();
 
 public:
-  static void clearDestinationAddresses();
-  static void addDestinationAddress(const ComboAddress& destination);
-  static void removeDestinationAddress(const ComboAddress& destination);
+  static void clearDestinationMap(const std::string& mapPath, bool isV6);
+  static void addDestinationAddress(const std::string& mapPath, const ComboAddress& destination);
+  static void removeDestinationAddress(const std::string& mapPath, const ComboAddress& destination);
   static constexpr size_t getFrameSize()
   {
     return frameSize;
   }
   // list of free umem entries that can be reused
   std::shared_ptr<LockGuarded<vector<uint64_t>>> sharedEmptyFrameOffset;
-  XskSocket(size_t frameNum, const std::string& ifName, uint32_t queue_id, const std::string& xskMapPath);
+  XskSocket(size_t frameNum, std::string ifName, uint32_t queue_id, const std::string& xskMapPath);
   [[nodiscard]] int xskFd() const noexcept;
   // wait until one event has occurred
   [[nodiscard]] int wait(int timeout);
@@ -144,11 +144,11 @@ public:
   void send(std::vector<XskPacket>& packets);
   // look at incoming packets in rx, return them if parsing succeeeded
   [[nodiscard]] std::vector<XskPacket> recv(uint32_t recvSizeMax, uint32_t* failedCount);
-  void addWorker(std::shared_ptr<XskWorker> s);
+  void addWorker(std::shared_ptr<XskWorker> worker);
   void addWorkerRoute(const std::shared_ptr<XskWorker>& worker, const ComboAddress& dest);
   void removeWorkerRoute(const ComboAddress& dest);
   [[nodiscard]] std::string getMetrics() const;
-  void markAsFree(XskPacket&& packet);
+  void markAsFree(const XskPacket& packet);
   [[nodiscard]] const std::shared_ptr<XskWorker>& getWorkerByDescriptor(int desc) const
   {
     return d_workers.at(desc);
@@ -181,9 +181,9 @@ public:
   void recycle(size_t size) noexcept;
   // look at delayed packets, and send the ones that are ready
   void pickUpReadyPacket(std::vector<XskPacket>& packets);
-  void pushDelayed(XskPacket&& packet)
+  void pushDelayed(XskPacket& packet)
   {
-    waitForDelay.push(std::move(packet));
+    waitForDelay.push(packet);
   }
 };
 
@@ -203,7 +203,7 @@ public:
 private:
   ComboAddress from;
   ComboAddress to;
-  timespec sendTime;
+  timespec sendTime{};
   uint8_t* frame{nullptr};
   size_t frameLength{0};
   size_t frameSize{0};
@@ -312,16 +312,16 @@ public:
   static int createEventfd();
   static void notify(int fd);
   static std::shared_ptr<XskWorker> create();
-  void pushToProcessingQueue(XskPacket&& packet);
-  void pushToSendQueue(XskPacket&& packet);
-  void markAsFree(XskPacket&& packet);
+  void pushToProcessingQueue(XskPacket& packet);
+  void pushToSendQueue(XskPacket& packet);
+  void markAsFree(const XskPacket& packet);
   // notify worker that at least one packet is available for processing
   void notifyWorker() noexcept;
   // notify the router that packets are ready to be sent
-  void notifyXskSocket() noexcept;
-  void waitForXskSocket() noexcept;
-  void cleanWorkerNotification() noexcept;
-  void cleanSocketNotification() noexcept;
+  void notifyXskSocket() const;
+  void waitForXskSocket() const noexcept;
+  void cleanWorkerNotification() const noexcept;
+  void cleanSocketNotification() const noexcept;
   [[nodiscard]] uint64_t frameOffset(const XskPacket& packet) const noexcept;
   // reap empty umem entry from sharedEmptyFrameOffset into uniqueEmptyFrameOffset
   void fillUniqueEmptyOffset();

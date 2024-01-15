@@ -56,7 +56,6 @@
 #include "uuid-utils.hh"
 #include "proxy-protocol.hh"
 #include "stat_t.hh"
-#include "xsk.hh"
 
 uint64_t uptimeOfProcess(const std::string& str);
 
@@ -472,6 +471,10 @@ struct QueryCount {
 
 extern QueryCount g_qcount;
 
+class XskPacket;
+class XskSocket;
+class XskWorker;
+
 struct ClientState
 {
   ClientState(const ComboAddress& local_, bool isTCP_, bool doReusePort, int fastOpenQueue, const std::string& itfName, const std::set<int>& cpus_, bool enableProxyProtocol): cpus(cpus_), interface(itfName), local(local_), fastOpenQueueSize(fastOpenQueue), tcp(isTCP_), reuseport(doReusePort), d_enableProxyProtocol(enableProxyProtocol)
@@ -704,8 +707,10 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     std::string d_dohPath;
     std::string name;
     std::string nameWithAddr;
-    MACAddr sourceMACAddr;
-    MACAddr destMACAddr;
+#ifdef HAVE_XSK
+    std::array<uint8_t, 6> sourceMACAddr;
+    std::array<uint8_t, 6> destMACAddr;
+#endif /* HAVE_XSK */
     size_t d_numberOfSockets{1};
     size_t d_maxInFlightQueriesPerConn{1};
     size_t d_tcpConcurrentConnectionsLimit{0};
@@ -1189,6 +1194,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
 bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& insertedRespRuleActions, DNSResponse& dr, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop);
 bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dr, bool muted);
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& localRespRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids);
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query, bool actuallySend = true);
 
@@ -1196,10 +1202,3 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote);
 void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend);
 void handleResponseSent(const InternalQueryState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, bool fromBackend);
-
-#ifdef HAVE_XSK
-namespace dnsdist::xsk
-{
-void responderThread(std::shared_ptr<DownstreamState> dss);
-}
-#endif /* HAVE_XSK */

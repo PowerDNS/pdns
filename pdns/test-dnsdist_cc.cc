@@ -33,6 +33,7 @@
 #include "dnsdist-internal-queries.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-xpf.hh"
+#include "dnsdist-xsk.hh"
 
 #include "dolog.hh"
 #include "dnsname.hh"
@@ -73,8 +74,18 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(DownstreamState const&)
 {
   return false;
 }
+namespace dnsdist::xsk
+{
+bool XskProcessQuery(ClientState& cs, LocalHolders& holders, XskPacket& packet)
+{
+  return false;
+}
+}
 
-std::vector<std::shared_ptr<XskSocket>> g_xsk;
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& localRespRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids)
+{
+  return false;
+}
 
 BOOST_AUTO_TEST_SUITE(test_dnsdist_cc)
 
