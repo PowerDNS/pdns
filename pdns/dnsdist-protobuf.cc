@@ -149,12 +149,20 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
   }
   else if (distProto == dnsdist::Protocol::DoH) {
     protocol = pdns::ProtoZero::Message::TransportProtocol::DoH;
+    m.setHTTPVersion(pdns::ProtoZero::Message::HTTPVersion::HTTP2);
+  }
+  else if (distProto == dnsdist::Protocol::DoH3) {
+    protocol = pdns::ProtoZero::Message::TransportProtocol::DoH;
+    m.setHTTPVersion(pdns::ProtoZero::Message::HTTPVersion::HTTP3);
   }
   else if (distProto == dnsdist::Protocol::DNSCryptUDP) {
     protocol = pdns::ProtoZero::Message::TransportProtocol::DNSCryptUDP;
   }
   else if (distProto == dnsdist::Protocol::DNSCryptTCP) {
     protocol = pdns::ProtoZero::Message::TransportProtocol::DNSCryptTCP;
+  }
+  else if (distProto == dnsdist::Protocol::DoQ) {
+    protocol = pdns::ProtoZero::Message::TransportProtocol::DoQ;
   }
 
   m.setRequest(d_dq.ids.d_protoBufData && d_dq.ids.d_protoBufData->uniqueId ? *d_dq.ids.d_protoBufData->uniqueId : getUniqueID(), d_requestor ? *d_requestor : d_dq.ids.origRemote, d_responder ? *d_responder : d_dq.ids.origDest, d_question ? d_question->d_name : d_dq.ids.qname, d_question ? d_question->d_type : d_dq.ids.qtype, d_question ? d_question->d_class : d_dq.ids.qclass, d_dq.getHeader()->id, protocol, d_bytes ? *d_bytes : d_dq.getData().size());

@@ -40,6 +40,7 @@ public:
   void setResponderPort(uint16_t port);
   void setResponseCode(uint8_t rcode);
   void setType(pdns::ProtoZero::Message::MessageType type);
+  void setHTTPVersion(pdns::ProtoZero::Message::HTTPVersion version);
   void setBytes(size_t bytes);
   void setTime(time_t sec, uint32_t usec);
   void setQueryTime(time_t sec, uint32_t usec);

@@ -566,6 +566,12 @@ struct ClientState
     else if (hasTLS()) {
       return dnsdist::Protocol::DoT;
     }
+    else if (doqFrontend != nullptr) {
+      return dnsdist::Protocol::DoQ;
+    }
+    else if (doh3Frontend != nullptr) {
+      return dnsdist::Protocol::DoH3;
+    }
     else if (udpFD != -1) {
       return dnsdist::Protocol::DoUDP;
     }
