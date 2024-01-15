@@ -2270,7 +2270,7 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
         vector<DNSRecord> selected;
         selected.reserve(s_maxnsperresolve);
         std::sample(nsVector.cbegin(), nsVector.cend(), std::back_inserter(selected), s_maxnsperresolve, pdns::dns_random_engine());
-        nsVector = selected;
+        nsVector = std::move(selected);
       }
       bestns.reserve(nsVector.size());
 
@@ -2671,12 +2671,12 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       if (CNAMELoop) {
         string msg = "got a CNAME referral (from cache) that causes a loop";
         LOG(prefix << qname << ": Status=" << msg << endl);
-        throw ImmediateServFailException(msg);
+        throw ImmediateServFailException(std::move(msg));
       }
       if (numCNAMEs > s_max_CNAMES_followed) {
         string msg = "max number of CNAMEs exceeded";
         LOG(prefix << qname << ": Status=" << msg << endl);
-        throw ImmediateServFailException(msg);
+        throw ImmediateServFailException(std::move(msg));
       }
 
       set<GetBestNSAnswer> beenthere;
@@ -5574,7 +5574,7 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
     }
     LOG("looping to them" << endl);
     *gotNewServers = true;
-    auth = newauth;
+    auth = std::move(newauth);
 
     return false;
   }
