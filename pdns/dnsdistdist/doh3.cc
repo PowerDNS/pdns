@@ -163,7 +163,7 @@ public:
 
     if (!unit->ids.selfGenerated) {
       double udiff = unit->ids.queryRealTime.udiff();
-      vinfolog("Got answer from %s, relayed to %s (http/3), took %f us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), udiff);
+      vinfolog("Got answer from %s, relayed to %s (DoH3, %d bytes), took %f us", unit->downstream->d_config.remote.toStringWithPort(), unit->ids.origRemote.toStringWithPort(), unit->response.size(), udiff);
 
       auto backendProtocol = unit->downstream->getProtocol();
       if (backendProtocol == dnsdist::Protocol::DoUDP && unit->tcp) {
@@ -294,7 +294,7 @@ static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16
 {
   std::string status = std::to_string(statusCode);
   std::string lenStr = std::to_string(len);
-  std::array<quiche_h3_header, 2> headers{
+  std::array<quiche_h3_header, 3> headers{
     (quiche_h3_header){
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
       .name = reinterpret_cast<const uint8_t*>(":status"),
@@ -311,9 +311,20 @@ static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16
       .value = reinterpret_cast<const uint8_t*>(lenStr.data()),
       .value_len = lenStr.size(),
     },
+    (quiche_h3_header){
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+      .name = reinterpret_cast<const uint8_t*>("content-type"),
+      .name_len = sizeof("content-type") - 1,
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+      .value = reinterpret_cast<const uint8_t*>("application/dns-message"),
+      .value_len = sizeof("application/dns-message") - 1,
+    },
   };
   auto returnValue = quiche_h3_send_response(conn.d_http3.get(), conn.d_conn.get(),
-                                             streamID, headers.data(), headers.size(), len == 0);
+                                             streamID, headers.data(),
+                                             // do not include content-type header info if there is no content
+                                             (len > 0 && statusCode == 200U ? headers.size() : headers.size() - 1),
+                                             len == 0);
   if (returnValue != 0) {
     /* in theory it could be QUICHE_H3_ERR_STREAM_BLOCKED if the stream is not writable / congested, but we are not going to handle this case */
     quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(dnsdist::doq::DOQ_Error_Codes::DOQ_INTERNAL_ERROR));
