@@ -150,7 +150,7 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
       if ((fds.at(0).revents & POLLIN) != 0) {
         auto packets = xsk->recv(64, &failed);
         dnsdist::metrics::g_stats.nonCompliantQueries += failed;
-        for (auto &packet : packets) {
+        for (auto& packet : packets) {
           const auto dest = packet.getToAddr();
           auto worker = xsk->getWorkerByDestination(dest);
           if (!worker) {
@@ -172,7 +172,6 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
         needNotify.clear();
         ready--;
       }
-      const auto backup = ready;
       for (size_t fdIndex = 1; fdIndex < fds.size() && ready > 0; fdIndex++) {
         if ((fds.at(fdIndex).revents & POLLIN) != 0) {
           ready--;
@@ -199,7 +198,6 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
       xsk->recycle(4096);
       xsk->fillFq();
       xsk->send(fillInTx);
-      ready = backup;
     }
     catch (...) {
       vinfolog("Exception in XSK router loop");
@@ -238,8 +236,9 @@ void XskClientThread(ClientState* clientState)
   }
 }
 
-static std::string getDestinationMap(bool isV6) {
- return !isV6 ? "/sys/fs/bpf/dnsdist/xsk-destinations-v4" : "/sys/fs/bpf/dnsdist/xsk-destinations-v6";
+static std::string getDestinationMap(bool isV6)
+{
+  return !isV6 ? "/sys/fs/bpf/dnsdist/xsk-destinations-v4" : "/sys/fs/bpf/dnsdist/xsk-destinations-v6";
 }
 
 void addDestinationAddress(const ComboAddress& addr)

@@ -3203,7 +3203,6 @@ int main(int argc, char** argv)
     g_hashperturb = dnsdist::getRandomValue(0xffffffff);
 
 #ifdef HAVE_XSK
-#warning FIXME: we need to provide a way to clear the map from Lua, as well as a way to change the map path
     try {
       dnsdist::xsk::clearDestinationAddresses();
     }

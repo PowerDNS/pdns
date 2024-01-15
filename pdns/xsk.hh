@@ -29,12 +29,12 @@
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/member.hpp>
+#include <cstdint>
 #include <memory>
 #include <poll.h>
 #include <queue>
 #include <stdexcept>
 #include <string>
-//#include <sys/types.h>
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>
@@ -120,7 +120,7 @@ class XskSocket
   static constexpr uint32_t txCapacity = XSK_RING_PROD__DEFAULT_NUM_DESCS * 2;
 
   constexpr static bool isPowOfTwo(uint32_t value) noexcept;
-  [[nodiscard]] static int timeDifference(const timespec& t1, const timespec& t2) noexcept;
+  [[nodiscard]] static int timeDifference(const timespec& lhs, const timespec& rhs) noexcept;
 
   [[nodiscard]] uint64_t frameOffset(const XskPacket& packet) const noexcept;
   [[nodiscard]] int firstTimeout();
@@ -224,7 +224,7 @@ private:
   [[nodiscard]] __be16 tcp_udp_v4_checksum(const struct iphdr*) const noexcept;
   // You must set l4Header.check = 0 before calling this method
   [[nodiscard]] __be16 tcp_udp_v6_checksum(const struct ipv6hdr*) const noexcept;
-    /* offset of the L4 (udphdr) header (after ethhdr and iphdr/ipv6hdr) */
+  /* offset of the L4 (udphdr) header (after ethhdr and iphdr/ipv6hdr) */
   [[nodiscard]] size_t getL4HeaderOffset() const noexcept;
   /* offset of the data after the UDP header */
   [[nodiscard]] size_t getDataOffset() const noexcept;
@@ -271,7 +271,7 @@ public:
     return frame - base;
   }
 };
-bool operator<(const XskPacket& s1, const XskPacket& s2) noexcept;
+bool operator<(const XskPacket& lhs, const XskPacket& rhs) noexcept;
 
 /* g++ defines __SANITIZE_THREAD__
    clang++ supports the nice __has_feature(thread_sanitizer),
@@ -288,9 +288,9 @@ bool operator<(const XskPacket& s1, const XskPacket& s2) noexcept;
 class XskWorker
 {
 #if defined(__SANITIZE_THREAD__)
-  using XskPacketRing = LockGuarded<boost::lockfree::spsc_queue<XskPacket, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS*2>>>;
+  using XskPacketRing = LockGuarded<boost::lockfree::spsc_queue<XskPacket, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS * 2>>>;
 #else
-  using XskPacketRing = boost::lockfree::spsc_queue<XskPacket, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS*2>>;
+  using XskPacketRing = boost::lockfree::spsc_queue<XskPacket, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS * 2>>;
 #endif
 
 public:
@@ -299,7 +299,7 @@ public:
   // queue of packets processed by this worker (to be sent, or discarded)
   XskPacketRing outgoingPacketsQueue;
 
-  uint8_t* umemBufBase;
+  uint8_t* umemBufBase{nullptr};
   // list of frames that are shared with the XskRouter
   std::shared_ptr<LockGuarded<vector<uint64_t>>> sharedEmptyFrameOffset;
   // list of frames that we own, used to generate new packets (health-check)
@@ -310,13 +310,13 @@ public:
 
   XskWorker();
   static int createEventfd();
-  static void notify(int fd);
+  static void notify(int desc);
   static std::shared_ptr<XskWorker> create();
   void pushToProcessingQueue(XskPacket& packet);
   void pushToSendQueue(XskPacket& packet);
   void markAsFree(const XskPacket& packet);
   // notify worker that at least one packet is available for processing
-  void notifyWorker() noexcept;
+  void notifyWorker() const;
   // notify the router that packets are ready to be sent
   void notifyXskSocket() const;
   void waitForXskSocket() const noexcept;

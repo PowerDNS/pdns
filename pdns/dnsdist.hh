@@ -987,7 +987,7 @@ public:
   void handleUDPTimeouts();
   void reportTimeoutOrError();
   void reportResponse(uint8_t rcode);
-  void submitHealthCheckResult(bool initial, bool newState);
+  void submitHealthCheckResult(bool initial, bool newResult);
   time_t getNextLazyHealthCheck();
   uint16_t saveState(InternalQueryState&&);
   void restoreState(uint16_t id, InternalQueryState&&);

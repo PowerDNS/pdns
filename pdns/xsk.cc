@@ -59,10 +59,17 @@ extern "C"
 #include "xsk.hh"
 
 #ifdef DEBUG_UMEM
-namespace {
+namespace
+{
 struct UmemEntryStatus
 {
-  enum class Status: uint8_t { Free, FillQueue, Received, TXQueue };
+  enum class Status : uint8_t
+  {
+    Free,
+    FillQueue,
+    Received,
+    TXQueue
+  };
   Status status{Status::Free};
 };
 
@@ -144,7 +151,6 @@ XskSocket::XskSocket(size_t frameNum_, std::string ifName_, uint32_t queue_id, c
   uniqueEmptyFrameOffset.reserve(frameNum);
   {
     for (uint64_t i = 0; i < frameNum; i++) {
-      //uniqueEmptyFrameOffset.push_back(i * frameSize);
       uniqueEmptyFrameOffset.push_back(i * frameSize + XDP_PACKET_HEADROOM);
 #ifdef DEBUG_UMEM
       {
@@ -261,11 +267,14 @@ void XskSocket::removeDestinationAddress(const std::string& mapPath, const Combo
 void XskSocket::fillFq(uint32_t fillSize) noexcept
 {
   {
-#warning why are we collecting frames from unique into shared here, even though we need unique ones?
+    // if we have less than holdThreshold frames in the shared queue (which might be an issue
+    // when the XskWorker needs empty frames), move frames from the unique container into the
+    // shared one. This might not be optimal right now.
     auto frames = sharedEmptyFrameOffset->lock();
     if (frames->size() < holdThreshold) {
       const auto moveSize = std::min(holdThreshold - frames->size(), uniqueEmptyFrameOffset.size());
       if (moveSize > 0) {
+        // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
         frames->insert(frames->end(), std::make_move_iterator(uniqueEmptyFrameOffset.end() - moveSize), std::make_move_iterator(uniqueEmptyFrameOffset.end()));
         uniqueEmptyFrameOffset.resize(uniqueEmptyFrameOffset.size() - moveSize);
       }
@@ -304,7 +313,8 @@ int XskSocket::wait(int timeout)
   return packet.getFrameOffsetFrom(umem.bufBase);
 }
 
-[[nodiscard]] int XskSocket::xskFd() const noexcept {
+[[nodiscard]] int XskSocket::xskFd() const noexcept
+{
   return xsk_socket__fd(socket.get());
 }
 
@@ -359,7 +369,7 @@ std::vector<XskPacket> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failedCou
   for (; processed < recvSize; processed++) {
     try {
       const auto* desc = xsk_ring_cons__rx_desc(&rx, idx++);
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
       XskPacket packet = XskPacket(reinterpret_cast<uint8_t*>(desc->addr + baseAddr), desc->len, frameSize);
 #ifdef DEBUG_UMEM
       checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, frameOffset(packet), {UmemEntryStatus::Status::Free, UmemEntryStatus::Status::FillQueue}, UmemEntryStatus::Status::Received);
@@ -565,6 +575,7 @@ void XskPacket::setIPv6Header(const ipv6hdr& ipv6Header) noexcept
 void XskPacket::setUDPHeader(const udphdr& udpHeader) noexcept
 {
   assert(frameLength >= (sizeof(ethhdr) + (v6 ? sizeof(ipv6hdr) : sizeof(iphdr)) + sizeof(udpHeader)));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   memcpy(frame + getL4HeaderOffset(), &udpHeader, sizeof(udpHeader));
 }
 
@@ -661,11 +672,14 @@ void XskPacket::changeDirectAndUpdateChecksum() noexcept
 {
   auto ethHeader = getEthernetHeader();
   {
-    std::array<uint8_t, ETH_ALEN> tmp;
+    std::array<uint8_t, ETH_ALEN> tmp{};
     static_assert(tmp.size() == sizeof(ethHeader.h_dest), "Size Error");
     static_assert(tmp.size() == sizeof(ethHeader.h_source), "Size Error");
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     memcpy(tmp.data(), ethHeader.h_dest, tmp.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     memcpy(ethHeader.h_dest, ethHeader.h_source, tmp.size());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     memcpy(ethHeader.h_source, tmp.data(), tmp.size());
   }
   if (ethHeader.h_proto == htons(ETH_P_IPV6)) {
@@ -841,7 +855,9 @@ const void* XskPacket::getPayloadData() const
 void XskPacket::setAddr(const ComboAddress& from_, MACAddr fromMAC, const ComboAddress& to_, MACAddr toMAC) noexcept
 {
   auto ethHeader = getEthernetHeader();
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   memcpy(ethHeader.h_dest, toMAC.data(), toMAC.size());
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   memcpy(ethHeader.h_source, fromMAC.data(), fromMAC.size());
   setEthernetHeader(ethHeader);
   to = to_;
@@ -993,7 +1009,7 @@ void XskPacket::rewrite() noexcept
       uint32_t words[3];
     };
   };
-  struct ipv4_pseudo_header_t pseudo_header;
+  struct ipv4_pseudo_header_t pseudo_header{};
   static_assert(sizeof(pseudo_header) == 12, "IPv4 pseudo-header size is incorrect");
 
   /* Fill in the pseudo-header. */
@@ -1027,7 +1043,7 @@ void XskPacket::rewrite() noexcept
       uint32_t words[10];
     };
   };
-  struct ipv6_pseudo_header_t pseudo_header;
+  struct ipv6_pseudo_header_t pseudo_header{};
   static_assert(sizeof(pseudo_header) == 40, "IPv6 pseudo-header size is incorrect");
 
   /* Fill in the pseudo-header. */
@@ -1070,7 +1086,7 @@ int XskWorker::createEventfd()
 
 void XskWorker::waitForXskSocket() const noexcept
 {
-  uint64_t x = read(workerWaker, &x, sizeof(x));
+  uint64_t value = read(workerWaker, &value, sizeof(value));
 }
 
 void XskWorker::notifyXskSocket() const
@@ -1109,7 +1125,7 @@ uint64_t XskWorker::frameOffset(const XskPacket& packet) const noexcept
   return packet.getFrameOffsetFrom(umemBufBase);
 }
 
-void XskWorker::notifyWorker() noexcept
+void XskWorker::notifyWorker() const
 {
   notify(workerWaker);
 }
@@ -1126,11 +1142,13 @@ void XskSocket::getMACFromIfName()
     throw std::runtime_error("Unable to get MAC address for interface " + ifName + ": name too long");
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   strncpy(ifr.ifr_name, ifName.c_str(), ifName.length() + 1);
   if (ioctl(desc.getHandle(), SIOCGIFHWADDR, &ifr) < 0 || ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER) {
     throw std::runtime_error("Error getting MAC address for interface " + ifName);
   }
   static_assert(sizeof(ifr.ifr_hwaddr.sa_data) >= std::tuple_size<decltype(source)>{}, "The size of an ARPHRD_ETHER MAC address is smaller than expected");
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   memcpy(source.data(), ifr.ifr_hwaddr.sa_data, source.size());
 }
 
@@ -1175,6 +1193,7 @@ void XskWorker::fillUniqueEmptyOffset()
   auto frames = sharedEmptyFrameOffset->lock();
   const auto moveSize = std::min(static_cast<size_t>(32), frames->size());
   if (moveSize > 0) {
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     uniqueEmptyFrameOffset.insert(uniqueEmptyFrameOffset.end(), std::make_move_iterator(frames->end() - moveSize), std::make_move_iterator(frames->end()));
     frames->resize(frames->size() - moveSize);
   }
