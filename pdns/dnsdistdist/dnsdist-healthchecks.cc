@@ -31,7 +31,40 @@
 
 bool g_verboseHealthChecks{false};
 
-bool handleResponse(std::shared_ptr<HealthCheckData>& data)
+struct HealthCheckData
+{
+  enum class TCPState : uint8_t
+  {
+    WritingQuery,
+    ReadingResponseSize,
+    ReadingResponse
+  };
+
+  HealthCheckData(FDMultiplexer& mplexer, std::shared_ptr<DownstreamState> downstream, DNSName&& checkName, uint16_t checkType, uint16_t checkClass, uint16_t queryID) :
+    d_ds(std::move(downstream)), d_mplexer(mplexer), d_udpSocket(-1), d_checkName(std::move(checkName)), d_checkType(checkType), d_checkClass(checkClass), d_queryID(queryID)
+  {
+  }
+
+  const std::shared_ptr<DownstreamState> d_ds;
+  FDMultiplexer& d_mplexer;
+  std::unique_ptr<TCPIOHandler> d_tcpHandler{nullptr};
+  std::unique_ptr<IOStateHandler> d_ioState{nullptr};
+  PacketBuffer d_buffer;
+  Socket d_udpSocket;
+  DNSName d_checkName;
+  struct timeval d_ttd
+  {
+    0, 0
+  };
+  size_t d_bufferPos{0};
+  uint16_t d_checkType;
+  uint16_t d_checkClass;
+  uint16_t d_queryID;
+  TCPState d_tcpState{TCPState::WritingQuery};
+  bool d_initial{false};
+};
+
+static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
 {
   const auto& downstream = data->d_ds;
   try {
@@ -174,7 +207,7 @@ static void healthCheckUDPCallback(int descriptor, FDMultiplexer::funcparam_t& p
       }
       ++data->d_ds->d_healthCheckMetrics.d_networkErrors;
       data->d_ds->submitHealthCheckResult(data->d_initial, false);
-      data->d_mplexer->removeReadFD(descriptor);
+      data->d_mplexer.removeReadFD(descriptor);
       return;
     }
   } while (got < 0);
@@ -191,7 +224,7 @@ static void healthCheckUDPCallback(int descriptor, FDMultiplexer::funcparam_t& p
     return;
   }
 
-  data->d_mplexer->removeReadFD(descriptor);
+  data->d_mplexer.removeReadFD(descriptor);
   data->d_ds->submitHealthCheckResult(data->d_initial, handleResponse(data));
 }
 
@@ -267,51 +300,36 @@ static void healthCheckTCPCallback(int descriptor, FDMultiplexer::funcparam_t& p
   }
 }
 
-PacketBuffer getHealthCheckPacket(const std::shared_ptr<DownstreamState>& downstream, FDMultiplexer* mplexer, std::shared_ptr<HealthCheckData>& data)
-{
-  uint16_t queryID = dnsdist::getRandomDNSID();
-  DNSName checkName = downstream->d_config.checkName;
-  uint16_t checkType = downstream->d_config.checkType.getCode();
-  uint16_t checkClass = downstream->d_config.checkClass;
-  dnsheader checkHeader{};
-  memset(&checkHeader, 0, sizeof(checkHeader));
-
-  checkHeader.qdcount = htons(1);
-  checkHeader.id = queryID;
-
-  checkHeader.rd = true;
-  if (downstream->d_config.setCD) {
-    checkHeader.cd = true;
-  }
-
-  if (downstream->d_config.checkFunction) {
-    auto lock = g_lua.lock();
-    auto ret = downstream->d_config.checkFunction(checkName, checkType, checkClass, &checkHeader);
-    checkName = std::get<0>(ret);
-    checkType = std::get<1>(ret);
-    checkClass = std::get<2>(ret);
-  }
-  PacketBuffer packet;
-  GenericDNSPacketWriter<PacketBuffer> dpw(packet, checkName, checkType, checkClass);
-  dnsheader* requestHeader = dpw.getHeader();
-  *requestHeader = checkHeader;
-  data = std::make_shared<HealthCheckData>(mplexer, downstream, std::move(checkName), checkType, checkClass, queryID);
-  return packet;
-}
-
-void setHealthCheckTime(const std::shared_ptr<DownstreamState>& downstream, const std::shared_ptr<HealthCheckData>& data)
-{
-  gettimeofday(&data->d_ttd, nullptr);
-  data->d_ttd.tv_sec += static_cast<decltype(data->d_ttd.tv_sec)>(downstream->d_config.checkTimeout / 1000); /* ms to seconds */
-  data->d_ttd.tv_usec += static_cast<decltype(data->d_ttd.tv_usec)>((downstream->d_config.checkTimeout % 1000) * 1000); /* remaining ms to us */
-  normalizeTV(data->d_ttd);
-}
-
 bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& downstream, bool initialCheck)
 {
   try {
-    std::shared_ptr<HealthCheckData> data;
-    PacketBuffer packet = getHealthCheckPacket(downstream, mplexer.get(), data);
+    uint16_t queryID = dnsdist::getRandomDNSID();
+    DNSName checkName = downstream->d_config.checkName;
+    uint16_t checkType = downstream->d_config.checkType.getCode();
+    uint16_t checkClass = downstream->d_config.checkClass;
+    dnsheader checkHeader{};
+    memset(&checkHeader, 0, sizeof(checkHeader));
+
+    checkHeader.qdcount = htons(1);
+    checkHeader.id = queryID;
+
+    checkHeader.rd = true;
+    if (downstream->d_config.setCD) {
+      checkHeader.cd = true;
+    }
+
+    if (downstream->d_config.checkFunction) {
+      auto lock = g_lua.lock();
+      auto ret = downstream->d_config.checkFunction(checkName, checkType, checkClass, &checkHeader);
+      checkName = std::get<0>(ret);
+      checkType = std::get<1>(ret);
+      checkClass = std::get<2>(ret);
+    }
+
+    PacketBuffer packet;
+    GenericDNSPacketWriter<PacketBuffer> dpw(packet, checkName, checkType, checkClass);
+    dnsheader* requestHeader = dpw.getHeader();
+    *requestHeader = checkHeader;
 
     /* we need to compute that _before_ adding the proxy protocol payload */
     uint16_t packetSize = packet.size();
@@ -350,9 +368,13 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
       sock.bind(downstream->d_config.sourceAddr, false);
     }
 
+    auto data = std::make_shared<HealthCheckData>(*mplexer, downstream, std::move(checkName), checkType, checkClass, queryID);
     data->d_initial = initialCheck;
 
-    setHealthCheckTime(downstream, data);
+    gettimeofday(&data->d_ttd, nullptr);
+    data->d_ttd.tv_sec += static_cast<decltype(data->d_ttd.tv_sec)>(downstream->d_config.checkTimeout / 1000); /* ms to seconds */
+    data->d_ttd.tv_usec += static_cast<decltype(data->d_ttd.tv_usec)>((downstream->d_config.checkTimeout % 1000) * 1000); /* remaining ms to us */
+    normalizeTV(data->d_ttd);
 
     if (!downstream->doHealthcheckOverTCP()) {
       sock.connect(downstream->d_config.remote);
@@ -361,7 +383,7 @@ bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared
       if (sent < 0) {
         int ret = errno;
         if (g_verboseHealthChecks) {
-          infolog("Error while sending a health check query (ID %d) to backend %s: %d", data->d_queryID, downstream->getNameWithAddr(), ret);
+          infolog("Error while sending a health check query (ID %d) to backend %s: %d", queryID, downstream->getNameWithAddr(), ret);
         }
         return false;
       }
