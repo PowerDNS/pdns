@@ -78,7 +78,7 @@ This will pick from the viable IP addresses the one deemed closest to the user.
 
 LUA records can also contain more complex code, for example::
 
-    www    IN    LUA    A    ";if countryCode('US') then return {'192.0.2.1','192.0.2.2','198.51.100.1'} else return '192.0.2.2' end"
+    www    IN    LUA    A    ";if country('US') then return {'192.0.2.1','192.0.2.2','198.51.100.1'} else return '192.0.2.2' end"
 
 As you can see you can return both single string value or array of strings.
 
