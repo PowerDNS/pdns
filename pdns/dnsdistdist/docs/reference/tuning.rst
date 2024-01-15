@@ -188,6 +188,7 @@ Tuning related functions
   Set the size of the receive (``SO_RCVBUF``) and send (``SO_SNDBUF``) buffers for incoming UDP sockets. On Linux the default
   values correspond to ``net.core.rmem_default`` and ``net.core.wmem_default`` , and the maximum values are restricted
   by ``net.core.rmem_max`` and ``net.core.wmem_max``.
+  Since 1.9.0, on Linux, dnsdist will automatically try to raise the buffer sizes to the maximum value allowed by the system (``net.core.rmem_max`` and ``net.core.wmem_max``) if :func:`setUDPSocketBufferSizes` is not set.
 
   :param int recv: ``SO_RCVBUF`` value. Default is 0, meaning the system value will be kept.
   :param int send: ``SO_SNDBUF`` value. Default is 0, meaning the system value will be kept.

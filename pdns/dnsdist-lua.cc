@@ -648,7 +648,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            else {
                              mac = getMACAddress(ret->d_config.remote);
                              if (mac.size() != ret->d_config.destMACAddr.size()) {
-                               throw runtime_error("Field 'MACAddr' is not set on 'newServer' directive for '" + ret->d_config.remote.toStringWithPort() + "' and cannot be retriever from the system either!");
+                               throw runtime_error("Field 'MACAddr' is not set on 'newServer' directive for '" + ret->d_config.remote.toStringWithPort() + "' and cannot be retrieved from the system either!");
                              }
                              memcpy(ret->d_config.destMACAddr.data(), mac.data(), ret->d_config.destMACAddr.size());
                            }
