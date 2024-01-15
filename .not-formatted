@@ -33,8 +33,6 @@
 ./pdns/distributor.hh
 ./pdns/dns.cc
 ./pdns/dns.hh
-./pdns/dnsbackend.cc
-./pdns/dnsbackend.hh
 ./pdns/dnsbulktest.cc
 ./pdns/dnscrypt.cc
 ./pdns/dnscrypt.hh

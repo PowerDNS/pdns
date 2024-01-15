@@ -42,52 +42,52 @@ extern StatBag S;
 // this is so the geoipbackend can set this pointer if loaded for lua-record.cc
 std::function<std::string(const std::string&, int)> g_getGeo;
 
-bool DNSBackend::getAuth(const DNSName &target, SOAData *sd)
+bool DNSBackend::getAuth(const DNSName& target, SOAData* sd)
 {
   return this->getSOA(target, *sd);
 }
 
-void DNSBackend::setArgPrefix(const string &prefix)
+void DNSBackend::setArgPrefix(const string& prefix)
 {
-  d_prefix=prefix;
+  d_prefix = prefix;
 }
 
-bool DNSBackend::mustDo(const string &key)
+bool DNSBackend::mustDo(const string& key)
 {
-  return arg().mustDo(d_prefix+"-"+key);
+  return arg().mustDo(d_prefix + "-" + key);
 }
 
-const string &DNSBackend::getArg(const string &key)
+const string& DNSBackend::getArg(const string& key)
 {
-  return arg()[d_prefix+"-"+key];
+  return arg()[d_prefix + "-" + key];
 }
 
-int DNSBackend::getArgAsNum(const string &key)
+int DNSBackend::getArgAsNum(const string& key)
 {
-  return arg().asNum(d_prefix+"-"+key);
+  return arg().asNum(d_prefix + "-" + key);
 }
 
-void BackendFactory::declare(const string &suffix, const string &param, const string &help, const string &value)
+void BackendFactory::declare(const string& suffix, const string& param, const string& help, const string& value)
 {
-  string fullname=d_name+suffix+"-"+param;
-  arg().set(fullname,help)=value;
-  arg().setDefault(fullname,value);
+  string fullname = d_name + suffix + "-" + param;
+  arg().set(fullname, help) = value;
+  arg().setDefault(fullname, value);
 }
 
-const string &BackendFactory::getName() const
+const string& BackendFactory::getName() const
 {
   return d_name;
 }
 
-BackendMakerClass &BackendMakers()
+BackendMakerClass& BackendMakers()
 {
   static BackendMakerClass bmc;
   return bmc;
 }
 
-void BackendMakerClass::report(BackendFactory *bf)
+void BackendMakerClass::report(BackendFactory* bf)
 {
-  d_repository[bf->getName()]=bf;
+  d_repository[bf->getName()] = bf;
 }
 
 void BackendMakerClass::clear()
@@ -105,7 +105,7 @@ vector<string> BackendMakerClass::getModules()
   load_all();
   vector<string> ret;
   //  copy(d_repository.begin(), d_repository.end(),back_inserter(ret));
-  for(d_repository_t::const_iterator i=d_repository.begin();i!=d_repository.end();++i)
+  for (d_repository_t::const_iterator i = d_repository.begin(); i != d_repository.end(); ++i)
     ret.push_back(i->first);
   return ret;
 }
@@ -113,60 +113,58 @@ vector<string> BackendMakerClass::getModules()
 void BackendMakerClass::load_all()
 {
   auto directoryError = pdns::visit_directory(arg()["module-dir"], [this]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
-    if (boost::starts_with(name, "lib") &&
-        name.size() > 13 &&
-        boost::ends_with(name, "backend.so")) {
+    if (boost::starts_with(name, "lib") && name.size() > 13 && boost::ends_with(name, "backend.so")) {
       load(std::string(name));
     }
     return true;
   });
   if (directoryError) {
-    g_log<<Logger::Error<<"Unable to open module directory '"<<arg()["module-dir"]<<"': "<<*directoryError<<endl;
+    g_log << Logger::Error << "Unable to open module directory '" << arg()["module-dir"] << "': " << *directoryError << endl;
   }
 }
 
-void BackendMakerClass::load(const string &module)
+void BackendMakerClass::load(const string& module)
 {
   bool res;
 
-  if(module.find('.')==string::npos)
-    res=UeberBackend::loadmodule(arg()["module-dir"]+"/lib"+module+"backend.so");
-  else if(module[0]=='/' || (module[0]=='.' && module[1]=='/') || (module[0]=='.' && module[1]=='.'))    // absolute or current path
-    res=UeberBackend::loadmodule(module);
+  if (module.find('.') == string::npos)
+    res = UeberBackend::loadmodule(arg()["module-dir"] + "/lib" + module + "backend.so");
+  else if (module[0] == '/' || (module[0] == '.' && module[1] == '/') || (module[0] == '.' && module[1] == '.')) // absolute or current path
+    res = UeberBackend::loadmodule(module);
   else
-    res=UeberBackend::loadmodule(arg()["module-dir"]+"/"+module);
+    res = UeberBackend::loadmodule(arg()["module-dir"] + "/" + module);
 
-  if(res==false) {
-    g_log<<Logger::Error<<"DNSBackend unable to load module in "<<module<<endl;
+  if (res == false) {
+    g_log << Logger::Error << "DNSBackend unable to load module in " << module << endl;
     exit(1);
   }
 }
 
-void BackendMakerClass::launch(const string &instr)
+void BackendMakerClass::launch(const string& instr)
 {
   //    if(instr.empty())
   // throw ArgException("Not launching any backends - nameserver won't function");
 
   vector<string> parts;
-  stringtok(parts,instr,", ");
+  stringtok(parts, instr, ", ");
 
   for (const auto& part : parts)
     if (count(parts.begin(), parts.end(), part) > 1)
       throw ArgException("Refusing to launch multiple backends with the same name '" + part + "', verify all 'launch' statements in your configuration");
 
-  for(const auto & part : parts) {
+  for (const auto& part : parts) {
     string module, name;
-    vector<string>pparts;
-    stringtok(pparts,part,": ");
-    module=pparts[0];
-    if(pparts.size()>1)
-      name="-"+pparts[1];
+    vector<string> pparts;
+    stringtok(pparts, part, ": ");
+    module = pparts[0];
+    if (pparts.size() > 1)
+      name = "-" + pparts[1];
 
-    if(d_repository.find(module)==d_repository.end()) {
+    if (d_repository.find(module) == d_repository.end()) {
       // this is *so* userfriendly
       load(module);
-      if(d_repository.find(module)==d_repository.end())
-        throw ArgException("Trying to launch unknown backend '"+module+"'");
+      if (d_repository.find(module) == d_repository.end())
+        throw ArgException("Trying to launch unknown backend '" + module + "'");
     }
     d_repository[module]->declareArguments(name);
     d_instances.emplace_back(module, name);
@@ -180,7 +178,7 @@ size_t BackendMakerClass::numLauncheable() const
 
 vector<std::unique_ptr<DNSBackend>> BackendMakerClass::all(bool metadataOnly)
 {
-  if(d_instances.empty()) {
+  if (d_instances.empty()) {
     throw PDNSException("No database backends configured for launch, unable to function");
   }
 
@@ -200,12 +198,13 @@ vector<std::unique_ptr<DNSBackend>> BackendMakerClass::all(bool metadataOnly)
       ret.push_back(std::move(made));
     }
   }
-  catch(const PDNSException &ae) {
+  catch (const PDNSException& ae) {
     g_log << Logger::Error << "Caught an exception instantiating a backend (" << current << "): " << ae.reason << endl;
     g_log << Logger::Error << "Cleaning up" << endl;
     ret.clear();
     throw;
-  } catch(...) {
+  }
+  catch (...) {
     // and cleanup
     g_log << Logger::Error << "Caught an exception instantiating a backend (" << current << "), cleaning up" << endl;
     ret.clear();
@@ -230,13 +229,13 @@ vector<std::unique_ptr<DNSBackend>> BackendMakerClass::all(bool metadataOnly)
     \param sd SOAData which is filled with the SOA details
     \param unmodifiedSerial bool if set, serial will be returned as stored in the backend (maybe 0)
 */
-bool DNSBackend::getSOA(const DNSName &domain, SOAData &sd)
+bool DNSBackend::getSOA(const DNSName& domain, SOAData& sd)
 {
-  this->lookup(QType(QType::SOA),domain,-1);
+  this->lookup(QType(QType::SOA), domain, -1);
   S.inc("backend-queries");
 
   DNSResourceRecord rr;
-  int hits=0;
+  int hits = 0;
 
   sd.db = nullptr;
 
@@ -267,18 +266,19 @@ bool DNSBackend::get(DNSZoneRecord& dzr)
 {
   //  cout<<"DNSBackend::get(DNSZoneRecord&) called - translating into DNSResourceRecord query"<<endl;
   DNSResourceRecord rr;
-  if(!this->get(rr))
+  if (!this->get(rr))
     return false;
   dzr.auth = rr.auth;
   dzr.domain_id = rr.domain_id;
   dzr.scopeMask = rr.scopeMask;
-  if(rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0]!='"')
-    rr.content = "\""+ rr.content + "\"";
+  if (rr.qtype.getCode() == QType::TXT && !rr.content.empty() && rr.content[0] != '"')
+    rr.content = "\"" + rr.content + "\"";
   try {
     dzr.dr = DNSRecord(rr);
   }
-  catch(...) {
-    while(this->get(rr));
+  catch (...) {
+    while (this->get(rr))
+      ;
     throw;
   }
   return true;
@@ -307,7 +307,7 @@ void fillSOAData(const DNSZoneRecord& in, SOAData& sd)
   sd.domain_id = in.domain_id;
   sd.ttl = in.dr.d_ttl;
 
-  auto src=getRR<SOARecordContent>(in.dr);
+  auto src = getRR<SOARecordContent>(in.dr);
   sd.nameserver = src->d_mname;
   sd.rname = src->d_rname;
   sd.serial = src->d_st.serial;
@@ -319,18 +319,18 @@ void fillSOAData(const DNSZoneRecord& in, SOAData& sd)
 
 std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd)
 {
-    struct soatimes st;
-    st.serial = sd.serial;
-    st.refresh = sd.refresh;
-    st.retry = sd.retry;
-    st.expire = sd.expire;
-    st.minimum = sd.minimum;
-    return std::make_shared<SOARecordContent>(sd.nameserver, sd.rname, st);
+  struct soatimes st;
+  st.serial = sd.serial;
+  st.refresh = sd.refresh;
+  st.retry = sd.retry;
+  st.expire = sd.expire;
+  st.minimum = sd.minimum;
+  return std::make_shared<SOARecordContent>(sd.nameserver, sd.rname, st);
 }
 
-void fillSOAData(const string &content, SOAData &data)
+void fillSOAData(const string& content, SOAData& data)
 {
-  vector<string>parts;
+  vector<string> parts;
   parts.reserve(7);
   stringtok(parts, content);
 
@@ -343,7 +343,7 @@ void fillSOAData(const string &content, SOAData &data)
     pdns::checked_stoi_into(data.expire, parts.at(5));
     pdns::checked_stoi_into(data.minimum, parts.at(6));
   }
-  catch(const std::out_of_range& oor) {
+  catch (const std::out_of_range& oor) {
     throw PDNSException("Out of range exception parsing '" + content + "'");
   }
 }
