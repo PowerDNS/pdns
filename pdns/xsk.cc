@@ -1009,7 +1009,7 @@ void XskPacket::rewrite() noexcept
       uint32_t words[3];
     };
   };
-  struct ipv4_pseudo_header_t pseudo_header{};
+  ipv4_pseudo_header_t pseudo_header{};
   static_assert(sizeof(pseudo_header) == 12, "IPv4 pseudo-header size is incorrect");
 
   /* Fill in the pseudo-header. */
@@ -1043,7 +1043,7 @@ void XskPacket::rewrite() noexcept
       uint32_t words[10];
     };
   };
-  struct ipv6_pseudo_header_t pseudo_header{};
+  ipv6_pseudo_header_t pseudo_header{};
   static_assert(sizeof(pseudo_header) == 40, "IPv6 pseudo-header size is incorrect");
 
   /* Fill in the pseudo-header. */

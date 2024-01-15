@@ -847,7 +847,6 @@ private:
   void removeXSKDestination(int fd);
 #endif /* HAVE_XSK */
 
-  std::thread tid;
   std::mutex connectLock;
   std::condition_variable d_connectedWait;
 #ifdef HAVE_XSK

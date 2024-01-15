@@ -3104,7 +3104,6 @@ static void startFrontends()
         mapThreadToCPUList(xskCT.native_handle(), clientState->cpus);
       }
       xskCT.detach();
-      continue;
     }
 #endif /* HAVE_XSK */
 

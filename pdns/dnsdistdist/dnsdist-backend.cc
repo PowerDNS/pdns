@@ -330,19 +330,18 @@ void DownstreamState::start()
   if (connected && !threadStarted.test_and_set()) {
 #ifdef HAVE_XSK
     if (xskInfo != nullptr) {
-      tid = std::thread(dnsdist::xsk::XskResponderThread, shared_from_this());
+      auto xskResponderThread = std::thread(dnsdist::xsk::XskResponderThread, shared_from_this());
+      if (!d_config.d_cpus.empty()) {
+        mapThreadToCPUList(xskResponderThread.native_handle(), d_config.d_cpus);
+      }
+      xskResponderThread.detach();
     }
-    else {
-      tid = std::thread(responderThread, shared_from_this());
-    }
-#else
-    tid = std::thread(responderThread, shared_from_this());
 #endif /* HAVE_XSK */
 
+    auto tid = std::thread(responderThread, shared_from_this());
     if (!d_config.d_cpus.empty()) {
       mapThreadToCPUList(tid.native_handle(), d_config.d_cpus);
     }
-
     tid.detach();
   }
 }
