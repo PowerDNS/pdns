@@ -23,7 +23,7 @@ BUILT_SOURCES=cxxsettings-generated.cc rust/src/lib.rs
 # Use patterns to avoid having two instances of generate run simultaneously, a well-known hack for GNU make
 cxxsettings-generated%cc rust/src/lib%rs: table.py generate.py rust-preamble-in.rs rust-bridge-in.rs docs-old-preamble-in.rst docs-new-preamble-in.rst
 	$(MAKE) -C rust clean
-	$(PYTHON) generate.py
+	(cd ${srcdir} && $(PYTHON) generate.py)
 
 clean-local:
 	rm -f cxxsettings-generated.cc rust/src/lib.rs
