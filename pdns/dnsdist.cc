@@ -2778,6 +2778,9 @@ static void reportFeatures()
   cout<<"dnsdist "<<VERSION<<" ("<<LUA_RELEASE<<")"<<endl;
 #endif
   cout<<"Enabled features: ";
+#ifdef HAVE_XSK
+  cout<<"AF_XDP ";
+#endif
 #ifdef HAVE_CDB
   cout<<"cdb ";
 #endif
