@@ -66,7 +66,8 @@ private:
   };
   struct PBQuestion
   {
-    PBQuestion(const DNSName& name, uint16_t type, uint16_t class_): d_name(name), d_type(type), d_class(class_)
+    PBQuestion(const DNSName& name, uint16_t type, uint16_t class_) :
+      d_name(name), d_type(type), d_class(class_)
     {
     }
 
@@ -104,7 +105,21 @@ private:
 
 class ProtoBufMetaKey
 {
-  enum class Type : uint8_t { SNI, Pool, B64Content, DoHHeader, DoHHost, DoHPath, DoHQueryString, DoHScheme, ProxyProtocolValue, ProxyProtocolValues, Tag, Tags };
+  enum class Type : uint8_t
+  {
+    SNI,
+    Pool,
+    B64Content,
+    DoHHeader,
+    DoHHost,
+    DoHPath,
+    DoHQueryString,
+    DoHScheme,
+    ProxyProtocolValue,
+    ProxyProtocolValues,
+    Tag,
+    Tags
+  };
 
   struct KeyTypeDescription
   {
@@ -116,16 +131,19 @@ class ProtoBufMetaKey
     bool d_numeric{false};
   };
 
-  struct NameTag {};
-  struct TypeTag {};
+  struct NameTag
+  {
+  };
+  struct TypeTag
+  {
+  };
 
   typedef boost::multi_index_container<
     KeyTypeDescription,
-    indexed_by <
+    indexed_by<
       hashed_unique<tag<NameTag>, member<KeyTypeDescription, const std::string, &KeyTypeDescription::d_name>>,
-      hashed_unique<tag<TypeTag>, member<KeyTypeDescription, const Type, &KeyTypeDescription::d_type>>
-    >
-  > TypeContainer;
+      hashed_unique<tag<TypeTag>, member<KeyTypeDescription, const Type, &KeyTypeDescription::d_type>>>>
+    TypeContainer;
 
   static const TypeContainer s_types;
 
@@ -134,6 +152,7 @@ public:
 
   const std::string& getName() const;
   std::vector<std::string> getValues(const DNSQuestion& dq) const;
+
 private:
   std::string d_subKey;
   uint8_t d_numericSubKey{0};
