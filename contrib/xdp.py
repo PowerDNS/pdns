@@ -13,7 +13,7 @@ ACTIONS = {1 : 'DROP', 2 : 'TC'}
 DROP_ACTION = 1
 TC_ACTION = 2
 
-# The interface on wich the filter will be attached 
+# The interface on wich the filter will be attached
 DEV = "eth1"
 
 # The list of blocked IPv4, IPv6 and QNames
@@ -28,12 +28,13 @@ blocked_qnames = [("localhost", "A", DROP_ACTION), ("test.com", "*", TC_ACTION)]
 
 # Main
 useXsk = True
-Ports = [53]
 cflag = []
 if useXsk:
   cflag.append("-DUseXsk")
-IN_DNS_PORT_SET = "||".join("COMPARE_PORT((x),"+str(i)+")" for i in Ports)
-cflag.append(r"-DIN_DNS_PORT_SET(x)=(" + IN_DNS_PORT_SET + r")")
+else:
+  Ports = [53]
+  IN_DNS_PORT_SET = "||".join("COMPARE_PORT((x),"+str(i)+")" for i in Ports)
+  cflag.append(r"-DIN_DNS_PORT_SET(x)=(" + IN_DNS_PORT_SET + r")")
 
 xdp = BPF(src_file="xdp-filter.ebpf.src", cflags=cflag)
 
