@@ -649,7 +649,7 @@ static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& 
   return convComboAddressListToString(res);
 }
 
-static void setupLuaRecords(LuaContext& lua)
+static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cognitive-complexity
 {
   lua.writeFunction("latlon", []() {
       double lat = 0, lon = 0;
