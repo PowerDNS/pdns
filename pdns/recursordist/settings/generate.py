@@ -94,18 +94,29 @@ class LType(Enum):
     Bool = auto()
     Command = auto()
     Double = auto()
+    ListAllowedAdditionalQTypes = auto()
     ListAuthZones = auto()
+    ListDNSTapFrameStreamServers = auto()
+    ListDNSTapNODFrameStreamServers = auto()
     ListForwardZones = auto()
     ListNegativeTrustAnchors = auto()
+    ListProtobufServers = auto()
+    ListProxyMappings = auto()
+    ListRPZs = auto();
     ListSocketAddresses = auto()
+    ListSortLists = auto()
     ListStrings = auto()
     ListSubnets = auto()
     ListTrustAnchors = auto()
+    ListZoneToCaches = auto()
     String = auto()
     Uint64 = auto()
 
 listOfStringTypes = (LType.ListSocketAddresses,  LType.ListStrings, LType.ListSubnets)
-listOfStructuredTypes = (LType.ListAuthZones, LType.ListForwardZones, LType.ListTrustAnchors, LType.ListNegativeTrustAnchors)
+listOfStructuredTypes = (LType.ListAuthZones, LType.ListForwardZones, LType.ListTrustAnchors, LType.ListNegativeTrustAnchors,
+                         LType.ListProtobufServers, LType.ListDNSTapFrameStreamServers, LType.ListDNSTapNODFrameStreamServers,
+                         LType.ListSortLists, LType.ListRPZs, LType.ListZoneToCaches, LType.ListAllowedAdditionalQTypes,
+                         LType.ListProxyMappings)
 
 def get_olddoc_typename(typ):
     """Given a type from table.py, return the old-style type name"""
