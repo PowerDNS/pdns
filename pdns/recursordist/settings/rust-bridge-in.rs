@@ -47,10 +47,211 @@ pub struct NegativeTrustAnchor {
     reason: String,
 }
 
-// A struct holding bot a vector of forward zones and a vector o auth zones, used by REST API code
+// A protobuf logging server
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ProtobufServer {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    servers: Vec<String>,
+    #[serde(default = "crate::U64::<2>::value", skip_serializing_if = "crate::U64::<2>::is_equal")]
+    timeout: u64,
+    #[serde(default = "crate::U64::<100>::value", skip_serializing_if = "crate::U64::<100>::is_equal")]
+    maxQueuedEntries: u64,
+    #[serde(default = "crate::U64::<1>::value", skip_serializing_if = "crate::U64::<1>::is_equal")]
+    reconnectWaitTime: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    taggedOnly: bool,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    asyncConnect: bool,
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    logQueries: bool,
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    logResponses: bool,
+    #[serde(default = "crate::def_pb_export_qtypes", skip_serializing_if = "crate::default_value_equal_pb_export_qtypes")]
+    exportTypes: Vec<String>,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    logMappedFrom: bool,
+}
+
+// A dnstap logging server
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct DNSTapFrameStreamServer {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    servers: Vec<String>,
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    logQueries: bool,
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    logResponses: bool,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    bufferHint: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    flushTimeout: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    inputQueueSize: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    outputQueueSize: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    queueNotifyThreshold: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    reopenInterval: u64,
+}
+
+// A dnstap logging NOD server
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct DNSTapNODFrameStreamServer {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    servers: Vec<String>,
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    logNODs: bool,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    logUDRs: bool,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    bufferHint: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    flushTimeout: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    inputQueueSize: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    outputQueueSize: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    queueNotifyThreshold: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    reopenInterval: u64,
+}
+
+#[derive(Default, Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct TSIGTriplet {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    algo: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    secret: String,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct RPZ {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    addresses: Vec<String>,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    defcontent: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    defpol: String,
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    defpolOverrideLocalData: bool,
+    #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal")]
+    defttl: u32,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    extendedErrorCode: u32,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    extendedErrorExtra: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    includeSOA: bool,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    ignoreDuplicates: bool,
+    #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal")]
+    maxTTL: u32,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    policyName: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    tags: Vec<String>,
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    overridesGettag: bool,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    zoneSizeHint: u32,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    tsig: TSIGTriplet,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    refresh: u32,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    maxReceivedMBytes: u32,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    localAddress: String,
+    #[serde(default = "crate::U32::<20>::value", skip_serializing_if = "crate::U32::<20>::is_equal")]
+    axfrTimeout: u32,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    dumpFile: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    seedFile: String,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ZoneToCache {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    zone: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    method: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    sources: Vec<String>,
+    #[serde(default = "crate::U64::<20>::value", skip_serializing_if = "crate::U64::<20>::is_equal")]
+    timeout: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    tsig: TSIGTriplet,
+    #[serde(default = "crate::U64::<86400>::value", skip_serializing_if = "crate::U64::<86400>::is_equal")]
+    refreshPeriod: u64,
+    #[serde(default = "crate::U64::<60>::value", skip_serializing_if = "crate::U64::<60>::is_equal")]
+    retryOnErrorPeriod: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    maxReceivedMBytes: u64,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    localAddress: String,
+    #[serde(default = "crate::def_ztc_validate", skip_serializing_if = "crate::def_value_equals_ztc_validate")]
+    zonemd: String,
+    #[serde(default = "crate::def_ztc_validate", skip_serializing_if = "crate::def_value_equals_ztc_validate")]
+    dnssec: String,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct SubnetOrder {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    subnet: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    order: u32,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct SortList {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    key: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    subnets: Vec<SubnetOrder>,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct AllowedAdditionalQType {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    qtype: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    targets: Vec<String>,
+    #[serde(default = "crate::def_additional_mode", skip_serializing_if = "crate::default_value_equals_additional_mode")]
+    mode: String,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ProxyMapping {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    subnet: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    address: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    domains: Vec<String>,
+}
+
+// A struct holding both a vector of forward zones and a vector o auth zones, used by REST API code
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-struct ApiZones {
+pub struct ApiZones {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     auth_zones: Vec<AuthZone>,
     #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -69,6 +270,14 @@ struct Value {
     vec_authzone_val: Vec<AuthZone>,
     vec_trustanchor_val: Vec<TrustAnchor>,
     vec_negativetrustanchor_val: Vec<NegativeTrustAnchor>,
+    vec_protobufserver_val: Vec<ProtobufServer>,
+    vec_dnstap_framestream_server_val: Vec<DNSTapFrameStreamServer>,
+    vec_dnstap_nod_framestream_server_val: Vec<DNSTapNODFrameStreamServer>,
+    vec_rpz_val: Vec<RPZ>,
+    vec_sortlist_val: Vec<SortList>,
+    vec_zonetocache_val: Vec<ZoneToCache>,
+    vec_allowedadditionalqtype_val: Vec<AllowedAdditionalQType>,
+    vec_proxymapping_val: Vec<ProxyMapping>,
 }
 
 struct OldStyle {
@@ -111,7 +320,7 @@ extern "Rust" {
 
     // Validate the sections inside the main settings struct, sections themselves will valdiate their fields
     fn validate(self: &Recursorsettings) -> Result<()>;
-    // The validate function bewlo are "hand-crafted" as their structs afre mnot generated
+    // The validate function below are "hand-crafted" as their structs are not generated
     fn validate(self: &AuthZone, field: &str) -> Result<()>;
     fn validate(self: &ForwardZone, field: &str) -> Result<()>;
     fn validate(self: &TrustAnchor, field: &str) -> Result<()>;

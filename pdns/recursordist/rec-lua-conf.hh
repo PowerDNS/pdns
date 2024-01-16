@@ -21,6 +21,7 @@
  */
 #pragma once
 #include <set>
+#include <boost/variant.hpp>
 
 #include "sholder.hh"
 #include "sortlist.hh"
@@ -98,12 +99,22 @@ struct ProxyByTableValue
 
 using ProxyMapping = NetmaskTree<ProxyByTableValue, Netmask>;
 
+using rpzOptions_t = std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>>>>;
+
+struct RPZRaw
+{
+  std::vector<ComboAddress> addresses;
+  std::string name;
+  boost::optional<rpzOptions_t> options;
+};
+
 class LuaConfigItems
 {
 public:
   LuaConfigItems();
   SortList sortlist;
   DNSFilterEngine dfe;
+  vector<RPZRaw> rpzRaw;
   TrustAnchorFileInfo trustAnchorFileInfo; // Used to update the Trust Anchors from file periodically
   map<DNSName, dsset_t> dsAnchors;
   map<DNSName, std::string> negAnchors;

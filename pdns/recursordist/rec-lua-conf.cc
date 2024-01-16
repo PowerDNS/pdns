@@ -380,6 +380,7 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
         zone->clear();
       }
     }
+    lci.rpzRaw.emplace_back(RPZRaw{primaries, zoneName, options});
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "Problem configuring 'rpzPrimary': " << e.what() << endl,
@@ -472,6 +473,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
       lci.dfe.addZone(std::move(zone));
       SLOG(g_log << Logger::Warning << "Done loading RPZ from file '" << filename << "'" << endl,
            log->info(Logr::Info,  "Done loading RPZ from file"));
+      lci.rpzRaw.emplace_back(RPZRaw{{}, filename, options});
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << "Unable to load RPZ zone from '" << filename << "': " << e.what() << endl,
