@@ -84,6 +84,10 @@ dnsdist_build_deps = [
     'libre2-dev',
     'libsnmp-dev',
 ]
+dnsdist_xdp_build_deps = [
+    'libbpf-dev',
+    'libxdp-dev',
+]
 auth_test_deps = [   # FIXME: we should be generating some of these from shlibdeps in build
     'authbind',
     'bc',
@@ -294,26 +298,30 @@ def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
     c.sudo('chmod 755 /var/agentx')
 
 @task
-def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-get
-    c.sudo('apt-get install -y \
-              libluajit-5.1-2 \
-              libboost-all-dev \
-              libcap2 \
-              libcdb1 \
-              libcurl4-openssl-dev \
-              libfstrm0 \
-              libgnutls30 \
-              libh2o-evloop0.13 \
-              liblmdb0 \
-              libnghttp2-14 \
-              "libre2-[1-9]+" \
-              libssl-dev \
-              libsystemd0 \
-              libsodium23 \
-              lua-socket \
-              patch \
-              protobuf-compiler \
-              python3-venv snmpd prometheus')
+def install_dnsdist_test_deps(c, xdp=True): # FIXME: rename this, we do way more than apt-get
+    deps = 'libluajit-5.1-2 \
+            libboost-all-dev \
+            libcap2 \
+            libcdb1 \
+            libcurl4-openssl-dev \
+            libfstrm0 \
+            libgnutls30 \
+            libh2o-evloop0.13 \
+            liblmdb0 \
+            libnghttp2-14 \
+            "libre2-[1-9]+" \
+            libssl-dev \
+            libsystemd0 \
+            libsodium23 \
+            lua-socket \
+            patch \
+            protobuf-compiler \
+            python3-venv snmpd prometheus'
+    if xdp:
+        deps = deps + 'libbpf1 \
+               libxdp1'
+
+    c.sudo(f'apt-get install -y {deps}')
     c.run('sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0777 0755/g" regression-tests.dnsdist/snmpd.conf | sudo tee /etc/snmp/snmpd.conf')
     c.sudo('/etc/init.d/snmpd restart')
     time.sleep(5)
@@ -323,9 +331,9 @@ def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-
 def install_rec_build_deps(c):
     c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + rec_build_deps))
 
-@task
-def install_dnsdist_build_deps(c):
-    c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps))
+@task(optional=['skipXDP'])
+def install_dnsdist_build_deps(c, skipXDP=False):
+    c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps + dnsdist_xdp_build_deps if not skipXDP else []))
 
 @task
 def ci_autoconf(c):
