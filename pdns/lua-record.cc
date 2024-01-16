@@ -738,14 +738,15 @@ static void setupLuaRecords(LuaContext& lua)
       } else if (parts.size() >= 1) {
         // either hex string, or 12-13-14-15
         vector<string> ip_parts;
+        auto input = parts[0];
 
         // allow a word without - in front, as long as it does not contain anything that could be a number
-        size_t nonhexprefix = strcspn(parts[0].c_str(), "0123456789abcdef");
+        size_t nonhexprefix = strcspn(input.c_str(), "0123456789abcdef");
         if (nonhexprefix > 0) {
-          parts[0] = parts[0].substr(nonhexprefix);
+          input = input.substr(nonhexprefix);
         }
 
-        stringtok(ip_parts, parts[0], "-");
+        stringtok(ip_parts, input, "-");
         unsigned int x1, x2, x3, x4;
         if (ip_parts.size() >= 4) {
           // 1-2-3-4 with any prefix (e.g. ip-foo-bar-1-2-3-4)
@@ -765,7 +766,7 @@ static void setupLuaRecords(LuaContext& lua)
           }
           ret.resize(ret.size() - 1); // remove trailing dot after last octet
           return ret;
-        } else if(parts[0].length() >= 8 && sscanf(parts[0].c_str()+(parts[0].length()-8), "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
+        } else if(input.length() >= 8 && sscanf(input.c_str()+(input.length()-8), "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
           return std::to_string(x1)+"."+std::to_string(x2)+"."+std::to_string(x3)+"."+std::to_string(x4);
         }
       }
