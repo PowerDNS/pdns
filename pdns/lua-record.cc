@@ -741,7 +741,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         auto input = parts[0];
 
         // allow a word without - in front, as long as it does not contain anything that could be a number
-        size_t nonhexprefix = strcspn(input.c_str(), "0123456789abcdef");
+        size_t nonhexprefix = strcspn(input.c_str(), "0123456789abcdefABCDEF");
         if (nonhexprefix > 0) {
           input = input.substr(nonhexprefix);
         }
