@@ -888,6 +888,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   ret.reserve(ret.size() + soaSet.size() + soaSignatures.size() + /* NSEC */ 1 + entry.d_signatures.size() + (needWildcard ? (/* NSEC */ 1 + wcEntry.d_signatures.size()) : 0));
 
   addToRRSet(now, soaSet, std::move(soaSignatures), zone, doDNSSEC, ret);
+  // coverity[store_truncates_time_t]
   addRecordToRRSet(entry.d_owner, QType::NSEC, entry.d_ttd - now, entry.d_record, entry.d_signatures, doDNSSEC, ret);
 
   if (needWildcard) {
