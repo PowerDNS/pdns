@@ -751,12 +751,12 @@ static void setupLuaRecords(LuaContext& lua)
         if (ip_parts.size() >= 4) {
           // 1-2-3-4 with any prefix (e.g. ip-foo-bar-1-2-3-4)
           string ret;
-          for (size_t n=4; n > 0; n--) {
-            auto octet = ip_parts[ip_parts.size() - n];
+          for (size_t index=4; index > 0; index--) {
+            auto octet = ip_parts[ip_parts.size() - index];
             try {
               auto octetVal = std::stol(octet);
               if (octetVal >= 0 && octetVal <= 255) {
-                ret += ip_parts.at(ip_parts.size() - n) + ".";
+                ret += ip_parts.at(ip_parts.size() - index) + ".";
               } else {
                 return allZerosIP;
               }
