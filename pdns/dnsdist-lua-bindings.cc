@@ -727,10 +727,15 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       return std::shared_ptr<XskSocket>(nullptr);
     }
     uint32_t queue_id;
-    uint32_t frameNums;
+    uint32_t frameNums{65536};
     std::string ifName;
-    std::string path;
-    std::string poolName;
+    std::string path("/sys/fs/bpf/dnsdist/xskmap");
+    if (opts.count("ifName") == 1) {
+      ifName = boost::get<std::string>(opts.at("ifName"));
+    }
+    else {
+      throw std::runtime_error("ifName field is required!");
+    }
     if (opts.count("NIC_queue_id") == 1) {
       queue_id = boost::get<uint32_t>(opts.at("NIC_queue_id"));
     }
@@ -740,20 +745,8 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     if (opts.count("frameNums") == 1) {
       frameNums = boost::get<uint32_t>(opts.at("frameNums"));
     }
-    else {
-      throw std::runtime_error("frameNums field is required!");
-    }
-    if (opts.count("ifName") == 1) {
-      ifName = boost::get<std::string>(opts.at("ifName"));
-    }
-    else {
-      throw std::runtime_error("ifName field is required!");
-    }
     if (opts.count("xskMapPath") == 1) {
       path = boost::get<std::string>(opts.at("xskMapPath"));
-    }
-    else {
-      throw std::runtime_error("xskMapPath field is required!");
     }
     auto socket = std::make_shared<XskSocket>(frameNums, ifName, queue_id, path);
     dnsdist::xsk::g_xsk.push_back(socket);
