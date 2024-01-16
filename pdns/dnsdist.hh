@@ -149,6 +149,13 @@ struct DNSQuestion
     ids.qTag->insert_or_assign(key, value);
   }
 
+  void setTag(const std::string& key, std::string&& value) {
+    if (!ids.qTag) {
+      ids.qTag = std::make_unique<QTag>();
+    }
+    ids.qTag->insert_or_assign(key, std::move(value));
+  }
+
   const struct timespec& getQueryRealTime() const
   {
     return ids.queryRealTime.d_start;

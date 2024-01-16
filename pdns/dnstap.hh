@@ -61,12 +61,13 @@ public:
     DoQ = 7
   };
 
-  DnstapMessage(std::string& buffer, MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, ProtocolType protocol, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, boost::optional<const DNSName&> auth = boost::none);
+  DnstapMessage(std::string&& buffer, MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, ProtocolType protocol, const char* packet, size_t len, const struct timespec* queryTime, const struct timespec* responseTime, const boost::optional<const DNSName&>& auth = boost::none);
 
   void setExtra(const std::string& extra);
+  std::string&& getBuffer();
 
-protected:
-  std::string& d_buffer;
+private:
+  std::string d_buffer;
 };
 
 #endif /* DISABLE_PROTOBUF */

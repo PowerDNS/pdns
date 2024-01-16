@@ -33,7 +33,7 @@ struct ResponseConfig
   boost::optional<bool> setRA{boost::none};
   uint32_t ttl{60};
 };
-void setResponseHeadersFromConfig(dnsheader& dh, const ResponseConfig& config);
+void setResponseHeadersFromConfig(dnsheader& dnsheader, const ResponseConfig& config);
 
 class SpoofAction : public DNSAction
 {
@@ -66,7 +66,7 @@ public:
   {
   }
 
-  DNSAction::Action operator()(DNSQuestion* dq, string* ruleresult) const override;
+  DNSAction::Action operator()(DNSQuestion* dnsquestion, string* ruleresult) const override;
 
   string toString() const override
   {
@@ -84,9 +84,13 @@ public:
     return ret;
   }
 
+  [[nodiscard]] ResponseConfig& getResponseConfig()
+  {
+    return d_responseConfig;
+  }
 
-  ResponseConfig d_responseConfig;
 private:
+  ResponseConfig d_responseConfig;
   static thread_local std::default_random_engine t_randomEngine;
   std::vector<ComboAddress> d_addrs;
   std::unordered_set<uint16_t> d_types;
