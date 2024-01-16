@@ -735,7 +735,7 @@ static void setupLuaRecords(LuaContext& lua)
         } catch (const PDNSException &e) {
           return allZerosIP;
         }
-      } else if (parts.size() >= 1) {
+      } else if (!parts.empty()) {
         // either hex string, or 12-13-14-15
         vector<string> ip_parts;
         auto input = parts[0];
