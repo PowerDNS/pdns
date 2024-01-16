@@ -964,6 +964,7 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 "ip40414243": "64.65.66.67",
                 "ipp40414243": "64.65.66.67",
                 "ip4041424": "0.0.0.0",
+                "host64-22-33-44": "64.22.33.44",
                 "2.2.2.2": "0.0.0.0"   # filtered
             }),
             ".createreverse.example.org." : (dns.rdatatype.PTR, {

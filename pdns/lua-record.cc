@@ -738,6 +738,13 @@ static void setupLuaRecords(LuaContext& lua)
       } else if (parts.size() >= 1) {
         // either hex string, or 12-13-14-15
         vector<string> ip_parts;
+
+        // allow a word without - in front, as long as it does not contain anything that could be a number
+        size_t nonhexprefix = strcspn(parts[0].c_str(), "0123456789abcdef");
+        if (nonhexprefix > 0) {
+          parts[0] = parts[0].substr(nonhexprefix);
+        }
+
         stringtok(ip_parts, parts[0], "-");
         unsigned int x1, x2, x3, x4;
         if (ip_parts.size() >= 4) {
