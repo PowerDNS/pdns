@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+
 #include "iputils.hh"
 #include "dnsrecords.hh"
 
@@ -28,21 +29,26 @@ struct SortListOrder
   NetmaskTree<int> d_orders;
 };
 
-
 struct SortListOrderCmp
 {
-  SortListOrderCmp(const SortListOrder& slo) : d_slo(slo) {}
-  bool operator()(const DNSRecord& a, const DNSRecord& b) const;
-  const SortListOrder d_slo;
+  SortListOrderCmp(SortListOrder slo) :
+    d_slo(std::move(slo)) {}
+  bool operator()(const DNSRecord& lhs, const DNSRecord& rhs) const;
+  SortListOrder d_slo;
 };
 
-class SortList {
+class SortList
+{
 public:
   void clear();
-  void addEntry(const Netmask& covers, const Netmask& answermask, int order=-1);
-  int getMaxOrder(const Netmask& formask) const;
-  std::unique_ptr<SortListOrderCmp> getOrderCmp(const ComboAddress& who) const;
+  void addEntry(const Netmask& covers, const Netmask& answermask, int order = -1);
+  [[nodiscard]] int getMaxOrder(const Netmask& formask) const;
+  [[nodiscard]] std::unique_ptr<SortListOrderCmp> getOrderCmp(const ComboAddress& who) const;
+  [[nodiscard]] const NetmaskTree<SortListOrder>& getTree() const
+  {
+    return d_sortlist;
+  }
+
 private:
-  
   NetmaskTree<SortListOrder> d_sortlist;
 };
