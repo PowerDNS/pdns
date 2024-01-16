@@ -1878,7 +1878,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
     if (depth > bound || (d_outqueries > 10 && d_throttledqueries > 5 && depth > bound * 2 / 3)) {
       string msg = "More than " + std::to_string(bound) + " (adjusted max-recursion-depth) levels of recursion needed while resolving " + qname.toLogString();
       LOG(prefix << qname << ": " << msg << endl);
-      throw ImmediateServFailException(msg);
+      throw ImmediateServFailException(std::move(msg));
     }
   }
 
@@ -2651,7 +2651,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       if (qname == newTarget) {
         string msg = "Got a CNAME referral (from cache) to self";
         LOG(prefix << qname << ": " << msg << endl);
-        throw ImmediateServFailException(msg);
+        throw ImmediateServFailException(std::move(msg));
       }
 
       if (newTarget.isPartOf(qname)) {
