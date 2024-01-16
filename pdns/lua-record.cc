@@ -766,8 +766,12 @@ static void setupLuaRecords(LuaContext& lua)
           }
           ret.resize(ret.size() - 1); // remove trailing dot after last octet
           return ret;
-        } else if(input.length() >= 8 && sscanf(input.c_str()+(input.length()-8), "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
-          return std::to_string(x1)+"."+std::to_string(x2)+"."+std::to_string(x3)+"."+std::to_string(x4);
+        }
+        if(input.length() >= 8) {
+          auto last8 = input.substr(input.length()-8);
+          if(sscanf(last8.c_str(), "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
+            return std::to_string(x1)+"."+std::to_string(x2)+"."+std::to_string(x3)+"."+std::to_string(x4);
+          }
         }
       }
       return allZerosIP;
