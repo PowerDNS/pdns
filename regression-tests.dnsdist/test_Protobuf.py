@@ -634,6 +634,7 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
                 self.assertIn('?dns=', tags['query-string'])
                 self.assertIn('scheme', tags)
                 self.assertEqual(tags['scheme'], 'https')
+                self.assertEqual(msg.httpVersion, dnsmessage_pb2.PBDNSMessage.HTTPVersion.HTTP2)
 
             # check the protobuf message corresponding to the response
             msg = self.getFirstProtobufMessage()
