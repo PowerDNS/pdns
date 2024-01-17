@@ -1,3 +1,5 @@
+fs = import('fs')
+
 prog = fs.read('timet_sign.cc')
 timet_signed = cxx.compiles(prog, name: 'time_t is signed')
 

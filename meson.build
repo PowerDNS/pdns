@@ -17,9 +17,6 @@ product_build_dir = meson.current_build_dir()
 summary('Source Dir', product_source_dir, section: 'Build')
 summary('Build Dir', product_build_dir, section: 'Build')
 
-# Setup some modules
-fs = import('fs')
-
 # Create the configuration object and dependencies list.
 conf = configuration_data()
 
@@ -104,6 +101,8 @@ subdir('ext' / 'yahttp')
 if get_option('module-lmdb') != 'disabled'
   subdir('ext' / 'lmdb-safe')
 endif
+
+
 
 deps = [
   dep_pdns,
