@@ -143,9 +143,21 @@ deps = [
   dep_geoip,
   dep_mmdb,
   dep_cxx_fs,
+  dep_boost_test,
 ]
 
 subdir('pdns')
+
+libpdns_cdb = dependency('', required: false)
+if dep_cdb.found()
+  libpdns_cdb = declare_dependency(
+    link_whole: static_library(
+      'libpdns-cdb',
+      sources: libpdns_cdb_sources,
+      dependencies: deps,
+    )
+  )
+endif
 
 # Modules
 all_modules = [
@@ -187,26 +199,38 @@ conf.set_quoted('PDNS_DYN_MODULES', ' '.join(selected_dyn_modules), description:
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
 
-pdns_auth = executable(
-  'pdns-auth',
+libpdns_common = static_library(
+  'pdns-common',
+  common_sources,
   config_h,
-  export_dynamic: true,
-  dependencies: [
-    dep_modules,
-    libpdns_auth,
-  ],
+  link_with: static_library(
+    'pdns-bindparser',
+    libpdns_bindlexer_sources,
+    libpdns_bindparser_sources,
+    cpp_args: '-Wno-redundant-decls',
+    dependencies: deps,
+  ),
+  dependencies: deps,
 )
 
-tools = ['pdns-auth-util', 'pdns-auth-control', 'zone2sql', 'zone2json']
+pdns_auth = executable(
+  'pdns-auth',
+  pdns_auth_sources,
+  config_h,
+  export_dynamic: true,
+  dependencies: deps + dep_modules,
+  link_with: libpdns_common,
+)
+
+tools = ['pdns-auth-util', 'pdns-auth-control', 'pdns-zone2sql', 'pdns-zone2json']
 
 if get_option('module-ldap') != 'disabled'
-  tools += 'zone2ldap'
+  tools += 'pdns-zone2ldap'
 endif
 
 if get_option('tools')
   tools += [
     'calidns',
-    # 'comfun',                   # TODO: Broken
     'dnsdemog',
     'dnsgram',
     'dnspcap2calidns',
@@ -255,12 +279,16 @@ if get_option('fuzz-targets')
 endif
 
 foreach tool: tools
+  var_name = tool.underscorify()
+  sources_var = var_name + '_sources'
   set_variable(
-    tool.underscorify(),
+    var_name,
     executable(
       tool,
-      sources: [config_h],
-      dependencies: [get_variable('lib' + tool.underscorify())],
+      get_variable(sources_var),
+      config_h,
+      dependencies: deps,
+      link_with: libpdns_common,
     )
   )
 endforeach
