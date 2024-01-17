@@ -1096,6 +1096,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     def sendDOQQueryWrapper(self, query, response, useQueue=True):
         return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName)
 
+    def sendDOH3QueryWrapper(self, query, response, useQueue=True):
+        return self.sendDOH3Query(self._doh3ServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName)
     @classmethod
     def getDOQConnection(cls, port, caFile=None, source=None, source_port=0):
 
