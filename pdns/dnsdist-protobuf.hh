@@ -87,7 +87,6 @@ private:
   };
   std::unordered_map<std::string, MetaValue> d_metaTags;
 
-  // FIXME wondering if the cost of moving to a shared_ptr would be that bad
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
   const DNSQuestion& d_dq;
   const DNSResponse* d_dr{nullptr};
@@ -127,9 +126,12 @@ class ProtoBufMetaKey
 
   struct KeyTypeDescription
   {
-    std::string d_name;
-    Type d_type;
-    std::function<std::vector<std::string>(const DNSQuestion&, const std::string&, uint8_t)> d_func;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const std::string d_name;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const Type d_type;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+    const std::function<std::vector<std::string>(const DNSQuestion&, const std::string&, uint8_t)> d_func;
     bool d_prefix{false};
     bool d_caseSensitive{true};
     bool d_numeric{false};

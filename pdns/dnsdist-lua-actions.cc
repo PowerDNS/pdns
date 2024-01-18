@@ -327,8 +327,10 @@ public:
   }
 
 private:
-  std::string d_pool;
-  bool d_stopProcessing;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+  const std::string d_pool;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+  const bool d_stopProcessing;
 };
 
 class QPSPoolAction : public DNSAction
@@ -355,8 +357,10 @@ public:
 
 private:
   mutable LockGuarded<QPSLimiter> d_qps;
-  std::string d_pool;
-  bool d_stopProcessing;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+  const std::string d_pool;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+  const bool d_stopProcessing;
 };
 
 class RCodeAction : public DNSAction
@@ -747,8 +751,10 @@ private:
   };
   static std::atomic<uint64_t> s_functionsCounter;
   static thread_local std::map<uint64_t, PerThreadState> t_perThreadStates;
-  std::string d_functionCode;
-  uint64_t d_functionID;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+  const std::string d_functionCode;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+  const uint64_t d_functionID;
 };
 
 std::atomic<uint64_t> LuaFFIPerThreadAction::s_functionsCounter = 0;
@@ -869,8 +875,10 @@ private:
 
   static std::atomic<uint64_t> s_functionsCounter;
   static thread_local std::map<uint64_t, PerThreadState> t_perThreadStates;
-  std::string d_functionCode;
-  uint64_t d_functionID;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+  const std::string d_functionCode;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
+  const uint64_t d_functionID;
 };
 
 std::atomic<uint64_t> LuaFFIPerThreadResponseAction::s_functionsCounter = 0;
