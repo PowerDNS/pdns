@@ -99,8 +99,7 @@ DNSName::DNSName(const std::string_view sw)
   }
 }
 
-
-DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, uint16_t minOffset)
+DNSName::DNSName(const char* pos, size_t len, size_t offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, uint16_t minOffset)
 {
   if (offset >= len)
     throw std::range_error("Trying to read past the end of the buffer ("+std::to_string(offset)+ " >= "+std::to_string(len)+")");
@@ -115,7 +114,7 @@ DNSName::DNSName(const char* pos, int len, int offset, bool uncompress, uint16_t
 }
 
 // this should be the __only__ dns name parser in PowerDNS.
-void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset)
+void DNSName::packetParser(const char* qpos, size_t len, size_t offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset)
 {
   const unsigned char* pos=(const unsigned char*)qpos;
   unsigned char labellen;
@@ -123,7 +122,7 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
 
   if (offset >= len)
     throw std::range_error("Trying to read past the end of the buffer ("+std::to_string(offset)+ " >= "+std::to_string(len)+")");
-  if (offset < (int) minOffset)
+  if (offset < static_cast<size_t>(minOffset))
     throw std::range_error("Trying to read before the beginning of the buffer ("+std::to_string(offset)+ " < "+std::to_string(minOffset)+")");
 
   const unsigned char* end = pos + len;
@@ -134,10 +133,10 @@ void DNSName::packetParser(const char* qpos, int len, int offset, bool uncompres
         throw std::range_error("Found compressed label, instructed not to follow");
 
       labellen &= (~0xc0);
-      int newpos = (labellen << 8) + *(const unsigned char*)pos;
+      size_t newpos = (labellen << 8) + *(const unsigned char*)pos;
 
       if(newpos < offset) {
-        if(newpos < (int) minOffset)
+        if(newpos < static_cast<size_t>(minOffset))
           throw std::range_error("Invalid label position during decompression ("+std::to_string(newpos)+ " < "+std::to_string(minOffset)+")");
         if (++depth > 100)
           throw std::range_error("Abort label decompression after 100 redirects");
