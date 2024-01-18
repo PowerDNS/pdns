@@ -50,15 +50,12 @@
 ./pdns/dnsdist-ecs.cc
 ./pdns/dnsdist-ecs.hh
 ./pdns/dnsdist-lbpolicies.hh
-./pdns/dnsdist-lua-actions.cc
 ./pdns/dnsdist-lua-bindings-dnsquestion.cc
 ./pdns/dnsdist-lua-bindings.cc
 ./pdns/dnsdist-lua-inspection.cc
 ./pdns/dnsdist-lua-rules.cc
 ./pdns/dnsdist-lua-vars.cc
 ./pdns/dnsdist-lua.hh
-./pdns/dnsdist-protobuf.cc
-./pdns/dnsdist-protobuf.hh
 ./pdns/dnsdist-rings.cc
 ./pdns/dnsdist-rings.hh
 ./pdns/dnsdist-snmp.cc
@@ -120,8 +117,6 @@
 ./pdns/dnssecinfra.hh
 ./pdns/dnsseckeeper.hh
 ./pdns/dnssecsigner.cc
-./pdns/dnstap.cc
-./pdns/dnstap.hh
 ./pdns/dnstcpbench.cc
 ./pdns/dnswasher.cc
 ./pdns/dnswriter.cc

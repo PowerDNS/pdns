@@ -112,7 +112,9 @@ static void logFstreamQuery(const std::shared_ptr<std::vector<std::unique_ptr<Fr
   struct timespec ts;
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts);
   std::string str;
-  DnstapMessage message(str, DnstapMessage::MessageType::resolver_query, SyncRes::s_serverID, &localip, &ip, protocol, reinterpret_cast<const char*>(&*packet.begin()), packet.size(), &ts, nullptr, auth);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  DnstapMessage message(std::move(str), DnstapMessage::MessageType::resolver_query, SyncRes::s_serverID, &localip, &ip, protocol, reinterpret_cast<const char*>(packet.data()), packet.size(), &ts, nullptr, auth);
+  str = message.getBuffer();
 
   for (auto& logger : *fstreamLoggers) {
     remoteLoggerQueueData(*logger, str);
@@ -141,7 +143,9 @@ static void logFstreamResponse(const std::shared_ptr<std::vector<std::unique_ptr
   TIMEVAL_TO_TIMESPEC(&queryTime, &ts1);
   TIMEVAL_TO_TIMESPEC(&replyTime, &ts2);
   std::string str;
-  DnstapMessage message(str, DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &localip, &ip, protocol, reinterpret_cast<const char*>(packet.data()), packet.size(), &ts1, &ts2, auth);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  DnstapMessage message(std::move(str), DnstapMessage::MessageType::resolver_response, SyncRes::s_serverID, &localip, &ip, protocol, reinterpret_cast<const char*>(packet.data()), packet.size(), &ts1, &ts2, auth);
+  str = message.getBuffer();
 
   for (auto& logger : *fstreamLoggers) {
     remoteLoggerQueueData(*logger, str);

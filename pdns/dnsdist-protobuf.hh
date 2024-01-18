@@ -30,8 +30,10 @@
 class DNSDistProtoBufMessage
 {
 public:
-  DNSDistProtoBufMessage(const DNSQuestion& dq);
-  DNSDistProtoBufMessage(const DNSResponse& dr, bool includeCNAME);
+  DNSDistProtoBufMessage(const DNSQuestion& dnsquestion);
+  DNSDistProtoBufMessage(const DNSResponse& dnsresponse, bool includeCNAME);
+  DNSDistProtoBufMessage(const DNSQuestion&&) = delete;
+  DNSDistProtoBufMessage(const DNSResponse&&, bool) = delete;
 
   void setServerIdentity(const std::string& serverId);
   void setRequestor(const ComboAddress& requestor);
@@ -40,11 +42,12 @@ public:
   void setResponderPort(uint16_t port);
   void setResponseCode(uint8_t rcode);
   void setType(pdns::ProtoZero::Message::MessageType type);
+  void setHTTPVersion(pdns::ProtoZero::Message::HTTPVersion version);
   void setBytes(size_t bytes);
   void setTime(time_t sec, uint32_t usec);
   void setQueryTime(time_t sec, uint32_t usec);
   void setQuestion(const DNSName& name, uint16_t qtype, uint16_t qclass);
-  void setEDNSSubnet(const Netmask& nm);
+  void setEDNSSubnet(const Netmask& netmask);
 
   void addTag(const std::string& strValue);
   void addMeta(const std::string& key, std::vector<std::string>&& strValues, const std::vector<int64_t>& intValues);
@@ -52,7 +55,7 @@ public:
 
   void serialize(std::string& data) const;
 
-  std::string toDebugString() const;
+  [[nodiscard]] std::string toDebugString() const;
 
 private:
   struct PBRecord
@@ -65,7 +68,8 @@ private:
   };
   struct PBQuestion
   {
-    PBQuestion(const DNSName& name, uint16_t type, uint16_t class_): d_name(name), d_type(type), d_class(class_)
+    PBQuestion(DNSName name, uint16_t type, uint16_t class_) :
+      d_name(std::move(name)), d_type(type), d_class(class_)
     {
     }
 
@@ -83,6 +87,7 @@ private:
   };
   std::unordered_map<std::string, MetaValue> d_metaTags;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
   const DNSQuestion& d_dq;
   const DNSResponse* d_dr{nullptr};
   const std::string* d_ServerIdentityRef{nullptr};
@@ -103,36 +108,56 @@ private:
 
 class ProtoBufMetaKey
 {
-  enum class Type : uint8_t { SNI, Pool, B64Content, DoHHeader, DoHHost, DoHPath, DoHQueryString, DoHScheme, ProxyProtocolValue, ProxyProtocolValues, Tag, Tags };
+  enum class Type : uint8_t
+  {
+    SNI,
+    Pool,
+    B64Content,
+    DoHHeader,
+    DoHHost,
+    DoHPath,
+    DoHQueryString,
+    DoHScheme,
+    ProxyProtocolValue,
+    ProxyProtocolValues,
+    Tag,
+    Tags
+  };
 
   struct KeyTypeDescription
   {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::string d_name;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const Type d_type;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
     const std::function<std::vector<std::string>(const DNSQuestion&, const std::string&, uint8_t)> d_func;
     bool d_prefix{false};
     bool d_caseSensitive{true};
     bool d_numeric{false};
   };
 
-  struct NameTag {};
-  struct TypeTag {};
+  struct NameTag
+  {
+  };
+  struct TypeTag
+  {
+  };
 
-  typedef boost::multi_index_container<
+  using TypeContainer = boost::multi_index_container<
     KeyTypeDescription,
-    indexed_by <
+    indexed_by<
       hashed_unique<tag<NameTag>, member<KeyTypeDescription, const std::string, &KeyTypeDescription::d_name>>,
-      hashed_unique<tag<TypeTag>, member<KeyTypeDescription, const Type, &KeyTypeDescription::d_type>>
-    >
-  > TypeContainer;
+      hashed_unique<tag<TypeTag>, member<KeyTypeDescription, const Type, &KeyTypeDescription::d_type>>>>;
 
   static const TypeContainer s_types;
 
 public:
   ProtoBufMetaKey(const std::string& key);
 
-  const std::string& getName() const;
-  std::vector<std::string> getValues(const DNSQuestion& dq) const;
+  [[nodiscard]] const std::string& getName() const;
+  [[nodiscard]] std::vector<std::string> getValues(const DNSQuestion& dnsquestion) const;
+
 private:
   std::string d_subKey;
   uint8_t d_numericSubKey{0};

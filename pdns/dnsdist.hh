@@ -149,6 +149,13 @@ struct DNSQuestion
     ids.qTag->insert_or_assign(key, value);
   }
 
+  void setTag(const std::string& key, std::string&& value) {
+    if (!ids.qTag) {
+      ids.qTag = std::make_unique<QTag>();
+    }
+    ids.qTag->insert_or_assign(key, std::move(value));
+  }
+
   const struct timespec& getQueryRealTime() const
   {
     return ids.queryRealTime.d_start;
@@ -565,6 +572,12 @@ struct ClientState
     }
     else if (hasTLS()) {
       return dnsdist::Protocol::DoT;
+    }
+    else if (doqFrontend != nullptr) {
+      return dnsdist::Protocol::DoQ;
+    }
+    else if (doh3Frontend != nullptr) {
+      return dnsdist::Protocol::DoH3;
     }
     else if (udpFD != -1) {
       return dnsdist::Protocol::DoUDP;

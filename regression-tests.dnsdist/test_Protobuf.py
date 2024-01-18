@@ -634,6 +634,7 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
                 self.assertIn('?dns=', tags['query-string'])
                 self.assertIn('scheme', tags)
                 self.assertEqual(tags['scheme'], 'https')
+                self.assertEqual(msg.httpVersion, dnsmessage_pb2.PBDNSMessage.HTTPVersion.HTTP2)
 
             # check the protobuf message corresponding to the response
             msg = self.getFirstProtobufMessage()
@@ -811,3 +812,62 @@ class TestProtobufIPCipher(DNSDistProtobufTest):
         rr = msg.response.rrs[1]
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, target, 3600)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '127.0.0.1')
+
+class TestProtobufQUIC(DNSDistProtobufTest):
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _doh3ServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _doh3ServerPort))
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+    rl = newRemoteLogger('127.0.0.1:%d')
+
+    addDOQLocal("127.0.0.1:%d", "%s", "%s")
+    addDOH3Local("127.0.0.1:%d", "%s", "%s")
+
+    addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='dnsdist-server-1'}))
+    """
+    _config_params = ['_testServerPort', '_protobufServerPort', '_doqServerPort', '_serverCert', '_serverKey', '_doh3ServerPort', '_serverCert', '_serverKey']
+
+    def testProtobufMetaDoH(self):
+        """
+        Protobuf: Test logged protocol for QUIC and DOH3
+        """
+        name = 'quic.protobuf.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        for method in ("sendDOQQueryWrapper", "sendDOH3QueryWrapper"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+            if self._protobufQueue.empty():
+                # let the protobuf messages the time to get there
+                time.sleep(1)
+
+            # check the protobuf message corresponding to the query
+            msg = self.getFirstProtobufMessage()
+
+            if method == "sendDOQQueryWrapper":
+                pbMessageType = dnsmessage_pb2.PBDNSMessage.DOQ
+            elif method == "sendDOH3QueryWrapper":
+                pbMessageType = dnsmessage_pb2.PBDNSMessage.DOH
+                self.assertEqual(msg.httpVersion, dnsmessage_pb2.PBDNSMessage.HTTPVersion.HTTP3)
+
+            self.checkProtobufQuery(msg, pbMessageType, query, dns.rdataclass.IN, dns.rdatatype.A, name)
