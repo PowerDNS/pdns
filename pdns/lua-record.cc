@@ -1145,6 +1145,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   lua.writeVariable("zone", zone);
   lua.writeVariable("zoneid", zoneid);
   lua.writeVariable("who", dnsp.getInnerRemote());
+  lua.writeVariable("localwho", dnsp.getLocal());
   lua.writeVariable("dh", (dnsheader*)&dnsp.d);
   lua.writeVariable("dnssecOK", dnsp.d_dnssecOk);
   lua.writeVariable("tcp", dnsp.d_tcp);

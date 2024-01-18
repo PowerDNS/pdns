@@ -34,6 +34,8 @@ Client variables
   resolver. This is a :class:`ComboAddress`.
 ``who``
   IP address of requesting resolver as a :class:`ComboAddress`.
+``localwho``
+  IP address (including port) of socket on which the question arrived.
 
 Functions available
 -------------------
