@@ -551,6 +551,16 @@ to enable DNSSEC. Must be one of:
 The default keysize for the ZSK generated with :doc:`pdnsutil secure-zone <dnssec/pdnsutil>`.
 Only relevant for algorithms with non-fixed keysizes (like RSA).
 
+.. _setting-delay-notifications:
+
+``delay-notifications``
+-----------------------
+
+-  Integer
+-  Default: 0 (no delay, send them directly)
+
+Configure a delay to send out notifications, no delay by default.
+
 .. _setting-direct-dnskey:
 
 ``direct-dnskey``
@@ -1055,7 +1065,7 @@ Setting this to any value less than or equal to 0 will set no limit.
 
 .. deprecated:: 4.5.0
   Renamed to :ref:`setting-primary`.
- 
+
 -  Boolean
 -  Default: no
 
@@ -1862,11 +1872,11 @@ Enable for testing PowerDNS upgrades, without changing stored records.
 Enable for upgrading record content on secondaries, or when using the API (see :doc:`upgrade notes <../upgrading>`).
 Disable after record contents have been upgraded.
 
-This option is supported by the bind and Generic SQL backends. 
+This option is supported by the bind and Generic SQL backends.
 
 .. note::
   When using a generic SQL backend, records with an unknown record type (see :doc:`../appendices/types`) can be identified with the following SQL query::
-  
+
       SELECT * from records where type like 'TYPE%';
 
 .. _setting-version-string:
@@ -1960,7 +1970,7 @@ When set to "detailed", all information about the request and response are logge
   [webserver] e235780e-a5cf-415e-9326-9d33383e739e   Content-Length: 49
   [webserver] e235780e-a5cf-415e-9326-9d33383e739e   Content-Type: text/html; charset=utf-8
   [webserver] e235780e-a5cf-415e-9326-9d33383e739e   Server: PowerDNS/0.0.15896.0.gaba8bab3ab
-  [webserver] e235780e-a5cf-415e-9326-9d33383e739e  Full body: 
+  [webserver] e235780e-a5cf-415e-9326-9d33383e739e  Full body:
   [webserver] e235780e-a5cf-415e-9326-9d33383e739e   <!html><title>Not Found</title><h1>Not Found</h1>
   [webserver] e235780e-a5cf-415e-9326-9d33383e739e 127.0.0.1:55376 "GET /api/v1/servers/localhost/bla HTTP/1.1" 404 196
 

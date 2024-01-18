@@ -43,7 +43,7 @@
 void CommunicatorClass::retrievalLoopThread()
 {
   setThreadName("pdns/comm-retre");
-  for(;;) {
+  for (;;) {
     d_suck_sem.wait();
     SuckRequest sr;
     {
@@ -53,8 +53,8 @@ void CommunicatorClass::retrievalLoopThread()
       }
 
       auto firstItem = data->d_suckdomains.begin();
-        
-      sr=*firstItem;
+
+      sr = *firstItem;
       data->d_suckdomains.erase(firstItem);
       if (data->d_suckdomains.empty()) {
         data->d_sorthelper = 0;
@@ -64,17 +64,17 @@ void CommunicatorClass::retrievalLoopThread()
   }
 }
 
-void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &listset)
+void CommunicatorClass::loadArgsIntoSet(const char* listname, set<string>& listset)
 {
   vector<string> parts;
   stringtok(parts, ::arg()[listname], ", \t");
-  for (const auto & part : parts) {
+  for (const auto& part : parts) {
     try {
       ComboAddress caIp(part, 53);
       listset.insert(caIp.toStringWithPort());
     }
-    catch(PDNSException &e) {
-      g_log<<Logger::Error<<"Unparseable IP in "<<listname<<". Error: "<<e.reason<<endl;
+    catch (PDNSException& e) {
+      g_log << Logger::Error << "Unparseable IP in " << listname << ". Error: " << e.reason << endl;
       _exit(1);
     }
   }
@@ -83,28 +83,33 @@ void CommunicatorClass::loadArgsIntoSet(const char *listname, set<string> &lists
 void CommunicatorClass::go()
 {
   try {
-    PacketHandler::s_allowNotifyFrom.toMasks(::arg()["allow-notify-from"] );
+    PacketHandler::s_allowNotifyFrom.toMasks(::arg()["allow-notify-from"]);
   }
-  catch(PDNSException &e) {
-    g_log<<Logger::Error<<"Unparseable IP in allow-notify-from. Error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    g_log << Logger::Error << "Unparseable IP in allow-notify-from. Error: " << e.reason << endl;
     _exit(1);
   }
 
-  std::thread mainT([this](){mainloop();});
+  std::thread mainT([this]() { mainloop(); });
   mainT.detach();
 
-  for(int n=0; n < ::arg().asNum("retrieval-threads", 1); ++n) {
-    std::thread retrieve([this](){retrievalLoopThread();});
+  for (int nthreads = 0; nthreads < ::arg().asNum("retrieval-threads", 1); ++nthreads) {
+    std::thread retrieve([this]() { retrievalLoopThread(); });
     retrieve.detach();
   }
 
   d_preventSelfNotification = ::arg().mustDo("prevent-self-notification");
 
+  auto delay = ::arg().asNum("delay-notifications");
+  if (delay > 0) {
+    d_delayNotifications = static_cast<time_t>(delay);
+  }
+
   try {
     d_onlyNotify.toMasks(::arg()["only-notify"]);
   }
-  catch(PDNSException &e) {
-    g_log<<Logger::Error<<"Unparseable IP in only-notify. Error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    g_log << Logger::Error << "Unparseable IP in only-notify. Error: " << e.reason << endl;
     _exit(1);
   }
 
@@ -117,7 +122,7 @@ void CommunicatorClass::mainloop()
 {
   try {
     setThreadName("pdns/comm-main");
-    signal(SIGPIPE,SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
     g_log << Logger::Warning << "Primary/secondary communicator launching" << endl;
 
     d_tickinterval = ::arg().asNum("xfr-cycle-interval");
@@ -128,17 +133,17 @@ void CommunicatorClass::mainloop()
 
     makeNotifySockets();
 
-    for(;;) {
+    for (;;) {
       secondaryRefresh(&P);
       primaryUpdateCheck(&P);
       doNotifications(&P); // this processes any notification acknowledgements and actually send out our own notifications
 
       next = time(nullptr) + d_tickinterval;
 
-      while(time(nullptr) < next) {
-        rc=d_any_sem.tryWait();
+      while (time(nullptr) < next) {
+        rc = d_any_sem.tryWait();
 
-        if(rc) {
+        if (rc != 0) {
           bool extraSecondaryRefresh = false;
           Utility::sleep(1);
           {
@@ -161,17 +166,16 @@ void CommunicatorClass::mainloop()
       }
     }
   }
-  catch(PDNSException &ae) {
-    g_log<<Logger::Error<<"Exiting because communicator thread died with error: "<<ae.reason<<endl;
+  catch (PDNSException& ae) {
+    g_log << Logger::Error << "Exiting because communicator thread died with error: " << ae.reason << endl;
     Utility::sleep(1);
     _exit(1);
   }
-  catch(std::exception &e) {
-    g_log<<Logger::Error<<"Exiting because communicator thread died with STL error: "<<e.what()<<endl;
+  catch (std::exception& e) {
+    g_log << Logger::Error << "Exiting because communicator thread died with STL error: " << e.what() << endl;
     _exit(1);
   }
-  catch( ... )
-  {
+  catch (...) {
     g_log << Logger::Error << "Exiting because communicator caught unknown exception." << endl;
     _exit(1);
   }
