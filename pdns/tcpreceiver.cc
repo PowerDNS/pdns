@@ -1303,10 +1303,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
   return doAXFR(q->qdomain, q, outsock);
 }
 
-TCPNameserver::~TCPNameserver()
-{
-}
-
+TCPNameserver::~TCPNameserver() = default;
 TCPNameserver::TCPNameserver()
 {
   d_maxTransactionsPerConn = ::arg().asNum("max-tcp-transactions-per-conn");

@@ -53,9 +53,7 @@ CoWrapper::CoWrapper(const string& command, int timeout, int abiVersion)
   // I think
 }
 
-CoWrapper::~CoWrapper()
-{
-}
+CoWrapper::~CoWrapper() = default;
 
 void CoWrapper::launch()
 {

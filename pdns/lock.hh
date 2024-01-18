@@ -81,9 +81,7 @@
 class ReadWriteLock
 {
 public:
-  ReadWriteLock()
-  {
-  }
+  ReadWriteLock() = default;
 
   ReadWriteLock(const ReadWriteLock& rhs) = delete;
   ReadWriteLock(ReadWriteLock&& rhs) = delete;
@@ -111,7 +109,8 @@ public:
 
   ReadLock(const ReadLock& rhs) = delete;
   ReadLock& operator=(const ReadLock& rhs) = delete;
-  ReadLock(ReadLock&& rhs) : d_lock(std::move(rhs.d_lock))
+  ReadLock(ReadLock&& rhs) noexcept :
+    d_lock(std::move(rhs.d_lock))
   {
   }
 
@@ -136,7 +135,8 @@ public:
 
   WriteLock(const WriteLock& rhs) = delete;
   WriteLock& operator=(const WriteLock& rhs) = delete;
-  WriteLock(WriteLock&& rhs) : d_lock(std::move(rhs.d_lock))
+  WriteLock(WriteLock&& rhs) noexcept :
+    d_lock(std::move(rhs.d_lock))
   {
   }
 
@@ -275,9 +275,7 @@ public:
   {
   }
 
-  explicit LockGuarded()
-  {
-  }
+  explicit LockGuarded() = default;
 
   LockGuardedTryHolder<T> try_lock()
   {
@@ -423,9 +421,7 @@ public:
   {
   }
 
-  explicit SharedLockGuarded()
-  {
-  }
+  explicit SharedLockGuarded() = default;
 
   SharedLockGuardedTryHolder<T> try_write_lock()
   {

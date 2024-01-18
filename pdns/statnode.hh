@@ -30,10 +30,7 @@ public:
 
   struct Stat
   {
-    Stat()
-    {
-    }
-
+    Stat() {};
     uint64_t queries{0};
     uint64_t noerrors{0};
     uint64_t nxdomains{0};
@@ -68,9 +65,9 @@ public:
   std::string fullname;
   uint8_t labelsCount{0};
 
-  void submit(const DNSName& domain, int rcode, unsigned int bytes, bool hit, boost::optional<const ComboAddress&> remote);
+  void submit(const DNSName& domain, int rcode, unsigned int bytes, bool hit, const boost::optional<const ComboAddress&>& remote);
   Stat print(unsigned int depth=0, Stat newstat=Stat(), bool silent=false) const;
-  void visit(visitor_t visitor, Stat& newstat, unsigned int depth=0) const;
+  void visit(const visitor_t& visitor, Stat& newstat, unsigned int depth = 0) const;
   bool empty() const
   {
     return children.empty() && s.remotes.empty();
@@ -78,5 +75,5 @@ public:
   children_t children;
 
 private:
-  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, boost::optional<const ComboAddress&> remote, unsigned int count, bool hit);
+  void submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, const boost::optional<const ComboAddress&>& remote, unsigned int count, bool hit);
 };

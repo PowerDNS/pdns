@@ -204,7 +204,7 @@ void CoProcess::receive(string& received)
 
   if (eolPos != received.size() - 1) {
     /* we have some data remaining after the first '\n', let's keep it for later */
-    d_remaining.append(received, eolPos + 1, received.size() - eolPos - 1);
+    d_remaining = std::string(received, eolPos + 1, received.size() - eolPos - 1);
   }
 
   received.resize(eolPos);

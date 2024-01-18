@@ -28,7 +28,7 @@ class Comment
 {
 public:
   Comment() : modified_at(0), domain_id(0)  {};
-  ~Comment() {};
+  ~Comment() = default;
 
   // data
   DNSName qname; //!< the name of the associated RRset, for example: www.powerdns.com

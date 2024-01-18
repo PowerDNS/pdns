@@ -35,7 +35,7 @@ public:
          bool setIsolation = false, unsigned int timeout = 10,
          bool threadCleanup = false, bool clientSSL = false);
 
-  ~SMySQL();
+  ~SMySQL() override;
 
   SSqlException sPerrorException(const string& reason) override;
   void setLog(bool state) override;

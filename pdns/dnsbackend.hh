@@ -165,7 +165,7 @@ public:
   */
   virtual bool list(const DNSName &target, int domain_id, bool include_disabled=false)=0;
 
-  virtual ~DNSBackend(){};
+  virtual ~DNSBackend() = default;
 
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
   virtual bool getSOA(const DNSName &name, SOAData &soadata);
@@ -475,7 +475,7 @@ class BackendFactory
 {
 public:
   BackendFactory(const string &name) : d_name(name) {}
-  virtual ~BackendFactory(){}
+  virtual ~BackendFactory() = default;
   virtual DNSBackend *make(const string &suffix)=0;
   virtual DNSBackend *makeMetadataOnly(const string &suffix)
   {

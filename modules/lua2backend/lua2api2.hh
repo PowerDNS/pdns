@@ -71,7 +71,7 @@ public:
     loadFile(getArg("filename"));
   }
 
-  ~Lua2BackendAPIv2();
+  ~Lua2BackendAPIv2() override;
 
 #define logCall(func, var)                                                                               \
   {                                                                                                      \
@@ -87,12 +87,12 @@ public:
     }                                                                 \
   }
 
-  virtual void postPrepareContext() override
+  void postPrepareContext() override
   {
     AuthLua4::postPrepareContext();
   }
 
-  virtual void postLoad() override
+  void postLoad() override
   {
     f_lookup = d_lw->readVariable<boost::optional<lookup_call_t>>("dns_lookup").get_value_or(0);
     f_list = d_lw->readVariable<boost::optional<list_call_t>>("dns_list").get_value_or(0);

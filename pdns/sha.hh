@@ -88,10 +88,8 @@ public:
     }
   }
 
-  ~SHADigest()
-  {
-    // No free of md needed and mdctx is cleaned up by unique_ptr
-  }
+  // No free of md needed and mdctx is cleaned up by unique_ptr
+  ~SHADigest() = default;
 
   void process(const std::string& msg)
   {

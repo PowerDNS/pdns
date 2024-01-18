@@ -69,7 +69,7 @@ SensitiveData::SensitiveData(std::string&& data) :
 #endif
 }
 
-SensitiveData& SensitiveData::operator=(SensitiveData&& rhs)
+SensitiveData& SensitiveData::operator=(SensitiveData&& rhs) noexcept
 {
   d_data = std::move(rhs.d_data);
   rhs.clear();

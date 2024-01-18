@@ -62,10 +62,6 @@ public:
   {
   }
 
-  virtual ~OpenSSLSession()
-  {
-  }
-
   std::unique_ptr<SSL_SESSION, void(*)(SSL_SESSION*)> getNative()
   {
     return std::move(d_sess);
@@ -817,7 +813,7 @@ public:
     }
   }
 
-  void loadTicketsKeys(const std::string& keyFile) override final
+  void loadTicketsKeys(const std::string& keyFile) final
   {
     d_feContext->d_ticketKeys.loadTicketsKeys(keyFile);
 
@@ -1015,7 +1011,7 @@ public:
     sess.size = 0;
   }
 
-  virtual ~GnuTLSSession()
+  ~GnuTLSSession() override
   {
     if (d_sess.data != nullptr && d_sess.size > 0) {
       safe_memory_release(d_sess.data, d_sess.size);
@@ -1664,7 +1660,7 @@ public:
     }
   }
 
-  virtual ~GnuTLSIOCtx() override
+  ~GnuTLSIOCtx() override
   {
     d_creds.reset();
 
@@ -1748,7 +1744,7 @@ public:
     }
   }
 
-  void loadTicketsKeys(const std::string& file) override final
+  void loadTicketsKeys(const std::string& file) final
   {
     if (!d_enableTickets) {
       return;

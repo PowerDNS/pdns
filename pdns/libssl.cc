@@ -626,9 +626,7 @@ OpenSSLTLSTicketKeysRing::OpenSSLTLSTicketKeysRing(size_t capacity)
   d_ticketKeys.write_lock()->set_capacity(capacity);
 }
 
-OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing()
-{
-}
+OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing() = default;
 
 void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& newKey)
 {

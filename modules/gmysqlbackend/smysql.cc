@@ -88,7 +88,7 @@ public:
     }
   }
 
-  SSqlStatement* bind(const string& /* name */, bool value)
+  SSqlStatement* bind(const string& /* name */, bool value) override
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -101,15 +101,15 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bind(const string& name, int value)
+  SSqlStatement* bind(const string& name, int value) override
   {
     return bind(name, (long)value);
   }
-  SSqlStatement* bind(const string& name, uint32_t value)
+  SSqlStatement* bind(const string& name, uint32_t value) override
   {
     return bind(name, (unsigned long)value);
   }
-  SSqlStatement* bind(const string& /* name */, long value)
+  SSqlStatement* bind(const string& /* name */, long value) override
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -122,7 +122,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bind(const string& /* name */, unsigned long value)
+  SSqlStatement* bind(const string& /* name */, unsigned long value) override
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -136,7 +136,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bind(const string& /* name */, long long value)
+  SSqlStatement* bind(const string& /* name */, long long value) override
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -149,7 +149,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bind(const string& /* name */, unsigned long long value)
+  SSqlStatement* bind(const string& /* name */, unsigned long long value) override
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -163,7 +163,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bind(const string& /* name */, const std::string& value)
+  SSqlStatement* bind(const string& /* name */, const std::string& value) override
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -180,7 +180,7 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bindNull(const string& /* name */)
+  SSqlStatement* bindNull(const string& /* name */) override
   {
     prepareStatement();
     if (d_paridx >= d_parnum) {
@@ -192,7 +192,7 @@ public:
     return this;
   }
 
-  SSqlStatement* execute()
+  SSqlStatement* execute() override
   {
     prepareStatement();
 
@@ -267,7 +267,7 @@ public:
     return this;
   }
 
-  bool hasNextRow()
+  bool hasNextRow() override
   {
     if (d_dolog && d_residx == d_resnum) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us total to last row" << endl;
@@ -275,7 +275,7 @@ public:
     return d_residx < d_resnum;
   }
 
-  SSqlStatement* nextRow(row_t& row)
+  SSqlStatement* nextRow(row_t& row) override
   {
     int err;
     row.clear();
@@ -338,7 +338,7 @@ public:
     return this;
   }
 
-  SSqlStatement* getResult(result_t& result)
+  SSqlStatement* getResult(result_t& result) override
   {
     result.clear();
     result.reserve(d_resnum);
@@ -352,7 +352,7 @@ public:
     return this;
   }
 
-  SSqlStatement* reset()
+  SSqlStatement* reset() override
   {
     if (!d_stmt)
       return this;
@@ -383,9 +383,9 @@ public:
     return this;
   }
 
-  const std::string& getQuery() { return d_query; }
+  const std::string& getQuery() override { return d_query; }
 
-  ~SMySQLStatement()
+  ~SMySQLStatement() override
   {
     releaseStatement();
   }

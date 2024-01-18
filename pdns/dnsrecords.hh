@@ -176,7 +176,7 @@ class TSIGRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(TSIG)
-  TSIGRecordContent() {}
+  TSIGRecordContent() = default;
 
   uint16_t d_origID{0};
   uint16_t d_fudge{0};
@@ -334,7 +334,7 @@ private:
 class OPTRecordContent : public DNSRecordContent
 {
 public:
-  OPTRecordContent(){}
+  OPTRecordContent() = default;
   includeboilerplate(OPT)
   void getData(vector<pair<uint16_t, string> > &opts) const;
 private:
@@ -638,7 +638,8 @@ public:
 
     return *this;
   }
-  NSECBitmap(NSECBitmap&& rhs): d_bitset(std::move(rhs.d_bitset)), d_set(std::move(rhs.d_set))
+  NSECBitmap(NSECBitmap&& rhs) noexcept :
+    d_bitset(std::move(rhs.d_bitset)), d_set(std::move(rhs.d_set))
   {
   }
   bool isSet(uint16_t type) const
@@ -700,9 +701,8 @@ private:
 class NSECRecordContent : public DNSRecordContent
 {
 public:
-  static void report(void);
-  NSECRecordContent()
-  {}
+  static void report();
+  NSECRecordContent() = default;
   NSECRecordContent(const string& content, const DNSName& zone=DNSName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
@@ -738,9 +738,8 @@ private:
 class NSEC3RecordContent : public DNSRecordContent
 {
 public:
-  static void report(void);
-  NSEC3RecordContent()
-  {}
+  static void report();
+  NSEC3RecordContent() = default;
   NSEC3RecordContent(const string& content, const DNSName& zone=DNSName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
@@ -785,9 +784,8 @@ private:
 class CSYNCRecordContent : public DNSRecordContent
 {
 public:
-  static void report(void);
-  CSYNCRecordContent()
-  {}
+  static void report();
+  CSYNCRecordContent() = default;
   CSYNCRecordContent(const string& content, const DNSName& zone=DNSName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
@@ -814,9 +812,8 @@ private:
 class NSEC3PARAMRecordContent : public DNSRecordContent
 {
 public:
-  static void report(void);
-  NSEC3PARAMRecordContent()
-  {}
+  static void report();
+  NSEC3PARAMRecordContent() = default;
   NSEC3PARAMRecordContent(const string& content, const DNSName& zone=DNSName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
@@ -839,9 +836,8 @@ public:
 class LOCRecordContent : public DNSRecordContent
 {
 public:
-  static void report(void);
-  LOCRecordContent()
-  {}
+  static void report();
+  LOCRecordContent() = default;
   LOCRecordContent(const string& content, const string& zone="");
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
@@ -903,8 +899,8 @@ private:
 class EUI48RecordContent : public DNSRecordContent
 {
 public:
-  EUI48RecordContent() {};
-  static void report(void);
+  EUI48RecordContent() = default;
+  static void report();
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
@@ -918,8 +914,8 @@ private:
 class EUI64RecordContent : public DNSRecordContent
 {
 public:
-  EUI64RecordContent() {};
-  static void report(void);
+  EUI64RecordContent() = default;
+  static void report();
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
@@ -945,7 +941,7 @@ typedef struct s_APLRDataElement {
 class APLRecordContent : public DNSRecordContent
 {
 public:
-  APLRecordContent() {};
+  APLRecordContent() = default;
   includeboilerplate(APL)
 private:
   std::vector<APLRDataElement> aplrdata;

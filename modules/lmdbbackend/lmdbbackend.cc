@@ -1222,7 +1222,7 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
   return ret;
 }
 
-std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTransaction(uint32_t id, std::shared_ptr<LMDBBackend::RecordsRWTransaction> rwtxn)
+std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTransaction(uint32_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn)
 {
   auto& shard = d_trecords[id % s_shards];
   if (!shard.env) {
@@ -1627,7 +1627,7 @@ bool LMDBBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool gets
   return true;
 }
 
-int LMDBBackend::genChangeDomain(const DNSName& domain, std::function<void(DomainInfo&)> func)
+int LMDBBackend::genChangeDomain(const DNSName& domain, const std::function<void(DomainInfo&)>& func)
 {
   auto txn = d_tdomains->getRWTransaction();
 
@@ -1641,7 +1641,7 @@ int LMDBBackend::genChangeDomain(const DNSName& domain, std::function<void(Domai
   return true;
 }
 
-int LMDBBackend::genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func)
+int LMDBBackend::genChangeDomain(uint32_t id, const std::function<void(DomainInfo&)>& func)
 {
   DomainInfo di;
 

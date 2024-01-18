@@ -137,7 +137,7 @@ public:
 
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
 
-  virtual bool getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after) override;
+  bool getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after) override;
 
   bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype = QType::ANY) override;
 
@@ -243,7 +243,7 @@ public:
   class LMDBResourceRecord : public DNSResourceRecord
   {
   public:
-    LMDBResourceRecord() {}
+    LMDBResourceRecord() = default;
     LMDBResourceRecord(const DNSResourceRecord& rr) :
       DNSResourceRecord(rr), ordername(false) {}
 
@@ -305,9 +305,9 @@ private:
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
   std::shared_ptr<RecordsRWTransaction> getRecordsRWTransaction(uint32_t id);
-  std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id, std::shared_ptr<LMDBBackend::RecordsRWTransaction> rwtxn = nullptr);
-  int genChangeDomain(const DNSName& domain, std::function<void(DomainInfo&)> func);
-  int genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func);
+  std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn = nullptr);
+  int genChangeDomain(const DNSName& domain, const std::function<void(DomainInfo&)>& func);
+  int genChangeDomain(uint32_t id, const std::function<void(DomainInfo&)>& func);
   void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype = QType::ANY);
 
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);

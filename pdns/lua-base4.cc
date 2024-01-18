@@ -15,8 +15,7 @@
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "dns_random.hh"
 
-BaseLua4::BaseLua4() {
-}
+BaseLua4::BaseLua4() = default;
 
 void BaseLua4::loadFile(const std::string& fname)
 {
@@ -296,4 +295,4 @@ void BaseLua4::loadStream(std::istream &is) {
   postLoad();
 }
 
-BaseLua4::~BaseLua4() { }
+BaseLua4::~BaseLua4() = default;

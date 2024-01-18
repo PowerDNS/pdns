@@ -24,7 +24,6 @@
 
 #include "ext/json11/json11.hpp"
 #include "base32.hh"
-#include "dnsbackend.hh"
 #include "dnssecinfra.hh"
 
 struct DomainInfo;

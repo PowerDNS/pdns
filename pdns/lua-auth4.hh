@@ -19,10 +19,11 @@ public:
 
   std::unique_ptr<DNSPacket> prequery(const DNSPacket& p);
 
-  ~AuthLua4(); // this is so unique_ptr works with an incomplete type
+  ~AuthLua4() override; // this is so unique_ptr works with an incomplete type
 protected:
-  virtual void postPrepareContext() override;
-  virtual void postLoad() override;
+  void postPrepareContext() override;
+  void postLoad() override;
+
 private:
   struct UpdatePolicyQuery {
     DNSName qname;

@@ -1288,7 +1288,8 @@ public:
   }
 
   //<! swaps the contents with another NetmaskTree
-  void swap(NetmaskTree& rhs) {
+  void swap(NetmaskTree& rhs) noexcept
+  {
     std::swap(d_root, rhs.d_root);
     std::swap(d_left, rhs.d_left);
     std::swap(d_size, rhs.d_size);
@@ -1358,8 +1359,7 @@ private:
 class NetmaskGroup
 {
 public:
-  NetmaskGroup() noexcept {
-  }
+  NetmaskGroup() noexcept = default;
 
   //! If this IP address is matched by any of the classes within
 
@@ -1517,7 +1517,8 @@ public:
     d_addr.sin4.sin_port = 0; // this guarantees d_network compares identical
   }
 
-  AddressAndPortRange(ComboAddress ca, uint8_t addrMask, uint8_t portMask = 0): d_addr(std::move(ca)), d_addrMask(addrMask), d_portMask(portMask)
+  AddressAndPortRange(ComboAddress ca, uint8_t addrMask, uint8_t portMask = 0) :
+    d_addr(ca), d_addrMask(addrMask), d_portMask(portMask)
   {
     if (!d_addr.isIPv4()) {
       d_portMask = 0;

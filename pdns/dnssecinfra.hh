@@ -36,7 +36,7 @@ class DNSCryptoKeyEngine
 {
   public:
     explicit DNSCryptoKeyEngine(unsigned int algorithm) : d_algorithm(algorithm) {}
-    virtual ~DNSCryptoKeyEngine() {};
+    virtual ~DNSCryptoKeyEngine() = default;
     [[nodiscard]] virtual string getName() const = 0;
 
     using stormap_t = std::map<std::string, std::string>;

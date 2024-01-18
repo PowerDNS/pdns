@@ -32,7 +32,7 @@ class PKCS11DNSCryptoKeyEngine : public DNSCryptoKeyEngine
 
   public:
     PKCS11DNSCryptoKeyEngine(unsigned int algorithm);
-    ~PKCS11DNSCryptoKeyEngine();
+    ~PKCS11DNSCryptoKeyEngine() override;
 
     PKCS11DNSCryptoKeyEngine(const PKCS11DNSCryptoKeyEngine& orig);
 

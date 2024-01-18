@@ -29,7 +29,7 @@ class SensitiveData
 public:
   SensitiveData(size_t bytes);
   SensitiveData(std::string&& data);
-  SensitiveData& operator=(SensitiveData&&);
+  SensitiveData& operator=(SensitiveData&&) noexcept;
 
   ~SensitiveData();
   void clear();

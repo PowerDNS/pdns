@@ -30,9 +30,6 @@ class PollFDMultiplexer : public FDMultiplexer
 public:
   PollFDMultiplexer(unsigned int /* maxEventsHint */)
   {}
-  ~PollFDMultiplexer()
-  {
-  }
 
   int run(struct timeval* tv, int timeout = 500) override;
   void getAvailableFDs(std::vector<int>& fds, int timeout) override;

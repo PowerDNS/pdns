@@ -246,7 +246,7 @@ public:
     return true;
   }
 
-  ~GeoIPInterfaceMMDB() { MMDB_close(&d_s); };
+  ~GeoIPInterfaceMMDB() override { MMDB_close(&d_s); };
 
 private:
   MMDB_s d_s;

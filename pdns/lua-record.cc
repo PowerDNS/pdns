@@ -80,9 +80,7 @@ public:
   {
     d_checkerThreadStarted.clear();
   }
-  ~IsUpOracle()
-  {
-  }
+  ~IsUpOracle() = default;
   bool isUp(const ComboAddress& remote, const opts_t& opts);
   bool isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts);
   bool isUp(const CheckDesc& cd);
@@ -618,7 +616,8 @@ typedef struct AuthLuaRecordContext
 
 static thread_local unique_ptr<lua_record_ctx_t> s_lua_record_ctx;
 
-static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, std::function<bool(const ComboAddress&, const opts_t&)> upcheckf, uint16_t port = 0) {
+static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, const std::function<bool(const ComboAddress&, const opts_t&)>& upcheckf, uint16_t port = 0)
+{
   vector<vector<ComboAddress> > candidates;
   opts_t opts;
   if(options)
@@ -896,7 +895,7 @@ static void setupLuaRecords(LuaContext& lua)
       auto checker = [](const ComboAddress& addr, const opts_t& opts) {
         return g_up.isUp(addr, opts);
       };
-      return genericIfUp(ips, std::move(options), checker, port);
+      return genericIfUp(ips, options, checker, port);
     });
 
   lua.writeFunction("ifurlextup", [](const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options) {

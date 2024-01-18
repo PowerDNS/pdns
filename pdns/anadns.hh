@@ -29,8 +29,7 @@
 
 struct QuestionIdentifier
 {
-  QuestionIdentifier() 
-  {}
+  QuestionIdentifier() = default;
 
   bool operator<(const QuestionIdentifier& rhs) const
   {
