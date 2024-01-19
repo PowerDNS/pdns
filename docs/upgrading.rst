@@ -47,6 +47,8 @@ Various custom queries have been renamed.
 * ``update-master-query`` is now ``update-primary-query``
 * ``info-all-master-query`` is now ``info-all-primary-query``
 
+Also, ``get-all-domains-query`` got an extra column for a zone's catalog assignment.
+
 any version to 4.8.x
 --------------------
 
