@@ -476,7 +476,8 @@ std::string XskSocket::getMetrics() const
   if (itfIdx == 0) {
     return {};
   }
-  struct bpf_xdp_query_opts info = { .sz = sizeof(info) };
+  bpf_xdp_query_opts info{};
+  info.sz = sizeof(info);
   int ret = bpf_xdp_query(itfIdx, 0, &info);
   if (ret != 0) {
     return {};

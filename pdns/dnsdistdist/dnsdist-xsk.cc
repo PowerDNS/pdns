@@ -25,6 +25,7 @@
 #ifdef HAVE_XSK
 #include <sys/poll.h>
 
+#include "dolog.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "threadname.hh"
