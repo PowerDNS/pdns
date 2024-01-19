@@ -2738,7 +2738,7 @@ void setupLuaActions(LuaContext& luaCtx)
         qtypes.insert(tpair.second);
       }
     }
-    return std::shared_ptr<DNSResponseAction>(new ClearRecordTypesResponseAction(qtypes));
+    return std::shared_ptr<DNSResponseAction>(new ClearRecordTypesResponseAction(std::move(qtypes)));
   });
 
   luaCtx.writeFunction("RCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
