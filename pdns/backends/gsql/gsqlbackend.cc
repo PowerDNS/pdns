@@ -1754,11 +1754,12 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
     SSqlStatement::row_t row;
     while (d_getAllDomainsQuery_stmt->hasNextRow()) {
       d_getAllDomainsQuery_stmt->nextRow(row);
-      ASSERT_ROW_COLUMNS("get-all-domains-query", row, 8);
+      ASSERT_ROW_COLUMNS("get-all-domains-query", row, 9);
       DomainInfo di;
       pdns::checked_stoi_into(di.id, row[0]);
       try {
         di.zone = DNSName(row[1]);
+        di.catalog = (!row[8].empty() ? DNSName(row[8]) : DNSName());
       } catch (...) {
         continue;
       }
