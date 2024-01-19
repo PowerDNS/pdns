@@ -648,7 +648,7 @@ static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& 
   return convComboAddressListToString(res);
 }
 
-static void setupLuaRecords(LuaContext& lua)
+static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cognitive-complexity
 {
   lua.writeFunction("latlon", []() {
       double lat = 0, lon = 0;
@@ -734,20 +734,29 @@ static void setupLuaRecords(LuaContext& lua)
         } catch (const PDNSException &e) {
           return allZerosIP;
         }
-      } else if (parts.size() >= 1) {
+      } else if (!parts.empty()) {
+        auto& input = parts.at(0);
+
+        // allow a word without - in front, as long as it does not contain anything that could be a number
+        size_t nonhexprefix = strcspn(input.c_str(), "0123456789abcdefABCDEF");
+        if (nonhexprefix > 0) {
+          input = input.substr(nonhexprefix);
+        }
+
         // either hex string, or 12-13-14-15
         vector<string> ip_parts;
-        stringtok(ip_parts, parts[0], "-");
+
+        stringtok(ip_parts, input, "-");
         unsigned int x1, x2, x3, x4;
         if (ip_parts.size() >= 4) {
           // 1-2-3-4 with any prefix (e.g. ip-foo-bar-1-2-3-4)
           string ret;
-          for (size_t n=4; n > 0; n--) {
-            auto octet = ip_parts[ip_parts.size() - n];
+          for (size_t index=4; index > 0; index--) {
+            auto octet = ip_parts[ip_parts.size() - index];
             try {
               auto octetVal = std::stol(octet);
               if (octetVal >= 0 && octetVal <= 255) {
-                ret += ip_parts.at(ip_parts.size() - n) + ".";
+                ret += ip_parts.at(ip_parts.size() - index) + ".";
               } else {
                 return allZerosIP;
               }
@@ -757,8 +766,12 @@ static void setupLuaRecords(LuaContext& lua)
           }
           ret.resize(ret.size() - 1); // remove trailing dot after last octet
           return ret;
-        } else if(parts[0].length() >= 8 && sscanf(parts[0].c_str()+(parts[0].length()-8), "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
-          return std::to_string(x1)+"."+std::to_string(x2)+"."+std::to_string(x3)+"."+std::to_string(x4);
+        }
+        if(input.length() >= 8) {
+          auto last8 = input.substr(input.length()-8);
+          if(sscanf(last8.c_str(), "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
+            return std::to_string(x1) + "." + std::to_string(x2) + "." + std::to_string(x3) + "." + std::to_string(x4);
+          }
         }
       }
       return allZerosIP;
