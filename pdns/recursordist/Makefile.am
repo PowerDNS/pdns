@@ -323,6 +323,7 @@ testrunner_SOURCES = \
 	settings/cxxsupport.cc \
 	sholder.hh \
 	sillyrecords.cc \
+	sortlist.cc sortlist.hh \
 	sstuff.hh \
 	stable-bloom.hh \
 	svc-records.cc svc-records.hh \
@@ -505,17 +506,26 @@ endif
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
+	base32.cc base32.hh \
 	base64.cc base64.hh \
 	credentials.cc credentials.hh \
 	dnslabeltext.cc \
 	dnsname.hh dnsname.cc \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc dnsrecords.hh \
+	dnswriter.cc dnswriter.hh \
 	logger.cc \
 	logging.cc \
 	misc.cc \
+	nsecrecords.cc \
 	qtype.cc \
+	rcpgenerator.cc	rcpgenerator.hh \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
 	settings/cxxsupport.cc \
+	sillyrecords.cc \
+	sortlist.cc sortlist.hh \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc
 
 nodist_rec_control_SOURCES = \

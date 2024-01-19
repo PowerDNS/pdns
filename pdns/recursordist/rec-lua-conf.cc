@@ -36,8 +36,8 @@ LuaConfigItems::LuaConfigItems()
 {
   DNSName root("."); // don't use g_rootdnsname here, it might not exist yet
   for (const auto& dsRecord : rootDSs) {
-    auto ds = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsRecord));
-    dsAnchors[root].insert(*ds);
+    auto dsRecContent = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsRecord));
+    dsAnchors[root].emplace(*dsRecContent);
   }
 }
 
