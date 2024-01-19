@@ -310,7 +310,7 @@ static bool checkConfigurationTime(const std::string& name)
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
-  typedef LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, std::shared_ptr<XskSocket>, DownstreamState::checkfunc_t>> newserver_t;
+  using newserver_t = LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, LuaArray<std::shared_ptr<XskSocket>>, DownstreamState::checkfunc_t>>;
   luaCtx.writeFunction("inClientStartup", [client]() {
     return client && !g_configurationDone;
   });
@@ -631,12 +631,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          // create but don't connect the socket in client or check-config modes
                          auto ret = std::make_shared<DownstreamState>(std::move(config), std::move(tlsCtx), !(client || configCheck));
 #ifdef HAVE_XSK
-                         std::shared_ptr<XskSocket> xskSocket;
-                         if (getOptionalValue<std::shared_ptr<XskSocket>>(vars, "xskSocket", xskSocket) > 0) {
+                         LuaArray<std::shared_ptr<XskSocket>> luaXskSockets;
+                         if (getOptionalValue<LuaArray<std::shared_ptr<XskSocket>>>(vars, "xskSockets", luaXskSockets) > 0 && !luaXskSockets.empty()) {
                            if (g_configurationDone) {
                              throw std::runtime_error("Adding a server with xsk at runtime is not supported");
                            }
-                           ret->registerXsk(xskSocket);
+                           std::vector<std::shared_ptr<XskSocket>> xskSockets;
+                           for (auto& socket : luaXskSockets) {
+                             xskSockets.push_back(socket.second);
+                           }
+                           ret->registerXsk(xskSockets);
                            std::string mac;
                            if (getOptionalValue<std::string>(vars, "MACAddr", mac) > 0) {
                              auto* addr = &ret->d_config.destMACAddr[0];
@@ -649,15 +653,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                              }
                              memcpy(ret->d_config.destMACAddr.data(), mac.data(), ret->d_config.destMACAddr.size());
                            }
-                           infolog("Added downstream server %s via XSK in %s mode", ret->d_config.remote.toStringWithPort(), xskSocket->getXDPMode());
+                           infolog("Added downstream server %s via XSK in %s mode", ret->d_config.remote.toStringWithPort(), xskSockets.at(0)->getXDPMode());
                          }
                          else if (!(client || configCheck)) {
                            infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
                          }
 #else /* HAVE_XSK */
-                         if (!(client || configCheck)) {
-                           infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
-                         }
+      if (!(client || configCheck)) {
+        infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
+      }
 #endif /* HAVE_XSK */
                          if (autoUpgrade && ret->getProtocol() != dnsdist::Protocol::DoT && ret->getProtocol() != dnsdist::Protocol::DoH) {
                            dnsdist::ServiceDiscovery::addUpgradeableServer(ret, upgradeInterval, upgradePool, upgradeDoHKey, keepAfterUpgrade);

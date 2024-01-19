@@ -32,7 +32,7 @@ class XskWorker;
 
 namespace dnsdist::xsk
 {
-void XskResponderThread(std::shared_ptr<DownstreamState> dss);
+void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<XskWorker> xskInfo);
 bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, LocalHolders& holders, bool& expectProxyProtocol);
 bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket& packet);
 void XskRouter(std::shared_ptr<XskSocket> xsk);

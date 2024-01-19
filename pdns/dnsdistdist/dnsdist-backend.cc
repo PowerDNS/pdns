@@ -55,7 +55,9 @@ void DownstreamState::addXSKDestination(int fd)
     addresses->push_back(local);
   }
   dnsdist::xsk::addDestinationAddress(local);
-  d_xskSocket->addWorkerRoute(xskInfo, local);
+  for (size_t idx = 0; idx < d_xskSockets.size(); idx++) {
+    d_xskSockets.at(idx)->addWorkerRoute(d_xskInfos.at(idx), local);
+  }
 }
 
 void DownstreamState::removeXSKDestination(int fd)
@@ -67,7 +69,9 @@ void DownstreamState::removeXSKDestination(int fd)
   }
 
   dnsdist::xsk::removeDestinationAddress(local);
-  d_xskSocket->removeWorkerRoute(local);
+  for (auto& xskSocket : d_xskSockets) {
+    xskSocket->removeWorkerRoute(local);
+  }
 }
 #endif /* HAVE_XSK */
 
@@ -85,7 +89,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
 
   connected = false;
 #ifdef HAVE_XSK
-  if (xskInfo != nullptr) {
+  if (!d_xskInfos.empty()) {
     auto addresses = d_socketSourceAddresses.write_lock();
     addresses->clear();
   }
@@ -97,7 +101,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
         (*mplexer.lock())->removeReadFD(fd);
       }
 #ifdef HAVE_XSK
-      if (xskInfo != nullptr) {
+      if (d_xskInfos.empty()) {
         removeXSKDestination(fd);
       }
 #endif /* HAVE_XSK */
@@ -132,7 +136,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
         (*mplexer.lock())->addReadFD(fd, [](int, boost::any) {});
       }
 #ifdef HAVE_XSK
-      if (xskInfo != nullptr) {
+      if (!d_xskInfos.empty()) {
         addXSKDestination(fd);
       }
 #endif /* HAVE_XSK */
@@ -150,7 +154,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
   /* if at least one (re-)connection failed, close all sockets */
   if (!connected) {
 #ifdef HAVE_XSK
-    if (xskInfo != nullptr) {
+    if (!d_xskInfos.empty()) {
       auto addresses = d_socketSourceAddresses.write_lock();
       addresses->clear();
     }
@@ -158,7 +162,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
     for (auto& fd : sockets) {
       if (fd != -1) {
 #ifdef HAVE_XSK
-        if (xskInfo != nullptr) {
+        if (!d_xskInfos.empty()) {
           removeXSKDestination(fd);
         }
 #endif /* HAVE_XSK */
@@ -329,8 +333,8 @@ void DownstreamState::start()
 {
   if (connected && !threadStarted.test_and_set()) {
 #ifdef HAVE_XSK
-    if (xskInfo != nullptr) {
-      auto xskResponderThread = std::thread(dnsdist::xsk::XskResponderThread, shared_from_this());
+    for (auto& xskInfo : d_xskInfos) {
+      auto xskResponderThread = std::thread(dnsdist::xsk::XskResponderThread, shared_from_this(), xskInfo);
       if (!d_config.d_cpus.empty()) {
         mapThreadToCPUList(xskResponderThread.native_handle(), d_config.d_cpus);
       }
@@ -881,12 +885,22 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
   return (*addresses)[idx % numberOfAddresses];
 }
 
-void DownstreamState::registerXsk(std::shared_ptr<XskSocket>& xsk)
+[[nodiscard]] const std::shared_ptr<XskWorker>& DownstreamState::pickWorkerForSending()
 {
-  d_xskSocket = xsk;
+  auto numberOfWorkers = d_xskInfos.size();
+  if (numberOfWorkers == 0) {
+    throw std::runtime_error("No XSK worker available for sending XSK data to backend " + getNameWithAddr());
+  }
+  size_t idx = dnsdist::getRandomValue(numberOfWorkers);
+  return d_xskInfos[idx % numberOfWorkers];
+}
+
+void DownstreamState::registerXsk(std::vector<std::shared_ptr<XskSocket>>& xsks)
+{
+  d_xskSockets = xsks;
 
   if (d_config.sourceAddr.sin4.sin_family == 0 || (IsAnyAddress(d_config.sourceAddr))) {
-    const auto& ifName = xsk->getInterfaceName();
+    const auto& ifName = xsks.at(0)->getInterfaceName();
     auto addresses = getListOfAddressesOfNetworkInterface(ifName);
     if (addresses.empty()) {
       throw std::runtime_error("Unable to get source address from interface " + ifName);
@@ -897,11 +911,15 @@ void DownstreamState::registerXsk(std::shared_ptr<XskSocket>& xsk)
     }
     d_config.sourceAddr = addresses.at(0);
   }
-  xskInfo = XskWorker::create();
-  xsk->addWorker(xskInfo);
+  d_config.sourceMACAddr = d_xskSockets.at(0)->getSourceMACAddress();
+
+  for (auto& xsk : d_xskSockets) {
+    auto xskInfo = XskWorker::create();
+    d_xskInfos.push_back(xskInfo);
+    xsk->addWorker(xskInfo);
+    xskInfo->sharedEmptyFrameOffset = xsk->sharedEmptyFrameOffset;
+  }
   reconnect(false);
-  d_config.sourceMACAddr = xsk->getSourceMACAddress();
-  xskInfo->sharedEmptyFrameOffset = xsk->sharedEmptyFrameOffset;
 }
 #endif /* HAVE_XSK */
 

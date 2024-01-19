@@ -370,7 +370,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   }
   catch (const std::exception& e) {
     if (remote && response.size() > 0 && static_cast<size_t>(response.size()) > sizeof(dnsheader)) {
-      vinfolog("Backend %s sent us a response with id %d that did not parse: %s", remote->d_config.remote.toStringWithPort(), ntohs(dh->id), e.what());
+      infolog("Backend %s sent us a response with id %d that did not parse: %s", remote->d_config.remote.toStringWithPort(), ntohs(dh->id), e.what());
     }
     ++dnsdist::metrics::g_stats.nonCompliantResponses;
     if (remote) {
@@ -881,7 +881,8 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             continue;
           }
           xskPacket->setHeader(ids->xskPacketHeader);
-          xskPacket->setPayload(response);
+          if (!xskPacket->setPayload(response)) {
+	  }
           xskPacket->updatePacket();
           xskInfo->pushToSendQueue(*xskPacket);
           xskInfo->notifyXskSocket();
@@ -1983,14 +1984,13 @@ bool XskProcessQuery(ClientState& cs, LocalHolders& holders, XskPacket& packet)
       return false;
     }
 
-#ifdef HAVE_XSK
-    if (!ss->xskInfo) {
+    if (ss->d_xskInfos.empty()) {
       assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query, true);
       return false;
     }
     else {
-      int fd = ss->xskInfo->workerWaker;
-      ids.backendFD = fd;
+      const auto& xskInfo = ss->pickWorkerForSending();
+      ids.backendFD = xskInfo->workerWaker;
       assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query, false);
       auto sourceAddr = ss->pickSourceAddressForSending();
       packet.setAddr(sourceAddr, ss->d_config.sourceMACAddr, ss->d_config.remote, ss->d_config.destMACAddr);
@@ -1998,10 +1998,6 @@ bool XskProcessQuery(ClientState& cs, LocalHolders& holders, XskPacket& packet)
       packet.rewrite();
       return true;
     }
-#else /* HAVE_XSK */
-    assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query, true);
-    return false;
-#endif /* HAVE_XSK */
   }
   catch (const std::exception& e) {
     vinfolog("Got an error in UDP question thread while parsing a query from %s, id %d: %s", remote.toStringWithPort(), queryId, e.what());
@@ -2624,11 +2620,6 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
     else if (clientState.dnscryptCtx != nullptr) {
       infolog("Listening on %s for DNSCrypt", addr.toStringWithPort());
     }
-#ifdef HAVE_XSK
-    else if (clientState.xskInfo != nullptr) {
-      infolog("Listening on %s (XSK-enabled)", addr.toStringWithPort());
-    }
-#endif
     else {
       infolog("Listening on %s", addr.toStringWithPort());
     }
@@ -2638,6 +2629,11 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
     } else if (clientState.doh3Frontend != nullptr) {
       infolog("Listening on %s for DoH3", addr.toStringWithPort());
     }
+#ifdef HAVE_XSK
+    else if (clientState.xskInfo != nullptr) {
+      infolog("Listening on %s (XSK-enabled)", addr.toStringWithPort());
+    }
+#endif
   }
 }
 

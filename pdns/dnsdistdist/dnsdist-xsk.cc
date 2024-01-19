@@ -35,17 +35,12 @@ namespace dnsdist::xsk
 {
 std::vector<std::shared_ptr<XskSocket>> g_xsk;
 
-void XskResponderThread(std::shared_ptr<DownstreamState> dss)
+void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<XskWorker> xskInfo)
 {
-  if (dss->xskInfo == nullptr) {
-    throw std::runtime_error("Starting XSK responder thread for a backend without XSK!");
-  }
-
   try {
     setThreadName("dnsdist/XskResp");
     auto localRespRuleActions = g_respruleactions.getLocal();
     auto localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
-    auto xskInfo = dss->xskInfo;
     auto pollfds = getPollFdsForWorker(*xskInfo);
     const auto xskFd = xskInfo->workerWaker.getHandle();
     while (!dss->isStopped()) {
@@ -66,7 +61,8 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss)
           const auto queryId = dnsHeader->id;
           auto ids = dss->getState(queryId);
           if (ids) {
-            if (xskFd != ids->backendFD || !ids->isXSK()) {
+            if (!ids->isXSK()) {
+              // if (xskFd != ids->backendFD || !ids->isXSK()) {
               dss->restoreState(queryId, std::move(*ids));
               ids = std::nullopt;
             }
@@ -82,19 +78,19 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss)
           }
           if (!processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids))) {
             xskInfo->markAsFree(packet);
-            vinfolog("XSK packet pushed to queue because processResponderPacket failed");
+            infolog("XSK packet pushed to queue because processResponderPacket failed");
             return;
           }
           if (response.size() > packet.getCapacity()) {
             /* fallback to sending the packet via normal socket */
             sendUDPResponse(ids->cs->udpFD, response, ids->delayMsec, ids->hopLocal, ids->hopRemote);
-            vinfolog("XSK packet falling back because packet is too large");
+            infolog("XSK packet falling back because packet is too large");
             xskInfo->markAsFree(packet);
             return;
           }
           packet.setHeader(ids->xskPacketHeader);
           if (!packet.setPayload(response)) {
-            vinfolog("Unable to set XSK payload !");
+            infolog("Unable to set XSK payload !");
           }
           if (ids->delayMsec > 0) {
             packet.addDelay(ids->delayMsec);

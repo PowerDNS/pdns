@@ -825,8 +825,8 @@ public:
   StopWatch sw;
   QPSLimiter qps;
 #ifdef HAVE_XSK
-  std::shared_ptr<XskWorker> xskInfo{nullptr};
-  std::shared_ptr<XskSocket> d_xskSocket{nullptr};
+  std::vector<std::shared_ptr<XskWorker>> d_xskInfos;
+  std::vector<std::shared_ptr<XskSocket>> d_xskSockets;
 #endif
   std::atomic<uint64_t> idOffset{0};
   size_t socketsOffset{0};
@@ -993,8 +993,9 @@ public:
   std::optional<InternalQueryState> getState(uint16_t id);
 
 #ifdef HAVE_XSK
-  void registerXsk(std::shared_ptr<XskSocket>& xsk);
+  void registerXsk(std::vector<std::shared_ptr<XskSocket>>& xsks);
   [[nodiscard]] ComboAddress pickSourceAddressForSending();
+  [[nodiscard]] const std::shared_ptr<XskWorker>& pickWorkerForSending();
 #endif /* HAVE_XSK */
 
   dnsdist::Protocol getProtocol() const
