@@ -902,7 +902,7 @@ void XskPacket::rewrite() noexcept
     ipHeader.nexthdr = IPPROTO_UDP;
     udpHeader.source = from.sin6.sin6_port;
     udpHeader.dest = to.sin6.sin6_port;
-    udpHeader.len = htons(getDataSize());
+    udpHeader.len = htons(getDataSize() + sizeof(udpHeader));
     udpHeader.check = 0;
     /* needed to get the correct checksum */
     setIPv6Header(ipHeader);
