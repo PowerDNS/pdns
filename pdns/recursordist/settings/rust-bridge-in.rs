@@ -136,9 +136,9 @@ pub struct TSIGTriplet {
 #[serde(deny_unknown_fields)]
 pub struct RPZ {
     #[serde(default, skip_serializing_if = "crate::is_default")]
-    addresses: Vec<String>,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    addresses: Vec<String>,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     defcontent: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]

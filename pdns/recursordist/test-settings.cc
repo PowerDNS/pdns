@@ -7,6 +7,7 @@
 #include <memory>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/format.hpp>
+#include <fstream>
 
 #include "settings/cxxsettings.hh"
 
@@ -679,6 +680,8 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_rpz)
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[2].ignoreDuplicates, true);
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[2].maxTTL, 101U);
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[2].tags.size(), 2U);
+  BOOST_CHECK_EQUAL(settings.recursor.rpzs[2].tags[0], "d");
+  BOOST_CHECK_EQUAL(settings.recursor.rpzs[2].tags[1], "e");
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[2].overridesGettag, false);
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[2].zoneSizeHint, 102U);
 
@@ -806,6 +809,181 @@ BOOST_AUTO_TEST_CASE(test_yaml_proxymapping)
   BOOST_CHECK_EQUAL(std::string(settings.incoming.proxymappings[1].subnet), "3.4.5.6");
   BOOST_CHECK_EQUAL(std::string(settings.incoming.proxymappings[1].address), "6.7.8.9");
   BOOST_CHECK_EQUAL(settings.incoming.proxymappings[1].domains.size(), 3U);
+}
+
+BOOST_AUTO_TEST_CASE(test_yaml_to_luaconfigand_back)
+{
+  const std::string yaml = R"EOT(dnssec:
+  trustanchors:
+  - name: .
+    dsrecords:
+    - 10000 8 2 a06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+  - name: aa.
+    dsrecords:
+    - 1234 8 2 a06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+    - 4567 8 2 b06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+  negative_trustanchors:
+  - name: aa.
+    reason: aaa
+  - name: kwh.
+    reason: why
+  trustanchorfile: tmp/tas
+  trustanchorfile_interval: 99
+incoming:
+  proxymappings:
+  - subnet: 1.0.0.0/8
+    address: 4.5.6.7
+  - subnet: 3.4.5.6/32
+    address: 6.7.8.9
+    domains:
+    - a.
+    - b.
+    - c.
+recursor:
+  sortlists:
+  - key: 1.0.0.0/8
+    subnets:
+    - subnet: 5.6.7.8/32
+      order: 99
+  rpzs:
+  - name: rpz.local
+    addresses:
+    - 192.168.178.3:53
+    refresh: 10
+    dumpFile: tmp/rpz.dump
+    seedFile: tmp/rpz.dump
+  - name: zzzz
+    addresses:
+    - '[::1]:99'
+    defcontent: a
+    defpol: Custom
+    defpolOverrideLocalData: false
+    defttl: 10
+    extendedErrorCode: 11
+    extendedErrorExtra: b
+    includeSOA: true
+    ignoreDuplicates: true
+    maxTTL: 12
+    policyName: c
+    tags:
+    - d
+    - e
+    overridesGettag: false
+    zoneSizeHint: 13
+  - name: tmp/file2.rpz
+    ignoreDuplicates: true
+  allowed_additional_qtypes:
+  - qtype: A
+    targets:
+    - A
+    - MX
+    - AAAA
+  - qtype: MX
+    targets:
+    - SRV
+    - HTTPS
+    mode: CacheOnly
+logging:
+  protobuf_servers:
+  - servers:
+    - 1.2.3.4:99
+    timeout: 100
+    maxQueuedEntries: 101
+    reconnectWaitTime: 102
+    taggedOnly: true
+    asyncConnect: true
+    logQueries: false
+    logResponses: false
+    exportTypes:
+    - A
+    - MX
+    logMappedFrom: true
+  outgoing_protobuf_servers:
+  - servers:
+    - 1.2.3.6:101
+    timeout: 100
+    maxQueuedEntries: 101
+    reconnectWaitTime: 102
+    taggedOnly: true
+    asyncConnect: true
+    logQueries: false
+    exportTypes:
+    - A
+    - MX
+    logMappedFrom: true
+  dnstap_framestream_servers:
+  - servers:
+    - b
+    logQueries: false
+    logResponses: false
+    bufferHint: 1
+    flushTimeout: 2
+    inputQueueSize: 3
+    outputQueueSize: 4
+    queueNotifyThreshold: 5
+    reopenInterval: 6
+  dnstap_nod_framestream_servers:
+  - servers:
+    - c
+    logNODs: false
+    logUDRs: true
+    bufferHint: 1
+    flushTimeout: 2
+    inputQueueSize: 3
+    outputQueueSize: 4
+    queueNotifyThreshold: 5
+    reopenInterval: 6
+recordcache:
+  zonetocaches:
+  - zone: zone
+    method: url
+    sources:
+    - https://www.example.com
+  - zone: anotherzone
+    method: axfr
+    sources:
+    - 4.5.6.7
+    timeout: 1
+    tsig:
+      name: a.
+      algo: b.
+      secret: aGVsbG8hCg==
+    refreshPeriod: 2
+    retryOnErrorPeriod: 3
+    maxReceivedMBytes: 4
+    localAddress: 'ffff::'
+    zonemd: ignore
+    dnssec: require
+)EOT";
+  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
+  settings.validate();
+
+  // create a Lua config based on YAML
+  LuaConfigItems luaConfig;
+  ProxyMapping proxyMapping;
+  pdns::settings::rec::fromBridgeStructToLuaConfig(settings, luaConfig, proxyMapping);
+
+  // Create YAML, given a Lua config
+  auto newsettings = pdns::rust::settings::rec::parse_yaml_string("");
+  GlobalStateHolder<LuaConfigItems> gsluaConfig;
+  gsluaConfig.setState(luaConfig);
+  LocalStateHolder<LuaConfigItems> local = gsluaConfig.getLocal();
+  try {
+    pdns::settings::rec::fromLuaConfigToBridgeStruct(local, proxyMapping, newsettings);
+  }
+  catch (std::exception& e) {
+    cerr << e.what() << endl;
+    BOOST_CHECK(false);
+  }
+  // They should be the same
+  auto newyaml = newsettings.to_yaml_string();
+
+  std::ofstream aaa("a");
+  std::ofstream bbb("b");
+  aaa << "===" << endl << yaml << endl << "===" << endl;
+  bbb << "===" << endl << newyaml << endl << "===" << endl;
+
+  BOOST_CHECK_EQUAL(yaml, std::string(newyaml));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
