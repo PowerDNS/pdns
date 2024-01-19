@@ -1759,7 +1759,9 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
       pdns::checked_stoi_into(di.id, row[0]);
       try {
         di.zone = DNSName(row[1]);
-        di.catalog = (!row[8].empty() ? DNSName(row[8]) : DNSName());
+        if (!row[8].empty()) {
+          di.catalog = DNSName(row[8]);
+        }
       } catch (...) {
         continue;
       }
