@@ -736,15 +736,16 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
           return allZerosIP;
         }
       } else if (!parts.empty()) {
-        // either hex string, or 12-13-14-15
-        vector<string> ip_parts;
-        auto input = parts[0];
+        auto& input = parts.at(0);
 
         // allow a word without - in front, as long as it does not contain anything that could be a number
         size_t nonhexprefix = strcspn(input.c_str(), "0123456789abcdefABCDEF");
         if (nonhexprefix > 0) {
           input = input.substr(nonhexprefix);
         }
+
+        // either hex string, or 12-13-14-15
+        vector<string> ip_parts;
 
         stringtok(ip_parts, input, "-");
         unsigned int x1, x2, x3, x4;
