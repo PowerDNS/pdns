@@ -161,13 +161,13 @@ void DNSName::packetParser(const char* qpos, size_t len, size_t offset, bool unc
     }
     pos+=labellen;
   }
-  if(d_storage.empty()) {
+  if (d_storage.empty()) {
     d_storage.append(1, (char)0); // we just parsed the root
   }
-  if(consumed) {
+  if (consumed != nullptr) {
     *consumed = pos - opos - offset;
   }
-  if(qtype) {
+  if (qtype != nullptr) {
     if (pos + 2 > end) {
       throw std::range_error("Trying to read qtype past the end of the buffer ("+std::to_string((pos - opos) + 2)+ " > "+std::to_string(len)+")");
     }
