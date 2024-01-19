@@ -148,6 +148,7 @@ public:
   void addWorkerRoute(const std::shared_ptr<XskWorker>& worker, const ComboAddress& dest);
   void removeWorkerRoute(const ComboAddress& dest);
   [[nodiscard]] std::string getMetrics() const;
+  [[nodiscard]] std::string getXDPMode() const;
   void markAsFree(const XskPacket& packet);
   [[nodiscard]] const std::shared_ptr<XskWorker>& getWorkerByDescriptor(int desc) const
   {

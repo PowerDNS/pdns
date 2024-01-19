@@ -470,6 +470,28 @@ std::string XskSocket::getMetrics() const
   return ret.str();
 }
 
+[[nodiscard]] std::string XskSocket::getXDPMode() const
+{
+  unsigned int itfIdx = if_nametoindex(ifName.c_str());
+  if (itfIdx == 0) {
+    return {};
+  }
+  struct bpf_xdp_query_opts info = { .sz = sizeof(info) };
+  int ret = bpf_xdp_query(itfIdx, 0, &info);
+  if (ret != 0) {
+    return {};
+  }
+  switch (info.attach_mode) {
+  case XDP_ATTACHED_DRV:
+  case XDP_ATTACHED_HW:
+    return "native";
+  case XDP_ATTACHED_SKB:
+    return "emulated";
+  default:
+    return "unknown";
+  }
+}
+
 void XskSocket::markAsFree(const XskPacket& packet)
 {
   auto offset = frameOffset(packet);

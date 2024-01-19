@@ -630,9 +630,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          // create but don't connect the socket in client or check-config modes
                          auto ret = std::make_shared<DownstreamState>(std::move(config), std::move(tlsCtx), !(client || configCheck));
-                         if (!(client || configCheck)) {
-                           infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
-                         }
 #ifdef HAVE_XSK
                          std::shared_ptr<XskSocket> xskSocket;
                          if (getOptionalValue<std::shared_ptr<XskSocket>>(vars, "xskSocket", xskSocket) > 0) {
@@ -652,6 +649,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                              }
                              memcpy(ret->d_config.destMACAddr.data(), mac.data(), ret->d_config.destMACAddr.size());
                            }
+                           infolog("Added downstream server %s via XSK in %s mode", ret->d_config.remote.toStringWithPort(), xskSocket->getXDPMode());
+                         }
+                         else if (!(client || configCheck)) {
+                           infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
+                         }
+#else /* HAVE_XSK */
+                         if (!(client || configCheck)) {
+                           infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
                          }
 #endif /* HAVE_XSK */
                          if (autoUpgrade && ret->getProtocol() != dnsdist::Protocol::DoT && ret->getProtocol() != dnsdist::Protocol::DoH) {
@@ -794,6 +799,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         udpCS->xskInfo->sharedEmptyFrameOffset = socket->sharedEmptyFrameOffset;
         socket->addWorker(udpCS->xskInfo);
         socket->addWorkerRoute(udpCS->xskInfo, loc);
+        vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
       }
 #endif /* HAVE_XSK */
       g_frontends.push_back(std::move(udpCS));
@@ -847,6 +853,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         udpCS->xskInfo->sharedEmptyFrameOffset = socket->sharedEmptyFrameOffset;
         socket->addWorker(udpCS->xskInfo);
         socket->addWorkerRoute(udpCS->xskInfo, loc);
+        vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
       }
 #endif /* HAVE_XSK */
       g_frontends.push_back(std::move(udpCS));

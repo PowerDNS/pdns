@@ -2624,6 +2624,11 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
     else if (clientState.dnscryptCtx != nullptr) {
       infolog("Listening on %s for DNSCrypt", addr.toStringWithPort());
     }
+#ifdef HAVE_XSK
+    else if (clientState.xskInfo != nullptr) {
+      infolog("Listening on %s (XSK-enabled)", addr.toStringWithPort());
+    }
+#endif
     else {
       infolog("Listening on %s", addr.toStringWithPort());
     }
