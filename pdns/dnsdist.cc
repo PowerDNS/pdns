@@ -1707,7 +1707,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint1
     dq.ids.origID = queryID;
     dq.ids.forwardedOverUDP = true;
 
-    vinfolog("Got query for %s|%s from %s%s, relayed to %s", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), (doh ? " (https)" : ""), ds->getNameWithAddr());
+    vinfolog("Got query for %s|%s from %s%s, relayed to %s%s", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), (doh ? " (https)" : ""), ds->getNameWithAddr(), actuallySend ? "" : " (xsk)");
 
     /* make a copy since we cannot touch dq.ids after the move */
     auto proxyProtocolPayloadSize = dq.ids.d_proxyProtocolPayloadSize;
