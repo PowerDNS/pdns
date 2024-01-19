@@ -771,7 +771,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         if(input.length() >= 8) {
           auto last8 = input.substr(input.length()-8);
           if(sscanf(last8.c_str(), "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
-            return std::to_string(x1)+"."+std::to_string(x2)+"."+std::to_string(x3)+"."+std::to_string(x4);
+            return std::to_string(x1) + "." + std::to_string(x2) + "." + std::to_string(x3) + "." + std::to_string(x4);
           }
         }
       }
