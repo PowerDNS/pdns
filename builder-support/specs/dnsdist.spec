@@ -55,6 +55,10 @@ Requires(pre): shadow-utils
 BuildRequires: fstrm-devel
 %systemd_requires
 %endif
+%if 0%{?rhel} >= 8
+BuildRequires: libbpf-devel
+BuildRequires: libxdp-devel
+%endif
 
 %description
 dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
