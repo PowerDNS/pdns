@@ -45,10 +45,10 @@ AtomicCounter* g_signatureCount;
 static std::string getLookupKeyFromMessage(const std::string& msg)
 {
   try {
-    return pdns_md5(msg);
+    return pdns::md5(msg);
   }
   catch(const std::runtime_error& e) {
-    return pdns_sha1(msg);
+    return pdns::sha1(msg);
   }
 }
 

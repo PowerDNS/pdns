@@ -29,7 +29,6 @@
 ./pdns/dbdnsseckeeper.cc
 ./pdns/delaypipe.cc
 ./pdns/delaypipe.hh
-./pdns/digests.hh
 ./pdns/distributor.hh
 ./pdns/dns.cc
 ./pdns/dns.hh
