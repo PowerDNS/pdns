@@ -63,7 +63,7 @@ std::string&& DnstapMessage::getBuffer()
 }
 
 DnstapMessage::DnstapMessage(std::string&& buffer, DnstapMessage::MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, DnstapMessage::ProtocolType protocol, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, const boost::optional<const DNSName&>& auth) :
-  d_buffer(buffer)
+  d_buffer(std::move(buffer))
 {
   protozero::pbf_writer pbf{d_buffer};
 
