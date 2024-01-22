@@ -233,7 +233,6 @@
 ./pdns/test-base32_cc.cc
 ./pdns/test-base64_cc.cc
 ./pdns/test-common.hh
-./pdns/test-digests_hh.cc
 ./pdns/test-distributor_hh.cc
 ./pdns/test-dnscrypt_cc.cc
 ./pdns/test-dnsdist_cc.cc
