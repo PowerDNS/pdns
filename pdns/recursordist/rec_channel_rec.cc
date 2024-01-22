@@ -2104,7 +2104,7 @@ static RecursorControlChannel::Answer help()
           "reload-lua-config [filename]     (re)load Lua configuration file\n"
           "reload-zones                     reload all auth and forward zones\n"
           "set-ecs-minimum-ttl value        set ecs-minimum-ttl-override\n"
-          "set-max-aggr-nsec-cache-size     set new maximum aggressive NSEC cache size\n"
+          "set-max-aggr-nsec-cache-size value set new maximum aggressive NSEC cache size\n"
           "set-max-cache-entries value      set new maximum record cache size\n"
           "set-max-packetcache-entries val  set new maximum packet cache size\n"
           "set-minimum-ttl value            set minimum-ttl-override\n"
