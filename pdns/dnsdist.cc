@@ -52,6 +52,7 @@
 #include "dnsdist-cache.hh"
 #include "dnsdist-carbon.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-crypto.hh"
 #include "dnsdist-discovery.hh"
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-dynblocks.hh"
@@ -80,7 +81,6 @@
 #include "gettime.hh"
 #include "lock.hh"
 #include "misc.hh"
-#include "sodcrypto.hh"
 #include "sstuff.hh"
 #include "threadname.hh"
 
@@ -2527,7 +2527,7 @@ static void usage()
   cout<<"-c,--client           Operate as a client, connect to dnsdist. This reads\n";
   cout<<"                      controlSocket from your configuration file, but also\n";
   cout<<"                      accepts an IP:PORT argument\n";
-#ifdef HAVE_LIBSODIUM
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
   cout<<"-k,--setkey KEY       Use KEY for encrypted communication to dnsdist. This\n";
   cout<<"                      is similar to setting setKey in the configuration file.\n";
   cout<<"                      NOTE: this will leak this key in your shell's history\n";
@@ -2750,14 +2750,14 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
       g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
       break;
     case 'k':
-#ifdef HAVE_LIBSODIUM
+#if defined HAVE_LIBSODIUM || defined(HAVE_LIBCRYPTO)
       if (B64Decode(string(optarg), g_consoleKey) < 0) {
         cerr<<"Unable to decode key '"<<optarg<<"'."<<endl;
         // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
         exit(EXIT_FAILURE);
       }
 #else
-      cerr<<"dnsdist has been built without libsodium, -k/--setkey is unsupported."<<endl;
+      cerr<<"dnsdist has been built without libsodium or libcrypto, -k/--setkey is unsupported."<<endl;
       // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
       exit(EXIT_FAILURE);
 #endif
@@ -3109,7 +3109,7 @@ int main(int argc, char** argv)
       infolog("Console ACL allowing connections from: %s", acls.c_str());
     }
 
-#ifdef HAVE_LIBSODIUM
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
     if (g_consoleEnabled && g_consoleKey.empty()) {
       warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
     }

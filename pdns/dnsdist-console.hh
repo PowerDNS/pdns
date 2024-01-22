@@ -22,6 +22,7 @@
 #pragma once
 
 #include "config.h"
+#include "sstuff.hh"
 
 #ifndef DISABLE_COMPLETION
 struct ConsoleKeyword {
@@ -55,7 +56,7 @@ extern uint32_t g_consoleOutputMsgMaxSize;
 
 void doClient(ComboAddress server, const std::string& command);
 void doConsole();
-void controlThread(int fd, ComboAddress local);
+void controlThread(std::shared_ptr<Socket> acceptFD, ComboAddress local);
 void clearConsoleHistory();
 
 void setConsoleMaximumConcurrentConnections(size_t max);

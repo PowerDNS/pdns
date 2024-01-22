@@ -32,9 +32,9 @@
 
 #include "dolog.hh"
 #include "noinitvector.hh"
-#include "sodcrypto.hh"
 #include "sstuff.hh"
 #include "libssl.hh"
+#include "dnsdist-crypto.hh"
 
 namespace dnsdist::doq
 {
@@ -71,7 +71,7 @@ enum class DOQ_Error_Codes : uint64_t
   DOQ_UNSPECIFIED_ERROR = 5
 };
 
-static constexpr size_t MAX_TOKEN_LEN = dnsdist::crypto::authenticated::getEncryptedSize(std::tuple_size<decltype(SodiumNonce::value)>{} /* nonce */ + sizeof(uint64_t) /* TTD */ + 16 /* IPv6 */ + QUICHE_MAX_CONN_ID_LEN);
+static constexpr size_t MAX_TOKEN_LEN = dnsdist::crypto::authenticated::getEncryptedSize(std::tuple_size<decltype(dnsdist::crypto::authenticated::Nonce::value)>{} /* nonce */ + sizeof(uint64_t) /* TTD */ + 16 /* IPv6 */ + QUICHE_MAX_CONN_ID_LEN);
 static constexpr size_t MAX_DATAGRAM_SIZE = 1200;
 static constexpr size_t LOCAL_CONN_ID_LEN = 16;
 static constexpr std::array<uint8_t, 4> DOQ_ALPN{'\x03', 'd', 'o', 'q'};

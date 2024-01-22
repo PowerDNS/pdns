@@ -30,37 +30,42 @@
 #include <sodium.h>
 #endif
 
-struct SodiumNonce
+namespace dnsdist::crypto::authenticated
 {
-  SodiumNonce() = default;
-  SodiumNonce(const SodiumNonce&) = default;
-  SodiumNonce(SodiumNonce&&) = default;
-  SodiumNonce& operator=(const SodiumNonce&) = default;
-  SodiumNonce& operator=(SodiumNonce&&) = default;
-  ~SodiumNonce() = default;
+struct Nonce
+{
+  Nonce() = default;
+  Nonce(const Nonce&) = default;
+  Nonce(Nonce&&) = default;
+  Nonce& operator=(const Nonce&) = default;
+  Nonce& operator=(Nonce&&) = default;
+  ~Nonce() = default;
 
   void init();
-  void merge(const SodiumNonce& lower, const SodiumNonce& higher);
+  void merge(const Nonce& lower, const Nonce& higher);
   void increment();
 
-#if !defined(HAVE_LIBSODIUM)
-  std::array<unsigned char, 1> value{};
-#else
+#if defined(HAVE_LIBSODIUM)
   std::array<unsigned char, crypto_secretbox_NONCEBYTES> value{};
+#elif defined(HAVE_LIBCRYPTO)
+  // IV is 96 bits
+  std::array<unsigned char, 12> value{};
+#else
+  std::array<unsigned char, 1> value{};
 #endif
 };
 
-std::string sodEncryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce = true);
-std::string sodDecryptSym(const std::string_view& msg, const std::string& key, SodiumNonce& nonce, bool incrementNonce = true);
+std::string encryptSym(const std::string_view& msg, const std::string& key, Nonce& nonce, bool incrementNonce = true);
+std::string decryptSym(const std::string_view& msg, const std::string& key, Nonce& nonce, bool incrementNonce = true);
 std::string newKey(bool base64Encoded = true);
-bool sodIsValidKey(const std::string& key);
+bool isValidKey(const std::string& key);
 
-namespace dnsdist::crypto::authenticated
-{
 constexpr size_t getEncryptedSize(size_t plainTextSize)
 {
 #if defined(HAVE_LIBSODIUM)
   return plainTextSize + crypto_secretbox_MACBYTES;
+#elif defined(HAVE_LIBCRYPTO)
+  return plainTextSize + 16;
 #else
   return plainTextSize;
 #endif

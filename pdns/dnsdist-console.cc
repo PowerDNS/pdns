@@ -43,7 +43,7 @@
 #include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
-#include "sodcrypto.hh"
+#include "dnsdist-crypto.hh"
 #include "threadname.hh"
 
 GlobalStateHolder<NetmaskGroup> g_consoleACL;
@@ -58,39 +58,40 @@ static ConcurrentConnectionManager s_connManager(100);
 class ConsoleConnection
 {
 public:
-  ConsoleConnection(const ComboAddress& client, FDWrapper&& fd): d_client(client), d_fd(std::move(fd))
+  ConsoleConnection(const ComboAddress& client, FDWrapper&& fileDesc): d_client(client), d_fileDesc(std::move(fileDesc))
   {
     if (!s_connManager.registerConnection()) {
       throw std::runtime_error("Too many concurrent console connections");
     }
   }
-  ConsoleConnection(ConsoleConnection&& rhs): d_client(rhs.d_client), d_fd(std::move(rhs.d_fd))
+  ConsoleConnection(ConsoleConnection&& rhs) noexcept: d_client(rhs.d_client), d_fileDesc(std::move(rhs.d_fileDesc))
   {
   }
 
   ConsoleConnection(const ConsoleConnection&) = delete;
   ConsoleConnection& operator=(const ConsoleConnection&) = delete;
+  ConsoleConnection& operator=(ConsoleConnection&&) = delete;
 
   ~ConsoleConnection()
   {
-    if (d_fd.getHandle() != -1) {
+    if (d_fileDesc.getHandle() != -1) {
       s_connManager.releaseConnection();
     }
   }
 
-  int getFD() const
+  [[nodiscard]] int getFD() const
   {
-    return d_fd.getHandle();
+    return d_fileDesc.getHandle();
   }
 
-  const ComboAddress& getClient() const
+  [[nodiscard]] const ComboAddress& getClient() const
   {
     return d_client;
   }
 
 private:
   ComboAddress d_client;
-  FDWrapper d_fd;
+  FDWrapper d_fileDesc;
 };
 
 void setConsoleMaximumConcurrentConnections(size_t max)
@@ -101,10 +102,11 @@ void setConsoleMaximumConcurrentConnections(size_t max)
 // MUST BE CALLED UNDER A LOCK - right now the LuaLock
 static void feedConfigDelta(const std::string& line)
 {
-  if(line.empty())
+  if (line.empty()) {
     return;
-  struct timeval now;
-  gettimeofday(&now, 0);
+  }
+  timeval now{};
+  gettimeofday(&now, nullptr);
   g_confDelta.emplace_back(now, line);
 }
 
@@ -113,18 +115,22 @@ static string historyFile(const bool &ignoreHOME = false)
 {
   string ret;
 
-  struct passwd pwd;
-  struct passwd *result;
-  char buf[16384];
-  getpwuid_r(geteuid(), &pwd, buf, sizeof(buf), &result);
+  passwd pwd{};
+  passwd *result{nullptr};
+  std::array<char, 16384> buf{};
+  getpwuid_r(geteuid(), &pwd, buf.data(), buf.size(), &result);
 
+  // NOLINTNEXTLINE(concurrency-mt-unsafe): we are not modifying the environment
   const char *homedir = getenv("HOME");
-  if (result)
+  if (result != nullptr) {
     ret = string(pwd.pw_dir);
-  if (homedir && !ignoreHOME) // $HOME overrides what the OS tells us
+  }
+  if (homedir != nullptr && !ignoreHOME) { // $HOME overrides what the OS tells us
     ret = string(homedir);
-  if (ret.empty())
+  }
+  if (ret.empty()) {
     ret = "."; // CWD if nothing works..
+  }
   ret.append("/.dnsdist_history");
   return ret;
 }
@@ -136,11 +142,11 @@ enum class ConsoleCommandResult : uint8_t {
   TooLarge
 };
 
-static ConsoleCommandResult getMsgLen32(int fd, uint32_t* len)
+static ConsoleCommandResult getMsgLen32(int fileDesc, uint32_t* len)
 {
   try {
-    uint32_t raw;
-    size_t ret = readn2(fd, &raw, sizeof(raw));
+    uint32_t raw{0};
+    size_t ret = readn2(fileDesc, &raw, sizeof(raw));
 
     if (ret != sizeof raw) {
       return ConsoleCommandResult::ConnectionClosed;
@@ -158,12 +164,12 @@ static ConsoleCommandResult getMsgLen32(int fd, uint32_t* len)
   }
 }
 
-static bool putMsgLen32(int fd, uint32_t len)
+static bool putMsgLen32(int fileDesc, uint32_t len)
 {
   try
   {
     uint32_t raw = htonl(len);
-    size_t ret = writen2(fd, &raw, sizeof raw);
+    size_t ret = writen2(fileDesc, &raw, sizeof raw);
     return ret == sizeof raw;
   }
   catch(...) {
@@ -171,28 +177,28 @@ static bool putMsgLen32(int fd, uint32_t len)
   }
 }
 
-static ConsoleCommandResult sendMessageToServer(int fd, const std::string& line, SodiumNonce& readingNonce, SodiumNonce& writingNonce, const bool outputEmptyLine)
+static ConsoleCommandResult sendMessageToServer(int fileDesc, const std::string& line, dnsdist::crypto::authenticated::Nonce& readingNonce, dnsdist::crypto::authenticated::Nonce& writingNonce, const bool outputEmptyLine)
 {
-  string msg = sodEncryptSym(line, g_consoleKey, writingNonce);
+  string msg = dnsdist::crypto::authenticated::encryptSym(line, g_consoleKey, writingNonce);
   const auto msgLen = msg.length();
   if (msgLen > std::numeric_limits<uint32_t>::max()) {
     cerr << "Encrypted message is too long to be sent to the server, "<< std::to_string(msgLen) << " > " << std::numeric_limits<uint32_t>::max() << endl;
     return ConsoleCommandResult::TooLarge;
   }
 
-  putMsgLen32(fd, static_cast<uint32_t>(msgLen));
+  putMsgLen32(fileDesc, static_cast<uint32_t>(msgLen));
 
   if (!msg.empty()) {
-    writen2(fd, msg);
+    writen2(fileDesc, msg);
   }
 
-  uint32_t len;
-  auto commandResult = getMsgLen32(fd, &len);
+  uint32_t len{0};
+  auto commandResult = getMsgLen32(fileDesc, &len);
   if (commandResult == ConsoleCommandResult::ConnectionClosed) {
     cout << "Connection closed by the server." << endl;
     return commandResult;
   }
-  else if (commandResult == ConsoleCommandResult::TooLarge) {
+  if (commandResult == ConsoleCommandResult::TooLarge) {
     cerr << "Received a console message whose length (" << len << ") is exceeding the allowed one (" << g_consoleOutputMsgMaxSize << "), closing that connection" << endl;
     return commandResult;
   }
@@ -207,8 +213,8 @@ static ConsoleCommandResult sendMessageToServer(int fd, const std::string& line,
 
   msg.clear();
   msg.resize(len);
-  readn2(fd, msg.data(), len);
-  msg = sodDecryptSym(msg, g_consoleKey, readingNonce);
+  readn2(fileDesc, msg.data(), len);
+  msg = dnsdist::crypto::authenticated::decryptSym(msg, g_consoleKey, readingNonce);
   cout << msg;
   cout.flush();
 
@@ -217,7 +223,7 @@ static ConsoleCommandResult sendMessageToServer(int fd, const std::string& line,
 
 void doClient(ComboAddress server, const std::string& command)
 {
-  if (!sodIsValidKey(g_consoleKey)) {
+  if (!dnsdist::crypto::authenticated::isValidKey(g_consoleKey)) {
     cerr << "The currently configured console key is not valid, please configure a valid key using the setKey() directive" << endl;
     return;
   }
@@ -226,35 +232,38 @@ void doClient(ComboAddress server, const std::string& command)
     cout<<"Connecting to "<<server.toStringWithPort()<<endl;
   }
 
-  auto fd = FDWrapper(socket(server.sin4.sin_family, SOCK_STREAM, 0));
-  if (fd.getHandle() < 0) {
+  auto fileDesc = FDWrapper(socket(server.sin4.sin_family, SOCK_STREAM, 0));
+  if (fileDesc.getHandle() < 0) {
     cerr<<"Unable to connect to "<<server.toStringWithPort()<<endl;
     return;
   }
-  SConnect(fd.getHandle(), server);
-  setTCPNoDelay(fd.getHandle());
-  SodiumNonce theirs, ours, readingNonce, writingNonce;
+  SConnect(fileDesc.getHandle(), server);
+  setTCPNoDelay(fileDesc.getHandle());
+  dnsdist::crypto::authenticated::Nonce theirs;
+  dnsdist::crypto::authenticated::Nonce ours;
+  dnsdist::crypto::authenticated::Nonce readingNonce;
+  dnsdist::crypto::authenticated::Nonce writingNonce;
   ours.init();
 
-  writen2(fd.getHandle(), ours.value.data(), ours.value.size());
-  readn2(fd.getHandle(), theirs.value.data(), theirs.value.size());
+  writen2(fileDesc.getHandle(), ours.value.data(), ours.value.size());
+  readn2(fileDesc.getHandle(), theirs.value.data(), theirs.value.size());
   readingNonce.merge(ours, theirs);
   writingNonce.merge(theirs, ours);
 
   /* try sending an empty message, the server should send an empty
      one back. If it closes the connection instead, we are probably
      having a key mismatch issue. */
-  auto commandResult = sendMessageToServer(fd.getHandle(), "", readingNonce, writingNonce, false);
+  auto commandResult = sendMessageToServer(fileDesc.getHandle(), "", readingNonce, writingNonce, false);
   if (commandResult == ConsoleCommandResult::ConnectionClosed) {
     cerr<<"The server closed the connection right away, likely indicating a key mismatch. Please check your setKey() directive."<<endl;
     return;
   }
-  else if (commandResult == ConsoleCommandResult::TooLarge) {
+  if (commandResult == ConsoleCommandResult::TooLarge) {
     return;
   }
 
   if (!command.empty()) {
-    sendMessageToServer(fd.getHandle(), command, readingNonce, writingNonce, false);
+    sendMessageToServer(fileDesc.getHandle(), command, readingNonce, writingNonce, false);
     return;
   }
 
@@ -272,7 +281,7 @@ void doClient(ComboAddress server, const std::string& command)
   for (;;) {
     char* sline = readline("> ");
     rl_bind_key('\t',rl_complete);
-    if (!sline) {
+    if (sline == nullptr) {
       break;
     }
 
@@ -283,6 +292,7 @@ void doClient(ComboAddress server, const std::string& command)
       history.flush();
     }
     lastline = line;
+    // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory): readline
     free(sline);
 
     if (line == "quit") {
@@ -297,7 +307,7 @@ void doClient(ComboAddress server, const std::string& command)
       continue;
     }
 
-    commandResult = sendMessageToServer(fd.getHandle(), line, readingNonce, writingNonce, true);
+    commandResult = sendMessageToServer(fileDesc.getHandle(), line, readingNonce, writingNonce, true);
     if (commandResult != ConsoleCommandResult::Valid) {
       break;
     }
@@ -312,7 +322,7 @@ static std::optional<std::string> getNextConsoleLine(ofstream& history, std::str
 {
   char* sline = readline("> ");
   rl_bind_key('\t', rl_complete);
-  if (!sline) {
+  if (sline == nullptr) {
     return std::nullopt;
   }
 
@@ -324,6 +334,7 @@ static std::optional<std::string> getNextConsoleLine(ofstream& history, std::str
   }
 
   lastline = line;
+  // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory): readline
   free(sline);
 
   return line;
@@ -390,25 +401,26 @@ void doConsole()
             >
           >(withReturn ? ("return "+*line) : *line);
         if (ret) {
-          if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+          if (const auto* dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
             if (*dsValue) {
               cout<<(*dsValue)->getName()<<endl;
             }
           }
-          else if (const auto csValue = boost::get<ClientState*>(&*ret)) {
-            if (*csValue) {
+          else if (const auto* csValue = boost::get<ClientState*>(&*ret)) {
+            if (*csValue != nullptr) {
               cout<<(*csValue)->local.toStringWithPort()<<endl;
             }
           }
-          else if (const auto strValue = boost::get<string>(&*ret)) {
+          else if (const auto* strValue = boost::get<string>(&*ret)) {
             cout<<*strValue<<endl;
           }
-          else if (const auto um = boost::get<std::unordered_map<string, double> >(&*ret)) {
+          else if (const auto* mapValue = boost::get<std::unordered_map<string, double> >(&*ret)) {
             using namespace json11;
-            Json::object o;
-            for(const auto& v : *um)
-              o[v.first]=v.second;
-            Json out = o;
+            Json::object obj;
+            for (const auto& value : *mapValue) {
+              obj[value.first] = value.second;
+            }
+            Json out = obj;
             cout<<out.dump()<<endl;
           }
         }
@@ -422,7 +434,8 @@ void doConsole()
       }
       catch (const LuaContext::SyntaxErrorException&) {
         if (withReturn) {
-          withReturn=false;
+          withReturn = false;
+          // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
           goto retry;
         }
         throw;
@@ -433,7 +446,7 @@ void doConsole()
       // tried to return something we don't understand
     }
     catch (const LuaContext::ExecutionErrorException& e) {
-      if (!strcmp(e.what(), "invalid key to 'next'")) {
+      if (strcmp(e.what(), "invalid key to 'next'") == 0) {
         std::cerr<<"Error parsing parameters, did you forget parameter name?";
       }
       else {
@@ -464,22 +477,22 @@ void doConsole()
 const std::vector<ConsoleKeyword> g_consoleKeywords{
   /* keyword, function, parameters, description */
   { "addACL", true, "netmask", "add to the ACL set who can use this server" },
-  { "addAction", true, "DNS rule, DNS action [, {uuid=\"UUID\", name=\"name\"}]", "add a rule" },
+  { "addAction", true, R"(DNS rule, DNS action [, {uuid="UUID", name="name"}])", "add a rule" },
   { "addBPFFilterDynBlocks", true, "addresses, dynbpf[[, seconds=10], msg]", "This is the eBPF equivalent of addDynBlocks(), blocking a set of addresses for (optionally) a number of seconds, using an eBPF dynamic filter" },
   { "addCapabilitiesToRetain", true, "capability or list of capabilities", "Linux capabilities to retain after startup, like CAP_BPF" },
   { "addConsoleACL", true, "netmask", "add a netmask to the console ACL" },
-  { "addDNSCryptBind", true, "\"127.0.0.1:8443\", \"provider name\", \"/path/to/resolver.cert\", \"/path/to/resolver.key\", {reusePort=false, tcpFastOpenQueueSize=0, interface=\"\", cpus={}}", "listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of `provider name`, using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth optional parameter is a table of parameters" },
+  { "addDNSCryptBind", true, R"('127.0.0.1:8443", "provider name", "/path/to/resolver.cert", "/path/to/resolver.key", {reusePort=false, tcpFastOpenQueueSize=0, interface="", cpus={}})", "listen to incoming DNSCrypt queries on 127.0.0.1 port 8443, with a provider name of `provider name`, using a resolver certificate and associated key stored respectively in the `resolver.cert` and `resolver.key` files. The fifth optional parameter is a table of parameters" },
   { "addDOHLocal", true, "addr, certFile, keyFile [, urls [, vars]]", "listen to incoming DNS over HTTPS queries on the specified address using the specified certificate and key. The last two parameters are tables" },
   { "addDOH3Local", true, "addr, certFile, keyFile [, vars]", "listen to incoming DNS over HTTP/3 queries on the specified address using the specified certificate and key. The last parameter is a table" },
   { "addDOQLocal", true, "addr, certFile, keyFile [, vars]", "listen to incoming DNS over QUIC queries on the specified address using the specified certificate and key. The last parameter is a table" },
   { "addDynamicBlock", true, "address, message[, action [, seconds [, clientIPMask [, clientIPPortMask]]]]", "block the supplied address with message `msg`, for `seconds` seconds (10 by default), applying `action` (default to the one set with `setDynBlocksAction()`)" },
   { "addDynBlocks", true, "addresses, message[, seconds[, action]]", "block the set of addresses with message `msg`, for `seconds` seconds (10 by default), applying `action` (default to the one set with `setDynBlocksAction()`)" },
   { "addDynBlockSMT", true, "names, message[, seconds [, action]]", "block the set of names with message `msg`, for `seconds` seconds (10 by default), applying `action` (default to the one set with `setDynBlocksAction()`)" },
-  { "addLocal", true, "addr [, {doTCP=true, reusePort=false, tcpFastOpenQueueSize=0, interface=\"\", cpus={}}]", "add `addr` to the list of addresses we listen on" },
-  { "addCacheHitResponseAction", true, "DNS rule, DNS response action [, {uuid=\"UUID\", name=\"name\"}}]", "add a cache hit response rule" },
-  { "addCacheInsertedResponseAction", true, "DNS rule, DNS response action [, {uuid=\"UUID\", name=\"name\"}}]", "add a cache inserted response rule" },
-  { "addResponseAction", true, "DNS rule, DNS response action [, {uuid=\"UUID\", name=\"name\"}}]", "add a response rule" },
-  { "addSelfAnsweredResponseAction", true, "DNS rule, DNS response action [, {uuid=\"UUID\", name=\"name\"}}]", "add a self-answered response rule" },
+  { "addLocal", true, R"(addr [, {doTCP=true, reusePort=false, tcpFastOpenQueueSize=0, interface="", cpus={}}])", "add `addr` to the list of addresses we listen on" },
+  { "addCacheHitResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a cache hit response rule" },
+  { "addCacheInsertedResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a cache inserted response rule" },
+  { "addResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a response rule" },
+  { "addSelfAnsweredResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a self-answered response rule" },
   { "addTLSLocal", true, "addr, certFile(s), keyFile(s) [,params]", "listen to incoming DNS over TLS queries on the specified address using the specified certificate (or list of) and key (or list of). The last parameter is a table" },
   { "AllowAction", true, "", "let these packets go through" },
   { "AllowResponseAction", true, "", "let these packets go through" },
@@ -517,8 +530,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "exceedServFails", true, "rate, seconds", "get set of addresses that exceed `rate` servfails/s over `seconds` seconds" },
   { "firstAvailable", false, "", "picks the server with the lowest `order` that has not exceeded its QPS limit" },
   { "fixupCase", true, "bool", "if set (default to no), rewrite the first qname of the question part of the answer to match the one from the query. It is only useful when you have a downstream server that messes up the case of the question qname in the answer" },
-  { "generateDNSCryptCertificate", true, "\"/path/to/providerPrivate.key\", \"/path/to/resolver.cert\", \"/path/to/resolver.key\", serial, validFrom, validUntil", "generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key" },
-  { "generateDNSCryptProviderKeys", true, "\"/path/to/providerPublic.key\", \"/path/to/providerPrivate.key\"", "generate a new provider keypair" },
+  { "generateDNSCryptCertificate", true, R"("/path/to/providerPrivate.key", "/path/to/resolver.cert", "/path/to/resolver.key", serial, validFrom, validUntil)", "generate a new resolver private key and related certificate, valid from the `validFrom` timestamp until the `validUntil` one, signed with the provider private key" },
+  { "generateDNSCryptProviderKeys", true, R"("/path/to/providerPublic.key", "/path/to/providerPrivate.key")", "generate a new provider keypair" },
   { "getAction", true, "n", "Returns the Action associated with rule n" },
   { "getBind", true, "n", "returns the listener at index n" },
   { "getBindCount", true, "", "returns the number of listeners all kinds" },
@@ -558,7 +571,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "getTLSFrontend", true, "n", "returns the TLS frontend with index n" },
   { "getTLSFrontendCount", true, "", "returns the number of DoT listeners" },
   { "getVerbose", true, "", "get whether log messages at the verbose level will be logged" },
-  { "grepq", true, "Netmask|DNS Name|100ms|{\"::1\", \"powerdns.com\", \"100ms\"} [, n] [,options]", "shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms" },
+  { "grepq", true, R"(Netmask|DNS Name|100ms|{"::1", "powerdns.com", "100ms"} [, n] [,options])", "shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms" },
   { "hashPassword", true, "password [, workFactor]", "Returns a hashed and salted version of the supplied password, usable with 'setWebserverConfig()'"},
   { "HTTPHeaderRule", true, "name, regex", "matches DoH queries with a HTTP header 'name' whose content matches the regular expression 'regex'"},
   { "HTTPPathRegexRule", true, "regex", "matches DoH queries whose HTTP path matches 'regex'"},
@@ -627,8 +640,8 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "newPacketCache", true, "maxEntries[, maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, options={}]", "return a new Packet Cache" },
   { "newQPSLimiter", true, "rate, burst", "configure a QPS limiter with that rate and that burst capacity" },
   { "newRemoteLogger", true, "address:port [, timeout=2, maxQueuedEntries=100, reconnectWaitTime=1]", "create a Remote Logger object, to use with `RemoteLogAction()` and `RemoteLogResponseAction()`" },
-  { "newRuleAction", true, "DNS rule, DNS action [, {uuid=\"UUID\", name=\"name\"}]", "return a pair of DNS Rule and DNS Action, to be used with `setRules()`" },
-  { "newServer", true, "{address=\"ip:port\", qps=1000, order=1, weight=10, pool=\"abuse\", retries=5, tcpConnectTimeout=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName=\"a.root-servers.net.\", checkType=\"A\", maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source=\"address|interface name|address@interface\", sockets=1, reconnectOnUp=false}", "instantiate a server" },
+  { "newRuleAction", true, R"(DNS rule, DNS action [, {uuid="UUID", name="name"}])", "return a pair of DNS Rule and DNS Action, to be used with `setRules()`" },
+  { "newServer", true, R"({address="ip:port", qps=1000, order=1, weight=10, pool="abuse", retries=5, tcpConnectTimeout=5, tcpSendTimeout=30, tcpRecvTimeout=30, checkName="a.root-servers.net.", checkType="A", maxCheckFailures=1, mustResolve=false, useClientSubnet=true, source="address|interface name|address@interface", sockets=1, reconnectOnUp=false})", "instantiate a server" },
   { "newServerPolicy", true, "name, function", "create a policy object from a Lua function" },
   { "newSuffixMatchNode", true, "", "returns a new SuffixMatchNode" },
   { "newSVCRecordParameters", true, "priority, target, mandatoryParams, alpns, noDefaultAlpn [, port [, ech [, ipv4hints [, ipv6hints [, additionalParameters ]]]]]", "return a new SVCRecordParameters object, to use with SpoofSVCAction" },
@@ -640,7 +653,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "PoolAction", true, "poolname [, stop]", "set the packet into the specified pool" },
   { "PoolAvailableRule", true, "poolname", "Check whether a pool has any servers available to handle queries" },
   { "PoolOutstandingRule", true, "poolname, limit", "Check whether a pool has outstanding queries above limit" },
-  { "printDNSCryptProviderFingerprint", true, "\"/path/to/providerPublic.key\"", "display the fingerprint of the provided resolver public key" },
+  { "printDNSCryptProviderFingerprint", true, R"("/path/to/providerPublic.key")", "display the fingerprint of the provided resolver public key" },
   { "ProbaRule", true, "probability", "Matches queries with a given probability. 1.0 means always" },
   { "ProxyProtocolValueRule", true, "type [, value]", "matches queries with a specified Proxy Protocol TLV value of that type, optionally matching the content of the option as well" },
   { "QClassRule", true, "qclass", "Matches queries with the specified qclass. class can be specified as an integer or as one of the built-in DNSClass" },
@@ -693,7 +706,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "setECSSourcePrefixV4", true, "prefix-length", "the EDNS Client Subnet prefix-length used for IPv4 queries" },
   { "setECSSourcePrefixV6", true, "prefix-length", "the EDNS Client Subnet prefix-length used for IPv6 queries" },
   { "setKey", true, "key", "set access key to that key" },
-  { "setLocal", true, "addr [, {doTCP=true, reusePort=false, tcpFastOpenQueueSize=0, interface=\"\", cpus={}}]", "reset the list of addresses we listen on to this address" },
+  { "setLocal", true, R"(addr [, {doTCP=true, reusePort=false, tcpFastOpenQueueSize=0, interface="", cpus={}}])", "reset the list of addresses we listen on to this address" },
   { "setMaxCachedDoHConnectionsPerDownstream", true, "max", "Set the maximum number of inactive DoH connections to a backend cached by each worker DoH thread" },
   { "setMaxCachedTCPConnectionsPerDownstream", true, "max", "Set the maximum number of inactive TCP connections to a backend cached by each worker TCP thread" },
   { "setMaxTCPClientThreads", true, "n", "set the maximum of TCP client threads, handling TCP connections" },
@@ -827,17 +840,17 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
 extern "C" {
 static char* my_generator(const char* text, int state)
 {
-  string t(text);
+  string textStr(text);
   /* to keep it readable, we try to keep only 4 keywords per line
      and to start a new line when the first letter changes */
   static int s_counter = 0;
-  int counter=0;
-  if (!state) {
+  int counter = 0;
+  if (state == 0) {
     s_counter = 0;
   }
 
   for (const auto& keyword : g_consoleKeywords) {
-    if (boost::starts_with(keyword.name, t) && counter++ == s_counter)  {
+    if (boost::starts_with(keyword.name, textStr) && counter++ == s_counter)  {
       std::string value(keyword.name);
       s_counter++;
       if (keyword.function) {
@@ -849,14 +862,15 @@ static char* my_generator(const char* text, int state)
       return strdup(value.c_str());
     }
   }
-  return 0;
+  return nullptr;
 }
 
 char** my_completion( const char * text , int start,  int end)
 {
-  char **matches=0;
+  char **matches = nullptr;
   if (start == 0) {
-    matches = rl_completion_matches ((char*)text, &my_generator);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): readline
+    matches = rl_completion_matches (const_cast<char*>(text), &my_generator);
   }
 
   // skip default filename completion.
@@ -875,7 +889,10 @@ static void controlClientThread(ConsoleConnection&& conn)
 
     setTCPNoDelay(conn.getFD());
 
-    SodiumNonce theirs, ours, readingNonce, writingNonce;
+    dnsdist::crypto::authenticated::Nonce theirs;
+    dnsdist::crypto::authenticated::Nonce ours;
+    dnsdist::crypto::authenticated::Nonce readingNonce;
+    dnsdist::crypto::authenticated::Nonce writingNonce;
     ours.init();
     readn2(conn.getFD(), theirs.value.data(), theirs.value.size());
     writen2(conn.getFD(), ours.value.data(), ours.value.size());
@@ -883,7 +900,7 @@ static void controlClientThread(ConsoleConnection&& conn)
     writingNonce.merge(theirs, ours);
 
     for (;;) {
-      uint32_t len;
+      uint32_t len{0};
       if (getMsgLen32(conn.getFD(), &len) != ConsoleCommandResult::Valid) {
         break;
       }
@@ -899,7 +916,7 @@ static void controlClientThread(ConsoleConnection&& conn)
       line.resize(len);
       readn2(conn.getFD(), line.data(), len);
 
-      line = sodDecryptSym(line, g_consoleKey, readingNonce);
+      line = dnsdist::crypto::authenticated::decryptSym(line, g_consoleKey, readingNonce);
 
       string response;
       try {
@@ -922,30 +939,30 @@ static void controlClientThread(ConsoleConnection&& conn)
             >(withReturn ? ("return "+line) : line);
 
           if (ret) {
-            if (const auto dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
+            if (const auto* dsValue = boost::get<shared_ptr<DownstreamState>>(&*ret)) {
               if (*dsValue) {
                 response = (*dsValue)->getName()+"\n";
               } else {
                 response = "";
               }
             }
-            else if (const auto csValue = boost::get<ClientState*>(&*ret)) {
-              if (*csValue) {
+            else if (const auto* csValue = boost::get<ClientState*>(&*ret)) {
+              if (*csValue != nullptr) {
                 response = (*csValue)->local.toStringWithPort()+"\n";
               } else {
                 response = "";
               }
             }
-            else if (const auto strValue = boost::get<string>(&*ret)) {
+            else if (const auto* strValue = boost::get<string>(&*ret)) {
               response = *strValue+"\n";
             }
-            else if (const auto um = boost::get<std::unordered_map<string, double> >(&*ret)) {
+            else if (const auto* mapValue = boost::get<std::unordered_map<string, double> >(&*ret)) {
               using namespace json11;
-              Json::object o;
-              for(const auto& v : *um) {
-                o[v.first] = v.second;
+              Json::object obj;
+              for (const auto& value : *mapValue) {
+                obj[value.first] = value.second;
               }
-              Json out = o;
+              Json out = obj;
               response = out.dump()+"\n";
             }
           }
@@ -957,8 +974,9 @@ static void controlClientThread(ConsoleConnection&& conn)
           }
         }
         catch (const LuaContext::SyntaxErrorException&) {
-          if(withReturn) {
-            withReturn=false;
+          if (withReturn) {
+            withReturn = false;
+            // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto)
             goto retry;
           }
           throw;
@@ -969,7 +987,7 @@ static void controlClientThread(ConsoleConnection&& conn)
         // tried to return something we don't understand
       }
       catch (const LuaContext::ExecutionErrorException& e) {
-        if (!strcmp(e.what(),"invalid key to 'next'")) {
+        if (strcmp(e.what(),"invalid key to 'next'") == 0) {
           response = "Error: Parsing function parameters, did you forget parameter name?";
         }
         else {
@@ -990,7 +1008,7 @@ static void controlClientThread(ConsoleConnection&& conn)
       catch (const LuaContext::SyntaxErrorException& e) {
         response = "Error: " + string(e.what()) + ": ";
       }
-      response = sodEncryptSym(response, g_consoleKey, writingNonce);
+      response = dnsdist::crypto::authenticated::encryptSym(response, g_consoleKey, writingNonce);
       putMsgLen32(conn.getFD(), response.length());
       writen2(conn.getFD(), response.c_str(), response.length());
     }
@@ -1003,21 +1021,21 @@ static void controlClientThread(ConsoleConnection&& conn)
   }
 }
 
-void controlThread(int fd, ComboAddress local)
+// NOLINTNEXTLINE(performance-unnecessary-value-param): this is thread
+void controlThread(std::shared_ptr<Socket> acceptFD, ComboAddress local)
 {
-  FDWrapper acceptFD(fd);
   try
   {
     setThreadName("dnsdist/control");
     ComboAddress client;
-    int sock;
+    int sock{-1};
     auto localACL = g_consoleACL.getLocal();
     infolog("Accepting control connections on %s", local.toStringWithPort());
 
-    while ((sock = SAccept(acceptFD.getHandle(), client)) >= 0) {
+    while ((sock = SAccept(acceptFD->getHandle(), client)) >= 0) {
 
       FDWrapper socket(sock);
-      if (!sodIsValidKey(g_consoleKey)) {
+      if (!dnsdist::crypto::authenticated::isValidKey(g_consoleKey)) {
         vinfolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort());
         continue;
       }
@@ -1033,8 +1051,8 @@ void controlThread(int fd, ComboAddress local)
           warnlog("Got control connection from %s", client.toStringWithPort());
         }
 
-        std::thread t(controlClientThread, std::move(conn));
-        t.detach();
+        std::thread clientThread(controlClientThread, std::move(conn));
+        clientThread.detach();
       }
       catch (const std::exception& e) {
         infolog("Control connection died: %s", e.what());

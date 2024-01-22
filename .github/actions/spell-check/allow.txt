@@ -3336,7 +3336,6 @@ sockname
 sockowner
 socktype
 sodbc
-sodcrypto
 sodiumsigners
 sokolov
 somedata

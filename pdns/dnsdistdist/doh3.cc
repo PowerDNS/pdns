@@ -28,7 +28,6 @@
 #include "dolog.hh"
 #include "iputils.hh"
 #include "misc.hh"
-#include "sodcrypto.hh"
 #include "sstuff.hh"
 #include "threadname.hh"
 #include "base64.hh"
