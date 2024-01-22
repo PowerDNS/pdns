@@ -297,8 +297,8 @@ def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
     time.sleep(5)
     c.sudo('chmod 755 /var/agentx')
 
-@task
-def install_dnsdist_test_deps(c, xdp=True): # FIXME: rename this, we do way more than apt-get
+@task(optional=['skipXDP'])
+def install_dnsdist_test_deps(c, skipXDP=False): # FIXME: rename this, we do way more than apt-get
     deps = 'libluajit-5.1-2 \
             libboost-all-dev \
             libcap2 \
@@ -317,8 +317,9 @@ def install_dnsdist_test_deps(c, xdp=True): # FIXME: rename this, we do way more
             patch \
             protobuf-compiler \
             python3-venv snmpd prometheus'
-    if xdp:
-        deps = deps + 'libbpf1 \
+    if not skipXDP:
+        deps = deps + '\
+               libbpf1 \
                libxdp1'
 
     c.sudo(f'apt-get install -y {deps}')
@@ -333,7 +334,7 @@ def install_rec_build_deps(c):
 
 @task(optional=['skipXDP'])
 def install_dnsdist_build_deps(c, skipXDP=False):
-    c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps + dnsdist_xdp_build_deps if not skipXDP else []))
+    c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps + (dnsdist_xdp_build_deps if not skipXDP else [])))
 
 @task
 def ci_autoconf(c):

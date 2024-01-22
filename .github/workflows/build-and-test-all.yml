@@ -626,7 +626,7 @@ jobs:
           name: dnsdist-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
       - run: inv install-clang-runtime
-      - run: inv install-dnsdist-test-deps 'with-xdp'
+      - run: inv install-dnsdist-test-deps
       - run: inv test-dnsdist
       - run: inv generate-coverage-info /opt/dnsdist/bin/dnsdist $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
