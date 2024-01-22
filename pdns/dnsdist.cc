@@ -883,6 +883,9 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           xskPacket->setHeader(ids->xskPacketHeader);
           if (!xskPacket->setPayload(response)) {
 	  }
+          if (ids->delayMsec > 0) {
+            xskPacket->addDelay(ids->delayMsec);
+          }
           xskPacket->updatePacket();
           xskInfo->pushToSendQueue(*xskPacket);
           xskInfo->notifyXskSocket();
