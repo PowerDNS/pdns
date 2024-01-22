@@ -48,6 +48,7 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
       bool needNotify = false;
       if ((pollfds[0].revents & POLLIN) != 0) {
         needNotify = true;
+        xskInfo->cleanSocketNotification();
 #if defined(__SANITIZE_THREAD__)
         xskInfo->incomingPacketsQueue.lock()->consume_all([&](XskPacket& packet) {
 #else
@@ -98,7 +99,6 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
           packet.updatePacket();
           xskInfo->pushToSendQueue(packet);
         });
-        xskInfo->cleanSocketNotification();
       }
       if (needNotify) {
         xskInfo->notifyXskSocket();
