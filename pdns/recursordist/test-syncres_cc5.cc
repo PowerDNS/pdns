@@ -1243,6 +1243,177 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard)
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_too_many_nsec3s)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("www.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      if (type == QType::DS && domain == target) {
+        DNSName auth("com.");
+        setLWResult(res, 0, true, false, true);
+
+        addRecordToLW(res, auth, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+        addRRSIG(keys, res->d_records, auth, 300);
+        /* add a NSEC3 denying the DS AND the existence of a cut (no NS) */
+        /* first the closest encloser */
+        addNSEC3UnhashedRecordToLW(DNSName("com."), auth, "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, auth, 300);
+        /* then the next closer */
+        addNSEC3NarrowRecordToLW(domain, DNSName("com."), {QType::RRSIG, QType::NSEC}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, auth, 300);
+        /* a wildcard matches but has no record for this type */
+        addNSEC3UnhashedRecordToLW(DNSName("*.com."), DNSName("com."), "whatever", {QType::AAAA, QType::NSEC, QType::RRSIG}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("com"), 300, false, boost::none, DNSName("*.com"));
+        return LWResult::Result::Success;
+      }
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+    }
+    else {
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(DNSName("com."), 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        return LWResult::Result::Success;
+      }
+      else if (ip == ComboAddress("192.0.2.1:53")) {
+        setLWResult(res, 0, true, false, true);
+        /* no data */
+        addRecordToLW(res, DNSName("com."), QType::SOA, "com. com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+        addRRSIG(keys, res->d_records, DNSName("com."), 300);
+        /* no record for this name */
+        /* first the closest encloser */
+        addNSEC3UnhashedRecordToLW(DNSName("com."), DNSName("com."), "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("com."), 300);
+        /* then the next closer */
+        addNSEC3NarrowRecordToLW(domain, DNSName("com."), {QType::RRSIG, QType::NSEC}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("com."), 300);
+        /* a wildcard matches but has no record for this type */
+        addNSEC3UnhashedRecordToLW(DNSName("*.com."), DNSName("com."), "whatever", {QType::AAAA, QType::NSEC, QType::RRSIG}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("com"), 300, false, boost::none, DNSName("*.com"));
+        return LWResult::Result::Success;
+      }
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  /* we allow at most 2 NSEC3s, but we need at least 3 of them to
+     get a valid denial so we will go Bogus */
+  g_maxNSEC3sPerRecordToConsider = 2;
+
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusInvalidDenial);
+  BOOST_REQUIRE_EQUAL(ret.size(), 8U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+
+  g_maxNSEC3sPerRecordToConsider = 0;
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_too_many_nsec3s_per_query)
+{
+  SyncRes::s_maxnsec3iterationsperq = 20;
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+
+  primeHints();
+  const DNSName target("www.com.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(DNSName("com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      if (type == QType::DS && domain == target) {
+        DNSName auth("com.");
+        setLWResult(res, 0, true, false, true);
+
+        addRecordToLW(res, auth, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY, 86400);
+        addRRSIG(keys, res->d_records, auth, 300);
+        /* add a NSEC3 denying the DS AND the existence of a cut (no NS) */
+        /* first the closest encloser */
+        addNSEC3UnhashedRecordToLW(DNSName("com."), auth, "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, auth, 300);
+        /* then the next closer */
+        addNSEC3NarrowRecordToLW(domain, DNSName("com."), {QType::RRSIG, QType::NSEC}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, auth, 300);
+        /* a wildcard matches but has no record for this type */
+        addNSEC3UnhashedRecordToLW(DNSName("*.com."), DNSName("com."), "whatever", {QType::AAAA, QType::NSEC, QType::RRSIG}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("com"), 300, false, boost::none, DNSName("*.com"));
+        return LWResult::Result::Success;
+      }
+      return genericDSAndDNSKEYHandler(res, domain, domain, type, keys);
+    }
+    else {
+      if (isRootServer(ip)) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
+        addDS(DNSName("com."), 300, res->d_records, keys);
+        addRRSIG(keys, res->d_records, DNSName("."), 300);
+        addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+        return LWResult::Result::Success;
+      }
+      else if (ip == ComboAddress("192.0.2.1:53")) {
+        setLWResult(res, 0, true, false, true);
+        /* no data */
+        addRecordToLW(res, DNSName("com."), QType::SOA, "com. com. 2017032301 10800 3600 604800 3600", DNSResourceRecord::AUTHORITY, 3600);
+        addRRSIG(keys, res->d_records, DNSName("com."), 300);
+        /* no record for this name */
+        /* first the closest encloser */
+        addNSEC3UnhashedRecordToLW(DNSName("com."), DNSName("com."), "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("com."), 300);
+        /* then the next closer */
+        addNSEC3NarrowRecordToLW(domain, DNSName("com."), {QType::RRSIG, QType::NSEC}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("com."), 300);
+        /* a wildcard matches but has no record for this type */
+        addNSEC3UnhashedRecordToLW(DNSName("*.com."), DNSName("com."), "whatever", {QType::AAAA, QType::NSEC, QType::RRSIG}, 600, res->d_records);
+        addRRSIG(keys, res->d_records, DNSName("com"), 300, false, boost::none, DNSName("*.com"));
+        return LWResult::Result::Success;
+      }
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  BOOST_CHECK_THROW(sr->beginResolve(target, QType(QType::A), QClass::IN, ret), pdns::validation::TooManySEC3IterationsException);
+
+  SyncRes::s_maxnsec3iterationsperq = 0;
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_nsec3)
 {
   std::unique_ptr<SyncRes> sr;

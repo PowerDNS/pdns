@@ -568,6 +568,15 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
           res = RCode::ServFail;
           break;
         }
+        catch (const pdns::validation::TooManySEC3IterationsException& e) {
+          if (g_logCommonErrors) {
+            SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << comboWriter->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << comboWriter->d_mdp.d_qname << "' because: " << e.what() << endl,
+                 resolver.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during resolve of the custom filter policy",
+                                        "policyName", Logging::Loggable(appliedPolicy.getName()), "exception", Logging::Loggable("TooManySEC3IterationsException")));
+          }
+          res = RCode::ServFail;
+          break;
+        }
         catch (const PolicyHitException& e) {
           if (g_logCommonErrors) {
             SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << comboWriter->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << comboWriter->d_mdp.d_qname << "' because another RPZ policy was hit" << endl,
@@ -1270,6 +1279,13 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         }
         res = RCode::ServFail;
       }
+      catch (const pdns::validation::TooManySEC3IterationsException& e) {
+        if (g_logCommonErrors) {
+          SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << comboWriter->getRemote() << " during resolve of '" << comboWriter->d_mdp.d_qname << "' because: " << e.what() << endl,
+               resolver.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during resolve"));
+        }
+        res = RCode::ServFail;
+      }
       catch (const SendTruncatedAnswerException& e) {
         ret.clear();
         resolver.d_appliedPolicy.addSOAtoRPZResult(ret);
@@ -1446,6 +1462,13 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
           if (g_logCommonErrors) {
             SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << comboWriter->getRemote() << " during validation of '" << comboWriter->d_mdp.d_qname << "|" << QType(comboWriter->d_mdp.d_qtype) << "' because: " << e.reason << endl,
                  resolver.d_slog->error(Logr::Notice, e.reason, "Sending SERVFAIL during validation", "exception", Logging::Loggable("ImmediateServFailException")));
+          }
+          goto sendit; // NOLINT(cppcoreguidelines-avoid-goto)
+        }
+        catch (const pdns::validation::TooManySEC3IterationsException& e) {
+          if (g_logCommonErrors) {
+            SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << comboWriter->getRemote() << " during validation of '" << comboWriter->d_mdp.d_qname << "|" << QType(comboWriter->d_mdp.d_qtype) << "' because: " << e.what() << endl,
+                 resolver.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during validation", "exception", Logging::Loggable("TooManySEC3IterationsException")));
           }
           goto sendit; // NOLINT(cppcoreguidelines-avoid-goto)
         }
