@@ -479,10 +479,20 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
     skipRefreshDelay = false;
   }
   else {
-    std::unique_lock lock(rpzwaiter.mutex);
-    rpzwaiter.condVar.wait_for(lock, std::chrono::seconds(refresh),
-                               [&stop = rpzwaiter.stop] { return stop.load(); });
-    rpzwaiter.stop = false;
+    const time_t minimumTimeBetweenRefreshes = std::min(refresh, 5U);
+    const time_t startTime = time(nullptr);
+    time_t wakeTime = startTime;
+    while (wakeTime - startTime < minimumTimeBetweenRefreshes) {
+      std::unique_lock lock(rpzwaiter.mutex);
+      time_t remaining = refresh - (wakeTime - startTime);
+      if (remaining <= 0) {
+        break;
+      }
+      rpzwaiter.condVar.wait_for(lock, std::chrono::seconds(remaining),
+                                 [&stop = rpzwaiter.stop] { return stop.load(); });
+      rpzwaiter.stop = false;
+      wakeTime = time(nullptr);
+    }
   }
   auto luaconfsLocal = g_luaconfs.getLocal();
 
@@ -701,10 +711,9 @@ void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
   auto [start, end] = lock->equal_range(zoneName);
   while (start != end) {
     if (start->second.id == std::this_thread::get_id()) {
-      start = lock->erase(start);
+      lock->erase(start);
+      break;
     }
-    else {
-      ++start;
-    }
+    ++start;
   }
 }
