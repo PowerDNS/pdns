@@ -504,8 +504,9 @@ public:
   static unsigned int s_serverdownthrottletime;
   static unsigned int s_nonresolvingnsmaxfails;
   static unsigned int s_nonresolvingnsthrottletime;
-
   static unsigned int s_ecscachelimitttl;
+  static unsigned int s_maxvalidationsperq;
+  static unsigned int s_maxnsec3iterationsperq;
   static uint8_t s_ecsipv4limit;
   static uint8_t s_ecsipv6limit;
   static uint8_t s_ecsipv4cachelimit;
@@ -655,6 +656,7 @@ private:
   std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> d_outgoingProtobufServers;
   std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> d_frameStreamServers;
   boost::optional<const boost::uuids::uuid&> d_initialRequestId;
+  pdns::validation::ValidationContext d_validationContext;
   asyncresolve_t d_asyncResolve{nullptr};
   struct timeval d_now;
   /* if the client is asking for a DS that does not exist, we need to provide the SOA along with the NSEC(3) proof
