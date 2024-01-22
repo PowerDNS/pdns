@@ -85,7 +85,7 @@ static void initArguments(int argc, char** argv)
     exit(1); // NOLINT(concurrency-mt-unsafe)
     break;
   case pdns::settings::rec::YamlSettingsStatus::OK:
-    cerr << "YAML config found and processed for configname '" << yamlconfigname << "'" << endl;
+    cout << "YAML config found and processed for configname '" << yamlconfigname << "'" << endl;
     pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
     break;
   }
