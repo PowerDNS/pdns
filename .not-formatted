@@ -254,7 +254,6 @@
 ./pdns/test-packetcache_hh.cc
 ./pdns/test-proxy_protocol_cc.cc
 ./pdns/test-rcpgenerator_cc.cc
-./pdns/test-sha_hh.cc
 ./pdns/test-sholder_hh.cc
 ./pdns/test-statbag_cc.cc
 ./pdns/test-svc_records_cc.cc
