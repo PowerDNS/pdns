@@ -466,6 +466,7 @@ def ci_auth_configure(c):
         "--enable-experimental-pkcs11",
         "--enable-experimental-gss-tsig",
         "--enable-remotebackend-zeromq",
+        "--enable-verbose-logging",
         "--with-lmdb=/usr",
         "--with-libdecaf" if os.getenv('DECAF_SUPPORT', 'no') == 'yes' else '',
         "--prefix=/opt/pdns-auth",
@@ -491,6 +492,7 @@ def ci_rec_configure(c):
         "--with-libcap",
         "--with-net-snmp",
         "--enable-dns-over-tls",
+        "--enable-verbose-logging",
         unittests,
     ])
     res = c.run(configure_cmd, warn=True)
