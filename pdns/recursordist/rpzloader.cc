@@ -644,7 +644,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
 
 static LockGuarded<std::multimap<DNSName, RPZWaiter&>> condVars;
 
-// Notify all threads trakcing the RPZ name
+// Notify all threads tracking the RPZ name
 bool notifyRPZTracker(const DNSName& name)
 {
   auto lock = condVars.lock();
