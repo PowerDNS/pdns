@@ -385,7 +385,7 @@ class RPZXFRRecursorTest(RPZRecursorTest):
     global rpzServerPort
     _lua_config_file = """
     -- The first server is a bogus one, to test that we correctly fail over to the second one
-    rpzMaster({'127.0.0.1:9999', '127.0.0.1:%d'}, 'zone.rpz.', { refresh=3600, includeSOA=true})
+    rpzMaster({'127.0.0.1:9999', '127.0.0.1:%d'}, 'zone.rpz.', { refresh=1, includeSOA=true})
     """ % (rpzServerPort)
     _confdir = 'RPZXFR'
     _wsPort = 8042
