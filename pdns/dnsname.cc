@@ -137,8 +137,8 @@ void DNSName::packetParser(const char* qpos, size_t len, size_t offset, bool unc
       labellen &= (~0xc0);
       size_t newpos = (labellen << 8) + *(const unsigned char*)pos;
 
-      if(newpos < offset) {
-        if(newpos < static_cast<size_t>(minOffset)) {
+      if (newpos < offset) {
+        if (newpos < minOffset) {
           throw std::range_error("Invalid label position during decompression ("+std::to_string(newpos)+ " < "+std::to_string(minOffset)+")");
         }
         if (++depth > 100) {
