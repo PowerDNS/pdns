@@ -10,9 +10,9 @@ Since 1.9.0, :program:`dnsdist` can use `AF_XDP <https://www.kernel.org/doc/html
    ``AppArmor`` users might need to update their policy to allow :program:`dnsdist` to keep the capabilities. Adding ``capability sys_admin,`` (for ``CAP_SYS_ADMIN``) and ``capability net_admin,`` (for ``CAP_NET_ADMIN``) lines to the policy file is usually enough.
 
 The way ``AF_XDP`` works is that :program:`dnsdist` allocates a number of frames in a memory area called a ``UMEM``, which is accessible both by the program, in userspace, and by the kernel. Using in-memory ring buffers, the receive (``RX``), transmit (``TX``), completion (``cq``) and fill (``fq``) rings, the kernel can very efficiently pass raw incoming packets to :program:`dnsdist`, which can in return pass raw outgoing packets to the kernel.
-In addition to these, an ``eBPF`` ``XDP`` program needs to be loaded to decide which packets to distribute via the ``AF_XDP`` socket (and to which, as there are usually more than one). This program uses a ``BPF`` map of type ``XSKMAP`` (located at ``/sys/fs/bpf/dnsdist/xskmap`` by default) that is populated by :program:``dnsdist` at startup to locate the ``AF_XDP`` socket to use. :program:`dnsdist` also sets up two additional ``BPF`` maps (located at ``/sys/fs/bpf/dnsdist/xsk-destinations-v4`` and ``/sys/fs/bpf/dnsdist/xsk-destinations-v6``) to let the ``XDP`` program know which IP destinations are to be routed to the ``AF_XDP`` sockets and which are to be passed to the regular network stack (health-checks queries and responses, for example). A ready-to-use `XDP program <https://github.com/PowerDNS/pdns/blob/master/contrib/xdp.py>`_ can be found in the ``contrib`` directory of the PowerDNS Git repository. The name of the network interface to use might have to be updated, though. Once it has been updated, the ``XDP`` program can be started::
+In addition to these, an ``eBPF`` ``XDP`` program needs to be loaded to decide which packets to distribute via the ``AF_XDP`` socket (and to which, as there are usually more than one). This program uses a ``BPF`` map of type ``XSKMAP`` (located at ``/sys/fs/bpf/dnsdist/xskmap`` by default) that is populated by :program:``dnsdist` at startup to locate the ``AF_XDP`` socket to use. :program:`dnsdist` also sets up two additional ``BPF`` maps (located at ``/sys/fs/bpf/dnsdist/xsk-destinations-v4`` and ``/sys/fs/bpf/dnsdist/xsk-destinations-v6``) to let the ``XDP`` program know which IP destinations are to be routed to the ``AF_XDP`` sockets and which are to be passed to the regular network stack (health-checks queries and responses, for example). A ready-to-use `XDP program <https://github.com/PowerDNS/pdns/blob/master/contrib/xdp.py>`_ can be found in the ``contrib`` directory of the PowerDNS Git repository::
 
-  $ python xdp.py
+  $ python xdp.py --xsk --interface eth0
 
 Then :program:`dnsdist` needs to be configured to use ``AF_XDP``, first by creating a :class:`XskSocket` object that are tied to a specific queue of a specific network interface:
 
@@ -52,17 +52,28 @@ The ``Combined`` lines tell us that the interface supports 8 queues, so we can d
     addLocal("192.0.2.1:53", {xskSocket=xsk, reusePort=true})
   end
 
-We can also instructs :program:`dnsdist` to use ``AF_XDP`` to send and receive UDP packets to a backend:
+This will start one router thread per :class:`XskSocket` object, plus one worker thread per :func:`addLocal` using that :class:`XskSocket` object.
+
+We can instructs :program:`dnsdist` to use ``AF_XDP`` to send and receive UDP packets to a backend in addition to packets from clients:
 
 .. code-block:: lua
 
-  newServer("192.0.2.2:53", {xskSocket=xsk})
+  local sockets = {}
+  for i=1,8 do
+    xsk = newXsk({ifName="enp1s0", NIC_queue_id=i-1, frameNums=65536, xskMapPath="/sys/fs/bpf/dnsdist/xskmap"})
+    table.insert(sockets, xsk)
+    addLocal("192.0.2.1:53", {xskSocket=xsk, reusePort=true})
+  end
+
+  newServer("192.0.2.2:53", {xskSocket=sockets})
+
+This will start one router thread per :class:`XskSocket` object, plus one worker thread per :func:`addLocal`/:func:`newServer` using that :class:`XskSocket` object.
 
 We are not passing the MAC address of the backend (or the gateway to reach it) directly, so :program:`dnsdist` will try to fetch it from the system MAC address cache. This may not work, in which case we might need to pass explicitly:
 
 .. code-block:: lua
 
-  newServer("192.0.2.2:53", {xskSocket=xsk, MACAddr='00:11:22:33:44:55'})
+  newServer("192.0.2.2:53", {xskSocket=sockets, MACAddr='00:11:22:33:44:55'})
 
 
 Performance
@@ -70,7 +81,7 @@ Performance
 
 Using `kxdpgun <https://www.knot-dns.cz/docs/latest/html/man_kxdpgun.html>`_, we can compare the performance of :program:`dnsdist` using the regular network stack and ``AF_XDP``.
 
-This test was realized using two Intel E3-1270 with 4 cores (8 threads) running at 3.8 Ghz, using 10 Gbps network cards. On both the injector running ``kxdpgun`` and the box running :program:`dnsdist` there was no firewall, the governor was set to ``performance``, the UDP buffers were raised to ``16777216`` and the receive queue hash policy set to use the IP addresses and ports (see :doc:`tuning`).
+This test was realized using two Intel E3-1270 with 4 cores (8 threads) running at 3.8 Ghz, using Intel 82599 10 Gbps network cards. On both the injector running ``kxdpgun`` and the box running :program:`dnsdist` there was no firewall, the governor was set to ``performance``, the UDP buffers were raised to ``16777216`` and the receive queue hash policy set to use the IP addresses and ports (see :doc:`tuning`).
 
 :program:`dnsdist` was configured to immediately respond to incoming queries with ``REFUSED``:
 

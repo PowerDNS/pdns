@@ -70,6 +70,11 @@ For DNS over HTTPS, every :func:`addDOHLocal` directive adds a new thread dealin
 
 When dealing with a large traffic load, it might happen that the internal pipe used to pass queries between the threads handling the incoming connections and the one getting a response from the backend become full too quickly, degrading performance and causing timeouts. This can be prevented by increasing the size of the internal pipe buffer, via the `internalPipeBufferSize` option of :func:`addDOHLocal`. Setting a value of `1048576` is known to yield good results on Linux.
 
+`AF_XDP` / `XSK`
+----------------
+
+On recent versions of Linux (`>= 4.18`), DNSDist supports receiving UDP datagrams directly from the kernel, bypassing the usual network stack, via `AF_XDP`/`XSK`. This yields much better performance but comes with some limitations. Please see :doc:`xsk` for more information.
+
 UDP buffer sizes
 ----------------
 
