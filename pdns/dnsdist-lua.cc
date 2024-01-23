@@ -307,10 +307,101 @@ static bool checkConfigurationTime(const std::string& name)
   return false;
 }
 
+using newserver_t = LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, LuaArray<std::shared_ptr<XskSocket>>, DownstreamState::checkfunc_t>>;
+
+static void handleNewServerHealthCheckParameters(boost::optional<newserver_t>& vars, DownstreamState::Config& config)
+{
+  std::string valueStr;
+
+  if (getOptionalValue<std::string>(vars, "checkInterval", valueStr) > 0) {
+    config.checkInterval = static_cast<unsigned int>(std::stoul(valueStr));
+  }
+
+  if (getOptionalValue<std::string>(vars, "healthCheckMode", valueStr) > 0) {
+    const auto& mode = valueStr;
+    if (pdns_iequals(mode, "auto")) {
+      config.availability = DownstreamState::Availability::Auto;
+    }
+    else if (pdns_iequals(mode, "lazy")) {
+      config.availability = DownstreamState::Availability::Lazy;
+    }
+    else if (pdns_iequals(mode, "up")) {
+      config.availability = DownstreamState::Availability::Up;
+    }
+    else if (pdns_iequals(mode, "down")) {
+      config.availability = DownstreamState::Availability::Down;
+    }
+    else {
+      warnlog("Ignoring unknown value '%s' for 'healthCheckMode' on 'newServer'", mode);
+    }
+  }
+
+  if (getOptionalValue<std::string>(vars, "checkName", valueStr) > 0) {
+    config.checkName = DNSName(valueStr);
+  }
+
+  getOptionalValue<std::string>(vars, "checkType", config.checkType);
+  getOptionalIntegerValue("newServer", vars, "checkClass", config.checkClass);
+  getOptionalValue<DownstreamState::checkfunc_t>(vars, "checkFunction", config.checkFunction);
+  getOptionalIntegerValue("newServer", vars, "checkTimeout", config.checkTimeout);
+  getOptionalValue<bool>(vars, "checkTCP", config.d_tcpCheck);
+  getOptionalValue<bool>(vars, "setCD", config.setCD);
+  getOptionalValue<bool>(vars, "mustResolve", config.mustResolve);
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckSampleSize", valueStr) > 0) {
+    const auto& value = std::stoi(valueStr);
+    checkParameterBound("lazyHealthCheckSampleSize", value);
+    config.d_lazyHealthCheckSampleSize = value;
+  }
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckMinSampleCount", valueStr) > 0) {
+    const auto& value = std::stoi(valueStr);
+    checkParameterBound("lazyHealthCheckMinSampleCount", value);
+    config.d_lazyHealthCheckMinSampleCount = value;
+  }
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckThreshold", valueStr) > 0) {
+    const auto& value = std::stoi(valueStr);
+    checkParameterBound("lazyHealthCheckThreshold", value, std::numeric_limits<uint8_t>::max());
+    config.d_lazyHealthCheckThreshold = value;
+  }
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckFailedInterval", valueStr) > 0) {
+    const auto& value = std::stoi(valueStr);
+    checkParameterBound("lazyHealthCheckFailedInterval", value);
+    config.d_lazyHealthCheckFailedInterval = value;
+  }
+
+  getOptionalValue<bool>(vars, "lazyHealthCheckUseExponentialBackOff", config.d_lazyHealthCheckUseExponentialBackOff);
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckMaxBackOff", valueStr) > 0) {
+    const auto& value = std::stoi(valueStr);
+    checkParameterBound("lazyHealthCheckMaxBackOff", value);
+    config.d_lazyHealthCheckMaxBackOff = value;
+  }
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckMode", valueStr) > 0) {
+    const auto& mode = valueStr;
+    if (pdns_iequals(mode, "TimeoutOnly")) {
+      config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOnly;
+    }
+    else if (pdns_iequals(mode, "TimeoutOrServFail")) {
+      config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOrServFail;
+    }
+    else {
+      warnlog("Ignoring unknown value '%s' for 'lazyHealthCheckMode' on 'newServer'", mode);
+    }
+  }
+
+  getOptionalValue<bool>(vars, "lazyHealthCheckWhenUpgraded", config.d_upgradeToLazyHealthChecks);
+
+  getOptionalIntegerValue("newServer", vars, "maxCheckFailures", config.maxCheckFailures);
+  getOptionalIntegerValue("newServer", vars, "rise", config.minRiseSuccesses);
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
-  using newserver_t = LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, LuaArray<std::shared_ptr<XskSocket>>, DownstreamState::checkfunc_t>>;
   luaCtx.writeFunction("inClientStartup", [client]() {
     return client && !g_configurationDone;
   });
@@ -406,9 +497,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalIntegerValue("newServer", vars, "tcpSendTimeout", config.tcpSendTimeout);
                          getOptionalIntegerValue("newServer", vars, "tcpRecvTimeout", config.tcpRecvTimeout);
 
-                         if (getOptionalValue<std::string>(vars, "checkInterval", valueStr) > 0) {
-                           config.checkInterval = static_cast<unsigned int>(std::stoul(valueStr));
-                         }
+                         handleNewServerHealthCheckParameters(vars, config);
 
                          bool fastOpen{false};
                          if (getOptionalValue<bool>(vars, "tcpFastOpen", fastOpen) > 0) {
@@ -430,84 +519,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            config.id = boost::uuids::string_generator()(valueStr);
                          }
 
-                         if (getOptionalValue<std::string>(vars, "healthCheckMode", valueStr) > 0) {
-                           const auto& mode = valueStr;
-                           if (pdns_iequals(mode, "auto")) {
-                             config.availability = DownstreamState::Availability::Auto;
-                           }
-                           else if (pdns_iequals(mode, "lazy")) {
-                             config.availability = DownstreamState::Availability::Lazy;
-                           }
-                           else if (pdns_iequals(mode, "up")) {
-                             config.availability = DownstreamState::Availability::Up;
-                           }
-                           else if (pdns_iequals(mode, "down")) {
-                             config.availability = DownstreamState::Availability::Down;
-                           }
-                           else {
-                             warnlog("Ignoring unknown value '%s' for 'healthCheckMode' on 'newServer'", mode);
-                           }
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "checkName", valueStr) > 0) {
-                           config.checkName = DNSName(valueStr);
-                         }
-
-                         getOptionalValue<std::string>(vars, "checkType", config.checkType);
-                         getOptionalIntegerValue("newServer", vars, "checkClass", config.checkClass);
-                         getOptionalValue<DownstreamState::checkfunc_t>(vars, "checkFunction", config.checkFunction);
-                         getOptionalIntegerValue("newServer", vars, "checkTimeout", config.checkTimeout);
-                         getOptionalValue<bool>(vars, "checkTCP", config.d_tcpCheck);
-                         getOptionalValue<bool>(vars, "setCD", config.setCD);
-                         getOptionalValue<bool>(vars, "mustResolve", config.mustResolve);
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckSampleSize", valueStr) > 0) {
-                           const auto& value = std::stoi(valueStr);
-                           checkParameterBound("lazyHealthCheckSampleSize", value);
-                           config.d_lazyHealthCheckSampleSize = value;
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckMinSampleCount", valueStr) > 0) {
-                           const auto& value = std::stoi(valueStr);
-                           checkParameterBound("lazyHealthCheckMinSampleCount", value);
-                           config.d_lazyHealthCheckMinSampleCount = value;
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckThreshold", valueStr) > 0) {
-                           const auto& value = std::stoi(valueStr);
-                           checkParameterBound("lazyHealthCheckThreshold", value, std::numeric_limits<uint8_t>::max());
-                           config.d_lazyHealthCheckThreshold = value;
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckFailedInterval", valueStr) > 0) {
-                           const auto& value = std::stoi(valueStr);
-                           checkParameterBound("lazyHealthCheckFailedInterval", value);
-                           config.d_lazyHealthCheckFailedInterval = value;
-                         }
-
-                         getOptionalValue<bool>(vars, "lazyHealthCheckUseExponentialBackOff", config.d_lazyHealthCheckUseExponentialBackOff);
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckMaxBackOff", valueStr) > 0) {
-                           const auto& value = std::stoi(valueStr);
-                           checkParameterBound("lazyHealthCheckMaxBackOff", value);
-                           config.d_lazyHealthCheckMaxBackOff = value;
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckMode", valueStr) > 0) {
-                           const auto& mode = valueStr;
-                           if (pdns_iequals(mode, "TimeoutOnly")) {
-                             config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOnly;
-                           }
-                           else if (pdns_iequals(mode, "TimeoutOrServFail")) {
-                             config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOrServFail;
-                           }
-                           else {
-                             warnlog("Ignoring unknown value '%s' for 'lazyHealthCheckMode' on 'newServer'", mode);
-                           }
-                         }
-
-                         getOptionalValue<bool>(vars, "lazyHealthCheckWhenUpgraded", config.d_upgradeToLazyHealthChecks);
-
                          getOptionalValue<bool>(vars, "useClientSubnet", config.useECS);
                          getOptionalValue<bool>(vars, "useProxyProtocol", config.useProxyProtocol);
                          getOptionalValue<bool>(vars, "proxyProtocolAdvertiseTLS", config.d_proxyProtocolAdvertiseTLS);
@@ -515,8 +526,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalValue<bool>(vars, "ipBindAddrNoPort", config.ipBindAddrNoPort);
 
                          getOptionalIntegerValue("newServer", vars, "addXPF", config.xpfRRCode);
-                         getOptionalIntegerValue("newServer", vars, "maxCheckFailures", config.maxCheckFailures);
-                         getOptionalIntegerValue("newServer", vars, "rise", config.minRiseSuccesses);
 
                          getOptionalValue<bool>(vars, "reconnectOnUp", config.reconnectOnUp);
 

@@ -51,7 +51,7 @@ bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_
   return false;
 }
 
-bool checkQueryHeaders(const struct dnsheader* dh, ClientState&)
+bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState)
 {
   return true;
 }

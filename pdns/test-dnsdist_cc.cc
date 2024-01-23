@@ -58,7 +58,7 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMs
   return false;
 }
 
-bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query, bool)
+bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend)
 {
   return true;
 }
@@ -76,7 +76,7 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(DownstreamState const&)
 }
 namespace dnsdist::xsk
 {
-bool XskProcessQuery(ClientState& cs, LocalHolders& holders, XskPacket& packet)
+bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket& packet)
 {
   return false;
 }

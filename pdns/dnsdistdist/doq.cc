@@ -425,7 +425,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
       /* don't keep that pointer around, it will be invalidated if the buffer is ever resized */
       dnsheader_aligned dnsHeader(unit->query.data());
 
-      if (!checkQueryHeaders(dnsHeader.get(), clientState)) {
+      if (!checkQueryHeaders(*dnsHeader.get(), clientState)) {
         dnsdist::PacketMangling::editDNSHeaderFromPacket(unit->query, [](dnsheader& header) {
           header.rcode = RCode::ServFail;
           header.qr = true;
