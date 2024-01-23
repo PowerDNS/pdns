@@ -1116,7 +1116,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       auto sock = std::make_shared<Socket>(local.sin4.sin_family, SOCK_STREAM, 0);
       sock->bind(local, true);
       sock->listen(5);
-      auto launch = [sock, local]() {
+      auto launch = [sock = std::move(sock), local]() {
         std::thread consoleControlThread(controlThread, sock, local);
         consoleControlThread.detach();
       };
