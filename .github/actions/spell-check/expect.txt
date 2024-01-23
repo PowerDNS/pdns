@@ -705,6 +705,7 @@ libsodium
 libsofthsm
 libsystemd
 libtdsodbc
+libxdp
 libyaml
 libzmq
 lightningstream
