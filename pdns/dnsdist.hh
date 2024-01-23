@@ -995,7 +995,6 @@ public:
 #ifdef HAVE_XSK
   void registerXsk(std::vector<std::shared_ptr<XskSocket>>& xsks);
   [[nodiscard]] ComboAddress pickSourceAddressForSending();
-  [[nodiscard]] const std::shared_ptr<XskWorker>& pickWorkerForSending();
 #endif /* HAVE_XSK */
 
   dnsdist::Protocol getProtocol() const

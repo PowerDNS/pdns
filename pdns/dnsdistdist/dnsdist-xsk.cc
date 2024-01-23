@@ -42,7 +42,6 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
     auto localRespRuleActions = g_respruleactions.getLocal();
     auto localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
     auto pollfds = getPollFdsForWorker(*xskInfo);
-    const auto xskFd = xskInfo->workerWaker.getHandle();
     while (!dss->isStopped()) {
       poll(pollfds.data(), pollfds.size(), -1);
       bool needNotify = false;
@@ -63,7 +62,6 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
           auto ids = dss->getState(queryId);
           if (ids) {
             if (!ids->isXSK()) {
-              // if (xskFd != ids->backendFD || !ids->isXSK()) {
               dss->restoreState(queryId, std::move(*ids));
               ids = std::nullopt;
             }

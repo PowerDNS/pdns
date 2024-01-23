@@ -885,16 +885,6 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
   return (*addresses)[idx % numberOfAddresses];
 }
 
-[[nodiscard]] const std::shared_ptr<XskWorker>& DownstreamState::pickWorkerForSending()
-{
-  auto numberOfWorkers = d_xskInfos.size();
-  if (numberOfWorkers == 0) {
-    throw std::runtime_error("No XSK worker available for sending XSK data to backend " + getNameWithAddr());
-  }
-  size_t idx = dnsdist::getRandomValue(numberOfWorkers);
-  return d_xskInfos[idx % numberOfWorkers];
-}
-
 void DownstreamState::registerXsk(std::vector<std::shared_ptr<XskSocket>>& xsks)
 {
   d_xskSockets = xsks;

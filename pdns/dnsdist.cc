@@ -868,7 +868,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
           continue;
         }
 
-        if (fd != ids->backendFD) {
+        if (!ids->isXSK() && fd != ids->backendFD) {
           dss->restoreState(queryId, std::move(*ids));
           continue;
         }
@@ -1992,8 +1992,6 @@ bool XskProcessQuery(ClientState& cs, LocalHolders& holders, XskPacket& packet)
       return false;
     }
     else {
-      const auto& xskInfo = ss->pickWorkerForSending();
-      ids.backendFD = xskInfo->workerWaker;
       assignOutgoingUDPQueryToBackend(ss, dh->id, dq, query, false);
       auto sourceAddr = ss->pickSourceAddressForSending();
       packet.setAddr(sourceAddr, ss->d_config.sourceMACAddr, ss->d_config.remote, ss->d_config.destMACAddr);
