@@ -1705,9 +1705,9 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
   }
 
   try {
-    int fd = downstream->pickSocketForSending();
+    int descriptor = downstream->pickSocketForSending();
     if (actuallySend) {
-      dnsQuestion.ids.backendFD = fd;
+      dnsQuestion.ids.backendFD = descriptor;
     }
     dnsQuestion.ids.origID = queryID;
     dnsQuestion.ids.forwardedOverUDP = true;
@@ -1726,7 +1726,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
 
     /* you can't touch ids or du after this line, unless the call returned a non-negative value,
        because it might already have been freed */
-    ssize_t ret = udpClientSendRequestToBackend(downstream, fd, query);
+    ssize_t ret = udpClientSendRequestToBackend(downstream, descriptor, query);
 
     if (ret < 0) {
       failed = true;
@@ -1799,7 +1799,7 @@ static void processUDPQuery(ClientState& cs, LocalHolders& holders, const struct
       const dnsheader_aligned dnsHeader(query.data());
       queryId = ntohs(dnsHeader->id);
 
-      if (!checkQueryHeaders(*dnsHeader.get(), cs)) {
+      if (!checkQueryHeaders(*dnsHeader, cs)) {
         return;
       }
 

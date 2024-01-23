@@ -513,7 +513,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
       /* don't keep that pointer around, it will be invalidated if the buffer is ever resized */
       dnsheader_aligned dnsHeader(unit->query.data());
 
-      if (!checkQueryHeaders(*dnsHeader.get(), clientState)) {
+      if (!checkQueryHeaders(*dnsHeader, clientState)) {
         dnsdist::PacketMangling::editDNSHeaderFromPacket(unit->query, [](dnsheader& header) {
           header.rcode = RCode::ServFail;
           header.qr = true;

@@ -83,6 +83,7 @@ static void bpf_check_map_sizes(int descriptor, uint32_t expectedKeySize, uint32
   }
 }
 
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
 static int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
                           int max_entries, int map_flags)
 {
@@ -137,7 +138,7 @@ static int bpf_get_next_key(int descriptor, void *key, void *next_key)
 }
 
 static int bpf_prog_load(enum bpf_prog_type prog_type,
-                         const struct bpf_insn *insns, int prog_len,
+                         const struct bpf_insn *insns, size_t prog_len,
                          const char *license, int kern_version)
 {
   char log_buf[65535];
@@ -145,7 +146,7 @@ static int bpf_prog_load(enum bpf_prog_type prog_type,
   memset(&attr, 0, sizeof(attr));
   attr.prog_type = prog_type;
   attr.insns = ptr_to_u64((void *) insns);
-  attr.insn_cnt = prog_len / sizeof(struct bpf_insn);
+  attr.insn_cnt = static_cast<int>(prog_len / sizeof(struct bpf_insn));
   attr.license = ptr_to_u64((void *) license);
   attr.log_buf = ptr_to_u64(log_buf);
   attr.log_size = sizeof(log_buf);

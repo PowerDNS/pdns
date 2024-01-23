@@ -674,7 +674,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
   {
     /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
     const dnsheader_aligned dnsHeader(query.data());
-    if (!checkQueryHeaders(*dnsHeader.get(), *d_ci.cs)) {
+    if (!checkQueryHeaders(*dnsHeader, *d_ci.cs)) {
       return QueryProcessingResult::InvalidHeaders;
     }
 
