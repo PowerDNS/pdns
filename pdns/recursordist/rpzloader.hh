@@ -26,8 +26,26 @@
 
 extern bool g_logRPZChanges;
 
+// Please make sure that the struct below only contains value types since they are used as parameters in a thread ct
+struct RPZTrackerParams
+{
+  std::vector<ComboAddress> primaries;
+  boost::optional<DNSFilterEngine::Policy> defpol;
+  bool defpolOverrideLocal;
+  uint32_t maxTTL;
+  size_t zoneIdx;
+  TSIGTriplet tsigtriplet;
+  size_t maxReceivedBytes;
+  ComboAddress localAddress;
+  uint16_t xfrTimeout;
+  uint32_t refreshFromConf;
+  std::shared_ptr<const SOARecordContent> soaRecordContent;
+  std::string dumpZoneFileName;
+};
+
 std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, std::shared_ptr<DNSFilterEngine::Zone> zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL);
-void RPZIXFRTracker(const std::vector<ComboAddress>& primaries, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL, size_t zoneIdx, const TSIGTriplet& tt, size_t maxReceivedBytes, const ComboAddress& localAddress, const uint16_t xfrTimeout, const uint32_t reloadFromConf, shared_ptr<const SOARecordContent> sr, const std::string& dumpZoneFileName, uint64_t configGeneration);
+void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration);
+bool notifyRPZTracker(const DNSName& name);
 
 struct rpzStats
 {
