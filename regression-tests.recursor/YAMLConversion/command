@@ -25,7 +25,7 @@ ${RECCONTROL} --config-dir=. quit-nicely
 if [ $? = 0 ]; then
   break
 fi
-done
+done | uniq
 set -e
 
 diff -u apizones.expected $d2/apizones
