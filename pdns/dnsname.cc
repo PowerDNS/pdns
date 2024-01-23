@@ -161,7 +161,7 @@ size_t DNSName::parsePacketUncompressed(const UnsignedCharView& view, size_t pos
     pos += labellen;
     totalLength += 1 + labellen;
   }
-  while (labellen != 0 && pos < view.size());
+  while (pos < view.size());
 
   if (totalLength != 0) {
     auto existingSize = d_storage.size();
