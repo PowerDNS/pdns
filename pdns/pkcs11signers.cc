@@ -908,19 +908,19 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
     // FINE! I'll do this myself, then, shall I?
     switch(d_algorithm) {
     case 5: {
-      return pdns_sha1sum(msg);
+      return pdns::sha1sum(msg);
     }
     case 8: {
-      return pdns_sha256sum(msg);
+      return pdns::sha256sum(msg);
     }
     case 10: {
-      return pdns_sha512sum(msg);
+      return pdns::sha512sum(msg);
     }
     case 13: {
-      return pdns_sha256sum(msg);
+      return pdns::sha256sum(msg);
     }
     case 14: {
-      return pdns_sha384sum(msg);
+      return pdns::sha384sum(msg);
     }
     };
   };

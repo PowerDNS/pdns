@@ -31,9 +31,11 @@
 #include "lock.hh"
 #include "arguments.hh"
 #include "statbag.hh"
+#include "sha.hh"
+
 extern StatBag S;
 
-typedef map<pair<string, string>, string> signaturecache_t;
+using signaturecache_t = map<pair<string, string>, string>;
 static SharedLockGuarded<signaturecache_t> g_signatures;
 static int g_cacheweekno;
 
@@ -43,10 +45,10 @@ AtomicCounter* g_signatureCount;
 static std::string getLookupKeyFromMessage(const std::string& msg)
 {
   try {
-    return pdns_md5(msg);
+    return pdns::md5(msg);
   }
   catch(const std::runtime_error& e) {
-    return pdns_sha1(msg);
+    return pdns::sha1(msg);
   }
 }
 
@@ -58,7 +60,7 @@ static std::string getLookupKeyFromPublicKey(const std::string& pubKey)
   if (pubKey.size() <= 64) {
     return pubKey;
   }
-  return pdns_sha1sum(pubKey);
+  return pdns::sha1sum(pubKey);
 }
 
 static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, const sortedRecords_t& toSign)
