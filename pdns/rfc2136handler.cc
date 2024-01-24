@@ -726,6 +726,9 @@ int PacketHandler::processUpdate(DNSPacket& p) {
         g_log<<Logger::Error<<msgPrefix<<"TSIG key ("<<inputkey<<") required, but no matching key found in domainmetadata, tried "<<tsigKeys.size()<<". Sending REFUSED"<<endl;
         return RCode::Refused;
       }
+    } else if(::arg().mustDo("dnsupdate-require-tsig")) {
+      g_log<<Logger::Error<<msgPrefix<<"TSIG key required, but domain is not secured with TSIG. Sending REFUSED"<<endl;
+      return RCode::Refused;
     }
 
     if (tsigKeys.size() == 0 && p.d_havetsig)
