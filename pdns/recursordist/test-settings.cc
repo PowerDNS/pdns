@@ -647,7 +647,7 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_rpz)
   BOOST_CHECK_EQUAL(std::string(settings.recursor.rpzs[0].defpol), "");
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[0].defpolOverrideLocalData, true);
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[0].defttl, -1U);
-  BOOST_CHECK_EQUAL(settings.recursor.rpzs[0].extendedErrorCode, 0U);
+  BOOST_CHECK_EQUAL(settings.recursor.rpzs[0].extendedErrorCode, -1U);
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[0].extendedErrorExtra, "");
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[0].includeSOA, false);
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[0].ignoreDuplicates, false);
@@ -965,11 +965,11 @@ recordcache:
 
   // Create YAML, given a Lua config
   auto newsettings = pdns::rust::settings::rec::parse_yaml_string("");
-  GlobalStateHolder<LuaConfigItems> gsluaConfig;
-  gsluaConfig.setState(luaConfig);
-  LocalStateHolder<LuaConfigItems> local = gsluaConfig.getLocal();
+  //GlobalStateHolder<LuaConfigItems> gsluaConfig;
+  //gsluaConfig.setState(luaConfig);
+  //LuaConfigItems local; // = gsluaConfig.getCopy();
   try {
-    pdns::settings::rec::fromLuaConfigToBridgeStruct(local, proxyMapping, newsettings);
+    pdns::settings::rec::fromLuaConfigToBridgeStruct(luaConfig, proxyMapping, newsettings);
   }
   catch (std::exception& e) {
     cerr << e.what() << endl;

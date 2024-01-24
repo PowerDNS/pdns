@@ -147,7 +147,7 @@ pub struct RPZ {
     defpolOverrideLocalData: bool,
     #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal")]
     defttl: u32,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal")]
     extendedErrorCode: u32,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     extendedErrorExtra: String,

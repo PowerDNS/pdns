@@ -52,6 +52,6 @@ void readYamlAllowFromFile(const std::string& filename, ::rust::Vec<::rust::Stri
 void readYamlAllowNotifyForFile(const std::string& filename, ::rust::Vec<::rust::String>& vec, Logr::log_t log);
 void setArgsForZoneRelatedSettings(pdns::rust::settings::rec::Recursorsettings& settings);
 void setArgsForACLRelatedSettings(pdns::rust::settings::rec::Recursorsettings& settings);
-void fromLuaConfigToBridgeStruct(LocalStateHolder<LuaConfigItems>& luaConfig, const ProxyMapping& proxyMapping, pdns::rust::settings::rec::Recursorsettings& settings);
-  void fromBridgeStructToLuaConfig(const pdns::rust::settings::rec::Recursorsettings& settings, LuaConfigItems& luaConfig, ProxyMapping& proxyMapping);
+void fromLuaConfigToBridgeStruct(LuaConfigItems& luaConfig, const ProxyMapping& proxyMapping, pdns::rust::settings::rec::Recursorsettings& settings);
+void fromBridgeStructToLuaConfig(const pdns::rust::settings::rec::Recursorsettings& settings, LuaConfigItems& luaConfig, ProxyMapping& proxyMapping);
 }

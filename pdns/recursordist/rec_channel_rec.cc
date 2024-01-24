@@ -2138,10 +2138,10 @@ static RecursorControlChannel::Answer luaconfig(T begin, T end)
     ::arg().set("lua-config-file") = *begin;
   }
   try {
-    luaConfigDelayedThreads delayedLuaThreads;
     ProxyMapping proxyMapping;
-    loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
-    startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
+    LuaConfigItems lci;
+    loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
+    activateLuaConfig(lci);
     broadcastFunction([=] { return pleaseSupplantProxyMapping(proxyMapping); });
     g_log << Logger::Warning << "Reloaded Lua configuration file '" << ::arg()["lua-config-file"] << "', requested via control channel" << endl;
     return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};

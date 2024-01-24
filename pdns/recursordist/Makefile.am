@@ -514,6 +514,7 @@ rec_control_SOURCES = \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
+	filterpo.cc filterpo.hh \
 	logger.cc \
 	logging.cc \
 	misc.cc \

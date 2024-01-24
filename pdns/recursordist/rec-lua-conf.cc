@@ -99,70 +99,67 @@ typename C::value_type::second_type constGet(const C& c, const std::string& name
 
 typedef std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>>>> rpzOptions_t;
 
-static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngine::Zone>& zone, std::string& polName, boost::optional<DNSFilterEngine::Policy>& defpol, bool& defpolOverrideLocal, uint32_t& maxTTL)
+static void parseRPZParameters(rpzOptions_t& have, RPZTrackerParams& params)
 {
   if (have.count("policyName") != 0) {
-    polName = boost::get<std::string>(have["policyName"]);
+    params.polName = boost::get<std::string>(have["policyName"]);
   }
   if (have.count("defpol") != 0) {
-    defpol = DNSFilterEngine::Policy();
-    defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have["defpol"]);
-    defpol->setName(polName);
-    if (defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
-      if (!defpol->d_custom) {
-        defpol->d_custom = make_unique<DNSFilterEngine::Policy::CustomData>();
+    params.defpol = DNSFilterEngine::Policy();
+    params.defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have["defpol"]);
+    params.defpol->setName(params.polName);
+    if (params.defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
+      params.defcontent = boost::get<string>(have["defcontent"]);
+      if (!params.defpol->d_custom) {
+        params.defpol->d_custom = make_unique<DNSFilterEngine::Policy::CustomData>();
       }
-      defpol->d_custom->push_back(DNSRecordContent::make(QType::CNAME, QClass::IN,
-                                                         boost::get<string>(have["defcontent"])));
+      params.defpol->d_custom->push_back(DNSRecordContent::make(QType::CNAME, QClass::IN,
+                                                               params.defcontent));
 
       if (have.count("defttl") != 0) {
-        defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(have["defttl"]));
+        params.defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(have["defttl"]));
       }
       else {
-        defpol->d_ttl = -1; // get it from the zone
+        params.defpol->d_ttl = -1; // get it from the zone
       }
     }
 
     if (have.count("defpolOverrideLocalData") != 0) {
-      defpolOverrideLocal = boost::get<bool>(have["defpolOverrideLocalData"]);
+      params.defpolOverrideLocal = boost::get<bool>(have["defpolOverrideLocalData"]);
     }
   }
   if (have.count("maxTTL") != 0) {
-    maxTTL = boost::get<uint32_t>(have["maxTTL"]);
+    params.maxTTL = boost::get<uint32_t>(have["maxTTL"]);
   }
   if (have.count("zoneSizeHint") != 0) {
-    auto zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have["zoneSizeHint"]));
-    if (zoneSizeHint > 0) {
-      zone->reserve(zoneSizeHint);
-    }
+    params.zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have["zoneSizeHint"]));
   }
   if (have.count("tags") != 0) {
     const auto& tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have["tags"]);
     std::unordered_set<std::string> tags;
     for (const auto& tag : tagsTable) {
       tags.insert(tag.second);
+      params.tags.insert(tag.second);
     }
-    zone->setTags(std::move(tags));
   }
   if (have.count("overridesGettag") != 0) {
-    zone->setPolicyOverridesGettag(boost::get<bool>(have["overridesGettag"]));
+    params.defpolOverrideLocal = boost::get<bool>(have["overridesGettag"]);
   }
   if (have.count("extendedErrorCode") != 0) {
     auto code = boost::get<uint32_t>(have["extendedErrorCode"]);
     if (code > std::numeric_limits<uint16_t>::max()) {
       throw std::runtime_error("Invalid extendedErrorCode value " + std::to_string(code) + " in RPZ configuration");
     }
-
-    zone->setExtendedErrorCode(static_cast<uint16_t>(code));
+    params.extendedErrorCode = code;
     if (have.count("extendedErrorExtra") != 0) {
-      zone->setExtendedErrorExtra(boost::get<std::string>(have["extendedErrorExtra"]));
+      params.extendedErrorExtra = boost::get<std::string>(have["extendedErrorExtra"]);
     }
   }
   if (have.count("includeSOA") != 0) {
-    zone->setIncludeSOA(boost::get<bool>(have["includeSOA"]));
+    params.includeSOA = boost::get<bool>(have["includeSOA"]);
   }
   if (have.count("ignoreDuplicates") != 0) {
-    zone->setIgnoreDuplicates(boost::get<bool>(have["ignoreDuplicates"]));
+    params.ignoreDuplicates = boost::get<bool>(have["ignoreDuplicates"]);
   }
 }
 
@@ -271,116 +268,72 @@ static void parseFrameStreamOptions(boost::optional<frameStreamOptions_t> vars, 
 }
 #endif /* HAVE_FSTRM */
 
-static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThreads, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options)
+static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options)
 {
-  boost::optional<DNSFilterEngine::Policy> defpol;
-  bool defpolOverrideLocal = true;
+  RPZTrackerParams params;
+  params.name = zoneName;
+  params.polName = zoneName;
+
   std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
-  TSIGTriplet tt;
-  uint32_t refresh = 0;
-  size_t maxReceivedXFRMBytes = 0;
-  uint16_t axfrTimeout = 20;
-  uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
-  ComboAddress localAddress;
-  std::vector<ComboAddress> primaries;
   if (primaries_.type() == typeid(string)) {
-    primaries.push_back(ComboAddress(boost::get<std::string>(primaries_), 53));
+    params.primaries.emplace_back(boost::get<std::string>(primaries_), 53);
   }
   else {
     for (const auto& primary : boost::get<std::vector<std::pair<int, std::string>>>(primaries_)) {
-      primaries.push_back(ComboAddress(primary.second, 53));
+      params.primaries.emplace_back(primary.second, 53);
     }
   }
 
-  size_t zoneIdx;
-  std::string dumpFile;
-  std::shared_ptr<const SOARecordContent> sr = nullptr;
-
   try {
-    std::string seedFile;
-    std::string polName(zoneName);
-
     if (options) {
       auto& have = *options;
-      parseRPZParameters(have, zone, polName, defpol, defpolOverrideLocal, maxTTL);
+      parseRPZParameters(have, params);
 
-      if (have.count("tsigname")) {
-        tt.name = DNSName(toLower(boost::get<string>(have["tsigname"])));
-        tt.algo = DNSName(toLower(boost::get<string>(have["tsigalgo"])));
-        if (B64Decode(boost::get<string>(have["tsigsecret"]), tt.secret))
+      if (have.count("tsigname") != 0) {
+        params.tsigtriplet.name = DNSName(toLower(boost::get<string>(have["tsigname"])));
+        params.tsigtriplet.algo = DNSName(toLower(boost::get<string>(have["tsigalgo"])));
+        if (B64Decode(boost::get<string>(have["tsigsecret"]), params.tsigtriplet.secret)) {
           throw std::runtime_error("TSIG secret is not valid Base-64 encoded");
+        }
       }
-
-      if (have.count("refresh")) {
-        refresh = boost::get<uint32_t>(have["refresh"]);
-        if (refresh == 0) {
+      if (have.count("refresh") != 0) {
+        params.refreshFromConf = boost::get<uint32_t>(have["refresh"]);
+        if (params.refreshFromConf == 0) {
           SLOG(g_log << Logger::Warning << "rpzPrimary refresh value of 0 ignored" << endl,
                lci.d_slog->info(Logr::Warning, "rpzPrimary refresh value of 0 ignored"));
         }
       }
 
-      if (have.count("maxReceivedMBytes")) {
-        maxReceivedXFRMBytes = static_cast<size_t>(boost::get<uint32_t>(have["maxReceivedMBytes"]));
+      if (have.count("maxReceivedMBytes") != 0) {
+        params.maxReceivedMBytes = static_cast<size_t>(boost::get<uint32_t>(have["maxReceivedMBytes"]));
       }
 
-      if (have.count("localAddress")) {
-        localAddress = ComboAddress(boost::get<string>(have["localAddress"]));
+      if (have.count("localAddress") != 0) {
+        params.localAddress = ComboAddress(boost::get<string>(have["localAddress"]));
       }
 
-      if (have.count("axfrTimeout")) {
-        axfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(have["axfrTimeout"]));
+      if (have.count("axfrTimeout") != 0) {
+        params.xfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(have["axfrTimeout"]));
       }
 
-      if (have.count("seedFile")) {
-        seedFile = boost::get<std::string>(have["seedFile"]);
+      if (have.count("seedFile") != 0) {
+        params.seedFileName = boost::get<std::string>(have["seedFile"]);
       }
 
-      if (have.count("dumpFile")) {
-        dumpFile = boost::get<std::string>(have["dumpFile"]);
+      if (have.count("dumpFile") != 0) {
+        params.dumpZoneFileName = boost::get<std::string>(have["dumpFile"]);
       }
     }
 
-    if (localAddress != ComboAddress()) {
+    if (params.localAddress != ComboAddress()) {
       // We were passed a localAddress, check if its AF matches the primaries'
-      for (const auto& primary : primaries) {
-        if (localAddress.sin4.sin_family != primary.sin4.sin_family) {
-          throw PDNSException("Primary address(" + primary.toString() + ") is not of the same Address Family as the local address (" + localAddress.toString() + ").");
+      for (const auto& primary : params.primaries) {
+        if (params.localAddress.sin4.sin_family != primary.sin4.sin_family) {
+          throw PDNSException("Primary address(" + primary.toString() + ") is not of the same Address Family as the local address (" + params.localAddress.toString() + ").");
         }
       }
     }
-
-    DNSName domain(zoneName);
-    zone->setDomain(domain);
-    zone->setName(polName);
-    zoneIdx = lci.dfe.addZone(zone);
-
-    auto log = lci.d_slog->withValues("seedfile", Logging::Loggable(seedFile), "zone", Logging::Loggable(zoneName));
-    if (!seedFile.empty()) {
-      SLOG(g_log << Logger::Info << "Pre-loading RPZ zone " << zoneName << " from seed file '" << seedFile << "'" << endl,
-           log->info(Logr::Info, "Pre-loading RPZ zone from seed file"));
-      try {
-        sr = loadRPZFromFile(seedFile, zone, defpol, defpolOverrideLocal, maxTTL);
-
-        if (zone->getDomain() != domain) {
-          throw PDNSException("The RPZ zone " + zoneName + " loaded from the seed file (" + zone->getDomain().toString() + ") does not match the one passed in parameter (" + domain.toString() + ")");
-        }
-
-        if (sr == nullptr) {
-          throw PDNSException("The RPZ zone " + zoneName + " loaded from the seed file (" + zone->getDomain().toString() + ") has no SOA record");
-        }
-      }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << zoneName << " from seed file '" << seedFile << "': " << e.reason << endl,
-             log->error(Logr::Warning, e.reason, "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("PDNSException")));
-        zone->clear();
-      }
-      catch (const std::exception& e) {
-        SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << zoneName << " from seed file '" << seedFile << "': " << e.what() << endl,
-             log->error(Logr::Warning, e.what(), "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("std::exception")));
-        zone->clear();
-      }
-    }
-    lci.rpzRaw.emplace_back(RPZRaw{primaries, zoneName, options});
+    lci.rpzs.emplace_back(params);
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "Problem configuring 'rpzPrimary': " << e.what() << endl,
@@ -390,8 +343,6 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
     SLOG(g_log << Logger::Error << "Problem configuring 'rpzPrimary': " << e.reason << endl,
          lci.d_slog->error(Logr::Error, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException")));
   }
-
-  delayedThreads.rpzPrimaryThreads.emplace_back(RPZTrackerParams{std::move(primaries), std::move(defpol), defpolOverrideLocal, maxTTL, zoneIdx, std::move(tt), maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, std::move(sr), std::move(dumpFile)});
 }
 
 // A wrapper class that loads the standard Lua defintions into the context, so that we can use things like pdns.A
@@ -422,7 +373,7 @@ public:
   }
 };
 
-void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads, ProxyMapping& proxyMapping)
+void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping, LuaConfigItems& newLuaConfig)
 {
   LuaConfigItems lci;
   lci.d_slog = g_slog->withName("luaconfig");
@@ -455,39 +406,22 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   Lua->writeVariable("Policy", pmap);
 
   Lua->writeFunction("rpzFile", [&lci](const string& filename, boost::optional<rpzOptions_t> options) {
-    auto log = lci.d_slog->withValues("file", Logging::Loggable(filename));
-    try {
-      boost::optional<DNSFilterEngine::Policy> defpol;
-      bool defpolOverrideLocal = true;
-      std::string polName("rpzFile");
-      std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
-      uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
-      if (options) {
-        auto& have = *options;
-        parseRPZParameters(have, zone, polName, defpol, defpolOverrideLocal, maxTTL);
-      }
-      SLOG(g_log << Logger::Warning << "Loading RPZ from file '" << filename << "'" << endl,
-           log->info(Logr::Info, "Loading RPZ from file"));
-      zone->setName(polName);
-      loadRPZFromFile(filename, zone, defpol, defpolOverrideLocal, maxTTL);
-      lci.dfe.addZone(std::move(zone));
-      SLOG(g_log << Logger::Warning << "Done loading RPZ from file '" << filename << "'" << endl,
-           log->info(Logr::Info,  "Done loading RPZ from file"));
-      lci.rpzRaw.emplace_back(RPZRaw{{}, filename, options});
+    RPZTrackerParams params;
+    params.name = filename;
+    params.polName = "rpzFile";
+    if (options) {
+      parseRPZParameters(*options, params);
     }
-    catch (const std::exception& e) {
-      SLOG(g_log << Logger::Error << "Unable to load RPZ zone from '" << filename << "': " << e.what() << endl,
-           log->error(Logr::Error, e.what(), "Exception while loading RPZ zone from file"));
-    }
+    lci.rpzs.emplace_back(params);
   });
 
-  Lua->writeFunction("rpzMaster", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
+  Lua->writeFunction("rpzMaster", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
     SLOG(g_log << Logger::Warning << "'rpzMaster' is deprecated and will be removed in a future release, use 'rpzPrimary' instead" << endl,
          lci.d_slog->info(Logr::Warning, "'rpzMaster' is deprecated and will be removed in a future release, use 'rpzPrimary' instead"));
-    rpzPrimary(lci, delayedThreads, primaries_, zoneName, options);
+    rpzPrimary(lci, primaries_, zoneName, options);
   });
-  Lua->writeFunction("rpzPrimary", [&lci, &delayedThreads](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
-    rpzPrimary(lci, delayedThreads, primaries_, zoneName, options);
+  Lua->writeFunction("rpzPrimary", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
+    rpzPrimary(lci, primaries_, zoneName, options);
   });
 
   typedef std::unordered_map<std::string, boost::variant<uint32_t, std::string>> zoneToCacheOptions_t;
@@ -607,14 +541,12 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
                      });
 
   Lua->writeFunction("addTA", [&lci](const std::string& who, const std::string& what) {
-    warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC (addTA), but dnssec is set to 'off'!");
     DNSName zone(who);
     auto ds = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
     lci.dsAnchors[zone].insert(*ds);
   });
 
   Lua->writeFunction("clearTA", [&lci](boost::optional<string> who) {
-    warnIfDNSSECDisabled("Warning: removing Trust Anchor for DNSSEC (clearTA), but dnssec is set to 'off'!");
     if (who)
       lci.dsAnchors.erase(DNSName(*who));
     else
@@ -623,7 +555,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
   /* Remove in 4.3 */
   Lua->writeFunction("addDS", [&lci](const std::string& who, const std::string& what) {
-    warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC (addDS), but dnssec is set to 'off'!");
     SLOG(g_log << Logger::Warning << "addDS is deprecated and will be removed in the future, switch to addTA" << endl,
          lci.d_slog->info(Logr::Warning, "addDS is deprecated and will be removed in the future, switch to addTA"));
     DNSName zone(who);
@@ -635,7 +566,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   Lua->writeFunction("clearDS", [&lci](boost::optional<string> who) {
     SLOG(g_log << Logger::Warning << "clearDS is deprecated and will be removed in the future, switch to clearTA" << endl,
          lci.d_slog->info(Logr::Warning, "clearDS is deprecated and will be removed in the future, switch to clearTA"));
-    warnIfDNSSECDisabled("Warning: removing Trust Anchor for DNSSEC (clearDS), but dnssec is set to 'off'!");
     if (who)
       lci.dsAnchors.erase(DNSName(*who));
     else
@@ -643,7 +573,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   });
 
   Lua->writeFunction("addNTA", [&lci](const std::string& who, const boost::optional<std::string> why) {
-    warnIfDNSSECDisabled("Warning: adding Negative Trust Anchor for DNSSEC (addNTA), but dnssec is set to 'off'!");
     if (why)
       lci.negAnchors[DNSName(who)] = static_cast<string>(*why);
     else
@@ -651,7 +580,6 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
   });
 
   Lua->writeFunction("clearNTA", [&lci](boost::optional<string> who) {
-    warnIfDNSSECDisabled("Warning: removing Negative Trust Anchor for DNSSEC (clearNTA), but dnssec is set to 'off'!");
     if (who)
       lci.negAnchors.erase(DNSName(*who));
     else
@@ -663,10 +591,8 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     if (interval) {
       realInterval = static_cast<uint32_t>(*interval);
     }
-    warnIfDNSSECDisabled("Warning: reading Trust Anchors from file (readTrustAnchorsFromFile), but dnssec is set to 'off'!");
     lci.trustAnchorFileInfo.fname = fnamearg;
     lci.trustAnchorFileInfo.interval = realInterval;
-    updateTrustAnchorsFromFile(fnamearg, lci.dsAnchors, lci.d_slog);
   });
 
   Lua->writeFunction("setProtobufMasks", [&lci](const uint8_t maskV4, uint8_t maskV6) {
@@ -876,7 +802,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
 
   try {
     Lua->executeCode(ifs);
-    g_luaconfs.setState(std::move(lci));
+    newLuaConfig = lci;
   }
   catch (const LuaContext::ExecutionErrorException& e) {
     SLOG(g_log << Logger::Error << "Unable to load Lua script from '" + fname + "': ",
@@ -900,27 +826,5 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
     SLOG(g_log << Logger::Error << "Unable to load Lua script from '" + fname + "': " << err.what() << endl,
          lci.d_slog->error(Logr::Error, err.what(),  "Unable to load Lua script", "file", Logging::Loggable(fname), "exception", Logging::Loggable("std::exception")));
     throw;
-  }
-}
-
-void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads, uint64_t generation)
-{
-  for (const auto& rpzPrimary : delayedThreads.rpzPrimaryThreads) {
-    try {
-      // The get calls all return a value object here. That is essential, since we want copies so that RPZIXFRTracker gets values
-      // with the proper lifetime.
-      std::thread theThread(RPZIXFRTracker, rpzPrimary, generation);
-      theThread.detach();
-    }
-    catch (const std::exception& e) {
-      SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.what() << endl,
-           g_slog->withName("rpz")->error(Logr::Error, e.what(), "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("std::exception")));
-      exit(1);
-    }
-    catch (const PDNSException& e) {
-      SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.reason << endl,
-           g_slog->withName("rpz")->error(Logr::Error, e.reason, "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
-      exit(1);
-    }
   }
 }
