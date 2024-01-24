@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <atomic>
 #include <boost/utility.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -46,6 +47,11 @@ public:
   AggressiveNSECCache(uint64_t entries) :
     d_maxEntries(entries)
   {
+  }
+
+  void setMaxEntries(uint64_t number)
+  {
+    d_maxEntries = number;
   }
 
   static bool nsec3Disabled()
@@ -157,7 +163,7 @@ private:
   pdns::stat_t d_nsecWildcardHits{0};
   pdns::stat_t d_nsec3WildcardHits{0};
   pdns::stat_t d_entriesCount{0};
-  uint64_t d_maxEntries{0};
+  std::atomic<uint64_t> d_maxEntries{0};
 };
 
 extern std::unique_ptr<AggressiveNSECCache> g_aggressiveNSECCache;

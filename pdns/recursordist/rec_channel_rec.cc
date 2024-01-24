@@ -888,6 +888,25 @@ static string setMaxPacketCacheEntries(T begin, T end)
   }
 }
 
+template <typename T>
+static RecursorControlChannel::Answer setAggrNSECCacheSize(T begin, T end)
+{
+  if (end - begin != 1) {
+    return {1, "Need to supply new aggressive NSEC cache size\n"};
+  }
+  if (!g_aggressiveNSECCache) {
+    return {1, "Aggressive NSEC cache is disabled by startup config\n"};
+  }
+  try {
+    auto newmax = pdns::checked_stoi<uint64_t>(*begin);
+    g_aggressiveNSECCache->setMaxEntries(newmax);
+    return {0, "New aggressive NSEC cache size: " + std::to_string(newmax) + "\n"};
+  }
+  catch (const std::exception& e) {
+    return {1, "Error parsing the new aggressive NSEC cache size: " + std::string(e.what()) + "\n"};
+  }
+}
+
 static uint64_t getSysTimeMsec()
 {
   struct rusage ru;
@@ -2085,7 +2104,8 @@ static RecursorControlChannel::Answer help()
           "reload-lua-config [filename]     (re)load Lua configuration file\n"
           "reload-zones                     reload all auth and forward zones\n"
           "set-ecs-minimum-ttl value        set ecs-minimum-ttl-override\n"
-          "set-max-cache-entries value      set new maximum cache size\n"
+          "set-max-aggr-nsec-cache-size value set new maximum aggressive NSEC cache size\n"
+          "set-max-cache-entries value      set new maximum record cache size\n"
           "set-max-packetcache-entries val  set new maximum packet cache size\n"
           "set-minimum-ttl value            set minimum-ttl-override\n"
           "set-carbon-server                set a carbon server for telemetry\n"
@@ -2364,6 +2384,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
   }
   if (cmd == "list-dnssec-algos") {
     return {0, DNSCryptoKeyEngine::listSupportedAlgoNames()};
+  }
+  if (cmd == "set-aggr-nsec-cache-size") {
+    return setAggrNSECCacheSize(begin, end);
   }
 
   return {1, "Unknown command '" + cmd + "', try 'help'\n"};
