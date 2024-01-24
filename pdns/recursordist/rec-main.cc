@@ -42,6 +42,8 @@
 #include "settings/cxxsettings.hh"
 #include "json.hh"
 #include "rec-system-resolve.hh"
+#include "root-dnssec.hh"
+
 #ifdef NOD_ENABLED
 #include "nod.hh"
 #endif /* NOD_ENABLED */
@@ -2079,12 +2081,13 @@ static int serviceMain(Logr::log_t log)
   }
   g_maxCacheEntries = ::arg().asNum("max-cache-entries");
 
-  luaConfigDelayedThreads delayedLuaThreads;
   try {
     ProxyMapping proxyMapping;
-    loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
+    LuaConfigItems lci;
+    loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
     // Initial proxy mapping
     g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
+    activateLuaConfig(lci);
   }
   catch (PDNSException& e) {
     SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
@@ -2257,8 +2260,8 @@ static int serviceMain(Logr::log_t log)
     return ret;
   }
 
-  startLuaConfigDelayedThreads(delayedLuaThreads, g_luaconfs.getCopy().generation);
-  delayedLuaThreads.rpzPrimaryThreads.clear(); // no longer needed
+  auto lci = g_luaconfs.getCopy();
+  activateLuaConfig(lci);
 
   RecThreadInfo::makeThreadPipes(log);
 
@@ -2904,17 +2907,16 @@ static pair<int, bool> doYamlConfig(Logr::log_t startupLog, int argc, char* argv
     ::arg().parse(argc, argv);
     pdns::rust::settings::rec::Recursorsettings settings;
     pdns::settings::rec::oldStyleSettingsToBridgeStruct(settings);
-    luaConfigDelayedThreads delayedLuaThreads;
     ProxyMapping proxyMapping;
+    LuaConfigItems lci;
     try {
-      loadRecursorLuaConfig(::arg()["lua-config-file"], delayedLuaThreads, proxyMapping);
+      loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
     }
     catch (PDNSException& e) {
       SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
            startupLog->error(Logr::Error, e.reason, "Cannot load Lua configuration"));
     }
-    auto luaConfig = g_luaconfs.getLocal();
-    pdns::settings::rec::fromLuaConfigToBridgeStruct(luaConfig, proxyMapping, settings);
+    pdns::settings::rec::fromLuaConfigToBridgeStruct(lci, proxyMapping, settings);
     auto yaml = settings.to_yaml_string();
     cout << yaml << endl;
   }
@@ -3334,4 +3336,129 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
   }
 
   return res;
+}
+
+static void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t generation)
+{
+  for (const auto& rpzPrimary : rpzs) {
+    if (rpzPrimary.primaries.empty()) {
+      continue;
+    }
+    try {
+      // The get calls all return a value object here. That is essential, since we want copies so that RPZIXFRTracker gets values
+      // with the proper lifetime.
+      std::thread theThread(RPZIXFRTracker, rpzPrimary, generation);
+      theThread.detach();
+    }
+    catch (const std::exception& e) {
+      SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.what() << endl,
+           g_slog->withName("rpz")->error(Logr::Error, e.what(), "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("std::exception")));
+      exit(1);
+    }
+    catch (const PDNSException& e) {
+      SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.reason << endl,
+           g_slog->withName("rpz")->error(Logr::Error, e.reason, "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
+      exit(1);
+    }
+  }
+}
+
+static void activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci, shared_ptr<DNSFilterEngine::Zone>& zone)
+{
+  auto log = lci.d_slog->withValues("file", Logging::Loggable(params.name));
+
+  zone->setName(params.polName);
+  try {
+    SLOG(g_log << Logger::Warning << "Loading RPZ from file '" << params.name << "'" << endl,
+         log->info(Logr::Info, "Loading RPZ from file"));
+    loadRPZFromFile(params.name, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL);
+    SLOG(g_log << Logger::Warning << "Done loading RPZ from file '" << params.name << "'" << endl,
+         log->info(Logr::Info,  "Done loading RPZ from file"));
+  }
+  catch (const std::exception& e) {
+    SLOG(g_log << Logger::Error << "Unable to load RPZ zone from '" << params.name << "': " << e.what() << endl,
+         log->error(Logr::Error, e.what(), "Exception while loading RPZ zone from file"));
+  }
+}
+
+static void activateRPZPrimary(RPZTrackerParams& params, LuaConfigItems& lci, shared_ptr<DNSFilterEngine::Zone>& zone, const DNSName& domain)
+{
+  auto log = lci.d_slog->withValues("seedfile", Logging::Loggable(params.seedFileName), "zone", Logging::Loggable(params.name));
+
+  if (!params.seedFileName.empty()) {
+    SLOG(g_log << Logger::Info << "Pre-loading RPZ zone " << params.name << " from seed file '" << params.seedFileName << "'" << endl,
+         log->info(Logr::Info, "Pre-loading RPZ zone from seed file"));
+    try {
+      params.soaRecordContent = loadRPZFromFile(params.seedFileName, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL);
+
+      if (zone->getDomain() != domain) {
+        throw PDNSException("The RPZ zone " + params.name + " loaded from the seed file (" + zone->getDomain().toString() + ") does not match the one passed in parameter (" + domain.toString() + ")");
+      }
+
+      if (params.soaRecordContent == nullptr) {
+        throw PDNSException("The RPZ zone " + params.name + " loaded from the seed file (" + zone->getDomain().toString() + ") has no SOA record");
+        }
+      }
+      catch (const PDNSException& e) {
+        SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << params.name << " from seed file '" << params.seedFileName << "': " << e.reason << endl,
+             log->error(Logr::Warning, e.reason, "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("PDNSException")));
+        zone->clear();
+      }
+      catch (const std::exception& e) {
+        SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << params.name << " from seed file '" << params.seedFileName << "': " << e.what() << endl,
+             log->error(Logr::Warning, e.what(), "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("std::exception")));
+        zone->clear();
+      }
+    }
+}
+
+static void activateRPZs(LuaConfigItems& lci)
+{
+  for (auto& params : lci.rpzs) {
+    auto zone = std::make_shared<DNSFilterEngine::Zone>();
+    if (params.zoneSizeHint != 0) {
+      zone->reserve(params.zoneSizeHint);
+    }
+    if (!params.tags.empty()) {
+      zone->setTags(params.tags);
+    }
+    zone->setPolicyOverridesGettag(params.defpolOverrideLocal);
+    if (params.extendedErrorCode != std::numeric_limits<uint32_t>::max()) {
+      zone->setExtendedErrorCode(params.extendedErrorCode);
+      if (!params.extendedErrorExtra.empty()) {
+        zone->setExtendedErrorExtra(params.extendedErrorExtra);
+      }
+    }
+    zone->setIncludeSOA(params.includeSOA);
+    zone->setIgnoreDuplicates(params.ignoreDuplicates);
+
+    if (params.primaries.empty()) {
+      activateRPZFile(params, lci, zone);
+      lci.dfe.addZone(std::move(zone));
+   }
+    else {
+      DNSName domain(params.name);
+      zone->setDomain(domain);
+      zone->setName(params.polName);
+      params.zoneIdx = lci.dfe.addZone(zone);
+      activateRPZPrimary(params, lci, zone, domain);
+    }
+  }
+  startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
+}
+
+void activateLuaConfig(LuaConfigItems& lci)
+{
+  if (!lci.trustAnchorFileInfo.fname.empty()) {
+    warnIfDNSSECDisabled("Warning: reading Trust Anchors from file, but dnssec is set to 'off'!");
+    updateTrustAnchorsFromFile(lci.trustAnchorFileInfo.fname, lci.dsAnchors, lci.d_slog);
+  }
+  if (lci.dsAnchors.size() > rootDSs.size()) {
+     warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC, but dnssec is set to 'off'!");
+  }
+  if (!lci.negAnchors.empty()) {
+     warnIfDNSSECDisabled("Warning: adding Negative Trust Anchor for DNSSEC, but dnssec is set to 'off'!");
+  }
+  activateRPZs(lci);
+  g_luaconfs.setState(std::move(lci));
 }

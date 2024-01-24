@@ -454,7 +454,7 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
     for (const auto& primary : params.primaries) {
       try {
-        params.soaRecordContent = loadRPZFromServer(logger, primary, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.tsigtriplet, params.maxReceivedBytes, params.localAddress, params.xfrTimeout);
+        params.soaRecordContent = loadRPZFromServer(logger, primary, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.tsigtriplet, params.maxReceivedMBytes, params.localAddress, params.xfrTimeout);
         newZone->setSerial(params.soaRecordContent->d_st.serial);
         newZone->setRefresh(params.soaRecordContent->d_st.refresh);
         refresh = std::max(params.refreshFromConf != 0 ? params.refreshFromConf : newZone->getRefresh(), 1U);
@@ -543,7 +543,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
     }
 
     try {
-      deltas = getIXFRDeltas(primary, zoneName, dnsRecord, params.xfrTimeout, true, params.tsigtriplet, &local, params.maxReceivedBytes);
+      deltas = getIXFRDeltas(primary, zoneName, dnsRecord, params.xfrTimeout, true, params.tsigtriplet, &local, params.maxReceivedMBytes);
 
       /* no need to try another primary */
       break;

@@ -37,6 +37,7 @@
 #include "root-dnssec.hh"
 #include "dnsrecords.hh"
 #include "base64.hh"
+#include "validate-recursor.hh"
 
 ::rust::Vec<::rust::String> pdns::settings::rec::getStrings(const std::string& name)
 {
@@ -710,11 +711,11 @@ std::string pdns::settings::rec::defaultsToYaml()
 
 namespace
 {
-void fromLuaToRust(LocalStateHolder<LuaConfigItems>& luaConfig, pdns::rust::settings::rec::Dnssec& dnssec)
+void fromLuaToRust(const LuaConfigItems& luaConfig, pdns::rust::settings::rec::Dnssec& dnssec)
 {
-  dnssec.trustanchorfile = luaConfig->trustAnchorFileInfo.fname;
-  dnssec.trustanchorfile_interval = luaConfig->trustAnchorFileInfo.interval;
-  for (const auto& anchors : luaConfig->dsAnchors) {
+  dnssec.trustanchorfile = luaConfig.trustAnchorFileInfo.fname;
+  dnssec.trustanchorfile_interval = luaConfig.trustAnchorFileInfo.interval;
+  for (const auto& anchors : luaConfig.dsAnchors) {
     ::rust::Vec<::rust::String> dsRecords;
     for (const auto& dsRecord : anchors.second) {
       const auto dsString = dsRecord.getZoneRepresentation();
@@ -725,7 +726,7 @@ void fromLuaToRust(LocalStateHolder<LuaConfigItems>& luaConfig, pdns::rust::sett
     pdns::rust::settings::rec::TrustAnchor trustAnchor{anchors.first.toString(), dsRecords};
     dnssec.trustanchors.emplace_back(trustAnchor);
   }
-  for (const auto& anchors : luaConfig->negAnchors) {
+  for (const auto& anchors : luaConfig.negAnchors) {
     pdns::rust::settings::rec::NegativeTrustAnchor negtrustAnchor{anchors.first.toString(), anchors.second};
     dnssec.negative_trustanchors.emplace_back(negtrustAnchor);
   }
@@ -779,37 +780,45 @@ void fromLuaToRust(const FrameStreamExportConfig& fsc, pdns::rust::settings::rec
   dnstap.reopenInterval = fsc.reopenInterval;
 }
 
-
-template <typename T>
-void setIfAvailable(const rpzOptions_t& table, T& var, const std::string& name)
+void assign(pdns::rust::settings::rec::TSIGTriplet& var, const TSIGTriplet& tsig)
 {
-  if (table.count(name) != 0) {
-    var = boost::get<T>(table.at(name));
+  var.name = tsig.name.empty() ? "" : tsig.name.toStringNoDot();
+  var.algo = tsig.algo.empty() ? "" : tsig.algo.toStringNoDot();
+  var.secret = Base64Encode(tsig.secret);
+}
+
+void assign(TSIGTriplet& var, const pdns::rust::settings::rec::TSIGTriplet& tsig)
+{
+  var.name = DNSName(std::string(tsig.name));
+  var.algo = DNSName(std::string(tsig.algo));
+  B64Decode(std::string(tsig.secret), var.secret);
+}
+
+std::string cvt(DNSFilterEngine::PolicyKind kind)
+{
+  switch (kind) {
+  case DNSFilterEngine::PolicyKind::NoAction:
+    return "NoAction";
+  case DNSFilterEngine::PolicyKind::Drop:
+    return "Drop";
+  case DNSFilterEngine::PolicyKind::NXDOMAIN:
+    return "NXDOMAIN";
+  case DNSFilterEngine::PolicyKind::NODATA:
+    return "NODATA";
+  case DNSFilterEngine::PolicyKind::Truncate:
+    return "Truncate";
+  case DNSFilterEngine::PolicyKind::Custom:
+    return "Custom";
   }
 }
 
-void setIfAvailable(const rpzOptions_t& table, rust::string& var, const std::string& name)
-{
-  if (table.count(name) != 0) {
-    var = boost::get<std::string>(table.at(name));
-  }
-}
-
-void setIfAvailable(const rpzOptions_t& table, pdns::rust::settings::rec::TSIGTriplet& var, const std::string& name)
-{
-  if (table.count(name) != 0) {
-    var.name = boost::get<std::string>(table.at("tsigname"));
-    var.algo = boost::get<std::string>(table.at("tsigalgo"));
-    var.secret = boost::get<std::string>(table.at("tsigsecret"));
-  }
-}
-void fromLuaToRust(const vector<RPZRaw>& rpzs, pdns::rust::settings::rec::Recursor& rec)
+void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::rec::Recursor& rec)
 {
   for (const auto& rpz : rpzs) {
     pdns::rust::settings::rec::RPZ rustrpz{
       .defpolOverrideLocalData = true,
       .defttl = std::numeric_limits<uint32_t>::max(),
-      .extendedErrorCode = 0,
+      .extendedErrorCode = std::numeric_limits<uint32_t>::max(),
       .includeSOA = false,
       .ignoreDuplicates = false,
       .maxTTL = std::numeric_limits<uint32_t>::max(),
@@ -819,37 +828,37 @@ void fromLuaToRust(const vector<RPZRaw>& rpzs, pdns::rust::settings::rec::Recurs
       .maxReceivedMBytes = 0,
       .axfrTimeout = 20};
 
-    for (const auto& address : rpz.addresses) {
+    for (const auto& address : rpz.primaries) {
       rustrpz.addresses.emplace_back(address.toStringWithPort());
     }
     rustrpz.name = rpz.name;
-    if (rpz.options) {
-      setIfAvailable(*rpz.options, rustrpz.defcontent, "defcontent");
-      setIfAvailable(*rpz.options, rustrpz.defpol, "defpol");
-      setIfAvailable(*rpz.options, rustrpz.defpolOverrideLocalData, "defpolOverrideLocalData");
-      setIfAvailable(*rpz.options, rustrpz.defttl, "defttl");
-      setIfAvailable(*rpz.options, rustrpz.extendedErrorCode, "extendedErrorCode");
-      setIfAvailable(*rpz.options, rustrpz.extendedErrorExtra, "extendedErrorExtra");
-      setIfAvailable(*rpz.options, rustrpz.includeSOA, "includeSOA");
-      setIfAvailable(*rpz.options, rustrpz.ignoreDuplicates, "ignoreDuplicates");
-      setIfAvailable(*rpz.options, rustrpz.maxTTL, "maxTTL");
-      setIfAvailable(*rpz.options, rustrpz.policyName, "policyName");
-      if (rpz.options->count("tags") != 0) {
-        const auto& tags = boost::get<vector<std::pair<int, std::string>>>(rpz.options->at("tags"));
-        for (const auto& tag : tags) {
-          rustrpz.tags.emplace_back(tag.second);
-        }
-      }
-      setIfAvailable(*rpz.options, rustrpz.overridesGettag, "overridesGettag");
-      setIfAvailable(*rpz.options, rustrpz.zoneSizeHint, "zoneSizeHint");
-      setIfAvailable(*rpz.options, rustrpz.tsig, "tsig");
-      setIfAvailable(*rpz.options, rustrpz.refresh, "refresh");
-      setIfAvailable(*rpz.options, rustrpz.maxReceivedMBytes, "maxReceivedMBytes");
-      setIfAvailable(*rpz.options, rustrpz.localAddress, "localAddress");
-      setIfAvailable(*rpz.options, rustrpz.axfrTimeout, "axfrTimeout");
-      setIfAvailable(*rpz.options, rustrpz.dumpFile, "dumpFile");
-      setIfAvailable(*rpz.options, rustrpz.seedFile, "seedFile");
+    rustrpz.defcontent = rpz.defcontent;
+    if (rpz.defpol) {
+      rustrpz.defpol = cvt(rpz.defpol->d_kind);
+      rustrpz.defttl = rpz.defpol->d_ttl;
     }
+    rustrpz.defpolOverrideLocalData = rpz.defpolOverrideLocal;
+    rustrpz.extendedErrorCode = rpz.extendedErrorCode;
+    rustrpz.extendedErrorExtra = rpz.extendedErrorExtra;
+    rustrpz.includeSOA = rpz.includeSOA;
+    rustrpz.ignoreDuplicates = rpz.ignoreDuplicates;
+    rustrpz.maxTTL = rpz.maxTTL;
+    rustrpz.policyName = rpz.polName;
+    for (const auto& tag : rpz.tags) {
+      rustrpz.tags.emplace_back(tag);
+    }
+    rustrpz.overridesGettag = rpz.defpolOverrideLocal;
+    rustrpz.zoneSizeHint = rpz.zoneSizeHint;
+    assign(rustrpz.tsig, rpz.tsigtriplet);
+    rustrpz.refresh = rpz.refreshFromConf;
+    rustrpz.maxReceivedMBytes = rpz.maxReceivedMBytes;
+    if (rpz.localAddress != ComboAddress()) {
+      rustrpz.localAddress = rpz.localAddress.toString();
+    }
+    rustrpz.axfrTimeout = rpz.xfrTimeout;
+    rustrpz.dumpFile = rpz.dumpZoneFileName;
+    rustrpz.seedFile = rpz.seedFileName;
+
     rec.rpzs.emplace_back(rustrpz);
   }
 }
@@ -994,34 +1003,36 @@ void fromLuaToRust(const SortList& arg, pdns::rust::settings::rec::Recursor& rec
 }
 } // namespace
 
-void pdns::settings::rec::fromLuaConfigToBridgeStruct(LocalStateHolder<LuaConfigItems>& luaConfig, const ProxyMapping& proxyMapping, pdns::rust::settings::rec::Recursorsettings& settings)
+void pdns::settings::rec::fromLuaConfigToBridgeStruct(LuaConfigItems& luaConfig, const ProxyMapping& proxyMapping, pdns::rust::settings::rec::Recursorsettings& settings)
 {
 
   fromLuaToRust(luaConfig, settings.dnssec);
-  if (luaConfig->protobufExportConfig.enabled) {
+  settings.logging.protobuf_mask_v4 = luaConfig.protobufMaskV4;
+  settings.logging.protobuf_mask_v6 = luaConfig.protobufMaskV6;
+  if (luaConfig.protobufExportConfig.enabled) {
     pdns::rust::settings::rec::ProtobufServer pbServer;
-    fromLuaToRust(luaConfig->protobufExportConfig, pbServer);
+    fromLuaToRust(luaConfig.protobufExportConfig, pbServer);
     settings.logging.protobuf_servers.emplace_back(pbServer);
   }
-  if (luaConfig->outgoingProtobufExportConfig.enabled) {
+  if (luaConfig.outgoingProtobufExportConfig.enabled) {
     pdns::rust::settings::rec::ProtobufServer pbServer;
-    fromLuaToRust(luaConfig->outgoingProtobufExportConfig, pbServer);
+    fromLuaToRust(luaConfig.outgoingProtobufExportConfig, pbServer);
     settings.logging.outgoing_protobuf_servers.emplace_back(pbServer);
   }
-  if (luaConfig->frameStreamExportConfig.enabled) {
+  if (luaConfig.frameStreamExportConfig.enabled) {
     pdns::rust::settings::rec::DNSTapFrameStreamServer dnstap;
-    fromLuaToRust(luaConfig->frameStreamExportConfig, dnstap);
+    fromLuaToRust(luaConfig.frameStreamExportConfig, dnstap);
     settings.logging.dnstap_framestream_servers.emplace_back(dnstap);
   }
-  if (luaConfig->nodFrameStreamExportConfig.enabled) {
+  if (luaConfig.nodFrameStreamExportConfig.enabled) {
     pdns::rust::settings::rec::DNSTapNODFrameStreamServer dnstap;
-    fromLuaToRust(luaConfig->nodFrameStreamExportConfig, dnstap);
+    fromLuaToRust(luaConfig.nodFrameStreamExportConfig, dnstap);
     settings.logging.dnstap_nod_framestream_servers.emplace_back(dnstap);
   }
-  fromLuaToRust(luaConfig->rpzRaw, settings.recursor);
-  fromLuaToRust(luaConfig->sortlist, settings.recursor);
-  fromLuaToRust(luaConfig->ztcConfigs, settings.recordcache);
-  fromLuaToRust(luaConfig->allowAdditionalQTypes, settings.recursor);
+  fromLuaToRust(luaConfig.rpzs, settings.recursor);
+  fromLuaToRust(luaConfig.sortlist, settings.recursor);
+  fromLuaToRust(luaConfig.ztcConfigs, settings.recordcache);
+  fromLuaToRust(luaConfig.allowAdditionalQTypes, settings.recursor);
   fromLuaToRust(proxyMapping, settings.incoming);
 }
 
@@ -1105,78 +1116,75 @@ void fromRustToLuaConfig(const pdns::rust::settings::rec::DNSTapNODFrameStreamSe
   exp.reopenInterval = dnstap.reopenInterval;
 }
 
+DNSFilterEngine::PolicyKind cvtKind(const std::string& kind)
+{
+  static const std::map<std::string, DNSFilterEngine::PolicyKind> map = {
+    { "Custom", DNSFilterEngine::PolicyKind::Custom },
+    { "Drop", DNSFilterEngine::PolicyKind::Drop },
+    { "NoAction", DNSFilterEngine::PolicyKind::NoAction },
+    { "NODATA", DNSFilterEngine::PolicyKind::NODATA },
+    { "NXDOMAIN", DNSFilterEngine::PolicyKind::NXDOMAIN },
+    { "Truncate", DNSFilterEngine::PolicyKind::Truncate }
+  };
+  if (auto iter = map.find(kind); iter != map.end()) {
+    return iter->second;
+  }
+  throw runtime_error("PolicyKind '" + kind + "' unknown");
+}
+
 
 void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, LuaConfigItems& luaConfig)
 {
   for (const auto& rpz : rpzs) {
-    RPZRaw rpzRaw;
+    RPZTrackerParams params;
     for (const auto& address : rpz.addresses) {
-      rpzRaw.addresses.emplace_back(std::string(address));
+      params.primaries.emplace_back(std::string(address));
     }
-    rpzRaw.name = std::string(rpz.name);
-    rpzOptions_t options;
+    params.name = std::string(rpz.name);
+    params.polName = std::string(rpz.policyName);
 
-    auto setIfNonDefault = [&options](const rust::String& value, const string& name)
-    {
-      if (!value.empty()) {
-        options[name] = std::string(value);
+    if (!rpz.defpol.empty()) {
+      params.defpol = DNSFilterEngine::Policy();
+      params.defcontent = std::string(rpz.defcontent);
+      params.defpol->d_kind = cvtKind(std::string(rpz.defpol));
+      params.defpol->setName(params.polName);
+      if (params.defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
+        if (!params.defpol->d_custom) {
+          params.defpol->d_custom = make_unique<DNSFilterEngine::Policy::CustomData>();
+        }
+        params.defpol->d_custom->push_back(DNSRecordContent::make(QType::CNAME, QClass::IN,
+                                                                 std::string(params.defcontent)));
+
+        if (rpz.defttl != std::numeric_limits<uint32_t>::max()) {
+          params.defpol->d_ttl = static_cast<int>(rpz.defttl);
+        }
+        else {
+          params.defpol->d_ttl = -1; // get it from the zone
+        }
       }
-    };
-    setIfNonDefault(rpz.defcontent, "defcontent");
-    setIfNonDefault(rpz.defpol, "defpol");
-    if (!rpz.defpolOverrideLocalData) {
-        options["defpolOverrideLocalData"] = false;
     }
-    if (rpz.defttl != -1U) {
-        options["defttl"] = rpz.defttl;
-    }
-    if (rpz.extendedErrorCode != 0) {
-        options["extendedErrorCode"] = rpz.extendedErrorCode;
-    }
-    setIfNonDefault(rpz.extendedErrorExtra, "extendedErrorExtra");
-    if (rpz.includeSOA) {
-        options["includeSOA"] = true;
-    }
-    if (rpz.ignoreDuplicates) {
-        options["ignoreDuplicates"] = true;
-    }
-    if (rpz.maxTTL != -1U) {
-        options["maxTTL"] = rpz.maxTTL;
-    }
-    setIfNonDefault(rpz.policyName, "policyName");
-    std::vector<std::pair<int, std::string>> tags;
-    int count = 0;
+    params.defpolOverrideLocal = rpz.defpolOverrideLocalData;
+    params.extendedErrorCode = rpz.extendedErrorCode;
+    params.extendedErrorExtra = std::string(rpz.extendedErrorExtra);
+    params.includeSOA = rpz.includeSOA;
+    params.ignoreDuplicates = rpz.ignoreDuplicates;
+    params.maxTTL = rpz.maxTTL;
+
     for (const auto& tag : rpz.tags) {
-      tags.emplace_back(++count, tag);
+      params.tags.emplace(std::string(tag));
     }
-    if (!tags.empty()) {
-      options["tags"] = tags;
+    params.defpolOverrideLocal = rpz.overridesGettag;
+    params.zoneSizeHint = rpz.zoneSizeHint;
+    assign(params.tsigtriplet, rpz.tsig);
+    params.refreshFromConf = rpz.refresh;
+    params.maxReceivedMBytes = rpz.maxReceivedMBytes;
+    if (!rpz.localAddress.empty()) {
+      params.localAddress = ComboAddress(std::string(rpz.localAddress));
     }
-    if (!rpz.overridesGettag) {
-        options["overridesGettag"] = false;
-    }
-    if (rpz.zoneSizeHint != 0) {
-        options["zoneSizeHint"] = rpz.zoneSizeHint;
-    }
-    setIfNonDefault(rpz.tsig.name, "tsigname");
-    setIfNonDefault(rpz.tsig.algo, "tsigalgo");
-    setIfNonDefault(rpz.tsig.secret, "tsigsecret");
-    if (rpz.refresh != 0) {
-        options["refresh"] = rpz.refresh;
-    }
-    if (rpz.maxReceivedMBytes != 0) {
-        options["maxReceivedMBytes"] = rpz.maxReceivedMBytes;
-    }
-    setIfNonDefault(rpz.localAddress, "localAddress");
-    if (rpz.axfrTimeout != 0) {
-      options["axfrTimeout"] = rpz.axfrTimeout;
-    }
-    setIfNonDefault(rpz.dumpFile, "dumpFile");
-    setIfNonDefault(rpz.seedFile, "seedFile");
-    if (!options.empty()) {
-      rpzRaw.options = options;
-    }
-    luaConfig.rpzRaw.emplace_back(rpzRaw);
+    params.xfrTimeout = rpz.axfrTimeout;
+    params.dumpZoneFileName = std::string(rpz.dumpFile);
+    params.seedFileName = std::string(rpz.seedFile);
+    luaConfig.rpzs.emplace_back(params);
   }
 }
 
@@ -1251,6 +1259,8 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ProxyMapping
 void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings::rec::Recursorsettings& settings, LuaConfigItems& luaConfig, ProxyMapping& proxyMapping)
 {
   fromRustToLuaConfig(settings.dnssec, luaConfig);
+  luaConfig.protobufMaskV4 = settings.logging.protobuf_mask_v4;
+  luaConfig.protobufMaskV6 = settings.logging.protobuf_mask_v6;
   if (!settings.logging.protobuf_servers.empty()) {
     fromRustToLuaConfig(settings.logging.protobuf_servers.at(0), luaConfig.protobufExportConfig);
   }
@@ -1269,3 +1279,4 @@ void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings
   fromRustToLuaConfig(settings.recursor.allowed_additional_qtypes, luaConfig.allowAdditionalQTypes);
   fromRustToLuaConfig(settings.incoming.proxymappings, proxyMapping);
 }
+

@@ -3262,6 +3262,30 @@ XXX
         'versionadded': '5.1.0',
     },
     {
+        'name' : 'protobuf_mask_v4',
+        'section' : 'logging',
+        'type' : LType.Uint64,
+        'default' : '32',
+        'help' : 'XXX',
+        'doc' : ''',
+XXX
+        ''',
+        'skip-old' : True,
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'protobuf_mask_v6',
+        'section' : 'logging',
+        'type' : LType.Uint64,
+        'default' : '128',
+        'help' : 'XXX',
+        'doc' : ''',
+XXX
+        ''',
+        'skip-old' : True,
+        'versionadded': '5.1.0',
+    },
+    {
         'name' : 'dnstap_framestream_servers',
         'section' : 'logging',
         'type' : LType.ListDNSTapFrameStreamServers,
