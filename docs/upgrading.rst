@@ -49,6 +49,13 @@ Various custom queries have been renamed.
 
 Also, ``get-all-domains-query`` got an extra column for a zone's catalog assignment.
 
+API changes
+~~~~~~~~~~~
+
+A long time ago (in version 3.4.2), the ``priority`` field was removed from record content in the HTTP API.
+Starting with 4.9, API calls containing a ``priority`` field are actively rejected.
+This makes it easier for users to detect they are attempting to use a very old API client.
+
 any version to 4.8.x
 --------------------
 
