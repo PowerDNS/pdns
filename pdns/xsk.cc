@@ -472,9 +472,10 @@ std::string XskSocket::getMetrics() const
 
 [[nodiscard]] std::string XskSocket::getXDPMode() const
 {
+#ifdef HAVE_BPF_XDP_QUERY
   unsigned int itfIdx = if_nametoindex(ifName.c_str());
   if (itfIdx == 0) {
-    return {};
+    return "unable to get interface index";
   }
   bpf_xdp_query_opts info{};
   info.sz = sizeof(info);
@@ -491,6 +492,9 @@ std::string XskSocket::getMetrics() const
   default:
     return "unknown";
   }
+#else /* HAVE_BPF_XDP_QUERY */
+  return "undetected";
+#endif /* HAVE_BPF_XDP_QUERY */
 }
 
 void XskSocket::markAsFree(const XskPacket& packet)

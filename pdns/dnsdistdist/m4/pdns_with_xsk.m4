@@ -14,6 +14,13 @@ AC_DEFUN([PDNS_WITH_XSK],[
       ], [:])
       PKG_CHECK_MODULES([BPF], [libbpf], [
         AC_DEFINE([HAVE_BPF], [1], [Define to 1 if you have the BPF library])
+        save_CFLAGS=$CFLAGS
+        save_LIBS=$LIBS
+        CFLAGS="$BPF_CFLAGS $CFLAGS"
+        LIBS="$BPF_LIBS $LIBS"
+        AC_CHECK_FUNCS([bpf_xdp_query])
+        CFLAGS=$save_CFLAGS
+        LIBS=$save_LIBS
       ], [:])
     ])
   ])
