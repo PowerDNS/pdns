@@ -93,12 +93,12 @@ dnsupdate=yes
     def testNoAcceptor(self):
         self.kinit("testuser1")
         self.nsupdate("add inserted3.noacceptor.net 10 A 1.2.3.3", 2)
-        self.checkNotInDB('example.net', 'inserted3.example.net')
+        self.checkNotInDB('noacceptor.net', 'inserted3.noacceptor.net')
 
     def testWrongAcceptor(self):
         self.kinit("testuser1")
         self.nsupdate("add inserted4.wrongacceptor.net 10 A 1.2.3.4", 2)
-        self.checkNotInDB('example.net', 'inserted4.example.net')
+        self.checkNotInDB('wrongacceptor.net', 'inserted4.wrongacceptor.net')
 
 class TestLuaGSSTSIG(GSSTSIGBase):
 
@@ -126,10 +126,10 @@ lua-dnsupdate-policy-script=kerberos-client/update-policy.lua
     def testNoAcceptor(self):
         self.kinit("testuser1")
         self.nsupdate("add inserted12.noacceptor.net 10 A 1.2.3.12", 2)
-        self.checkNotInDB('example.net', 'inserted12.example.net')
+        self.checkNotInDB('noacceptor.net', 'inserted12.noacceptor.net')
 
     def testWrongAcceptor(self):
         self.kinit("testuser1")
         self.nsupdate("add inserted13.wrongacceptor.net 10 A 1.2.3.13", 2)
-        self.checkNotInDB('example.net', 'inserted13.example.net')
+        self.checkNotInDB('wrongacceptor.net', 'inserted13.wrongacceptor.net')
 
