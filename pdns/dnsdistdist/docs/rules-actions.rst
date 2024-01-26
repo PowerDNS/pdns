@@ -772,7 +772,7 @@ These ``DNSRule``\ s be one of the following items:
 
    To match subdomain names, see :func:`QNameSuffixRule`.
 
-   :param DNSNameSet set: Set with qnames.
+   :param DNSNameSet set: Set with qnames of type class:`DNSNameSet` created with :func:`newDNSNameSet`.
 
 .. function:: QNameSuffixRule(suffixes [, quiet])
 
