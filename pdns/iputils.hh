@@ -1187,13 +1187,13 @@ public:
   }
 
   //<! Returns "best match" for key_type, which might not be value
-  const node_type* lookup(const key_type& value) const {
+  [[nodiscard]] node_type* lookup(const key_type& value) const {
     uint8_t max_bits = value.getBits();
     return lookupImpl(value, max_bits);
   }
 
   //<! Perform best match lookup for value, using at most max_bits
-  const node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
+  [[nodiscard]] node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
     uint8_t addr_bits = value.getBits();
     if (max_bits < 0 || max_bits > addr_bits) {
       max_bits = addr_bits;
@@ -1297,7 +1297,7 @@ public:
 
 private:
 
-  const node_type* lookupImpl(const key_type& value, uint8_t max_bits) const {
+  [[nodiscard]] node_type* lookupImpl(const key_type& value, uint8_t max_bits) const {
     TreeNode *node = nullptr;
 
     if (value.isIPv4())
