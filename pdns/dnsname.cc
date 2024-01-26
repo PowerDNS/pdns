@@ -168,7 +168,6 @@ size_t DNSName::parsePacketUncompressed(const UnsignedCharView& view, size_t pos
     if (existingSize > 0) {
       // remove the last label count, we are about to override it */
       --existingSize;
-      d_storage.resize(existingSize);
     }
     d_storage.reserve(existingSize + totalLength + 1);
     d_storage.resize(existingSize + totalLength);
