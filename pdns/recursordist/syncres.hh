@@ -86,7 +86,7 @@ public:
     Log,
     Store
   };
-  using asyncresolve_t = std::function<LWResult::Result(const ComboAddress&, const DNSName&, int, bool, bool, int, struct timeval*, boost::optional<Netmask>&, boost::optional<const ResolveContext&>, LWResult*, bool*)>;
+  using asyncresolve_t = std::function<LWResult::Result(const ComboAddress&, const DNSName&, int, bool, bool, int, struct timeval*, boost::optional<Netmask>&, const ResolveContext&, LWResult*, bool*)>;
 
   enum class HardenNXD
   {

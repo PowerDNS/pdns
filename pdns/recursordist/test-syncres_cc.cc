@@ -66,7 +66,7 @@ void RecursorLua4::getFeatures(Features& /* features */)
 {
 }
 
-LWResult::Result asyncresolve(const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& /* outgoingLoggers */, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& /* fstrmLoggers */, const std::set<uint16_t>& /* exportTypes */, LWResult* /* res */, bool* /* chained */)
+LWResult::Result asyncresolve(const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& /* outgoingLoggers */, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& /* fstrmLoggers */, const std::set<uint16_t>& /* exportTypes */, LWResult* /* res */, bool* /* chained */)
 {
   return LWResult::Result::Timeout;
 }

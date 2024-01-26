@@ -32,7 +32,9 @@
 
 struct ResolveContext
 {
-  ResolveContext() = default;
+  ResolveContext(const boost::optional<const boost::uuids::uuid&>& uuid, DNSName name) :
+    d_initialRequestId(uuid), d_nsName(std::move(name))
+  {}
   ~ResolveContext() = default;
 
   ResolveContext(const ResolveContext&) = delete;
