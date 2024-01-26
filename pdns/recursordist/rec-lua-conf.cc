@@ -387,7 +387,7 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
          lci.d_slog->error(Logr::Error, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException")));
   }
 
-  delayedThreads.rpzPrimaryThreads.emplace_back(RPZTrackerParams{primaries, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile});
+  delayedThreads.rpzPrimaryThreads.emplace_back(RPZTrackerParams{std::move(primaries), std::move(defpol), defpolOverrideLocal, maxTTL, zoneIdx, std::move(tt), maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, std::move(sr), std::move(dumpFile)});
 }
 
 // A wrapper class that loads the standard Lua defintions into the context, so that we can use things like pdns.A

@@ -671,6 +671,7 @@ bool notifyRPZTracker(const DNSName& name)
   return true;
 }
 
+// coverity[pass_by_value] params is intended to be a copy, as this is the main function of a thread
 void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
 {
   setThreadName("rec/rpzixfr");
