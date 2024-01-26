@@ -363,7 +363,7 @@ void DNSName::makeUsRelative(const DNSName& zone)
 {
   if (isPartOf(zone)) {
     d_storage.erase(d_storage.size()-zone.d_storage.size());
-    d_storage.append(1, (char)0); // put back the trailing 0
+    d_storage.append(1, static_cast<char>(0)); // put back the trailing 0
   }
   else {
     clear();
@@ -429,14 +429,14 @@ void DNSName::appendRawLabel(const char* start, unsigned int length)
 
   if (d_storage.empty()) {
     d_storage.reserve(1 + length + 1);
-    d_storage.append(1, (char)length);
+    d_storage.append(1, static_cast<char>(length));
   }
   else {
     d_storage.reserve(d_storage.size() + length + 1);
-    *d_storage.rbegin()=(char)length;
+    *d_storage.rbegin() = static_cast<char>(length);
   }
   d_storage.append(start, length);
-  d_storage.append(1, (char)0);
+  d_storage.append(1, static_cast<char>(0));
 }
 
 void DNSName::prependRawLabel(const std::string& label)
@@ -450,13 +450,13 @@ void DNSName::prependRawLabel(const std::string& label)
 
   if (d_storage.empty()) {
     d_storage.reserve(1 + label.size() + 1);
-    d_storage.append(1, (char)0);
+    d_storage.append(1, static_cast<char>(0));
   }
   else {
     d_storage.reserve(d_storage.size() + 1 + label.size());
   }
 
-  string_t prep(1, (char)label.size());
+  string_t prep(1, static_cast<char>(label.size()));
   prep.append(label.c_str(), label.size());
   d_storage = prep+d_storage;
 }
@@ -564,7 +564,7 @@ void DNSName::appendEscapedLabel(std::string& appendTo, const char* orig, size_t
       appendTo+="\\\\";
     }
     else if (p > 0x20 && p < 0x7f) {
-      appendTo.append(1, (char)p);
+      appendTo.append(1, static_cast<char>(p));
     }
     else {
       char buf[] = "000";
