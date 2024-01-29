@@ -1896,7 +1896,7 @@ bool XskProcessQuery(ClientState& cs, LocalHolders& holders, XskPacket& packet)
   ids.origDest = dest;
   ids.hopLocal = dest;
   ids.protocol = dnsdist::Protocol::DoUDP;
-  ids.xskPacketHeader = packet.cloneHeadertoPacketBuffer();
+  ids.xskPacketHeader = packet.cloneHeaderToPacketBuffer();
 
   try {
     bool expectProxyProtocol = false;

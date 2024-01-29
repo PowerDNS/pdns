@@ -21,6 +21,7 @@
  */
 
 #pragma once
+#include "config.h"
 
 #ifdef HAVE_XSK
 #include <array>
@@ -54,9 +55,9 @@ class XskPacket;
 class XskWorker;
 class XskSocket;
 
+#ifdef HAVE_XSK
 using MACAddr = std::array<uint8_t, 6>;
 
-#ifdef HAVE_XSK
 using XskPacketPtr = std::unique_ptr<XskPacket>;
 
 // We use an XskSocket to manage an AF_XDP Socket corresponding to a NIC queue.
@@ -251,8 +252,7 @@ public:
   [[nodiscard]] uint32_t getDataLen() const noexcept;
   [[nodiscard]] uint32_t getFrameLen() const noexcept;
   [[nodiscard]] PacketBuffer clonePacketBuffer() const;
-  void cloneIntoPacketBuffer(PacketBuffer& buffer) const;
-  [[nodiscard]] PacketBuffer cloneHeadertoPacketBuffer() const;
+  [[nodiscard]] PacketBuffer cloneHeaderToPacketBuffer() const;
   void setAddr(const ComboAddress& from_, MACAddr fromMAC, const ComboAddress& to_, MACAddr toMAC) noexcept;
   bool setPayload(const PacketBuffer& buf);
   void rewrite() noexcept;
