@@ -43,12 +43,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
       auto frameLen = packet.getFrameLen();
       auto header = packet.cloneHeaderToPacketBuffer();
       auto buffer = packet.clonePacketBuffer();
-      (void) dest;
-      (void) orig;
-      (void) payload;
-      (void) capacity;
-      (void) length;
-      (void) frameLen;
+      (void)dest;
+      (void)orig;
+      (void)payload;
+      (void)capacity;
+      (void)length;
+      (void)frameLen;
     }
   }
   catch (const std::exception& e) {
