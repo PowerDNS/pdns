@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.9.0-rc1
-  :released: 26th of January 2024
+  :released: 30th of January 2024
 
   Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
 
