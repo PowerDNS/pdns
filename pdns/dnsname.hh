@@ -216,7 +216,28 @@ public:
 private:
   string_t d_storage;
 
+  class UnsignedCharView
+  {
+  public:
+    UnsignedCharView(const char* data_, size_t size_): view(data_, size_)
+    {
+    }
+    const unsigned char& at(std::string_view::size_type pos) const
+    {
+      return reinterpret_cast<const unsigned char&>(view.at(pos));
+    }
+
+    size_t size() const
+    {
+      return view.size();
+    }
+
+  private:
+    std::string_view view;
+  };
+
   void packetParser(const char* qpos, size_t len, size_t offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset);
+  size_t parsePacketUncompressed(const UnsignedCharView& view, size_t position, bool uncompress);
   static void appendEscapedLabel(std::string& appendTo, const char* orig, size_t len);
   static std::string unescapeLabel(const std::string& orig);
   static void throwSafeRangeError(const std::string& msg, const char* buf, size_t length);

@@ -113,72 +113,137 @@ DNSName::DNSName(const char* pos, size_t len, size_t offset, bool uncompress, ui
   packetParser(pos, len, offset, uncompress, qtype, qclass, consumed, 0, minOffset);
 }
 
+static void checkLabelLength(uint8_t length)
+{
+  if (length == 0) {
+    throw std::range_error("no such thing as an empty label to append");
+  }
+  if (length > 63) {
+    throw std::range_error("label too long to append");
+  }
+}
+
+// this parses a DNS name until a compression pointer is found
+size_t DNSName::parsePacketUncompressed(const UnsignedCharView& view, size_t pos, bool uncompress)
+{
+  const size_t initialPos = pos;
+  size_t totalLength = 0;
+  unsigned char labellen = 0;
+
+  do {
+    labellen = view.at(pos);
+    ++pos;
+
+    if (labellen == 0) {
+      --pos;
+      break;
+    }
+
+    if (labellen >= 0xc0) {
+      if (!uncompress) {
+        throw std::range_error("Found compressed label, instructed not to follow");
+      }
+      --pos;
+      break;
+    }
+
+    if ((labellen & 0xc0) != 0) {
+      throw std::range_error("Found an invalid label length in qname (only one of the first two bits is set)");
+    }
+    checkLabelLength(labellen);
+    // reserve one byte for the label length
+    if (totalLength + labellen > s_maxDNSNameLength - 1) {
+      throw std::range_error("name too long to append");
+    }
+    if (pos + labellen >= view.size()) {
+      throw std::range_error("Found an invalid label length in qname");
+    }
+    pos += labellen;
+    totalLength += 1 + labellen;
+  }
+  while (pos < view.size());
+
+  if (totalLength != 0) {
+    auto existingSize = d_storage.size();
+    if (existingSize > 0) {
+      // remove the last label count, we are about to override it */
+      --existingSize;
+    }
+    d_storage.reserve(existingSize + totalLength + 1);
+    d_storage.resize(existingSize + totalLength);
+    memcpy(&d_storage.at(existingSize), &view.at(initialPos), totalLength);
+    d_storage.append(1, static_cast<char>(0));
+  }
+  return pos;
+}
+
 // this should be the __only__ dns name parser in PowerDNS.
 void DNSName::packetParser(const char* qpos, size_t len, size_t offset, bool uncompress, uint16_t* qtype, uint16_t* qclass, unsigned int* consumed, int depth, uint16_t minOffset)
 {
-  const unsigned char* pos=(const unsigned char*)qpos;
-  unsigned char labellen;
-  const unsigned char *opos = pos;
-
   if (offset >= len) {
     throw std::range_error("Trying to read past the end of the buffer ("+std::to_string(offset)+ " >= "+std::to_string(len)+")");
   }
+
   if (offset < static_cast<size_t>(minOffset)) {
     throw std::range_error("Trying to read before the beginning of the buffer ("+std::to_string(offset)+ " < "+std::to_string(minOffset)+")");
   }
+  unsigned char labellen{0};
 
-  const unsigned char* end = pos + len;
-  pos += offset;
-  while((labellen=*pos++) && pos < end) { // "scan and copy"
-    if(labellen >= 0xc0) {
-      if(!uncompress)
-        throw std::range_error("Found compressed label, instructed not to follow");
+  UnsignedCharView view(qpos, len);
+  auto pos = parsePacketUncompressed(view, offset, uncompress);
 
-      labellen &= (~0xc0);
-      size_t newpos = (labellen << 8) + *(const unsigned char*)pos;
+  labellen = view.at(pos);
+  pos++;
+  if (labellen != 0 && pos < view.size()) {
+    if (labellen < 0xc0) {
+      abort();
+    }
 
-      if (newpos < offset) {
-        if (newpos < minOffset) {
-          throw std::range_error("Invalid label position during decompression ("+std::to_string(newpos)+ " < "+std::to_string(minOffset)+")");
-        }
-        if (++depth > 100) {
-          throw std::range_error("Abort label decompression after 100 redirects");
-        }
-        packetParser((const char*)opos, len, newpos, true, nullptr, nullptr, nullptr, depth, minOffset);
-      } else {
-        throw std::range_error("Found a forward reference during label decompression");
-      }
-      pos++;
-      break;
-    } else if(labellen & 0xc0) {
-      throw std::range_error("Found an invalid label length in qname (only one of the first two bits is set)");
+    if (!uncompress) {
+      throw std::range_error("Found compressed label, instructed not to follow");
     }
-    if (pos + labellen < end) {
-      appendRawLabel((const char*)pos, labellen);
+
+    labellen &= (~0xc0);
+    size_t newpos = (labellen << 8) + view.at(pos);
+
+    if (newpos >= offset) {
+      throw std::range_error("Found a forward reference during label decompression");
     }
-    else {
-      throw std::range_error("Found an invalid label length in qname");
+
+    if (newpos < minOffset) {
+      throw std::range_error("Invalid label position during decompression ("+std::to_string(newpos)+ " < "+std::to_string(minOffset)+")");
     }
-    pos+=labellen;
+
+    if (++depth > 100) {
+      throw std::range_error("Abort label decompression after 100 redirects");
+    }
+
+    packetParser(qpos, len, newpos, true, nullptr, nullptr, nullptr, depth, minOffset);
+
+    pos++;
   }
+
   if (d_storage.empty()) {
-    d_storage.append(1, (char)0); // we just parsed the root
+    d_storage.append(1, static_cast<char>(0)); // we just parsed the root
   }
+
   if (consumed != nullptr) {
-    *consumed = pos - opos - offset;
+    *consumed = pos - offset;
   }
+
   if (qtype != nullptr) {
-    if (pos + 2 > end) {
-      throw std::range_error("Trying to read qtype past the end of the buffer ("+std::to_string((pos - opos) + 2)+ " > "+std::to_string(len)+")");
+    if (pos + 2 > view.size()) {
+      throw std::range_error("Trying to read qtype past the end of the buffer ("+std::to_string(pos + 2)+ " > "+std::to_string(len)+")");
     }
-    *qtype=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
+    *qtype = view.at(pos)*256 + view.at(pos+1);
   }
-  pos+=2;
-  if(qclass) {
-    if (pos + 2 > end) {
-      throw std::range_error("Trying to read qclass past the end of the buffer ("+std::to_string((pos - opos) + 2)+ " > "+std::to_string(len)+")");
+
+  pos += 2;
+  if (qclass != nullptr) {
+    if (pos + 2 > view.size()) {
+      throw std::range_error("Trying to read qclass past the end of the buffer ("+std::to_string(pos + 2)+ " > "+std::to_string(len)+")");
     }
-    *qclass=(*(const unsigned char*)pos)*256 + *((const unsigned char*)pos+1);
+    *qclass = view.at(pos)*256 + view.at(pos+1);
   }
 }
 
@@ -294,12 +359,12 @@ DNSName DNSName::makeRelative(const DNSName& zone) const
   return ret;
 }
 
-void DNSName::makeUsRelative(const DNSName& zone) 
+void DNSName::makeUsRelative(const DNSName& zone)
 {
   if (isPartOf(zone)) {
     d_storage.erase(d_storage.size()-zone.d_storage.size());
-    d_storage.append(1, (char)0); // put back the trailing 0
-  } 
+    d_storage.append(1, static_cast<char>(0)); // put back the trailing 0
+  }
   else {
     clear();
   }
@@ -355,48 +420,48 @@ void DNSName::appendRawLabel(const std::string& label)
 
 void DNSName::appendRawLabel(const char* start, unsigned int length)
 {
-  if (length==0) {
-    throw std::range_error("no such thing as an empty label to append");
-  }
-  if (length > 63) {
-    throw std::range_error("label too long to append");
-  }
-  if (d_storage.size() + length > s_maxDNSNameLength - 1) { // reserve one byte for the label length
+  checkLabelLength(length);
+
+  // reserve one byte for the label length
+  if (d_storage.size() + length > s_maxDNSNameLength - 1) {
     throw std::range_error("name too long to append");
   }
 
   if (d_storage.empty()) {
-    d_storage.append(1, (char)length);
+    d_storage.reserve(1 + length + 1);
+    d_storage.append(1, static_cast<char>(length));
   }
   else {
-    *d_storage.rbegin()=(char)length;
+    d_storage.reserve(d_storage.size() + length + 1);
+    *d_storage.rbegin() = static_cast<char>(length);
   }
   d_storage.append(start, length);
-  d_storage.append(1, (char)0);
+  d_storage.append(1, static_cast<char>(0));
 }
 
 void DNSName::prependRawLabel(const std::string& label)
 {
-  if (label.empty()) {
-    throw std::range_error("no such thing as an empty label to prepend");
-  }
-  if (label.size() > 63) {
-    throw std::range_error("label too long to prepend");
-  }
-  if (d_storage.size() + label.size() > s_maxDNSNameLength - 1) { // reserve one byte for the label length
+  checkLabelLength(label.size());
+
+  // reserve one byte for the label length
+  if (d_storage.size() + label.size() > s_maxDNSNameLength - 1) {
     throw std::range_error("name too long to prepend");
   }
 
   if (d_storage.empty()) {
-    d_storage.append(1, (char)0);
+    d_storage.reserve(1 + label.size() + 1);
+    d_storage.append(1, static_cast<char>(0));
+  }
+  else {
+    d_storage.reserve(d_storage.size() + 1 + label.size());
   }
 
-  string_t prep(1, (char)label.size());
+  string_t prep(1, static_cast<char>(label.size()));
   prep.append(label.c_str(), label.size());
   d_storage = prep+d_storage;
 }
 
-bool DNSName::slowCanonCompare(const DNSName& rhs) const 
+bool DNSName::slowCanonCompare(const DNSName& rhs) const
 {
   auto ours=getRawLabels(), rhsLabels = rhs.getRawLabels();
   return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
@@ -499,7 +564,7 @@ void DNSName::appendEscapedLabel(std::string& appendTo, const char* orig, size_t
       appendTo+="\\\\";
     }
     else if (p > 0x20 && p < 0x7f) {
-      appendTo.append(1, (char)p);
+      appendTo.append(1, static_cast<char>(p));
     }
     else {
       char buf[] = "000";
