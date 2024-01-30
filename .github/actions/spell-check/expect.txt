@@ -1004,6 +1004,7 @@ pgp
 pgpsql
 phishing
 phonedph
+pickchashed
 pickclosest
 pickhashed
 pickrandom
