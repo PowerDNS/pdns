@@ -752,10 +752,9 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     dnsdist::xsk::g_xsk.push_back(socket);
     return socket;
   });
-  luaCtx.registerFunction<std::string(std::shared_ptr<XskSocket>::*)()const>("getMetrics", [](const std::shared_ptr<XskSocket>& xsk) {
-    std::string result;
+  luaCtx.registerFunction<std::string(std::shared_ptr<XskSocket>::*)()const>("getMetrics", [](const std::shared_ptr<XskSocket>& xsk) -> std::string {
     if (!xsk) {
-      return result;
+      return {};
     }
     return xsk->getMetrics();
   });

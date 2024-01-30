@@ -49,16 +49,12 @@
 #include "lock.hh"
 #include "misc.hh"
 #include "noinitvector.hh"
-#endif /* HAVE_XSK */
 
 class XskPacket;
 class XskWorker;
 class XskSocket;
 
-#ifdef HAVE_XSK
 using MACAddr = std::array<uint8_t, 6>;
-
-using XskPacketPtr = std::unique_ptr<XskPacket>;
 
 // We use an XskSocket to manage an AF_XDP Socket corresponding to a NIC queue.
 // The XDP program running in the kernel redirects the data to the XskSocket in userspace.
