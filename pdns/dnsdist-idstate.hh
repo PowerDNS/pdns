@@ -120,6 +120,15 @@ struct InternalQueryState
   InternalQueryState(const InternalQueryState& orig) = delete;
   InternalQueryState& operator=(const InternalQueryState& orig) = delete;
 
+  bool isXSK() const noexcept
+  {
+#ifdef HAVE_XSK
+    return !xskPacketHeader.empty();
+#else
+    return false;
+#endif /* HAVE_XSK */
+  }
+
   boost::optional<Netmask> subnet{boost::none}; // 40
   ComboAddress origRemote; // 28
   ComboAddress origDest; // 28
@@ -129,6 +138,9 @@ struct InternalQueryState
   std::string poolName; // 24
   StopWatch queryRealTime{true}; // 24
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
+#ifdef HAVE_XSK
+  PacketBuffer xskPacketHeader; // 8
+#endif /* HAVE_XSK */
   std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
   std::unique_ptr<QTag> qTag{nullptr}; // 8
   std::unique_ptr<PacketBuffer> d_packet{nullptr}; // Initial packet, so we can restart the query from the response path if needed // 8

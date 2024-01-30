@@ -495,9 +495,8 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
   if (!response.isAsync()) {
     try {
       auto& ids = response.d_idstate;
-      unsigned int qnameWireLength{0};
       std::shared_ptr<DownstreamState> backend = response.d_ds ? response.d_ds : (response.d_connection ? response.d_connection->getDS() : nullptr);
-      if (backend == nullptr || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, backend, qnameWireLength)) {
+      if (backend == nullptr || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, backend)) {
         state->terminateClientConnection();
         return;
       }
@@ -675,7 +674,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
   {
     /* this pointer will be invalidated the second the buffer is resized, don't hold onto it! */
     const dnsheader_aligned dnsHeader(query.data());
-    if (!checkQueryHeaders(dnsHeader.get(), *d_ci.cs)) {
+    if (!checkQueryHeaders(*dnsHeader, *d_ci.cs)) {
       return QueryProcessingResult::InvalidHeaders;
     }
 

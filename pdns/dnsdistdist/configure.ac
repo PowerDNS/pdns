@@ -40,6 +40,7 @@ PDNS_ENABLE_FUZZ_TARGETS
 PDNS_WITH_RE2
 DNSDIST_ENABLE_DNSCRYPT
 PDNS_WITH_EBPF
+PDNS_WITH_XSK
 PDNS_WITH_NET_SNMP
 PDNS_WITH_LIBCAP
 
@@ -217,6 +218,10 @@ AC_MSG_NOTICE([Protobuf: yes])
 AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
+)
+AS_IF([test x"$BPF_LIBS" != "x" -a x"$XDP_LIBS" != "x"],
+  [AC_MSG_NOTICE([AF_XDP/XSK: yes])],
+  [AC_MSG_NOTICE([AF_XDP/XSK: no])]
 )
 AS_IF([test "x$HAVE_IPCIPHER" = "x1"],
   [AC_MSG_NOTICE([ipcipher: yes])],

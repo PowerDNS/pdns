@@ -21,6 +21,7 @@
  */
 
 #include <cstdint>
+#include <cstdio>
 #include <dirent.h>
 #include <fstream>
 #include <cinttypes>
@@ -45,6 +46,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
+#include "xsk.hh"
 #ifdef LUAJIT_VERSION
 #include "dnsdist-lua-ffi.hh"
 #endif /* LUAJIT_VERSION */
@@ -110,7 +112,7 @@ void resetLuaSideEffect()
   g_noLuaSideEffect = boost::logic::indeterminate;
 }
 
-using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>>>;
+using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>, std::shared_ptr<XskSocket>>>;
 
 static void parseLocalBindVars(boost::optional<localbind_t>& vars, bool& reusePort, int& tcpFastOpenQueueSize, std::string& interface, std::set<int>& cpus, int& tcpListenQueueSize, uint64_t& maxInFlightQueriesPerConnection, uint64_t& tcpMaxConcurrentConnections, bool& enableProxyProtocol)
 {
@@ -131,6 +133,16 @@ static void parseLocalBindVars(boost::optional<localbind_t>& vars, bool& reusePo
     }
   }
 }
+#ifdef HAVE_XSK
+static void parseXskVars(boost::optional<localbind_t>& vars, std::shared_ptr<XskSocket>& socket)
+{
+  if (!vars) {
+    return;
+  }
+
+  getOptionalValue<std::shared_ptr<XskSocket>>(vars, "xskSocket", socket);
+}
+#endif /* HAVE_XSK */
 
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_QUIC)
 static bool loadTLSCertificateAndKeys(const std::string& context, std::vector<TLSCertKeyPair>& pairs, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const LuaTypeOrArrayOf<std::string>& keyFiles)
@@ -295,10 +307,101 @@ static bool checkConfigurationTime(const std::string& name)
   return false;
 }
 
+using newserver_t = LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, LuaArray<std::shared_ptr<XskSocket>>, DownstreamState::checkfunc_t>>;
+
+static void handleNewServerHealthCheckParameters(boost::optional<newserver_t>& vars, DownstreamState::Config& config)
+{
+  std::string valueStr;
+
+  if (getOptionalValue<std::string>(vars, "checkInterval", valueStr) > 0) {
+    config.checkInterval = static_cast<unsigned int>(std::stoul(valueStr));
+  }
+
+  if (getOptionalValue<std::string>(vars, "healthCheckMode", valueStr) > 0) {
+    const auto& mode = valueStr;
+    if (pdns_iequals(mode, "auto")) {
+      config.availability = DownstreamState::Availability::Auto;
+    }
+    else if (pdns_iequals(mode, "lazy")) {
+      config.availability = DownstreamState::Availability::Lazy;
+    }
+    else if (pdns_iequals(mode, "up")) {
+      config.availability = DownstreamState::Availability::Up;
+    }
+    else if (pdns_iequals(mode, "down")) {
+      config.availability = DownstreamState::Availability::Down;
+    }
+    else {
+      warnlog("Ignoring unknown value '%s' for 'healthCheckMode' on 'newServer'", mode);
+    }
+  }
+
+  if (getOptionalValue<std::string>(vars, "checkName", valueStr) > 0) {
+    config.checkName = DNSName(valueStr);
+  }
+
+  getOptionalValue<std::string>(vars, "checkType", config.checkType);
+  getOptionalIntegerValue("newServer", vars, "checkClass", config.checkClass);
+  getOptionalValue<DownstreamState::checkfunc_t>(vars, "checkFunction", config.checkFunction);
+  getOptionalIntegerValue("newServer", vars, "checkTimeout", config.checkTimeout);
+  getOptionalValue<bool>(vars, "checkTCP", config.d_tcpCheck);
+  getOptionalValue<bool>(vars, "setCD", config.setCD);
+  getOptionalValue<bool>(vars, "mustResolve", config.mustResolve);
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckSampleSize", valueStr) > 0) {
+    const auto& value = std::stoi(valueStr);
+    checkParameterBound("lazyHealthCheckSampleSize", value);
+    config.d_lazyHealthCheckSampleSize = value;
+  }
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckMinSampleCount", valueStr) > 0) {
+    const auto& value = std::stoi(valueStr);
+    checkParameterBound("lazyHealthCheckMinSampleCount", value);
+    config.d_lazyHealthCheckMinSampleCount = value;
+  }
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckThreshold", valueStr) > 0) {
+    const auto& value = std::stoi(valueStr);
+    checkParameterBound("lazyHealthCheckThreshold", value, std::numeric_limits<uint8_t>::max());
+    config.d_lazyHealthCheckThreshold = value;
+  }
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckFailedInterval", valueStr) > 0) {
+    const auto& value = std::stoi(valueStr);
+    checkParameterBound("lazyHealthCheckFailedInterval", value);
+    config.d_lazyHealthCheckFailedInterval = value;
+  }
+
+  getOptionalValue<bool>(vars, "lazyHealthCheckUseExponentialBackOff", config.d_lazyHealthCheckUseExponentialBackOff);
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckMaxBackOff", valueStr) > 0) {
+    const auto& value = std::stoi(valueStr);
+    checkParameterBound("lazyHealthCheckMaxBackOff", value);
+    config.d_lazyHealthCheckMaxBackOff = value;
+  }
+
+  if (getOptionalValue<std::string>(vars, "lazyHealthCheckMode", valueStr) > 0) {
+    const auto& mode = valueStr;
+    if (pdns_iequals(mode, "TimeoutOnly")) {
+      config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOnly;
+    }
+    else if (pdns_iequals(mode, "TimeoutOrServFail")) {
+      config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOrServFail;
+    }
+    else {
+      warnlog("Ignoring unknown value '%s' for 'lazyHealthCheckMode' on 'newServer'", mode);
+    }
+  }
+
+  getOptionalValue<bool>(vars, "lazyHealthCheckWhenUpgraded", config.d_upgradeToLazyHealthChecks);
+
+  getOptionalIntegerValue("newServer", vars, "maxCheckFailures", config.maxCheckFailures);
+  getOptionalIntegerValue("newServer", vars, "rise", config.minRiseSuccesses);
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
-  typedef LuaAssociativeTable<boost::variant<bool, std::string, LuaArray<std::string>, DownstreamState::checkfunc_t>> newserver_t;
   luaCtx.writeFunction("inClientStartup", [client]() {
     return client && !g_configurationDone;
   });
@@ -394,9 +497,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalIntegerValue("newServer", vars, "tcpSendTimeout", config.tcpSendTimeout);
                          getOptionalIntegerValue("newServer", vars, "tcpRecvTimeout", config.tcpRecvTimeout);
 
-                         if (getOptionalValue<std::string>(vars, "checkInterval", valueStr) > 0) {
-                           config.checkInterval = static_cast<unsigned int>(std::stoul(valueStr));
-                         }
+                         handleNewServerHealthCheckParameters(vars, config);
 
                          bool fastOpen{false};
                          if (getOptionalValue<bool>(vars, "tcpFastOpen", fastOpen) > 0) {
@@ -418,84 +519,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            config.id = boost::uuids::string_generator()(valueStr);
                          }
 
-                         if (getOptionalValue<std::string>(vars, "healthCheckMode", valueStr) > 0) {
-                           const auto& mode = valueStr;
-                           if (pdns_iequals(mode, "auto")) {
-                             config.availability = DownstreamState::Availability::Auto;
-                           }
-                           else if (pdns_iequals(mode, "lazy")) {
-                             config.availability = DownstreamState::Availability::Lazy;
-                           }
-                           else if (pdns_iequals(mode, "up")) {
-                             config.availability = DownstreamState::Availability::Up;
-                           }
-                           else if (pdns_iequals(mode, "down")) {
-                             config.availability = DownstreamState::Availability::Down;
-                           }
-                           else {
-                             warnlog("Ignoring unknown value '%s' for 'healthCheckMode' on 'newServer'", mode);
-                           }
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "checkName", valueStr) > 0) {
-                           config.checkName = DNSName(valueStr);
-                         }
-
-                         getOptionalValue<std::string>(vars, "checkType", config.checkType);
-                         getOptionalIntegerValue("newServer", vars, "checkClass", config.checkClass);
-                         getOptionalValue<DownstreamState::checkfunc_t>(vars, "checkFunction", config.checkFunction);
-                         getOptionalIntegerValue("newServer", vars, "checkTimeout", config.checkTimeout);
-                         getOptionalValue<bool>(vars, "checkTCP", config.d_tcpCheck);
-                         getOptionalValue<bool>(vars, "setCD", config.setCD);
-                         getOptionalValue<bool>(vars, "mustResolve", config.mustResolve);
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckSampleSize", valueStr) > 0) {
-                           const auto& value = std::stoi(valueStr);
-                           checkParameterBound("lazyHealthCheckSampleSize", value);
-                           config.d_lazyHealthCheckSampleSize = value;
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckMinSampleCount", valueStr) > 0) {
-                           const auto& value = std::stoi(valueStr);
-                           checkParameterBound("lazyHealthCheckMinSampleCount", value);
-                           config.d_lazyHealthCheckMinSampleCount = value;
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckThreshold", valueStr) > 0) {
-                           const auto& value = std::stoi(valueStr);
-                           checkParameterBound("lazyHealthCheckThreshold", value, std::numeric_limits<uint8_t>::max());
-                           config.d_lazyHealthCheckThreshold = value;
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckFailedInterval", valueStr) > 0) {
-                           const auto& value = std::stoi(valueStr);
-                           checkParameterBound("lazyHealthCheckFailedInterval", value);
-                           config.d_lazyHealthCheckFailedInterval = value;
-                         }
-
-                         getOptionalValue<bool>(vars, "lazyHealthCheckUseExponentialBackOff", config.d_lazyHealthCheckUseExponentialBackOff);
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckMaxBackOff", valueStr) > 0) {
-                           const auto& value = std::stoi(valueStr);
-                           checkParameterBound("lazyHealthCheckMaxBackOff", value);
-                           config.d_lazyHealthCheckMaxBackOff = value;
-                         }
-
-                         if (getOptionalValue<std::string>(vars, "lazyHealthCheckMode", valueStr) > 0) {
-                           const auto& mode = valueStr;
-                           if (pdns_iequals(mode, "TimeoutOnly")) {
-                             config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOnly;
-                           }
-                           else if (pdns_iequals(mode, "TimeoutOrServFail")) {
-                             config.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOrServFail;
-                           }
-                           else {
-                             warnlog("Ignoring unknown value '%s' for 'lazyHealthCheckMode' on 'newServer'", mode);
-                           }
-                         }
-
-                         getOptionalValue<bool>(vars, "lazyHealthCheckWhenUpgraded", config.d_upgradeToLazyHealthChecks);
-
                          getOptionalValue<bool>(vars, "useClientSubnet", config.useECS);
                          getOptionalValue<bool>(vars, "useProxyProtocol", config.useProxyProtocol);
                          getOptionalValue<bool>(vars, "proxyProtocolAdvertiseTLS", config.d_proxyProtocolAdvertiseTLS);
@@ -503,8 +526,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalValue<bool>(vars, "ipBindAddrNoPort", config.ipBindAddrNoPort);
 
                          getOptionalIntegerValue("newServer", vars, "addXPF", config.xpfRRCode);
-                         getOptionalIntegerValue("newServer", vars, "maxCheckFailures", config.maxCheckFailures);
-                         getOptionalIntegerValue("newServer", vars, "rise", config.minRiseSuccesses);
 
                          getOptionalValue<bool>(vars, "reconnectOnUp", config.reconnectOnUp);
 
@@ -618,10 +639,39 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          // create but don't connect the socket in client or check-config modes
                          auto ret = std::make_shared<DownstreamState>(std::move(config), std::move(tlsCtx), !(client || configCheck));
-                         if (!(client || configCheck)) {
+#ifdef HAVE_XSK
+                         LuaArray<std::shared_ptr<XskSocket>> luaXskSockets;
+                         if (getOptionalValue<LuaArray<std::shared_ptr<XskSocket>>>(vars, "xskSockets", luaXskSockets) > 0 && !luaXskSockets.empty()) {
+                           if (g_configurationDone) {
+                             throw std::runtime_error("Adding a server with xsk at runtime is not supported");
+                           }
+                           std::vector<std::shared_ptr<XskSocket>> xskSockets;
+                           for (auto& socket : luaXskSockets) {
+                             xskSockets.push_back(socket.second);
+                           }
+                           ret->registerXsk(xskSockets);
+                           std::string mac;
+                           if (getOptionalValue<std::string>(vars, "MACAddr", mac) > 0) {
+                             auto* addr = &ret->d_config.destMACAddr[0];
+                             sscanf(mac.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", addr, addr + 1, addr + 2, addr + 3, addr + 4, addr + 5);
+                           }
+                           else {
+                             mac = getMACAddress(ret->d_config.remote);
+                             if (mac.size() != ret->d_config.destMACAddr.size()) {
+                               throw runtime_error("Field 'MACAddr' is not set on 'newServer' directive for '" + ret->d_config.remote.toStringWithPort() + "' and cannot be retrieved from the system either!");
+                             }
+                             memcpy(ret->d_config.destMACAddr.data(), mac.data(), ret->d_config.destMACAddr.size());
+                           }
+                           infolog("Added downstream server %s via XSK in %s mode", ret->d_config.remote.toStringWithPort(), xskSockets.at(0)->getXDPMode());
+                         }
+                         else if (!(client || configCheck)) {
                            infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
                          }
-
+#else /* HAVE_XSK */
+      if (!(client || configCheck)) {
+        infolog("Added downstream server %s", ret->d_config.remote.toStringWithPort());
+      }
+#endif /* HAVE_XSK */
                          if (autoUpgrade && ret->getProtocol() != dnsdist::Protocol::DoT && ret->getProtocol() != dnsdist::Protocol::DoH) {
                            dnsdist::ServiceDiscovery::addUpgradeableServer(ret, upgradeInterval, upgradePool, upgradeDoHKey, keepAfterUpgrade);
                          }
@@ -729,8 +779,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
 
-    checkAllParametersConsumed("setLocal", vars);
-
     try {
       ComboAddress loc(addr, 53);
       for (auto it = g_frontends.begin(); it != g_frontends.end();) {
@@ -744,7 +792,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       // only works pre-startup, so no sync necessary
-      g_frontends.push_back(std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol));
+      auto udpCS = std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       if (tcpListenQueueSize > 0) {
         tcpCS->tcpListenQueueSize = tcpListenQueueSize;
@@ -756,7 +804,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         tcpCS->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
       }
 
+#ifdef HAVE_XSK
+      std::shared_ptr<XskSocket> socket;
+      parseXskVars(vars, socket);
+      if (socket) {
+        udpCS->xskInfo = XskWorker::create();
+        udpCS->xskInfo->sharedEmptyFrameOffset = socket->sharedEmptyFrameOffset;
+        socket->addWorker(udpCS->xskInfo);
+        socket->addWorkerRoute(udpCS->xskInfo, loc);
+        vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
+      }
+#endif /* HAVE_XSK */
+      g_frontends.push_back(std::move(udpCS));
       g_frontends.push_back(std::move(tcpCS));
+
+      checkAllParametersConsumed("setLocal", vars);
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error: " + string(e.what()) + "\n";
@@ -781,12 +843,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     bool enableProxyProtocol = true;
 
     parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
-    checkAllParametersConsumed("addLocal", vars);
 
     try {
       ComboAddress loc(addr, 53);
       // only works pre-startup, so no sync necessary
-      g_frontends.push_back(std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol));
+      auto udpCS = std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       if (tcpListenQueueSize > 0) {
         tcpCS->tcpListenQueueSize = tcpListenQueueSize;
@@ -797,7 +858,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (tcpMaxConcurrentConnections > 0) {
         tcpCS->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
       }
+#ifdef HAVE_XSK
+      std::shared_ptr<XskSocket> socket;
+      parseXskVars(vars, socket);
+      if (socket) {
+        udpCS->xskInfo = XskWorker::create();
+        udpCS->xskInfo->sharedEmptyFrameOffset = socket->sharedEmptyFrameOffset;
+        socket->addWorker(udpCS->xskInfo);
+        socket->addWorkerRoute(udpCS->xskInfo, loc);
+        vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
+      }
+#endif /* HAVE_XSK */
+      g_frontends.push_back(std::move(udpCS));
       g_frontends.push_back(std::move(tcpCS));
+
+      checkAllParametersConsumed("addLocal", vars);
     }
     catch (std::exception& e) {
       g_outputBuffer = "Error: " + string(e.what()) + "\n";

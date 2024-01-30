@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(test_firstAvailableWithOrderAndQPS) {
   servers.push_back({ 2, std::make_shared<DownstreamState>(ComboAddress("192.0.2.2:53")) });
   /* Second server has a higher order, so most queries should be routed to the first (remember that
      we need to keep them ordered!).
-     However the first server has a QPS limit at 10 qps, so any query above that should be routed 
+     However the first server has a QPS limit at 10 qps, so any query above that should be routed
      to the second server. */
   servers.at(0).second->d_config.order = 1;
   servers.at(1).second->d_config.order = 2;

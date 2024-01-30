@@ -70,6 +70,16 @@ For DNS over HTTPS, every :func:`addDOHLocal` directive adds a new thread dealin
 
 When dealing with a large traffic load, it might happen that the internal pipe used to pass queries between the threads handling the incoming connections and the one getting a response from the backend become full too quickly, degrading performance and causing timeouts. This can be prevented by increasing the size of the internal pipe buffer, via the `internalPipeBufferSize` option of :func:`addDOHLocal`. Setting a value of `1048576` is known to yield good results on Linux.
 
+`AF_XDP` / `XSK`
+----------------
+
+On recent versions of Linux (`>= 4.18`), DNSDist supports receiving UDP datagrams directly from the kernel, bypassing the usual network stack, via `AF_XDP`/`XSK`. This yields much better performance but comes with some limitations. Please see :doc:`xsk` for more information.
+
+UDP buffer sizes
+----------------
+
+The operating system usually maintains buffers of incoming and outgoing datagrams for UDP sockets, to deal with short spikes where packets are received or emitted faster than the network layer can process them. On medium to large setups, it is usually useful to increase these buffers to deal with large spikes. This can be done via the :func:`setUDPSocketBufferSizes`.
+
 Outgoing DoH
 ------------
 
@@ -193,3 +203,29 @@ Memory usage per connection for connected protocols:
 +---------------------------------+-----------------------------+
 | DoH (w/ releaseBuffers)         | 15 kB                       |
 +---------------------------------+-----------------------------+
+
+Firewall connection tracking
+----------------------------
+
+When dealing with a lot of queries per second, dnsdist puts a severe stress on any stateful (connection tracking) firewall, so much so that the firewall may fail.
+
+Specifically, many Linux distributions run with a connection tracking firewall configured. For high load operation (thousands of queries/second), it is advised to either turn off ``iptables`` and ``nftables`` completely, or use the ``NOTRACK`` feature to make sure client DNS traffic bypasses the connection tracking.
+
+Network interface receive queues
+--------------------------------
+
+Most high-speed (>= 10 Gbps) network interfaces support multiple queues to offer better performance, using hashing to dispatch incoming packets into a specific queue.
+
+Unfortunately the default hashing algorithm is very often considering the source and destination addresses only, which might be an issue when dnsdist is placed behind a frontend, for example.
+
+On Linux it is possible to inspect the current network flow hashing policy via ``ethtool``::
+
+  $ sudo ethtool -n enp1s0 rx-flow-hash udp4
+  UDP over IPV4 flows use these fields for computing Hash flow key:
+  IP SA
+  IP DA
+
+In this example only the source (``IP SA``) and destination (``IP DA``) addresses are indeed used, meaning that all packets coming from the same source address to the same destination address will end up in the same receive queue, which is not optimal. To take the source and destination ports into account as well::
+
+  $ sudo ethtool -N enp1s0 rx-flow-hash udp4 sdfn
+  $

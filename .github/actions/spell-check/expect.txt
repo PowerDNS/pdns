@@ -388,6 +388,7 @@ Ekkelenkamp
 elgoog
 endbr
 Enden
+enp
 ent
 envoutput
 epel
@@ -449,6 +450,7 @@ gaba
 gacogne
 gatech
 Gavarret
+Gbps
 gdpr
 Geijn
 genindex
@@ -477,6 +479,7 @@ gettime
 gettsigkey
 Geuze
 GFm
+Ghz
 Gibheer
 Gieben
 Gillstrom
@@ -648,6 +651,7 @@ ktls
 KTNAME
 Kuehrer
 kvs
+kxdpgun
 Ladot
 Lafon
 Lakkas
@@ -701,6 +705,7 @@ libsodium
 libsofthsm
 libsystemd
 libtdsodbc
+libxdp
 libyaml
 libzmq
 lightningstream
@@ -861,6 +866,7 @@ NETWORKMASK
 Neue
 Neuf
 newcontent
+nftables
 nic
 Nilsen
 nimber
@@ -1183,6 +1189,7 @@ Schueler
 schwer
 scopebits
 scopemask
+sdfn
 sdfoijdfio
 sdig
 secpoll
@@ -1409,6 +1416,7 @@ Ueber
 Ueli
 UIDs
 Uisms
+UMEM
 unauth
 unbreak
 unescaping
@@ -1513,6 +1521,8 @@ Xiang
 xorbooter
 xpf
 XRecord
+xsk
+xskmap
 XXXXXX
 yahttp
 yamlconversion

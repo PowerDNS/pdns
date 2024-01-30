@@ -108,6 +108,18 @@ struct CIDR6
   struct in6_addr addr;
 };
 
+struct IPv4AndPort
+{
+  uint32_t addr;
+  uint16_t port;
+};
+
+struct IPv6AndPort
+{
+  struct in6_addr addr;
+  uint16_t port;
+};
+
 /*
  * Store the matching counter and the associated action for a blocked element
  */
@@ -128,7 +140,7 @@ static inline void cursor_init(struct cursor *c, struct xdp_md *ctx)
   c->pos = (void *)(long)ctx->data;
 }
 
-/* 
+/*
  * Header parser functions
  * Copyright 2020, NLnet Labs, All rights reserved.
  */
@@ -180,4 +192,4 @@ static inline struct ethhdr *parse_eth(struct cursor *c, uint16_t *eth_proto)
   return eth;
 }
 
-#endif 
+#endif

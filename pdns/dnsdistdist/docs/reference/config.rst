@@ -84,7 +84,7 @@ Listen Sockets
     Added ``maxInFlight`` and ``maxConcurrentTCPConnections`` parameters.
 
   .. versionchanged:: 1.9.0
-    Added ``enableProxyProtocol`` parameter, which was always ``true`` before 1.9.0.
+    Added the ``enableProxyProtocol`` parameter, which was always ``true`` before 1.9.0, and  the``xskSocket`` one.
 
   Add to the list of listen addresses. Note that for IPv6 link-local addresses, it might be necessary to specify the interface to use: ``fe80::1%eth0``. On recent Linux versions specifying the interface via the ``interface`` parameter should work as well.
 
@@ -103,6 +103,7 @@ Listen Sockets
   * ``maxInFlight=0``: int - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing.
   * ``maxConcurrentTCPConnections=0``: int - Maximum number of concurrent incoming TCP connections. The default is 0 which means unlimited.
   * ``enableProxyProtocol=true``: str - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
+  * ``xskSocket``: :class:`XskSocket` - A socket to enable ``XSK`` / ``AF_XDP`` support for this frontend. See :doc:`../advanced/xsk` for more information.
 
   .. code-block:: lua
 
@@ -127,7 +128,7 @@ Listen Sockets
      ``additionalAddresses``, ``ignoreTLSConfigurationErrors`` and ``keepIncomingHeaders`` options added.
 
   .. versionchanged:: 1.9.0
-     ``enableProxyProtocol``, ``library``, ``readAhead`` and ``proxyProtocolOutsideTLS`` options added.
+     ``enableProxyProtocol``, ``library``, ``proxyProtocolOutsideTLS`` and ``readAhead`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -175,7 +176,7 @@ Listen Sockets
   * ``library``: str - Which underlying HTTP2 library should be used, either h2o or nghttp2. Until 1.9.0 only h2o was available, but the use of this library is now deprecated as it is no longer maintained. nghttp2 is the new default since 1.9.0.
   * ``readAhead``: bool - When the TLS provider is set to OpenSSL, whether we tell the library to read as many input bytes as possible, which leads to better performance by reducing the number of syscalls. Default is true.
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
-  * ``enableProxyProtocol=true``: str - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
+  * ``enableProxyProtocol=true``: bool - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
 
 .. function:: addDOH3Local(address, certFile(s), keyFile(s) [, options])
 
@@ -630,7 +631,7 @@ Servers
     Added ``autoUpgrade``, ``autoUpgradeDoHKey``, ``autoUpgradeInterval``, ``autoUpgradeKeep``, ``autoUpgradePool``, ``maxConcurrentTCPConnections``, ``subjectAddr``, ``lazyHealthCheckSampleSize``, ``lazyHealthCheckMinSampleCount``, ``lazyHealthCheckThreshold``, ``lazyHealthCheckFailedInterval``, ``lazyHealthCheckMode``, ``lazyHealthCheckUseExponentialBackOff``, ``lazyHealthCheckMaxBackOff``, ``lazyHealthCheckWhenUpgraded``, ``healthCheckMode`` and ``ktls`` to server_table.
 
   .. versionchanged:: 1.9.0
-    Added ``proxyProtocolAdvertiseTLS`` to server_table.
+    Added ``MACAddr``, ``proxyProtocolAdvertiseTLS`` and ``xskSockets`` to server_table.
 
   :param str server_string: A simple IP:PORT string.
   :param table server_table: A table with at least an ``address`` key
@@ -719,6 +720,8 @@ Servers
     ``lazyHealthCheckWhenUpgraded``          ``bool``              "Whether the auto-upgraded version of this backend (see ``autoUpgrade``) should use the lazy health-checking mode. Default is false, which means it will use the regular health-checking mode."
     ``ktls``                                 ``bool``              "Whether to enable the experimental kernel TLS support on Linux, if both the kernel and the OpenSSL library support it. Default is false. Currently both DoT and DoH backend support this option."
     ``proxyProtocolAdvertiseTLS``            ``bool``              "Whether to set the SSL Proxy Protocol TLV in the proxy protocol payload sent to the backend if the query was received over an encrypted channel (DNSCrypt, DoQ, DoH or DoT). Requires ``useProxyProtocol=true``. Default is false."
+    ``xskSockets``                            ``array``            "An array of :class:`XskSocket` objects to enable ``XSK`` / ``AF_XDP`` support for this backend. See :doc:`../advanced/xsk` for more information."
+    ``MACAddr``                              ``str``               "When the ``xskSocket`` option is set, this parameter can be used to specify the destination MAC address to use to reach the backend. If this options is not specified, dnsdist will try to get it from the IP of the backend by looking into the system's MAC address table, but it will fail if the corresponding MAC address is not present."
 
 .. function:: getServer(index) -> Server
 

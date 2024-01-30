@@ -1,9 +1,13 @@
 #include "xdp.h"
 
+#define DISABLE_LOGGING 1
+
 BPF_TABLE_PINNED("hash", uint32_t, struct map_value, v4filter, 1024, "/sys/fs/bpf/dnsdist/addr-v4");
 BPF_TABLE_PINNED("hash", struct in6_addr, struct map_value, v6filter, 1024, "/sys/fs/bpf/dnsdist/addr-v6");
 BPF_TABLE_PINNED("hash", struct dns_qname, struct map_value, qnamefilter, 1024, "/sys/fs/bpf/dnsdist/qnames");
+#ifndef DISABLE_LOGGING
 BPF_TABLE_PINNED("prog", int, int, progsarray, 2, "/sys/fs/bpf/dnsdist/progs");
+#endif /* DISABLE_LOGGING */
 
 /*
  * bcc has added BPF_TABLE_PINNED7 to the latest commit of the master branch, but it has not yet been released.
@@ -16,6 +20,26 @@ BPF_TABLE_PINNED("prog", int, int, progsarray, 2, "/sys/fs/bpf/dnsdist/progs");
 
 BPF_TABLE_PINNED7("lpm_trie", struct CIDR4, struct map_value, cidr4filter, 1024, "/sys/fs/bpf/dnsdist/cidr4", BPF_F_NO_PREALLOC);
 BPF_TABLE_PINNED7("lpm_trie", struct CIDR6, struct map_value, cidr6filter, 1024, "/sys/fs/bpf/dnsdist/cidr6", BPF_F_NO_PREALLOC);
+
+#ifdef UseXsk
+#define BPF_XSKMAP_PIN(_name, _max_entries, _pinned) \
+  struct _name##_table_t                             \
+  {                                                  \
+    u32 key;                                         \
+    int leaf;                                        \
+    int* (*lookup)(int*);                            \
+    /* xdp_act = map.redirect_map(index, flag) */    \
+    u64 (*redirect_map)(int, int);                   \
+    u32 max_entries;                                 \
+  };                                                 \
+  __attribute__((section("maps/xskmap:" _pinned))) struct _name##_table_t _name = {.max_entries = (_max_entries)}
+
+BPF_XSKMAP_PIN(xsk_map, 16, "/sys/fs/bpf/dnsdist/xskmap");
+BPF_TABLE_PINNED("hash", struct IPv4AndPort, bool, xskDestinationsV4, 1024, "/sys/fs/bpf/dnsdist/xsk-destinations-v4");
+BPF_TABLE_PINNED("hash", struct IPv6AndPort, bool, xskDestinationsV6, 1024, "/sys/fs/bpf/dnsdist/xsk-destinations-v6");
+#endif /* UseXsk */
+
+#define COMPARE_PORT(x, p) ((x) == bpf_htons(p))
 
 /*
  * Recalculate the checksum
@@ -39,7 +63,7 @@ static inline void update_checksum(uint16_t *csum, uint16_t old_val, uint16_t ne
  * Set the TC bit and swap UDP ports
  * Copyright 2020, NLnet Labs, All rights reserved.
  */
-static inline enum dns_action set_tc_bit(struct udphdr *udp, struct dnshdr *dns)
+static inline void set_tc_bit(struct udphdr* udp, struct dnshdr* dns)
 {
   uint16_t old_val = dns->flags.as_value;
 
@@ -49,14 +73,12 @@ static inline enum dns_action set_tc_bit(struct udphdr *udp, struct dnshdr *dns)
   dns->flags.as_bits_and_pieces.tc = 1;
 
   // change the UDP destination to the source
-  udp->dest   = udp->source;
-  udp->source = bpf_htons(DNS_PORT);
+  uint16_t tmp = udp->dest;
+  udp->dest = udp->source;
+  udp->source = tmp;
 
   // calculate and write the new checksum
   update_checksum(&udp->check, old_val, dns->flags.as_value);
-
-  // bounce
-  return TC;
 }
 
 /*
@@ -65,41 +87,43 @@ static inline enum dns_action set_tc_bit(struct udphdr *udp, struct dnshdr *dns)
  *         TC if (modified) message needs to be replied
  *         DROP if message needs to be blocke
  */
-static inline enum dns_action check_qname(struct cursor *c)
+static inline struct map_value* check_qname(struct cursor* c)
 {
   struct dns_qname qkey = {0};
   uint8_t qname_byte;
   uint16_t qtype;
   int length = 0;
 
-  for(int i = 0; i<255; i++) {
-  	if (bpf_probe_read_kernel(&qname_byte, sizeof(qname_byte), c->pos)) {
-  		return PASS;
-  	}
-  	c->pos += 1;
-  	if (length == 0) {
-      if (qname_byte == 0 || qname_byte > 63 ) {
-  		  break;
+  for (int i = 0; i < 255; i++) {
+    if (bpf_probe_read_kernel(&qname_byte, sizeof(qname_byte), c->pos)) {
+      return NULL;
+    }
+    c->pos += 1;
+    if (length == 0) {
+      if (qname_byte == 0 || qname_byte > 63) {
+        break;
       }
       length += qname_byte;
-  	} else {
+    }
+    else {
       length--;
     }
-  	if (qname_byte >= 'A' && qname_byte <= 'Z') {
-  		qkey.qname[i] = qname_byte + ('a' - 'A');
-  	} else {
-  		qkey.qname[i] = qname_byte;
-  	}
+    if (qname_byte >= 'A' && qname_byte <= 'Z') {
+      qkey.qname[i] = qname_byte + ('a' - 'A');
+    }
+    else {
+      qkey.qname[i] = qname_byte;
+    }
   }
 
   // if the last read qbyte is not 0 incorrect QName format), return PASS
   if (qname_byte != 0) {
-  	return PASS;
+    return NULL;
   }
 
   // get QType
-  if(bpf_probe_read_kernel(&qtype, sizeof(qtype), c->pos)) {
-  	return PASS;
+  if (bpf_probe_read_kernel(&qtype, sizeof(qtype), c->pos)) {
+    return NULL;
   }
 
   struct map_value* value;
@@ -108,125 +132,208 @@ static inline enum dns_action check_qname(struct cursor *c)
   qkey.qtype = bpf_htons(qtype);
   value = qnamefilter.lookup(&qkey);
   if (value) {
-    __sync_fetch_and_add(&value->counter, 1);
-  	return value->action;
+    return value;
   }
 
   // check with Qtype 255 (*)
   qkey.qtype = 255;
 
-  value = qnamefilter.lookup(&qkey);
-  if (value) {
-    __sync_fetch_and_add(&value->counter, 1);
-  	return value->action;
-  }
-
-  return PASS;
+  return qnamefilter.lookup(&qkey);
 }
 
 /*
  * Parse IPv4 DNS mesage.
- * Returns PASS if message needs to go through (i.e. pass)
- *         TC if (modified) message needs to be replied
- *         DROP if message needs to be blocked
+ * Returns XDP_PASS if message needs to go through (i.e. pass)
+ *         XDP_REDIRECT if message needs to be redirected (for AF_XDP, which needs to be translated to the caller into XDP_PASS outside of the AF_XDP)
+ *         XDP_TX if (modified) message needs to be replied
+ *         XDP_DROP if message needs to be blocked
  */
-static inline enum dns_action udp_dns_reply_v4(struct cursor *c, struct CIDR4 *key)
+static inline enum xdp_action parseIPV4(struct xdp_md* ctx, struct cursor* c)
 {
-  struct udphdr  *udp;
-  struct dnshdr  *dns;
-
-  if (!(udp = parse_udphdr(c)) || udp->dest != bpf_htons(DNS_PORT)) {
-  	return PASS;
+  struct iphdr* ipv4;
+  struct udphdr* udp = NULL;
+  struct dnshdr* dns = NULL;
+  if (!(ipv4 = parse_iphdr(c))) {
+    return XDP_PASS;
+  }
+  switch (ipv4->protocol) {
+  case IPPROTO_UDP: {
+    if (!(udp = parse_udphdr(c))) {
+      return XDP_PASS;
+    }
+#ifdef UseXsk
+    struct IPv4AndPort v4Dest;
+    memset(&v4Dest, 0, sizeof(v4Dest));
+    v4Dest.port = udp->dest;
+    v4Dest.addr = ipv4->daddr;
+    if (!xskDestinationsV4.lookup(&v4Dest)) {
+      return XDP_PASS;
+    }
+#else /* UseXsk */
+    if (!IN_DNS_PORT_SET(udp->dest)) {
+      return XDP_PASS;
+    }
+#endif /* UseXsk */
+    if (!(dns = parse_dnshdr(c))) {
+      return XDP_DROP;
+    }
+    break;
   }
 
-  // check that we have a DNS packet
-  if (!(dns = parse_dnshdr(c))) {
-  	return PASS;
-  }	
+#ifdef UseXsk
+  case IPPROTO_TCP: {
+    return XDP_PASS;
+  }
+#endif /* UseXsk */
+
+  default:
+    return XDP_PASS;
+  }
+
+  struct CIDR4 key;
+  key.addr = bpf_htonl(ipv4->saddr);
 
   // if the address is blocked, perform the corresponding action
-  struct map_value* value = v4filter.lookup(&key->addr);
+  struct map_value* value = v4filter.lookup(&key.addr);
 
   if (value) {
-    __sync_fetch_and_add(&value->counter, 1);
-    if (value->action == TC) {
-  	  return set_tc_bit(udp, dns);
-    } else {
-      return value->action;
-    }
+    goto res;
   }
 
-  key->cidr = 32;
-  key->addr = bpf_htonl(key->addr);
-  value = cidr4filter.lookup(key);
+  key.cidr = 32;
+  key.addr = bpf_htonl(key.addr);
+  value = cidr4filter.lookup(&key);
   if (value) {
+    goto res;
+  }
+
+  // ignore the DF flag
+  const uint16_t fragMask = htons(~(1 << 14));
+  uint16_t frag = ipv4->frag_off & fragMask;
+  if (frag != 0) {
+    // MF flag is set, or Fragment Offset is != 0
+    return XDP_PASS;
+  }
+
+  if (dns) {
+    value = check_qname(c);
+  }
+  if (value) {
+  res:
     __sync_fetch_and_add(&value->counter, 1);
-    if (value->action == TC) {
-      return set_tc_bit(udp, dns);
+    if (value->action == TC && udp && dns) {
+      set_tc_bit(udp, dns);
+      // swap src/dest IP addresses
+      uint32_t swap_ipv4 = ipv4->daddr;
+      ipv4->daddr = ipv4->saddr;
+      ipv4->saddr = swap_ipv4;
+
+#ifndef DISABLE_LOGGING
+      progsarray.call(ctx, 1);
+#endif /* DISABLE_LOGGING */
+      return XDP_TX;
     }
-    else {
-      return value->action;
+
+    if (value->action == DROP) {
+#ifndef DISABLE_LOGGING
+      progsarray.call(ctx, 0);
+#endif /* DISABLE_LOGGING */
+      return XDP_DROP;
     }
   }
 
-  enum dns_action action = check_qname(c);
-  if (action == TC) {
-    return set_tc_bit(udp, dns);
-  }
-  return action;
+  return XDP_REDIRECT;
 }
 
 /*
  * Parse IPv6 DNS mesage.
- * Returns PASS if message needs to go through (i.e. pass)
- *         TC if (modified) message needs to be replied
- *         DROP if message needs to be blocked
+ * Returns XDP_PASS if message needs to go through (i.e. pass)
+ *         XDP_REDIRECT if message needs to be redirected (for AF_XDP, which needs to be translated to the caller into XDP_PASS outside of the AF_XDP)
+ *         XDP_TX if (modified) message needs to be replied
+ *         XDP_DROP if message needs to be blocked
  */
-static inline enum dns_action udp_dns_reply_v6(struct cursor *c, struct CIDR6* key)
+static inline enum xdp_action parseIPV6(struct xdp_md* ctx, struct cursor* c)
 {
-   struct udphdr  *udp;
-   struct dnshdr  *dns;
-
-  
-  if (!(udp = parse_udphdr(c)) || udp->dest != bpf_htons(DNS_PORT)) {
-  	return PASS;
+  struct ipv6hdr* ipv6;
+  struct udphdr* udp = NULL;
+  struct dnshdr* dns = NULL;
+  if (!(ipv6 = parse_ipv6hdr(c))) {
+    return XDP_PASS;
   }
-
-  // check that we have a DNS packet
-  ;
+  switch (ipv6->nexthdr) {
+  case IPPROTO_UDP: {
+    if (!(udp = parse_udphdr(c))) {
+      return XDP_PASS;
+    }
+#ifdef UseXsk
+    struct IPv6AndPort v6Dest;
+    memset(&v6Dest, 0, sizeof(v6Dest));
+    v6Dest.port = udp->dest;
+    memcpy(&v6Dest.addr, &ipv6->daddr, sizeof(v6Dest.addr));
+    if (!xskDestinationsV6.lookup(&v6Dest)) {
+      return XDP_PASS;
+    }
+#else /* UseXsk */
+    if (!IN_DNS_PORT_SET(udp->dest)) {
+      return XDP_PASS;
+    }
+#endif /* UseXsk */
   if (!(dns = parse_dnshdr(c))) {
-  	return PASS;
+      return XDP_DROP;
+    }
+    break;
   }
+
+#ifdef UseXsk
+  case IPPROTO_TCP: {
+    return XDP_PASS;
+  }
+#endif /* UseXsk */
+
+  default:
+    return XDP_PASS;
+  }
+
+  struct CIDR6 key;
+  key.addr = ipv6->saddr;
 
   // if the address is blocked, perform the corresponding action
-  struct map_value* value = v6filter.lookup(&key->addr);
-
+  struct map_value* value = v6filter.lookup(&key.addr);
   if (value) {
-    __sync_fetch_and_add(&value->counter, 1);
-    if (value->action == TC) {
-  	  return set_tc_bit(udp, dns);
-    } else {
-      return value->action;
-    }
+    goto res;
   }
 
-  key->cidr = 128;
-  value = cidr6filter.lookup(key);
+  key.cidr = 128;
+  value = cidr6filter.lookup(&key);
   if (value) {
-    __sync_fetch_and_add(&value->counter, 1);
-    if (value->action == TC) {
-      return set_tc_bit(udp, dns);
-    }
-    else {
-      return value->action;
-    }
+    goto res;
   }
 
-  enum dns_action action = check_qname(c);
-  if (action == TC) {
-    return set_tc_bit(udp, dns);
+  if (dns) {
+    value = check_qname(c);
   }
-  return action;
+  if (value) {
+  res:
+    __sync_fetch_and_add(&value->counter, 1);
+    if (value->action == TC && udp && dns) {
+      set_tc_bit(udp, dns);
+      // swap src/dest IP addresses
+      struct in6_addr swap_ipv6 = ipv6->daddr;
+      ipv6->daddr = ipv6->saddr;
+      ipv6->saddr = swap_ipv6;
+#ifndef DISABLE_LOGGING
+      progsarray.call(ctx, 1);
+#endif /* DISABLE_LOGGING */
+      return XDP_TX;
+    }
+    if (value->action == DROP) {
+#ifndef DISABLE_LOGGING
+      progsarray.call(ctx, 0);
+#endif /* DISABLE_LOGGING */
+      return XDP_DROP;
+    }
+  }
+  return XDP_REDIRECT;
 }
 
 int xdp_dns_filter(struct xdp_md* ctx)
@@ -235,9 +342,7 @@ int xdp_dns_filter(struct xdp_md* ctx)
   struct cursor   c;
   struct ethhdr  *eth;
   uint16_t        eth_proto;
-  struct iphdr   *ipv4;
-  struct ipv6hdr *ipv6;
-  int            r = 0;
+  enum xdp_action r;
 
   // initialise the cursor
   cursor_init(&c, ctx);
@@ -245,67 +350,36 @@ int xdp_dns_filter(struct xdp_md* ctx)
   // pass the packet if it is not an ethernet one
   if ((eth = parse_eth(&c, &eth_proto))) {
     // IPv4 packets
-    if (eth_proto == bpf_htons(ETH_P_IP))
-    {
-      if (!(ipv4 = parse_iphdr(&c)) || bpf_htons(ipv4->protocol != IPPROTO_UDP)) {
-        return XDP_PASS;
-      }
-
-      struct CIDR4 key;
-      key.addr = bpf_htonl(ipv4->saddr);
-      // if TC bit must not be set, apply the action
-      if ((r = udp_dns_reply_v4(&c, &key)) != TC) {
-        if (r == DROP) {
-          progsarray.call(ctx, 0);
-          return XDP_DROP;
-        }
-        return XDP_PASS;
-      }
-
-      // swap src/dest IP addresses
-      uint32_t swap_ipv4 = ipv4->daddr;
-      ipv4->daddr = ipv4->saddr;
-      ipv4->saddr = swap_ipv4;
+    if (eth_proto == bpf_htons(ETH_P_IP)) {
+      r = parseIPV4(ctx, &c);
+      goto res;
     }
     // IPv6 packets
     else if (eth_proto == bpf_htons(ETH_P_IPV6)) {
-      if (!(ipv6 = parse_ipv6hdr(&c)) || bpf_htons(ipv6->nexthdr != IPPROTO_UDP)) {
-        return XDP_PASS;
-      }
-      struct CIDR6 key;
-      key.addr = ipv6->saddr;
-
-      // if TC bit must not be set, apply the action
-      if ((r = udp_dns_reply_v6(&c, &key)) != TC) {
-        if (r == DROP) {
-          progsarray.call(ctx, 0);
-          return XDP_DROP;
-        }
-        return XDP_PASS;
-      }
-
-      // swap src/dest IP addresses
-      struct in6_addr swap_ipv6 = ipv6->daddr;
-      ipv6->daddr = ipv6->saddr;
-      ipv6->saddr = swap_ipv6;
+      r = parseIPV6(ctx, &c);
+      goto res;
     }
     // pass all non-IP packets
-    else {
-      return XDP_PASS;
-    }
-  }
-  else {
     return XDP_PASS;
   }
-
-  // swap MAC addresses
-  uint8_t swap_eth[ETH_ALEN];
-  memcpy(swap_eth, eth->h_dest, ETH_ALEN);
-  memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
-  memcpy(eth->h_source, swap_eth, ETH_ALEN);
-
-  progsarray.call(ctx, 1);
-
-  // bounce the request
-  return XDP_TX;
+  return XDP_PASS;
+res:
+  switch (r) {
+  case XDP_REDIRECT:
+#ifdef UseXsk
+    return xsk_map.redirect_map(ctx->rx_queue_index, 0);
+#else
+    return XDP_PASS;
+#endif /* UseXsk */
+  case XDP_TX: { // swap MAC addresses
+    uint8_t swap_eth[ETH_ALEN];
+    memcpy(swap_eth, eth->h_dest, ETH_ALEN);
+    memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
+    memcpy(eth->h_source, swap_eth, ETH_ALEN);
+    // bounce the request
+    return XDP_TX;
+  }
+  default:
+    return r;
+  }
 }

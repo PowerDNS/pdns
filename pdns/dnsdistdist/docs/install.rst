@@ -50,8 +50,9 @@ dnsdist depends on the following libraries:
 * `Editline (libedit) <http://thrysoee.dk/editline/>`_
 * `libfstrm <https://github.com/farsightsec/fstrm>`_ (optional, dnstap support)
 * `GnuTLS <https://www.gnutls.org/>`_ (optional, DoT and outgoing DoH support)
-* `libh2o <https://github.com/h2o/h2o>`_ (optional, incoming DoH support, deprecated in 1.9.0 in favor of ``nghttp2``)
+* `libbpf <https://github.com/libbpf/libbpf>`_ and `libxdp <https://github.com/xdp-project/xdp-tools>`_ (optional, `XSK`/`AF_XDP` support)
 * `libcap <https://sites.google.com/site/fullycapable/>`_ (optional, capabilities support)
+* `libh2o <https://github.com/h2o/h2o>`_ (optional, incoming DoH support, deprecated in 1.9.0 in favor of ``nghttp2``)
 * `libsodium <https://download.libsodium.org/doc/>`_ (optional, DNSCrypt and console encryption support)
 * `LMDB <http://www.lmdb.tech/doc/>`_ (optional, LMDB support)
 * `net-snmp <http://www.net-snmp.org/>`_ (optional, SNMP support)

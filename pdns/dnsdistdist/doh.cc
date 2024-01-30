@@ -719,7 +719,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       const dnsheader_aligned dnsHeader(unit->query.data());
 
-      if (!checkQueryHeaders(dnsHeader.get(), clientState)) {
+      if (!checkQueryHeaders(*dnsHeader, clientState)) {
         unit->status_code = 400;
         handleImmediateResponse(std::move(unit), "DoH invalid headers");
         return;

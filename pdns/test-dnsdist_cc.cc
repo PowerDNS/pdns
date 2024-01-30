@@ -33,6 +33,7 @@
 #include "dnsdist-internal-queries.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-xpf.hh"
+#include "dnsdist-xsk.hh"
 
 #include "dolog.hh"
 #include "dnsname.hh"
@@ -57,7 +58,7 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMs
   return false;
 }
 
-bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& ds, uint16_t queryID, DNSQuestion& dq, PacketBuffer& query)
+bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend)
 {
   return true;
 }
@@ -70,6 +71,18 @@ std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dq, bool
 }
 
 bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(DownstreamState const&)
+{
+  return false;
+}
+namespace dnsdist::xsk
+{
+bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket& packet)
+{
+  return false;
+}
+}
+
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& localRespRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids)
 {
   return false;
 }

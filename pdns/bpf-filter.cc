@@ -33,18 +33,18 @@
 
 #include "misc.hh"
 
-static __u64 ptr_to_u64(void *ptr)
+static __u64 ptr_to_u64(const void *ptr)
 {
   return (__u64) (unsigned long) ptr;
 }
 
 /* these can be static as they are not declared in libbpf.h: */
-static int bpf_pin_map(int fd, const std::string& path)
+static int bpf_pin_map(int descriptor, const std::string& path)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
-  attr.bpf_fd = fd;
-  attr.pathname = ptr_to_u64(const_cast<char*>(path.c_str()));
+  attr.bpf_fd = descriptor;
+  attr.pathname = ptr_to_u64(path.c_str());
   return syscall(SYS_bpf, BPF_OBJ_PIN, &attr, sizeof(attr));
 }
 
@@ -52,11 +52,11 @@ static int bpf_load_pinned_map(const std::string& path)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
-  attr.pathname = ptr_to_u64(const_cast<char*>(path.c_str()));
+  attr.pathname = ptr_to_u64(path.c_str());
   return syscall(SYS_bpf, BPF_OBJ_GET, &attr, sizeof(attr));
 }
 
-static void bpf_check_map_sizes(int fd, uint32_t expectedKeySize, uint32_t expectedValueSize)
+static void bpf_check_map_sizes(int descriptor, uint32_t expectedKeySize, uint32_t expectedValueSize)
 {
   struct bpf_map_info info;
   uint32_t info_len = sizeof(info);
@@ -64,7 +64,7 @@ static void bpf_check_map_sizes(int fd, uint32_t expectedKeySize, uint32_t expec
 
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
-  attr.info.bpf_fd = fd;
+  attr.info.bpf_fd = descriptor;
   attr.info.info_len = info_len;
   attr.info.info = ptr_to_u64(&info);
 
@@ -83,8 +83,9 @@ static void bpf_check_map_sizes(int fd, uint32_t expectedKeySize, uint32_t expec
   }
 }
 
-int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
-                   int max_entries, int map_flags)
+// NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+static int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
+                          int max_entries, int map_flags)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -96,56 +97,56 @@ int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
   return syscall(SYS_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
 }
 
-int bpf_update_elem(int fd, void *key, void *value, unsigned long long flags)
+static int bpf_update_elem(int descriptor, void *key, void *value, unsigned long long flags)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
-  attr.map_fd = fd;
+  attr.map_fd = descriptor;
   attr.key = ptr_to_u64(key);
   attr.value = ptr_to_u64(value);
   attr.flags = flags;
   return syscall(SYS_bpf, BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
 }
 
-int bpf_lookup_elem(int fd, void *key, void *value)
+static int bpf_lookup_elem(int descriptor, void *key, void *value)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
-  attr.map_fd = fd;
+  attr.map_fd = descriptor;
   attr.key = ptr_to_u64(key);
   attr.value = ptr_to_u64(value);
   return syscall(SYS_bpf, BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr));
 }
 
-int bpf_delete_elem(int fd, void *key)
+static int bpf_delete_elem(int descriptor, void *key)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
-  attr.map_fd = fd;
+  attr.map_fd = descriptor;
   attr.key = ptr_to_u64(key);
   return syscall(SYS_bpf, BPF_MAP_DELETE_ELEM, &attr, sizeof(attr));
 }
 
-int bpf_get_next_key(int fd, void *key, void *next_key)
+static int bpf_get_next_key(int descriptor, void *key, void *next_key)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
-  attr.map_fd = fd;
+  attr.map_fd = descriptor;
   attr.key = ptr_to_u64(key);
   attr.next_key = ptr_to_u64(next_key);
   return syscall(SYS_bpf, BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr));
 }
 
-int bpf_prog_load(enum bpf_prog_type prog_type,
-                  const struct bpf_insn *insns, int prog_len,
-                  const char *license, int kern_version)
+static int bpf_prog_load(enum bpf_prog_type prog_type,
+                         const struct bpf_insn *insns, size_t prog_len,
+                         const char *license, int kern_version)
 {
   char log_buf[65535];
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
   attr.prog_type = prog_type;
   attr.insns = ptr_to_u64((void *) insns);
-  attr.insn_cnt = prog_len / sizeof(struct bpf_insn);
+  attr.insn_cnt = static_cast<int>(prog_len / sizeof(struct bpf_insn));
   attr.license = ptr_to_u64((void *) license);
   attr.log_buf = ptr_to_u64(log_buf);
   attr.log_size = sizeof(log_buf);
@@ -337,15 +338,15 @@ BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFor
 
 static FDWrapper loadProgram(const struct bpf_insn* filter, size_t filterSize)
 {
-  auto fd = FDWrapper(bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER,
-                                    filter,
-                                    filterSize,
-                                    "GPL",
-                                    0));
-  if (fd.getHandle() == -1) {
+  auto descriptor = FDWrapper(bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER,
+                                            filter,
+                                            filterSize,
+                                            "GPL",
+                                            0));
+  if (descriptor.getHandle() == -1) {
     throw std::runtime_error("error loading BPF filter: " + stringerror());
   }
-  return fd;
+  return descriptor;
 }
 
 
@@ -428,8 +429,8 @@ BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs,
 
 void BPFFilter::addSocket(int sock)
 {
-  int fd = d_mainfilter.getHandle();
-  int res = setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &fd, sizeof(fd));
+  int descriptor = d_mainfilter.getHandle();
+  int res = setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &descriptor, sizeof(descriptor));
 
   if (res != 0) {
     throw std::runtime_error("Error attaching BPF filter to this socket: " + stringerror());
@@ -438,8 +439,8 @@ void BPFFilter::addSocket(int sock)
 
 void BPFFilter::removeSocket(int sock)
 {
-  int fd = d_mainfilter.getHandle();
-  int res = setsockopt(sock, SOL_SOCKET, SO_DETACH_BPF, &fd, sizeof(fd));
+  int descriptor = d_mainfilter.getHandle();
+  int res = setsockopt(sock, SOL_SOCKET, SO_DETACH_BPF, &descriptor, sizeof(descriptor));
 
   if (res != 0) {
     throw std::runtime_error("Error detaching BPF filter from this socket: " + stringerror());

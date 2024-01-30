@@ -1070,7 +1070,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
-    dnsdist::MacAddress mac;
+    dnsdist::MacAddress mac{};
     int res = dnsdist::MacAddressesCache::get(dnsquestion->ids.origRemote, mac.data(), mac.size());
     if (res != 0) {
       return Action::None;

@@ -26,8 +26,10 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-resolver.hh"
 #include "dnsdist-svc.hh"
+#include "dnsdist-xsk.hh"
 
 #include "dolog.hh"
+#include "xsk.hh"
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
@@ -715,7 +717,48 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       }
     });
 #endif /* HAVE_EBPF */
-
+#ifdef HAVE_XSK
+  using xskopt_t = LuaAssociativeTable<boost::variant<uint32_t, std::string>>;
+  luaCtx.writeFunction("newXsk", [client](xskopt_t opts) {
+    if (g_configurationDone) {
+      throw std::runtime_error("newXsk() only can be used at configuration time!");
+    }
+    if (client) {
+      return std::shared_ptr<XskSocket>(nullptr);
+    }
+    uint32_t queue_id;
+    uint32_t frameNums{65536};
+    std::string ifName;
+    std::string path("/sys/fs/bpf/dnsdist/xskmap");
+    if (opts.count("ifName") == 1) {
+      ifName = boost::get<std::string>(opts.at("ifName"));
+    }
+    else {
+      throw std::runtime_error("ifName field is required!");
+    }
+    if (opts.count("NIC_queue_id") == 1) {
+      queue_id = boost::get<uint32_t>(opts.at("NIC_queue_id"));
+    }
+    else {
+      throw std::runtime_error("NIC_queue_id field is required!");
+    }
+    if (opts.count("frameNums") == 1) {
+      frameNums = boost::get<uint32_t>(opts.at("frameNums"));
+    }
+    if (opts.count("xskMapPath") == 1) {
+      path = boost::get<std::string>(opts.at("xskMapPath"));
+    }
+    auto socket = std::make_shared<XskSocket>(frameNums, ifName, queue_id, path);
+    dnsdist::xsk::g_xsk.push_back(socket);
+    return socket;
+  });
+  luaCtx.registerFunction<std::string(std::shared_ptr<XskSocket>::*)()const>("getMetrics", [](const std::shared_ptr<XskSocket>& xsk) -> std::string {
+    if (!xsk) {
+      return {};
+    }
+    return xsk->getMetrics();
+  });
+#endif /* HAVE_XSK */
   /* EDNSOptionView */
   luaCtx.registerFunction<size_t(EDNSOptionView::*)()const>("count", [](const EDNSOptionView& option) {
       return option.values.size();

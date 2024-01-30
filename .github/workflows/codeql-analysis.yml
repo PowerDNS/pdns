@@ -147,7 +147,7 @@ jobs:
     - name: Install dependencies for dnsdist
       if: matrix.product == 'dnsdist'
       run: |
-        inv install-dnsdist-build-deps
+        inv install-dnsdist-build-deps --skipXDP
     - name: Autoreconf dnsdist
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
