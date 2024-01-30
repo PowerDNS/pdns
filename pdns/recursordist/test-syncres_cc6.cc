@@ -1821,7 +1821,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_secure_to_broken_cname_ds)
         addRecordToLW(res, "ns1.sub.powerdns.com.", QType::A, "192.0.2.3", DNSResourceRecord::ADDITIONAL, 3600);
         return LWResult::Result::Success;
       }
-      else if (address == ComboAddress("192.0.2.3:53")) {
+      if (address == ComboAddress("192.0.2.3:53")) {
         setLWResult(res, 0, true, false, true);
         addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
         addRRSIG(pdnskeys, res->d_records, DNSName("sub.powerdns.com."), 300);
