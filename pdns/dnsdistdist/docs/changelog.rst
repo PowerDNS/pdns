@@ -2,6 +2,135 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.0-rc1
+  :released: 30th of January 2024
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 13647
+
+    Set the DNS over HTTP/3 default port to 443
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13638
+    :tickets: 13631
+
+    Handle congested DoQ streams
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 13630
+
+    Fix the 'TCP Died Reading Query" metric, as reported by Coverity
+
+  .. change::
+    :tags: Improvements, Performance, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13666
+
+    Optimize the DoQ packet handling path
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 13664
+
+    Increase UDP receive and send buffers to the maximum allowed
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13670
+
+    Make sure we enforce the ACL over DoQ and DoH3
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13674
+
+    Enable DoQ and DoH3 in dockerfile-dnsdist (Denis Machard)
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 13678
+
+    Grant unidirectional HTTP/3 streams for DoH3
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13676
+
+    Enable PMTU discovery and disable fragmentation on QUIC binds
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13667
+
+    Clean up the Lua objects before exiting
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 13689
+    :tickets: 13687
+
+    Buffer HTTP/3 headers until the query has been dispatched
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 13713
+    :tickets: 13690
+
+    Add content-type header information in DoH3 responses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13711
+
+    Cleanup of code doing SNMP OID handling
+
+  .. change::
+    :tags: Bug Fixes, Protobuf, DNSTAP
+    :pullreq: 13716
+
+    Properly set the incoming protocol when logging via Protobuf or dnstap
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13727
+
+    Fix missed optimizations reported by Coverity
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13650
+
+    Fall back to libcrypto for authenticated encryption
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13735
+
+    Move the console socket instead of copying it
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13723
+
+    DNSName: Correct len and offset types
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13724
+
+    DNSName: Optimize parsing of uncompressed labels
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11652
+
+    Add AF_XDP support for UDP (Y7n05h)
+
+.. changelog::
   :version: 1.8.3
   :released: 15th of December 2023
 
