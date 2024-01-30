@@ -207,6 +207,27 @@ Record creation functions
 
   This function also works for CNAME or TXT records.
 
+.. function:: pickchashed(values)
+
+  Based on the hash of ``bestwho``, returns a string from the list
+  supplied, as weighted by the various ``weight`` parameters and distributed consistently.
+  Performs no uptime checking.
+
+  :param values: table of weight, string (such as IPv4 or IPv6 address).
+
+  This function works almost like :func:`pickwhashed` while bringing the following properties:
+  - reordering the list of entries won't affect the distribution
+  - updating the weight of an entry will only affect a part of the distribution
+  - because of the previous properties, the CPU and memory cost is a bit higher than :func:`pickwhashed`
+
+  An example::
+
+    mydomain.example.com    IN    LUA    A ("pickchashed({                             "
+                                            "        {15,  "192.0.2.1"},               "
+                                            "        {100, "198.51.100.5"}             "
+                                            "})                                        ")
+
+
 .. function:: pickwhashed(values)
 
   Based on the hash of ``bestwho``, returns a string from the list
@@ -271,12 +292,12 @@ Reverse DNS functions
 
 .. function:: createReverse(format, [exceptions])
 
-  Used for generating default hostnames from IPv4 wildcard reverse DNS records, e.g. ``*.0.0.127.in-addr.arpa`` 
-  
+  Used for generating default hostnames from IPv4 wildcard reverse DNS records, e.g. ``*.0.0.127.in-addr.arpa``
+
   See :func:`createReverse6` for IPv6 records (ip6.arpa)
 
   See :func:`createForward` for creating the A records on a wildcard record such as ``*.static.example.com``
-  
+
   Returns a formatted hostname based on the format string passed.
 
   :param format: A hostname string to format, for example ``%1%.%2%.%3%.%4%.static.example.com``.
@@ -297,13 +318,13 @@ Reverse DNS functions
       - ``%6`` would be ``7f00000f`` (127 is 7f, and 15 is 0f in hexadecimal)
 
   Example records::
-  
+
     *.0.0.127.in-addr.arpa IN    LUA    PTR "createReverse('%1%.%2%.%3%.%4%.static.example.com')"
     *.1.0.127.in-addr.arpa IN    LUA    PTR "createReverse('%5%.static.example.com')"
     *.2.0.127.in-addr.arpa IN    LUA    PTR "createReverse('%6%.static.example.com')"
- 
+
   When queried::
-  
+
     # -x is syntactic sugar to request the PTR record for an IPv4/v6 address such as 127.0.0.5
     # Equivalent to dig PTR 5.0.0.127.in-addr.arpa
     $ dig +short -x 127.0.0.5 @ns1.example.com
@@ -314,44 +335,44 @@ Reverse DNS functions
     7f000205.static.example.com.
 
 .. function:: createForward()
-  
+
   Used to generate the reverse DNS domains made from :func:`createReverse`
-  
+
   Generates an A record for a dotted or hexadecimal IPv4 domain (e.g. 127.0.0.1.static.example.com)
-  
+
   It does not take any parameters, it simply interprets the zone record to find the IP address.
-  
+
   An example record for zone ``static.example.com``::
-    
+
     *.static.example.com    IN    LUA    A "createForward()"
-  
+
   This function supports the forward dotted format (``127.0.0.1.static.example.com``), and the hex format, when prefixed by two ignored characters (``ip40414243.static.example.com``)
-  
+
   When queried::
-  
+
     $ dig +short A 127.0.0.5.static.example.com @ns1.example.com
     127.0.0.5
-  
+
   Since 4.8.0: the hex format can be prefixed by any number of characters (within DNS label length limits), including zero characters (so no prefix).
 
 .. function:: createReverse6(format[, exceptions])
 
   Used for generating default hostnames from IPv6 wildcard reverse DNS records, e.g. ``*.1.0.0.2.ip6.arpa``
-  
+
   **For simplicity purposes, only small sections of IPv6 rDNS domains are used in most parts of this guide,**
   **as a full ip6.arpa record is around 80 characters long**
-  
+
   See :func:`createReverse` for IPv4 records (in-addr.arpa)
 
   See :func:`createForward6` for creating the AAAA records on a wildcard record such as ``*.static.example.com``
-  
+
   Returns a formatted hostname based on the format string passed.
 
   :param format: A hostname string to format, for example ``%33%.static6.example.com``.
   :param exceptions: An optional table of overrides. For example ``{['2001:db8::1'] = 'example.example.com.'}`` would, when generating a name for IP ``2001:db8::1``, return ``example.example.com`` instead of something like ``2001--db8.example.com``.
 
   Formatting options:
-   
+
   - ``%1%`` to ``%32%`` are individual characters (nibbles)
       - **Example PTR record query:** ``a.0.0.0.1.0.0.2.ip6.arpa``
       - ``%1%`` = 2
@@ -364,40 +385,40 @@ Reverse DNS functions
       - ``%34%`` - returns ``2001`` (chunk 1)
       - ``%35%`` - returns ``000a`` (chunk 2)
       - ``%41%`` - returns ``0123`` (chunk 8)
-  
+
   Example records::
-  
+
     *.1.0.0.2.ip6.arpa IN    LUA    PTR "createReverse6('%33%.static6.example.com')"
     *.2.0.0.2.ip6.arpa IN    LUA    PTR "createReverse6('%34%.%35%.static6.example.com')"
- 
+
   When queried::
-  
+
     # -x is syntactic sugar to request the PTR record for an IPv4/v6 address such as 2001::1
     # Equivalent to dig PTR 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa
     # readable version:     1.0.0.0 .0.0.0.0 .0.0.0.0 .0.0.0.0 .0.0.0.0 .b.0.0.0 .a.0.0.0 .1.0.0.2 .ip6.arpa
-    
+
     $ dig +short -x 2001:a:b::1 @ns1.example.com
     2001-a-b--1.static6.example.com.
-    
+
     $ dig +short -x 2002:a:b::1 @ns1.example.com
     2002.000a.static6.example.com
 
 .. function:: createForward6()
-  
+
   Used to generate the reverse DNS domains made from :func:`createReverse6`
-  
+
   Generates an AAAA record for a dashed compressed IPv6 domain (e.g. ``2001-a-b--1.static6.example.com``)
-  
+
   It does not take any parameters, it simply interprets the zone record to find the IP address.
-  
+
   An example record for zone ``static.example.com``::
-    
+
     *.static6.example.com    IN    LUA    AAAA "createForward6()"
-  
+
   This function supports the dashed compressed format (i.e. ``2001-a-b--1.static6.example.com``), and the dot-split uncompressed format (``2001.db8.6.5.4.3.2.1.static6.example.com``)
-  
+
   When queried::
-  
+
     $ dig +short AAAA 2001-a-b--1.static6.example.com @ns1.example.com
     2001:a:b::1
 

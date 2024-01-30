@@ -1,10 +1,12 @@
 #include <thread>
 #include <future>
 #include <boost/format.hpp>
+#include <boost/uuid/string_generator.hpp>
 #include <utility>
 #include <algorithm>
 #include <random>
 #include "qtype.hh"
+#include <tuple>
 #include "version.hh"
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "lock.hh"
@@ -359,7 +361,7 @@ static T pickWeightedRandom(const vector< pair<int, T> >& items)
 }
 
 template <typename T>
-static T pickWeightedHashed(const ComboAddress& bestwho, vector< pair<int, T> >& items)
+static T pickWeightedHashed(const ComboAddress& bestwho, const vector< pair<int, T> >& items)
 {
   if (items.empty()) {
     throw std::invalid_argument("The items list cannot be empty");
@@ -650,6 +652,103 @@ typedef struct AuthLuaRecordContext
 } lua_record_ctx_t;
 
 static thread_local unique_ptr<lua_record_ctx_t> s_lua_record_ctx;
+
+/*
+ *  Holds computed hashes for a given entry
+ */
+struct EntryHashesHolder {
+  std::atomic<size_t> weight;
+  std::string entry;
+  SharedLockGuarded<std::vector<unsigned int>> hashes;
+
+  EntryHashesHolder(size_t weight_, std::string entry_): weight(weight_), entry(std::move(entry_)) {
+  }
+
+  bool hashesComputed() {
+    return weight == hashes.read_lock()->size();
+  }
+  void hash() {
+    auto locked = hashes.write_lock();
+    locked->clear();
+    locked->reserve(weight);
+    size_t count = 0;
+    while (count < weight) {
+      auto value = boost::str(boost::format("%s-%d") % entry % count);
+      auto whash = burtle(reinterpret_cast<const unsigned char*>(value.c_str()), value.size(), 0);
+      locked->push_back(whash);
+      ++count;
+    }
+    std::sort(locked->begin(), locked->end());
+  }
+};
+
+static std::map<
+  std::tuple<int, std::string, std::string>, // zoneid qname entry
+  std::shared_ptr<EntryHashesHolder> // entry w/ corresponding hashes
+  >
+s_zone_hashes;
+
+static std::vector<std::shared_ptr<EntryHashesHolder>> getCHashedEntries(const int zoneId, const std::string& queryName, const std::vector<std::pair<int, std::string>>& items)
+{
+  std::vector<std::shared_ptr<EntryHashesHolder>> result{};
+
+  for (const auto& [weight, entry]: items) {
+    auto key = std::make_tuple(zoneId, queryName, entry);
+    if (s_zone_hashes.count(key) == 0) {
+      s_zone_hashes[key] = std::make_shared<EntryHashesHolder>(weight, entry);
+    } else {
+      s_zone_hashes.at(key)->weight = weight;
+    }
+    result.push_back(s_zone_hashes.at(key));
+  }
+
+  return result;
+}
+
+static std::string pickConsistentWeightedHashed(const ComboAddress& bestwho, const std::vector<std::pair<int, std::string>>& items)
+{
+  const auto& zoneId = s_lua_record_ctx->zoneid;
+  const auto queryName = s_lua_record_ctx->qname.toString();
+  unsigned int sel = std::numeric_limits<unsigned int>::max();
+  unsigned int min = std::numeric_limits<unsigned int>::max();
+
+  boost::optional<std::string> ret;
+  boost::optional<std::string> first;
+
+  auto entries = getCHashedEntries(zoneId, queryName, items);
+
+  ComboAddress::addressOnlyHash addrOnlyHash;
+  auto qhash = addrOnlyHash(bestwho);
+  for (const auto& entry : entries) {
+    if (!entry->hashesComputed()) {
+      entry->hash();
+    }
+    {
+      const auto hashes = entry->hashes.read_lock();
+      if (hashes->size() > 0) {
+        if (min > *(hashes->begin())) {
+          min = *(hashes->begin());
+          first = entry->entry;
+        }
+
+        auto hash_it = std::lower_bound(hashes->begin(), hashes->end(), qhash);
+        if (hash_it != hashes->end()) {
+          if (*hash_it < sel) {
+            sel = *hash_it;
+            ret = entry->entry;
+          }
+        }
+      }
+    }
+  }
+  if (ret != boost::none) {
+    return *ret;
+  }
+  if (first != boost::none) {
+    return *first;
+  }
+  return std::string();
+}
 
 static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, const std::function<bool(const ComboAddress&, const opts_t&)>& upcheckf, uint16_t port = 0)
 {
@@ -1025,8 +1124,9 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       vector< pair<int, string> > items;
 
       items.reserve(ips.size());
-      for(auto& i : ips)
+      for (auto& i : ips) {
         items.emplace_back(atoi(i.second[1].c_str()), i.second[2]);
+      }
 
       return pickWeightedHashed<string>(s_lua_record_ctx->bestwho, items);
     });
@@ -1047,6 +1147,21 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
 
       return pickWeightedNameHashed<string>(s_lua_record_ctx->qname, items);
     });
+  /*
+   * Based on the hash of `bestwho`, returns an IP address from the list
+   * supplied, as weighted by the various `weight` parameters and distributed consistently
+   * @example pickchashed({ {15, '1.2.3.4'}, {50, '5.4.3.2'} })
+   */
+  lua.writeFunction("pickchashed", [](std::unordered_map<int, wiplist_t > ips) {
+    vector< pair<int, string> > items;
+
+    items.reserve(ips.size());
+    for (auto& i : ips) {
+      items.emplace_back(atoi(i.second[1].c_str()), i.second[2]);
+    }
+
+    return pickConsistentWeightedHashed(s_lua_record_ctx->bestwho, items);
+  });
 
   lua.writeFunction("pickclosest", [](const iplist_t& ips) {
       vector<ComboAddress> conv = convComboAddressList(ips);
