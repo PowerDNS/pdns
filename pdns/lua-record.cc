@@ -674,7 +674,8 @@ struct EntryHashesHolder {
     size_t count = 0;
     while (count < weight) {
       auto value = boost::str(boost::format("%s-%d") % entry % count);
-      auto whash = burtle(reinterpret_cast<const unsigned char*>(value.c_str()), value.size(), 0);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      auto whash = burtle(reinterpret_cast<const unsigned char*>(value.data()), value.size(), 0);
       locked->push_back(whash);
       ++count;
     }
@@ -725,7 +726,7 @@ static std::string pickConsistentWeightedHashed(const ComboAddress& bestwho, con
     }
     {
       const auto hashes = entry->hashes.read_lock();
-      if (hashes->size() > 0) {
+      if (!hashes->empty()) {
         if (min > *(hashes->begin())) {
           min = *(hashes->begin());
           first = entry->entry;
@@ -747,7 +748,7 @@ static std::string pickConsistentWeightedHashed(const ComboAddress& bestwho, con
   if (first != boost::none) {
     return *first;
   }
-  return std::string();
+  return {};
 }
 
 static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, const std::function<bool(const ComboAddress&, const opts_t&)>& upcheckf, uint16_t port = 0)
@@ -1124,8 +1125,8 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       vector< pair<int, string> > items;
 
       items.reserve(ips.size());
-      for (auto& i : ips) {
-        items.emplace_back(atoi(i.second[1].c_str()), i.second[2]);
+      for (auto& entry : ips) {
+        items.emplace_back(atoi(entry.second[1].c_str()), entry.second[2]);
       }
 
       return pickWeightedHashed<string>(s_lua_record_ctx->bestwho, items);
@@ -1156,8 +1157,8 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
     vector< pair<int, string> > items;
 
     items.reserve(ips.size());
-    for (auto& i : ips) {
-      items.emplace_back(atoi(i.second[1].c_str()), i.second[2]);
+    for (auto& entry : ips) {
+      items.emplace_back(atoi(entry.second[1].c_str()), entry.second[2]);
     }
 
     return pickConsistentWeightedHashed(s_lua_record_ctx->bestwho, items);
