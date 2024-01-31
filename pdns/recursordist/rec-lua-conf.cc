@@ -376,7 +376,9 @@ public:
 void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping, LuaConfigItems& newLuaConfig)
 {
   LuaConfigItems lci;
-  lci.d_slog = g_slog->withName("luaconfig");
+  if (g_slog) {
+    lci.d_slog = g_slog->withName("luaconfig");
+  }
 
   RecLuaConfigContext Lua;
 
