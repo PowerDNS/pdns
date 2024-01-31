@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_nodata)
   (*map)[authZone] = ad;
   SyncRes::setDomainMap(map);
 
-  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* /* res */, bool* /* chained */) {
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* /* res */, bool* /* chained */) {
     queriesCount++;
 
     return LWResult::Result::Timeout;
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_nx)
   (*map)[authZone] = ad;
   SyncRes::setDomainMap(map);
 
-  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* /* res */, bool* /* chained */) {
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* /* res */, bool* /* chained */) {
     queriesCount++;
 
     return LWResult::Result::Timeout;
@@ -146,13 +146,13 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation)
      takes too long. */
   const time_t fixedNow = sr->getNow().tv_sec;
 
-  sr->setAsyncCallback([&queriesCount, target, targetAddr, nsAddr, authZone, keys, fixedNow](const ComboAddress& ip, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
     if (type == QType::DS || type == QType::DNSKEY) {
       return genericDSAndDNSKEYHandler(res, domain, DNSName("."), type, keys, domain == DNSName("com.") || domain == authZone, fixedNow);
     }
 
-    if (ip == ComboAddress(nsAddr.toString(), 53) && domain == target) {
+    if (address == ComboAddress(nsAddr.toString(), 53) && domain == target) {
       setLWResult(res, 0, true, false, true);
       addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
       return LWResult::Result::Success;
@@ -213,10 +213,10 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_delegation_point)
   (*map)[authZone] = ad;
   SyncRes::setDomainMap(map);
 
-  sr->setAsyncCallback([&queriesCount, nsAddr, target, targetAddr](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
-    if (ip == ComboAddress(nsAddr.toString(), 53) && domain == target) {
+    if (address == ComboAddress(nsAddr.toString(), 53) && domain == target) {
       setLWResult(res, 0, true, false, true);
       addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
       return LWResult::Result::Success;
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard)
   (*map)[authZone] = ad;
   SyncRes::setDomainMap(map);
 
-  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* /* res */, bool* /* chained */) {
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* /* res */, bool* /* chained */) {
     queriesCount++;
 
     return LWResult::Result::Timeout;
@@ -321,7 +321,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_with_ent)
   (*map)[authZone] = ad;
   SyncRes::setDomainMap(map);
 
-  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* /* res */, bool* /* chained */) {
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* /* res */, bool* /* chained */) {
     queriesCount++;
 
     return LWResult::Result::Timeout;
@@ -371,7 +371,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_wildcard_nodata)
   (*map)[authZone] = ad;
   SyncRes::setDomainMap(map);
 
-  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* /* res */, bool* /* chained */) {
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& /* domain */, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* /* res */, bool* /* chained */) {
     queriesCount++;
 
     return LWResult::Result::Timeout;
@@ -417,7 +417,7 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_cache_only)
   (*map)[target] = ad;
   SyncRes::setDomainMap(map);
 
-  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&queriesCount](const ComboAddress& /* ip */, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
     setLWResult(res, 0, true, false, true);
     addRecordToLW(res, domain, QType::A, "192.0.2.42");
@@ -483,7 +483,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -502,7 +502,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -568,7 +568,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, zskeys, kskeys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -587,7 +587,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_ksk_zsk)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -636,7 +636,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -655,7 +655,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_dnskey)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -712,7 +712,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_without_zone_flag)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -730,7 +730,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_without_zone_flag)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -788,7 +788,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_revoked)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -806,7 +806,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_revoked)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -871,7 +871,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -890,7 +890,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_dnskey_doesnt_match_ds)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -982,7 +982,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys, rrsigkeys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -1001,7 +1001,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_rrsig_signed_with_unknown_dnskey)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -1049,7 +1049,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -1068,7 +1068,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -1124,7 +1124,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig_noaa)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -1144,7 +1144,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_no_rrsig_noaa)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -1213,7 +1213,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -1232,7 +1232,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_algorithm)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -1293,7 +1293,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -1312,7 +1312,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_insecure_unknown_ds_digest)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -1366,7 +1366,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys, fixedNow](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -1385,7 +1385,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_sig)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -1434,7 +1434,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     if (domain == target && type == QType::NS) {
@@ -1454,7 +1454,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_bad_algo)
 
       return LWResult::Result::Success;
     }
-    else if (domain == target && type == QType::DNSKEY) {
+    if (domain == target && type == QType::DNSKEY) {
 
       setLWResult(res, 0, true, false, true);
 
@@ -1505,7 +1505,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, targetAddr, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     DNSName auth = domain;
@@ -1523,7 +1523,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
       return LWResult::Result::Success;
     }
 
-    if (isRootServer(ip)) {
+    if (isRootServer(address)) {
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
       /* Include the DS but omit the RRSIG*/
@@ -1532,7 +1532,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds)
       return LWResult::Result::Success;
     }
 
-    if (ip == ComboAddress("192.0.2.1:53")) {
+    if (address == ComboAddress("192.0.2.1:53")) {
       setLWResult(res, RCode::NoError, true, false, true);
       addRecordToLW(res, domain, QType::A, targetAddr.toString(), DNSResourceRecord::ANSWER, 3600);
       addRRSIG(keys, res->d_records, auth, 300);
@@ -1586,7 +1586,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct)
 
   size_t queriesCount = 0;
 
-  sr->setAsyncCallback([target, &queriesCount, keys](const ComboAddress& ip, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     DNSName auth = domain;
@@ -1604,7 +1604,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_unsigned_ds_direct)
       return LWResult::Result::Success;
     }
 
-    if (isRootServer(ip)) {
+    if (isRootServer(address)) {
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.com.", DNSResourceRecord::AUTHORITY, 3600);
       /* Include the DS but omit the RRSIG*/
