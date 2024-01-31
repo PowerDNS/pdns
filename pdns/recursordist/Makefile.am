@@ -445,6 +445,7 @@ endif
 
 if LUA
 pdns_recursor_LDADD += $(LUA_LIBS)
+rec_control_LDADD += $(LUA_LIBS)
 testrunner_LDADD += $(LUA_LIBS)
 endif
 
@@ -515,12 +516,15 @@ rec_control_SOURCES = \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
 	filterpo.cc filterpo.hh \
+	lua-base4.cc lua-base4.hh \
+	iputils.cc iputils.hh \
 	logger.cc \
 	logging.cc \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc	rcpgenerator.hh \
+	rec-lua-conf.cc rec-lua-conf.hh \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
 	settings/cxxsupport.cc \

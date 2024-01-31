@@ -111,6 +111,41 @@ static void initArguments(int argc, char** argv, Logr::log_t log)
   }
 }
 
+static std::string showLuaYAML(const ::rust::string rfile)
+{
+  std::string msg;
+  if (rfile.empty()) {
+    return msg;
+  }
+
+  const auto file = string(rfile);
+  ProxyMapping proxyMapping;
+  LuaConfigItems lci;
+
+  try {
+    loadRecursorLuaConfig(file, proxyMapping, lci);
+    auto settings = pdns::rust::settings::rec::parse_yaml_string("");
+    pdns::settings::rec::fromLuaConfigToBridgeStruct(lci, proxyMapping, settings);
+    auto yaml = settings.to_yaml_string();
+    msg += "# Start of converted Lua config .yml based on " + file + "\n";
+    msg += std::string(yaml);
+    msg += "# Validation result: ";
+    try {
+      // Parse back and validate
+      settings.validate();
+      msg += "OK";
+    }
+    catch (const rust::Error& err) {
+      msg += err.what();
+    }
+    msg += "\n# End of converted " + file + "\n#\n";
+  }
+  catch (PDNSException& e) {
+    cerr <<  "Cannot load Lua configuration: " << e.reason << endl;
+  }
+  return msg;
+}
+
 static std::string showIncludeYAML(::rust::String& rdirname)
 {
   std::string msg;
@@ -220,6 +255,7 @@ static RecursorControlChannel::Answer showYAML(const std::string& path)
     }
     msg += "\n# End of converted " + configName + "\n#\n";
 
+    msg += showLuaYAML(mainsettings.recursor.lua_config_file);
     msg += showIncludeYAML(mainsettings.recursor.include_dir);
     msg += showForwardFileYAML(mainsettings.recursor.forward_zones_file);
     msg += showAllowYAML(mainsettings.incoming.allow_from_file, "incoming", "allow_from_file", pdns::rust::settings::rec::validate_allow_from);
