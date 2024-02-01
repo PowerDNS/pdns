@@ -95,7 +95,7 @@ ecs-add-for=0.0.0.0/0
 
         if not reactor.running:
             cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
-            cls._UDPResponder.setDaemon(True)
+            cls._UDPResponder.daemon = True
             cls._UDPResponder.start()
 
     @classmethod

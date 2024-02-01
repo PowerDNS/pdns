@@ -68,10 +68,10 @@ class TestCarbon(RecursorTest):
                 cls._carbonQueue1.put(lines, True, timeout=2.0)
             else:
                 cls._carbonQueue2.put(lines, True, timeout=2.0)
-            if threading.currentThread().name in cls._carbonCounters:
-                cls._carbonCounters[threading.currentThread().name] += 1
+            if threading.current_thread().name in cls._carbonCounters:
+                cls._carbonCounters[threading.current_thread().name] += 1
             else:
-                cls._carbonCounters[threading.currentThread().name] = 1
+                cls._carbonCounters[threading.current_thread().name] = 1
 
             conn.close()
         sock.close()
@@ -79,11 +79,11 @@ class TestCarbon(RecursorTest):
     @classmethod
     def startResponders(cls):
         cls._CarbonResponder1 = threading.Thread(name='Carbon Responder 1', target=cls.CarbonResponder, args=[cls._carbonServer1Port])
-        cls._CarbonResponder1.setDaemon(True)
+        cls._CarbonResponder1.daemon = True
         cls._CarbonResponder1.start()
 
         cls._CarbonResponder2 = threading.Thread(name='Carbon Responder 2', target=cls.CarbonResponder, args=[cls._carbonServer2Port])
-        cls._CarbonResponder2.setDaemon(True)
+        cls._CarbonResponder2.daemon = True
         cls._CarbonResponder2.start()
 
     def testCarbon(self):

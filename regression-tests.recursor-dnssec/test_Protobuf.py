@@ -52,7 +52,7 @@ def ProtobufListener(queue, port):
             thread = threading.Thread(name='Connection Handler',
                                       target=ProtobufConnectionHandler,
                                       args=[queue, conn])
-            thread.setDaemon(True)
+            thread.daemon = True
             thread.start()
 
         except socket.error as e:
@@ -70,7 +70,7 @@ protobufServersParameters = [ProtobufServerParams(4243), ProtobufServerParams(42
 protobufListeners = []
 for param in protobufServersParameters:
   listener = threading.Thread(name='Protobuf Listener', target=ProtobufListener, args=[param.queue, param.port])
-  listener.setDaemon(True)
+  listener.daemon = True
   listener.start()
   protobufListeners.append(listener)
 

@@ -72,6 +72,7 @@ string g_pidfname;
 RecursorControlChannel g_rcc; // only active in the handler thread
 bool g_regressionTestMode;
 bool g_yamlSettings;
+bool g_luaSettingsInYAML;
 
 #ifdef NOD_ENABLED
 bool g_nodEnabled;
@@ -2081,19 +2082,20 @@ static int serviceMain(Logr::log_t log)
   }
   g_maxCacheEntries = ::arg().asNum("max-cache-entries");
 
-  try {
-    ProxyMapping proxyMapping;
-    LuaConfigItems lci;
-    loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
-    // Initial proxy mapping
-    g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
-    activateLuaConfig(lci);
-  }
-  catch (PDNSException& e) {
-    SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
-         log->error(Logr::Error, e.reason, "Cannot load Lua configuration"));
-    return 1;
-  }
+  luaconfig(false);
+  // try {
+  //   ProxyMapping proxyMapping;
+  //   LuaConfigItems lci;
+  //   loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
+  //   // Initial proxy mapping
+  //   g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
+  //   activateLuaConfig(lci);
+  // }
+  // catch (PDNSException& e) {
+  //   SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
+  //        log->error(Logr::Error, e.reason, "Cannot load Lua configuration"));
+  //   return 1;
+  // }
 
   parseACLs();
   initPublicSuffixList(::arg()["public-suffix-list-file"]);
@@ -2260,8 +2262,10 @@ static int serviceMain(Logr::log_t log)
     return ret;
   }
 
-  auto lci = g_luaconfs.getCopy();
-  activateLuaConfig(lci);
+  {
+    auto lci = g_luaconfs.getCopy();
+    startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
+  }
 
   RecThreadInfo::makeThreadPipes(log);
 
@@ -2973,6 +2977,8 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
   return {0, false};
 }
 
+LockGuarded<pdns::rust::settings::rec::Recursorsettings> g_yamlStruct;
+
 static void handleRuntimeDefaults(Logr::log_t log)
 {
 #ifdef HAVE_FIBER_SANITIZER
@@ -3138,28 +3144,10 @@ int main(int argc, char** argv)
     ::arg().setSLog(startupLog);
 
     const string yamlconfigname = configname + ".yml";
-    string msg;
     pdns::rust::settings::rec::Recursorsettings settings;
-    // TODO: handle include-dir on command line
-    auto yamlstatus = pdns::settings::rec::readYamlSettings(yamlconfigname, ::arg()["include-dir"], settings, msg, startupLog);
-
-    switch (yamlstatus) {
-    case pdns::settings::rec::YamlSettingsStatus::CannotOpen:
-      SLOG(g_log << Logger::Debug << "No YAML config found for configname '" << yamlconfigname << "': " << msg << endl,
-           startupLog->error(Logr::Debug, msg, "No YAML config found", "configname", Logging::Loggable(yamlconfigname)));
-      break;
-    case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
-      SLOG(g_log << Logger::Error << "YAML config found for configname '" << yamlconfigname << "' but error ocurred processing it" << endl,
-           startupLog->error(Logr::Error, msg, "YAML config found, but error occurred processsing it", "configname", Logging::Loggable(yamlconfigname)));
+    auto yamlstatus = pdns::settings::rec::tryReadYAML(yamlconfigname, true, g_yamlSettings, g_luaSettingsInYAML, settings, startupLog);
+    if (yamlstatus == pdns::settings::rec::PresentButFailed) {
       return 1;
-      break;
-    case pdns::settings::rec::YamlSettingsStatus::OK:
-      g_yamlSettings = true;
-      SLOG(g_log << Logger::Notice << "YAML config found and processed for configname '" << yamlconfigname << "'" << endl,
-           startupLog->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname)));
-      pdns::settings::rec::processAPIDir(arg()["include-dir"], settings, startupLog);
-      pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
-      break;
     }
 
     if (g_yamlSettings) {
@@ -3169,7 +3157,10 @@ int main(int argc, char** argv)
         return ret;
       }
     }
-
+    if (yamlstatus == pdns::settings::rec::YamlSettingsStatus::OK) {
+      auto lock = g_yamlStruct.lock();
+      *lock = settings;
+    }
     if (yamlstatus == pdns::settings::rec::YamlSettingsStatus::CannotOpen) {
       configname += ".conf";
       bool mustExit = false;
@@ -3338,13 +3329,15 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
   return res;
 }
 
-static void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t generation)
+void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t generation)
 {
+  cerr << "slcdt: " << rpzs.size() << endl;
   for (const auto& rpzPrimary : rpzs) {
     if (rpzPrimary.primaries.empty()) {
       continue;
     }
     try {
+      cerr << "STARTING" << endl;
       // The get calls all return a value object here. That is essential, since we want copies so that RPZIXFRTracker gets values
       // with the proper lifetime.
       std::thread theThread(RPZIXFRTracker, rpzPrimary, generation);
@@ -3373,7 +3366,7 @@ static void activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci,
          log->info(Logr::Info, "Loading RPZ from file"));
     loadRPZFromFile(params.name, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL);
     SLOG(g_log << Logger::Warning << "Done loading RPZ from file '" << params.name << "'" << endl,
-         log->info(Logr::Info,  "Done loading RPZ from file"));
+         log->info(Logr::Info, "Done loading RPZ from file"));
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "Unable to load RPZ zone from '" << params.name << "': " << e.what() << endl,
@@ -3397,19 +3390,19 @@ static void activateRPZPrimary(RPZTrackerParams& params, LuaConfigItems& lci, sh
 
       if (params.soaRecordContent == nullptr) {
         throw PDNSException("The RPZ zone " + params.name + " loaded from the seed file (" + zone->getDomain().toString() + ") has no SOA record");
-        }
-      }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << params.name << " from seed file '" << params.seedFileName << "': " << e.reason << endl,
-             log->error(Logr::Warning, e.reason, "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("PDNSException")));
-        zone->clear();
-      }
-      catch (const std::exception& e) {
-        SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << params.name << " from seed file '" << params.seedFileName << "': " << e.what() << endl,
-             log->error(Logr::Warning, e.what(), "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("std::exception")));
-        zone->clear();
       }
     }
+    catch (const PDNSException& e) {
+      SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << params.name << " from seed file '" << params.seedFileName << "': " << e.reason << endl,
+           log->error(Logr::Warning, e.reason, "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("PDNSException")));
+      zone->clear();
+    }
+    catch (const std::exception& e) {
+      SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << params.name << " from seed file '" << params.seedFileName << "': " << e.what() << endl,
+           log->error(Logr::Warning, e.what(), "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("std::exception")));
+      zone->clear();
+    }
+  }
 }
 
 static void activateRPZs(LuaConfigItems& lci)
@@ -3420,7 +3413,11 @@ static void activateRPZs(LuaConfigItems& lci)
       zone->reserve(params.zoneSizeHint);
     }
     if (!params.tags.empty()) {
-      zone->setTags(params.tags);
+      std::unordered_set<std::string> tags;
+      for (const auto& tag : params.tags) {
+        tags.emplace(tag);
+      }
+      zone->setTags(tags);
     }
     zone->setPolicyOverridesGettag(params.defpolOverrideLocal);
     if (params.extendedErrorCode != std::numeric_limits<uint32_t>::max()) {
@@ -3435,7 +3432,7 @@ static void activateRPZs(LuaConfigItems& lci)
     if (params.primaries.empty()) {
       activateRPZFile(params, lci, zone);
       lci.dfe.addZone(std::move(zone));
-   }
+    }
     else {
       DNSName domain(params.name);
       zone->setDomain(domain);
@@ -3444,7 +3441,6 @@ static void activateRPZs(LuaConfigItems& lci)
       activateRPZPrimary(params, lci, zone, domain);
     }
   }
-  startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
 }
 
 void activateLuaConfig(LuaConfigItems& lci)
@@ -3454,11 +3450,11 @@ void activateLuaConfig(LuaConfigItems& lci)
     updateTrustAnchorsFromFile(lci.trustAnchorFileInfo.fname, lci.dsAnchors, lci.d_slog);
   }
   if (lci.dsAnchors.size() > rootDSs.size()) {
-     warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC, but dnssec is set to 'off'!");
+    warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC, but dnssec is set to 'off'!");
   }
   if (!lci.negAnchors.empty()) {
-     warnIfDNSSECDisabled("Warning: adding Negative Trust Anchor for DNSSEC, but dnssec is set to 'off'!");
+    warnIfDNSSECDisabled("Warning: adding Negative Trust Anchor for DNSSEC, but dnssec is set to 'off'!");
   }
   activateRPZs(lci);
-  g_luaconfs.setState(std::move(lci));
+  g_luaconfs.setState(lci);
 }

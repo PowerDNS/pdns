@@ -141,7 +141,7 @@ static std::string showLuaYAML(const ::rust::string rfile)
     msg += "\n# End of converted " + file + "\n#\n";
   }
   catch (PDNSException& e) {
-    cerr <<  "Cannot load Lua configuration: " << e.reason << endl;
+    cerr << "Cannot load Lua configuration: " << e.reason << endl;
   }
   return msg;
 }

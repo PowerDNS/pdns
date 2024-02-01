@@ -46,7 +46,7 @@ struct RPZTrackerParams
   std::string dumpZoneFileName;
   std::string polName;
   size_t zoneSizeHint{0};
-  std::unordered_set<std::string> tags;
+  std::set<std::string> tags;
   uint32_t extendedErrorCode{std::numeric_limits<uint32_t>::max()};
   std::string extendedErrorExtra;
   bool includeSOA{false};
