@@ -623,7 +623,7 @@ std::string pdns::settings::rec::defaultsToYaml()
     ::rust::String section;
     ::rust::String fieldname;
     ::rust::String type_name;
-    pdns::rust::settings::rec::Value rustvalue{false, 0, 0.0, "", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+    pdns::rust::settings::rec::Value rustvalue{};
     string name = var;
     string val = arg().getDefault(var);
     if (pdns::settings::rec::oldKVToBridgeStruct(name, val, section, fieldname, type_name, rustvalue)) {
@@ -633,7 +633,8 @@ std::string pdns::settings::rec::defaultsToYaml()
 
   // Should be generated
   auto def = [&](const string& section, const string& name, const string& type) {
-    pdns::rust::settings::rec::Value rustvalue{.vec_trustanchor_val = {}, .vec_negativetrustanchor_val = {}, .string_val = "", .u64_val = 24, .vec_protobufserver_val = {}};
+    pdns::rust::settings::rec::Value rustvalue{};
+    rustvalue.u64_val = 24; // XXX
     map.emplace(std::pair{std::pair{section, name}, pdns::rust::settings::rec::OldStyle{section, name, name, type, rustvalue, false}});
   };
   def("dnssec", "trustanchors", "Vec<TrustAnchor>");
@@ -719,12 +720,14 @@ void fromLuaToRust(const LuaConfigItems& luaConfig, pdns::rust::settings::rec::D
     ::rust::Vec<::rust::String> dsRecords;
     for (const auto& dsRecord : anchors.second) {
       const auto dsString = dsRecord.getZoneRepresentation();
-      if (std::find(rootDSs.begin(), rootDSs.end(), dsString) == rootDSs.end()) {
+      if (anchors.first != g_rootdnsname || std::find(rootDSs.begin(), rootDSs.end(), dsString) == rootDSs.end()) {
         dsRecords.emplace_back(dsRecord.getZoneRepresentation());
       }
     }
-    pdns::rust::settings::rec::TrustAnchor trustAnchor{anchors.first.toString(), dsRecords};
-    dnssec.trustanchors.emplace_back(trustAnchor);
+    if (!dsRecords.empty()) {
+      pdns::rust::settings::rec::TrustAnchor trustAnchor{anchors.first.toString(), dsRecords};
+      dnssec.trustanchors.emplace_back(trustAnchor);
+    }
   }
   for (const auto& anchors : luaConfig.negAnchors) {
     pdns::rust::settings::rec::NegativeTrustAnchor negtrustAnchor{anchors.first.toString(), anchors.second};
@@ -757,7 +760,7 @@ void fromLuaToRust(const FrameStreamExportConfig& fsc, pdns::rust::settings::rec
   }
   dnstap.logQueries = fsc.logQueries;
   dnstap.logResponses = fsc.logQueries;
-  dnstap.bufferHint= fsc.bufferHint;
+  dnstap.bufferHint = fsc.bufferHint;
   dnstap.flushTimeout = fsc.flushTimeout;
   dnstap.inputQueueSize = fsc.inputQueueSize;
   dnstap.outputQueueSize = fsc.outputQueueSize;
@@ -772,7 +775,7 @@ void fromLuaToRust(const FrameStreamExportConfig& fsc, pdns::rust::settings::rec
   }
   dnstap.logNODs = fsc.logNODs;
   dnstap.logUDRs = fsc.logUDRs;
-  dnstap.bufferHint= fsc.bufferHint;
+  dnstap.bufferHint = fsc.bufferHint;
   dnstap.flushTimeout = fsc.flushTimeout;
   dnstap.inputQueueSize = fsc.inputQueueSize;
   dnstap.outputQueueSize = fsc.outputQueueSize;
@@ -789,8 +792,12 @@ void assign(pdns::rust::settings::rec::TSIGTriplet& var, const TSIGTriplet& tsig
 
 void assign(TSIGTriplet& var, const pdns::rust::settings::rec::TSIGTriplet& tsig)
 {
-  var.name = DNSName(std::string(tsig.name));
-  var.algo = DNSName(std::string(tsig.algo));
+  if (!tsig.name.empty()) {
+    var.name = DNSName(std::string(tsig.name));
+  }
+  if (!tsig.algo.empty()) {
+    var.algo = DNSName(std::string(tsig.algo));
+  }
   B64Decode(std::string(tsig.secret), var.secret);
 }
 
@@ -810,23 +817,36 @@ std::string cvt(DNSFilterEngine::PolicyKind kind)
   case DNSFilterEngine::PolicyKind::Custom:
     return "Custom";
   }
+  return "UnknownPolicyKind";
 }
 
 void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::rec::Recursor& rec)
 {
   for (const auto& rpz : rpzs) {
     pdns::rust::settings::rec::RPZ rustrpz{
+      .name = "",
+      .addresses = {},
+      .defcontent = "",
+      .defpol = "",
       .defpolOverrideLocalData = true,
       .defttl = std::numeric_limits<uint32_t>::max(),
       .extendedErrorCode = std::numeric_limits<uint32_t>::max(),
+      .extendedErrorExtra = "",
       .includeSOA = false,
       .ignoreDuplicates = false,
       .maxTTL = std::numeric_limits<uint32_t>::max(),
+      .policyName = "",
+      .tags = {},
       .overridesGettag = true,
       .zoneSizeHint = 0,
+      .tsig = {},
       .refresh = 0,
       .maxReceivedMBytes = 0,
-      .axfrTimeout = 20};
+      .localAddress = "",
+      .axfrTimeout = 20,
+      .dumpFile = "",
+      .seedFile = "",
+    };
 
     for (const auto& address : rpz.primaries) {
       rustrpz.addresses.emplace_back(address.toStringWithPort());
@@ -873,6 +893,7 @@ string cvt(pdns::ZoneMD::Config cfg)
   case pdns::ZoneMD::Config::Require:
     return "require";
   }
+  return "UnknownZoneMDConfig";
 }
 
 void fromLuaToRust(const map<DNSName, RecZoneToCache::Config>& ztcConfigs, pdns::rust::settings::rec::Recordcache& recordcache)
@@ -916,17 +937,17 @@ std::string cvt(AdditionalMode mode)
   case AdditionalMode::ResolveDeferred:
     return "ResolveDeferred";
   }
+  return "UnknownAdditionalMode";
 }
 
 AdditionalMode cvtAdditional(const std::string& mode)
 {
   static const std::map<std::string, AdditionalMode> map = {
-    { "Ignore", AdditionalMode::Ignore },
-    { "CacheOnly", AdditionalMode::CacheOnly },
-    { "CacheOnlyRequireAuth", AdditionalMode::CacheOnlyRequireAuth },
-    { "ResolveImmediately", AdditionalMode::ResolveImmediately },
-    { "ResolveDeferred", AdditionalMode::ResolveDeferred}
-  };
+    {"Ignore", AdditionalMode::Ignore},
+    {"CacheOnly", AdditionalMode::CacheOnly},
+    {"CacheOnlyRequireAuth", AdditionalMode::CacheOnlyRequireAuth},
+    {"ResolveImmediately", AdditionalMode::ResolveImmediately},
+    {"ResolveDeferred", AdditionalMode::ResolveDeferred}};
   if (auto iter = map.find(mode); iter != map.end()) {
     return iter->second;
   }
@@ -936,9 +957,9 @@ AdditionalMode cvtAdditional(const std::string& mode)
 pdns::ZoneMD::Config cvtZoneMDConfig(const std::string& mode)
 {
   static const std::map<std::string, pdns::ZoneMD::Config> map = {
-    { "ignore", pdns::ZoneMD::Config::Ignore },
-    { "validate", pdns::ZoneMD::Config::Validate },
-    { "require", pdns::ZoneMD::Config::Require },
+    {"ignore", pdns::ZoneMD::Config::Ignore},
+    {"validate", pdns::ZoneMD::Config::Validate},
+    {"require", pdns::ZoneMD::Config::Require},
   };
   if (auto iter = map.find(mode); iter != map.end()) {
     return iter->second;
@@ -1036,13 +1057,14 @@ void pdns::settings::rec::fromLuaConfigToBridgeStruct(LuaConfigItems& luaConfig,
   fromLuaToRust(proxyMapping, settings.incoming);
 }
 
-namespace {
+namespace
+{
 void fromRustToLuaConfig(const pdns::rust::settings::rec::Dnssec& dnssec, LuaConfigItems& luaConfig)
 {
   for (const auto& trustAnchor : dnssec.trustanchors) {
     // Do not inser the default root DS records
     if (trustAnchor.name == ".") {
-      for (const auto &dsRecord : trustAnchor.dsrecords) {
+      for (const auto& dsRecord : trustAnchor.dsrecords) {
         const std::string dsString = std::string(dsRecord);
         if (std::find(rootDSs.begin(), rootDSs.end(), dsString) == rootDSs.end()) {
           auto dsRecContent = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsString));
@@ -1051,7 +1073,7 @@ void fromRustToLuaConfig(const pdns::rust::settings::rec::Dnssec& dnssec, LuaCon
       }
     }
     else {
-      for (const auto &dsRecord : trustAnchor.dsrecords) {
+      for (const auto& dsRecord : trustAnchor.dsrecords) {
         auto dsRecContent = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(std::string(dsRecord)));
         luaConfig.dsAnchors[DNSName(std::string(trustAnchor.name))].emplace(*dsRecContent);
       }
@@ -1119,19 +1141,17 @@ void fromRustToLuaConfig(const pdns::rust::settings::rec::DNSTapNODFrameStreamSe
 DNSFilterEngine::PolicyKind cvtKind(const std::string& kind)
 {
   static const std::map<std::string, DNSFilterEngine::PolicyKind> map = {
-    { "Custom", DNSFilterEngine::PolicyKind::Custom },
-    { "Drop", DNSFilterEngine::PolicyKind::Drop },
-    { "NoAction", DNSFilterEngine::PolicyKind::NoAction },
-    { "NODATA", DNSFilterEngine::PolicyKind::NODATA },
-    { "NXDOMAIN", DNSFilterEngine::PolicyKind::NXDOMAIN },
-    { "Truncate", DNSFilterEngine::PolicyKind::Truncate }
-  };
+    {"Custom", DNSFilterEngine::PolicyKind::Custom},
+    {"Drop", DNSFilterEngine::PolicyKind::Drop},
+    {"NoAction", DNSFilterEngine::PolicyKind::NoAction},
+    {"NODATA", DNSFilterEngine::PolicyKind::NODATA},
+    {"NXDOMAIN", DNSFilterEngine::PolicyKind::NXDOMAIN},
+    {"Truncate", DNSFilterEngine::PolicyKind::Truncate}};
   if (auto iter = map.find(kind); iter != map.end()) {
     return iter->second;
   }
   throw runtime_error("PolicyKind '" + kind + "' unknown");
 }
-
 
 void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, LuaConfigItems& luaConfig)
 {
@@ -1188,14 +1208,14 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, 
   }
 }
 
-  void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ZoneToCache>& ztcs, map<DNSName, RecZoneToCache::Config>& lua)
+void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ZoneToCache>& ztcs, map<DNSName, RecZoneToCache::Config>& lua)
 {
   for (const auto& ztc : ztcs) {
     DNSName zone = DNSName(std::string(ztc.zone));
     RecZoneToCache::Config lztc;
     for (const auto& source : ztc.sources) {
       lztc.d_sources.emplace_back(std::string(source));
-     }
+    }
     lztc.d_zone = std::string(ztc.zone);
     lztc.d_method = std::string(ztc.method);
     if (!ztc.localAddress.empty()) {
@@ -1280,3 +1300,62 @@ void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings
   fromRustToLuaConfig(settings.incoming.proxymappings, proxyMapping);
 }
 
+// Return true if an item that's (also) a Lua config ite is set
+bool pdns::settings::rec::luaItemSet(const pdns::rust::settings::rec::Recursorsettings& settings)
+{
+  bool alldefault = true;
+  alldefault = alldefault && settings.dnssec.trustanchors.empty();
+  alldefault = alldefault && settings.dnssec.negative_trustanchors.empty();
+  alldefault = alldefault && settings.dnssec.trustanchorfile.empty();
+  alldefault = alldefault && settings.dnssec.trustanchorfile_interval == 24;
+  alldefault = alldefault && settings.logging.protobuf_mask_v4 == 32;
+  alldefault = alldefault && settings.logging.protobuf_mask_v6 == 128;
+  alldefault = alldefault && settings.logging.protobuf_servers.empty();
+  alldefault = alldefault && settings.logging.outgoing_protobuf_servers.empty();
+  alldefault = alldefault && settings.logging.dnstap_framestream_servers.empty();
+  alldefault = alldefault && settings.logging.dnstap_nod_framestream_servers.empty();
+  alldefault = alldefault && settings.recursor.sortlists.empty();
+  alldefault = alldefault && settings.recursor.rpzs.empty();
+  alldefault = alldefault && settings.recordcache.zonetocaches.empty();
+  alldefault = alldefault && settings.recursor.allowed_additional_qtypes.empty();
+  alldefault = alldefault && settings.incoming.proxymappings.empty();
+  return !alldefault;
+}
+
+pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const string& yamlconfigname, bool setGlobals, bool& yamlSettings, bool& luaSettingsInYAML, rust::settings::rec::Recursorsettings& settings, Logr::log_t startupLog)
+{
+  string msg;
+  // TODO: handle include-dir on command line
+  auto yamlstatus = pdns::settings::rec::readYamlSettings(yamlconfigname, ::arg()["include-dir"], settings, msg, startupLog);
+
+  switch (yamlstatus) {
+  case pdns::settings::rec::YamlSettingsStatus::CannotOpen:
+    SLOG(g_log << Logger::Debug << "No YAML config found for configname '" << yamlconfigname << "': " << msg << endl,
+         startupLog->error(Logr::Debug, msg, "No YAML config found", "configname", Logging::Loggable(yamlconfigname)));
+    break;
+
+  case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
+    SLOG(g_log << Logger::Error << "YAML config found for configname '" << yamlconfigname << "' but error ocurred processing it" << endl,
+         startupLog->error(Logr::Error, msg, "YAML config found, but error occurred processsing it", "configname", Logging::Loggable(yamlconfigname)));
+    break;
+
+  case pdns::settings::rec::YamlSettingsStatus::OK:
+    yamlSettings = true;
+    SLOG(g_log << Logger::Notice << "YAML config found and processed for configname '" << yamlconfigname << "'" << endl,
+         startupLog->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname)));
+    pdns::settings::rec::processAPIDir(arg()["include-dir"], settings, startupLog);
+    luaSettingsInYAML = pdns::settings::rec::luaItemSet(settings);
+    cerr << "XXXX " << luaSettingsInYAML << ' ' << settings.recursor.lua_config_file.empty() << endl;
+    if (luaSettingsInYAML && !settings.recursor.lua_config_file.empty()) {
+      const std::string err = "YAML settings include values originally in Lua but also sets `recursor.lua_config_file`. This is unsupported";
+      SLOG(g_log << Logger::Error << err << endl,
+           startupLog->info(Logr::Error, err, "configname", Logging::Loggable(yamlconfigname)));
+      yamlstatus = pdns::settings::rec::PresentButFailed;
+    }
+    else if (setGlobals) {
+      pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
+    }
+    break;
+  }
+  return yamlstatus;
+}

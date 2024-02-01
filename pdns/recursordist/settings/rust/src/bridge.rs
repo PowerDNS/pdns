@@ -323,6 +323,7 @@ impl ProtobufServer {
             seq2.push(serde_yaml::Value::String(entry.to_owned()));
         }
         insertseq(&mut map, "exportTypes", &seq2);
+        insertb(&mut map, "logMappedFrom", self.logMappedFrom);
         serde_yaml::Value::Mapping(map)
     }
 }

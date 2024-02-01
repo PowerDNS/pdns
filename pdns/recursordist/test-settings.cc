@@ -965,9 +965,9 @@ recordcache:
 
   // Create YAML, given a Lua config
   auto newsettings = pdns::rust::settings::rec::parse_yaml_string("");
-  //GlobalStateHolder<LuaConfigItems> gsluaConfig;
-  //gsluaConfig.setState(luaConfig);
-  //LuaConfigItems local; // = gsluaConfig.getCopy();
+  // GlobalStateHolder<LuaConfigItems> gsluaConfig;
+  // gsluaConfig.setState(luaConfig);
+  // LuaConfigItems local; // = gsluaConfig.getCopy();
   try {
     pdns::settings::rec::fromLuaConfigToBridgeStruct(luaConfig, proxyMapping, newsettings);
   }
@@ -980,8 +980,12 @@ recordcache:
 
   std::ofstream aaa("a");
   std::ofstream bbb("b");
-  aaa << "===" << endl << yaml << endl << "===" << endl;
-  bbb << "===" << endl << newyaml << endl << "===" << endl;
+  aaa << "===" << endl
+      << yaml << endl
+      << "===" << endl;
+  bbb << "===" << endl
+      << newyaml << endl
+      << "===" << endl;
 
   BOOST_CHECK_EQUAL(yaml, std::string(newyaml));
 }

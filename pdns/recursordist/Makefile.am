@@ -516,10 +516,10 @@ rec_control_SOURCES = \
 	dnsrecords.cc dnsrecords.hh \
 	dnswriter.cc dnswriter.hh \
 	filterpo.cc filterpo.hh \
-	lua-base4.cc lua-base4.hh \
 	iputils.cc iputils.hh \
 	logger.cc \
 	logging.cc \
+	lua-base4.cc lua-base4.hh \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
