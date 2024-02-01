@@ -9,6 +9,14 @@ Since 1.9.0, :program:`dnsdist` can use `AF_XDP <https://www.kernel.org/doc/html
 .. note::
    ``AppArmor`` users might need to update their policy to allow :program:`dnsdist` to keep the capabilities. Adding ``capability sys_admin,`` (for ``CAP_SYS_ADMIN``) and ``capability net_admin,`` (for ``CAP_NET_ADMIN``) lines to the policy file is usually enough.
 
+.. warning::
+  DNSdist's ``AF_XDP`` implementation comes with several limitations:
+
+  - Asymmetrical network setups where the DNS query and its response do not go through the same network device are not supported
+  - Ethernet packets larger than 2048 bytes are not supported
+  - IP and UDP-level checksums are not verified on incoming DNS messages
+  - IP options in incoming packets are not supported
+
 The way ``AF_XDP`` works is that :program:`dnsdist` allocates a number of frames in a memory area called a ``UMEM``, which is accessible both by the program, in userspace, and by the kernel. Using in-memory ring buffers, the receive (``RX``), transmit (``TX``), completion (``cq``) and fill (``fq``) rings, the kernel can very efficiently pass raw incoming packets to :program:`dnsdist`, which can in return pass raw outgoing packets to the kernel.
 In addition to these, an ``eBPF`` ``XDP`` program needs to be loaded to decide which packets to distribute via the ``AF_XDP`` socket (and to which, as there are usually more than one). This program uses a ``BPF`` map of type ``XSKMAP`` (located at ``/sys/fs/bpf/dnsdist/xskmap`` by default) that is populated by :program:`dnsdist` at startup to locate the ``AF_XDP`` socket to use. :program:`dnsdist` also sets up two additional ``BPF`` maps (located at ``/sys/fs/bpf/dnsdist/xsk-destinations-v4`` and ``/sys/fs/bpf/dnsdist/xsk-destinations-v6``) to let the ``XDP`` program know which IP destinations are to be routed to the ``AF_XDP`` sockets and which are to be passed to the regular network stack (health-checks queries and responses, for example). A ready-to-use `XDP program <https://github.com/PowerDNS/pdns/blob/master/contrib/xdp.py>`_ can be found in the ``contrib`` directory of the PowerDNS Git repository::
 
