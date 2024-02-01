@@ -612,7 +612,7 @@ jobs:
         SKIP_INCLUDEDIR_TESTS: yes
         SANITIZERS: ${{ matrix.sanitizers }}
         COVERAGE: yes
-      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0 --privileged
     steps:
       - uses: actions/checkout@v4
         with:
