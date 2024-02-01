@@ -705,8 +705,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             return (None, None)
 
         try:
-            cls.sendTCPQueryOverConnection(sock, query, rawQuery)
-            message = cls.recvTCPResponseOverConnection(sock)
+            cls.sendTCPQueryOverConnection(sock, query, rawQuery, timeout=timeout)
+            message = cls.recvTCPResponseOverConnection(sock, timeout=timeout)
         except socket.timeout as e:
             print("Timeout while sending or receiving TCP data: %s" % (str(e)))
         except socket.error as e:

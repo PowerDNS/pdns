@@ -78,7 +78,7 @@ class DynBlocksTest(DNSDistTest):
             waitForMaintenanceToRun()
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
-        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=1)
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=0.5)
         self.assertEqual(receivedResponse, None)
 
         if testViaAPI:
@@ -117,7 +117,7 @@ class DynBlocksTest(DNSDistTest):
             waitForMaintenanceToRun()
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=0.5)
         self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
@@ -294,7 +294,7 @@ class DynBlocksTest(DNSDistTest):
         allowed = 0
         sent = 0
         for _ in range(int(dynBlockBytesPerSecond * 5 / len(response.to_wire()))):
-            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response, timeout=0.5)
             sent = sent + len(response.to_wire())
             if receivedQuery:
                 receivedQuery.id = query.id
@@ -429,7 +429,7 @@ class DynBlocksTest(DNSDistTest):
             waitForMaintenanceToRun()
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=0.5)
         self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
@@ -536,7 +536,7 @@ class DynBlocksTest(DNSDistTest):
         waitForMaintenanceToRun()
 
         # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
-        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False)
+        (_, receivedResponse) = self.sendTCPQuery(query, response=None, useQueue=False, timeout=0.5)
         self.assertEqual(receivedResponse, None)
 
         # wait until we are not blocked anymore
