@@ -88,6 +88,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _answerUnexpected = True
     _checkConfigExpectedOutput = None
     _verboseMode = False
+    _sudoMode = False
     _skipListeningOnCL = False
     _alternateListeningAddr = None
     _alternateListeningPort = None
@@ -150,6 +151,10 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         if cls._verboseMode:
             dnsdistcmd.append('-v')
+        if cls._sudoMode:
+            if 'LD_LIBRARY_PATH' in os.environ:
+                dnsdistcmd.insert(0, 'LD_LIBRARY_PATH=' + os.environ['LD_LIBRARY_PATH'])
+            dnsdistcmd.insert(0, 'sudo')
 
         for acl in cls._acl:
             dnsdistcmd.extend(['--acl', acl])
@@ -693,7 +698,11 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         if useQueue:
             cls._toResponderQueue.put(response, True, timeout)
 
-        sock = cls.openTCPConnection(timeout)
+        try:
+            sock = cls.openTCPConnection(timeout)
+        except socket.timeout as e:
+            print("Timeout while opening TCP connection: %s" % (str(e)))
+            return (None, None)
 
         try:
             cls.sendTCPQueryOverConnection(sock, query, rawQuery)
