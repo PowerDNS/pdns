@@ -10,7 +10,7 @@ Since 1.9.0, :program:`dnsdist` can use `AF_XDP <https://www.kernel.org/doc/html
    ``AppArmor`` users might need to update their policy to allow :program:`dnsdist` to keep the capabilities. Adding ``capability sys_admin,`` (for ``CAP_SYS_ADMIN``) and ``capability net_admin,`` (for ``CAP_NET_ADMIN``) lines to the policy file is usually enough.
 
 The way ``AF_XDP`` works is that :program:`dnsdist` allocates a number of frames in a memory area called a ``UMEM``, which is accessible both by the program, in userspace, and by the kernel. Using in-memory ring buffers, the receive (``RX``), transmit (``TX``), completion (``cq``) and fill (``fq``) rings, the kernel can very efficiently pass raw incoming packets to :program:`dnsdist`, which can in return pass raw outgoing packets to the kernel.
-In addition to these, an ``eBPF`` ``XDP`` program needs to be loaded to decide which packets to distribute via the ``AF_XDP`` socket (and to which, as there are usually more than one). This program uses a ``BPF`` map of type ``XSKMAP`` (located at ``/sys/fs/bpf/dnsdist/xskmap`` by default) that is populated by :program:``dnsdist` at startup to locate the ``AF_XDP`` socket to use. :program:`dnsdist` also sets up two additional ``BPF`` maps (located at ``/sys/fs/bpf/dnsdist/xsk-destinations-v4`` and ``/sys/fs/bpf/dnsdist/xsk-destinations-v6``) to let the ``XDP`` program know which IP destinations are to be routed to the ``AF_XDP`` sockets and which are to be passed to the regular network stack (health-checks queries and responses, for example). A ready-to-use `XDP program <https://github.com/PowerDNS/pdns/blob/master/contrib/xdp.py>`_ can be found in the ``contrib`` directory of the PowerDNS Git repository::
+In addition to these, an ``eBPF`` ``XDP`` program needs to be loaded to decide which packets to distribute via the ``AF_XDP`` socket (and to which, as there are usually more than one). This program uses a ``BPF`` map of type ``XSKMAP`` (located at ``/sys/fs/bpf/dnsdist/xskmap`` by default) that is populated by :program:`dnsdist` at startup to locate the ``AF_XDP`` socket to use. :program:`dnsdist` also sets up two additional ``BPF`` maps (located at ``/sys/fs/bpf/dnsdist/xsk-destinations-v4`` and ``/sys/fs/bpf/dnsdist/xsk-destinations-v6``) to let the ``XDP`` program know which IP destinations are to be routed to the ``AF_XDP`` sockets and which are to be passed to the regular network stack (health-checks queries and responses, for example). A ready-to-use `XDP program <https://github.com/PowerDNS/pdns/blob/master/contrib/xdp.py>`_ can be found in the ``contrib`` directory of the PowerDNS Git repository::
 
   $ python xdp.py --xsk --interface eth0
 
@@ -22,7 +22,7 @@ Then :program:`dnsdist` needs to be configured to use ``AF_XDP``, first by creat
 
 This ties the new object to the first receive queue on ``enp1s0``, allocating 65536 frames and populating the map located at ``/sys/fs/bpf/dnsdist/xskmap``.
 
-Then we can tell :program:`dnsdist` to listen for ``AF_XDP`` packets to ``108.61.103.88:53``, in addition to packets coming via the regular network stack:
+Then we can tell :program:`dnsdist` to listen for ``AF_XDP`` packets to ``192.0.2.1:53``, in addition to packets coming via the regular network stack:
 
 .. code-block:: lua
 
