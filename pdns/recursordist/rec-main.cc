@@ -1495,6 +1495,7 @@ static int initDNSSEC(Logr::log_t log)
   g_maxRRSIGsPerRecordToConsider = ::arg().asNum("max-rrsigs-per-record");
   g_maxNSEC3sPerRecordToConsider = ::arg().asNum("max-nsec3s-per-record");
   g_maxDNSKEYsToConsider = ::arg().asNum("max-dnskeys");
+  g_maxDSsToConsider = ::arg().asNum("max-ds-per-zone");
 
   vector<string> nums;
   bool automatic = true;
@@ -3008,6 +3009,7 @@ static void initArgs()
   ::arg().set("max-nsec3-hash-computations-per-query", "Maximum number of NSEC3 hashes that we are willing to compute during DNSSEC validation, per incoming query") = "600";
   ::arg().set("aggressive-cache-max-nsec3-hash-cost", "Maximum estimated NSEC3 cost for a given query to consider aggressive use of the NSEC3 cache") = "150";
   ::arg().set("max-dnskeys", "Maximum number of DNSKEYs with the same algorithm and tag to consider when validating a given record") = "2";
+  ::arg().set("max-ds-per-zone", "Maximum number of DS records to consider per zone") = "8";
 
   ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs") = "";
 

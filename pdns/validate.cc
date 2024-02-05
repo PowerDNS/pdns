@@ -33,6 +33,7 @@ uint16_t g_maxNSEC3Iterations{0};
 uint16_t g_maxRRSIGsPerRecordToConsider{0};
 uint16_t g_maxNSEC3sPerRecordToConsider{0};
 uint16_t g_maxDNSKEYsToConsider{0};
+uint16_t g_maxDSsToConsider{0};
 
 static bool isAZoneKey(const DNSKEYRecordContent& key)
 {
@@ -1154,7 +1155,15 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
    * Check all DNSKEY records against all DS records and place all DNSKEY records
    * that have DS records (that we support the algo for) in the tentative key storage
    */
+  uint16_t dssConsidered = 0;
   for (const auto& dsrc : dsmap) {
+    if (g_maxDSsToConsider > 0 && dssConsidered > g_maxDSsToConsider) {
+      VLOG(log, zone << ": We have already considered "<<std::to_string(dssConsidered)<<" DS"<<addS(dssConsidered)<<", not considering the remaining ones"<<endl;);
+      return vState::BogusNoValidDNSKEY;
+    }
+    ++dssConsidered;
+
+    uint16_t dnskeysConsidered = 0;
     auto record = getByTag(tkeys, dsrc.d_tag, dsrc.d_algorithm, log);
     // cerr<<"looking at DS with tag "<<dsrc.d_tag<<", algo "<<DNSSECKeeper::algorithm2name(dsrc.d_algorithm)<<", digest "<<std::to_string(dsrc.d_digesttype)<<" for "<<zone<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
 
@@ -1162,6 +1171,13 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
       bool isValid = false;
       bool dsCreated = false;
       DSRecordContent dsrc2;
+
+      if (g_maxDNSKEYsToConsider > 0 && dnskeysConsidered >= g_maxDNSKEYsToConsider) {
+        VLOG(log, zone << ": We have already considered "<<std::to_string(dnskeysConsidered)<<" DNSKEY"<<addS(dnskeysConsidered)<<" for tag "<<std::to_string(dsrc.d_tag)<<" and algorithm "<<std::to_string(dsrc.d_algorithm)<<", not considering the remaining ones for this DS"<<endl;);
+        return vState::BogusNoValidDNSKEY;
+      }
+      dnskeysConsidered++;
+
       try {
         dsrc2 = makeDSFromDNSKey(zone, *drc, dsrc.d_digesttype);
         dsCreated = true;
@@ -1210,7 +1226,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
       if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
         VLOG(log, zone << ": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
         // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
-        break;
+        return vState::BogusNoValidDNSKEY;
       }
 
       string msg = getMessageForRRSET(zone, *sig, toSign);
@@ -1218,14 +1234,14 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
       for (const auto& key : bytag) {
         if (g_maxDNSKEYsToConsider > 0 && dnskeysConsidered >= g_maxDNSKEYsToConsider) {
           VLOG(log, zone << ": We have already considered "<<std::to_string(dnskeysConsidered)<<" DNSKEY"<<addS(dnskeysConsidered)<<" for tag "<<std::to_string(sig->d_tag)<<" and algorithm "<<std::to_string(sig->d_algorithm)<<", not considering the remaining ones for this signature"<<endl;);
-          return vState::Insecure;
+          return vState::BogusNoValidDNSKEY;
         }
         dnskeysConsidered++;
 
         if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
           VLOG(log, zone << ": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
           // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
-          break;
+          return vState::BogusNoValidDNSKEY;
         }
         //          cerr<<"validating : ";
         bool signIsValid = checkSignatureWithKey(zone, *sig, *key, msg, ede, log);

@@ -34,6 +34,7 @@ extern uint16_t g_maxNSEC3Iterations;
 extern uint16_t g_maxRRSIGsPerRecordToConsider;
 extern uint16_t g_maxNSEC3sPerRecordToConsider;
 extern uint16_t g_maxDNSKEYsToConsider;
+extern uint16_t g_maxDSsToConsider;
 
 // 4033 5
 enum class vState : uint8_t { Indeterminate, Insecure, Secure, NTA, TA, BogusNoValidDNSKEY, BogusInvalidDenial, BogusUnableToGetDSs, BogusUnableToGetDNSKEYs, BogusSelfSignedDS, BogusNoRRSIG, BogusNoValidRRSIG, BogusMissingNegativeIndication, BogusSignatureNotYetValid, BogusSignatureExpired, BogusUnsupportedDNSKEYAlgo, BogusUnsupportedDSDigestType, BogusNoZoneKeyBitSet, BogusRevokedDNSKEY, BogusInvalidDNSKEYProtocol };
