@@ -1064,11 +1064,10 @@ PrivateKey: n7SRA4n6NejhZBWQOhjTaICYSpkTl6plJn1ATFG23FI=)PKEY");
   DSRecordContent uselessdrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
   keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dpk, uselessdrc);
 
-  /* Set the root DSs (two of them!) */
+  /* Set the root DS (one of them!) */
   auto luaconfsCopy = g_luaconfs.getCopy();
   luaconfsCopy.dsAnchors.clear();
   luaconfsCopy.dsAnchors[g_rootdnsname].insert(drc);
-  luaconfsCopy.dsAnchors[g_rootdnsname].insert(uselessdrc);
   g_luaconfs.setState(luaconfsCopy);
 
   size_t queriesCount = 0;
@@ -1097,8 +1096,8 @@ PrivateKey: n7SRA4n6NejhZBWQOhjTaICYSpkTl6plJn1ATFG23FI=)PKEY");
       setLWResult(res, 0, true, false, true);
 
       addDNSKEY(keys, domain, 300, res->d_records);
-      addRRSIG(keys, res->d_records, domain, 300);
       addDNSKEY(dskeys, domain, 300, res->d_records);
+      addRRSIG(keys, res->d_records, domain, 300);
       addRRSIG(dskeys, res->d_records, domain, 300);
 
       return LWResult::Result::Success;
@@ -1125,6 +1124,108 @@ PrivateKey: n7SRA4n6NejhZBWQOhjTaICYSpkTl6plJn1ATFG23FI=)PKEY");
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidDNSKEY);
   BOOST_REQUIRE_EQUAL(ret.size(), 14U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  g_maxDNSKEYsToConsider = 0;
+}
+
+BOOST_AUTO_TEST_CASE(test_dnssec_bogus_too_many_dnskeys_while_checking_signature)
+{
+  std::unique_ptr<SyncRes> sr;
+  initSR(sr, true);
+
+  setDNSSECValidation(sr, DNSSECMode::Process);
+
+  primeHints();
+  const DNSName target(".");
+  testkeysset_t dskeys;
+  testkeysset_t keys;
+  testkeysset_t otherkeys;
+
+  DNSKEYRecordContent dnskeyRecordContent;
+  dnskeyRecordContent.d_algorithm = 13;
+  /* Generate key material for "." */
+  auto dckeDS = DNSCryptoKeyEngine::makeFromISCString(dnskeyRecordContent, R"PKEY(Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: Ovj4pzrSh0U6aEVoKaPFhK1D4NMG0xrymj9+6TpwC8o=)PKEY");
+  DNSSECPrivateKey dskey;
+  dskey.setKey(std::move(dckeDS), 257);
+  assert(dskey.getTag() == 31337);
+  DSRecordContent drc = makeDSFromDNSKey(target, dskey.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  dskeys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dskey, drc);
+
+  /* Different key, same tag */
+  auto dcke = DNSCryptoKeyEngine::makeFromISCString(dnskeyRecordContent, R"PKEY(Private-key-format: v1.2
+Algorithm: 13 (ECDSAP256SHA256)
+PrivateKey: pTaMJcvNrPIIiQiHGvCLZZASroyQpUwew5FvCgjHNsk=)PKEY");
+  DNSSECPrivateKey dpk;
+  // why 258, you may ask? We need this record to be sorted AFTER the other one in a sortedRecords_t
+  // so that the validation of the DNSKEY rrset succeeds
+  dpk.setKey(std::move(dcke), 258);
+  assert(dpk.getTag() == dskey.getTag());
+  DSRecordContent uselessdrc = makeDSFromDNSKey(target, dpk.getDNSKEY(), DNSSECKeeper::DIGEST_SHA256);
+  keys[target] = std::pair<DNSSECPrivateKey, DSRecordContent>(dpk, uselessdrc);
+
+  /* Set the root DSs (only one of them) */
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  luaconfsCopy.dsAnchors[g_rootdnsname].insert(drc);
+  g_luaconfs.setState(luaconfsCopy);
+
+  size_t queriesCount = 0;
+
+  sr->setAsyncCallback([target, &queriesCount, keys, dskeys](const ComboAddress& /* ip */, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    if (domain == target && type == QType::NS) {
+
+      setLWResult(res, 0, true, false, true);
+      char addr[] = "a.root-servers.net.";
+      for (char idx = 'a'; idx <= 'm'; idx++) {
+        addr[0] = idx;
+        addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
+      }
+
+      addRRSIG(keys, res->d_records, domain, 300);
+      addRRSIG(dskeys, res->d_records, domain, 300);
+
+      addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
+      addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);
+
+      return LWResult::Result::Success;
+    }
+    else if (domain == target && type == QType::DNSKEY) {
+
+      setLWResult(res, 0, true, false, true);
+
+      addDNSKEY(dskeys, domain, 300, res->d_records);
+      addDNSKEY(keys, domain, 300, res->d_records);
+      addRRSIG(dskeys, res->d_records, domain, 300);
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  g_maxDNSKEYsToConsider = 1;
+
+  /* === with validation enabled === */
+  sr->setDNSSECValidationRequested(true);
+  vector<DNSRecord> ret;
+  int res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidRRSIG);
+  /* 13 NS + 1 RRSIG */
+  BOOST_REQUIRE_EQUAL(ret.size(), 15U);
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::NS), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::BogusNoValidRRSIG);
+  BOOST_REQUIRE_EQUAL(ret.size(), 15U);
   BOOST_CHECK_EQUAL(queriesCount, 2U);
 
   g_maxDNSKEYsToConsider = 0;

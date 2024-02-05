@@ -1050,8 +1050,7 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
     for (const auto& key : keysMatchingTag) {
       if (g_maxDNSKEYsToConsider > 0 && dnskeysConsidered >= g_maxDNSKEYsToConsider) {
         VLOG(log, name << ": We have already considered "<<std::to_string(dnskeysConsidered)<<" DNSKEY"<<addS(dnskeysConsidered)<<" for tag "<<std::to_string(signature->d_tag)<<" and algorithm "<<std::to_string(signature->d_algorithm)<<", not considering the remaining ones for this signature"<<endl;);
-        // going Insecure: the DNSKEYs have been validated
-        return isValid ? vState::Secure : vState::Insecure;
+        return isValid ? vState::Secure : vState::BogusNoValidRRSIG;
       }
       dnskeysConsidered++;
 
@@ -1174,7 +1173,10 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
 
       if (g_maxDNSKEYsToConsider > 0 && dnskeysConsidered >= g_maxDNSKEYsToConsider) {
         VLOG(log, zone << ": We have already considered "<<std::to_string(dnskeysConsidered)<<" DNSKEY"<<addS(dnskeysConsidered)<<" for tag "<<std::to_string(dsrc.d_tag)<<" and algorithm "<<std::to_string(dsrc.d_algorithm)<<", not considering the remaining ones for this DS"<<endl;);
-        return vState::BogusNoValidDNSKEY;
+        // we need to break because we can have a partially validated set
+        // where the KSK signs the ZSK(s), and even if we don't
+        // we are going to try to get the correct EDE status (revoked, expired, ...)
+        break;
       }
       dnskeysConsidered++;
 
@@ -1205,7 +1207,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
   //    cerr<<"got "<<validkeys.size()<<"/"<<tkeys.size()<<" valid/tentative keys"<<endl;
   // these counts could be off if we somehow ended up with
   // duplicate keys. Should switch to a type that prevents that.
-  if (validkeys.size() < tkeys.size()) {
+  if (!tkeys.empty() && validkeys.size() < tkeys.size()) {
     // this should mean that we have one or more DS-validated DNSKEYs
     // but not a fully validated DNSKEY set, yet
     // one of these valid DNSKEYs should be able to validate the
@@ -1254,6 +1256,11 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
           break;
         }
         VLOG(log, zone << ": Validation did not succeed!"<<endl);
+      }
+
+      if (validkeys.size() == tkeys.size()) {
+        // we validated the whole DNSKEY set already */
+        break;
       }
       //        if(validkeys.empty()) cerr<<"did not manage to validate DNSKEY set based on DS-validated KSK, only passing KSK on"<<endl;
     }
