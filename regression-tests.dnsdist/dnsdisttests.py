@@ -152,8 +152,10 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         if cls._verboseMode:
             dnsdistcmd.append('-v')
         if cls._sudoMode:
-            if 'LD_LIBRARY_PATH' in os.environ:
-                dnsdistcmd.insert(0, 'LD_LIBRARY_PATH=' + os.environ['LD_LIBRARY_PATH'])
+            preserve_env_values = ['LD_LIBRARY_PATH', 'LLVM_PROFILE_FILE']
+            for value in preserve_env_values:
+                if value in os.environ:
+                    dnsdistcmd.insert(0, value + '=' + os.environ[value])
             dnsdistcmd.insert(0, 'sudo')
 
         for acl in cls._acl:
