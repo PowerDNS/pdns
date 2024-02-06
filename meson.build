@@ -162,7 +162,6 @@ if not fs.is_file(libpdns_dnslabeltext_gen)
 
   libpdns_dnslabeltext_gen = ragel_generator.process(libpdns_dnslabeltext_source)
 endif
-common_sources += libpdns_dnslabeltext_gen
 
 libpdns_apidocfiles_source = 'docs' / 'http-api' / 'swagger' / 'authoritative-api-swagger.yaml'
 libpdns_apidocfiles_gen    = src_dir / 'apidocfiles.h'
@@ -498,6 +497,12 @@ libpdns_bindparser = static_library(
   dependencies: deps,
 )
 
+libpdns_dnslabeltext = static_library(
+  'pdns-dnslabeltext',
+  libpdns_dnslabeltext_gen,
+  dependencies: deps,
+)
+
 libpdns_cdb = dependency('', required: false)
 if dep_cdb.found()
   libpdns_cdb = declare_dependency(
@@ -718,7 +723,7 @@ libpdns_common = static_library(
   common_sources,
   config_h,
   dependencies: deps,
-  link_with: libpdns_bindparser,
+  link_with: [libpdns_bindparser, libpdns_dnslabeltext],
 )
 
 foreach tool, info: tools
