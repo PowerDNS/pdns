@@ -381,9 +381,17 @@ paths:
               schema:
                 type: array
                 items:
-                  - $ref: '#/components/schemas/StatisticItem'
-                  - $ref: '#/components/schemas/MapStatisticItem'
-                  - $ref: '#/components/schemas/RingStatisticItem'
+                  type: object
+                  discriminator:
+                    propertyName: object_type
+                    mapping:
+                      StatisticItem: '#/components/schemas/StatisticItem'
+                      MapStatisticItem: '#/components/schemas/MapStatisticItem'
+                      RingStatisticItem: '#/components/schemas/RingStatisticItem'
+                  oneOf:
+                    - $ref: '#/components/schemas/StatisticItem'
+                    - $ref: '#/components/schemas/MapStatisticItem'
+                    - $ref: '#/components/schemas/RingStatisticItem'
         '422':
           description: 'Returned when a non-existing statistic name has been requested. Contains an error message'
         default:
@@ -1145,6 +1153,7 @@ components:
         object_type:
           type: string
           description: 'set to "zone"'
+          const: zone
         zone_id:
           type: string
 
@@ -1162,6 +1171,7 @@ components:
         object_type:
           type: string
           description: 'set to "record"'
+          const: record
         zone_id:
           type: string
         zone:
@@ -1183,6 +1193,7 @@ components:
         object_type:
           type: string
           description: 'set to "comment"'
+          const: comment
         zone_id:
           type: string
         zone:
