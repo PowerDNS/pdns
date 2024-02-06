@@ -240,13 +240,6 @@ conditional_sources = {
     'sources': [src_dir / 'decafsigners.cc'],
     'condition': dep_libdecaf.found(),
   },
-  'signers-pkcs11': {
-    'sources': [
-      src_dir / 'pkcs11signers.cc',
-      src_dir / 'pkcs11signers.hh',
-    ],
-    'condition': dep_pkcs11.found(),
-  },
   'standalone-fuzz-target-runner': {
     'sources': [src_dir / 'standalone_fuzz_target_runner.cc'],
     'condition': get_option('fuzz-targets'),
@@ -258,6 +251,18 @@ foreach name, info: conditional_sources
     common_sources += files(info['sources'])
   endif
 endforeach
+
+# Conditional sources that need to be separated into standalone libraries.
+libpdns_signers_pkcs11 = dependency('', required: false)
+if dep_pkcs11.found()
+  libpdns_signers_pkcs11 = declare_dependency(
+    link_whole: static_library(
+      'pdns-signers-pkcs11',
+      sources: files(src_dir / 'pkcs11signers.cc', src_dir / 'pkcs11signers.hh'),
+      dependencies: dep_pkcs11,
+    )
+  )
+endif
 
 # This needs to be link_whole'd because it's needed by auth backends.
 libpdns_ssqlite3 = dependency('', required: false)
@@ -722,7 +727,7 @@ libpdns_common = static_library(
   'pdns-common',
   common_sources,
   config_h,
-  dependencies: deps,
+  dependencies: [deps, libpdns_signers_pkcs11],
   link_with: [libpdns_bindparser, libpdns_dnslabeltext],
 )
 
