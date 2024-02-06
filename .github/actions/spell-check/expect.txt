@@ -257,6 +257,7 @@ Davids
 Dayneko
 dbfile
 dblfilename
+dblookup
 dbpf
 dbr
 dcobject
