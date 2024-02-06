@@ -508,7 +508,6 @@ static bool getAuth(const DNSName& name, uint16_t qtype, SOAData* soaData)
 {
   static LockGuarded<UeberBackend> s_ub;
 
-  vector<DNSZoneRecord> ret;
   {
     auto ueback = s_ub.lock();
     return ueback->getAuth(name, qtype, soaData);
@@ -1122,6 +1121,9 @@ static void setupLuaRecords(LuaContext& lua)
     try {
       rec = DNSName(record);
       qtype = type;
+      if (qtype.getCode() == 0) {
+        throw std::invalid_argument("unknown type");
+      }
     }
     catch (const std::exception& e) {
       g_log << Logger::Error << "DB lookup cannot be performed, the name (" << record << ") or type (" << type << ") is malformed: " << e.what() << endl;
@@ -1140,7 +1142,7 @@ static void setupLuaRecords(LuaContext& lua)
       }
     }
     catch (std::exception& e) {
-      g_log << Logger::Error << "Failed to do DB lookup for " << rec << "/" << type << ": " << e.what() << endl;
+      g_log << Logger::Error << "Failed to do DB lookup for " << rec << "/" << qtype << ": " << e.what() << endl;
     }
     return ret;
   });
