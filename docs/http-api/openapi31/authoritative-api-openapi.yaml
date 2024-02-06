@@ -951,6 +951,8 @@ components:
           description: 'The id of the TSIG keys used for slave operation in this zone'
           externalDocs:
             url: 'https://doc.powerdns.com/authoritative/tsig.html#provisioning-signed-notification-and-axfr-requests'
+        last_check:
+          type: integer
 
     Zones:
       type: array
