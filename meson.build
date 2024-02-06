@@ -753,3 +753,45 @@ foreach tool, info: tools
     )
   )
 endforeach
+
+if get_option('unit-tests')
+  test('PDNS Auth Testrunner', pdns_auth_testrunner, verbose: true)
+endif
+
+if get_option('unit-tests-backends')
+  libpdns_module_remotebackend_test_common = static_library(
+    'pdns-test-remotebackend',
+    module_remotebackend_test_sources_common,
+    link_with: [libpdns_common, libpdns_dnslabeltext],
+    dependencies: [
+      deps,
+      libpdns_signers_pkcs11,
+    ],
+    extra_files: module_remotebackend_test_sources_extra,
+  )
+
+  env = {
+    'BOOST_TEST_LOG_LEVEL': 'message',
+    'REMOTEBACKEND_ZEROMQ': get_option('module-remote-zeromq') ? '1' : '0',
+  }
+
+  foreach test_binary, test_source: module_remotebackend_test_sources_binaries
+    var_name = test_binary.underscorify()
+
+    set_variable(
+      var_name,
+      executable(
+        test_binary,
+        test_source,
+        dependencies: [
+          deps,
+          dep_boost_test,
+          dep_zeromq,
+          libpdns_module_remotebackend_test_common,
+        ],
+      )
+    )
+
+    test('PDNS Auth ' + test_binary, get_variable(var_name), verbose: true, env: env)
+  endforeach
+endif
