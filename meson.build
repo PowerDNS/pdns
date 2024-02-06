@@ -276,6 +276,7 @@ libpdns_gettime = static_library(
   'pdns-gettime',
   src_dir / 'gettime.cc',
   src_dir / 'gettime.hh',
+  dependencies: dep_rt,
 )
 
 common_sources += files(
@@ -462,7 +463,6 @@ deps = [
   dep_libcrypto,
   dep_libssl,
   dep_gnutls,
-  dep_rt,
   dep_boost,
   dep_boost_program_options,
   dep_dlopen,

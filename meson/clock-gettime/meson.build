@@ -3,12 +3,10 @@ dep_rt = dependency('', required: false)
 
 if not found
   dep_rt = cxx.find_library('rt', required: true)
-
-  if not cxx.has_function('clock_gettime', dependencies: dep_rt)
-    error('Cannot find function `clock_gettime`')
-  endif
+  found = cxx.has_function('clock_gettime', dependencies: dep_rt)
 endif
 
+conf.set('HAVE_CLOCK_GETTIME', found, description: 'Have clock_gettime')
 summary('clock_gettime', true, bool_yn: true, section: 'System')
 
 if dep_rt.found()
