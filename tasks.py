@@ -585,7 +585,7 @@ def ci_dnsdist_configure(c, features):
         features_set,
         unittests,
         fuzztargets,
-        ' --enable-lto=thin',
+        '--enable-lto=thin',
         '--prefix=/opt/dnsdist'
     ])
 
@@ -871,7 +871,7 @@ def test_dnsdist(c):
     c.run('ls -ald /var /var/agentx /var/agentx/master')
     c.run('ls -al /var/agentx/master')
     with c.cd('regression-tests.dnsdist'):
-        c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist LD_LIBRARY_PATH=/opt/dnsdist/lib/ ./runtests')
+        c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist LD_LIBRARY_PATH=/opt/dnsdist/lib/ ENABLE_SUDO_TESTS=1 ./runtests')
 
 @task
 def test_regression_recursor(c):
