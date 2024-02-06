@@ -20,31 +20,9 @@ paths:
     get:
       summary: Will always generate an error
       operationId: error
-      responses: &commonErrors
-        '400':
-          description: The supplied request was not valid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Requested item was not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '422':
-          description: The input to the operation was not valid
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+      responses:
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers':
     get:
@@ -61,7 +39,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Server'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}':
     parameters:
@@ -78,7 +57,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Server'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/cache/flush':
     parameters:
@@ -102,7 +82,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CacheFlushResult'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/zones':
     parameters:
@@ -138,7 +119,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Zone'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     post:
       summary: Creates a new domain, returns the Zone on creation.
       operationId: createZone
@@ -165,7 +147,8 @@ paths:
             application/json:
               schema:
                   $ref: '#/components/schemas/Zone'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/zones/{zone_id}':
     parameters:
@@ -200,7 +183,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Zone'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     delete:
       summary: Deletes this zone, all attached metadata and rrsets.
       operationId: deleteZone
@@ -209,7 +193,8 @@ paths:
       responses:
         '204':
           description: 'Returns 204 No Content on success.'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     patch:
       summary: 'Creates/modifies/deletes RRsets present in the payload and their comments. Returns 204 No Content on success.'
       operationId: patchZone
@@ -225,7 +210,8 @@ paths:
       responses:
         '204':
           description: 'Returns 204 No Content on success.'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
     put:
       summary: Modifies basic zone data.
@@ -243,7 +229,8 @@ paths:
       responses:
         '204':
           description: 'Returns 204 No Content on success.'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/zones/{zone_id}/notify':
     parameters:
@@ -258,7 +245,8 @@ paths:
       responses:
         '200':
           description: OK
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/zones/{zone_id}/axfr-retrieve':
     parameters:
@@ -273,7 +261,8 @@ paths:
       responses:
         '200':
           description: OK
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/zones/{zone_id}/export':
     parameters:
@@ -291,7 +280,8 @@ paths:
             application/json:
               schema:
                 type: string
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/zones/{zone_id}/rectify':
     parameters:
@@ -310,7 +300,8 @@ paths:
             application/json:
               schema:
                 type: string
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/config':
     parameters:
@@ -329,7 +320,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ConfigSetting'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/config/{config_setting_name}':
     parameters:
@@ -353,7 +345,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConfigSetting'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/statistics':
     parameters:
@@ -393,7 +386,8 @@ paths:
                   - $ref: '#/components/schemas/RingStatisticItem'
         '422':
           description: 'Returned when a non-existing statistic name has been requested. Contains an error message'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/search-data':
     parameters:
@@ -430,7 +424,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchResults'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/zones/{zone_id}/metadata':
     parameters:
@@ -450,7 +445,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Metadata'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     post:
       summary: 'Creates a set of metadata entries'
       description: 'Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are not overwritten.'
@@ -468,7 +464,8 @@ paths:
       responses:
         '204':
           description: OK
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/zones/{zone_id}/metadata/{metadata_kind}':
     parameters:
@@ -492,7 +489,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Metadata'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     put:
       summary: 'Replace the content of a single kind of domain metadata.'
       description: 'Creates a set of metadata entries of given kind for the zone. Existing metadata entries for the zone with the same kind are removed.'
@@ -506,7 +504,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Metadata'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     delete:
       summary: 'Delete all items of a single kind of domain metadata.'
       operationId: deleteMetadata
@@ -515,7 +514,8 @@ paths:
       responses:
         '200':
           description: OK
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/zones/{zone_id}/cryptokeys':
     parameters:
@@ -535,7 +535,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Cryptokey'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     post:
       summary: 'Creates a Cryptokey'
       description: 'This method adds a new key to a zone. The key can either be generated or imported by supplying the content parameter. if content, bits and algo are null, a key will be generated based on the default-ksk-algorithm and default-ksk-size settings for a KSK and the default-zsk-algorithm and default-zsk-size options for a ZSK.'
@@ -557,7 +558,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cryptokey'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/zones/{zone_id}/cryptokeys/{cryptokey_id}':
     parameters:
@@ -581,7 +583,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Cryptokey'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     put:
       summary: 'This method (de)activates a key from zone_name specified by cryptokey_id'
       operationId: modifyCryptokey
@@ -590,7 +593,8 @@ paths:
       responses:
         '204':
           description: OK
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     delete:
       summary: 'This method deletes a key specified by cryptokey_id.'
       operationId: deleteCryptokey
@@ -599,7 +603,8 @@ paths:
       responses:
         '204':
           description: OK
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/tsigkeys':
     parameters:
@@ -618,7 +623,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/TSIGKey'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     post:
       summary: 'Add a TSIG key'
       description: 'This methods add a new TSIGKey. The actual key can be generated by the server or be provided by the client'
@@ -645,7 +651,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/tsigkeys/{tsigkey_id}':
     parameters:
@@ -668,7 +675,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TSIGKey'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     put:
       description: |
         The TSIGKey at tsigkey_id can be changed in multiple ways:
@@ -700,7 +708,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     delete:
       summary: 'Delete the TSIGKey with tsigkey_id'
       operationId: deleteTSIGKey
@@ -709,7 +718,8 @@ paths:
       responses:
         '204':
           description: 'OK, key was deleted'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/autoprimaries':
     parameters:
@@ -726,7 +736,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Autoprimary'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
     post:
       summary: 'Add an autoprimary'
       description: 'This methods add a new autoprimary server.'
@@ -743,7 +754,8 @@ paths:
       responses:
         '201':
           description: Created
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
   '/servers/{server_id}/autoprimaries/{ip}/{nameserver}':
     parameters:
@@ -768,7 +780,8 @@ paths:
       responses:
         '204':
           description: 'OK, key was deleted'
-        <<: *commonErrors
+        default:
+          $ref: "#/components/responses/Error"
 
 components:
   securitySchemes:
@@ -793,6 +806,14 @@ components:
       in: path
       required: true
       description: The id of the zone to retrieve
+
+  responses:
+    Error:
+      description: The input to the operation was not valid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
 
   schemas:
     Server:
