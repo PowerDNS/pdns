@@ -2737,6 +2737,7 @@ static void cleanupLuaObjects()
   g_policy.setState(ServerPolicy());
   g_pools.setState({});
   clearWebHandlers();
+  dnsdist::lua::hooks::clearMaintenanceHook();
 }
 
 static void sigTermHandler(int)

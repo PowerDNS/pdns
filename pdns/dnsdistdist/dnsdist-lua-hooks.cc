@@ -21,6 +21,11 @@ void addMaintenanceCallback(const LuaContext& context, MaintenanceCallback callb
   s_maintenanceHook.lock()->push_back(std::move(callback));
 }
 
+void clearMaintenanceHook()
+{
+  s_maintenanceHook.lock()->clear();
+}
+
 void setupLuaHooks(LuaContext& luaCtx)
 {
   luaCtx.writeFunction("addMaintenanceCallback", [&luaCtx](const MaintenanceCallback& callback) {
