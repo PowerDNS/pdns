@@ -591,6 +591,9 @@ static void gatherRecords(const Json& container, const DNSName& qname, const QTy
   const auto& items = container["records"].array_items();
   for (const auto& record : items) {
     string content = stringFromJson(record, "content");
+    if (record.object_items().count("priority") > 0) {
+      throw std::runtime_error("`priority` element is not allowed in record");
+    }
     resourceRecord.disabled = false;
     if (!record["disabled"].is_null()) {
       resourceRecord.disabled = boolFromJson(record, "disabled");
