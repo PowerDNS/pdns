@@ -491,6 +491,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "addLocal", true, R"(addr [, {doTCP=true, reusePort=false, tcpFastOpenQueueSize=0, interface="", cpus={}}])", "add `addr` to the list of addresses we listen on" },
   { "addCacheHitResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a cache hit response rule" },
   { "addCacheInsertedResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a cache inserted response rule" },
+  { "addMaintenanceCallback", true, "callback", "register a function to be called as part of the maintenance hook, every second" },
   { "addResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a response rule" },
   { "addSelfAnsweredResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a self-answered response rule" },
   { "addTLSLocal", true, "addr, certFile(s), keyFile(s) [,params]", "listen to incoming DNS over TLS queries on the specified address using the specified certificate (or list of) and key (or list of). The last parameter is a table" },

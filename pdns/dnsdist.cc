@@ -61,6 +61,7 @@
 #include "dnsdist-edns.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-lua-hooks.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-random.hh"
@@ -2236,19 +2237,20 @@ static void maintThread()
 
     {
       auto lua = g_lua.lock();
-      auto f = lua->readVariable<boost::optional<std::function<void()> > >("maintenance");
-      if (f) {
-        try {
+      try {
+        auto f = lua->readVariable<boost::optional<std::function<void()> > >("maintenance");
+        if (f) {
           (*f)();
-          secondsToWaitLog = 0;
         }
-        catch (const std::exception &e) {
-          if (secondsToWaitLog <= 0) {
-            warnlog("Error during execution of maintenance function: %s", e.what());
-            secondsToWaitLog = 61;
-          }
-          secondsToWaitLog -= interval;
+        dnsdist::lua::hooks::runMaintenanceHook(*lua);
+        secondsToWaitLog = 0;
+      }
+      catch (const std::exception &e) {
+        if (secondsToWaitLog <= 0) {
+          warnlog("Error during execution of maintenance function(s): %s", e.what());
+          secondsToWaitLog = 61;
         }
+        secondsToWaitLog -= interval;
       }
     }
 

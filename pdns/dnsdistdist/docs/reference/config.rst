@@ -1982,6 +1982,23 @@ These values can be set at configuration time via:
 Other functions
 ---------------
 
+.. function:: addMaintenanceCallback(callback)
+
+  .. versionadded:: 1.10.0
+
+  Register a Lua function to be called as part of the ``maintenance`` hook, which is executed roughly every second.
+  The function should not block for a long period of time, as it would otherwise delay the execution of the other functions registered for this hook, as well as the execution of the :func:`maintenance` function.
+
+  :param function callback: The function to be called. It takes no parameter and returns no value.
+
+  .. code-block:: lua
+
+    function myCallback(hostname, ips)
+      print('called')
+    end
+    addMaintenanceCallback(myCallback)
+
+
 .. function:: getAddressInfo(hostname, callback)
 
   .. versionadded:: 1.9.0
@@ -2026,6 +2043,7 @@ Other functions
 
   If this function exists, it is called every second to do regular tasks.
   This can be used for e.g. :doc:`Dynamic Blocks <../guides/dynblocks>`.
+  See also :func:`addMaintenanceCallback`.
 
 .. function:: threadmessage(cmd, dict)
 

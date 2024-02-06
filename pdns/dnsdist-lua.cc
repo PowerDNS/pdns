@@ -46,6 +46,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-lua-hooks.hh"
 #include "xsk.hh"
 #ifdef LUAJIT_VERSION
 #include "dnsdist-lua-ffi.hh"
@@ -3405,6 +3406,7 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
   setupLuaBindingsPacketCache(luaCtx, client);
   setupLuaBindingsProtoBuf(luaCtx, client, configCheck);
   setupLuaBindingsRings(luaCtx, client);
+  dnsdist::lua::hooks::setupLuaHooks(luaCtx);
   setupLuaInspection(luaCtx);
   setupLuaRules(luaCtx);
   setupLuaVars(luaCtx);
