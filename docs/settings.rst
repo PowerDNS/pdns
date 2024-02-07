@@ -654,6 +654,16 @@ caching.
 
 Enable/Disable DNS update (RFC2136) support. See :doc:`dnsupdate` for more.
 
+.. _setting-dnsupdate-require-tsig:
+
+``dnsupdate-require-tsig``
+-------------
+
+-  Boolean
+-  Default: no
+
+Requires DNS updates to be signed by a valid TSIG signature even if the zone has no associated keys.
+
 .. _setting-do-ipv6-additional-processing:
 
 ``do-ipv6-additional-processing``
