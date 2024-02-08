@@ -355,7 +355,8 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(DOQSer
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
-  auto conn = Connection(peer, config.config, std::move(quicheConn));
+  auto quicheConfig = std::atomic_load_explicit(&config.config, std::memory_order_acquire);
+  auto conn = Connection(peer, quicheConfig, std::move(quicheConn));
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
 }
