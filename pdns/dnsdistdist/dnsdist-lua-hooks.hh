@@ -28,8 +28,8 @@ class LuaContext;
 namespace dnsdist::lua::hooks
 {
 using MaintenanceCallback = std::function<void()>;
-void runMaintenanceHook(const LuaContext& context);
+void runMaintenanceHooks(const LuaContext& context);
 void addMaintenanceCallback(MaintenanceCallback callback);
-void clearMaintenanceHook();
+void clearMaintenanceHooks();
 void setupLuaHooks(LuaContext& luaCtx);
 }

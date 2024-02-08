@@ -2228,21 +2228,21 @@ pdns::stat16_t g_cacheCleaningPercentage{100};
 static void maintThread()
 {
   setThreadName("dnsdist/main");
-  int interval = 1;
+  constexpr int interval = 1;
   size_t counter = 0;
   int32_t secondsToWaitLog = 0;
 
   for (;;) {
-    sleep(interval);
+    std::this_thread::sleep_for(std::chrono::seconds(interval));
 
     {
       auto lua = g_lua.lock();
       try {
-        auto f = lua->readVariable<boost::optional<std::function<void()> > >("maintenance");
-        if (f) {
-          (*f)();
+        auto maintenanceCallback = lua->readVariable<boost::optional<std::function<void()> > >("maintenance");
+        if (maintenanceCallback) {
+          (*maintenanceCallback)();
         }
-        dnsdist::lua::hooks::runMaintenanceHook(*lua);
+        dnsdist::lua::hooks::runMaintenanceHooks(*lua);
         secondsToWaitLog = 0;
       }
       catch (const std::exception &e) {
@@ -2737,7 +2737,7 @@ static void cleanupLuaObjects()
   g_policy.setState(ServerPolicy());
   g_pools.setState({});
   clearWebHandlers();
-  dnsdist::lua::hooks::clearMaintenanceHook();
+  dnsdist::lua::hooks::clearMaintenanceHooks();
 }
 
 static void sigTermHandler(int)

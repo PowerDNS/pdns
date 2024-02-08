@@ -5,12 +5,12 @@
 
 namespace dnsdist::lua::hooks
 {
-static LockGuarded<std::vector<MaintenanceCallback>> s_maintenanceHook;
+static LockGuarded<std::vector<MaintenanceCallback>> s_maintenanceHooks;
 
-void runMaintenanceHook(const LuaContext& context)
+void runMaintenanceHooks(const LuaContext& context)
 {
   (void)context;
-  for (const auto& callback : *(s_maintenanceHook.lock())) {
+  for (const auto& callback : *(s_maintenanceHooks.lock())) {
     callback();
   }
 }
@@ -18,12 +18,12 @@ void runMaintenanceHook(const LuaContext& context)
 void addMaintenanceCallback(const LuaContext& context, MaintenanceCallback callback)
 {
   (void)context;
-  s_maintenanceHook.lock()->push_back(std::move(callback));
+  s_maintenanceHooks.lock()->push_back(std::move(callback));
 }
 
-void clearMaintenanceHook()
+void clearMaintenanceHooks()
 {
-  s_maintenanceHook.lock()->clear();
+  s_maintenanceHooks.lock()->clear();
 }
 
 void setupLuaHooks(LuaContext& luaCtx)
