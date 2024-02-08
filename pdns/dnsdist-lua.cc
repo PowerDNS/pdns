@@ -2230,6 +2230,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_policy.setState(policy);
   });
 
+  luaCtx.writeFunction("setServerPolicy", [](const ServerPolicy* policy) {
+    setLuaSideEffect();
+    g_policy.setState(*policy);
+  });
+
   luaCtx.writeFunction("setServerPolicyLua", [](const string& name, ServerPolicy::policyfunc_t policy) {
     setLuaSideEffect();
     g_policy.setState(ServerPolicy{name, policy, true});
