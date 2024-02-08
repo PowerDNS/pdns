@@ -1120,13 +1120,37 @@ Status, Statistics and More
 
   .. versionadded:: 1.4.0
 
-  Return the DOHFrontend object for the DNS over HTTPS bind of index ``idx``.
+  Return the :class:`DOHFrontend` object for the DNS over HTTPS bind of index ``idx``.
 
 .. function:: getDOHFrontendCount()
 
   .. versionadded:: 1.5.0
 
-  Return the number of DOHFrontend binds.
+  Return the number of :class:`DOHFrontend` binds.
+
+.. function:: getDOH3Frontend(idx)
+
+  .. versionadded:: 1.9.0
+
+  Return the :class:`DOH3Frontend` object for the DNS over HTTP3 bind of index ``idx``.
+
+.. function:: getDOH3FrontendCount()
+
+  .. versionadded:: 1.9.0
+
+  Return the number of :class:`DOH3Frontend` binds.
+
+.. function:: getDOQFrontend(idx)
+
+  .. versionadded:: 1.9.0
+
+  Return the :class:`DOQFrontend` object for the DNS over QUIC bind of index ``idx``.
+
+.. function:: getDOQFrontendCount()
+
+  .. versionadded:: 1.9.0
+
+  Return the number of :class:`DOQFrontend` binds.
 
 .. function:: getListOfAddressesOfNetworkInterface(itf)
 
@@ -2211,6 +2235,32 @@ DOHFrontend
   :param int status: The HTTP code to answer with.
   :param str content: The content of the HTTP response, or a URL if the status is a redirection (3xx).
   :param table of headers: The custom headers to set for the HTTP response, if any. The default is to use the value of the ``customResponseHeaders`` parameter passed to :func:`addDOHLocal`.
+
+DOH3Frontend
+~~~~~~~~~~~
+
+.. class:: DOH3Frontend
+
+  .. versionadded:: 1.9.0
+
+  This object represents an address and port dnsdist is listening on for DNS over HTTP3 queries.
+
+  .. method:: DOH3Frontend:reloadCertificates()
+
+     Reload the current TLS certificate and key pairs.
+
+DOQFrontend
+~~~~~~~~~~~
+
+.. class:: DOQFrontend
+
+  .. versionadded:: 1.9.0
+
+  This object represents an address and port dnsdist is listening on for DNS over QUIC queries.
+
+  .. method:: DOQFrontend:reloadCertificates()
+
+     Reload the current TLS certificate and key pairs.
 
 LuaRingEntry
 ~~~~~~~~~~~~

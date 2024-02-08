@@ -26,7 +26,7 @@ which returns a :class:`TLSCertificate` object, which can then be passed to :fun
 
 .. code-block:: lua
 
-  newTLSCertificate("path/to/domain.p12", {password="passphrase"}) -- use a password protected PKCS12 file
+  myCertObject = newTLSCertificate("path/to/domain.p12", {password="passphrase"}) -- use a password protected PKCS12 file
 
 Reloading certificates
 ----------------------
@@ -45,6 +45,18 @@ The second allows a finer-grained, per-bind, approach:
   -- reload certificates and keys for DoH binds:
   for idx = 0, getDOHFrontendCount() - 1 do
     frontend = getDOHFrontend(idx)
+    frontend:reloadCertificates()
+  end
+
+  -- reload certificates and keys for DoQ binds:
+  for idx = 0, getDOQFrontendCount() - 1 do
+    frontend = getDOQFrontend(idx)
+    frontend:reloadCertificates()
+  end
+
+  -- reload certificates and keys for DoH3 binds:
+  for idx = 0, getDOH3FrontendCount() - 1 do
+    frontend = getDOH3Frontend(idx)
     frontend:reloadCertificates()
   end
 
