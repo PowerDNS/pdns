@@ -718,21 +718,21 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
     result.reserve(maps->d_v4.d_count + maps->d_v6.d_count);
   }
 
-  sockaddr_in v4Addr;
+  sockaddr_in v4Addr{};
   memset(&v4Addr, 0, sizeof(v4Addr));
   v4Addr.sin_family = AF_INET;
 
   uint32_t v4Key = 0;
-  uint32_t nextV4Key;
-  CounterAndActionValue value;
+  uint32_t nextV4Key{};
+  CounterAndActionValue value{};
 
-  uint8_t v6Key[16];
-  uint8_t nextV6Key[16];
-  sockaddr_in6 v6Addr;
+  std::array<uint8_t, 16> v6Key{};
+  std::array<uint8_t, 16> nextV6Key{};
+  sockaddr_in6 v6Addr{};
   memset(&v6Addr, 0, sizeof(v6Addr));
   v6Addr.sin6_family = AF_INET6;
 
-  static_assert(sizeof(v6Addr.sin6_addr.s6_addr) == sizeof(v6Key), "POSIX mandates s6_addr to be an array of 16 uint8_t");
+  static_assert(sizeof(v6Addr.sin6_addr.s6_addr) == v6Key.size(), "POSIX mandates s6_addr to be an array of 16 uint8_t");
   memset(&v6Key, 0, sizeof(v6Key));
 
   auto maps = d_maps.lock();
@@ -754,16 +754,16 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
 
   {
     auto& map = maps->d_v6;
-    int res = bpf_get_next_key(map.d_fd.getHandle(), &v6Key, &nextV6Key);
+    int res = bpf_get_next_key(map.d_fd.getHandle(), v6Key.data(), nextV6Key.data());
 
     while (res == 0) {
-      if (bpf_lookup_elem(map.d_fd.getHandle(), &nextV6Key, &value) == 0) {
-        memcpy(&v6Addr.sin6_addr.s6_addr, &nextV6Key, sizeof(nextV6Key));
+      if (bpf_lookup_elem(map.d_fd.getHandle(), nextV6Key.data(), &value) == 0) {
+        memcpy(&v6Addr.sin6_addr.s6_addr, nextV6Key.data(), nextV6Key.size());
 
         result.emplace_back(ComboAddress(&v6Addr), value.counter);
       }
 
-      res = bpf_get_next_key(map.d_fd.getHandle(), &nextV6Key, &nextV6Key);
+      res = bpf_get_next_key(map.d_fd.getHandle(), nextV6Key.data(), nextV6Key.data());
     }
   }
 
