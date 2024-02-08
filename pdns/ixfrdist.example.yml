@@ -100,11 +100,13 @@ webserver-loglevel: normal
 #
 # You can optionally cap the refresh time of the SOA using 'max-soa-refresh' (seconds)
 # Otherwise, or if set to 0, the retreived SOA refresh time will be used
+# You can also send NOTIFY packets for the given domain to given destinations using `notify`
 #
 #    domains:
 #      - domain: example.com
 #        master: 192.0.2.15
 #        max-soa-refresh: 180
+#        notify: [192.0.3.1, 192.0.3.2:5301]
 #      - domain: rpz.example
 #        master: [2001:DB8:a34:543::53]:5353
 #
