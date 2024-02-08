@@ -4,6 +4,7 @@ import ssl
 import struct
 from typing import Any, Optional, cast
 import dns
+import dns.message
 import async_timeout
 
 from aioquic.quic.configuration import QuicConfiguration
@@ -77,9 +78,9 @@ async def async_quic_query(
         try:
             async with async_timeout.timeout(timeout):
                 answer = await client.query(query)
-                return answer
+                return (answer, client._quic.tls._peer_certificate.serial_number)
         except asyncio.TimeoutError as e:
-            return e
+            return (e, None)
 
 class StreamResetError(Exception):
     def __init__(self, error, message="Stream reset by peer"):
@@ -90,7 +91,7 @@ def quic_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server
     configuration = QuicConfiguration(alpn_protocols=["doq"], is_client=True)
     if verify:
         configuration.load_verify_locations(verify)
-    result = asyncio.run(
+    (result, serial) = asyncio.run(
         async_quic_query(
             configuration=configuration,
             host=host,
@@ -104,13 +105,13 @@ def quic_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server
         raise StreamResetError(result.error_code)
     if (isinstance(result, asyncio.TimeoutError)):
         raise TimeoutError()
-    return result
+    return (result, serial)
 
 def quic_bogus_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server_hostname=None):
     configuration = QuicConfiguration(alpn_protocols=["doq"], is_client=True)
     if verify:
         configuration.load_verify_locations(verify)
-    result = asyncio.run(
+    (result, _) = asyncio.run(
         async_quic_query(
             configuration=configuration,
             host=host,
