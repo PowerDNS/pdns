@@ -220,6 +220,10 @@ Record creation functions
   - updating the weight of an entry will only affect a part of the distribution
   - because of the previous properties, the CPU and memory cost is a bit higher than :func:`pickwhashed`
 
+  Hashes will be pre computed the first time such a record is hit and refreshed if needed. If updating the list is done often,
+  the cash may grow. A cleanup routine is performed every :ref:`setting-lua-consistent-hashes-cleanup-interval` seconds (default 1h)
+  and cleans cached entries for records that haven't been used for :ref:`setting-lua-consistent-hashes-expire-delay` seconds (default 24h)
+
   An example::
 
     mydomain.example.com    IN    LUA    A ("pickchashed({                             "

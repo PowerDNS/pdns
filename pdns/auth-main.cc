@@ -109,6 +109,8 @@ bool g_doLuaRecord;
 int g_luaRecordExecLimit;
 time_t g_luaHealthChecksInterval{5};
 time_t g_luaHealthChecksExpireDelay{3600};
+time_t g_luaConsistentHashesExpireDelay{86400};
+time_t g_luaConsistentHashesCleanupInterval{3600};
 #endif
 #ifdef ENABLE_GSS_TSIG
 bool g_doGssTSIG;
@@ -308,6 +310,8 @@ static void declareArguments()
   ::arg().set("lua-records-exec-limit", "LUA records scripts execution limit (instructions count). Values <= 0 mean no limit") = "1000";
   ::arg().set("lua-health-checks-expire-delay", "Stops doing health checks after the record hasn't been used for that delay (in seconds)") = "3600";
   ::arg().set("lua-health-checks-interval", "LUA records health checks monitoring interval in seconds") = "5";
+  ::arg().set("lua-consistent-hashes-cleanup-interval", "Pre-computed hashes cleanup interval (in seconds)") = "3600";
+  ::arg().set("lua-consistent-hashes-expire-delay", "Cleanup pre-computed hashes that haven't been used for the given delay (in seconds). See pickchashed() LUA function") = "86400";
 #endif
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a primary with a lower serial") = "no";
 
@@ -699,6 +703,8 @@ static void mainthread()
   g_LuaRecordSharedState = (::arg()["enable-lua-records"] == "shared");
   g_luaRecordExecLimit = ::arg().asNum("lua-records-exec-limit");
   g_luaHealthChecksInterval = ::arg().asNum("lua-health-checks-interval");
+  g_luaConsistentHashesExpireDelay = ::arg().asNum("lua-consistent-hashes-expire-delay");
+  g_luaConsistentHashesCleanupInterval = ::arg().asNum("lua-consistent-hashes-cleanup-interval");
   g_luaHealthChecksExpireDelay = ::arg().asNum("lua-health-checks-expire-delay");
 #endif
 #ifdef ENABLE_GSS_TSIG

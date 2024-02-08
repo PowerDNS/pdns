@@ -1010,6 +1010,30 @@ When enabled, log messages are formatted like structured logs, including their l
 
 Script to be used to edit incoming AXFRs, see :ref:`modes-of-operation-axfrfilter`
 
+.. _setting-lua-consistent-hashes-cleanup-interval:
+
+``lua-consistent-hashes-cleanup-interval``
+------------------------------------------
+
+-  Integer
+-  Default: 3600
+
+.. versionadded:: 4.9.0
+
+Amount of time (in seconds) between subsequent cleanup routines for pre-computed hashes related to :func:`pickchashed()`.
+
+.. _setting-lua-consistent-hashes-expire-delay:
+
+``lua-consistent-hashes-expire-delay``
+--------------------------------------
+
+-  Integer
+-  Default: 86400
+
+.. versionadded:: 4.9.0
+
+Amount of time (in seconds) a pre-computed hash entry will be considered as expired when unused. See :func:`pickchashed()`.
+
 .. _setting-lua-health-checks-expire-delay:
 
 ``lua-health-checks-expire-delay``
