@@ -674,6 +674,11 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
 
     if (!conn) {
       DEBUGLOG("Connection not found");
+      if (type != static_cast<uint8_t>(DOQ_Packet_Types::QUIC_PACKET_TYPE_INITIAL)) {
+        DEBUGLOG("Packet is not initial");
+        continue;
+      }
+
       if (!quiche_version_is_supported(version)) {
         DEBUGLOG("Unsupported version");
         ++frontend.d_doqUnsupportedVersionErrors;
