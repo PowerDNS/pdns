@@ -63,7 +63,9 @@
 #include "arguments.hh"
 #include "statbag.hh"
 StatBag S;
+// NOLINTNEXTLINE(readability-identifier-length)
 AuthPacketCache PC;
+// NOLINTNEXTLINE(readability-identifier-length)
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
 
@@ -297,16 +299,70 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
   // FIXME: also report zone size?
 }
 
-static void sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t id)
+static void sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t notificationId)
 {
-  vector<string> meta;
-  vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
-  pw.getHeader()->id = id;
-  pw.getHeader()->aa = true;
+  std::vector<std::string> meta;
+  std::vector<uint8_t> packet;
+  DNSPacketWriter packetWriter(packet, domain, QType::SOA, 1, Opcode::Notify);
+  packetWriter.getHeader()->id = notificationId;
+  packetWriter.getHeader()->aa = true;
 
-  if (sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (sendto(sock, packet.data(), packet.size(), 0, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen()) < 0) {
     throw std::runtime_error("Unable to send notify to " + remote.toStringWithPort() + ": " + stringerror());
+  }
+}
+
+static void communicatorReceiveNotificationAnswers(const int sock4, const int sock6)
+{
+  std::set<int> fds = {sock4, sock6};
+  ComboAddress from;
+  std::array<char, 1500> buffer;
+  int sock{-1};
+
+  // receive incoming notification answers on the nonblocking sockets and take them off the list
+  while (waitForMultiData(fds, 0, 0, &sock) > 0) {
+    Utility::socklen_t fromlen = sizeof(from);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    const auto size = recvfrom(sock, buffer.data(), buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&from), &fromlen);
+    if (size < 0) {
+      break;
+    }
+    DNSPacket packet(true);
+    packet.setRemote(&from);
+
+    if (packet.parse(buffer.data(), (size_t)size) < 0) {
+      g_log << Logger::Warning << "Unable to parse SOA notification answer from " << packet.getRemote() << endl;
+      continue;
+    }
+
+    if (packet.d.rcode != 0) {
+      g_log << Logger::Warning << "Received unsuccessful notification report for '" << packet.qdomain << "' from " << from.toStringWithPort() << ", error: " << RCode::to_s(packet.d.rcode) << endl;
+    }
+
+    if (g_notificationQueue.lock()->removeIf(from, packet.d.id, packet.qdomain)) {
+      g_log << Logger::Notice << "Removed from notification list: '" << packet.qdomain << "' to " << from.toStringWithPort() << " " << (packet.d.rcode ? RCode::to_s(packet.d.rcode) : "(was acknowledged)") << endl;
+    }
+    else {
+      g_log << Logger::Warning << "Received spurious notify answer for '" << packet.qdomain << "' from " << from.toStringWithPort() << endl;
+    }
+  }
+}
+
+static void communicatorSendNotifications(const int sock4, const int sock6)
+{
+  DNSName domain;
+  string destinationIp;
+  uint16_t notificationId = 0;
+  bool purged{false};
+
+  while (g_notificationQueue.lock()->getOne(domain, destinationIp, &notificationId, purged)) {
+    if (!purged) {
+      ComboAddress remote(destinationIp, 53); // default to 53
+      sendNotification(remote.sin4.sin_family == AF_INET ? sock4 : sock6, domain, remote, notificationId);
+    } else {
+      g_log << Logger::Warning << "Notification for " << domain << " to " << destinationIp << " failed after retries" << std::endl;
+    }
   }
 }
 
@@ -321,58 +377,12 @@ static void communicatorThread()
       g_log << Logger::Notice << "Communicator thread stopped" << std::endl;
       break;
     }
-    {
-      std::set<int> fds = {sock4, sock6};
-      ComboAddress from;
-      char buffer[1500];
-      int sock;
-
-      // receive incoming notifications on the nonblocking socket and take them off the list
-      while (waitForMultiData(fds, 0, 0, &sock) > 0) {
-        Utility::socklen_t fromlen = sizeof(from);
-        const auto size = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&from, &fromlen);
-        if (size < 0) {
-          break;
-        }
-        DNSPacket p(true);
-
-        p.setRemote(&from);
-
-        if (p.parse(buffer, (size_t)size) < 0) {
-          g_log << Logger::Warning << "Unable to parse SOA notification answer from " << p.getRemote() << endl;
-          continue;
-        }
-
-        if (p.d.rcode) {
-          g_log << Logger::Warning << "Received unsuccessful notification report for '" << p.qdomain << "' from " << from.toStringWithPort() << ", error: " << RCode::to_s(p.d.rcode) << endl;
-        }
-
-        if (g_notificationQueue.lock()->removeIf(from, p.d.id, p.qdomain)) {
-          g_log << Logger::Notice << "Removed from notification list: '" << p.qdomain << "' to " << from.toStringWithPort() << " " << (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)") << endl;
-        }
-        else {
-          g_log << Logger::Warning << "Received spurious notify answer for '" << p.qdomain << "' from " << from.toStringWithPort() << endl;
-          // d_nq.dump();
-        }
-      }
-    }
-    {
-      DNSName domain;
-      string ip;
-      uint16_t id = 0;
-      bool purged{false};
-
-      while (g_notificationQueue.lock()->getOne(domain, ip, &id, purged)) {
-        if (!purged) {
-          ComboAddress remote(ip, 53); // default to 53
-          sendNotification(remote.sin4.sin_family == AF_INET ? sock4 : sock6, domain, remote, id);
-        } else {
-          g_log << Logger::Warning << "Notification for " << domain << " to " << ip << " failed after retries" << std::endl;
-        }
-      }
-    }
+    communicatorReceiveNotificationAnswers(sock4, sock6);
+    communicatorSendNotifications(sock4, sock6);
     sleep(1);
   }
+  closesocket(sock4);
+  closesocket(sock6);
 }
 
 static void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) { // NOLINT(readability-function-cognitive-complexity) 13400 https://github.com/PowerDNS/pdns/issues/13400 Habbie:  ixfrdist: reduce complexity
