@@ -2869,7 +2869,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return g_doqlocals.size();
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOQFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<DOQFrontend> frontend) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOQFrontend>::*)()>("reloadCertificates", [](const std::shared_ptr<DOQFrontend>& frontend) {
     if (frontend != nullptr) {
       frontend->reloadCertificates();
     }
@@ -2950,7 +2950,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return g_doh3locals.size();
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOH3Frontend>::*)()>("reloadCertificates", [](std::shared_ptr<DOH3Frontend> frontend) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOH3Frontend>::*)()>("reloadCertificates", [](const std::shared_ptr<DOH3Frontend>& frontend) {
     if (frontend != nullptr) {
       frontend->reloadCertificates();
     }
@@ -3022,7 +3022,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return g_dohlocals.size();
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<DOHFrontend> frontend) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](const std::shared_ptr<DOHFrontend>& frontend) {
     if (frontend != nullptr) {
       frontend->reloadCertificates();
     }
@@ -3280,7 +3280,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<TLSFrontend>& frontend) {
+  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)()>("reloadCertificates", [](const std::shared_ptr<TLSFrontend>& frontend) {
     if (frontend == nullptr) {
       return;
     }
