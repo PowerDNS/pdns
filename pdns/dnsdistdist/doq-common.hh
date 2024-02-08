@@ -47,7 +47,7 @@ static const std::map<const std::string, int> s_available_cc_algorithms = {
 
 using QuicheConnection = std::unique_ptr<quiche_conn, decltype(&quiche_conn_free)>;
 using QuicheHTTP3Connection = std::unique_ptr<quiche_h3_conn, decltype(&quiche_h3_conn_free)>;
-using QuicheConfig = std::unique_ptr<quiche_config, decltype(&quiche_config_free)>;
+using QuicheConfig = std::shared_ptr<quiche_config>;
 using QuicheHTTP3Config = std::unique_ptr<quiche_h3_config, decltype(&quiche_h3_config_free)>;
 
 struct QuicheParams

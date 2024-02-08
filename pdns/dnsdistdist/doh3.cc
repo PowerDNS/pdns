@@ -54,8 +54,8 @@ using h3_headers_t = std::map<std::string, std::string>;
 class H3Connection
 {
 public:
-  H3Connection(const ComboAddress& peer, QuicheConnection&& conn) :
-    d_peer(peer), d_conn(std::move(conn))
+  H3Connection(const ComboAddress& peer, QuicheConfig config, QuicheConnection&& conn) :
+    d_peer(peer), d_conn(std::move(conn)), d_config(std::move(config))
   {
   }
   H3Connection(const H3Connection&) = delete;
@@ -66,6 +66,7 @@ public:
 
   ComboAddress d_peer;
   QuicheConnection d_conn;
+  QuicheConfig d_config;
   QuicheHTTP3Connection d_http3{nullptr, quiche_h3_conn_free};
   // buffer request headers by streamID
   std::unordered_map<uint64_t, h3_headers_t> d_headersBuffers;
@@ -379,14 +380,20 @@ static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uin
 void DOH3Frontend::setup()
 {
   auto config = QuicheConfig(quiche_config_new(QUICHE_PROTOCOL_VERSION), quiche_config_free);
-
   d_quicheParams.d_alpn = std::string(DOH3_ALPN.begin(), DOH3_ALPN.end());
   configureQuiche(config, d_quicheParams, true);
 
-  // quiche_h3_config_new
   auto http3config = QuicheHTTP3Config(quiche_h3_config_new(), quiche_h3_config_free);
 
   d_server_config = std::make_unique<DOH3ServerConfig>(std::move(config), std::move(http3config), d_internalPipeBufferSize);
+}
+
+void DOH3Frontend::reloadCertificates()
+{
+  auto config = QuicheConfig(quiche_config_new(QUICHE_PROTOCOL_VERSION), quiche_config_free);
+  d_quicheParams.d_alpn = std::string(DOH3_ALPN.begin(), DOH3_ALPN.end());
+  configureQuiche(config, d_quicheParams, true);
+  std::atomic_store_explicit(&d_server_config->config, std::move(config), std::memory_order_release);
 }
 
 static std::optional<std::reference_wrapper<H3Connection>> getConnection(DOH3ServerConfig::ConnectionsMap& connMap, const PacketBuffer& connID)
@@ -431,7 +438,7 @@ static std::optional<std::reference_wrapper<H3Connection>> createConnection(DOH3
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
-  auto conn = H3Connection(peer, std::move(quicheConn));
+  auto conn = H3Connection(peer, config.config, std::move(quicheConn));
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
 }
