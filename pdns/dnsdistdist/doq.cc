@@ -340,6 +340,7 @@ static void sendBackDOQUnit(DOQUnitUniquePtr&& unit, const char* description)
 
 static std::optional<std::reference_wrapper<Connection>> createConnection(DOQServerConfig& config, const PacketBuffer& serverSideID, const PacketBuffer& originalDestinationID, const ComboAddress& local, const ComboAddress& peer)
 {
+  auto quicheConfig = std::atomic_load_explicit(&config.config, std::memory_order_acquire);
   auto quicheConn = QuicheConnection(quiche_accept(serverSideID.data(), serverSideID.size(),
                                                    originalDestinationID.data(), originalDestinationID.size(),
                                                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -348,14 +349,13 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(DOQSer
                                                    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
                                                    reinterpret_cast<const struct sockaddr*>(&peer),
                                                    peer.getSocklen(),
-                                                   config.config.get()),
+                                                   quicheConfig.get()),
                                      quiche_conn_free);
 
   if (config.df && !config.df->d_quicheParams.d_keyLogFile.empty()) {
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
-  auto quicheConfig = std::atomic_load_explicit(&config.config, std::memory_order_acquire);
   auto conn = Connection(peer, quicheConfig, std::move(quicheConn));
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
