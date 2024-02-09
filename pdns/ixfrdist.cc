@@ -37,6 +37,8 @@
 #include <dirent.h>
 #include <queue>
 #include <condition_variable>
+#include <thread>
+#include <chrono>
 #include "ixfr.hh"
 #include "ixfrutils.hh"
 #include "axfr-retriever.hh"
@@ -317,7 +319,7 @@ static void communicatorReceiveNotificationAnswers(const int sock4, const int so
 {
   std::set<int> fds = {sock4, sock6};
   ComboAddress from;
-  std::array<char, 1500> buffer;
+  std::array<char, 1500> buffer{};
   int sock{-1};
 
   // receive incoming notification answers on the nonblocking sockets and take them off the list
@@ -341,7 +343,7 @@ static void communicatorReceiveNotificationAnswers(const int sock4, const int so
     }
 
     if (g_notificationQueue.lock()->removeIf(from, packet.d.id, packet.qdomain)) {
-      g_log << Logger::Notice << "Removed from notification list: '" << packet.qdomain << "' to " << from.toStringWithPort() << " " << (packet.d.rcode ? RCode::to_s(packet.d.rcode) : "(was acknowledged)") << endl;
+      g_log << Logger::Notice << "Removed from notification list: '" << packet.qdomain << "' to " << from.toStringWithPort() << " " << (packet.d.rcode != 0 ? RCode::to_s(packet.d.rcode) : "(was acknowledged)") << endl;
     }
     else {
       g_log << Logger::Warning << "Received spurious notify answer for '" << packet.qdomain << "' from " << from.toStringWithPort() << endl;
@@ -379,7 +381,7 @@ static void communicatorThread()
     }
     communicatorReceiveNotificationAnswers(sock4, sock6);
     communicatorSendNotifications(sock4, sock6);
-    sleep(1);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
   closesocket(sock4);
   closesocket(sock6);
@@ -1467,6 +1469,7 @@ struct IXFRDistConfiguration
   bool shouldExit{false};
 };
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** argv, FDMultiplexer& fdm)
 {
   IXFRDistConfiguration configuration;
