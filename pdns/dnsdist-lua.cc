@@ -2255,7 +2255,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("setPoolServerPolicy", [](const std::shared_ptr<ServerPolicy>& policy, const string& pool) {
     setLuaSideEffect();
     auto localPools = g_pools.getCopy();
-    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(*policy));
+    setPoolPolicy(localPools, pool, policy);
     g_pools.setState(localPools);
   });
 
