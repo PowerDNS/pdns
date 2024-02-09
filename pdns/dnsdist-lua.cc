@@ -2225,12 +2225,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_NET_SNMP */
 
 #ifndef DISABLE_POLICIES_BINDINGS
-  luaCtx.writeFunction("setServerPolicy", [](const ServerPolicy& policy) {
-    setLuaSideEffect();
-    g_policy.setState(policy);
-  });
-
-  luaCtx.writeFunction("setServerPolicy", [](const ServerPolicy* policy) {
+  luaCtx.writeFunction("setServerPolicy", [](const std::shared_ptr<ServerPolicy>& policy) {
     setLuaSideEffect();
     g_policy.setState(*policy);
   });
@@ -2257,10 +2252,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_outputBuffer = g_policy.getLocal()->getName() + "\n";
   });
 
-  luaCtx.writeFunction("setPoolServerPolicy", [](ServerPolicy policy, const string& pool) {
+  luaCtx.writeFunction("setPoolServerPolicy", [](const std::shared_ptr<ServerPolicy>& policy, const string& pool) {
     setLuaSideEffect();
     auto localPools = g_pools.getCopy();
-    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(std::move(policy)));
+    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(*policy));
     g_pools.setState(localPools);
   });
 
