@@ -51,8 +51,8 @@ using namespace dnsdist::doq;
 class Connection
 {
 public:
-  Connection(const ComboAddress& peer, QuicheConnection&& conn) :
-    d_peer(peer), d_conn(std::move(conn))
+  Connection(const ComboAddress& peer, QuicheConfig config, QuicheConnection conn) :
+    d_peer(peer), d_conn(std::move(conn)), d_config(std::move(config))
   {
   }
   Connection(const Connection&) = delete;
@@ -63,6 +63,8 @@ public:
 
   ComboAddress d_peer;
   QuicheConnection d_conn;
+  QuicheConfig d_config;
+
   std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamOutBuffers;
 };
@@ -303,6 +305,14 @@ void DOQFrontend::setup()
   d_server_config = std::make_unique<DOQServerConfig>(std::move(config), d_internalPipeBufferSize);
 }
 
+void DOQFrontend::reloadCertificates()
+{
+  auto config = QuicheConfig(quiche_config_new(QUICHE_PROTOCOL_VERSION), quiche_config_free);
+  d_quicheParams.d_alpn = std::string(DOQ_ALPN.begin(), DOQ_ALPN.end());
+  configureQuiche(config, d_quicheParams, false);
+  std::atomic_store_explicit(&d_server_config->config, std::move(config), std::memory_order_release);
+}
+
 static std::optional<std::reference_wrapper<Connection>> getConnection(DOQServerConfig::ConnectionsMap& connMap, const PacketBuffer& connID)
 {
   auto iter = connMap.find(connID);
@@ -345,7 +355,8 @@ static std::optional<std::reference_wrapper<Connection>> createConnection(DOQSer
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
-  auto conn = Connection(peer, std::move(quicheConn));
+  auto quicheConfig = std::atomic_load_explicit(&config.config, std::memory_order_acquire);
+  auto conn = Connection(peer, quicheConfig, std::move(quicheConn));
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
 }

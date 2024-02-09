@@ -2842,6 +2842,41 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
+#ifdef HAVE_DNS_OVER_QUIC
+  luaCtx.writeFunction("getDOQFrontend", [client](uint64_t index) {
+    std::shared_ptr<DOQFrontend> result = nullptr;
+    if (client) {
+      return result;
+    }
+    setLuaNoSideEffect();
+    try {
+      if (index < g_doqlocals.size()) {
+        result = g_doqlocals.at(index);
+      }
+      else {
+        errlog("Error: trying to get DOQ frontend with index %d but we only have %d frontend(s)\n", index, g_doqlocals.size());
+        g_outputBuffer = "Error: trying to get DOQ frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_doqlocals.size()) + " frontend(s)\n";
+      }
+    }
+    catch (const std::exception& e) {
+      g_outputBuffer = "Error while trying to get DOQ frontend with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
+      errlog("Error while trying to get DOQ frontend with index %d: %s\n", index, string(e.what()));
+    }
+    return result;
+  });
+
+  luaCtx.writeFunction("getDOQFrontendCount", []() {
+    setLuaNoSideEffect();
+    return g_doqlocals.size();
+  });
+
+  luaCtx.registerFunction<void (std::shared_ptr<DOQFrontend>::*)()>("reloadCertificates", [](const std::shared_ptr<DOQFrontend>& frontend) {
+    if (frontend != nullptr) {
+      frontend->reloadCertificates();
+    }
+  });
+#endif
+
   luaCtx.writeFunction("showDOHFrontends", []() {
 #ifdef HAVE_DNS_OVER_HTTPS
     setLuaNoSideEffect();
@@ -2887,6 +2922,41 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = "DNS over HTTP3 support is not present!\n";
 #endif
   });
+
+#ifdef HAVE_DNS_OVER_HTTP3
+  luaCtx.writeFunction("getDOH3Frontend", [client](uint64_t index) {
+    std::shared_ptr<DOH3Frontend> result = nullptr;
+    if (client) {
+      return result;
+    }
+    setLuaNoSideEffect();
+    try {
+      if (index < g_doh3locals.size()) {
+        result = g_doh3locals.at(index);
+      }
+      else {
+        errlog("Error: trying to get DOH3 frontend with index %d but we only have %d frontend(s)\n", index, g_doh3locals.size());
+        g_outputBuffer = "Error: trying to get DOH3 frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_doh3locals.size()) + " frontend(s)\n";
+      }
+    }
+    catch (const std::exception& e) {
+      g_outputBuffer = "Error while trying to get DOH3 frontend with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
+      errlog("Error while trying to get DOH3 frontend with index %d: %s\n", index, string(e.what()));
+    }
+    return result;
+  });
+
+  luaCtx.writeFunction("getDOH3FrontendCount", []() {
+    setLuaNoSideEffect();
+    return g_doh3locals.size();
+  });
+
+  luaCtx.registerFunction<void (std::shared_ptr<DOH3Frontend>::*)()>("reloadCertificates", [](const std::shared_ptr<DOH3Frontend>& frontend) {
+    if (frontend != nullptr) {
+      frontend->reloadCertificates();
+    }
+  });
+#endif
 
   luaCtx.writeFunction("showDOHResponseCodes", []() {
 #ifdef HAVE_DNS_OVER_HTTPS
@@ -2953,7 +3023,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return g_dohlocals.size();
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<DOHFrontend> frontend) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](const std::shared_ptr<DOHFrontend>& frontend) {
     if (frontend != nullptr) {
       frontend->reloadCertificates();
     }
@@ -3211,7 +3281,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)()>("reloadCertificates", [](std::shared_ptr<TLSFrontend>& frontend) {
+  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)()>("reloadCertificates", [](const std::shared_ptr<TLSFrontend>& frontend) {
     if (frontend == nullptr) {
       return;
     }
@@ -3247,6 +3317,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           frontend->dohFrontend->reloadCertificates();
         }
 #endif /* HAVE_DNS_OVER_HTTPS */
+#ifdef HAVE_DNS_OVER_QUIC
+        if (frontend->doqFrontend) {
+          frontend->doqFrontend->reloadCertificates();
+        }
+#endif /* HAVE_DNS_OVER_QUIC */
+#ifdef HAVE_DNS_OVER_HTTP3
+        if (frontend->doh3Frontend) {
+          frontend->doh3Frontend->reloadCertificates();
+        }
+#endif /* HAVE_DNS_OVER_HTTP3 */
       }
       catch (const std::exception& e) {
         errlog("Error reloading certificates for frontend %s: %s", frontend->local.toStringWithPort(), e.what());

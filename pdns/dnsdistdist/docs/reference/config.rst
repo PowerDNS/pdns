@@ -124,20 +124,20 @@ Listen Sockets
     ``internalPipeBufferSize`` now defaults to 1048576 on Linux.
 
   .. versionchanged:: 1.8.0
-     ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`)
+     ``certFile`` now accepts a :class:`TLSCertificate` object or a list of such objects (see :func:`newTLSCertificate`)
      ``additionalAddresses``, ``ignoreTLSConfigurationErrors`` and ``keepIncomingHeaders`` options added.
 
   .. versionchanged:: 1.9.0
      ``enableProxyProtocol``, ``library``, ``proxyProtocolOutsideTLS`` and ``readAhead`` options added.
 
-  Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate.
+  Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
   More information is available in :doc:`../guides/dns-over-https`.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 443.
-  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
-  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains TLSCertificate objects.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a :class:`TLSCertificate` object.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains :class:`TLSCertificate` objects.
   :param str-or-list urls: The path part of a URL, or a list of paths, to accept queries on. Any query with a path matching exactly one of these will be treated as a DoH query (sub-paths can be accepted by setting the ``exactPathMatching`` to false). The default is /dns-query.
   :param table options: A table with key: value pairs with listen options.
 
@@ -182,13 +182,13 @@ Listen Sockets
 
   .. versionadded:: 1.9.0
 
-  Listen on the specified address and UDP port for incoming DNS over HTTP3 connections, presenting the specified X.509 certificate.
+  Listen on the specified address and UDP port for incoming DNS over HTTP3 connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   More information is available in :doc:`../guides/dns-over-http3`.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 443.
-  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
-  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains TLSCertificate objects.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a :class:`TLSCertificate` object.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains :class:`TLSCertificate` objects.
   :param table options: A table with key: value pairs with listen options.
 
   Options:
@@ -207,11 +207,13 @@ Listen Sockets
   .. versionadded:: 1.9.0
 
   Listen on the specified address and UDP port for incoming DNS over QUIC connections, presenting the specified X.509 certificate.
+  See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
+  More information is available at :doc:`../guides/dns-over-quic`.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 853.
-  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
-  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains TLSCertificate objects.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a :class:`TLSCertificate` object.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains :class:`TLSCertificate` objects.
   :param table options: A table with key: value pairs with listen options.
 
   Options:
@@ -236,17 +238,18 @@ Listen Sockets
   .. versionchanged:: 1.8.0
     ``tlsAsyncMode`` option added.
   .. versionchanged:: 1.8.0
-     ``certFile`` now accepts a TLSCertificate object or a list of such objects (see :func:`newTLSCertificate`).
+     ``certFile`` now accepts a :class:`TLSCertificate` object or a list of such objects (see :func:`newTLSCertificate`).
      ``additionalAddresses``, ``ignoreTLSConfigurationErrors`` and ``ktls`` options added.
   .. versionchanged:: 1.9.0
      ``enableProxyProtocol``, ``readAhead`` and ``proxyProtocolOutsideTLS`` options added.
 
-  Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate.
+  Listen on the specified address and TCP port for incoming DNS over TLS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
+  More information is available at :doc:`../guides/dns-over-tls`.
 
   :param str address: The IP Address with an optional port to listen on.
                       The default port is 853.
-  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a TLSCertificate object.
-  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains TLSCertificate objects.
+  :param str certFile(s): The path to a X.509 certificate file in PEM format, a list of paths to such files, or a :class:`TLSCertificate` object.
+  :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones. Ignored if ``certFile`` contains :class:`TLSCertificate` objects.
   :param table options: A table with key: value pairs with listen options.
 
   Options:
@@ -1117,13 +1120,37 @@ Status, Statistics and More
 
   .. versionadded:: 1.4.0
 
-  Return the DOHFrontend object for the DNS over HTTPS bind of index ``idx``.
+  Return the :class:`DOHFrontend` object for the DNS over HTTPS bind of index ``idx``.
 
 .. function:: getDOHFrontendCount()
 
   .. versionadded:: 1.5.0
 
-  Return the number of DOHFrontend binds.
+  Return the number of :class:`DOHFrontend` binds.
+
+.. function:: getDOH3Frontend(idx)
+
+  .. versionadded:: 1.9.0
+
+  Return the :class:`DOH3Frontend` object for the DNS over HTTP3 bind of index ``idx``.
+
+.. function:: getDOH3FrontendCount()
+
+  .. versionadded:: 1.9.0
+
+  Return the number of :class:`DOH3Frontend` binds.
+
+.. function:: getDOQFrontend(idx)
+
+  .. versionadded:: 1.9.0
+
+  Return the :class:`DOQFrontend` object for the DNS over QUIC bind of index ``idx``.
+
+.. function:: getDOQFrontendCount()
+
+  .. versionadded:: 1.9.0
+
+  Return the number of :class:`DOQFrontend` binds.
 
 .. function:: getListOfAddressesOfNetworkInterface(itf)
 
@@ -2151,22 +2178,22 @@ Other functions
 
   .. versionadded:: 1.8.0
 
-  Creates a TLSCertificate object suited to be used with functions like :func:`addDOHLocal` and :func:`addTLSLocal` for TLS certificate configuration.
+  Creates a :class:`TLSCertificate` object suited to be used with functions like :func:`addDOHLocal`, :func:`addDOH3Local`, :func:`addDOQLocal` and :func:`addTLSLocal` for TLS certificate configuration.
 
-  PKCS12 files are only supported by the ``openssl`` provider, password-protected or not.
+  ``PKCS12`` files are only supported by the ``openssl`` provider, password-protected or not.
 
-  :param string pathToCert: Path to a file containing the certificate or a PKCS12 file containing both a certificate and a key.
+  :param string pathToCert: Path to a file containing the certificate or a ``PKCS12`` file containing both a certificate and a key.
   :param table options: A table with key: value pairs with additional options.
 
   Options:
 
   * ``key="path/to/key"``: string - Path to a file containing the key corresponding to the certificate.
-  * ``password="pass"``: string - Password protecting the PKCS12 file if appropriate.
+  * ``password="pass"``: string - Password protecting the ``PKCS12`` file if appropriate.
 
   .. code-block:: lua
 
     newTLSCertificate("path/to/pub.crt", {key="path/to/private.pem"})
-    newTLSCertificate("path/to/domain.p12", {password="passphrase"}) -- use a password protected PKCS12 file
+    newTLSCertificate("path/to/domain.p12", {password="passphrase"}) -- use a password protected ``PKCS12`` file
 
 DOHFrontend
 ~~~~~~~~~~~
@@ -2226,6 +2253,32 @@ DOHFrontend
   :param int status: The HTTP code to answer with.
   :param str content: The content of the HTTP response, or a URL if the status is a redirection (3xx).
   :param table of headers: The custom headers to set for the HTTP response, if any. The default is to use the value of the ``customResponseHeaders`` parameter passed to :func:`addDOHLocal`.
+
+DOH3Frontend
+~~~~~~~~~~~
+
+.. class:: DOH3Frontend
+
+  .. versionadded:: 1.9.0
+
+  This object represents an address and port dnsdist is listening on for DNS over HTTP3 queries.
+
+  .. method:: DOH3Frontend:reloadCertificates()
+
+     Reload the current TLS certificate and key pairs.
+
+DOQFrontend
+~~~~~~~~~~~
+
+.. class:: DOQFrontend
+
+  .. versionadded:: 1.9.0
+
+  This object represents an address and port dnsdist is listening on for DNS over QUIC queries.
+
+  .. method:: DOQFrontend:reloadCertificates()
+
+     Reload the current TLS certificate and key pairs.
 
 LuaRingEntry
 ~~~~~~~~~~~~
@@ -2298,6 +2351,13 @@ timespec
   .. attribute:: timespec.tv_nsec
 
     Number of remaining nanoseconds elapsed since Unix epoch after subtracting the seconds from the `tv_sec` field.
+
+TLSCertificate
+~~~~~~~~~~~~~~
+
+.. class:: TLSCertificate
+
+  This object represents a TLS certificate. It can be created with :func:`newTLSCertificate` and used with :func:`addDOHLocal`, :func:`addDOH3Local`, :func:`addDOQLocal` and :func:`addTLSLocal` for TLS certificate configuration. It is mostly useful to deal with password-protected ``PKCS12`` certificates.
 
 TLSContext
 ~~~~~~~~~~

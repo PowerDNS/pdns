@@ -1127,7 +1127,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             else:
                 cls._toResponderQueue.put(response, True, timeout)
 
-        message = quic_query(query, '127.0.0.1', timeout, port, verify=caFile, server_hostname=serverName)
+        (message, _) = quic_query(query, '127.0.0.1', timeout, port, verify=caFile, server_hostname=serverName)
 
         receivedQuery = None
 
