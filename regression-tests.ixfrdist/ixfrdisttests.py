@@ -46,9 +46,11 @@ failed-soa-retry: 3
             if cls._config_domains is not None:
                 conf.write("domains:\n")
 
-                for domain, master in cls._config_domains.items():
-                    conf.write("  - domain: %s\n" % (domain))
-                    conf.write("    master: %s\n" % (master))
+                for item in cls._config_domains:
+                    conf.write("  - domain: %s\n" % (item['domain']))
+                    conf.write("    master: %s\n" % (item['master']))
+                    if ('notify' in item) :
+                        conf.write("    notify: %s\n" % (item['notify']))
 
         ixfrdistcmd = [os.environ['IXFRDISTBIN'], '--config', conffile, '--debug']
 
