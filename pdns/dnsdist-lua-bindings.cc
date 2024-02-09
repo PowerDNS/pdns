@@ -78,16 +78,16 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction("toString", &ServerPolicy::toString);
   luaCtx.registerFunction("__tostring", &ServerPolicy::toString);
 
-  ServerPolicy policies[] = {
-    ServerPolicy{"firstAvailable", firstAvailable, false},
-    ServerPolicy{"roundrobin", roundrobin, false},
-    ServerPolicy{"wrandom", wrandom, false},
-    ServerPolicy{"whashed", whashed, false},
-    ServerPolicy{"chashed", chashed, false},
-    ServerPolicy{"leastOutstanding", leastOutstanding, false}
+  const std::array<std::shared_ptr<ServerPolicy>, 6> policies = {
+    std::make_shared<ServerPolicy>("firstAvailable", firstAvailable, false),
+    std::make_shared<ServerPolicy>("roundrobin", roundrobin, false),
+    std::make_shared<ServerPolicy>("wrandom", wrandom, false),
+    std::make_shared<ServerPolicy>("whashed", whashed, false),
+    std::make_shared<ServerPolicy>("chashed", chashed, false),
+    std::make_shared<ServerPolicy>("leastOutstanding", leastOutstanding, false)
   };
-  for (auto& policy : policies) {
-    luaCtx.writeVariable(policy.d_name, policy);
+  for (const auto& policy : policies) {
+    luaCtx.writeVariable(policy->d_name, policy);
   }
 
 #endif /* DISABLE_POLICIES_BINDINGS */
