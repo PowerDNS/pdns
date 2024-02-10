@@ -38,7 +38,7 @@ unique_ptr<GeoIPInterface> GeoIPInterface::makeInterface(const string& dbStr)
     stringtok(parts2, parts1[0], ";");
     /* try extension */
     filename = parts2[0];
-    size_t pos = filename.find_last_of(".");
+    size_t pos = filename.find_last_of('.');
     if (pos != string::npos)
       driver = filename.substr(pos + 1);
     else
