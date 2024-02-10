@@ -217,12 +217,12 @@ try
       cerr<<"Invalidly encoded base64 key provided"<<endl;
       exit(EXIT_FAILURE);
     }
-    ipo = IPCipherObfuscator::make(std::move(key), doDecrypt);
+    ipo = IPCipherObfuscator::make(key, doDecrypt);
   }
   else if(!g_vm.count("key") && g_vm.count("passphrase")) {
     string key = makeIPCipherKey(g_vm["passphrase"].as<string>());
 
-    ipo = IPCipherObfuscator::make(std::move(key), doDecrypt);
+    ipo = IPCipherObfuscator::make(key, doDecrypt);
   }
   else {
     cerr<<"Can't specify both 'key' and 'passphrase'"<<endl;
