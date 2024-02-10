@@ -144,7 +144,7 @@ static void bareHandlerWrapper(const WebServer::HandlerFunction& handler, YaHTTP
 
 void WebServer::registerBareHandler(const string& url, const HandlerFunction& handler, const std::string& method)
 {
-  YaHTTP::THandlerFunction f = [=](YaHTTP::Request* req, YaHTTP::Response* resp){return bareHandlerWrapper(handler, req, resp);};
+  YaHTTP::THandlerFunction f = [&](YaHTTP::Request* req, YaHTTP::Response* resp) { return bareHandlerWrapper(handler, req, resp); };
   YaHTTP::Router::Map(method, url, std::move(f));
 }
 
