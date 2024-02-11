@@ -80,7 +80,7 @@ For example, with the above example ``recursor.yml`` and an include directory co
         forwarders:
           - '::1'
   outgoing:
-     query_local_address: !override
+     source_address: !override
        - 0.0.0.0
      dont_query: []
 
