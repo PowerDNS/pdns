@@ -45,7 +45,7 @@ An example :program:`Recursor` YAML configuration file looks like:
         forwarders:
           - 127.0.0.1:5301
   outgoing:
-    query_local_address:
+    source_address:
       - 0.0.0.0
       - '::'
   logging:
