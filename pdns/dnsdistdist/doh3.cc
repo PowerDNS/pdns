@@ -439,7 +439,7 @@ static std::optional<std::reference_wrapper<H3Connection>> createConnection(DOH3
     quiche_conn_set_keylog_path(quicheConn.get(), config.df->d_quicheParams.d_keyLogFile.c_str());
   }
 
-  auto conn = H3Connection(peer, quicheConfig, std::move(quicheConn));
+  auto conn = H3Connection(peer, std::move(quicheConfig), std::move(quicheConn));
   auto pair = config.d_connections.emplace(serverSideID, std::move(conn));
   return pair.first->second;
 }
