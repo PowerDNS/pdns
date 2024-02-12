@@ -1,5 +1,16 @@
 Changelogs for 4.9.X
 ====================
+
+.. changelog::
+  :version: 4.9.3
+  :released: 13th of February 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13783
+
+   `Security advisory 2024-01 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-01.html>`__: CVE-2023-50387 and CVE-2023-50868
+
 .. changelog::
   :version: 4.9.2
   :released: 8th of November 2023

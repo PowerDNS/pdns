@@ -4,6 +4,16 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.0.2
+  :released: 13th of February 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13782
+
+   `Security advisory 2024-01 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-01.html>`__: CVE-2023-50387 and CVE-2023-50868
+
+.. changelog::
   :version: 5.0.1
   :released: 10th of January 2024, with no changes compared to the second release candidate. Version 5.0.0 was never released publicly.
 
