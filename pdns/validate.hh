@@ -21,16 +21,22 @@
  */
 #pragma once
 
+#include <tuple>
+
 #include "dnsparser.hh"
 #include "dnsname.hh"
 #include <vector>
 #include "namespaces.hh"
 #include "dnsrecords.hh"
 #include "dnssecinfra.hh"
- 
+
 extern bool g_dnssecLOG;
 extern time_t g_signatureInceptionSkew;
 extern uint16_t g_maxNSEC3Iterations;
+extern uint16_t g_maxRRSIGsPerRecordToConsider;
+extern uint16_t g_maxNSEC3sPerRecordToConsider;
+extern uint16_t g_maxDNSKEYsToConsider;
+extern uint16_t g_maxDSsToConsider;
 
 // 4033 5
 enum class vState : uint8_t { Indeterminate, Insecure, Secure, NTA, TA, BogusNoValidDNSKEY, BogusInvalidDenial, BogusUnableToGetDSs, BogusUnableToGetDNSKEYs, BogusSelfSignedDS, BogusNoRRSIG, BogusNoValidRRSIG, BogusMissingNegativeIndication, BogusSignatureNotYetValid, BogusSignatureExpired, BogusUnsupportedDNSKEYAlgo, BogusUnsupportedDSDigestType, BogusNoZoneKeyBitSet, BogusRevokedDNSKEY, BogusInvalidDNSKEYProtocol };
@@ -72,8 +78,30 @@ struct sharedDNSKeyRecordContentCompare
 
 typedef set<shared_ptr<DNSKEYRecordContent>, sharedDNSKeyRecordContentCompare > skeyset_t;
 
+namespace pdns
+{
+namespace validation
+{
+using Nsec3HashesCache = std::map<std::tuple<DNSName, std::string, uint16_t>, std::string>;
 
-vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& records, const vector<shared_ptr<RRSIGRecordContent> >& signatures, const skeyset_t& keys, bool validateAllSigs=true);
+struct ValidationContext
+{
+  Nsec3HashesCache d_nsec3Cache;
+  unsigned int d_validationsCounter{0};
+  unsigned int d_nsec3IterationsRemainingQuota{0};
+};
+
+class TooManySEC3IterationsException : public std::runtime_error
+{
+public:
+  TooManySEC3IterationsException(): std::runtime_error("Too many NSEC3 hash computations per query")
+  {
+  }
+};
+
+}
+}
+vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& records, const vector<shared_ptr<RRSIGRecordContent> >& signatures, const skeyset_t& keys, pdns::validation::ValidationContext& context, bool validateAllSigs=true);
 bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNSName& next);
 bool isCoveredByNSEC3Hash(const std::string& h, const std::string& beginHash, const std::string& nextHash);
 bool isCoveredByNSEC3Hash(const DNSName& h, const DNSName& beginHash, const DNSName& nextHash);
@@ -82,11 +110,11 @@ cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs);
 vState getKeysFor(DNSRecordOracle& dro, const DNSName& zone, skeyset_t& keyset);
 bool getTrustAnchor(const map<DNSName,dsmap_t>& anchors, const DNSName& zone, dsmap_t &res);
 bool haveNegativeTrustAnchor(const map<DNSName,std::string>& negAnchors, const DNSName& zone, std::string& reason);
-vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<RRSIGRecordContent> >& sigs, skeyset_t& validkeys);
-dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, bool needsWildcardProof=true, unsigned int wildcardLabelsCount=0);
+vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<RRSIGRecordContent> >& sigs, skeyset_t& validkeys, pdns::validation::ValidationContext& context);
+dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, pdns::validation::ValidationContext& context, bool needsWildcardProof=true, unsigned int wildcardLabelsCount=0);
 bool isSupportedDS(const DSRecordContent& ds);
 DNSName getSigner(const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
-bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords);
+bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords, pdns::validation::ValidationContext& context);
 bool isRRSIGNotExpired(const time_t now, const std::shared_ptr<RRSIGRecordContent>& sig);
 bool isRRSIGIncepted(const time_t now, const shared_ptr<RRSIGRecordContent>& sig);
 bool isWildcardExpanded(unsigned int labelCount, const std::shared_ptr<RRSIGRecordContent>& sign);
@@ -98,6 +126,8 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
 bool isNSEC3AncestorDelegation(const DNSName& signer, const DNSName& owner, const std::shared_ptr<NSEC3RecordContent>& nsec3);
 DNSName getNSECOwnerName(const DNSName& initialOwner, const std::vector<std::shared_ptr<RRSIGRecordContent> >& signatures);
 DNSName getClosestEncloserFromNSEC(const DNSName& name, const DNSName& owner, const DNSName& next);
+[[nodiscard]] uint64_t getNSEC3DenialProofWorstCaseIterationsCount(uint8_t maxLabels, uint16_t iterations, size_t saltLength);
+[[nodiscard]] std::string getHashFromNSEC3(const DNSName& qname, uint16_t iterations, const std::string& salt, pdns::validation::ValidationContext& context);
 
 template <typename NSEC> bool isTypeDenied(const NSEC& nsec, const QType& type)
 {
