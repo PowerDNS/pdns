@@ -77,7 +77,7 @@ void pdns::ZoneMD::processRecord(const DNSRecord& record)
       if (rrsig == nullptr) {
         throw PDNSException("Invalid RRSIG record");
       }
-      d_rrsigs.emplace_back(rrsig);
+      d_rrsigs[rrsig->d_type].emplace_back(rrsig);
       if (rrsig->d_type == QType::NSEC) {
         d_nsecs.signatures.emplace_back(rrsig);
       }
