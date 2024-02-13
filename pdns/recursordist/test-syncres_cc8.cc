@@ -5,6 +5,13 @@
 
 BOOST_AUTO_TEST_SUITE(syncres_cc8)
 
+static dState getDenial(const cspmap_t& validrrsets, const DNSName& qname, uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, const OptLog& log = std::nullopt, bool needWildcardProof = true, unsigned int wildcardLabelsCount = 0)
+{
+  pdns::validation::ValidationContext context;
+  context.d_nsec3IterationsRemainingQuota = std::numeric_limits<decltype(context.d_nsec3IterationsRemainingQuota)>::max();
+  return getDenial(validrrsets, qname, qtype, referralToUnsigned, wantsNoDataProof, context, log, needWildcardProof, wildcardLabelsCount);
+}
+
 BOOST_AUTO_TEST_CASE(test_nsec_denial_nowrap)
 {
   initSR();
@@ -412,8 +419,8 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxqtype_ds)
 
   sortedRecords_t recordContents;
   vector<shared_ptr<const RRSIGRecordContent>> signatureContents;
-
-  addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::A}, 600, records);
+  const unsigned int nbIterations = 10;
+  addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), DNSName("powerdns.com."), "whatever", {QType::A}, 600, records, nbIterations);
   recordContents.insert(records.at(0).getContent());
   addRRSIG(keys, records, DNSName("powerdns.com."), 300);
   signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
@@ -425,10 +432,15 @@ BOOST_AUTO_TEST_CASE(test_nsec3_nxqtype_ds)
   denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
   records.clear();
 
+  pdns::validation::ValidationContext validationContext;
+  validationContext.d_nsec3IterationsRemainingQuota = 100U;
   /* this NSEC3 is not valid to deny the DS since it is from the child zone */
-  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("powerdns.com."), QType::DS, false, true), dState::NODENIAL);
+  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("powerdns.com."), QType::DS, false, true, validationContext), dState::NODENIAL);
+  /* the NSEC3 hash is not computed since we it is from the child zone */
+  BOOST_CHECK_EQUAL(validationContext.d_nsec3IterationsRemainingQuota, 100U);
   /* AAAA should be fine, though */
-  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("powerdns.com."), QType::AAAA, false, true), dState::NXQTYPE);
+  BOOST_CHECK_EQUAL(getDenial(denialMap, DNSName("powerdns.com."), QType::AAAA, false, true, validationContext), dState::NXQTYPE);
+  BOOST_CHECK_EQUAL(validationContext.d_nsec3IterationsRemainingQuota, (100U - nbIterations));
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec3_nxqtype_cname)

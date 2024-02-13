@@ -1314,6 +1314,22 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
   free(line); // NOLINT: it's the API.
 }
 
+static bool getDenialWrapper(std::unique_ptr<AggressiveNSECCache>& cache, time_t now, const DNSName& name, const QType& qtype, const std::optional<int> expectedResult = std::nullopt, const std::optional<size_t> expectedRecordsCount = std::nullopt)
+{
+  int res;
+  std::vector<DNSRecord> results;
+  pdns::validation::ValidationContext validationContext;
+  validationContext.d_nsec3IterationsRemainingQuota = std::numeric_limits<decltype(validationContext.d_nsec3IterationsRemainingQuota)>::max();
+  bool found = cache->getDenial(now, name, qtype, results, res, ComboAddress("192.0.2.1"), boost::none, true, validationContext);
+  if (expectedResult) {
+    BOOST_CHECK_EQUAL(res, *expectedResult);
+  }
+  if (expectedRecordsCount) {
+    BOOST_CHECK_EQUAL(results.size(), *expectedRecordsCount);
+  }
+  return found;
+}
+
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
 {
   /* test that we don't compare a hash using the wrong (former) salt or iterations count in case of a rollover,
@@ -1369,12 +1385,9 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
 
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
-  int res;
-  std::vector<DNSRecord> results;
-
   /* we can use the NSEC3s we have */
   /* direct match */
-  BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+  BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA), true);
 
   DNSName other("other.powerdns.com");
   /* now we insert a new NSEC3, with a different salt, changing that value for the zone */
@@ -1401,10 +1414,10 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
 
   /* we should be able to find a direct match for that name */
   /* direct match */
-  BOOST_CHECK_EQUAL(cache->getDenial(now, other, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+  BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, other, QType::AAAA), true);
 
   /* but we should not be able to use the other NSEC3s */
-  BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+  BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA), false);
 
   /* and the same thing but this time updating the iterations count instead of the salt */
   DNSName other2("other2.powerdns.com");
@@ -1431,10 +1444,10 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_rollover)
 
   /* we should be able to find a direct match for that name */
   /* direct match */
-  BOOST_CHECK_EQUAL(cache->getDenial(now, other2, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
+  BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, other2, QType::AAAA), true);
 
   /* but we should not be able to use the other NSEC3s */
-  BOOST_CHECK_EQUAL(cache->getDenial(now, other, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+  BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, other, QType::AAAA), false);
 }
 
 BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
@@ -1482,15 +1495,9 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
     BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
     /* the cache should now be able to deny other types (except the DS) */
-    int res;
-    std::vector<DNSRecord> results;
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(results.size(), 3U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA, RCode::NoError, 3U), true);
     /* but not the DS that lives in the parent zone */
-    results.clear();
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
-    BOOST_CHECK_EQUAL(results.size(), 0U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::DS, std::nullopt, 0U), false);
   }
 
   {
@@ -1515,14 +1522,9 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
     BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
     /* the cache should now be able to deny the DS */
-    int res;
-    std::vector<DNSRecord> results;
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(results.size(), 3U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::DS, RCode::NoError, 3U), true);
     /* but not any type that lives in the child zone */
-    results.clear();
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA), false);
   }
 
   {
@@ -1547,16 +1549,9 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
     BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
     /* the cache should now be able to deny other types */
-    int res;
-    std::vector<DNSRecord> results;
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(results.size(), 3U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA, RCode::NoError, 3U), true);
     /* including the DS */
-    results.clear();
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(results.size(), 3U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::DS, RCode::NoError, 3U), true);
   }
 
   {
@@ -1605,17 +1600,10 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
     }
 
     /* the cache should now be able to deny any type for the name  */
-    int res;
-    std::vector<DNSRecord> results;
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-    BOOST_CHECK_EQUAL(results.size(), 5U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA, RCode::NXDomain, 5U), true);
 
     /* including the DS, since we are not at the apex */
-    results.clear();
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-    BOOST_CHECK_EQUAL(results.size(), 5U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::DS, RCode::NXDomain, 5U), true);
   }
 }
 
@@ -1674,15 +1662,9 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
     BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
     /* the cache should now be able to deny other types (except the DS) */
-    int res;
-    std::vector<DNSRecord> results;
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(results.size(), 3U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA, RCode::NoError, 3U), true);
     /* but not the DS that lives in the parent zone */
-    results.clear();
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
-    BOOST_CHECK_EQUAL(results.size(), 0U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::DS, std::nullopt, 0U), false);
   }
 
   {
@@ -1713,14 +1695,9 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
     BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
     /* the cache should now be able to deny the DS */
-    int res;
-    std::vector<DNSRecord> results;
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(results.size(), 3U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::DS, RCode::NoError, 3U), true);
     /* but not any type that lives in the child zone */
-    results.clear();
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA), false);
   }
 
   {
@@ -1751,16 +1728,9 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
     BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
     /* the cache should now be able to deny other types */
-    int res;
-    std::vector<DNSRecord> results;
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(results.size(), 3U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA, RCode::NoError, 3U), true);
     /* including the DS */
-    results.clear();
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NoError);
-    BOOST_CHECK_EQUAL(results.size(), 3U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::DS, RCode::NoError, 3U), true);
   }
 
   {
@@ -1855,17 +1825,9 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
     }
 
     /* the cache should now be able to deny any type for the name  */
-    int res;
-    std::vector<DNSRecord> results;
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-    BOOST_CHECK_EQUAL(results.size(), 7U);
-
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA, RCode::NXDomain, 7U), true);
     /* including the DS, since we are not at the apex */
-    results.clear();
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), true);
-    BOOST_CHECK_EQUAL(res, RCode::NXDomain);
-    BOOST_CHECK_EQUAL(results.size(), 7U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::DS, RCode::NXDomain, 7U), true);
   }
   {
     /* we insert NSEC3s coming from the parent zone that could look like a valid denial but are not */
@@ -1960,15 +1922,167 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec3_ancestor_cases)
     }
 
     /* the cache should NOT be able to deny the name  */
-    int res;
-    std::vector<DNSRecord> results;
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::AAAA, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
-    BOOST_CHECK_EQUAL(results.size(), 0U);
-
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA, std::nullopt, 0U), false);
     /* and the same for the DS */
-    results.clear();
-    BOOST_CHECK_EQUAL(cache->getDenial(now, name, QType::DS, results, res, ComboAddress("192.0.2.1"), boost::none, true), false);
-    BOOST_CHECK_EQUAL(results.size(), 0U);
+    BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::DS, std::nullopt, 0U), false);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_aggressive_max_nsec3_hash_cost)
+{
+  AggressiveNSECCache::s_maxNSEC3CommonPrefix = 159;
+  g_recCache = std::make_unique<MemRecursorCache>();
+
+  const DNSName zone("powerdns.com");
+  time_t now = time(nullptr);
+
+  /* first we need a SOA */
+  std::vector<DNSRecord> records;
+  time_t ttd = now + 30;
+  DNSRecord drSOA;
+  drSOA.d_name = zone;
+  drSOA.d_type = QType::SOA;
+  drSOA.d_class = QClass::IN;
+  drSOA.setContent(std::make_shared<SOARecordContent>("pdns-public-ns1.powerdns.com. pieter\\.lexis.powerdns.com. 2017032301 10800 3600 604800 3600"));
+  drSOA.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
+  drSOA.d_place = DNSResourceRecord::ANSWER;
+  records.push_back(drSOA);
+
+  g_recCache->replace(now, zone, QType(QType::SOA), records, {}, {}, true, zone, boost::none, boost::none, vState::Secure);
+  BOOST_CHECK_EQUAL(g_recCache->size(), 1U);
+
+  auto insertNSEC3s = [zone, now](std::unique_ptr<AggressiveNSECCache>& cache, const std::string& salt, unsigned int iterationsCount) -> void {
+    {
+      /* insert a NSEC3 matching the apex (will be the closest encloser) */
+      DNSName name("powerdns.com");
+      std::string hashed = hashQNameWithSalt(salt, iterationsCount, name);
+      DNSRecord rec;
+      rec.d_name = DNSName(toBase32Hex(hashed)) + zone;
+      rec.d_type = QType::NSEC3;
+      rec.d_ttl = now + 10;
+
+      NSEC3RecordContent nrc;
+      nrc.d_algorithm = 1;
+      nrc.d_flags = 0;
+      nrc.d_iterations = iterationsCount;
+      nrc.d_salt = salt;
+      nrc.d_nexthash = hashed;
+      incrementHash(nrc.d_nexthash);
+      for (const auto& type : {QType::A}) {
+        nrc.set(type);
+      }
+
+      rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+    }
+    {
+      /* insert a NSEC3 matching *.powerdns.com (wildcard) */
+      DNSName name("*.powerdns.com");
+      std::string hashed = hashQNameWithSalt(salt, iterationsCount, name);
+      auto before = hashed;
+      decrementHash(before);
+      DNSRecord rec;
+      rec.d_name = DNSName(toBase32Hex(before)) + zone;
+      rec.d_type = QType::NSEC3;
+      rec.d_ttl = now + 10;
+
+      NSEC3RecordContent nrc;
+      nrc.d_algorithm = 1;
+      nrc.d_flags = 0;
+      nrc.d_iterations = iterationsCount;
+      nrc.d_salt = salt;
+      nrc.d_nexthash = hashed;
+      incrementHash(nrc.d_nexthash);
+      for (const auto& type : {QType::A}) {
+        nrc.set(type);
+      }
+
+      rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+    }
+    {
+      /* insert a NSEC3 matching sub.powerdns.com (next closer) */
+      DNSName name("sub.powerdns.com");
+      std::string hashed = hashQNameWithSalt(salt, iterationsCount, name);
+      auto before = hashed;
+      decrementHash(before);
+      DNSRecord rec;
+      rec.d_name = DNSName(toBase32Hex(before)) + zone;
+      rec.d_type = QType::NSEC3;
+      rec.d_ttl = now + 10;
+
+      NSEC3RecordContent nrc;
+      nrc.d_algorithm = 1;
+      nrc.d_flags = 0;
+      nrc.d_iterations = iterationsCount;
+      nrc.d_salt = salt;
+      nrc.d_nexthash = hashed;
+      incrementHash(nrc.d_nexthash);
+      for (const auto& type : {QType::A}) {
+        nrc.set(type);
+      }
+
+      rec.setContent(std::make_shared<NSEC3RecordContent>(nrc));
+      auto rrsig = std::make_shared<RRSIGRecordContent>("NSEC3 5 3 10 20370101000000 20370101000000 24567 powerdns.com. data");
+      cache->insertNSEC(zone, rec.d_name, rec, {rrsig}, true);
+    }
+    BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
+  };
+
+  {
+    /* zone with cheap parameters */
+    const std::string salt;
+    const unsigned int iterationsCount = 0;
+    AggressiveNSECCache::s_nsec3DenialProofMaxCost = 10;
+
+    auto cache = make_unique<AggressiveNSECCache>(10000);
+    insertNSEC3s(cache, salt, iterationsCount);
+
+    /* the cache should now be able to deny everything below sub.powerdns.com,
+       IF IT DOES NOT EXCEED THE COST */
+    {
+      /* short name: 10 labels below the zone apex */
+      DNSName lookupName("a.b.c.d.e.f.g.h.i.sub.powerdns.com.");
+      BOOST_CHECK_EQUAL(lookupName.countLabels() - zone.countLabels(), 10U);
+      BOOST_CHECK_LE(getNSEC3DenialProofWorstCaseIterationsCount(lookupName.countLabels() - zone.countLabels(), iterationsCount, salt.size()), AggressiveNSECCache::s_nsec3DenialProofMaxCost);
+      BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, lookupName, QType::AAAA, RCode::NXDomain, 7U), true);
+    }
+    {
+      /* longer name: 11 labels below the zone apex */
+      DNSName lookupName("a.b.c.d.e.f.g.h.i.j.sub.powerdns.com.");
+      BOOST_CHECK_EQUAL(lookupName.countLabels() - zone.countLabels(), 11U);
+      BOOST_CHECK_GT(getNSEC3DenialProofWorstCaseIterationsCount(lookupName.countLabels() - zone.countLabels(), iterationsCount, salt.size()), AggressiveNSECCache::s_nsec3DenialProofMaxCost);
+      BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, lookupName, QType::AAAA), false);
+    }
+  }
+
+  {
+    /* zone with expensive parameters */
+    const std::string salt("deadbeef");
+    const unsigned int iterationsCount = 50;
+    AggressiveNSECCache::s_nsec3DenialProofMaxCost = 100;
+
+    auto cache = make_unique<AggressiveNSECCache>(10000);
+    insertNSEC3s(cache, salt, iterationsCount);
+
+    /* the cache should now be able to deny everything below sub.powerdns.com,
+       IF IT DOES NOT EXCEED THE COST */
+    {
+      /* short name: 1 label below the zone apex */
+      DNSName lookupName("sub.powerdns.com.");
+      BOOST_CHECK_EQUAL(lookupName.countLabels() - zone.countLabels(), 1U);
+      BOOST_CHECK_LE(getNSEC3DenialProofWorstCaseIterationsCount(lookupName.countLabels() - zone.countLabels(), iterationsCount, salt.size()), AggressiveNSECCache::s_nsec3DenialProofMaxCost);
+      BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, lookupName, QType::AAAA, RCode::NXDomain, 7U), true);
+    }
+    {
+      /* longer name: 2 labels below the zone apex */
+      DNSName lookupName("a.sub.powerdns.com.");
+      BOOST_CHECK_EQUAL(lookupName.countLabels() - zone.countLabels(), 2U);
+      BOOST_CHECK_GT(getNSEC3DenialProofWorstCaseIterationsCount(lookupName.countLabels() - zone.countLabels(), iterationsCount, salt.size()), AggressiveNSECCache::s_nsec3DenialProofMaxCost);
+      BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, lookupName, QType::AAAA), false);
+    }
   }
 }
 
