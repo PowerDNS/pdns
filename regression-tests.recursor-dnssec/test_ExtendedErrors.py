@@ -1,6 +1,7 @@
 import dns
 import os
 import extendederrors
+import pytest
 
 from recursortests import RecursorTest
 
@@ -82,6 +83,7 @@ extended-resolution-errors=yes
 
         super(ExtendedErrorsRecursorTest, cls).generateRecursorConfig(confdir)
 
+    @pytest.mark.skip(reason="sidnlabs no longer serves thiss until further notice")
     def testNotIncepted(self):
         qname = 'signotincepted.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -95,6 +97,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(8, b''))
 
+    @pytest.mark.skip(reason="sidnlabs no longer serves thiss until further notice")
     def testExpired(self):
         qname = 'sigexpired.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -121,6 +124,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(6, b''))
 
+    @pytest.mark.skip(reason="sidnlabs no longer serves thiss until further notice")
     def testBogus(self):
         qname = 'bogussig.ok.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -235,6 +239,7 @@ extended-resolution-errors=no
     def generateRecursorConfig(cls, confdir):
         super(NoExtendedErrorsRecursorTest, cls).generateRecursorConfig(confdir)
 
+    @pytest.mark.skip(reason="sidnlabs no longer serves thiss until further notice")
     def testNotIncepted(self):
         qname = 'signotincepted.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
