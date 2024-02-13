@@ -4,8 +4,22 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.9.0 to 5.0.0 and master
---------------------------
+5.0.1 to 5.0.2 and master, 4.9.2 to 4.9.3 and 4.8.5 to 4.8.6
+------------------------------------------------------------
+
+Known Issues
+^^^^^^^^^^^^
+The :func:`zoneToCache` function fails to perform DNSSEC validation if the zone has more than :ref:`setting-max-rrsigs-per-record` RRSIG records at its apex.
+There are two workarounds: either increase the :ref:`setting-max-rrsigs-per-record` to the number of RRSIGs in the zone's apex, or tell :func:`zoneToCache` to skip DNSSEC validation. by adding ``dnssec="ignore"``, e.g.::
+
+  zoneToCache(".", "url", "https://www.internic.net/domain/root.zone", {dnssec="ignore"})
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-max-rrsigs-per-record`, :ref:`setting-max-nsec3s-per-record`, :ref:`setting-max-signature-validations-per-query`, :ref:`setting-max-nsec3-hash-computations-per-query`, :ref:`setting-aggressive-cache-max-nsec3-hash-cost`, :ref:`setting-max-ds-per-zone` and :ref:`setting-max-dnskeys` settings have been introduced to limit the amount of work done for DNSSEC validation.
+
+4.9.0 to 5.0.0
+--------------
 
 YAML settings
 ^^^^^^^^^^^^^

@@ -54,6 +54,7 @@ ASEP
 Ashish
 associateddomain
 asyncresolve
+ATHENE
 Atlassian
 Atomia
 aton
@@ -522,6 +523,7 @@ headfont
 headlinkcolor
 headtextcolor
 healthcheck
+Heftrig
 Heimhilcher
 Helbekkmo
 Hendriks
@@ -869,6 +871,7 @@ Neuf
 newcontent
 nftables
 nic
+Niklas
 Nilsen
 nimber
 Nixu
@@ -921,6 +924,7 @@ Nuitari
 NULs
 NUMA
 numreceived
+nvd
 nxd
 NXDATA
 nxdomain
@@ -1006,10 +1010,10 @@ phishing
 phonedph
 pickclosest
 pickhashed
+picknamehashed
 pickrandom
 pickrandomsample
 pickwhashed
-picknamehashed
 pickwrandom
 piddir
 pidfile
@@ -1188,6 +1192,7 @@ Schlich
 Scholten
 Schryver
 Schueler
+Schulmann
 schwer
 scopebits
 scopemask
@@ -1469,6 +1474,7 @@ Volker
 voxel
 Vranken
 vulns
+Waidner
 WAITFORONE
 wal
 wallclock

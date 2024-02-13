@@ -2,6 +2,16 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+  :version: 4.8.6
+  :released: 13th of February 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13784
+
+   `Security advisory 2024-01 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-01.html>`__: CVE-2023-50387 and CVE-2023-50868
+
+.. changelog::
   :version: 4.8.5
   :released: 25th of August 2023
 
