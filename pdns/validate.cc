@@ -30,6 +30,10 @@
 
 time_t g_signatureInceptionSkew{0};
 uint16_t g_maxNSEC3Iterations{0};
+uint16_t g_maxRRSIGsPerRecordToConsider{0};
+uint16_t g_maxNSEC3sPerRecordToConsider{0};
+uint16_t g_maxDNSKEYsToConsider{0};
+uint16_t g_maxDSsToConsider{0};
 
 static bool isAZoneKey(const DNSKEYRecordContent& key)
 {
@@ -108,26 +112,36 @@ static bool nsecProvesENT(const DNSName& name, const DNSName& begin, const DNSNa
   return begin.canonCompare(name) && next != name && next.isPartOf(name);
 }
 
-using nsec3HashesCache = std::map<std::tuple<DNSName, std::string, uint16_t>, std::string>;
-
-static std::string getHashFromNSEC3(const DNSName& qname, const NSEC3RecordContent& nsec3, nsec3HashesCache& cache)
+[[nodiscard]] std::string getHashFromNSEC3(const DNSName& qname, uint16_t iterations, const std::string& salt, pdns::validation::ValidationContext& context)
 {
   std::string result;
 
-  if (g_maxNSEC3Iterations != 0 && nsec3.d_iterations > g_maxNSEC3Iterations) {
+  if (g_maxNSEC3Iterations != 0 && iterations > g_maxNSEC3Iterations) {
     return result;
   }
 
-  auto key = std::tuple(qname, nsec3.d_salt, nsec3.d_iterations);
-  auto iter = cache.find(key);
-  if (iter != cache.end())
-  {
+  auto key = std::tuple(qname, salt, iterations);
+  auto iter = context.d_nsec3Cache.find(key);
+  if (iter != context.d_nsec3Cache.end()) {
     return iter->second;
   }
 
-  result = hashQNameWithSalt(nsec3.d_salt, nsec3.d_iterations, qname);
-  cache[key] = result;
+  if (context.d_nsec3IterationsRemainingQuota < iterations) {
+    // we throw here because we cannot take the risk that the result
+    // be cached, since a different query can try to validate the
+    // same result with a bigger NSEC3 iterations quota
+    throw pdns::validation::TooManySEC3IterationsException();
+  }
+
+  result = hashQNameWithSalt(salt, iterations, qname);
+  context.d_nsec3IterationsRemainingQuota -= iterations;
+  context.d_nsec3Cache[key] = result;
   return result;
+}
+
+[[nodiscard]] static std::string getHashFromNSEC3(const DNSName& qname, const NSEC3RecordContent& nsec3, pdns::validation::ValidationContext& context)
+{
+  return getHashFromNSEC3(qname, nsec3.d_iterations, nsec3.d_salt, context);
 }
 
 /* There is no delegation at this exact point if:
@@ -136,9 +150,9 @@ static std::string getHashFromNSEC3(const DNSName& qname, const NSEC3RecordConte
    One exception, if the name is covered by an opt-out NSEC3
    it doesn't prove that an insecure delegation doesn't exist.
 */
-bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords)
+bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>& dsrecords, pdns::validation::ValidationContext& context)
 {
-  nsec3HashesCache cache;
+  uint16_t nsec3sConsidered = 0;
 
   for (const auto& record : dsrecords) {
     if (record.d_type == QType::NSEC) {
@@ -161,7 +175,12 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
         continue;
       }
 
-      const string hash = getHashFromNSEC3(zone, *nsec3, cache);
+      if (g_maxNSEC3sPerRecordToConsider > 0 && nsec3sConsidered >= g_maxNSEC3sPerRecordToConsider) {
+        return false;
+      }
+      nsec3sConsidered++;
+
+      const string hash = getHashFromNSEC3(zone, *nsec3, context);
       if (hash.empty()) {
         return false;
       }
@@ -352,7 +371,7 @@ static bool provesNoWildCard(const DNSName& qname, const uint16_t qtype, const D
   If `wildcardExists` is not NULL, if will be set to true if a wildcard exists
   for this qname but doesn't have this qtype.
 */
-static bool provesNSEC3NoWildCard(const DNSName& closestEncloser, uint16_t const qtype, const cspmap_t& validrrsets, bool* wildcardExists, nsec3HashesCache& cache, const OptLog& log)
+static bool provesNSEC3NoWildCard(const DNSName& closestEncloser, uint16_t const qtype, const cspmap_t& validrrsets, bool* wildcardExists, const OptLog& log, pdns::validation::ValidationContext& context)
 {
   auto wildcard = g_wildcarddnsname + closestEncloser;
   VLOG(log, closestEncloser << ": Trying to prove that there is no wildcard for "<<wildcard<<"/"<<QType(qtype)<<endl);
@@ -372,8 +391,9 @@ static bool provesNSEC3NoWildCard(const DNSName& closestEncloser, uint16_t const
           continue;
         }
 
-        string hash = getHashFromNSEC3(wildcard, *nsec3, cache);
+        string hash = getHashFromNSEC3(wildcard, *nsec3, context);
         if (hash.empty()) {
+          VLOG(log, closestEncloser << ": Unsupported hash, ignoring"<<endl);
           return false;
         }
         VLOG(log, closestEncloser << ":\tWildcard hash: "<<toBase32Hex(hash)<<endl);
@@ -483,6 +503,11 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
   return dState::INCONCLUSIVE;
 }
 
+[[nodiscard]] uint64_t getNSEC3DenialProofWorstCaseIterationsCount(uint8_t maxLabels, uint16_t iterations, size_t saltLength)
+{
+  return (iterations + 1 + (saltLength > 0 ? 1 : 0)) * maxLabels;
+}
+
 /*
   This function checks whether the existence of qname|qtype is denied by the NSEC and NSEC3
   in validrrsets.
@@ -494,15 +519,15 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
   useful when we have a positive answer synthesized from a wildcard and we only need to prove that the exact
   name does not exist.
 */
-
-dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, const OptLog& log, bool needWildcardProof, unsigned int wildcardLabelsCount) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
+dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16_t qtype, bool referralToUnsigned, bool wantsNoDataProof, pdns::validation::ValidationContext& context, const OptLog& log, bool needWildcardProof, unsigned int wildcardLabelsCount) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
-  nsec3HashesCache cache;
   bool nsec3Seen = false;
   if (!needWildcardProof && wildcardLabelsCount == 0) {
     throw PDNSException("Invalid wildcard labels count for the validation of a positive answer synthesized from a wildcard");
   }
 
+  uint8_t numberOfLabelsOfParentZone{std::numeric_limits<uint8_t>::max()};
+  uint16_t nsec3sConsidered = 0;
   for (const auto& validset : validrrsets) {
     VLOG(log, qname << ": Do have: "<<validset.first.first<<"/"<<DNSRecordContent::NumberToType(validset.first.second)<<endl);
 
@@ -670,13 +695,20 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
           VLOG(log, qname << ": Owner "<<hashedOwner<<" is not part of the signer "<<signer<<", ignoring"<<endl);
           continue;
         }
+        numberOfLabelsOfParentZone = std::min(numberOfLabelsOfParentZone, static_cast<uint8_t>(signer.countLabels()));
 
         if (qtype == QType::DS && !qname.isRoot() && signer == qname) {
           VLOG(log, qname << ": A NSEC3 RR from the child zone cannot deny the existence of a DS"<<endl);
           continue;
         }
 
-        string hash = getHashFromNSEC3(qname, *nsec3, cache);
+        if (g_maxNSEC3sPerRecordToConsider > 0 && nsec3sConsidered >= g_maxNSEC3sPerRecordToConsider) {
+          VLOG(log, qname << ": Too many NSEC3s for this record"<<endl);
+          return dState::NODENIAL;
+        }
+        nsec3sConsidered++;
+
+        string hash = getHashFromNSEC3(qname, *nsec3, context);
         if (hash.empty()) {
           VLOG(log, qname << ": Unsupported hash, ignoring"<<endl);
           return dState::INSECURE;
@@ -746,15 +778,15 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
   DNSName closestEncloser(qname);
   bool found = false;
-
   if (needWildcardProof) {
+    nsec3sConsidered = 0;
     /* We now need to look for a NSEC3 covering the closest (provable) encloser
        RFC 5155 section-7.2.1
        RFC 7129 section-5.5
     */
     VLOG(log, qname << ": Now looking for the closest encloser for "<<qname<<endl);
 
-    while (!found && closestEncloser.chopOff()) {
+    while (!found && closestEncloser.chopOff() && closestEncloser.countLabels() >= numberOfLabelsOfParentZone) {
 
       for(const auto& validset : validrrsets) {
         if(validset.first.second==QType::NSEC3) {
@@ -771,8 +803,15 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
               continue;
             }
 
-            string hash = getHashFromNSEC3(closestEncloser, *nsec3, cache);
+            if (g_maxNSEC3sPerRecordToConsider > 0 && nsec3sConsidered >= g_maxNSEC3sPerRecordToConsider) {
+              VLOG(log, qname << ": Too many NSEC3s for this record"<<endl);
+              return dState::NODENIAL;
+            }
+            nsec3sConsidered++;
+
+            string hash = getHashFromNSEC3(closestEncloser, *nsec3, context);
             if (hash.empty()) {
+              VLOG(log, qname << ": Unsupported hash, ignoring"<<endl);
               return dState::INSECURE;
             }
 
@@ -838,19 +877,27 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
     if (labelIdx >= 1) {
       DNSName nextCloser(closestEncloser);
       nextCloser.prependRawLabel(qname.getRawLabel(labelIdx - 1));
+      nsec3sConsidered = 0;
       VLOG(log, qname << ":Looking for a NSEC3 covering the next closer name "<<nextCloser<<endl);
 
-      for(const auto& validset : validrrsets) {
-        if(validset.first.second==QType::NSEC3) {
-          for(const auto& record : validset.second.records) {
+      for (const auto& validset : validrrsets) {
+        if (validset.first.second == QType::NSEC3) {
+          for (const auto& record : validset.second.records) {
             VLOG(log, qname << ":\t"<<record->getZoneRepresentation()<<endl);
             auto nsec3 = std::dynamic_pointer_cast<const NSEC3RecordContent>(record);
             if (!nsec3) {
               continue;
             }
 
-            string hash = getHashFromNSEC3(nextCloser, *nsec3, cache);
+            if (g_maxNSEC3sPerRecordToConsider > 0 && nsec3sConsidered >= g_maxNSEC3sPerRecordToConsider) {
+              VLOG(log, qname << ": Too many NSEC3s for this record"<<endl);
+              return dState::NODENIAL;
+            }
+            nsec3sConsidered++;
+
+            string hash = getHashFromNSEC3(nextCloser, *nsec3, context);
             if (hash.empty()) {
+              VLOG(log, qname << ": Unsupported hash, ignoring"<<endl);
               return dState::INSECURE;
             }
 
@@ -888,7 +935,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
   if (nextCloserFound) {
     bool wildcardExists = false;
     /* RFC 7129 section-5.6 */
-    if (needWildcardProof && !provesNSEC3NoWildCard(closestEncloser, qtype, validrrsets, &wildcardExists, cache, log)) {
+    if (needWildcardProof && !provesNSEC3NoWildCard(closestEncloser, qtype, validrrsets, &wildcardExists, log, context)) {
       if (!isOptOut) {
         VLOG(log, qname << ": But the existence of a wildcard is not denied for "<<qname<<"/"<<QType(qtype)<<endl);
         return dState::NODENIAL;
@@ -920,26 +967,31 @@ bool isRRSIGIncepted(const time_t now, const RRSIGRecordContent& sig)
   return sig.d_siginception - g_signatureInceptionSkew <= now;
 }
 
-static bool checkSignatureWithKey(const DNSName& qname, time_t now, const RRSIGRecordContent& sig, const DNSKEYRecordContent& key, const std::string& msg, vState& ede, const OptLog& log)
+namespace {
+[[nodiscard]] bool checkSignatureInceptionAndExpiry(const DNSName& qname, time_t now, const RRSIGRecordContent& sig, vState& ede, const OptLog& log)
+{
+  /* rfc4035:
+     - The validator's notion of the current time MUST be less than or equal to the time listed in the RRSIG RR's Expiration field.
+     - The validator's notion of the current time MUST be greater than or equal to the time listed in the RRSIG RR's Inception field.
+  */
+  if (isRRSIGIncepted(now, sig) && isRRSIGNotExpired(now, sig)) {
+    return true;
+  }
+  ede = ((sig.d_siginception - g_signatureInceptionSkew) > now) ? vState::BogusSignatureNotYetValid : vState::BogusSignatureExpired;
+  VLOG(log, qname << ": Signature is "<<(ede == vState::BogusSignatureNotYetValid ? "not yet valid" : "expired")<<" (inception: "<<sig.d_siginception<<", inception skew: "<<g_signatureInceptionSkew<<", expiration: "<<sig.d_sigexpire<<", now: "<<now<<")"<<endl);
+  return false;
+}
+
+[[nodiscard]] bool checkSignatureWithKey(const DNSName& qname, const RRSIGRecordContent& sig, const DNSKEYRecordContent& key, const std::string& msg, vState& ede, const OptLog& log)
 {
   bool result = false;
   try {
-    /* rfc4035:
-       - The validator's notion of the current time MUST be less than or equal to the time listed in the RRSIG RR's Expiration field.
-       - The validator's notion of the current time MUST be greater than or equal to the time listed in the RRSIG RR's Inception field.
-    */
-    if (isRRSIGIncepted(now, sig) && isRRSIGNotExpired(now, sig)) {
-      auto dke = DNSCryptoKeyEngine::makeFromPublicKeyString(key.d_algorithm, key.d_key);
-      result = dke->verify(msg, sig.d_signature);
-      VLOG(log, qname << ": Signature by key with tag "<<sig.d_tag<<" and algorithm "<<DNSSECKeeper::algorithm2name(sig.d_algorithm)<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
-      if (!result) {
-        ede = vState::BogusNoValidRRSIG;
-      }
+    auto dke = DNSCryptoKeyEngine::makeFromPublicKeyString(key.d_algorithm, key.d_key);
+    result = dke->verify(msg, sig.d_signature);
+    VLOG(log, qname << ": Signature by key with tag "<<sig.d_tag<<" and algorithm "<<DNSSECKeeper::algorithm2name(sig.d_algorithm)<<" was " << (result ? "" : "NOT ")<<"valid"<<endl);
+    if (!result) {
+      ede = vState::BogusNoValidRRSIG;
     }
-    else {
-      ede = ((sig.d_siginception - g_signatureInceptionSkew) > now) ? vState::BogusSignatureNotYetValid : vState::BogusSignatureExpired;
-      VLOG(log, qname << ": Signature is "<<(ede == vState::BogusSignatureNotYetValid ? "not yet valid" : "expired")<<" (inception: "<<sig.d_siginception<<", inception skew: "<<g_signatureInceptionSkew<<", expiration: "<<sig.d_sigexpire<<", now: "<<now<<")"<<endl);
-     }
   }
   catch (const std::exception& e) {
     VLOG(log, qname << ": Could not make a validator for signature: "<<e.what()<<endl);
@@ -948,32 +1000,60 @@ static bool checkSignatureWithKey(const DNSName& qname, time_t now, const RRSIGR
   return result;
 }
 
-vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& signatures, const skeyset_t& keys, const OptLog& log, bool validateAllSigs)
+}
+
+vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& signatures, const skeyset_t& keys, const OptLog& log, pdns::validation::ValidationContext& context, bool validateAllSigs)
 {
-  bool foundKey = false;
+  bool missingKey = false;
   bool isValid = false;
   bool allExpired = true;
   bool noneIncepted = true;
+  uint16_t signaturesConsidered = 0;
 
-  for(const auto& signature : signatures) {
+  for (const auto& signature : signatures) {
     unsigned int labelCount = name.countLabels();
     if (signature->d_labels > labelCount) {
       VLOG(log, name<<": Discarding invalid RRSIG whose label count is "<<signature->d_labels<<" while the RRset owner name has only "<<labelCount<<endl);
       continue;
     }
 
+    vState ede = vState::Indeterminate;
+    if (!checkSignatureInceptionAndExpiry(name, now, *signature, ede, log)) {
+      if (isRRSIGIncepted(now, *signature)) {
+        noneIncepted = false;
+      }
+      if (isRRSIGNotExpired(now, *signature)) {
+        allExpired = false;
+      }
+      continue;
+    }
+
+    if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
+      VLOG(log, name<<": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
+      // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
+      break;
+    }
+    signaturesConsidered++;
+    context.d_validationsCounter++;
+
     auto keysMatchingTag = getByTag(keys, signature->d_tag, signature->d_algorithm, log);
 
     if (keysMatchingTag.empty()) {
-      VLOG(log, name<<": No key provided for "<<signature->d_tag<<" and algorithm "<<std::to_string(signature->d_algorithm)<<endl;);
+      VLOG(log, name << ": No key provided for "<<signature->d_tag<<" and algorithm "<<std::to_string(signature->d_algorithm)<<endl;);
+      missingKey = true;
       continue;
     }
 
     string msg = getMessageForRRSET(name, *signature, toSign, true);
+    uint16_t dnskeysConsidered = 0;
     for (const auto& key : keysMatchingTag) {
-      vState ede = vState::Indeterminate;
-      bool signIsValid = checkSignatureWithKey(name, now, *signature, *key, msg, ede, log);
-      foundKey = true;
+      if (g_maxDNSKEYsToConsider > 0 && dnskeysConsidered >= g_maxDNSKEYsToConsider) {
+        VLOG(log, name << ": We have already considered "<<std::to_string(dnskeysConsidered)<<" DNSKEY"<<addS(dnskeysConsidered)<<" for tag "<<std::to_string(signature->d_tag)<<" and algorithm "<<std::to_string(signature->d_algorithm)<<", not considering the remaining ones for this signature"<<endl;);
+        return isValid ? vState::Secure : vState::BogusNoValidRRSIG;
+      }
+      dnskeysConsidered++;
+
+      bool signIsValid = checkSignatureWithKey(name, *signature, *key, msg, ede, log);
 
       if (signIsValid) {
         isValid = true;
@@ -1000,7 +1080,7 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
   if (isValid) {
     return vState::Secure;
   }
-  if (!foundKey) {
+  if (missingKey) {
     return vState::BogusNoValidRRSIG;
   }
   if (noneIncepted) {
@@ -1067,22 +1147,38 @@ bool haveNegativeTrustAnchor(const map<DNSName,std::string>& negAnchors, const D
   return true;
 }
 
-vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog& log)
+vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog& log, pdns::validation::ValidationContext& context)
 {
   /*
    * Check all DNSKEY records against all DS records and place all DNSKEY records
    * that have DS records (that we support the algo for) in the tentative key storage
    */
-  for (const auto& dsrc : dsmap)
-  {
+  uint16_t dssConsidered = 0;
+  for (const auto& dsrc : dsmap) {
+    if (g_maxDSsToConsider > 0 && dssConsidered > g_maxDSsToConsider) {
+      VLOG(log, zone << ": We have already considered "<<std::to_string(dssConsidered)<<" DS"<<addS(dssConsidered)<<", not considering the remaining ones"<<endl;);
+      return vState::BogusNoValidDNSKEY;
+    }
+    ++dssConsidered;
+
+    uint16_t dnskeysConsidered = 0;
     auto record = getByTag(tkeys, dsrc.d_tag, dsrc.d_algorithm, log);
     // cerr<<"looking at DS with tag "<<dsrc.d_tag<<", algo "<<DNSSECKeeper::algorithm2name(dsrc.d_algorithm)<<", digest "<<std::to_string(dsrc.d_digesttype)<<" for "<<zone<<", got "<<r.size()<<" DNSKEYs for tag"<<endl;
 
-    for (const auto& drc : record)
-    {
+    for (const auto& drc : record) {
       bool isValid = false;
       bool dsCreated = false;
       DSRecordContent dsrc2;
+
+      if (g_maxDNSKEYsToConsider > 0 && dnskeysConsidered >= g_maxDNSKEYsToConsider) {
+        VLOG(log, zone << ": We have already considered "<<std::to_string(dnskeysConsidered)<<" DNSKEY"<<addS(dnskeysConsidered)<<" for tag "<<std::to_string(dsrc.d_tag)<<" and algorithm "<<std::to_string(dsrc.d_algorithm)<<", not considering the remaining ones for this DS"<<endl;);
+        // we need to break because we can have a partially validated set
+        // where the KSK signs the ZSK(s), and even if we don't
+        // we are going to try to get the correct EDE status (revoked, expired, ...)
+        break;
+      }
+      dnskeysConsidered++;
+
       try {
         dsrc2 = makeDSFromDNSKey(zone, *drc, dsrc.d_digesttype);
         dsCreated = true;
@@ -1110,14 +1206,17 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
   //    cerr<<"got "<<validkeys.size()<<"/"<<tkeys.size()<<" valid/tentative keys"<<endl;
   // these counts could be off if we somehow ended up with
   // duplicate keys. Should switch to a type that prevents that.
-  if (validkeys.size() < tkeys.size())
-  {
+  if (!tkeys.empty() && validkeys.size() < tkeys.size()) {
     // this should mean that we have one or more DS-validated DNSKEYs
     // but not a fully validated DNSKEY set, yet
     // one of these valid DNSKEYs should be able to validate the
     // whole set
-    for (const auto& sig : sigs)
-    {
+    uint16_t signaturesConsidered = 0;
+    for (const auto& sig : sigs) {
+      if (!checkSignatureInceptionAndExpiry(zone, now, *sig, ede, log)) {
+        continue;
+      }
+
       //        cerr<<"got sig for keytag "<<i->d_tag<<" matching "<<getByTag(tkeys, i->d_tag).size()<<" keys of which "<<getByTag(validkeys, i->d_tag).size()<<" valid"<<endl;
       auto bytag = getByTag(validkeys, sig->d_tag, sig->d_algorithm, log);
 
@@ -1125,10 +1224,30 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
         continue;
       }
 
+      if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
+        VLOG(log, zone << ": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
+        // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
+        return vState::BogusNoValidDNSKEY;
+      }
+
       string msg = getMessageForRRSET(zone, *sig, toSign);
+      uint16_t dnskeysConsidered = 0;
       for (const auto& key : bytag) {
+        if (g_maxDNSKEYsToConsider > 0 && dnskeysConsidered >= g_maxDNSKEYsToConsider) {
+          VLOG(log, zone << ": We have already considered "<<std::to_string(dnskeysConsidered)<<" DNSKEY"<<addS(dnskeysConsidered)<<" for tag "<<std::to_string(sig->d_tag)<<" and algorithm "<<std::to_string(sig->d_algorithm)<<", not considering the remaining ones for this signature"<<endl;);
+          return vState::BogusNoValidDNSKEY;
+        }
+        dnskeysConsidered++;
+
+        if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
+          VLOG(log, zone << ": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
+          // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
+          return vState::BogusNoValidDNSKEY;
+        }
         //          cerr<<"validating : ";
-        bool signIsValid = checkSignatureWithKey(zone, now, *sig, *key, msg, ede, log);
+        bool signIsValid = checkSignatureWithKey(zone, *sig, *key, msg, ede, log);
+        signaturesConsidered++;
+        context.d_validationsCounter++;
 
         if (signIsValid) {
           VLOG(log, zone << ": Validation succeeded - whole DNSKEY set is valid"<<endl);
@@ -1136,6 +1255,11 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
           break;
         }
         VLOG(log, zone << ": Validation did not succeed!"<<endl);
+      }
+
+      if (validkeys.size() == tkeys.size()) {
+        // we validated the whole DNSKEY set already */
+        break;
       }
       //        if(validkeys.empty()) cerr<<"did not manage to validate DNSKEY set based on DS-validated KSK, only passing KSK on"<<endl;
     }

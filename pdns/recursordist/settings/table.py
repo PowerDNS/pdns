@@ -1393,7 +1393,7 @@ In that case no probe will be scheduled.
 
 .. note::
   DoT probing is an experimental feature.
-  Please test thoroughly to determine if it is suitable in your specific production environment before enabling. 
+  Please test thoroughly to determine if it is suitable in your specific production environment before enabling.
  ''',
     'versionadded': '4.7.0'
     },
@@ -1865,6 +1865,83 @@ If an answer containing an NSEC3 record with more iterations is received, its DN
                            ('5.0.0', 'Default is now 50, was 150 before.')]
     },
     {
+        'name' : 'max_rrsigs_per_record',
+        'section' : 'dnssec',
+        'type' : LType.Uint64,
+        'default' : '2',
+        'help' : 'Maximum number of RRSIGs to consider when validating a given record',
+        'doc' : '''
+Maximum number of RRSIGs we are willing to cryptographically check when validating a given record. Expired or not yet incepted RRSIGs do not count toward to this limit.
+ ''',
+        'versionadded': ['5.0.2', '4.9.3', '4.8.6'],
+    },
+    {
+        'name' : 'max_nsec3s_per_record',
+        'section' : 'dnssec',
+        'type' : LType.Uint64,
+        'default' : '10',
+        'help' : 'Maximum number of NSEC3s to consider when validating a given denial of existence',
+        'doc' : '''
+Maximum number of NSEC3s to consider when validating a given denial of existence.
+ ''',
+        'versionadded': ['5.0.2', '4.9.3', '4.8.6'],
+    },
+    {
+        'name' : 'max_signature_validations_per_query',
+        'section' : 'dnssec',
+        'type' : LType.Uint64,
+        'default' : '30',
+        'help' : 'Maximum number of RRSIG signatures we are willing to validate per incoming query',
+        'doc' : '''
+Maximum number of RRSIG signatures we are willing to validate per incoming query.
+ ''',
+        'versionadded': ['5.0.2', '4.9.3', '4.8.6'],
+    },
+    {
+        'name' : 'max_nsec3_hash_computations_per_query',
+        'section' : 'dnssec',
+        'type' : LType.Uint64,
+        'default' : '600',
+        'help' : 'Maximum number of NSEC3 hashes that we are willing to compute during DNSSEC validation, per incoming query',
+        'doc' : '''
+Maximum number of NSEC3 hashes that we are willing to compute during DNSSEC validation, per incoming query.
+ ''',
+        'versionadded': ['5.0.2', '4.9.3', '4.8.6'],
+    },
+    {
+        'name' : 'aggressive_cache_max_nsec3_hash_cost',
+        'section' : 'dnssec',
+        'type' : LType.Uint64,
+        'default' : '150',
+        'help' : 'Maximum estimated NSEC3 cost for a given query to consider aggressive use of the NSEC3 cache',
+        'doc' : '''
+Maximum estimated NSEC3 cost for a given query to consider aggressive use of the NSEC3 cache. The cost is estimated based on a heuristic taking the zone's NSEC3 salt and iterations parameters into account, as well at the number of labels of the requested name. For example a query for a name like a.b.c.d.e.f.example.com. in an example.com zone. secured with NSEC3 and 10 iterations (NSEC3 iterations count of 9) and an empty salt will have an estimated worst-case cost of 10 (iterations) * 6 (number of labels) = 60. The aggressive NSEC cache is an optimization to reduce the number of queries to authoritative servers, which is especially useful when a zone is under pseudo-random subdomain attack, and we want to skip it the zone parameters make it expensive.
+''',
+        'versionadded': ['5.0.2', '4.9.3', '4.8.6'],
+    },
+    {
+        'name' : 'max_ds_per_zone',
+        'section' : 'dnssec',
+        'type' : LType.Uint64,
+        'default' : '8',
+        'help' : 'Maximum number of DS records to consider per zone',
+        'doc' : '''
+Maximum number of DS records to consider when validating records inside a zone..
+ ''',
+        'versionadded': ['5.0.2', '4.9.3', '4.8.6'],
+    },
+    {
+        'name' : 'max_dnskeys',
+        'section' : 'dnssec',
+        'type' : LType.Uint64,
+        'default' : '2',
+        'help' : 'Maximum number of DNSKEYs with the same algorithm and tag to consider when validating a given record',
+        'doc' : '''
+Maximum number of DNSKEYs with the same algorithm and tag to consider when validating a given record. Setting this value to 1 effectively denies DNSKEY tag collisions in a zone.
+ ''',
+        'versionadded': ['5.0.2', '4.9.3', '4.8.6'],
+    },
+    {
         'name' : 'ttl',
         'section' : 'packetcache',
         'oldname' : 'packetcache-ttl',
@@ -2267,7 +2344,7 @@ Query example (where 192.0.2.14 is your server):
         'help' : 'If set, change group id to this gid for more security',
         'doc' : '''
 PowerDNS can change its user and group id after binding to its socket.
-Can be used for better :doc:`security <security>`. 
+Can be used for better :doc:`security <security>`.
  '''
     },
     {
