@@ -2,6 +2,49 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.0
+  :released: 16th of February 2024
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13755
+
+    Better handling of short, non-initial QUIC headers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13757
+
+    Fix a warning reported by Coverity
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13768
+
+    Add a Lua maintenance hook
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13771
+    :tickets: 13766
+
+    Do not allocate 16-byte aligned objects through lua(jit)
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13774
+
+    Fix a missing explicit atomic load of the Quiche configuration
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13779
+
+    Fix performance inefficiencies reported by Coverity
+
+.. changelog::
   :version: 1.9.0-rc1
   :released: 30th of January 2024
 
