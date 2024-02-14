@@ -5003,6 +5003,11 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
         ne.d_ttd = d_now.tv_sec + lowestTTL;
         ne.d_orig_ttl = lowestTTL;
         if (qtype.getCode()) {  // prevents us from NXDOMAIN'ing a whole domain
+          // doCNAMECacheCheck() checks record cache and does not look into negcache. That means that an old record might be found if
+          // serve-stale is active. Avoid that by explicitly zapping that CNAME record.
+          if (qtype == QType::CNAME && MemRecursorCache::s_maxServedStaleExtensions > 0) {
+            g_recCache->doWipeCache(qname, false, qtype);
+          }
           g_negCache->add(ne);
         }
 
