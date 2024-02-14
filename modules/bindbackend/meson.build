@@ -16,9 +16,11 @@ module_deps = [deps]
 lib = static_library(
   module_backend_name,
   sources,
-  dependencies: module_deps,
+  dependencies: [
+    module_deps,
+    libpdns_bindparser,
+  ],
   extra_files: extras,
-  link_with: libpdns_bindparser,
 )
 
 dep_name = 'dep_' + module_backend_name

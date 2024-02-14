@@ -276,11 +276,13 @@ if dep_sqlite3.found()
   )
 endif
 
-libpdns_gettime = static_library(
-  'pdns-gettime',
-  src_dir / 'gettime.cc',
-  src_dir / 'gettime.hh',
-  dependencies: dep_rt,
+libpdns_gettime = declare_dependency(
+  link_whole: static_library(
+    'pdns-gettime',
+    src_dir / 'gettime.cc',
+    src_dir / 'gettime.hh',
+    dependencies: dep_rt,
+  )
 )
 
 common_sources += files(
@@ -494,25 +496,29 @@ deps = [
   dep_boost_test,
 ]
 
-libpdns_bindparser = static_library(
-  'pdns-bindparser',
-  libpdns_bindlexer_gen,
-  libpdns_bindparser_gen,
-  cpp_args: '-Wno-redundant-decls',
-  dependencies: deps,
+libpdns_bindparser = declare_dependency(
+  link_with: static_library(
+    'pdns-bindparser',
+    libpdns_bindlexer_gen,
+    libpdns_bindparser_gen,
+    cpp_args: '-Wno-redundant-decls',
+    dependencies: deps,
+  )
 )
 
-libpdns_dnslabeltext = static_library(
-  'pdns-dnslabeltext',
-  libpdns_dnslabeltext_gen,
-  dependencies: deps,
+libpdns_dnslabeltext = declare_dependency(
+  link_with: static_library(
+    'pdns-dnslabeltext',
+    libpdns_dnslabeltext_gen,
+    dependencies: deps,
+  )
 )
 
 libpdns_cdb = dependency('', required: false)
 if dep_cdb.found()
   libpdns_cdb = declare_dependency(
     link_whole: static_library(
-      'libpdns-cdb',
+      'pdns-cdb',
       sources: files(src_dir / 'cdb.cc', src_dir / 'cdb.hh'),
       dependencies: deps,
     )
@@ -564,8 +570,11 @@ tools = {
   'pdns-auth' : {
     'main': src_dir / 'auth-main.cc',
     'export-dynamic': true,
-    'deps-extra': [dep_modules, libpdns_ssqlite3],
-    'link-whole-extra': [libpdns_gettime],
+    'deps-extra': [
+      dep_modules,
+      libpdns_ssqlite3,
+      libpdns_gettime,
+    ],
   },
 
   'pdns-auth-util'    : {
@@ -591,7 +600,7 @@ if get_option('tools')
     'dnspcap2calidns'  : { 'main': src_dir / 'dnspcap2calidns.cc'  },
     'dnspcap2protobuf' : {
       'main': src_dir / 'dnspcap2protobuf.cc',
-      'link-with-extra': libpdns_gettime,
+      'deps-extra': libpdns_gettime,
     },
     'dnsreplay'        : { 'main': src_dir / 'dnsreplay.cc'        },
     'dnsscan'          : { 'main': src_dir / 'dnsscan.cc'          },
@@ -723,12 +732,18 @@ if get_option('fuzz-targets')
   }
 endif
 
-libpdns_common = static_library(
-  'pdns-common',
-  common_sources,
-  config_h,
-  dependencies: [deps, libpdns_signers_pkcs11],
-  link_with: [libpdns_bindparser, libpdns_dnslabeltext],
+libpdns_common = declare_dependency(
+  link_with: static_library(
+    'pdns-common',
+    common_sources,
+    config_h,
+    dependencies: [
+      deps,
+      libpdns_signers_pkcs11,
+      libpdns_bindparser,
+      libpdns_dnslabeltext,
+    ],
+  )
 )
 
 foreach tool, info: tools
@@ -737,8 +752,6 @@ foreach tool, info: tools
 
   export_dynamic = 'export-dynamic' in info ? info['export-dynamic'] : false
   deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
-  link_with_extra = 'link-with-extra' in info ? info['link-with-extra'] : []
-  link_whole_extra = 'link-whole-extra' in info ? info['link-whole-extra'] : []
 
   set_variable(
     var_name,
@@ -747,9 +760,11 @@ foreach tool, info: tools
       main,
       config_h,
       export_dynamic: export_dynamic,
-      dependencies: deps + deps_extra,
-      link_with: [libpdns_common] + link_with_extra,
-      link_whole: link_whole_extra,
+      dependencies: [
+        deps,
+        libpdns_common,
+        deps_extra,
+      ],
     )
   )
 endforeach
@@ -759,15 +774,18 @@ if get_option('unit-tests')
 endif
 
 if get_option('unit-tests-backends')
-  libpdns_module_remotebackend_test_common = static_library(
-    'pdns-test-remotebackend',
-    module_remotebackend_test_sources_common,
-    link_with: [libpdns_common, libpdns_dnslabeltext],
-    dependencies: [
-      deps,
-      libpdns_signers_pkcs11,
-    ],
-    extra_files: module_remotebackend_test_sources_extra,
+  libpdns_module_remotebackend_test_common = declare_dependency(
+    link_with: static_library(
+      'pdns-test-remotebackend',
+      module_remotebackend_test_sources_common,
+      dependencies: [
+        deps,
+        libpdns_signers_pkcs11,
+        libpdns_common,
+        libpdns_dnslabeltext,
+      ],
+      extra_files: module_remotebackend_test_sources_extra,
+    )
   )
 
   env = {
