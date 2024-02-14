@@ -52,4 +52,6 @@ extern bool g_doLuaRecord;
 extern bool g_LuaRecordSharedState;
 extern time_t g_luaHealthChecksInterval;
 extern time_t g_luaHealthChecksExpireDelay;
+extern time_t g_luaConsistentHashesExpireDelay;
+extern time_t g_luaConsistentHashesCleanupInterval;
 #endif // HAVE_LUA_RECORDS

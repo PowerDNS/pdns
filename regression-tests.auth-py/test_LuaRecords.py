@@ -70,6 +70,8 @@ hashed-txt.example.org.      3600 IN LUA  TXT   "pickhashed({{ 'bob', 'alice' }}
 whashed.example.org.         3600 IN LUA  A     "pickwhashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
 *.namehashed.example.org.    3600 IN LUA  A     "picknamehashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
 whashed-txt.example.org.     3600 IN LUA  TXT   "pickwhashed({{ {{15, 'bob'}}, {{42, 'alice'}} }})"
+chashed.example.org.         3600 IN LUA  A     "pickchashed({{ {{15, '1.2.3.4'}}, {{42, '4.3.2.1'}} }})"
+chashed-txt.example.org.     3600 IN LUA  TXT   "pickchashed({{ {{15, 'bob'}}, {{42, 'alice'}} }})"
 rand.example.org.            3600 IN LUA  A     "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
 rand-txt.example.org.        3600 IN LUA  TXT   "pickrandom({{ 'bob', 'alice' }})"
 randn-txt.example.org.       3600 IN LUA  TXT   "pickrandomsample( 2, {{ 'bob', 'alice', 'john' }} )"
@@ -777,24 +779,23 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
         self.assertAnswerEmpty(res)
 
-
-    def testWHashed(self):
+    def testCWHashed(self):
         """
-        Basic pickwhashed() test with a set of A records
+        Basic pickwhashed() and pickchashed() test with a set of A records
         As the `bestwho` is hashed, we should always get the same answer
         """
-        expected = [dns.rrset.from_text('whashed.example.org.', 0, dns.rdataclass.IN, 'A', '1.2.3.4'),
-                    dns.rrset.from_text('whashed.example.org.', 0, dns.rdataclass.IN, 'A', '4.3.2.1')]
-        query = dns.message.make_query('whashed.example.org', 'A')
+        for qname in ['whashed.example.org.', 'chashed.example.org.']:
+            expected = [dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '1.2.3.4'),
+                        dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '4.3.2.1')]
+            query = dns.message.make_query(qname, 'A')
 
-        first = self.sendUDPQuery(query)
-        self.assertRcodeEqual(first, dns.rcode.NOERROR)
-        self.assertAnyRRsetInAnswer(first, expected)
-        for _ in range(5):
-            res = self.sendUDPQuery(query)
-            self.assertRcodeEqual(res, dns.rcode.NOERROR)
-            self.assertRRsetInAnswer(res, first.answer[0])
-
+            first = self.sendUDPQuery(query)
+            self.assertRcodeEqual(first, dns.rcode.NOERROR)
+            self.assertAnyRRsetInAnswer(first, expected)
+            for _ in range(5):
+                res = self.sendUDPQuery(query)
+                self.assertRcodeEqual(res, dns.rcode.NOERROR)
+                self.assertRRsetInAnswer(res, first.answer[0])
 
     def testNamehashed(self):
         """
@@ -821,23 +822,23 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, query['expected'])
 
-
-    def testWHashedTxt(self):
+    def testCWHashedTxt(self):
         """
         Basic pickwhashed() test with a set of TXT records
         As the `bestwho` is hashed, we should always get the same answer
         """
-        expected = [dns.rrset.from_text('whashed-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'bob'),
-                    dns.rrset.from_text('whashed-txt.example.org.', 0, dns.rdataclass.IN, 'TXT', 'alice')]
-        query = dns.message.make_query('whashed-txt.example.org', 'TXT')
+        for qname in ['whashed-txt.example.org.', 'chashed-txt.example.org.']:
+            expected = [dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'TXT', 'bob'),
+                        dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'TXT', 'alice')]
+            query = dns.message.make_query(qname,'TXT')
 
-        first = self.sendUDPQuery(query)
-        self.assertRcodeEqual(first, dns.rcode.NOERROR)
-        self.assertAnyRRsetInAnswer(first, expected)
-        for _ in range(5):
-            res = self.sendUDPQuery(query)
-            self.assertRcodeEqual(res, dns.rcode.NOERROR)
-            self.assertRRsetInAnswer(res, first.answer[0])
+            first = self.sendUDPQuery(query)
+            self.assertRcodeEqual(first, dns.rcode.NOERROR)
+            self.assertAnyRRsetInAnswer(first, expected)
+            for _ in range(5):
+                res = self.sendUDPQuery(query)
+                self.assertRcodeEqual(res, dns.rcode.NOERROR)
+                self.assertRRsetInAnswer(res, first.answer[0])
 
     def testHashed(self):
         """
