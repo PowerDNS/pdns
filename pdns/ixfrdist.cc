@@ -21,6 +21,7 @@
  */
 #include "dns.hh"
 #include "dnsparser.hh"
+#include <stdexcept>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -36,6 +37,8 @@
 #include <dirent.h>
 #include <queue>
 #include <condition_variable>
+#include <thread>
+#include <chrono>
 #include "ixfr.hh"
 #include "ixfrutils.hh"
 #include "axfr-retriever.hh"
@@ -45,6 +48,8 @@
 #include "misc.hh"
 #include "iputils.hh"
 #include "lock.hh"
+#include "communicator.hh"
+#include "query-local-address.hh"
 #include "logger.hh"
 #include "ixfrdist-stats.hh"
 #include "ixfrdist-web.hh"
@@ -52,11 +57,19 @@
 #pragma GCC diagnostic ignored "-Wshadow"
 #include <yaml-cpp/yaml.h>
 #pragma GCC diagnostic pop
+#include "auth-packetcache.hh"
+#include "auth-querycache.hh"
+#include "auth-zonecache.hh"
 
 /* BEGIN Needed because of deeper dependencies */
 #include "arguments.hh"
 #include "statbag.hh"
 StatBag S;
+// NOLINTNEXTLINE(readability-identifier-length)
+AuthPacketCache PC;
+// NOLINTNEXTLINE(readability-identifier-length)
+AuthQueryCache QC;
+AuthZoneCache g_zoneCache;
 
 ArgvMap &arg()
 {
@@ -147,6 +160,7 @@ struct ixfrinfo_t {
 // Why a struct? This way we can add more options to a domain in the future
 struct ixfrdistdomain_t {
   set<ComboAddress> primaries; // A set so we can do multiple primary addresses in the future
+  std::set<ComboAddress> notify; // Set of addresses to forward NOTIFY to
   uint32_t maxSOARefresh{0}; // Cap SOA refresh value to the given value in seconds
 };
 
@@ -159,6 +173,9 @@ static LockGuarded<std::map<DNSName, std::shared_ptr<ixfrinfo_t>>> g_soas;
 // Queue of received NOTIFYs, already verified against their primary IPs
 // Lazily implemented as a set
 static LockGuarded<std::set<DNSName>> g_notifiesReceived;
+
+// Queue of outgoing NOTIFY
+static LockGuarded<NotificationQueue> g_notificationQueue;
 
 // Condition variable for TCP handling
 static std::condition_variable g_tcpHandlerCV;
@@ -282,6 +299,92 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
   (*soas)[domain] = newInfo;
   g_stats.setSOASerial(domain, newInfo->soa->d_st.serial);
   // FIXME: also report zone size?
+}
+
+static void sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t notificationId)
+{
+  std::vector<std::string> meta;
+  std::vector<uint8_t> packet;
+  DNSPacketWriter packetWriter(packet, domain, QType::SOA, 1, Opcode::Notify);
+  packetWriter.getHeader()->id = notificationId;
+  packetWriter.getHeader()->aa = true;
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (sendto(sock, packet.data(), packet.size(), 0, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen()) < 0) {
+    throw std::runtime_error("Unable to send notify to " + remote.toStringWithPort() + ": " + stringerror());
+  }
+}
+
+static void communicatorReceiveNotificationAnswers(const int sock4, const int sock6)
+{
+  std::set<int> fds = {sock4, sock6};
+  ComboAddress from;
+  std::array<char, 1500> buffer{};
+  int sock{-1};
+
+  // receive incoming notification answers on the nonblocking sockets and take them off the list
+  while (waitForMultiData(fds, 0, 0, &sock) > 0) {
+    Utility::socklen_t fromlen = sizeof(from);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    const auto size = recvfrom(sock, buffer.data(), buffer.size(), 0, reinterpret_cast<struct sockaddr*>(&from), &fromlen);
+    if (size < 0) {
+      break;
+    }
+    DNSPacket packet(true);
+    packet.setRemote(&from);
+
+    if (packet.parse(buffer.data(), (size_t)size) < 0) {
+      g_log << Logger::Warning << "Unable to parse SOA notification answer from " << packet.getRemote() << endl;
+      continue;
+    }
+
+    if (packet.d.rcode != 0) {
+      g_log << Logger::Warning << "Received unsuccessful notification report for '" << packet.qdomain << "' from " << from.toStringWithPort() << ", error: " << RCode::to_s(packet.d.rcode) << endl;
+    }
+
+    if (g_notificationQueue.lock()->removeIf(from, packet.d.id, packet.qdomain)) {
+      g_log << Logger::Notice << "Removed from notification list: '" << packet.qdomain << "' to " << from.toStringWithPort() << " " << (packet.d.rcode != 0 ? RCode::to_s(packet.d.rcode) : "(was acknowledged)") << endl;
+    }
+    else {
+      g_log << Logger::Warning << "Received spurious notify answer for '" << packet.qdomain << "' from " << from.toStringWithPort() << endl;
+    }
+  }
+}
+
+static void communicatorSendNotifications(const int sock4, const int sock6)
+{
+  DNSName domain;
+  string destinationIp;
+  uint16_t notificationId = 0;
+  bool purged{false};
+
+  while (g_notificationQueue.lock()->getOne(domain, destinationIp, &notificationId, purged)) {
+    if (!purged) {
+      ComboAddress remote(destinationIp, 53); // default to 53
+      sendNotification(remote.sin4.sin_family == AF_INET ? sock4 : sock6, domain, remote, notificationId);
+    } else {
+      g_log << Logger::Warning << "Notification for " << domain << " to " << destinationIp << " failed after retries" << std::endl;
+    }
+  }
+}
+
+static void communicatorThread()
+{
+  setThreadName("ixfrdist/communicator");
+  auto sock4 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true);
+  auto sock6 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true);
+
+  while (true) {
+    if (g_exiting) {
+      g_log << Logger::Notice << "Communicator thread stopped" << std::endl;
+      break;
+    }
+    communicatorReceiveNotificationAnswers(sock4, sock6);
+    communicatorSendNotifications(sock4, sock6);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+  closesocket(sock4);
+  closesocket(sock6);
 }
 
 static void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) { // NOLINT(readability-function-cognitive-complexity) 13400 https://github.com/PowerDNS/pdns/issues/13400 Habbie:  ixfrdist: reduce complexity
@@ -523,6 +626,13 @@ static ResponseType maybeHandleNotify(const MOADNSParser& mdp, const ComboAddres
 
   if (primaryFound) {
     g_notifiesReceived.lock()->insert(mdp.d_qname);
+
+    if (!found->second.notify.empty()) {
+      for (const auto& address : found->second.notify) {
+        g_log << Logger::Debug << logPrefix << "Queuing notification for " << mdp.d_qname << " to " << address.toStringWithPort() << std::endl;
+        g_notificationQueue.lock()->add(mdp.d_qname, address);
+      }
+    }
     return ResponseType::EmptyNoError;
   }
 
@@ -1359,6 +1469,7 @@ struct IXFRDistConfiguration
   bool shouldExit{false};
 };
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** argv, FDMultiplexer& fdm)
 {
   IXFRDistConfiguration configuration;
@@ -1430,6 +1541,28 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
       g_domainConfigs[domain["domain"].as<DNSName>()].primaries = s;
       if (domain["max-soa-refresh"].IsDefined()) {
         g_domainConfigs[domain["domain"].as<DNSName>()].maxSOARefresh = domain["max-soa-refresh"].as<uint32_t>();
+      }
+      if (domain["notify"].IsDefined()) {
+        auto& listset = g_domainConfigs[domain["domain"].as<DNSName>()].notify;
+        if (domain["notify"].IsScalar()) {
+          auto remote = domain["notify"].as<std::string>();
+          try {
+            listset.emplace(remote, 53);
+          }
+          catch (PDNSException& e) {
+            g_log << Logger::Error << "Unparseable IP in notify directive " << remote << ". Error: " << e.reason << endl;
+          }
+        } else if (domain["notify"].IsSequence()) {
+          for (const auto& entry: domain["notify"]) {
+            auto remote = entry.as<std::string>();
+            try {
+              listset.emplace(remote, 53);
+            }
+            catch (PDNSException& e) {
+              g_log << Logger::Error << "Unparseable IP in notify directive " << remote << ". Error: " << e.reason << endl;
+            }
+          }
+        }
       }
       g_stats.registerDomain(domain["domain"].as<DNSName>());
     }
@@ -1680,6 +1813,7 @@ int main(int argc, char** argv) {
                    configuration->axfrTimeout,
                    configuration->failedSOARetry,
                    configuration->axfrMaxRecords);
+    std::thread communicator(communicatorThread);
 
     vector<std::thread> tcpHandlers;
     tcpHandlers.reserve(configuration->tcpInThreads);
@@ -1707,6 +1841,7 @@ int main(int argc, char** argv) {
     g_log<<Logger::Debug<<"Waiting for all threads to stop"<<endl;
     g_tcpHandlerCV.notify_all();
     ut.join();
+    communicator.join();
     for (auto &t : tcpHandlers) {
       t.join();
     }
