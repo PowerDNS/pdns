@@ -662,8 +662,6 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     d_asyncFlag = MDB_NOSYNC;
   else if (syncMode == "nometasync")
     d_asyncFlag = MDB_NOMETASYNC;
-  else if (syncMode == "mapasync")
-    d_asyncFlag = MDB_MAPASYNC;
   else if (syncMode.empty() || syncMode == "sync")
     d_asyncFlag = 0;
   else
@@ -2772,7 +2770,7 @@ public:
   void declareArguments(const string& suffix = "") override
   {
     declare(suffix, "filename", "Filename for lmdb", "./pdns.lmdb");
-    declare(suffix, "sync-mode", "Synchronisation mode: nosync, nometasync, mapasync, sync", "mapasync");
+    declare(suffix, "sync-mode", "Synchronisation mode: nosync, nometasync, sync", "sync");
     // there just is no room for more on 32 bit
     declare(suffix, "shards", "Records database will be split into this number of shards", (sizeof(void*) == 4) ? "2" : "64");
     declare(suffix, "schema-version", "Maximum allowed schema version to run on this DB. If a lower version is found, auto update is performed", std::to_string(SCHEMAVERSION));

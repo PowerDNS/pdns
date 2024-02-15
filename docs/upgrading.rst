@@ -23,6 +23,10 @@ Various settings, deprecated since 4.5.0, have been removed.
 * :ref:`setting-slave` is now :ref:`setting-secondary`
 * :ref:`setting-superslave` is now :ref:`setting-autosecondary`
 
+In :ref:`setting-lmdb-sync-mode`, the previous default ``mapasync`` is no longer a valid value.
+Due to a bug, it was interpreted as ``sync`` in previous versions.
+To avoid operational surprises, ``sync`` is the new default value.
+
 Renamed options
 ^^^^^^^^^^^^^^^
 
