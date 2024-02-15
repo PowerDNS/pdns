@@ -770,6 +770,7 @@ ixfrdist_SOURCES = \
 ixfrdist_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(JSON11_LIBS) \
+	$(LIBDL) \
 	$(LIBCRYPTO_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(YAML_LIBS)
