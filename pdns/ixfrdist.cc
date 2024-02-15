@@ -317,7 +317,10 @@ static void sendNotification(int sock, const DNSName& domain, const ComboAddress
 
 static void communicatorReceiveNotificationAnswers(const int sock4, const int sock6)
 {
-  std::set<int> fds = {sock4, sock6};
+  std::set<int> fds = {sock4};
+  if (sock6 > 0) {
+    fds.insert(sock6);
+  }
   ComboAddress from;
   std::array<char, 1500> buffer{};
   int sock{-1};
@@ -361,7 +364,13 @@ static void communicatorSendNotifications(const int sock4, const int sock6)
   while (g_notificationQueue.lock()->getOne(domain, destinationIp, &notificationId, purged)) {
     if (!purged) {
       ComboAddress remote(destinationIp, 53); // default to 53
-      sendNotification(remote.sin4.sin_family == AF_INET ? sock4 : sock6, domain, remote, notificationId);
+      if (remote.sin4.sin_family == AF_INET) {
+        sendNotification(sock4, domain, remote, notificationId);
+      } else if (sock6 > 0) {
+        sendNotification(sock6, domain, remote, notificationId);
+      } else {
+        g_log << Logger::Warning << "Unable to notify " << destinationIp << " for " << domain << " as v6 support is not enabled" << std::endl;
+      }
     } else {
       g_log << Logger::Warning << "Notification for " << domain << " to " << destinationIp << " failed after retries" << std::endl;
     }
@@ -374,6 +383,11 @@ static void communicatorThread()
   auto sock4 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET, 0), true);
   auto sock6 = makeQuerySocket(pdns::getQueryLocalAddress(AF_INET6, 0), true);
 
+  if (sock4 < 0) {
+    throw std::runtime_error("Unable to create local query socket");
+  }
+  // sock6 can be negative if there is no v6 support, but this is handled later while sending notifications
+
   while (true) {
     if (g_exiting) {
       g_log << Logger::Notice << "Communicator thread stopped" << std::endl;
@@ -383,8 +397,12 @@ static void communicatorThread()
     communicatorSendNotifications(sock4, sock6);
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
-  closesocket(sock4);
-  closesocket(sock6);
+  if (sock4 > 0) {
+    closesocket(sock4);
+  }
+  if (sock6 > 0) {
+    closesocket(sock6);
+  }
 }
 
 static void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) { // NOLINT(readability-function-cognitive-complexity) 13400 https://github.com/PowerDNS/pdns/issues/13400 Habbie:  ixfrdist: reduce complexity
