@@ -397,10 +397,10 @@ static void communicatorThread()
     communicatorSendNotifications(sock4, sock6);
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
-  if (sock4 > 0) {
+  if (sock4 >= 0) {
     closesocket(sock4);
   }
-  if (sock6 > 0) {
+  if (sock6 >= 0) {
     closesocket(sock6);
   }
 }
