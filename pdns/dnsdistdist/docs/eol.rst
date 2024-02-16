@@ -11,7 +11,7 @@ PowerDNS DNSdist 1.8 will only receive critical updates and will be End of Life 
 
 PowerDNS DNSdist 1.7 will only receive critical updates and will be End of Life one year after PowerDNS DNSdist 1.8 was released.
 
-PowerDNS Recursor 4.0 through 4.7, 3.x, and 2.x are End of Life.
+Older versions are End of Life.
 
 .. note::
   Users with a commercial agreement with PowerDNS.COM BV or Open-Xchange can receive extended support for releases which are End Of Life. If you are such a user, these EOL statements do not apply to you. Please refer to the support commitment for details. Note that for the Open Source support channels we only support the latest minor release of a release train. That means that we ask you to reproduce potential issues on the latest minor release first.
