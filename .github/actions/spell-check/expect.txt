@@ -1089,6 +1089,7 @@ querycount
 querytime
 qytpe
 ragel
+Rak
 randombackend
 randombit
 randombytes
@@ -1254,6 +1255,7 @@ slapindex
 slaveness
 SLES
 smartcard
+Smeenk
 smellyspice
 smimea
 smn
