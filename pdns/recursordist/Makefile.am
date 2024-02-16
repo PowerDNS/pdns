@@ -14,6 +14,7 @@ AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/protozero/include \
 	-I$(top_srcdir)/settings \
 	-I$(top_builddir)/settings \
+	-I$(top_srcdir)/settings/rust/src \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES) \
 	-DBOOST_CONTAINER_USE_STD_EXCEPTIONS

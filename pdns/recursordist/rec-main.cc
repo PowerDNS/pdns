@@ -2901,7 +2901,7 @@ static void recursorThread()
   }
 }
 
-static pair<int, bool> doYamlConfig(Logr::log_t startupLog, int argc, char* argv[]) // NOLINT: Posix API
+static pair<int, bool> doYamlConfig(Logr::log_t startupLog, int argc, char* argv[], const pdns::rust::settings::rec::Recursorsettings& settings) // NOLINT: Posix API
 {
   if (!::arg().mustDo("config")) {
     return {0, false};
@@ -2909,24 +2909,23 @@ static pair<int, bool> doYamlConfig(Logr::log_t startupLog, int argc, char* argv
   const string config = ::arg()["config"];
   if (config == "diff" || config.empty()) {
     ::arg().parse(argc, argv);
-    pdns::rust::settings::rec::Recursorsettings settings;
-    pdns::settings::rec::oldStyleSettingsToBridgeStruct(settings);
+    //pdns::rust::settings::rec::Recursorsettings settings;
+    //pdns::settings::rec::oldStyleSettingsToBridgeStruct(settings);
     ProxyMapping proxyMapping;
     LuaConfigItems lci;
-    try {
-      loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
-    }
-    catch (PDNSException& e) {
-      SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
-           startupLog->error(Logr::Error, e.reason, "Cannot load Lua configuration"));
-    }
-    pdns::settings::rec::fromLuaConfigToBridgeStruct(lci, proxyMapping, settings);
+    pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping);
+    cerr << "LCI " << lci.trustAnchorFileInfo.fname << endl;
+
+    //pdns::settings::rec::fromLuaConfigToBridgeStruct(lci, proxyMapping, settings);
     auto yaml = settings.to_yaml_string();
     cout << yaml << endl;
   }
   else if (config == "default") {
     auto yaml = pdns::settings::rec::defaultsToYaml();
     cout << yaml << endl;
+  }
+  else if (config == "check") {
+    // Kinda redundant, if we came here we already read and checked the config....x
   }
   return {0, true};
 }
@@ -3152,7 +3151,7 @@ int main(int argc, char** argv)
 
     if (g_yamlSettings) {
       bool mustExit = false;
-      std::tie(ret, mustExit) = doYamlConfig(startupLog, argc, argv);
+      std::tie(ret, mustExit) = doYamlConfig(startupLog, argc, argv, settings);
       if (ret != 0 || mustExit) {
         return ret;
       }

@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+use base64::prelude::*;
 use once_cell::sync::Lazy;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, ErrorKind, Write};
@@ -28,7 +29,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 
 use crate::helpers::OVERRIDE_TAG;
-use crate::recsettings::*;
+use crate::recsettings::{self, *};
 use crate::{Merge, ValidationError};
 
 impl Default for ForwardZone {
@@ -105,6 +106,15 @@ pub fn validate_socket_address_or_name(field: &str, val: &String) -> Result<(), 
     Ok(())
 }
 
+fn validate_qtype(field: &str, val: &String) -> Result<(), ValidationError> {
+    let code = qTypeStringToCode(val);
+    if code == 0 {
+        let msg = format!("{}: value `{}' is not a qtype", field, val);
+        return Err(ValidationError { msg });
+    }
+    Ok(())
+}
+
 fn validate_name(field: &str, val: &String) -> Result<(), ValidationError> {
     if val.is_empty() {
         let msg = format!("{}: value may not be empty", field);
@@ -146,6 +156,44 @@ pub fn validate_subnet(field: &str, val: &String) -> Result<(), ValidationError>
         let ip = IpAddr::from_str(ip);
         if ip.is_err() {
             let msg = format!("{}: value `{}' is not a subnet or IP", field, val);
+            return Err(ValidationError { msg });
+        }
+    }
+    Ok(())
+}
+
+fn validate_address_family(addrfield: &str, localfield: &str, vec: &[String], local_address: &String) -> Result<(), ValidationError> {
+    if vec.len() == 0 {
+        let msg = format!("{}: cannot be empty", addrfield);
+        return Err(ValidationError { msg });
+    }
+    validate_vec(addrfield, vec, validate_socket_address)?;
+    if local_address.is_empty() {
+        return Ok(());
+    }
+    let local = IpAddr::from_str(local_address);
+    if local.is_err() {
+        let msg = format!("{}: value `{}' is not an IP", localfield, local_address);
+        return Err(ValidationError { msg });
+    }
+    let local = local.unwrap();
+    for addr_str in vec {
+        let mut wrong = false;
+        let sa = SocketAddr::from_str(addr_str);
+        if sa.is_err() {
+            let ip = IpAddr::from_str(addr_str).unwrap();
+            if local.is_ipv4() != ip.is_ipv4() || local.is_ipv6() != ip.is_ipv6() {
+                wrong = true;
+            }
+        }
+        else {
+            let sa = sa.unwrap();
+            if local.is_ipv4() != sa.is_ipv4() || local.is_ipv6() != sa.is_ipv6() {
+                wrong = true;
+            }
+        }
+        if wrong {
+            let msg = format!("{}: value `{}' and `{}' differ in address family", localfield, local_address, addr_str);
             return Err(ValidationError { msg });
         }
     }
@@ -300,7 +348,17 @@ impl NegativeTrustAnchor {
 }
 
 impl ProtobufServer {
-    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        validate_vec(
+            &(field.to_owned() + ".servers"),
+            &self.servers,
+            validate_socket_address,
+        )?;
+        validate_vec(
+            &(field.to_owned() + ".exportTypes"),
+            &self.exportTypes,
+            validate_qtype,
+        )?;
         Ok(())
     }
 
@@ -397,7 +455,18 @@ impl SortList {
 }
 
 impl RPZ {
-    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        if self.extendedErrorCode > u16::MAX as u32 && self.extendedErrorCode != u32::MAX {
+            let msg = format!(
+                "{}: value `{}' is no a valid extendedErrorCode",
+                field, self.extendedErrorCode
+            );
+            return Err(ValidationError { msg });
+        }
+        self.tsig.validate(&(field.to_owned() + ".tsig"))?;
+        if !self.addresses.is_empty() {
+            validate_address_family(&(field.to_owned() + ".addresses"), &(field.to_owned() + ".localAddress"), &self.addresses, &self.localAddress)?;
+        }
         Ok(())
     }
 
@@ -450,7 +519,33 @@ impl RPZ {
 }
 
 impl ZoneToCache {
-    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        match self.method.as_str() {
+            "axfr" | "url" | "file" => {}
+            _ => {
+                let msg = format!(
+                    "{}: must be one of axfr, url, file",
+                    &(field.to_string() + ".method")
+                );
+                return Err(ValidationError { msg });
+            }
+        }
+        if self.sources.is_empty() {
+            let msg = format!(
+                "{}: at least one source required",
+                &(field.to_string() + ".sources")
+            );
+            return Err(ValidationError { msg });
+        }
+        if self.method == "axfr" {
+            validate_vec(
+                &(field.to_string() + ".sources"),
+                &self.sources,
+                validate_socket_address,
+            )?;
+            validate_address_family(&(field.to_string() + ".sources"), &(field.to_string() + ".localAddress"), &self.sources, &self.localAddress)?;
+        }
+        self.tsig.validate(&(field.to_owned() + ".tsig"))?;
         Ok(())
     }
 
@@ -518,6 +613,26 @@ impl ProxyMapping {
         }
         insertseq(&mut map, "domains", &seq);
         serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl TSIGTriplet {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        let namelen = self.name.len();
+        let algolen = self.algo.len();
+        let secretlen = self.secret.len();
+        if namelen == 0 && algolen == 0 && secretlen == 0 {
+            return Ok(());
+        }
+        if namelen == 0 || algolen == 0 || secretlen == 0 {
+            let msg = format!("{}: a field value is missing", field);
+            return Err(ValidationError { msg });
+        }
+        if BASE64_STANDARD.decode(&self.secret).is_err() {
+            let msg = format!("{}.secret: `{}' is not a Base64 string", field, self.secret);
+            return Err(ValidationError { msg });
+        }
+        Ok(())
     }
 }
 
@@ -906,4 +1021,84 @@ pub fn def_additional_mode() -> String {
 
 pub fn default_value_equals_additional_mode(value: &String) -> bool {
     &def_additional_mode() == value
+}
+
+pub fn validate_dnssec(dnssec: &recsettings::Dnssec) -> Result<(), ValidationError> {
+    let val = dnssec.validation.as_str();
+    match val {
+        "off" | "process-no-validate" | "process" | "log-fail" | "validate" => {}
+        _ => {
+            let msg = format!("dnssec.validation: value `{}' is unknown", val);
+            return Err(ValidationError { msg });
+        }
+    };
+    Ok(())
+}
+
+pub fn validate_incoming(_incoming: &recsettings::Incoming) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_recursor(_recursor: &recsettings::Recursor) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_webservice(_webservice: &recsettings::Webservice) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_carbon(_carbon: &recsettings::Carbon) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_outgoing(_outgoing: &recsettings::Outgoing) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_packetcache(
+    _packetcache: &recsettings::Packetcache,
+) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_logging(logging: &recsettings::Logging) -> Result<(), ValidationError> {
+    if logging.protobuf_servers.len() > 1 {
+        return Err(ValidationError {
+            msg: String::from("number of protobuf_servers must be <= 1"),
+        });
+    }
+    if logging.outgoing_protobuf_servers.len() > 1 {
+        return Err(ValidationError {
+            msg: String::from("number of outgoing_protobuf_servers must be <= 1"),
+        });
+    }
+    if logging.dnstap_framestream_servers.len() > 1 {
+        return Err(ValidationError {
+            msg: String::from("number of dnstap_framestream_servers must be <= 1"),
+        });
+    }
+    if logging.dnstap_nod_framestream_servers.len() > 1 {
+        return Err(ValidationError {
+            msg: String::from("number of dnstap_nod_framestream_servers must be <= 1"),
+        });
+    }
+    Ok(())
+}
+
+pub fn validate_ecs(_ecs: &recsettings::Ecs) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_nod(_nod: &recsettings::Nod) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_recordcache(
+    _recordcache: &recsettings::Recordcache,
+) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_snmp(_snmp: &recsettings::Snmp) -> Result<(), ValidationError> {
+    Ok(())
 }

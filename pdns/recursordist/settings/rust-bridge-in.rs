@@ -343,3 +343,8 @@ extern "Rust" {
     fn validate_negativetrustanchors(field: &str, vec: &Vec<NegativeTrustAnchor>) -> Result<()>;
     fn api_delete_zone(file: &str, zone: &str) -> Result<()>;
 }
+
+unsafe extern "C++" {
+    include!("bridge.hh");
+    fn qTypeStringToCode(name: &str) -> u16;
+}
