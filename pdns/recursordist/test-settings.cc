@@ -449,21 +449,12 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_ta)
 BOOST_AUTO_TEST_CASE(test_yaml_defaults_protobuf)
 {
   // Two entries: one all default, one all overrides
-  const std::string yaml = R"EOT(logging:
+  const std::string yaml1 = R"EOT(logging:
   protobuf_servers:
-  - servers: [a]
-  - servers: [b]
-    timeout: 100
-    maxQueuedEntries: 101
-    reconnectWaitTime: 102
-    taggedOnly: true
-    asyncConnect: true
-    logQueries: false
-    logResponses: false
-    logMappedFrom: true
+  - servers: [1.2.3.4]
 )EOT";
 
-  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
+  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml1);
   settings.validate();
   BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].timeout, 2U);
   BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].maxQueuedEntries, 100U);
@@ -477,23 +468,9 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_protobuf)
   // BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].exportTypes, testv);
   BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].logMappedFrom, false);
 
-  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[1].timeout, 100U);
-  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[1].maxQueuedEntries, 101U);
-  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[1].reconnectWaitTime, 102U);
-  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[1].taggedOnly, true);
-  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[1].asyncConnect, true);
-  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[1].logQueries, false);
-  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[1].logResponses, false);
-  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[1].logMappedFrom, true);
-}
-
-BOOST_AUTO_TEST_CASE(test_yaml_defaults_outgoing_protobuf)
-{
-  // Two entries: one all default, one all overrides
-  const std::string yaml = R"EOT(logging:
-  outgoing_protobuf_servers:
-  - servers: [a]
-  - servers: [b]
+  const std::string yaml2 = R"EOT(logging:
+  protobuf_servers:
+  - servers: [6.7.8.9]
     timeout: 100
     maxQueuedEntries: 101
     reconnectWaitTime: 102
@@ -503,8 +480,27 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_outgoing_protobuf)
     logResponses: false
     logMappedFrom: true
 )EOT";
+  settings = pdns::rust::settings::rec::parse_yaml_string(yaml2);
+  settings.validate();
+  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].timeout, 100U);
+  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].maxQueuedEntries, 101U);
+  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].reconnectWaitTime, 102U);
+  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].taggedOnly, true);
+  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].asyncConnect, true);
+  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].logQueries, false);
+  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].logResponses, false);
+  BOOST_CHECK_EQUAL(settings.logging.protobuf_servers[0].logMappedFrom, true);
+}
 
-  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
+BOOST_AUTO_TEST_CASE(test_yaml_defaults_outgoing_protobuf)
+{
+  // Two entries: one all default, one all overrides
+  const std::string yaml1 = R"EOT(logging:
+  outgoing_protobuf_servers:
+  - servers: ['::1']
+)EOT";
+
+  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml1);
   settings.validate();
   BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].timeout, 2U);
   BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].maxQueuedEntries, 100U);
@@ -518,34 +514,39 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_outgoing_protobuf)
   // BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].exportTypes, testv);
   BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].logMappedFrom, false);
 
-  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[1].timeout, 100U);
-  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[1].maxQueuedEntries, 101U);
-  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[1].reconnectWaitTime, 102U);
-  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[1].taggedOnly, true);
-  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[1].asyncConnect, true);
-  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[1].logQueries, false);
-  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[1].logResponses, false);
-  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[1].logMappedFrom, true);
+  const std::string yaml2 = R"EOT(logging:
+  outgoing_protobuf_servers:
+  - servers: [123.123.123.123]
+    timeout: 100
+    maxQueuedEntries: 101
+    reconnectWaitTime: 102
+    taggedOnly: true
+    asyncConnect: true
+    logQueries: false
+    logResponses: false
+    logMappedFrom: true
+)EOT";
+  settings = pdns::rust::settings::rec::parse_yaml_string(yaml2);
+  settings.validate();
+  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].timeout, 100U);
+  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].maxQueuedEntries, 101U);
+  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].reconnectWaitTime, 102U);
+  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].taggedOnly, true);
+  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].asyncConnect, true);
+  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].logQueries, false);
+  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].logResponses, false);
+  BOOST_CHECK_EQUAL(settings.logging.outgoing_protobuf_servers[0].logMappedFrom, true);
 }
 
 BOOST_AUTO_TEST_CASE(test_yaml_defaults_dnstap)
 {
   // Two entries: one all default, one all overrides
-  const std::string yaml = R"EOT(logging:
+  const std::string yaml1 = R"EOT(logging:
   dnstap_framestream_servers:
-  - servers: [a]
-  - servers: [b]
-    logQueries: false
-    logResponses: false
-    bufferHint: 1
-    flushTimeout: 2
-    inputQueueSize: 3
-    outputQueueSize: 4
-    queueNotifyThreshold: 5
-    reopenInterval: 6
+  - servers: [3.4.5.6]
 )EOT";
 
-  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
+  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml1);
   settings.validate();
   BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].logQueries, true);
   BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].logResponses, true);
@@ -556,25 +557,11 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_dnstap)
   BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].queueNotifyThreshold, 0U);
   BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].reopenInterval, 0U);
 
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[1].logQueries, false);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[1].logResponses, false);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[1].bufferHint, 1U);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[1].flushTimeout, 2U);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[1].inputQueueSize, 3U);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[1].outputQueueSize, 4U);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[1].queueNotifyThreshold, 5U);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[1].reopenInterval, 6U);
-}
-
-BOOST_AUTO_TEST_CASE(test_yaml_defaults_dnstapnod)
-{
-  // Two entries: one all default, one all overrides
-  const std::string yaml = R"EOT(logging:
-  dnstap_nod_framestream_servers:
-  - servers: [a]
-  - servers: [b]
-    logNODs: false
-    logUDRs: true
+  const std::string yaml2 = R"EOT(logging:
+  dnstap_framestream_servers:
+  - servers: ['[::2]:99']
+    logQueries: false
+    logResponses: false
     bufferHint: 1
     flushTimeout: 2
     inputQueueSize: 3
@@ -582,8 +569,27 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_dnstapnod)
     queueNotifyThreshold: 5
     reopenInterval: 6
 )EOT";
+  settings = pdns::rust::settings::rec::parse_yaml_string(yaml2);
+  settings.validate();
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].logQueries, false);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].logResponses, false);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].bufferHint, 1U);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].flushTimeout, 2U);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].inputQueueSize, 3U);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].outputQueueSize, 4U);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].queueNotifyThreshold, 5U);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_framestream_servers[0].reopenInterval, 6U);
+}
 
-  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
+BOOST_AUTO_TEST_CASE(test_yaml_defaults_dnstapnod)
+{
+  // Two entries: one all default, one all overrides
+  const std::string yaml1 = R"EOT(logging:
+  dnstap_nod_framestream_servers:
+  - servers: [1.2.3.4:100]
+)EOT";
+
+  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml1);
   settings.validate();
   BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].logNODs, true);
   BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].logUDRs, false);
@@ -594,14 +600,28 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_dnstapnod)
   BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].queueNotifyThreshold, 0U);
   BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].reopenInterval, 0U);
 
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[1].logNODs, false);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[1].logUDRs, true);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[1].bufferHint, 1U);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[1].flushTimeout, 2U);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[1].inputQueueSize, 3U);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[1].outputQueueSize, 4U);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[1].queueNotifyThreshold, 5U);
-  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[1].reopenInterval, 6U);
+  const std::string yaml2 = R"EOT(logging:
+  dnstap_nod_framestream_servers:
+  - servers: [1::1]
+    logNODs: false
+    logUDRs: true
+    bufferHint: 1
+    flushTimeout: 2
+    inputQueueSize: 3
+    outputQueueSize: 4
+    queueNotifyThreshold: 5
+    reopenInterval: 6
+)EOT";
+  settings = pdns::rust::settings::rec::parse_yaml_string(yaml2);
+  settings.validate();
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].logNODs, false);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].logUDRs, true);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].bufferHint, 1U);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].flushTimeout, 2U);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].inputQueueSize, 3U);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].outputQueueSize, 4U);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].queueNotifyThreshold, 5U);
+  BOOST_CHECK_EQUAL(settings.logging.dnstap_nod_framestream_servers[0].reopenInterval, 6U);
 }
 
 BOOST_AUTO_TEST_CASE(test_yaml_defaults_rpz)
@@ -630,10 +650,10 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_rpz)
     tsig:
       name: f
       algo: g
-      secret: h
+      secret: ego=
     refresh: 103
     maxReceivedMBytes: 104
-    localAddress: i
+    localAddress: '1.2.3.4'
     axfrTimeout: 105
     dumpFile: j
     seedFile: k
@@ -687,10 +707,10 @@ BOOST_AUTO_TEST_CASE(test_yaml_defaults_rpz)
 
   BOOST_CHECK_EQUAL(std::string(settings.recursor.rpzs[2].tsig.name), "f");
   BOOST_CHECK_EQUAL(std::string(settings.recursor.rpzs[2].tsig.algo), "g");
-  BOOST_CHECK_EQUAL(std::string(settings.recursor.rpzs[2].tsig.secret), "h");
+  BOOST_CHECK_EQUAL(std::string(settings.recursor.rpzs[2].tsig.secret), "ego=");
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[2].refresh, 103U);
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[2].maxReceivedMBytes, 104U);
-  BOOST_CHECK_EQUAL(std::string(settings.recursor.rpzs[2].localAddress), "i");
+  BOOST_CHECK_EQUAL(std::string(settings.recursor.rpzs[2].localAddress), "1.2.3.4");
   BOOST_CHECK_EQUAL(settings.recursor.rpzs[2].axfrTimeout, 105U);
   BOOST_CHECK_EQUAL(std::string(settings.recursor.rpzs[2].dumpFile), "j");
   BOOST_CHECK_EQUAL(std::string(settings.recursor.rpzs[2].seedFile), "k");
@@ -722,16 +742,16 @@ BOOST_AUTO_TEST_CASE(test_yaml_ztc)
       sources: [1.2.3.4]
     - zone: zone2
       method: axfr
-      sources: [1.2.3.4]
+      sources: ['[ffee::1]:99']
       timeout: 1
       tsig:
         name: a
         algo: b
-        secret: c
+        secret: a2FkanNrYWRqc2sK
       refreshPeriod: 2
       retryOnErrorPeriod: 3
       maxReceivedMBytes: 4
-      localAddress: d
+      localAddress: ::1
       zonemd: ignore
       dnssec: require
 )EOT";
@@ -754,15 +774,15 @@ BOOST_AUTO_TEST_CASE(test_yaml_ztc)
 
   BOOST_CHECK_EQUAL(std::string(settings.recordcache.zonetocaches[1].zone), "zone2");
   BOOST_CHECK_EQUAL(std::string(settings.recordcache.zonetocaches[1].method), "axfr");
-  BOOST_CHECK_EQUAL(std::string(settings.recordcache.zonetocaches[1].sources[0]), "1.2.3.4");
+  BOOST_CHECK_EQUAL(std::string(settings.recordcache.zonetocaches[1].sources[0]), "[ffee::1]:99");
   BOOST_CHECK_EQUAL(settings.recordcache.zonetocaches[1].timeout, 1U);
   BOOST_CHECK_EQUAL(std::string(settings.recordcache.zonetocaches[1].tsig.name), "a");
   BOOST_CHECK_EQUAL(std::string(settings.recordcache.zonetocaches[1].tsig.algo), "b");
-  BOOST_CHECK_EQUAL(std::string(settings.recordcache.zonetocaches[1].tsig.secret), "c");
+  BOOST_CHECK_EQUAL(std::string(settings.recordcache.zonetocaches[1].tsig.secret), "a2FkanNrYWRqc2sK");
   BOOST_CHECK_EQUAL(settings.recordcache.zonetocaches[1].refreshPeriod, 2U);
   BOOST_CHECK_EQUAL(settings.recordcache.zonetocaches[1].retryOnErrorPeriod, 3U);
   BOOST_CHECK_EQUAL(settings.recordcache.zonetocaches[1].maxReceivedMBytes, 4U);
-  BOOST_CHECK_EQUAL(settings.recordcache.zonetocaches[1].localAddress, "d");
+  BOOST_CHECK_EQUAL(settings.recordcache.zonetocaches[1].localAddress, "::1");
   BOOST_CHECK_EQUAL(settings.recordcache.zonetocaches[1].zonemd, "ignore");
   BOOST_CHECK_EQUAL(settings.recordcache.zonetocaches[1].dnssec, "require");
 }
@@ -942,7 +962,7 @@ recordcache:
   - zone: anotherzone
     method: axfr
     sources:
-    - 4.5.6.7
+    - '[::1]:999'
     timeout: 1
     tsig:
       name: a.

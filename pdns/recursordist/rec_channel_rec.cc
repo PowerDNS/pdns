@@ -2133,49 +2133,13 @@ static RecursorControlChannel::Answer help()
 
 RecursorControlChannel::Answer luaconfig(bool broadcast)
 {
-    ProxyMapping proxyMapping;
-    LuaConfigItems lci;
-    lci.d_slog = g_slog;
-    extern std::unique_ptr<ProxyMapping> g_proxyMapping;
-    if (!g_luaSettingsInYAML) {
-      try {
-        loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
-        activateLuaConfig(lci);
-        lci = g_luaconfs.getCopy();
-        if (broadcast) {
-          startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
-          broadcastFunction([=] { return pleaseSupplantProxyMapping(proxyMapping); });
-        }
-        else {
-          // Initial proxy mapping
-          g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
-        }
-        SLOG(g_log << Logger::Notice << "Reloaded Lua configuration file '" << ::arg()["lua-config-file"] << "', requested via control channel" << endl,
-             g_slog->withName("config")->info(Logr::Info, "Reloaded"));
-        return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};
-      }
-      catch (std::exception& e) {
-        return {1, "Unable to load Lua script from '" + ::arg()["lua-config-file"] + "': " + e.what() + "\n"};
-      }
-      catch (const PDNSException& e) {
-        return {1, "Unable to load Lua script from '" + ::arg()["lua-config-file"] + "': " + e.reason + "\n"};
-      }
-    }
+  ProxyMapping proxyMapping;
+  LuaConfigItems lci;
+  lci.d_slog = g_slog;
+  extern std::unique_ptr<ProxyMapping> g_proxyMapping;
+  if (!g_luaSettingsInYAML) {
     try {
-      string configname = ::arg()["config-dir"] + "/recursor";
-      if (!::arg()["config-name"].empty()) {
-        configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"];
-      }
-      bool dummy1{};
-      bool dummy2{};
-      pdns::rust::settings::rec::Recursorsettings settings;
-      auto yamlstat = pdns::settings::rec::tryReadYAML(configname + ".yml", false, dummy1, dummy2, settings, g_slog);
-      if (yamlstat != pdns::settings::rec::YamlSettingsStatus::OK) {
-        // HANDLE
-      }
-      auto generation = g_luaconfs.getLocal()->generation;
-      lci.generation = generation + 1;
-      pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping);
+      loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
       activateLuaConfig(lci);
       lci = g_luaconfs.getCopy();
       if (broadcast) {
@@ -2186,15 +2150,51 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
         // Initial proxy mapping
         g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
       }
-
-      return {0, "Reloaded dynamic part of YAML configuration\n"};
+      SLOG(g_log << Logger::Notice << "Reloaded Lua configuration file '" << ::arg()["lua-config-file"] << "', requested via control channel" << endl,
+           g_slog->withName("config")->info(Logr::Info, "Reloaded"));
+      return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};
     }
     catch (std::exception& e) {
-      return {1, "Unable to reload dynamic YAML changes: " + std::string(e.what()) + "\n"};
+      return {1, "Unable to load Lua script from '" + ::arg()["lua-config-file"] + "': " + e.what() + "\n"};
     }
     catch (const PDNSException& e) {
-      return {1, "Unable to reload dynamic YAML changes: " + e.reason + "\n"};
+      return {1, "Unable to load Lua script from '" + ::arg()["lua-config-file"] + "': " + e.reason + "\n"};
     }
+  }
+  try {
+    string configname = ::arg()["config-dir"] + "/recursor";
+    if (!::arg()["config-name"].empty()) {
+      configname = ::arg()["config-dir"] + "/recursor-" + ::arg()["config-name"];
+    }
+    bool dummy1{};
+    bool dummy2{};
+    pdns::rust::settings::rec::Recursorsettings settings;
+    auto yamlstat = pdns::settings::rec::tryReadYAML(configname + ".yml", false, dummy1, dummy2, settings, g_slog);
+    if (yamlstat != pdns::settings::rec::YamlSettingsStatus::OK) {
+      // HANDLE
+    }
+    auto generation = g_luaconfs.getLocal()->generation;
+    lci.generation = generation + 1;
+    pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping);
+    activateLuaConfig(lci);
+    lci = g_luaconfs.getCopy();
+    if (broadcast) {
+      startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
+      broadcastFunction([=] { return pleaseSupplantProxyMapping(proxyMapping); });
+    }
+    else {
+      // Initial proxy mapping
+      g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
+    }
+
+    return {0, "Reloaded dynamic part of YAML configuration\n"};
+  }
+  catch (std::exception& e) {
+    return {1, "Unable to reload dynamic YAML changes: " + std::string(e.what()) + "\n"};
+  }
+  catch (const PDNSException& e) {
+    return {1, "Unable to reload dynamic YAML changes: " + e.reason + "\n"};
+  }
 }
 
 template <typename T>

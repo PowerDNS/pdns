@@ -525,7 +525,7 @@ def write_validator(file, section, entries):
             continue
         file.write(f'        let fieldname = "{section.lower()}.{name}".to_string();\n')
         file.write(f'        validate_vec(&fieldname, &self.{name}, {validator})?;\n')
-    file.write('        Ok(())\n')
+    file.write(f'        validate_{section.lower()}(self)\n')
     file.write('    }\n')
     file.write('}\n\n')
 

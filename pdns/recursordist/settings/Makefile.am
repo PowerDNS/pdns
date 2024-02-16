@@ -10,6 +10,7 @@ EXTRA_DIST = \
 	rust-bridge-in.rs \
 	rust-preamble-in.rs \
 	table.py \
+	rust/src/bridge.hh \
 	rust/src/lib.rs
 
 all: cxxsettings-generated.cc rust/src/lib.rs

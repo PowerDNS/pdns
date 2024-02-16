@@ -1359,3 +1359,9 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const s
   }
   return yamlstatus;
 }
+
+uint16_t pdns::rust::settings::rec::qTypeStringToCode(::rust::Str str)
+{
+  std::string tmp(str.data(), str.length());
+  return QType::chartocode(tmp.c_str());
+}

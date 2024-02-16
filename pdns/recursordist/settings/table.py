@@ -1941,7 +1941,7 @@ Maximum estimated NSEC3 cost for a given query to consider aggressive use of the
         'default' : '8',
         'help' : 'Maximum number of DS records to consider per zone',
         'doc' : '''
-Maximum number of DS records to consider when validating records inside a zone..
+Maximum number of DS records to consider when validating records inside a zone.
  ''',
         'versionadded': ['5.0.2', '4.9.3', '4.8.6'],
     },
