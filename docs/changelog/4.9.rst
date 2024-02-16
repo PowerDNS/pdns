@@ -2,6 +2,119 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.0-beta2
+  :released: 16th of February 2024
+
+  This is release 4.9.0-beta2 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  4.9 contains improvements to the API, ALIAS handling, catalog zones, and some tool improvements.
+  It also contains various bug fixes and smaller improvements, please see the list below.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13803
+
+    lmdb: remove mapasync mode, it was always a lie
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13753
+
+    ixfrdist: add support for outgoing notify
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13752
+
+    LUA records, pickchashed function
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13391
+
+    Add Lua function to pick records via name hash (Brian Rak)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 12359
+
+    LUA records: add dblookup function
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13743
+
+    API: reject priority element in record
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13724
+
+    dnsname: Optimize parsing of uncompressed labels
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13738
+
+    debian: adjust option names in shipped configs
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13110
+
+    Log port with all freshness check failure scenarios. (Sander Smeenk)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13723
+
+    DNSName: correct len and offset types
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13725
+
+    fix tinydnsbackend compilation issue
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13729
+
+    getAllDomains catalog: avoid useless copy
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13722
+
+    LUA createForward: allow non-hex word prefix
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13633
+
+    set catalog in gsql getAllDomains
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13649
+
+    add a configurable delay for notifications
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13481
+
+    Add and document a `localwho()` function for LUA records (Bert Hubert)
+
+.. changelog::
+  :version: 4.9.0-beta1
+  :released: not released
+
+  This version number was skipped.
+
+.. changelog::
   :version: 4.9.0-alpha1
   :released: 12th of January 2024
 
