@@ -45,7 +45,19 @@ setConsoleACL('0.0.0.0/0')
     templateroot = '/etc/dnsdist/templates.d'
     templatedestination = '/etc/dnsdist/conf.d'
 
-apikey = os.getenv(apienvvar)
+# _FILE suffix will allow to read value from file, useful for Docker's secrets feature
+apikey = None
+if apienvvar + '_FILE' in os.environ:
+    if apienvvar in os.environ:
+        raise AttributeError(
+            "Both {} and {} are set but are mutually exclusive."
+            .format(apienvvar, apienvvar + '_FILE')
+        )
+    with open(os.environ[apienvvar + '_FILE']) as f:
+        apikey = f.read()
+elif apienvvar in os.environ:
+    apikey = os.getenv(apienvvar)
+
 if apikey is not None:
     webserver_conf = jinja2.Template(apiconftemplate).render(apikey=apikey)
     conffile = os.path.join(templatedestination, '_api.conf')

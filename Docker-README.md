@@ -19,6 +19,7 @@ Other data involved in the Docker build process can be found at https://github.c
 
 The images are ready to run with limited functionality.
 At container startup, the startup.py wrapper (from the dockerdata directory linked above) checks for `PDNS_RECURSOR_API_KEY` / `PDNS_AUTH_API_KEY` / `DNSDIST_API_KEY` environment variables for the product you are running.
+You can also use `PDNS_RECURSOR_API_KEY_FILE` / `PDNS_AUTH_API_KEY_FILE` / `DNSDIST_API_KEY_FILE` variables for Docker's secret.
 If such a variable is found, `/etc/powerdns-api.conf` or `/etc/dnsdist-api.conf` is written, enabling the webserver in all products, and the dnsdist console.
 For the dnsdist console, make sure that your API key is in a format suitable for the console (use `makeKey()`).
 
