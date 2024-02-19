@@ -716,6 +716,7 @@ void fromLuaToRust(const LuaConfigItems& luaConfig, pdns::rust::settings::rec::D
 {
   dnssec.trustanchorfile = luaConfig.trustAnchorFileInfo.fname;
   dnssec.trustanchorfile_interval = luaConfig.trustAnchorFileInfo.interval;
+  dnssec.trustanchors.clear();
   for (const auto& anchors : luaConfig.dsAnchors) {
     ::rust::Vec<::rust::String> dsRecords;
     for (const auto& dsRecord : anchors.second) {
@@ -1062,21 +1063,14 @@ namespace
 void fromRustToLuaConfig(const pdns::rust::settings::rec::Dnssec& dnssec, LuaConfigItems& luaConfig)
 {
   for (const auto& trustAnchor : dnssec.trustanchors) {
-    // Do not inser the default root DS records
-    if (trustAnchor.name == ".") {
-      for (const auto& dsRecord : trustAnchor.dsrecords) {
-        const std::string dsString = std::string(dsRecord);
-        if (std::find(rootDSs.begin(), rootDSs.end(), dsString) == rootDSs.end()) {
-          auto dsRecContent = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(dsString));
-          luaConfig.dsAnchors[DNSName(std::string(trustAnchor.name))].emplace(*dsRecContent);
-        }
-      }
-    }
-    else {
-      for (const auto& dsRecord : trustAnchor.dsrecords) {
-        auto dsRecContent = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(std::string(dsRecord)));
-        luaConfig.dsAnchors[DNSName(std::string(trustAnchor.name))].emplace(*dsRecContent);
-      }
+    auto name = DNSName(std::string(trustAnchor.name));
+    luaConfig.dsAnchors.erase(name);
+  }
+  for (const auto& trustAnchor : dnssec.trustanchors) {
+    auto name = DNSName(std::string(trustAnchor.name));
+    for (const auto& dsRecord : trustAnchor.dsrecords) {
+      auto dsRecContent = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(std::string(dsRecord)));
+      luaConfig.dsAnchors[name].emplace(*dsRecContent);
     }
   }
   for (const auto& nta : dnssec.negative_trustanchors) {
@@ -1158,7 +1152,8 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, 
   for (const auto& rpz : rpzs) {
     RPZTrackerParams params;
     for (const auto& address : rpz.addresses) {
-      params.primaries.emplace_back(std::string(address));
+      ComboAddress combo = ComboAddress(std::string(address), 53);
+      params.primaries.emplace_back(combo.toStringWithPort());
     }
     params.name = std::string(rpz.name);
     params.polName = std::string(rpz.policyName);
@@ -1304,7 +1299,24 @@ void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings
 bool pdns::settings::rec::luaItemSet(const pdns::rust::settings::rec::Recursorsettings& settings)
 {
   bool alldefault = true;
-  alldefault = alldefault && settings.dnssec.trustanchors.empty();
+  for (const auto& trustanchor : settings.dnssec.trustanchors) {
+    if (trustanchor.name == ".") {
+      if (trustanchor.dsrecords.size() != rootDSs.size()) {
+        alldefault = false;
+        break;
+        for (const auto& dsRecord : trustanchor.dsrecords) {
+          if (std::find(rootDSs.begin(), rootDSs.end(), std::string(dsRecord)) == rootDSs.end()) {
+            alldefault = false;
+            break;
+          }
+        }
+      }
+    }
+    else {
+      alldefault = false;
+      break;
+    }
+  }
   alldefault = alldefault && settings.dnssec.negative_trustanchors.empty();
   alldefault = alldefault && settings.dnssec.trustanchorfile.empty();
   alldefault = alldefault && settings.dnssec.trustanchorfile_interval == 24;
@@ -1345,7 +1357,6 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const s
          startupLog->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname)));
     pdns::settings::rec::processAPIDir(arg()["include-dir"], settings, startupLog);
     luaSettingsInYAML = pdns::settings::rec::luaItemSet(settings);
-    cerr << "XXXX " << luaSettingsInYAML << ' ' << settings.recursor.lua_config_file.empty() << endl;
     if (luaSettingsInYAML && !settings.recursor.lua_config_file.empty()) {
       const std::string err = "YAML settings include values originally in Lua but also sets `recursor.lua_config_file`. This is unsupported";
       SLOG(g_log << Logger::Error << err << endl,
