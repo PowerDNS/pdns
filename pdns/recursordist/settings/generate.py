@@ -385,11 +385,12 @@ def is_value_rust_default(typ, value):
         return value == ''
     return False
 
-def gen_rust_vec_default_functions(name, typeName):
+def gen_rust_vec_default_functions(name, typeName, defvalue):
     """Generate Rust code for the default handling of a vector for typeName"""
     ret = f'// DEFAULT HANDLING for {name}\n'
     ret += f'fn default_value_{name}() -> Vec<recsettings::{typeName}> {{\n'
-    ret += '    Vec::new()\n'
+    ret += f'    let deserialized: Vec<recsettings::{typeName}> = serde_yaml::from_str({quote(defvalue)}).unwrap();\n'
+    ret += f'    deserialized\n'
     ret += '}\n'
     ret += f'fn default_value_equal_{name}(value: &Vec<recsettings::{typeName}>)'
     ret += '-> bool {\n'
@@ -429,14 +430,14 @@ def gen_rust_stringvec_default_functions(entry, name):
 
 def gen_rust_default_functions(entry, name, rust_type):
     """Generate Rust code for the default handling"""
+    defvalue = entry['default']
     if entry['type'] in listOfStringTypes:
         return gen_rust_stringvec_default_functions(entry, name)
     if entry['type'] in listOfStructuredTypes:
         baseName = list_to_base_type(entry['type'])
-        return gen_rust_vec_default_functions(name, baseName)
+        return gen_rust_vec_default_functions(name, baseName, defvalue)
     ret = f'// DEFAULT HANDLING for {name}\n'
     ret += f'fn default_value_{name}() -> {rust_type} {{\n'
-    defvalue = entry['default']
     rustdef = f'env!("{defvalue}")' if isEnvVar(defvalue) else quote(defvalue)
     ret += f"    String::from({rustdef})\n"
     ret += '}\n'

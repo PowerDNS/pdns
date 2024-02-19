@@ -2082,20 +2082,12 @@ static int serviceMain(Logr::log_t log)
   }
   g_maxCacheEntries = ::arg().asNum("max-cache-entries");
 
-  luaconfig(false);
-  // try {
-  //   ProxyMapping proxyMapping;
-  //   LuaConfigItems lci;
-  //   loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
-  //   // Initial proxy mapping
-  //   g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
-  //   activateLuaConfig(lci);
-  // }
-  // catch (PDNSException& e) {
-  //   SLOG(g_log << Logger::Error << "Cannot load Lua configuration: " << e.reason << endl,
-  //        log->error(Logr::Error, e.reason, "Cannot load Lua configuration"));
-  //   return 1;
-  // }
+  auto luaResult = luaconfig(false);
+  if (luaResult.d_ret != 0) {
+    SLOG(g_log << Logger::Error << "Cannot load Lua or equivalent YAML configuration: " << luaResult.d_str << endl,
+         log->error(Logr::Error, luaResult.d_str, "Cannot load Lua or equivalent YAML configuration"));
+    return 1;
+  }
 
   parseACLs();
   initPublicSuffixList(::arg()["public-suffix-list-file"]);
@@ -2901,7 +2893,7 @@ static void recursorThread()
   }
 }
 
-static pair<int, bool> doYamlConfig(Logr::log_t startupLog, int argc, char* argv[], const pdns::rust::settings::rec::Recursorsettings& settings) // NOLINT: Posix API
+static pair<int, bool> doYamlConfig(int argc, char* argv[], const pdns::rust::settings::rec::Recursorsettings& settings) // NOLINT: Posix API
 {
   if (!::arg().mustDo("config")) {
     return {0, false};
@@ -2909,14 +2901,9 @@ static pair<int, bool> doYamlConfig(Logr::log_t startupLog, int argc, char* argv
   const string config = ::arg()["config"];
   if (config == "diff" || config.empty()) {
     ::arg().parse(argc, argv);
-    //pdns::rust::settings::rec::Recursorsettings settings;
-    //pdns::settings::rec::oldStyleSettingsToBridgeStruct(settings);
     ProxyMapping proxyMapping;
     LuaConfigItems lci;
     pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lci, proxyMapping);
-    cerr << "LCI " << lci.trustAnchorFileInfo.fname << endl;
-
-    //pdns::settings::rec::fromLuaConfigToBridgeStruct(lci, proxyMapping, settings);
     auto yaml = settings.to_yaml_string();
     cout << yaml << endl;
   }
@@ -3151,7 +3138,7 @@ int main(int argc, char** argv)
 
     if (g_yamlSettings) {
       bool mustExit = false;
-      std::tie(ret, mustExit) = doYamlConfig(startupLog, argc, argv, settings);
+      std::tie(ret, mustExit) = doYamlConfig(argc, argv, settings);
       if (ret != 0 || mustExit) {
         return ret;
       }
@@ -3330,13 +3317,11 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
 
 void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t generation)
 {
-  cerr << "slcdt: " << rpzs.size() << endl;
   for (const auto& rpzPrimary : rpzs) {
     if (rpzPrimary.primaries.empty()) {
       continue;
     }
     try {
-      cerr << "STARTING" << endl;
       // The get calls all return a value object here. That is essential, since we want copies so that RPZIXFRTracker gets values
       // with the proper lifetime.
       std::thread theThread(RPZIXFRTracker, rpzPrimary, generation);
@@ -3450,6 +3435,12 @@ void activateLuaConfig(LuaConfigItems& lci)
   }
   if (lci.dsAnchors.size() > rootDSs.size()) {
     warnIfDNSSECDisabled("Warning: adding Trust Anchor for DNSSEC, but dnssec is set to 'off'!");
+  }
+  for (auto x : lci.dsAnchors) {
+    cerr << "TA: " << x.first << endl;
+    for (auto ds : x.second) {
+      cerr << " DS: " << ds.getZoneRepresentation() << endl;
+    }
   }
   if (!lci.negAnchors.empty()) {
     warnIfDNSSECDisabled("Warning: adding Negative Trust Anchor for DNSSEC, but dnssec is set to 'off'!");

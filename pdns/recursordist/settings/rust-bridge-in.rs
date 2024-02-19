@@ -303,10 +303,10 @@ extern "Rust" {
     fn parse_yaml_string_to_forward_zones(str: &str) -> Result<Vec<ForwardZone>>;
     // Allow notify for sequence
     fn parse_yaml_string_to_allow_notify_for(str: &str) -> Result<Vec<String>>;
-    // REST APIU zones
+    // REST API zones
     fn parse_yaml_string_to_api_zones(str: &str) -> Result<ApiZones>;
 
-    // Prdoduce a YAML formatted sting given a data structure known to Serde
+    // Prdoduce a YAML formatted string given a data structure known to Serde
     fn to_yaml_string(self: &Recursorsettings) -> Result<String>;
     // When doing a conversion of old-style to YAML style we use a vector of OldStyle structs
     fn map_to_yaml_string(map: &Vec<OldStyle>) -> Result<String>;

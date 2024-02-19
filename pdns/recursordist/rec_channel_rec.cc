@@ -2150,8 +2150,10 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
         // Initial proxy mapping
         g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
       }
-      SLOG(g_log << Logger::Notice << "Reloaded Lua configuration file '" << ::arg()["lua-config-file"] << "', requested via control channel" << endl,
-           g_slog->withName("config")->info(Logr::Info, "Reloaded"));
+      if (broadcast) {
+        SLOG(g_log << Logger::Notice << "Reloaded Lua configuration file '" << ::arg()["lua-config-file"] << "', requested via control channel" << endl,
+             g_slog->withName("config")->info(Logr::Info, "Reloaded"));
+      }
       return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};
     }
     catch (std::exception& e) {
@@ -2171,7 +2173,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     pdns::rust::settings::rec::Recursorsettings settings;
     auto yamlstat = pdns::settings::rec::tryReadYAML(configname + ".yml", false, dummy1, dummy2, settings, g_slog);
     if (yamlstat != pdns::settings::rec::YamlSettingsStatus::OK) {
-      // HANDLE
+      return {1, "Not reloading dynamic part of YAML configuration\n"};
     }
     auto generation = g_luaconfs.getLocal()->generation;
     lci.generation = generation + 1;

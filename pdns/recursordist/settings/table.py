@@ -3193,7 +3193,7 @@ If this check draws the wrong conclusion, you can disable it.
         'name' : 'trustanchors',
         'section' : 'dnssec',
         'type' : LType.ListTrustAnchors,
-        'default' : '',
+        'default' : '[{name: ., dsrecords: [\'20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d\']}]',
         'help' : 'XXX',
         'doc' : ''',
 XXX

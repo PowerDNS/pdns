@@ -445,7 +445,7 @@ struct RPZWaiter
   std::atomic<bool> stop{false};
 };
 
-static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, RPZWaiter& rpzwaiter, Logr::log_t logger)
+static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, uint64_t configGeneration, RPZWaiter& rpzwaiter, Logr::log_t logger)
 {
   while (!params.soaRecordContent) {
     /* if we received an empty sr, the zone was not really preloaded */
@@ -490,6 +490,14 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
                                  [&stop = rpzwaiter.stop] { return stop.load(); });
     }
     rpzwaiter.stop = false;
+    auto luaconfsLocal = g_luaconfs.getLocal();
+
+    if (luaconfsLocal->generation != configGeneration) {
+      /* the configuration has been reloaded, meaning that a new thread
+         has been started to handle that zone and we are now obsolete.
+      */
+      return;
+    }
   }
 }
 
@@ -724,7 +732,7 @@ void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
     auto lock = condVars.lock();
     lock->emplace(zoneName, waiter);
   }
-  preloadRPZFIle(params, zoneName, oldZone, refresh, polName, waiter, logger);
+  preloadRPZFIle(params, zoneName, oldZone, refresh, polName, configGeneration, waiter, logger);
 
   bool skipRefreshDelay = isPreloaded;
 

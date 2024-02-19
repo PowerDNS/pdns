@@ -426,24 +426,79 @@ BOOST_AUTO_TEST_CASE(test_rust_merge_override)
 BOOST_AUTO_TEST_CASE(test_yaml_defaults_ta)
 {
   // Two entries: one all default, one all overrides
-  const std::string yaml = R"EOT(dnssec:
+  const std::string yaml1 = R"EOT(dnssec:
+
+)EOT";
+  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml1);
+  settings.validate();
+  BOOST_CHECK_EQUAL(settings.dnssec.trustanchors.size(), 1U);
+  BOOST_CHECK_EQUAL(std::string(settings.dnssec.trustanchors[0].name), ".");
+  BOOST_CHECK_EQUAL(std::string(settings.dnssec.trustanchors[0].dsrecords[0]), "20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d");
+  BOOST_CHECK_EQUAL(settings.dnssec.negative_trustanchors.size(), 0U);
+  BOOST_CHECK_EQUAL(std::string(settings.dnssec.trustanchorfile), "");
+  BOOST_CHECK_EQUAL(settings.dnssec.trustanchorfile_interval, 24U);
+
+  const std::string yaml2 = R"EOT(dnssec:
   trustanchors:
     - name: a
-      dsrecords: [b] 
+      dsrecords: [b]
+    - name: a
+      dsrecords: [c]
   negative_trustanchors:
     - name: c
       reason: d
   trustanchorfile: e
   trustanchorfile_interval: 99
 )EOT";
-  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
+  settings = pdns::rust::settings::rec::parse_yaml_string(yaml2);
   settings.validate();
+  BOOST_CHECK_EQUAL(settings.dnssec.trustanchors.size(), 2U);
   BOOST_CHECK_EQUAL(std::string(settings.dnssec.trustanchors[0].name), "a");
   BOOST_CHECK_EQUAL(std::string(settings.dnssec.trustanchors[0].dsrecords[0]), "b");
+  BOOST_CHECK_EQUAL(std::string(settings.dnssec.trustanchors[1].dsrecords[0]), "c");
   BOOST_CHECK_EQUAL(std::string(settings.dnssec.negative_trustanchors[0].name), "c");
   BOOST_CHECK_EQUAL(std::string(settings.dnssec.negative_trustanchors[0].reason), "d");
   BOOST_CHECK_EQUAL(std::string(settings.dnssec.trustanchorfile), "e");
   BOOST_CHECK_EQUAL(settings.dnssec.trustanchorfile_interval, 99U);
+}
+
+BOOST_AUTO_TEST_CASE(test_yaml_ta_merge)
+{
+  // If the YAML sets a root zone DS, the default one(s) are thrown away
+  const std::string yaml1 = R"EOT(dnssec:
+  trustanchors:
+    - name: .
+      dsrecords: ['19718 13 2 8ACBB0CD28F41250A80A491389424D341522D946B0DA0C0291F2D3D7 71D7805A']
+    - name: a
+      dsrecords: ['37331 13 2 2F0BEC2D6F79DFBD1D08FD21A3AF92D0E39A4B9EF1E3F4111FFF2824 90DA453B']
+)EOT";
+
+  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml1);
+  settings.validate();
+  LuaConfigItems lua1;
+  ProxyMapping proxyMapping;
+  pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lua1, proxyMapping);
+  BOOST_CHECK_EQUAL(lua1.dsAnchors.size(), 2U);
+  BOOST_CHECK_EQUAL(lua1.dsAnchors[DNSName(".")].size(), 1U);
+  BOOST_CHECK_EQUAL(lua1.dsAnchors[DNSName(".")].begin()->getZoneRepresentation(), "19718 13 2 8acbb0cd28f41250a80a491389424d341522d946b0da0c0291f2d3d771d7805a");
+  BOOST_CHECK_EQUAL(lua1.dsAnchors[DNSName("a")].size(), 1U);
+
+  // Not adding a root DS should leave the default intact
+  const std::string yaml2 = R"EOT(dnssec:
+  trustanchors:
+    - name: a
+      dsrecords: ['19718 13 2 8ACBB0CD28F41250A80A491389424D341522D946B0DA0C0291F2D3D7 71D7805A']
+    - name: a
+      dsrecords: ['37331 13 2 2F0BEC2D6F79DFBD1D08FD21A3AF92D0E39A4B9EF1E3F4111FFF2824 90DA453B']
+)EOT";
+
+  settings = pdns::rust::settings::rec::parse_yaml_string(yaml2);
+  settings.validate();
+  LuaConfigItems lua2;
+  pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lua2, proxyMapping);
+  BOOST_CHECK_EQUAL(lua2.dsAnchors.size(), 2U);
+  BOOST_CHECK_EQUAL(lua2.dsAnchors[DNSName(".")].size(), 1U);
+  BOOST_CHECK_EQUAL(lua2.dsAnchors[DNSName("a")].size(), 2U);
 }
 
 BOOST_AUTO_TEST_CASE(test_yaml_defaults_protobuf)
@@ -985,9 +1040,6 @@ recordcache:
 
   // Create YAML, given a Lua config
   auto newsettings = pdns::rust::settings::rec::parse_yaml_string("");
-  // GlobalStateHolder<LuaConfigItems> gsluaConfig;
-  // gsluaConfig.setState(luaConfig);
-  // LuaConfigItems local; // = gsluaConfig.getCopy();
   try {
     pdns::settings::rec::fromLuaConfigToBridgeStruct(luaConfig, proxyMapping, newsettings);
   }
@@ -998,6 +1050,7 @@ recordcache:
   // They should be the same
   auto newyaml = newsettings.to_yaml_string();
 
+#if 0
   std::ofstream aaa("a");
   std::ofstream bbb("b");
   aaa << "===" << endl
@@ -1006,6 +1059,7 @@ recordcache:
   bbb << "===" << endl
       << newyaml << endl
       << "===" << endl;
+#endif
 
   BOOST_CHECK_EQUAL(yaml, std::string(newyaml));
 }
