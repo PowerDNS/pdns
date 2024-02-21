@@ -4890,7 +4890,7 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
        return the corresponding NSEC/NSEC3 records from the AUTHORITY section
        proving that the exact name did not exist.
        Except if this is a NODATA answer because then we will gather the NXNSEC records later */
-    else if (gatherWildcardProof && !negindic && (rec.d_type == QType::RRSIG || rec.d_type == QType::NSEC || rec.d_type == QType::NSEC3) && rec.d_place == DNSResourceRecord::AUTHORITY) {
+    else if ((sendRDQuery || gatherWildcardProof) && !negindic && (rec.d_type == QType::RRSIG || rec.d_type == QType::NSEC || rec.d_type == QType::NSEC3) && rec.d_place == DNSResourceRecord::AUTHORITY) {
       ret.push_back(rec); // enjoy your DNSSEC
     }
     // for ANY answers we *must* have an authoritative answer, unless we are forwarding recursively
