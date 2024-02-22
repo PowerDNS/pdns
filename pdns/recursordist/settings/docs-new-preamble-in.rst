@@ -19,6 +19,11 @@ Settings on the command line are processed after the file-based settings are pro
 
    In a future release support for the "old-style" ``recursor.conf`` settings file will be dropped.
 
+.. note::
+   Starting with version 5.1.0, the settings originally specified in a Lua config file can also be put in YAML form.
+   The conversion printed by ``rec_control show-yaml`` will print these settings if a Lua config file is specified in the config file being converted.
+   You have to choose however: either set Lua settings the old way in the Lua config file, or convert all to YAML.
+   If you are using YAML settings of items originally specified in the Lua config file, do not set :ref:`setting-yaml-recursor.lua_config_file` any more. The :program:`Recursor` will check that you do not mix both configuration methods.
 
 YAML settings file
 ------------------
@@ -176,7 +181,7 @@ The refresh is done by performing the equivalent of ``rec_control reload-zones``
 
 Auth Zone
 ^^^^^^^^^
-A auth zone is defined as:
+An auth zone is defined as:
 
 .. code-block:: yaml
 
@@ -192,6 +197,232 @@ An example of a ``auth_zones`` entry, consisting of a sequence of auth zones:
        file: zones/example.com.zone
      - zone: example.net
        file: zones/example.net.zone
+
+
+YAML settings corresponding to Lua config items
+-----------------------------------------------
+
+The YAML settings below were introduced in verison 5.1.0 and correspond to the
+respective Lua settings. Refer to :doc:`lua-config/index`.
+
+TrustAnchor
+^^^^^^^^^^^
+As of version 5.1.0, a trust anchor is defined as
+
+.. code-block:: yaml
+
+   name: zonename
+   dsrecords: sequence of DS record strings in presentation format
+
+An example of a ``trustanchors`` sequence:
+
+.. code-block:: yaml
+
+   trustanchors:
+     - name: example.com
+       dsrecords:
+       - 10000 8 2 a06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+
+NegativeTrustAnchor
+^^^^^^^^^^^^^^^^^^^
+As of version 5.1.0, a negative trust anchor is defined as
+
+.. code-block:: yaml
+
+   name: zonename
+   reason: text
+
+An example of a ``negative trustanchors`` sequence:
+
+.. code-block:: yaml
+
+   negative_trustanchors:
+     - name: example.com
+       reason: an example
+
+ProtobufServer
+^^^^^^^^^^^^^^
+As of version 5.1.0, a protobuf server is defined as
+
+.. code-block:: yaml
+
+    servers: [] Sequence of strings representing SocketAddress
+    timeout: 2
+    maxQueuedEntries: 100
+    reconnectWaitTime: 1
+    taggedOnly: false
+    asyncConnect: false
+    logQueries: true
+    logResponses: true
+    exportTypes: [A, AAAA, CNAME] Sequence of QType names
+    logMappedFrom: false
+
+An example of a ``protobuf_servers`` entry:
+
+.. code-block:: yaml
+
+  protobuf_servers:
+  - servers: [6.7.8.9]
+    timeout: 2
+    maxQueuedEntries: 100
+    reconnectWaitTime: 1
+    taggedOnly: false
+    asyncConnect: false
+    logQueries: true
+    logResponses: true
+    exportTypes: [A, AAAA, CNAME]
+    logMappedFrom: false
+
+DNSTapFrameStreamServers
+^^^^^^^^^^^^^^^^^^^^^^^^
+As of version 5.1.0, a dnstap framestream server is defined as
+
+.. code-block:: yaml
+
+  servers: [] Sequence of strings representing SocketAddress or a socket path
+  logQueries: true
+  logResponses: true
+  bufferHint: 0
+  flushTimeout: 0
+  inputQueueSize: 0
+  outputQueueSize: 0
+  queueNotifyThreshold: 0
+  reopenInterval: 0
+
+
+DNSTapNODFrameStreamServers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+As of version 5.1.0, an NOD dnstap framestream server is defined as
+
+.. code-block:: yaml
+
+  servers: [] Sequence of strings representing SocketAddress or a socker path
+  logNODs: true
+  logUDRs: false
+  bufferHint: 0
+  flushTimeout: 0
+  inputQueueSize: 0
+  outputQueueSize: 0
+  queueNotifyThreshold: 0
+  reopenInterval: 0
+
+SortList
+^^^^^^^^
+As of version 5.1.0, a sortlist entry is defined as
+
+.. code-block:: yaml
+
+   - key: Subnet
+     subnets:
+      - subnet: Subnet
+        order: number
+
+RPZ
+^^^
+As of version 5.1.0, an RPZ entry is defined as
+
+.. code-block:: yaml
+
+    name: name or pathname
+    addresses: [] Sequence of SocketAddress
+    defcontent: string
+    defpol:  Custom, Drop, NXDOMAIN, NODATA Truncate or NoAction
+    defpolOverrideLocalData: true
+    defttl: number
+    extendedErrorCode: number
+    extendedErrorExtra: string
+    includeSOA: false
+    ignoreDuplicates: false
+    maxTTL: number
+    policyName: string
+    tags: Sequence of string
+    overridesGettag: true
+    zoneSizeHint: number
+    tsig:
+      name: string
+      algo: string
+      secret: base64string
+    refresh: number
+    maxReceivedMBytes: number
+    localAddress: IP address
+    axfrTimeout: number
+    dumpFile: string
+    seedFile: string
+
+If ``addresses` is empty, the ``name`` field specifies the path name of the RPZ, otherwise the ``name`` field defines the name of the RPZ.
+
+ZoneToCache
+^^^^^^^^^^^
+As of version 5.1.0, a ZoneToCache entry is defined as
+
+.. code-block:: yaml
+
+   zone: zonename
+   method: One of axfr, url, file
+   sources: [] Sequence of string, representing IP address, URL or path
+   timeout: 20
+   tsig:
+     name: name of key
+     algo: algorithm
+     secret: Base64 endcoded secret
+   refreshPeriod: 86400
+   retryOnErrorPeriod: 60
+   maxReceivedMBytes: 0 Zero mean no restrcition
+   localAddress: local IP address to  bind to. 
+   zonemd: One of ignore, validate, require
+   dnssec: One of ignore, validate, require
+
+For example, a sequence of two ZoneToCache entries:
+
+.. code-block:: yaml
+
+   zonetocaches:
+   - zone: .
+     method: url
+     sources: ['http://...']
+    - zone: example.com
+      method: file
+      sources: ['dir/example.com.zone']
+
+AllowedAdditionalQType
+^^^^^^^^^^^^^^^^^^^^^^
+As of version 5.1.0, an allowed addtional qtype entry is defined as:
+
+.. code-block:: yaml
+
+   qtype: string represeting a QType
+   targets: [] Sequence of string representing QType
+   mode: One of Ignore, CacheOnly, CacheOnlyRequireAuth, ResolveImmediately, ResolveDeferred, default CacheOnlyRequireAuth
+
+For example:
+
+.. code-block:: yaml
+
+   allowed_additional_qtypes:
+   - qtype: MX
+     targets: [A, AAAA]
+   - qtype: NAPTR
+     targets: [A, AAAA, SRV]
+     mode: ResolveDeferred
+
+ProxyMapping
+^^^^^^^^^^^^
+As of version 5.1.0, a proxy mapping entry is defined as:
+
+.. code-block:: yaml
+
+   subnet: Subnet
+   address: IPAddress
+   domains: [] Sequence of string
+
+For example:
+
+.. code-block:: yaml
+
+   proxymappings:
+   - subnet: 192.168.178.0/24
+     address: 128.66.1.2
+
 
 The YAML settings
 -----------------

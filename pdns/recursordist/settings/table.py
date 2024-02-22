@@ -3194,11 +3194,21 @@ If this check draws the wrong conclusion, you can disable it.
         'section' : 'dnssec',
         'type' : LType.ListTrustAnchors,
         'default' : '[{name: ., dsrecords: [\'20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d\']}]',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'docdefault' : '''
+
+.. code-block:: yaml
+
+   - name: .
+     dsrecords:
+     - 20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+
+''',
+        'help' : 'Sequence of trust anchors',
+        'doc' : '''
+Sequence of trust anchors. If the sequence contains an entry for the root zone, the default root zone trust anchor is not included.
+If a zone appears multiple times, the entries in ``dsrecords`` are merged.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3206,11 +3216,11 @@ XXX
         'section' : 'dnssec',
         'type' : LType.ListNegativeTrustAnchors,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'A sequence of negative trust anchors',
+        'doc' : '''
+Sequence of negative trust anchors.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3218,11 +3228,12 @@ XXX
         'section' : 'dnssec',
         'type' : LType.String,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-        XXX
+        'help' : 'A path to a zone file containing trust anchors',
+        'doc' : '''
+A path to a zone file to read trust anchors from.
+This can be used to read distribution provided trust anchors, as for instance ``/usr/share/dns/root.key`` from Debian's ``dns-root-data`` package.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3230,11 +3241,11 @@ XXX
         'section' : 'dnssec',
         'type' : LType.Uint64,
         'default' : '24',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Interval (in hours) to read the trust anchors file',
+        'doc' : '''
+Interval (in hours) to re-read the ``trustanchorfile``.  Zero disables periodic re-reads.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3242,11 +3253,11 @@ XXX
         'section' : 'logging',
         'type' : LType.ListProtobufServers,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Sequence of protobuf servers',
+        'doc' : '''
+Sequence of outgoing protobuf servers. Currently the maximum size of this list is one.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3254,11 +3265,11 @@ XXX
         'section' : 'logging',
         'type' : LType.ListProtobufServers,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'List of outgoing protobuf servers',
+        'doc' : '''
+Sequence of outgoing protobuf servers. Currently the maximum size of this list is one.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3266,11 +3277,11 @@ XXX
         'section' : 'logging',
         'type' : LType.Uint64,
         'default' : '32',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Network mask to apply for client IPv4 addresses in protobuf messages',
+        'doc' : '''
+Network mask to apply to the client IPv4 addresses, for anonymization purposes. The default of 32 means no anonymization.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3278,11 +3289,11 @@ XXX
         'section' : 'logging',
         'type' : LType.Uint64,
         'default' : '128',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Network mask to apply for client IPv6 addresses in protobuf messages',
+        'doc' : '''
+Network mask to apply to the client IPv6 addresses, for anonymization purposes. The default of 128 means no anonymization.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3290,11 +3301,11 @@ XXX
         'section' : 'logging',
         'type' : LType.ListDNSTapFrameStreamServers,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Sequence of dnstap servers',
+        'doc' : '''
+Sequence of dnstap servers. Currently the maximum size of this list is one.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3302,11 +3313,11 @@ XXX
         'section' : 'logging',
         'type' : LType.ListDNSTapNODFrameStreamServers,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Sequence of NOD dnstap servers',
+        'doc' : '''
+Sequence of NOD dnstap servers. Currently the maximum size of this list is one.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3314,11 +3325,11 @@ XXX
         'section' : 'recursor',
         'type' : LType.ListSortLists,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Sequence of sort lists',
+        'doc' : '''
+Sequence of sort lists.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3326,11 +3337,11 @@ XXX
         'section' : 'recursor',
         'type' : LType.ListRPZs,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Sequence of RPZ entries',
+        'doc' : '''
+Sequence of RPZ entries.
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3338,11 +3349,11 @@ XXX
         'section' : 'recordcache',
         'type' : LType.ListZoneToCaches,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Sequence of ZoneToCache entries ',
+        'doc' : '''
+Sequence of ZoneToCache entries
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3350,11 +3361,11 @@ XXX
         'section' : 'recursor',
         'type' : LType.ListAllowedAdditionalQTypes,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Sequence of AllowedAdditionalQType',
+        'doc' : '''
+Sequence of AllowedAdditionalQType
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
     {
@@ -3362,11 +3373,11 @@ XXX
         'section' : 'incoming',
         'type' : LType.ListProxyMappings,
         'default' : '',
-        'help' : 'XXX',
-        'doc' : ''',
-XXX
+        'help' : 'Sequence of ProxyMapping',
+        'doc' : '''
+Sequence of ProxyMapping
         ''',
-        'skip-old' : True,
+        'skip-old' : 'Old style in Lua settings',
         'versionadded': '5.1.0',
     },
 ]
