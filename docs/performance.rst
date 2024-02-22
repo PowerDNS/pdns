@@ -236,7 +236,7 @@ Number of currently open TCP connections
 
 overload-drops
 ^^^^^^^^^^^^^^
-Number of questions dropped because backends overloaded
+Number of questions dropped because backends overloaded (backends are overloaded if they have more queries outstanding then the value of :ref:`setting-overload-queue-length`)
 
 .. _stat-packetcache-hit:
 
