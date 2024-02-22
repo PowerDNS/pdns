@@ -30,4 +30,5 @@ The remedies are one of:
 We would like to thank Elias Heftrig, Haya Schulmann, Niklas Vogel, and Michael Waidner from the
 German National Research Center for Applied Cybersecurity ATHENE for bringing this issue to the
 attention of the DNS community and especially Niklas Vogel for his assistance in validating the
-patches.
+patches. We would also like to thank Petr Špaček from ISC for discovering and responsibly disclosing
+CVE-2023-50868.
