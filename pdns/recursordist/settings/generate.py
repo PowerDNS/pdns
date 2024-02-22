@@ -161,9 +161,25 @@ def get_newdoc_typename(typ):
     if typ == LType.ListAuthZones:
         return 'Sequence of `Auth Zone`_'
     if typ == LType.ListTrustAnchors:
-        return 'Sequence of `TrustAnchors`_'
+        return 'Sequence of `TrustAnchor`_'
     if typ == LType.ListNegativeTrustAnchors:
-        return 'Sequence of `NegativeTrustAnchors`_'
+        return 'Sequence of `NegativeTrustAnchor`_'
+    if typ == LType.ListProtobufServers:
+        return 'Sequence of `ProtobufServer`_'
+    if typ == LType.ListDNSTapFrameStreamServers:
+        return 'Sequence of `DNSTapFrameStreamServers`_'
+    if typ == LType.ListDNSTapNODFrameStreamServers:
+        return 'Sequence of `DNSTapNODFrameStreamServers`_'
+    if typ == LType.ListSortLists:
+        return 'Sequence of `Sortlist`_'
+    if typ == LType.ListRPZs:
+        return 'Sequence of `RPZ`_'
+    if typ == LType.ListZoneToCaches:
+        return 'Sequence of `ZoneToCache`_'
+    if typ == LType.ListAllowedAdditionalQTypes:
+        return 'Sequence of `AllowedAdditionalQType`_'
+    if typ == LType.ListProxyMappings:
+        return 'Sequence of `ProxyMapping`_'
     return 'Unknown' + str(typ)
 
 def get_default_olddoc_value(typ, val):
@@ -734,7 +750,10 @@ def gen_newstyle_docs(argentries):
             else:
                 file.write((f"-  Default: "
                             f"{get_default_newdoc_value(entry['type'], entry['default'])}\n\n"))
-            file.write(f"- Old style setting: :ref:`setting-{entry['oldname']}`\n\n")
+            if 'skip-old' in entry:
+                file.write(f"- {entry['skip-old']}\n\n")
+            else:
+                file.write(f"- Old style setting: :ref:`setting-{entry['oldname']}`\n\n")
             if 'doc-new' in entry:
                 file.write(fixxrefs(entries, entry['doc-new'].strip()))
             else:
