@@ -90,6 +90,7 @@ struct ValidationContext
   Nsec3HashesCache d_nsec3Cache;
   unsigned int d_validationsCounter{0};
   unsigned int d_nsec3IterationsRemainingQuota{0};
+  bool d_limitHit{false};
 };
 
 class TooManySEC3IterationsException : public std::runtime_error
