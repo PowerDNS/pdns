@@ -1304,11 +1304,11 @@ bool pdns::settings::rec::luaItemSet(const pdns::rust::settings::rec::Recursorse
       if (trustanchor.dsrecords.size() != rootDSs.size()) {
         alldefault = false;
         break;
-        for (const auto& dsRecord : trustanchor.dsrecords) {
-          if (std::find(rootDSs.begin(), rootDSs.end(), std::string(dsRecord)) == rootDSs.end()) {
-            alldefault = false;
-            break;
-          }
+      }
+      for (const auto& dsRecord : trustanchor.dsrecords) {
+        if (std::find(rootDSs.begin(), rootDSs.end(), std::string(dsRecord)) == rootDSs.end()) {
+          alldefault = false;
+          break;
         }
       }
     }

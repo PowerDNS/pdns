@@ -128,4 +128,4 @@ public:
 
 extern GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
-void loadRecursorLuaConfig(const std::string& fname, ProxyMapping&, LuaConfigItems& newConfig);
+void loadRecursorLuaConfig(const std::string& fname, ProxyMapping&, LuaConfigItems& newLuaConfig);
