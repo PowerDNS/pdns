@@ -111,7 +111,7 @@ static void initArguments(int argc, char** argv, Logr::log_t log)
   }
 }
 
-static std::string showLuaYAML(const ::rust::string rfile)
+static std::string showLuaYAML(const ::rust::string& rfile)
 {
   std::string msg;
   if (rfile.empty()) {

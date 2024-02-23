@@ -3330,12 +3330,12 @@ void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.what() << endl,
            g_slog->withName("rpz")->error(Logr::Error, e.what(), "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("std::exception")));
-      exit(1);
+      exit(1); // NOLINT(concurrency-mt-unsafe)
     }
     catch (const PDNSException& e) {
       SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.reason << endl,
            g_slog->withName("rpz")->error(Logr::Error, e.reason, "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
-      exit(1);
+      exit(1); // NOLINT(concurrency-mt-unsafe)
     }
   }
 }
@@ -3415,7 +3415,7 @@ static void activateRPZs(LuaConfigItems& lci)
 
     if (params.primaries.empty()) {
       activateRPZFile(params, lci, zone);
-      lci.dfe.addZone(std::move(zone));
+      lci.dfe.addZone(zone);
     }
     else {
       DNSName domain(params.name);

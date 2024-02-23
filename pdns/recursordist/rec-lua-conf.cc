@@ -99,17 +99,17 @@ typename C::value_type::second_type constGet(const C& c, const std::string& name
 
 typedef std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>>>> rpzOptions_t;
 
-static void parseRPZParameters(rpzOptions_t& have, RPZTrackerParams& params)
+static void parseRPZParameters(const rpzOptions_t& have, RPZTrackerParams& params)
 {
   if (have.count("policyName") != 0) {
-    params.polName = boost::get<std::string>(have["policyName"]);
+    params.polName = boost::get<std::string>(have.at("policyName"));
   }
   if (have.count("defpol") != 0) {
     params.defpol = DNSFilterEngine::Policy();
-    params.defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have["defpol"]);
+    params.defcontent = boost::get<string>(have.at("defcontent"));
+    params.defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have.at("defpol"));
     params.defpol->setName(params.polName);
     if (params.defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
-      params.defcontent = boost::get<string>(have["defcontent"]);
       if (!params.defpol->d_custom) {
         params.defpol->d_custom = make_unique<DNSFilterEngine::Policy::CustomData>();
       }
@@ -117,7 +117,7 @@ static void parseRPZParameters(rpzOptions_t& have, RPZTrackerParams& params)
                                                                params.defcontent));
 
       if (have.count("defttl") != 0) {
-        params.defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(have["defttl"]));
+        params.defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(have.at("defttl")));
       }
       else {
         params.defpol->d_ttl = -1; // get it from the zone
@@ -125,17 +125,17 @@ static void parseRPZParameters(rpzOptions_t& have, RPZTrackerParams& params)
     }
 
     if (have.count("defpolOverrideLocalData") != 0) {
-      params.defpolOverrideLocal = boost::get<bool>(have["defpolOverrideLocalData"]);
+      params.defpolOverrideLocal = boost::get<bool>(have.at("defpolOverrideLocalData"));
     }
   }
   if (have.count("maxTTL") != 0) {
-    params.maxTTL = boost::get<uint32_t>(have["maxTTL"]);
+    params.maxTTL = boost::get<uint32_t>(have.at("maxTTL"));
   }
   if (have.count("zoneSizeHint") != 0) {
-    params.zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have["zoneSizeHint"]));
+    params.zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have.at("zoneSizeHint")));
   }
   if (have.count("tags") != 0) {
-    const auto& tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have["tags"]);
+    const auto& tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have.at("tags"));
     std::unordered_set<std::string> tags;
     for (const auto& tag : tagsTable) {
       tags.insert(tag.second);
@@ -143,70 +143,71 @@ static void parseRPZParameters(rpzOptions_t& have, RPZTrackerParams& params)
     }
   }
   if (have.count("overridesGettag") != 0) {
-    params.defpolOverrideLocal = boost::get<bool>(have["overridesGettag"]);
+    params.defpolOverrideLocal = boost::get<bool>(have.at("overridesGettag"));
   }
   if (have.count("extendedErrorCode") != 0) {
-    auto code = boost::get<uint32_t>(have["extendedErrorCode"]);
+    auto code = boost::get<uint32_t>(have.at("extendedErrorCode"));
     if (code > std::numeric_limits<uint16_t>::max()) {
       throw std::runtime_error("Invalid extendedErrorCode value " + std::to_string(code) + " in RPZ configuration");
     }
     params.extendedErrorCode = code;
     if (have.count("extendedErrorExtra") != 0) {
-      params.extendedErrorExtra = boost::get<std::string>(have["extendedErrorExtra"]);
+      params.extendedErrorExtra = boost::get<std::string>(have.at("extendedErrorExtra"));
     }
   }
   if (have.count("includeSOA") != 0) {
-    params.includeSOA = boost::get<bool>(have["includeSOA"]);
+    params.includeSOA = boost::get<bool>(have.at("includeSOA"));
   }
   if (have.count("ignoreDuplicates") != 0) {
-    params.ignoreDuplicates = boost::get<bool>(have["ignoreDuplicates"]);
+    params.ignoreDuplicates = boost::get<bool>(have.at("ignoreDuplicates"));
   }
 }
 
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>> protobufOptions_t;
 
-static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, ProtobufExportConfig& config)
+static void parseProtobufOptions(const boost::optional<protobufOptions_t>& vars, ProtobufExportConfig& config)
 {
   if (!vars) {
     return;
   }
+  const auto& have = *vars;
 
-  if (vars->count("timeout")) {
-    config.timeout = boost::get<uint64_t>((*vars)["timeout"]);
+  if (have.count("timeout") != 0) {
+    config.timeout = boost::get<uint64_t>(have.at("timeout"));
   }
 
-  if (vars->count("maxQueuedEntries")) {
-    config.maxQueuedEntries = boost::get<uint64_t>((*vars)["maxQueuedEntries"]);
+  if (have.count("maxQueuedEntries") != 0) {
+    config.maxQueuedEntries = boost::get<uint64_t>(have.at("maxQueuedEntries"));
   }
 
-  if (vars->count("reconnectWaitTime")) {
-    config.reconnectWaitTime = boost::get<uint64_t>((*vars)["reconnectWaitTime"]);
+  if (have.count("reconnectWaitTime") != 0) {
+    config.reconnectWaitTime = boost::get<uint64_t>(have.at("reconnectWaitTime"));
   }
 
-  if (vars->count("asyncConnect")) {
-    config.asyncConnect = boost::get<bool>((*vars)["asyncConnect"]);
+  if (have.count("asyncConnect") != 0) {
+    config.asyncConnect = boost::get<bool>(have.at("asyncConnect"));
   }
 
-  if (vars->count("taggedOnly")) {
-    config.taggedOnly = boost::get<bool>((*vars)["taggedOnly"]);
+  if (have.count("taggedOnly") != 0) {
+    config.taggedOnly = boost::get<bool>(have.at("taggedOnly"));
   }
 
-  if (vars->count("logQueries")) {
-    config.logQueries = boost::get<bool>((*vars)["logQueries"]);
+  if (have.count("logQueries") != 0) {
+    config.logQueries = boost::get<bool>(have.at("logQueries"));
   }
 
-  if (vars->count("logResponses")) {
-    config.logResponses = boost::get<bool>((*vars)["logResponses"]);
+  if (have.count("logResponses") != 0) {
+    config.logResponses = boost::get<bool>(have.at("logResponses"));
   }
 
-  if (vars->count("logMappedFrom")) {
-    config.logMappedFrom = boost::get<bool>((*vars)["logMappedFrom"]);
+  if (have.count("logMappedFrom") != 0) {
+    config.logMappedFrom = boost::get<bool>(have.at("logMappedFrom"));
   }
 
-  if (vars->count("exportTypes")) {
+  if (have.count("exportTypes") != 0) {
     config.exportTypes.clear();
 
-    auto types = boost::get<std::vector<std::pair<int, std::string>>>((*vars)["exportTypes"]);
+    auto types = boost::get<std::vector<std::pair<int, std::string>>>(have.at("exportTypes"));
     for (const auto& pair : types) {
       const auto& type = pair.second;
 
@@ -228,47 +229,48 @@ static void parseProtobufOptions(boost::optional<protobufOptions_t> vars, Protob
 #ifdef HAVE_FSTRM
 typedef std::unordered_map<std::string, boost::variant<bool, uint64_t, std::string, std::vector<std::pair<int, std::string>>>> frameStreamOptions_t;
 
-static void parseFrameStreamOptions(boost::optional<frameStreamOptions_t> vars, FrameStreamExportConfig& config)
+static void parseFrameStreamOptions(const boost::optional<frameStreamOptions_t>& vars, FrameStreamExportConfig& config)
 {
   if (!vars) {
     return;
   }
+  const auto& have = *vars;
 
-  if (vars->count("logQueries")) {
-    config.logQueries = boost::get<bool>((*vars)["logQueries"]);
+  if (have.count("logQueries") != 0) {
+    config.logQueries = boost::get<bool>(have.at("logQueries"));
   }
-  if (vars->count("logResponses")) {
-    config.logResponses = boost::get<bool>((*vars)["logResponses"]);
+  if (have.count("logResponses") != 0) {
+    config.logResponses = boost::get<bool>(have.at("logResponses"));
   }
-  if (vars->count("logNODs")) {
-    config.logNODs = boost::get<bool>((*vars)["logNODs"]);
+  if (have.count("logNODs") != 0) {
+    config.logNODs = boost::get<bool>(have.at("logNODs"));
   }
-  if (vars->count("logUDRs")) {
-    config.logUDRs = boost::get<bool>((*vars)["logUDRs"]);
+  if (have.count("logUDRs") != 0) {
+    config.logUDRs = boost::get<bool>(have.at("logUDRs"));
   }
 
-  if (vars->count("bufferHint")) {
-    config.bufferHint = boost::get<uint64_t>((*vars)["bufferHint"]);
+  if (have.count("bufferHint") != 0) {
+    config.bufferHint = boost::get<uint64_t>(have.at("bufferHint"));
   }
-  if (vars->count("flushTimeout")) {
-    config.flushTimeout = boost::get<uint64_t>((*vars)["flushTimeout"]);
+  if (have.count("flushTimeout") != 0) {
+    config.flushTimeout = boost::get<uint64_t>(have.at("flushTimeout"));
   }
-  if (vars->count("inputQueueSize")) {
-    config.inputQueueSize = boost::get<uint64_t>((*vars)["inputQueueSize"]);
+  if (have.count("inputQueueSize") != 0) {
+    config.inputQueueSize = boost::get<uint64_t>(have.at("inputQueueSize"));
   }
-  if (vars->count("outputQueueSize")) {
-    config.outputQueueSize = boost::get<uint64_t>((*vars)["outputQueueSize"]);
+  if (have.count("outputQueueSize") != 0) {
+    config.outputQueueSize = boost::get<uint64_t>(have.at("outputQueueSize"));
   }
-  if (vars->count("queueNotifyThreshold")) {
-    config.queueNotifyThreshold = boost::get<uint64_t>((*vars)["queueNotifyThreshold"]);
+  if (have.count("queueNotifyThreshold") != 0) {
+    config.queueNotifyThreshold = boost::get<uint64_t>(have.at("queueNotifyThreshold"));
   }
-  if (vars->count("reopenInterval")) {
-    config.reopenInterval = boost::get<uint64_t>((*vars)["reopenInterval"]);
+  if (have.count("reopenInterval") != 0) {
+    config.reopenInterval = boost::get<uint64_t>(have.at("reopenInterval"));
   }
 }
 #endif /* HAVE_FSTRM */
 
-static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options)
+static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const boost::optional<rpzOptions_t>& options)
 {
   RPZTrackerParams params;
   params.name = zoneName;
@@ -290,14 +292,14 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
       parseRPZParameters(have, params);
 
       if (have.count("tsigname") != 0) {
-        params.tsigtriplet.name = DNSName(toLower(boost::get<string>(have["tsigname"])));
-        params.tsigtriplet.algo = DNSName(toLower(boost::get<string>(have["tsigalgo"])));
-        if (B64Decode(boost::get<string>(have["tsigsecret"]), params.tsigtriplet.secret)) {
+        params.tsigtriplet.name = DNSName(toLower(boost::get<string>(have.at("tsigname"))));
+        params.tsigtriplet.algo = DNSName(toLower(boost::get<string>(have.at("tsigalgo"))));
+        if (B64Decode(boost::get<string>(have.at("tsigsecret")), params.tsigtriplet.secret) != 0) {
           throw std::runtime_error("TSIG secret is not valid Base-64 encoded");
         }
       }
       if (have.count("refresh") != 0) {
-        params.refreshFromConf = boost::get<uint32_t>(have["refresh"]);
+        params.refreshFromConf = boost::get<uint32_t>(have.at("refresh"));
         if (params.refreshFromConf == 0) {
           SLOG(g_log << Logger::Warning << "rpzPrimary refresh value of 0 ignored" << endl,
                lci.d_slog->info(Logr::Warning, "rpzPrimary refresh value of 0 ignored"));
@@ -305,23 +307,23 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
       }
 
       if (have.count("maxReceivedMBytes") != 0) {
-        params.maxReceivedMBytes = static_cast<size_t>(boost::get<uint32_t>(have["maxReceivedMBytes"]));
+        params.maxReceivedMBytes = static_cast<size_t>(boost::get<uint32_t>(have.at("maxReceivedMBytes")));
       }
 
       if (have.count("localAddress") != 0) {
-        params.localAddress = ComboAddress(boost::get<string>(have["localAddress"]));
+        params.localAddress = ComboAddress(boost::get<string>(have.at("localAddress")));
       }
 
       if (have.count("axfrTimeout") != 0) {
-        params.xfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(have["axfrTimeout"]));
+        params.xfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(have.at("axfrTimeout")));
       }
 
       if (have.count("seedFile") != 0) {
-        params.seedFileName = boost::get<std::string>(have["seedFile"]);
+        params.seedFileName = boost::get<std::string>(have.at("seedFile"));
       }
 
       if (have.count("dumpFile") != 0) {
-        params.dumpZoneFileName = boost::get<std::string>(have["dumpFile"]);
+        params.dumpZoneFileName = boost::get<std::string>(have.at("dumpFile"));
       }
     }
 
@@ -373,7 +375,7 @@ public:
   }
 };
 
-void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping, LuaConfigItems& newLuaConfig)
+void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping, LuaConfigItems& newLuaConfig) // NOLINT(readability-function-cognitive-complexity)
 {
   LuaConfigItems lci;
   if (g_slog) {
@@ -417,12 +419,12 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
     lci.rpzs.emplace_back(params);
   });
 
-  Lua->writeFunction("rpzMaster", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
+  Lua->writeFunction("rpzMaster", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const boost::optional<rpzOptions_t>& options) {
     SLOG(g_log << Logger::Warning << "'rpzMaster' is deprecated and will be removed in a future release, use 'rpzPrimary' instead" << endl,
          lci.d_slog->info(Logr::Warning, "'rpzMaster' is deprecated and will be removed in a future release, use 'rpzPrimary' instead"));
     rpzPrimary(lci, primaries_, zoneName, options);
   });
-  Lua->writeFunction("rpzPrimary", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, boost::optional<rpzOptions_t> options) {
+  Lua->writeFunction("rpzPrimary", [&lci](const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const boost::optional<rpzOptions_t>& options) {
     rpzPrimary(lci, primaries_, zoneName, options);
   });
 

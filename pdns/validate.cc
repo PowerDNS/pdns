@@ -1130,7 +1130,7 @@ bool haveNegativeTrustAnchor(const map<DNSName,std::string>& negAnchors, const D
   return true;
 }
 
-vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsset_t& dsset, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog& log, pdns::validation::ValidationContext& context)
+vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsset_t& dsset, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog& log, pdns::validation::ValidationContext& context) // NOLINT(readability-function-cognitive-complexity)
 {
   /*
    * Check all DNSKEY records against all DS records and place all DNSKEY records
