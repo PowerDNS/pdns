@@ -112,7 +112,7 @@ recursor:
     - zone: "example.com"
       forwarders:
         - 1.2.3.4
-        - a.b
+        - '-a.b'
 )EOT";
 
   auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);

@@ -176,6 +176,7 @@ pdns_recursor_SOURCES = \
 	rec-protozero.cc rec-protozero.hh \
 	rec-responsestats.hh rec-responsestats.cc \
 	rec-snmp.hh rec-snmp.cc \
+	rec-system-resolve.hh rec-system-resolve.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcounters.cc rec-tcounters.hh \
 	rec-tcp.cc \
@@ -308,6 +309,7 @@ testrunner_SOURCES = \
 	rcpgenerator.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
 	rec-responsestats.hh rec-responsestats.cc \
+	rec-system-resolve.hh rec-system-resolve.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcounters.cc rec-tcounters.hh \
 	rec-zonetocache.cc rec-zonetocache.hh \
@@ -349,6 +351,7 @@ testrunner_SOURCES = \
 	test-negcache_cc.cc \
 	test-packetcache_hh.cc \
 	test-rcpgenerator_cc.cc \
+	test-rec-system-resolve.cc \
 	test-rec-taskqueue.cc \
 	test-rec-tcounters_cc.cc \
 	test-rec-zonetocache.cc \

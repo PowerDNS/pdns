@@ -38,6 +38,7 @@
 #include "rec-taskqueue.hh"
 #include "rec-tcpout.hh"
 #include "rec-main.hh"
+#include "rec-system-resolve.hh"
 
 #include "settings/cxxsettings.hh"
 
@@ -2174,6 +2175,16 @@ static RecursorControlChannel::Answer reloadACLs()
   return {0, "ok\n"};
 }
 
+static std::string reloadZoneConfigurationWithSysResolveReset()
+{
+  auto& sysResolver = pdns::RecResolve::getInstance();
+  sysResolver.stopRefresher();
+  sysResolver.wipe();
+  auto ret = reloadZoneConfiguration(g_yamlSettings);
+  sysResolver.startRefresher();
+  return ret;
+}
+
 RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, const string& question, RecursorControlParser::func_t** command)
 {
   *command = nop;
@@ -2317,7 +2328,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
       g_log << Logger::Error << "Unable to reload zones and forwards when chroot()'ed, requested via control channel" << endl;
       return {1, "Unable to reload zones and forwards when chroot()'ed, please restart\n"};
     }
-    return {0, reloadZoneConfiguration(g_yamlSettings)};
+    return {0, reloadZoneConfigurationWithSysResolveReset()};
   }
   if (cmd == "set-ecs-minimum-ttl") {
     return {0, setMinimumECSTTL(begin, end)};

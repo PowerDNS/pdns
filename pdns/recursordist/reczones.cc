@@ -33,6 +33,7 @@
 #include "syncres.hh"
 #include "zoneparser-tng.hh"
 #include "settings/cxxsettings.hh"
+#include "rec-system-resolve.hh"
 
 extern int g_argc;
 extern char** g_argv;
@@ -62,6 +63,30 @@ bool primeHints(time_t now)
   return ret;
 }
 
+static ComboAddress fromNameOrIP(const string& str, uint16_t defPort, Logr::log_t log)
+{
+  try {
+    ComboAddress addr = parseIPAndPort(str, defPort);
+    return addr;
+  }
+  catch (const PDNSException&) {
+    uint16_t port = defPort;
+    string::size_type pos = str.rfind(':');
+    if (pos != string::npos) {
+      cerr << str.substr(pos) << endl;
+      port = pdns::checked_stoi<uint16_t>(str.substr(pos + 1));
+    }
+    auto& res = pdns::RecResolve::getInstance();
+    ComboAddress address = res.lookupAndRegister(str.substr(0, pos), time(nullptr));
+    if (address != ComboAddress()) {
+      address.setPort(port);
+      return address;
+    }
+    log->error(Logr::Error, "Could not resolve name", "name", Logging::Loggable(str));
+    throw PDNSException("Could not resolve " + str);
+  }
+}
+
 static void convertServersForAD(const std::string& zone, const std::string& input, SyncRes::AuthDomain& authDomain, const char* sepa, Logr::log_t log, bool verbose = true)
 {
   vector<string> servers;
@@ -70,7 +95,7 @@ static void convertServersForAD(const std::string& zone, const std::string& inpu
 
   vector<string> addresses;
   for (auto& server : servers) {
-    ComboAddress addr = parseIPAndPort(server, 53);
+    ComboAddress addr = fromNameOrIP(server, 53, log);
     authDomain.d_servers.push_back(addr);
     if (verbose) {
       addresses.push_back(addr.toStringWithPort());

@@ -41,7 +41,7 @@
 #include "dnsseckeeper.hh"
 #include "settings/cxxsettings.hh"
 #include "json.hh"
-
+#include "rec-system-resolve.hh"
 #ifdef NOD_ENABLED
 #include "nod.hh"
 #endif /* NOD_ENABLED */
@@ -2453,6 +2453,13 @@ static void houseKeepingWork(Logr::log_t log)
     });
   }
   else if (info.isHandler()) {
+    // static PeriodicTask systemResolveTask{"SysResolveCheckTask", 10};
+    // systemResolveTask.runIfDue(now, [] () {
+    //   auto& sysResolver = pdns::RecResolve::getInstance();
+    //   if (sysResolver.changeDetected()) {
+    //     reloadZoneConfiguration(g_yamlSettings);
+    //   }
+    // });
     if (g_packetCache) {
       static PeriodicTask packetCacheTask{"packetCacheTask", 5};
       packetCacheTask.runIfDue(now, [now]() {
@@ -3200,6 +3207,8 @@ int main(int argc, char** argv)
     }
 
     handleRuntimeDefaults(startupLog);
+
+    pdns::RecResolve::setInstanceParameters(60, []() { reloadZoneConfiguration(g_yamlSettings); });
 
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);

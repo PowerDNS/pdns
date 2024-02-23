@@ -67,6 +67,30 @@ pub fn validate_socket_address(field: &str, val: &String) -> Result<(), Validati
     Ok(())
 }
 
+fn is_port_number(str: &str) -> bool {
+    str.parse::<u16>().is_ok()
+}
+
+pub fn validate_socket_address_or_name(field: &str, val: &String) -> Result<(), ValidationError> {
+    let sa = SocketAddr::from_str(val);
+    if sa.is_err() {
+        let ip = IpAddr::from_str(val);
+        if ip.is_err() {
+            if !hostname_validator::is_valid(val) {
+                let parts:Vec<&str> = val.split(':').collect();
+                if parts.len () != 2 || !hostname_validator::is_valid(parts[0]) || !is_port_number(parts[1]) {
+                    let msg = format!(
+                        "{}: value `{}' is not an IP, IP:port, name or name:port combination",
+                        field, val
+                    );
+                    return Err(ValidationError { msg });
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn validate_name(field: &str, val: &String) -> Result<(), ValidationError> {
     if val.is_empty() {
         let msg = format!("{}: value may not be empty", field);
@@ -159,7 +183,7 @@ impl ForwardZone {
         validate_vec(
             &(field.to_owned() + ".forwarders"),
             &self.forwarders,
-            validate_socket_address,
+            validate_socket_address_or_name,
         )
     }
 
