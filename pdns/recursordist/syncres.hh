@@ -465,6 +465,11 @@ public:
     return d_queryValidationState;
   }
 
+  [[nodiscard]] bool getDNSSECLimitHit() const
+  {
+    return d_validationContext.d_limitHit;
+  }
+
   void setQueryReceivedOverTCP(bool tcp)
   {
     d_queryReceivedOverTCP = tcp;

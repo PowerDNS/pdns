@@ -176,6 +176,7 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
       }
 
       if (g_maxNSEC3sPerRecordToConsider > 0 && nsec3sConsidered >= g_maxNSEC3sPerRecordToConsider) {
+        context.d_limitHit = true;
         return false;
       }
       nsec3sConsidered++;
@@ -704,6 +705,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
         if (g_maxNSEC3sPerRecordToConsider > 0 && nsec3sConsidered >= g_maxNSEC3sPerRecordToConsider) {
           VLOG(log, qname << ": Too many NSEC3s for this record"<<endl);
+          context.d_limitHit = true;          
           return dState::NODENIAL;
         }
         nsec3sConsidered++;
@@ -805,6 +807,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
             if (g_maxNSEC3sPerRecordToConsider > 0 && nsec3sConsidered >= g_maxNSEC3sPerRecordToConsider) {
               VLOG(log, qname << ": Too many NSEC3s for this record"<<endl);
+              context.d_limitHit = true;
               return dState::NODENIAL;
             }
             nsec3sConsidered++;
@@ -891,6 +894,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
             if (g_maxNSEC3sPerRecordToConsider > 0 && nsec3sConsidered >= g_maxNSEC3sPerRecordToConsider) {
               VLOG(log, qname << ": Too many NSEC3s for this record"<<endl);
+              context.d_limitHit = true;
               return dState::NODENIAL;
             }
             nsec3sConsidered++;
@@ -1031,6 +1035,7 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
     if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
       VLOG(log, name<<": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
       // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
+      context.d_limitHit = true;
       break;
     }
     signaturesConsidered++;
@@ -1049,6 +1054,9 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
     for (const auto& key : keysMatchingTag) {
       if (g_maxDNSKEYsToConsider > 0 && dnskeysConsidered >= g_maxDNSKEYsToConsider) {
         VLOG(log, name << ": We have already considered "<<std::to_string(dnskeysConsidered)<<" DNSKEY"<<addS(dnskeysConsidered)<<" for tag "<<std::to_string(signature->d_tag)<<" and algorithm "<<std::to_string(signature->d_algorithm)<<", not considering the remaining ones for this signature"<<endl;);
+        if (!isValid) {
+          context.d_limitHit = true;
+        }
         return isValid ? vState::Secure : vState::BogusNoValidRRSIG;
       }
       dnskeysConsidered++;
@@ -1175,6 +1183,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
         // we need to break because we can have a partially validated set
         // where the KSK signs the ZSK(s), and even if we don't
         // we are going to try to get the correct EDE status (revoked, expired, ...)
+        context.d_limitHit = true;
         break;
       }
       dnskeysConsidered++;
@@ -1227,6 +1236,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
       if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
         VLOG(log, zone << ": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
         // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
+        context.d_limitHit = true;
         return vState::BogusNoValidDNSKEY;
       }
 
@@ -1235,6 +1245,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
       for (const auto& key : bytag) {
         if (g_maxDNSKEYsToConsider > 0 && dnskeysConsidered >= g_maxDNSKEYsToConsider) {
           VLOG(log, zone << ": We have already considered "<<std::to_string(dnskeysConsidered)<<" DNSKEY"<<addS(dnskeysConsidered)<<" for tag "<<std::to_string(sig->d_tag)<<" and algorithm "<<std::to_string(sig->d_algorithm)<<", not considering the remaining ones for this signature"<<endl;);
+          context.d_limitHit = true;
           return vState::BogusNoValidDNSKEY;
         }
         dnskeysConsidered++;
@@ -1242,6 +1253,7 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
         if (g_maxRRSIGsPerRecordToConsider > 0 && signaturesConsidered >= g_maxRRSIGsPerRecordToConsider) {
           VLOG(log, zone << ": We have already considered "<<std::to_string(signaturesConsidered)<<" RRSIG"<<addS(signaturesConsidered)<<" for this record, stopping now"<<endl;);
           // possibly going Bogus, the RRSIGs have not been validated so Insecure would be wrong
+          context.d_limitHit = true;
           return vState::BogusNoValidDNSKEY;
         }
         //          cerr<<"validating : ";
