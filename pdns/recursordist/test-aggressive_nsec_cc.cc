@@ -1398,7 +1398,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_ancestor_cases)
     BOOST_CHECK_EQUAL(cache->getEntriesCount(), 1U);
 
     /* the cache should now be able to deny other types (except the DS) */
-     /* the cache should now be able to deny other types (except the DS) */
+    /* the cache should now be able to deny other types (except the DS) */
     BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::AAAA, RCode::NoError, 3U), true);
     /* but not the DS that lives in the parent zone */
     BOOST_CHECK_EQUAL(getDenialWrapper(cache, now, name, QType::DS, std::nullopt, 0U), false);

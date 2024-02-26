@@ -461,7 +461,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig)
 
   pdns::validation::ValidationContext validationContext;
   BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, validationContext) == vState::Secure);
-  BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 1U);}
+  BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 1U);
+}
 
 BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk)
 {
