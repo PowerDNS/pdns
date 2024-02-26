@@ -3405,6 +3405,7 @@ int main(int argc, char** argv)
           }
 
           if (!queueHealthCheck(mplexer, dss, true)) {
+            dss->submitHealthCheckResult(true, false);
             dss->setUpStatus(false);
             warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr());
           }
