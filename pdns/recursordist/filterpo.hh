@@ -117,6 +117,39 @@ public:
     {
     }
 
+    ~Policy() = default;
+
+    Policy(const Policy& rhs) :
+      d_custom(rhs.d_custom),
+      d_zoneData(rhs.d_zoneData),
+      d_hitdata(rhs.d_hitdata ? make_unique<HitData>(*rhs.d_hitdata) : nullptr),
+      d_ttl(rhs.d_ttl),
+      d_kind(rhs.d_kind),
+      d_type(rhs.d_type)
+    {
+    }
+
+    Policy& operator=(const Policy& rhs)
+    {
+      if (this != &rhs) {
+        d_custom = rhs.d_custom;
+        d_zoneData = rhs.d_zoneData;
+        if (rhs.d_hitdata) {
+          d_hitdata = make_unique<HitData>(*rhs.d_hitdata);
+        }
+        else {
+          d_hitdata = nullptr;
+        }
+        d_ttl = rhs.d_ttl;
+        d_kind = rhs.d_kind;
+        d_type = rhs.d_type;
+      }
+      return *this;
+    }
+
+    Policy(Policy&&) = default;
+    Policy& operator=(Policy&&) = default;
+
     bool operator==(const Policy& rhs) const
     {
       return d_kind == rhs.d_kind && d_type == rhs.d_type && d_ttl == rhs.d_ttl && d_custom == rhs.d_custom;
@@ -201,8 +234,12 @@ public:
 
     std::vector<std::shared_ptr<const DNSRecordContent>> d_custom;
     std::shared_ptr<PolicyZoneData> d_zoneData{nullptr};
-    DNSName d_trigger;
-    string d_hit;
+    struct HitData
+    {
+      DNSName d_trigger;
+      string d_hit;
+    };
+    std::unique_ptr<HitData> d_hitdata;
     /* Yup, we are currently using the same TTL for every record for a given name */
     int32_t d_ttl;
     PolicyKind d_kind;
@@ -215,6 +252,22 @@ public:
         soa.d_place = DNSResourceRecord::ADDITIONAL;
         ret.emplace_back(soa);
       }
+    }
+
+    void setHitData(const DNSName& name, const string& hit)
+    {
+      HitData hitdata{name, hit};
+      d_hitdata = make_unique<HitData>(hitdata);
+    }
+
+    [[nodiscard]] DNSName getTrigger() const
+    {
+      return d_hitdata ? d_hitdata->d_trigger : DNSName();
+    }
+
+    [[nodiscard]] std::string getHit() const
+    {
+      return d_hitdata ? d_hitdata->d_hit : "";
     }
 
   private:

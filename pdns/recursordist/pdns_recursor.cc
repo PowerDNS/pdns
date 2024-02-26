@@ -1713,8 +1713,8 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       if (!appliedPolicy.getName().empty()) {
         pbMessage.setAppliedPolicy(appliedPolicy.getName());
         pbMessage.setAppliedPolicyType(appliedPolicy.d_type);
-        pbMessage.setAppliedPolicyTrigger(appliedPolicy.d_trigger);
-        pbMessage.setAppliedPolicyHit(appliedPolicy.d_hit);
+        pbMessage.setAppliedPolicyTrigger(appliedPolicy.getTrigger());
+        pbMessage.setAppliedPolicyHit(appliedPolicy.getHit());
         pbMessage.setAppliedPolicyKind(appliedPolicy.d_kind);
       }
       pbMessage.setInBytes(packet.size());
