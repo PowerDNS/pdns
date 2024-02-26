@@ -113,15 +113,18 @@ public:
     }
 
     Policy(PolicyKind kind, PolicyType type, int32_t ttl = 0, std::shared_ptr<PolicyZoneData> data = nullptr, const std::vector<std::shared_ptr<const DNSRecordContent>>& custom = {}) :
-      d_custom(custom), d_zoneData(std::move(data)), d_ttl(ttl), d_kind(kind), d_type(type)
+      d_zoneData(std::move(data)), d_custom(nullptr), d_ttl(ttl), d_kind(kind), d_type(type)
     {
+      if (!custom.empty()) {
+        setCustom(custom);
+      }
     }
 
     ~Policy() = default;
 
     Policy(const Policy& rhs) :
-      d_custom(rhs.d_custom),
       d_zoneData(rhs.d_zoneData),
+      d_custom(rhs.d_custom ? make_unique<CustomData>(*rhs.d_custom) : nullptr),
       d_hitdata(rhs.d_hitdata ? make_unique<HitData>(*rhs.d_hitdata) : nullptr),
       d_ttl(rhs.d_ttl),
       d_kind(rhs.d_kind),
@@ -132,7 +135,9 @@ public:
     Policy& operator=(const Policy& rhs)
     {
       if (this != &rhs) {
-        d_custom = rhs.d_custom;
+        if (rhs.d_custom) {
+          d_custom = make_unique<CustomData>(*rhs.d_custom);
+        }
         d_zoneData = rhs.d_zoneData;
         if (rhs.d_hitdata) {
           d_hitdata = make_unique<HitData>(*rhs.d_hitdata);
@@ -232,8 +237,11 @@ public:
     [[nodiscard]] std::vector<DNSRecord> getCustomRecords(const DNSName& qname, uint16_t qtype) const;
     [[nodiscard]] std::vector<DNSRecord> getRecords(const DNSName& qname) const;
 
-    std::vector<std::shared_ptr<const DNSRecordContent>> d_custom;
     std::shared_ptr<PolicyZoneData> d_zoneData{nullptr};
+
+    using CustomData = std::vector<std::shared_ptr<const DNSRecordContent>>;
+    std::unique_ptr<CustomData> d_custom;
+
     struct HitData
     {
       DNSName d_trigger;
@@ -252,6 +260,19 @@ public:
         soa.d_place = DNSResourceRecord::ADDITIONAL;
         ret.emplace_back(soa);
       }
+    }
+
+    void setCustom(const CustomData& custom)
+    {
+      d_custom = make_unique<CustomData>(custom);
+    }
+
+    [[nodiscard]] size_t customRecordsSize() const
+    {
+      if (d_custom) {
+        return d_custom->size();
+      }
+      return 0;
     }
 
     void setHitData(const DNSName& name, const string& hit)
