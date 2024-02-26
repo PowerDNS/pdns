@@ -692,6 +692,7 @@ bool DownstreamState::healthCheckRequired(std::optional<time_t> currentTime)
         lastResults.clear();
         vinfolog("Backend %s reached the lazy health-check threshold (%f%% out of %f%%, looking at sample of %d items with %d failures), moving to Potential Failure state", getNameWithAddr(), current, maxFailureRate, totalCount, failures);
         stats->d_status = LazyHealthCheckStats::LazyStatus::PotentialFailure;
+        consecutiveSuccessfulChecks = 0;
         /* we update the next check time here because the check might time out,
            and we do not want to send a second check during that time unless
            the timer is actually very short */
@@ -751,7 +752,7 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, boo
 
       time_t backOff = d_config.d_lazyHealthCheckMaxBackOff;
       const ExponentialBackOffTimer backOffTimer(d_config.d_lazyHealthCheckMaxBackOff);
-      auto backOffCoeffTmp = backOffTimer.get(failedTests);
+      auto backOffCoeffTmp = backOffTimer.get(failedTests - 1);
       /* backOffCoeffTmp cannot be higher than d_config.d_lazyHealthCheckMaxBackOff */
       const auto backOffCoeff = static_cast<time_t>(backOffCoeffTmp);
       if ((std::numeric_limits<time_t>::max() / d_config.d_lazyHealthCheckFailedInterval) >= backOffCoeff) {
@@ -800,12 +801,12 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
   if (newResult) {
     /* check succeeded */
     currentCheckFailures = 0;
+    consecutiveSuccessfulChecks++;
 
     if (!upStatus) {
       /* we were previously marked as "down" and had a successful health-check,
          let's see if this is enough to move to the "up" state or if we need
          more successful health-checks for that */
-      consecutiveSuccessfulChecks++;
       if (consecutiveSuccessfulChecks < d_config.minRiseSuccesses) {
         /* we need more than one successful check to rise
            and we didn't reach the threshold yet, let's stay down */
@@ -846,7 +847,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
         auto stats = d_lazyHealthCheckStats.lock();
         vinfolog("Backend %s failed its health-check, moving from Potential failure to Failed", getNameWithAddr());
         stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
-        currentCheckFailures = 0;
+        currentCheckFailures = 1;
         updateNextLazyHealthCheck(*stats, false);
       }
     }
