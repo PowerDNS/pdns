@@ -1369,7 +1369,8 @@ Secondary name servers.
 -  Default: 0 (disabled)
 
 If this many packets are waiting for database attention, answer any new
-questions strictly from the packet cache.
+questions strictly from the packet cache. Packets not in the cache will
+be dropped, and :ref:`_stat-overload-drops` will be incremented.
 
 .. _setting-prevent-self-notification:
 
