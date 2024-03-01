@@ -2657,6 +2657,7 @@ Prefer structured logging when both an old style and a structured log messages i
  ''',
         'versionadded': '4.6.0',
         'versionchanged': ('5.0.0', 'Disabling structured logging is deprecated'),
+        'versionchanged': ('5.1.0', 'Disabling structured logging is not supported'),
     },
     {
         'name' : 'structured_logging_backend',

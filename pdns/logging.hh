@@ -206,8 +206,10 @@ private:
 
 extern std::shared_ptr<Logging::Logger> g_slog;
 
-// Prefer structured logging?
-extern bool g_slogStructured;
+// Prefer structured logging? Since 5.1.0, we always do. We keep a const, to allow for step-by-step
+// removal of old style logging code (for recursor-only code). Note that code shared with auth still uses
+// old-style, so the SLOG calls should remain for shared code.
+constexpr bool g_slogStructured = true;
 
 // A helper macro to switch between old-style logging and new-style (structured logging)
 // A typical use:

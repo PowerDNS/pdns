@@ -3082,7 +3082,6 @@ int main(int argc, char** argv)
     // Pick up options given on command line to setup logging asap.
     g_quiet = ::arg().mustDo("quiet");
     s_logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
-    g_slogStructured = ::arg().mustDo("structured-logging");
     s_structured_logger_backend = ::arg()["structured-logging-backend"];
 
     if (!g_quiet && s_logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
@@ -3091,8 +3090,8 @@ int main(int argc, char** argv)
     g_log.setLoglevel(s_logUrgency);
     g_log.toConsole(s_logUrgency);
     showProductVersion();
-    if (!g_slogStructured) {
-      g_log << Logger::Warning << "Disabling structured logging is deprecated, old-style logging wil be removed in a future release" << endl;
+    if (!::arg().mustDo("structured-logging")) {
+      g_log << Logger::Error << "Disabling structured logging is not supported anymore" << endl;
     }
 
     g_yamlSettings = false;
@@ -3182,7 +3181,6 @@ int main(int argc, char** argv)
 
     g_quiet = ::arg().mustDo("quiet");
     s_logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
-    g_slogStructured = ::arg().mustDo("structured-logging");
 
     if (s_logUrgency < Logger::Error) {
       s_logUrgency = Logger::Error;
