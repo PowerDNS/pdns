@@ -220,12 +220,7 @@ constexpr bool g_slogStructured = true;
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define SLOG(oldStyle, slogCall) \
   do {                           \
-    if (g_slogStructured) {      \
-      slogCall;                  \
-    }                            \
-    else {                       \
-      oldStyle;                  \
-    }                            \
+    slogCall;                    \
   } while (0)
 
 #else // No structured logging (e.g. auth)

@@ -388,14 +388,6 @@ static void updateResponseStats(int res, const ComboAddress& remote, unsigned in
   }
 }
 
-static string makeLoginfo(const std::unique_ptr<DNSComboWriter>& comboWriter)
-try {
-  return "(" + comboWriter->d_mdp.d_qname.toLogString() + "/" + DNSRecordContent::NumberToType(comboWriter->d_mdp.d_qtype) + " from " + (comboWriter->getRemote()) + ")";
-}
-catch (...) {
-  return "Exception making error message for exception";
-}
-
 /**
  * Chases the CNAME provided by the PolicyCustom RPZ policy.
  *
@@ -2675,7 +2667,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
       if (address.sin6.sin6_family == AF_INET6 && setsockopt(socketFd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one)) < 0) {
         int err = errno;
         SLOG(g_log << Logger::Warning << "Failed to set IPv6 socket to IPv6 only, continuing anyhow: " << stringerror(err) << endl,
-             log->error(Logr::Warning, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
+             log->error(Logr::Warning, err, "Failed to set IPv6 socket to IPv6 only, continuing anyhow"));
       }
     }
     if (::arg().mustDo("non-local-bind")) {
