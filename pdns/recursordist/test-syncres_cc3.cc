@@ -1265,10 +1265,10 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_nodata_bogus)
 
 BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded)
 {
-  std::unique_ptr<SyncRes> sr;
-  initSR(sr, true);
+  std::unique_ptr<SyncRes> testSR;
+  initSR(testSR, true);
 
-  setDNSSECValidation(sr, DNSSECMode::ValidateAll);
+  setDNSSECValidation(testSR, DNSSECMode::ValidateAll);
 
   primeHints();
   /* unsigned */
@@ -1286,12 +1286,12 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded
   const ComboAddress forwardedNS("192.0.2.42:53");
   size_t queriesCount = 0;
 
-  SyncRes::AuthDomain ad;
-  ad.d_rdForward = true;
-  ad.d_servers.push_back(forwardedNS);
-  (*SyncRes::t_sstorage.domainmap)[g_rootdnsname] = ad;
+  SyncRes::AuthDomain authDomain;
+  authDomain.d_rdForward = true;
+  authDomain.d_servers.push_back(forwardedNS);
+  (*SyncRes::t_sstorage.domainmap)[g_rootdnsname] = authDomain;
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool sendRDQuery, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+  testSR->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool sendRDQuery, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
     queriesCount++;
 
     BOOST_CHECK_EQUAL(sendRDQuery, true);
@@ -1321,17 +1321,17 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded
   });
 
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  int res = testSR->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_CHECK_EQUAL(testSR->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 5U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 
   /* again, to test the cache */
   ret.clear();
-  res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  res = testSR->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Insecure);
+  BOOST_CHECK_EQUAL(testSR->getValidationState(), vState::Insecure);
   BOOST_REQUIRE_EQUAL(ret.size(), 5U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
