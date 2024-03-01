@@ -2750,8 +2750,7 @@ static void recursorThread()
       }
     }
 
-    unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numUDPWorkers();
-    if (ringsize != 0) {
+    if (unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numUDPWorkers(); ringsize != 0) {
       t_remotes = std::make_unique<addrringbuf_t>();
       if (RecThreadInfo::weDistributeQueries()) {
         t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numDistributors());
@@ -2778,14 +2777,16 @@ static void recursorThread()
     g_multiTasker = std::make_unique<MT_t>(::arg().asNum("stack-size"), ::arg().asNum("stack-cache-size"));
     threadInfo.setMT(g_multiTasker.get());
 
-    /* start protobuf export threads if needed */
-    auto luaconfsLocal = g_luaconfs.getLocal();
-    checkProtobufExport(luaconfsLocal);
-    checkOutgoingProtobufExport(luaconfsLocal);
+    {
+      /* start protobuf export threads if needed, don;'t keep a ref to lua config around */
+      auto luaconfsLocal = g_luaconfs.getLocal();
+      checkProtobufExport(luaconfsLocal);
+      checkOutgoingProtobufExport(luaconfsLocal);
 #ifdef HAVE_FSTRM
-    checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
-    checkFrameStreamExport(luaconfsLocal, luaconfsLocal->nodFrameStreamExportConfig, t_nodFrameStreamServersInfo);
+      checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
+      checkFrameStreamExport(luaconfsLocal, luaconfsLocal->nodFrameStreamExportConfig, t_nodFrameStreamServersInfo);
 #endif
+    }
 
     t_fdm = unique_ptr<FDMultiplexer>(getMultiplexer(log));
 
