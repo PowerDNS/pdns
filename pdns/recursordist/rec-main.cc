@@ -40,6 +40,7 @@
 #include "logging.hh"
 #include "dnsseckeeper.hh"
 #include "settings/cxxsettings.hh"
+#include "json.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -1021,6 +1022,49 @@ static void loggerSDBackend(const Logging::Entry& entry)
   sd_journal_sendv(iov.data(), static_cast<int>(iov.size()));
 }
 #endif
+
+static void loggerJSONBackend(const Logging::Entry& entry)
+{
+  // First map SL priority to syslog's Urgency
+  Logger::Urgency urg = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  if (urg > s_logUrgency) {
+    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
+    // Not that lower Urgency means higher number.
+    return;
+  }
+
+  std::array<char, 64> timebuf{};
+  json11::Json::object json = {
+    {"msg", entry.message},
+    {"level", std::to_string(entry.level)},
+    // Thread id filled in by backend, since the SL code does not know about RecursorThreads
+    // We use the Recursor thread, other threads get id 0. May need to revisit.
+    {"tid", std::to_string(RecThreadInfo::id())},
+    {"ts", toTimestampStringMilli(entry.d_timestamp, timebuf)},
+  };
+
+  if (entry.error) {
+    json.emplace("error", entry.error.get());
+  }
+
+  if (entry.name) {
+    json.emplace("subsystem", entry.name.get());
+  }
+
+  if (entry.d_priority != 0) {
+    json.emplace("priority", std::to_string(entry.d_priority));
+  }
+
+  for (auto const& value : entry.values) {
+    json.emplace(value.first, value.second);
+  }
+
+  static thread_local std::string out;
+  out.clear();
+  json11::Json doc(std::move(json));
+  doc.dump(out);
+  cerr << out << endl;
+}
 
 static void loggerBackend(const Logging::Entry& entry)
 {
@@ -2986,6 +3030,31 @@ static void handleRuntimeDefaults(Logr::log_t log)
   }
 }
 
+static void setupLogging(const string& logname)
+{
+  if (logname == "systemd-journal") {
+#ifdef HAVE_SYSTEMD
+    if (int fileDesc = sd_journal_stream_fd("pdns-recusor", LOG_DEBUG, 0); fileDesc >= 0) {
+      g_slog = Logging::Logger::create(loggerSDBackend);
+      close(fileDesc);
+    }
+#endif
+    if (g_slog == nullptr) {
+      cerr << "Structured logging to systemd-journal requested but it is not available" << endl;
+    }
+  }
+  else if (logname == "json") {
+    g_slog = Logging::Logger::create(loggerJSONBackend);
+    if (g_slog == nullptr) {
+      cerr << "JSON logging to requested but it is not available" << endl;
+    }
+  }
+
+  if (g_slog == nullptr) {
+    g_slog = Logging::Logger::create(loggerBackend);
+  }
+}
+
 int main(int argc, char** argv)
 {
   g_argc = argc;
@@ -3056,21 +3125,7 @@ int main(int argc, char** argv)
       return 99;
     }
 
-    if (s_structured_logger_backend == "systemd-journal") {
-#ifdef HAVE_SYSTEMD
-      if (int fd = sd_journal_stream_fd("pdns-recusor", LOG_DEBUG, 0); fd >= 0) {
-        g_slog = Logging::Logger::create(loggerSDBackend);
-        close(fd);
-      }
-#endif
-      if (g_slog == nullptr) {
-        cerr << "Structured logging to systemd-journal requested but it is not available" << endl;
-      }
-    }
-
-    if (g_slog == nullptr) {
-      g_slog = Logging::Logger::create(loggerBackend);
-    }
+    setupLogging(s_structured_logger_backend);
 
     // Missing: a mechanism to call setVerbosity(x)
     auto startupLog = g_slog->withName("config");
