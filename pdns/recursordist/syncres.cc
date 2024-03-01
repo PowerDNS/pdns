@@ -4375,11 +4375,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
     }
     auto initial = qname;
     while (true) {
-      auto it = cnames.find(initial);
-      if (it == cnames.end()) {
+      auto cnameIt = cnames.find(initial);
+      if (cnameIt == cnames.end()) {
         break;
       }
-      initial = it->second;
+      initial = cnameIt->second;
       wildcardCandidates.emplace(initial, false);
     }
   }
@@ -4691,7 +4691,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
         }
         bool thisRRNeedsWildcardProof = false;
         if (gatherWildcardProof) {
-          if (auto wcIt = wildcardCandidates.find(tCacheEntry->first.name); wcIt != wildcardCandidates.end() && wcIt->second == true) {
+          if (auto wcIt = wildcardCandidates.find(tCacheEntry->first.name); wcIt != wildcardCandidates.end() && wcIt->second) {
             thisRRNeedsWildcardProof = true;
           }
         }
@@ -4741,7 +4741,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
   }
 
   if (gatherWildcardProof) {
-    if (auto it = wildcardCandidates.find(qname); it != wildcardCandidates.end() && it->second == false) {
+    if (auto wcIt = wildcardCandidates.find(qname); wcIt != wildcardCandidates.end() && !wcIt->second) {
       // the queried name was not expended from a wildcard, a record in the CNAME chain was, so we don't need to gather wildcard proof now: we will do that when looking up the CNAME chain
       gatherWildcardProof = false;
     }
