@@ -878,23 +878,24 @@ private:
     }
     OpenSSLTLSIOCtx* obj = reinterpret_cast<OpenSSLTLSIOCtx*>(arg);
 
-    size_t pos = 0;
-    while (pos < inlen) {
-      size_t protoLen = in[pos];
-      pos++;
-      if (protoLen > (inlen - pos)) {
-        /* something is very wrong */
-        return SSL_TLSEXT_ERR_ALERT_WARNING;
-      }
+    // Server preference algorithm as per RFC 7301 section 3.2
+    for (const auto& tentative : obj->d_alpnProtos) {
+      size_t pos = 0;
+      while (pos < inlen) {
+        size_t protoLen = in[pos];
+        pos++;
+        if (protoLen > (inlen - pos)) {
+          /* something is very wrong */
+          return SSL_TLSEXT_ERR_ALERT_WARNING;
+        }
 
-      for (const auto& tentative : obj->d_alpnProtos) {
         if (tentative.size() == protoLen && memcmp(in + pos, tentative.data(), tentative.size()) == 0) {
           *out = in + pos;
           *outlen = protoLen;
           return SSL_TLSEXT_ERR_OK;
         }
+        pos += protoLen;
       }
-      pos += protoLen;
     }
 
     return SSL_TLSEXT_ERR_NOACK;
