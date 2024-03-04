@@ -24,10 +24,8 @@ begin
 
       if h.respond_to?(method.to_sym) == false
          res = false
-      elsif args.size > 0
-         res, log = h.send(method,args)
       else
-         res, log = h.send(method)
+         res, log = h.send(method,args)
       end
       puts ({:result => res, :log => log}).to_json
       f.puts "#{Time.now.to_f} [pipe]: #{({:result => res, :log => log}).to_json}"

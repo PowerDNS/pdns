@@ -286,7 +286,7 @@ class Handler
      [do_getdomaininfo({'name'=>'unit.test.'})]
    end
 
-   def do_getupdatedmasters()
+   def do_getupdatedmasters(args)
      [do_getdomaininfo({'name'=>'master.test.'})]
    end
 end
