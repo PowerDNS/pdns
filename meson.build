@@ -182,7 +182,6 @@ if not fs.is_file(libpdns_apidocfiles_gen)
     capture: true,
   )
 endif
-common_sources += libpdns_apidocfiles_gen
 
 libpdns_bind_dnssec_schema_source = src_dir / 'bind-dnssec.schema.sqlite3.sql'
 libpdns_bind_dnssec_schema_gen    = src_dir / 'bind-dnssec.schema.sqlite3.sql.h'
@@ -203,7 +202,6 @@ if not fs.is_file(libpdns_bind_dnssec_schema_gen)
     capture: true,
   )
 endif
-common_sources += libpdns_bind_dnssec_schema_gen
 
 conditional_sources = {
   'mplexer-sunos-devpoll': {
@@ -579,6 +577,7 @@ tools = {
 
   'pdns-auth-util'    : {
     'main': src_dir / 'pdnsutil.cc',
+    'files-extra': libpdns_bind_dnssec_schema_gen,
     'deps-extra': libpdns_ssqlite3,
   },
   'pdns-auth-control' : { 'main': src_dir / 'dynloader.cc' },
@@ -737,6 +736,7 @@ libpdns_common = declare_dependency(
     'pdns-common',
     common_sources,
     config_h,
+    libpdns_apidocfiles_gen,
     dependencies: [
       deps,
       libpdns_signers_pkcs11,
@@ -751,6 +751,7 @@ foreach tool, info: tools
   main = files(info['main'])
 
   export_dynamic = 'export-dynamic' in info ? info['export-dynamic'] : false
+  files_extra = 'files-extra' in info ? info['files-extra'] : []
   deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
 
   set_variable(
@@ -759,6 +760,7 @@ foreach tool, info: tools
       tool,
       main,
       config_h,
+      files_extra,
       export_dynamic: export_dynamic,
       dependencies: [
         deps,
