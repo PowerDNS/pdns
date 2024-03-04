@@ -225,27 +225,27 @@ case "$mode" in
   ;;
   remotebackend_unix.test)
     start_unix
-    run_test
+    run_test ; rv=$?
     stop_unix
   ;;
   remotebackend_http.test)
     start_web "http"
-    run_test
+    run_test ; rv=$?
     stop_web "http"
   ;;
   remotebackend_post.test)
     start_web "post"
-    run_test
+    run_test ; rv=$?
     stop_web "post"
   ;;
   remotebackend_json.test)
     start_web "json"
-    run_test
+    run_test ; rv=$?
     stop_web "json"
   ;;
   remotebackend_zeromq.test)
     start_zeromq
-    run_test
+    run_test ; rv=$?
     stop_zeromq
   ;;
   *)
@@ -254,4 +254,4 @@ case "$mode" in
   ;;
 esac
 
-exit $?
+exit $rv

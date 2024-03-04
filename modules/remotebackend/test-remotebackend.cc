@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE(test_method_getBeforeAndAfterNamesAbsolute)
   DNSName after;
   BOOST_TEST_MESSAGE("Testing getBeforeAndAfterNamesAbsolute method");
 
-  backendUnderTest->getBeforeAndAfterNamesAbsolute(-1, DNSName("middle.unit.test."), unhashed, before, after);
+  backendUnderTest->getBeforeAndAfterNamesAbsolute(1, DNSName("middle.unit.test."), unhashed, before, after);
   BOOST_CHECK_EQUAL(unhashed.toString(), "middle.");
   BOOST_CHECK_EQUAL(before.toString(), "begin.");
   BOOST_CHECK_EQUAL(after.toString(), "stop.");
