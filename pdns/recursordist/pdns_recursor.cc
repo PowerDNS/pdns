@@ -569,10 +569,10 @@ static PolicyResult handlePolicyHit(const DNSFilterEngine::Policy& appliedPolicy
           break;
         }
         catch (const pdns::validation::TooManySEC3IterationsException& e) {
-          if (g_logCommonErrors) {
+          if (g_logCommonErrors || (g_dnssecLogBogus && resolver.getDNSSECLimitHit())) {
             SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << comboWriter->getRemote() << " during resolve of the custom filter policy '" << appliedPolicy.getName() << "' while resolving '" << comboWriter->d_mdp.d_qname << "' because: " << e.what() << endl,
                  resolver.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during resolve of the custom filter policy",
-                                        "policyName", Logging::Loggable(appliedPolicy.getName()), "exception", Logging::Loggable("TooManySEC3IterationsException")));
+                                        "policyName", Logging::Loggable(appliedPolicy.getName()), "exception", Logging::Loggable("TooManySEC3IterationsException"), "dnsseclimithit", Logging::Loggable(resolver.getDNSSECLimitHit())));
           }
           res = RCode::ServFail;
           break;
@@ -1282,7 +1282,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       catch (const pdns::validation::TooManySEC3IterationsException& e) {
         if (g_logCommonErrors) {
           SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << comboWriter->getRemote() << " during resolve of '" << comboWriter->d_mdp.d_qname << "' because: " << e.what() << endl,
-               resolver.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during resolve"));
+               resolver.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during resolve", "dnsseclimithit", Logging::Loggable(true)));
         }
         res = RCode::ServFail;
       }
@@ -1403,6 +1403,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
           if (resolver.doLog() || vStateIsBogus(state)) {
             // Only create logging object if needed below, beware if you change the logging logic!
             log = resolver.d_slog->withValues("vstate", Logging::Loggable(state));
+            if (resolver.getDNSSECLimitHit()) {
+              log = log->withValues("dnsseclimithit", Logging::Loggable(true));
+            }
             auto xdnssec = g_xdnssec.getLocal();
             if (xdnssec->check(comboWriter->d_mdp.d_qname)) {
               log = log->withValues("in-x-dnssec-names", Logging::Loggable(1));
@@ -1466,9 +1469,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
           goto sendit; // NOLINT(cppcoreguidelines-avoid-goto)
         }
         catch (const pdns::validation::TooManySEC3IterationsException& e) {
-          if (g_logCommonErrors) {
+          if (g_logCommonErrors || (g_dnssecLogBogus && resolver.getDNSSECLimitHit())) {
             SLOG(g_log << Logger::Notice << "Sending SERVFAIL to " << comboWriter->getRemote() << " during validation of '" << comboWriter->d_mdp.d_qname << "|" << QType(comboWriter->d_mdp.d_qtype) << "' because: " << e.what() << endl,
-                 resolver.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during validation", "exception", Logging::Loggable("TooManySEC3IterationsException")));
+                 resolver.d_slog->error(Logr::Notice, e.what(), "Sending SERVFAIL during validation", "exception", Logging::Loggable("TooManySEC3IterationsException"), "dnsseclimithit", Logging::Loggable(resolver.getDNSSECLimitHit())));
           }
           goto sendit; // NOLINT(cppcoreguidelines-avoid-goto)
         }
