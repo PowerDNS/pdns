@@ -775,11 +775,12 @@ endif
 
 if get_option('unit-tests-backends')
   libpdns_module_remotebackend_test_common = declare_dependency(
-    link_with: static_library(
+    link_whole: static_library(
       'pdns-test-remotebackend',
       module_remotebackend_test_sources_common,
       dependencies: [
         deps,
+        module_remotebackend_lib,
         libpdns_signers_pkcs11,
         libpdns_common,
         libpdns_dnslabeltext,
@@ -790,14 +791,16 @@ if get_option('unit-tests-backends')
 
   env = {
     'BOOST_TEST_LOG_LEVEL': 'message',
-    'REMOTEBACKEND_ZEROMQ': get_option('module-remote-zeromq') ? '1' : '0',
+    'REMOTEBACKEND_ZEROMQ': get_option('module-remote-zeromq') ? 'yes' : 'no',
   }
 
+  verbose = get_option('unit-tests-verbose')
+
   foreach test_binary, test_source: module_remotebackend_test_sources_binaries
-    var_name = test_binary.underscorify()
+    exec_var_name = test_binary.underscorify()
 
     set_variable(
-      var_name,
+      exec_var_name,
       executable(
         test_binary,
         test_source,
@@ -810,6 +813,14 @@ if get_option('unit-tests-backends')
       )
     )
 
-    test('PDNS Auth ' + test_binary, get_variable(var_name), verbose: true, env: env)
+    test(
+      'pdns-auth-' + test_binary,
+      module_remotebackend_testrunner,
+      args: get_variable(exec_var_name).full_path(),
+      verbose: verbose,
+      env: env,
+      workdir: product_source_dir / fs.parent(module_remotebackend_testrunner),
+      is_parallel: false,
+    )
   endforeach
 endif
