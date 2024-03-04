@@ -31,10 +31,10 @@ bool DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
     return inserted;
   }
 
-  const container_t::iterator it = data->d_entries.find(addr);
-  if (it != data->d_entries.end()) {
-    if (it->d_until < until) {
-      data->d_entries.replace(it, BlockEntry(addr, until));
+  auto entriesIt = data->d_entries.find(addr);
+  if (entriesIt != data->d_entries.end()) {
+    if (entriesIt->d_until < until) {
+      data->d_entries.replace(entriesIt, BlockEntry(addr, until));
     }
   }
   else {
@@ -49,13 +49,13 @@ void DynBPFFilter::purgeExpired(const struct timespec& now)
 {
   auto data = d_data.lock();
 
-  typedef boost::multi_index::nth_index<container_t, 1>::type ordered_until;
-  ordered_until& ou = boost::multi_index::get<1>(data->d_entries);
+  using ordered_until = boost::multi_index::nth_index<container_t, 1>::type;
+  ordered_until& orderedUntilIndex = boost::multi_index::get<1>(data->d_entries);
 
-  for (ordered_until::iterator it = ou.begin(); it != ou.end();) {
-    if (it->d_until < now) {
-      ComboAddress addr = it->d_addr;
-      it = ou.erase(it);
+  for (auto orderedUntilIt = orderedUntilIndex.begin(); orderedUntilIt != orderedUntilIndex.end();) {
+    if (orderedUntilIt->d_until < now) {
+      ComboAddress addr = orderedUntilIt->d_addr;
+      orderedUntilIt = orderedUntilIndex.erase(orderedUntilIt);
       data->d_bpf->unblock(addr);
     }
     else {
@@ -76,9 +76,9 @@ std::vector<std::tuple<ComboAddress, uint64_t, struct timespec>> DynBPFFilter::g
   const auto& stats = data->d_bpf->getAddrStats();
   result.reserve(stats.size());
   for (const auto& stat : stats) {
-    const container_t::iterator it = data->d_entries.find(stat.first);
-    if (it != data->d_entries.end()) {
-      result.emplace_back(stat.first, stat.second, it->d_until);
+    const auto entriesIt = data->d_entries.find(stat.first);
+    if (entriesIt != data->d_entries.end()) {
+      result.emplace_back(stat.first, stat.second, entriesIt->d_until);
     }
   }
   return result;
