@@ -31,29 +31,31 @@
 #include "statnode.hh"
 
 #ifndef DISABLE_TOP_N_BINDINGS
-static LuaArray<std::vector<boost::variant<string, double>>> getGenResponses(uint64_t top, boost::optional<int> labels, std::function<bool(const Rings::Response&)> pred)
+static LuaArray<std::vector<boost::variant<string, double>>> getGenResponses(uint64_t top, boost::optional<int> labels, const std::function<bool(const Rings::Response&)>& pred)
 {
   setLuaNoSideEffect();
   map<DNSName, unsigned int> counts;
   unsigned int total = 0;
   {
     for (const auto& shard : g_rings.d_shards) {
-      auto rl = shard->respRing.lock();
+      auto respRing = shard->respRing.lock();
       if (!labels) {
-        for (const auto& a : *rl) {
-          if (!pred(a))
+        for (const auto& entry : *respRing) {
+          if (!pred(entry)) {
             continue;
-          counts[a.name]++;
+          }
+          counts[entry.name]++;
           total++;
         }
       }
       else {
         unsigned int lab = *labels;
-        for (const auto& a : *rl) {
-          if (!pred(a))
+        for (const auto& entry : *respRing) {
+          if (!pred(entry)) {
             continue;
+          }
 
-          DNSName temp(a.name);
+          DNSName temp(entry.name);
           temp.trimToLabels(lab);
           counts[temp]++;
           total++;
@@ -64,23 +66,24 @@ static LuaArray<std::vector<boost::variant<string, double>>> getGenResponses(uin
   //      cout<<"Looked at "<<total<<" responses, "<<counts.size()<<" different ones"<<endl;
   vector<pair<unsigned int, DNSName>> rcounts;
   rcounts.reserve(counts.size());
-  for (const auto& c : counts)
-    rcounts.emplace_back(c.second, c.first.makeLowerCase());
+  for (const auto& val : counts) {
+    rcounts.emplace_back(val.second, val.first.makeLowerCase());
+  }
 
-  sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, const decltype(rcounts)::value_type& b) {
-    return b.first < a.first;
+  sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& lhs, const decltype(rcounts)::value_type& rhs) {
+    return rhs.first < lhs.first;
   });
 
   LuaArray<vector<boost::variant<string, double>>> ret;
   ret.reserve(std::min(rcounts.size(), static_cast<size_t>(top + 1U)));
   int count = 1;
   unsigned int rest = 0;
-  for (const auto& rc : rcounts) {
+  for (const auto& rcEntry : rcounts) {
     if (count == static_cast<int>(top + 1)) {
-      rest += rc.first;
+      rest += rcEntry.first;
     }
     else {
-      ret.push_back({count++, {rc.second.toString(), rc.first, 100.0 * rc.first / total}});
+      ret.emplace_back(count++, std::vector<boost::variant<string, double>>{rcEntry.second.toString(), rcEntry.first, 100.0 * rcEntry.first / total});
     }
   }
 
@@ -98,7 +101,7 @@ static LuaArray<std::vector<boost::variant<string, double>>> getGenResponses(uin
 #ifndef DISABLE_DYNBLOCKS
 #ifndef DISABLE_DEPRECATED_DYNBLOCK
 
-typedef std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual> counts_t;
+using counts_t = std::unordered_map<ComboAddress, unsigned int, ComboAddress::addressOnlyHash, ComboAddress::addressOnlyEqual>;
 
 static counts_t filterScore(const counts_t& counts,
                             double delta, unsigned int rate)
@@ -106,9 +109,9 @@ static counts_t filterScore(const counts_t& counts,
   counts_t ret;
 
   double lim = delta * rate;
-  for (const auto& c : counts) {
-    if (c.second > lim) {
-      ret[c.first] = c.second;
+  for (const auto& entry : counts) {
+    if (entry.second > lim) {
+      ret[entry.first] = entry.second;
     }
   }
 
@@ -119,26 +122,26 @@ using statvisitor_t = std::function<void(const StatNode&, const StatNode::Stat&,
 
 static void statNodeRespRing(statvisitor_t visitor, uint64_t seconds)
 {
-  struct timespec cutoff, now;
+  timespec now{};
   gettime(&now);
-  cutoff = now;
-  cutoff.tv_sec -= seconds;
+  timespec cutoff{now};
+  cutoff.tv_sec -= static_cast<time_t>(seconds);
 
   StatNode root;
   for (const auto& shard : g_rings.d_shards) {
-    auto rl = shard->respRing.lock();
+    auto respRing = shard->respRing.lock();
 
-    for (const auto& c : *rl) {
-      if (now < c.when) {
+    for (const auto& entry : *respRing) {
+      if (now < entry.when) {
         continue;
       }
 
-      if (seconds && c.when < cutoff) {
+      if (seconds != 0 && entry.when < cutoff) {
         continue;
       }
 
-      const bool hit = c.isACacheHit();
-      root.submit(c.name, ((c.dh.rcode == 0 && c.usec == std::numeric_limits<unsigned int>::max()) ? -1 : c.dh.rcode), c.size, hit, boost::none);
+      const bool hit = entry.isACacheHit();
+      root.submit(entry.name, ((entry.dh.rcode == 0 && entry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : entry.dh.rcode), entry.size, hit, boost::none);
     }
   }
 
@@ -148,21 +151,21 @@ static void statNodeRespRing(statvisitor_t visitor, uint64_t seconds)
 
 static LuaArray<LuaAssociativeTable<std::string>> getRespRing(boost::optional<int> rcode)
 {
-  typedef LuaAssociativeTable<std::string> entry_t;
+  using entry_t = LuaAssociativeTable<std::string>;
   LuaArray<entry_t> ret;
 
   for (const auto& shard : g_rings.d_shards) {
-    auto rl = shard->respRing.lock();
+    auto respRing = shard->respRing.lock();
 
     int count = 1;
-    for (const auto& c : *rl) {
-      if (rcode && (rcode.get() != c.dh.rcode)) {
+    for (const auto& entry : *respRing) {
+      if (rcode && (rcode.get() != entry.dh.rcode)) {
         continue;
       }
-      entry_t e;
-      e["qname"] = c.name.toString();
-      e["rcode"] = std::to_string(c.dh.rcode);
-      ret.emplace_back(count, std::move(e));
+      entry_t newEntry;
+      newEntry["qname"] = entry.name.toString();
+      newEntry["rcode"] = std::to_string(entry.dh.rcode);
+      ret.emplace_back(count, std::move(newEntry));
       count++;
     }
   }
@@ -170,79 +173,182 @@ static LuaArray<LuaAssociativeTable<std::string>> getRespRing(boost::optional<in
   return ret;
 }
 
-static counts_t exceedRespGen(unsigned int rate, int seconds, std::function<void(counts_t&, const Rings::Response&)> T)
+static counts_t exceedRespGen(unsigned int rate, int seconds, const std::function<void(counts_t&, const Rings::Response&)>& visitor)
 {
   counts_t counts;
-  struct timespec cutoff, mintime, now;
+  timespec now{};
   gettime(&now);
-  cutoff = mintime = now;
+  timespec mintime{now};
+  timespec cutoff{now};
   cutoff.tv_sec -= seconds;
 
   counts.reserve(g_rings.getNumberOfResponseEntries());
 
   for (const auto& shard : g_rings.d_shards) {
-    auto rl = shard->respRing.lock();
-    for (const auto& c : *rl) {
+    auto respRing = shard->respRing.lock();
+    for (const auto& entry : *respRing) {
 
-      if (seconds && c.when < cutoff)
+      if (seconds != 0 && entry.when < cutoff) {
         continue;
-      if (now < c.when)
+      }
+      if (now < entry.when) {
         continue;
+      }
 
-      T(counts, c);
-      if (c.when < mintime)
-        mintime = c.when;
+      visitor(counts, entry);
+      if (entry.when < mintime) {
+        mintime = entry.when;
+      }
     }
   }
 
-  double delta = seconds ? seconds : DiffTime(now, mintime);
+  double delta = seconds != 0 ? seconds : DiffTime(now, mintime);
   return filterScore(counts, delta, rate);
 }
 
-static counts_t exceedQueryGen(unsigned int rate, int seconds, std::function<void(counts_t&, const Rings::Query&)> T)
+static counts_t exceedQueryGen(unsigned int rate, int seconds, const std::function<void(counts_t&, const Rings::Query&)>& visitor)
 {
   counts_t counts;
-  struct timespec cutoff, mintime, now;
+  timespec now{};
   gettime(&now);
-  cutoff = mintime = now;
+  timespec mintime{now};
+  timespec cutoff{now};
   cutoff.tv_sec -= seconds;
 
   counts.reserve(g_rings.getNumberOfQueryEntries());
 
   for (const auto& shard : g_rings.d_shards) {
-    auto rl = shard->queryRing.lock();
-    for (const auto& c : *rl) {
-      if (seconds && c.when < cutoff)
+    auto respRing = shard->queryRing.lock();
+    for (const auto& entry : *respRing) {
+      if (seconds != 0 && entry.when < cutoff) {
         continue;
-      if (now < c.when)
+      }
+      if (now < entry.when) {
         continue;
-      T(counts, c);
-      if (c.when < mintime)
-        mintime = c.when;
+      }
+      visitor(counts, entry);
+      if (entry.when < mintime) {
+        mintime = entry.when;
+      }
     }
   }
 
-  double delta = seconds ? seconds : DiffTime(now, mintime);
+  double delta = seconds != 0 ? seconds : DiffTime(now, mintime);
   return filterScore(counts, delta, rate);
 }
 
 static counts_t exceedRCode(unsigned int rate, int seconds, int rcode)
 {
-  return exceedRespGen(rate, seconds, [rcode](counts_t& counts, const Rings::Response& r) {
-    if (r.dh.rcode == rcode)
-      counts[r.requestor]++;
+  return exceedRespGen(rate, seconds, [rcode](counts_t& counts, const Rings::Response& resp) {
+    if (resp.dh.rcode == rcode) {
+      counts[resp.requestor]++;
+    }
   });
 }
 
 static counts_t exceedRespByterate(unsigned int rate, int seconds)
 {
-  return exceedRespGen(rate, seconds, [](counts_t& counts, const Rings::Response& r) {
-    counts[r.requestor] += r.size;
+  return exceedRespGen(rate, seconds, [](counts_t& counts, const Rings::Response& resp) {
+    counts[resp.requestor] += resp.size;
   });
 }
 
 #endif /* DISABLE_DEPRECATED_DYNBLOCK */
 #endif /* DISABLE_DYNBLOCKS */
+
+// NOLINTNEXTLINE(bugprone-exception-escape)
+struct GrepQParams
+{
+  boost::optional<Netmask> netmask;
+  boost::optional<DNSName> name;
+  std::unique_ptr<FILE, decltype(&fclose)> outputFile{nullptr, fclose};
+  int msec = -1;
+};
+
+static std::optional<GrepQParams> parseGrepQParams(const LuaTypeOrArrayOf<std::string>& inp, boost::optional<LuaAssociativeTable<std::string>>& options)
+{
+  GrepQParams result{};
+
+  if (options) {
+    std::string outputFileName;
+    if (getOptionalValue<std::string>(options, "outputFile", outputFileName) > 0) {
+      int fileDesc = open(outputFileName.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0600);
+      if (fileDesc < 0) {
+        g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
+        return std::nullopt;
+      }
+      result.outputFile = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(fileDesc, "w"), fclose);
+      if (result.outputFile == nullptr) {
+        g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
+        close(fileDesc);
+        return std::nullopt;
+      }
+    }
+    checkAllParametersConsumed("grepq", options);
+  }
+
+  vector<string> filters;
+  const auto* str = boost::get<string>(&inp);
+  if (str != nullptr) {
+    filters.push_back(*str);
+  }
+  else {
+    auto values = boost::get<LuaArray<std::string>>(inp);
+    for (const auto& filter : values) {
+      filters.push_back(filter.second);
+    }
+  }
+
+  for (const auto& filter : filters) {
+    try {
+      result.netmask = Netmask(filter);
+    }
+    catch (...) {
+      if (boost::ends_with(filter, "ms") && sscanf(filter.c_str(), "%ums", &result.msec) != 0) {
+        ;
+      }
+      else {
+        try {
+          result.name = DNSName(filter);
+        }
+        catch (...) {
+          g_outputBuffer = "Could not parse '" + filter + "' as domain name or netmask";
+          return std::nullopt;
+        }
+      }
+    }
+  }
+  return result;
+}
+
+template <class C>
+static bool ringEntryMatches(const GrepQParams& params, const C& entry)
+{
+  bool nmmatch = true;
+  bool dnmatch = true;
+  bool msecmatch = true;
+  if (params.netmask) {
+    nmmatch = params.netmask->match(entry.requestor);
+  }
+  if (params.name) {
+    if (entry.name.empty()) {
+      dnmatch = false;
+    }
+    else {
+      dnmatch = entry.name.isPartOf(*params.name);
+    }
+  }
+
+  constexpr bool response = std::is_same_v<C, Rings::Response>;
+  if constexpr (response) {
+    if (params.msec != -1) {
+      msecmatch = (entry.usec / 1000 > static_cast<unsigned int>(params.msec));
+    }
+  }
+
+  return nmmatch && dnmatch && msecmatch;
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaInspection(LuaContext& luaCtx)
 {
@@ -254,28 +360,32 @@ void setupLuaInspection(LuaContext& luaCtx)
     unsigned int total = 0;
     {
       for (const auto& shard : g_rings.d_shards) {
-        auto rl = shard->queryRing.lock();
-        for (const auto& c : *rl) {
-          counts[c.requestor]++;
+        auto respRing = shard->queryRing.lock();
+        for (const auto& entry : *respRing) {
+          counts[entry.requestor]++;
           total++;
         }
       }
     }
     vector<pair<unsigned int, ComboAddress>> rcounts;
     rcounts.reserve(counts.size());
-    for (const auto& c : counts)
-      rcounts.emplace_back(c.second, c.first);
+    for (const auto& entry : counts) {
+      rcounts.emplace_back(entry.second, entry.first);
+    }
 
-    sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, const decltype(rcounts)::value_type& b) {
-      return b.first < a.first;
+    sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& lhs, const decltype(rcounts)::value_type& rhs) {
+      return rhs.first < lhs.first;
     });
-    unsigned int count = 1, rest = 0;
+    unsigned int count = 1;
+    unsigned int rest = 0;
     boost::format fmt("%4d  %-40s %4d %4.1f%%\n");
-    for (const auto& rc : rcounts) {
-      if (count == top + 1)
-        rest += rc.first;
-      else
-        g_outputBuffer += (fmt % (count++) % rc.second.toString() % rc.first % (100.0 * rc.first / total)).str();
+    for (const auto& entry : rcounts) {
+      if (count == top + 1) {
+        rest += entry.first;
+      }
+      else {
+        g_outputBuffer += (fmt % (count++) % entry.second.toString() % entry.first % (100.0 * entry.first / total)).str();
+      }
     }
     g_outputBuffer += (fmt % (count) % "Rest" % rest % (total > 0 ? 100.0 * rest / total : 100.0)).str();
   });
@@ -286,9 +396,9 @@ void setupLuaInspection(LuaContext& luaCtx)
     unsigned int total = 0;
     if (!labels) {
       for (const auto& shard : g_rings.d_shards) {
-        auto rl = shard->queryRing.lock();
-        for (const auto& a : *rl) {
-          counts[a.name]++;
+        auto respRing = shard->queryRing.lock();
+        for (const auto& entry : *respRing) {
+          counts[entry.name]++;
           total++;
         }
       }
@@ -296,32 +406,36 @@ void setupLuaInspection(LuaContext& luaCtx)
     else {
       unsigned int lab = *labels;
       for (const auto& shard : g_rings.d_shards) {
-        auto rl = shard->queryRing.lock();
-        // coverity[auto_causes_copy]
-        for (auto a : *rl) {
-          a.name.trimToLabels(lab);
-          counts[a.name]++;
+        auto respRing = shard->queryRing.lock();
+        for (const auto& entry : *respRing) {
+          auto name = entry.name;
+          name.trimToLabels(lab);
+          counts[name]++;
           total++;
         }
       }
     }
-    // cout<<"Looked at "<<total<<" queries, "<<counts.size()<<" different ones"<<endl;
+
     vector<pair<unsigned int, DNSName>> rcounts;
     rcounts.reserve(counts.size());
-    for (const auto& c : counts)
-      rcounts.emplace_back(c.second, c.first.makeLowerCase());
+    for (const auto& entry : counts) {
+      rcounts.emplace_back(entry.second, entry.first.makeLowerCase());
+    }
 
-    sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& a, const decltype(rcounts)::value_type& b) {
-      return b.first < a.first;
+    sort(rcounts.begin(), rcounts.end(), [](const decltype(rcounts)::value_type& lhs, const decltype(rcounts)::value_type& rhs) {
+      return rhs.first < lhs.first;
     });
 
     std::unordered_map<unsigned int, vector<boost::variant<string, double>>> ret;
-    unsigned int count = 1, rest = 0;
-    for (const auto& rc : rcounts) {
-      if (count == top + 1)
-        rest += rc.first;
-      else
-        ret.insert({count++, {rc.second.toString(), rc.first, 100.0 * rc.first / total}});
+    unsigned int count = 1;
+    unsigned int rest = 0;
+    for (const auto& entry : rcounts) {
+      if (count == top + 1) {
+        rest += entry.first;
+      }
+      else {
+        ret.insert({count++, {entry.second.toString(), entry.first, 100.0 * entry.first / total}});
+      }
     }
 
     if (total > 0) {
@@ -343,34 +457,34 @@ void setupLuaInspection(LuaContext& luaCtx)
     rings.reserve(g_rings.getNumberOfShards());
     for (const auto& shard : g_rings.d_shards) {
       {
-        auto rl = shard->respRing.lock();
-        rings.push_back(*rl);
+        auto respRing = shard->respRing.lock();
+        rings.push_back(*respRing);
       }
       totalEntries += rings.back().size();
     }
     vector<std::unordered_map<string, boost::variant<string, unsigned int>>> ret;
     ret.reserve(totalEntries);
-    decltype(ret)::value_type item;
-    for (size_t idx = 0; idx < rings.size(); idx++) {
-      for (const auto& r : rings[idx]) {
-        item["name"] = r.name.toString();
-        item["qtype"] = r.qtype;
-        item["rcode"] = r.dh.rcode;
-        item["usec"] = r.usec;
-        ret.push_back(item);
+    for (const auto& ring : rings) {
+      for (const auto& entry : ring) {
+        decltype(ret)::value_type item;
+        item["name"] = entry.name.toString();
+        item["qtype"] = entry.qtype;
+        item["rcode"] = entry.dh.rcode;
+        item["usec"] = entry.usec;
+        ret.push_back(std::move(item));
       }
     }
     return ret;
   });
 
   luaCtx.writeFunction("getTopResponses", [](uint64_t top, uint64_t kind, boost::optional<int> labels) {
-    return getGenResponses(top, labels, [kind](const Rings::Response& r) { return r.dh.rcode == kind; });
+    return getGenResponses(top, labels, [kind](const Rings::Response& resp) { return resp.dh.rcode == kind; });
   });
 
   luaCtx.executeCode(R"(function topResponses(top, kind, labels) top = top or 10; kind = kind or 0; for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
   luaCtx.writeFunction("getSlowResponses", [](uint64_t top, uint64_t msec, boost::optional<int> labels) {
-    return getGenResponses(top, labels, [msec](const Rings::Response& r) { return r.usec > msec * 1000; });
+    return getGenResponses(top, labels, [msec](const Rings::Response& resp) { return resp.usec > msec * 1000; });
   });
 
   luaCtx.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
@@ -386,200 +500,123 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.writeFunction("delta", []() {
     setLuaNoSideEffect();
     // we hold the lua lock already!
-    for (const auto& d : g_confDelta) {
-      struct tm tm;
-      localtime_r(&d.first.tv_sec, &tm);
-      char date[80];
-      strftime(date, sizeof(date) - 1, "-- %a %b %d %Y %H:%M:%S %Z\n", &tm);
-      g_outputBuffer += date;
-      g_outputBuffer += d.second + "\n";
+    for (const auto& entry : g_confDelta) {
+      tm entryTime{};
+      localtime_r(&entry.first.tv_sec, &entryTime);
+      std::array<char, 80> date{};
+      strftime(date.data(), date.size() - 1, "-- %a %b %d %Y %H:%M:%S %Z\n", &entryTime);
+      g_outputBuffer += date.data();
+      g_outputBuffer += entry.second + "\n";
     }
   });
 
-  luaCtx.writeFunction("grepq", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<unsigned int> limit, boost::optional<LuaAssociativeTable<std::string>> options) {
+  luaCtx.writeFunction("grepq", [](const LuaTypeOrArrayOf<std::string>& inp, boost::optional<unsigned int> limit, boost::optional<LuaAssociativeTable<std::string>> options) {
     setLuaNoSideEffect();
-    boost::optional<Netmask> nm;
-    boost::optional<DNSName> dn;
-    int msec = -1;
-    std::unique_ptr<FILE, decltype(&fclose)> outputFile{nullptr, fclose};
 
-    if (options) {
-      std::string outputFileName;
-      if (getOptionalValue<std::string>(options, "outputFile", outputFileName) > 0) {
-        int fd = open(outputFileName.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0600);
-        if (fd < 0) {
-          g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
-          return;
-        }
-        outputFile = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(fd, "w"), fclose);
-        if (outputFile == nullptr) {
-          g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
-          close(fd);
-          return;
-        }
-      }
-      checkAllParametersConsumed("grepq", options);
+    auto paramsOrError = parseGrepQParams(inp, options);
+    if (!paramsOrError) {
+      return;
     }
+    auto params = std::move(*paramsOrError);
 
-    vector<string> vec;
-    auto str = boost::get<string>(&inp);
-    if (str) {
-      vec.push_back(*str);
-    }
-    else {
-      auto v = boost::get<LuaArray<std::string>>(inp);
-      for (const auto& a : v) {
-        vec.push_back(a.second);
-      }
-    }
-
-    for (const auto& s : vec) {
-      try {
-        nm = Netmask(s);
-      }
-      catch (...) {
-        if (boost::ends_with(s, "ms") && sscanf(s.c_str(), "%ums", &msec)) {
-          ;
-        }
-        else {
-          try {
-            dn = DNSName(s);
-          }
-          catch (...) {
-            g_outputBuffer = "Could not parse '" + s + "' as domain name or netmask";
-            return;
-          }
-        }
-      }
-    }
-
-    std::vector<Rings::Query> qr;
-    std::vector<Rings::Response> rr;
-    qr.reserve(g_rings.getNumberOfQueryEntries());
-    rr.reserve(g_rings.getNumberOfResponseEntries());
+    std::vector<Rings::Query> queries;
+    std::vector<Rings::Response> responses;
+    queries.reserve(g_rings.getNumberOfQueryEntries());
+    responses.reserve(g_rings.getNumberOfResponseEntries());
     for (const auto& shard : g_rings.d_shards) {
       {
-        auto rl = shard->queryRing.lock();
-        for (const auto& entry : *rl) {
-          qr.push_back(entry);
+        auto respRing = shard->queryRing.lock();
+        for (const auto& entry : *respRing) {
+          queries.push_back(entry);
         }
       }
       {
-        auto rl = shard->respRing.lock();
-        for (const auto& entry : *rl) {
-          rr.push_back(entry);
+        auto respRing = shard->respRing.lock();
+        for (const auto& entry : *respRing) {
+          responses.push_back(entry);
         }
       }
     }
 
-    sort(qr.begin(), qr.end(), [](const decltype(qr)::value_type& a, const decltype(qr)::value_type& b) {
-      return b.when < a.when;
+    sort(queries.begin(), queries.end(), [](const decltype(queries)::value_type& lhs, const decltype(queries)::value_type& rhs) {
+      return rhs.when < lhs.when;
     });
 
-    sort(rr.begin(), rr.end(), [](const decltype(rr)::value_type& a, const decltype(rr)::value_type& b) {
-      return b.when < a.when;
+    sort(responses.begin(), responses.end(), [](const decltype(responses)::value_type& lhs, const decltype(responses)::value_type& rhs) {
+      return rhs.when < lhs.when;
     });
 
     unsigned int num = 0;
-    struct timespec now;
+    timespec now{};
     gettime(&now);
 
     std::multimap<struct timespec, string> out;
 
     boost::format fmt("%-7.1f %-47s %-12s %-12s %-5d %-25s %-5s %-6.1f %-2s %-2s %-2s %-s\n");
     const auto headLine = (fmt % "Time" % "Client" % "Protocol" % "Server" % "ID" % "Name" % "Type" % "Lat." % "TC" % "RD" % "AA" % "Rcode").str();
-    if (!outputFile) {
+    if (!params.outputFile) {
       g_outputBuffer += headLine;
     }
     else {
-      fprintf(outputFile.get(), "%s", headLine.c_str());
+      fprintf(params.outputFile.get(), "%s", headLine.c_str());
     }
 
-    if (msec == -1) {
-      for (const auto& c : qr) {
-        bool nmmatch = true;
-        bool dnmatch = true;
-        if (nm) {
-          nmmatch = nm->match(c.requestor);
+    if (params.msec == -1) {
+      for (const auto& entry : queries) {
+        if (!ringEntryMatches(params, entry)) {
+          continue;
         }
-        if (dn) {
-          if (c.name.empty()) {
-            dnmatch = false;
-          }
-          else {
-            dnmatch = c.name.isPartOf(*dn);
-          }
+        QType qtype(entry.qtype);
+        std::string extra;
+        if (entry.dh.opcode != 0) {
+          extra = " (" + Opcode::to_s(entry.dh.opcode) + ")";
         }
-        if (nmmatch && dnmatch) {
-          QType qt(c.qtype);
-          std::string extra;
-          if (c.dh.opcode != 0) {
-            extra = " (" + Opcode::to_s(c.dh.opcode) + ")";
-          }
-          out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % dnsdist::Protocol(c.protocol).toString() % "" % htons(c.dh.id) % c.name.toString() % qt.toString() % "" % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % ("Question" + extra)).str());
-
-          if (limit && *limit == ++num) {
-            break;
-          }
-        }
-      }
-    }
-    num = 0;
-
-    string extra;
-    for (const auto& c : rr) {
-      bool nmmatch = true;
-      bool dnmatch = true;
-      bool msecmatch = true;
-      if (nm) {
-        nmmatch = nm->match(c.requestor);
-      }
-      if (dn) {
-        if (c.name.empty()) {
-          dnmatch = false;
-        }
-        else {
-          dnmatch = c.name.isPartOf(*dn);
-        }
-      }
-      if (msec != -1) {
-        msecmatch = (c.usec / 1000 > (unsigned int)msec);
-      }
-
-      if (nmmatch && dnmatch && msecmatch) {
-        QType qt(c.qtype);
-        if (!c.dh.rcode) {
-          extra = ". " + std::to_string(htons(c.dh.ancount)) + " answers";
-        }
-        else {
-          extra.clear();
-        }
-
-        std::string server = c.ds.toStringWithPort();
-        std::string protocol = dnsdist::Protocol(c.protocol).toString();
-        if (server == "0.0.0.0:0") {
-          server = "Cache";
-          protocol = "-";
-        }
-        if (c.usec != std::numeric_limits<decltype(c.usec)>::max()) {
-          out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % protocol % server % htons(c.dh.id) % c.name.toString() % qt.toString() % (c.usec / 1000.0) % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
-        }
-        else {
-          out.emplace(c.when, (fmt % DiffTime(now, c.when) % c.requestor.toStringWithPort() % protocol % server % htons(c.dh.id) % c.name.toString() % qt.toString() % "T.O" % (c.dh.tc ? "TC" : "") % (c.dh.rd ? "RD" : "") % (c.dh.aa ? "AA" : "") % (RCode::to_s(c.dh.rcode) + extra)).str());
-        }
+        out.emplace(entry.when, (fmt % DiffTime(now, entry.when) % entry.requestor.toStringWithPort() % dnsdist::Protocol(entry.protocol).toString() % "" % htons(entry.dh.id) % entry.name.toString() % qtype.toString() % "" % (entry.dh.tc != 0 ? "TC" : "") % (entry.dh.rd != 0 ? "RD" : "") % (entry.dh.aa != 0 ? "AA" : "") % ("Question" + extra)).str());
 
         if (limit && *limit == ++num) {
           break;
         }
       }
     }
+    num = 0;
 
-    for (const auto& p : out) {
-      if (!outputFile) {
-        g_outputBuffer += p.second;
+    string extra;
+    for (const auto& entry : responses) {
+      if (!ringEntryMatches(params, entry)) {
+        continue;
+      }
+      QType qtype(entry.qtype);
+      if (entry.dh.rcode == 0) {
+        extra = ". " + std::to_string(htons(entry.dh.ancount)) + " answers";
       }
       else {
-        fprintf(outputFile.get(), "%s", p.second.c_str());
+        extra.clear();
+      }
+
+      std::string server = entry.ds.toStringWithPort();
+      std::string protocol = dnsdist::Protocol(entry.protocol).toString();
+      if (server == "0.0.0.0:0") {
+        server = "Cache";
+        protocol = "-";
+      }
+      if (entry.usec != std::numeric_limits<decltype(entry.usec)>::max()) {
+        out.emplace(entry.when, (fmt % DiffTime(now, entry.when) % entry.requestor.toStringWithPort() % protocol % server % htons(entry.dh.id) % entry.name.toString() % qtype.toString() % (entry.usec / 1000.0) % (entry.dh.tc != 0 ? "TC" : "") % (entry.dh.rd != 0 ? "RD" : "") % (entry.dh.aa != 0 ? "AA" : "") % (RCode::to_s(entry.dh.rcode) + extra)).str());
+      }
+      else {
+        out.emplace(entry.when, (fmt % DiffTime(now, entry.when) % entry.requestor.toStringWithPort() % protocol % server % htons(entry.dh.id) % entry.name.toString() % qtype.toString() % "T.O" % (entry.dh.tc != 0 ? "TC" : "") % (entry.dh.rd != 0 ? "RD" : "") % (entry.dh.aa != 0 ? "AA" : "") % (RCode::to_s(entry.dh.rcode) + extra)).str());
+      }
+
+      if (limit && *limit == ++num) {
+        break;
+      }
+    }
+
+    for (const auto& entry : out) {
+      if (!params.outputFile) {
+        g_outputBuffer += entry.second;
+      }
+      else {
+        fprintf(params.outputFile.get(), "%s", entry.second.c_str());
       }
     }
   });
@@ -588,7 +625,7 @@ void setupLuaInspection(LuaContext& luaCtx)
     setLuaNoSideEffect();
     map<double, unsigned int> histo;
     double bin = 100;
-    for (int i = 0; i < 15; ++i) {
+    for (int idx = 0; idx < 15; ++idx) {
       histo[bin];
       bin *= 2;
     }
@@ -597,19 +634,22 @@ void setupLuaInspection(LuaContext& luaCtx)
     unsigned int size = 0;
     {
       for (const auto& shard : g_rings.d_shards) {
-        auto rl = shard->respRing.lock();
-        for (const auto& r : *rl) {
+        auto respRing = shard->respRing.lock();
+        for (const auto& entry : *respRing) {
           /* skip actively discovered timeouts */
-          if (r.usec == std::numeric_limits<unsigned int>::max())
+          if (entry.usec == std::numeric_limits<unsigned int>::max()) {
             continue;
+          }
 
           ++size;
-          auto iter = histo.lower_bound(r.usec);
-          if (iter != histo.end())
+          auto iter = histo.lower_bound(entry.usec);
+          if (iter != histo.end()) {
             iter->second++;
-          else
+          }
+          else {
             histo.rbegin()++;
-          totlat += r.usec;
+          }
+          totlat += entry.usec;
         }
       }
     }
@@ -622,23 +662,25 @@ void setupLuaInspection(LuaContext& luaCtx)
     g_outputBuffer = (boost::format("Average response latency: %.02f ms\n") % (0.001 * totlat / size)).str();
     double highest = 0;
 
-    for (auto iter = histo.cbegin(); iter != histo.cend(); ++iter) {
-      highest = std::max(highest, iter->second * 1.0);
+    for (const auto& entry : histo) {
+      highest = std::max(highest, entry.second * 1.0);
     }
     boost::format fmt("%7.2f\t%s\n");
     g_outputBuffer += (fmt % "ms" % "").str();
 
-    for (auto iter = histo.cbegin(); iter != histo.cend(); ++iter) {
-      int stars = (70.0 * iter->second / highest);
-      char c = '*';
-      if (!stars && iter->second) {
+    for (const auto& entry : histo) {
+      int stars = static_cast<int>(70.0 * entry.second / highest);
+      char value = '*';
+      if (stars == 0 && entry.second != 0) {
         stars = 1; // you get 1 . to show something is there..
-        if (70.0 * iter->second / highest > 0.5)
-          c = ':';
-        else
-          c = '.';
+        if (70.0 * entry.second / highest > 0.5) {
+          value = ':';
+        }
+        else {
+          value = '.';
+        }
       }
-      g_outputBuffer += (fmt % (iter->first / 1000.0) % string(stars, c)).str();
+      g_outputBuffer += (fmt % (entry.first / 1000.0) % string(stars, value)).str();
     }
   });
 
@@ -655,8 +697,8 @@ void setupLuaInspection(LuaContext& luaCtx)
     ret << (fmt % "#" % "Address" % "Connections" % "Max concurrent conn" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration" % "TLS new sessions" % "TLS Resumptions" % "TLS unknown ticket keys" % "TLS inactive ticket keys" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other") << endl;
 
     size_t counter = 0;
-    for (const auto& f : g_frontends) {
-      ret << (fmt % counter % f->local.toStringWithPort() % f->tcpCurrentConnections % f->tcpMaxConcurrentConnections % f->tcpDiedReadingQuery % f->tcpDiedSendingResponse % f->tcpGaveUp % f->tcpClientTimeouts % f->tcpDownstreamTimeouts % f->tcpAvgQueriesPerConnection % f->tcpAvgConnectionDuration % f->tlsNewSessions % f->tlsResumptions % f->tlsUnknownTicketKey % f->tlsInactiveTicketKey % f->tls10queries % f->tls11queries % f->tls12queries % f->tls13queries % f->tlsUnknownqueries) << endl;
+    for (const auto& frontend : g_frontends) {
+      ret << (fmt % counter % frontend->local.toStringWithPort() % frontend->tcpCurrentConnections % frontend->tcpMaxConcurrentConnections % frontend->tcpDiedReadingQuery % frontend->tcpDiedSendingResponse % frontend->tcpGaveUp % frontend->tcpClientTimeouts % frontend->tcpDownstreamTimeouts % frontend->tcpAvgQueriesPerConnection % frontend->tcpAvgConnectionDuration % frontend->tlsNewSessions % frontend->tlsResumptions % frontend->tlsUnknownTicketKey % frontend->tlsInactiveTicketKey % frontend->tls10queries % frontend->tls11queries % frontend->tls12queries % frontend->tls13queries % frontend->tlsUnknownqueries) << endl;
       ++counter;
     }
     ret << endl;
@@ -667,8 +709,8 @@ void setupLuaInspection(LuaContext& luaCtx)
 
     auto states = g_dstates.getLocal();
     counter = 0;
-    for (const auto& s : *states) {
-      ret << (fmt % counter % s->getName() % s->d_config.remote.toStringWithPort() % s->tcpCurrentConnections % s->tcpMaxConcurrentConnections % s->tcpDiedSendingQuery % s->tcpDiedReadingResponse % s->tcpGaveUp % s->tcpReadTimeouts % s->tcpWriteTimeouts % s->tcpConnectTimeouts % s->tcpTooManyConcurrentConnections % s->tcpNewConnections % s->tcpReusedConnections % s->tlsResumptions % s->tcpAvgQueriesPerConnection % s->tcpAvgConnectionDuration) << endl;
+    for (const auto& backend : *states) {
+      ret << (fmt % counter % backend->getName() % backend->d_config.remote.toStringWithPort() % backend->tcpCurrentConnections % backend->tcpMaxConcurrentConnections % backend->tcpDiedSendingQuery % backend->tcpDiedReadingResponse % backend->tcpGaveUp % backend->tcpReadTimeouts % backend->tcpWriteTimeouts % backend->tcpConnectTimeouts % backend->tcpTooManyConcurrentConnections % backend->tcpNewConnections % backend->tcpReusedConnections % backend->tlsResumptions % backend->tcpAvgQueriesPerConnection % backend->tcpAvgConnectionDuration) << endl;
       ++counter;
     }
 
@@ -683,22 +725,22 @@ void setupLuaInspection(LuaContext& luaCtx)
     ret << (fmt % "#" % "Address" % "DH key too small" % "Inappropriate fallback" % "No shared cipher" % "Unknown cipher type" % "Unknown exchange type" % "Unknown protocol" % "Unsupported EC" % "Unsupported protocol") << endl;
 
     size_t counter = 0;
-    for (const auto& f : g_frontends) {
-      if (!f->hasTLS()) {
+    for (const auto& frontend : g_frontends) {
+      if (!frontend->hasTLS()) {
         continue;
       }
       const TLSErrorCounters* errorCounters = nullptr;
-      if (f->tlsFrontend != nullptr) {
-        errorCounters = &f->tlsFrontend->d_tlsCounters;
+      if (frontend->tlsFrontend != nullptr) {
+        errorCounters = &frontend->tlsFrontend->d_tlsCounters;
       }
-      else if (f->dohFrontend != nullptr) {
-        errorCounters = &f->dohFrontend->d_tlsContext.d_tlsCounters;
+      else if (frontend->dohFrontend != nullptr) {
+        errorCounters = &frontend->dohFrontend->d_tlsContext.d_tlsCounters;
       }
       if (errorCounters == nullptr) {
         continue;
       }
 
-      ret << (fmt % counter % f->local.toStringWithPort() % errorCounters->d_dhKeyTooSmall % errorCounters->d_inappropriateFallBack % errorCounters->d_noSharedCipher % errorCounters->d_unknownCipherType % errorCounters->d_unknownKeyExchangeType % errorCounters->d_unknownProtocol % errorCounters->d_unsupportedEC % errorCounters->d_unsupportedProtocol) << endl;
+      ret << (fmt % counter % frontend->local.toStringWithPort() % errorCounters->d_dhKeyTooSmall % errorCounters->d_inappropriateFallBack % errorCounters->d_noSharedCipher % errorCounters->d_unknownCipherType % errorCounters->d_unknownKeyExchangeType % errorCounters->d_unknownProtocol % errorCounters->d_unsupportedEC % errorCounters->d_unsupportedProtocol) << endl;
       ++counter;
     }
     ret << endl;
@@ -721,14 +763,15 @@ void setupLuaInspection(LuaContext& luaCtx)
 
   luaCtx.writeFunction("dumpStats", [] {
     setLuaNoSideEffect();
-    vector<string> leftcolumn, rightcolumn;
+    vector<string> leftcolumn;
+    vector<string> rightcolumn;
 
     boost::format fmt("%-35s\t%+11s");
     g_outputBuffer.clear();
     auto entries = *dnsdist::metrics::g_stats.entries.read_lock();
     sort(entries.begin(), entries.end(),
-         [](const decltype(entries)::value_type& a, const decltype(entries)::value_type& b) {
-           return a.d_name < b.d_name;
+         [](const decltype(entries)::value_type& lhs, const decltype(entries)::value_type& rhs) {
+           return lhs.d_name < rhs.d_name;
          });
     boost::format flt("    %9.1f");
     for (const auto& entry : entries) {
@@ -754,11 +797,13 @@ void setupLuaInspection(LuaContext& luaCtx)
       }
     }
 
-    auto leftiter = leftcolumn.begin(), rightiter = rightcolumn.begin();
+    auto leftiter = leftcolumn.begin();
+    auto rightiter = rightcolumn.begin();
     boost::format clmn("%|0t|%1% %|51t|%2%\n");
 
     for (; leftiter != leftcolumn.end() || rightiter != rightcolumn.end();) {
-      string lentry, rentry;
+      string lentry;
+      string rentry;
       if (leftiter != leftcolumn.end()) {
         lentry = *leftiter;
         leftiter++;
@@ -789,16 +834,17 @@ void setupLuaInspection(LuaContext& luaCtx)
 
   luaCtx.writeFunction("exceedQTypeRate", [](uint16_t type, unsigned int rate, int seconds) {
     setLuaNoSideEffect();
-    return exceedQueryGen(rate, seconds, [type](counts_t& counts, const Rings::Query& q) {
-      if (q.qtype == type)
-        counts[q.requestor]++;
+    return exceedQueryGen(rate, seconds, [type](counts_t& counts, const Rings::Query& query) {
+      if (query.qtype == type) {
+        counts[query.requestor]++;
+      }
     });
   });
 
   luaCtx.writeFunction("exceedQRate", [](unsigned int rate, int seconds) {
     setLuaNoSideEffect();
-    return exceedQueryGen(rate, seconds, [](counts_t& counts, const Rings::Query& q) {
-      counts[q.requestor]++;
+    return exceedQueryGen(rate, seconds, [](counts_t& counts, const Rings::Query& query) {
+      counts[query.requestor]++;
     });
   });
 
@@ -806,8 +852,8 @@ void setupLuaInspection(LuaContext& luaCtx)
 
   /* StatNode */
   luaCtx.registerFunction<unsigned int (StatNode::*)() const>("numChildren",
-                                                              [](const StatNode& sn) -> unsigned int {
-                                                                return sn.children.size();
+                                                              [](const StatNode& node) -> unsigned int {
+                                                                return node.children.size();
                                                               });
   luaCtx.registerMember("fullname", &StatNode::fullname);
   luaCtx.registerMember("labelsCount", &StatNode::labelsCount);
@@ -871,21 +917,21 @@ void setupLuaInspection(LuaContext& luaCtx)
       group->setCacheMissRatio(ratio, warningRatio ? *warningRatio : 0.0, seconds, reason, blockDuration, action ? *action : DNSAction::Action::None, minimumNumberOfResponses, minimumGlobalCacheHitRatio);
     }
   });
-  luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, uint8_t, uint8_t)>("setMasks", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t v4, uint8_t v6, uint8_t port) {
+  luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, uint8_t, uint8_t)>("setMasks", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t v4addr, uint8_t v6addr, uint8_t port) {
     if (group) {
-      if (v4 > 32) {
-        throw std::runtime_error("Trying to set an invalid IPv4 mask (" + std::to_string(v4) + ") to a Dynamic Block object");
+      if (v4addr > 32) {
+        throw std::runtime_error("Trying to set an invalid IPv4 mask (" + std::to_string(v4addr) + ") to a Dynamic Block object");
       }
-      if (v6 > 128) {
-        throw std::runtime_error("Trying to set an invalid IPv6 mask (" + std::to_string(v6) + ") to a Dynamic Block object");
+      if (v6addr > 128) {
+        throw std::runtime_error("Trying to set an invalid IPv6 mask (" + std::to_string(v6addr) + ") to a Dynamic Block object");
       }
       if (port > 16) {
         throw std::runtime_error("Trying to set an invalid port mask (" + std::to_string(port) + ") to a Dynamic Block object");
       }
-      if (port > 0 && v4 != 32) {
+      if (port > 0 && v4addr != 32) {
         throw std::runtime_error("Setting a non-zero port mask for Dynamic Blocks while only considering parts of IPv4 addresses does not make sense");
       }
-      group->setMasks(v4, v6, port);
+      group->setMasks(v4addr, v6addr, port);
     }
   });
   luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(boost::variant<std::string, LuaArray<std::string>, NetmaskGroup>)>("excludeRange", [](std::shared_ptr<DynBlockRulesGroup>& group, boost::variant<std::string, LuaArray<std::string>, NetmaskGroup> ranges) {
