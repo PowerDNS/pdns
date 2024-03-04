@@ -268,7 +268,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
   }
 
   skeyset_t validKeys;
-  vState dnsKeyState = validateDNSKeysAgainstDS(d_now, d_zone, dsmap, dnsKeys, records, zonemd.getRRSIGs(), validKeys, validationContext);
+  vState dnsKeyState = validateDNSKeysAgainstDS(d_now, d_zone, dsmap, dnsKeys, records, zonemd.getRRSIGs(QType::DNSKEY), validKeys, validationContext);
   if (dnsKeyState != vState::Secure) {
     return dnsKeyState;
   }
@@ -299,7 +299,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
       for (const auto& rec : zonemd.getNSEC3Params()) {
         records.emplace(rec);
       }
-      nsecValidationStatus = validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(), validKeys, validationContext);
+      nsecValidationStatus = validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(QType::NSEC3PARAM), validKeys, validationContext);
       if (nsecValidationStatus != vState::Secure) {
         d_log->info("NSEC3PARAMS records did not validate");
         return nsecValidationStatus;
@@ -332,7 +332,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
   for (const auto& rec : zonemdRecords) {
     records.emplace(rec);
   }
-  return validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(), validKeys, validationContext);
+  return validateWithKeySet(d_now, d_zone, records, zonemd.getRRSIGs(QType::ZONEMD), validKeys, validationContext);
 }
 
 void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
