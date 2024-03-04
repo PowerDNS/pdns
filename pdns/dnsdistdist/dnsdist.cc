@@ -567,15 +567,15 @@ static bool applyRulesToResponse(const std::vector<DNSDistResponseRuleAction>& r
   return true;
 }
 
-bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dr, bool muted)
+bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
 {
   bool zeroScope = false;
-  if (!fixUpResponse(response, dr.ids.qname, dr.ids.origFlags, dr.ids.ednsAdded, dr.ids.ecsAdded, dr.ids.useZeroScope ? &zeroScope : nullptr)) {
+  if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
     return false;
   }
 
-  if (dr.ids.packetCache && !dr.ids.selfGenerated && !dr.ids.skipCache && (!dr.ids.forwardedOverUDP || response.size() <= s_maxUDPResponsePacketSize)) {
-    if (!dr.ids.useZeroScope) {
+  if (dnsResponse.ids.packetCache && !dnsResponse.ids.selfGenerated && !dnsResponse.ids.skipCache && (!dnsResponse.ids.forwardedOverUDP || response.size() <= s_maxUDPResponsePacketSize)) {
+    if (!dnsResponse.ids.useZeroScope) {
       /* if the query was not suitable for zero-scope, for
          example because it had an existing ECS entry so the hash is
          not really 'no ECS', so just insert it for the existing subnet
@@ -586,35 +586,35 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDist
       */
       zeroScope = false;
     }
-    uint32_t cacheKey = dr.ids.cacheKey;
-    if (dr.ids.protocol == dnsdist::Protocol::DoH && dr.ids.forwardedOverUDP) {
-      cacheKey = dr.ids.cacheKeyUDP;
+    uint32_t cacheKey = dnsResponse.ids.cacheKey;
+    if (dnsResponse.ids.protocol == dnsdist::Protocol::DoH && dnsResponse.ids.forwardedOverUDP) {
+      cacheKey = dnsResponse.ids.cacheKeyUDP;
     }
     else if (zeroScope) {
       // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
-      cacheKey = dr.ids.cacheKeyNoECS;
+      cacheKey = dnsResponse.ids.cacheKeyNoECS;
     }
 
-    dr.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dr.ids.subnet, dr.ids.cacheFlags, dr.ids.dnssecOK, dr.ids.qname, dr.ids.qtype, dr.ids.qclass, response, dr.ids.forwardedOverUDP, dr.getHeader()->rcode, dr.ids.tempFailureTTL);
+    dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
 
-    if (!applyRulesToResponse(cacheInsertedRespRuleActions, dr)) {
+    if (!applyRulesToResponse(cacheInsertedRespRuleActions, dnsResponse)) {
       return false;
     }
   }
 
-  if (dr.ids.ttlCap > 0) {
+  if (dnsResponse.ids.ttlCap > 0) {
     std::string result;
-    LimitTTLResponseAction ac(0, dr.ids.ttlCap, {});
-    ac(&dr, &result);
+    LimitTTLResponseAction ac(0, dnsResponse.ids.ttlCap, {});
+    ac(&dnsResponse, &result);
   }
 
-  if (dr.ids.d_extendedError) {
-    dnsdist::edns::addExtendedDNSError(dr.getMutableData(), dr.getMaximumSize(), dr.ids.d_extendedError->infoCode, dr.ids.d_extendedError->extraText);
+  if (dnsResponse.ids.d_extendedError) {
+    dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.d_extendedError->infoCode, dnsResponse.ids.d_extendedError->extraText);
   }
 
 #ifdef HAVE_DNSCRYPT
   if (!muted) {
-    if (!encryptResponse(response, dr.getMaximumSize(), dr.overTCP(), dr.ids.dnsCryptQuery)) {
+    if (!encryptResponse(response, dnsResponse.getMaximumSize(), dnsResponse.overTCP(), dnsResponse.ids.dnsCryptQuery)) {
       return false;
     }
   }
@@ -623,17 +623,17 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDist
   return true;
 }
 
-bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dr, bool muted)
+bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
 {
-  if (!applyRulesToResponse(respRuleActions, dr)) {
+  if (!applyRulesToResponse(respRuleActions, dnsResponse)) {
     return false;
   }
 
-  if (dr.isAsynchronous()) {
+  if (dnsResponse.isAsynchronous()) {
     return true;
   }
 
-  return processResponseAfterRules(response, cacheInsertedRespRuleActions, dr, muted);
+  return processResponseAfterRules(response, cacheInsertedRespRuleActions, dnsResponse, muted);
 }
 
 static size_t getInitialUDPPacketBufferSize(bool expectProxyProtocol)
@@ -961,14 +961,14 @@ static void spoofPacketFromString(DNSQuestion& dq, const string& spoofContent)
   tempSpoofAction(&dq, &result);
 }
 
-bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::string& ruleresult, bool& drop)
+bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop)
 {
-  if (dq.isAsynchronous()) {
+  if (dnsQuestion.isAsynchronous()) {
     return false;
   }
 
-  auto setRCode = [&dq](uint8_t rcode) {
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [rcode](dnsheader& header) {
+  auto setRCode = [&dnsQuestion](uint8_t rcode) {
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [rcode](dnsheader& header) {
       header.rcode = rcode;
       header.qr = true;
       return true;
@@ -997,20 +997,20 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     return true;
     break;
   case DNSAction::Action::Spoof:
-    spoofResponseFromString(dq, ruleresult, false);
+    spoofResponseFromString(dnsQuestion, ruleresult, false);
     return true;
     break;
   case DNSAction::Action::SpoofPacket:
-    spoofPacketFromString(dq, ruleresult);
+    spoofPacketFromString(dnsQuestion, ruleresult);
     return true;
     break;
   case DNSAction::Action::SpoofRaw:
-    spoofResponseFromString(dq, ruleresult, true);
+    spoofResponseFromString(dnsQuestion, ruleresult, true);
     return true;
     break;
   case DNSAction::Action::Truncate:
-    if (!dq.overTCP()) {
-      dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+    if (!dnsQuestion.overTCP()) {
+      dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
         header.tc = true;
         header.qr = true;
         header.ra = header.rd;
@@ -1028,11 +1028,11 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
   case DNSAction::Action::Pool:
     /* we need to keep this because a custom Lua action can return
        DNSAction.Spoof, 'poolname' */
-    dq.ids.poolName = ruleresult;
+    dnsQuestion.ids.poolName = ruleresult;
     return true;
     break;
   case DNSAction::Action::NoRecurse:
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
       header.rd = false;
       return true;
     });
@@ -1040,7 +1040,7 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dq, std::s
     break;
     /* non-terminal actions follow */
   case DNSAction::Action::Delay:
-    pdns::checked_stoi_into(dq.ids.delayMsec, ruleresult); // sorry
+    pdns::checked_stoi_into(dnsQuestion.ids.delayMsec, ruleresult); // sorry
     break;
   case DNSAction::Action::None:
     /* fall-through */
@@ -1416,19 +1416,19 @@ static bool prepareOutgoingResponse(LocalHolders& holders, const ClientState& cs
   return true;
 }
 
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
 {
-  const uint16_t queryId = ntohs(dq.getHeader()->id);
+  const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
   try {
-    if (dq.getHeader()->qr) { // something turned it into a response
-      fixUpQueryTurnedResponse(dq, dq.ids.origFlags);
+    if (dnsQuestion.getHeader()->qr) { // something turned it into a response
+      fixUpQueryTurnedResponse(dnsQuestion, dnsQuestion.ids.origFlags);
 
-      if (!prepareOutgoingResponse(holders, *dq.ids.cs, dq, false)) {
+      if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, false)) {
         return ProcessQueryResult::Drop;
       }
 
-      const auto rcode = dq.getHeader()->rcode;
+      const auto rcode = dnsQuestion.getHeader()->rcode;
       if (rcode == RCode::NXDomain) {
         ++dnsdist::metrics::g_stats.ruleNXDomain;
       }
@@ -1440,91 +1440,91 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
       }
 
       ++dnsdist::metrics::g_stats.selfAnswered;
-      ++dq.ids.cs->responses;
+      ++dnsQuestion.ids.cs->responses;
       return ProcessQueryResult::SendAnswer;
     }
-    std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, dq.ids.poolName);
+    std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, dnsQuestion.ids.poolName);
     std::shared_ptr<ServerPolicy> poolPolicy = serverPool->policy;
-    dq.ids.packetCache = serverPool->packetCache;
+    dnsQuestion.ids.packetCache = serverPool->packetCache;
     const auto& policy = poolPolicy != nullptr ? *poolPolicy : *(holders.policy);
     const auto servers = serverPool->getServers();
-    selectedBackend = policy.getSelectedBackend(*servers, dq);
+    selectedBackend = policy.getSelectedBackend(*servers, dnsQuestion);
 
     uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;
 
-    if (dq.ids.packetCache && !dq.ids.skipCache) {
-      dq.ids.dnssecOK = (getEDNSZ(dq) & EDNS_HEADER_FLAG_DO);
+    if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache) {
+      dnsQuestion.ids.dnssecOK = (getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO);
     }
 
-    if (dq.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool->getECS()))) {
+    if (dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool->getECS()))) {
       // we special case our cache in case a downstream explicitly gave us a universally valid response with a 0 scope
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
-      if (dq.ids.packetCache && !dq.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && dq.ids.packetCache->isECSParsingEnabled()) {
-        if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKeyNoECS, dq.ids.subnet, dq.ids.dnssecOK, !dq.overTCP(), allowExpired, false, true, false)) {
+      if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && dnsQuestion.ids.packetCache->isECSParsingEnabled()) {
+        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, !dnsQuestion.overTCP(), allowExpired, false, true, false)) {
 
-          vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), dq.ids.protocol.toString(), dq.getData().size());
+          vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
 
-          if (!prepareOutgoingResponse(holders, *dq.ids.cs, dq, true)) {
+          if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, true)) {
             return ProcessQueryResult::Drop;
           }
 
           ++dnsdist::metrics::g_stats.responses;
-          ++dq.ids.cs->responses;
+          ++dnsQuestion.ids.cs->responses;
           return ProcessQueryResult::SendAnswer;
         }
 
-        if (!dq.ids.subnet) {
+        if (!dnsQuestion.ids.subnet) {
           /* there was no existing ECS on the query, enable the zero-scope feature */
-          dq.ids.useZeroScope = true;
+          dnsQuestion.ids.useZeroScope = true;
         }
       }
 
-      if (!handleEDNSClientSubnet(dq, dq.ids.ednsAdded, dq.ids.ecsAdded)) {
-        vinfolog("Dropping query from %s because we couldn't insert the ECS value", dq.ids.origRemote.toStringWithPort());
+      if (!handleEDNSClientSubnet(dnsQuestion, dnsQuestion.ids.ednsAdded, dnsQuestion.ids.ecsAdded)) {
+        vinfolog("Dropping query from %s because we couldn't insert the ECS value", dnsQuestion.ids.origRemote.toStringWithPort());
         return ProcessQueryResult::Drop;
       }
     }
 
-    if (dq.ids.packetCache && !dq.ids.skipCache) {
-      bool forwardedOverUDP = !dq.overTCP();
+    if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache) {
+      bool forwardedOverUDP = !dnsQuestion.overTCP();
       if (selectedBackend && selectedBackend->isTCPOnly()) {
         forwardedOverUDP = false;
       }
 
       /* we do not record a miss for queries received over DoH and forwarded over TCP
          yet, as we will do a second-lookup */
-      if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKey, dq.ids.subnet, dq.ids.dnssecOK, forwardedOverUDP, allowExpired, false, true, dq.ids.protocol != dnsdist::Protocol::DoH || forwardedOverUDP)) {
+      if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, forwardedOverUDP, allowExpired, false, true, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH || forwardedOverUDP)) {
 
-        dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [flags = dq.ids.origFlags](dnsheader& header) {
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [flags = dnsQuestion.ids.origFlags](dnsheader& header) {
           restoreFlags(&header, flags);
           return true;
         });
 
-        vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), dq.ids.protocol.toString(), dq.getData().size());
+        vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
 
-        if (!prepareOutgoingResponse(holders, *dq.ids.cs, dq, true)) {
+        if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, true)) {
           return ProcessQueryResult::Drop;
         }
 
         ++dnsdist::metrics::g_stats.responses;
-        ++dq.ids.cs->responses;
+        ++dnsQuestion.ids.cs->responses;
         return ProcessQueryResult::SendAnswer;
       }
-      else if (dq.ids.protocol == dnsdist::Protocol::DoH && !forwardedOverUDP) {
+      else if (dnsQuestion.ids.protocol == dnsdist::Protocol::DoH && !forwardedOverUDP) {
         /* do a second-lookup for UDP responses, but we do not want TC=1 answers */
-        if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKeyUDP, dq.ids.subnet, dq.ids.dnssecOK, true, allowExpired, false, false, true)) {
-          if (!prepareOutgoingResponse(holders, *dq.ids.cs, dq, true)) {
+        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyUDP, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, true, allowExpired, false, false, true)) {
+          if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, true)) {
             return ProcessQueryResult::Drop;
           }
 
           ++dnsdist::metrics::g_stats.responses;
-          ++dq.ids.cs->responses;
+          ++dnsQuestion.ids.cs->responses;
           return ProcessQueryResult::SendAnswer;
         }
       }
 
-      vinfolog("Packet cache miss for query for %s|%s from %s (%s, %d bytes)", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), dq.ids.protocol.toString(), dq.getData().size());
+      vinfolog("Packet cache miss for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
 
       ++dnsdist::metrics::g_stats.cacheMisses;
     }
@@ -1532,21 +1532,21 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
     if (!selectedBackend) {
       ++dnsdist::metrics::g_stats.noPolicy;
 
-      vinfolog("%s query for %s|%s from %s, no downstream server available", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort());
+      vinfolog("%s query for %s|%s from %s, no downstream server available", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort());
       if (g_servFailOnNoPolicy) {
-        dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+        dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
           header.rcode = RCode::ServFail;
           header.qr = true;
           return true;
         });
 
-        fixUpQueryTurnedResponse(dq, dq.ids.origFlags);
+        fixUpQueryTurnedResponse(dnsQuestion, dnsQuestion.ids.origFlags);
 
-        if (!prepareOutgoingResponse(holders, *dq.ids.cs, dq, false)) {
+        if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, false)) {
           return ProcessQueryResult::Drop;
         }
         ++dnsdist::metrics::g_stats.responses;
-        ++dq.ids.cs->responses;
+        ++dnsQuestion.ids.cs->responses;
         // no response-only statistics counter to update.
         return ProcessQueryResult::SendAnswer;
       }
@@ -1555,24 +1555,24 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
     }
 
     /* save the DNS flags as sent to the backend so we can cache the answer with the right flags later */
-    dq.ids.cacheFlags = *getFlagsFromDNSHeader(dq.getHeader().get());
+    dnsQuestion.ids.cacheFlags = *getFlagsFromDNSHeader(dnsQuestion.getHeader().get());
 
-    if (dq.addXPF && selectedBackend->d_config.xpfRRCode != 0) {
-      addXPF(dq, selectedBackend->d_config.xpfRRCode);
+    if (dnsQuestion.addXPF && selectedBackend->d_config.xpfRRCode != 0) {
+      addXPF(dnsQuestion, selectedBackend->d_config.xpfRRCode);
     }
 
-    if (selectedBackend->d_config.useProxyProtocol && dq.getProtocol().isEncrypted() && selectedBackend->d_config.d_proxyProtocolAdvertiseTLS) {
-      if (!dq.proxyProtocolValues) {
-        dq.proxyProtocolValues = std::make_unique<std::vector<ProxyProtocolValue>>();
+    if (selectedBackend->d_config.useProxyProtocol && dnsQuestion.getProtocol().isEncrypted() && selectedBackend->d_config.d_proxyProtocolAdvertiseTLS) {
+      if (!dnsQuestion.proxyProtocolValues) {
+        dnsQuestion.proxyProtocolValues = std::make_unique<std::vector<ProxyProtocolValue>>();
       }
-      dq.proxyProtocolValues->push_back(ProxyProtocolValue{"", static_cast<uint8_t>(ProxyProtocolValue::Types::PP_TLV_SSL)});
+      dnsQuestion.proxyProtocolValues->push_back(ProxyProtocolValue{"", static_cast<uint8_t>(ProxyProtocolValue::Types::PP_TLV_SSL)});
     }
 
     selectedBackend->incQueriesCount();
     return ProcessQueryResult::PassToBackend;
   }
   catch (const std::exception& e) {
-    vinfolog("Got an error while parsing a %s query (after applying rules)  from %s, id %d: %s", (dq.overTCP() ? "TCP" : "UDP"), dq.ids.origRemote.toStringWithPort(), queryId, e.what());
+    vinfolog("Got an error while parsing a %s query (after applying rules)  from %s, id %d: %s", (dnsQuestion.overTCP() ? "TCP" : "UDP"), dnsQuestion.ids.origRemote.toStringWithPort(), queryId, e.what());
   }
   return ProcessQueryResult::Drop;
 }
@@ -1658,9 +1658,9 @@ std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& 
   return std::make_unique<UDPCrossProtocolQuery>(std::move(dq.getMutableData()), std::move(dq.ids), nullptr);
 }
 
-ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
 {
-  const uint16_t queryId = ntohs(dq.getHeader()->id);
+  const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
   try {
     /* we need an accurate ("real") value for the response and
@@ -1669,18 +1669,18 @@ ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::sha
     struct timespec now;
     gettime(&now);
 
-    if (!applyRulesToQuery(holders, dq, now)) {
+    if (!applyRulesToQuery(holders, dnsQuestion, now)) {
       return ProcessQueryResult::Drop;
     }
 
-    if (dq.isAsynchronous()) {
+    if (dnsQuestion.isAsynchronous()) {
       return ProcessQueryResult::Asynchronous;
     }
 
-    return processQueryAfterRules(dq, holders, selectedBackend);
+    return processQueryAfterRules(dnsQuestion, holders, selectedBackend);
   }
   catch (const std::exception& e) {
-    vinfolog("Got an error while parsing a %s query from %s, id %d: %s", (dq.overTCP() ? "TCP" : "UDP"), dq.ids.origRemote.toStringWithPort(), queryId, e.what());
+    vinfolog("Got an error while parsing a %s query from %s, id %d: %s", (dnsQuestion.overTCP() ? "TCP" : "UDP"), dnsQuestion.ids.origRemote.toStringWithPort(), queryId, e.what());
   }
   return ProcessQueryResult::Drop;
 }
