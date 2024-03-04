@@ -34,89 +34,90 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   /* DNSQuestion */
   /* PowerDNS DNSQuestion compat */
   luaCtx.registerMember<const ComboAddress(DNSQuestion::*)>(
-    "localaddr", [](const DNSQuestion& dq) -> const ComboAddress { return dq.ids.origDest; }, [](DNSQuestion& dq, const ComboAddress newLocal) { (void)newLocal; });
+    "localaddr", [](const DNSQuestion& dnsQuestion) -> ComboAddress { return dnsQuestion.ids.origDest; }, [](DNSQuestion& dnsQuestion, const ComboAddress newLocal) { (void)newLocal; });
   luaCtx.registerMember<const DNSName(DNSQuestion::*)>(
-    "qname", [](const DNSQuestion& dq) -> const DNSName { return dq.ids.qname; }, [](DNSQuestion& dq, const DNSName& newName) { (void)newName; });
+    "qname", [](const DNSQuestion& dnsQuestion) -> DNSName { return dnsQuestion.ids.qname; }, [](DNSQuestion& dnsQuestion, const DNSName& newName) { (void)newName; });
   luaCtx.registerMember<uint16_t(DNSQuestion::*)>(
-    "qtype", [](const DNSQuestion& dq) -> uint16_t { return dq.ids.qtype; }, [](DNSQuestion& dq, uint16_t newType) { (void)newType; });
+    "qtype", [](const DNSQuestion& dnsQuestion) -> uint16_t { return dnsQuestion.ids.qtype; }, [](DNSQuestion& dnsQuestion, uint16_t newType) { (void)newType; });
   luaCtx.registerMember<uint16_t(DNSQuestion::*)>(
-    "qclass", [](const DNSQuestion& dq) -> uint16_t { return dq.ids.qclass; }, [](DNSQuestion& dq, uint16_t newClass) { (void)newClass; });
+    "qclass", [](const DNSQuestion& dnsQuestion) -> uint16_t { return dnsQuestion.ids.qclass; }, [](DNSQuestion& dnsQuestion, uint16_t newClass) { (void)newClass; });
   luaCtx.registerMember<int(DNSQuestion::*)>(
-    "rcode", [](const DNSQuestion& dq) -> int { return static_cast<int>(dq.getHeader()->rcode); }, [](DNSQuestion& dq, int newRCode) { dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [newRCode](dnsheader& header) {
+    "rcode", [](const DNSQuestion& dnsQuestion) -> int { return static_cast<int>(dnsQuestion.getHeader()->rcode); }, [](DNSQuestion& dnsQuestion, int newRCode) { dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [newRCode](dnsheader& header) {
                                                                                                                                          header.rcode = static_cast<decltype(header.rcode)>(newRCode);
                                                                                                                                          return true;
                                                                                                                                        }); });
   luaCtx.registerMember<const ComboAddress(DNSQuestion::*)>(
-    "remoteaddr", [](const DNSQuestion& dq) -> const ComboAddress { return dq.ids.origRemote; }, [](DNSQuestion& dq, const ComboAddress newRemote) { (void)newRemote; });
+    "remoteaddr", [](const DNSQuestion& dnsQuestion) -> ComboAddress { return dnsQuestion.ids.origRemote; }, [](DNSQuestion& dnsQuestion, const ComboAddress newRemote) { (void)newRemote; });
   /* DNSDist DNSQuestion */
   luaCtx.registerMember<dnsheader*(DNSQuestion::*)>(
-    "dh", [](const DNSQuestion& dq) -> dnsheader* { return dq.getMutableHeader(); }, [](DNSQuestion& dq, const dnsheader* dh) { dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [&dh](dnsheader& header) {
-                                                                                                                                  header = *dh;
+    "dh", [](const DNSQuestion& dnsQuestion) -> dnsheader* { return dnsQuestion.getMutableHeader(); }, [](DNSQuestion& dnsQuestion, const dnsheader* dnsHeader) { dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [&dnsHeader](dnsheader& header) {
+                                                                                                                                  header = *dnsHeader;
                                                                                                                                   return true;
                                                                                                                                 }); });
   luaCtx.registerMember<uint16_t(DNSQuestion::*)>(
-    "len", [](const DNSQuestion& dq) -> uint16_t { return dq.getData().size(); }, [](DNSQuestion& dq, uint16_t newlen) { dq.getMutableData().resize(newlen); });
+    "len", [](const DNSQuestion& dnsQuestion) -> uint16_t { return dnsQuestion.getData().size(); }, [](DNSQuestion& dnsQuestion, uint16_t newlen) { dnsQuestion.getMutableData().resize(newlen); });
   luaCtx.registerMember<uint8_t(DNSQuestion::*)>(
-    "opcode", [](const DNSQuestion& dq) -> uint8_t { return dq.getHeader()->opcode; }, [](DNSQuestion& dq, uint8_t newOpcode) { (void)newOpcode; });
+    "opcode", [](const DNSQuestion& dnsQuestion) -> uint8_t { return dnsQuestion.getHeader()->opcode; }, [](DNSQuestion& dnsQuestion, uint8_t newOpcode) { (void)newOpcode; });
   luaCtx.registerMember<bool(DNSQuestion::*)>(
-    "tcp", [](const DNSQuestion& dq) -> bool { return dq.overTCP(); }, [](DNSQuestion& dq, bool newTcp) { (void)newTcp; });
+    "tcp", [](const DNSQuestion& dnsQuestion) -> bool { return dnsQuestion.overTCP(); }, [](DNSQuestion& dnsQuestion, bool newTcp) { (void)newTcp; });
   luaCtx.registerMember<bool(DNSQuestion::*)>(
-    "skipCache", [](const DNSQuestion& dq) -> bool { return dq.ids.skipCache; }, [](DNSQuestion& dq, bool newSkipCache) { dq.ids.skipCache = newSkipCache; });
+    "skipCache", [](const DNSQuestion& dnsQuestion) -> bool { return dnsQuestion.ids.skipCache; }, [](DNSQuestion& dnsQuestion, bool newSkipCache) { dnsQuestion.ids.skipCache = newSkipCache; });
   luaCtx.registerMember<std::string(DNSQuestion::*)>(
-    "pool", [](const DNSQuestion& dq) -> std::string { return dq.ids.poolName; }, [](DNSQuestion& dq, const std::string& newPoolName) { dq.ids.poolName = newPoolName; });
+    "pool", [](const DNSQuestion& dnsQuestion) -> std::string { return dnsQuestion.ids.poolName; }, [](DNSQuestion& dnsQuestion, const std::string& newPoolName) { dnsQuestion.ids.poolName = newPoolName; });
   luaCtx.registerMember<bool(DNSQuestion::*)>(
-    "useECS", [](const DNSQuestion& dq) -> bool { return dq.useECS; }, [](DNSQuestion& dq, bool useECS) { dq.useECS = useECS; });
+    "useECS", [](const DNSQuestion& dnsQuestion) -> bool { return dnsQuestion.useECS; }, [](DNSQuestion& dnsQuestion, bool useECS) { dnsQuestion.useECS = useECS; });
   luaCtx.registerMember<bool(DNSQuestion::*)>(
-    "ecsOverride", [](const DNSQuestion& dq) -> bool { return dq.ecsOverride; }, [](DNSQuestion& dq, bool ecsOverride) { dq.ecsOverride = ecsOverride; });
+    "ecsOverride", [](const DNSQuestion& dnsQuestion) -> bool { return dnsQuestion.ecsOverride; }, [](DNSQuestion& dnsQuestion, bool ecsOverride) { dnsQuestion.ecsOverride = ecsOverride; });
   luaCtx.registerMember<uint16_t(DNSQuestion::*)>(
-    "ecsPrefixLength", [](const DNSQuestion& dq) -> uint16_t { return dq.ecsPrefixLength; }, [](DNSQuestion& dq, uint16_t newPrefixLength) { dq.ecsPrefixLength = newPrefixLength; });
+    "ecsPrefixLength", [](const DNSQuestion& dnsQuestion) -> uint16_t { return dnsQuestion.ecsPrefixLength; }, [](DNSQuestion& dnsQuestion, uint16_t newPrefixLength) { dnsQuestion.ecsPrefixLength = newPrefixLength; });
   luaCtx.registerMember<boost::optional<uint32_t>(DNSQuestion::*)>(
     "tempFailureTTL",
-    [](const DNSQuestion& dq) -> boost::optional<uint32_t> {
-      return dq.ids.tempFailureTTL;
+    [](const DNSQuestion& dnsQuestion) -> boost::optional<uint32_t> {
+      return dnsQuestion.ids.tempFailureTTL;
     },
-    [](DNSQuestion& dq, boost::optional<uint32_t> newValue) {
-      dq.ids.tempFailureTTL = newValue;
+    [](DNSQuestion& dnsQuestion, boost::optional<uint32_t> newValue) {
+      dnsQuestion.ids.tempFailureTTL = newValue;
     });
   luaCtx.registerMember<std::string(DNSQuestion::*)>(
-    "deviceID", [](const DNSQuestion& dq) -> std::string {
-    if (dq.ids.d_protoBufData) {
-      return dq.ids.d_protoBufData->d_deviceID;
+    "deviceID", [](const DNSQuestion& dnsQuestion) -> std::string {
+    if (dnsQuestion.ids.d_protoBufData) {
+      return dnsQuestion.ids.d_protoBufData->d_deviceID;
     }
-    return std::string(); }, [](DNSQuestion& dq, const std::string& newValue) {
-    if (!dq.ids.d_protoBufData) {
-      dq.ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+    return {}; }, [](DNSQuestion& dnsQuestion, const std::string& newValue) {
+    if (!dnsQuestion.ids.d_protoBufData) {
+      dnsQuestion.ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
     }
-    dq.ids.d_protoBufData->d_deviceID = newValue; });
+    dnsQuestion.ids.d_protoBufData->d_deviceID = newValue; });
   luaCtx.registerMember<std::string(DNSQuestion::*)>(
-    "deviceName", [](const DNSQuestion& dq) -> std::string {
-    if (dq.ids.d_protoBufData) {
-      return dq.ids.d_protoBufData->d_deviceName;
+    "deviceName", [](const DNSQuestion& dnsQuestion) -> std::string {
+    if (dnsQuestion.ids.d_protoBufData) {
+      return dnsQuestion.ids.d_protoBufData->d_deviceName;
     }
-    return std::string(); }, [](DNSQuestion& dq, const std::string& newValue) {
-    if (!dq.ids.d_protoBufData) {
-      dq.ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+    return {}; }, [](DNSQuestion& dnsQuestion, const std::string& newValue) {
+    if (!dnsQuestion.ids.d_protoBufData) {
+      dnsQuestion.ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
     }
-    dq.ids.d_protoBufData->d_deviceName = newValue; });
+    dnsQuestion.ids.d_protoBufData->d_deviceName = newValue; });
   luaCtx.registerMember<std::string(DNSQuestion::*)>(
-    "requestorID", [](const DNSQuestion& dq) -> std::string {
-    if (dq.ids.d_protoBufData) {
-      return dq.ids.d_protoBufData->d_requestorID;
+    "requestorID", [](const DNSQuestion& dnsQuestion) -> std::string {
+    if (dnsQuestion.ids.d_protoBufData) {
+      return dnsQuestion.ids.d_protoBufData->d_requestorID;
     }
-    return std::string(); }, [](DNSQuestion& dq, const std::string& newValue) {
-    if (!dq.ids.d_protoBufData) {
-      dq.ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
+    return {}; }, [](DNSQuestion& dnsQuestion, const std::string& newValue) {
+    if (!dnsQuestion.ids.d_protoBufData) {
+      dnsQuestion.ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
     }
-    dq.ids.d_protoBufData->d_requestorID = newValue; });
-  luaCtx.registerFunction<bool (DNSQuestion::*)() const>("getDO", [](const DNSQuestion& dq) {
-    return getEDNSZ(dq) & EDNS_HEADER_FLAG_DO;
+    dnsQuestion.ids.d_protoBufData->d_requestorID = newValue; });
+  luaCtx.registerFunction<bool (DNSQuestion::*)() const>("getDO", [](const DNSQuestion& dnsQuestion) {
+    return getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO;
   });
-  luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getContent", [](const DNSQuestion& dq) {
-    return std::string(reinterpret_cast<const char*>(dq.getData().data()), dq.getData().size());
+  luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getContent", [](const DNSQuestion& dnsQuestion) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return std::string(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size());
   });
-  luaCtx.registerFunction<void (DNSQuestion::*)(const std::string&)>("setContent", [](DNSQuestion& dq, const std::string& raw) {
-    uint16_t oldID = dq.getHeader()->id;
-    auto& buffer = dq.getMutableData();
+  luaCtx.registerFunction<void (DNSQuestion::*)(const std::string&)>("setContent", [](DNSQuestion& dnsQuestion, const std::string& raw) {
+    uint16_t oldID = dnsQuestion.getHeader()->id;
+    auto& buffer = dnsQuestion.getMutableData();
     buffer.clear();
     buffer.insert(buffer.begin(), raw.begin(), raw.end());
 
@@ -125,113 +126,113 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       return true;
     });
   });
-  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView> (DNSQuestion::*)() const>("getEDNSOptions", [](const DNSQuestion& dq) {
-    if (dq.ednsOptions == nullptr) {
-      parseEDNSOptions(dq);
-      if (dq.ednsOptions == nullptr) {
+  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView> (DNSQuestion::*)() const>("getEDNSOptions", [](const DNSQuestion& dnsQuestion) {
+    if (dnsQuestion.ednsOptions == nullptr) {
+      parseEDNSOptions(dnsQuestion);
+      if (dnsQuestion.ednsOptions == nullptr) {
         throw std::runtime_error("parseEDNSOptions should have populated the EDNS options");
       }
     }
 
-    return *dq.ednsOptions;
+    return *dnsQuestion.ednsOptions;
   });
-  luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getTrailingData", [](const DNSQuestion& dq) {
-    return dq.getTrailingData();
+  luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getTrailingData", [](const DNSQuestion& dnsQuestion) {
+    return dnsQuestion.getTrailingData();
   });
-  luaCtx.registerFunction<bool (DNSQuestion::*)(std::string)>("setTrailingData", [](DNSQuestion& dq, const std::string& tail) {
-    return dq.setTrailingData(tail);
-  });
-
-  luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getServerNameIndication", [](const DNSQuestion& dq) {
-    return dq.sni;
+  luaCtx.registerFunction<bool (DNSQuestion::*)(std::string)>("setTrailingData", [](DNSQuestion& dnsQuestion, const std::string& tail) {
+    return dnsQuestion.setTrailingData(tail);
   });
 
-  luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getProtocol", [](const DNSQuestion& dq) {
-    return dq.getProtocol().toPrettyString();
+  luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getServerNameIndication", [](const DNSQuestion& dnsQuestion) {
+    return dnsQuestion.sni;
   });
 
-  luaCtx.registerFunction<timespec (DNSQuestion::*)() const>("getQueryTime", [](const DNSQuestion& dq) {
-    return dq.ids.queryRealTime.getStartTime();
+  luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getProtocol", [](const DNSQuestion& dnsQuestion) {
+    return dnsQuestion.getProtocol().toPrettyString();
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dq, boost::optional<std::string> reason) {
+  luaCtx.registerFunction<timespec (DNSQuestion::*)() const>("getQueryTime", [](const DNSQuestion& dnsQuestion) {
+    return dnsQuestion.ids.queryRealTime.getStartTime();
+  });
+
+  luaCtx.registerFunction<void (DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dnsQuestion, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
-    if (g_snmpAgent && g_snmpTrapsEnabled) {
-      g_snmpAgent->sendDNSTrap(dq, reason ? *reason : "");
+    if (g_snmpAgent != nullptr && g_snmpTrapsEnabled) {
+      g_snmpAgent->sendDNSTrap(dnsQuestion, reason ? *reason : "");
     }
 #endif /* HAVE_NET_SNMP */
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dq, const std::string& strLabel, const std::string& strValue) {
-    dq.setTag(strLabel, strValue);
+  luaCtx.registerFunction<void (DNSQuestion::*)(std::string, std::string)>("setTag", [](DNSQuestion& dnsQuestion, const std::string& strLabel, const std::string& strValue) {
+    dnsQuestion.setTag(strLabel, strValue);
   });
-  luaCtx.registerFunction<void (DNSQuestion::*)(LuaAssociativeTable<std::string>)>("setTagArray", [](DNSQuestion& dq, const LuaAssociativeTable<std::string>& tags) {
+  luaCtx.registerFunction<void (DNSQuestion::*)(LuaAssociativeTable<std::string>)>("setTagArray", [](DNSQuestion& dnsQuestion, const LuaAssociativeTable<std::string>& tags) {
     for (const auto& tag : tags) {
-      dq.setTag(tag.first, tag.second);
+      dnsQuestion.setTag(tag.first, tag.second);
     }
   });
-  luaCtx.registerFunction<string (DNSQuestion::*)(std::string) const>("getTag", [](const DNSQuestion& dq, const std::string& strLabel) {
-    if (!dq.ids.qTag) {
+  luaCtx.registerFunction<string (DNSQuestion::*)(std::string) const>("getTag", [](const DNSQuestion& dnsQuestion, const std::string& strLabel) {
+    if (!dnsQuestion.ids.qTag) {
       return string();
     }
 
     std::string strValue;
-    const auto it = dq.ids.qTag->find(strLabel);
-    if (it == dq.ids.qTag->cend()) {
+    const auto tagIt = dnsQuestion.ids.qTag->find(strLabel);
+    if (tagIt == dnsQuestion.ids.qTag->cend()) {
       return string();
     }
-    return it->second;
+    return tagIt->second;
   });
-  luaCtx.registerFunction<QTag (DNSQuestion::*)(void) const>("getTagArray", [](const DNSQuestion& dq) {
-    if (!dq.ids.qTag) {
+  luaCtx.registerFunction<QTag (DNSQuestion::*)(void) const>("getTagArray", [](const DNSQuestion& dnsQuestion) {
+    if (!dnsQuestion.ids.qTag) {
       QTag empty;
       return empty;
     }
 
-    return *dq.ids.qTag;
+    return *dnsQuestion.ids.qTag;
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(LuaArray<std::string>)>("setProxyProtocolValues", [](DNSQuestion& dq, const LuaArray<std::string>& values) {
-    if (!dq.proxyProtocolValues) {
-      dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
+  luaCtx.registerFunction<void (DNSQuestion::*)(LuaArray<std::string>)>("setProxyProtocolValues", [](DNSQuestion& dnsQuestion, const LuaArray<std::string>& values) {
+    if (!dnsQuestion.proxyProtocolValues) {
+      dnsQuestion.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
     }
 
-    dq.proxyProtocolValues->clear();
-    dq.proxyProtocolValues->reserve(values.size());
+    dnsQuestion.proxyProtocolValues->clear();
+    dnsQuestion.proxyProtocolValues->reserve(values.size());
     for (const auto& value : values) {
       checkParameterBound("setProxyProtocolValues", value.first, std::numeric_limits<uint8_t>::max());
-      dq.proxyProtocolValues->push_back({value.second, static_cast<uint8_t>(value.first)});
+      dnsQuestion.proxyProtocolValues->push_back({value.second, static_cast<uint8_t>(value.first)});
     }
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(uint64_t, std::string)>("addProxyProtocolValue", [](DNSQuestion& dq, uint64_t type, std::string value) {
+  luaCtx.registerFunction<void (DNSQuestion::*)(uint64_t, std::string)>("addProxyProtocolValue", [](DNSQuestion& dnsQuestion, uint64_t type, std::string value) {
     checkParameterBound("addProxyProtocolValue", type, std::numeric_limits<uint8_t>::max());
-    if (!dq.proxyProtocolValues) {
-      dq.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
+    if (!dnsQuestion.proxyProtocolValues) {
+      dnsQuestion.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
     }
 
-    dq.proxyProtocolValues->push_back({std::move(value), static_cast<uint8_t>(type)});
+    dnsQuestion.proxyProtocolValues->push_back({std::move(value), static_cast<uint8_t>(type)});
   });
 
-  luaCtx.registerFunction<LuaArray<std::string> (DNSQuestion::*)()>("getProxyProtocolValues", [](const DNSQuestion& dq) {
+  luaCtx.registerFunction<LuaArray<std::string> (DNSQuestion::*)()>("getProxyProtocolValues", [](const DNSQuestion& dnsQuestion) {
     LuaArray<std::string> result;
-    if (!dq.proxyProtocolValues) {
+    if (!dnsQuestion.proxyProtocolValues) {
       return result;
     }
 
-    result.resize(dq.proxyProtocolValues->size());
-    for (const auto& value : *dq.proxyProtocolValues) {
-      result.push_back({value.type, value.content});
+    result.resize(dnsQuestion.proxyProtocolValues->size());
+    for (const auto& value : *dnsQuestion.proxyProtocolValues) {
+      result.emplace_back(value.type, value.content);
     }
 
     return result;
   });
 
-  luaCtx.registerFunction<bool (DNSQuestion::*)(const DNSName& newName)>("changeName", [](DNSQuestion& dq, const DNSName& newName) -> bool {
-    if (!dnsdist::changeNameInDNSPacket(dq.getMutableData(), dq.ids.qname, newName)) {
+  luaCtx.registerFunction<bool (DNSQuestion::*)(const DNSName& newName)>("changeName", [](DNSQuestion& dnsQuestion, const DNSName& newName) -> bool {
+    if (!dnsdist::changeNameInDNSPacket(dnsQuestion.getMutableData(), dnsQuestion.ids.qname, newName)) {
       return false;
     }
-    dq.ids.qname = newName;
+    dnsQuestion.ids.qname = newName;
     return true;
   });
 
@@ -262,8 +263,8 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     }
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(uint16_t code, const std::string&)>("setEDNSOption", [](DNSQuestion& dq, uint16_t code, const std::string& data) {
-    setEDNSOption(dq, code, data);
+  luaCtx.registerFunction<void (DNSQuestion::*)(uint16_t code, const std::string&)>("setEDNSOption", [](DNSQuestion& dnsQuestion, uint16_t code, const std::string& data) {
+    setEDNSOption(dnsQuestion, code, data);
   });
 
   luaCtx.registerFunction<void (DNSQuestion::*)(uint16_t infoCode, const boost::optional<std::string>& extraText)>("setExtendedDNSError", [](DNSQuestion& dnsQuestion, uint16_t infoCode, const boost::optional<std::string>& extraText) {
@@ -275,13 +276,13 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     dnsQuestion.ids.d_extendedError = std::make_unique<EDNSExtendedError>(ede);
   });
 
-  luaCtx.registerFunction<bool (DNSQuestion::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSQuestion& dq, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
-    dq.asynchronous = true;
-    return dnsdist::suspendQuery(dq, asyncID, queryID, timeoutMs);
+  luaCtx.registerFunction<bool (DNSQuestion::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSQuestion& dnsQuestion, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
+    dnsQuestion.asynchronous = true;
+    return dnsdist::suspendQuery(dnsQuestion, asyncID, queryID, timeoutMs);
   });
 
-  luaCtx.registerFunction<bool (DNSQuestion::*)()>("setRestartable", [](DNSQuestion& dq) {
-    dq.ids.d_packet = std::make_unique<PacketBuffer>(dq.getData());
+  luaCtx.registerFunction<bool (DNSQuestion::*)()>("setRestartable", [](DNSQuestion& dnsQuestion) {
+    dnsQuestion.ids.d_packet = std::make_unique<PacketBuffer>(dnsQuestion.getData());
     return true;
   });
 
@@ -293,12 +294,12 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     {
     }
 
-    DNSQuestion getDQ() const
+    [[nodiscard]] DNSQuestion getDQ() const
     {
       return object->getDQ();
     }
 
-    DNSResponse getDR() const
+    [[nodiscard]] DNSResponse getDR() const
     {
       return object->getDR();
     }
@@ -315,7 +316,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
         return false;
       }
 
-      struct timeval now;
+      timeval now{};
       gettimeofday(&now, nullptr);
       sender->notifyIOError(now, TCPResponse(std::move(object->query)));
       return true;
@@ -358,52 +359,54 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     if (!query) {
       throw std::runtime_error("Unable to find asynchronous object");
     }
-    return AsynchronousObject(std::move(query));
+    return {std::move(query)};
   });
 
   /* LuaWrapper doesn't support inheritance */
   luaCtx.registerMember<const ComboAddress(DNSResponse::*)>(
-    "localaddr", [](const DNSResponse& dq) -> const ComboAddress { return dq.ids.origDest; }, [](DNSResponse& dq, const ComboAddress newLocal) { (void)newLocal; });
+    "localaddr", [](const DNSResponse& dnsQuestion) -> ComboAddress { return dnsQuestion.ids.origDest; }, [](DNSResponse& dnsQuestion, const ComboAddress newLocal) { (void)newLocal; });
   luaCtx.registerMember<const DNSName(DNSResponse::*)>(
-    "qname", [](const DNSResponse& dq) -> const DNSName { return dq.ids.qname; }, [](DNSResponse& dq, const DNSName& newName) { (void)newName; });
+    "qname", [](const DNSResponse& dnsQuestion) -> DNSName { return dnsQuestion.ids.qname; }, [](DNSResponse& dnsQuestion, const DNSName& newName) { (void)newName; });
   luaCtx.registerMember<uint16_t(DNSResponse::*)>(
-    "qtype", [](const DNSResponse& dq) -> uint16_t { return dq.ids.qtype; }, [](DNSResponse& dq, uint16_t newType) { (void)newType; });
+    "qtype", [](const DNSResponse& dnsQuestion) -> uint16_t { return dnsQuestion.ids.qtype; }, [](DNSResponse& dnsQuestion, uint16_t newType) { (void)newType; });
   luaCtx.registerMember<uint16_t(DNSResponse::*)>(
-    "qclass", [](const DNSResponse& dq) -> uint16_t { return dq.ids.qclass; }, [](DNSResponse& dq, uint16_t newClass) { (void)newClass; });
+    "qclass", [](const DNSResponse& dnsQuestion) -> uint16_t { return dnsQuestion.ids.qclass; }, [](DNSResponse& dnsQuestion, uint16_t newClass) { (void)newClass; });
   luaCtx.registerMember<int(DNSResponse::*)>(
-    "rcode", [](const DNSResponse& dq) -> int { return static_cast<int>(dq.getHeader()->rcode); }, [](DNSResponse& dq, int newRCode) { dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [newRCode](dnsheader& header) {
+    "rcode", [](const DNSResponse& dnsQuestion) -> int { return static_cast<int>(dnsQuestion.getHeader()->rcode); }, [](DNSResponse& dnsQuestion, int newRCode) { dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [newRCode](dnsheader& header) {
                                                                                                                                          header.rcode = static_cast<decltype(header.rcode)>(newRCode);
                                                                                                                                          return true;
                                                                                                                                        }); });
-  luaCtx.registerMember<const ComboAddress(DNSResponse::*)>(
-    "remoteaddr", [](const DNSResponse& dq) -> const ComboAddress { return dq.ids.origRemote; }, [](DNSResponse& dq, const ComboAddress newRemote) { (void)newRemote; });
+  luaCtx.registerMember<ComboAddress(DNSResponse::*)>(
+    "remoteaddr", [](const DNSResponse& dnsQuestion) -> ComboAddress { return dnsQuestion.ids.origRemote; }, [](DNSResponse& dnsQuestion, const ComboAddress newRemote) { (void)newRemote; });
   luaCtx.registerMember<dnsheader*(DNSResponse::*)>(
-    "dh", [](const DNSResponse& dr) -> dnsheader* { return dr.getMutableHeader(); }, [](DNSResponse& dr, const dnsheader* dh) { dnsdist::PacketMangling::editDNSHeaderFromPacket(dr.getMutableData(), [&dh](dnsheader& header) {
-                                                                                                                                  header = *dh;
+    "dh", [](const DNSResponse& dnsResponse) -> dnsheader* { return dnsResponse.getMutableHeader(); }, [](DNSResponse& dnsResponse, const dnsheader* dnsHeader) { dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [&dnsHeader](dnsheader& header) {
+                                                                                                                                  header = *dnsHeader;
                                                                                                                                   return true;
                                                                                                                                 }); });
   luaCtx.registerMember<uint16_t(DNSResponse::*)>(
-    "len", [](const DNSResponse& dq) -> uint16_t { return dq.getData().size(); }, [](DNSResponse& dq, uint16_t newlen) { dq.getMutableData().resize(newlen); });
+    "len", [](const DNSResponse& dnsQuestion) -> uint16_t { return dnsQuestion.getData().size(); }, [](DNSResponse& dnsQuestion, uint16_t newlen) { dnsQuestion.getMutableData().resize(newlen); });
   luaCtx.registerMember<uint8_t(DNSResponse::*)>(
-    "opcode", [](const DNSResponse& dq) -> uint8_t { return dq.getHeader()->opcode; }, [](DNSResponse& dq, uint8_t newOpcode) { (void)newOpcode; });
+    "opcode", [](const DNSResponse& dnsQuestion) -> uint8_t { return dnsQuestion.getHeader()->opcode; }, [](DNSResponse& dnsQuestion, uint8_t newOpcode) { (void)newOpcode; });
   luaCtx.registerMember<bool(DNSResponse::*)>(
-    "tcp", [](const DNSResponse& dq) -> bool { return dq.overTCP(); }, [](DNSResponse& dq, bool newTcp) { (void)newTcp; });
+    "tcp", [](const DNSResponse& dnsQuestion) -> bool { return dnsQuestion.overTCP(); }, [](DNSResponse& dnsQuestion, bool newTcp) { (void)newTcp; });
   luaCtx.registerMember<bool(DNSResponse::*)>(
-    "skipCache", [](const DNSResponse& dq) -> bool { return dq.ids.skipCache; }, [](DNSResponse& dq, bool newSkipCache) { dq.ids.skipCache = newSkipCache; });
+    "skipCache", [](const DNSResponse& dnsQuestion) -> bool { return dnsQuestion.ids.skipCache; }, [](DNSResponse& dnsQuestion, bool newSkipCache) { dnsQuestion.ids.skipCache = newSkipCache; });
   luaCtx.registerMember<std::string(DNSResponse::*)>(
-    "pool", [](const DNSResponse& dq) -> std::string { return dq.ids.poolName; }, [](DNSResponse& dq, const std::string& newPoolName) { dq.ids.poolName = newPoolName; });
-  luaCtx.registerFunction<void (DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](DNSResponse& dr, std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc) {
-    editDNSPacketTTL(reinterpret_cast<char*>(dr.getMutableData().data()), dr.getData().size(), editFunc);
+    "pool", [](const DNSResponse& dnsQuestion) -> std::string { return dnsQuestion.ids.poolName; }, [](DNSResponse& dnsQuestion, const std::string& newPoolName) { dnsQuestion.ids.poolName = newPoolName; });
+  luaCtx.registerFunction<void (DNSResponse::*)(std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)> editFunc)>("editTTLs", [](DNSResponse& dnsResponse, const std::function<uint32_t(uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl)>& editFunc) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    editDNSPacketTTL(reinterpret_cast<char*>(dnsResponse.getMutableData().data()), dnsResponse.getData().size(), editFunc);
   });
-  luaCtx.registerFunction<bool (DNSResponse::*)() const>("getDO", [](const DNSResponse& dq) {
-    return getEDNSZ(dq) & EDNS_HEADER_FLAG_DO;
+  luaCtx.registerFunction<bool (DNSResponse::*)() const>("getDO", [](const DNSResponse& dnsQuestion) {
+    return getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO;
   });
-  luaCtx.registerFunction<std::string (DNSResponse::*)() const>("getContent", [](const DNSResponse& dq) {
-    return std::string(reinterpret_cast<const char*>(dq.getData().data()), dq.getData().size());
+  luaCtx.registerFunction<std::string (DNSResponse::*)() const>("getContent", [](const DNSResponse& dnsQuestion) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return std::string(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size());
   });
-  luaCtx.registerFunction<void (DNSResponse::*)(const std::string&)>("setContent", [](DNSResponse& dr, const std::string& raw) {
-    uint16_t oldID = dr.getHeader()->id;
-    auto& buffer = dr.getMutableData();
+  luaCtx.registerFunction<void (DNSResponse::*)(const std::string&)>("setContent", [](DNSResponse& dnsResponse, const std::string& raw) {
+    uint16_t oldID = dnsResponse.getHeader()->id;
+    auto& buffer = dnsResponse.getMutableData();
     buffer.clear();
     buffer.insert(buffer.begin(), raw.begin(), raw.end());
     dnsdist::PacketMangling::editDNSHeaderFromPacket(buffer, [oldID](dnsheader& header) {
@@ -412,116 +415,116 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     });
   });
 
-  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView> (DNSResponse::*)() const>("getEDNSOptions", [](const DNSResponse& dq) {
-    if (dq.ednsOptions == nullptr) {
-      parseEDNSOptions(dq);
-      if (dq.ednsOptions == nullptr) {
+  luaCtx.registerFunction<std::map<uint16_t, EDNSOptionView> (DNSResponse::*)() const>("getEDNSOptions", [](const DNSResponse& dnsQuestion) {
+    if (dnsQuestion.ednsOptions == nullptr) {
+      parseEDNSOptions(dnsQuestion);
+      if (dnsQuestion.ednsOptions == nullptr) {
         throw std::runtime_error("parseEDNSOptions should have populated the EDNS options");
       }
     }
 
-    return *dq.ednsOptions;
+    return *dnsQuestion.ednsOptions;
   });
-  luaCtx.registerFunction<std::string (DNSResponse::*)(void) const>("getTrailingData", [](const DNSResponse& dq) {
-    return dq.getTrailingData();
+  luaCtx.registerFunction<std::string (DNSResponse::*)(void) const>("getTrailingData", [](const DNSResponse& dnsQuestion) {
+    return dnsQuestion.getTrailingData();
   });
-  luaCtx.registerFunction<bool (DNSResponse::*)(std::string)>("setTrailingData", [](DNSResponse& dq, const std::string& tail) {
-    return dq.setTrailingData(tail);
-  });
-
-  luaCtx.registerFunction<void (DNSResponse::*)(std::string, std::string)>("setTag", [](DNSResponse& dr, const std::string& strLabel, const std::string& strValue) {
-    dr.setTag(strLabel, strValue);
+  luaCtx.registerFunction<bool (DNSResponse::*)(std::string)>("setTrailingData", [](DNSResponse& dnsQuestion, const std::string& tail) {
+    return dnsQuestion.setTrailingData(tail);
   });
 
-  luaCtx.registerFunction<void (DNSResponse::*)(LuaAssociativeTable<std::string>)>("setTagArray", [](DNSResponse& dr, const LuaAssociativeTable<string>& tags) {
+  luaCtx.registerFunction<void (DNSResponse::*)(std::string, std::string)>("setTag", [](DNSResponse& dnsResponse, const std::string& strLabel, const std::string& strValue) {
+    dnsResponse.setTag(strLabel, strValue);
+  });
+
+  luaCtx.registerFunction<void (DNSResponse::*)(LuaAssociativeTable<std::string>)>("setTagArray", [](DNSResponse& dnsResponse, const LuaAssociativeTable<string>& tags) {
     for (const auto& tag : tags) {
-      dr.setTag(tag.first, tag.second);
+      dnsResponse.setTag(tag.first, tag.second);
     }
   });
-  luaCtx.registerFunction<string (DNSResponse::*)(std::string) const>("getTag", [](const DNSResponse& dr, const std::string& strLabel) {
-    if (!dr.ids.qTag) {
+  luaCtx.registerFunction<string (DNSResponse::*)(std::string) const>("getTag", [](const DNSResponse& dnsResponse, const std::string& strLabel) {
+    if (!dnsResponse.ids.qTag) {
       return string();
     }
 
     std::string strValue;
-    const auto it = dr.ids.qTag->find(strLabel);
-    if (it == dr.ids.qTag->cend()) {
+    const auto tagIt = dnsResponse.ids.qTag->find(strLabel);
+    if (tagIt == dnsResponse.ids.qTag->cend()) {
       return string();
     }
-    return it->second;
+    return tagIt->second;
   });
-  luaCtx.registerFunction<QTag (DNSResponse::*)(void) const>("getTagArray", [](const DNSResponse& dr) {
-    if (!dr.ids.qTag) {
+  luaCtx.registerFunction<QTag (DNSResponse::*)(void) const>("getTagArray", [](const DNSResponse& dnsResponse) {
+    if (!dnsResponse.ids.qTag) {
       QTag empty;
       return empty;
     }
 
-    return *dr.ids.qTag;
+    return *dnsResponse.ids.qTag;
   });
 
-  luaCtx.registerFunction<std::string (DNSResponse::*)() const>("getProtocol", [](const DNSResponse& dr) {
-    return dr.getProtocol().toPrettyString();
+  luaCtx.registerFunction<std::string (DNSResponse::*)() const>("getProtocol", [](const DNSResponse& dnsResponse) {
+    return dnsResponse.getProtocol().toPrettyString();
   });
 
-  luaCtx.registerFunction<timespec (DNSResponse::*)() const>("getQueryTime", [](const DNSResponse& dr) {
-    return dr.ids.queryRealTime.getStartTime();
+  luaCtx.registerFunction<timespec (DNSResponse::*)() const>("getQueryTime", [](const DNSResponse& dnsResponse) {
+    return dnsResponse.ids.queryRealTime.getStartTime();
   });
 
-  luaCtx.registerFunction<void (DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dr, boost::optional<std::string> reason) {
+  luaCtx.registerFunction<void (DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dnsResponse, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
-    if (g_snmpAgent && g_snmpTrapsEnabled) {
-      g_snmpAgent->sendDNSTrap(dr, reason ? *reason : "");
+    if (g_snmpAgent != nullptr && g_snmpTrapsEnabled) {
+      g_snmpAgent->sendDNSTrap(dnsResponse, reason ? *reason : "");
     }
 #endif /* HAVE_NET_SNMP */
   });
 
 #ifdef HAVE_DNS_OVER_HTTPS
-  luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPPath", [](const DNSQuestion& dq) {
-    if (dq.ids.du == nullptr) {
+  luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPPath", [](const DNSQuestion& dnsQuestion) {
+    if (dnsQuestion.ids.du == nullptr) {
       return std::string();
     }
-    return dq.ids.du->getHTTPPath();
+    return dnsQuestion.ids.du->getHTTPPath();
   });
 
-  luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPQueryString", [](const DNSQuestion& dq) {
-    if (dq.ids.du == nullptr) {
+  luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPQueryString", [](const DNSQuestion& dnsQuestion) {
+    if (dnsQuestion.ids.du == nullptr) {
       return std::string();
     }
-    return dq.ids.du->getHTTPQueryString();
+    return dnsQuestion.ids.du->getHTTPQueryString();
   });
 
-  luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPHost", [](const DNSQuestion& dq) {
-    if (dq.ids.du == nullptr) {
+  luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPHost", [](const DNSQuestion& dnsQuestion) {
+    if (dnsQuestion.ids.du == nullptr) {
       return std::string();
     }
-    return dq.ids.du->getHTTPHost();
+    return dnsQuestion.ids.du->getHTTPHost();
   });
 
-  luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPScheme", [](const DNSQuestion& dq) {
-    if (dq.ids.du == nullptr) {
+  luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPScheme", [](const DNSQuestion& dnsQuestion) {
+    if (dnsQuestion.ids.du == nullptr) {
       return std::string();
     }
-    return dq.ids.du->getHTTPScheme();
+    return dnsQuestion.ids.du->getHTTPScheme();
   });
 
-  luaCtx.registerFunction<LuaAssociativeTable<std::string> (DNSQuestion::*)(void) const>("getHTTPHeaders", [](const DNSQuestion& dq) {
-    if (dq.ids.du == nullptr) {
+  luaCtx.registerFunction<LuaAssociativeTable<std::string> (DNSQuestion::*)(void) const>("getHTTPHeaders", [](const DNSQuestion& dnsQuestion) {
+    if (dnsQuestion.ids.du == nullptr) {
       return LuaAssociativeTable<std::string>();
     }
-    return dq.ids.du->getHTTPHeaders();
+    return dnsQuestion.ids.du->getHTTPHeaders();
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(uint64_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dq, uint64_t statusCode, const std::string& body, const boost::optional<std::string> contentType) {
-    if (dq.ids.du == nullptr) {
+  luaCtx.registerFunction<void (DNSQuestion::*)(uint64_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dnsQuestion, uint64_t statusCode, const std::string& body, const boost::optional<std::string>& contentType) {
+    if (dnsQuestion.ids.du == nullptr) {
       return;
     }
     checkParameterBound("DNSQuestion::setHTTPResponse", statusCode, std::numeric_limits<uint16_t>::max());
     PacketBuffer vect(body.begin(), body.end());
-    dq.ids.du->setHTTPResponse(statusCode, std::move(vect), contentType ? *contentType : "");
+    dnsQuestion.ids.du->setHTTPResponse(statusCode, std::move(vect), contentType ? *contentType : "");
   });
 #endif /* HAVE_DNS_OVER_HTTPS */
 
-  luaCtx.registerFunction<bool (DNSQuestion::*)(bool nxd, const std::string& zone, uint64_t ttl, const std::string& mname, const std::string& rname, uint64_t serial, uint64_t refresh, uint64_t retry, uint64_t expire, uint64_t minimum)>("setNegativeAndAdditionalSOA", [](DNSQuestion& dq, bool nxd, const std::string& zone, uint64_t ttl, const std::string& mname, const std::string& rname, uint64_t serial, uint64_t refresh, uint64_t retry, uint64_t expire, uint64_t minimum) {
+  luaCtx.registerFunction<bool (DNSQuestion::*)(bool nxd, const std::string& zone, uint64_t ttl, const std::string& mname, const std::string& rname, uint64_t serial, uint64_t refresh, uint64_t retry, uint64_t expire, uint64_t minimum)>("setNegativeAndAdditionalSOA", [](DNSQuestion& dnsQuestion, bool nxd, const std::string& zone, uint64_t ttl, const std::string& mname, const std::string& rname, uint64_t serial, uint64_t refresh, uint64_t retry, uint64_t expire, uint64_t minimum) {
     checkParameterBound("setNegativeAndAdditionalSOA", ttl, std::numeric_limits<uint32_t>::max());
     checkParameterBound("setNegativeAndAdditionalSOA", serial, std::numeric_limits<uint32_t>::max());
     checkParameterBound("setNegativeAndAdditionalSOA", refresh, std::numeric_limits<uint32_t>::max());
@@ -529,7 +532,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     checkParameterBound("setNegativeAndAdditionalSOA", expire, std::numeric_limits<uint32_t>::max());
     checkParameterBound("setNegativeAndAdditionalSOA", minimum, std::numeric_limits<uint32_t>::max());
 
-    return setNegativeAndAdditionalSOA(dq, nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum, false);
+    return setNegativeAndAdditionalSOA(dnsQuestion, nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), serial, refresh, retry, expire, minimum, false);
   });
 
   luaCtx.registerFunction<void (DNSResponse::*)(uint16_t infoCode, const boost::optional<std::string>& extraText)>("setExtendedDNSError", [](DNSResponse& dnsResponse, uint16_t infoCode, const boost::optional<std::string>& extraText) {
@@ -541,31 +544,31 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     dnsResponse.ids.d_extendedError = std::make_unique<EDNSExtendedError>(ede);
   });
 
-  luaCtx.registerFunction<bool (DNSResponse::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSResponse& dr, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
-    dr.asynchronous = true;
-    return dnsdist::suspendResponse(dr, asyncID, queryID, timeoutMs);
+  luaCtx.registerFunction<bool (DNSResponse::*)(uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)>("suspend", [](DNSResponse& dnsResponse, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs) {
+    dnsResponse.asynchronous = true;
+    return dnsdist::suspendResponse(dnsResponse, asyncID, queryID, timeoutMs);
   });
 
-  luaCtx.registerFunction<bool (DNSResponse::*)(const DNSName& newName)>("changeName", [](DNSResponse& dr, const DNSName& newName) -> bool {
-    if (!dnsdist::changeNameInDNSPacket(dr.getMutableData(), dr.ids.qname, newName)) {
+  luaCtx.registerFunction<bool (DNSResponse::*)(const DNSName& newName)>("changeName", [](DNSResponse& dnsResponse, const DNSName& newName) -> bool {
+    if (!dnsdist::changeNameInDNSPacket(dnsResponse.getMutableData(), dnsResponse.ids.qname, newName)) {
       return false;
     }
-    dr.ids.qname = newName;
+    dnsResponse.ids.qname = newName;
     return true;
   });
 
-  luaCtx.registerFunction<bool (DNSResponse::*)()>("restart", [](DNSResponse& dr) {
-    if (!dr.ids.d_packet) {
+  luaCtx.registerFunction<bool (DNSResponse::*)()>("restart", [](DNSResponse& dnsResponse) {
+    if (!dnsResponse.ids.d_packet) {
       return false;
     }
-    dr.asynchronous = true;
-    dr.getMutableData() = *dr.ids.d_packet;
-    auto query = dnsdist::getInternalQueryFromDQ(dr, false);
+    dnsResponse.asynchronous = true;
+    dnsResponse.getMutableData() = *dnsResponse.ids.d_packet;
+    auto query = dnsdist::getInternalQueryFromDQ(dnsResponse, false);
     return dnsdist::queueQueryResumptionEvent(std::move(query));
   });
 
-  luaCtx.registerFunction<std::shared_ptr<DownstreamState> (DNSResponse::*)(void) const>("getSelectedBackend", [](const DNSResponse& dr) {
-    return dr.d_downstream;
+  luaCtx.registerFunction<std::shared_ptr<DownstreamState> (DNSResponse::*)(void) const>("getSelectedBackend", [](const DNSResponse& dnsResponse) {
+    return dnsResponse.d_downstream;
   });
 #endif /* DISABLE_NON_FFI_DQ_BINDINGS */
 }
