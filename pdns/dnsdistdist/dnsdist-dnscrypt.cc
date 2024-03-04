@@ -25,16 +25,16 @@
 #include "dnscrypt.hh"
 
 #ifdef HAVE_DNSCRYPT
-int handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response)
+bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response)
 {
   query.parsePacket(packet, tcp, now);
 
-  if (query.isValid() == false) {
+  if (!query.isValid()) {
     vinfolog("Dropping DNSCrypt invalid query");
     return false;
   }
 
-  if (query.isEncrypted() == false) {
+  if (!query.isEncrypted()) {
     query.getCertificateResponse(now, response);
 
     return false;

@@ -1241,7 +1241,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
 bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState);
 
 extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
-int handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
+bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
 bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 
 #include "dnsdist-snmp.hh"
