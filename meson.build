@@ -770,7 +770,15 @@ foreach tool, info: tools
 endforeach
 
 if get_option('unit-tests')
-  test('PDNS Auth Testrunner', pdns_auth_testrunner, verbose: true)
+  test(
+    'pdns-auth-testrunner',
+    pdns_auth_testrunner,
+    verbose: get_option('unit-tests-verbose'),
+    env: {
+      'BOOST_TEST_LOG_LEVEL': 'message',
+    },
+    is_parallel: false,
+  )
 endif
 
 if get_option('unit-tests-backends')
@@ -816,7 +824,7 @@ if get_option('unit-tests-backends')
     test(
       'pdns-auth-' + test_binary,
       module_remotebackend_testrunner,
-      args: get_variable(exec_var_name).full_path(),
+      args: ['--', get_variable(exec_var_name).full_path()],
       verbose: verbose,
       env: env,
       workdir: product_source_dir / fs.parent(module_remotebackend_testrunner),
