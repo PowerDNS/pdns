@@ -1,1 +1,0 @@
-../test-dnsdist_cc.cc

@@ -1,1 +1,0 @@
-../dnsdist-rings.cc
