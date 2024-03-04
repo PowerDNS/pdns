@@ -402,6 +402,18 @@ class DOHTests(object):
         self.assertEqual(rcode, 400)
         self.assertEqual(data, b'<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n')
 
+    def testDOHHTTP1NotSelectedOverH2(self):
+        """
+        DOH: Check that HTTP/1.1 is not selected over H2 when offered in the wrong order by the client
+        """
+        if self._dohLibrary == 'h2o':
+            raise unittest.SkipTest('h2o supports HTTP/1.1, this test is only relevant for nghttp2')
+        alpn = ['http/1.1', 'h2']
+        conn = self.openTLSConnection(self._dohServerPort, self._serverName, self._caCert, alpn=alpn)
+        if not hasattr(conn, 'selected_alpn_protocol'):
+            raise unittest.SkipTest('Unable to check the selected ALPN, Python version is too old to support selected_alpn_protocol')
+        self.assertEqual(conn.selected_alpn_protocol(), 'h2')
+
     def testDOHInvalid(self):
         """
         DOH: Invalid DNS query

@@ -876,21 +876,23 @@ private:
     if (!arg) {
       return SSL_TLSEXT_ERR_ALERT_WARNING;
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): OpenSSL's API
     OpenSSLTLSIOCtx* obj = reinterpret_cast<OpenSSLTLSIOCtx*>(arg);
 
+    const pdns::views::UnsignedCharView inView(in, inlen);
     // Server preference algorithm as per RFC 7301 section 3.2
     for (const auto& tentative : obj->d_alpnProtos) {
       size_t pos = 0;
-      while (pos < inlen) {
-        size_t protoLen = in[pos];
+      while (pos < inView.size()) {
+        size_t protoLen = inView.at(pos);
         pos++;
         if (protoLen > (inlen - pos)) {
           /* something is very wrong */
           return SSL_TLSEXT_ERR_ALERT_WARNING;
         }
 
-        if (tentative.size() == protoLen && memcmp(in + pos, tentative.data(), tentative.size()) == 0) {
-          *out = in + pos;
+        if (tentative.size() == protoLen && memcmp(&inView.at(pos), tentative.data(), tentative.size()) == 0) {
+          *out = &inView.at(pos);
           *outlen = protoLen;
           return SSL_TLSEXT_ERR_OK;
         }

@@ -124,7 +124,7 @@ static void checkLabelLength(uint8_t length)
 }
 
 // this parses a DNS name until a compression pointer is found
-size_t DNSName::parsePacketUncompressed(const UnsignedCharView& view, size_t pos, bool uncompress)
+size_t DNSName::parsePacketUncompressed(const pdns::views::UnsignedCharView& view, size_t pos, bool uncompress)
 {
   const size_t initialPos = pos;
   size_t totalLength = 0;
@@ -189,7 +189,7 @@ void DNSName::packetParser(const char* qpos, size_t len, size_t offset, bool unc
   }
   unsigned char labellen{0};
 
-  UnsignedCharView view(qpos, len);
+  pdns::views::UnsignedCharView view(qpos, len);
   auto pos = parsePacketUncompressed(view, offset, uncompress);
 
   labellen = view.at(pos);
