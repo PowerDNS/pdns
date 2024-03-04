@@ -1260,6 +1260,79 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_nodata_bogus)
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
+BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded)
+{
+  std::unique_ptr<SyncRes> testSR;
+  initSR(testSR, true);
+
+  setDNSSECValidation(testSR, DNSSECMode::ValidateAll);
+
+  primeHints();
+  /* unsigned */
+  const DNSName target("test.");
+  /* signed */
+  const DNSName cnameTarget("cname.");
+  testkeysset_t keys;
+
+  auto luaconfsCopy = g_luaconfs.getCopy();
+  luaconfsCopy.dsAnchors.clear();
+  generateKeyMaterial(g_rootdnsname, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys, luaconfsCopy.dsAnchors);
+  generateKeyMaterial(cnameTarget, DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+  g_luaconfs.setState(luaconfsCopy);
+
+  const ComboAddress forwardedNS("192.0.2.42:53");
+  size_t queriesCount = 0;
+
+  SyncRes::AuthDomain authDomain;
+  authDomain.d_rdForward = true;
+  authDomain.d_servers.push_back(forwardedNS);
+  (*SyncRes::t_sstorage.domainmap)[g_rootdnsname] = authDomain;
+
+  testSR->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool sendRDQuery, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+
+    BOOST_CHECK_EQUAL(sendRDQuery, true);
+
+    if (address != forwardedNS) {
+      return LWResult::Result::Timeout;
+    }
+
+    if (type == QType::DS || type == QType::DNSKEY) {
+      return genericDSAndDNSKEYHandler(res, domain, DNSName("."), type, keys);
+    }
+
+    if (domain == target && type == QType::A) {
+
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, target, QType::CNAME, cnameTarget.toString());
+      addRecordToLW(res, cnameTarget, QType::A, "192.0.2.1");
+      /* the RRSIG proves that the cnameTarget was expanded from a wildcard */
+      addRRSIG(keys, res->d_records, cnameTarget, 300, false, boost::none, DNSName("*"));
+      /* we need to add the proof that this name does not exist, so the wildcard may apply */
+      addNSECRecordToLW(DNSName("cnamd."), DNSName("cnamf."), {QType::A, QType::NSEC, QType::RRSIG}, 60, res->d_records);
+      addRRSIG(keys, res->d_records, cnameTarget, 300);
+
+      return LWResult::Result::Success;
+    }
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = testSR->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(testSR->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+
+  /* again, to test the cache */
+  ret.clear();
+  res = testSR->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(testSR->getValidationState(), vState::Insecure);
+  BOOST_REQUIRE_EQUAL(ret.size(), 5U);
+  BOOST_CHECK_EQUAL(queriesCount, 5U);
+}
+
 BOOST_AUTO_TEST_CASE(test_auth_zone_oob)
 {
   std::unique_ptr<SyncRes> sr;
