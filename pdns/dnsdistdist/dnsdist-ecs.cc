@@ -73,24 +73,24 @@ int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& 
   rrclass = pr.get16BitInt();
 
   GenericDNSPacketWriter<PacketBuffer> pw(newContent, rrname, rrtype, rrclass, dh->opcode);
-  pw.getHeader()->id=dh->id;
-  pw.getHeader()->qr=dh->qr;
-  pw.getHeader()->aa=dh->aa;
-  pw.getHeader()->tc=dh->tc;
-  pw.getHeader()->rd=dh->rd;
-  pw.getHeader()->ra=dh->ra;
-  pw.getHeader()->ad=dh->ad;
-  pw.getHeader()->cd=dh->cd;
-  pw.getHeader()->rcode=dh->rcode;
+  pw.getHeader()->id = dh->id;
+  pw.getHeader()->qr = dh->qr;
+  pw.getHeader()->aa = dh->aa;
+  pw.getHeader()->tc = dh->tc;
+  pw.getHeader()->rd = dh->rd;
+  pw.getHeader()->ra = dh->ra;
+  pw.getHeader()->ad = dh->ad;
+  pw.getHeader()->cd = dh->cd;
+  pw.getHeader()->rcode = dh->rcode;
 
   /* consume remaining qd if any */
   if (qdcount > 1) {
-    for(idx = 1; idx < qdcount; idx++) {
+    for (idx = 1; idx < qdcount; idx++) {
       rrname = pr.getName();
       rrtype = pr.get16BitInt();
       rrclass = pr.get16BitInt();
-      (void) rrtype;
-      (void) rrclass;
+      (void)rrtype;
+      (void)rrclass;
     }
   }
 
@@ -121,7 +121,8 @@ int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& 
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
       pr.xfrBlob(blob);
       pw.xfrBlob(blob);
-    } else {
+    }
+    else {
 
       pr.skip(ah.d_clen);
     }
@@ -133,7 +134,7 @@ int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& 
 
 static bool addOrReplaceEDNSOption(std::vector<std::pair<uint16_t, std::string>>& options, uint16_t optionCode, bool& optionAdded, bool overrideExisting, const string& newOptionContent)
 {
-  for (auto it = options.begin(); it != options.end(); ) {
+  for (auto it = options.begin(); it != options.end();) {
     if (it->first == optionCode) {
       optionAdded = false;
 
@@ -186,24 +187,24 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
   rrclass = pr.get16BitInt();
 
   GenericDNSPacketWriter<PacketBuffer> pw(newContent, rrname, rrtype, rrclass, dh->opcode);
-  pw.getHeader()->id=dh->id;
-  pw.getHeader()->qr=dh->qr;
-  pw.getHeader()->aa=dh->aa;
-  pw.getHeader()->tc=dh->tc;
-  pw.getHeader()->rd=dh->rd;
-  pw.getHeader()->ra=dh->ra;
-  pw.getHeader()->ad=dh->ad;
-  pw.getHeader()->cd=dh->cd;
-  pw.getHeader()->rcode=dh->rcode;
+  pw.getHeader()->id = dh->id;
+  pw.getHeader()->qr = dh->qr;
+  pw.getHeader()->aa = dh->aa;
+  pw.getHeader()->tc = dh->tc;
+  pw.getHeader()->rd = dh->rd;
+  pw.getHeader()->ra = dh->ra;
+  pw.getHeader()->ad = dh->ad;
+  pw.getHeader()->cd = dh->cd;
+  pw.getHeader()->rcode = dh->rcode;
 
   /* consume remaining qd if any */
   if (qdcount > 1) {
-    for(idx = 1; idx < qdcount; idx++) {
+    for (idx = 1; idx < qdcount; idx++) {
       rrname = pr.getName();
       rrtype = pr.get16BitInt();
       rrclass = pr.get16BitInt();
-      (void) rrtype;
-      (void) rrclass;
+      (void)rrtype;
+      (void)rrclass;
     }
   }
 
@@ -235,7 +236,8 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
       pr.xfrBlob(blob);
       pw.xfrBlob(blob);
-    } else {
+    }
+    else {
 
       ednsAdded = false;
       pr.xfrBlob(blob);
@@ -286,13 +288,13 @@ static bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& 
     uint64_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
     DNSPacketMangler dpm(const_cast<char*>(reinterpret_cast<const char*>(&packet.at(0))), packet.size());
     uint64_t n;
-    for(n=0; n < ntohs(dh->qdcount) ; ++n) {
+    for (n = 0; n < ntohs(dh->qdcount); ++n) {
       dpm.skipDomainName();
       /* type and class */
       dpm.skipBytes(4);
     }
 
-    for(n=0; n < numrecords; ++n) {
+    for (n = 0; n < numrecords; ++n) {
       dpm.skipDomainName();
 
       uint8_t section = n < ntohs(dh->ancount) ? 1 : (n < (ntohs(dh->ancount) + ntohs(dh->nscount)) ? 2 : 3);
@@ -300,7 +302,7 @@ static bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& 
       dpm.get16BitInt();
       dpm.skipBytes(4); /* TTL */
 
-      if(section == 3 && dnstype == QType::OPT) {
+      if (section == 3 && dnstype == QType::OPT) {
         uint32_t offset = dpm.getOffset();
         if (offset >= packet.size()) {
           return false;
@@ -314,15 +316,14 @@ static bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& 
       }
     }
   }
-  catch(...)
-  {
+  catch (...) {
     return false;
   }
 
   return true;
 }
 
-int locateEDNSOptRR(const PacketBuffer& packet, uint16_t * optStart, size_t * optLen, bool * last)
+int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optLen, bool* last)
 {
   assert(optStart != NULL);
   assert(optLen != NULL);
@@ -346,12 +347,12 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t * optStart, size_t * op
   struct dnsrecordheader ah;
 
   /* consume qd */
-  for(idx = 0; idx < qdcount; idx++) {
+  for (idx = 0; idx < qdcount; idx++) {
     rrname = pr.getName();
     rrtype = pr.get16BitInt();
     rrclass = pr.get16BitInt();
-    (void) rrtype;
-    (void) rrclass;
+    (void)rrtype;
+    (void)rrclass;
   }
 
   /* consume AN and NS */
@@ -375,7 +376,7 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t * optStart, size_t * op
         throw std::range_error("Opt record overflow");
       }
 
-      if (idx == ((size_t) arcount - 1)) {
+      if (idx == ((size_t)arcount - 1)) {
         *last = true;
       }
       else {
@@ -420,7 +421,7 @@ int getEDNSOptionsStart(const PacketBuffer& packet, const size_t offset, uint16_
   }
   pos += 1;
 
-  uint16_t qtype = packet.at(pos)*256 + packet.at(pos+1);
+  uint16_t qtype = packet.at(pos) * 256 + packet.at(pos + 1);
   pos += DNS_TYPE_SIZE;
   pos += DNS_CLASS_SIZE;
 
@@ -647,7 +648,8 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
     }
 
     return replaceEDNSClientSubnetOption(packet, maximumSize, optRDPosition + ecsOptionStartPosition, ecsOptionSize, optRDPosition, newECSOption);
-  } else {
+  }
+  else {
     /* we have an EDNS OPT RR but no existing ECS option */
     return addECSToExistingOPT(packet, maximumSize, newECSOption, optRDPosition, ecsAdded);
   }
@@ -669,10 +671,10 @@ static int removeEDNSOptionFromOptions(unsigned char* optionsStart, const uint16
   size_t pos = 0;
   while ((pos + 4) <= optionsLen) {
     unsigned char* optionBegin = p;
-    const uint16_t optionCode = 0x100*p[0] + p[1];
+    const uint16_t optionCode = 0x100 * p[0] + p[1];
     p += sizeof(optionCode);
     pos += sizeof(optionCode);
-    const uint16_t optionLen = 0x100*p[0] + p[1];
+    const uint16_t optionLen = 0x100 * p[0] + p[1];
     p += sizeof(optionLen);
     pos += sizeof(optionLen);
     if ((pos + optionLen) > optionsLen) {
@@ -698,10 +700,10 @@ int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optio
   if (*optLen < optRecordMinimumSize) {
     return EINVAL;
   }
-  const unsigned char* end = (const unsigned char*) optStart + *optLen;
-  unsigned char* p = (unsigned char*) optStart + 9;
+  const unsigned char* end = (const unsigned char*)optStart + *optLen;
+  unsigned char* p = (unsigned char*)optStart + 9;
   unsigned char* rdLenPtr = p;
-  uint16_t rdLen = (0x100*p[0] + p[1]);
+  uint16_t rdLen = (0x100 * p[0] + p[1]);
   p += sizeof(rdLen);
   if (p + rdLen != end) {
     return EINVAL;
@@ -723,7 +725,7 @@ bool isEDNSOptionInOpt(const PacketBuffer& packet, const size_t optStart, const 
     return false;
   }
   size_t p = optStart + 9;
-  uint16_t rdLen = (0x100*static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p+1)));
+  uint16_t rdLen = (0x100 * static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p + 1)));
   p += sizeof(rdLen);
   if (rdLen > (optLen - optRecordMinimumSize)) {
     return false;
@@ -731,9 +733,9 @@ bool isEDNSOptionInOpt(const PacketBuffer& packet, const size_t optStart, const 
 
   size_t rdEnd = p + rdLen;
   while ((p + 4) <= rdEnd) {
-    const uint16_t optionCode = 0x100*static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p+1));
+    const uint16_t optionCode = 0x100 * static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p + 1));
     p += sizeof(optionCode);
-    const uint16_t optionLen = 0x100*static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p+1));
+    const uint16_t optionLen = 0x100 * static_cast<unsigned char>(packet.at(p)) + static_cast<unsigned char>(packet.at(p + 1));
     p += sizeof(optionLen);
 
     if ((p + optionLen) > rdEnd) {
@@ -785,24 +787,24 @@ int rewriteResponseWithoutEDNSOption(const PacketBuffer& initialPacket, const ui
   rrclass = pr.get16BitInt();
 
   GenericDNSPacketWriter<PacketBuffer> pw(newContent, rrname, rrtype, rrclass, dh->opcode);
-  pw.getHeader()->id=dh->id;
-  pw.getHeader()->qr=dh->qr;
-  pw.getHeader()->aa=dh->aa;
-  pw.getHeader()->tc=dh->tc;
-  pw.getHeader()->rd=dh->rd;
-  pw.getHeader()->ra=dh->ra;
-  pw.getHeader()->ad=dh->ad;
-  pw.getHeader()->cd=dh->cd;
-  pw.getHeader()->rcode=dh->rcode;
+  pw.getHeader()->id = dh->id;
+  pw.getHeader()->qr = dh->qr;
+  pw.getHeader()->aa = dh->aa;
+  pw.getHeader()->tc = dh->tc;
+  pw.getHeader()->rd = dh->rd;
+  pw.getHeader()->ra = dh->ra;
+  pw.getHeader()->ad = dh->ad;
+  pw.getHeader()->cd = dh->cd;
+  pw.getHeader()->rcode = dh->rcode;
 
   /* consume remaining qd if any */
   if (qdcount > 1) {
-    for(idx = 1; idx < qdcount; idx++) {
+    for (idx = 1; idx < qdcount; idx++) {
       rrname = pr.getName();
       rrtype = pr.get16BitInt();
       rrclass = pr.get16BitInt();
-      (void) rrtype;
-      (void) rrclass;
+      (void)rrtype;
+      (void)rrclass;
     }
   }
 
@@ -834,7 +836,8 @@ int rewriteResponseWithoutEDNSOption(const PacketBuffer& initialPacket, const ui
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, true);
       pr.xfrBlob(blob);
       pw.xfrBlob(blob);
-    } else {
+    }
+    else {
       pw.startRecord(rrname, ah.d_type, ah.d_ttl, ah.d_class, DNSResourceRecord::ADDITIONAL, false);
       pr.xfrBlob(blob);
       uint16_t rdLen = blob.length();
@@ -843,7 +846,8 @@ int rewriteResponseWithoutEDNSOption(const PacketBuffer& initialPacket, const ui
       if (rdLen > 0) {
         blob.resize((size_t)rdLen);
         pw.xfrBlob(blob);
-      } else {
+      }
+      else {
         pw.commit();
       }
     }
@@ -952,7 +956,8 @@ bool setNegativeAndAdditionalSOA(DNSQuestion& dq, bool nxd, const DNSName& zone,
   dnsdist::PacketMangling::editDNSHeaderFromPacket(packet, [soaInAuthoritySection](dnsheader& header) {
     if (soaInAuthoritySection) {
       header.nscount = htons(1);
-    } else {
+    }
+    else {
       header.arcount = htons(1);
     }
     return true;
@@ -1012,8 +1017,7 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dq)
 // goal in life - if you send us a reasonably normal packet, we'll get Z for you, otherwise 0
 int getEDNSZ(const DNSQuestion& dq)
 {
-  try
-  {
+  try {
     const auto& dh = dq.getHeader();
     if (ntohs(dh->qdcount) != 1 || dh->ancount != 0 || ntohs(dh->arcount) != 1 || dh->nscount != 0) {
       return 0;
@@ -1038,7 +1042,7 @@ int getEDNSZ(const DNSQuestion& dq)
 
     pos++;
 
-    uint16_t qtype = packet.at(pos)*256 + packet.at(pos+1);
+    uint16_t qtype = packet.at(pos) * 256 + packet.at(pos + 1);
     pos += DNS_TYPE_SIZE;
     pos += DNS_CLASS_SIZE;
 
@@ -1047,10 +1051,9 @@ int getEDNSZ(const DNSQuestion& dq)
     }
 
     const uint8_t* z = &packet.at(pos + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE);
-    return 0x100 * (*z) + *(z+1);
+    return 0x100 * (*z) + *(z + 1);
   }
-  catch(...)
-  {
+  catch (...) {
     return 0;
   }
 }
@@ -1134,8 +1137,9 @@ bool setEDNSOption(DNSQuestion& dq, uint16_t ednsCode, const std::string& ednsDa
   return true;
 }
 
-namespace dnsdist {
-bool setInternalQueryRCode(InternalQueryState& state, PacketBuffer& buffer,  uint8_t rcode, bool clearAnswers)
+namespace dnsdist
+{
+bool setInternalQueryRCode(InternalQueryState& state, PacketBuffer& buffer, uint8_t rcode, bool clearAnswers)
 {
   const auto qnameLength = state.qname.wirelength();
   if (buffer.size() < sizeof(dnsheader) + qnameLength + sizeof(uint16_t) + sizeof(uint16_t)) {
@@ -1148,7 +1152,7 @@ bool setInternalQueryRCode(InternalQueryState& state, PacketBuffer& buffer,  uin
     hadEDNS = getEDNS0Record(buffer, edns0);
   }
 
-  dnsdist::PacketMangling::editDNSHeaderFromPacket(buffer, [rcode,clearAnswers](dnsheader& header) {
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(buffer, [rcode, clearAnswers](dnsheader& header) {
     header.rcode = rcode;
     header.ad = false;
     header.aa = false;

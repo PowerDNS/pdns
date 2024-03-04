@@ -65,7 +65,8 @@ void Rings::setNumberOfLockRetries(size_t retries)
 {
   if (d_numberOfShards <= 1) {
     d_nbLockTries = 0;
-  } else {
+  }
+  else {
     d_nbLockTries = retries;
   }
 }
@@ -92,23 +93,23 @@ size_t Rings::numDistinctRequestors()
   return s.size();
 }
 
-std::unordered_map<int, vector<boost::variant<string,double>>> Rings::getTopBandwidth(unsigned int numentries)
+std::unordered_map<int, vector<boost::variant<string, double>>> Rings::getTopBandwidth(unsigned int numentries)
 {
   map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts;
-  uint64_t total=0;
+  uint64_t total = 0;
   for (const auto& shard : d_shards) {
     {
       auto rl = shard->queryRing.lock();
-      for(const auto& q : *rl) {
+      for (const auto& q : *rl) {
         counts[q.requestor] += q.size;
-        total+=q.size;
+        total += q.size;
       }
     }
     {
       auto rl = shard->respRing.lock();
-      for(const auto& r : *rl) {
+      for (const auto& r : *rl) {
         counts[r.requestor] += r.size;
-        total+=r.size;
+        total += r.size;
       }
     }
   }
@@ -116,30 +117,29 @@ std::unordered_map<int, vector<boost::variant<string,double>>> Rings::getTopBand
   typedef vector<pair<unsigned int, ComboAddress>> ret_t;
   ret_t rcounts;
   rcounts.reserve(counts.size());
-  for(const auto& p : counts)
+  for (const auto& p : counts)
     rcounts.push_back({p.second, p.first});
   numentries = rcounts.size() < numentries ? rcounts.size() : numentries;
-  partial_sort(rcounts.begin(), rcounts.begin()+numentries, rcounts.end(), [](const ret_t::value_type&a, const ret_t::value_type&b)
-	       {
-		 return(b.first < a.first);
-	       });
-  std::unordered_map<int, vector<boost::variant<string,double>>> ret;
+  partial_sort(rcounts.begin(), rcounts.begin() + numentries, rcounts.end(), [](const ret_t::value_type& a, const ret_t::value_type& b) {
+    return (b.first < a.first);
+  });
+  std::unordered_map<int, vector<boost::variant<string, double>>> ret;
   uint64_t rest = 0;
   int count = 1;
-  for(const auto& rc : rcounts) {
+  for (const auto& rc : rcounts) {
     if (count == static_cast<int>(numentries + 1)) {
-      rest+=rc.first;
+      rest += rc.first;
     }
     else {
-      ret.insert({count++, {rc.second.toString(), rc.first, 100.0*rc.first/total}});
+      ret.insert({count++, {rc.second.toString(), rc.first, 100.0 * rc.first / total}});
     }
   }
 
   if (total > 0) {
-    ret.insert({count, {"Rest", rest, 100.0*rest/total}});
+    ret.insert({count, {"Rest", rest, 100.0 * rest / total}});
   }
   else {
-    ret.insert({count, {"Rest", rest, 100.0 }});
+    ret.insert({count, {"Rest", rest, 100.0}});
   }
 
   return ret;
@@ -170,7 +170,7 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
       isResponse = true;
     }
     else {
-      cerr<<"skipping line with "<<parts.size()<<"parts: "<<line<<endl;
+      cerr << "skipping line with " << parts.size() << "parts: " << line << endl;
       continue;
     }
 
@@ -178,7 +178,7 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
     vector<string> timeStr;
     stringtok(timeStr, parts.at(idx++), ".");
     if (timeStr.size() != 2) {
-      cerr<<"skipping invalid time "<<parts.at(0)<<endl;
+      cerr << "skipping invalid time " << parts.at(0) << endl;
       continue;
     }
 
@@ -188,7 +188,7 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
       when.tv_nsec = now.tv_nsec + std::stoi(timeStr.at(1)) * 100 * 1000 * 1000;
     }
     catch (const std::exception& e) {
-      cerr<<"error parsing time "<<parts.at(idx-1)<<" from line "<<line<<endl;
+      cerr << "error parsing time " << parts.at(idx - 1) << " from line " << line << endl;
       continue;
     }
 

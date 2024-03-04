@@ -20,7 +20,8 @@ BOOST_AUTO_TEST_SUITE(test_dnsdistpacketcache_cc)
 
 static bool receivedOverUDP = true;
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
   BOOST_CHECK_EQUAL(PC.getSize(), 0U);
@@ -36,7 +37,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
 
   try {
     for (counter = 0; counter < 100000; ++counter) {
-      auto a = DNSName(std::to_string(counter))+DNSName(" hello");
+      auto a = DNSName(std::to_string(counter)) + DNSName(" hello");
       ids.qname = a;
 
       PacketBuffer query;
@@ -77,10 +78,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     BOOST_CHECK_EQUAL(skipped, PC.getInsertCollisions());
     BOOST_CHECK_EQUAL(PC.getSize(), counter - skipped);
 
-    size_t deleted=0;
-    size_t delcounter=0;
-    for (delcounter=0; delcounter < counter/1000; ++delcounter) {
-      ids.qname = DNSName(std::to_string(delcounter))+DNSName(" hello");
+    size_t deleted = 0;
+    size_t delcounter = 0;
+    for (delcounter = 0; delcounter < counter / 1000; ++delcounter) {
+      ids.qname = DNSName(std::to_string(delcounter)) + DNSName(" hello");
       PacketBuffer query;
       GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
@@ -96,10 +97,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     }
     BOOST_CHECK_EQUAL(PC.getSize(), counter - skipped - deleted);
 
-    size_t matches=0;
-    size_t expected=counter-skipped-deleted;
+    size_t matches = 0;
+    size_t expected = counter - skipped - deleted;
     for (; delcounter < counter; ++delcounter) {
-      ids.qname = DNSName(std::to_string(delcounter))+DNSName(" hello");
+      ids.qname = DNSName(std::to_string(delcounter)) + DNSName(" hello");
       PacketBuffer query;
       GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
@@ -124,12 +125,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple) {
     BOOST_CHECK_EQUAL(PC.purgeExpired(0, now), 0U);
   }
   catch (const PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
+{
   const size_t maxEntries = 150000;
   const size_t numberOfShards = 10;
   DNSDistPacketCache PC(maxEntries, 86400, 1, 60, 3600, 60, false, numberOfShards);
@@ -225,12 +227,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded) {
     BOOST_CHECK_EQUAL(PC.purgeExpired(0, now), 0U);
   }
   catch (const PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheTCP)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
   InternalQueryState ids;
@@ -290,13 +293,14 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP) {
       BOOST_CHECK(!subnet);
     }
   }
-  catch(PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
   InternalQueryState ids;
@@ -342,13 +346,14 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL) {
     BOOST_CHECK_EQUAL(found, true);
     BOOST_CHECK(!subnet);
   }
-  catch(PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
 
@@ -397,13 +402,14 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL) {
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
   }
-  catch(const PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (const PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
 
@@ -452,13 +458,14 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL) {
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK(!subnet);
   }
-  catch(const PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (const PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
 
@@ -466,7 +473,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated) {
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
-  ids.queryRealTime.start();  // does not have to be accurate ("realTime") in tests
+  ids.queryRealTime.start(); // does not have to be accurate ("realTime") in tests
   bool dnssecOK = false;
 
   try {
@@ -505,14 +512,15 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated) {
     allowTruncated = false;
     found = PC.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true, allowTruncated);
     BOOST_CHECK_EQUAL(found, false);
-}
-  catch(const PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  }
+  catch (const PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheMaximumSize) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheMaximumSize)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache packetCache(maxEntries, 86400, 1);
   InternalQueryState ids;
@@ -673,8 +681,8 @@ static void threadMangler(unsigned int offset)
   try {
     ComboAddress remote;
     bool dnssecOK = false;
-    for(unsigned int counter=0; counter < 100000; ++counter) {
-      ids.qname = DNSName("hello ")+DNSName(std::to_string(counter+offset));
+    for (unsigned int counter = 0; counter < 100000; ++counter) {
+      ids.qname = DNSName("hello ") + DNSName(std::to_string(counter + offset));
       PacketBuffer query;
       GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
@@ -697,8 +705,8 @@ static void threadMangler(unsigned int offset)
       g_PC.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
     }
   }
-  catch(PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
 }
@@ -713,11 +721,10 @@ static void threadReader(unsigned int offset)
   ids.qname = DNSName("www.powerdns.com.");
   ids.protocol = dnsdist::Protocol::DoUDP;
   bool dnssecOK = false;
-  try
-  {
+  try {
     ComboAddress remote;
-    for(unsigned int counter=0; counter < 100000; ++counter) {
-      ids.qname = DNSName("hello ")+DNSName(std::to_string(counter+offset));
+    for (unsigned int counter = 0; counter < 100000; ++counter) {
+      ids.qname = DNSName("hello ") + DNSName(std::to_string(counter + offset));
       PacketBuffer query;
       GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
       pwQ.getHeader()->rd = 1;
@@ -727,21 +734,22 @@ static void threadReader(unsigned int offset)
       DNSQuestion dnsQuestion(ids, query);
       bool found = g_PC.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
       if (!found) {
-	g_missing++;
+        g_missing++;
       }
     }
   }
-  catch(PDNSException& e) {
-    cerr<<"Had error in threadReader: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    cerr << "Had error in threadReader: " << e.reason << endl;
     throw;
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded)
+{
   try {
     std::vector<std::thread> threads;
     for (int i = 0; i < 4; ++i) {
-      threads.push_back(std::thread(threadMangler, i*1000000UL));
+      threads.push_back(std::thread(threadMangler, i * 1000000UL));
     }
 
     for (auto& t : threads) {
@@ -751,10 +759,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
     threads.clear();
 
     BOOST_CHECK_EQUAL(g_PC.getSize() + g_PC.getDeferredInserts() + g_PC.getInsertCollisions(), 400000U);
-    BOOST_CHECK_SMALL(1.0*g_PC.getInsertCollisions(), 10000.0);
+    BOOST_CHECK_SMALL(1.0 * g_PC.getInsertCollisions(), 10000.0);
 
     for (int i = 0; i < 4; ++i) {
-      threads.push_back(std::thread(threadReader, i*1000000UL));
+      threads.push_back(std::thread(threadReader, i * 1000000UL));
     }
 
     for (auto& t : threads) {
@@ -763,14 +771,14 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded) {
 
     BOOST_CHECK((g_PC.getDeferredInserts() + g_PC.getDeferredLookups() + g_PC.getInsertCollisions()) >= g_missing);
   }
-  catch(PDNSException& e) {
-    cerr<<"Had error: "<<e.reason<<endl;
+  catch (PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
     throw;
   }
-
 }
 
-BOOST_AUTO_TEST_CASE(test_PCCollision) {
+BOOST_AUTO_TEST_CASE(test_PCCollision)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1, 60, 3600, 60, false, 1, true, true);
   BOOST_CHECK_EQUAL(PC.getSize(), 0U);
@@ -895,7 +903,8 @@ BOOST_AUTO_TEST_CASE(test_PCCollision) {
 #endif
 }
 
-BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
+BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1, 60, 3600, 60, false, 1, true, true);
   BOOST_CHECK_EQUAL(PC.getSize(), 0U);
@@ -947,10 +956,10 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision) {
     found = PC.get(dnsQuestion, 0, &key, subnetOut, true, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, true);
   }
-
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheInspection) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheInspection)
+{
   const size_t maxEntries = 100;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
   BOOST_CHECK_EQUAL(PC.getSize(), 0U);
@@ -1191,12 +1200,13 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheInspection) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_PacketCacheXFR) {
+BOOST_AUTO_TEST_CASE(test_PacketCacheXFR)
+{
   const size_t maxEntries = 150000;
   DNSDistPacketCache PC(maxEntries, 86400, 1);
   BOOST_CHECK_EQUAL(PC.getSize(), 0U);
 
-  const std::set<QType> xfrTypes = { QType::AXFR, QType::IXFR };
+  const std::set<QType> xfrTypes = {QType::AXFR, QType::IXFR};
   for (const auto& type : xfrTypes) {
     bool dnssecOK = false;
     InternalQueryState ids;

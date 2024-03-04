@@ -38,7 +38,8 @@ void setResponseHeadersFromConfig(dnsheader& dnsheader, const ResponseConfig& co
 class SpoofAction : public DNSAction
 {
 public:
-  SpoofAction(const vector<ComboAddress>& addrs): d_addrs(addrs)
+  SpoofAction(const vector<ComboAddress>& addrs) :
+    d_addrs(addrs)
   {
     for (const auto& addr : d_addrs) {
       if (addr.isIPv4()) {
@@ -54,15 +55,18 @@ public:
     }
   }
 
-  SpoofAction(const DNSName& cname): d_cname(cname)
+  SpoofAction(const DNSName& cname) :
+    d_cname(cname)
   {
   }
 
-  SpoofAction(const char* rawresponse, size_t len): d_raw(rawresponse, rawresponse + len)
+  SpoofAction(const char* rawresponse, size_t len) :
+    d_raw(rawresponse, rawresponse + len)
   {
   }
 
-  SpoofAction(const vector<std::string>& raws, std::optional<uint16_t> typeForAny): d_rawResponses(raws), d_rawTypeForAny(typeForAny)
+  SpoofAction(const vector<std::string>& raws, std::optional<uint16_t> typeForAny) :
+    d_rawResponses(raws), d_rawTypeForAny(typeForAny)
   {
   }
 
@@ -78,8 +82,8 @@ public:
       ret += "raw bytes ";
     }
     else {
-      for(const auto& a : d_addrs)
-        ret += a.toString()+" ";
+      for (const auto& a : d_addrs)
+        ret += a.toString() + " ";
     }
     return ret;
   }
@@ -105,7 +109,8 @@ class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyab
 public:
   LimitTTLResponseAction() {}
 
-  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), const std::unordered_set<QType>& types = {}) : d_types(types), d_min(min), d_max(max)
+  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), const std::unordered_set<QType>& types = {}) :
+    d_types(types), d_min(min), d_max(max)
   {
   }
 
@@ -126,7 +131,7 @@ public:
       }
       return ttl;
     };
-    editDNSPacketTTL(reinterpret_cast<char *>(dr->getMutableData().data()), dr->getData().size(), visitor);
+    editDNSPacketTTL(reinterpret_cast<char*>(dr->getMutableData().data()), dr->getData().size(), visitor);
     return DNSResponseAction::Action::None;
   }
 
@@ -147,7 +152,7 @@ public:
       }
       result += "]";
     }
-    result += + ")";
+    result += +")";
     return result;
   }
 
@@ -157,9 +162,12 @@ private:
   uint32_t d_max{std::numeric_limits<uint32_t>::max()};
 };
 
-template <class T> using LuaArray = std::vector<std::pair<int, T>>;
-template <class T> using LuaAssociativeTable = std::unordered_map<std::string, T>;
-template <class T> using LuaTypeOrArrayOf = boost::variant<T, LuaArray<T>>;
+template <class T>
+using LuaArray = std::vector<std::pair<int, T>>;
+template <class T>
+using LuaAssociativeTable = std::unordered_map<std::string, T>;
+template <class T>
+using LuaTypeOrArrayOf = boost::variant<T, LuaArray<T>>;
 
 using luaruleparams_t = LuaAssociativeTable<std::string>;
 using nmts_t = NetmaskTree<DynBlock, AddressAndPortRange>;
@@ -195,8 +203,9 @@ void setupLuaLoadBalancingContext(LuaContext& luaCtx);
  *
  * returns: -1 if type wasn't compatible, 0 if not found or number of element(s) found
  */
-template<class G, class T, class V>
-static inline int getOptionalValue(boost::optional<V>& vars, const std::string& key, T& value, bool warnOnWrongType = true) {
+template <class G, class T, class V>
+static inline int getOptionalValue(boost::optional<V>& vars, const std::string& key, T& value, bool warnOnWrongType = true)
+{
   /* nothing found, nothing to return */
   if (!vars) {
     return 0;
@@ -205,7 +214,8 @@ static inline int getOptionalValue(boost::optional<V>& vars, const std::string& 
   if (vars->count(key)) {
     try {
       value = boost::get<G>((*vars)[key]);
-    } catch (const boost::bad_get& e) {
+    }
+    catch (const boost::bad_get& e) {
       /* key is there but isn't compatible */
       if (warnOnWrongType) {
         warnlog("Invalid type for key '%s' - ignored", key);
@@ -217,8 +227,9 @@ static inline int getOptionalValue(boost::optional<V>& vars, const std::string& 
   return vars->erase(key);
 }
 
-template<class T, class V>
-static inline int getOptionalIntegerValue(const std::string& func, boost::optional<V>& vars, const std::string& key, T& value) {
+template <class T, class V>
+static inline int getOptionalIntegerValue(const std::string& func, boost::optional<V>& vars, const std::string& key, T& value)
+{
   std::string valueStr;
   auto ret = getOptionalValue<std::string>(vars, key, valueStr, true);
   if (ret == 1) {
@@ -233,8 +244,9 @@ static inline int getOptionalIntegerValue(const std::string& func, boost::option
   return ret;
 }
 
-template<class V>
-static inline void checkAllParametersConsumed(const std::string& func, const boost::optional<V>& vars) {
+template <class V>
+static inline void checkAllParametersConsumed(const std::string& func, const boost::optional<V>& vars)
+{
   /* no vars */
   if (!vars) {
     return;

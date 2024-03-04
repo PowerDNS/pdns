@@ -50,27 +50,28 @@ public:
   /* returns true if the addr wasn't already blocked, false otherwise */
   bool block(const ComboAddress& addr, const struct timespec& until);
   void purgeExpired(const struct timespec& now);
-  std::vector<std::tuple<ComboAddress, uint64_t, struct timespec> > getAddrStats();
+  std::vector<std::tuple<ComboAddress, uint64_t, struct timespec>> getAddrStats();
+
 private:
   struct BlockEntry
   {
-    BlockEntry(const ComboAddress& addr, const struct timespec until): d_addr(addr), d_until(until)
+    BlockEntry(const ComboAddress& addr, const struct timespec until) :
+      d_addr(addr), d_until(until)
     {
     }
     ComboAddress d_addr;
     struct timespec d_until;
   };
   typedef boost::multi_index_container<BlockEntry,
-                                       boost::multi_index::indexed_by <
-                                         boost::multi_index::ordered_unique< boost::multi_index::member<BlockEntry,ComboAddress,&BlockEntry::d_addr>, ComboAddress::addressOnlyLessThan >,
-                                         boost::multi_index::ordered_non_unique< boost::multi_index::member<BlockEntry,struct timespec,&BlockEntry::d_until> >
-                                         >
-                                       > container_t;
-  struct Data {
+                                       boost::multi_index::indexed_by<
+                                         boost::multi_index::ordered_unique<boost::multi_index::member<BlockEntry, ComboAddress, &BlockEntry::d_addr>, ComboAddress::addressOnlyLessThan>,
+                                         boost::multi_index::ordered_non_unique<boost::multi_index::member<BlockEntry, struct timespec, &BlockEntry::d_until>>>>
+    container_t;
+  struct Data
+  {
     container_t d_entries;
     std::shared_ptr<BPFFilter> d_bpf{nullptr};
     NetmaskGroup d_excludedSubnets;
   };
   LockGuarded<Data> d_data;
 };
-

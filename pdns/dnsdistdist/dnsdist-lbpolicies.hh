@@ -32,16 +32,19 @@ struct PerThreadPoliciesState;
 class ServerPolicy
 {
 public:
-  template <class T> using NumberedVector = std::vector<std::pair<unsigned int, T> >;
+  template <class T>
+  using NumberedVector = std::vector<std::pair<unsigned int, T>>;
   using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
   typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const DNSQuestion*)> policyfunc_t;
   typedef std::function<unsigned int(dnsdist_ffi_servers_list_t* servers, dnsdist_ffi_dnsquestion_t* dq)> ffipolicyfunc_t;
 
-  ServerPolicy(const std::string& name_, policyfunc_t policy_, bool isLua_): d_name(name_), d_policy(std::move(policy_)), d_isLua(isLua_)
+  ServerPolicy(const std::string& name_, policyfunc_t policy_, bool isLua_) :
+    d_name(name_), d_policy(std::move(policy_)), d_isLua(isLua_)
   {
   }
 
-  ServerPolicy(const std::string& name_, ffipolicyfunc_t policy_): d_name(name_), d_ffipolicy(std::move(policy_)), d_isLua(true), d_isFFI(true)
+  ServerPolicy(const std::string& name_, ffipolicyfunc_t policy_) :
+    d_name(name_), d_ffipolicy(std::move(policy_)), d_isLua(true), d_isFFI(true)
   {
   }
 
@@ -59,7 +62,8 @@ public:
     return d_name;
   }
 
-  std::string toString() const {
+  std::string toString() const
+  {
     return string("ServerPolicy") + (d_isLua ? " (Lua)" : "") + " \"" + d_name + "\"";
   }
 
@@ -73,7 +77,6 @@ private:
 
   const ffipolicyfunc_t& getPerThreadPolicy() const;
   static thread_local PerThreadState t_perThreadState;
-
 
 public:
   std::string d_name;
@@ -96,7 +99,7 @@ void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<Serve
 void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server);
 void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server);
 
-const std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const map<std::string,std::shared_ptr<ServerPool>>& pools, const std::string& poolName);
+const std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const map<std::string, std::shared_ptr<ServerPool>>& pools, const std::string& poolName);
 
 std::shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 

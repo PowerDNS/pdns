@@ -198,7 +198,7 @@ private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
   {
     auto* conn = static_cast<DOHConnection*>(user_data);
-    //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
     conn->d_clientOutBuffer.insert(conn->d_clientOutBuffer.end(), data, data + length);
     return static_cast<ssize_t>(length);
   }
@@ -233,7 +233,7 @@ private:
   {
     auto* conn = static_cast<DOHConnection*>(user_data);
     auto& response = conn->d_responses[stream_id];
-    //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
     response.insert(response.end(), data, data + len);
     return 0;
   }
@@ -247,7 +247,7 @@ private:
         try {
           uint16_t responseCode{0};
           auto expected = s_connectionContexts.at(conn->d_connectionID).d_responseCodes.at((frame->hd.stream_id - 1) / 2);
-          //NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
           pdns::checked_stoi_into(responseCode, std::string(reinterpret_cast<const char*>(value), valuelen));
           conn->d_responseCodes[frame->hd.stream_id] = responseCode;
           if (responseCode != expected) {
@@ -350,10 +350,10 @@ public:
 
     BOOST_REQUIRE_GE(buffer.size(), toRead);
 
-    //NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     std::copy(externalBuffer.begin(), externalBuffer.begin() + toRead, buffer.begin() + pos);
     pos += toRead;
-    //NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     externalBuffer.erase(externalBuffer.begin(), externalBuffer.begin() + toRead);
 
     return step.nextState;

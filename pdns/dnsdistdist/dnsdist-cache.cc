@@ -29,7 +29,8 @@
 #include "ednssubnet.hh"
 #include "packetcache.hh"
 
-DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t maxNegativeTTL, uint32_t staleTTL, bool dontAge, uint32_t shards, bool deferrableInsertLock, bool parseECS): d_maxEntries(maxEntries), d_shardCount(shards), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_maxNegativeTTL(maxNegativeTTL), d_minTTL(minTTL), d_staleTTL(staleTTL), d_dontAge(dontAge), d_deferrableInsertLock(deferrableInsertLock), d_parseECS(parseECS)
+DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t maxNegativeTTL, uint32_t staleTTL, bool dontAge, uint32_t shards, bool deferrableInsertLock, bool parseECS) :
+  d_maxEntries(maxEntries), d_shardCount(shards), d_maxTTL(maxTTL), d_tempFailureTTL(tempFailureTTL), d_maxNegativeTTL(maxNegativeTTL), d_minTTL(minTTL), d_staleTTL(staleTTL), d_dontAge(dontAge), d_deferrableInsertLock(deferrableInsertLock), d_parseECS(parseECS)
 {
   if (d_maxEntries == 0) {
     throw std::runtime_error("Trying to create a 0-sized packet-cache");
@@ -83,14 +84,14 @@ bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint1
   return true;
 }
 
-void DNSDistPacketCache::insertLocked(CacheShard& shard, std::unordered_map<uint32_t,CacheValue>& map, uint32_t key, CacheValue& newValue)
+void DNSDistPacketCache::insertLocked(CacheShard& shard, std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue)
 {
   /* check again now that we hold the lock to prevent a race */
   if (map.size() >= (d_maxEntries / d_shardCount)) {
     return;
   }
 
-  std::unordered_map<uint32_t,CacheValue>::iterator it;
+  std::unordered_map<uint32_t, CacheValue>::iterator it;
   bool result;
   std::tie(it, result) = map.insert({key, newValue});
 
@@ -227,7 +228,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
       return false;
     }
 
-    std::unordered_map<uint32_t,CacheValue>::const_iterator it = map->find(key);
+    std::unordered_map<uint32_t, CacheValue>::const_iterator it = map->find(key);
     if (it == map->end()) {
       if (recordMiss) {
         ++d_misses;
@@ -298,7 +299,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dq, uint16_t queryId, uint32_t* keyOut
     if (!stale) {
       // coverity[store_truncates_time_t]
       dnsheader_aligned dh_aligned(response.data());
-      ageDNSPacket(reinterpret_cast<char *>(&response[0]), response.size(), age, dh_aligned);
+      ageDNSPacket(reinterpret_cast<char*>(&response[0]), response.size(), age, dh_aligned);
     }
     else {
       editDNSPacketTTL(reinterpret_cast<char*>(&response[0]), response.size(),
@@ -330,7 +331,7 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
 
     size_t toRemove = map->size() - maxPerShard;
 
-    for (auto it = map->begin(); toRemove > 0 && it != map->end(); ) {
+    for (auto it = map->begin(); toRemove > 0 && it != map->end();) {
       const CacheValue& value = it->second;
 
       if (value.validity <= now) {
@@ -338,7 +339,8 @@ size_t DNSDistPacketCache::purgeExpired(size_t upTo, const time_t now)
         --toRemove;
         --shard.d_entriesCount;
         ++removed;
-      } else {
+      }
+      else {
         ++it;
       }
     }
@@ -393,14 +395,15 @@ size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bo
   for (auto& shard : d_shards) {
     auto map = shard.d_map.write_lock();
 
-    for(auto it = map->begin(); it != map->end(); ) {
+    for (auto it = map->begin(); it != map->end();) {
       const CacheValue& value = it->second;
 
       if ((value.qname == name || (suffixMatch && value.qname.isPartOf(name))) && (qtype == QType::ANY || qtype == value.qtype)) {
         it = map->erase(it);
         --shard.d_entriesCount;
         ++removed;
-      } else {
+      }
+      else {
         ++it;
       }
     }
@@ -411,7 +414,7 @@ size_t DNSDistPacketCache::expungeByName(const DNSName& name, uint16_t qtype, bo
 
 bool DNSDistPacketCache::isFull()
 {
-    return (getSize() >= d_maxEntries);
+  return (getSize() >= d_maxEntries);
 }
 
 uint64_t DNSDistPacketCache::getSize()
@@ -435,11 +438,11 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qname
   uint32_t result = 0;
   /* skip the query ID */
   if (packet.size() < sizeof(dnsheader)) {
-    throw std::range_error("Computing packet cache key for an invalid packet size (" + std::to_string(packet.size()) +")");
+    throw std::range_error("Computing packet cache key for an invalid packet size (" + std::to_string(packet.size()) + ")");
   }
 
   result = burtle(&packet.at(2), sizeof(dnsheader) - 2, result);
-  result = burtleCI((const unsigned char*) qname.c_str(), qname.length(), result);
+  result = burtleCI((const unsigned char*)qname.c_str(), qname.length(), result);
   if (packet.size() < sizeof(dnsheader) + qnameWireLength) {
     throw std::range_error("Computing packet cache key for an invalid packet (" + std::to_string(packet.size()) + " < " + std::to_string(sizeof(dnsheader) + qnameWireLength) + ")");
   }
@@ -452,7 +455,7 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qname
       result = burtle(&packet.at(sizeof(dnsheader) + qnameWireLength), packet.size() - (sizeof(dnsheader) + qnameWireLength), result);
     }
   }
-  result = burtle((const unsigned char*) &receivedOverUDP, sizeof(receivedOverUDP), result);
+  result = burtle((const unsigned char*)&receivedOverUDP, sizeof(receivedOverUDP), result);
   return result;
 }
 
@@ -473,7 +476,7 @@ uint64_t DNSDistPacketCache::getEntriesCount()
 
 uint64_t DNSDistPacketCache::dump(int fd)
 {
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
+  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(dup(fd), "w"), fclose);
   if (fp == nullptr) {
     return 0;
   }
@@ -499,7 +502,7 @@ uint64_t DNSDistPacketCache::dump(int fd)
 
         fprintf(fp.get(), "%s %" PRId64 " %s ; rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 "\n", value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QType(value.qtype).toString().c_str(), rcode, entry.first, value.len, value.receivedOverUDP, static_cast<int64_t>(value.added));
       }
-      catch(...) {
+      catch (...) {
         fprintf(fp.get(), "; error printing '%s'\n", value.qname.empty() ? "EMPTY" : value.qname.toString().c_str());
       }
     }

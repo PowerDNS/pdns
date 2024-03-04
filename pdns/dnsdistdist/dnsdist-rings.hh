@@ -34,7 +34,8 @@
 #include "dnsdist-protocols.hh"
 #include "dnsdist-mac-address.hh"
 
-struct Rings {
+struct Rings
+{
   struct Query
   {
     ComboAddress requestor;
@@ -72,11 +73,12 @@ struct Rings {
     LockGuarded<boost::circular_buffer<Response>> respRing;
   };
 
-  Rings(size_t capacity=10000, size_t numberOfShards=10, size_t nbLockTries=5, bool keepLockingStats=false): d_blockingQueryInserts(0), d_blockingResponseInserts(0), d_deferredQueryInserts(0), d_deferredResponseInserts(0), d_nbQueryEntries(0), d_nbResponseEntries(0), d_currentShardId(0), d_capacity(capacity), d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries), d_keepLockingStats(keepLockingStats)
+  Rings(size_t capacity = 10000, size_t numberOfShards = 10, size_t nbLockTries = 5, bool keepLockingStats = false) :
+    d_blockingQueryInserts(0), d_blockingResponseInserts(0), d_deferredQueryInserts(0), d_deferredResponseInserts(0), d_nbQueryEntries(0), d_nbResponseEntries(0), d_currentShardId(0), d_capacity(capacity), d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries), d_keepLockingStats(keepLockingStats)
   {
   }
 
-  std::unordered_map<int, vector<boost::variant<string,double> > > getTopBandwidth(unsigned int numentries);
+  std::unordered_map<int, vector<boost::variant<string, double>>> getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
   /* this function should not be called after init() has been called */
   void setCapacity(size_t newCapacity, size_t numberOfShards);
@@ -201,7 +203,7 @@ struct Rings {
     return d_recordResponses;
   }
 
-  std::vector<std::unique_ptr<Shard> > d_shards;
+  std::vector<std::unique_ptr<Shard>> d_shards;
   pdns::stat_t d_blockingQueryInserts;
   pdns::stat_t d_blockingResponseInserts;
   pdns::stat_t d_deferredQueryInserts;

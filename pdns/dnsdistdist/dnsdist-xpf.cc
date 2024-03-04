@@ -53,7 +53,7 @@ bool addXPF(DNSQuestion& dq, uint16_t optionCode)
   pos += sizeof(drh);
   memcpy(reinterpret_cast<char*>(&data.at(pos)), payload.data(), payload.size());
   pos += payload.size();
-  (void) pos;
+  (void)pos;
 
   dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
     header.arcount = htons(ntohs(header.arcount) + 1);
