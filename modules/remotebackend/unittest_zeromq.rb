@@ -38,10 +38,8 @@ begin
 
       if h.respond_to?(method.to_sym) == false
          res = false
-      elsif args.size > 0
-         res, log = h.send(method,args)
       else
-         res, log = h.send(method)
+         res, log = h.send(method,args)
       end
       socket.send_string ({:result => res, :log => log}).to_json + "\n" , 0
       f.puts "#{Time.now.to_f} [zmq]: #{({:result => res, :log => log}).to_json}"
