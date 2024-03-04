@@ -4363,10 +4363,36 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
   sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, rdQuery);
 
   std::vector<std::shared_ptr<DNSRecord>> authorityRecs;
-  const unsigned int labelCount = qname.countLabels();
   bool isCNAMEAnswer = false;
   bool isDNAMEAnswer = false;
   DNSName seenAuth;
+
+  // names that might be expanded from a wildcard, and thus require denial of existence proof
+  // this is the queried name and any part of the CNAME chain from the queried name
+  // the key is the name itself, the value is initially false and is set to true once we have
+  // confirmed it was actually expanded from a wildcard
+  std::map<DNSName, bool> wildcardCandidates{{qname, false}};
+
+  if (rdQuery) {
+    std::unordered_map<DNSName, DNSName> cnames;
+    for (const auto& rec : lwr.d_records) {
+      if (rec.d_type != QType::CNAME || rec.d_class != QClass::IN) {
+        continue;
+      }
+      if (auto content = getRR<CNAMERecordContent>(rec)) {
+        cnames[rec.d_name] = DNSName(content->getTarget());
+      }
+    }
+    auto initial = qname;
+    while (true) {
+      auto cnameIt = cnames.find(initial);
+      if (cnameIt == cnames.end()) {
+        break;
+      }
+      initial = cnameIt->second;
+      wildcardCandidates.emplace(initial, false);
+    }
+  }
 
   for (auto& rec : lwr.d_records) {
     if (rec.d_type == QType::OPT || rec.d_class != QClass::IN) {
@@ -4387,6 +4413,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
       seenAuth = rec.d_name;
     }
 
+    const auto labelCount = rec.d_name.countLabels();
     if (rec.d_type == QType::RRSIG) {
       auto rrsig = getRR<RRSIGRecordContent>(rec);
       if (rrsig) {
@@ -4394,7 +4421,8 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
            count can be lower than the name's label count if it was
            synthesized from the wildcard. Note that the difference might
            be > 1. */
-        if (rec.d_name == qname && isWildcardExpanded(labelCount, *rrsig)) {
+        if (auto wcIt = wildcardCandidates.find(rec.d_name); wcIt != wildcardCandidates.end() && isWildcardExpanded(labelCount, *rrsig)) {
+          wcIt->second = true;
           gatherWildcardProof = true;
           if (!isWildcardExpandedOntoItself(rec.d_name, labelCount, *rrsig)) {
             /* if we have a wildcard expanded onto itself, we don't need to prove
@@ -4671,7 +4699,13 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
         if (isAA && tCacheEntry->first.type == QType::NS && s_save_parent_ns_set) {
           rememberParentSetIfNeeded(tCacheEntry->first.name, tCacheEntry->second.records, depth, prefix);
         }
-        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, authorityRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, tCacheEntry->second.d_ttl_time);
+        bool thisRRNeedsWildcardProof = false;
+        if (gatherWildcardProof) {
+          if (auto wcIt = wildcardCandidates.find(tCacheEntry->first.name); wcIt != wildcardCandidates.end() && wcIt->second) {
+            thisRRNeedsWildcardProof = true;
+          }
+        }
+        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : std::vector<std::shared_ptr<DNSRecord>>(), tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, tCacheEntry->second.d_ttl_time);
 
         // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
         // be served, as negcache entries are checked before record cache entries
@@ -4679,10 +4713,11 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
           g_negCache->wipeTyped(tCacheEntry->first.name, tCacheEntry->first.type);
         }
 
-        if (g_aggressiveNSECCache && needWildcardProof && recordState == vState::Secure && tCacheEntry->first.place == DNSResourceRecord::ANSWER && tCacheEntry->first.name == qname && !tCacheEntry->second.signatures.empty() && !d_routingTag && !ednsmask) {
+        if (g_aggressiveNSECCache && thisRRNeedsWildcardProof && recordState == vState::Secure && tCacheEntry->first.place == DNSResourceRecord::ANSWER && !tCacheEntry->second.signatures.empty() && !d_routingTag && !ednsmask) {
           /* we have an answer synthesized from a wildcard and aggressive NSEC is enabled, we need to store the
              wildcard in its non-expanded form in the cache to be able to synthesize wildcard answers later */
           const auto& rrsig = tCacheEntry->second.signatures.at(0);
+          const auto labelCount = tCacheEntry->first.name.countLabels();
 
           if (isWildcardExpanded(labelCount, *rrsig) && !isWildcardExpandedOntoItself(tCacheEntry->first.name, labelCount, *rrsig)) {
             DNSName realOwner = getNSECOwnerName(tCacheEntry->first.name, tCacheEntry->second.signatures);
@@ -4712,6 +4747,13 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
 
     if (tCacheEntry->first.place == DNSResourceRecord::ANSWER && ednsmask) {
       d_wasVariable = true;
+    }
+  }
+
+  if (gatherWildcardProof) {
+    if (auto wcIt = wildcardCandidates.find(qname); wcIt != wildcardCandidates.end() && !wcIt->second) {
+      // the queried name was not expanded from a wildcard, a record in the CNAME chain was, so we don't need to gather wildcard proof now: we will do that when looking up the CNAME chain
+      gatherWildcardProof = false;
     }
   }
 
