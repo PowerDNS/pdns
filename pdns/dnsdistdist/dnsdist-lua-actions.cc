@@ -1964,7 +1964,7 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
-    if (g_snmpAgent && g_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && g_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(*response, d_reason);
     }
 
