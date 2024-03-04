@@ -46,9 +46,9 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
   const std::string& instance_name = endpoint.instance_name;
 
   try {
-    Socket s(server.sin4.sin_family, SOCK_STREAM);
-    s.setNonBlocking();
-    s.connect(server); // we do the connect so the attempt happens while we gather stats
+    Socket carbonSock(server.sin4.sin_family, SOCK_STREAM);
+    carbonSock.setNonBlocking();
+    carbonSock.connect(server); // we do the connect so the attempt happens while we gather stats
     ostringstream str;
 
     const time_t now = time(nullptr);
@@ -77,7 +77,14 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
     for (const auto& state : *states) {
       string serverName = state->getName().empty() ? state->d_config.remote.toStringWithPort() : state->getName();
       boost::replace_all(serverName, ".", "_");
-      const string base = namespace_name + "." + hostname + "." + instance_name + ".servers." + serverName + ".";
+      string base = namespace_name;
+      base += ".";
+      base += hostname;
+      base += ".";
+      base += instance_name;
+      base += ".servers.";
+      base += serverName;
+      base += ".";
       str << base << "queries" << ' ' << state->queries.load() << " " << now << "\r\n";
       str << base << "responses" << ' ' << state->responses.load() << " " << now << "\r\n";
       str << base << "drops" << ' ' << state->reuseds.load() << " " << now << "\r\n";
@@ -117,11 +124,18 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       boost::replace_all(frontName, ".", "_");
       auto dupPair = frontendDuplicates.insert({frontName, 1});
       if (!dupPair.second) {
-        frontName = frontName + "_" + std::to_string(dupPair.first->second);
+        frontName += "_" + std::to_string(dupPair.first->second);
         ++(dupPair.first->second);
       }
 
-      const string base = namespace_name + "." + hostname + "." + instance_name + ".frontends." + frontName + ".";
+      string base = namespace_name;
+      base += ".";
+      base += hostname;
+      base += ".";
+      base += instance_name;
+      base += ".frontends.";
+      base += frontName;
+      base += ".";
       str << base << "queries" << ' ' << front->queries.load() << " " << now << "\r\n";
       str << base << "responses" << ' ' << front->responses.load() << " " << now << "\r\n";
       str << base << "tcpdiedreadingquery" << ' ' << front->tcpDiedReadingQuery.load() << " " << now << "\r\n";
@@ -169,7 +183,14 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       if (poolName.empty()) {
         poolName = "_default_";
       }
-      const string base = namespace_name + "." + hostname + "." + instance_name + ".pools." + poolName + ".";
+      string base = namespace_name;
+      base += ".";
+      base += hostname;
+      base += ".";
+      base += instance_name;
+      base += ".pools.";
+      base += poolName;
+      base += ".";
       const std::shared_ptr<ServerPool> pool = entry.second;
       str << base << "servers"
           << " " << pool->countServers(false) << " " << now << "\r\n";
@@ -213,11 +234,11 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 
         auto dupPair = dohFrontendDuplicates.insert({name, 1});
         if (!dupPair.second) {
-          name = name + "_" + std::to_string(dupPair.first->second);
+          name += "_" + std::to_string(dupPair.first->second);
           ++(dupPair.first->second);
         }
 
-        vector<pair<const char*, const pdns::stat_t&>> v{
+        const vector<pair<const char*, const pdns::stat_t&>> values{
           {"http-connects", doh->d_httpconnects},
           {"http1-queries", doh->d_http1Stats.d_nbQueries},
           {"http2-queries", doh->d_http2Stats.d_nbQueries},
@@ -240,7 +261,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
           {"redirect-responses", doh->d_redirectresponses},
           {"valid-responses", doh->d_validresponses}};
 
-        for (const auto& item : v) {
+        for (const auto& item : values) {
           str << base << name << "." << item.first << " " << item.second << " " << now << "\r\n";
         }
       }
@@ -260,13 +281,13 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 
     const string msg = str.str();
 
-    int ret = waitForRWData(s.getHandle(), false, 1, 0);
+    int ret = waitForRWData(carbonSock.getHandle(), false, 1, 0);
     if (ret <= 0) {
       vinfolog("Unable to write data to carbon server on %s: %s", server.toStringWithPort(), (ret < 0 ? stringerror() : "Timeout"));
       return false;
     }
-    s.setBlocking();
-    writen2(s.getHandle(), msg.c_str(), msg.size());
+    carbonSock.setBlocking();
+    writen2(carbonSock.getHandle(), msg.c_str(), msg.size());
   }
   catch (const std::exception& e) {
     warnlog("Problem sending carbon data to %s: %s", server.toStringWithPort(), e.what());
@@ -286,10 +307,10 @@ static void carbonHandler(Carbon::Endpoint&& endpoint)
   try {
     uint8_t consecutiveFailures = 0;
     do {
-      DTime dt;
-      dt.set();
+      DTime dtimer;
+      dtimer.set();
       if (doOneCarbonExport(endpoint)) {
-        const auto elapsedUSec = dt.udiff();
+        const auto elapsedUSec = dtimer.udiff();
         if (elapsedUSec < 0 || static_cast<unsigned int>(elapsedUSec) <= intervalUSec) {
           useconds_t toSleepUSec = intervalUSec - elapsedUSec;
           usleep(toSleepUSec);
@@ -305,7 +326,7 @@ static void carbonHandler(Carbon::Endpoint&& endpoint)
           consecutiveFailures++;
         }
         vinfolog("Run for %s - %s failed, next attempt in %d", endpoint.server.toStringWithPort(), endpoint.ourname, backOff);
-        sleep(backOff);
+        std::this_thread::sleep_for(std::chrono::seconds(backOff));
       }
     } while (true);
   }
