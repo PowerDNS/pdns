@@ -41,11 +41,11 @@ void setupLuaVars(LuaContext& luaCtx)
 
   luaCtx.writeVariable("DNSRCode", LuaAssociativeTable<int>{{"NOERROR", RCode::NoError}, {"FORMERR", RCode::FormErr}, {"SERVFAIL", RCode::ServFail}, {"NXDOMAIN", RCode::NXDomain}, {"NOTIMP", RCode::NotImp}, {"REFUSED", RCode::Refused}, {"YXDOMAIN", RCode::YXDomain}, {"YXRRSET", RCode::YXRRSet}, {"NXRRSET", RCode::NXRRSet}, {"NOTAUTH", RCode::NotAuth}, {"NOTZONE", RCode::NotZone}, {"BADVERS", ERCode::BADVERS}, {"BADSIG", ERCode::BADSIG}, {"BADKEY", ERCode::BADKEY}, {"BADTIME", ERCode::BADTIME}, {"BADMODE", ERCode::BADMODE}, {"BADNAME", ERCode::BADNAME}, {"BADALG", ERCode::BADALG}, {"BADTRUNC", ERCode::BADTRUNC}, {"BADCOOKIE", ERCode::BADCOOKIE}});
 
-  LuaAssociativeTable<int> dd;
-  for (const auto& n : QType::names) {
-    dd[n.first] = n.second;
+  LuaAssociativeTable<int> dnsqtypes;
+  for (const auto& name : QType::names) {
+    dnsqtypes[name.first] = name.second;
   }
-  luaCtx.writeVariable("DNSQType", dd);
+  luaCtx.writeVariable("DNSQType", dnsqtypes);
 
 #ifdef HAVE_DNSCRYPT
   luaCtx.writeVariable("DNSCryptExchangeVersion", LuaAssociativeTable<int>{
