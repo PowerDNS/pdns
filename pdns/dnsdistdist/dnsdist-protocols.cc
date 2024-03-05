@@ -47,14 +47,14 @@ const std::array<std::string, Protocol::s_numberOfProtocols> Protocol::s_prettyN
   "DNS over QUIC",
   "DNS over HTTP/3"};
 
-Protocol::Protocol(const std::string& s)
+Protocol::Protocol(const std::string& protocol)
 {
-  const auto& it = std::find(s_names.begin(), s_names.end(), s);
-  if (it == s_names.end()) {
-    throw std::runtime_error("Unknown protocol name: '" + s + "'");
+  const auto& namesIt = std::find(s_names.begin(), s_names.end(), protocol);
+  if (namesIt == s_names.end()) {
+    throw std::runtime_error("Unknown protocol name: '" + protocol + "'");
   }
 
-  auto index = std::distance(s_names.begin(), it);
+  auto index = std::distance(s_names.begin(), namesIt);
   d_protocol = static_cast<Protocol::typeenum>(index);
 }
 
