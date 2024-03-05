@@ -217,8 +217,8 @@ private:
 #include <valgrind/valgrind.h>
 #endif /* PDNS_USE_VALGRIND */
 
-template<class EventKey, class EventVal, class Cmp>
-uint64_t MTasker<EventKey,EventVal,Cmp>::nextWaiterDelayUsec(uint64_t defusecs)
+template <class EventKey, class EventVal, class Cmp>
+uint64_t MTasker<EventKey, EventVal, Cmp>::nextWaiterDelayUsec(uint64_t defusecs)
 {
   if (d_waiters.empty()) {
     // no waiters

@@ -2892,7 +2892,6 @@ void mthreadSleep(unsigned int jitterMsec)
   assert(g_multiTasker->waitEvent(neverHappens, nullptr, jitterMsec) != -1); // NOLINT
 }
 
-
 static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& var)
 {
   auto pid = boost::any_cast<std::shared_ptr<PacketID>>(var);
