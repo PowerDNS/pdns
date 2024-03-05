@@ -83,14 +83,14 @@ void Rings::setRecordResponses(bool record)
 
 size_t Rings::numDistinctRequestors()
 {
-  std::set<ComboAddress, ComboAddress::addressOnlyLessThan> s;
+  std::set<ComboAddress, ComboAddress::addressOnlyLessThan> requestors;
   for (const auto& shard : d_shards) {
-    auto rl = shard->queryRing.lock();
-    for (const auto& q : *rl) {
-      s.insert(q.requestor);
+    auto queries = shard->queryRing.lock();
+    for (const auto& query : *queries) {
+      requestors.insert(query.requestor);
     }
   }
-  return s.size();
+  return requestors.size();
 }
 
 std::unordered_map<int, vector<boost::variant<string, double>>> Rings::getTopBandwidth(unsigned int numentries)
@@ -99,44 +99,45 @@ std::unordered_map<int, vector<boost::variant<string, double>>> Rings::getTopBan
   uint64_t total = 0;
   for (const auto& shard : d_shards) {
     {
-      auto rl = shard->queryRing.lock();
-      for (const auto& q : *rl) {
-        counts[q.requestor] += q.size;
-        total += q.size;
+      auto queries = shard->queryRing.lock();
+      for (const auto& query : *queries) {
+        counts[query.requestor] += query.size;
+        total += query.size;
       }
     }
     {
-      auto rl = shard->respRing.lock();
-      for (const auto& r : *rl) {
-        counts[r.requestor] += r.size;
-        total += r.size;
+      auto responses = shard->respRing.lock();
+      for (const auto& response : *responses) {
+        counts[response.requestor] += response.size;
+        total += response.size;
       }
     }
   }
 
-  typedef vector<pair<unsigned int, ComboAddress>> ret_t;
+  using ret_t = vector<pair<unsigned int, ComboAddress>>;
   ret_t rcounts;
   rcounts.reserve(counts.size());
-  for (const auto& p : counts)
-    rcounts.push_back({p.second, p.first});
+  for (const auto& count : counts) {
+    rcounts.emplace_back(count.second, count.first);
+  }
   numentries = rcounts.size() < numentries ? rcounts.size() : numentries;
-  partial_sort(rcounts.begin(), rcounts.begin() + numentries, rcounts.end(), [](const ret_t::value_type& a, const ret_t::value_type& b) {
-    return (b.first < a.first);
+  partial_sort(rcounts.begin(), rcounts.begin() + numentries, rcounts.end(), [](const ret_t::value_type& lhs, const ret_t::value_type& rhs) {
+    return (rhs.first < lhs.first);
   });
   std::unordered_map<int, vector<boost::variant<string, double>>> ret;
   uint64_t rest = 0;
   int count = 1;
-  for (const auto& rc : rcounts) {
+  for (const auto& rcount : rcounts) {
     if (count == static_cast<int>(numentries + 1)) {
-      rest += rc.first;
+      rest += rcount.first;
     }
     else {
-      ret.insert({count++, {rc.second.toString(), rc.first, 100.0 * rc.first / total}});
+      ret.insert({count++, {rcount.second.toString(), rcount.first, 100.0 * rcount.first / static_cast<double>(total)}});
     }
   }
 
   if (total > 0) {
-    ret.insert({count, {"Rest", rest, 100.0 * rest / total}});
+    ret.insert({count, {"Rest", rest, 100.0 * static_cast<double>(rest) / static_cast<double>(total)}});
   }
   else {
     ret.insert({count, {"Rest", rest, 100.0}});
@@ -154,8 +155,8 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
 
   size_t inserted = 0;
   string line;
-  dnsheader dh;
-  memset(&dh, 0, sizeof(dh));
+  dnsheader dnsHeader{};
+  memset(&dnsHeader, 0, sizeof(dnsHeader));
 
   while (std::getline(ifs, line)) {
     boost::trim_right_if(line, boost::is_any_of(" \r\n\x1a"));
@@ -182,10 +183,10 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
       continue;
     }
 
-    struct timespec when;
+    timespec when{};
     try {
       when.tv_sec = now.tv_sec + std::stoi(timeStr.at(0));
-      when.tv_nsec = now.tv_nsec + std::stoi(timeStr.at(1)) * 100 * 1000 * 1000;
+      when.tv_nsec = now.tv_nsec + static_cast<long>(std::stoi(timeStr.at(1)) * 100 * 1000 * 1000);
     }
     catch (const std::exception& e) {
       cerr << "error parsing time " << parts.at(idx - 1) << " from line " << line << endl;
@@ -193,10 +194,10 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
     }
 
     ComboAddress from(parts.at(idx++));
-    ComboAddress to;
+    ComboAddress dest;
     dnsdist::Protocol protocol(parts.at(idx++));
     if (isResponse) {
-      to = ComboAddress(parts.at(idx++));
+      dest = ComboAddress(parts.at(idx++));
     }
     /* skip ID */
     idx++;
@@ -204,10 +205,10 @@ size_t Rings::loadFromFile(const std::string& filepath, const struct timespec& n
     QType qtype(QType::chartocode(parts.at(idx++).c_str()));
 
     if (isResponse) {
-      insertResponse(when, from, qname, qtype.getCode(), 0, 0, dh, to, protocol);
+      insertResponse(when, from, qname, qtype.getCode(), 0, 0, dnsHeader, dest, protocol);
     }
     else {
-      insertQuery(when, from, qname, qtype.getCode(), 0, dh, protocol);
+      insertQuery(when, from, qname, qtype.getCode(), 0, dnsHeader, protocol);
     }
     ++inserted;
   }
