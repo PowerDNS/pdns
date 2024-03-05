@@ -1248,7 +1248,7 @@ bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_
 
 extern bool g_snmpEnabled;
 extern bool g_snmpTrapsEnabled;
-extern DNSDistSNMPAgent* g_snmpAgent;
+extern std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent;
 extern bool g_addEDNSToSelfGeneratedResponses;
 
 extern std::set<std::string> g_capabilitiesToRetain;

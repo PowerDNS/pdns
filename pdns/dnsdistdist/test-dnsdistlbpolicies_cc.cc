@@ -19,7 +19,7 @@ LockGuarded<LuaContext> g_lua{LuaContext()};
 
 bool g_snmpEnabled{false};
 bool g_snmpTrapsEnabled{false};
-DNSDistSNMPAgent* g_snmpAgent{nullptr};
+std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
 
 #if BENCH_POLICIES
 bool g_verbose{true};

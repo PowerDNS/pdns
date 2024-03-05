@@ -5,7 +5,7 @@
 
 bool g_snmpEnabled{false};
 bool g_snmpTrapsEnabled{false};
-DNSDistSNMPAgent* g_snmpAgent{nullptr};
+std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
 
 #ifdef HAVE_NET_SNMP
 
@@ -15,46 +15,51 @@ DNSDistSNMPAgent* g_snmpAgent{nullptr};
 #define DNSDIST_TRAPS_OID DNSDIST_OID, 10, 0
 #define DNSDIST_TRAP_OBJECTS_OID DNSDIST_OID, 11
 
-static const oid queriesOID[] = {DNSDIST_STATS_OID, 1};
-static const oid responsesOID[] = {DNSDIST_STATS_OID, 2};
-static const oid servfailResponsesOID[] = {DNSDIST_STATS_OID, 3};
-static const oid aclDropsOID[] = {DNSDIST_STATS_OID, 4};
+using OIDStat = std::array<oid, 10>;
+using OIDTrap = std::array<oid, 11>;
+using OIDTrapObject = std::array<oid, 11>;
+using OIDStatTable = std::array<oid, 12>;
+
+static const OIDStat queriesOID{DNSDIST_STATS_OID, 1};
+static const OIDStat responsesOID{DNSDIST_STATS_OID, 2};
+static const OIDStat servfailResponsesOID{DNSDIST_STATS_OID, 3};
+static const OIDStat aclDropsOID{DNSDIST_STATS_OID, 4};
 // 5 was BlockFilter, removed in 1.2.0
-static const oid ruleDropOID[] = {DNSDIST_STATS_OID, 6};
-static const oid ruleNXDomainOID[] = {DNSDIST_STATS_OID, 7};
-static const oid ruleRefusedOID[] = {DNSDIST_STATS_OID, 8};
-static const oid selfAnsweredOID[] = {DNSDIST_STATS_OID, 9};
-static const oid downstreamTimeoutsOID[] = {DNSDIST_STATS_OID, 10};
-static const oid downstreamSendErrorsOID[] = {DNSDIST_STATS_OID, 11};
-static const oid truncFailOID[] = {DNSDIST_STATS_OID, 12};
-static const oid noPolicyOID[] = {DNSDIST_STATS_OID, 13};
-static const oid latency0_1OID[] = {DNSDIST_STATS_OID, 14};
-static const oid latency1_10OID[] = {DNSDIST_STATS_OID, 15};
-static const oid latency10_50OID[] = {DNSDIST_STATS_OID, 16};
-static const oid latency50_100OID[] = {DNSDIST_STATS_OID, 17};
-static const oid latency100_1000OID[] = {DNSDIST_STATS_OID, 18};
-static const oid latencySlowOID[] = {DNSDIST_STATS_OID, 19};
-static const oid latencyAvg100OID[] = {DNSDIST_STATS_OID, 20};
-static const oid latencyAvg1000OID[] = {DNSDIST_STATS_OID, 21};
-static const oid latencyAvg10000OID[] = {DNSDIST_STATS_OID, 22};
-static const oid latencyAvg1000000OID[] = {DNSDIST_STATS_OID, 23};
-static const oid uptimeOID[] = {DNSDIST_STATS_OID, 24};
-static const oid realMemoryUsageOID[] = {DNSDIST_STATS_OID, 25};
-static const oid nonCompliantQueriesOID[] = {DNSDIST_STATS_OID, 26};
-static const oid nonCompliantResponsesOID[] = {DNSDIST_STATS_OID, 27};
-static const oid rdQueriesOID[] = {DNSDIST_STATS_OID, 28};
-static const oid emptyQueriesOID[] = {DNSDIST_STATS_OID, 29};
-static const oid cacheHitsOID[] = {DNSDIST_STATS_OID, 30};
-static const oid cacheMissesOID[] = {DNSDIST_STATS_OID, 31};
-static const oid cpuUserMSecOID[] = {DNSDIST_STATS_OID, 32};
-static const oid cpuSysMSecOID[] = {DNSDIST_STATS_OID, 33};
-static const oid fdUsageOID[] = {DNSDIST_STATS_OID, 34};
-static const oid dynBlockedOID[] = {DNSDIST_STATS_OID, 35};
-static const oid dynBlockedNMGSizeOID[] = {DNSDIST_STATS_OID, 36};
-static const oid ruleServFailOID[] = {DNSDIST_STATS_OID, 37};
-static const oid securityStatusOID[] = {DNSDIST_STATS_OID, 38};
-static const oid specialMemoryUsageOID[] = {DNSDIST_STATS_OID, 39};
-static const oid ruleTruncatedOID[] = {DNSDIST_STATS_OID, 40};
+static const OIDStat ruleDropOID{DNSDIST_STATS_OID, 6};
+static const OIDStat ruleNXDomainOID{DNSDIST_STATS_OID, 7};
+static const OIDStat ruleRefusedOID{DNSDIST_STATS_OID, 8};
+static const OIDStat selfAnsweredOID{DNSDIST_STATS_OID, 9};
+static const OIDStat downstreamTimeoutsOID{DNSDIST_STATS_OID, 10};
+static const OIDStat downstreamSendErrorsOID{DNSDIST_STATS_OID, 11};
+static const OIDStat truncFailOID{DNSDIST_STATS_OID, 12};
+static const OIDStat noPolicyOID{DNSDIST_STATS_OID, 13};
+static const OIDStat latency0_1OID{DNSDIST_STATS_OID, 14};
+static const OIDStat latency1_10OID{DNSDIST_STATS_OID, 15};
+static const OIDStat latency10_50OID{DNSDIST_STATS_OID, 16};
+static const OIDStat latency50_100OID{DNSDIST_STATS_OID, 17};
+static const OIDStat latency100_1000OID{DNSDIST_STATS_OID, 18};
+static const OIDStat latencySlowOID{DNSDIST_STATS_OID, 19};
+static const OIDStat latencyAvg100OID{DNSDIST_STATS_OID, 20};
+static const OIDStat latencyAvg1000OID{DNSDIST_STATS_OID, 21};
+static const OIDStat latencyAvg10000OID{DNSDIST_STATS_OID, 22};
+static const OIDStat latencyAvg1000000OID{DNSDIST_STATS_OID, 23};
+static const OIDStat uptimeOID{DNSDIST_STATS_OID, 24};
+static const OIDStat realMemoryUsageOID{DNSDIST_STATS_OID, 25};
+static const OIDStat nonCompliantQueriesOID{DNSDIST_STATS_OID, 26};
+static const OIDStat nonCompliantResponsesOID{DNSDIST_STATS_OID, 27};
+static const OIDStat rdQueriesOID{DNSDIST_STATS_OID, 28};
+static const OIDStat emptyQueriesOID{DNSDIST_STATS_OID, 29};
+static const OIDStat cacheHitsOID{DNSDIST_STATS_OID, 30};
+static const OIDStat cacheMissesOID{DNSDIST_STATS_OID, 31};
+static const OIDStat cpuUserMSecOID{DNSDIST_STATS_OID, 32};
+static const OIDStat cpuSysMSecOID{DNSDIST_STATS_OID, 33};
+static const OIDStat fdUsageOID{DNSDIST_STATS_OID, 34};
+static const OIDStat dynBlockedOID{DNSDIST_STATS_OID, 35};
+static const OIDStat dynBlockedNMGSizeOID{DNSDIST_STATS_OID, 36};
+static const OIDStat ruleServFailOID{DNSDIST_STATS_OID, 37};
+static const OIDStat securityStatusOID{DNSDIST_STATS_OID, 38};
+static const OIDStat specialMemoryUsageOID{DNSDIST_STATS_OID, 39};
+static const OIDStat ruleTruncatedOID{DNSDIST_STATS_OID, 40};
 
 static std::unordered_map<oid, dnsdist::metrics::Stats::entry_t> s_statsMap;
 
@@ -76,35 +81,36 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
     return SNMP_ERR_GENERR;
   }
 
-  const auto& it = s_statsMap.find(reginfo->rootoid[reginfo->rootoid_len - 2]);
-  if (it == s_statsMap.end()) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): net-snmp API
+  const auto& stIt = s_statsMap.find(reginfo->rootoid[reginfo->rootoid_len - 2]);
+  if (stIt == s_statsMap.end()) {
     return SNMP_ERR_GENERR;
   }
 
-  if (const auto& val = std::get_if<pdns::stat_t*>(&it->second)) {
+  if (const auto& val = std::get_if<pdns::stat_t*>(&stIt->second)) {
     return DNSDistSNMPAgent::setCounter64Value(requests, (*val)->load());
   }
 
   return SNMP_ERR_GENERR;
 }
 
-static void registerCounter64Stat(const char* name, const oid statOID[], size_t statOIDLength, pdns::stat_t* ptr)
+static void registerCounter64Stat(const char* name, const OIDStat& statOID, pdns::stat_t* ptr)
 {
-  if (statOIDLength != OID_LENGTH(queriesOID)) {
+  if (statOID.size() != OID_LENGTH(queriesOID)) {
     errlog("Invalid OID for SNMP Counter64 statistic %s", name);
     return;
   }
 
-  if (s_statsMap.find(statOID[statOIDLength - 1]) != s_statsMap.end()) {
+  if (s_statsMap.find(statOID.at(statOID.size() - 1)) != s_statsMap.end()) {
     errlog("OID for SNMP Counter64 statistic %s has already been registered", name);
     return;
   }
 
-  s_statsMap[statOID[statOIDLength - 1]] = ptr;
+  s_statsMap[statOID.at(statOID.size() - 1)] = ptr;
   netsnmp_register_scalar(netsnmp_create_handler_registration(name,
                                                               handleCounter64Stats,
-                                                              statOID,
-                                                              statOIDLength,
+                                                              statOID.data(),
+                                                              statOID.size(),
                                                               HANDLER_CAN_RONLY));
 }
 
@@ -121,12 +127,13 @@ static int handleFloatStats(netsnmp_mib_handler* handler,
     return SNMP_ERR_GENERR;
   }
 
-  const auto& it = s_statsMap.find(reginfo->rootoid[reginfo->rootoid_len - 2]);
-  if (it == s_statsMap.end()) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): net-snmp API
+  const auto& stIt = s_statsMap.find(reginfo->rootoid[reginfo->rootoid_len - 2]);
+  if (stIt == s_statsMap.end()) {
     return SNMP_ERR_GENERR;
   }
 
-  if (const auto& val = std::get_if<double*>(&it->second)) {
+  if (const auto& val = std::get_if<double*>(&stIt->second)) {
     std::string str(std::to_string(**val));
     snmp_set_var_typed_value(requests->requestvb,
                              ASN_OCTET_STR,
@@ -138,23 +145,23 @@ static int handleFloatStats(netsnmp_mib_handler* handler,
   return SNMP_ERR_GENERR;
 }
 
-static void registerFloatStat(const char* name, const oid statOID[], size_t statOIDLength, double* ptr)
+static void registerFloatStat(const char* name, const OIDStat& statOID, double* ptr)
 {
-  if (statOIDLength != OID_LENGTH(queriesOID)) {
+  if (statOID.size() != OID_LENGTH(queriesOID)) {
     errlog("Invalid OID for SNMP Float statistic %s", name);
     return;
   }
 
-  if (s_statsMap.find(statOID[statOIDLength - 1]) != s_statsMap.end()) {
+  if (s_statsMap.find(statOID.at(statOID.size() - 1)) != s_statsMap.end()) {
     errlog("OID for SNMP Float statistic %s has already been registered", name);
     return;
   }
 
-  s_statsMap[statOID[statOIDLength - 1]] = ptr;
+  s_statsMap[statOID.at(statOID.size() - 1)] = ptr;
   netsnmp_register_scalar(netsnmp_create_handler_registration(name,
                                                               handleFloatStats,
-                                                              statOID,
-                                                              statOIDLength,
+                                                              statOID.data(),
+                                                              statOID.size(),
                                                               HANDLER_CAN_RONLY));
 }
 
@@ -171,71 +178,71 @@ static int handleGauge64Stats(netsnmp_mib_handler* handler,
     return SNMP_ERR_GENERR;
   }
 
-  const auto& it = s_statsMap.find(reginfo->rootoid[reginfo->rootoid_len - 2]);
-  if (it == s_statsMap.end()) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): net-snmp API
+  const auto& stIt = s_statsMap.find(reginfo->rootoid[reginfo->rootoid_len - 2]);
+  if (stIt == s_statsMap.end()) {
     return SNMP_ERR_GENERR;
   }
 
   std::string str;
-  uint64_t value = (*std::get_if<dnsdist::metrics::Stats::statfunction_t>(&it->second))(str);
+  uint64_t value = (*std::get_if<dnsdist::metrics::Stats::statfunction_t>(&stIt->second))(str);
   return DNSDistSNMPAgent::setCounter64Value(requests, value);
 }
 
-static void registerGauge64Stat(const char* name, const oid statOID[], size_t statOIDLength, dnsdist::metrics::Stats::statfunction_t ptr)
+static void registerGauge64Stat(const char* name, const OIDStat& statOID, const dnsdist::metrics::Stats::statfunction_t& ptr)
 {
-  if (statOIDLength != OID_LENGTH(queriesOID)) {
+  if (statOID.size() != OID_LENGTH(queriesOID)) {
     errlog("Invalid OID for SNMP Gauge64 statistic %s", name);
     return;
   }
 
-  if (s_statsMap.find(statOID[statOIDLength - 1]) != s_statsMap.end()) {
+  if (s_statsMap.find(statOID.at(statOID.size() - 1)) != s_statsMap.end()) {
     errlog("OID for SNMP Gauge64 statistic %s has already been registered", name);
     return;
   }
 
-  s_statsMap[statOID[statOIDLength - 1]] = ptr;
+  s_statsMap[statOID.at(statOID.size() - 1)] = ptr;
   netsnmp_register_scalar(netsnmp_create_handler_registration(name,
                                                               handleGauge64Stats,
-                                                              statOID,
-                                                              statOIDLength,
+                                                              statOID.data(),
+                                                              statOID.size(),
                                                               HANDLER_CAN_RONLY));
 }
 
 /* column number definitions for table backendStatTable */
-#define COLUMN_BACKENDID 1
-#define COLUMN_BACKENDNAME 2
-#define COLUMN_BACKENDLATENCY 3
-#define COLUMN_BACKENDWEIGHT 4
-#define COLUMN_BACKENDOUTSTANDING 5
-#define COLUMN_BACKENDQPSLIMIT 6
-#define COLUMN_BACKENDREUSED 7
-#define COLUMN_BACKENDSTATE 8
-#define COLUMN_BACKENDADDRESS 9
-#define COLUMN_BACKENDPOOLS 10
-#define COLUMN_BACKENDQPS 11
-#define COLUMN_BACKENDQUERIES 12
-#define COLUMN_BACKENDORDER 13
+static constexpr unsigned int COLUMN_BACKENDNAME = 2;
+static constexpr unsigned int COLUMN_BACKENDLATENCY = 3;
+static constexpr unsigned int COLUMN_BACKENDWEIGHT = 4;
+static constexpr unsigned int COLUMN_BACKENDOUTSTANDING = 5;
+static constexpr unsigned int COLUMN_BACKENDQPSLIMIT = 6;
+static constexpr unsigned int COLUMN_BACKENDREUSED = 7;
+static constexpr unsigned int COLUMN_BACKENDSTATE = 8;
+static constexpr unsigned int COLUMN_BACKENDADDRESS = 9;
+static constexpr unsigned int COLUMN_BACKENDPOOLS = 10;
+static constexpr unsigned int COLUMN_BACKENDQPS = 11;
+static constexpr unsigned int COLUMN_BACKENDQUERIES = 12;
+static constexpr unsigned int COLUMN_BACKENDORDER = 13;
 
-static const oid backendStatTableOID[] = {DNSDIST_STATS_TABLE_OID};
-static const oid backendNameOID[] = {DNSDIST_STATS_TABLE_OID, 1, 2};
-static const oid backendStateOID[] = {DNSDIST_STATS_TABLE_OID, 1, 8};
-static const oid backendAddressOID[] = {DNSDIST_STATS_TABLE_OID, 1, 9};
+static const std::array<oid, 9> backendStatTableOID{DNSDIST_STATS_TABLE_OID};
+static const OIDStatTable backendNameOID{DNSDIST_STATS_TABLE_OID, 1, 2};
+static const OIDStatTable backendStateOID{DNSDIST_STATS_TABLE_OID, 1, 8};
+static const OIDStatTable backendAddressOID{DNSDIST_STATS_TABLE_OID, 1, 9};
 
-static const oid socketFamilyOID[] = {DNSDIST_TRAP_OBJECTS_OID, 1, 0};
-static const oid socketProtocolOID[] = {DNSDIST_TRAP_OBJECTS_OID, 2, 0};
-static const oid fromAddressOID[] = {DNSDIST_TRAP_OBJECTS_OID, 3, 0};
-static const oid toAddressOID[] = {DNSDIST_TRAP_OBJECTS_OID, 4, 0};
-static const oid queryTypeOID[] = {DNSDIST_TRAP_OBJECTS_OID, 5, 0};
-static const oid querySizeOID[] = {DNSDIST_TRAP_OBJECTS_OID, 6, 0};
-static const oid queryIDOID[] = {DNSDIST_TRAP_OBJECTS_OID, 7, 0};
-static const oid qNameOID[] = {DNSDIST_TRAP_OBJECTS_OID, 8, 0};
-static const oid qClassOID[] = {DNSDIST_TRAP_OBJECTS_OID, 9, 0};
-static const oid qTypeOID[] = {DNSDIST_TRAP_OBJECTS_OID, 10, 0};
-static const oid trapReasonOID[] = {DNSDIST_TRAP_OBJECTS_OID, 11, 0};
+static const OIDTrapObject socketFamilyOID{DNSDIST_TRAP_OBJECTS_OID, 1, 0};
+static const OIDTrapObject socketProtocolOID{DNSDIST_TRAP_OBJECTS_OID, 2, 0};
+static const OIDTrapObject fromAddressOID{DNSDIST_TRAP_OBJECTS_OID, 3, 0};
+static const OIDTrapObject toAddressOID{DNSDIST_TRAP_OBJECTS_OID, 4, 0};
+static const OIDTrapObject queryTypeOID{DNSDIST_TRAP_OBJECTS_OID, 5, 0};
+static const OIDTrapObject querySizeOID{DNSDIST_TRAP_OBJECTS_OID, 6, 0};
+static const OIDTrapObject queryIDOID{DNSDIST_TRAP_OBJECTS_OID, 7, 0};
+static const OIDTrapObject qNameOID{DNSDIST_TRAP_OBJECTS_OID, 8, 0};
+static const OIDTrapObject qClassOID{DNSDIST_TRAP_OBJECTS_OID, 9, 0};
+static const OIDTrapObject qTypeOID{DNSDIST_TRAP_OBJECTS_OID, 10, 0};
+static const OIDTrapObject trapReasonOID{DNSDIST_TRAP_OBJECTS_OID, 11, 0};
 
-static const oid backendStatusChangeTrapOID[] = {DNSDIST_TRAPS_OID, 1};
-static const oid actionTrapOID[] = {DNSDIST_TRAPS_OID, 2};
-static const oid customTrapOID[] = {DNSDIST_TRAPS_OID, 3};
+static const OIDTrap backendStatusChangeTrapOID{DNSDIST_TRAPS_OID, 1};
+static const OIDTrap actionTrapOID{DNSDIST_TRAPS_OID, 2};
+static const OIDTrap customTrapOID{DNSDIST_TRAPS_OID, 3};
 
 static servers_t s_servers;
 static size_t s_currentServerIdx = 0;
@@ -246,11 +253,11 @@ static netsnmp_variable_list* backendStatTable_get_next_data_point(void** loop_c
                                                                    netsnmp_iterator_info* mydata)
 {
   if (s_currentServerIdx >= s_servers.size()) {
-    return NULL;
+    return nullptr;
   }
 
   *my_data_context = (void*)(s_servers[s_currentServerIdx]).get();
-  snmp_set_var_typed_integer(put_index_data, ASN_UNSIGNED, s_currentServerIdx);
+  snmp_set_var_typed_integer(put_index_data, ASN_UNSIGNED, static_cast<long>(s_currentServerIdx));
   s_currentServerIdx++;
 
   return put_index_data;
@@ -283,15 +290,15 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
                                     netsnmp_agent_request_info* reqinfo,
                                     netsnmp_request_info* requests)
 {
-  netsnmp_request_info* request;
+  netsnmp_request_info* request{nullptr};
 
   switch (reqinfo->mode) {
   case MODE_GET:
-    for (request = requests; request; request = request->next) {
+    for (request = requests; request != nullptr; request = request->next) {
       netsnmp_table_request_info* table_info = netsnmp_extract_table_info(request);
-      const DownstreamState* server = (const DownstreamState*)netsnmp_extract_iterator_context(request);
-
-      if (!server) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): net-snmp API
+      const auto* server = reinterpret_cast<const DownstreamState*>(netsnmp_extract_iterator_context(request));
+      if (server == nullptr) {
         continue;
       }
 
@@ -304,7 +311,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         break;
       case COLUMN_BACKENDLATENCY:
         DNSDistSNMPAgent::setCounter64Value(request,
-                                            server->getRelevantLatencyUsec() / 1000.0);
+                                            static_cast<uint64_t>(server->getRelevantLatencyUsec() / 1000.0));
         break;
       case COLUMN_BACKENDWEIGHT:
         DNSDistSNMPAgent::setCounter64Value(request,
@@ -339,11 +346,11 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
       }
       case COLUMN_BACKENDPOOLS: {
         std::string pools;
-        for (const auto& p : server->d_config.pools) {
+        for (const auto& pool : server->d_config.pools) {
           if (!pools.empty()) {
             pools += " ";
           }
-          pools += p;
+          pools += pool;
         }
         snmp_set_var_typed_value(request->requestvb,
                                  ASN_OCTET_STR,
@@ -352,7 +359,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
         break;
       }
       case COLUMN_BACKENDQPS:
-        DNSDistSNMPAgent::setCounter64Value(request, server->queryLoad.load());
+        DNSDistSNMPAgent::setCounter64Value(request, static_cast<uint64_t>(server->queryLoad.load()));
         break;
       case COLUMN_BACKENDQUERIES:
         DNSDistSNMPAgent::setCounter64Value(request, server->queries.load());
@@ -384,26 +391,26 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const DownstreamState& dss)
                             snmpTrapOID.data(),
                             snmpTrapOID.size(),
                             ASN_OBJECT_ID,
-                            backendStatusChangeTrapOID,
-                            OID_LENGTH(backendStatusChangeTrapOID) * sizeof(oid));
+                            backendStatusChangeTrapOID.data(),
+                            backendStatusChangeTrapOID.size() * sizeof(oid));
 
   snmp_varlist_add_variable(&varList,
-                            backendNameOID,
-                            OID_LENGTH(backendNameOID),
+                            backendNameOID.data(),
+                            backendNameOID.size(),
                             ASN_OCTET_STR,
                             dss.getName().c_str(),
                             dss.getName().size());
 
   snmp_varlist_add_variable(&varList,
-                            backendAddressOID,
-                            OID_LENGTH(backendAddressOID),
+                            backendAddressOID.data(),
+                            backendAddressOID.size(),
                             ASN_OCTET_STR,
                             backendAddress.c_str(),
                             backendAddress.size());
 
   snmp_varlist_add_variable(&varList,
-                            backendStateOID,
-                            OID_LENGTH(backendStateOID),
+                            backendStateOID.data(),
+                            backendStateOID.size(),
                             ASN_OCTET_STR,
                             backendStatus.c_str(),
                             backendStatus.size());
@@ -423,12 +430,12 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
                             snmpTrapOID.data(),
                             snmpTrapOID.size(),
                             ASN_OBJECT_ID,
-                            customTrapOID,
-                            OID_LENGTH(customTrapOID) * sizeof(oid));
+                            customTrapOID.data(),
+                            customTrapOID.size() * sizeof(oid));
 
   snmp_varlist_add_variable(&varList,
-                            trapReasonOID,
-                            OID_LENGTH(trapReasonOID),
+                            trapReasonOID.data(),
+                            trapReasonOID.size(),
                             ASN_OCTET_STR,
                             reason.c_str(),
                             reason.size());
@@ -439,19 +446,19 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
 #endif /* HAVE_NET_SNMP */
 }
 
-bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& reason)
+bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dnsQuestion, const std::string& reason)
 {
 #ifdef HAVE_NET_SNMP
-  std::string local = dq.ids.origDest.toString();
-  std::string remote = dq.ids.origRemote.toString();
-  std::string qname = dq.ids.qname.toStringNoDot();
-  const uint32_t socketFamily = dq.ids.origRemote.isIPv4() ? 1 : 2;
-  const uint32_t socketProtocol = dq.overTCP() ? 2 : 1;
-  const uint32_t queryType = dq.getHeader()->qr ? 2 : 1;
-  const uint32_t querySize = (uint32_t)dq.getData().size();
-  const uint32_t queryID = (uint32_t)ntohs(dq.getHeader()->id);
-  const uint32_t qType = (uint32_t)dq.ids.qtype;
-  const uint32_t qClass = (uint32_t)dq.ids.qclass;
+  std::string local = dnsQuestion.ids.origDest.toString();
+  std::string remote = dnsQuestion.ids.origRemote.toString();
+  std::string qname = dnsQuestion.ids.qname.toStringNoDot();
+  const uint32_t socketFamily = dnsQuestion.ids.origRemote.isIPv4() ? 1 : 2;
+  const uint32_t socketProtocol = dnsQuestion.overTCP() ? 2 : 1;
+  const uint32_t queryType = dnsQuestion.getHeader()->qr ? 2 : 1;
+  const auto querySize = static_cast<uint32_t>(dnsQuestion.getData().size());
+  const auto queryID = static_cast<uint32_t>(ntohs(dnsQuestion.getHeader()->id));
+  const auto qType = static_cast<uint32_t>(dnsQuestion.ids.qtype);
+  const auto qClass = static_cast<uint32_t>(dnsQuestion.ids.qclass);
 
   netsnmp_variable_list* varList = nullptr;
 
@@ -459,82 +466,89 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dq, const std::string& rea
                             snmpTrapOID.data(),
                             snmpTrapOID.size(),
                             ASN_OBJECT_ID,
-                            actionTrapOID,
-                            OID_LENGTH(actionTrapOID) * sizeof(oid));
+                            actionTrapOID.data(),
+                            actionTrapOID.size() * sizeof(oid));
 
   snmp_varlist_add_variable(&varList,
-                            socketFamilyOID,
-                            OID_LENGTH(socketFamilyOID),
+                            socketFamilyOID.data(),
+                            socketFamilyOID.size(),
                             ASN_INTEGER,
+                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): net-snmp API
                             reinterpret_cast<const u_char*>(&socketFamily),
                             sizeof(socketFamily));
 
   snmp_varlist_add_variable(&varList,
-                            socketProtocolOID,
-                            OID_LENGTH(socketProtocolOID),
+                            socketProtocolOID.data(),
+                            socketProtocolOID.size(),
                             ASN_INTEGER,
+                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): net-snmp API
                             reinterpret_cast<const u_char*>(&socketProtocol),
                             sizeof(socketProtocol));
 
   snmp_varlist_add_variable(&varList,
-                            fromAddressOID,
-                            OID_LENGTH(fromAddressOID),
+                            fromAddressOID.data(),
+                            fromAddressOID.size(),
                             ASN_OCTET_STR,
                             remote.c_str(),
                             remote.size());
 
   snmp_varlist_add_variable(&varList,
-                            toAddressOID,
-                            OID_LENGTH(toAddressOID),
+                            toAddressOID.data(),
+                            toAddressOID.size(),
                             ASN_OCTET_STR,
                             local.c_str(),
                             local.size());
 
   snmp_varlist_add_variable(&varList,
-                            queryTypeOID,
-                            OID_LENGTH(queryTypeOID),
+                            queryTypeOID.data(),
+                            queryTypeOID.size(),
                             ASN_INTEGER,
+                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): net-snmp API
                             reinterpret_cast<const u_char*>(&queryType),
                             sizeof(queryType));
 
   snmp_varlist_add_variable(&varList,
-                            querySizeOID,
-                            OID_LENGTH(querySizeOID),
+                            querySizeOID.data(),
+                            querySizeOID.size(),
                             ASN_UNSIGNED,
+                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): net-snmp API
                             reinterpret_cast<const u_char*>(&querySize),
                             sizeof(querySize));
 
   snmp_varlist_add_variable(&varList,
-                            queryIDOID,
-                            OID_LENGTH(queryIDOID),
+                            queryIDOID.data(),
+                            queryIDOID.size(),
                             ASN_UNSIGNED,
+                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): net-snmp API
                             reinterpret_cast<const u_char*>(&queryID),
                             sizeof(queryID));
 
   snmp_varlist_add_variable(&varList,
-                            qNameOID,
-                            OID_LENGTH(qNameOID),
+                            qNameOID.data(),
+                            qNameOID.size(),
                             ASN_OCTET_STR,
                             qname.c_str(),
                             qname.size());
 
   snmp_varlist_add_variable(&varList,
-                            qClassOID,
-                            OID_LENGTH(qClassOID),
+                            qClassOID.data(),
+                            qClassOID.size(),
                             ASN_UNSIGNED,
+                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): net-snmp API
                             reinterpret_cast<const u_char*>(&qClass),
                             sizeof(qClass));
 
   snmp_varlist_add_variable(&varList,
-                            qTypeOID,
-                            OID_LENGTH(qTypeOID),
+                            qTypeOID.data(),
+                            qTypeOID.size(),
                             ASN_UNSIGNED,
+                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): net-snmp API
                             reinterpret_cast<const u_char*>(&qType),
                             sizeof(qType));
 
   snmp_varlist_add_variable(&varList,
-                            trapReasonOID,
-                            OID_LENGTH(trapReasonOID),
+                            trapReasonOID.data(),
+                            trapReasonOID.size(),
                             ASN_OCTET_STR,
                             reason.c_str(),
                             reason.size());
@@ -550,61 +564,63 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& d
 {
 #ifdef HAVE_NET_SNMP
 
-  registerCounter64Stat("queries", queriesOID, OID_LENGTH(queriesOID), &dnsdist::metrics::g_stats.queries);
-  registerCounter64Stat("responses", responsesOID, OID_LENGTH(responsesOID), &dnsdist::metrics::g_stats.responses);
-  registerCounter64Stat("servfailResponses", servfailResponsesOID, OID_LENGTH(servfailResponsesOID), &dnsdist::metrics::g_stats.servfailResponses);
-  registerCounter64Stat("aclDrops", aclDropsOID, OID_LENGTH(aclDropsOID), &dnsdist::metrics::g_stats.aclDrops);
-  registerCounter64Stat("ruleDrop", ruleDropOID, OID_LENGTH(ruleDropOID), &dnsdist::metrics::g_stats.ruleDrop);
-  registerCounter64Stat("ruleNXDomain", ruleNXDomainOID, OID_LENGTH(ruleNXDomainOID), &dnsdist::metrics::g_stats.ruleNXDomain);
-  registerCounter64Stat("ruleRefused", ruleRefusedOID, OID_LENGTH(ruleRefusedOID), &dnsdist::metrics::g_stats.ruleRefused);
-  registerCounter64Stat("ruleServFail", ruleServFailOID, OID_LENGTH(ruleServFailOID), &dnsdist::metrics::g_stats.ruleServFail);
-  registerCounter64Stat("ruleTruncated", ruleTruncatedOID, OID_LENGTH(ruleTruncatedOID), &dnsdist::metrics::g_stats.ruleTruncated);
-  registerCounter64Stat("selfAnswered", selfAnsweredOID, OID_LENGTH(selfAnsweredOID), &dnsdist::metrics::g_stats.selfAnswered);
-  registerCounter64Stat("downstreamTimeouts", downstreamTimeoutsOID, OID_LENGTH(downstreamTimeoutsOID), &dnsdist::metrics::g_stats.downstreamTimeouts);
-  registerCounter64Stat("downstreamSendErrors", downstreamSendErrorsOID, OID_LENGTH(downstreamSendErrorsOID), &dnsdist::metrics::g_stats.downstreamSendErrors);
-  registerCounter64Stat("truncFail", truncFailOID, OID_LENGTH(truncFailOID), &dnsdist::metrics::g_stats.truncFail);
-  registerCounter64Stat("noPolicy", noPolicyOID, OID_LENGTH(noPolicyOID), &dnsdist::metrics::g_stats.noPolicy);
-  registerCounter64Stat("latency0_1", latency0_1OID, OID_LENGTH(latency0_1OID), &dnsdist::metrics::g_stats.latency0_1);
-  registerCounter64Stat("latency1_10", latency1_10OID, OID_LENGTH(latency1_10OID), &dnsdist::metrics::g_stats.latency1_10);
-  registerCounter64Stat("latency10_50", latency10_50OID, OID_LENGTH(latency10_50OID), &dnsdist::metrics::g_stats.latency10_50);
-  registerCounter64Stat("latency50_100", latency50_100OID, OID_LENGTH(latency50_100OID), &dnsdist::metrics::g_stats.latency50_100);
-  registerCounter64Stat("latency100_1000", latency100_1000OID, OID_LENGTH(latency100_1000OID), &dnsdist::metrics::g_stats.latency100_1000);
-  registerCounter64Stat("latencySlow", latencySlowOID, OID_LENGTH(latencySlowOID), &dnsdist::metrics::g_stats.latencySlow);
-  registerCounter64Stat("nonCompliantQueries", nonCompliantQueriesOID, OID_LENGTH(nonCompliantQueriesOID), &dnsdist::metrics::g_stats.nonCompliantQueries);
-  registerCounter64Stat("nonCompliantResponses", nonCompliantResponsesOID, OID_LENGTH(nonCompliantResponsesOID), &dnsdist::metrics::g_stats.nonCompliantResponses);
-  registerCounter64Stat("rdQueries", rdQueriesOID, OID_LENGTH(rdQueriesOID), &dnsdist::metrics::g_stats.rdQueries);
-  registerCounter64Stat("emptyQueries", emptyQueriesOID, OID_LENGTH(emptyQueriesOID), &dnsdist::metrics::g_stats.emptyQueries);
-  registerCounter64Stat("cacheHits", cacheHitsOID, OID_LENGTH(cacheHitsOID), &dnsdist::metrics::g_stats.cacheHits);
-  registerCounter64Stat("cacheMisses", cacheMissesOID, OID_LENGTH(cacheMissesOID), &dnsdist::metrics::g_stats.cacheMisses);
-  registerCounter64Stat("dynBlocked", dynBlockedOID, OID_LENGTH(dynBlockedOID), &dnsdist::metrics::g_stats.dynBlocked);
-  registerFloatStat("latencyAvg100", latencyAvg100OID, OID_LENGTH(latencyAvg100OID), &dnsdist::metrics::g_stats.latencyAvg100);
-  registerFloatStat("latencyAvg1000", latencyAvg1000OID, OID_LENGTH(latencyAvg1000OID), &dnsdist::metrics::g_stats.latencyAvg1000);
-  registerFloatStat("latencyAvg10000", latencyAvg10000OID, OID_LENGTH(latencyAvg10000OID), &dnsdist::metrics::g_stats.latencyAvg10000);
-  registerFloatStat("latencyAvg1000000", latencyAvg1000000OID, OID_LENGTH(latencyAvg1000000OID), &dnsdist::metrics::g_stats.latencyAvg1000000);
-  registerGauge64Stat("uptime", uptimeOID, OID_LENGTH(uptimeOID), &uptimeOfProcess);
-  registerGauge64Stat("specialMemoryUsage", specialMemoryUsageOID, OID_LENGTH(specialMemoryUsageOID), &getSpecialMemoryUsage);
-  registerGauge64Stat("cpuUserMSec", cpuUserMSecOID, OID_LENGTH(cpuUserMSecOID), &getCPUTimeUser);
-  registerGauge64Stat("cpuSysMSec", cpuSysMSecOID, OID_LENGTH(cpuSysMSecOID), &getCPUTimeSystem);
-  registerGauge64Stat("fdUsage", fdUsageOID, OID_LENGTH(fdUsageOID), &getOpenFileDescriptors);
-  registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, OID_LENGTH(dynBlockedNMGSizeOID), [](const std::string&) { return g_dynblockNMG.getLocal()->size(); });
-  registerGauge64Stat("securityStatus", securityStatusOID, OID_LENGTH(securityStatusOID), [](const std::string&) { return dnsdist::metrics::g_stats.securityStatus.load(); });
-  registerGauge64Stat("realMemoryUsage", realMemoryUsageOID, OID_LENGTH(realMemoryUsageOID), &getRealMemoryUsage);
+  registerCounter64Stat("queries", queriesOID, &dnsdist::metrics::g_stats.queries);
+  registerCounter64Stat("responses", responsesOID, &dnsdist::metrics::g_stats.responses);
+  registerCounter64Stat("servfailResponses", servfailResponsesOID, &dnsdist::metrics::g_stats.servfailResponses);
+  registerCounter64Stat("aclDrops", aclDropsOID, &dnsdist::metrics::g_stats.aclDrops);
+  registerCounter64Stat("ruleDrop", ruleDropOID, &dnsdist::metrics::g_stats.ruleDrop);
+  registerCounter64Stat("ruleNXDomain", ruleNXDomainOID, &dnsdist::metrics::g_stats.ruleNXDomain);
+  registerCounter64Stat("ruleRefused", ruleRefusedOID, &dnsdist::metrics::g_stats.ruleRefused);
+  registerCounter64Stat("ruleServFail", ruleServFailOID, &dnsdist::metrics::g_stats.ruleServFail);
+  registerCounter64Stat("ruleTruncated", ruleTruncatedOID, &dnsdist::metrics::g_stats.ruleTruncated);
+  registerCounter64Stat("selfAnswered", selfAnsweredOID, &dnsdist::metrics::g_stats.selfAnswered);
+  registerCounter64Stat("downstreamTimeouts", downstreamTimeoutsOID, &dnsdist::metrics::g_stats.downstreamTimeouts);
+  registerCounter64Stat("downstreamSendErrors", downstreamSendErrorsOID, &dnsdist::metrics::g_stats.downstreamSendErrors);
+  registerCounter64Stat("truncFail", truncFailOID, &dnsdist::metrics::g_stats.truncFail);
+  registerCounter64Stat("noPolicy", noPolicyOID, &dnsdist::metrics::g_stats.noPolicy);
+  registerCounter64Stat("latency0_1", latency0_1OID, &dnsdist::metrics::g_stats.latency0_1);
+  registerCounter64Stat("latency1_10", latency1_10OID, &dnsdist::metrics::g_stats.latency1_10);
+  registerCounter64Stat("latency10_50", latency10_50OID, &dnsdist::metrics::g_stats.latency10_50);
+  registerCounter64Stat("latency50_100", latency50_100OID, &dnsdist::metrics::g_stats.latency50_100);
+  registerCounter64Stat("latency100_1000", latency100_1000OID, &dnsdist::metrics::g_stats.latency100_1000);
+  registerCounter64Stat("latencySlow", latencySlowOID, &dnsdist::metrics::g_stats.latencySlow);
+  registerCounter64Stat("nonCompliantQueries", nonCompliantQueriesOID, &dnsdist::metrics::g_stats.nonCompliantQueries);
+  registerCounter64Stat("nonCompliantResponses", nonCompliantResponsesOID, &dnsdist::metrics::g_stats.nonCompliantResponses);
+  registerCounter64Stat("rdQueries", rdQueriesOID, &dnsdist::metrics::g_stats.rdQueries);
+  registerCounter64Stat("emptyQueries", emptyQueriesOID, &dnsdist::metrics::g_stats.emptyQueries);
+  registerCounter64Stat("cacheHits", cacheHitsOID, &dnsdist::metrics::g_stats.cacheHits);
+  registerCounter64Stat("cacheMisses", cacheMissesOID, &dnsdist::metrics::g_stats.cacheMisses);
+  registerCounter64Stat("dynBlocked", dynBlockedOID, &dnsdist::metrics::g_stats.dynBlocked);
+  registerFloatStat("latencyAvg100", latencyAvg100OID, &dnsdist::metrics::g_stats.latencyAvg100);
+  registerFloatStat("latencyAvg1000", latencyAvg1000OID, &dnsdist::metrics::g_stats.latencyAvg1000);
+  registerFloatStat("latencyAvg10000", latencyAvg10000OID, &dnsdist::metrics::g_stats.latencyAvg10000);
+  registerFloatStat("latencyAvg1000000", latencyAvg1000000OID, &dnsdist::metrics::g_stats.latencyAvg1000000);
+  registerGauge64Stat("uptime", uptimeOID, &uptimeOfProcess);
+  registerGauge64Stat("specialMemoryUsage", specialMemoryUsageOID, &getSpecialMemoryUsage);
+  registerGauge64Stat("cpuUserMSec", cpuUserMSecOID, &getCPUTimeUser);
+  registerGauge64Stat("cpuSysMSec", cpuSysMSecOID, &getCPUTimeSystem);
+  registerGauge64Stat("fdUsage", fdUsageOID, &getOpenFileDescriptors);
+  registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, [](const std::string&) { return g_dynblockNMG.getLocal()->size(); });
+  registerGauge64Stat("securityStatus", securityStatusOID, [](const std::string&) { return dnsdist::metrics::g_stats.securityStatus.load(); });
+  registerGauge64Stat("realMemoryUsage", realMemoryUsageOID, &getRealMemoryUsage);
 
-  netsnmp_table_registration_info* table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): net-snmp API
+  auto* table_info = SNMP_MALLOC_TYPEDEF(netsnmp_table_registration_info);
   netsnmp_table_helper_add_indexes(table_info,
                                    ASN_GAUGE, /* index: backendId */
                                    0);
   table_info->min_column = COLUMN_BACKENDNAME;
   table_info->max_column = COLUMN_BACKENDORDER;
-  netsnmp_iterator_info* iinfo = SNMP_MALLOC_TYPEDEF(netsnmp_iterator_info);
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): net-snmp API
+  auto* iinfo = SNMP_MALLOC_TYPEDEF(netsnmp_iterator_info);
   iinfo->get_first_data_point = backendStatTable_get_first_data_point;
   iinfo->get_next_data_point = backendStatTable_get_next_data_point;
   iinfo->table_reginfo = table_info;
 
   netsnmp_register_table_iterator(netsnmp_create_handler_registration("backendStatTable",
                                                                       backendStatTable_handler,
-                                                                      backendStatTableOID,
-                                                                      OID_LENGTH(backendStatTableOID),
+                                                                      backendStatTableOID.data(),
+                                                                      backendStatTableOID.size(),
                                                                       HANDLER_CAN_RONLY),
                                   iinfo);
 
