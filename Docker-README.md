@@ -28,7 +28,8 @@ For dnsdist, only the volume mount is applicable.
 
 If you want to volume mount a config, but also take the keys from the environment, please take care to include the same `_api.conf` file in your `.d` directory.
 
-If you want to read the configuration for debugging purposes, you can run the containers with the `DEBUG_CONFIG` environment variable set to `'yes'`). This will print the full config on startup. Please keep in mind that this also includes credentials, therefore this setting should never be used in production environments. 
+If you want to read the configuration for debugging purposes, you can run the containers with the `DEBUG_CONFIG` environment variable set to `'yes'`.
+This will print the full config on startup. Please keep in mind that this also includes credentials, therefore this setting should never be used in production environments.
 
 # Auth and databases
 
