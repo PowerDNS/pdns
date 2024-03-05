@@ -154,7 +154,7 @@ newcafromraw     IN    LUA    AAAA "newCAFromRaw('ABCD020340506070'):toString()"
 counter          IN    LUA    TXT  ";counter = counter or 0 counter=counter+1 return tostring(counter)"
 
 lookmeup         IN           A  192.0.2.5
-dblookup         IN    LUA    A  "dblookup('lookmeup.example.org', 'A')[1]"
+dblookup         IN    LUA    A  "dblookup('lookmeup.example.org', pdns.A)[1]"
         """,
         'createforward6.example.org': """
 createforward6.example.org.                 3600 IN SOA  {soa}
