@@ -1089,7 +1089,7 @@ public:
 };
 using servers_t = vector<std::shared_ptr<DownstreamState>>;
 
-void responderThread(std::shared_ptr<DownstreamState> state);
+void responderThread(std::shared_ptr<DownstreamState> dss);
 extern LockGuarded<LuaContext> g_lua;
 extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
 
@@ -1242,7 +1242,7 @@ bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientSta
 
 extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
-bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
+bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 
 #include "dnsdist-snmp.hh"
 
@@ -1270,7 +1270,7 @@ bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer&
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend = true);
 
-ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck = false);
+ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& backend, const int socketDesc, const PacketBuffer& request, bool healthCheck = false);
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote);
 void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend);
 void handleResponseSent(const InternalQueryState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, bool fromBackend);
