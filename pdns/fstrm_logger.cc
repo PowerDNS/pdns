@@ -50,7 +50,7 @@ FrameStreamLogger::FrameStreamLogger(const int family, const std::string& addres
         throw std::runtime_error("FrameStreamLogger: fstrm_unix_writer_init() failed.");
       }
   #ifdef HAVE_FSTRM_TCP_WRITER_INIT
-    } else if (family == AF_INET) {
+    } else if (family == AF_INET || family == AF_INET6) {
       d_twopt = fstrm_tcp_writer_options_init();
       if (!d_twopt) {
         throw std::runtime_error("FrameStreamLogger: fstrm_tcp_writer_options_init failed.");
