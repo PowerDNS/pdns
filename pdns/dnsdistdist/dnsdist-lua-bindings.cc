@@ -283,10 +283,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<string (DNSNameSet::*)() const>("__tostring", [](const DNSNameSet& dns) { return dns.toString(); });
   luaCtx.registerFunction<void (DNSNameSet::*)(DNSName&)>("add", [](DNSNameSet& dns, DNSName& name) { dns.insert(name); });
   luaCtx.registerFunction<bool (DNSNameSet::*)(DNSName&)>("check", [](DNSNameSet& dns, DNSName& name) { return dns.find(name) != dns.end(); });
+  // clang-format off
   luaCtx.registerFunction("delete", (size_t (DNSNameSet::*)(const DNSName&)) &DNSNameSet::erase);
   luaCtx.registerFunction("size", (size_t (DNSNameSet::*)() const) &DNSNameSet::size);
   luaCtx.registerFunction("clear", (void (DNSNameSet::*)()) &DNSNameSet::clear);
   luaCtx.registerFunction("empty", (bool (DNSNameSet::*)() const) &DNSNameSet::empty);
+  // clang-format on
 #endif /* DISABLE_DNSNAME_BINDINGS */
 
 #ifndef DISABLE_SUFFIX_MATCH_BINDINGS
@@ -346,7 +348,9 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
+  // clang-format off
   luaCtx.registerFunction("check", (bool (SuffixMatchNode::*)(const DNSName&) const) &SuffixMatchNode::check);
+  // clang-format on
   luaCtx.registerFunction<boost::optional<DNSName> (SuffixMatchNode::*)(const DNSName&) const>("getBestMatch", [](const SuffixMatchNode& smn, const DNSName& needle) {
     boost::optional<DNSName> result{boost::none};
     auto res = smn.getBestMatch(needle);
@@ -381,7 +385,9 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction("isIPv4", &Netmask::isIPv4);
   luaCtx.registerFunction("isIpv6", &Netmask::isIPv6);
   luaCtx.registerFunction("isIPv6", &Netmask::isIPv6);
+  // clang-format off
   luaCtx.registerFunction("match", (bool (Netmask::*)(const string&) const) &Netmask::match);
+  // clang-format on
   luaCtx.registerFunction("toString", &Netmask::toString);
   luaCtx.registerFunction("__tostring", &Netmask::toString);
   luaCtx.registerEqFunction(&Netmask::operator==);
@@ -405,7 +411,9 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
+  // clang-format off
   luaCtx.registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const) &NetmaskGroup::match);
+  // clang-format on
   luaCtx.registerFunction("size", &NetmaskGroup::size);
   luaCtx.registerFunction("clear", &NetmaskGroup::clear);
   luaCtx.registerFunction<string (NetmaskGroup::*)() const>("toString", [](const NetmaskGroup& nmg) { return "NetmaskGroup " + nmg.toString(); });
