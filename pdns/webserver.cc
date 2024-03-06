@@ -626,7 +626,7 @@ void WebServer::bind()
 {
   try {
     d_server = createServer();
-    SLOG(g_log<<Logger::Warning<<d_logprefix<<"Listening for HTTP requests on "<<d_server->d_local.toStringWithPort()<<endl,
+    SLOG(g_log<<Logger::Info<<d_logprefix<<"Listening for HTTP requests on "<<d_server->d_local.toStringWithPort()<<endl,
          d_slog->info(Logr::Info, "Listening for HTTP requests", "address", Logging::Loggable(d_server->d_local)));
   }
   catch(NetworkError &e) {

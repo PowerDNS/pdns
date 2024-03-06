@@ -166,7 +166,7 @@ void UDPNameserver::bindAddresses()
     pfd.events = POLLIN;
     pfd.revents = 0;
     d_rfds.push_back(pfd);
-    g_log<<Logger::Error<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
+    g_log<<Logger::Info<<"UDP server bound to "<<locala.toStringWithPort()<<endl;
   }
 }
 

@@ -70,15 +70,15 @@ string productTypeApiType() {
 
 void showProductVersion()
 {
-  g_log<<Logger::Warning<<productName()<<" "<< VERSION << " (C) "
+  g_log<<Logger::Notice<<productName()<<" "<< VERSION << " (C) "
     "PowerDNS.COM BV" << endl;
-  g_log<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
+  g_log<<Logger::Notice<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
     "Built using " << compilerVersion()
 #ifndef REPRODUCIBLE
     <<" on " __DATE__ " " __TIME__ " by " BUILD_HOST
 #endif
     <<"."<< endl;
-  g_log<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
+  g_log<<Logger::Notice<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
     "This is free software, and you are welcome to redistribute it "
     "according to the terms of the GPL version 2." << endl;
 }

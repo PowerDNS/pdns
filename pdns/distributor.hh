@@ -170,14 +170,14 @@ template<class Answer, class Question, class Backend>MultiThreadDistributor<Answ
     d_receivers.push_back(std::move(receiver));
   }
 
-  g_log<<Logger::Warning<<"About to create "<<numberOfThreads<<" backend threads for UDP"<<endl;
+  g_log<<Logger::Info<<"About to create "<<numberOfThreads<<" backend threads for UDP"<<endl;
 
   for (int distributorIdx = 0; distributorIdx < numberOfThreads; distributorIdx++) {
     std::thread t([=](){distribute(distributorIdx);});
     t.detach();
     Utility::usleep(50000); // we've overloaded mysql in the past :-)
   }
-  g_log<<Logger::Warning<<"Done launching threads, ready to distribute questions"<<endl;
+  g_log<<Logger::Info<<"Done launching threads, ready to distribute questions"<<endl;
 }
 
 

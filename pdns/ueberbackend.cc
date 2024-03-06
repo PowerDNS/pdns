@@ -61,7 +61,7 @@ AtomicCounter* UeberBackend::s_backendQueries = nullptr;
 //! Loads a module and reports it to all UeberBackend threads
 bool UeberBackend::loadmodule(const string& name)
 {
-  g_log << Logger::Warning << "Loading '" << name << "'" << endl;
+  g_log << Logger::Info << "Loading '" << name << "'" << endl;
 
   void* dlib = dlopen(name.c_str(), RTLD_NOW);
 

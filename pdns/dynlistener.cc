@@ -142,7 +142,7 @@ void DynListener::listenOnUnixDomain(const string& fname)
   
   listen(d_s, 10);
   
-  g_log<<Logger::Warning<<"Listening on controlsocket in '"<<fname<<"'"<<endl;
+  g_log<<Logger::Info<<"Listening on controlsocket in '"<<fname<<"'"<<endl;
   d_nonlocal=true;
 }
 
@@ -156,12 +156,12 @@ void DynListener::listenOnTCP(const ComboAddress& local)
   listen(d_s, 10);
 
   d_socketaddress=local;
-  g_log<<Logger::Warning<<"Listening on controlsocket on '"<<local.toStringWithPort()<<"'"<<endl;
+  g_log<<Logger::Info<<"Listening on controlsocket on '"<<local.toStringWithPort()<<"'"<<endl;
   d_nonlocal=true;
 
   if(!::arg()["tcp-control-range"].empty()) {
     d_tcprange.toMasks(::arg()["tcp-control-range"]);
-    g_log<<Logger::Warning<<"Only allowing TCP control from: "<<d_tcprange.toString()<<endl;
+    g_log<<Logger::Info<<"Only allowing TCP control from: "<<d_tcprange.toString()<<endl;
   }
 }
 

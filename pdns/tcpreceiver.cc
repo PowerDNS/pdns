@@ -82,7 +82,7 @@ LockGuarded<std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan>> TCP
 
 void TCPNameserver::go()
 {
-  g_log<<Logger::Error<<"Creating backend connection for TCP"<<endl;
+  g_log<<Logger::Info<<"Creating backend connection for TCP"<<endl;
   s_P.lock()->reset();
   try {
     *(s_P.lock()) = make_unique<PacketHandler>();
@@ -594,7 +594,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   if(q->d_dnssecOk)
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
 
-  g_log<<Logger::Warning<<logPrefix<<"transfer initiated"<<endl;
+  g_log<<Logger::Notice<<logPrefix<<"transfer initiated"<<endl;
 
   // determine if zone exists and AXFR is allowed using existing backend before spawning a new backend.
   SOAData sd;
@@ -1215,7 +1215,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     }
   }
 
-  g_log<<Logger::Warning<<logPrefix<<"transfer initiated with serial "<<serial<<endl;
+  g_log<<Logger::Notice<<logPrefix<<"transfer initiated with serial "<<serial<<endl;
 
   // determine if zone exists, XFR is allowed, and if IXFR can proceed using existing backend before spawning a new backend.
   SOAData sd;
@@ -1369,7 +1369,7 @@ TCPNameserver::TCPNameserver()
     }
 
     listen(s, 128);
-    g_log<<Logger::Error<<"TCP server bound to "<<local.toStringWithPort()<<endl;
+    g_log<<Logger::Info<<"TCP server bound to "<<local.toStringWithPort()<<endl;
     d_sockets.push_back(s);
     struct pollfd pfd;
     memset(&pfd, 0, sizeof(pfd));
