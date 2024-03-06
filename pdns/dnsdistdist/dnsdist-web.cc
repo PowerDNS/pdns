@@ -99,20 +99,25 @@ std::string getWebserverConfig()
 class WebClientConnection
 {
 public:
-  WebClientConnection(const ComboAddress& client, int fd) :
-    d_client(client), d_socket(fd)
+  WebClientConnection(const ComboAddress& client, int socketDesc) :
+    d_client(client), d_socket(socketDesc)
   {
     if (!s_connManager.registerConnection()) {
       throw std::runtime_error("Too many concurrent web client connections");
     }
   }
-  WebClientConnection(WebClientConnection&& rhs) :
+  WebClientConnection(WebClientConnection&& rhs) noexcept :
     d_client(rhs.d_client), d_socket(std::move(rhs.d_socket))
   {
   }
-
   WebClientConnection(const WebClientConnection&) = delete;
   WebClientConnection& operator=(const WebClientConnection&) = delete;
+  WebClientConnection& operator=(WebClientConnection&& rhs) noexcept
+  {
+    d_client = rhs.d_client;
+    d_socket = std::move(rhs.d_socket);
+    return *this;
+  }
 
   ~WebClientConnection()
   {
@@ -121,12 +126,12 @@ public:
     }
   }
 
-  const Socket& getSocket() const
+  [[nodiscard]] const Socket& getSocket() const
   {
     return d_socket;
   }
 
-  const ComboAddress& getClient() const
+  [[nodiscard]] const ComboAddress& getClient() const
   {
     return d_client;
   }
@@ -291,12 +296,12 @@ static bool checkWebPassword(const YaHTTP::Request& req, const std::unique_ptr<C
     return true;
   }
 
-  static const char basicStr[] = "basic ";
+  static const std::array<char, 7> basicStr{'b', 'a', 's', 'i', 'c', ' ', '\0'};
 
   const auto header = req.headers.find("authorization");
 
-  if (header != req.headers.end() && toLower(header->second).find(basicStr) == 0) {
-    string cookie = header->second.substr(sizeof(basicStr) - 1);
+  if (header != req.headers.end() && toLower(header->second).find(basicStr.data()) == 0) {
+    string cookie = header->second.substr(basicStr.size() - 1);
 
     string plain;
     B64Decode(cookie, plain);
@@ -412,25 +417,26 @@ static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std
     {"Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'"},
   };
 
-  for (const auto& h : headers) {
+  for (const auto& header : headers) {
     if (customHeaders) {
-      const auto& custom = customHeaders->find(h.first);
+      const auto& custom = customHeaders->find(header.first);
       if (custom != customHeaders->end()) {
         continue;
       }
     }
-    resp.headers[h.first] = h.second;
+    resp.headers[header.first] = header.second;
   }
 }
 
 static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::unordered_map<std::string, std::string>>& customHeaders)
 {
-  if (!customHeaders)
+  if (!customHeaders) {
     return;
+  }
 
-  for (const auto& c : *customHeaders) {
-    if (!c.second.empty()) {
-      resp.headers[c.first] = c.second;
+  for (const auto& custom : *customHeaders) {
+    if (!custom.second.empty()) {
+      resp.headers[custom.first] = custom.second;
     }
   }
 }
@@ -443,15 +449,15 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
   int num = 0;
   auto localResponseRules = someResponseRules->getLocal();
   responseRules.reserve(localResponseRules->size());
-  for (const auto& a : *localResponseRules) {
-    responseRules.push_back(Json::object{
+  for (const auto& rule : *localResponseRules) {
+    responseRules.emplace_back(Json::object{
       {"id", num++},
-      {"creationOrder", (double)a.d_creationOrder},
-      {"uuid", boost::uuids::to_string(a.d_id)},
-      {"name", a.d_name},
-      {"matches", (double)a.d_rule->d_matches},
-      {"rule", a.d_rule->toString()},
-      {"action", a.d_action->toString()},
+      {"creationOrder", static_cast<double>(rule.d_creationOrder)},
+      {"uuid", boost::uuids::to_string(rule.d_id)},
+      {"name", rule.d_name},
+      {"matches", static_cast<double>(rule.d_rule->d_matches)},
+      {"rule", rule.d_rule->toString()},
+      {"action", rule.d_action->toString()},
     });
   }
   return responseRules;
@@ -463,8 +469,8 @@ static void addRulesToPrometheusOutput(std::ostringstream& output, GlobalStateHo
 {
   auto localRules = rules.getLocal();
   for (const auto& entry : *localRules) {
-    std::string id = !entry.d_name.empty() ? entry.d_name : boost::uuids::to_string(entry.d_id);
-    output << "dnsdist_rule_hits{id=\"" << id << "\"} " << entry.d_rule->d_matches << "\n";
+    std::string identifier = !entry.d_name.empty() ? entry.d_name : boost::uuids::to_string(entry.d_id);
+    output << "dnsdist_rule_hits{id=\"" << identifier << "\"} " << entry.d_rule->d_matches << "\n";
   }
 }
 
@@ -626,7 +632,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
     boost::replace_all(serverName, ".", "_");
 
-    const std::string label = boost::str(boost::format("{server=\"%1%\",address=\"%2%\"}")
+    const std::string label = boost::str(boost::format(R"({server="%1%",address="%2%"})")
                                          % serverName % state->d_config.remote.toStringWithPort());
 
     output << statesbase << "status"                           << label << " " << (state->isUp() ? "1" : "0")            << "\n";
@@ -704,19 +710,22 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   std::map<std::string,uint64_t> frontendDuplicates;
   for (const auto& front : g_frontends) {
-    if (front->udpFD == -1 && front->tcpFD == -1)
+    if (front->udpFD == -1 && front->tcpFD == -1) {
       continue;
+    }
 
     const string frontName = front->local.toStringWithPort();
     const string proto = front->getType();
-    const string fullName = frontName + "_" + proto;
+    string fullName = frontName;
+    fullName += "_";
+    fullName += proto;
     uint64_t threadNumber = 0;
     auto dupPair = frontendDuplicates.emplace(fullName, 1);
     if (!dupPair.second) {
       threadNumber = dupPair.first->second;
       ++(dupPair.first->second);
     }
-    const std::string label = boost::str(boost::format("{frontend=\"%1%\",proto=\"%2%\",thread=\"%3%\"} ")
+    const std::string label = boost::str(boost::format(R"({frontend="%1%",proto="%2%",thread="%3%"} )")
                                          % frontName % proto % threadNumber);
 
     output << frontsbase << "queries" << label << front->queries.load() << "\n";
@@ -738,11 +747,11 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
         output << frontsbase << "tlsunknownticketkeys" << label << front->tlsUnknownTicketKey.load() << "\n";
         output << frontsbase << "tlsinactiveticketkeys" << label << front->tlsInactiveTicketKey.load() << "\n";
 
-        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",tls=\"tls10\"} " << front->tls10queries.load() << "\n";
-        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",tls=\"tls11\"} " << front->tls11queries.load() << "\n";
-        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",tls=\"tls12\"} " << front->tls12queries.load() << "\n";
-        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",tls=\"tls13\"} " << front->tls13queries.load() << "\n";
-        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",tls=\"unknown\"} " << front->tlsUnknownqueries.load() << "\n";
+        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls10"} )" << front->tls10queries.load() << "\n";
+        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls11"} )" << front->tls11queries.load() << "\n";
+        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls12"} )" << front->tls12queries.load() << "\n";
+        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="tls13"} )" << front->tls13queries.load() << "\n";
+        output << frontsbase << "tlsqueries{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",tls="unknown"} )" << front->tlsUnknownqueries.load() << "\n";
 
         const TLSErrorCounters* errorCounters = nullptr;
         if (front->tlsFrontend != nullptr) {
@@ -753,14 +762,14 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
         }
 
         if (errorCounters != nullptr) {
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"dhKeyTooSmall\"} " << errorCounters->d_dhKeyTooSmall << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"inappropriateFallBack\"} " << errorCounters->d_inappropriateFallBack << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"noSharedCipher\"} " << errorCounters->d_noSharedCipher << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unknownCipherType\"} " << errorCounters->d_unknownCipherType << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unknownKeyExchangeType\"} " << errorCounters->d_unknownKeyExchangeType << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unknownProtocol\"} " << errorCounters->d_unknownProtocol << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unsupportedEC\"} " << errorCounters->d_unsupportedEC << "\n";
-          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << "\",error=\"unsupportedProtocol\"} " << errorCounters->d_unsupportedProtocol << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="dhKeyTooSmall"} )" << errorCounters->d_dhKeyTooSmall << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="inappropriateFallBack"} )" << errorCounters->d_inappropriateFallBack << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="noSharedCipher"} )" << errorCounters->d_noSharedCipher << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="unknownCipherType"} )" << errorCounters->d_unknownCipherType << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="unknownKeyExchangeType"} )" << errorCounters->d_unknownKeyExchangeType << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="unknownProtocol"} )" << errorCounters->d_unknownProtocol << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="unsupportedEC"} )" << errorCounters->d_unsupportedEC << "\n";
+          output << frontsbase << "tlshandshakefailures{frontend=\"" << frontName << "\",proto=\"" << proto << "\",thread=\"" << threadNumber << R"(",error="unsupportedProtocol"} )" << errorCounters->d_unsupportedProtocol << "\n";
         }
       }
     }
@@ -794,7 +803,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       threadNumber = dupPair.first->second;
       ++(dupPair.first->second);
     }
-    const std::string addrlabel = boost::str(boost::format("frontend=\"%1%\",thread=\"%2%\"") % frontName % threadNumber);
+    const std::string addrlabel = boost::str(boost::format(R"(frontend="%1%",thread="%2%")") % frontName % threadNumber);
     const std::string label = "{" + addrlabel + "} ";
 
     output << frontsbase << "http_connects" << label << doh->d_httpconnects << "\n";
@@ -810,18 +819,18 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << frontsbase << "doh_responses{type=\"redirect\"," << addrlabel << "} " << doh->d_redirectresponses << "\n";
     output << frontsbase << "doh_responses{type=\"valid\"," << addrlabel << "} " << doh->d_validresponses << "\n";
 
-    output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"200\"," << addrlabel << "} " << doh->d_http1Stats.d_nb200Responses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"400\"," << addrlabel << "} " << doh->d_http1Stats.d_nb400Responses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"403\"," << addrlabel << "} " << doh->d_http1Stats.d_nb403Responses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"500\"," << addrlabel << "} " << doh->d_http1Stats.d_nb500Responses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"502\"," << addrlabel << "} " << doh->d_http1Stats.d_nb502Responses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"1\",status=\"other\"," << addrlabel << "} " << doh->d_http1Stats.d_nbOtherResponses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"200\"," << addrlabel << "} " << doh->d_http2Stats.d_nb200Responses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"400\"," << addrlabel << "} " << doh->d_http2Stats.d_nb400Responses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"403\"," << addrlabel << "} " << doh->d_http2Stats.d_nb403Responses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"500\"," << addrlabel << "} " << doh->d_http2Stats.d_nb500Responses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"502\"," << addrlabel << "} " << doh->d_http2Stats.d_nb502Responses << "\n";
-    output << frontsbase << "doh_version_status_responses{httpversion=\"2\",status=\"other\"," << addrlabel << "} " << doh->d_http2Stats.d_nbOtherResponses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="1",status="200",)" << addrlabel << "} " << doh->d_http1Stats.d_nb200Responses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="1",status="400",)" << addrlabel << "} " << doh->d_http1Stats.d_nb400Responses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="1",status="403",)" << addrlabel << "} " << doh->d_http1Stats.d_nb403Responses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="1",status="500",)" << addrlabel << "} " << doh->d_http1Stats.d_nb500Responses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="1",status="502",)" << addrlabel << "} " << doh->d_http1Stats.d_nb502Responses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="1",status="other",)" << addrlabel << "} " << doh->d_http1Stats.d_nbOtherResponses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="2",status="200",)" << addrlabel << "} " << doh->d_http2Stats.d_nb200Responses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="2",status="400",)" << addrlabel << "} " << doh->d_http2Stats.d_nb400Responses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="2",status="403",)" << addrlabel << "} " << doh->d_http2Stats.d_nb403Responses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="2",status="500",)" << addrlabel << "} " << doh->d_http2Stats.d_nb500Responses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="2",status="502",)" << addrlabel << "} " << doh->d_http2Stats.d_nb502Responses << "\n";
+    output << frontsbase << R"(doh_version_status_responses{httpversion="2",status="other",)" << addrlabel << "} " << doh->d_http2Stats.d_nbOtherResponses << "\n";
   }
 #endif /* HAVE_DNS_OVER_HTTPS */
 
@@ -973,7 +982,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     Json::object obj;
 #ifndef DISABLE_DYNBLOCKS
     auto nmg = g_dynblockNMG.getLocal();
-    struct timespec now;
+    timespec now{};
     gettime(&now);
     for (const auto& entry : *nmg) {
       if (!(now < entry.second.until)) {
@@ -1018,7 +1027,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   else if (command == "ebpfblocklist") {
     Json::object obj;
 #ifdef HAVE_EBPF
-    struct timespec now;
+    timespec now{};
     gettime(&now);
     for (const auto& dynbpf : g_dynBPFFilters) {
       std::vector<std::tuple<ComboAddress, uint64_t, struct timespec>> addrStats = dynbpf->getAddrStats();
@@ -1057,73 +1066,73 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 }
 #endif /* DISABLE_BUILTIN_HTML */
 
-static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<DownstreamState>& a)
+static void addServerToJSON(Json::array& servers, int identifier, const std::shared_ptr<DownstreamState>& backend)
 {
   string status;
-  if (a->d_config.availability == DownstreamState::Availability::Up) {
+  if (backend->d_config.availability == DownstreamState::Availability::Up) {
     status = "UP";
   }
-  else if (a->d_config.availability == DownstreamState::Availability::Down) {
+  else if (backend->d_config.availability == DownstreamState::Availability::Down) {
     status = "DOWN";
   }
   else {
-    status = (a->upStatus ? "up" : "down");
+    status = (backend->upStatus ? "up" : "down");
   }
 
   Json::array pools;
-  pools.reserve(a->d_config.pools.size());
-  for (const auto& p : a->d_config.pools) {
-    pools.push_back(p);
+  pools.reserve(backend->d_config.pools.size());
+  for (const auto& pool : backend->d_config.pools) {
+    pools.emplace_back(pool);
   }
 
   Json::object server{
-    {"id", id},
-    {"name", a->getName()},
-    {"address", a->d_config.remote.toStringWithPort()},
+    {"id", identifier},
+    {"name", backend->getName()},
+    {"address", backend->d_config.remote.toStringWithPort()},
     {"state", status},
-    {"protocol", a->getProtocol().toPrettyString()},
-    {"qps", (double)a->queryLoad},
-    {"qpsLimit", (double)a->qps.getRate()},
-    {"outstanding", (double)a->outstanding},
-    {"reuseds", (double)a->reuseds},
-    {"weight", (double)a->d_config.d_weight},
-    {"order", (double)a->d_config.order},
+    {"protocol", backend->getProtocol().toPrettyString()},
+    {"qps", (double)backend->queryLoad},
+    {"qpsLimit", (double)backend->qps.getRate()},
+    {"outstanding", (double)backend->outstanding},
+    {"reuseds", (double)backend->reuseds},
+    {"weight", (double)backend->d_config.d_weight},
+    {"order", (double)backend->d_config.order},
     {"pools", std::move(pools)},
-    {"latency", (double)(a->latencyUsec / 1000.0)},
-    {"queries", (double)a->queries},
-    {"responses", (double)a->responses},
-    {"nonCompliantResponses", (double)a->nonCompliantResponses},
-    {"sendErrors", (double)a->sendErrors},
-    {"tcpDiedSendingQuery", (double)a->tcpDiedSendingQuery},
-    {"tcpDiedReadingResponse", (double)a->tcpDiedReadingResponse},
-    {"tcpGaveUp", (double)a->tcpGaveUp},
-    {"tcpConnectTimeouts", (double)a->tcpConnectTimeouts},
-    {"tcpReadTimeouts", (double)a->tcpReadTimeouts},
-    {"tcpWriteTimeouts", (double)a->tcpWriteTimeouts},
-    {"tcpCurrentConnections", (double)a->tcpCurrentConnections},
-    {"tcpMaxConcurrentConnections", (double)a->tcpMaxConcurrentConnections},
-    {"tcpTooManyConcurrentConnections", (double)a->tcpTooManyConcurrentConnections},
-    {"tcpNewConnections", (double)a->tcpNewConnections},
-    {"tcpReusedConnections", (double)a->tcpReusedConnections},
-    {"tcpAvgQueriesPerConnection", (double)a->tcpAvgQueriesPerConnection},
-    {"tcpAvgConnectionDuration", (double)a->tcpAvgConnectionDuration},
-    {"tlsResumptions", (double)a->tlsResumptions},
-    {"tcpLatency", (double)(a->latencyUsecTCP / 1000.0)},
-    {"healthCheckFailures", (double)(a->d_healthCheckMetrics.d_failures)},
-    {"healthCheckFailuresParsing", (double)(a->d_healthCheckMetrics.d_parseErrors)},
-    {"healthCheckFailuresTimeout", (double)(a->d_healthCheckMetrics.d_timeOuts)},
-    {"healthCheckFailuresNetwork", (double)(a->d_healthCheckMetrics.d_networkErrors)},
-    {"healthCheckFailuresMismatch", (double)(a->d_healthCheckMetrics.d_mismatchErrors)},
-    {"healthCheckFailuresInvalid", (double)(a->d_healthCheckMetrics.d_invalidResponseErrors)},
-    {"dropRate", (double)a->dropRate}};
+    {"latency", (double)(backend->latencyUsec / 1000.0)},
+    {"queries", (double)backend->queries},
+    {"responses", (double)backend->responses},
+    {"nonCompliantResponses", (double)backend->nonCompliantResponses},
+    {"sendErrors", (double)backend->sendErrors},
+    {"tcpDiedSendingQuery", (double)backend->tcpDiedSendingQuery},
+    {"tcpDiedReadingResponse", (double)backend->tcpDiedReadingResponse},
+    {"tcpGaveUp", (double)backend->tcpGaveUp},
+    {"tcpConnectTimeouts", (double)backend->tcpConnectTimeouts},
+    {"tcpReadTimeouts", (double)backend->tcpReadTimeouts},
+    {"tcpWriteTimeouts", (double)backend->tcpWriteTimeouts},
+    {"tcpCurrentConnections", (double)backend->tcpCurrentConnections},
+    {"tcpMaxConcurrentConnections", (double)backend->tcpMaxConcurrentConnections},
+    {"tcpTooManyConcurrentConnections", (double)backend->tcpTooManyConcurrentConnections},
+    {"tcpNewConnections", (double)backend->tcpNewConnections},
+    {"tcpReusedConnections", (double)backend->tcpReusedConnections},
+    {"tcpAvgQueriesPerConnection", (double)backend->tcpAvgQueriesPerConnection},
+    {"tcpAvgConnectionDuration", (double)backend->tcpAvgConnectionDuration},
+    {"tlsResumptions", (double)backend->tlsResumptions},
+    {"tcpLatency", (double)(backend->latencyUsecTCP / 1000.0)},
+    {"healthCheckFailures", (double)(backend->d_healthCheckMetrics.d_failures)},
+    {"healthCheckFailuresParsing", (double)(backend->d_healthCheckMetrics.d_parseErrors)},
+    {"healthCheckFailuresTimeout", (double)(backend->d_healthCheckMetrics.d_timeOuts)},
+    {"healthCheckFailuresNetwork", (double)(backend->d_healthCheckMetrics.d_networkErrors)},
+    {"healthCheckFailuresMismatch", (double)(backend->d_healthCheckMetrics.d_mismatchErrors)},
+    {"healthCheckFailuresInvalid", (double)(backend->d_healthCheckMetrics.d_invalidResponseErrors)},
+    {"dropRate", (double)backend->dropRate}};
 
   /* sending a latency for a DOWN server doesn't make sense */
-  if (a->d_config.availability == DownstreamState::Availability::Down) {
+  if (backend->d_config.availability == DownstreamState::Availability::Down) {
     server["latency"] = nullptr;
     server["tcpLatency"] = nullptr;
   }
 
-  servers.push_back(std::move(server));
+  servers.emplace_back(std::move(server));
 }
 
 static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
@@ -1137,8 +1146,8 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   {
     auto localServers = g_dstates.getLocal();
     servers.reserve(localServers->size());
-    for (const auto& a : *localServers) {
-      addServerToJSON(servers, num++, a);
+    for (const auto& server : *localServers) {
+      addServerToJSON(servers, num++, server);
     }
   }
 
@@ -1146,8 +1155,9 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   num = 0;
   frontends.reserve(g_frontends.size());
   for (const auto& front : g_frontends) {
-    if (front->udpFD == -1 && front->tcpFD == -1)
+    if (front->udpFD == -1 && front->tcpFD == -1) {
       continue;
+    }
     Json::object frontend{
       {"id", num++},
       {"address", front->local.toStringWithPort()},
@@ -1193,7 +1203,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       frontend["tlsHandshakeFailuresUnsupportedEC"] = (double)errorCounters->d_unsupportedEC;
       frontend["tlsHandshakeFailuresUnsupportedProtocol"] = (double)errorCounters->d_unsupportedProtocol;
     }
-    frontends.push_back(std::move(frontend));
+    frontends.emplace_back(std::move(frontend));
   }
 
   Json::array dohs;
@@ -1251,7 +1261,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         {"cacheInsertCollisions", (double)(cache ? cache->getInsertCollisions() : 0)},
         {"cacheTTLTooShorts", (double)(cache ? cache->getTTLTooShorts() : 0)},
         {"cacheCleanupCount", (double)(cache ? cache->getCleanupCount() : 0)}};
-      pools.push_back(std::move(entry));
+      pools.emplace_back(std::move(entry));
     }
   }
 
@@ -1262,17 +1272,17 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     auto localRules = g_ruleactions.getLocal();
     num = 0;
     rules.reserve(localRules->size());
-    for (const auto& a : *localRules) {
+    for (const auto& lrule : *localRules) {
       Json::object rule{
         {"id", num++},
-        {"creationOrder", (double)a.d_creationOrder},
-        {"uuid", boost::uuids::to_string(a.d_id)},
-        {"name", a.d_name},
-        {"matches", (double)a.d_rule->d_matches},
-        {"rule", a.d_rule->toString()},
-        {"action", a.d_action->toString()},
-        {"action-stats", a.d_action->getStats()}};
-      rules.push_back(std::move(rule));
+        {"creationOrder", (double)lrule.d_creationOrder},
+        {"uuid", boost::uuids::to_string(lrule.d_id)},
+        {"name", lrule.d_name},
+        {"matches", (double)lrule.d_rule->d_matches},
+        {"rule", lrule.d_rule->toString()},
+        {"action", lrule.d_action->toString()},
+        {"action-stats", lrule.d_action->getStats()}};
+      rules.emplace_back(std::move(rule));
     }
   }
   auto responseRules = someResponseRulesToJson(&g_respruleactions);
@@ -1365,8 +1375,8 @@ static void handlePoolStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   Json::array servers;
   int num = 0;
-  for (const auto& a : *pool->getServers()) {
-    addServerToJSON(servers, num, a.second);
+  for (const auto& server : *pool->getServers()) {
+    addServerToJSON(servers, num, server.second);
     num++;
   }
 
@@ -1623,6 +1633,7 @@ static void addRingEntryToList(const struct timespec& now, Json::array& list, co
   };
   if constexpr (!response) {
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     tmp.emplace("mac", entry.hasmac ? std::string(reinterpret_cast<const char*>(entry.macaddress.data()), entry.macaddress.size()) : std::string());
 #endif
   }
@@ -1635,7 +1646,7 @@ static void addRingEntryToList(const struct timespec& now, Json::array& list, co
     auto server = entry.ds.toStringWithPort();
     tmp.emplace("backend", server != "0.0.0.0:0" ? std::move(server) : "Cache");
   }
-  list.push_back(std::move(tmp));
+  list.emplace_back(std::move(tmp));
 }
 
 static void handleRings(const YaHTTP::Request& req, YaHTTP::Response& resp)
@@ -1733,12 +1744,18 @@ static void redirectToIndex(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
 static void handleBuiltInFiles(const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
-  if (req.url.path.empty() || !s_urlmap.count(req.url.path.c_str() + 1)) {
+  if (req.url.path.empty()) {
+    resp.status = 404;
+    return;
+  }
+  const auto url = std::string_view(req.url.path).substr(1);
+  auto urlMapIt = s_urlmap.find(url);
+  if (urlMapIt == s_urlmap.end()) {
     resp.status = 404;
     return;
   }
 
-  resp.body.assign(s_urlmap.at(req.url.path.c_str() + 1));
+  resp.body.assign(urlMapIt->second);
 
   vector<string> parts;
   stringtok(parts, req.url.path, ".");
@@ -1749,10 +1766,10 @@ static void handleBuiltInFiles(const YaHTTP::Request& req, YaHTTP::Response& res
     {"png", "image/png"},
   };
 
-  const auto& it = contentTypeMap.find(parts.back());
-  if (it != contentTypeMap.end()) {
+  const auto& contentTypeIt = contentTypeMap.find(parts.back());
+  if (contentTypeIt != contentTypeMap.end()) {
     const string charset = "; charset=utf-8";
-    resp.headers["Content-Type"] = it->second + charset;
+    resp.headers["Content-Type"] = contentTypeIt->second + charset;
   }
 
   resp.status = 200;
@@ -1798,14 +1815,15 @@ static void connectionThread(WebClientConnection&& conn)
     YaHTTP::Request req;
     bool finished = false;
 
+    std::string buf;
     yarl.initialize(&req);
     while (!finished) {
-      int bytes;
-      char buf[1024];
-      bytes = read(conn.getSocket().getHandle(), buf, sizeof(buf));
+      ssize_t bytes{0};
+      buf.resize(1024);
+      bytes = read(conn.getSocket().getHandle(), buf.data(), buf.size());
       if (bytes > 0) {
-        string data = string(buf, bytes);
-        finished = yarl.feed(data);
+        buf.resize(static_cast<size_t>(bytes));
+        finished = yarl.feed(buf);
       }
       else {
         // read error OR EOF
@@ -1837,7 +1855,7 @@ static void connectionThread(WebClientConnection&& conn)
       resp.status = 200;
     }
     else if (!handleAuthorization(req)) {
-      YaHTTP::strstr_map_t::iterator header = req.headers.find("authorization");
+      auto header = req.headers.find("authorization");
       if (header != req.headers.end()) {
         vinfolog("HTTP Request \"%s\" from %s: Web Authentication failed", req.url.path, conn.getClient().toStringWithPort());
       }
@@ -1849,9 +1867,9 @@ static void connectionThread(WebClientConnection&& conn)
       resp.status = 405;
     }
     else {
-      const auto it = s_webHandlers.find(req.url.path);
-      if (it != s_webHandlers.end()) {
-        it->second(req, resp);
+      const auto webHandlersIt = s_webHandlers.find(req.url.path);
+      if (webHandlersIt != s_webHandlers.end()) {
+        webHandlersIt->second(req, resp);
       }
       else {
         resp.status = 404;
@@ -1899,7 +1917,7 @@ void setWebserverACL(const std::string& acl)
   g_webserverConfig.lock()->acl = std::move(newACL);
 }
 
-void setWebserverCustomHeaders(const boost::optional<std::unordered_map<std::string, std::string>> customHeaders)
+void setWebserverCustomHeaders(const boost::optional<std::unordered_map<std::string, std::string>>& customHeaders)
 {
   g_webserverConfig.lock()->customHeaders = customHeaders;
 }
@@ -1939,19 +1957,19 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
   for (;;) {
     try {
       ComboAddress remote(local);
-      int fd = SAccept(sock, remote);
+      int fileDesc = SAccept(sock, remote);
 
       if (!isClientAllowedByACL(remote)) {
         vinfolog("Connection to webserver from client %s is not allowed, closing", remote.toStringWithPort());
-        close(fd);
+        close(fileDesc);
         continue;
       }
 
-      WebClientConnection conn(remote, fd);
+      WebClientConnection conn(remote, fileDesc);
       vinfolog("Got a connection to the webserver from %s", remote.toStringWithPort());
 
-      std::thread t(connectionThread, std::move(conn));
-      t.detach();
+      std::thread connThr(connectionThread, std::move(conn));
+      connThr.detach();
     }
     catch (const std::exception& e) {
       vinfolog("Had an error accepting new webserver connection: %s", e.what());
