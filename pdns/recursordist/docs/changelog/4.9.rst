@@ -2,6 +2,37 @@ Changelogs for 4.9.X
 ====================
 
 .. changelog::
+  :version: 4.9.4
+  :released: 7th of March 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13853
+
+    Fix gathering of denial of existence proof for wildcard-expanded names.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13795
+    :tickets: 13788
+
+    Fix the zoneToCache regression introduced by SA 2024-01.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13793
+    :tickets: 13387, 12897
+
+    Update new b-root-server.net addresses in built-in hints.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13792
+    :tickets: 13543
+
+    A single NSEC3 record covering everything is a special case.
+
+.. changelog::
   :version: 4.9.3
   :released: 13th of February 2024
 
