@@ -127,17 +127,17 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
   if ((data.capacity() - data.size()) < 128) {
     data.reserve(data.size() + 128);
   }
-  pdns::ProtoZero::Message m{data};
+  pdns::ProtoZero::Message msg{data};
 
-  m.setType(d_type);
+  msg.setType(d_type);
 
   if (d_time) {
-    m.setTime(d_time->first, d_time->second);
+    msg.setTime(d_time->first, d_time->second);
   }
   else {
-    struct timespec ts;
-    gettime(&ts, true);
-    m.setTime(ts.tv_sec, ts.tv_nsec / 1000);
+    timespec now{};
+    gettime(&now, true);
+    msg.setTime(now.tv_sec, now.tv_nsec / 1000);
   }
 
   const auto distProto = d_dq.getProtocol();
@@ -151,11 +151,11 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
   }
   else if (distProto == dnsdist::Protocol::DoH) {
     protocol = pdns::ProtoZero::Message::TransportProtocol::DoH;
-    m.setHTTPVersion(pdns::ProtoZero::Message::HTTPVersion::HTTP2);
+    msg.setHTTPVersion(pdns::ProtoZero::Message::HTTPVersion::HTTP2);
   }
   else if (distProto == dnsdist::Protocol::DoH3) {
     protocol = pdns::ProtoZero::Message::TransportProtocol::DoH;
-    m.setHTTPVersion(pdns::ProtoZero::Message::HTTPVersion::HTTP3);
+    msg.setHTTPVersion(pdns::ProtoZero::Message::HTTPVersion::HTTP3);
   }
   else if (distProto == dnsdist::Protocol::DNSCryptUDP) {
     protocol = pdns::ProtoZero::Message::TransportProtocol::DNSCryptUDP;
@@ -167,68 +167,69 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
     protocol = pdns::ProtoZero::Message::TransportProtocol::DoQ;
   }
 
-  m.setRequest(d_dq.ids.d_protoBufData && d_dq.ids.d_protoBufData->uniqueId ? *d_dq.ids.d_protoBufData->uniqueId : getUniqueID(), d_requestor ? *d_requestor : d_dq.ids.origRemote, d_responder ? *d_responder : d_dq.ids.origDest, d_question ? d_question->d_name : d_dq.ids.qname, d_question ? d_question->d_type : d_dq.ids.qtype, d_question ? d_question->d_class : d_dq.ids.qclass, d_dq.getHeader()->id, protocol, d_bytes ? *d_bytes : d_dq.getData().size());
+  msg.setRequest(d_dq.ids.d_protoBufData && d_dq.ids.d_protoBufData->uniqueId ? *d_dq.ids.d_protoBufData->uniqueId : getUniqueID(), d_requestor ? *d_requestor : d_dq.ids.origRemote, d_responder ? *d_responder : d_dq.ids.origDest, d_question ? d_question->d_name : d_dq.ids.qname, d_question ? d_question->d_type : d_dq.ids.qtype, d_question ? d_question->d_class : d_dq.ids.qclass, d_dq.getHeader()->id, protocol, d_bytes ? *d_bytes : d_dq.getData().size());
 
   if (d_serverIdentity) {
-    m.setServerIdentity(*d_serverIdentity);
+    msg.setServerIdentity(*d_serverIdentity);
   }
   else if (d_ServerIdentityRef != nullptr) {
-    m.setServerIdentity(*d_ServerIdentityRef);
+    msg.setServerIdentity(*d_ServerIdentityRef);
   }
 
   if (d_ednsSubnet) {
-    m.setEDNSSubnet(*d_ednsSubnet, 128);
+    msg.setEDNSSubnet(*d_ednsSubnet, 128);
   }
 
-  m.startResponse();
+  msg.startResponse();
   if (d_queryTime) {
     // coverity[store_truncates_time_t]
-    m.setQueryTime(d_queryTime->first, d_queryTime->second);
+    msg.setQueryTime(d_queryTime->first, d_queryTime->second);
   }
   else {
-    m.setQueryTime(d_dq.getQueryRealTime().tv_sec, d_dq.getQueryRealTime().tv_nsec / 1000);
+    msg.setQueryTime(d_dq.getQueryRealTime().tv_sec, d_dq.getQueryRealTime().tv_nsec / 1000);
   }
 
   if (d_dr != nullptr) {
-    m.setResponseCode(d_rcode ? *d_rcode : d_dr->getHeader()->rcode);
-    m.addRRsFromPacket(reinterpret_cast<const char*>(d_dr->getData().data()), d_dr->getData().size(), d_includeCNAME);
+    msg.setResponseCode(d_rcode ? *d_rcode : d_dr->getHeader()->rcode);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    msg.addRRsFromPacket(reinterpret_cast<const char*>(d_dr->getData().data()), d_dr->getData().size(), d_includeCNAME);
   }
   else {
     if (d_rcode) {
-      m.setResponseCode(*d_rcode);
+      msg.setResponseCode(*d_rcode);
     }
   }
 
-  for (const auto& rr : d_additionalRRs) {
-    m.addRR(rr.d_name, rr.d_type, rr.d_class, rr.d_ttl, rr.d_data);
+  for (const auto& arr : d_additionalRRs) {
+    msg.addRR(arr.d_name, arr.d_type, arr.d_class, arr.d_ttl, arr.d_data);
   }
 
   for (const auto& tag : d_additionalTags) {
-    m.addPolicyTag(tag);
+    msg.addPolicyTag(tag);
   }
 
-  m.commitResponse();
+  msg.commitResponse();
 
   if (d_dq.ids.d_protoBufData) {
     const auto& pbData = d_dq.ids.d_protoBufData;
     if (!pbData->d_deviceName.empty()) {
-      m.setDeviceName(pbData->d_deviceName);
+      msg.setDeviceName(pbData->d_deviceName);
     }
     if (!pbData->d_deviceID.empty()) {
-      m.setDeviceId(pbData->d_deviceID);
+      msg.setDeviceId(pbData->d_deviceID);
     }
     if (!pbData->d_requestorID.empty()) {
-      m.setRequestorId(pbData->d_requestorID);
+      msg.setRequestorId(pbData->d_requestorID);
     }
   }
 
   for (const auto& [key, values] : d_metaTags) {
     if (!values.d_strings.empty() || !values.d_integers.empty()) {
-      m.setMeta(key, values.d_strings, values.d_integers);
+      msg.setMeta(key, values.d_strings, values.d_integers);
     }
     else {
       /* the MetaValue field is _required_ to exist, even if we have no value */
-      m.setMeta(key, {std::string()}, {});
+      msg.setMeta(key, {std::string()}, {});
     }
   }
 }
@@ -236,18 +237,18 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
 ProtoBufMetaKey::ProtoBufMetaKey(const std::string& key)
 {
   auto& idx = s_types.get<NameTag>();
-  auto it = idx.find(key);
-  if (it != idx.end()) {
-    d_type = it->d_type;
+  auto typeIt = idx.find(key);
+  if (typeIt != idx.end()) {
+    d_type = typeIt->d_type;
     return;
   }
   else {
     auto [prefix, variable] = splitField(key, ':');
     if (!variable.empty()) {
-      it = idx.find(prefix);
-      if (it != idx.end() && it->d_prefix) {
-        d_type = it->d_type;
-        if (it->d_numeric) {
+      typeIt = idx.find(prefix);
+      if (typeIt != idx.end() && typeIt->d_prefix) {
+        d_type = typeIt->d_type;
+        if (typeIt->d_numeric) {
           try {
             d_numericSubKey = std::stoi(variable);
           }
@@ -256,7 +257,7 @@ ProtoBufMetaKey::ProtoBufMetaKey(const std::string& key)
           }
         }
         else {
-          if (!it->d_caseSensitive) {
+          if (!typeIt->d_caseSensitive) {
             boost::algorithm::to_lower(variable);
           }
           d_subKey = variable;
@@ -271,21 +272,21 @@ ProtoBufMetaKey::ProtoBufMetaKey(const std::string& key)
 std::vector<std::string> ProtoBufMetaKey::getValues(const DNSQuestion& dnsquestion) const
 {
   auto& idx = s_types.get<TypeTag>();
-  auto it = idx.find(d_type);
-  if (it == idx.end()) {
+  auto typeIt = idx.find(d_type);
+  if (typeIt == idx.end()) {
     throw std::runtime_error("Trying to get the values of an unsupported type: " + std::to_string(static_cast<uint8_t>(d_type)));
   }
-  return (it->d_func)(dnsquestion, d_subKey, d_numericSubKey);
+  return (typeIt->d_func)(dnsquestion, d_subKey, d_numericSubKey);
 }
 
 const std::string& ProtoBufMetaKey::getName() const
 {
   auto& idx = s_types.get<TypeTag>();
-  auto it = idx.find(d_type);
-  if (it == idx.end()) {
+  auto typeIt = idx.find(d_type);
+  if (typeIt == idx.end()) {
     throw std::runtime_error("Trying to get the name of an unsupported type: " + std::to_string(static_cast<uint8_t>(d_type)));
   }
-  return it->d_name;
+  return typeIt->d_name;
 }
 
 const ProtoBufMetaKey::TypeContainer ProtoBufMetaKey::s_types = {
