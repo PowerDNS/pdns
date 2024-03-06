@@ -26,36 +26,40 @@
 #include "dnsparser.hh"
 #include "xpf.hh"
 
-bool addXPF(DNSQuestion& dq, uint16_t optionCode)
+bool addXPF(DNSQuestion& dnsQuestion, uint16_t optionCode)
 {
-  std::string payload = generateXPFPayload(dq.overTCP(), dq.ids.origRemote, dq.ids.origDest);
+  std::string payload = generateXPFPayload(dnsQuestion.overTCP(), dnsQuestion.ids.origRemote, dnsQuestion.ids.origDest);
   uint8_t root = '\0';
-  dnsrecordheader drh;
+  dnsrecordheader drh{};
   drh.d_type = htons(optionCode);
   drh.d_class = htons(QClass::IN);
   drh.d_ttl = 0;
   drh.d_clen = htons(payload.size());
   size_t recordHeaderLen = sizeof(root) + sizeof(drh);
 
-  if (!dq.hasRoomFor(payload.size() + recordHeaderLen)) {
+  if (!dnsQuestion.hasRoomFor(payload.size() + recordHeaderLen)) {
     return false;
   }
 
   size_t xpfSize = sizeof(root) + sizeof(drh) + payload.size();
-  auto& data = dq.getMutableData();
+  auto& data = dnsQuestion.getMutableData();
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   uint32_t realPacketLen = getDNSPacketLength(reinterpret_cast<const char*>(data.data()), data.size());
   data.resize(realPacketLen + xpfSize);
 
   size_t pos = realPacketLen;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   memcpy(reinterpret_cast<char*>(&data.at(pos)), &root, sizeof(root));
   pos += sizeof(root);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   memcpy(reinterpret_cast<char*>(&data.at(pos)), &drh, sizeof(drh));
   pos += sizeof(drh);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   memcpy(reinterpret_cast<char*>(&data.at(pos)), payload.data(), payload.size());
   pos += payload.size();
   (void)pos;
 
-  dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [](dnsheader& header) {
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
     header.arcount = htons(ntohs(header.arcount) + 1);
     return true;
   });

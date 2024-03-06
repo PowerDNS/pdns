@@ -23,4 +23,4 @@
 
 #include "dnsdist.hh"
 
-bool addXPF(DNSQuestion& dq, uint16_t optionCode);
+bool addXPF(DNSQuestion& dnsQuestion, uint16_t optionCode);
