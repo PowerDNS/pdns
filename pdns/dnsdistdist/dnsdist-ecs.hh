@@ -44,19 +44,19 @@ int rewriteResponseWithoutEDNSOption(const PacketBuffer& initialPacket, const ui
 int getEDNSOptionsStart(const PacketBuffer& packet, const size_t offset, uint16_t* optRDPosition, size_t* remaining);
 bool isEDNSOptionInOpt(const PacketBuffer& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart = nullptr, uint16_t* optContentLen = nullptr);
 bool addEDNS(PacketBuffer& packet, size_t maximumSize, bool dnssecOK, uint16_t payloadSize, uint8_t ednsrcode);
-bool addEDNSToQueryTurnedResponse(DNSQuestion& dq);
-bool setNegativeAndAdditionalSOA(DNSQuestion& dq, bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, bool soaInAuthoritySection);
+bool addEDNSToQueryTurnedResponse(DNSQuestion& dnsQuestion);
+bool setNegativeAndAdditionalSOA(DNSQuestion& dnsQuestion, bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, bool soaInAuthoritySection);
 
-bool handleEDNSClientSubnet(DNSQuestion& dq, bool& ednsAdded, bool& ecsAdded);
+bool handleEDNSClientSubnet(DNSQuestion& dnsQuestion, bool& ednsAdded, bool& ecsAdded);
 bool handleEDNSClientSubnet(PacketBuffer& packet, size_t maximumSize, size_t qnameWireLength, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption);
 
-bool parseEDNSOptions(const DNSQuestion& dq);
+bool parseEDNSOptions(const DNSQuestion& dnsQuestion);
 
-int getEDNSZ(const DNSQuestion& dq);
-bool queryHasEDNS(const DNSQuestion& dq);
+int getEDNSZ(const DNSQuestion& dnsQuestion);
+bool queryHasEDNS(const DNSQuestion& dnsQuestion);
 bool getEDNS0Record(const PacketBuffer& packet, EDNS0Record& edns0);
 
-bool setEDNSOption(DNSQuestion& dq, uint16_t ednsCode, const std::string& data);
+bool setEDNSOption(DNSQuestion& dnsQuestion, uint16_t ednsCode, const std::string& data);
 
 struct InternalQueryState;
 namespace dnsdist
