@@ -11,9 +11,9 @@
 #include "dolog.hh"
 #endif
 
-#define DNSTAP_CONTENT_TYPE "protobuf:dnstap.Dnstap"
-
 #ifdef HAVE_FSTRM
+
+static const std::string DNSTAP_CONTENT_TYPE = "protobuf:dnstap.Dnstap";
 
 FrameStreamLogger::FrameStreamLogger(const int family, std::string address, bool connect, const std::unordered_map<string, unsigned>& options) :
   d_family(family), d_address(std::move(address))
@@ -24,7 +24,7 @@ FrameStreamLogger::FrameStreamLogger(const int family, std::string address, bool
       throw std::runtime_error("FrameStreamLogger: fstrm_writer_options_init failed.");
     }
 
-    auto res = fstrm_writer_options_add_content_type(d_fwopt, DNSTAP_CONTENT_TYPE, sizeof(DNSTAP_CONTENT_TYPE) - 1);
+    auto res = fstrm_writer_options_add_content_type(d_fwopt, DNSTAP_CONTENT_TYPE.c_str(), DNSTAP_CONTENT_TYPE.size());
     if (res != fstrm_res_success) {
       throw std::runtime_error("FrameStreamLogger: fstrm_writer_options_add_content_type failed: " + std::to_string(res));
     }
