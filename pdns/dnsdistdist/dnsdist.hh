@@ -1147,35 +1147,12 @@ enum ednsHeaderFlags
   EDNS_HEADER_FLAG_DO = 32768
 };
 
-struct DNSDistRuleAction
-{
-  std::shared_ptr<DNSRule> d_rule;
-  std::shared_ptr<DNSAction> d_action;
-  std::string d_name;
-  boost::uuids::uuid d_id;
-  uint64_t d_creationOrder;
-};
-
-struct DNSDistResponseRuleAction
-{
-  std::shared_ptr<DNSRule> d_rule;
-  std::shared_ptr<DNSResponseAction> d_action;
-  std::string d_name;
-  boost::uuids::uuid d_id;
-  uint64_t d_creationOrder;
-};
-
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 extern DNSAction::Action g_dynBlockAction;
 
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<pools_t> g_pools;
-extern GlobalStateHolder<vector<DNSDistRuleAction>> g_ruleactions;
-extern GlobalStateHolder<vector<DNSDistResponseRuleAction>> g_respruleactions;
-extern GlobalStateHolder<vector<DNSDistResponseRuleAction>> g_cachehitrespruleactions;
-extern GlobalStateHolder<vector<DNSDistResponseRuleAction>> g_selfansweredrespruleactions;
-extern GlobalStateHolder<vector<DNSDistResponseRuleAction>> g_cacheInsertedRespRuleActions;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
 extern ComboAddress g_serverControl; // not changed during runtime
@@ -1210,25 +1187,6 @@ extern uint32_t g_socketUDPRecvBuffer;
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
 extern std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
 
-struct LocalHolders
-{
-  LocalHolders() :
-    acl(g_ACL.getLocal()), policy(g_policy.getLocal()), ruleactions(g_ruleactions.getLocal()), cacheHitRespRuleactions(g_cachehitrespruleactions.getLocal()), cacheInsertedRespRuleActions(g_cacheInsertedRespRuleActions.getLocal()), selfAnsweredRespRuleactions(g_selfansweredrespruleactions.getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
-  {
-  }
-
-  LocalStateHolder<NetmaskGroup> acl;
-  LocalStateHolder<ServerPolicy> policy;
-  LocalStateHolder<vector<DNSDistRuleAction>> ruleactions;
-  LocalStateHolder<vector<DNSDistResponseRuleAction>> cacheHitRespRuleactions;
-  LocalStateHolder<vector<DNSDistResponseRuleAction>> cacheInsertedRespRuleActions;
-  LocalStateHolder<vector<DNSDistResponseRuleAction>> selfAnsweredRespRuleactions;
-  LocalStateHolder<servers_t> servers;
-  LocalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> dynNMGBlock;
-  LocalStateHolder<SuffixMatchTree<DynBlock>> dynSMTBlock;
-  LocalStateHolder<pools_t> pools;
-};
-
 void tcpAcceptorThread(const std::vector<ClientState*>& states);
 
 void setLuaNoSideEffect(); // if nothing has been declared, set that there are no side effects
@@ -1261,12 +1219,34 @@ enum class ProcessQueryResult : uint8_t
   PassToBackend,
   Asynchronous
 };
+
+#include "dnsdist-rule-chains.hh"
+
+struct LocalHolders
+{
+  LocalHolders() :
+    acl(g_ACL.getLocal()), policy(g_policy.getLocal()), ruleactions(dnsdist::rules::g_ruleactions.getLocal()), cacheHitRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheHitResponseRules).getLocal()), cacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), selfAnsweredRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules).getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
+  {
+  }
+
+  LocalStateHolder<NetmaskGroup> acl;
+  LocalStateHolder<ServerPolicy> policy;
+  LocalStateHolder<vector<dnsdist::rules::RuleAction>> ruleactions;
+  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheHitRespRuleactions;
+  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheInsertedRespRuleActions;
+  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> selfAnsweredRespRuleactions;
+  LocalStateHolder<servers_t> servers;
+  LocalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> dynNMGBlock;
+  LocalStateHolder<SuffixMatchTree<DynBlock>> dynSMTBlock;
+  LocalStateHolder<pools_t> pools;
+};
+
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
-bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& insertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
+bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& insertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop);
-bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
-bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& localRespRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids);
+bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids);
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend = true);
 

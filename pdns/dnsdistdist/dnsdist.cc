@@ -138,12 +138,6 @@ std::vector<uint32_t> g_TCPFastOpenKey;
    IDs are assigned by atomic increments of the socket offset.
  */
 
-GlobalStateHolder<vector<DNSDistRuleAction>> g_ruleactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction>> g_respruleactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction>> g_cachehitrespruleactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction>> g_cacheInsertedRespRuleActions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction>> g_selfansweredrespruleactions;
-
 Rings g_rings;
 QueryCount g_qcount;
 
@@ -520,7 +514,7 @@ static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp
 }
 #endif /* HAVE_DNSCRYPT */
 
-static bool applyRulesToResponse(const std::vector<DNSDistResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
+static bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
   DNSResponseAction::Action action = DNSResponseAction::Action::None;
   std::string ruleresult;
@@ -570,7 +564,7 @@ static bool applyRulesToResponse(const std::vector<DNSDistResponseRuleAction>& r
   return true;
 }
 
-bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
 {
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
@@ -626,7 +620,7 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDist
   return true;
 }
 
-bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
 {
   if (!applyRulesToResponse(respRuleActions, dnsResponse)) {
     return false;
@@ -713,7 +707,7 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
   doLatencyStats(incomingProtocol, udiff);
 }
 
-static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& respRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
+static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
 {
   DNSResponse dnsResponse(ids, response, backend);
 
@@ -776,7 +770,7 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   }
 }
 
-bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& localRespRuleActions, const std::vector<DNSDistResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids)
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids)
 {
 
   const dnsheader_aligned dnsHeader(response.data());
@@ -817,8 +811,8 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 {
   try {
     setThreadName("dnsdist/respond");
-    auto localRespRuleActions = g_respruleactions.getLocal();
-    auto localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
+    auto localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
+    auto localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
     const size_t initialBufferSize = getInitialUDPPacketBufferSize(false);
     /* allocate one more byte so we can detect truncation */
     PacketBuffer response(initialBufferSize + 1);
@@ -1603,8 +1597,8 @@ public:
 
     auto& ids = response.d_idstate;
 
-    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
-    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
+    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
+    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
 
     handleResponseForUDPClient(ids, response.d_buffer, *localRespRuleActions, *localCacheInsertedRespRuleActions, response.d_ds, response.isAsync(), response.d_idstate.selfGenerated);
   }
@@ -2746,10 +2740,10 @@ static void cleanupLuaObjects()
 {
   /* when our coverage mode is enabled, we need to make sure
      that the Lua objects are destroyed before the Lua contexts. */
-  g_ruleactions.setState({});
-  g_respruleactions.setState({});
-  g_cachehitrespruleactions.setState({});
-  g_selfansweredrespruleactions.setState({});
+  dnsdist::rules::g_ruleactions.setState({});
+  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
+    chain.holder.setState({});
+  }
   g_dstates.setState({});
   g_policy.setState(ServerPolicy());
   g_pools.setState({});

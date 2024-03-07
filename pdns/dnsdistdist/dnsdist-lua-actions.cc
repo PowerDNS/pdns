@@ -32,6 +32,7 @@
 #include "dnsdist-protobuf.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-kvs.hh"
+#include "dnsdist-rule-chains.hh"
 #include "dnsdist-svc.hh"
 
 #include "dnstap.hh"
@@ -2476,8 +2477,8 @@ void setupLuaActions(LuaContext& luaCtx)
     checkAllParametersConsumed("newRuleAction", params);
 
     auto rule = makeRule(dnsrule, "newRuleAction");
-    DNSDistRuleAction ruleaction({std::move(rule), std::move(action), std::move(name), uuid, creationOrder});
-    return std::make_shared<DNSDistRuleAction>(ruleaction);
+    dnsdist::rules::RuleAction ruleaction({std::move(rule), std::move(action), std::move(name), uuid, creationOrder});
+    return std::make_shared<dnsdist::rules::RuleAction>(ruleaction);
   });
 
   luaCtx.writeFunction("addAction", [](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
@@ -2485,40 +2486,19 @@ void setupLuaActions(LuaContext& luaCtx)
       throw std::runtime_error("addAction() can only be called with query-related actions, not response-related ones. Are you looking for addResponseAction()?");
     }
 
-    addAction(&g_ruleactions, var, boost::get<std::shared_ptr<DNSAction>>(era), params);
+    addAction(&dnsdist::rules::g_ruleactions, var, boost::get<std::shared_ptr<DNSAction>>(era), params);
   });
 
-  luaCtx.writeFunction("addResponseAction", [](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
-    if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
-      throw std::runtime_error("addResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
-    }
+  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
+    const auto fullName = std::string("add") + chain.prefix + std::string("ResponseAction");
+    luaCtx.writeFunction(fullName, [&fullName, &chain](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
+      if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
+        throw std::runtime_error(fullName + "() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
+      }
 
-    addAction(&g_respruleactions, var, boost::get<std::shared_ptr<DNSResponseAction>>(era), params);
-  });
-
-  luaCtx.writeFunction("addCacheHitResponseAction", [](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
-    if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
-      throw std::runtime_error("addCacheHitResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
-    }
-
-    addAction(&g_cachehitrespruleactions, var, boost::get<std::shared_ptr<DNSResponseAction>>(era), params);
-  });
-
-  luaCtx.writeFunction("addCacheInsertedResponseAction", [](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
-    if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
-      throw std::runtime_error("addCacheInsertedResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
-    }
-
-    addAction(&g_cacheInsertedRespRuleActions, var, boost::get<std::shared_ptr<DNSResponseAction>>(era), params);
-  });
-
-  luaCtx.writeFunction("addSelfAnsweredResponseAction", [](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
-    if (era.type() != typeid(std::shared_ptr<DNSResponseAction>)) {
-      throw std::runtime_error("addSelfAnsweredResponseAction() can only be called with response-related actions, not query-related ones. Are you looking for addAction()?");
-    }
-
-    addAction(&g_selfansweredrespruleactions, var, boost::get<std::shared_ptr<DNSResponseAction>>(era), params);
-  });
+      addAction(&chain.holder, var, boost::get<std::shared_ptr<DNSResponseAction>>(era), params);
+    });
+  }
 
   luaCtx.registerFunction<void (DNSAction::*)() const>("printStats", [](const DNSAction& action) {
     setLuaNoSideEffect();
@@ -2538,7 +2518,7 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.writeFunction("getAction", [](unsigned int num) {
     setLuaNoSideEffect();
     boost::optional<std::shared_ptr<DNSAction>> ret;
-    auto ruleactions = g_ruleactions.getCopy();
+    auto ruleactions = dnsdist::rules::g_ruleactions.getCopy();
     if (num < ruleactions.size()) {
       ret = ruleactions[num].d_action;
     }

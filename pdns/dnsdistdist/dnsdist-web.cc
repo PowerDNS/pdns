@@ -37,6 +37,7 @@
 #include "dnsdist-metrics.hh"
 #include "dnsdist-prometheus.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-rule-chains.hh"
 #include "dnsdist-web.hh"
 #include "dolog.hh"
 #include "gettime.hh"
@@ -891,11 +892,10 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   output << "# HELP dnsdist_rule_hits " << "Number of hits of that rule" << "\n";
   output << "# TYPE dnsdist_rule_hits " << "counter" << "\n";
-  addRulesToPrometheusOutput(output, g_ruleactions);
-  addRulesToPrometheusOutput(output, g_respruleactions);
-  addRulesToPrometheusOutput(output, g_cachehitrespruleactions);
-  addRulesToPrometheusOutput(output, g_cacheInsertedRespRuleActions);
-  addRulesToPrometheusOutput(output, g_selfansweredrespruleactions);
+  addRulesToPrometheusOutput(output, dnsdist::rules::g_ruleactions);
+  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
+    addRulesToPrometheusOutput(output, chain.holder);
+  }
 
 #ifndef DISABLE_DYNBLOCKS
   output << "# HELP dnsdist_dynblocks_nmg_top_offenders_hits_per_second " << "Number of hits per second blocked by Dynamic Blocks (netmasks) for the top offenders, averaged over the last 60s" << "\n";
@@ -1269,7 +1269,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   /* unfortunately DNSActions have getStats(),
      and DNSResponseActions do not. */
   {
-    auto localRules = g_ruleactions.getLocal();
+    auto localRules = dnsdist::rules::g_ruleactions.getLocal();
     num = 0;
     rules.reserve(localRules->size());
     for (const auto& lrule : *localRules) {
@@ -1285,10 +1285,6 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       rules.emplace_back(std::move(rule));
     }
   }
-  auto responseRules = someResponseRulesToJson(&g_respruleactions);
-  auto cacheHitResponseRules = someResponseRulesToJson(&g_cachehitrespruleactions);
-  auto cacheInsertedResponseRules = someResponseRulesToJson(&g_cacheInsertedRespRuleActions);
-  auto selfAnsweredResponseRules = someResponseRulesToJson(&g_selfansweredrespruleactions);
 
   string acl;
   {
@@ -1319,23 +1315,24 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   Json::object stats;
   addStatsToJSONObject(stats);
 
-  Json responseObject(Json::object({{"daemon_type", "dnsdist"},
-                                    {"version", VERSION},
-                                    {"servers", std::move(servers)},
-                                    {"frontends", std::move(frontends)},
-                                    {"pools", std::move(pools)},
-                                    {"rules", std::move(rules)},
-                                    {"response-rules", std::move(responseRules)},
-                                    {"cache-hit-response-rules", std::move(cacheHitResponseRules)},
-                                    {"cache-inserted-response-rules", std::move(cacheInsertedResponseRules)},
-                                    {"self-answered-response-rules", std::move(selfAnsweredResponseRules)},
-                                    {"acl", std::move(acl)},
-                                    {"local", std::move(localaddressesStr)},
-                                    {"dohFrontends", std::move(dohs)},
-                                    {"statistics", std::move(stats)}}));
+  Json::object responseObject{{"daemon_type", "dnsdist"},
+                              {"version", VERSION},
+                              {"servers", std::move(servers)},
+                              {"frontends", std::move(frontends)},
+                              {"pools", std::move(pools)},
+                              {"rules", std::move(rules)},
+                              {"acl", std::move(acl)},
+                              {"local", std::move(localaddressesStr)},
+                              {"dohFrontends", std::move(dohs)},
+                              {"statistics", std::move(stats)}};
+
+  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
+    auto responseRules = someResponseRulesToJson(&chain.holder);
+    responseObject[chain.metricName] = std::move(responseRules);
+  }
 
   resp.headers["Content-Type"] = "application/json";
-  resp.body = responseObject.dump();
+  resp.body = Json(responseObject).dump();
 }
 
 static void handlePoolStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
@@ -1402,25 +1399,25 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
       }
 
       if (const auto& val = std::get_if<pdns::stat_t*>(&item.d_value)) {
-        doc.push_back(Json::object{
+        doc.emplace_back(Json::object{
           {"type", "StatisticItem"},
           {"name", item.d_name},
           {"value", (double)(*val)->load()}});
       }
       else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&item.d_value)) {
-        doc.push_back(Json::object{
+        doc.emplace_back(Json::object{
           {"type", "StatisticItem"},
           {"name", item.d_name},
           {"value", (*adval)->load()}});
       }
       else if (const auto& dval = std::get_if<double*>(&item.d_value)) {
-        doc.push_back(Json::object{
+        doc.emplace_back(Json::object{
           {"type", "StatisticItem"},
           {"name", item.d_name},
           {"value", (**dval)}});
       }
       else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&item.d_value)) {
-        doc.push_back(Json::object{
+        doc.emplace_back(Json::object{
           {"type", "StatisticItem"},
           {"name", item.d_name},
           {"value", (double)(*func)(item.d_name)}});
@@ -1458,19 +1455,19 @@ static void handleConfigDump(const YaHTTP::Request& req, YaHTTP::Response& resp)
     {"verbose-health-checks", g_verboseHealthChecks}};
   for (const auto& item : configEntries) {
     if (const auto& bval = boost::get<bool>(&item.second)) {
-      doc.push_back(Json::object{
+      doc.emplace_back(Json::object{
         {"type", "ConfigSetting"},
         {"name", item.first},
         {"value", *bval}});
     }
     else if (const auto& sval = boost::get<string>(&item.second)) {
-      doc.push_back(Json::object{
+      doc.emplace_back(Json::object{
         {"type", "ConfigSetting"},
         {"name", item.first},
         {"value", *sval}});
     }
     else if (const auto& dval = boost::get<double>(&item.second)) {
-      doc.push_back(Json::object{
+      doc.emplace_back(Json::object{
         {"type", "ConfigSetting"},
         {"name", item.first},
         {"value", *dval}});

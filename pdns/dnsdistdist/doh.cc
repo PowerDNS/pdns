@@ -503,8 +503,8 @@ public:
     memcpy(&cleartextDH, dr.getHeader().get(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
-      static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
-      static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
+      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
+      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
 
       dr.ids.du = std::move(dohUnit);
 
@@ -1649,8 +1649,8 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&&
     }
   }
   if (!dohUnit->truncated) {
-    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
-    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
+    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
+    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
 
     DNSResponse dnsResponse(dohUnit->ids, udpResponse, dohUnit->downstream);
     dnsheader cleartextDH{};
