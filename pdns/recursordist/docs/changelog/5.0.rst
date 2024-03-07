@@ -4,6 +4,38 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.0.3
+  :released: 7th of March 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13845
+    :tickets: 13824
+
+    Log if a DNSSEC related limit was hit if log_bogus is set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13846
+    :tickets: 13830
+
+    Reduce RPZ memory usage by not keeping the initially loaded RPZs in memory.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13852
+    :tickets: 13847
+
+    Fix gathering of denial of existence proof for wildcard-expanded names.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13791
+    :tickets: 13788
+
+    Fix the zoneToCache regression introduced by SA 2024-01.
+
+.. changelog::
   :version: 5.0.2
   :released: 13th of February 2024
 

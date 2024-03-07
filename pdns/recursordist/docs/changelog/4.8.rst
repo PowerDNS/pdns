@@ -1,5 +1,35 @@
 Changelogs for 4.8.X
 ====================
+.. changelog::
+  :version: 4.8.7
+  :released: 7th of March 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13797
+    :tickets: 13353
+
+    If serving stale, wipe CNAME records from cache when we get a NODATA negative response for them.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13799
+
+    Fix the zoneToCache regression introduced by SA 2024-01.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13854
+    :tickets: 13847
+
+    Fix gathering of denial of existence proof for wildcard-expanded names.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13796
+    :tickets: 13387
+
+    Update new b-root-server.net addresses in built-in hints.
 
 .. changelog::
   :version: 4.8.6

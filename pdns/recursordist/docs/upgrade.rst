@@ -4,7 +4,14 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-5.0.1 to 5.0.2 and master, 4.9.2 to 4.9.3 and 4.8.5 to 4.8.6
+5.0.2 to 5.0.3 and master, 4.9.3 to 4.9.4 and 4.8.6 to 4.8.7
+------------------------------------------------------------
+
+Known Issue Solved
+^^^^^^^^^^^^^^^^^^
+The DNSSEC validation issue with the :func:`zoneToCache` function has been resolved and workarounds can be removed.
+
+5.0.1 to 5.0.2, 4.9.2 to 4.9.3 and 4.8.5 to 4.8.6
 ------------------------------------------------------------
 
 Known Issues
