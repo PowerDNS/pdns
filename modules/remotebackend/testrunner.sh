@@ -2,9 +2,6 @@
 new_api=0
 mode=$1
 
-# keep the original arguments for new test harness api
-orig="$*"
-
 # we could be ran with new API
 while [ "$1" != "" ]
 do
@@ -22,7 +19,7 @@ zeromq_pid=""
 socat=$(which socat)
 
 function start_web() {
-  local service_logfile="${mode%\.test}_server.log"
+  local service_logfile="${mode_name%\.test}_server.log"
 
   ./unittest_"${1}".rb >> "${service_logfile}" 2>&1 &
   webrick_pid=$!
@@ -90,7 +87,7 @@ function start_zeromq() {
     exit 77
   fi
 
-  local service_logfile="${mode%\.test}_server.log"
+  local service_logfile="${mode_name%\.test}_server.log"
 
   ./unittest_zeromq.rb >> "${service_logfile}" 2>&1 &
   zeromq_pid=$!
@@ -212,15 +209,15 @@ function stop_unix() {
 
 function run_test() {
  if [ $new_api -eq 0 ]; then
-   ./"$mode"
+   ./"$mode_name"
  else
-    $orig
+    $mode
  fi
 }
 
-mode=$(basename "$mode")
+mode_name=$(basename "$mode")
 
-case "$mode" in
+case "$mode_name" in
   remotebackend_pipe.test)
     run_test
   ;;
