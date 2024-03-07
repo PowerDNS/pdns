@@ -1521,7 +1521,7 @@ Response:
 
 Get DomainInfo records for all domains in your backend.
 
--  Mandatory: no
+-  Mandatory: unless the zone cache has been disabled by setting :ref:`setting-zone-cache-refresh-interval` to ``0`` (not recommended for performance reasons)(since 4.5.0)
 -  Parameters: include_disabled
 -  Reply: array of DomainInfo
 
