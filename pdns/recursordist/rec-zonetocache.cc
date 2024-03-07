@@ -403,6 +403,9 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
   d_now = time(nullptr);
   for (const auto& [key, v] : d_all) {
     const auto& [qname, qtype] = key;
+    if (qname.isWildcard()) {
+      continue;
+    }
     switch (qtype) {
     case QType::NSEC:
     case QType::NSEC3:
