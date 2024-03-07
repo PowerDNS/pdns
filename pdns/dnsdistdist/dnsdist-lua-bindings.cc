@@ -442,6 +442,9 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   });
   luaCtx.registerFunction<std::string (ClientState::*)() const>("getConfiguredTLSProvider", [](const ClientState& frontend) {
     setLuaNoSideEffect();
+    if (frontend.doqFrontend != nullptr || frontend.doh3Frontend != nullptr) {
+      return std::string("BoringSSL");
+    }
     if (frontend.tlsFrontend != nullptr) {
       return frontend.tlsFrontend->getRequestedProvider();
     }
@@ -452,6 +455,9 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   });
   luaCtx.registerFunction<std::string (ClientState::*)() const>("getEffectiveTLSProvider", [](const ClientState& frontend) {
     setLuaNoSideEffect();
+    if (frontend.doqFrontend != nullptr || frontend.doh3Frontend != nullptr) {
+      return std::string("BoringSSL");
+    }
     if (frontend.tlsFrontend != nullptr) {
       return frontend.tlsFrontend->getEffectiveProvider();
     }
