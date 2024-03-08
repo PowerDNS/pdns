@@ -144,6 +144,8 @@ any              IN           TXT "hello there"
 
 resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}} for _,v in ipairs(r) do table.insert(t, v:toString()) end return t"
 
+filterforwardempty IN LUA A "filterForward('192.0.2.1', newNMG{{'192.1.2.0/24'}}, '')"
+
 *.createforward  IN    LUA    A     "filterForward(createForward(), newNMG{{'1.0.0.0/8', '64.0.0.0/8'}})"
 *.createreverse  IN    LUA    PTR   "createReverse('%5%.example.com', {{['10.10.10.10'] = 'quad10.example.com.'}})"
 *.createreverse6 IN    LUA    PTR   "createReverse6('%33%.example.com', {{['2001:db8::1'] = 'example.example.com.'}})"
@@ -976,6 +978,18 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(res.answer, response.answer)
+
+    def testFilterForwardEmpty(self):
+        """
+        Test filterForward() function with empty fallback
+        """
+        name = 'filterforwardempty.example.org.'
+
+        query = dns.message.make_query(name, 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.answer, [])
 
     def testCreateForwardAndReverse(self):
         expected = {
