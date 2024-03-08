@@ -317,15 +317,14 @@ public:
 
 struct DynBlock
 {
-  DynBlock() :
-    action(DNSAction::Action::None), warning(false)
+  DynBlock()
   {
     until.tv_sec = 0;
     until.tv_nsec = 0;
   }
 
   DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_) :
-    reason(reason_), domain(domain_), until(until_), action(action_), warning(false)
+    reason(reason_), domain(domain_), until(until_), action(action_)
   {
   }
 
@@ -367,8 +366,8 @@ struct DynBlock
 
   string reason;
   DNSName domain;
-  struct timespec until;
-  mutable std::atomic<unsigned int> blocks;
+  timespec until{};
+  mutable std::atomic<unsigned int> blocks{0};
   DNSAction::Action action{DNSAction::Action::None};
   bool warning{false};
   bool bpf{false};
