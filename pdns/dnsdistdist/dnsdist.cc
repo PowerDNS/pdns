@@ -1022,6 +1022,8 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestio
   case DNSAction::Action::Delay:
     pdns::checked_stoi_into(dnsQuestion.ids.delayMsec, ruleresult); // sorry
     break;
+  case DNSAction::Action::SetTag:
+    /* unsupported for non-dynamic block */
   case DNSAction::Action::None:
     /* fall-through */
   case DNSAction::Action::NoOp:
@@ -1143,6 +1145,19 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
           return true;
         });
         return true;
+      case DNSAction::Action::SetTag:
+      {
+        if (!got->second.tagSettings) {
+          vinfolog("Skipping set tag dynamic block for query from %s because of missing options", dnsQuestion.ids.origRemote.toStringWithPort());
+          break;
+        }
+        updateBlockStats();
+        const auto& tagName = got->second.tagSettings->d_name;
+        const auto& tagValue = got->second.tagSettings->d_value;
+        dnsQuestion.setTag(tagName, tagValue);
+        vinfolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue);
+        return true;
+      }
       default:
         updateBlockStats();
         vinfolog("Query from %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort());
@@ -1205,6 +1220,19 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
           return true;
         });
         return true;
+      case DNSAction::Action::SetTag:
+      {
+        if (!got->tagSettings) {
+          vinfolog("Skipping set tag dynamic block for query from %s because of missing options", dnsQuestion.ids.origRemote.toStringWithPort());
+          break;
+        }
+        updateBlockStats();
+        const auto& tagName = got->tagSettings->d_name;
+        const auto& tagValue = got->tagSettings->d_value;
+        dnsQuestion.setTag(tagName, tagValue);
+        vinfolog("Query from %s setting tag %s to %s because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), tagName, tagValue);
+        return true;
+      }
       default:
         updateBlockStats();
         vinfolog("Query from %s for %s dropped because of dynamic block", dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.qname.toLogString());

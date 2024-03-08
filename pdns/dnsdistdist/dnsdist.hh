@@ -239,7 +239,8 @@ public:
     NoOp,
     NoRecurse,
     SpoofRaw,
-    SpoofPacket
+    SpoofPacket,
+    SetTag,
   };
   static std::string typeToString(const Action& action)
   {
@@ -268,6 +269,8 @@ public:
       return "Truncate over UDP";
     case Action::ServFail:
       return "Send ServFail";
+    case Action::SetTag:
+      return "Set Tag";
     case Action::None:
     case Action::NoOp:
       return "Do nothing";
@@ -349,6 +352,9 @@ struct DynBlock
     blocks.store(rhs.blocks);
     warning = rhs.warning;
     bpf = rhs.bpf;
+    if (rhs.tagSettings != nullptr) {
+      tagSettings = std::make_unique<TagSettings>(*rhs.tagSettings);
+    }
     return *this;
   }
 
@@ -361,13 +367,21 @@ struct DynBlock
     blocks.store(rhs.blocks);
     warning = rhs.warning;
     bpf = rhs.bpf;
+    tagSettings = std::move(rhs.tagSettings);
     return *this;
   }
+
+  struct TagSettings
+  {
+    std::string d_name;
+    std::string d_value;
+  };
 
   string reason;
   DNSName domain;
   timespec until{};
-  mutable std::atomic<unsigned int> blocks{0};
+  std::unique_ptr<TagSettings> tagSettings{nullptr};
+  mutable std::atomic<uint32_t> blocks{0};
   DNSAction::Action action{DNSAction::Action::None};
   bool warning{false};
   bool bpf{false};
