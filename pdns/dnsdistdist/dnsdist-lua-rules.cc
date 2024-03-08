@@ -362,57 +362,66 @@ void setupLuaRules(LuaContext& luaCtx)
       auto rules = chain.holder.getLocal();
       return rulesToString(getTopRules(*rules, (top ? *top : 10)), vars);
     });
+
+    luaCtx.writeFunction("clear" + chain.prefix + "ResponseRules", [&chain]() {
+      setLuaSideEffect();
+      chain.holder.modify([](std::remove_reference_t<decltype(chain.holder)>::value_type& ruleactions) {
+        ruleactions.clear();
+      });
+    });
   }
 
-  luaCtx.writeFunction("rmRule", [](const boost::variant<unsigned int, std::string>& identifier) {
-    rmRule(&dnsdist::rules::g_ruleactions, identifier);
-  });
-
-  luaCtx.writeFunction("mvRuleToTop", []() {
-    moveRuleToTop(&dnsdist::rules::g_ruleactions);
-  });
-
-  luaCtx.writeFunction("mvRule", [](unsigned int from, unsigned int dest) {
-    mvRule(&dnsdist::rules::g_ruleactions, from, dest);
-  });
-
-  luaCtx.writeFunction("clearRules", []() {
-    setLuaSideEffect();
-    dnsdist::rules::g_ruleactions.modify([](decltype(dnsdist::rules::g_ruleactions)::value_type& ruleactions) {
-      ruleactions.clear();
+  for (const auto& chain : dnsdist::rules::getRuleChains()) {
+    luaCtx.writeFunction("show" + chain.prefix + "Rules", [&chain](boost::optional<ruleparams_t> vars) {
+      showRules(&chain.holder, vars);
     });
-  });
+    luaCtx.writeFunction("rm" + chain.prefix + "Rule", [&chain](const boost::variant<unsigned int, std::string>& identifier) {
+      rmRule(&chain.holder, identifier);
+    });
+    luaCtx.writeFunction("mv" + chain.prefix + "RuleToTop", [&chain]() {
+      moveRuleToTop(&chain.holder);
+    });
+    luaCtx.writeFunction("mv" + chain.prefix + "Rule", [&chain](unsigned int from, unsigned int dest) {
+      mvRule(&chain.holder, from, dest);
+    });
+    luaCtx.writeFunction("get" + chain.prefix + "Rule", [&chain](const boost::variant<int, std::string>& selector) -> boost::optional<dnsdist::rules::RuleAction> {
+      auto rules = chain.holder.getLocal();
+      return getRuleFromSelector(*rules, selector);
+    });
 
-  luaCtx.writeFunction("setRules", [](const LuaArray<std::shared_ptr<dnsdist::rules::RuleAction>>& newruleactions) {
-    setLuaSideEffect();
-    dnsdist::rules::g_ruleactions.modify([newruleactions](decltype(dnsdist::rules::g_ruleactions)::value_type& gruleactions) {
-      gruleactions.clear();
-      for (const auto& pair : newruleactions) {
-        const auto& newruleaction = pair.second;
-        if (newruleaction->d_action) {
-          auto rule = newruleaction->d_rule;
-          gruleactions.push_back({std::move(rule), newruleaction->d_action, newruleaction->d_name, newruleaction->d_id, newruleaction->d_creationOrder});
+    luaCtx.writeFunction("getTop" + chain.prefix + "Rules", [&chain](boost::optional<unsigned int> top) {
+      setLuaNoSideEffect();
+      auto rules = chain.holder.getLocal();
+      return toLuaArray(getTopRules(*rules, (top ? *top : 10)));
+    });
+
+    luaCtx.writeFunction("top" + chain.prefix + "Rules", [&chain](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
+      setLuaNoSideEffect();
+      auto rules = chain.holder.getLocal();
+      return rulesToString(getTopRules(*rules, (top ? *top : 10)), vars);
+    });
+
+    luaCtx.writeFunction("clear" + chain.prefix + "Rules", [&chain]() {
+      setLuaSideEffect();
+      chain.holder.modify([](std::remove_reference_t<decltype(chain.holder)>::value_type& ruleactions) {
+        ruleactions.clear();
+      });
+    });
+
+    luaCtx.writeFunction("set" + chain.prefix + "Rules", [&chain](const LuaArray<std::shared_ptr<dnsdist::rules::RuleAction>>& newruleactions) {
+      setLuaSideEffect();
+      chain.holder.modify([newruleactions](std::remove_reference_t<decltype(chain.holder)>::value_type& gruleactions) {
+        gruleactions.clear();
+        for (const auto& pair : newruleactions) {
+          const auto& newruleaction = pair.second;
+          if (newruleaction->d_action) {
+            auto rule = newruleaction->d_rule;
+            gruleactions.push_back({std::move(rule), newruleaction->d_action, newruleaction->d_name, newruleaction->d_id, newruleaction->d_creationOrder});
+          }
         }
-      }
+      });
     });
-  });
-
-  luaCtx.writeFunction("getRule", [](const boost::variant<int, std::string>& selector) -> boost::optional<dnsdist::rules::RuleAction> {
-    auto rules = dnsdist::rules::g_ruleactions.getLocal();
-    return getRuleFromSelector(*rules, selector);
-  });
-
-  luaCtx.writeFunction("getTopRules", [](boost::optional<unsigned int> top) {
-    setLuaNoSideEffect();
-    auto rules = dnsdist::rules::g_ruleactions.getLocal();
-    return toLuaArray(getTopRules(*rules, (top ? *top : 10)));
-  });
-
-  luaCtx.writeFunction("topRules", [](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
-    setLuaNoSideEffect();
-    auto rules = dnsdist::rules::g_ruleactions.getLocal();
-    return rulesToString(getTopRules(*rules, (top ? *top : 10)), vars);
-  });
+  }
 
   luaCtx.writeFunction("MaxQPSIPRule", [](unsigned int qps, boost::optional<unsigned int> ipv4trunc, boost::optional<unsigned int> ipv6trunc, boost::optional<unsigned int> burst, boost::optional<unsigned int> expiration, boost::optional<unsigned int> cleanupDelay, boost::optional<unsigned int> scanFraction, boost::optional<unsigned int> shards) {
     return std::shared_ptr<DNSRule>(new MaxQPSIPRule(qps, (burst ? *burst : qps), (ipv4trunc ? *ipv4trunc : 32), (ipv6trunc ? *ipv6trunc : 64), (expiration ? *expiration : 300), (cleanupDelay ? *cleanupDelay : 60), (scanFraction ? *scanFraction : 10), (shards ? *shards : 10)));
@@ -625,10 +634,6 @@ void setupLuaRules(LuaContext& luaCtx)
   luaCtx.writeFunction("EDNSOptionRule", [](uint64_t optcode) {
     checkParameterBound("EDNSOptionRule", optcode, std::numeric_limits<uint16_t>::max());
     return std::shared_ptr<DNSRule>(new EDNSOptionRule(optcode));
-  });
-
-  luaCtx.writeFunction("showRules", [](boost::optional<ruleparams_t> vars) {
-    showRules(&dnsdist::rules::g_ruleactions, vars);
   });
 
   luaCtx.writeFunction("RDRule", []() {

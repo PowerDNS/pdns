@@ -892,7 +892,9 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   output << "# HELP dnsdist_rule_hits " << "Number of hits of that rule" << "\n";
   output << "# TYPE dnsdist_rule_hits " << "counter" << "\n";
-  addRulesToPrometheusOutput(output, dnsdist::rules::g_ruleactions);
+  for (const auto& chain : dnsdist::rules::getRuleChains()) {
+    addRulesToPrometheusOutput(output, chain.holder);
+  }
   for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
     addRulesToPrometheusOutput(output, chain.holder);
   }
@@ -1265,27 +1267,6 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     }
   }
 
-  Json::array rules;
-  /* unfortunately DNSActions have getStats(),
-     and DNSResponseActions do not. */
-  {
-    auto localRules = dnsdist::rules::g_ruleactions.getLocal();
-    num = 0;
-    rules.reserve(localRules->size());
-    for (const auto& lrule : *localRules) {
-      Json::object rule{
-        {"id", num++},
-        {"creationOrder", (double)lrule.d_creationOrder},
-        {"uuid", boost::uuids::to_string(lrule.d_id)},
-        {"name", lrule.d_name},
-        {"matches", (double)lrule.d_rule->d_matches},
-        {"rule", lrule.d_rule->toString()},
-        {"action", lrule.d_action->toString()},
-        {"action-stats", lrule.d_action->getStats()}};
-      rules.emplace_back(std::move(rule));
-    }
-  }
-
   string acl;
   {
     auto aclEntries = g_ACL.getLocal()->toStringVector();
@@ -1320,11 +1301,32 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
                               {"servers", std::move(servers)},
                               {"frontends", std::move(frontends)},
                               {"pools", std::move(pools)},
-                              {"rules", std::move(rules)},
                               {"acl", std::move(acl)},
                               {"local", std::move(localaddressesStr)},
                               {"dohFrontends", std::move(dohs)},
                               {"statistics", std::move(stats)}};
+
+  /* unfortunately DNSActions have getStats(),
+     and DNSResponseActions do not. */
+  for (const auto& chain : dnsdist::rules::getRuleChains()) {
+    Json::array rules;
+    auto localRules = chain.holder.getLocal();
+    num = 0;
+    rules.reserve(localRules->size());
+    for (const auto& lrule : *localRules) {
+      Json::object rule{
+        {"id", num++},
+        {"creationOrder", (double)lrule.d_creationOrder},
+        {"uuid", boost::uuids::to_string(lrule.d_id)},
+        {"name", lrule.d_name},
+        {"matches", (double)lrule.d_rule->d_matches},
+        {"rule", lrule.d_rule->toString()},
+        {"action", lrule.d_action->toString()},
+        {"action-stats", lrule.d_action->getStats()}};
+      rules.emplace_back(std::move(rule));
+    }
+    responseObject[chain.metricName] = std::move(rules);
+  }
 
   for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
     auto responseRules = someResponseRulesToJson(&chain.holder);
