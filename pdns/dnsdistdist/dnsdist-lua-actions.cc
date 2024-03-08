@@ -2481,13 +2481,26 @@ void setupLuaActions(LuaContext& luaCtx)
     return std::make_shared<dnsdist::rules::RuleAction>(ruleaction);
   });
 
-  luaCtx.writeFunction("addAction", [](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
-    if (era.type() != typeid(std::shared_ptr<DNSAction>)) {
-      throw std::runtime_error("addAction() can only be called with query-related actions, not response-related ones. Are you looking for addResponseAction()?");
-    }
+  for (const auto& chain : dnsdist::rules::getRuleChains()) {
+    auto fullName = std::string("add") + chain.prefix + std::string("Action");
+    luaCtx.writeFunction(fullName, [&fullName, &chain](const luadnsrule_t& var, boost::variant<std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>> era, boost::optional<luaruleparams_t> params) {
+      if (era.type() != typeid(std::shared_ptr<DNSAction>)) {
+        throw std::runtime_error(fullName + "() can only be called with query-related actions, not response-related ones. Are you looking for addResponseAction()?");
+      }
 
-    addAction(&dnsdist::rules::g_ruleactions, var, boost::get<std::shared_ptr<DNSAction>>(era), params);
-  });
+      addAction(&chain.holder, var, boost::get<std::shared_ptr<DNSAction>>(era), params);
+    });
+    fullName = std::string("get") + chain.prefix + std::string("Action");
+    luaCtx.writeFunction(fullName, [&chain](unsigned int num) {
+      setLuaNoSideEffect();
+      boost::optional<std::shared_ptr<DNSAction>> ret;
+      auto ruleactions = chain.holder.getCopy();
+      if (num < ruleactions.size()) {
+        ret = ruleactions[num].d_action;
+      }
+      return ret;
+    });
+  }
 
   for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
     const auto fullName = std::string("add") + chain.prefix + std::string("ResponseAction");
@@ -2513,16 +2526,6 @@ void setupLuaActions(LuaContext& luaCtx)
         g_outputBuffer += std::to_string(stat.second) + "\n";
       }
     }
-  });
-
-  luaCtx.writeFunction("getAction", [](unsigned int num) {
-    setLuaNoSideEffect();
-    boost::optional<std::shared_ptr<DNSAction>> ret;
-    auto ruleactions = dnsdist::rules::g_ruleactions.getCopy();
-    if (num < ruleactions.size()) {
-      ret = ruleactions[num].d_action;
-    }
-    return ret;
   });
 
   luaCtx.registerFunction("getStats", &DNSAction::getStats);
