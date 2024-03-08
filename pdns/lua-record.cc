@@ -1061,16 +1061,20 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       ComboAddress ca(address);
 
       if (nmg.match(ComboAddress(address))) {
-        return address;
+        return vector<string>{address};
       } else {
         if (fallback) {
-          return *fallback;
+          if (fallback->empty()) {
+            // if fallback is an empty string, return an empty array
+            return vector<string>{};
+          }
+          return vector<string>{*fallback};
         }
 
         if (ca.isIPv4()) {
-          return string("0.0.0.0");
+          return vector<string>{string("0.0.0.0")};
         } else {
-          return string("::");
+          return vector<string>{string("::")};
         }
       }
     });
