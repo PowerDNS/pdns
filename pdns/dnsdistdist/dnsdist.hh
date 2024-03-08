@@ -1247,6 +1247,7 @@ bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::R
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop);
 bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
 bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids);
+bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse);
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend = true);
 

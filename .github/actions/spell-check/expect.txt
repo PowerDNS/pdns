@@ -1528,6 +1528,7 @@ xdp
 Xek
 Xeon
 XForwarded
+XFR
 Xiang
 xorbooter
 xpf

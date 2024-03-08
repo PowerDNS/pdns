@@ -675,9 +675,9 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     response.d_buffer = std::move(d_responseBuffer);
     response.d_connection = conn;
     response.d_ds = conn->d_ds;
-    /* we don't move the whole IDS because we will need for the responses to come */
-    response.d_idstate.qtype = it->second.d_query.d_idstate.qtype;
-    response.d_idstate.qname = it->second.d_query.d_idstate.qname;
+    const auto& queryIDS = it->second.d_query.d_idstate;
+    /* we don't move the whole IDS because we will need it for the responses to come */
+    response.d_idstate = queryIDS.partialCloneForXFR();
     DEBUGLOG("passing XFRresponse to client connection for "<<response.d_idstate.qname);
 
     it->second.d_query.d_xfrStarted = true;

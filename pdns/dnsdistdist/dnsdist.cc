@@ -514,7 +514,7 @@ static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp
 }
 #endif /* HAVE_DNSCRYPT */
 
-static bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
+bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
   DNSResponseAction::Action action = DNSResponseAction::Action::None;
   std::string ruleresult;

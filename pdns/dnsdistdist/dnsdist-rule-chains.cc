@@ -29,12 +29,14 @@ GlobalStateHolder<std::vector<ResponseRuleAction>> s_respruleactions;
 GlobalStateHolder<std::vector<ResponseRuleAction>> s_cachehitrespruleactions;
 GlobalStateHolder<std::vector<ResponseRuleAction>> s_selfansweredrespruleactions;
 GlobalStateHolder<std::vector<ResponseRuleAction>> s_cacheInsertedRespRuleActions;
+GlobalStateHolder<std::vector<ResponseRuleAction>> s_XFRRespRuleActions;
 
 static const std::vector<ResponseRuleChainDescription> s_responseRuleChains{
   {"", "response-rules", s_respruleactions},
   {"CacheHit", "cache-hit-response-rules", s_cachehitrespruleactions},
   {"CacheInserted", "cache-inserted-response-rules", s_selfansweredrespruleactions},
   {"SelfAnswered", "self-answered-response-rules", s_cacheInsertedRespRuleActions},
+  {"XFR", "xfr-response-rules", s_XFRRespRuleActions},
 };
 
 const std::vector<ResponseRuleChainDescription>& getResponseRuleChains()

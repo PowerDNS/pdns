@@ -162,7 +162,7 @@ dnsdist_SOURCES = \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-edns.cc dnsdist-edns.hh \
 	dnsdist-healthchecks.cc dnsdist-healthchecks.hh \
-	dnsdist-idstate.hh \
+	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-internal-queries.cc dnsdist-internal-queries.hh \
 	dnsdist-kvs.hh dnsdist-kvs.cc \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
@@ -284,7 +284,7 @@ testrunner_SOURCES = \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-edns.cc dnsdist-edns.hh \
-	dnsdist-idstate.hh \
+	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
 	dnsdist-lua-bindings-dnsquestion.cc \

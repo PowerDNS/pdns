@@ -402,9 +402,79 @@ Functions for manipulating Self-Answered Response Rules:
   .. versionchanged:: 1.6.0
     Replaced by :func:`mvSelfAnsweredResponseRuleToTop`
 
-  Before 1.6.0 this function used to move the last cache hit response rule to the first position, which is now handled by :func:`mvSelfAnsweredResponseRuleToTop`.
+  Before 1.6.0 this function used to move the last self-answered response rule to the first position, which is now handled by :func:`mvSelfAnsweredResponseRuleToTop`.
 
   Move the last self answered response rule to the first position.
+
+XFR
+---
+
+Functions for manipulating zone transfer (AXFR, IXFR) Response Rules:
+
+.. note::
+  Please remember that a zone transfer (XFR) can and will often contain
+  several response packets to a single query packet.
+
+.. warning::
+  While almost all existing selectors and Response actions should be usable from
+  the XFR response rules, it is strongly advised to only inspect the content of
+  XFR response packets, and not modify them.
+  Logging the content of response packets can be done via:
+
+  - :func:`DnstapLogResponseAction`
+  - :func:`LogResponseAction`
+  - :func:`RemoteLogResponseAction`
+
+.. function:: addXFRResponseAction(DNSRule, action [, options])
+
+  .. versionadded:: 1.10
+
+  Add a Rule and ResponseAction for zone transfers (XFR) to the existing rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`.
+  :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
+
+.. function:: mvXFRResponseRule(from, to)
+
+  .. versionadded:: 1.10
+
+  Move XFR response rule ``from`` to a position where it is in front of ``to``.
+  ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
+
+  :param int from: Rule number to move
+  :param int to: Location to more the Rule to
+
+.. function:: mvXFRResponseRuleToTop()
+
+  .. versionadded:: 1.10
+
+  This function moves the last XFR response rule to the first position.
+
+.. function:: rmXFRResponseRule(id)
+
+  .. versionadded:: 1.10
+
+  :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
+
+.. function:: showXFRResponseRules([options])
+
+  .. versionadded:: 1.10
+
+  Show all defined XFR response rules, optionally displaying their UUIDs.
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
 
 Convenience Functions
 ---------------------
