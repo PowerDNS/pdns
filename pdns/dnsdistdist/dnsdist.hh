@@ -1243,7 +1243,7 @@ struct LocalHolders
 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
-bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& insertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
+bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop);
 bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
 bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids);
