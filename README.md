@@ -17,7 +17,6 @@ But please check if the issue is already reported there first.
 
 DOCKER
 ------
-
 This README is mirrored from GitHub to dockerhub.
 For information about our Docker images, please refer to https://github.com/PowerDNS/pdns/blob/master/Docker-README.md
 
