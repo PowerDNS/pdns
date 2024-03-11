@@ -768,7 +768,7 @@ bool RecursorLua4::genhook(const luacall_t& func, DNSQuestion& dnsQuestion, int&
       }
       else if (dnsQuestion.followupFunction == "udpQueryResponse") {
         PacketBuffer packetBuffer = GenUDPQueryResponse(dnsQuestion.udpQueryDest, dnsQuestion.udpQuery);
-        dnsQuestion.udpAnswer = std::string(reinterpret_cast<const char *>(packetBuffer.data()), packetBuffer.size()); //NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        dnsQuestion.udpAnswer = std::string(reinterpret_cast<const char*>(packetBuffer.data()), packetBuffer.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         // coverity[auto_causes_copy] not copying produces a dangling ref
         const auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dnsQuestion.udpCallback).get_value_or(nullptr);
         if (!cbFunc) {
@@ -790,7 +790,7 @@ bool RecursorLua4::genhook(const luacall_t& func, DNSQuestion& dnsQuestion, int&
   }
 
   // see if they added followup work for us too
-return true;
+  return true;
 }
 
 RecursorLua4::~RecursorLua4() = default;
@@ -1100,6 +1100,7 @@ public:
   {
     return handle;
   }
+
 private:
   RecursorLua4::PostResolveFFIHandle& handle;
   std::unordered_set<std::string> pool;
