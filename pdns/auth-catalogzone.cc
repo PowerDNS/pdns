@@ -94,7 +94,7 @@ std::string CatalogInfo::toJson() const
   }
   if (!d_group.empty()) {
     json11::Json::array entries;
-    for (const string& group : d_group) {
+    for (const auto& group : d_group) {
       entries.push_back(group);
     }
     object["group"] = entries;
@@ -107,7 +107,10 @@ std::string CatalogInfo::toJson() const
 
 void CatalogInfo::updateHash(CatalogHashMap& hashes, const DomainInfo& di) const
 {
-  hashes[di.catalog].process(static_cast<char>(di.id) + di.zone.toLogString() + "\0" + d_coo.toLogString() + "\0" + d_unique.toLogString());
+  hashes[di.catalog].process(std::to_string(di.id) + di.zone.toLogString() + string("\0", 1) + d_coo.toLogString() + string("\0", 1) + d_unique.toLogString());
+  for (const auto& group : d_group) {
+    hashes[di.catalog].process(std::to_string(group.length()) + group);
+  }
 }
 
 DNSZoneRecord CatalogInfo::getCatalogVersionRecord(const DNSName& zone)
