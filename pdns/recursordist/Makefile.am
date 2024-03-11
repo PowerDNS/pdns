@@ -248,7 +248,8 @@ pdns_recursor_LDADD = \
 	$(PROBDS_LIBS) \
 	$(LIBCAP_LIBS) \
 	$(ARC4RANDOM_LIBS) \
-	$(RUST_LIBS)
+	$(RUST_LIBS) \
+        -lresolv
 
 pdns_recursor_LDFLAGS = $(AM_LDFLAGS) \
 	$(LIBCRYPTO_LDFLAGS) $(BOOST_CONTEXT_LDFLAGS) \
@@ -403,7 +404,8 @@ testrunner_LDADD = \
 	$(PROBDS_LIBS) \
 	$(LIBCAP_LIBS) \
 	$(ARC4RANDOM_LIBS) \
-	$(RUST_LIBS)
+	$(RUST_LIBS) \
+        -lresolv
 
 if NOD_ENABLED
 testrunner_SOURCES +=   nod.hh nod.cc \

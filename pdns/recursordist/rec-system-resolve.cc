@@ -23,10 +23,16 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <arpa/nameser.h>
+#include <resolv.h>
 
+#include "dnsparser.hh"
+#include "dnsrecords.hh"
 #include "rec-system-resolve.hh"
 #include "logging.hh"
+#include "noinitvector.hh"
 #include "threadname.hh"
+#include "syncres.hh"
 
 namespace
 {
@@ -44,6 +50,46 @@ ComboAddress resolve(const std::string& name)
     freeaddrinfo(res);
     return address;
   }
+  return {};
+}
+
+PacketBuffer resolve(const string& name, QClass cls, QType type)
+{
+  PacketBuffer answer(512);
+  auto ret = res_query(name.c_str(), cls, type, answer.data(), static_cast<int>(answer.size()));
+  cerr << ret << endl;
+  if (ret == -1) {
+    answer.resize(0);
+  }
+  else {
+    answer.resize(ret);
+  }
+  return answer;
+}
+
+std::string serverID()
+{
+  auto buffer = resolve("id.server", QClass::CHAOS, QType::TXT);
+  if (buffer.empty()) {
+    cerr << "XXXXXXXXX SID case 1" << endl;
+    return {};
+  }
+  MOADNSParser parser(false,  reinterpret_cast<char *>(buffer.data()), buffer.size()); // NOLINT
+  if (parser.d_header.rcode != RCode::NoError || parser.d_answers.size() != 1) {
+    cerr << "XXXXXXXXX SID case 2" << endl;
+    return {};
+  }
+  const auto&  answer = parser.d_answers.at(0);
+  if (answer.first.d_type == QType::TXT) {
+    if (auto txt = getRR<TXTRecordContent>(answer.first); txt != nullptr) {
+      cerr << "XXXXXXXXX SID is " << txt->d_text << endl;
+      if (txt->d_text.size() >= 2) {
+        return txt->d_text.substr(1, txt->d_text.size() - 2);
+      }
+      return txt->d_text;
+    }
+  }
+    cerr << "XXXXXXXXX SID case 3" << endl;
   return {};
 }
 } // anonymous namespace
@@ -184,6 +230,7 @@ pdns::RecResolve::Refresher::~Refresher()
 void pdns::RecResolve::Refresher::refreshLoop()
 {
   setThreadName("rec/sysres");
+  time_t lastSelfCheck = 0;
 
   while (!stop) {
     const time_t startTime = time(nullptr);
@@ -199,6 +246,15 @@ void pdns::RecResolve::Refresher::refreshLoop()
       wakeup = false;
       if (stop) {
         break;
+      }
+      if (lastSelfCheck < time(nullptr) - 60) {
+        lastSelfCheck = time(nullptr);
+        auto resolvedServerID = serverID();
+        cerr << "SyncRes::s_serverID " << SyncRes::s_serverID << endl;
+        if (resolvedServerID == SyncRes::s_serverID) {
+          auto log = g_slog->withName("system-resolver");
+          log->info(Logr::Error, "id.server/CH/TXT resolves to my own server identidy", "id.server", Logging::Loggable(resolvedServerID));
+        }
       }
       changes = d_resolver.refresh(time(nullptr));
       wakeTime = time(nullptr);
