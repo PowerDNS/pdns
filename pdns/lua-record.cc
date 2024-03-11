@@ -1057,24 +1057,24 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       return std::string("unknown");
     });
 
-  lua.writeFunction("filterForward", [](string address, NetmaskGroup& nmg, boost::optional<string> fallback) {
+  lua.writeFunction("filterForward", [](const string& address, NetmaskGroup& nmg, boost::optional<string> fallback) -> vector<string> {
       ComboAddress ca(address);
 
       if (nmg.match(ComboAddress(address))) {
-        return vector<string>{address};
+        return {address};
       } else {
         if (fallback) {
           if (fallback->empty()) {
             // if fallback is an empty string, return an empty array
-            return vector<string>{};
+            return {};
           }
-          return vector<string>{*fallback};
+          return {*fallback};
         }
 
         if (ca.isIPv4()) {
-          return vector<string>{string("0.0.0.0")};
+          return {string("0.0.0.0")};
         } else {
-          return vector<string>{string("::")};
+          return {string("::")};
         }
       }
     });
