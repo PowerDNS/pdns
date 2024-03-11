@@ -221,11 +221,6 @@ public:
     return (d_prerpz || d_preresolve || d_nxdomain || d_nodata || d_postresolve);
   }
 
-  using gettag_t = std::function<std::tuple<unsigned int, boost::optional<std::unordered_map<int, string>>, boost::optional<LuaContext::LuaObject>, boost::optional<std::string>, boost::optional<std::string>, boost::optional<std::string>, boost::optional<string>> (ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const EDNSOptionViewMap &, bool, const std::vector<std::pair<int, const ProxyProtocolValue *>> &)>;
-  gettag_t d_gettag; // public so you can query if we have this hooked
-
-  using gettag_ffi_t = std::function<boost::optional<LuaContext::LuaObject> (pdns_ffi_param_t *)>;
-  gettag_ffi_t d_gettag_ffi;
 
   struct PostResolveFFIHandle
   {
@@ -237,8 +232,19 @@ public:
     bool d_ret{false};
   };
   bool postresolve_ffi(PostResolveFFIHandle&) const;
-  using postresolve_ffi_t = std::function<bool (pdns_postresolve_ffi_handle_t *)>;
-  postresolve_ffi_t d_postresolve_ffi;
+
+  [[nodiscard]] bool hasGettagFunc() const
+  {
+    return static_cast<bool>(d_gettag);
+  }
+  [[nodiscard]] bool hasGettagFFIFunc() const
+  {
+    return static_cast<bool>(d_gettag_ffi);
+  }
+  [[nodiscard]] bool hasPostResolveFFIfunc() const
+  {
+    return static_cast<bool>(d_postresolve_ffi);
+  }
 
 protected:
   void postPrepareContext() override;
@@ -246,13 +252,25 @@ protected:
   void getFeatures(Features& features) override;
 
 private:
+  using gettag_t = std::function<std::tuple<unsigned int, boost::optional<std::unordered_map<int, string>>, boost::optional<LuaContext::LuaObject>, boost::optional<std::string>, boost::optional<std::string>, boost::optional<std::string>, boost::optional<string>> (ComboAddress, Netmask, ComboAddress, DNSName, uint16_t, const EDNSOptionViewMap &, bool, const std::vector<std::pair<int, const ProxyProtocolValue *>> &)>;
+  gettag_t d_gettag; // public so you can query if we have this hooked
+
+  using gettag_ffi_t = std::function<boost::optional<LuaContext::LuaObject> (pdns_ffi_param_t *)>;
+  gettag_ffi_t d_gettag_ffi;
+
+  using postresolve_ffi_t = std::function<bool (pdns_postresolve_ffi_handle_t *)>;
+  postresolve_ffi_t d_postresolve_ffi;
+
   using luamaintenance_t = std::function<void ()>;
   luamaintenance_t d_maintenance;
+
   using luacall_t = std::function<bool (DNSQuestion *)>;
   luacall_t d_prerpz, d_preresolve, d_nxdomain, d_nodata, d_postresolve, d_preoutquery, d_postoutquery;
   bool genhook(const luacall_t& func, DNSQuestion& dnsQuestion, int& ret) const;
+
   using ipfilter_t = std::function<bool (ComboAddress, ComboAddress, struct dnsheader)>;
   ipfilter_t d_ipfilter;
+
   using policyEventFilter_t = std::function<bool (PolicyEvent &)>;
   policyEventFilter_t d_policyHitEventFilter;
 };

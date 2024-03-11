@@ -1092,9 +1092,12 @@ public:
     return iter;
   }
 
-  RecursorLua4::PostResolveFFIHandle& handle;
-
+  [[nodiscard]] const RecursorLua4::PostResolveFFIHandle& getHandle() const
+  {
+    return handle;
+  }
 private:
+  RecursorLua4::PostResolveFFIHandle& handle;
   std::unordered_set<std::string> pool;
 };
 
@@ -1111,49 +1114,49 @@ bool RecursorLua4::postresolve_ffi(RecursorLua4::PostResolveFFIHandle& arg) cons
 
 const char* pdns_postresolve_ffi_handle_get_qname(pdns_postresolve_ffi_handle_t* ref)
 {
-  auto str = ref->insert(ref->handle.d_dq.qname.toStringNoDot());
+  auto str = ref->insert(ref->getHandle().d_dq.qname.toStringNoDot());
   return str->c_str();
 }
 
 void pdns_postresolve_ffi_handle_get_qname_raw(pdns_postresolve_ffi_handle_t* ref, const char** qname, size_t* qnameSize)
 {
-  const auto& storage = ref->handle.d_dq.qname.getStorage();
+  const auto& storage = ref->getHandle().d_dq.qname.getStorage();
   *qname = storage.data();
   *qnameSize = storage.size();
 }
 
 uint16_t pdns_postresolve_ffi_handle_get_qtype(const pdns_postresolve_ffi_handle_t* ref)
 {
-  return ref->handle.d_dq.qtype;
+  return ref->getHandle().d_dq.qtype;
 }
 
 uint16_t pdns_postresolve_ffi_handle_get_rcode(const pdns_postresolve_ffi_handle_t* ref)
 {
-  return ref->handle.d_dq.rcode;
+  return ref->getHandle().d_dq.rcode;
 }
 
 void pdns_postresolve_ffi_handle_set_rcode(const pdns_postresolve_ffi_handle_t* ref, uint16_t rcode)
 {
-  ref->handle.d_dq.rcode = rcode;
+  ref->getHandle().d_dq.rcode = rcode;
 }
 
 pdns_policy_kind_t pdns_postresolve_ffi_handle_get_appliedpolicy_kind(const pdns_postresolve_ffi_handle_t* ref)
 {
-  return static_cast<pdns_policy_kind_t>(ref->handle.d_dq.appliedPolicy->d_kind);
+  return static_cast<pdns_policy_kind_t>(ref->getHandle().d_dq.appliedPolicy->d_kind);
 }
 
 void pdns_postresolve_ffi_handle_set_appliedpolicy_kind(pdns_postresolve_ffi_handle_t* ref, pdns_policy_kind_t kind)
 {
-  ref->handle.d_dq.appliedPolicy->d_kind = static_cast<DNSFilterEngine::PolicyKind>(kind);
+  ref->getHandle().d_dq.appliedPolicy->d_kind = static_cast<DNSFilterEngine::PolicyKind>(kind);
 }
 
 bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, unsigned int index, pdns_ffi_record_t* record, bool raw)
 {
-  if (index >= ref->handle.d_dq.currentRecords->size()) {
+  if (index >= ref->getHandle().d_dq.currentRecords->size()) {
     return false;
   }
   try {
-    DNSRecord& dnsRecord = ref->handle.d_dq.currentRecords->at(index);
+    DNSRecord& dnsRecord = ref->getHandle().d_dq.currentRecords->at(index);
     if (raw) {
       const auto& storage = dnsRecord.d_name.getStorage();
       record->name = storage.data();
@@ -1188,11 +1191,11 @@ bool pdns_postresolve_ffi_handle_get_record(pdns_postresolve_ffi_handle_t* ref, 
 
 bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, unsigned int index, const char* content, size_t contentLen, bool raw)
 {
-  if (index >= ref->handle.d_dq.currentRecords->size()) {
+  if (index >= ref->getHandle().d_dq.currentRecords->size()) {
     return false;
   }
   try {
-    DNSRecord& dnsRecord = ref->handle.d_dq.currentRecords->at(index);
+    DNSRecord& dnsRecord = ref->getHandle().d_dq.currentRecords->at(index);
     if (raw) {
       dnsRecord.setContent(DNSRecordContent::deserialize(dnsRecord.d_name, dnsRecord.d_type, string(content, contentLen)));
     }
@@ -1210,14 +1213,14 @@ bool pdns_postresolve_ffi_handle_set_record(pdns_postresolve_ffi_handle_t* ref, 
 
 void pdns_postresolve_ffi_handle_clear_records(pdns_postresolve_ffi_handle_t* ref)
 {
-  ref->handle.d_dq.currentRecords->clear();
+  ref->getHandle().d_dq.currentRecords->clear();
 }
 
 bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, const char* name, uint16_t type, uint32_t ttl, const char* content, size_t contentLen, pdns_record_place_t place, bool raw)
 {
   try {
     DNSRecord dnsRecord;
-    dnsRecord.d_name = name != nullptr ? DNSName(name) : ref->handle.d_dq.qname;
+    dnsRecord.d_name = name != nullptr ? DNSName(name) : ref->getHandle().d_dq.qname;
     dnsRecord.d_ttl = ttl;
     dnsRecord.d_type = type;
     dnsRecord.d_class = QClass::IN;
@@ -1228,7 +1231,7 @@ bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, 
     else {
       dnsRecord.setContent(DNSRecordContent::make(type, QClass::IN, string(content, contentLen)));
     }
-    ref->handle.d_dq.currentRecords->push_back(std::move(dnsRecord));
+    ref->getHandle().d_dq.currentRecords->push_back(std::move(dnsRecord));
 
     return true;
   }
@@ -1240,10 +1243,10 @@ bool pdns_postresolve_ffi_handle_add_record(pdns_postresolve_ffi_handle_t* ref, 
 
 const char* pdns_postresolve_ffi_handle_get_authip(pdns_postresolve_ffi_handle_t* ref)
 {
-  return ref->insert(ref->handle.d_dq.fromAuthIP->toString())->c_str();
+  return ref->insert(ref->getHandle().d_dq.fromAuthIP->toString())->c_str();
 }
 
 void pdns_postresolve_ffi_handle_get_authip_raw(pdns_postresolve_ffi_handle_t* ref, const void** addr, size_t* addrSize)
 {
-  return pdns_ffi_comboaddress_to_raw(*ref->handle.d_dq.fromAuthIP, addr, addrSize);
+  return pdns_ffi_comboaddress_to_raw(*ref->getHandle().d_dq.fromAuthIP, addr, addrSize);
 }
