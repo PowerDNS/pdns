@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import base64
 import dns
+import os
 import socket
 import time
 from dnsdisttests import DNSDistTest
@@ -22,6 +23,27 @@ class TestConsoleAllowed(DNSDistTest):
         Console: Allowed
         """
         version = self.sendConsoleCommand('showVersion()')
+        self.assertTrue(version.startswith('dnsdist '))
+
+class TestConsoleAllowedV6(DNSDistTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("[::1]:%s")
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testConsoleAllowed(self):
+        """
+        Console: Allowed IPv6
+        """
+        if 'SKIP_IPV6_TESTS' in os.environ:
+            raise unittest.SkipTest('IPv6 tests are disabled')
+        version = self.sendConsoleCommand('showVersion()', IPv6=True)
         self.assertTrue(version.startswith('dnsdist '))
 
 class TestConsoleNotAllowed(DNSDistTest):
