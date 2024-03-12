@@ -1034,6 +1034,11 @@ void controlThread(std::shared_ptr<Socket> acceptFD, ComboAddress local)
   try {
     setThreadName("dnsdist/control");
     ComboAddress client;
+    // make sure that the family matches the one from the listening IP,
+    // so that getSocklen() returns the correct size later, otherwise
+    // the first IPv6 console connection might get refused
+    client.sin4.sin_family = local.sin4.sin_family;
+
     int sock{-1};
     auto localACL = g_consoleACL.getLocal();
     infolog("Accepting control connections on %s", local.toStringWithPort());
