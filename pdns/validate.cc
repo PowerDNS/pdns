@@ -705,7 +705,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
         if (g_maxNSEC3sPerRecordToConsider > 0 && nsec3sConsidered >= g_maxNSEC3sPerRecordToConsider) {
           VLOG(log, qname << ": Too many NSEC3s for this record"<<endl);
-          context.d_limitHit = true;          
+          context.d_limitHit = true;
           return dState::NODENIAL;
         }
         nsec3sConsidered++;
@@ -1101,34 +1101,6 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
   }
 
   return vState::BogusNoValidRRSIG;
-}
-
-// returns vState
-// should return vState, zone cut and validated keyset
-// i.e. www.7bits.nl -> insecure/7bits.nl/[]
-//      www.powerdnssec.org -> secure/powerdnssec.org/[keys]
-//      www.dnssec-failed.org -> bogus/dnssec-failed.org/[]
-
-cspmap_t harvestCSPFromRecs(const vector<DNSRecord>& recs)
-{
-  cspmap_t cspmap;
-  for(const auto& rec : recs) {
-    //        cerr<<"res "<<rec.d_name<<"/"<<rec.d_type<<endl;
-    if (rec.d_type == QType::OPT) {
-      continue;
-    }
-
-    if(rec.d_type == QType::RRSIG) {
-      auto rrc = getRR<RRSIGRecordContent>(rec);
-      if (rrc) {
-        cspmap[{rec.d_name,rrc->d_type}].signatures.push_back(rrc);
-      }
-    }
-    else {
-      cspmap[{rec.d_name, rec.d_type}].records.insert(rec.getContent());
-    }
-  }
-  return cspmap;
 }
 
 bool getTrustAnchor(const map<DNSName,dsmap_t>& anchors, const DNSName& zone, dsmap_t &res)
