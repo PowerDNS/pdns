@@ -442,6 +442,9 @@ Reverse DNS functions
 
     *.static4.example.com IN LUA A "filterForward(createForward(), newNMG({'192.0.2.0/24', '10.0.0.0/8'}))"
 
+  Since 4.9.0: if the fallback parameter is an empty string, ``filterForward`` returns an empty set, yielding a NODATA answer.
+  You cannot combine this feature with DNSSEC.
+
 Helper functions
 ~~~~~~~~~~~~~~~~
 
