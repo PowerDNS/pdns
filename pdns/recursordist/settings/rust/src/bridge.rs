@@ -72,19 +72,19 @@ fn is_port_number(str: &str) -> bool {
 }
 
 pub fn validate_socket_address_or_name(field: &str, val: &String) -> Result<(), ValidationError> {
-    let sa = SocketAddr::from_str(val);
+    let sa = validate_socket_address(field, val);
     if sa.is_err() {
-        let ip = IpAddr::from_str(val);
-        if ip.is_err() {
-            if !hostname_validator::is_valid(val) {
-                let parts:Vec<&str> = val.split(':').collect();
-                if parts.len () != 2 || !hostname_validator::is_valid(parts[0]) || !is_port_number(parts[1]) {
-                    let msg = format!(
-                        "{}: value `{}' is not an IP, IP:port, name or name:port combination",
-                        field, val
-                    );
-                    return Err(ValidationError { msg });
-                }
+        if !hostname_validator::is_valid(val) {
+            let parts: Vec<&str> = val.split(':').collect();
+            if parts.len() != 2
+                || !hostname_validator::is_valid(parts[0])
+                || !is_port_number(parts[1])
+            {
+                let msg = format!(
+                    "{}: value `{}' is not an IP, IP:port, name or name:port combination",
+                    field, val
+                );
+                return Err(ValidationError { msg });
             }
         }
     }
@@ -163,9 +163,7 @@ pub fn parse_yaml_string_to_api_zones(str: &str) -> Result<ApiZones, serde_yaml:
     serde_yaml::from_str(str)
 }
 
-pub fn parse_yaml_string_to_allow_notify_for(
-    str: &str,
-) -> Result<Vec<String>, serde_yaml::Error> {
+pub fn parse_yaml_string_to_allow_notify_for(str: &str) -> Result<Vec<String>, serde_yaml::Error> {
     serde_yaml::from_str(str)
 }
 
@@ -240,10 +238,7 @@ pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), Valid
 }
 
 #[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
-pub fn validate_forward_zones(
-    field: &str,
-    vec: &Vec<ForwardZone>,
-) -> Result<(), ValidationError> {
+pub fn validate_forward_zones(field: &str, vec: &Vec<ForwardZone>) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))
 }
 
@@ -375,7 +370,9 @@ pub fn map_to_yaml_string(vec: &Vec<OldStyle>) -> Result<String, serde_yaml::Err
                         }
                         serde_yaml::Value::Sequence(seq)
                     }
-                    other => serde_yaml::Value::String("map_to_yaml_string: Unknown type: ".to_owned() + other),
+                    other => serde_yaml::Value::String(
+                        "map_to_yaml_string: Unknown type: ".to_owned() + other,
+                    ),
                 };
                 if entry.overriding {
                     let tagged_value = Box::new(serde_yaml::value::TaggedValue {
@@ -491,7 +488,10 @@ pub fn api_add_forward_zone(path: &str, forwardzone: ForwardZone) -> Result<(), 
 }
 
 // This function is called from C++, it needs to acquire the lock
-pub fn api_add_forward_zones(path: &str, forwardzones: &mut Vec<ForwardZone>) -> Result<(), std::io::Error> {
+pub fn api_add_forward_zones(
+    path: &str,
+    forwardzones: &mut Vec<ForwardZone>,
+) -> Result<(), std::io::Error> {
     let _lock = LOCK.lock().unwrap();
     let mut zones = api_read_zones_locked(path, true)?;
     zones.forward_zones.append(forwardzones);

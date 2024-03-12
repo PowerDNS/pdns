@@ -24,6 +24,7 @@
 
 #include "config.h"
 
+#include <condition_variable>
 #include <functional>
 #include <thread>
 
@@ -78,6 +79,7 @@ private:
     void trigger();
 
     std::atomic<bool> changes{false};
+
   private:
     void refreshLoop();
 

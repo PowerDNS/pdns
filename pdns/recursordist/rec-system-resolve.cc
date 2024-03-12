@@ -74,12 +74,12 @@ std::string serverID()
     cerr << "XXXXXXXXX SID case 1" << endl;
     return {};
   }
-  MOADNSParser parser(false,  reinterpret_cast<char *>(buffer.data()), buffer.size()); // NOLINT
+  MOADNSParser parser(false, reinterpret_cast<char*>(buffer.data()), buffer.size()); // NOLINT
   if (parser.d_header.rcode != RCode::NoError || parser.d_answers.size() != 1) {
     cerr << "XXXXXXXXX SID case 2" << endl;
     return {};
   }
-  const auto&  answer = parser.d_answers.at(0);
+  const auto& answer = parser.d_answers.at(0);
   if (answer.first.d_type == QType::TXT) {
     if (auto txt = getRR<TXTRecordContent>(answer.first); txt != nullptr) {
       cerr << "XXXXXXXXX SID is " << txt->d_text << endl;
@@ -89,7 +89,7 @@ std::string serverID()
       return txt->d_text;
     }
   }
-    cerr << "XXXXXXXXX SID case 3" << endl;
+  cerr << "XXXXXXXXX SID case 3" << endl;
   return {};
 }
 } // anonymous namespace
@@ -130,10 +130,10 @@ ComboAddress pdns::RecResolve::lookupAndRegister(const std::string& name, time_t
 {
   auto data = d_data.lock();
   if (auto iter = data->d_map.find(name); iter != data->d_map.end()) {
-      if (iter->second.d_ttd < now) {
-        return iter->second.d_address;
-      }
-      // If it's stale, re-resolve below
+    if (iter->second.d_ttd < now) {
+      return iter->second.d_address;
+    }
+    // If it's stale, re-resolve below
   }
   // We keep the lock while resolving, even though this might take a while...
   auto address = resolve(name);
