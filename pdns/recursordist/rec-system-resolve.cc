@@ -32,7 +32,6 @@
 #include "logging.hh"
 #include "noinitvector.hh"
 #include "threadname.hh"
-#include "syncres.hh"
 
 namespace
 {
@@ -91,11 +90,13 @@ std::string serverID()
 }
 } // anonymous namespace
 
-std::function<void()> pdns::RecResolve::s_callback;
+std::string pdns::RecResolve::s_serverID;
 time_t pdns::RecResolve::s_ttl{0};
+std::function<void()> pdns::RecResolve::s_callback;
 
-void pdns::RecResolve::setInstanceParameters(time_t ttl, const std::function<void()>& callback)
+void pdns::RecResolve::setInstanceParameters(std::string serverID, time_t ttl, const std::function<void()>& callback)
 {
+  pdns::RecResolve::s_serverID = std::move(serverID);
   pdns::RecResolve::s_ttl = ttl;
   pdns::RecResolve::s_callback = callback;
 }
@@ -250,9 +251,9 @@ void pdns::RecResolve::Refresher::refreshLoop()
       if (lastSelfCheck < time(nullptr) - 3600) {
         lastSelfCheck = time(nullptr);
         auto resolvedServerID = serverID();
-        if (resolvedServerID == SyncRes::s_serverID) {
+        if (resolvedServerID == s_serverID) {
           auto log = g_slog->withName("system-resolver");
-          log->info(Logr::Error, "id.server/CH/TXT resolves to my own server identidy", "id.server", Logging::Loggable(resolvedServerID));
+          log->info(Logr::Error, "id.server/CH/TXT resolves to my own server identity", "id.server", Logging::Loggable(resolvedServerID));
         }
       }
       changes = d_resolver.refresh(time(nullptr));

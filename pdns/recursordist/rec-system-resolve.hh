@@ -38,7 +38,7 @@ class RecResolve
 {
 public:
   // Should be called before any getInstance() call is done
-  static void setInstanceParameters(time_t ttl, const std::function<void()>& callback);
+  static void setInstanceParameters(std::string serverID, time_t ttl, const std::function<void()>& callback);
   static RecResolve& getInstance();
 
   RecResolve(time_t ttl = 60, const std::function<void()>& callback = nullptr);
@@ -95,6 +95,7 @@ private:
 
   Refresher d_refresher;
 
+  static std::string s_serverID;
   static std::function<void()> s_callback;
   static time_t s_ttl;
 };
