@@ -2255,7 +2255,7 @@ DOHFrontend
   :param table of headers: The custom headers to set for the HTTP response, if any. The default is to use the value of the ``customResponseHeaders`` parameter passed to :func:`addDOHLocal`.
 
 DOH3Frontend
-~~~~~~~~~~~
+~~~~~~~~~~~~
 
 .. class:: DOH3Frontend
 
