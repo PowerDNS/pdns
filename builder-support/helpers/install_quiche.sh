@@ -2,10 +2,10 @@
 set -v
 set -e
 
-readonly QUICHE_VERSION='0.20.0'
+readonly QUICHE_VERSION='0.20.1'
 readonly QUICHE_TARBALL="${QUICHE_VERSION}.tar.gz"
 readonly QUICHE_TARBALL_URL="https://github.com/cloudflare/quiche/archive/${QUICHE_TARBALL}"
-readonly QUICHE_TARBALL_HASH='7125bc82ddcf38fbfbc69882ccb2723bfb4d5bfeb42718b8291d26ec06042e38'
+readonly QUICHE_TARBALL_HASH='9c460d8ecf6c80c06bf9b42f91201ef33f912e2615a871ff2d0e50197b901c71'
 
 INSTALL_PREFIX=/usr
 SOEXT=so
