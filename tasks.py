@@ -8,8 +8,8 @@ import time
 auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
 
 clang_version = os.getenv('CLANG_VERSION', '13')
-quiche_version = '0.20.0'
-quiche_hash = '7125bc82ddcf38fbfbc69882ccb2723bfb4d5bfeb42718b8291d26ec06042e38'
+quiche_version = '0.20.1'
+quiche_hash = '9c460d8ecf6c80c06bf9b42f91201ef33f912e2615a871ff2d0e50197b901c71'
 
 all_build_deps = [
     'ccache',
