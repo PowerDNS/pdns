@@ -1348,7 +1348,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
       if (comboWriter->d_luaContext) {
         PolicyResult policyResult = PolicyResult::NoAction;
-        if (comboWriter->d_luaContext->d_postresolve_ffi) {
+        if (comboWriter->d_luaContext->hasPostResolveFFIfunc()) {
           RecursorLua4::PostResolveFFIHandle handle(dnsQuestion);
           resolver.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI);
           bool prResult = comboWriter->d_luaContext->postresolve_ffi(handle);
@@ -2201,7 +2201,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 #endif
 
     // We do not have a SyncRes specific Lua context at this point yet, so ok to use t_pdl
-    if (needECS || (t_pdl && (t_pdl->d_gettag || t_pdl->d_gettag_ffi)) || dnsheader->opcode == static_cast<unsigned>(Opcode::Notify)) {
+    if (needECS || (t_pdl && (t_pdl->hasGettagFunc() || t_pdl->hasGettagFFIFunc())) || dnsheader->opcode == static_cast<unsigned>(Opcode::Notify)) {
       try {
         EDNSOptionViewMap ednsOptions;
 
@@ -2215,14 +2215,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
         if (t_pdl) {
           try {
-            if (t_pdl->d_gettag_ffi) {
+            if (t_pdl->hasGettagFFIFunc()) {
               RecursorLua4::FFIParams params(qname, qtype, destination, source, ednssubnet.source, data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra, responsePaddingDisabled, meta);
 
               eventTrace.add(RecEventTrace::LuaGetTagFFI);
               ctag = t_pdl->gettag_ffi(params);
               eventTrace.add(RecEventTrace::LuaGetTagFFI, ctag, false);
             }
-            else if (t_pdl->d_gettag) {
+            else if (t_pdl->hasGettagFunc()) {
               eventTrace.add(RecEventTrace::LuaGetTag);
               ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, routingTag, proxyProtocolValues);
               eventTrace.add(RecEventTrace::LuaGetTag, ctag, false);
