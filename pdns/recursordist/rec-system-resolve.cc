@@ -57,7 +57,6 @@ PacketBuffer resolve(const string& name, QClass cls, QType type)
 {
   PacketBuffer answer(512);
   auto ret = res_query(name.c_str(), cls, type, answer.data(), static_cast<int>(answer.size()));
-  cerr << ret << endl;
   if (ret == -1) {
     answer.resize(0);
   }
@@ -71,31 +70,29 @@ std::string serverID()
 {
   auto buffer = resolve("id.server", QClass::CHAOS, QType::TXT);
   if (buffer.empty()) {
-    cerr << "XXXXXXXXX SID case 1" << endl;
     return {};
   }
   MOADNSParser parser(false, reinterpret_cast<char*>(buffer.data()), buffer.size()); // NOLINT
   if (parser.d_header.rcode != RCode::NoError || parser.d_answers.size() != 1) {
-    cerr << "XXXXXXXXX SID case 2" << endl;
     return {};
   }
-  const auto& answer = parser.d_answers.at(0);
-  if (answer.first.d_type == QType::TXT) {
-    if (auto txt = getRR<TXTRecordContent>(answer.first); txt != nullptr) {
-      cerr << "XXXXXXXXX SID is " << txt->d_text << endl;
-      if (txt->d_text.size() >= 2) {
+  const auto& dnsrecord = parser.d_answers.at(0).first;
+  if (dnsrecord.d_type == QType::TXT) {
+    if (auto txt = getRR<TXTRecordContent>(dnsrecord); txt != nullptr) {
+      const auto& text = txt->d_text;
+      if (text.size() >= 2 && text.at(0) == '"' && text.at(text.size() - 1) == '"') {
+        // remove quotes around text
         return txt->d_text.substr(1, txt->d_text.size() - 2);
       }
       return txt->d_text;
     }
   }
-  cerr << "XXXXXXXXX SID case 3" << endl;
   return {};
 }
 } // anonymous namespace
 
 std::function<void()> pdns::RecResolve::s_callback;
-time_t pdns::RecResolve::s_ttl;
+time_t pdns::RecResolve::s_ttl{0};
 
 void pdns::RecResolve::setInstanceParameters(time_t ttl, const std::function<void()>& callback)
 {
@@ -128,6 +125,9 @@ void pdns::RecResolve::startRefresher()
 
 ComboAddress pdns::RecResolve::lookupAndRegister(const std::string& name, time_t now)
 {
+  if (s_ttl == 0) {
+    throw PDNSException("config tried to resolve `" + name + "' but system resolver feature not enabled");
+  }
   auto data = d_data.lock();
   if (auto iter = data->d_map.find(name); iter != data->d_map.end()) {
     if (iter->second.d_ttd < now) {
@@ -247,10 +247,9 @@ void pdns::RecResolve::Refresher::refreshLoop()
       if (stop) {
         break;
       }
-      if (lastSelfCheck < time(nullptr) - 60) {
+      if (lastSelfCheck < time(nullptr) - 3600) {
         lastSelfCheck = time(nullptr);
         auto resolvedServerID = serverID();
-        cerr << "SyncRes::s_serverID " << SyncRes::s_serverID << endl;
         if (resolvedServerID == SyncRes::s_serverID) {
           auto log = g_slog->withName("system-resolver");
           log->info(Logr::Error, "id.server/CH/TXT resolves to my own server identidy", "id.server", Logging::Loggable(resolvedServerID));

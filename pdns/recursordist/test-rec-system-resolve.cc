@@ -8,9 +8,11 @@
 
 BOOST_AUTO_TEST_SUITE(rec_system_resolve)
 
-BOOST_AUTO_TEST_CASE(test_basic_resolee)
+BOOST_AUTO_TEST_CASE(test_basic_resolve)
 {
-  auto sysResolve = pdns::RecResolve();
+
+  pdns::RecResolve::setInstanceParameters(60, nullptr);
+  auto& sysResolve = pdns::RecResolve::getInstance();
 
   auto address = sysResolve.lookupAndRegister("localhost", time(nullptr));
   BOOST_CHECK(address.toString() == "127.0.0.1" || address.toString() == "::1");
