@@ -506,7 +506,7 @@ dState matchesNSEC(const DNSName& name, uint16_t qtype, const DNSName& nsecOwner
 
 [[nodiscard]] uint64_t getNSEC3DenialProofWorstCaseIterationsCount(uint8_t maxLabels, uint16_t iterations, size_t saltLength)
 {
-  return (iterations + 1U + (saltLength > 0 ? 1U : 0U)) * maxLabels;
+  return static_cast<uint64_t>((iterations + 1U + (saltLength > 0 ? 1U : 0U))) * maxLabels;
 }
 
 /*
