@@ -2,6 +2,21 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.1
+  :released: 14th of March 2024
+
+  This release does not contain any dnsdist code changes compared to 1.9.0.
+  The only thing that changed is the version of Quiche, because of a `security update <https://github.com/cloudflare/quiche/releases/tag/0.20.1>`_.
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13912
+
+    update Quiche to 0.20.1. Fixes `CVE-2024-1410 <https://www.cve.org/CVERecord?id=CVE-2024-1410>`_ and `CVE-2024-1765 <https://www.cve.org/CVERecord?id=CVE-2024-1765>`_.
+
+.. changelog::
   :version: 1.9.0
   :released: 16th of February 2024
 
