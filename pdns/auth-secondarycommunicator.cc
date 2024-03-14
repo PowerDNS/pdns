@@ -331,6 +331,9 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
         hasSOA = true;
         continue;
       }
+      if (rr.qtype == QType::NS) {
+        continue;
+      }
     }
 
     else if (rr.qname == DNSName("version") + di.zone && rr.qtype == QType::TXT) {
