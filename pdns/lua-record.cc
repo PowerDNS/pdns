@@ -1338,19 +1338,14 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       return result;
     });
 
-  lua.writeFunction("dblookup", [](const string& record, const string& type) {
+  lua.writeFunction("dblookup", [](const string& record, uint16_t qtype) {
     DNSName rec;
-    QType qtype;
     vector<string> ret;
     try {
       rec = DNSName(record);
-      qtype = type;
-      if (qtype.getCode() == 0) {
-        throw std::invalid_argument("unknown type");
-      }
     }
     catch (const std::exception& e) {
-      g_log << Logger::Error << "DB lookup cannot be performed, the name (" << record << ") or type (" << type << ") is malformed: " << e.what() << endl;
+      g_log << Logger::Error << "DB lookup cannot be performed, the name (" << record << ") is malformed: " << e.what() << endl;
       return ret;
     }
     try {

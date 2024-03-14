@@ -507,17 +507,19 @@ Helper functions
 
 .. function:: dblookup(name, type)
 
+  .. versionadded:: 4.9.0
+
   Does a database lookup for name and type, and returns a (possibly empty) array of string results.
 
   Please keep the following in mind:
 
   * it does not evaluate any LUA code found
-  * if you needed just one string, perhaps you want ``dblookup('www.example.org', 'A')[1]`` to take the first item from the array
+  * if you needed just one string, perhaps you want ``dblookup('www.example.org', pdns.A)[1]`` to take the first item from the array
   * some things, like ifurlup, don't like empty tables, so be careful not to accidentally look up a name that does not have any records of that type, if you are going to use the result in ``ifurlup``
 
   Example usage: ::
 
-    www IN LUA A "ifurlup('https://www.example.com/', {dblookup('www1.example.com', 'A'), dblookup('www2.example.com', 'A'), dblookup('www3.example.com', 'A')})"
+    www IN LUA A "ifurlup('https://www.example.com/', {dblookup('www1.example.com', pdns.A), dblookup('www2.example.com', pdns.A), dblookup('www3.example.com', pdns.A)})"
 
   :param string name: Name to look up in the database
-  :param string type: DNS type to look for
+  :param int type: DNS type to look for
