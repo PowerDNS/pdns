@@ -35,11 +35,7 @@
 #include "dnsdist-tcp-upstream.hh"
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
-GlobalStateHolder<vector<DNSDistRuleAction> > g_ruleactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_respruleactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitrespruleactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cacheInsertedRespRuleActions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredrespruleactions;
+GlobalStateHolder<std::vector<dnsdist::rules::RuleAction> > g_ruleactions;
 GlobalStateHolder<servers_t> g_dstates;
 
 QueryCount g_qcount;
@@ -83,10 +79,10 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
 
 static std::function<bool(PacketBuffer& response, DNSResponse& dr, bool muted)> s_processResponse;
 
-bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& localRespRuleActions, const std::vector<DNSDistResponseRuleAction>& localCacheInsertedRespRuleActions, DNSResponse& dr, bool muted)
+bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
 {
   if (s_processResponse) {
-    return s_processResponse(response, dr, muted);
+    return s_processResponse(response, dnsResponse, muted);
   }
 
   return false;

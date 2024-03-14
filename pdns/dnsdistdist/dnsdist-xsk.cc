@@ -39,8 +39,8 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
 {
   try {
     setThreadName("dnsdist/XskResp");
-    auto localRespRuleActions = g_respruleactions.getLocal();
-    auto localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
+    auto localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
+    auto localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
     auto pollfds = getPollFdsForWorker(*xskInfo);
     while (!dss->isStopped()) {
       poll(pollfds.data(), pollfds.size(), -1);

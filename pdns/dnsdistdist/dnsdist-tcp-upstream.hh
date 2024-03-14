@@ -10,13 +10,13 @@ class TCPClientThreadData
 {
 public:
   TCPClientThreadData():
-    localRespRuleActions(g_respruleactions.getLocal()), localCacheInsertedRespRuleActions(g_cacheInsertedRespRuleActions.getLocal()), mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
+    localRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal()), localCacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
   {
   }
 
   LocalHolders holders;
-  LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions;
-  LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions;
+  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions;
+  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   pdns::channel::Receiver<ConnectionInfo> queryReceiver;
   pdns::channel::Receiver<CrossProtocolQuery> crossProtocolQueryReceiver;
