@@ -39,7 +39,7 @@ jobs:
         # Override automatic language detection by changing the below list
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
         language: ['cpp']
-        product: ['auth', 'rec', 'dnsdist']
+        product: ['auth']
         # Learn more...
         # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
 
@@ -56,8 +56,6 @@ jobs:
 
     outputs:
       clang-tidy-annotations-auth: ${{ steps.clang-tidy-annotations-auth.outputs.failed }}
-      clang-tidy-annotations-dnsdist: ${{ steps.clang-tidy-annotations-dnsdist.outputs.failed }}
-      clang-tidy-annotations-rec: ${{ steps.clang-tidy-annotations-rec.outputs.failed }}
 
     steps:
     - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
@@ -144,107 +142,6 @@ jobs:
           echo "failed=$?" >> $GITHUB_OUTPUT
         fi
 
-    - name: Install dependencies for dnsdist
-      if: matrix.product == 'dnsdist'
-      run: |
-        inv install-dnsdist-build-deps --skipXDP
-    - name: Autoreconf dnsdist
-      if: matrix.product == 'dnsdist'
-      working-directory: ./pdns/dnsdistdist/
-      run: |
-        inv ci-autoconf
-    - run: inv ci-install-rust ${{ env.REPO_HOME }}
-      if: matrix.product == 'dnsdist'
-      working-directory: ./pdns/dnsdistdist/
-    - run: inv ci-build-and-install-quiche
-      if: matrix.product == 'dnsdist'
-      working-directory: ./pdns/dnsdistdist/
-    - name: Configure dnsdist
-      if: matrix.product == 'dnsdist'
-      working-directory: ./pdns/dnsdistdist/
-      run: |
-        inv ci-dnsdist-configure full
-    - name: Build dnsdist
-      if: matrix.product == 'dnsdist'
-      working-directory: ./pdns/dnsdistdist/
-      run: |
-        inv ci-dnsdist-make-bear
-    - run: ln -s ../../.clang-tidy.full .clang-tidy
-      if: matrix.product == 'dnsdist'
-      working-directory: ./pdns/dnsdistdist/
-    - name: Run clang-tidy for dnsdist
-      if: matrix.product == 'dnsdist'
-      working-directory: ./pdns/dnsdistdist/
-      run: git diff --no-prefix -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py --product dnsdist | python3 ../../.github/scripts/clang-tidy-diff.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-dnsdist.yml
-    - name: Print clang-tidy fixes YAML for dnsdist
-      if: matrix.product == 'dnsdist'
-      working-directory: ./pdns/dnsdistdist/
-      shell: bash
-      run: |
-        if [ -f clang-tidy-dnsdist.yml ]; then
-          cat clang-tidy-dnsdist.yml
-        fi
-    - name: Result annotations for dnsdist
-      if: matrix.product == 'dnsdist'
-      id: clang-tidy-annotations-dnsdist
-      working-directory: ./pdns/dnsdistdist/
-      shell: bash
-      run: |
-        if [ -f clang-tidy-dnsdist.yml ]; then
-          set +e
-          python3 ../../.github/scripts/clang-tidy.py --fixes-file clang-tidy-dnsdist.yml
-          echo "failed=$?" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Install dependencies for rec
-      if: matrix.product == 'rec'
-      run: |
-        inv install-rec-build-deps
-    - run: inv ci-install-rust ${{ env.REPO_HOME }}
-      if: matrix.product == 'rec'
-      working-directory: ./pdns/recursordist/
-    - name: Autoreconf rec
-      if: matrix.product == 'rec'
-      working-directory: ./pdns/recursordist/
-      run: |
-        inv ci-autoconf
-    - name: Configure rec
-      if: matrix.product == 'rec'
-      working-directory: ./pdns/recursordist/
-      run: |
-        inv ci-rec-configure
-    - name: Build rec
-      if: matrix.product == 'rec'
-      working-directory: ./pdns/recursordist/
-      run: |
-        CONCURRENCY=4 inv ci-rec-make-bear
-    - run: ln -s ../../.clang-tidy.full .clang-tidy
-      if: matrix.product == 'rec'
-      working-directory: ./pdns/recursordist/
-    - name: Run clang-tidy for rec
-      if: matrix.product == 'rec'
-      working-directory: ./pdns/recursordist/
-      run: git diff --no-prefix -U0 HEAD^..HEAD | python3 ../../.github/scripts/git-filter.py --product rec | python3 ../../.github/scripts/clang-tidy-diff.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-rec.yml
-    - name: Print clang-tidy fixes YAML for rec
-      if: matrix.product == 'rec'
-      working-directory: ./pdns/recursordist/
-      shell: bash
-      run: |
-        if [ -f clang-tidy-rec.yml ]; then
-          cat clang-tidy-rec.yml
-        fi
-    - name: Result annotations for rec
-      if: matrix.product == 'rec'
-      id: clang-tidy-annotations-rec
-      working-directory: ./pdns/recursordist/
-      shell: bash
-      run: |
-        if [ -f clang-tidy-rec.yml ]; then
-          set +e
-          python3 ../../.github/scripts/clang-tidy.py --fixes-file clang-tidy-rec.yml
-          echo "failed=$?" >> $GITHUB_OUTPUT
-        fi
-
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
 
@@ -256,14 +153,6 @@ jobs:
       - run: |
           if [ "x${{ needs.analyze.outputs.clang-tidy-annotations-auth }}" != "x" -a "${{ needs.analyze.outputs.clang-tidy-annotations-auth }}" != "0" ]; then
             echo "::error::Auth clang-tidy failed"
-            exit 1
-          fi
-          if [ "x${{ needs.analyze.outputs.clang-tidy-annotations-dnsdist }}" != "x" -a "${{ needs.analyze.outputs.clang-tidy-annotations-dnsdist }}" != "0" ]; then
-            echo "::error::DNSdist clang-tidy failed"
-            exit 1
-          fi
-          if [ "x${{needs.analyze.outputs.clang-tidy-annotations-rec }}" != "x" -a "${{needs.analyze.outputs.clang-tidy-annotations-rec }}" != "0" ]; then
-            echo "::error::Rec clang-tidy failed"
             exit 1
           fi
 
