@@ -32,6 +32,44 @@
 #include "iputils.hh"
 #include "lock.hh"
 
+/************************************************************************************************
+The pdns::RecResove class implements a facility to use the system configured resolver. At the moment
+of writing, this can only be used to configure forwarding by name instead of IP.
+ ************************************************************************************************/
+
+/************************************************************************************************
+DESIGN CONSIDERATIONS
+
+- all names looked up with lookupAndRegister() will be entered into a table.
+
+- the names in the table will ber periodically checked by a refresh thread. Set the period (before
+  starting to use the system resolver) by calling pdbs::RecResolve::setInstanceParameters().
+
+- if *a* name resolves to a different result than stored, we will call the callback. Curently this is
+   used to call the equivalent of rec_control reload-zones
+
+- A manual rec_control reload-zones will *also* flush the existng table before doing the reload, so
+  we force a re-resolve all names. See
+  rec_channel_rec.cc:reloadZoneConfigurationWithSysResolveReset()
+
+**************************************************************************************************/
+
+/************************************************************************************************
+PRACTICAL CONSIDERATIONS/IMPLEMENTATION LIMITS
+
+- Currently the facility is *only* used by the forwarding code
+
+- We resolve with AI_ADDRCONFIG, the address families enabled will depend on the network config
+  of the machine
+
+- We pick the first adress that getaddrinfo() produced. Currently no handling of multiple addresses
+  and/or multiple address famailies.
+
+- There is a check to detect *some* cases of self-resolve. This is done by resolving
+  id.server/CH/TXT and comparing the result to the system-id set. Both false positives and false
+  negatives can occur.
+
+**************************************************************************************************/
 namespace pdns
 {
 class RecResolve
@@ -39,19 +77,27 @@ class RecResolve
 public:
   // Should be called before any getInstance() call is done
   static void setInstanceParameters(std::string serverID, time_t ttl, const std::function<void()>& callback);
+  // Get "the" instance of the system resolver.
   static RecResolve& getInstance();
 
   RecResolve(time_t ttl = 60, const std::function<void()>& callback = nullptr);
   ~RecResolve();
+  // Lookup a name and register it in the names to be checked if not already there
   ComboAddress lookupAndRegister(const std::string& name, time_t now);
+  // Lookup a name which must be already registered
   ComboAddress lookup(const std::string& name);
+
+  // When an instance is created, it will runn a refresh thread, stop it wit this method
   void stopRefresher();
+  // And restart it again
   void startRefresher();
+  // Wipe one or all names
   void wipe(const std::string& name = "");
-  bool refresh(time_t now);
+  // Did we se a cahnage? Calling this functino will reset the flag.
   bool changeDetected();
 
 private:
+  bool refresh(time_t now);
   struct AddressData
   {
     ComboAddress d_address;
@@ -64,6 +110,7 @@ private:
   LockGuarded<ResolveData> d_data;
   const time_t d_ttl;
 
+  // This private class impements the refresher thread
   class Refresher
   {
   public:

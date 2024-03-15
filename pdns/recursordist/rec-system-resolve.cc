@@ -43,7 +43,8 @@ ComboAddress resolve(const std::string& name)
 
   struct addrinfo* res = nullptr;
   auto ret = getaddrinfo(name.c_str(), nullptr, &hints, &res);
-  // We pick the first address returned for now
+  // We pick the first address returned for now.
+  // XXX This might trigger unwanted "changes detected "if the sort order varies
   if (ret == 0) {
     auto address = ComboAddress{res->ai_addr, res->ai_addrlen};
     freeaddrinfo(res);
@@ -65,6 +66,7 @@ PacketBuffer resolve(const string& name, QClass cls, QType type)
   return answer;
 }
 
+// do a id.server/CH/TXT query
 std::string serverID()
 {
   auto buffer = resolve("id.server", QClass::CHAOS, QType::TXT);
@@ -167,7 +169,7 @@ void pdns::RecResolve::wipe(const string& name)
 
 bool pdns::RecResolve::refresh(time_t now)
 {
-  // The refrsh taks shol dnot take the lock for a long time, so we're working on a copy
+  // The refresh task should not take the lock for a long time, so we're working on a copy
   ResolveData copy;
   {
     auto data = d_data.lock();
@@ -190,7 +192,8 @@ bool pdns::RecResolve::refresh(time_t now)
         log->error(Logr::Error, "Name did not resolve", "name", Logging::Loggable(entry.first));
       }
       if (newAddress != entry.second.d_address) {
-        log->info(Logr::Debug, "Name resolved to new address", "name", Logging::Loggable(entry.first),
+        log->info(Logr::Debug, "Name resolved to new address",
+                  "name", Logging::Loggable(entry.first),
                   "address", Logging::Loggable(newAddress.toString()));
         // An address changed
         updated = true;

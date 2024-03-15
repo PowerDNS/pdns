@@ -3119,8 +3119,12 @@ This can be used to not count known failing (test) name validations in the ordin
         'default' : '0',
         'help' : 'Set TTL of system resolver feature, 0 (default) is disabled',
         'doc' : '''
-Sets TTL of the system resolver feature. This allows names to be used in the config in forwarding targets.
+Sets TTL in seconds of the system resolver feature.
+This allows names to be used in the config in forwarding targets.
+The TTL is used as a check interval to see if the names used in forwarding resolve to a different address than before.
+If that happens, the forward configuration is reloaded.
 Make sure the recursor itself is not used by the system resolver! Default is 0 (not enabled).
+A suggested value is 60.
  ''',
     'versionadded': '5.1.0'
     },
