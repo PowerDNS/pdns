@@ -2,6 +2,59 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.0
+  :released: 15th of March 2024
+
+  This is release 4.9.0 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  4.9 contains improvements to the API, ALIAS handling, catalog zones, and some tool improvements.
+  It also contains various bug fixes and smaller improvements, please see the list below.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13901
+
+    on OpenBSD, try harder to send on a non-blocking socket
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13900
+
+    LUA dblookup: switch qtype argument to int
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13899
+
+    revive remotebackend tests and fix failures
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13898
+
+    Docker: Only print config if debug flag is set
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13897
+
+    do not disable ns records at apex in consumer zones
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13896
+
+    catalog: include groups in hash calculation
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13895
+
+    LUA: support returning empty set in filterForward #13879
+
+.. changelog::
   :version: 4.9.0-beta2
   :released: 16th of February 2024
 
