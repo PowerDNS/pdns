@@ -3411,6 +3411,23 @@ bool SyncRes::nameserverIPBlockedByRPZ(const DNSFilterEngine& dfe, const ComboAd
   return false;
 }
 
+static bool shouldNotThrottle(const DNSName* name, const ComboAddress* address)
+{
+  if (name != nullptr) {
+    auto dontThrottleNames = g_dontThrottleNames.getLocal();
+    if (dontThrottleNames->check(*name)) {
+      return true;
+    }
+  }
+  if (address != nullptr) {
+    auto dontThrottleNetmasks = g_dontThrottleNetmasks.getLocal();
+    if (dontThrottleNetmasks->match(*address)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, std::vector<std::pair<DNSName, float>>::const_iterator& tns, const unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& /* flawedNSSet */, bool cacheOnly, unsigned int& nretrieveAddressesForNS)
 {
   vector<ComboAddress> result;
@@ -3433,8 +3450,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
     // Other exceptions should likely not throttle...
     catch (const ImmediateServFailException& ex) {
       if (s_nonresolvingnsmaxfails > 0 && d_outqueries > oldOutQueries) {
-        auto dontThrottleNames = g_dontThrottleNames.getLocal();
-        if (!dontThrottleNames->check(tns->first)) {
+        if (!shouldNotThrottle(&tns->first, nullptr)) {
           s_nonresolving.lock()->incr(tns->first, d_now);
         }
       }
@@ -3442,8 +3458,7 @@ vector<ComboAddress> SyncRes::retrieveAddressesForNS(const std::string& prefix, 
     }
     if (s_nonresolvingnsmaxfails > 0 && d_outqueries > oldOutQueries) {
       if (result.empty()) {
-        auto dontThrottleNames = g_dontThrottleNames.getLocal();
-        if (!dontThrottleNames->check(tns->first)) {
+        if (!shouldNotThrottle(&tns->first, nullptr)) {
           s_nonresolving.lock()->incr(tns->first, d_now);
         }
       }
@@ -5288,7 +5303,7 @@ void SyncRes::updateQueryCounts(const string& prefix, const DNSName& qname, cons
   }
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle) // NOLINT(readability-function-cognitive-complexity)
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle)
 {
   bool chained = false;
   LWResult::Result resolveret = LWResult::Result::Success;
@@ -5332,9 +5347,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   ++t_Counters.at(rec::RCode::auth).rcodeCounters.at(static_cast<uint8_t>(lwr.d_rcode));
 
   if (!dontThrottle) {
-    auto dontThrottleNames = g_dontThrottleNames.getLocal();
-    auto dontThrottleNetmasks = g_dontThrottleNetmasks.getLocal();
-    dontThrottle = dontThrottleNames->check(nsName) || dontThrottleNetmasks->match(remoteIP);
+    dontThrottle = shouldNotThrottle(&nsName, &remoteIP);
   }
 
   if (resolveret != LWResult::Result::Success) {
@@ -5847,7 +5860,9 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
             break;
           }
           /* was lame */
-          doThrottle(d_now.tv_sec, *remoteIP, qname, qtype, 60, 100);
+          if (!shouldNotThrottle(&tns->first, &*remoteIP)) {
+            doThrottle(d_now.tv_sec, *remoteIP, qname, qtype, 60, 100);
+          }
         }
 
         if (gotNewServers) {
