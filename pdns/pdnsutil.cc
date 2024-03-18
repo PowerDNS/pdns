@@ -3527,7 +3527,7 @@ try
     const auto algorithm = pdns::checked_stoi<unsigned int>(cmds.at(3));
 
     errno = 0;
-    std::unique_ptr<std::FILE, decltype(&std::fclose)> fp{std::fopen(filename.c_str(), "r"), &std::fclose};
+    pdns::UniqueFilePtr fp{std::fopen(filename.c_str(), "r")};
     if (fp == nullptr) {
       auto errMsg = pdns::getMessageFromErrno(errno);
       throw runtime_error("Failed to open PEM file `" + filename + "`: " + errMsg);

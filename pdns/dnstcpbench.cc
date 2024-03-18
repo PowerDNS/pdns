@@ -262,12 +262,12 @@ try
   std::vector<std::thread> workers;
   workers.reserve(numworkers);
 
-  std::unique_ptr<FILE, int(*)(FILE*)> fp{nullptr, fclose};
+  pdns::UniqueFilePtr fp{nullptr};
   if (!g_vm.count("file")) {
-    fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(0, "r"), fclose);
+    fp = pdns::UniqueFilePtr(fdopen(0, "r"));
   }
   else {
-    fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(g_vm["file"].as<string>().c_str(), "r"), fclose);
+    fp = pdns::UniqueFilePtr(fopen(g_vm["file"].as<string>().c_str(), "r"));
     if (!fp) {
       unixDie("Unable to open "+g_vm["file"].as<string>()+" for input");
     }

@@ -134,7 +134,7 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
   /* ensure that the partial zone file will only be accessible by the current user, not even
      by other users in the same group, and certainly not by other users. */
   umask(S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
-  auto filePtr = std::unique_ptr<FILE, int(*)(FILE*)>(fopen((fname+".partial").c_str(), "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fopen((fname+".partial").c_str(), "w"));
   if (!filePtr) {
     throw runtime_error("Unable to open file '"+fname+".partial' for writing: "+stringerror());
   }

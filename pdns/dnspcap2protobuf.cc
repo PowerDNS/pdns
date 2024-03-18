@@ -63,7 +63,7 @@ try {
 
   PcapPacketReader pr(argv[1]);
 
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(argv[2], "w"), fclose);
+  auto fp = pdns::UniqueFilePtr(fopen(argv[2], "w"));
   if (!fp) {
     cerr<<"Error opening output file "<<argv[2]<<": "<<stringerror()<<endl;
     exit(EXIT_FAILURE);

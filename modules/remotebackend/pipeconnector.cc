@@ -96,7 +96,7 @@ void PipeConnector::launch()
     setCloseOnExec(d_fd1[1]);
     close(d_fd2[1]);
     setCloseOnExec(d_fd2[0]);
-    if (!(d_fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(d_fd2[0], "r"), fclose))) {
+    if (!(d_fp = pdns::UniqueFilePtr(fdopen(d_fd2[0], "r")))) {
       throw PDNSException("Unable to associate a file pointer with pipe: " + stringerror());
     }
     if (d_timeout != 0) {
