@@ -388,7 +388,7 @@ static bool dumpZoneToDisk(Logr::log_t logger, const DNSName& zoneName, const st
     return false;
   }
 
-  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(fileDesc, "w+"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(fileDesc, "w+"));
   if (!filePtr) {
     int err = errno;
     close(fileDesc);

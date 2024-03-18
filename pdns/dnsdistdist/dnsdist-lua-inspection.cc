@@ -261,7 +261,7 @@ struct GrepQParams
 {
   boost::optional<Netmask> netmask;
   boost::optional<DNSName> name;
-  std::unique_ptr<FILE, decltype(&fclose)> outputFile{nullptr, fclose};
+  pdns::UniqueFilePtr outputFile{nullptr};
   int msec = -1;
 };
 
@@ -277,7 +277,7 @@ static std::optional<GrepQParams> parseGrepQParams(const LuaTypeOrArrayOf<std::s
         g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
         return std::nullopt;
       }
-      result.outputFile = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(fileDesc, "w"), fclose);
+      result.outputFile = pdns::UniqueFilePtr(fdopen(fileDesc, "w"));
       if (result.outputFile == nullptr) {
         g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
         close(fileDesc);

@@ -53,15 +53,15 @@ using namespace boost::assign;
 std::unique_ptr<DNSCryptoKeyEngine> DNSCryptoKeyEngine::makeFromISCFile(DNSKEYRecordContent& drc, const char* fname)
 {
   string sline, isc;
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
-  if(!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fopen(fname, "r"));
+  if(!filePtr) {
     throw runtime_error("Unable to read file '"+string(fname)+"' for generating DNS Private Key");
   }
 
-  while(stringfgets(fp.get(), sline)) {
+  while(stringfgets(filePtr.get(), sline)) {
     isc += sline;
   }
-  fp.reset();
+  filePtr.reset();
 
   auto dke = makeFromISCString(drc, isc);
   auto checkKeyErrors = std::vector<std::string>{};

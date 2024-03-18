@@ -95,7 +95,7 @@ public:
   static bool isSmallCoveringNSEC3(const DNSName& owner, const std::string& nextHash);
 
   void prune(time_t now);
-  size_t dumpToFile(std::unique_ptr<FILE, int (*)(FILE*)>& fp, const struct timeval& now);
+  size_t dumpToFile(pdns::UniqueFilePtr& filePtr, const struct timeval& now);
 
 private:
   struct ZoneEntry

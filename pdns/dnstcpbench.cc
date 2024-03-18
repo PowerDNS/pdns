@@ -262,24 +262,24 @@ try
   std::vector<std::thread> workers;
   workers.reserve(numworkers);
 
-  std::unique_ptr<FILE, int(*)(FILE*)> fp{nullptr, fclose};
+  pdns::UniqueFilePtr filePtr{nullptr};
   if (!g_vm.count("file")) {
-    fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(0, "r"), fclose);
+    filePtr = pdns::UniqueFilePtr(fdopen(0, "r"));
   }
   else {
-    fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(g_vm["file"].as<string>().c_str(), "r"), fclose);
-    if (!fp) {
+    filePtr = pdns::UniqueFilePtr(fopen(g_vm["file"].as<string>().c_str(), "r"));
+    if (!filePtr) {
       unixDie("Unable to open "+g_vm["file"].as<string>()+" for input");
     }
   }
   pair<string, string> q;
   string line;
-  while(stringfgets(fp.get(), line)) {
+  while(stringfgets(filePtr.get(), line)) {
     boost::trim_right(line);
     q=splitField(line, ' ');
     g_queries.push_back(BenchQuery(q.first, DNSRecordContent::TypeToNumber(q.second)));
   }
-  fp.reset();
+  filePtr.reset();
 
   for (unsigned int n = 0; n < numworkers; ++n) {
     workers.push_back(std::thread(worker));

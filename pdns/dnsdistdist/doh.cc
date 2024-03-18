@@ -160,7 +160,8 @@ public:
 
   std::map<int, std::string> d_ocspResponses;
   std::unique_ptr<OpenSSLTLSTicketKeysRing> d_ticketKeys{nullptr};
-  std::unique_ptr<FILE, int(*)(FILE*)> d_keyLogFile{nullptr, fclose};
+  // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
+  pdns::UniqueFilePtr d_keyLogFile{nullptr};
   ClientState* d_cs{nullptr};
   time_t d_ticketsKeyRotationDelay{0};
 
