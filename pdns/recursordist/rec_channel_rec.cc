@@ -326,7 +326,7 @@ static uint64_t dumpAggressiveNSECCache(int fd)
   if (newfd == -1) {
     return 0;
   }
-  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  auto fp = pdns::UniqueFilePtr(fdopen(newfd, "w"));
   if (!fp) {
     return 0;
   }
@@ -480,7 +480,7 @@ static RecursorControlChannel::Answer doDumpRPZ(int s, T begin, T end)
     return {1, "No RPZ zone named " + zoneName + "\n"};
   }
 
-  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(fdw, "w"), fclose);
+  auto fp = pdns::UniqueFilePtr(fdopen(fdw, "w"));
   if (!fp) {
     int err = errno;
     return {1, "converting file descriptor: " + stringerror(err) + "\n"};

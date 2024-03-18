@@ -1162,7 +1162,7 @@ uint64_t SyncRes::doEDNSDump(int fileDesc)
   if (newfd == -1) {
     return 0;
   }
-  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
   if (!filePtr) {
     close(newfd);
     return 0;
@@ -1214,7 +1214,7 @@ uint64_t SyncRes::doDumpNSSpeeds(int fileDesc)
   if (newfd == -1) {
     return 0;
   }
-  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
   if (!filePtr) {
     close(newfd);
     return 0;
@@ -1295,7 +1295,7 @@ uint64_t SyncRes::doDumpThrottleMap(int fileDesc)
   if (newfd == -1) {
     return 0;
   }
-  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
   if (!filePtr) {
     close(newfd);
     return 0;
@@ -1342,7 +1342,7 @@ uint64_t SyncRes::doDumpFailedServers(int fileDesc)
   if (newfd == -1) {
     return 0;
   }
-  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
   if (!filePtr) {
     close(newfd);
     return 0;
@@ -1382,7 +1382,7 @@ uint64_t SyncRes::doDumpNonResolvingNS(int fileDesc)
   if (newfd == -1) {
     return 0;
   }
-  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
   if (!filePtr) {
     close(newfd);
     return 0;
@@ -1422,7 +1422,7 @@ uint64_t SyncRes::doDumpSavedParentNSSets(int fileDesc)
   if (newfd == -1) {
     return 0;
   }
-  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
   if (!filePtr) {
     close(newfd);
     return 0;
@@ -1467,7 +1467,7 @@ uint64_t SyncRes::doDumpDoTProbeMap(int fileDesc)
   if (newfd == -1) {
     return 0;
   }
-  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
   if (!filePtr) {
     close(newfd);
     return 0;

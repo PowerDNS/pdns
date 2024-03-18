@@ -45,7 +45,7 @@ static string makeFile(const string& lines)
   std::array<char, 20> temp{"/tmp/rpzXXXXXXXXXX"};
   int fileDesc = mkstemp(temp.data());
   BOOST_REQUIRE(fileDesc > 0);
-  auto filePtr = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(fileDesc, "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(fileDesc, "w"));
   BOOST_REQUIRE(filePtr);
   size_t written = fwrite(lines.data(), 1, lines.length(), filePtr.get());
   BOOST_REQUIRE(written == lines.length());
