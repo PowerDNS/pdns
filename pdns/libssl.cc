@@ -1040,13 +1040,13 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
     return;
   }
 
-  auto fp = reinterpret_cast<FILE*>(SSL_CTX_get_ex_data(sslCtx, s_keyLogIndex));
-  if (fp == nullptr) {
+  auto filePtr = reinterpret_cast<FILE*>(SSL_CTX_get_ex_data(sslCtx, s_keyLogIndex));
+  if (filePtr == nullptr) {
     return;
   }
 
-  fprintf(fp, "%s\n", line);
-  fflush(fp);
+  fprintf(filePtr, "%s\n", line);
+  fflush(filePtr);
 }
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 

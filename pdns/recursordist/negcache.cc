@@ -276,9 +276,9 @@ void NegCache::prune(time_t now, size_t maxEntries)
 }
 
 /*!
- * Writes the whole negative cache to fp
+ * Writes the whole negative cache to fd
  *
- * \param fp A pointer to an open FILE object
+ * \param fd A pointer to an open FILE object
  */
 size_t NegCache::doDump(int fd, size_t maxCacheEntries, time_t now)
 {
@@ -286,12 +286,12 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries, time_t now)
   if (newfd == -1) {
     return 0;
   }
-  auto fp = pdns::UniqueFilePtr(fdopen(newfd, "w"));
-  if (!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
+  if (!filePtr) {
     close(newfd);
     return 0;
   }
-  fprintf(fp.get(), "; negcache dump follows\n;\n");
+  fprintf(filePtr.get(), "; negcache dump follows\n;\n");
 
   size_t ret = 0;
 
@@ -301,7 +301,7 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries, time_t now)
   for (auto& mc : d_maps) {
     auto m = mc.lock();
     const auto shardSize = m->d_map.size();
-    fprintf(fp.get(), "; negcache shard %zu; size %zu\n", shard, shardSize);
+    fprintf(filePtr.get(), "; negcache shard %zu; size %zu\n", shard, shardSize);
     min = std::min(min, shardSize);
     max = std::max(max, shardSize);
     shard++;
@@ -309,21 +309,21 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries, time_t now)
     for (const NegCacheEntry& ne : sidx) {
       ret++;
       int64_t ttl = ne.d_ttd - now;
-      fprintf(fp.get(), "%s %" PRId64 " IN %s VIA %s ; (%s) origttl=%" PRIu32 " ss=%hu\n", ne.d_name.toString().c_str(), ttl, ne.d_qtype.toString().c_str(), ne.d_auth.toString().c_str(), vStateToString(ne.d_validationState).c_str(), ne.d_orig_ttl, ne.d_servedStale);
+      fprintf(filePtr.get(), "%s %" PRId64 " IN %s VIA %s ; (%s) origttl=%" PRIu32 " ss=%hu\n", ne.d_name.toString().c_str(), ttl, ne.d_qtype.toString().c_str(), ne.d_auth.toString().c_str(), vStateToString(ne.d_validationState).c_str(), ne.d_orig_ttl, ne.d_servedStale);
       for (const auto& rec : ne.authoritySOA.records) {
-        fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
+        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
       }
       for (const auto& sig : ne.authoritySOA.signatures) {
-        fprintf(fp.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.getContent()->getZoneRepresentation().c_str());
+        fprintf(filePtr.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.getContent()->getZoneRepresentation().c_str());
       }
       for (const auto& rec : ne.DNSSECRecords.records) {
-        fprintf(fp.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
+        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
       }
       for (const auto& sig : ne.DNSSECRecords.signatures) {
-        fprintf(fp.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.getContent()->getZoneRepresentation().c_str());
+        fprintf(filePtr.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.getContent()->getZoneRepresentation().c_str());
       }
     }
   }
-  fprintf(fp.get(), "; negcache size: %zu/%zu shards: %zu min/max shard size: %zu/%zu\n", size(), maxCacheEntries, d_maps.size(), min, max);
+  fprintf(filePtr.get(), "; negcache size: %zu/%zu shards: %zu min/max shard size: %zu/%zu\n", size(), maxCacheEntries, d_maps.size(), min, max);
   return ret;
 }

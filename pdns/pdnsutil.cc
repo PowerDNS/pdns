@@ -3527,14 +3527,14 @@ try
     const auto algorithm = pdns::checked_stoi<unsigned int>(cmds.at(3));
 
     errno = 0;
-    pdns::UniqueFilePtr fp{std::fopen(filename.c_str(), "r")};
-    if (fp == nullptr) {
+    pdns::UniqueFilePtr filePtr{std::fopen(filename.c_str(), "r")};
+    if (filePtr == nullptr) {
       auto errMsg = pdns::getMessageFromErrno(errno);
       throw runtime_error("Failed to open PEM file `" + filename + "`: " + errMsg);
     }
 
     DNSKEYRecordContent drc;
-    shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(drc, algorithm, *fp, filename)};
+    shared_ptr<DNSCryptoKeyEngine> key{DNSCryptoKeyEngine::makeFromPEMFile(drc, algorithm, *filePtr, filename)};
     if (!key) {
       cerr << "Could not convert key from PEM to internal format" << endl;
       return 1;

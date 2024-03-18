@@ -63,8 +63,8 @@ try {
 
   PcapPacketReader pr(argv[1]);
 
-  auto fp = pdns::UniqueFilePtr(fopen(argv[2], "w"));
-  if (!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fopen(argv[2], "w"));
+  if (!filePtr) {
     cerr<<"Error opening output file "<<argv[2]<<": "<<stringerror()<<endl;
     exit(EXIT_FAILURE);
   }
@@ -150,8 +150,8 @@ try {
       }
 
       uint16_t mlen = htons(pbBuffer.length());
-      fwrite(&mlen, 1, sizeof(mlen), fp.get());
-      fwrite(pbBuffer.c_str(), 1, pbBuffer.length(), fp.get());
+      fwrite(&mlen, 1, sizeof(mlen), filePtr.get());
+      fwrite(pbBuffer.c_str(), 1, pbBuffer.length(), filePtr.get());
     }
   }
   catch (const std::exception& e) {

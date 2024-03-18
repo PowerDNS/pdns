@@ -901,33 +901,33 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   return true;
 }
 
-size_t AggressiveNSECCache::dumpToFile(pdns::UniqueFilePtr& fp, const struct timeval& now)
+size_t AggressiveNSECCache::dumpToFile(pdns::UniqueFilePtr& filePtr, const struct timeval& now)
 {
   size_t ret = 0;
 
   auto zones = d_zones.read_lock();
-  zones->visit([&ret, now, &fp](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
+  zones->visit([&ret, now, &filePtr](const SuffixMatchTree<std::shared_ptr<LockGuarded<ZoneEntry>>>& node) {
     if (!node.d_value) {
       return;
     }
 
     auto zone = node.d_value->lock();
-    fprintf(fp.get(), "; Zone %s\n", zone->d_zone.toString().c_str());
+    fprintf(filePtr.get(), "; Zone %s\n", zone->d_zone.toString().c_str());
 
     for (const auto& entry : zone->d_entries) {
       int64_t ttl = entry.d_ttd - now.tv_sec;
       try {
-        fprintf(fp.get(), "%s %" PRId64 " IN %s %s\n", entry.d_owner.toString().c_str(), ttl, zone->d_nsec3 ? "NSEC3" : "NSEC", entry.d_record->getZoneRepresentation().c_str());
+        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s\n", entry.d_owner.toString().c_str(), ttl, zone->d_nsec3 ? "NSEC3" : "NSEC", entry.d_record->getZoneRepresentation().c_str());
         for (const auto& signature : entry.d_signatures) {
-          fprintf(fp.get(), "- RRSIG %s\n", signature->getZoneRepresentation().c_str());
+          fprintf(filePtr.get(), "- RRSIG %s\n", signature->getZoneRepresentation().c_str());
         }
         ++ret;
       }
       catch (const std::exception& e) {
-        fprintf(fp.get(), "; Error dumping record from zone %s: %s\n", zone->d_zone.toString().c_str(), e.what());
+        fprintf(filePtr.get(), "; Error dumping record from zone %s: %s\n", zone->d_zone.toString().c_str(), e.what());
       }
       catch (...) {
-        fprintf(fp.get(), "; Error dumping record from zone %s\n", zone->d_zone.toString().c_str());
+        fprintf(filePtr.get(), "; Error dumping record from zone %s\n", zone->d_zone.toString().c_str());
       }
     }
   });
