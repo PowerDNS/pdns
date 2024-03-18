@@ -23,6 +23,7 @@ on:
           debian-bookworm
           ubuntu-focal
           ubuntu-jammy
+          ubuntu-noble
       ref:
         description: git ref to checkout
         type: string
