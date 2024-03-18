@@ -1260,8 +1260,11 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ba
        We don't want to reconnect the real socket if the healthcheck failed,
        because it's not using the same socket.
     */
-    if (!healthCheck && (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH || savederrno == EBADF)) {
-      backend->reconnect();
+    if (!healthCheck) {
+      if (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH || savederrno == EBADF) {
+        backend->reconnect();
+      }
+      backend->reportTimeoutOrError();
     }
   }
 
