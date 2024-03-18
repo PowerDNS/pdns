@@ -861,7 +861,7 @@ bool stringfgets(FILE* fp, std::string& line)
 bool readFileIfThere(const char* fname, std::string* line)
 {
   line->clear();
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
+  auto fp = pdns::UniqueFilePtr(fopen(fname, "r"));
   if (!fp) {
     return false;
   }
@@ -1751,9 +1751,16 @@ bool constantTimeStringEquals(const std::string& a, const std::string& b)
 
 namespace pdns
 {
+struct CloseDirDeleter
+{
+  void operator()(DIR* dir) {
+    closedir(dir);
+  }
+};
+
 std::optional<std::string> visit_directory(const std::string& directory, const std::function<bool(ino_t inodeNumber, const std::string_view& name)>& visitor)
 {
-  auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(directory.c_str()), closedir);
+  auto dirHandle = std::unique_ptr<DIR, CloseDirDeleter>(opendir(directory.c_str()));
   if (!dirHandle) {
     auto err = errno;
     return std::string("Error opening directory '" + directory + "': " + stringerror(err));
