@@ -1753,7 +1753,7 @@ namespace pdns
 {
 struct CloseDirDeleter
 {
-  void operator()(DIR* dir) {
+  void operator()(DIR* dir) const noexcept {
     closedir(dir);
   }
 };
