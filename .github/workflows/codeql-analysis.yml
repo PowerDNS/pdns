@@ -212,7 +212,7 @@ jobs:
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
       run: |
-        inv ci-rec-configure
+        inv ci-rec-configure full
     - name: Build rec
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
