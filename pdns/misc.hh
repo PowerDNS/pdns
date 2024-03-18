@@ -852,4 +852,6 @@ struct FilePtrDeleter
 };
 
 using UniqueFilePtr = std::unique_ptr<FILE, FilePtrDeleter>;
+
+UniqueFilePtr openFileForWriting(const std::string& filePath, mode_t permissions, bool mustNotExist = true, bool appendIfExists = false);
 }

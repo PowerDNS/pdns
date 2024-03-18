@@ -1053,20 +1053,13 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
 pdns::UniqueFilePtr libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
-  int fd = open(logFile.c_str(),  O_WRONLY | O_CREAT | O_APPEND, 0600);
-  if (fd == -1) {
-    unixDie("Error opening TLS log file '" + logFile + "'");
-  }
-  auto filePtr = pdns::UniqueFilePtr(fdopen(fd, "a"));
+  auto filePtr = pdns::openFileForWriting(logFile, 0600, false, true);
   if (!filePtr) {
-    int error = errno; // close might clobber errno
-    close(fd);
-    throw std::runtime_error("Error opening TLS log file '" + logFile + "': " + stringerror(error));
+    auto error = errno;
+    throw std::runtime_error("Error opening file " + logFile + " for writing: " + stringerror(error));
   }
-
   SSL_CTX_set_ex_data(ctx.get(), s_keyLogIndex, filePtr.get());
   SSL_CTX_set_keylog_callback(ctx.get(), &libssl_key_log_file_callback);
-
   return filePtr;
 #else
   return {};
