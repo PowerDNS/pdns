@@ -23,6 +23,7 @@ on:
           debian-bookworm
           ubuntu-focal
           ubuntu-jammy
+          ubuntu-noble
       ref:
         description: git ref to checkout
         type: string
@@ -76,6 +77,7 @@ jobs:
       pkghashes-debian-bookworm: ${{ steps.pkghashes.outputs.pkghashes-debian-bookworm }}
       pkghashes-ubuntu-focal: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-focal }}
       pkghashes-ubuntu-jammy: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-jammy }}
+      pkghashes-ubuntu-noble: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-noble }}
       srchashes: ${{ steps.srchashes.outputs.srchashes }}
     steps:
       - uses: actions/checkout@v4
