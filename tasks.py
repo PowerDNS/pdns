@@ -490,20 +490,40 @@ def ci_auth_configure(c):
 
 
 @task
-def ci_rec_configure(c):
+def ci_rec_configure(c, features):
     unittests = get_unit_tests()
 
-    configure_cmd = " ".join([
-        get_base_configure_cmd(),
-        "--enable-nod",
-        "--prefix=/opt/pdns-recursor",
-        "--with-lua=luajit",
-        "--with-libcap",
-        "--with-net-snmp",
-        "--enable-dns-over-tls",
-        "--enable-verbose-logging",
-        unittests,
-    ])
+    if features == 'full':
+        configure_cmd = " ".join([
+            get_base_configure_cmd(),
+            "--prefix=/opt/pdns-recursor",
+            "--enable-option-checking",
+            "--enable-verbose-logging",
+            "--enable-dns-over-tls",
+            "--enable-nod",
+            "--with-libcap",
+            "--with-lua=luajit",
+            "--with-net-snmp",
+            unittests,
+        ])
+    else:
+        configure_cmd = " ".join([
+            get_base_configure_cmd(),
+            "--prefix=/opt/pdns-recursor",
+            "--enable-option-checking",
+            "--enable-verbose-logging",
+            "--disable-dns-over-tls",
+            "--disable-dnstap",
+            "--disable-nod",
+            "--disable-systemd",
+            "--with-lua=luajit",
+            "--without-libcap",
+            "--without-libcurl",
+            "--without-libdecaf",
+            "--without-libsodium",
+            "--without-net-snmp",
+            unittests,
+        ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
         c.run('cat config.log')

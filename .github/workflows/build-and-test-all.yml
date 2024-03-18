@@ -115,6 +115,10 @@ jobs:
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
+        features: [least, full]
+        exclude:
+          - sanitizers: tsan
+            features: least
     container:
       image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
@@ -156,17 +160,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: recursor-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: recursor-${{ matrix.sanitizers }}-ccache-
+          key: recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-
       - run: inv ci-install-rust ${{ env.REPO_HOME }}
         working-directory: ./pdns/recursordist/
       - run: inv ci-autoconf
         working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-configure
+      - run: inv ci-rec-configure ${{ matrix.features }}
         working-directory: ./pdns/recursordist/
       - run: inv ci-make-distdir
         working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-configure
+      - run: inv ci-rec-configure ${{ matrix.features }}
       - run: inv ci-rec-make-bear
       - run: inv ci-rec-run-unit-tests
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
@@ -175,7 +179,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
-          flag-name: rec-unit-${{ matrix.sanitizers }}
+          flag-name: rec-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
@@ -185,7 +189,7 @@ jobs:
       - name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: pdns-recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
           retention-days: 1
 
@@ -573,7 +577,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: inv apt-fresh
       - run: inv add-auth-repo  ${{ matrix.dist_name }} ${{ matrix.dist_release_name }} ${{ matrix.pdns_repo_version }}
@@ -586,7 +590,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
-          flag-name: rec-api
+          flag-name: rec-api-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
@@ -630,7 +634,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: inv apt-fresh
       - run: inv add-auth-repo ${{ matrix.dist_name }} ${{ matrix.dist_release_name }} ${{ matrix.pdns_repo_version }}
@@ -643,7 +647,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
-          flag-name: rec-regression
+          flag-name: rec-regression-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
@@ -687,7 +691,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: inv install-clang-runtime
       - run: inv install-rec-bulk-deps
@@ -698,7 +702,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
-          flag-name: rec-regression-bulk
+          flag-name: rec-regression-bulk-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
