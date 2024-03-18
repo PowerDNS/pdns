@@ -63,9 +63,11 @@ try {
 
   PcapPacketReader pr(argv[1]);
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): it's argv..
   auto filePtr = pdns::openFileForWriting(argv[2], 0600, true, false);
   if (!filePtr) {
     auto error = errno;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): it's argv..
     cerr<<"Error opening output file "<<argv[2]<<": "<<stringerror(error)<<endl;
     exit(EXIT_FAILURE);
   }
