@@ -471,18 +471,18 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 {
   const EVP_MD* rmd = EVP_sha256();
 
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(certFile.c_str(), "r"), fclose);
+  auto fp = pdns::UniqueFilePtr(fopen(certFile.c_str(), "r"));
   if (!fp) {
     throw std::runtime_error("Unable to open '" + certFile + "' when loading the certificate to generate an OCSP response");
   }
   auto cert = std::unique_ptr<X509, void(*)(X509*)>(PEM_read_X509_AUX(fp.get(), nullptr, nullptr, nullptr), X509_free);
 
-  fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(caCert.c_str(), "r"), fclose);
+  fp = pdns::UniqueFilePtr(fopen(caCert.c_str(), "r"));
   if (!fp) {
     throw std::runtime_error("Unable to open '" + caCert + "' when loading the issuer certificate to generate an OCSP response");
   }
   auto issuer = std::unique_ptr<X509, void(*)(X509*)>(PEM_read_X509_AUX(fp.get(), nullptr, nullptr, nullptr), X509_free);
-  fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(caKey.c_str(), "r"), fclose);
+  fp = pdns::UniqueFilePtr(fopen(caKey.c_str(), "r"));
   if (!fp) {
     throw std::runtime_error("Unable to open '" + caKey + "' when loading the issuer key to generate an OCSP response");
   }
@@ -939,7 +939,7 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
     if (!pair.d_key) {
 #if defined(HAVE_SSL_CTX_USE_CERT_AND_KEY)
       // If no separate key is given, treat it as a pkcs12 file
-      auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(pair.d_cert.c_str(), "r"), fclose);
+      auto fp = pdns::UniqueFilePtr(fopen(pair.d_cert.c_str(), "r"));
       if (!fp) {
         throw std::runtime_error("Unable to open file " + pair.d_cert);
       }
@@ -1050,14 +1050,14 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
 }
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 
-std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const std::string& logFile)
+pdns::UniqueFilePtr libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
   int fd = open(logFile.c_str(),  O_WRONLY | O_CREAT | O_APPEND, 0600);
   if (fd == -1) {
     unixDie("Error opening TLS log file '" + logFile + "'");
   }
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "a"), fclose);
+  auto fp = pdns::UniqueFilePtr(fdopen(fd, "a"));
   if (!fp) {
     int error = errno; // close might clobber errno
     close(fd);
@@ -1069,7 +1069,7 @@ std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL
 
   return fp;
 #else
-  return std::unique_ptr<FILE, int(*)(FILE*)>(nullptr, fclose);
+  return pdns::UniqueFilePtr(nullptr);
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 }
 
