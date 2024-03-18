@@ -80,7 +80,7 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 %install
 make install DESTDIR=%{buildroot}
 
-%{__mv} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf{-dist,}
+#%{__mv} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf{-dist,}
 %{__mkdir} %{buildroot}%{_sysconfdir}/%{name}/recursor.d
 
 # change user and group to pdns-recursor and add default include-dir
@@ -88,7 +88,7 @@ sed -i \
     -e 's/# setuid=/setuid=pdns-recursor/' \
     -e 's/# setgid=/setgid=pdns-recursor/' \
     -e 's!# include-dir=.*!&\ninclude-dir=%{_sysconfdir}/%{name}/recursor.d!' \
-    %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
+    %{buildroot}%{_sysconfdir}/%{name}/recursor.yml-dist
 
 # The EL7 and 8 systemd actually supports %t, but its version number is older than that, so we do use seperate runtime dirs, but don't rely on RUNTIME_DIRECTORY
 %if 0%{?rhel} < 9
@@ -106,6 +106,9 @@ getent passwd pdns-recursor > /dev/null || \
 exit 0
 
 %post
+if [ ! -e %{_sysconfdir}/%{name}/recursor.conf -a ! -e %{_sysconfdir}/%{name}/recursor.yml ]; then
+    cp %{_sysconfdir}/%{name}/recursor.yml-dist %{_sysconfdir}/%{name}/recursor.yml
+fi
 systemctl daemon-reload ||:
 %systemd_post %{name}.service
 
@@ -124,6 +127,6 @@ systemctl daemon-reload ||:
 %{_unitdir}/pdns-recursor@.service
 %dir %{_sysconfdir}/%{name}
 %dir %{_sysconfdir}/%{name}/recursor.d
-%config(noreplace) %{_sysconfdir}/%{name}/recursor.conf
+#%config(noreplace) %{_sysconfdir}/%{name}/recursor.conf
 %config %{_sysconfdir}/%{name}/recursor.yml-dist
 %doc README
