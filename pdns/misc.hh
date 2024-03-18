@@ -846,7 +846,7 @@ struct FilePtrDeleter
      - we avoid the annoying "ignoring attributes on template argument ‘int (*)(FILE*)’"
        warning from the compiler, which is there because fclose is tagged as __nonnull((1))
   */
-  void operator()(FILE* filePtr) {
+  void operator()(FILE* filePtr) const noexcept {
     fclose(filePtr);
   }
 };
