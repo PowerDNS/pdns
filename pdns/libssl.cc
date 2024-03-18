@@ -1040,7 +1040,8 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
     return;
   }
 
-  auto filePtr = reinterpret_cast<FILE*>(SSL_CTX_get_ex_data(sslCtx, s_keyLogIndex));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): OpenSSL's API
+  auto* filePtr = reinterpret_cast<FILE*>(SSL_CTX_get_ex_data(sslCtx, s_keyLogIndex));
   if (filePtr == nullptr) {
     return;
   }

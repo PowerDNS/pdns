@@ -1789,14 +1789,14 @@ UniqueFilePtr openFileForWriting(const std::string& filePath, mode_t permissions
   }
   int fileDesc = open(filePath.c_str(), flags, permissions);
   if (fileDesc == -1) {
-    return UniqueFilePtr(nullptr);
+    return {};
   }
   auto filePtr = pdns::UniqueFilePtr(fdopen(fileDesc, appendIfExists ? "a" : "w"));
   if (!filePtr) {
     auto error = errno;
     close(fileDesc);
     errno = error;
-    return UniqueFilePtr(nullptr);
+    return {};
   }
   return filePtr;
 }
