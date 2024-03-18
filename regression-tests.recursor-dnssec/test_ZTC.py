@@ -15,6 +15,23 @@ dnssec=validate
 zoneToCache(".", "axfr", "193.0.14.129") -- k-root
 """
 
+    @classmethod
+    def setUpClass(cls):
+
+        # we don't need all the auth stuff
+        cls.setUpSockets()
+        cls.startResponders()
+
+        confdir = os.path.join('configs', cls._confdir)
+        cls.createConfigDir(confdir)
+
+        cls.generateRecursorConfig(confdir)
+        cls.startRecursor(confdir, cls._recursorPort)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tearDownRecursor()
+
     def testZTC(self):
         grepCmd = ['grep', 'validationStatus="Secure"', 'configs/' + self._confdir + '/recursor.log']
         ret = b''
