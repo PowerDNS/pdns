@@ -326,15 +326,15 @@ static uint64_t dumpAggressiveNSECCache(int fd)
   if (newfd == -1) {
     return 0;
   }
-  auto fp = pdns::UniqueFilePtr(fdopen(newfd, "w"));
-  if (!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
+  if (!filePtr) {
     return 0;
   }
-  fprintf(fp.get(), "; aggressive NSEC cache dump follows\n;\n");
+  fprintf(filePtr.get(), "; aggressive NSEC cache dump follows\n;\n");
 
   struct timeval now;
   Utility::gettimeofday(&now, nullptr);
-  return g_aggressiveNSECCache->dumpToFile(fp, now);
+  return g_aggressiveNSECCache->dumpToFile(filePtr, now);
 }
 
 static uint64_t* pleaseDumpEDNSMap(int fd)
@@ -480,13 +480,13 @@ static RecursorControlChannel::Answer doDumpRPZ(int s, T begin, T end)
     return {1, "No RPZ zone named " + zoneName + "\n"};
   }
 
-  auto fp = pdns::UniqueFilePtr(fdopen(fdw, "w"));
-  if (!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fdopen(fdw, "w"));
+  if (!filePtr) {
     int err = errno;
     return {1, "converting file descriptor: " + stringerror(err) + "\n"};
   }
 
-  zone->dump(fp.get());
+  zone->dump(filePtr.get());
 
   return {0, "done\n"};
 }
