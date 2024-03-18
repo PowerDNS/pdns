@@ -836,4 +836,20 @@ private:
 namespace pdns
 {
 [[nodiscard]] std::optional<std::string> visit_directory(const std::string& directory, const std::function<bool(ino_t inodeNumber, const std::string_view& name)>& visitor);
+
+struct FilePtrDeleter
+{
+  /* using a deleter instead of decltype(&fclose) has two big advantages:
+     - the deleter is included in the type and does not have to be passed
+       when creating a new object (easier to use, less memory usage, in theory
+       better inlining)
+     - we avoid the annoying "ignoring attributes on template argument ‘int (*)(FILE*)’"
+       warning from the compiler, which is there because fclose is tagged as __nonnull((1))
+  */
+  void operator()(FILE* filePtr) {
+    fclose(filePtr);
+  }
+};
+
+using UniqueFilePtr = std::unique_ptr<FILE, FilePtrDeleter>;
 }
