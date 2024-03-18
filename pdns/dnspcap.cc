@@ -235,8 +235,7 @@ PcapPacketWriter::PcapPacketWriter(const string& fname, const PcapPacketReader& 
 
 PcapPacketWriter::PcapPacketWriter(const string& fname) : d_fname(fname)
 {
-  d_fp = pdns::UniqueFilePtr(fopen(fname.c_str(),"w"));
-
+  d_fp = pdns::openFileForWriting(fname, 0600, true, false);
   if (!d_fp) {
     unixDie("Unable to open file");
   }

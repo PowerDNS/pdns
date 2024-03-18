@@ -1777,4 +1777,28 @@ std::optional<std::string> visit_directory(const std::string& directory, const s
 
   return std::nullopt;
 }
+
+UniqueFilePtr openFileForWriting(const std::string& filePath, mode_t permissions, bool mustNotExist, bool appendIfExists)
+{
+  int flags = O_WRONLY | O_CREAT;
+  if (mustNotExist) {
+    flags |= O_EXCL;
+  }
+  else if (appendIfExists) {
+    flags |= O_APPEND;
+  }
+  int fileDesc = open(filePath.c_str(), flags, permissions);
+  if (fileDesc == -1) {
+    return UniqueFilePtr(nullptr);
+  }
+  auto filePtr = pdns::UniqueFilePtr(fdopen(fileDesc, appendIfExists ? "a" : "w"));
+  if (!filePtr) {
+    auto error = errno;
+    close(fileDesc);
+    errno = error;
+    return UniqueFilePtr(nullptr);
+  }
+  return filePtr;
+}
+
 }

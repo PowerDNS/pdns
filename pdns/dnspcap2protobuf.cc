@@ -63,9 +63,10 @@ try {
 
   PcapPacketReader pr(argv[1]);
 
-  auto filePtr = pdns::UniqueFilePtr(fopen(argv[2], "w"));
+  auto filePtr = pdns::openFileForWriting(argv[2], 0600, true, false);
   if (!filePtr) {
-    cerr<<"Error opening output file "<<argv[2]<<": "<<stringerror()<<endl;
+    auto error = errno;
+    cerr<<"Error opening output file "<<argv[2]<<": "<<stringerror(error)<<endl;
     exit(EXIT_FAILURE);
   }
 
