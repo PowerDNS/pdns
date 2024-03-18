@@ -361,7 +361,7 @@ static void processForwardZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, sh
   else {
     SLOG(g_log << Logger::Warning << "Reading zone forwarding information from '" << filename << "'" << endl,
          log->info(Logr::Notice, "Reading zone forwarding information", "file", Logging::Loggable(filename)));
-    auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(filename.c_str(), "r"), fclose);
+    auto filePtr = pdns::UniqueFilePtr(fopen(filename.c_str(), "r"));
     if (!filePtr) {
       int err = errno;
       throw PDNSException("Error opening forward-zones-file '" + filename + "': " + stringerror(err));
@@ -508,7 +508,7 @@ static void processAllowNotifyForFile(shared_ptr<notifyset_t>& newSet, Logr::log
   else {
     SLOG(g_log << Logger::Warning << "Reading NOTIFY-allowed zones from '" << filename << "'" << endl,
          log->info(Logr::Notice, "Reading NOTIFY-allowed zones from file", "file", Logging::Loggable(filename)));
-    auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(filename.c_str(), "r"), fclose);
+    auto filePtr = pdns::UniqueFilePtr(fopen(filename.c_str(), "r"));
     if (!filePtr) {
       throw PDNSException("Error opening allow-notify-for-file '" + filename + "': " + stringerror());
     }

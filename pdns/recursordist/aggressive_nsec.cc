@@ -901,7 +901,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
   return true;
 }
 
-size_t AggressiveNSECCache::dumpToFile(std::unique_ptr<FILE, int (*)(FILE*)>& fp, const struct timeval& now)
+size_t AggressiveNSECCache::dumpToFile(pdns::UniqueFilePtr& fp, const struct timeval& now)
 {
   size_t ret = 0;
 

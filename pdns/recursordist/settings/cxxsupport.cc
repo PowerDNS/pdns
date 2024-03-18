@@ -58,7 +58,7 @@
 
 void pdns::settings::rec::oldStyleForwardsFileToBridgeStruct(const std::string& file, ::rust::Vec<ForwardZone>& vec)
 {
-  auto filePtr = std::unique_ptr<FILE, decltype(&fclose)>(fopen(file.c_str(), "r"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fopen(file.c_str(), "r"));
   if (!filePtr) {
     throw PDNSException("Error opening forward-zones-file '" + file + "': " + stringerror());
   }

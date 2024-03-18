@@ -286,7 +286,7 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries, time_t now)
   if (newfd == -1) {
     return 0;
   }
-  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  auto fp = pdns::UniqueFilePtr(fdopen(newfd, "w"));
   if (!fp) {
     close(newfd);
     return 0;

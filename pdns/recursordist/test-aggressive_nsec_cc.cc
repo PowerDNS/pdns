@@ -1265,7 +1265,7 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
 
   BOOST_CHECK_EQUAL(cache->getEntriesCount(), 3U);
 
-  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(tmpfile(), fclose);
+  auto filePtr = pdns::UniqueFilePtr(tmpfile());
   if (!filePtr) {
     BOOST_FAIL("Temporary file could not be opened");
   }
