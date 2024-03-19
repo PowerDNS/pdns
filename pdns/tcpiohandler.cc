@@ -52,7 +52,7 @@ public:
   OpenSSLTLSTicketKeysRing d_ticketKeys;
   std::map<int, std::string> d_ocspResponses;
   std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx{nullptr, SSL_CTX_free};
-  std::unique_ptr<FILE, int(*)(FILE*)> d_keyLogFile{nullptr, fclose};
+  pdns::UniqueFilePtr d_keyLogFile{nullptr};
 };
 
 class OpenSSLSession : public TLSSession

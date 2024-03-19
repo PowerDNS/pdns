@@ -411,7 +411,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       boost::optional<Netmask>  nm;
       boost::optional<DNSName> dn;
       int msec = -1;
-      std::unique_ptr<FILE, decltype(&fclose)> outputFile{nullptr, fclose};
+      pdns::UniqueFilePtr outputFile{nullptr};
 
       if (options) {
         std::string outputFileName;
@@ -421,7 +421,7 @@ void setupLuaInspection(LuaContext& luaCtx)
             g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
             return;
           }
-          outputFile = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(fd, "w"), fclose);
+          outputFile = pdns::UniqueFilePtr(fdopen(fd, "w"));
           if (outputFile == nullptr) {
             g_outputBuffer = "Error opening dump file for writing: " + stringerror() + "\n";
             close(fd);
