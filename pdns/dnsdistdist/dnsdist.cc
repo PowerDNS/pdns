@@ -52,6 +52,7 @@
 #include "dnsdist-async.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-carbon.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-discovery.hh"
@@ -67,6 +68,7 @@
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
+#include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
@@ -100,11 +102,6 @@
    on the Lua side we can't do that. */
 
 using std::thread;
-bool g_verbose;
-
-uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
-uint32_t g_staleCacheEntriesTTL{0};
-bool g_allowEmptyResponse{false};
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
@@ -120,7 +117,6 @@ std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
 
 std::vector<std::unique_ptr<ClientState>> g_frontends;
 GlobalStateHolder<pools_t> g_pools;
-size_t g_udpVectorSize{1};
 std::vector<uint32_t> g_TCPFastOpenKey;
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers.
@@ -138,16 +134,8 @@ std::vector<uint32_t> g_TCPFastOpenKey;
  */
 
 Rings g_rings;
-QueryCount g_qcount;
 
 GlobalStateHolder<servers_t> g_dstates;
-
-bool g_servFailOnNoPolicy{false};
-bool g_truncateTC{false};
-bool g_fixupCase{false};
-bool g_dropEmptyQueries{false};
-uint32_t g_socketUDPSendBuffer{0};
-uint32_t g_socketUDPRecvBuffer{0};
 
 std::set<std::string> g_capabilitiesToRetain;
 
@@ -177,14 +165,14 @@ static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress&
   }
 }
 
-static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength)
+static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses)
 {
   try {
     bool hadEDNS = false;
     uint16_t payloadSize = 0;
     uint16_t zValue = 0;
 
-    if (g_addEDNSToSelfGeneratedResponses) {
+    if (addEDNSToSelfGeneratedResponses) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       hadEDNS = getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(packet.data()), packet.size(), &payloadSize, &zValue);
     }
@@ -320,7 +308,7 @@ static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
   }
 }
 
-bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote)
+bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, bool allowEmptyResponse)
 {
   if (response.size() < sizeof(dnsheader)) {
     return false;
@@ -336,7 +324,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   }
 
   if (dnsHeader->qdcount == 0) {
-    if ((dnsHeader->rcode != RCode::NoError && dnsHeader->rcode != RCode::NXDomain) || g_allowEmptyResponse) {
+    if ((dnsHeader->rcode != RCode::NoError && dnsHeader->rcode != RCode::NXDomain) || allowEmptyResponse) {
       return true;
     }
 
@@ -407,7 +395,7 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
     return true;
   }
 
-  if (g_fixupCase) {
+  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_fixupCase) {
     const auto& realname = qname.getStorage();
     if (response.size() >= (sizeof(dnsheader) + realname.length())) {
       memcpy(&response.at(sizeof(dnsheader)), realname.c_str(), realname.length());
@@ -532,7 +520,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
             header.qr = true;
             return true;
           });
-          truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength());
+          truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
           ++dnsdist::metrics::g_stats.ruleTruncated;
           return true;
         }
@@ -621,13 +609,14 @@ bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::R
 
 static size_t getInitialUDPPacketBufferSize(bool expectProxyProtocol)
 {
-  static_assert(s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "The incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
+  static_assert(dnsdist::configuration::s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "The incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
 
-  if (!expectProxyProtocol || g_proxyProtocolACL.empty()) {
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (!expectProxyProtocol || runtimeConfig.d_proxyProtocolACL.empty()) {
     return s_initialUDPPacketBufferSize;
   }
 
-  return s_initialUDPPacketBufferSize + g_proxyProtocolMaximumSize;
+  return s_initialUDPPacketBufferSize + runtimeConfig.d_proxyProtocolMaximumSize;
 }
 
 static size_t getMaximumIncomingPacketSize(const ClientState& clientState)
@@ -636,11 +625,12 @@ static size_t getMaximumIncomingPacketSize(const ClientState& clientState)
     return getInitialUDPPacketBufferSize(clientState.d_enableProxyProtocol);
   }
 
-  if (!clientState.d_enableProxyProtocol || g_proxyProtocolACL.empty()) {
-    return s_udpIncomingBufferSize;
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (!clientState.d_enableProxyProtocol || runtimeConfig.d_proxyProtocolACL.empty()) {
+    return dnsdist::configuration::s_udpIncomingBufferSize;
   }
 
-  return s_udpIncomingBufferSize + g_proxyProtocolMaximumSize;
+  return dnsdist::configuration::s_udpIncomingBufferSize + runtimeConfig.d_proxyProtocolMaximumSize;
 }
 
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
@@ -694,14 +684,14 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
 
   if (ids.udpPayloadSize > 0 && response.size() > ids.udpPayloadSize) {
     vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), ids.udpPayloadSize);
-    truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength());
+    truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {
       header.tc = true;
       return true;
     });
   }
-  else if (dnsResponse.getHeader()->tc && g_truncateTC) {
-    truncateTC(response, dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength());
+  else if (dnsResponse.getHeader()->tc && dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC) {
+    truncateTC(response, dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
   }
 
   /* when the answer is encrypted in place, we need to get a copy
@@ -757,7 +747,7 @@ bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer&
   const dnsheader_aligned dnsHeader(response.data());
   auto queryId = dnsHeader->id;
 
-  if (!responseContentMatches(response, ids.qname, ids.qtype, ids.qclass, dss)) {
+  if (!responseContentMatches(response, ids.qname, ids.qtype, ids.qclass, dss, dnsdist::configuration::getCurrentRuntimeConfiguration().d_allowEmptyResponse)) {
     dss->restoreState(queryId, std::move(ids));
     return false;
   }
@@ -1060,16 +1050,17 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
     g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
   }
 
-  if (g_qcount.enabled) {
+  const auto runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (runtimeConfig.d_queryCountConfig.d_enabled) {
     string qname = dnsQuestion.ids.qname.toLogString();
     bool countQuery{true};
-    if (g_qcount.filter) {
+    if (runtimeConfig.d_queryCountConfig.d_filter) {
       auto lock = g_lua.lock();
-      std::tie(countQuery, qname) = g_qcount.filter(&dnsQuestion);
+      std::tie(countQuery, qname) = runtimeConfig.d_queryCountConfig.d_filter(&dnsQuestion);
     }
 
     if (countQuery) {
-      auto records = g_qcount.records.write_lock();
+      auto records = dnsdist::QueryCount::g_queryCountRecords.write_lock();
       if (records->count(qname) == 0) {
         (*records)[qname] = 0;
       }
@@ -1096,7 +1087,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
     if (now < got->second.until) {
       DNSAction::Action action = got->second.action;
       if (action == DNSAction::Action::None) {
-        action = g_dynBlockAction;
+        action = runtimeConfig.d_dynBlockAction;
       }
 
       switch (action) {
@@ -1173,7 +1164,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
     if (now < got->until) {
       DNSAction::Action action = got->action;
       if (action == DNSAction::Action::None) {
-        action = g_dynBlockAction;
+        action = runtimeConfig.d_dynBlockAction;
       }
       switch (action) {
       case DNSAction::Action::NoOp:
@@ -1356,7 +1347,7 @@ bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientSta
 
   if (dnsHeader.qdcount == 0) {
     ++dnsdist::metrics::g_stats.emptyQueries;
-    if (g_dropEmptyQueries) {
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_dropEmptyQueries) {
       return false;
     }
   }
@@ -1475,7 +1466,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
     dnsQuestion.ids.packetCache = serverPool->packetCache;
     selectBackendForOutgoingQuery(dnsQuestion, serverPool, holders, selectedBackend);
 
-    uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;
+    uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
 
     if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache) {
       dnsQuestion.ids.dnssecOK = (getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
@@ -1570,10 +1561,11 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
     }
 
     if (!selectedBackend) {
+      auto servFailOnNoPolicy = dnsdist::configuration::getCurrentRuntimeConfiguration().d_servFailOnNoPolicy;
       ++dnsdist::metrics::g_stats.noPolicy;
 
-      vinfolog("%s query for %s|%s from %s, no downstream server available", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort());
-      if (g_servFailOnNoPolicy) {
+      vinfolog("%s query for %s|%s from %s, no downstream server available", servFailOnNoPolicy ? "ServFailed" : "Dropped", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort());
+      if (servFailOnNoPolicy) {
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
           header.rcode = RCode::ServFail;
           header.qr = true;
@@ -2070,7 +2062,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState, LocalHolde
     /* used by HarvestDestinationAddress */
     cmsgbuf_aligned cbuf{};
   };
-  const size_t vectSize = g_udpVectorSize;
+  const size_t vectSize = dnsdist::configuration::getImmutableConfiguration().d_udpVectorSize;
 
   if (vectSize > std::numeric_limits<uint16_t>::max()) {
     throw std::runtime_error("The value of setUDPMultipleMessagesVectorSize is too high, the maximum value is " + std::to_string(std::numeric_limits<uint16_t>::max()));
@@ -2157,7 +2149,7 @@ static void udpClientThread(std::vector<ClientState*> states)
     LocalHolders holders;
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-    if (g_udpVectorSize > 1) {
+    if (dnsdist::configuration::getImmutableConfiguration().d_udpVectorSize > 1) {
       MultipleMessagesUDPClientThread(states.at(0), holders);
     }
     else
@@ -2268,10 +2260,6 @@ static void udpClientThread(std::vector<ClientState*> states)
   }
 }
 
-boost::optional<uint64_t> g_maxTCPClientThreads{boost::none};
-pdns::stat16_t g_cacheCleaningDelay{60};
-pdns::stat16_t g_cacheCleaningPercentage{100};
-
 static void maintThread()
 {
   setThreadName("dnsdist/main");
@@ -2281,6 +2269,7 @@ static void maintThread()
 
   for (;;) {
     std::this_thread::sleep_for(std::chrono::seconds(interval));
+    const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
 
     {
       auto lua = g_lua.lock();
@@ -2302,7 +2291,7 @@ static void maintThread()
     }
 
     counter++;
-    if (counter >= g_cacheCleaningDelay) {
+    if (counter >= config.d_cacheCleaningDelay) {
       /* keep track, for each cache, of whether we should keep
        expired entries */
       std::map<std::shared_ptr<DNSDistPacketCache>, bool> caches;
@@ -2338,7 +2327,7 @@ static void maintThread()
           continue;
         }
         const auto& packetCache = pair.first;
-        size_t upTo = (packetCache->getMaxEntries() * (100 - g_cacheCleaningPercentage)) / 100;
+        size_t upTo = (packetCache->getMaxEntries() * (100 - config.d_cacheCleaningPercentage)) / 100;
         packetCache->purgeExpired(upTo, now);
       }
       counter = 0;
@@ -2361,13 +2350,15 @@ static void secPollThread()
   setThreadName("dnsdist/secpoll");
 
   for (;;) {
+    const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+
     try {
-      doSecPoll(g_secPollSuffix);
+      dnsdist::secpoll::doSecPoll(runtimeConfig.d_secPollSuffix);
     }
     catch (...) {
     }
     // coverity[store_truncates_time_t]
-    std::this_thread::sleep_for(std::chrono::seconds(g_secPollInterval));
+    std::this_thread::sleep_for(std::chrono::seconds(runtimeConfig.d_secPollInterval));
   }
 }
 #endif /* DISABLE_SECPOLL */
@@ -2477,6 +2468,7 @@ static void dropUserPrivs(uid_t uid)
 
 static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCount)
 {
+  const auto immutableConfig = dnsdist::configuration::getImmutableConfiguration();
   /* stdin, stdout, stderr */
   rlim_t requiredFDsCount = 3;
   auto backends = g_dstates.getLocal();
@@ -2487,20 +2479,20 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   }
   requiredFDsCount += backendUDPSocketsCount;
   /* TCP sockets to backends */
-  if (g_maxTCPClientThreads) {
-    requiredFDsCount += (backends->size() * (*g_maxTCPClientThreads));
+  if (immutableConfig.d_maxTCPClientThreads > 0) {
+    requiredFDsCount += (backends->size() * immutableConfig.d_maxTCPClientThreads);
   }
   /* listening sockets */
   requiredFDsCount += udpBindsCount;
   requiredFDsCount += tcpBindsCount;
   /* number of TCP connections currently served, assuming 1 connection per worker thread which is of course not right */
-  if (g_maxTCPClientThreads) {
-    requiredFDsCount += *g_maxTCPClientThreads;
+  if (immutableConfig.d_maxTCPClientThreads > 0) {
+    requiredFDsCount += immutableConfig.d_maxTCPClientThreads;
     /* max pipes for communicating between TCP acceptors and client threads */
-    requiredFDsCount += (*g_maxTCPClientThreads * 2);
+    requiredFDsCount += (immutableConfig.d_maxTCPClientThreads * 2);
   }
   /* max TCP queued connections */
-  requiredFDsCount += g_maxTCPQueuedConnections;
+  requiredFDsCount += immutableConfig.d_maxTCPQueuedConnections;
   /* DelayPipe pipe */
   requiredFDsCount += 2;
   /* syslog socket */
@@ -2525,10 +2517,10 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   }
 }
 
-static bool g_warned_ipv6_recvpktinfo = false;
-
 static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr, int& socket, bool tcp, bool warn)
 {
+  const auto immutableConfig = dnsdist::configuration::getImmutableConfiguration();
+  static bool s_warned_ipv6_recvpktinfo = false;
   (void)warn;
   socket = SSocket(addr.sin4.sin_family, !tcp ? SOCK_DGRAM : SOCK_STREAM, 0);
 
@@ -2566,9 +2558,9 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
     int one = 1;
     (void)setsockopt(socket, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one)); // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
-    if (addr.isIPv6() && setsockopt(socket, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 && !g_warned_ipv6_recvpktinfo) {
+    if (addr.isIPv6() && setsockopt(socket, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 && !s_warned_ipv6_recvpktinfo) {
       warnlog("Warning: IPV6_RECVPKTINFO setsockopt failed: %s", stringerror());
-      g_warned_ipv6_recvpktinfo = true;
+      s_warned_ipv6_recvpktinfo = true;
     }
 #endif
   }
@@ -2605,9 +2597,9 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   }
 
   if (!tcp) {
-    if (g_socketUDPSendBuffer > 0) {
+    if (immutableConfig.d_socketUDPSendBuffer > 0) {
       try {
-        setSocketSendBuffer(socket, g_socketUDPSendBuffer);
+        setSocketSendBuffer(socket, immutableConfig.d_socketUDPSendBuffer);
       }
       catch (const std::exception& e) {
         warnlog(e.what());
@@ -2625,9 +2617,9 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
       }
     }
 
-    if (g_socketUDPRecvBuffer > 0) {
+    if (immutableConfig.d_socketUDPRecvBuffer > 0) {
       try {
-        setSocketReceiveBuffer(socket, g_socketUDPRecvBuffer);
+        setSocketReceiveBuffer(socket, immutableConfig.d_socketUDPRecvBuffer);
       }
       catch (const std::exception& e) {
         warnlog(e.what());
@@ -2962,6 +2954,8 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
                                                 {nullptr, 0, nullptr, 0}}};
   int longindex = 0;
   string optstring;
+  dnsdist::configuration::RuntimeConfiguration newConfig;
+
   while (true) {
     // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
     int gotChar = getopt_long(argc, argv, "a:cC:e:g:hk:l:u:vV", longopts.data(), &longindex);
@@ -3006,17 +3000,23 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
       break;
     case 'k':
 #if defined HAVE_LIBSODIUM || defined(HAVE_LIBCRYPTO)
-      if (B64Decode(string(optarg), g_consoleKey) < 0) {
+    {
+      std::string consoleKey;
+      if (B64Decode(string(optarg), consoleKey) < 0) {
         cerr << "Unable to decode key '" << optarg << "'." << endl;
         // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
         exit(EXIT_FAILURE);
       }
+      dnsdist::configuration::updateImmutableConfiguration([&consoleKey](dnsdist::configuration::Configuration& config) {
+        config.d_consoleKey = std::move(consoleKey);
+      });
+    }
 #else
       cerr << "dnsdist has been built without libsodium or libcrypto, -k/--setkey is unsupported." << endl;
       // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
       exit(EXIT_FAILURE);
 #endif
-      break;
+    break;
     case 'l':
       g_cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
       break;
@@ -3024,7 +3024,7 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
       g_cmdLine.uid = optarg;
       break;
     case 'v':
-      g_verbose = true;
+      newConfig.d_verbose = true;
       break;
     case 'V':
       reportFeatures();
@@ -3052,6 +3052,10 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
       g_cmdLine.remotes.emplace_back(*ptr);
     }
   }
+
+  dnsdist::configuration::updateRuntimeConfiguration([&newConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+    config = std::move(newConfig);
+  });
 }
 static void setupPools()
 {
@@ -3286,7 +3290,9 @@ int main(int argc, char** argv)
     }
 #endif
     dnsdist::initRandom();
-    g_hashperturb = dnsdist::getRandomValue(0xffffffff);
+    dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::Configuration& config) {
+      config.d_hashPerturbation = dnsdist::getRandomValue(0xffffffff);
+    });
 
 #ifdef HAVE_XSK
     try {
@@ -3327,11 +3333,12 @@ int main(int argc, char** argv)
       g_ACL.setState(acl);
     }
 
-    auto consoleACL = g_consoleACL.getCopy();
-    for (const auto& mask : {"127.0.0.1/8", "::1/128"}) {
-      consoleACL.addMask(mask);
-    }
-    g_consoleACL.setState(consoleACL);
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      for (const auto& mask : {"127.0.0.1/8", "::1/128"}) {
+        config.d_consoleACL.addMask(mask);
+      }
+    });
+
     registerBuiltInWebHandlers();
 
     if (g_cmdLine.checkConfig) {
@@ -3356,19 +3363,27 @@ int main(int argc, char** argv)
 
     initFrontends();
 
-    g_configurationDone = true;
-
-    g_rings.init();
-
-    for (auto& frontend : g_frontends) {
-      setUpLocalBind(frontend);
-
+    for (const auto& frontend : g_frontends) {
       if (!frontend->tcp) {
         ++udpBindsCount;
       }
       else {
         ++tcpBindsCount;
       }
+    }
+
+    if (dnsdist::configuration::getImmutableConfiguration().d_maxTCPClientThreads == 0 && tcpBindsCount > 0) {
+      dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::Configuration& config) {
+        config.d_maxTCPClientThreads = static_cast<size_t>(10);
+      });
+    }
+
+    g_configurationDone = true;
+
+    g_rings.init();
+
+    for (auto& frontend : g_frontends) {
+      setUpLocalBind(frontend);
     }
 
     {
@@ -3384,7 +3399,7 @@ int main(int argc, char** argv)
     }
     {
       std::string acls;
-      auto aclEntries = g_consoleACL.getLocal()->toStringVector();
+      auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleACL.toStringVector();
       for (const auto& entry : aclEntries) {
         if (!acls.empty()) {
           acls += ", ";
@@ -3395,7 +3410,7 @@ int main(int argc, char** argv)
     }
 
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
-    if (g_consoleEnabled && g_consoleKey.empty()) {
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleEnabled && dnsdist::configuration::getImmutableConfiguration().d_consoleKey.empty()) {
       warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
     }
 #endif
@@ -3411,19 +3426,11 @@ int main(int argc, char** argv)
       g_snmpAgent->run();
     }
 
-    if (!g_maxTCPClientThreads) {
-      g_maxTCPClientThreads = static_cast<size_t>(10);
-    }
-    else if (*g_maxTCPClientThreads == 0 && tcpBindsCount > 0) {
-      warnlog("setMaxTCPClientThreads() has been set to 0 while we are accepting TCP connections, raising to 1");
-      g_maxTCPClientThreads = 1;
-    }
-
     /* we need to create the TCP worker threads before the
        acceptor ones, otherwise we might crash when processing
        the first TCP query */
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
-    g_tcpclientthreads = std::make_unique<TCPClientCollection>(*g_maxTCPClientThreads, std::vector<ClientState*>());
+    g_tcpclientthreads = std::make_unique<TCPClientCollection>(dnsdist::configuration::getImmutableConfiguration().d_maxTCPClientThreads, std::vector<ClientState*>());
 #endif
 
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
@@ -3495,7 +3502,7 @@ int main(int argc, char** argv)
 #endif /* DISABLE_DYNBLOCKS */
 
 #ifndef DISABLE_SECPOLL
-    if (!g_secPollSuffix.empty()) {
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_secPollSuffix.empty()) {
       thread secpollthread(secPollThread);
       secpollthread.detach();
     }

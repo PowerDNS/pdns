@@ -22,8 +22,9 @@
 #include <fcntl.h>
 
 #include "dnsdist.hh"
-#include "dnsdist-lua.hh"
+#include "dnsdist-console.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-tcp.hh"
@@ -533,7 +534,7 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.writeFunction("delta", []() {
     setLuaNoSideEffect();
     // we hold the lua lock already!
-    for (const auto& entry : g_confDelta) {
+    for (const auto& entry : dnsdist::console::getConfigurationDelta()) {
       tm entryTime{};
       localtime_r(&entry.first.tv_sec, &entryTime);
       std::array<char, 80> date{};
@@ -719,10 +720,11 @@ void setupLuaInspection(LuaContext& luaCtx)
 
   luaCtx.writeFunction("showTCPStats", [] {
     setLuaNoSideEffect();
+    const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
     ostringstream ret;
     boost::format fmt("%-12d %-12d %-12d %-12d");
     ret << (fmt % "Workers" % "Max Workers" % "Queued" % "Max Queued") << endl;
-    ret << (fmt % g_tcpclientthreads->getThreadsCount() % (g_maxTCPClientThreads ? *g_maxTCPClientThreads : 0) % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections) << endl;
+    ret << (fmt % g_tcpclientthreads->getThreadsCount() % immutableConfig.d_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % immutableConfig.d_maxTCPQueuedConnections) << endl;
     ret << endl;
 
     ret << "Frontends:" << endl;

@@ -472,7 +472,6 @@ private:
     /* we _NEED_ to set this function to empty otherwise we might get what was set
        by the last test, and we might not like it at all */
     s_processQuery = nullptr;
-    g_proxyProtocolACL.clear();
   }
 };
 

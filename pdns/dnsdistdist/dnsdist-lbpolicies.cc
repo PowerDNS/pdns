@@ -28,7 +28,6 @@
 #include "dns_random.hh"
 
 GlobalStateHolder<ServerPolicy> g_policy;
-bool g_roundrobinFailOnNoServer{false};
 
 static constexpr size_t s_staticArrayCutOff = 16;
 template <typename T> using DynamicIndexArray = std::vector<std::pair<T, size_t>>;
@@ -84,16 +83,15 @@ shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVec
   return leastOutstanding(servers, dq);
 }
 
-double g_weightedBalancingFactor = 0;
-
 template <class T> static std::shared_ptr<DownstreamState> getValRandom(const ServerPolicy::NumberedServerVector& servers, T& poss, const unsigned int val, const double targetLoad)
 {
   constexpr int max = std::numeric_limits<int>::max();
   int sum = 0;
 
   size_t usableServers = 0;
+  const auto weightedBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_consistentHashBalancingFactor;
   for (const auto& d : servers) {      // w=1, w=10 -> 1, 11
-    if (d.second->isUp() && (g_weightedBalancingFactor == 0 || (d.second->outstanding <= (targetLoad * d.second->d_config.d_weight)))) {
+    if (d.second->isUp() && (weightedBalancingFactor == 0 || (static_cast<double>(d.second->outstanding.load()) <= (targetLoad * d.second->d_config.d_weight)))) {
       // Don't overflow sum when adding high weights
       if (d.second->d_config.d_weight > max - sum) {
         sum = max;
@@ -125,8 +123,8 @@ static shared_ptr<DownstreamState> valrandom(const unsigned int val, const Serve
 {
   using ValRandomType = int;
   double targetLoad = std::numeric_limits<double>::max();
-
-  if (g_weightedBalancingFactor > 0) {
+  const auto weightedBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_consistentHashBalancingFactor;
+  if (weightedBalancingFactor > 0) {
     /* we start with one, representing the query we are currently handling */
     double currentLoad = 1;
     size_t totalWeight = 0;
@@ -138,7 +136,7 @@ static shared_ptr<DownstreamState> valrandom(const unsigned int val, const Serve
     }
 
     if (totalWeight > 0) {
-      targetLoad = (currentLoad / totalWeight) * g_weightedBalancingFactor;
+      targetLoad = (currentLoad / static_cast<double>(totalWeight)) * weightedBalancingFactor;
     }
   }
 
@@ -157,9 +155,6 @@ shared_ptr<DownstreamState> wrandom(const ServerPolicy::NumberedServerVector& se
   return valrandom(dns_random_uint32(), servers);
 }
 
-uint32_t g_hashperturb;
-double g_consistentHashBalancingFactor = 0;
-
 shared_ptr<DownstreamState> whashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash)
 {
   return valrandom(hash, servers);
@@ -167,7 +162,8 @@ shared_ptr<DownstreamState> whashedFromHash(const ServerPolicy::NumberedServerVe
 
 shared_ptr<DownstreamState> whashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return whashedFromHash(servers, dq->ids.qname.hash(g_hashperturb));
+  const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
+  return whashedFromHash(servers, dq->ids.qname.hash(hashPerturbation));
 }
 
 shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t qhash)
@@ -177,7 +173,8 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
   shared_ptr<DownstreamState> ret = nullptr, first = nullptr;
 
   double targetLoad = std::numeric_limits<double>::max();
-  if (g_consistentHashBalancingFactor > 0) {
+  const auto consistentHashBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_consistentHashBalancingFactor;
+  if (consistentHashBalancingFactor > 0) {
     /* we start with one, representing the query we are currently handling */
     double currentLoad = 1;
     size_t totalWeight = 0;
@@ -189,12 +186,12 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
     }
 
     if (totalWeight > 0) {
-      targetLoad = (currentLoad / totalWeight) * g_consistentHashBalancingFactor;
+      targetLoad = (currentLoad / totalWeight) * consistentHashBalancingFactor;
     }
   }
 
   for (const auto& d: servers) {
-    if (d.second->isUp() && (g_consistentHashBalancingFactor == 0 || d.second->outstanding <= (targetLoad * d.second->d_config.d_weight))) {
+    if (d.second->isUp() && (consistentHashBalancingFactor == 0 || static_cast<double>(d.second->outstanding.load()) <= (targetLoad * d.second->d_config.d_weight))) {
       // make sure hashes have been computed
       if (!d.second->hashesComputed) {
         d.second->hash();
@@ -229,7 +226,8 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
 
 shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return chashedFromHash(servers, dq->ids.qname.hash(g_hashperturb));
+  const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
+  return chashedFromHash(servers, dq->ids.qname.hash(hashPerturbation));
 }
 
 shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
@@ -248,7 +246,7 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
   }
 
   if (candidates.empty()) {
-    if (g_roundrobinFailOnNoServer) {
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_roundrobinFailOnNoServer) {
       return shared_ptr<DownstreamState>();
     }
     for (auto& d : servers) {

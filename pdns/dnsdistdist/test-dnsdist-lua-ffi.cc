@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
   }
 
   {
-    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_prefix_length(&lightDQ), g_ECSSourcePrefixV4);
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_prefix_length(&lightDQ), dnsdist::configuration::getCurrentRuntimeConfiguration().d_ECSSourcePrefixV4);
     dnsdist_ffi_dnsquestion_set_ecs_prefix_length(&lightDQ, 65535);
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_prefix_length(&lightDQ), 65535U);
   }

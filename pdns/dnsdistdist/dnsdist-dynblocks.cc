@@ -5,7 +5,6 @@
 
 GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
 GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
-DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
 
 #ifndef DISABLE_DYNBLOCKS
 void DynBlockRulesGroup::apply(const timespec& now)
@@ -202,14 +201,14 @@ bool DynBlockRulesGroup::checkIfResponseCodeMatches(const Rings::Response& respo
 
 /* return the actual action that will be taken by that block:
    - either the one set on that block, if any
-   - or the one set with setDynBlocksAction in g_dynBlockAction
+   - or the one set with setDynBlocksAction
 */
 static DNSAction::Action getActualAction(const DynBlock& block)
 {
   if (block.action != DNSAction::Action::None) {
     return block.action;
   }
-  return g_dynBlockAction;
+  return dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
 }
 
 namespace dnsdist::DynamicBlocks

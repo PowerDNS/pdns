@@ -31,6 +31,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-internal-queries.hh"
+#include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-xsk.hh"
 
@@ -1656,7 +1657,7 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, 0);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 
   {
@@ -1671,7 +1672,7 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, EDNS_HEADER_FLAG_DO);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 
   {
@@ -1686,7 +1687,7 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, 0);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 
   {
@@ -1701,7 +1702,7 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, EDNS_HEADER_FLAG_DO);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 }
 

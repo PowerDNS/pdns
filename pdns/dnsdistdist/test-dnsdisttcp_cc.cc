@@ -37,8 +37,6 @@
 GlobalStateHolder<NetmaskGroup> g_ACL;
 GlobalStateHolder<servers_t> g_dstates;
 
-QueryCount g_qcount;
-
 const bool TCPIOHandler::s_disableConnectForUnitTests = true;
 
 bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
@@ -71,7 +69,7 @@ ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::sha
   return ProcessQueryResult::Drop;
 }
 
-bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote)
+bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, bool allowEmptyResponse)
 {
   return true;
 }
@@ -456,8 +454,9 @@ struct TestFixture
     s_backendReadBuffer.clear();
     s_backendWriteBuffer.clear();
 
-    g_proxyProtocolACL.clear();
-    g_verbose = false;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_proxyProtocolACL.clear();
+    });
     IncomingTCPConnectionState::clearAllDownstreamConnections();
 
     /* we _NEED_ to set this function to empty otherwise we might get what was set
@@ -482,6 +481,7 @@ static void testInit(const std::string& name, TCPClientThreadData& threadData)
 
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 {
+  const auto tcpRecvTimeout = dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout;
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, 0, "", {}, true);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
@@ -656,7 +656,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     state->handleIO();
     BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredReadConns = threadData.mplexer->getTimeouts(later, false);
     for (const auto& cbData : expiredReadConns) {
       BOOST_CHECK_EQUAL(cbData.first, state->d_handler.getDescriptor());
@@ -692,7 +692,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     state->handleIO();
     BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredWriteConns = threadData.mplexer->getTimeouts(later, true);
     for (const auto& cbData : expiredWriteConns) {
       BOOST_CHECK_EQUAL(cbData.first, state->d_handler.getDescriptor());
@@ -729,6 +729,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, TestFixture)
 {
+  const auto tcpRecvTimeout = dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout;
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, 0, "", {}, true);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
@@ -751,8 +752,10 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
   {
     TEST_INIT("=> reading PP");
 
-    g_proxyProtocolACL.addMask("0.0.0.0/0");
-    g_proxyProtocolACL.addMask("::0/0");
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_proxyProtocolACL.addMask("0.0.0.0/0");
+      config.d_proxyProtocolACL.addMask("::0/0");
+    });
 
     auto proxyPayload = makeProxyHeader(true, ComboAddress("192.0.2.1"), ComboAddress("192.0.2.2"), {});
     BOOST_REQUIRE_GT(proxyPayload.size(), s_proxyProtocolMinimumHeaderSize);
@@ -791,8 +794,11 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
   {
     TEST_INIT("=> Invalid PP");
 
-    g_proxyProtocolACL.addMask("0.0.0.0/0");
-    g_proxyProtocolACL.addMask("::0/0");
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_proxyProtocolACL.addMask("0.0.0.0/0");
+      config.d_proxyProtocolACL.addMask("::0/0");
+    });
+
     auto proxyPayload = std::vector<uint8_t>(s_proxyProtocolMinimumHeaderSize);
     std::fill(proxyPayload.begin(), proxyPayload.end(), 0);
 
@@ -818,8 +824,11 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
   {
     TEST_INIT("=> timeout while reading PP");
 
-    g_proxyProtocolACL.addMask("0.0.0.0/0");
-    g_proxyProtocolACL.addMask("::0/0");
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_proxyProtocolACL.addMask("0.0.0.0/0");
+      config.d_proxyProtocolACL.addMask("::0/0");
+    });
+
     auto proxyPayload = makeProxyHeader(true, ComboAddress("192.0.2.1"), ComboAddress("192.0.2.2"), {});
     BOOST_REQUIRE_GT(proxyPayload.size(), s_proxyProtocolMinimumHeaderSize);
     s_readBuffer = query;
@@ -843,7 +852,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
     state->handleIO();
     BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredReadConns = threadData.mplexer->getTimeouts(later, false);
     for (const auto& cbData : expiredReadConns) {
       BOOST_CHECK_EQUAL(cbData.first, state->d_handler.getDescriptor());
@@ -1660,7 +1669,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     /* 101 queries on the same connection, check that the maximum number of queries kicks in */
     TEST_INIT("=> 101 queries on the same connection");
 
-    g_maxTCPQueriesPerConn = 100;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_maxTCPQueriesPerConn = 100;
+    });
 
     size_t count = 101;
 
@@ -1714,7 +1725,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
 
-    g_maxTCPQueriesPerConn = 0;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_maxTCPQueriesPerConn = 0;
+    });
 #endif
   }
 
@@ -1759,6 +1772,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 {
+  const auto tcpRecvTimeout = dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout;
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, 0, "", {}, true);
   /* enable out-of-order on the front side */
@@ -1952,7 +1966,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     TEST_INIT("=> 3 queries sent to the backend, 1 self-answered, 1 new query sent to the backend which responds to the first query right away, then to the last one, then the connection to the backend times out");
 
     // increase the client timeout for that test, we want the backend to timeout first
-    g_tcpRecvTimeout = 5;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_tcpRecvTimeout = 5;
+    });
 
     PacketBuffer expectedWriteBuffer;
     PacketBuffer expectedBackendWriteBuffer;
@@ -2092,7 +2108,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     IncomingTCPConnectionState::clearAllDownstreamConnections();
 
     // restore the client timeout
-    g_tcpRecvTimeout = 2;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_tcpRecvTimeout = 2;
+    });
   }
 
   {
@@ -2252,7 +2270,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     }
 
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later, false);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -2527,7 +2545,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     }
 
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later, false);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -2543,7 +2561,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     }
 
     later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     expiredConns = threadData.mplexer->getTimeouts(later, false);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -3557,7 +3575,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     /* make sure that the backend's timeout is shorter than the client's */
     backend->d_config.tcpConnectTimeout = 1;
-    g_tcpRecvTimeout = 5;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_tcpRecvTimeout = 5;
+    });
 
     bool timeout = false;
     s_steps = {
@@ -3616,7 +3636,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     /* restore */
     backend->d_config.tcpSendTimeout = 30;
-    g_tcpRecvTimeout = 2;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_tcpRecvTimeout = 2;
+    });
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     /* we have no connection to clear, because there was a timeout! */
@@ -3876,7 +3898,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     }
 
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -3899,6 +3921,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
 {
+  const auto tcpRecvTimeout = dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout;
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, 0, "", {}, true);
   /* enable out-of-order on the front side */
@@ -4160,7 +4183,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
     }
 
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {

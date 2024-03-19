@@ -33,6 +33,7 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-kvs.hh"
 #include "dnsdist-rule-chains.hh"
+#include "dnsdist-snmp.hh"
 #include "dnsdist-svc.hh"
 
 #include "dnstap.hh"
@@ -254,7 +255,7 @@ std::map<std::string, double> TeeAction::getStats() const
 void TeeAction::worker()
 {
   setThreadName("dnsdist/TeeWork");
-  std::array<char, s_udpIncomingBufferSize> packet{};
+  std::array<char, dnsdist::configuration::s_udpIncomingBufferSize> packet{};
   ssize_t res = 0;
   const dnsheader_aligned dnsheader(packet.data());
   for (;;) {
@@ -453,6 +454,7 @@ public:
     if (!dnsdist::svc::generateSVCResponse(*dnsquestion, d_payloads, d_additionals4, d_additionals6, d_responseConfig)) {
       return Action::None;
     }
+
     return Action::HeaderModify;
   }
 
@@ -905,7 +907,8 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsquestion, std::string*
 
   bool dnssecOK = false;
   bool hadEDNS = false;
-  if (g_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dnsquestion)) {
+  const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (runtimeConfiguration.d_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dnsquestion)) {
     hadEDNS = true;
     dnssecOK = ((getEDNSZ(*dnsquestion) & EDNS_HEADER_FLAG_DO) != 0);
   }
@@ -1008,7 +1011,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsquestion, std::string*
   });
 
   if (hadEDNS && !raw) {
-    addEDNS(dnsquestion->getMutableData(), dnsquestion->getMaximumSize(), dnssecOK, g_PayloadSizeSelfGenAnswers, 0);
+    addEDNS(dnsquestion->getMutableData(), dnsquestion->getMaximumSize(), dnssecOK, runtimeConfiguration.d_payloadSizeSelfGenAnswers, 0);
   }
 
   return Action::HeaderModify;
@@ -1058,7 +1061,7 @@ public:
     }
 
     auto& data = dnsquestion->getMutableData();
-    if (generateOptRR(optRData, data, dnsquestion->getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
+    if (generateOptRR(optRData, data, dnsquestion->getMaximumSize(), dnsdist::configuration::s_EdnsUDPPayloadSize, 0, false)) {
       dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [](dnsheader& header) {
         header.arcount = htons(1);
         return true;
@@ -1143,7 +1146,7 @@ public:
   {
     auto filepointer = std::atomic_load_explicit(&d_fp, std::memory_order_acquire);
     if (!filepointer) {
-      if (!d_verboseOnly || g_verbose) {
+      if (!d_verboseOnly || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
         if (d_includeTimestamp) {
           infolog("[%u.%u] Packet from %s for %s %s with id %d", static_cast<unsigned long long>(dnsquestion->getQueryRealTime().tv_sec), static_cast<unsigned long>(dnsquestion->getQueryRealTime().tv_nsec), dnsquestion->ids.origRemote.toStringWithPort(), dnsquestion->ids.qname.toString(), QType(dnsquestion->ids.qtype).toString(), dnsquestion->getHeader()->id);
         }
@@ -1255,7 +1258,7 @@ public:
   {
     auto filepointer = std::atomic_load_explicit(&d_fp, std::memory_order_acquire);
     if (!filepointer) {
-      if (!d_verboseOnly || g_verbose) {
+      if (!d_verboseOnly || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
         if (d_includeTimestamp) {
           infolog("[%u.%u] Answer to %s for %s %s (%s) with id %u", static_cast<unsigned long long>(response->getQueryRealTime().tv_sec), static_cast<unsigned long>(response->getQueryRealTime().tv_nsec), response->ids.origRemote.toStringWithPort(), response->ids.qname.toString(), QType(response->ids.qtype).toString(), RCode::to_s(response->getHeader()->rcode), response->getHeader()->id);
         }
@@ -1712,7 +1715,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
-    if (g_snmpAgent != nullptr && g_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(*dnsquestion, d_reason);
     }
 
@@ -1919,7 +1922,7 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
-    if (g_snmpAgent != nullptr && g_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(*response, d_reason);
     }
 

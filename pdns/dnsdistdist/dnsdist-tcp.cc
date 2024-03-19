@@ -60,25 +60,9 @@
    Let's start naively.
 */
 
-size_t g_maxTCPQueriesPerConn{0};
-size_t g_maxTCPConnectionDuration{0};
-
-#ifdef __linux__
-// On Linux this gives us 128k pending queries (default is 8192 queries),
-// which should be enough to deal with huge spikes
-size_t g_tcpInternalPipeBufferSize{1048576U};
-uint64_t g_maxTCPQueuedConnections{10000};
-#else
-size_t g_tcpInternalPipeBufferSize{0};
-uint64_t g_maxTCPQueuedConnections{1000};
-#endif
-
-int g_tcpRecvTimeout{2};
-int g_tcpSendTimeout{2};
 std::atomic<uint64_t> g_tcpStatesDumpRequested{0};
 
 LockGuarded<std::map<ComboAddress, size_t, ComboAddress::addressOnlyLessThan>> dnsdist::IncomingConcurrentTCPConnectionsManager::s_tcpClientsConcurrentConnectionsCount;
-size_t dnsdist::IncomingConcurrentTCPConnectionsManager::s_maxTCPConnectionsPerClient = 0;
 
 IncomingTCPConnectionState::~IncomingTCPConnectionState()
 {
@@ -142,11 +126,13 @@ TCPClientCollection::TCPClientCollection(size_t maxThreads, std::vector<ClientSt
 void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAcceptStates)
 {
   try {
-    auto [queryChannelSender, queryChannelReceiver] = pdns::channel::createObjectQueue<ConnectionInfo>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, g_tcpInternalPipeBufferSize);
+    const auto internalPipeBufferSize = dnsdist::configuration::getImmutableConfiguration().d_tcpInternalPipeBufferSize;
 
-    auto [crossProtocolQueryChannelSender, crossProtocolQueryChannelReceiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, g_tcpInternalPipeBufferSize);
+    auto [queryChannelSender, queryChannelReceiver] = pdns::channel::createObjectQueue<ConnectionInfo>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
 
-    auto [crossProtocolResponseChannelSender, crossProtocolResponseChannelReceiver] = pdns::channel::createObjectQueue<TCPCrossProtocolResponse>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, g_tcpInternalPipeBufferSize);
+    auto [crossProtocolQueryChannelSender, crossProtocolQueryChannelReceiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
+
+    auto [crossProtocolResponseChannelSender, crossProtocolResponseChannelReceiver] = pdns::channel::createObjectQueue<TCPCrossProtocolResponse>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
 
     vinfolog("Adding TCP Client thread");
 
@@ -251,12 +237,13 @@ bool IncomingTCPConnectionState::canAcceptNewQueries(const struct timeval& now)
     return false;
   }
 
-  if (g_maxTCPQueriesPerConn != 0 && d_queriesCount > g_maxTCPQueriesPerConn) {
-    vinfolog("not accepting new queries from %s because it reached the maximum number of queries per conn (%d / %d)", d_ci.remote.toStringWithPort(), d_queriesCount, g_maxTCPQueriesPerConn);
+  const auto& currentConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (currentConfig.d_maxTCPQueriesPerConn != 0 && d_queriesCount > currentConfig.d_maxTCPQueriesPerConn) {
+    vinfolog("not accepting new queries from %s because it reached the maximum number of queries per conn (%d / %d)", d_ci.remote.toStringWithPort(), d_queriesCount, currentConfig.d_maxTCPQueriesPerConn);
     return false;
   }
 
-  if (maxConnectionDurationReached(g_maxTCPConnectionDuration, now)) {
+  if (maxConnectionDurationReached(currentConfig.d_maxTCPConnectionDuration, now)) {
     vinfolog("not accepting new queries from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
     return false;
   }
@@ -498,11 +485,12 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
     return;
   }
 
+  const auto config = dnsdist::configuration::getCurrentRuntimeConfiguration();
   if (!response.isAsync()) {
     try {
       auto& ids = response.d_idstate;
       std::shared_ptr<DownstreamState> backend = response.d_ds ? response.d_ds : (response.d_connection ? response.d_connection->getDS() : nullptr);
-      if (backend == nullptr || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, backend)) {
+      if (backend == nullptr || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, backend, config.d_allowEmptyResponse)) {
         state->terminateClientConnection();
         return;
       }
@@ -1068,7 +1056,8 @@ void IncomingTCPConnectionState::handleIO()
     iostate = IOState::Done;
     IOStateGuard ioGuard(d_ioState);
 
-    if (maxConnectionDurationReached(g_maxTCPConnectionDuration, now)) {
+    const auto& currentConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    if (maxConnectionDurationReached(currentConfig.d_maxTCPConnectionDuration, now)) {
       vinfolog("Terminating TCP connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
       // will be handled by the ioGuard
       // handleNewIOState(state, IOState::Done, fd, handleIOCallback);
@@ -1608,7 +1597,8 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
 
     setTCPNoDelay(connInfo.fd); // disable NAGLE
 
-    if (g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
+    const auto maxTCPQueuedConnections = dnsdist::configuration::getImmutableConfiguration().d_maxTCPQueuedConnections;
+    if (maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= maxTCPQueuedConnections) {
       vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
       return;
     }

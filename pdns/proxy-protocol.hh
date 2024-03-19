@@ -37,7 +37,7 @@ struct ProxyProtocolValue
   enum class Types : uint8_t { PP_TLV_ALPN = 0x01, PP_TLV_SSL = 0x20 };
 };
 
-static const size_t s_proxyProtocolMinimumHeaderSize = 16;
+static constexpr size_t s_proxyProtocolMinimumHeaderSize = 16;
 
 std::string makeLocalProxyHeader();
 std::string makeProxyHeader(bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values);
