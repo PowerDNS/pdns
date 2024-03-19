@@ -319,17 +319,17 @@ void SSQLite3::setLog(bool state)
 // Destructor.
 SSQLite3::~SSQLite3()
 {
-  for (int tries = 0;; ++tries) {
+  for (int tried = 0;; ++tried) {
     int ret = sqlite3_close(m_pDB);
-    if (ret != SQLITE_OK) {
-      if (tries != 0 || ret != SQLITE_BUSY) { // if we have SQLITE_BUSY, and a working m_Pstmt, try finalize
-        cerr << "Unable to close down sqlite connection: " << ret << endl;
-        abort();
-      }
-    }
-    else {
+    if (ret == SQLITE_OK) {
       break;
     }
+    cerr << "SQLite3 error state while tearing down database: " << SSQLite3ErrorString(m_pDB) << endl;
+    if (tried == 0 && ret == SQLITE_BUSY) {
+      continue;
+    }
+    cerr << "Unable to close down sqlite connection: " << ret << endl;
+    abort();
   }
 }
 
