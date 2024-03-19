@@ -1236,12 +1236,12 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
   return true;
 }
 
-ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& backend, const int sd, const PacketBuffer& request, bool healthCheck)
+ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& backend, const int socketDesc, const PacketBuffer& request, bool healthCheck)
 {
   ssize_t result;
 
   if (backend->d_config.sourceItf == 0) {
-    result = send(sd, request.data(), request.size(), 0);
+    result = send(socketDesc, request.data(), request.size(), 0);
   }
   else {
     struct msghdr msgh;
@@ -1249,8 +1249,8 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ba
     cmsgbuf_aligned cbuf;
     ComboAddress remote(backend->d_config.remote);
     fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), const_cast<char*>(reinterpret_cast<const char *>(request.data())), request.size(), &remote);
-    addCMsgSrcAddr(&msgh, &cbuf, &backend->d_config.sourceAddr, backend->d_config.sourceItf);
-    result = sendmsg(sd, &msgh, 0);
+    addCMsgSrcAddr(&msgh, &cbuf, &backend->d_config.sourceAddr, static_cast<int>(backend->d_config.sourceItf));
+    result = sendmsg(socketDesc, &msgh, 0);
   }
 
   if (result == -1) {
