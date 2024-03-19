@@ -262,7 +262,7 @@ static LuaArray<T> toLuaArray(std::vector<T>&& rules)
 }
 
 template <typename T>
-static boost::optional<T> getRuleFromSelector(const std::vector<T>& rules, const boost::variant<int, std::string>& selector)
+static boost::optional<T> getRuleFromSelector(const std::vector<T>& rules, const boost::variant<unsigned int, std::string>& selector)
 {
   if (const auto* str = boost::get<std::string>(&selector)) {
     /* let's see if this a UUID */
@@ -283,7 +283,7 @@ static boost::optional<T> getRuleFromSelector(const std::vector<T>& rules, const
       }
     }
   }
-  else if (const auto* pos = boost::get<int>(&selector)) {
+  else if (const auto* pos = boost::get<unsigned int>(&selector)) {
     /* this will throw a std::out_of_range exception if the
        supplied position is out of bounds, this is fine */
     return rules.at(*pos);
@@ -346,7 +346,7 @@ void setupLuaRules(LuaContext& luaCtx)
     luaCtx.writeFunction("mv" + chain.prefix + "ResponseRule", [&chain](unsigned int from, unsigned int dest) {
       mvRule(&chain.holder, from, dest);
     });
-    luaCtx.writeFunction("get" + chain.prefix + "ResponseRule", [&chain](const boost::variant<int, std::string>& selector) -> boost::optional<dnsdist::rules::ResponseRuleAction> {
+    luaCtx.writeFunction("get" + chain.prefix + "ResponseRule", [&chain](const boost::variant<unsigned int, std::string>& selector) -> boost::optional<dnsdist::rules::ResponseRuleAction> {
       auto rules = chain.holder.getLocal();
       return getRuleFromSelector(*rules, selector);
     });

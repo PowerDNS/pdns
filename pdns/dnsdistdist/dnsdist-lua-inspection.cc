@@ -495,7 +495,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       }
       totalEntries += rings.back().size();
     }
-    vector<std::unordered_map<string, boost::variant<string, unsigned int>>> ret;
+    vector<std::unordered_map<string, boost::variant<unsigned int, string>>> ret;
     ret.reserve(totalEntries);
     for (const auto& ring : rings) {
       for (const auto& entry : ring) {
