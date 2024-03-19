@@ -5,6 +5,9 @@ case "$1" in
   configure)
     addgroup --system pdns
     adduser --system --home /var/spool/powerdns --shell /bin/false --ingroup pdns --disabled-password --disabled-login --gecos "PowerDNS" pdns
+    if [ ! -e /etc/powerdns/recursor.conf -a ! -e /etc/powerdns/recursor.yml ]; then
+      cp /etc/powerdns/recursor.yml-dist /etc/powerdns/recursor.yml
+    fi
   ;;
 
   *)
