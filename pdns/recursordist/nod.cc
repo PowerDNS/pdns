@@ -28,7 +28,7 @@
 #include <ctime>
 #include <thread>
 #include "threadname.hh"
-#include <stdlib.h>
+#include <cstdlib>
 #include "logger.hh"
 #include "logging.hh"
 #include "misc.hh"
@@ -40,10 +40,10 @@ namespace filesystem = boost::filesystem;
 
 std::mutex PersistentSBF::d_cachedir_mutex;
 
-void PersistentSBF::remove_tmp_files(const filesystem::path& p, std::lock_guard<std::mutex>& /* lock */)
+void PersistentSBF::remove_tmp_files(const filesystem::path& path, std::lock_guard<std::mutex>& /* lock */)
 {
   Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\..{8}$");
-  for (filesystem::directory_iterator i(p); i != filesystem::directory_iterator(); ++i) {
+  for (filesystem::directory_iterator i(path); i != filesystem::directory_iterator(); ++i) {
     if (filesystem::is_regular_file(i->path()) && file_regex.match(i->path().filename().string())) {
       filesystem::remove(*i);
     }
@@ -59,15 +59,15 @@ bool PersistentSBF::init(bool ignore_pid)
 {
   auto log = g_slog->withName("nod");
   std::lock_guard<std::mutex> lock(d_cachedir_mutex);
-  if (d_cachedir.length()) {
-    filesystem::path p(d_cachedir);
+  if (d_cachedir.length() != 0) {
+    filesystem::path path(d_cachedir);
     try {
-      if (filesystem::exists(p) && filesystem::is_directory(p)) {
-        remove_tmp_files(p, lock);
+      if (filesystem::exists(path) && filesystem::is_directory(path)) {
+        remove_tmp_files(path, lock);
         filesystem::path newest_file;
         std::time_t newest_time = time(nullptr);
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
-        for (filesystem::directory_iterator i(p); i != filesystem::directory_iterator(); ++i) {
+        for (filesystem::directory_iterator i(path); i != filesystem::directory_iterator(); ++i) {
           if (filesystem::is_regular_file(i->path()) && file_regex.match(i->path().filename().string())) {
             if (ignore_pid || (i->path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
               // look for the newest file matching the regex
@@ -79,7 +79,7 @@ bool PersistentSBF::init(bool ignore_pid)
           }
         }
         if (filesystem::exists(newest_file)) {
-          std::string filename = newest_file.string();
+          const std::string& filename = newest_file.string();
           std::ifstream infile;
           try {
             infile.open(filename, std::ios::in | std::ios::binary);
@@ -130,13 +130,13 @@ void PersistentSBF::setCacheDir(const std::string& cachedir)
 bool PersistentSBF::snapshotCurrent(std::thread::id tid)
 {
   auto log = g_slog->withName("nod");
-  if (d_cachedir.length()) {
-    filesystem::path p(d_cachedir);
-    filesystem::path f(d_cachedir);
-    std::stringstream ss;
-    ss << d_prefix << "_" << tid;
-    f /= ss.str() + "_" + std::to_string(getpid()) + "." + bf_suffix;
-    if (filesystem::exists(p) && filesystem::is_directory(p)) {
+  if (d_cachedir.length() != 0) {
+    filesystem::path path(d_cachedir);
+    filesystem::path file(d_cachedir);
+    std::stringstream strStream;
+    strStream << d_prefix << "_" << tid;
+    file /= strStream.str() + "_" + std::to_string(getpid()) + "." + bf_suffix;
+    if (filesystem::exists(path) && filesystem::is_directory(path)) {
       try {
         std::ofstream ofile;
         std::stringstream iss;
@@ -145,24 +145,24 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
           d_sbf.lock()->dump(iss);
         }
         // Now write it out to the file
-        std::string ftmp = f.string() + ".XXXXXXXX";
-        int fd = mkstemp(&ftmp.at(0));
-        if (fd == -1) {
+        std::string ftmp = file.string() + ".XXXXXXXX";
+        int fileDesc = mkstemp(&ftmp.at(0));
+        if (fileDesc == -1) {
           throw std::runtime_error("Cannot create temp file: " + stringerror());
         }
         std::string str = iss.str();
-        ssize_t len = write(fd, str.data(), str.length());
+        ssize_t len = write(fileDesc, str.data(), str.length());
         if (len != static_cast<ssize_t>(str.length())) {
-          close(fd);
+          close(fileDesc);
           filesystem::remove(ftmp.c_str());
           throw std::runtime_error("Failed to write to file:" + ftmp);
         }
-        if (close(fd) != 0) {
+        if (close(fileDesc) != 0) {
           filesystem::remove(ftmp);
           throw std::runtime_error("Failed to write to file:" + ftmp);
         }
         try {
-          filesystem::rename(ftmp, f);
+          filesystem::rename(ftmp, file);
         }
         catch (const std::runtime_error& e) {
           SLOG(g_log << Logger::Warning << "NODDB snapshot: Cannot rename file: " << e.what() << endl,
@@ -178,8 +178,8 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
       }
     }
     else {
-      SLOG(g_log << Logger::Warning << "NODDB snapshot: Cannot write file: " << f.string() << endl,
-           log->info(Logr::Warning, "NODDB snapshot: Cannot write file", "file", Logging::Loggable(f.string())));
+      SLOG(g_log << Logger::Warning << "NODDB snapshot: Cannot write file: " << file.string() << endl,
+           log->info(Logr::Warning, "NODDB snapshot: Cannot write file", "file", Logging::Loggable(file.string())));
     }
   }
   return false;
@@ -191,10 +191,8 @@ void NODDB::housekeepingThread(std::thread::id tid)
 {
   setThreadName("rec/nod-hk");
   for (;;) {
-    sleep(d_snapshot_interval);
-    {
-      snapshotCurrent(tid);
-    }
+    std::this_thread::sleep_for(std::chrono::seconds(d_snapshot_interval));
+    snapshotCurrent(tid);
   }
 }
 
@@ -222,7 +220,7 @@ bool NODDB::isNewDomainWithParent(const std::string& domain, std::string& observ
 bool NODDB::isNewDomainWithParent(const DNSName& dname, std::string& observed)
 {
   bool ret = isNewDomain(dname);
-  if (ret == true) {
+  if (ret) {
     DNSName mdname = dname;
     while (mdname.chopOff()) {
       if (!isNewDomain(mdname)) {
@@ -261,9 +259,7 @@ void UniqueResponseDB::housekeepingThread(std::thread::id tid)
 {
   setThreadName("rec/udr-hk");
   for (;;) {
-    sleep(d_snapshot_interval);
-    {
-      snapshotCurrent(tid);
-    }
+    std::this_thread::sleep_for(std::chrono::seconds(d_snapshot_interval));
+    snapshotCurrent(tid);
   }
 }
