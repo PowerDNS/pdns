@@ -816,15 +816,15 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return result.decode('UTF-8')
 
     @classmethod
-    def sendConsoleCommand(cls, command, timeout=5.0):
+    def sendConsoleCommand(cls, command, timeout=5.0, IPv6=False):
         ourNonce = libnacl.utils.rand_nonce()
         theirNonce = None
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET if not IPv6 else socket.AF_INET6, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
             sock.settimeout(timeout)
 
-        sock.connect(("127.0.0.1", cls._consolePort))
+        sock.connect(("::1", cls._consolePort, 0, 0) if IPv6 else ("127.0.0.1", cls._consolePort))
         sock.send(ourNonce)
         theirNonce = sock.recv(len(ourNonce))
         if len(theirNonce) != len(ourNonce):
