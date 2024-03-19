@@ -4,15 +4,23 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-5.0.2 to 5.0.3 and master, 4.9.3 to 4.9.4 and 4.8.6 to 4.8.7
-------------------------------------------------------------
+5.0.3 to master
+---------------
+
+Changed settings
+----------------
+
+For YAML settings only: the type of the :ref:`setting-yaml-incoming.edns_padding_from` and :ref:`setting-yaml-incoming.proxy_protocol_from` has been changed from ``String`` to ``Sequence of Subnet``.
+
+5.0.2 to 5.0.3, 4.9.3 to 4.9.4 and 4.8.6 to 4.8.7
+-------------------------------------------------
 
 Known Issue Solved
 ^^^^^^^^^^^^^^^^^^
 The DNSSEC validation issue with the :func:`zoneToCache` function has been resolved and workarounds can be removed.
 
 5.0.1 to 5.0.2, 4.9.2 to 4.9.3 and 4.8.5 to 4.8.6
-------------------------------------------------------------
+-------------------------------------------------
 
 Known Issues
 ^^^^^^^^^^^^
