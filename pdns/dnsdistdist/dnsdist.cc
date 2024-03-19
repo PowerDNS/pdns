@@ -1254,8 +1254,11 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ba
        We don't want to reconnect the real socket if the healthcheck failed,
        because it's not using the same socket.
     */
-    if (!healthCheck && (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH || savederrno == EBADF)) {
-      backend->reconnect();
+    if (!healthCheck) {
+      if (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH || savederrno == EBADF) {
+        backend->reconnect();
+      }
+      backend->reportTimeoutOrError();
     }
   }
 
@@ -3399,6 +3402,7 @@ int main(int argc, char** argv)
           }
 
           if (!queueHealthCheck(mplexer, dss, true)) {
+            dss->submitHealthCheckResult(true, false);
             dss->setUpStatus(false);
             warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr());
           }
