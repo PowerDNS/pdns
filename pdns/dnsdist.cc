@@ -1236,34 +1236,37 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dq, const stru
   return true;
 }
 
-ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ss, const int sd, const PacketBuffer& request, bool healthCheck)
+ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& backend, const int socketDesc, const PacketBuffer& request, bool healthCheck)
 {
   ssize_t result;
 
-  if (ss->d_config.sourceItf == 0) {
-    result = send(sd, request.data(), request.size(), 0);
+  if (backend->d_config.sourceItf == 0) {
+    result = send(socketDesc, request.data(), request.size(), 0);
   }
   else {
     struct msghdr msgh;
     struct iovec iov;
     cmsgbuf_aligned cbuf;
-    ComboAddress remote(ss->d_config.remote);
+    ComboAddress remote(backend->d_config.remote);
     fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), const_cast<char*>(reinterpret_cast<const char *>(request.data())), request.size(), &remote);
-    addCMsgSrcAddr(&msgh, &cbuf, &ss->d_config.sourceAddr, ss->d_config.sourceItf);
-    result = sendmsg(sd, &msgh, 0);
+    addCMsgSrcAddr(&msgh, &cbuf, &backend->d_config.sourceAddr, static_cast<int>(backend->d_config.sourceItf));
+    result = sendmsg(socketDesc, &msgh, 0);
   }
 
   if (result == -1) {
     int savederrno = errno;
-    vinfolog("Error sending request to backend %s: %s", ss->d_config.remote.toStringWithPort(), stringerror(savederrno));
+    vinfolog("Error sending request to backend %s: %s", backend->d_config.remote.toStringWithPort(), stringerror(savederrno));
 
     /* This might sound silly, but on Linux send() might fail with EINVAL
        if the interface the socket was bound to doesn't exist anymore.
        We don't want to reconnect the real socket if the healthcheck failed,
        because it's not using the same socket.
     */
-    if (!healthCheck && (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH || savederrno == EBADF)) {
-      ss->reconnect();
+    if (!healthCheck) {
+      if (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH || savederrno == EBADF) {
+        backend->reconnect();
+      }
+      backend->reportTimeoutOrError();
     }
   }
 
@@ -3389,6 +3392,7 @@ int main(int argc, char** argv)
           }
 
           if (!queueHealthCheck(mplexer, dss, true)) {
+            dss->submitHealthCheckResult(true, false);
             dss->setUpStatus(false);
             warnlog("Marking downstream %s as 'down'", dss->getNameWithAddr());
           }
