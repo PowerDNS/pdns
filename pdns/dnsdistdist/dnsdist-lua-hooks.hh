@@ -29,7 +29,7 @@ namespace dnsdist::lua::hooks
 {
 using MaintenanceCallback = std::function<void()>;
 void runMaintenanceHooks(const LuaContext& context);
-void addMaintenanceCallback(MaintenanceCallback callback);
+void addMaintenanceCallback(const LuaContext& context, MaintenanceCallback callback);
 void clearMaintenanceHooks();
 void setupLuaHooks(LuaContext& luaCtx);
 }
