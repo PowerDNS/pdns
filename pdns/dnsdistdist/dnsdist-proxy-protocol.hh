@@ -21,11 +21,13 @@
  */
 #pragma once
 
-#include "dnsdist.hh"
+#include <string>
 
-extern NetmaskGroup g_proxyProtocolACL;
-extern size_t g_proxyProtocolMaximumSize;
-extern bool g_applyACLToProxiedClients;
+#include "iputils.hh"
+#include "noinitvector.hh"
+#include "proxy-protocol.hh"
+
+struct DNSQuestion;
 
 std::string getProxyProtocolPayload(const DNSQuestion& dq);
 

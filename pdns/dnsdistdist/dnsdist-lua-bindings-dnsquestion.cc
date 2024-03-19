@@ -25,6 +25,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-internal-queries.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-snmp.hh"
 #include "dnsparser.hh"
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
@@ -169,7 +170,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
 
   luaCtx.registerFunction<void (DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dnsQuestion, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
-    if (g_snmpAgent != nullptr && g_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(dnsQuestion, reason ? *reason : "");
     }
 #endif /* HAVE_NET_SNMP */
@@ -496,7 +497,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
 
   luaCtx.registerFunction<void (DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dnsResponse, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
-    if (g_snmpAgent != nullptr && g_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(dnsResponse, reason ? *reason : "");
     }
 #endif /* HAVE_NET_SNMP */

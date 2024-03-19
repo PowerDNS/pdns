@@ -26,6 +26,7 @@
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-xsk.hh"
 #include "dolog.hh"
@@ -143,7 +144,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
       connected = true;
     }
     catch (const std::runtime_error& error) {
-      if (initialAttempt || g_verbose) {
+      if (initialAttempt || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
         infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
       }
       connected = false;
@@ -236,6 +237,7 @@ void DownstreamState::stop()
 void DownstreamState::hash()
 {
   vinfolog("Computing hashes for id=%s and weight=%d", *d_config.id, d_config.d_weight);
+  const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
   auto w = d_config.d_weight;
   auto idStr = boost::str(boost::format("%s") % *d_config.id);
   auto lockedHashes = hashes.write_lock();
@@ -243,7 +245,8 @@ void DownstreamState::hash()
   lockedHashes->reserve(w);
   while (w > 0) {
     std::string uuid = boost::str(boost::format("%s-%d") % idStr % w);
-    unsigned int wshash = burtleCI(reinterpret_cast<const unsigned char*>(uuid.c_str()), uuid.size(), g_hashperturb);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): sorry, it's the burtle API
+    unsigned int wshash = burtleCI(reinterpret_cast<const unsigned char*>(uuid.c_str()), uuid.size(), hashPerturbation);
     lockedHashes->push_back(wshash);
     --w;
   }
@@ -305,7 +308,7 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
 #ifdef HAVE_NGHTTP2
       setupDoHClientProtocolNegotiation(d_tlsCtx);
 
-      if (g_configurationDone && g_outgoingDoHWorkerThreads && *g_outgoingDoHWorkerThreads == 0) {
+      if (dnsdist::configuration::isConfigurationDone() && g_outgoingDoHWorkerThreads && *g_outgoingDoHWorkerThreads == 0) {
         throw std::runtime_error("Error: setOutgoingDoHWorkerThreads() is set to 0 so no outgoing DoH worker thread is available to serve queries");
       }
 
@@ -352,11 +355,12 @@ void DownstreamState::start()
 
 void DownstreamState::connectUDPSockets()
 {
-  if (s_randomizeIDs) {
+  const auto& config = dnsdist::configuration::getImmutableConfiguration();
+  if (config.d_randomizeIDsToBackend) {
     idStates.clear();
   }
   else {
-    idStates.resize(g_maxOutstanding);
+    idStates.resize(config.d_maxUDPOutstanding);
   }
   sockets.resize(d_config.d_numberOfSockets);
 
@@ -396,8 +400,8 @@ int DownstreamState::pickSocketForSending()
     return sockets[0];
   }
 
-  size_t idx;
-  if (s_randomizeSockets) {
+  size_t idx{0};
+  if (dnsdist::configuration::getImmutableConfiguration().d_randomizeUDPSocketsToBackend) {
     idx = dnsdist::getRandomValue(numberOfSockets);
   }
   else {
@@ -419,14 +423,10 @@ void DownstreamState::pickSocketsReadyForReceiving(std::vector<int>& ready)
   (*mplexer.lock())->getAvailableFDs(ready, 1000);
 }
 
-bool DownstreamState::s_randomizeSockets{false};
-bool DownstreamState::s_randomizeIDs{false};
-int DownstreamState::s_udpTimeout{2};
-
-static bool isIDSExpired(const IDState& ids)
+static bool isIDSExpired(const IDState& ids, uint8_t udpTimeout)
 {
   auto age = ids.age.load();
-  return age > DownstreamState::s_udpTimeout;
+  return age > udpTimeout;
 }
 
 void DownstreamState::handleUDPTimeout(IDState& ids)
@@ -478,11 +478,13 @@ void DownstreamState::handleUDPTimeouts()
     return;
   }
 
-  if (s_randomizeIDs) {
+  const auto& config = dnsdist::configuration::getImmutableConfiguration();
+  const auto udpTimeout = config.d_udpTimeout;
+  if (config.d_randomizeIDsToBackend) {
     auto map = d_idStatesMap.lock();
     for (auto it = map->begin(); it != map->end(); ) {
       auto& ids = it->second;
-      if (isIDSExpired(ids)) {
+      if (isIDSExpired(ids, udpTimeout)) {
         handleUDPTimeout(ids);
         it = map->erase(it);
         continue;
@@ -497,7 +499,7 @@ void DownstreamState::handleUDPTimeouts()
         if (!ids.isInUse()) {
           continue;
         }
-        if (!isIDSExpired(ids)) {
+        if (!isIDSExpired(ids, udpTimeout)) {
           ++ids.age;
           continue;
         }
@@ -506,7 +508,7 @@ void DownstreamState::handleUDPTimeouts()
           continue;
         }
         /* check again, now that we have locked this state */
-        if (ids.isInUse() && isIDSExpired(ids)) {
+        if (ids.isInUse() && isIDSExpired(ids, udpTimeout)) {
           handleUDPTimeout(ids);
         }
       }
@@ -516,7 +518,8 @@ void DownstreamState::handleUDPTimeouts()
 
 uint16_t DownstreamState::saveState(InternalQueryState&& state)
 {
-  if (s_randomizeIDs) {
+  const auto& config = dnsdist::configuration::getImmutableConfiguration();
+  if (config.d_randomizeIDsToBackend) {
     /* if the state is already in use we will retry,
        up to 5 five times. The last selected one is used
        even if it was already in use */
@@ -578,7 +581,8 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
 
 void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
 {
-  if (s_randomizeIDs) {
+  const auto& config = dnsdist::configuration::getImmutableConfiguration();
+  if (config.d_randomizeIDsToBackend) {
     auto map = d_idStatesMap.lock();
 
     auto [it, inserted] = map->emplace(id, IDState());
@@ -619,8 +623,8 @@ void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
 std::optional<InternalQueryState> DownstreamState::getState(uint16_t id)
 {
   std::optional<InternalQueryState> result = std::nullopt;
-
-  if (s_randomizeIDs) {
+  const auto& config = dnsdist::configuration::getImmutableConfiguration();
+  if (config.d_randomizeIDsToBackend) {
     auto map = d_idStatesMap.lock();
 
     auto it = map->find(id);
@@ -864,7 +868,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     }
 
     setUpStatus(newState);
-    if (g_snmpAgent && g_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendBackendStatusChangeTrap(*this);
     }
   }

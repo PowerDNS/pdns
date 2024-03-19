@@ -32,6 +32,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-svc.hh"
+#include "dnsdist-snmp.hh"
 #include "dolog.hh"
 
 uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dq)
@@ -585,7 +586,7 @@ bool dnsdist_ffi_dnsquestion_set_trailing_data(dnsdist_ffi_dnsquestion_t* dq, co
 
 void dnsdist_ffi_dnsquestion_send_trap(dnsdist_ffi_dnsquestion_t* dq, const char* reason, size_t reasonLen)
 {
-  if (g_snmpAgent && g_snmpTrapsEnabled) {
+  if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
     g_snmpAgent->sendDNSTrap(*dq->dq, std::string(reason, reasonLen));
   }
 }
@@ -1963,7 +1964,7 @@ size_t dnsdist_ffi_dynamic_blocks_get_entries(dnsdist_ffi_dynamic_blocks_list_t*
     if (g_defaultBPFFilter && details.bpf) {
       counter += g_defaultBPFFilter->getHits(client.getNetwork());
     }
-    list->d_entries.push_back({strdup(client.toString().c_str()), strdup(details.reason.c_str()), counter, static_cast<uint64_t>(details.until.tv_sec - now.tv_sec), static_cast<uint8_t>(details.action != DNSAction::Action::None ? details.action : g_dynBlockAction), g_defaultBPFFilter && details.bpf, details.warning});
+    list->d_entries.push_back({strdup(client.toString().c_str()), strdup(details.reason.c_str()), counter, static_cast<uint64_t>(details.until.tv_sec - now.tv_sec), static_cast<uint8_t>(details.action != DNSAction::Action::None ? details.action : dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction), g_defaultBPFFilter && details.bpf, details.warning});
   }
 
   auto count = list->d_entries.size();
@@ -1984,8 +1985,9 @@ size_t dnsdist_ffi_dynamic_blocks_smt_get_entries(dnsdist_ffi_dynamic_blocks_lis
   };
   gettime(&now);
 
+  const auto defaultAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
   auto fullCopy = g_dynblockSMT.getCopy();
-  fullCopy.visit([&now, &list](const SuffixMatchTree<DynBlock>& node) {
+  fullCopy.visit([&now, &list, defaultAction](const SuffixMatchTree<DynBlock>& node) {
     if (!(now < node.d_value.until)) {
       return;
     }
@@ -1995,7 +1997,7 @@ size_t dnsdist_ffi_dynamic_blocks_smt_get_entries(dnsdist_ffi_dynamic_blocks_lis
       key = entry.domain.toString();
     }
     if (entry.action == DNSAction::Action::None) {
-      entry.action = g_dynBlockAction;
+      entry.action = defaultAction;
     }
     list->d_entries.push_back({strdup(key.c_str()), strdup(entry.reason.c_str()), entry.blocks, static_cast<uint64_t>(entry.until.tv_sec - now.tv_sec), static_cast<uint8_t>(entry.action), entry.bpf, entry.warning});
   });

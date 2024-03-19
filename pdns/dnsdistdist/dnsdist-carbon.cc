@@ -26,6 +26,7 @@
 #include "dnsdist-carbon.hh"
 #include "dnsdist.hh"
 #include "dnsdist-backoff.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsdist-metrics.hh"
 
 #ifndef DISABLE_CARBON
@@ -270,7 +271,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 
     {
       std::string qname;
-      auto records = g_qcount.records.write_lock();
+      auto records = dnsdist::QueryCount::g_queryCountRecords.write_lock();
       for (const auto& record : *records) {
         qname = record.first;
         boost::replace_all(qname, ".", "_");

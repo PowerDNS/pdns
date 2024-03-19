@@ -35,3 +35,5 @@ public:
   bool sendCustomTrap(const std::string& reason);
   bool sendDNSTrap(const DNSQuestion&, const std::string& reason = "");
 };
+
+extern std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent;

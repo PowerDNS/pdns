@@ -566,7 +566,7 @@ public:
     return d_conn->getAsyncFDs();
   }
 
-  const static bool s_disableConnectForUnitTests;
+  static const bool s_disableConnectForUnitTests;
 
 private:
   std::unique_ptr<TLSConnection> d_conn{nullptr};

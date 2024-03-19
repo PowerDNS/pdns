@@ -150,6 +150,7 @@ dnsdist_SOURCES = \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
 	dnsdist-concurrent-connections.hh \
+	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-discovery.cc dnsdist-discovery.hh \
@@ -194,6 +195,7 @@ dnsdist_SOURCES = \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
+	dnsdist-query-count.hh dnsdist-query-count.cc \
 	dnsdist-random.cc dnsdist-random.hh \
 	dnsdist-resolver.cc dnsdist-resolver.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
@@ -274,6 +276,7 @@ testrunner_SOURCES = \
 	dnsdist-backoff.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-concurrent-connections.hh \
+	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
 	dnsdist-doh-common.cc dnsdist-doh-common.hh \
@@ -547,6 +550,7 @@ fuzz_target_dnsdistcache_SOURCES = \
 	channel.hh channel.cc \
 	dns.cc dns.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
+	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-idstate.hh \

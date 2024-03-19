@@ -3,8 +3,6 @@
 #include "dnsdist-metrics.hh"
 #include "dolog.hh"
 
-bool g_snmpEnabled{false};
-bool g_snmpTrapsEnabled{false};
 std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
 
 #ifdef HAVE_NET_SNMP

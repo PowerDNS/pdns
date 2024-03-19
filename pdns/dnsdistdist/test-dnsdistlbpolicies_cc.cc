@@ -10,19 +10,15 @@
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
+#include "dnsdist-snmp.hh"
 #include "dolog.hh"
-
-uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
 
 #include "ext/luawrapper/include/LuaContext.hpp"
 RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};
 
-bool g_snmpEnabled{false};
-bool g_snmpTrapsEnabled{false};
 std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
 
 #if BENCH_POLICIES
-bool g_verbose{true};
 #include "dnsdist-rings.hh"
 Rings g_rings;
 GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
@@ -102,9 +98,6 @@ static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 static void benchPolicy(const ServerPolicy& pol)
 {
 #if BENCH_POLICIES
-  bool existingVerboseValue = g_verbose;
-  g_verbose = false;
-
   std::vector<DNSName> names;
   names.reserve(1000);
   for (size_t idx = 0; idx < 1000; idx++) {
@@ -129,8 +122,6 @@ static void benchPolicy(const ServerPolicy& pol)
     }
   }
   cerr << pol.name << " took " << std::to_string(sw.udiff()) << " us for " << names.size() << endl;
-
-  g_verbose = existingVerboseValue;
 #endif /* BENCH_POLICIES */
 }
 
@@ -223,17 +214,23 @@ BOOST_AUTO_TEST_CASE(test_roundRobin)
   ServerPolicy::NumberedServerVector servers;
 
   /* selecting a server on an empty server list */
-  g_roundrobinFailOnNoServer = false;
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_roundrobinFailOnNoServer = false;
+  });
   auto server = pol.getSelectedBackend(servers, dnsQuestion);
   BOOST_CHECK(server == nullptr);
 
   servers.emplace_back(1, std::make_shared<DownstreamState>(ComboAddress("192.0.2.1:53")));
 
-  /* servers start as 'down' but the RR policy returns a server unless g_roundrobinFailOnNoServer is set */
-  g_roundrobinFailOnNoServer = true;
+  /* servers start as 'down' but the RR policy returns a server unless d_roundrobinFailOnNoServer is set */
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_roundrobinFailOnNoServer = true;
+  });
   server = pol.getSelectedBackend(servers, dnsQuestion);
   BOOST_CHECK(server == nullptr);
-  g_roundrobinFailOnNoServer = false;
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_roundrobinFailOnNoServer = false;
+  });
   server = pol.getSelectedBackend(servers, dnsQuestion);
   BOOST_CHECK(server != nullptr);
 
@@ -466,8 +463,10 @@ BOOST_AUTO_TEST_CASE(test_whashed)
 
 BOOST_AUTO_TEST_CASE(test_chashed)
 {
-  bool existingVerboseValue = g_verbose;
-  g_verbose = false;
+  bool existingVerboseValue = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_verbose = false;
+  });
 
   std::vector<DNSName> names;
   names.reserve(1000);
@@ -549,7 +548,9 @@ BOOST_AUTO_TEST_CASE(test_chashed)
   BOOST_CHECK_GT(got, expected / 2);
   BOOST_CHECK_LT(got, expected * 2);
 
-  g_verbose = existingVerboseValue;
+  dnsdist::configuration::updateRuntimeConfiguration([existingVerboseValue](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_verbose = existingVerboseValue;
+  });
 }
 
 BOOST_AUTO_TEST_CASE(test_lua)
@@ -822,9 +823,6 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed)
 
 BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed)
 {
-  bool existingVerboseValue = g_verbose;
-  g_verbose = false;
-
   std::vector<DNSName> names;
   names.reserve(1000);
   for (size_t idx = 0; idx < 1000; idx++) {
@@ -880,7 +878,6 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed)
 
     benchPolicy(pol);
   }
-  g_verbose = existingVerboseValue;
   resetLuaContext();
 }
 

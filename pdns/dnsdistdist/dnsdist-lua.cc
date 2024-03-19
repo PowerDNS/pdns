@@ -39,6 +39,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-carbon.hh"
 #include "dnsdist-concurrent-connections.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-dynblocks.hh"
@@ -57,6 +58,7 @@
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-session-cache.hh"
+#include "dnsdist-snmp.hh"
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-web.hh"
 
@@ -82,29 +84,28 @@ using std::thread;
 
 static boost::optional<std::vector<std::function<void(void)>>> g_launchWork = boost::none;
 
-boost::tribool g_noLuaSideEffect;
-static bool g_included{false};
+static boost::tribool s_noLuaSideEffect;
 
 /* this is a best effort way to prevent logging calls with no side-effects in the output of delta()
    Functions can declare setLuaNoSideEffect() and if nothing else does declare a side effect, or nothing
    has done so before on this invocation, this call won't be part of delta() output */
 void setLuaNoSideEffect()
 {
-  if (g_noLuaSideEffect == false) {
+  if (s_noLuaSideEffect == false) {
     // there has been a side effect already
     return;
   }
-  g_noLuaSideEffect = true;
+  s_noLuaSideEffect = true;
 }
 
 void setLuaSideEffect()
 {
-  g_noLuaSideEffect = false;
+  s_noLuaSideEffect = false;
 }
 
 bool getLuaNoSideEffect()
 {
-  if (g_noLuaSideEffect) {
+  if (s_noLuaSideEffect) {
     // NOLINTNEXTLINE(readability-simplify-boolean-expr): it's a tribool, not a boolean
     return true;
   }
@@ -113,7 +114,7 @@ bool getLuaNoSideEffect()
 
 void resetLuaSideEffect()
 {
-  g_noLuaSideEffect = boost::logic::indeterminate;
+  s_noLuaSideEffect = boost::logic::indeterminate;
 }
 
 using localbind_t = LuaAssociativeTable<boost::variant<bool, int, std::string, LuaArray<int>, LuaArray<std::string>, LuaAssociativeTable<std::string>, std::shared_ptr<XskSocket>>>;
@@ -303,7 +304,7 @@ static void LuaThread(const std::string& code)
 
 static bool checkConfigurationTime(const std::string& name)
 {
-  if (!g_configurationDone) {
+  if (!dnsdist::configuration::isConfigurationDone()) {
     return true;
   }
   g_outputBuffer = name + " cannot be used at runtime!\n";
@@ -456,7 +457,7 @@ static void handleNewServerSourceParameter(boost::optional<newserver_t>& vars, D
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
   luaCtx.writeFunction("inClientStartup", [client]() {
-    return client && !g_configurationDone;
+    return client && !dnsdist::configuration::isConfigurationDone();
   });
 
   luaCtx.writeFunction("inConfigCheck", [configCheck]() {
@@ -649,7 +650,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_XSK
                          LuaArray<std::shared_ptr<XskSocket>> luaXskSockets;
                          if (getOptionalValue<LuaArray<std::shared_ptr<XskSocket>>>(vars, "xskSockets", luaXskSockets) > 0 && !luaXskSockets.empty()) {
-                           if (g_configurationDone) {
+                           if (dnsdist::configuration::isConfigurationDone()) {
                              throw std::runtime_error("Adding a server with xsk at runtime is not supported");
                            }
                            std::vector<std::shared_ptr<XskSocket>> xskSockets;
@@ -753,8 +754,193 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          server->stop();
                        });
 
-  luaCtx.writeFunction("truncateTC", [](bool value) { setLuaSideEffect(); g_truncateTC = value; });
-  luaCtx.writeFunction("fixupCase", [](bool value) { setLuaSideEffect(); g_fixupCase = value; });
+  struct BooleanConfigurationItems
+  {
+    const std::string name;
+    const std::function<void(dnsdist::configuration::RuntimeConfiguration& config, bool newValue)> mutator;
+  };
+  static const std::vector<BooleanConfigurationItems> booleanConfigItems{
+    {"truncateTC", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_truncateTC = newValue; }},
+    {"fixupCase", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_fixupCase = newValue; }},
+    {"setECSOverride", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_ecsOverride = newValue; }},
+    {"setQueryCount", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_queryCountConfig.d_enabled = newValue; }},
+    {"setVerbose", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_verbose = newValue; }},
+    {"setVerboseHealthChecks", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_verboseHealthChecks = newValue; }},
+    {"setServFailWhenNoServer", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_servFailOnNoPolicy = newValue; }},
+    {"setRoundRobinFailOnNoServer", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_roundrobinFailOnNoServer = newValue; }},
+    {"setDropEmptyQueries", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_dropEmptyQueries = newValue; }},
+    {"setAllowEmptyResponse", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_allowEmptyResponse = newValue; }},
+    {"setConsoleConnectionsLogging", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_logConsoleConnections = newValue; }},
+    {"setProxyProtocolApplyACLToProxiedClients", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_applyACLToProxiedClients = newValue; }},
+    {"setAddEDNSToSelfGeneratedResponses", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_addEDNSToSelfGeneratedResponses = newValue; }},
+  };
+  struct UnsignedIntegerConfigurationItems
+  {
+    const std::string name;
+    const std::function<void(dnsdist::configuration::RuntimeConfiguration& config, uint64_t value)> mutator;
+    const size_t maximumValue{std::numeric_limits<uint64_t>::max()};
+  };
+  static const std::vector<UnsignedIntegerConfigurationItems> unsignedIntegerConfigItems{
+    {"setCacheCleaningDelay", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_cacheCleaningDelay = newValue; }, std::numeric_limits<uint32_t>::max()},
+    {"setCacheCleaningPercentage", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_cacheCleaningPercentage = newValue; }, 100U},
+    {"setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheMaxSessionsPerBackend = newValue; }, std::numeric_limits<uint16_t>::max() },
+    {"setOutgoingTLSSessionsCacheCleanupDelay", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheCleanupDelay = newValue; }, std::numeric_limits<uint16_t>::max() },
+    {"setOutgoingTLSSessionsCacheMaxTicketValidity", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheSessionValidity = newValue; }, std::numeric_limits<uint16_t>::max() },
+    {"setECSSourcePrefixV4", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_ECSSourcePrefixV4 = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setECSSourcePrefixV6", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_ECSSourcePrefixV6 = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setTCPRecvTimeout", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tcpRecvTimeout = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setTCPSendTimeout", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tcpSendTimeout = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setMaxTCPQueriesPerConnection", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_maxTCPQueriesPerConn = newValue; }, std::numeric_limits<uint64_t>::max()},
+    {"setMaxTCPConnectionDuration", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_maxTCPConnectionDuration = newValue; }, std::numeric_limits<uint32_t>::max()},
+    {"setStaleCacheEntriesTTL", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_staleCacheEntriesTTL = newValue; }, std::numeric_limits<uint32_t>::max()},
+    {"setConsoleOutputMaxMsgSize", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_consoleOutputMsgMaxSize = newValue; }, std::numeric_limits<uint32_t>::max()},
+#ifndef DISABLE_SECPOLL
+    {"setSecurityPollInterval", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_secPollInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
+#endif /* DISABLE_SECPOLL */
+    {"setProxyProtocolMaximumPayloadSize", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_proxyProtocolMaximumSize = std::max(static_cast<uint64_t>(16), newValue); }, std::numeric_limits<uint32_t>::max()},
+    {"setPayloadSizeOnSelfGeneratedAnswers", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) {
+       if (newValue < 512) {
+         warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!");
+         g_outputBuffer = "setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!";
+         newValue = 512;
+       }
+       if (newValue > dnsdist::configuration::s_udpIncomingBufferSize) {
+         warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to %d instead!", dnsdist::configuration::s_udpIncomingBufferSize);
+         g_outputBuffer = "setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to " + std::to_string(dnsdist::configuration::s_udpIncomingBufferSize) + " instead";
+         newValue = dnsdist::configuration::s_udpIncomingBufferSize;
+       }
+       config.d_payloadSizeSelfGenAnswers = newValue;
+     },
+     std::numeric_limits<uint64_t>::max()},
+  };
+
+  struct StringConfigurationItems
+  {
+    const std::string name;
+    const std::function<void(dnsdist::configuration::RuntimeConfiguration& config, const std::string& value)> mutator;
+  };
+  static const std::vector<StringConfigurationItems> stringConfigItems{
+#ifndef DISABLE_SECPOLL
+    {"setSecurityPollSuffix", [](dnsdist::configuration::RuntimeConfiguration& config, const std::string& newValue) { config.d_secPollSuffix = newValue; }},
+#endif /* DISABLE_SECPOLL */
+  };
+
+  for (const auto& item : booleanConfigItems) {
+    luaCtx.writeFunction(item.name, [&item](bool value) {
+      setLuaSideEffect();
+      dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
+        item.mutator(config, value);
+      });
+    });
+  }
+
+  for (const auto& item : unsignedIntegerConfigItems) {
+    luaCtx.writeFunction(item.name, [&item](uint64_t value) {
+      setLuaSideEffect();
+      checkParameterBound(item.name, value, item.maximumValue);
+      dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
+        item.mutator(config, value);
+      });
+    });
+  }
+
+  for (const auto& item : stringConfigItems) {
+    luaCtx.writeFunction(item.name, [&item](const std::string& value) {
+      setLuaSideEffect();
+      dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
+        item.mutator(config, value);
+      });
+    });
+  }
+
+  struct BooleanImmutableConfigurationItems
+  {
+    const std::string name;
+    const std::function<void(dnsdist::configuration::Configuration& config, bool newValue)> mutator;
+  };
+  static const std::vector<BooleanImmutableConfigurationItems> booleanImmutableConfigItems{
+    {"setRandomizedOutgoingSockets", [](dnsdist::configuration::Configuration& config, bool newValue) { config.d_randomizeUDPSocketsToBackend = newValue; }},
+    {"setRandomizedIdsOverUDP", [](dnsdist::configuration::Configuration& config, bool newValue) { config.d_randomizeIDsToBackend = newValue; }},
+  };
+  struct UnsignedIntegerImmutableConfigurationItems
+  {
+    const std::string name;
+    const std::function<void(dnsdist::configuration::Configuration& config, uint64_t value)> mutator;
+    const size_t maximumValue{std::numeric_limits<uint64_t>::max()};
+  };
+  static const std::vector<UnsignedIntegerImmutableConfigurationItems> unsignedIntegerImmutableConfigItems{
+    {"setMaxTCPQueuedConnections", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPQueuedConnections = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setMaxTCPClientThreads", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPClientThreads = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setMaxTCPConnectionsPerClient", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPConnectionsPerClient = newValue; }, std::numeric_limits<uint64_t>::max()},
+    {"setTCPInternalPipeBufferSize", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_tcpInternalPipeBufferSize = newValue; }, std::numeric_limits<uint64_t>::max()},
+    {"setMaxUDPOutstanding", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setWHashedPertubation", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()},
+#ifndef DISABLE_RECVMMSG
+    {"setUDPMultipleMessagesVectorSize", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpVectorSize = newValue; }, std::numeric_limits<uint32_t>::max()},
+#endif /* DISABLE_RECVMMSG */
+    {"setUDPTimeout", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()},
+  };
+  struct DoubleImmutableConfigurationItems
+  {
+    const std::string name;
+    const std::function<void(dnsdist::configuration::Configuration& config, double value)> mutator;
+    const double maximumValue{1.0};
+  };
+  static const std::vector<DoubleImmutableConfigurationItems> doubleImmutableConfigItems{
+    {"setConsistentHashingBalancingFactor", [](dnsdist::configuration::Configuration& config, double newValue) { config.d_consistentHashBalancingFactor = newValue; }, 1.0},
+    {"setWeightedBalancingFactor", [](dnsdist::configuration::Configuration& config, double newValue) { config.d_weightedBalancingFactor = newValue; }, 1.0},
+  };
+
+  for (const auto& item : booleanConfigItems) {
+    luaCtx.writeFunction(item.name, [&item](bool value) {
+      try {
+        dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
+          item.mutator(config, value);
+        });
+      }
+      catch (const std::exception& exp) {
+        g_outputBuffer = item.name + " cannot be used at runtime!\n";
+        errlog("%s cannot be used at runtime!", item.name);
+      }
+    });
+  }
+
+  for (const auto& item : unsignedIntegerImmutableConfigItems) {
+    luaCtx.writeFunction(item.name, [&item](uint64_t value) {
+      checkParameterBound(item.name, value, item.maximumValue);
+      try {
+        dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::Configuration& config) {
+          item.mutator(config, value);
+        });
+      }
+      catch (const std::exception& exp) {
+        g_outputBuffer = item.name + " cannot be used at runtime!\n";
+        errlog("%s cannot be used at runtime!", item.name);
+      }
+    });
+  }
+  for (const auto& item : doubleImmutableConfigItems) {
+    luaCtx.writeFunction(item.name, [&item](double value) {
+      if (value > item.maximumValue) {
+        g_outputBuffer = "Invalid value passed to " + item.name + "()!\n";
+        errlog("Invalid value passed to %s()!", item.name);
+        return;
+      }
+
+      try {
+        dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::Configuration& config) {
+          item.mutator(config, value);
+        });
+      }
+      catch (const std::exception& exp) {
+        g_outputBuffer = item.name + " cannot be used at runtime!\n";
+        errlog("%s cannot be used at runtime!", item.name);
+      }
+      setLuaSideEffect();
+    });
+  }
+
+  luaCtx.writeFunction("getVerbose", []() { return dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose; });
 
   luaCtx.writeFunction("addACL", [](const std::string& domain) {
     setLuaSideEffect();
@@ -1196,9 +1382,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
 
-    g_consoleEnabled = true;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_consoleEnabled = true;
+    });
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
-    if (g_configurationDone && g_consoleKey.empty()) {
+    if (dnsdist::configuration::isConfigurationDone() && dnsdist::configuration::getImmutableConfiguration().d_consoleKey.empty()) {
       warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
     }
 #endif
@@ -1230,7 +1418,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     warnlog("Allowing remote access to the console while neither libsodium not libcrypto support has been enabled is not secure, and will result in cleartext communications");
 #endif
 
-    g_consoleACL.modify([netmask](NetmaskGroup& nmg) { nmg.addMask(netmask); });
+    dnsdist::configuration::updateRuntimeConfiguration([&netmask](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_consoleACL.addMask(netmask);
+    });
   });
 
   luaCtx.writeFunction("setConsoleACL", [](LuaTypeOrArrayOf<std::string> inp) {
@@ -1249,7 +1439,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         nmg.addMask(entry.second);
       }
     }
-    g_consoleACL.setState(nmg);
+    dnsdist::configuration::updateRuntimeConfiguration([&nmg](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_consoleACL = std::move(nmg);
+    });
   });
 
   luaCtx.writeFunction("showConsoleACL", []() {
@@ -1259,7 +1451,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     warnlog("Allowing remote access to the console while neither libsodium nor libcrypto support has not been enabled is not secure, and will result in cleartext communications");
 #endif
 
-    auto aclEntries = g_consoleACL.getLocal()->toStringVector();
+    auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleACL.toStringVector();
 
     for (const auto& entry : aclEntries) {
       g_outputBuffer += entry + "\n";
@@ -1274,7 +1466,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("clearQueryCounters", []() {
     unsigned int size{0};
     {
-      auto records = g_qcount.records.write_lock();
+      auto records = dnsdist::QueryCount::g_queryCountRecords.write_lock();
       size = records->size();
       records->clear();
     }
@@ -1285,9 +1477,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getQueryCounters", [](boost::optional<uint64_t> optMax) {
     setLuaNoSideEffect();
-    auto records = g_qcount.records.read_lock();
+    auto records = dnsdist::QueryCount::g_queryCountRecords.read_lock();
     g_outputBuffer = "query counting is currently: ";
-    g_outputBuffer += g_qcount.enabled ? "enabled" : "disabled";
+    g_outputBuffer += dnsdist::configuration::getCurrentRuntimeConfiguration().d_queryCountConfig.d_enabled ? "enabled" : "disabled";
     g_outputBuffer += (boost::format(" (%d records in buffer)\n") % records->size()).str();
 
     boost::format fmt("%-3d %s: %d request(s)\n");
@@ -1298,10 +1490,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("setQueryCount", [](bool enabled) { g_qcount.enabled = enabled; });
-
-  luaCtx.writeFunction("setQueryCountFilter", [](QueryCountFilter func) {
-    g_qcount.filter = std::move(func);
+  luaCtx.writeFunction("setQueryCountFilter", [](dnsdist::QueryCount::Configuration::Filter func) {
+    dnsdist::configuration::updateRuntimeConfiguration([&func](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_queryCountConfig.d_filter = std::move(func);
+    });
   });
 
   luaCtx.writeFunction("makeKey", []() {
@@ -1310,7 +1502,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setKey", [](const std::string& key) {
-    if (!g_configurationDone && !g_consoleKey.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
+    if (!dnsdist::configuration::isConfigurationDone() && !dnsdist::configuration::getImmutableConfiguration().d_consoleKey.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
       return; // but later setKeys() trump the -k value again
     }
 #if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
@@ -1318,14 +1510,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
 
     setLuaSideEffect();
-    string newkey;
-    if (B64Decode(key, newkey) < 0) {
+    string newKey;
+    if (B64Decode(key, newKey) < 0) {
       g_outputBuffer = string("Unable to decode ") + key + " as Base64";
       errlog("%s", g_outputBuffer);
+      return;
     }
-    else {
-      g_consoleKey = std::move(newkey);
-    }
+
+    dnsdist::configuration::updateImmutableConfiguration([&newKey](dnsdist::configuration::Configuration& config) {
+      config.d_consoleKey = std::move(newKey);
+    });
   });
 
   luaCtx.writeFunction("clearConsoleHistory", []() {
@@ -1336,6 +1530,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaNoSideEffect();
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
     try {
+      const auto& consoleKey = dnsdist::configuration::getImmutableConfiguration().d_consoleKey;
       string testmsg;
 
       if (optTestMsg) {
@@ -1349,14 +1544,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       dnsdist::crypto::authenticated::Nonce nonce2;
       nonce1.init();
       nonce2 = nonce1;
-      string encrypted = dnsdist::crypto::authenticated::encryptSym(testmsg, g_consoleKey, nonce1);
-      string decrypted = dnsdist::crypto::authenticated::decryptSym(encrypted, g_consoleKey, nonce2);
+      string encrypted = dnsdist::crypto::authenticated::encryptSym(testmsg, consoleKey, nonce1);
+      string decrypted = dnsdist::crypto::authenticated::decryptSym(encrypted, consoleKey, nonce2);
 
       nonce1.increment();
       nonce2.increment();
 
-      encrypted = dnsdist::crypto::authenticated::encryptSym(testmsg, g_consoleKey, nonce1);
-      decrypted = dnsdist::crypto::authenticated::decryptSym(encrypted, g_consoleKey, nonce2);
+      encrypted = dnsdist::crypto::authenticated::encryptSym(testmsg, consoleKey, nonce1);
+      decrypted = dnsdist::crypto::authenticated::decryptSym(encrypted, consoleKey, nonce2);
 
       if (testmsg == decrypted) {
         g_outputBuffer = "Everything is ok!\n";
@@ -1376,56 +1571,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
-  luaCtx.writeFunction("setTCPRecvTimeout", [](int timeout) { g_tcpRecvTimeout = timeout; });
-
-  luaCtx.writeFunction("setTCPSendTimeout", [](int timeout) { g_tcpSendTimeout = timeout; });
-
-  luaCtx.writeFunction("setUDPTimeout", [](int timeout) { DownstreamState::s_udpTimeout = timeout; });
-
-  luaCtx.writeFunction("setMaxUDPOutstanding", [](uint64_t max) {
-    if (!checkConfigurationTime("setMaxUDPOutstanding")) {
-      return;
-    }
-
-    checkParameterBound("setMaxUDPOutstanding", max);
-    g_maxOutstanding = max;
-  });
-
-  luaCtx.writeFunction("setMaxTCPClientThreads", [](uint64_t max) {
-    if (!checkConfigurationTime("setMaxTCPClientThreads")) {
-      return;
-    }
-    g_maxTCPClientThreads = max;
-  });
-
-  luaCtx.writeFunction("setMaxTCPQueuedConnections", [](uint64_t max) {
-    if (!checkConfigurationTime("setMaxTCPQueuedConnections")) {
-      return;
-    }
-    g_maxTCPQueuedConnections = max;
-  });
-
-  luaCtx.writeFunction("setMaxTCPQueriesPerConnection", [](uint64_t max) {
-    if (!checkConfigurationTime("setMaxTCPQueriesPerConnection")) {
-      return;
-    }
-    g_maxTCPQueriesPerConn = max;
-  });
-
-  luaCtx.writeFunction("setMaxTCPConnectionsPerClient", [](uint64_t max) {
-    if (!checkConfigurationTime("setMaxTCPConnectionsPerClient")) {
-      return;
-    }
-    dnsdist::IncomingConcurrentTCPConnectionsManager::setMaxTCPConnectionsPerClient(max);
-  });
-
-  luaCtx.writeFunction("setMaxTCPConnectionDuration", [](uint64_t max) {
-    if (!checkConfigurationTime("setMaxTCPConnectionDuration")) {
-      return;
-    }
-    g_maxTCPConnectionDuration = max;
-  });
-
   luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](uint64_t max) {
     setTCPDownstreamMaxIdleConnectionsPerBackend(max);
   });
@@ -1443,61 +1588,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
-  luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](uint64_t max) {
-    if (!checkConfigurationTime("setOutgoingTLSSessionsCacheMaxTicketsPerBackend")) {
-      return;
-    }
-    TLSSessionCache::setMaxTicketsPerBackend(max);
-  });
-
-  luaCtx.writeFunction("setOutgoingTLSSessionsCacheCleanupDelay", [](time_t delay) {
-    if (!checkConfigurationTime("setOutgoingTLSSessionsCacheCleanupDelay")) {
-      return;
-    }
-    TLSSessionCache::setCleanupDelay(delay);
-  });
-
-  luaCtx.writeFunction("setOutgoingTLSSessionsCacheMaxTicketValidity", [](time_t validity) {
-    if (!checkConfigurationTime("setOutgoingTLSSessionsCacheMaxTicketValidity")) {
-      return;
-    }
-    TLSSessionCache::setSessionValidity(validity);
-  });
-
   luaCtx.writeFunction("getOutgoingTLSSessionCacheSize", []() {
     setLuaNoSideEffect();
     return g_sessionCache.getSize();
   });
 
-  luaCtx.writeFunction("setCacheCleaningDelay", [](uint64_t delay) {
-    checkParameterBound("setCacheCleaningDelay", delay, std::numeric_limits<uint32_t>::max());
-    g_cacheCleaningDelay = delay;
-  });
-
-  luaCtx.writeFunction("setCacheCleaningPercentage", [](uint64_t percentage) {
-    if (percentage < 100) {
-      g_cacheCleaningPercentage = percentage;
-    }
-    else {
-      g_cacheCleaningPercentage = 100;
-    }
-  });
-
-  luaCtx.writeFunction("setECSSourcePrefixV4", [](uint64_t prefix) {
-    checkParameterBound("setECSSourcePrefixV4", prefix, std::numeric_limits<uint16_t>::max());
-    g_ECSSourcePrefixV4 = prefix;
-  });
-
-  luaCtx.writeFunction("setECSSourcePrefixV6", [](uint64_t prefix) {
-    checkParameterBound("setECSSourcePrefixV6", prefix, std::numeric_limits<uint16_t>::max());
-    g_ECSSourcePrefixV6 = prefix;
-  });
-
-  luaCtx.writeFunction("setECSOverride", [](bool override) { g_ECSOverride = override; });
-
 #ifndef DISABLE_DYNBLOCKS
   luaCtx.writeFunction("showDynBlocks", []() {
     setLuaNoSideEffect();
+    const auto runtimeConf = dnsdist::configuration::getCurrentRuntimeConfiguration();
     auto slow = g_dynblockNMG.getCopy();
     timespec now{};
     gettime(&now);
@@ -1509,17 +1608,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         if (g_defaultBPFFilter && entry.second.bpf) {
           counter += g_defaultBPFFilter->getHits(entry.first.getNetwork());
         }
-        g_outputBuffer += (fmt % entry.first.toString() % (entry.second.until.tv_sec - now.tv_sec) % counter % (entry.second.warning ? "true" : "false") % DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : g_dynBlockAction) % (g_defaultBPFFilter && entry.second.bpf ? "*" : "") % entry.second.reason).str();
+        g_outputBuffer += (fmt % entry.first.toString() % (entry.second.until.tv_sec - now.tv_sec) % counter % (entry.second.warning ? "true" : "false") % DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : runtimeConf.d_dynBlockAction) % (g_defaultBPFFilter && entry.second.bpf ? "*" : "") % entry.second.reason).str();
       }
     }
     auto slow2 = g_dynblockSMT.getCopy();
-    slow2.visit([&now, &fmt](const SuffixMatchTree<DynBlock>& node) {
+    slow2.visit([&now, &fmt, &runtimeConf](const SuffixMatchTree<DynBlock>& node) {
       if (now < node.d_value.until) {
         string dom("empty");
         if (!node.d_value.domain.empty()) {
           dom = node.d_value.domain.toString();
         }
-        g_outputBuffer += (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % (node.d_value.warning ? "true" : "false") % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction) % "" % node.d_value.reason).str();
+        g_outputBuffer += (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % (node.d_value.warning ? "true" : "false") % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : runtimeConf.d_dynBlockAction) % "" % node.d_value.reason).str();
       }
     });
   });
@@ -1530,6 +1629,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     gettime(&now);
 
     LuaAssociativeTable<DynBlock> entries;
+    const auto defaultAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
     auto fullCopy = g_dynblockNMG.getCopy();
     for (const auto& blockPair : fullCopy) {
       const auto& requestor = blockPair.first;
@@ -1541,7 +1641,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         entry.blocks += g_defaultBPFFilter->getHits(requestor.getNetwork());
       }
       if (entry.action == DNSAction::Action::None) {
-        entry.action = g_dynBlockAction;
+        entry.action = defaultAction;
       }
       entries.emplace(requestor.toString(), std::move(entry));
     }
@@ -1554,8 +1654,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     gettime(&now);
 
     LuaAssociativeTable<DynBlock> entries;
+    const auto defaultAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
     auto fullCopy = g_dynblockSMT.getCopy();
-    fullCopy.visit([&now, &entries](const SuffixMatchTree<DynBlock>& node) {
+    fullCopy.visit([&now, &entries, defaultAction](const SuffixMatchTree<DynBlock>& node) {
       if (!(now < node.d_value.until)) {
         return;
       }
@@ -1565,7 +1666,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         key = entry.domain.toString();
       }
       if (entry.action == DNSAction::Action::None) {
-        entry.action = g_dynBlockAction;
+        entry.action = defaultAction;
       }
       entries.emplace(std::move(key), std::move(entry));
     });
@@ -1623,11 +1724,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                        });
 
   luaCtx.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {
-    if (!checkConfigurationTime("setDynBlocksAction")) {
-      return;
-    }
     if (action == DNSAction::Action::Drop || action == DNSAction::Action::NoOp || action == DNSAction::Action::Nxdomain || action == DNSAction::Action::Refused || action == DNSAction::Action::Truncate || action == DNSAction::Action::NoRecurse) {
-      g_dynBlockAction = action;
+      dnsdist::configuration::updateRuntimeConfiguration([action](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_dynBlockAction = action;
+      });
     }
     else {
       errlog("Dynamic blocks action can only be Drop, NoOp, NXDomain, Refused, Truncate or NoRecurse!");
@@ -1813,9 +1913,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return pool;
   });
 
-  luaCtx.writeFunction("setVerbose", [](bool verbose) { g_verbose = verbose; });
-  luaCtx.writeFunction("getVerbose", []() { return g_verbose; });
-  luaCtx.writeFunction("setVerboseHealthChecks", [](bool verbose) { g_verboseHealthChecks = verbose; });
   luaCtx.writeFunction("setVerboseLogDestination", [](const std::string& dest) {
     if (!checkConfigurationTime("setVerboseLogDestination")) {
       return;
@@ -1848,11 +1945,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     dnsdist::logging::LoggingConfiguration::setStructuredLogging(enable, levelPrefix);
-  });
-
-  luaCtx.writeFunction("setStaleCacheEntriesTTL", [](uint64_t ttl) {
-    checkParameterBound("setStaleCacheEntriesTTL", ttl, std::numeric_limits<uint32_t>::max());
-    g_staleCacheEntriesTTL = ttl;
   });
 
   luaCtx.writeFunction("showBinds", []() {
@@ -1981,7 +2073,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (!checkConfigurationTime("includeDirectory")) {
       return;
     }
-    if (g_included) {
+    static bool s_included{false};
+
+    if (s_included) {
       errlog("includeDirectory() cannot be used recursively!");
       g_outputBuffer = "includeDirectory() cannot be used recursively!\n";
       return;
@@ -2028,7 +2122,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     std::sort(files.begin(), files.end());
 
-    g_included = true;
+    s_included = true;
 
     for (const auto& file : files) {
       std::ifstream ifs(file);
@@ -2043,62 +2137,29 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         luaCtx.executeCode(ifs);
       }
       catch (...) {
-        g_included = false;
+        s_included = false;
         throw;
       }
 
       luaCtx.executeCode(ifs);
     }
 
-    g_included = false;
+    s_included = false;
   });
 
   luaCtx.writeFunction("setAPIWritable", [](bool writable, boost::optional<std::string> apiConfigDir) {
-    setLuaSideEffect();
-    g_apiReadWrite = writable;
-    if (apiConfigDir) {
+    if (apiConfigDir && (*apiConfigDir).empty()) {
+      errlog("The API configuration directory value cannot be empty!");
+      g_outputBuffer = "The API configuration directory value cannot be empty!";
+      return;
+    }
+    dnsdist::configuration::updateRuntimeConfiguration([writable, &apiConfigDir](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_apiReadWrite = writable;
       if (!(*apiConfigDir).empty()) {
-        g_apiConfigDirectory = *apiConfigDir;
+        config.d_apiConfigDirectory = *apiConfigDir;
       }
-      else {
-        errlog("The API configuration directory value cannot be empty!");
-        g_outputBuffer = "The API configuration directory value cannot be empty!";
-      }
-    }
-  });
-
-  luaCtx.writeFunction("setServFailWhenNoServer", [](bool servfail) {
+    });
     setLuaSideEffect();
-    g_servFailOnNoPolicy = servfail;
-  });
-
-  luaCtx.writeFunction("setRoundRobinFailOnNoServer", [](bool fail) {
-    setLuaSideEffect();
-    g_roundrobinFailOnNoServer = fail;
-  });
-
-  luaCtx.writeFunction("setConsistentHashingBalancingFactor", [](double factor) {
-    setLuaSideEffect();
-    if (factor >= 1.0) {
-      g_consistentHashBalancingFactor = factor;
-    }
-    else {
-      errlog("Invalid value passed to setConsistentHashingBalancingFactor()!");
-      g_outputBuffer = "Invalid value passed to setConsistentHashingBalancingFactor()!\n";
-      return;
-    }
-  });
-
-  luaCtx.writeFunction("setWeightedBalancingFactor", [](double factor) {
-    setLuaSideEffect();
-    if (factor >= 1.0) {
-      g_weightedBalancingFactor = factor;
-    }
-    else {
-      errlog("Invalid value passed to setWeightedBalancingFactor()!");
-      g_outputBuffer = "Invalid value passed to setWeightedBalancingFactor()!\n";
-      return;
-    }
   });
 
   luaCtx.writeFunction("setRingBuffersSize", [client](uint64_t capacity, boost::optional<uint64_t> numberOfShards) {
@@ -2138,13 +2199,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("setWHashedPertubation", [](uint64_t perturb) {
-    setLuaSideEffect();
-    checkParameterBound("setWHashedPertubation", perturb, std::numeric_limits<uint32_t>::max());
-    g_hashperturb = perturb;
-  });
-
-  luaCtx.writeFunction("setTCPInternalPipeBufferSize", [](uint64_t size) { g_tcpInternalPipeBufferSize = size; });
   luaCtx.writeFunction("setTCPFastOpenKey", [](const std::string& keyString) {
     setLuaSideEffect();
     std::array<uint32_t, 4> key{};
@@ -2168,19 +2222,27 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (!checkConfigurationTime("snmpAgent")) {
       return;
     }
-    if (g_snmpEnabled) {
-      errlog("snmpAgent() cannot be used twice!");
-      g_outputBuffer = "snmpAgent() cannot be used twice!\n";
-      return;
+
+    {
+      const auto runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
+      if (runtimeConfiguration.d_snmpEnabled) {
+        errlog("snmpAgent() cannot be used twice!");
+        g_outputBuffer = "snmpAgent() cannot be used twice!\n";
+        return;
+      }
     }
 
-    g_snmpEnabled = true;
-    g_snmpTrapsEnabled = enableTraps;
+    dnsdist::configuration::updateRuntimeConfiguration([enableTraps](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_snmpEnabled = true;
+      config.d_snmpTrapsEnabled = enableTraps;
+    });
+
     g_snmpAgent = std::make_unique<DNSDistSNMPAgent>("dnsdist", daemonSocket ? *daemonSocket : std::string());
   });
 
   luaCtx.writeFunction("sendCustomTrap", [](const std::string& str) {
-    if (g_snmpAgent != nullptr && g_snmpTrapsEnabled) {
+    const auto runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    if (g_snmpAgent != nullptr && runtimeConfiguration.d_snmpTrapsEnabled) {
       g_snmpAgent->sendCustomTrap(str);
     }
   });
@@ -2283,15 +2345,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
-  luaCtx.writeFunction("setConsoleConnectionsLogging", [](bool enabled) {
-    g_logConsoleConnections = enabled;
-  });
-
-  luaCtx.writeFunction("setConsoleOutputMaxMsgSize", [](uint64_t size) {
-    checkParameterBound("setConsoleOutputMaxMsgSize", size, std::numeric_limits<uint32_t>::max());
-    g_consoleOutputMsgMaxSize = size;
-  });
-
   luaCtx.writeFunction("setProxyProtocolACL", [](LuaTypeOrArrayOf<std::string> inp) {
     if (!checkConfigurationTime("setProxyProtocolACL")) {
       return;
@@ -2306,78 +2359,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         nmg.addMask(entry.second);
       }
     }
-    g_proxyProtocolACL = std::move(nmg);
-  });
-
-  luaCtx.writeFunction("setProxyProtocolApplyACLToProxiedClients", [](bool apply) {
-    if (!checkConfigurationTime("setProxyProtocolApplyACLToProxiedClients")) {
-      return;
-    }
-    setLuaSideEffect();
-    g_applyACLToProxiedClients = apply;
-  });
-
-  luaCtx.writeFunction("setProxyProtocolMaximumPayloadSize", [](uint64_t size) {
-    if (!checkConfigurationTime("setProxyProtocolMaximumPayloadSize")) {
-      return;
-    }
-    setLuaSideEffect();
-    g_proxyProtocolMaximumSize = std::max(static_cast<uint64_t>(16), size);
-  });
-
-#ifndef DISABLE_RECVMMSG
-  luaCtx.writeFunction("setUDPMultipleMessagesVectorSize", [](uint64_t vSize) {
-    if (!checkConfigurationTime("setUDPMultipleMessagesVectorSize")) {
-      return;
-    }
-#if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-    setLuaSideEffect();
-    g_udpVectorSize = vSize;
-#else
-      errlog("recvmmsg() support is not available!");
-      g_outputBuffer = "recvmmsg support is not available!\n";
-#endif
-  });
-#endif /* DISABLE_RECVMMSG */
-
-  luaCtx.writeFunction("setAddEDNSToSelfGeneratedResponses", [](bool add) {
-    g_addEDNSToSelfGeneratedResponses = add;
-  });
-
-  luaCtx.writeFunction("setPayloadSizeOnSelfGeneratedAnswers", [](uint64_t payloadSize) {
-    if (payloadSize < 512) {
-      warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!");
-      g_outputBuffer = "setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!";
-      payloadSize = 512;
-    }
-    if (payloadSize > s_udpIncomingBufferSize) {
-      warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to %d instead!", s_udpIncomingBufferSize);
-      g_outputBuffer = "setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to " + std::to_string(s_udpIncomingBufferSize) + " instead";
-      payloadSize = s_udpIncomingBufferSize;
-    }
-    g_PayloadSizeSelfGenAnswers = payloadSize;
+    dnsdist::configuration::updateRuntimeConfiguration([&nmg](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_proxyProtocolACL = std::move(nmg);
+    });
   });
 
 #ifndef DISABLE_SECPOLL
   luaCtx.writeFunction("showSecurityStatus", []() {
     setLuaNoSideEffect();
     g_outputBuffer = std::to_string(dnsdist::metrics::g_stats.securityStatus) + "\n";
-  });
-
-  luaCtx.writeFunction("setSecurityPollSuffix", [](const std::string& suffix) {
-    if (!checkConfigurationTime("setSecurityPollSuffix")) {
-      return;
-    }
-    g_secPollSuffix = suffix;
-  });
-
-  luaCtx.writeFunction("setSecurityPollInterval", [](time_t newInterval) {
-    if (newInterval <= 0) {
-      warnlog("setSecurityPollInterval() should be > 0, skipping");
-      g_outputBuffer = "setSecurityPollInterval() should be > 0, skipping";
-    }
-
-    g_secPollInterval = newInterval;
   });
 #endif /* DISABLE_SECPOLL */
 
@@ -3296,9 +3286,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("setAllowEmptyResponse", [](bool allow) { g_allowEmptyResponse = allow; });
-  luaCtx.writeFunction("setDropEmptyQueries", [](bool drop) { extern bool g_dropEmptyQueries; g_dropEmptyQueries = drop; });
-
 #if defined(HAVE_LIBSSL) && defined(HAVE_OCSP_BASIC_SIGN) && !defined(DISABLE_OCSP_STAPLING)
   luaCtx.writeFunction("generateOCSPResponse", [client](const std::string& certFile, const std::string& caCert, const std::string& caKey, const std::string& outFile, int ndays, int nmin) {
     if (client) {
@@ -3328,23 +3315,20 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (client) {
       return;
     }
-    if (!checkConfigurationTime("setUDPSocketBufferSizes")) {
-      return;
-    }
     checkParameterBound("setUDPSocketBufferSizes", recv, std::numeric_limits<uint32_t>::max());
     checkParameterBound("setUDPSocketBufferSizes", snd, std::numeric_limits<uint32_t>::max());
-    setLuaSideEffect();
 
-    g_socketUDPSendBuffer = snd;
-    g_socketUDPRecvBuffer = recv;
-  });
-
-  luaCtx.writeFunction("setRandomizedOutgoingSockets", [](bool randomized) {
-    DownstreamState::s_randomizeSockets = randomized;
-  });
-
-  luaCtx.writeFunction("setRandomizedIdsOverUDP", [](bool randomized) {
-    DownstreamState::s_randomizeIDs = randomized;
+    try {
+      dnsdist::configuration::updateImmutableConfiguration([snd, recv](dnsdist::configuration::Configuration& config) {
+        config.d_socketUDPSendBuffer = snd;
+        config.d_socketUDPRecvBuffer = recv;
+      });
+      setLuaSideEffect();
+    }
+    catch (const std::exception& exp) {
+      g_outputBuffer = "setUDPSocketBufferSizes cannot be used at runtime!\n";
+      errlog("setUDPSocketBufferSizes cannot be used at runtime!");
+    }
   });
 
 #if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)

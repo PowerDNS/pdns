@@ -19,48 +19,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #pragma once
 
-#include <vector>
+#include <functional>
+#include <unordered_map>
 #include <string>
+#include <tuple>
 
-#include "config.h"
-#include "sstuff.hh"
+#include "lock.hh"
 
-#ifndef DISABLE_COMPLETION
-struct ConsoleKeyword
+struct DNSQuestion;
+
+namespace dnsdist::QueryCount
 {
-  std::string name;
-  bool function;
-  std::string parameters;
-  std::string description;
-  std::string toString() const
-  {
-    std::string res(name);
-    if (function) {
-      res += "(" + parameters + ")";
-    }
-    res += ": ";
-    res += description;
-    return res;
-  }
+struct Configuration
+{
+  using Filter = std::function<std::tuple<bool, std::string>(const DNSQuestion* dq)>;
+  Configuration() = default;
+  Filter d_filter;
+  bool d_enabled{false};
 };
-extern const std::vector<ConsoleKeyword> g_consoleKeywords;
-extern "C"
-{
-  char** my_completion(const char* text, int start, int end);
-}
 
-#endif /* DISABLE_COMPLETION */
-
-void doClient(ComboAddress server, const std::string& command);
-void doConsole();
-void controlThread(std::shared_ptr<Socket> acceptFD, ComboAddress local);
-void clearConsoleHistory();
-
-void setConsoleMaximumConcurrentConnections(size_t max);
-
-namespace dnsdist::console
-{
-const std::vector<std::pair<timeval, std::string>>& getConfigurationDelta();
+using Records = std::unordered_map<std::string, unsigned int>;
+extern SharedLockGuarded<Records> g_queryCountRecords;
 }

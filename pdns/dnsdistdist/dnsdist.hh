@@ -38,6 +38,7 @@
 #include "circular_buffer.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsdist-dynbpf.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-lbpolicies.hh"
@@ -59,10 +60,6 @@
 
 uint64_t uptimeOfProcess(const std::string& str);
 
-extern uint16_t g_ECSSourcePrefixV4;
-extern uint16_t g_ECSSourcePrefixV6;
-extern bool g_ECSOverride;
-
 using QTag = std::unordered_map<string, string>;
 
 class IncomingTCPConnectionState;
@@ -72,7 +69,7 @@ struct ClientState;
 struct DNSQuestion
 {
   DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_) :
-    data(data_), ids(ids_), ecsPrefixLength(ids.origRemote.sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), ecsOverride(g_ECSOverride)
+    data(data_), ids(ids_), ecsPrefixLength(ids.origRemote.sin4.sin_family == AF_INET ? dnsdist::configuration::getCurrentRuntimeConfiguration().d_ECSSourcePrefixV4 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_ECSSourcePrefixV6), ecsOverride(dnsdist::configuration::getCurrentRuntimeConfiguration().d_ecsOverride)
   {
   }
   DNSQuestion(const DNSQuestion&) = delete;
@@ -210,113 +207,6 @@ struct DNSResponse : DNSQuestion
   const std::shared_ptr<DownstreamState>& d_downstream;
 };
 
-/* so what could you do:
-   drop,
-   fake up nxdomain,
-   provide actual answer,
-   allow & and stop processing,
-   continue processing,
-   modify header:    (servfail|refused|notimp), set TC=1,
-   send to pool */
-
-class DNSAction
-{
-public:
-  enum class Action : uint8_t
-  {
-    Drop,
-    Nxdomain,
-    Refused,
-    Spoof,
-    Allow,
-    HeaderModify,
-    Pool,
-    Delay,
-    Truncate,
-    ServFail,
-    None,
-    NoOp,
-    NoRecurse,
-    SpoofRaw,
-    SpoofPacket,
-    SetTag,
-  };
-  static std::string typeToString(const Action& action)
-  {
-    switch (action) {
-    case Action::Drop:
-      return "Drop";
-    case Action::Nxdomain:
-      return "Send NXDomain";
-    case Action::Refused:
-      return "Send Refused";
-    case Action::Spoof:
-      return "Spoof an answer";
-    case Action::SpoofPacket:
-      return "Spoof a raw answer from bytes";
-    case Action::SpoofRaw:
-      return "Spoof an answer from raw bytes";
-    case Action::Allow:
-      return "Allow";
-    case Action::HeaderModify:
-      return "Modify the header";
-    case Action::Pool:
-      return "Route to a pool";
-    case Action::Delay:
-      return "Delay";
-    case Action::Truncate:
-      return "Truncate over UDP";
-    case Action::ServFail:
-      return "Send ServFail";
-    case Action::SetTag:
-      return "Set Tag";
-    case Action::None:
-    case Action::NoOp:
-      return "Do nothing";
-    case Action::NoRecurse:
-      return "Set rd=0";
-    }
-
-    return "Unknown";
-  }
-
-  virtual Action operator()(DNSQuestion*, string* ruleresult) const = 0;
-  virtual ~DNSAction()
-  {
-  }
-  virtual string toString() const = 0;
-  virtual std::map<string, double> getStats() const
-  {
-    return {{}};
-  }
-  virtual void reload()
-  {
-  }
-};
-
-class DNSResponseAction
-{
-public:
-  enum class Action : uint8_t
-  {
-    Allow,
-    Delay,
-    Drop,
-    HeaderModify,
-    ServFail,
-    Truncate,
-    None
-  };
-  virtual Action operator()(DNSResponse*, string* ruleresult) const = 0;
-  virtual ~DNSResponseAction()
-  {
-  }
-  virtual string toString() const = 0;
-  virtual void reload()
-  {
-  }
-};
-
 struct DynBlock
 {
   DynBlock()
@@ -385,8 +275,6 @@ struct DynBlock
 };
 
 extern GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
-
-extern vector<pair<struct timeval, std::string>> g_confDelta;
 
 using pdns::stat_t;
 
@@ -501,23 +389,6 @@ private:
   unsigned int d_burst{0};
   bool d_passthrough{true};
 };
-
-typedef std::unordered_map<string, unsigned int> QueryCountRecords;
-typedef std::function<std::tuple<bool, string>(const DNSQuestion* dq)> QueryCountFilter;
-struct QueryCount
-{
-  QueryCount()
-  {
-  }
-  ~QueryCount()
-  {
-  }
-  SharedLockGuarded<QueryCountRecords> records;
-  QueryCountFilter filter;
-  bool enabled{false};
-};
-
-extern QueryCount g_qcount;
 
 class XskPacket;
 class XskSocket;
@@ -1092,10 +963,6 @@ public:
     }
     return latencyUsec;
   }
-
-  static int s_udpTimeout;
-  static bool s_randomizeSockets;
-  static bool s_randomizeIDs;
 };
 using servers_t = vector<std::shared_ptr<DownstreamState>>;
 
@@ -1158,7 +1025,6 @@ enum ednsHeaderFlags
 };
 
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
-extern DNSAction::Action g_dynBlockAction;
 
 extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
@@ -1172,27 +1038,6 @@ extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
 extern std::vector<shared_ptr<DOQFrontend>> g_doqlocals;
 extern std::vector<shared_ptr<DOH3Frontend>> g_doh3locals;
 extern std::vector<std::unique_ptr<ClientState>> g_frontends;
-extern bool g_truncateTC;
-extern bool g_fixupCase;
-extern int g_tcpRecvTimeout;
-extern int g_tcpSendTimeout;
-extern uint16_t g_maxOutstanding;
-extern std::atomic<bool> g_configurationDone;
-extern boost::optional<uint64_t> g_maxTCPClientThreads;
-extern uint64_t g_maxTCPQueuedConnections;
-extern size_t g_maxTCPQueriesPerConn;
-extern size_t g_maxTCPConnectionDuration;
-extern size_t g_tcpInternalPipeBufferSize;
-extern pdns::stat16_t g_cacheCleaningDelay;
-extern pdns::stat16_t g_cacheCleaningPercentage;
-extern uint32_t g_staleCacheEntriesTTL;
-extern bool g_apiReadWrite;
-extern std::string g_apiConfigDirectory;
-extern bool g_servFailOnNoPolicy;
-extern size_t g_udpVectorSize;
-extern bool g_allowEmptyResponse;
-extern uint32_t g_socketUDPSendBuffer;
-extern uint32_t g_socketUDPRecvBuffer;
 
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
 extern std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
@@ -1204,7 +1049,7 @@ void setLuaSideEffect(); // set to report a side effect, cancelling all _no_ sid
 bool getLuaNoSideEffect(); // set if there were only explicit declarations of _no_ side effect
 void resetLuaSideEffect(); // reset to indeterminate state
 
-bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote);
+bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, bool allowEmptyResponse);
 
 bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState);
 
@@ -1212,15 +1057,7 @@ extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
 bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 
-#include "dnsdist-snmp.hh"
-
-extern bool g_snmpEnabled;
-extern bool g_snmpTrapsEnabled;
-extern std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent;
-extern bool g_addEDNSToSelfGeneratedResponses;
-
 extern std::set<std::string> g_capabilitiesToRetain;
-static const uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries larger than this value
 
 enum class ProcessQueryResult : uint8_t
 {

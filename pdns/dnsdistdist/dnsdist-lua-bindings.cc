@@ -672,7 +672,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.registerFunction<void (std::shared_ptr<BPFFilter>::*)()>("attachToAllBinds", [](std::shared_ptr<BPFFilter>& bpf) {
     std::string res;
-    if (!g_configurationDone) {
+    if (!dnsdist::configuration::isConfigurationDone()) {
       throw std::runtime_error("attachToAllBinds() cannot be used at configuration time!");
       return;
     }
@@ -740,7 +740,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_XSK
   using xskopt_t = LuaAssociativeTable<boost::variant<uint32_t, std::string>>;
   luaCtx.writeFunction("newXsk", [client](xskopt_t opts) {
-    if (g_configurationDone) {
+    if (dnsdist::configuration::isConfigurationDone()) {
       throw std::runtime_error("newXsk() only can be used at configuration time!");
     }
     if (client) {

@@ -32,6 +32,7 @@
 #include "base64.hh"
 #include "connection-management.hh"
 #include "dnsdist.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-metrics.hh"
@@ -60,9 +61,7 @@ struct WebserverConfig
   bool statsRequireAuthentication{true};
 };
 
-bool g_apiReadWrite{false};
 LockGuarded<WebserverConfig> g_webserverConfig;
-std::string g_apiConfigDirectory;
 
 static ConcurrentConnectionManager s_connManager(100);
 
@@ -90,9 +89,12 @@ std::string getWebserverConfig()
     out << "Password: " << (config->password ? "set" : "unset") << endl;
     out << "API key: " << (config->apiKey ? "set" : "unset") << endl;
   }
-  out << "API writable: " << (g_apiReadWrite ? "yes" : "no") << endl;
-  out << "API configuration directory: " << g_apiConfigDirectory << endl;
-  out << "Maximum concurrent connections: " << s_connManager.getMaxConcurrentConnections() << endl;
+  {
+    const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    out << "API writable: " << (config.d_apiReadWrite ? "yes" : "no") << endl;
+    out << "API configuration directory: " << config.d_apiConfigDirectory << endl;
+    out << "Maximum concurrent connections: " << s_connManager.getMaxConcurrentConnections() << endl;
+  }
 
   return out.str();
 }
@@ -238,17 +240,18 @@ bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& 
 #ifndef DISABLE_WEB_CONFIG
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
 {
-  if (!g_apiReadWrite) {
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (!runtimeConfig.d_apiReadWrite) {
     warnlog("Not writing content to %s since the API is read-only", filebasename);
     return false;
   }
 
-  if (g_apiConfigDirectory.empty()) {
+  if (runtimeConfig.d_apiConfigDirectory.empty()) {
     vinfolog("Not writing content to %s since the API configuration directory is not set", filebasename);
     return false;
   }
 
-  string filename = g_apiConfigDirectory + "/" + filebasename + ".conf";
+  string filename = runtimeConfig.d_apiConfigDirectory + "/" + filebasename + ".conf";
   ofstream ofconf(filename.c_str());
   if (!ofconf) {
     errlog("Could not open configuration fragment file '%s' for writing: %s", filename, stringerror());
@@ -365,7 +368,7 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
   if (req.method == "GET") {
     return true;
   }
-  if (req.method == "PUT" && g_apiReadWrite) {
+  if (req.method == "PUT" && dnsdist::configuration::getCurrentRuntimeConfiguration().d_apiReadWrite) {
     if (req.url.path == "/api/v1/servers/localhost/config/allow-from") {
       return true;
     }
@@ -391,7 +394,7 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
   if (origin != req.headers.end()) {
     if (req.method == "OPTIONS") {
       /* Pre-flight request */
-      if (g_apiReadWrite) {
+      if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_apiReadWrite) {
         resp.headers["Access-Control-Allow-Methods"] = "GET, PUT";
       }
       else {
@@ -969,6 +972,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 
   const string& command = req.getvars.at("command");
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
 
   if (command == "stats") {
     auto obj = Json::object{
@@ -1002,14 +1006,14 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         {"reason", entry.second.reason},
         {"seconds", static_cast<double>(entry.second.until.tv_sec - now.tv_sec)},
         {"blocks", static_cast<double>(counter)},
-        {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : g_dynBlockAction)},
+        {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : runtimeConfig.d_dynBlockAction)},
         {"warning", entry.second.warning},
         {"ebpf", entry.second.bpf}};
       obj.emplace(entry.first.toString(), thing);
     }
 
     auto smt = g_dynblockSMT.getLocal();
-    smt->visit([&now, &obj](const SuffixMatchTree<DynBlock>& node) {
+    smt->visit([&now, &obj, &runtimeConfig](const SuffixMatchTree<DynBlock>& node) {
       if (!(now < node.d_value.until)) {
         return;
       }
@@ -1021,7 +1025,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         {"reason", node.d_value.reason},
         {"seconds", static_cast<double>(node.d_value.until.tv_sec - now.tv_sec)},
         {"blocks", static_cast<double>(node.d_value.blocks)},
-        {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction)},
+        {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : runtimeConfig.d_dynBlockAction)},
         {"ebpf", node.d_value.bpf}};
       obj.emplace(dom, thing);
     });
@@ -1055,7 +1059,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
           {"reason", entry.second.reason},
           {"seconds", static_cast<double>(entry.second.until.tv_sec - now.tv_sec)},
           {"blocks", static_cast<double>(counter)},
-          {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : g_dynBlockAction)},
+          {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : runtimeConfig.d_dynBlockAction)},
           {"warning", entry.second.warning},
         };
         obj.emplace(entry.first.toString(), thing);
@@ -1442,23 +1446,25 @@ static void handleConfigDump(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.status = 200;
 
   Json::array doc;
-  typedef boost::variant<bool, double, std::string> configentry_t;
+  const auto runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  const auto immutableConfig = dnsdist::configuration::getImmutableConfiguration();
+  using configentry_t = boost::variant<bool, double, std::string>;
   std::vector<std::pair<std::string, configentry_t>> configEntries{
     {"acl", g_ACL.getLocal()->toString()},
-    {"allow-empty-response", g_allowEmptyResponse},
+    {"allow-empty-response", runtimeConfiguration.d_allowEmptyResponse},
     {"control-socket", g_serverControl.toStringWithPort()},
-    {"ecs-override", g_ECSOverride},
-    {"ecs-source-prefix-v4", (double)g_ECSSourcePrefixV4},
-    {"ecs-source-prefix-v6", (double)g_ECSSourcePrefixV6},
-    {"fixup-case", g_fixupCase},
-    {"max-outstanding", (double)g_maxOutstanding},
+    {"ecs-override", runtimeConfiguration.d_ecsOverride},
+    {"ecs-source-prefix-v4", static_cast<double>(runtimeConfiguration.d_ECSSourcePrefixV4)},
+    {"ecs-source-prefix-v6", static_cast<double>(runtimeConfiguration.d_ECSSourcePrefixV6)},
+    {"fixup-case", runtimeConfiguration.d_fixupCase},
+    {"max-outstanding", static_cast<double>(immutableConfig.d_maxUDPOutstanding)},
     {"server-policy", g_policy.getLocal()->getName()},
-    {"stale-cache-entries-ttl", (double)g_staleCacheEntriesTTL},
-    {"tcp-recv-timeout", (double)g_tcpRecvTimeout},
-    {"tcp-send-timeout", (double)g_tcpSendTimeout},
-    {"truncate-tc", g_truncateTC},
-    {"verbose", g_verbose},
-    {"verbose-health-checks", g_verboseHealthChecks}};
+    {"stale-cache-entries-ttl", static_cast<double>(runtimeConfiguration.d_staleCacheEntriesTTL)},
+    {"tcp-recv-timeout", static_cast<double>(runtimeConfiguration.d_tcpRecvTimeout)},
+    {"tcp-send-timeout", static_cast<double>(runtimeConfiguration.d_tcpSendTimeout)},
+    {"truncate-tc", runtimeConfiguration.d_truncateTC},
+    {"verbose", runtimeConfiguration.d_verbose},
+    {"verbose-health-checks", runtimeConfiguration.d_verboseHealthChecks}};
   for (const auto& item : configEntries) {
     if (const auto& bval = boost::get<bool>(&item.second)) {
       doc.emplace_back(Json::object{

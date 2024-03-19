@@ -31,9 +31,6 @@ struct DNSQuestion;
 // root label (1), type (2), class (2), ttl (4) + rdlen (2)
 static const size_t optRecordMinimumSize = 11;
 
-extern size_t g_EdnsUDPPayloadSize;
-extern uint16_t g_PayloadSizeSelfGenAnswers;
-
 int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& newContent);
 bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, PacketBuffer& newContent, bool& ednsAdded, uint16_t optionToReplace, bool& optionAdded, bool overrideExisting, const string& newOptionContent);
 int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optLen, bool* last);
