@@ -363,8 +363,8 @@ static bool dumpZoneToDisk(Logr::log_t logger, const DNSName& zoneName, const st
     return false;
   }
 
-  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(fd, "w+"), fclose);
-  if (!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fdopen(fileDesc, "w+"));
+  if (!filePtr) {
     int err = errno;
     close(fd);
     SLOG(g_log << Logger::Warning << "Unable to open a file pointer to dump the content of the RPZ zone " << zoneName << endl,

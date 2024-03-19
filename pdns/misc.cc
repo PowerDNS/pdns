@@ -861,11 +861,11 @@ bool stringfgets(FILE* fp, std::string& line)
 bool readFileIfThere(const char* fname, std::string* line)
 {
   line->clear();
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
-  if (!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fopen(fname, "r"));
+  if (!filePtr) {
     return false;
   }
-  return stringfgets(fp.get(), *line);
+  return stringfgets(filePtr.get(), *line);
 }
 
 Regex::Regex(const string &expr)
@@ -1751,9 +1751,16 @@ bool constantTimeStringEquals(const std::string& a, const std::string& b)
 
 namespace pdns
 {
+struct CloseDirDeleter
+{
+  void operator()(DIR* dir) const noexcept {
+    closedir(dir);
+  }
+};
+
 std::optional<std::string> visit_directory(const std::string& directory, const std::function<bool(ino_t inodeNumber, const std::string_view& name)>& visitor)
 {
-  auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(directory.c_str()), closedir);
+  auto dirHandle = std::unique_ptr<DIR, CloseDirDeleter>(opendir(directory.c_str()));
   if (!dirHandle) {
     auto err = errno;
     return std::string("Error opening directory '" + directory + "': " + stringerror(err));
@@ -1770,4 +1777,28 @@ std::optional<std::string> visit_directory(const std::string& directory, const s
 
   return std::nullopt;
 }
+
+UniqueFilePtr openFileForWriting(const std::string& filePath, mode_t permissions, bool mustNotExist, bool appendIfExists)
+{
+  int flags = O_WRONLY | O_CREAT;
+  if (mustNotExist) {
+    flags |= O_EXCL;
+  }
+  else if (appendIfExists) {
+    flags |= O_APPEND;
+  }
+  int fileDesc = open(filePath.c_str(), flags, permissions);
+  if (fileDesc == -1) {
+    return {};
+  }
+  auto filePtr = pdns::UniqueFilePtr(fdopen(fileDesc, appendIfExists ? "a" : "w"));
+  if (!filePtr) {
+    auto error = errno;
+    close(fileDesc);
+    errno = error;
+    return {};
+  }
+  return filePtr;
+}
+
 }

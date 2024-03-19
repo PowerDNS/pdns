@@ -858,7 +858,7 @@ static void dumpTrace(const string& trace, const timeval& timev)
     return;
   }
   setNonBlocking(traceFd);
-  auto filep = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(traceFd, "a"), &fclose);
+  auto filep = pdns::UniqueFilePtr(fdopen(traceFd, "a"));
   if (!filep) {
     int err = errno;
     SLOG(g_log << Logger::Error << "Could not write to trace file: " << stringerror(err) << endl,
