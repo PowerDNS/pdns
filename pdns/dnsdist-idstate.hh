@@ -130,17 +130,17 @@ struct InternalQueryState
   }
 
   boost::optional<Netmask> subnet{boost::none}; // 40
+  std::string poolName; // 32
   ComboAddress origRemote; // 28
   ComboAddress origDest; // 28
   ComboAddress hopRemote;
   ComboAddress hopLocal;
   DNSName qname; // 24
-  std::string poolName; // 24
+#ifdef HAVE_XSK
+  PacketBuffer xskPacketHeader; // 24
+#endif /* HAVE_XSK */
   StopWatch queryRealTime{true}; // 24
   std::shared_ptr<DNSDistPacketCache> packetCache{nullptr}; // 16
-#ifdef HAVE_XSK
-  PacketBuffer xskPacketHeader; // 8
-#endif /* HAVE_XSK */
   std::unique_ptr<DNSCryptQuery> dnsCryptQuery{nullptr}; // 8
   std::unique_ptr<QTag> qTag{nullptr}; // 8
   std::unique_ptr<PacketBuffer> d_packet{nullptr}; // Initial packet, so we can restart the query from the response path if needed // 8
@@ -150,9 +150,9 @@ struct InternalQueryState
   ClientState* cs{nullptr}; // 8
   std::unique_ptr<DOHUnitInterface> du; // 8
   size_t d_proxyProtocolPayloadSize{0}; // 8
-  int32_t d_streamID{-1}; // 4
   std::unique_ptr<DOQUnit> doqu{nullptr}; // 8
   std::unique_ptr<DOH3Unit> doh3u{nullptr}; // 8
+  int32_t d_streamID{-1}; // 4
   uint32_t cacheKey{0}; // 4
   uint32_t cacheKeyNoECS{0}; // 4
   // DoH-only */
