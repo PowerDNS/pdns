@@ -256,6 +256,7 @@ dnsdist_SOURCES = \
 	tcpiohandler.cc tcpiohandler.hh \
 	threadname.hh threadname.cc \
 	uuid-utils.hh uuid-utils.cc \
+	views.hh \
 	xpf.cc xpf.hh \
 	xsk.cc xsk.hh
 
