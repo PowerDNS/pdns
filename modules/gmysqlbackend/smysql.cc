@@ -493,6 +493,7 @@ void SMySQL::connect()
     if (d_timeout) {
       mysql_options(&d_db, MYSQL_OPT_READ_TIMEOUT, &d_timeout);
       mysql_options(&d_db, MYSQL_OPT_WRITE_TIMEOUT, &d_timeout);
+      mysql_options(&d_db, MYSQL_OPT_CONNECT_TIMEOUT, &d_timeout);
     }
 #endif
 
@@ -507,7 +508,7 @@ void SMySQL::connect()
                             d_database.empty() ? nullptr : d_database.c_str(),
                             d_port,
                             d_msocket.empty() ? nullptr : d_msocket.c_str(),
-                            (d_clientSSL ? CLIENT_SSL : 0) | CLIENT_MULTI_RESULTS)) {
+                            CLIENT_MULTI_RESULTS)) {
 
       if (retry == 0)
         throw sPerrorException("Unable to connect to database");
