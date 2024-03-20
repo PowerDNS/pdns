@@ -43,9 +43,9 @@ std::mutex PersistentSBF::d_cachedir_mutex;
 void PersistentSBF::remove_tmp_files(const filesystem::path& path, std::lock_guard<std::mutex>& /* lock */)
 {
   Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\..{8}$");
-  for (filesystem::directory_iterator i(path); i != filesystem::directory_iterator(); ++i) {
-    if (filesystem::is_regular_file(i->path()) && file_regex.match(i->path().filename().string())) {
-      filesystem::remove(*i);
+  for (const auto& file : filesystem::directory_iterator (path)) {
+    if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().string())) {
+      filesystem::remove(file);
     }
   }
 }
@@ -65,20 +65,20 @@ bool PersistentSBF::init(bool ignore_pid)
       if (filesystem::exists(path) && filesystem::is_directory(path)) {
         remove_tmp_files(path, lock);
         filesystem::path newest_file;
-        std::time_t newest_time = time(nullptr);
+        std::time_t newest_time = 0;
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
-        for (filesystem::directory_iterator i(path); i != filesystem::directory_iterator(); ++i) {
-          if (filesystem::is_regular_file(i->path()) && file_regex.match(i->path().filename().string())) {
-            if (ignore_pid || (i->path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
+        for (const auto& file : filesystem::directory_iterator (path)) {
+          if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().string())) {
+            if (ignore_pid || (file.path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
               // look for the newest file matching the regex
-              if ((last_write_time(i->path()) < newest_time) || newest_file.empty()) {
-                newest_time = last_write_time(i->path());
-                newest_file = i->path();
+              if (last_write_time(file.path()) > newest_time) { 
+                newest_time = last_write_time(file.path());
+                newest_file = file.path();
               }
             }
           }
         }
-        if (filesystem::exists(newest_file)) {
+        if (!newest_file.empty() && filesystem::exists(newest_file)) {
           const std::string& filename = newest_file.string();
           std::ifstream infile;
           try {
@@ -138,19 +138,18 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
     file /= strStream.str() + "_" + std::to_string(getpid()) + "." + bf_suffix;
     if (filesystem::exists(path) && filesystem::is_directory(path)) {
       try {
-        std::ofstream ofile;
-        std::stringstream iss;
+        std::ostringstream oss;
         {
           // only lock while dumping to a stringstream
-          d_sbf.lock()->dump(iss);
+          d_sbf.lock()->dump(oss);
         }
         // Now write it out to the file
         std::string ftmp = file.string() + ".XXXXXXXX";
-        int fileDesc = mkstemp(&ftmp.at(0));
+        int fileDesc = mkstemp(ftmp.data());
         if (fileDesc == -1) {
           throw std::runtime_error("Cannot create temp file: " + stringerror());
         }
-        std::string str = iss.str();
+        const std::string str = oss.str(); // XXX creates a copy, with c++20 we can use view()
         ssize_t len = write(fileDesc, str.data(), str.length());
         if (len != static_cast<ssize_t>(str.length())) {
           close(fileDesc);
