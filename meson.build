@@ -230,14 +230,6 @@ conditional_sources = {
     'sources': [src_dir / 'lua-record.cc'],
     'condition': dep_lua_records.found(),
   },
-  'signers-sodium': {
-    'sources': [src_dir / 'sodiumsigners.cc'],
-    'condition': dep_libsodium.found(),
-  },
-  'signers-decaf': {
-    'sources': [src_dir / 'decafsigners.cc'],
-    'condition': dep_libdecaf.found(),
-  },
   'standalone-fuzz-target-runner': {
     'sources': [src_dir / 'standalone_fuzz_target_runner.cc'],
     'condition': get_option('fuzz-targets'),
@@ -250,7 +242,30 @@ foreach name, info: conditional_sources
   endif
 endforeach
 
-# Conditional sources that need to be separated into standalone libraries.
+# Conditional sources that need to be separated into standalone libraries for special
+# linking without implicitly getting rid of symbols.
+libpdns_signers_sodium = dependency('', required: false)
+if dep_libsodium.found()
+  libpdns_signers_sodium = declare_dependency(
+    link_whole: static_library(
+      'pdns-signers-sodium',
+      sources: files(src_dir / 'sodiumsigners.cc'),
+      dependencies: dep_libsodium,
+    )
+  )
+endif
+
+libpdns_signers_decaf = dependency('', required: false)
+if dep_libdecaf.found()
+  libpdns_signers_decaf = declare_dependency(
+    link_whole: static_library(
+      'pdns-signers-decaf',
+      sources: files(src_dir / 'decafsigners.cc'),
+      dependencies: dep_libdecaf,
+    )
+  )
+endif
+
 libpdns_signers_pkcs11 = dependency('', required: false)
 if dep_pkcs11.found()
   libpdns_signers_pkcs11 = declare_dependency(
@@ -280,6 +295,14 @@ libpdns_gettime = declare_dependency(
     src_dir / 'gettime.cc',
     src_dir / 'gettime.hh',
     dependencies: dep_rt,
+  )
+)
+
+libpdns_signers_openssl = declare_dependency(
+  link_whole: static_library(
+    'pdns-signers-openssl',
+    sources: files(src_dir / 'opensslsigners.cc', src_dir / 'opensslsigners.hh'),
+    dependencies: dep_libcrypto,
   )
 )
 
@@ -382,8 +405,6 @@ common_sources += files(
   src_dir / 'namespaces.hh',
   src_dir / 'noinitvector.hh',
   src_dir / 'nsecrecords.cc',
-  src_dir / 'opensslsigners.cc',
-  src_dir / 'opensslsigners.hh',
   src_dir / 'packetcache.hh',
   src_dir / 'packethandler.cc',
   src_dir / 'packethandler.hh',
@@ -572,13 +593,21 @@ tools = {
       dep_modules,
       libpdns_ssqlite3,
       libpdns_gettime,
+      libpdns_signers_openssl,
+      libpdns_signers_decaf,
+      libpdns_signers_sodium,
     ],
   },
 
   'pdns-auth-util'    : {
     'main': src_dir / 'pdnsutil.cc',
     'files-extra': libpdns_bind_dnssec_schema_gen,
-    'deps-extra': libpdns_ssqlite3,
+    'deps-extra': [
+      libpdns_ssqlite3,
+      libpdns_signers_openssl,
+      libpdns_signers_decaf,
+      libpdns_signers_sodium,
+    ],
   },
   'pdns-auth-control' : { 'main': src_dir / 'dynloader.cc' },
   'pdns-zone2sql'     : { 'main': src_dir / 'zone2sql.cc'  },
@@ -723,7 +752,12 @@ if get_option('unit-tests')
     # TODO: NOINSTALL speedtest and pdns-auth-testrunner
     'pdns-auth-testrunner': {
       'main': src_dir / 'testrunner.cc',
-      'deps-extra': libpdns_test,
+      'deps-extra': [
+        libpdns_test,
+        libpdns_signers_openssl,
+        libpdns_signers_decaf,
+        libpdns_signers_sodium,
+      ],
     },
     'speedtest'           : { 'main': src_dir / 'speedtest.cc'  },
     'tsig-tests'          : { 'main': src_dir / 'tsig-tests.cc' },
