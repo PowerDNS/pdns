@@ -33,7 +33,7 @@ namespace nod
 const float c_fp_rate = 0.01;
 const size_t c_num_cells = 67108864;
 const uint8_t c_num_dec = 10;
-  const unsigned int snapshot_interval_default = 30; // XXX 600;
+const unsigned int snapshot_interval_default = 600;
 const std::string bf_suffix = "bf";
 const std::string sbf_prefix = "sbf";
 

@@ -43,7 +43,7 @@ std::mutex PersistentSBF::d_cachedir_mutex;
 void PersistentSBF::remove_tmp_files(const filesystem::path& path, std::lock_guard<std::mutex>& /* lock */)
 {
   Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\..{8}$");
-  for (const auto& file : filesystem::directory_iterator (path)) {
+  for (const auto& file : filesystem::directory_iterator(path)) {
     if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().string())) {
       filesystem::remove(file);
     }
@@ -67,11 +67,11 @@ bool PersistentSBF::init(bool ignore_pid)
         filesystem::path newest_file;
         std::time_t newest_time = 0;
         Regex file_regex(d_prefix + ".*\\." + bf_suffix + "$");
-        for (const auto& file : filesystem::directory_iterator (path)) {
+        for (const auto& file : filesystem::directory_iterator(path)) {
           if (filesystem::is_regular_file(file.path()) && file_regex.match(file.path().filename().string())) {
             if (ignore_pid || (file.path().filename().string().find(std::to_string(getpid())) == std::string::npos)) {
               // look for the newest file matching the regex
-              if (last_write_time(file.path()) > newest_time) { 
+              if (last_write_time(file.path()) > newest_time) {
                 newest_time = last_write_time(file.path());
                 newest_file = file.path();
               }
@@ -204,8 +204,6 @@ bool NODDB::isNewDomain(const std::string& domain)
 bool NODDB::isNewDomain(const DNSName& dname)
 {
   std::string dname_lc = dname.toDNSStringLC();
-  // The only time this should block is when snapshotting from the
-  // housekeeping thread
   // the result is always the inverse of what is returned by the SBF
   return !d_psbf.testAndAdd(dname_lc);
 }

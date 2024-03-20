@@ -796,10 +796,13 @@ static void setupNODThread(Logr::log_t log)
            log->info(Logr::Error, "Could not initialize domain tracking"));
       _exit(1);
     }
-    std::thread thread([tid = std::this_thread::get_id()]() {
-      g_nodDBp->housekeepingThread(tid);
-    });
-    thread.detach();
+    if (::arg().asNum("new-domain-db-snapshot-interval") > 0) {
+      g_nodDBp->setSnapshotInterval(::arg().asNum("new-domain-db-snapshot-interval"));
+      std::thread thread([tid = std::this_thread::get_id()]() {
+        g_nodDBp->housekeepingThread(tid);
+      });
+      thread.detach();
+    }
   }
   if (g_udrEnabled) {
     uint32_t num_cells = ::arg().asNum("unique-response-db-size");
@@ -817,10 +820,13 @@ static void setupNODThread(Logr::log_t log)
            log->info(Logr::Error, "Could not initialize unique response tracking"));
       _exit(1);
     }
-    std::thread thread([tid = std::this_thread::get_id()]() {
-      g_udrDBp->housekeepingThread(tid);
-    });
-    thread.detach();
+    if (::arg().asNum("new-domain-db-snapshot-interval") > 0) {
+      g_udrDBp->setSnapshotInterval(::arg().asNum("new-domain-db-snapshot-interval"));
+      std::thread thread([tid = std::this_thread::get_id()]() {
+        g_udrDBp->housekeepingThread(tid);
+      });
+      thread.detach();
+    }
   }
 }
 

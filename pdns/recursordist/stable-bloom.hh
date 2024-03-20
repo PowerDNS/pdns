@@ -29,7 +29,6 @@
 #include <boost/dynamic_bitset.hpp>
 #include "misc.hh"
 #include "noinitvector.hh"
-#include "views.hh"
 #include "ext/probds/murmur3.h"
 
 namespace bf
