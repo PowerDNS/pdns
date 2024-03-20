@@ -3040,13 +3040,13 @@ static void setupLogging(const string& logname)
     }
 #endif
     if (g_slog == nullptr) {
-      cerr << "Structured logging to systemd-journal requested but it is not available" << endl;
+      cerr << "Requested structured logging to systemd-journal, but it is not available" << endl;
     }
   }
   else if (logname == "json") {
     g_slog = Logging::Logger::create(loggerJSONBackend);
     if (g_slog == nullptr) {
-      cerr << "JSON logging to requested but it is not available" << endl;
+      cerr << "JSON logging requested but it is not available" << endl;
     }
   }
 

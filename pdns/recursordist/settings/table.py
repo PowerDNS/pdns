@@ -2670,7 +2670,7 @@ Available backends are:
 - ``default``: use the traditional logging system to output structured logging information.
 - ``systemd-journal``: use systemd-journal.
   When using this backend, provide ``-o verbose`` or simular output option to ``journalctl`` to view the full information.
-- ``json``: JSON objects are written to the standard error stream
+- ``json``: JSON objects are written to the standard error stream.
 
 See :doc:`appendices/structuredlogging` for more details.
  ''',
