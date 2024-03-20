@@ -47,14 +47,12 @@ if get_option('unit-tests-backends')
   }
 
   module_remotebackend_test_sources_extra = files(
-    'example.rb',
-    'Gemfile',
-    'Gemfile.lock',
-    'unittest_http.rb',
-    'unittest_json.rb',
-    'unittest_pipe.rb',
-    'unittest_post.rb',
-    'unittest.rb',
-    'unittest_zeromq.rb',
+    'requirements.txt',
+    'pdns_unittest.py',
+    'unittest_http.py',
+    'unittest_json.py',
+    'unittest_pipe.py',
+    'unittest_post.py',
+    'unittest_zeromq.py',
   )
 endif
