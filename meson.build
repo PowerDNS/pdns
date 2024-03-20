@@ -150,15 +150,16 @@ libpdns_dnslabeltext_source = src_dir / 'dnslabeltext.rl'
 libpdns_dnslabeltext_gen    = src_dir / 'dnslabeltext.cc'
 if not fs.is_file(libpdns_dnslabeltext_gen)
   ragel = find_program('ragel', required: true)
+
+  summary('Ragel', ragel.found(), bool_yn: ragel.found(), section: 'DNS Labels')
+  summary('Ragel Path', ragel.full_path(), section: 'DNS Labels')
+  summary('Ragel Version', ragel.version(), section: 'DNS Labels')
+
   ragel_generator = generator(
     ragel,
     output: '@BASENAME@.cc',
     arguments: ['@INPUT@', '-o', '@OUTPUT@'],
   )
-
-  summary('Ragel', ragel.found(), bool_yn: ragel.found(), section: 'DNS Labels')
-  summary('Ragel Path', ragel.full_path(), section: 'DNS Labels')
-  summary('Ragel Version', ragel.version(), section: 'DNS Labels')
 
   libpdns_dnslabeltext_gen = ragel_generator.process(libpdns_dnslabeltext_source)
 endif
