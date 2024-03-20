@@ -257,7 +257,7 @@ void HTTPConnector::restful_requestbuilder(const std::string& method, const Json
     verb = "DELETE";
   }
   else if (method == "setNotified") {
-    req.POST()["serial"] = std::to_string(parameters["serial"].number_value());
+    req.POST()["serial"] = asString(parameters["serial"]);
     req.preparePost();
     verb = "PATCH";
   }
