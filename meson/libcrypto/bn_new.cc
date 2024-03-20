@@ -1,6 +1,7 @@
 #include <openssl/bn.h>
 
-int main() {
+int main()
+{
   BN_new();
   return 0;
 }

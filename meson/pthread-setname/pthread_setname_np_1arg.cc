@@ -3,6 +3,7 @@
 #include <pthread_np.h>
 #endif
 
-int main() {
+int main()
+{
   return pthread_setname_np("foo");
 }
