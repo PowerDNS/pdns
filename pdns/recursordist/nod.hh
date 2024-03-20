@@ -33,7 +33,7 @@ namespace nod
 const float c_fp_rate = 0.01;
 const size_t c_num_cells = 67108864;
 const uint8_t c_num_dec = 10;
-const unsigned int snapshot_interval_default = 600;
+  const unsigned int snapshot_interval_default = 30; // XXX 600;
 const std::string bf_suffix = "bf";
 const std::string sbf_prefix = "sbf";
 
@@ -96,15 +96,11 @@ public:
   void setSnapshotInterval(unsigned int secs) { d_snapshot_interval = secs; }
   void setCacheDir(const std::string& cachedir) { d_psbf.setCacheDir(cachedir); }
   bool snapshotCurrent(std::thread::id tid) { return d_psbf.snapshotCurrent(tid); }
-  static void startHousekeepingThread(const std::shared_ptr<NODDB>& noddbp, std::thread::id tid)
-  {
-    noddbp->housekeepingThread(tid);
-  }
+  void housekeepingThread(std::thread::id tid);
 
 private:
   PersistentSBF d_psbf;
   unsigned int d_snapshot_interval{snapshot_interval_default}; // Number seconds between snapshots
-  void housekeepingThread(std::thread::id tid);
 };
 
 class UniqueResponseDB
@@ -123,15 +119,11 @@ public:
   void setSnapshotInterval(unsigned int secs) { d_snapshot_interval = secs; }
   void setCacheDir(const std::string& cachedir) { d_psbf.setCacheDir(cachedir); }
   bool snapshotCurrent(std::thread::id tid) { return d_psbf.snapshotCurrent(tid); }
-  static void startHousekeepingThread(const std::shared_ptr<UniqueResponseDB>& udrdbp, std::thread::id tid)
-  {
-    udrdbp->housekeepingThread(tid);
-  }
+  void housekeepingThread(std::thread::id tid);
 
 private:
   PersistentSBF d_psbf;
   unsigned int d_snapshot_interval{snapshot_interval_default}; // Number seconds between snapshots
-  void housekeepingThread(std::thread::id tid);
 };
 
 }

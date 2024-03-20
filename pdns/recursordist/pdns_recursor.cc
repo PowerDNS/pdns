@@ -603,7 +603,7 @@ static bool nodCheckNewDomain(Logr::log_t nodlogger, const DNSName& dname)
   // First check the (sub)domain isn't ignored for NOD purposes
   if (!g_nodDomainWL.check(dname)) {
     // Now check the NODDB (note this is probabilistic so can have FNs/FPs)
-    if (t_nodDBp && t_nodDBp->isNewDomain(dname)) {
+    if (g_nodDBp && g_nodDBp->isNewDomain(dname)) {
       if (g_nodLog) {
         // This should probably log to a dedicated log file
         SLOG(g_log << Logger::Notice << "Newly observed domain nod=" << dname << endl,
@@ -644,7 +644,7 @@ static bool udrCheckUniqueDNSRecord(Logr::log_t nodlogger, const DNSName& dname,
     // Create a string that represent a triplet of (qname, qtype and RR[type, name, content])
     std::stringstream strStream;
     strStream << dname.toDNSStringLC() << ":" << qtype << ":" << qtype << ":" << record.d_type << ":" << record.d_name.toDNSStringLC() << ":" << record.getContent()->getZoneRepresentation();
-    if (t_udrDBp && t_udrDBp->isUniqueResponse(strStream.str())) {
+    if (g_udrDBp && g_udrDBp->isUniqueResponse(strStream.str())) {
       if (g_udrLog) {
         // This should also probably log to a dedicated file.
         SLOG(g_log << Logger::Notice << "Unique response observed: qname=" << dname << " qtype=" << QType(qtype) << " rrtype=" << QType(record.d_type) << " rrname=" << record.d_name << " rrcontent=" << record.getContent()->getZoneRepresentation() << endl,
