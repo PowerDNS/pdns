@@ -80,18 +80,11 @@ subdir('meson' / 'geoip')                   # GeoIP
 subdir('meson' / 'mmdb')                    # MaxMindDB
 subdir('meson' / 'cxx-fs')                  # C++ stdlib Filesystem Module
 
-# Manpages
-# if not fs.exists('docs' / 'pdns_server.1') and not python_have_venv
-#   warning('Python3 and/or its venv module is not available and ' +
-#           '`docs/pdns_server.1` cannot be found. ' +
-#           'Documentation will not be built.')
-# endif
-# TODO Generate pdns_server.1 manpage
-
 common_sources = []
 
 fs = import('fs')
 src_dir = fs.is_dir('pdns') ? 'pdns' : ''
+docs_dir = 'docs'
 # Toplevel includes
 dep_pdns = declare_dependency(include_directories: include_directories('.', src_dir))
 
@@ -587,7 +580,7 @@ conf.set_quoted('PDNS_DYN_MODULES', ' '.join(selected_dyn_modules), description:
 config_h = configure_file(configuration: conf, output: 'config.h')
 
 tools = {
-  'pdns-auth' : {
+  'pdns-auth': {
     'main': src_dir / 'auth-main.cc',
     'export-dynamic': true,
     'deps-extra': [
@@ -598,9 +591,9 @@ tools = {
       libpdns_signers_decaf,
       libpdns_signers_sodium,
     ],
+    'manpages': ['pdns_server.1'],
   },
-
-  'pdns-auth-util'    : {
+  'pdns-auth-util': {
     'main': src_dir / 'pdnsutil.cc',
     'files-extra': libpdns_bind_dnssec_schema_gen,
     'deps-extra': [
@@ -609,40 +602,107 @@ tools = {
       libpdns_signers_decaf,
       libpdns_signers_sodium,
     ],
+    'manpages': ['pdnsutil.1'],
   },
-  'pdns-auth-control' : { 'main': src_dir / 'dynloader.cc' },
-  'pdns-zone2sql'     : { 'main': src_dir / 'zone2sql.cc'  },
-  'pdns-zone2json'    : { 'main': src_dir / 'zone2json.cc' },
+  'pdns-auth-control': {
+    'main': src_dir / 'dynloader.cc',
+    'manpages': ['pdns_control.1'],
+  },
+  'pdns-zone2sql': {
+    'main': src_dir / 'zone2sql.cc',
+    'manpages': ['zone2sql.1'],
+  },
+  'pdns-zone2json': {
+    'main': src_dir / 'zone2json.cc',
+    'manpages': ['zone2json.1'],
+  },
 }
 
 if get_option('module-ldap') != 'disabled'
-  tools += { 'pdns-zone2ldap' : { 'main': src_dir / 'zone2ldap.cc' } }
+  tools += {
+    'pdns-zone2ldap': {
+      'main': src_dir / 'zone2ldap.cc',
+      'manpages': ['zone2ldap.1'],
+    }
+  }
 endif
 
 if get_option('tools')
   tools += {
-    'pdns-auth-notify' : { 'main': src_dir / 'notify.cc'           },
-    'sdig'             : { 'main': src_dir / 'sdig.cc'             },
-    'calidns'          : { 'main': src_dir / 'calidns.cc'          },
-    'dnsdemog'         : { 'main': src_dir / 'dnsdemog.cc'         },
-    'dnsgram'          : { 'main': src_dir / 'dnsgram.cc'          },
-    'dnspcap2calidns'  : { 'main': src_dir / 'dnspcap2calidns.cc'  },
+    'pdns-auth-notify': {
+      'main': src_dir / 'notify.cc',
+      'manpages': ['pdns_notify.1'],
+    },
+    'sdig': {
+      'main': src_dir / 'sdig.cc',
+      'manpages': ['sdig.1'],
+    },
+    'calidns': {
+      'main': src_dir / 'calidns.cc',
+      'manpages': ['calidns.1'],
+    },
+    'dnsdemog': {
+      'main': src_dir / 'dnsdemog.cc',
+    },
+    'dnsgram': {
+      'main': src_dir / 'dnsgram.cc',
+      'manpages': ['dnsgram.1'],
+    },
+    'dnspcap2calidns': {
+      'main': src_dir / 'dnspcap2calidns.cc',
+      'manpages': ['dnspcap2calidns.1'],
+    },
     'dnspcap2protobuf' : {
       'main': src_dir / 'dnspcap2protobuf.cc',
       'deps-extra': libpdns_gettime,
+      'manpages': ['dnspcap2protobuf.1'],
     },
-    'dnsreplay'        : { 'main': src_dir / 'dnsreplay.cc'        },
-    'dnsscan'          : { 'main': src_dir / 'dnsscan.cc'          },
-    'dnsscope'         : { 'main': src_dir / 'dnsscope.cc'         },
-    'dnswasher'        : { 'main': src_dir / 'dnswasher.cc'        },
-    'nproxy'           : { 'main': src_dir / 'nproxy.cc'           },
-    'nsec3dig'         : { 'main': src_dir / 'nsec3dig.cc'         },
-    'dumresp'          : { 'main': src_dir / 'dumresp.cc'          },
-    'kvresp'           : { 'main': src_dir / 'kvresp.cc'           },
-    'stubquery'        : { 'main': src_dir / 'stubquery.cc'        },
-    'saxfr'            : { 'main': src_dir / 'saxfr.cc'            },
-    'ixplore'          : { 'main': src_dir / 'ixplore.cc'          },
-    # 'comfun'         : { 'main': src_dir / 'comfun.cc'           }, # Broken
+    'dnsreplay': {
+      'main': src_dir / 'dnsreplay.cc',
+      'manpages': ['dnsreplay.1'],
+    },
+    'dnsscan'  : {
+      'main': src_dir / 'dnsscan.cc',
+      'manpages': ['dnsscan.1'],
+    },
+    'dnsscope' : {
+      'main': src_dir / 'dnsscope.cc',
+      'manpages': ['dnsscope.1'],
+    },
+    'dnswasher': {
+      'main': src_dir / 'dnswasher.cc',
+      'manpages': ['dnswasher.1'],
+    },
+    'nproxy'   : {
+      'main': src_dir / 'nproxy.cc',
+      'manpages': ['nproxy.1'],
+    },
+    'nsec3dig' : {
+      'main': src_dir / 'nsec3dig.cc',
+      'manpages': ['nsec3dig.1'],
+    },
+    'dumresp'  : {
+      'main': src_dir / 'dumresp.cc',
+      'manpages': ['dumresp.1'],
+    },
+    'kvresp'   : {
+      'main': src_dir / 'kvresp.cc',
+    },
+    'stubquery': {
+      'main': src_dir / 'stubquery.cc',
+    },
+    'saxfr'    : {
+      'main': src_dir / 'saxfr.cc',
+      'manpages': ['saxfr.1'],
+    },
+    'ixplore'  : {
+      'main': src_dir / 'ixplore.cc',
+      'manpages': ['ixplore.1'],
+    },
+    # Broken
+    # 'comfun' : {
+    #   'main': src_dir / 'comfun.cc',
+    # },
   }
 
   common_sources += files(
@@ -669,15 +729,27 @@ if get_option('tools')
 
   if have_boost_1_48_0
     tools += {
-      'dnstcpbench': { 'main': src_dir / 'dnstcpbench.cc' },
-      'dnsbulktest': { 'main': src_dir / 'dnsbulktest.cc' },
+      'dnstcpbench': {
+        'main': src_dir / 'dnstcpbench.cc',
+        'manpages': ['dnstcpbench.1'],
+      },
+      'dnsbulktest': {
+        'main': src_dir / 'dnsbulktest.cc',
+        'manpages': ['dnsbulktest.1'],
+      },
     }
   endif
 endif
 
 if get_option('tools-ixfrdist')
   tools += {
-    'ixfrdist': {'main': src_dir / 'ixfrdist.cc' },
+    'ixfrdist': {
+      'main': src_dir / 'ixfrdist.cc',
+      'manpages': [
+        'ixfrdist.1',
+        'ixfrdist.yml.5',
+      ],
+    },
   }
 
   common_sources += files(
@@ -760,8 +832,12 @@ if get_option('unit-tests')
         libpdns_signers_sodium,
       ],
     },
-    'speedtest'           : { 'main': src_dir / 'speedtest.cc'  },
-    'tsig-tests'          : { 'main': src_dir / 'tsig-tests.cc' },
+    'speedtest': {
+      'main': src_dir / 'speedtest.cc',
+    },
+    'tsig-tests': {
+      'main': src_dir / 'tsig-tests.cc',
+    },
   }
 endif
 
@@ -791,6 +867,7 @@ libpdns_common = declare_dependency(
   )
 )
 
+man_pages = []
 foreach tool, info: tools
   var_name = tool.underscorify()
   main = files(info['main'])
@@ -814,7 +891,35 @@ foreach tool, info: tools
       ],
     )
   )
+
+  if 'manpages' in info
+    foreach man_page: info['manpages']
+      man_pages += docs_dir / 'manpages' / (man_page + '.rst')
+    endforeach
+  endif
 endforeach
+
+# Man-pages.
+py = import('python')
+python = py.find_installation('python3', modules: 'venv', required: false)
+
+summary('Python', python.found(), bool_yn: true, section: 'Manual Pages')
+summary('Path', python.full_path(), section: 'Manual Pages')
+summary('Version', python.version(), section: 'Manual Pages')
+
+if python.found()
+  run_target(
+    'man-pages',
+    command: [
+      python,
+      docs_dir / 'generate-man-pages.py',
+      '--venv-name', 'venv-auth-man-pages',
+      '--requirements-file', docs_dir / 'requirements.txt',
+      '--source-directory', docs_dir,
+      '--target-directory', 'auth-man-pages',
+    ] + man_pages,
+  )
+endif
 
 if get_option('unit-tests')
   test(
