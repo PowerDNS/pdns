@@ -11,6 +11,13 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
   contents: read
 
 jobs:
+  call-builder-auth-49:
+    name: Call builder rel/auth-4.9.x
+    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
+    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/auth-4.9.x
+    with:
+      branch-name: rel/auth-4.9.x
+
   call-builder-auth-48:
     name: Call builder rel/auth-4.8.x
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
@@ -52,6 +59,13 @@ jobs:
     uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/rec-4.8.x
     with:
       branch-name: rel/rec-4.8.x
+
+  call-builder-dnsdist-19:
+    name: Call builder rel/dnsdist-1.9.x
+    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
+    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/dnsdist-1.9.x
+    with:
+      branch-name: rel/dnsdist-1.9.x
 
   call-builder-dnsdist-18:
     name: Call builder rel/dnsdist-1.8.x
