@@ -1621,6 +1621,11 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
           int s = SSocket(addr.sin4.sin_family, stype, 0);
           setNonBlocking(s);
           setReuseAddr(s);
+          if (addr.isIPv6()) {
+            int one = 1;
+            (void)setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
+          }
+
           SBind(s, addr);
           if (stype == SOCK_STREAM) {
             SListen(s, 30); // TODO make this configurable
