@@ -934,7 +934,7 @@ if get_option('unit-tests')
   )
 endif
 
-if get_option('unit-tests-backends')
+if get_option('module-remote') != 'disabled' and get_option('unit-tests-backends')
   libpdns_module_remotebackend_test_common = declare_dependency(
     link_whole: static_library(
       'pdns-test-remotebackend',
