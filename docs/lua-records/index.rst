@@ -21,8 +21,8 @@ tiny (or larger) `Lua <https://www.lua.org>`_ statements.
   interoperability, and strive to turn this functionality into a broadly
   supported standard.
 
-To enable this feature, either set 'enable-lua-records' in the configuration,
-or set the 'ENABLE-LUA-RECORDS' per-zone metadata item to 1.
+To enable this feature, either set `:ref:`setting-enable-lua-records` in the configuration,
+or set the ``ENABLE-LUA-RECORDS`` per-zone metadata item to ``1``.
 
 In addition, to benefit from the geographical features, make sure the PowerDNS
 launch statement includes the ``geoip`` backend.
@@ -38,7 +38,7 @@ Examples
 Before delving into the details, some examples may be of use to explain what
 dynamic records can do.
 
-Here is a very basic example::
+Here is a very basic example using :func:`ifportup`::
 
      www    IN    LUA    A    "ifportup(443, {'192.0.2.1', '192.0.2.2'})"
 
@@ -61,7 +61,7 @@ Because DNS queries require rapid answers, server availability is not checked
 synchronously. In the background, a process periodically determines if IP
 addresses mentioned in availability rules are, in fact, available.
 
-Another example::
+Another example using :func:`pickclosest`::
 
     www    IN    LUA    A    "pickclosest({'192.0.2.1','192.0.2.2','198.51.100.1'})"
 
@@ -69,7 +69,7 @@ This uses the GeoIP backend to find indications of the geographical location of
 the requester and the listed IP addresses. It will return with one of the closest
 addresses.
 
-``pickclosest`` and ifportup can be combined as follows::
+:func:`pickclosest` and :func:`ifportup` can be combined as follows::
 
   www    IN    LUA    A    ("ifportup(443, {'192.0.2.1', '192.0.2.2', '198.51.100.1'}"
                             ", {selector='pickclosest'})                             ")
@@ -150,8 +150,8 @@ A more powerful example::
                                 "{stringmatch='Programming in Lua'})              " )
 
 In this case, IP addresses are tested to see if they will serve
-https for 'www.lua.org', and if that page contains the string 'Programming
-in Lua'.
+https for 'www.lua.org', and if that page contains the string
+``Programming in Lua``.
 
 Two sets of IP addresses are supplied.  If an IP address from the first set
 is available, it will be returned. If no addresses work in the first set,
@@ -177,9 +177,9 @@ outside of Europe will hit 198.51.100.1 as long as it is available, and the
 
 Advanced topics
 ---------------
-By default, LUA records are executed with 'return ' prefixed to them. This saves
-a lot of typing for common cases. To run actual Lua scripts, start a record with a ';'
-which indicates no 'return ' should be prepended.
+By default, LUA records are executed with ``return `` prefixed to them. This saves
+a lot of typing for common cases. To run actual Lua scripts, start a record with a ``;``
+which indicates no ``return `` should be prepended.
 
 To keep records more concise and readable, configuration can be stored in
 separate records. The full example from above can also be written as::
