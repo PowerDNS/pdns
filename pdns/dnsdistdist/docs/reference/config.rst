@@ -1727,6 +1727,9 @@ faster than the existing rules.
 
   .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action [, warningRate]])
 
+    .. note::
+      Cache hits are inserted into the in-memory ring buffers since 1.8.0, so they are now considered when computing the rcode rate.
+
     Adds a rate-limiting rule for responses of code ``rcode``, equivalent to:
     ```
     addDynBlocks(exceedServfails(rcode, rate, seconds), reason, blockingTime, action)
@@ -1743,6 +1746,9 @@ faster than the existing rules.
   .. method:: DynBlockRulesGroup:setRCodeRatio(rcode, ratio, seconds, reason, blockingTime, minimumNumberOfResponses [, action [, warningRate]])
 
     .. versionadded:: 1.5.0
+
+    .. note::
+      Cache hits are inserted into the in-memory ring buffers since 1.8.0, so they are now considered when computing the rcode ratio.
 
     Adds a rate-limiting rule for the ratio of responses of code ``rcode`` over the total number of responses for a given client.
 
@@ -1771,6 +1777,9 @@ faster than the existing rules.
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
 
   .. method:: DynBlockRulesGroup:setResponseByteRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
+
+    .. note::
+      Cache hits are inserted into the in-memory ring buffers since 1.8.0, so they are now considered when computing the bandwidth rate.
 
     Adds a bandwidth rate-limiting rule for responses, equivalent to:
     ```
