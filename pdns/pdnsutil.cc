@@ -2031,7 +2031,7 @@ static int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
   return EXIT_SUCCESS;
 }
 
-static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
+static bool showZone(DNSSECKeeper& dnsseckeeper, const DNSName& zone, bool exportDS = false) // NOLINT(readability-function-cognitive-complexity)
 {
   UeberBackend B("default");
   DomainInfo di;
@@ -2081,7 +2081,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
     }
   }
 
-  if(!dk.isSecuredZone(zone)) {
+  if(!dnsseckeeper.isSecuredZone(zone)) {
     auto &outstream = (exportDS ? cerr : cout);
     outstream << "Zone is not actively secured" << endl;
     if (exportDS) {
@@ -2093,9 +2093,9 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
 
   NSEC3PARAMRecordContent ns3pr;
   bool narrow = false;
-  bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
+  bool haveNSEC3=dnsseckeeper.getNSEC3PARAM(zone, &ns3pr, &narrow);
 
-  DNSSECKeeper::keyset_t keyset=dk.getKeys(zone);
+  DNSSECKeeper::keyset_t keyset=dnsseckeeper.getKeys(zone);
 
   if (!exportDS) {
     std::vector<std::string> meta;
@@ -2124,7 +2124,7 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
 
   }
 
-  if (dk.isPresigned(zone)) {
+  if (dnsseckeeper.isPresigned(zone)) {
     if (!exportDS) {
       cout <<"Zone is presigned"<<endl;
     }
@@ -2174,12 +2174,14 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
         cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
       }
       cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
-      try {
-        string output=makeDSFromDNSKey(zone, key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
-        cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
+      if (g_verbose) {
+        try {
+          string output=makeDSFromDNSKey(zone, key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
+          cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
+        }
+        catch(...)
+        {}
       }
-      catch(...)
-      {}
       try {
         string output=makeDSFromDNSKey(zone, key, DNSSECKeeper::DIGEST_SHA384).getZoneRepresentation();
         cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
@@ -2227,12 +2229,14 @@ static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = fals
           cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
         }
         cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone, key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
-        try {
-          string output=makeDSFromDNSKey(zone, key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
-          cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
+        if (g_verbose) {
+          try {
+            string output=makeDSFromDNSKey(zone, key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
+            cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
+          }
+          catch(...)
+          {}
         }
-        catch(...)
-        {}
         try {
           string output=makeDSFromDNSKey(zone, key, DNSSECKeeper::DIGEST_SHA384).getZoneRepresentation();
           cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
