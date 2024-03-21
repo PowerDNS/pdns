@@ -99,6 +99,46 @@ if get_option('module-lmdb') != 'disabled'
   subdir('ext' / 'lmdb-safe')
 endif
 
+deps = [
+  dep_pdns,
+  dep_platform,
+  dep_atomics,
+  dep_threads,
+  dep_lua,
+  dep_lua_records,
+  dep_netlibs,
+  dep_libsodium,
+  dep_libdecaf,
+  dep_libcrypto,
+  dep_libssl,
+  dep_gnutls,
+  dep_boost,
+  dep_boost_program_options,
+  dep_dlopen,
+  dep_pkcs11,
+  dep_gss_tsig,
+  dep_systemd,
+  dep_arc4random,
+  dep_ipcrypt,
+  dep_json11,
+  dep_luawrapper,
+  dep_protozero,
+  dep_yahttp,
+  dep_yaml_cpp,
+  dep_sqlite3,
+  dep_lmdb,
+  dep_boost_serialization,
+  dep_mysql,
+  dep_odbc,
+  dep_pgsql,
+  dep_ldap,
+  dep_cdb,
+  dep_geoip,
+  dep_mmdb,
+  dep_cxx_fs,
+  dep_boost_test,
+]
+
 libpdns_bindlexer_source = src_dir / 'bindlexer.l'
 libpdns_bindlexer_gen    = src_dir / 'bindlexer.c'
 if not fs.is_file(libpdns_bindlexer_gen)
@@ -244,7 +284,7 @@ if dep_libsodium.found()
     link_whole: static_library(
       'pdns-signers-sodium',
       sources: files(src_dir / 'sodiumsigners.cc'),
-      dependencies: dep_libsodium,
+      dependencies: deps,
     )
   )
 endif
@@ -255,7 +295,7 @@ if dep_libdecaf.found()
     link_whole: static_library(
       'pdns-signers-decaf',
       sources: files(src_dir / 'decafsigners.cc'),
-      dependencies: dep_libdecaf,
+      dependencies: deps,
     )
   )
 endif
@@ -296,7 +336,7 @@ libpdns_signers_openssl = declare_dependency(
   link_whole: static_library(
     'pdns-signers-openssl',
     sources: files(src_dir / 'opensslsigners.cc', src_dir / 'opensslsigners.hh'),
-    dependencies: dep_libcrypto,
+    dependencies: deps,
   )
 )
 
@@ -468,46 +508,6 @@ common_sources += files(
   src_dir / 'zoneparser-tng.cc',
   src_dir / 'zoneparser-tng.hh',
 )
-
-deps = [
-  dep_pdns,
-  dep_platform,
-  dep_atomics,
-  dep_threads,
-  dep_lua,
-  dep_lua_records,
-  dep_netlibs,
-  dep_libsodium,
-  dep_libdecaf,
-  dep_libcrypto,
-  dep_libssl,
-  dep_gnutls,
-  dep_boost,
-  dep_boost_program_options,
-  dep_dlopen,
-  dep_pkcs11,
-  dep_gss_tsig,
-  dep_systemd,
-  dep_arc4random,
-  dep_ipcrypt,
-  dep_json11,
-  dep_luawrapper,
-  dep_protozero,
-  dep_yahttp,
-  dep_yaml_cpp,
-  dep_sqlite3,
-  dep_lmdb,
-  dep_boost_serialization,
-  dep_mysql,
-  dep_odbc,
-  dep_pgsql,
-  dep_ldap,
-  dep_cdb,
-  dep_geoip,
-  dep_mmdb,
-  dep_cxx_fs,
-  dep_boost_test,
-]
 
 libpdns_bindparser = declare_dependency(
   link_with: static_library(
