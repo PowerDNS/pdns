@@ -38,22 +38,22 @@ if get_option('module-ldap') != 'disabled'
       dep_krb5_internal,
     ],
   )
-endif
 
-summary('LDAP', dep_ldap_internal.found(), bool_yn: true, section: 'LDAP')
-if dep_ldap_internal.found()
-  summary('LDAP Name', dep_ldap_internal.name(), section: 'LDAP')
-  summary('LDAP Version', dep_ldap_internal.version(), section: 'LDAP')
-endif
+  summary('LDAP', dep_ldap_internal.found(), bool_yn: true, section: 'LDAP')
+  if dep_ldap_internal.found()
+    summary('LDAP Name', dep_ldap_internal.name(), section: 'LDAP')
+    summary('LDAP Version', dep_ldap_internal.version(), section: 'LDAP')
+  endif
 
-summary('LBER', dep_lber_internal.found(), bool_yn: true, section: 'LDAP')
-if dep_lber_internal.found()
-  summary('LBER Name', dep_lber_internal.name(), section: 'LDAP')
-  summary('LBER Version', dep_lber_internal.version(), section: 'LDAP')
-endif
+  summary('LBER', dep_lber_internal.found(), bool_yn: true, section: 'LDAP')
+  if dep_lber_internal.found()
+    summary('LBER Name', dep_lber_internal.name(), section: 'LDAP')
+    summary('LBER Version', dep_lber_internal.version(), section: 'LDAP')
+  endif
 
-summary('Krb5', dep_krb5_internal.found(), bool_yn: true, section: 'LDAP')
-if dep_krb5_internal.found()
-  summary('Krb5 Name', dep_krb5_internal.name(), section: 'LDAP')
-  summary('Krb5 Version', dep_krb5_internal.version(), section: 'LDAP')
+  summary('Krb5', dep_krb5_internal.found(), bool_yn: true, section: 'LDAP')
+  if dep_krb5_internal.found()
+    summary('Krb5 Name', dep_krb5_internal.name(), section: 'LDAP')
+    summary('Krb5 Version', dep_krb5_internal.version(), section: 'LDAP')
+  endif
 endif
