@@ -597,6 +597,7 @@ tools = {
     'main': src_dir / 'pdnsutil.cc',
     'files-extra': libpdns_bind_dnssec_schema_gen,
     'deps-extra': [
+      dep_modules,
       libpdns_ssqlite3,
       libpdns_signers_openssl,
       libpdns_signers_decaf,
