@@ -47,8 +47,7 @@ auth_build_deps = [    # FIXME: perhaps we should be stealing these from the deb
     'libsqlite3-dev',
     'libyaml-cpp-dev',
     'libzmq3-dev',
-    'ruby-bundler',
-    'ruby-dev',
+    'python3-venv',
     'sqlite3',
     'unixodbc-dev',
     'cmake',
@@ -117,8 +116,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'libzmq3-dev',
     'lmdb-utils',
     'prometheus',
-    'ruby-bundler',
-    'ruby-dev',
+    'python3-venv',
     'socat',
     'softhsm2',
     'unbound-host',
@@ -642,9 +640,6 @@ def ci_dnsdist_make_bear(c):
 
 @task
 def ci_auth_install_remotebackend_test_deps(c):
-    with c.cd('modules/remotebackend'):
-      # c.run('bundle config set path vendor/bundle')
-      c.run('sudo ruby -S bundle install')
     c.sudo('apt-get install -y socat')
 
 @task
