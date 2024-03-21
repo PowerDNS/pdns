@@ -118,7 +118,7 @@ jobs:
       - run: inv coverity-clang-configure
       - run: inv ci-autoconf
         working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-configure
+      - run: inv ci-rec-configure full
         working-directory: ./pdns/recursordist/
       - run: inv coverity-make
         working-directory: ./pdns/recursordist/
