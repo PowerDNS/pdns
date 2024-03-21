@@ -1,6 +1,9 @@
 blank_issues_enabled: false
 
 contact_links:
+- name: Ask a question
+  url: https://github.com/PowerDNS/pdns/discussions/categories/q-a
+  about: Use GitHub discussions to ask Questions and get Answers.
 - name: Get help with a question or a problem
   url: https://www.powerdns.com/opensource.html
   about: Find us on IRC or our mailing lists to get the answers or help you need!
