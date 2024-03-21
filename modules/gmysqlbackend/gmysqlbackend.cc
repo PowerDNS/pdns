@@ -61,8 +61,7 @@ void gMySQLBackend::reconnect()
                                          getArg("group"),
                                          mustDo("innodb-read-committed"),
                                          getArgAsNum("timeout"),
-                                         mustDo("thread-cleanup"),
-                                         mustDo("ssl"))));
+                                         mustDo("thread-cleanup"))));
   allocateStatements();
 }
 
