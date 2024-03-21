@@ -2031,7 +2031,7 @@ static int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
   return EXIT_SUCCESS;
 }
 
-static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false)
+static bool showZone(DNSSECKeeper& dk, const DNSName& zone, bool exportDS = false) // NOLINT(readability-function-cognitive-complexity)
 {
   UeberBackend B("default");
   DomainInfo di;
