@@ -2,10 +2,11 @@ Structured Logging Dictionary
 =============================
 
 This page describes the common entries of the Structured Logging component.
-Currently there are two possible values for :ref:`setting-structured-logging-backend`:
+Currently :ref:`setting-structured-logging-backend` can have these values:
 
 - The ``default`` text based backend
 - The ``systemd-journal`` backend
+- The ``json`` backend (added in version 5.1.0).
 
 The ``default`` backend
 -----------------------
@@ -100,3 +101,13 @@ To query the log, use a command similar to::
 
   # journalctl -r -n 1 -o json-pretty -u pdns-recursor.service
 
+The ``json`` backend
+--------------------
+The ``json`` structured logging backend has been added in version 5.1.0 and uses the same keys and values as the default backend.
+An example of a a log object::
+
+    {"level": "0", "limit": "10765", "msg": "Raised soft limit on number of filedescriptors to match max-mthreads and threads settings", "priority": "4", "subsystem": "config", "tid": "0", "ts": "1709285994.851"}
+
+All values are represented as strings.
+
+The JSON log objects are written to the standard error stream.
