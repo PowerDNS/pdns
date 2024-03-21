@@ -1,7 +1,7 @@
 dnl
 dnl Attempt to detect the flags we need for the Postgresql client libraries
 dnl First, use pkg-config
-dnl If that yields no results, use (optionally find) pg_config and use it to 
+dnl If that yields no results, use (optionally find) pg_config and use it to
 dnl determine the CFLAGS and LIBS
 dnl
 AC_DEFUN([PDNS_WITH_POSTGRESQL], [
@@ -10,21 +10,21 @@ AC_DEFUN([PDNS_WITH_POSTGRESQL], [
     [AS_HELP_STRING([--with-pg-config=<path>], [path to pg_config])
   ], [
     PG_CONFIG="$withval"
-    AS_IF([test "x$PG_CONFIG" = "xyes" -o ! -x "$PG_CONFIG"], [
+    AS_IF([test "$PG_CONFIG" = "yes" -o ! -x "$PG_CONFIG"], [
       AC_MSG_ERROR([--with-pg-config must provide a valid path to the pg_config executable])
     ])
   ])
 
-  AS_IF([test "x$PG_CONFIG" = "x"], [
+  AS_IF([test -z "$PG_CONFIG"], [
     PKG_CHECK_MODULES([PGSQL], [libpq], [ : ], [ : ])
   ])
 
-  AS_IF([test "x$PG_CONFIG" != "x" -o "x$PGSQL_LIBS" = "x"], [
+  AS_IF([test -n "$PG_CONFIG" -o -z "$PGSQL_LIBS"], [
     dnl Either a path was provided, or pkg-config failed to produce a result
-    AS_IF([test "x$PG_CONFIG" == "x"], [
+    AS_IF([test -z "$PG_CONFIG"], [
       AC_PATH_PROG([PG_CONFIG], [pg_config])
     ])
-    AS_IF([test "x$PG_CONFIG" == "x"], [
+    AS_IF([test -z "$PG_CONFIG"], [
       AC_MSG_ERROR([Can not find pg_config, use --with-pg-config to specify the path to pg_config])
     ])
     PGSQL_LIBS="-L$($PG_CONFIG --libdir) -lpq"
