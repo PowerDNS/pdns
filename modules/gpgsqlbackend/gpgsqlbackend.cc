@@ -40,13 +40,13 @@ gPgSQLBackend::gPgSQLBackend(const string& mode, const string& suffix) :
   GSQLBackend(mode, suffix)
 {
   try {
-    setDB(new SPgSQL(getArg("dbname"),
-                     getArg("host"),
-                     getArg("port"),
-                     getArg("user"),
-                     getArg("password"),
-                     getArg("extra-connection-parameters"),
-                     mustDo("prepared-statements")));
+    setDB(std::unique_ptr<SSql>(new SPgSQL(getArg("dbname"),
+                                           getArg("host"),
+                                           getArg("port"),
+                                           getArg("user"),
+                                           getArg("password"),
+                                           getArg("extra-connection-parameters"),
+                                           mustDo("prepared-statements"))));
   }
 
   catch (SSqlException& e) {
