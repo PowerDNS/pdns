@@ -43,15 +43,15 @@ gSQLite3Backend::gSQLite3Backend(const std::string& mode, const std::string& suf
   GSQLBackend(mode, suffix)
 {
   try {
-    SSQLite3* ptr = new SSQLite3(getArg("database"), getArg("pragma-journal-mode"));
-    setDB(ptr);
-    allocateStatements();
+    auto ptr = std::unique_ptr<SSql>(new SSQLite3(getArg("database"), getArg("pragma-journal-mode")));
     if (!getArg("pragma-synchronous").empty()) {
       ptr->execute("PRAGMA synchronous=" + getArg("pragma-synchronous"));
     }
     if (mustDo("pragma-foreign-keys")) {
       ptr->execute("PRAGMA foreign_keys = 1");
     }
+    setDB(std::move(ptr));
+    allocateStatements();
   }
   catch (SSqlException& e) {
     g_log << Logger::Error << mode << ": connection failed: " << e.txtReason() << std::endl;

@@ -38,7 +38,7 @@ gODBCBackend::gODBCBackend(const std::string& mode, const std::string& suffix) :
   GSQLBackend(mode, suffix)
 {
   try {
-    setDB(new SODBC(getArg("datasource"), getArg("username"), getArg("password")));
+    setDB(std::unique_ptr<SSql>(new SODBC(getArg("datasource"), getArg("username"), getArg("password"))));
   }
   catch (SSqlException& e) {
     g_log << Logger::Error << mode << " Connection failed: " << e.txtReason() << std::endl;
