@@ -647,7 +647,7 @@ def ci_auth_run_unit_tests(c):
     res = c.run('make check', warn=True)
     if res.exited != 0:
       c.run('cat pdns/test-suite.log', warn=True)
-      c.run('cat modules/remotebackend/test-suite.log', warn=True)
+      c.run('more modules/remotebackend/*.log', warn=True)
       raise UnexpectedExit(res)
 
 @task
