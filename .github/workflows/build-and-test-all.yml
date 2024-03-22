@@ -86,7 +86,7 @@ jobs:
           restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-
       - run: inv ci-install-rust ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-build-and-install-quiche
+      - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-autoconf
         working-directory: ./pdns/dnsdistdist/

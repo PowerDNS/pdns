@@ -1,6 +1,7 @@
 from invoke import task
 from invoke.exceptions import Failure, UnexpectedExit
 
+import json
 import os
 import sys
 import time
@@ -8,8 +9,6 @@ import time
 auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
 
 clang_version = os.getenv('CLANG_VERSION', '13')
-quiche_version = '0.20.1'
-quiche_hash = '9c460d8ecf6c80c06bf9b42f91201ef33f912e2615a871ff2d0e50197b901c71'
 
 all_build_deps = [
     'ccache',
@@ -174,7 +173,8 @@ def install_clang_runtime(c):
 
 @task
 def ci_install_rust(c, repo):
-    c.sudo(f'{repo}/builder-support/helpers/install_rust.sh')
+    with c.cd(f'{repo}/builder-support/helpers/'):
+        c.run('sudo sh install_rust.sh')
 
 def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
@@ -923,7 +923,12 @@ def coverity_upload(c, email, project, tarball):
             https://scan.coverity.com/builds?project={project}', hide=True)
 
 @task
-def ci_build_and_install_quiche(c):
+def ci_build_and_install_quiche(c, repo):
+    with open(f'{repo}/builder-support/helpers/quiche.json') as quiche_json:
+        quiche_data = json.load(quiche_json)
+        quiche_version = quiche_data['version']
+        quiche_hash = quiche_data['SHA256SUM']
+
     # we have to pass -L because GitHub will do a redirect, sadly
     c.run(f'curl -L -o quiche-{quiche_version}.tar.gz https://github.com/cloudflare/quiche/archive/{quiche_version}.tar.gz')
     # Line below should echo two spaces between digest and name
