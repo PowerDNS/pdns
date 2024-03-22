@@ -514,7 +514,7 @@ libpdns_bindparser = declare_dependency(
     'pdns-bindparser',
     libpdns_bindlexer_gen,
     libpdns_bindparser_gen,
-    cpp_args: '-Wno-redundant-decls',
+    cpp_args: ['-Wno-redundant-decls', '-Wno-sign-compare'],
     dependencies: deps,
   )
 )
