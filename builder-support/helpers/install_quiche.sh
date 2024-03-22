@@ -2,10 +2,10 @@
 set -v
 set -e
 
-readonly QUICHE_VERSION='0.20.0'
+readonly QUICHE_VERSION=$(jq -r .version < quiche.json)
 readonly QUICHE_TARBALL="${QUICHE_VERSION}.tar.gz"
 readonly QUICHE_TARBALL_URL="https://github.com/cloudflare/quiche/archive/${QUICHE_TARBALL}"
-readonly QUICHE_TARBALL_HASH='7125bc82ddcf38fbfbc69882ccb2723bfb4d5bfeb42718b8291d26ec06042e38'
+readonly QUICHE_TARBALL_HASH=$(jq -r .SHA256SUM < quiche.json)
 
 INSTALL_PREFIX=/usr
 SOEXT=so
@@ -19,8 +19,9 @@ if [ $(uname) = Darwin ]; then
 fi
 
 cd /tmp
-echo $0: Downloading $QUICHE_TARBALL
+echo $0: Downloading ${QUICHE_TARBALL}
 curl -L -o "${QUICHE_TARBALL}" "${QUICHE_TARBALL_URL}"
+echo $0: Checking that the hash of ${QUICHE_TARBALL} is ${QUICHE_TARBALL_HASH}
 # Line below should echo two spaces between digest and name
 echo "${QUICHE_TARBALL_HASH}"  "${QUICHE_TARBALL}" | sha256sum -c -
 tar xf "${QUICHE_TARBALL}"
