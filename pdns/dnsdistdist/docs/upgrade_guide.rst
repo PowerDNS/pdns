@@ -29,6 +29,8 @@ Responses to AXFR and IXFR queries are no longer cached.
 
 Cache-hits are now counted as responses in our metrics.
 
+Cache hits are now inserted into the in-memory ring buffers, while before 1.8.0 only cache misses were inserted. This has a very noticeable impact on :doc:`guides/dynblocks` since cache hits now considered when computing the rcode rates and ratios, as well as the response bandwidth rate.
+
 The :func:`setMaxTCPConnectionsPerClient` limit is now properly applied to DNS over HTTPS connections, in addition to DNS over TCP and DNS over TLS ones.
 
 The configuration check will now fail if the configuration file does not exist. For this reason we now create a default configuration file, based on the file previously called ``dnsdistconf.lua``, which contains commented-out examples of how to set up dnsdist.

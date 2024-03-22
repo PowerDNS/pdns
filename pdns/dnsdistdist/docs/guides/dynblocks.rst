@@ -50,7 +50,7 @@ Please see the documentation for :func:`setDynBlocksAction` to confirm which act
 DynBlockRulesGroup
 ------------------
 
-Starting with dnsdist 1.3.0, a new :ref:`dynBlockRulesGroup` function can be used to return a `DynBlockRulesGroup` instance,
+Starting with dnsdist 1.3.0, a new :func:`dynBlockRulesGroup` function can be used to return a :class:`DynBlockRulesGroup` instance,
 designed to make the processing of multiple rate-limiting rules faster by walking the query and response buffers only once
 for each invocation, instead of once per existing `exceed*()` invocation.
 
