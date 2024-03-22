@@ -73,6 +73,7 @@ jobs:
       COVERITY_TOKEN: ${{ secrets.coverity_dnsdist_token }}
       SANITIZERS:
       UNIT_TESTS: no
+      REPO_HOME: ${{ github.workspace }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
@@ -86,7 +87,7 @@ jobs:
       - run: inv coverity-clang-configure
       - run: inv ci-autoconf
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-build-and-install-quiche
+      - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-dnsdist-configure full
         working-directory: ./pdns/dnsdistdist/

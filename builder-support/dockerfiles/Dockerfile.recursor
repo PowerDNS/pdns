@@ -13,7 +13,8 @@ ADD builder-support/gen-version /pdns-recursor/pdns/recursordist/builder-support
 WORKDIR /pdns-recursor/pdns/recursordist
 
 ADD builder-support/helpers/ /pdns/builder-support/helpers/
-RUN /pdns/builder-support/helpers/install_rust.sh
+RUN cd /pdns/builder-support/helpers/ && \
+    ./install_rust.sh
 
 RUN mkdir /sdist
 
