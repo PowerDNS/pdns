@@ -4,6 +4,7 @@ Release: %{getenv:BUILDER_RPM_RELEASE}%{?dist}
 Summary: Modern, advanced and high performance recursing/non authoritative name server
 Group: System Environment/Daemons
 License: GPLv2
+Vendor: PowerDNS.COM BV
 URL: https://powerdns.com
 Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
 
