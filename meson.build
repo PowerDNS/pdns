@@ -318,7 +318,7 @@ if dep_sqlite3.found()
     link_whole: static_library(
       'pdns-ssqlite3',
       sources: files(src_dir / 'ssqlite3.cc', src_dir / 'ssqlite3.hh'),
-      dependencies: dep_sqlite3,
+      dependencies: deps,
     )
   )
 endif
