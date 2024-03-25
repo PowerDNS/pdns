@@ -929,29 +929,6 @@ static void checkOrFixFDS(Logr::log_t log)
   }
 }
 
-// static std::string s_timestampFormat = "%m-%dT%H:%M:%S";
-static std::string s_timestampFormat = "%s";
-
-static const char* toTimestampStringMilli(const struct timeval& tval, std::array<char, 64>& buf)
-{
-  size_t len = 0;
-  if (s_timestampFormat != "%s") {
-    // strftime is not thread safe, it can access locale information
-    static std::mutex mutex;
-    auto lock = std::lock_guard(mutex);
-    struct tm theTime // clang-format insists on formatting it like this
-    {
-    };
-    len = strftime(buf.data(), buf.size(), s_timestampFormat.c_str(), localtime_r(&tval.tv_sec, &theTime));
-  }
-  if (len == 0) {
-    len = snprintf(buf.data(), buf.size(), "%lld", static_cast<long long>(tval.tv_sec));
-  }
-
-  snprintf(&buf.at(len), buf.size() - len, ".%03ld", static_cast<long>(tval.tv_usec) / 1000);
-  return buf.data();
-}
-
 #ifdef HAVE_SYSTEMD
 static void loggerSDBackend(const Logging::Entry& entry)
 {
@@ -998,7 +975,7 @@ static void loggerSDBackend(const Logging::Entry& entry)
     appendKeyAndVal("SUBSYSTEM", entry.name.get());
   }
   std::array<char, 64> timebuf{};
-  appendKeyAndVal("TIMESTAMP", toTimestampStringMilli(entry.d_timestamp, timebuf));
+  appendKeyAndVal("TIMESTAMP", Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
   for (const auto& value : entry.values) {
     if (value.first.at(0) == '_' || special.count(value.first) != 0) {
       string key{"PDNS"};
@@ -1040,7 +1017,7 @@ static void loggerJSONBackend(const Logging::Entry& entry)
     // Thread id filled in by backend, since the SL code does not know about RecursorThreads
     // We use the Recursor thread, other threads get id 0. May need to revisit.
     {"tid", std::to_string(RecThreadInfo::id())},
-    {"ts", toTimestampStringMilli(entry.d_timestamp, timebuf)},
+    {"ts", Logging::toTimestampStringMilli(entry.d_timestamp, timebuf)},
   };
 
   if (entry.error) {
@@ -1094,7 +1071,7 @@ static void loggerBackend(const Logging::Entry& entry)
   // We use the Recursor thread, other threads get id 0. May need to revisit.
   buf << " tid=" << std::quoted(std::to_string(RecThreadInfo::id()));
   std::array<char, 64> timebuf{};
-  buf << " ts=" << std::quoted(toTimestampStringMilli(entry.d_timestamp, timebuf));
+  buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
   for (auto const& value : entry.values) {
     buf << " ";
     buf << value.first << "=" << std::quoted(value.second);

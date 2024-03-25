@@ -100,6 +100,8 @@ struct is_toString_available<T, std::void_t<decltype(std::declval<T>().toString(
 {
 };
 
+const char* toTimestampStringMilli(const struct timeval& tval, std::array<char, 64>& buf, const std::string& format = "%s");
+
 template <typename T>
 struct Loggable : public Logr::Loggable
 {
@@ -206,9 +208,9 @@ private:
 
 extern std::shared_ptr<Logging::Logger> g_slog;
 
-// Prefer structured logging? Since 5.1.0, we always do. We keep a const, to allow for step-by-step
-// removal of old style logging code (for recursor-only code). Note that code shared with auth still uses
-// old-style, so the SLOG calls should remain for shared code.
+// Prefer structured logging? Since Recursor 5.1.0, we always do. We keep a const, to allow for
+// step-by-step removal of old style logging code (for recursor-only code). Note that code shared
+// with auth still uses old-style, so the SLOG calls should remain for shared code.
 constexpr bool g_slogStructured = true;
 
 // A helper macro to switch between old-style logging and new-style (structured logging)

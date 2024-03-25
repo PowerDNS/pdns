@@ -262,13 +262,10 @@ static void recControlLoggerBackend(const Logging::Entry& entry)
   if (entry.d_priority != 0) {
     buf << " prio=" << std::quoted(Logr::Logger::toString(entry.d_priority));
   }
-#if 0
-  // Thread id filled in by backend, since the SL code does not know about RecursorThreads
-  // We use the Recursor thread, other threads get id 0. May need to revisit.
-  buf << " tid=" << std::quoted(std::to_string(RecThreadInfo::id()));
+
   std::array<char, 64> timebuf{};
-  buf << " ts=" << std::quoted(toTimestampStringMilli(entry.d_timestamp, timebuf));
-#endif
+  buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
+
   for (auto const& value : entry.values) {
     buf << " ";
     buf << value.first << "=" << std::quoted(value.second);
