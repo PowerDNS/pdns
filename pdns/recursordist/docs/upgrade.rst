@@ -10,7 +10,12 @@ When upgrading several versions, please read **all** notes applying to the upgra
 Changed settings
 ----------------
 
-For YAML settings only: the type of the :ref:`setting-yaml-incoming.edns_padding_from` and :ref:`setting-yaml-incoming.proxy_protocol_from` has been changed from ``String`` to ``Sequence of Subnet``.
+- For YAML settings only: the type of the :ref:`setting-yaml-incoming.edns_padding_from` and :ref:`setting-yaml-incoming.proxy_protocol_from` has been changed from ``String`` to ``Sequence of Subnet``.
+
+- Disabling :ref:`setting-structured-logging` is no longer supported.
+
+Changed Settings
+^^^^^^^^^^^^^^^^
 
 5.0.2 to 5.0.3, 4.9.3 to 4.9.4 and 4.8.6 to 4.8.7
 -------------------------------------------------

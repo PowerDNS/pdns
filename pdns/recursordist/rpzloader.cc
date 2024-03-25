@@ -377,7 +377,7 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
   return soaRecordContent;
 }
 
-static bool dumpZoneToDisk(Logr::log_t logger, const DNSName& zoneName, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
+static bool dumpZoneToDisk(Logr::log_t logger, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
 {
   logger->info(Logr::Debug, "Dumping zone to disk", "destination_file", Logging::Loggable(dumpZoneFileName));
   std::string temp = dumpZoneFileName + "XXXXXX";
@@ -465,7 +465,7 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
         });
 
         if (!params.dumpZoneFileName.empty()) {
-          dumpZoneToDisk(logger, zoneName, newZone, params.dumpZoneFileName);
+          dumpZoneToDisk(logger, newZone, params.dumpZoneFileName);
         }
 
         /* no need to try another primary */
@@ -659,7 +659,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
     });
 
     if (!params.dumpZoneFileName.empty()) {
-      dumpZoneToDisk(logger, zoneName, newZone, params.dumpZoneFileName);
+      dumpZoneToDisk(logger, newZone, params.dumpZoneFileName);
     }
     refresh = std::max(params.refreshFromConf != 0 ? params.refreshFromConf : newZone->getRefresh(), 1U);
   }

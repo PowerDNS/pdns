@@ -24,6 +24,7 @@
 #endif
 
 #include <iostream>
+#include <iomanip>
 #include <fcntl.h>
 
 #include "pdnsexception.hh"
@@ -32,6 +33,8 @@
 #include "namespaces.hh"
 #include "rec_channel.hh"
 #include "settings/cxxsettings.hh"
+#include "logger.hh"
+#include "logging.hh"
 
 ArgvMap& arg()
 {
@@ -39,7 +42,7 @@ ArgvMap& arg()
   return arg;
 }
 
-static void initArguments(int argc, char** argv)
+static void initArguments(int argc, char** argv, Logr::log_t log)
 {
   arg().set("config-dir", "Location of configuration directory (recursor.conf)") = SYSCONFDIR;
 
@@ -81,11 +84,11 @@ static void initArguments(int argc, char** argv)
   case pdns::settings::rec::YamlSettingsStatus::CannotOpen:
     break;
   case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
-    cerr << "YAML config found for configname '" << yamlconfigname << "' but error ocurred processing it" << endl;
+    log->error(Logr::Error, msg, "YAML config found, but error ocurred processing it", "configname", Logging::Loggable(yamlconfigname));
     exit(1); // NOLINT(concurrency-mt-unsafe)
     break;
   case pdns::settings::rec::YamlSettingsStatus::OK:
-    cout << "YAML config found and processed for configname '" << yamlconfigname << "'" << endl;
+    log->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname));
     pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
     break;
   }
@@ -235,9 +238,48 @@ static RecursorControlChannel::Answer showYAML(const std::string& path)
   }
 }
 
+static void recControlLoggerBackend(const Logging::Entry& entry)
+{
+  static thread_local std::stringstream buf;
+
+  // First map SL priority to syslog's Urgency
+  Logger::Urgency urg = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  if (urg > Logger::Warning) {
+    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
+    // Not that lower Urgency means higher number.
+    return;
+  }
+  buf.str("");
+  buf << "msg=" << std::quoted(entry.message);
+  if (entry.error) {
+    buf << " error=" << std::quoted(entry.error.get());
+  }
+
+  if (entry.name) {
+    buf << " subsystem=" << std::quoted(entry.name.get());
+  }
+  buf << " level=" << std::quoted(std::to_string(entry.level));
+  if (entry.d_priority != 0) {
+    buf << " prio=" << std::quoted(Logr::Logger::toString(entry.d_priority));
+  }
+
+  std::array<char, 64> timebuf{};
+  buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
+
+  for (auto const& value : entry.values) {
+    buf << " ";
+    buf << value.first << "=" << std::quoted(value.second);
+  }
+
+  cerr << buf.str() << endl;
+}
+
 int main(int argc, char** argv)
 {
-  g_slogStructured = false;
+  g_slog = Logging::Logger::create(recControlLoggerBackend);
+  auto log = g_slog->withName("config");
+  ::arg().setSLog(log);
+
   const set<string> fileCommands = {
     "dump-cache",
     "dump-edns",
@@ -252,7 +294,7 @@ int main(int argc, char** argv)
     "trace-regex",
   };
   try {
-    initArguments(argc, argv);
+    initArguments(argc, argv, log);
     string sockname = "pdns_recursor";
 
     if (arg()["config-name"] != "")
@@ -355,7 +397,7 @@ int main(int argc, char** argv)
     return receive.d_ret;
   }
   catch (PDNSException& ae) {
-    cerr << "Fatal: " << ae.reason << "\n";
+    log->error(Logr::Error, ae.reason, "Fatal");
     return 1;
   }
 }
