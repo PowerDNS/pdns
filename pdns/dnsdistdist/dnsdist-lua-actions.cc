@@ -1708,7 +1708,7 @@ public:
       message.setServerIdentity(d_serverID);
     }
 
-#if HAVE_IPCIPHER
+#ifdef HAVE_IPCIPHER
     if (!d_ipEncryptKey.empty()) {
       message.setRequestor(encryptCA(dnsquestion->ids.origRemote, d_ipEncryptKey));
     }
@@ -1861,7 +1861,7 @@ public:
       message.setServerIdentity(d_serverID);
     }
 
-#if HAVE_IPCIPHER
+#ifdef HAVE_IPCIPHER
     if (!d_ipEncryptKey.empty()) {
       message.setRequestor(encryptCA(response->ids.origRemote, d_ipEncryptKey));
     }

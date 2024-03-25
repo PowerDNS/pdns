@@ -2968,7 +2968,7 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
 
 static void handleRuntimeDefaults(Logr::log_t log)
 {
-#if HAVE_FIBER_SANITIZER
+#ifdef HAVE_FIBER_SANITIZER
   // Asan needs more stack
   if (::arg().asNum("stack-size") == 200000) { // the default in table.py
     ::arg().set("stack-size", "stack size per mthread") = "600000";
