@@ -3202,7 +3202,7 @@ int main(int argc, char** argv)
     handleRuntimeDefaults(startupLog);
 
     if (auto ttl = ::arg().asNum("system-resolver-ttl"); ttl != 0) {
-      // Cannot use SyncRes::s_serverID, it is nt set yet
+      // Cannot use SyncRes::s_serverID, it is not set yet
       pdns::RecResolve::setInstanceParameters(arg()["server-id"], ttl, []() { reloadZoneConfiguration(g_yamlSettings); });
     }
 

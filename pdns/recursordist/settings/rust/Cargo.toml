@@ -13,7 +13,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
 ipnet = "2.8"
 once_cell = "1.18.0"
-hostname-validator = "1.1.1" # This is temporary. PR 13819 has the infra to call C++ from, so we can arrange for DNSName::ishostname() to be called instead of importing another crate aftyer that one is merged.
+hostname-validator = "1.1.1" # This is temporary. PR 13819 has the infra to call C++ from, so we can arrange for DNSName::ishostname() to be called instead of importing another crate after that one is merged.
 
 [build-dependencies]
 cxx-build = "1.0"

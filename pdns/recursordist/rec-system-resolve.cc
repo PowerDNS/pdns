@@ -92,6 +92,7 @@ std::string serverID()
 }
 } // anonymous namespace
 
+// RecResolve class members.
 std::string pdns::RecResolve::s_serverID;
 time_t pdns::RecResolve::s_ttl{0};
 std::function<void()> pdns::RecResolve::s_callback;
