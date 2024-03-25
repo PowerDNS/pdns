@@ -55,13 +55,11 @@ public:
   bool snapshotCurrent(std::thread::id tid); // Write the current file out to disk
   void add(const std::string& data)
   {
-    // The only time this should block is when snapshotting
     d_sbf.lock()->add(data);
   }
   bool test(const std::string& data) { return d_sbf.lock()->test(data); }
   bool testAndAdd(const std::string& data)
   {
-    // The only time this should block is when snapshotting
     return d_sbf.lock()->testAndAdd(data);
   }
 

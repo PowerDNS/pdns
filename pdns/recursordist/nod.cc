@@ -50,11 +50,11 @@ void PersistentSBF::remove_tmp_files(const filesystem::path& path, std::lock_gua
   }
 }
 
-// This looks for an old (per-thread) snapshot. The first one it finds,
-// it restores from that. Then immediately snapshots with the current thread id,// before removing the old snapshot
-// In this way, we can have per-thread SBFs, but still snapshot and restore.
-// The mutex has to be static because we can't have multiple (i.e. per-thread)
-// instances iterating and writing to the cache dir at the same time
+// This looks for the newest (per-thread) snapshot it can find and it restores from that. Then
+// immediately snapshots with the current thread id, before removing the old snapshot.
+// In this way, we can have per-thread SBFs, but still snapshot and restore.  The mutex has to be
+// static because we can't have multiple (i.e. per-thread) instances iterating and writing to the
+// cache dir at the same time
 bool PersistentSBF::init(bool ignore_pid)
 {
   auto log = g_slog->withName("nod");
