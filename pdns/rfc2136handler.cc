@@ -731,8 +731,9 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
       return RCode::Refused;
     }
 
-    if (tsigKeys.size() == 0 && packet.d_havetsig)
+    if (tsigKeys.empty() && packet.d_havetsig) {
       g_log<<Logger::Warning<<msgPrefix<<"TSIG is provided, but domain is not secured with TSIG. Processing continues"<<endl;
+    }
 
   }
 
@@ -757,7 +758,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
   DomainInfo di;
   di.backend=nullptr;
-  if(!B.getDomainInfo(packet.qdomain, di) || !di.backend) {
+  if(!B.getDomainInfo(packet.qdomain, di) || (di.backend == nullptr)) {
     g_log<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<packet.qdomain<<"' (or backend does not support DNS update operation)"<<endl;
     return RCode::NotAuth;
   }
@@ -904,7 +905,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         /* see if it's permitted by policy */
         if (this->d_update_policy_lua != nullptr) {
-          if (this->d_update_policy_lua->updatePolicy(rr->d_name, QType(rr->d_type), di.zone, packet) == false) {
+          if (!this->d_update_policy_lua->updatePolicy(rr->d_name, QType(rr->d_type), di.zone, packet)) {
             g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).toString() << ": Not permitted by policy"<<endl;
             continue;
           } else {
