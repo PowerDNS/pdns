@@ -38,7 +38,12 @@ foreach variant: variants
   variant_description = variant[2]
   variant_program = variant[3]
 
-  if cxx.links(variant_program, name: variant_name, args: have_pthread_np_h ? ['-DHAVE_PTHREAD_NP_H'] : [])
+  if cxx.links(
+    variant_program,
+    name: variant_name,
+    dependencies: dep_threads,
+    args: have_pthread_np_h ? ['-DHAVE_PTHREAD_NP_H'] : []
+  )
     found = true
     conf.set(variant_define, true, description: variant_description)
     summary('pthread_setname Variant', variant_define, section: 'POSIX Threads')
