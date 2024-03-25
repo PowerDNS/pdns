@@ -926,7 +926,6 @@ if get_option('unit-tests')
   test(
     'pdns-auth-testrunner',
     pdns_auth_testrunner,
-    verbose: get_option('unit-tests-verbose'),
     env: {
       'BOOST_TEST_LOG_LEVEL': 'message',
     },
@@ -955,8 +954,6 @@ if get_option('module-remote') != 'disabled' and get_option('unit-tests-backends
     'REMOTEBACKEND_ZEROMQ': get_option('module-remote-zeromq') ? 'yes' : 'no',
   }
 
-  verbose = get_option('unit-tests-verbose')
-
   foreach test_binary, test_source: module_remotebackend_test_sources_binaries
     exec_var_name = test_binary.underscorify()
 
@@ -978,7 +975,6 @@ if get_option('module-remote') != 'disabled' and get_option('unit-tests-backends
       'pdns-auth-' + test_binary,
       module_remotebackend_testrunner,
       args: ['--', get_variable(exec_var_name).full_path()],
-      verbose: verbose,
       env: env,
       workdir: product_source_dir / fs.parent(module_remotebackend_testrunner),
       is_parallel: false,
