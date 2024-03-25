@@ -46,6 +46,13 @@ combination with the ``ALLOW-DNSUPDATE-FROM`` :doc:`domain metadata <domainmetad
 zone. Setting a range here and in ``ALLOW-DNSUPDATE-FROM`` enables updates
 from either address range.
 
+``dnsupdate-require-tsig``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A setting to require DNS updates to be signed by a valid TSIG signature.
+The default is no, which means zones without TSIG keys can be updated by
+unauthenticated agents operating from an allowed address range.
+
 ``forward-dnsupdate``
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -152,6 +159,7 @@ both requirements need to be satisfied before an update will be accepted.
 By default, an update can add, update or delete any resource records in
 the zone.  See :ref:`dnsupdate-update-policy` for finer-grained
 control of what an update is allowed to do.
+Use :ref:`setting-dnsupdate-require-tsig` to disallow unsigned updates.
 
 .. _metadata-forward-dnsupdate:
 

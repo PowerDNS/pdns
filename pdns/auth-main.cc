@@ -163,6 +163,7 @@ static void declareArguments()
   ::arg().setSwitch("dnsupdate", "Enable/Disable DNS update (RFC2136) support. Default is no.") = "no";
   ::arg().setSwitch("write-pid", "Write a PID file") = "yes";
   ::arg().set("allow-dnsupdate-from", "A global setting to allow DNS updates from these IP ranges.") = "127.0.0.0/8,::1";
+  ::arg().setSwitch("dnsupdate-require-tsig", "Require TSIG secured DNS updates. Default is no.") = "no";
   ::arg().set("proxy-protocol-from", "A Proxy Protocol header is only allowed from these subnets, and is mandatory then too.") = "";
   ::arg().set("proxy-protocol-maximum-size", "The maximum size of a proxy protocol payload, including the TLV values") = "512";
   ::arg().setSwitch("send-signed-notify", "Send TSIG secured NOTIFY if TSIG key is configured for a zone") = "yes";
