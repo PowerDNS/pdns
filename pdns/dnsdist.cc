@@ -1263,7 +1263,7 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ba
        because it's not using the same socket.
     */
     if (!healthCheck) {
-      if (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH || savederrno == EBADF) {
+      if (savederrno == EINVAL || savederrno == ENODEV || savederrno == ENETUNREACH || savederrno == EHOSTUNREACH || savederrno == EBADF) {
         backend->reconnect();
       }
       backend->reportTimeoutOrError();
