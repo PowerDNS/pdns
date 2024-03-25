@@ -3120,12 +3120,46 @@ This can be used to not count known failing (test) name validations in the ordin
         'help' : 'Set TTL of system resolver feature, 0 (default) is disabled',
         'doc' : '''
 Sets TTL in seconds of the system resolver feature.
-This allows names to be used in the config in forwarding targets.
-The TTL is used as a check interval to see if the names used in forwarding resolve to a different address than before.
-If that happens, the forward configuration is reloaded.
+If not equal to zero names can be used for forwarding targets.
+The names will be resolved by the system resolver configured in the OS.
+
+The TTL is used as a time to live to see if the names used in forwarding resolve to a different address than before.
+If the TTL is expired, a re-resolve will be done by the next iteration of the check function;
+if a change is detected, the recursor performs an equivalent of ``rec_control reload-zones``.
+
 Make sure the recursor itself is not used by the system resolver! Default is 0 (not enabled).
 A suggested value is 60.
- ''',
+''',
+    'versionadded': '5.1.0'
+    },
+    {
+        'name' : 'system_resolver_interval',
+        'section' : 'recursor',
+        'type' : LType.Uint64,
+        'default' : '0',
+        'help' : 'Set interval (in seconds) of the re-resolve checks of system resolver subsystem.',
+        'doc' : '''
+Sets the check interval (in seconds) of the system resolver feature.
+All names known by the system resolver subsystem are periodically checked for changing values.
+
+If the TTL of a name has expired, it is checked by re-resolving it.
+if a change is detected, the recursor performs an equivalent of ``rec_control reload-zones``.
+
+This settings sets the interval between the checks.
+If set to zero (the default), the value :ref:`setting-system-resolver-ttl` is used.
+''',
+    'versionadded': '5.1.0'
+    },
+    {
+        'name' : 'system_resolver_self_resolve_check',
+        'section' : 'recursor',
+        'type' : LType.Bool,
+        'default' : 'true',
+        'help' : 'Check for potential self-resolve, default enabled.',
+        'doc' : '''
+Warn on potential self-resolve.
+If this check draws the wrong conclusion, you can disable it.
+''',
     'versionadded': '5.1.0'
     },
 ]

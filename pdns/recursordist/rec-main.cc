@@ -3202,8 +3202,13 @@ int main(int argc, char** argv)
     handleRuntimeDefaults(startupLog);
 
     if (auto ttl = ::arg().asNum("system-resolver-ttl"); ttl != 0) {
+      time_t interval = ttl;
+      if (::arg().asNum("system-resolver-interval") != 0) {
+        interval = ::arg().asNum("system-resolver-interval");
+      }
+      bool selfResolveCheck = ::arg().mustDo("system-resolver-self-resolve-check");
       // Cannot use SyncRes::s_serverID, it is not set yet
-      pdns::RecResolve::setInstanceParameters(arg()["server-id"], ttl, []() { reloadZoneConfiguration(g_yamlSettings); });
+      pdns::RecResolve::setInstanceParameters(arg()["server-id"], ttl, interval, selfResolveCheck, []() { reloadZoneConfiguration(g_yamlSettings); });
     }
 
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));

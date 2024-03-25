@@ -11,7 +11,7 @@ BOOST_AUTO_TEST_SUITE(rec_system_resolve)
 BOOST_AUTO_TEST_CASE(test_basic_resolve)
 {
 
-  pdns::RecResolve::setInstanceParameters("foo", 60, nullptr);
+  pdns::RecResolve::setInstanceParameters("foo", 60, 10, false, nullptr);
   auto& sysResolve = pdns::RecResolve::getInstance();
 
   auto address = sysResolve.lookupAndRegister("localhost", time(nullptr));

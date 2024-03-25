@@ -76,11 +76,11 @@ class RecResolve
 {
 public:
   // Should be called before any getInstance() call is done
-  static void setInstanceParameters(std::string serverID, time_t ttl, const std::function<void()>& callback);
+  static void setInstanceParameters(std::string serverID, time_t ttl, time_t interval, bool selfResolveCheck, const std::function<void()>& callback);
   // Get "the" instance of the system resolver.
   static RecResolve& getInstance();
 
-  RecResolve(time_t ttl = 60, const std::function<void()>& callback = nullptr);
+  RecResolve(time_t ttl, time_t interval, bool selfResolveCheck, const std::function<void()>& callback = nullptr);
   ~RecResolve();
   // Lookup a name and register it in the names to be checked if not already there
   ComboAddress lookupAndRegister(const std::string& name, time_t now);
@@ -112,7 +112,7 @@ private:
   class Refresher
   {
   public:
-    Refresher(time_t interval, const std::function<void()>& callback, pdns::RecResolve& res);
+    Refresher(time_t interval, const std::function<void()>& callback, bool selfResolveCheck, pdns::RecResolve& res);
     Refresher(const Refresher&) = delete;
     Refresher(Refresher&&) = delete;
     Refresher& operator=(const Refresher&) = delete;
@@ -128,12 +128,13 @@ private:
 
     pdns::RecResolve& d_resolver;
     std::function<void()> d_callback;
-    time_t d_interval;
+    const time_t d_interval;
     std::thread d_thread;
     std::mutex mutex;
     std::condition_variable condVar;
     std::atomic<bool> wakeup{false};
     std::atomic<bool> stop{false};
+    const bool d_selfResolveCheck;
   };
 
   Refresher d_refresher;
@@ -141,6 +142,8 @@ private:
   static std::string s_serverID;
   static std::function<void()> s_callback;
   static time_t s_ttl;
+  static time_t s_interval;
+  static bool s_selfResolveCheck;
 };
 
 }

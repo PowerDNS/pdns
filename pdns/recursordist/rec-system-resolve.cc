@@ -109,23 +109,27 @@ std::string serverID()
 // RecResolve class members.
 std::string pdns::RecResolve::s_serverID;
 time_t pdns::RecResolve::s_ttl{0};
+time_t pdns::RecResolve::s_interval{0};
 std::function<void()> pdns::RecResolve::s_callback;
+bool pdns::RecResolve::s_selfResolveCheck{false};
 
-void pdns::RecResolve::setInstanceParameters(std::string serverID, time_t ttl, const std::function<void()>& callback)
+void pdns::RecResolve::setInstanceParameters(std::string serverID, time_t ttl, time_t interval, bool selfResolveCheck, const std::function<void()>& callback)
 {
   pdns::RecResolve::s_serverID = std::move(serverID);
   pdns::RecResolve::s_ttl = ttl;
+  pdns::RecResolve::s_interval = interval;
+  pdns::RecResolve::s_selfResolveCheck = selfResolveCheck;
   pdns::RecResolve::s_callback = callback;
 }
 
 pdns::RecResolve& pdns::RecResolve::getInstance()
 {
-  static unique_ptr<RecResolve> res = make_unique<pdns::RecResolve>(s_ttl, s_callback);
+  static unique_ptr<RecResolve> res = make_unique<pdns::RecResolve>(s_ttl, s_interval, s_selfResolveCheck, s_callback);
   return *res;
 }
 
-pdns::RecResolve::RecResolve(time_t ttl, const std::function<void()>& callback) :
-  d_ttl(ttl), d_refresher(ttl / 6, callback, *this)
+pdns::RecResolve::RecResolve(time_t ttl, time_t interval, bool selfResolveCheck, const std::function<void()>& callback) :
+  d_ttl(ttl), d_refresher(interval, callback, selfResolveCheck, *this)
 {
 }
 
@@ -229,8 +233,8 @@ bool pdns::RecResolve::refresh(time_t now)
   return updated;
 }
 
-pdns::RecResolve::Refresher::Refresher(time_t interval, const std::function<void()>& callback, pdns::RecResolve& res) :
-  d_resolver(res), d_callback(callback), d_interval(std::max(static_cast<time_t>(1), interval))
+pdns::RecResolve::Refresher::Refresher(time_t interval, const std::function<void()>& callback, bool selfResolveCheck, pdns::RecResolve& res) :
+  d_resolver(res), d_callback(callback), d_interval(std::max(static_cast<time_t>(1), interval)), d_selfResolveCheck(selfResolveCheck)
 {
   start();
 }
@@ -261,7 +265,7 @@ void pdns::RecResolve::Refresher::refreshLoop()
       if (stop) {
         break;
       }
-      if (lastSelfCheck < time(nullptr) - 3600) {
+      if (d_selfResolveCheck && lastSelfCheck < time(nullptr) - 3600) {
         lastSelfCheck = time(nullptr);
         auto resolvedServerID = serverID();
         if (resolvedServerID == s_serverID) {
