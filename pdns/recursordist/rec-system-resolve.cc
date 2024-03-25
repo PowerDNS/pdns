@@ -229,12 +229,6 @@ bool pdns::RecResolve::refresh(time_t now)
   return updated;
 }
 
-bool pdns::RecResolve::changeDetected()
-{
-  bool change = d_refresher.changes.exchange(false);
-  return change;
-}
-
 pdns::RecResolve::Refresher::Refresher(time_t interval, const std::function<void()>& callback, pdns::RecResolve& res) :
   d_resolver(res), d_callback(callback), d_interval(std::max(static_cast<time_t>(1), interval))
 {
@@ -275,11 +269,10 @@ void pdns::RecResolve::Refresher::refreshLoop()
           log->info(Logr::Error, "id.server/CH/TXT resolves to my own server identity", "id.server", Logging::Loggable(resolvedServerID));
         }
       }
-      changes = d_resolver.refresh(time(nullptr));
+      bool changes = d_resolver.refresh(time(nullptr));
       wakeTime = time(nullptr);
       if (changes) {
         d_callback();
-        changes = false;
       }
     }
   }

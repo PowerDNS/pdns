@@ -93,8 +93,6 @@ public:
   void startRefresher();
   // Wipe one or all names
   void wipe(const std::string& name = "");
-  // Did we see a change? Calling this function will reset the flag.
-  bool changeDetected();
 
 private:
   bool refresh(time_t now);
@@ -124,8 +122,6 @@ private:
     void start();
     void finish();
     void trigger();
-
-    std::atomic<bool> changes{false};
 
   private:
     void refreshLoop();
