@@ -145,18 +145,17 @@ bool PersistentSBF::snapshotCurrent(std::thread::id tid)
         }
         // Now write it out to the file
         std::string ftmp = file.string() + ".XXXXXXXX";
-        int fileDesc = mkstemp(ftmp.data());
+        auto fileDesc = FDWrapper(mkstemp(ftmp.data()));
         if (fileDesc == -1) {
           throw std::runtime_error("Cannot create temp file: " + stringerror());
         }
         const std::string str = oss.str(); // XXX creates a copy, with c++20 we can use view()
         ssize_t len = write(fileDesc, str.data(), str.length());
         if (len != static_cast<ssize_t>(str.length())) {
-          close(fileDesc);
           filesystem::remove(ftmp.c_str());
           throw std::runtime_error("Failed to write to file:" + ftmp);
         }
-        if (close(fileDesc) != 0) {
+        if (fileDesc.reset() != 0) {
           filesystem::remove(ftmp);
           throw std::runtime_error("Failed to write to file:" + ftmp);
         }
