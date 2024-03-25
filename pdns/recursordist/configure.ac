@@ -122,7 +122,6 @@ dnl the *_r functions are in posix so we can use them unconditionally, but the e
 dnl using the defines.
 AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r strcasestr])
 AC_CHECK_FUNCS_ONCE([getrandom getentropy arc4random arc4random_uniform arc4random_buf])
-
 PDNS_CHECK_SECURE_MEMSET
 
 AC_CHECK_HEADERS([sys/random.h])

@@ -170,7 +170,7 @@ An example of a ``forward_zones`` entry, which consists of a sequence of forward
 
 Starting with version 5.1.0, names can be used if
 :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
-The names will be resolved using the system resolver and an automatic refresh of the forwarding zones will happend if a name starts resolving to a new address.
+The names will be resolved using the system resolver and an automatic refresh of the forwarding zones will happen if a name starts resolving to a new address.
 
 Auth Zone
 ^^^^^^^^^

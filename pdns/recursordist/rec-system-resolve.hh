@@ -87,13 +87,13 @@ public:
   // Lookup a name which must be already registered
   ComboAddress lookup(const std::string& name);
 
-  // When an instance is created, it will runn a refresh thread, stop it wit this method
+  // When an instance is created, it will run a refresh thread, stop it with this method
   void stopRefresher();
   // And restart it again
   void startRefresher();
   // Wipe one or all names
   void wipe(const std::string& name = "");
-  // Did we se a cahnage? Calling this functino will reset the flag.
+  // Did we see a change? Calling this function will reset the flag.
   bool changeDetected();
 
 private:

@@ -73,7 +73,6 @@ static ComboAddress fromNameOrIP(const string& str, uint16_t defPort, Logr::log_
     uint16_t port = defPort;
     string::size_type pos = str.rfind(':');
     if (pos != string::npos) {
-      cerr << str.substr(pos) << endl;
       port = pdns::checked_stoi<uint16_t>(str.substr(pos + 1));
     }
     auto& res = pdns::RecResolve::getInstance();

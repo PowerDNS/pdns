@@ -41,14 +41,27 @@ ComboAddress resolve(const std::string& name)
   hints.ai_flags = AI_ADDRCONFIG;
   hints.ai_family = 0;
 
-  struct addrinfo* res = nullptr;
-  auto ret = getaddrinfo(name.c_str(), nullptr, &hints, &res);
-  // We pick the first address returned for now.
-  // XXX This might trigger unwanted "changes detected "if the sort order varies
-  if (ret == 0) {
-    auto address = ComboAddress{res->ai_addr, res->ai_addrlen};
-    freeaddrinfo(res);
-    return address;
+  struct addrinfo* res0 = nullptr;
+  auto ret = getaddrinfo(name.c_str(), nullptr, &hints, &res0);
+  // We pick the first address after sorting for now, no handling of multiple addresses or AF selection.
+  vector<ComboAddress> vec;
+  if (ret != 0) {
+    return {};
+  }
+  auto* res = res0;
+  while (res != nullptr) {
+    try {
+      auto address = ComboAddress{res->ai_addr, res->ai_addrlen};
+      vec.emplace_back(address);
+    }
+    catch (...) {
+    }
+    res = res->ai_next;
+  }
+  freeaddrinfo(res0);
+  if (!vec.empty()) {
+    std::sort(vec.begin(), vec.end());
+    return vec.at(0);
   }
   return {};
 }
@@ -73,7 +86,8 @@ std::string serverID()
   if (buffer.empty()) {
     return {};
   }
-  MOADNSParser parser(false, reinterpret_cast<char*>(buffer.data()), buffer.size()); // NOLINT
+
+  MOADNSParser parser(false, static_cast<const char*>(static_cast<void*>(buffer.data())), buffer.size());
   if (parser.d_header.rcode != RCode::NoError || parser.d_answers.size() != 1) {
     return {};
   }
@@ -240,6 +254,7 @@ void pdns::RecResolve::Refresher::refreshLoop()
   while (!stop) {
     const time_t startTime = time(nullptr);
     time_t wakeTime = startTime;
+    // The expresion wakeTime - startTime is equal to the total amount of time slept
     while (wakeTime - startTime < d_interval) {
       std::unique_lock lock(mutex);
       time_t remaining = d_interval - (wakeTime - startTime);
