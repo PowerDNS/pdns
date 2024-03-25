@@ -279,7 +279,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     });
   static bool mustNotShuffle = ::arg().mustDo("no-shuffle");
 
-  if(!d_tcp && !mustNotShuffle) {
+  if(!d_xfr && !mustNotShuffle) {
     pdns::shuffle(d_rrs);
   }
   d_wrapped=true;
@@ -453,6 +453,7 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
   r->d_haveednscookie = d_haveednscookie;
   r->d_ednsversion = 0;
   r->d_ednsrcode = 0;
+  r->d_xfr = d_xfr;
 
   if(d_tsigkeyname.countLabels()) {
     r->d_tsigkeyname = d_tsigkeyname;
