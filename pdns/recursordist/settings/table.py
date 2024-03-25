@@ -535,9 +535,9 @@ Turn off the packet cache. Useful when running with Lua scripts that cannot be c
         'section' : 'logging',
         'type' : LType.Bool,
         'default' : 'false',
-        'help' : 'Disable logging to syslog, useful when running inside a supervisor that logs stdout',
+        'help' : 'Disable logging to syslog, useful when running inside a supervisor that logs stderr',
         'doc' : '''
-Do not log to syslog, only to stdout.
+Do not log to syslog, only to stderr.
 Use this setting when running inside a supervisor that handles logging (like systemd).
 **Note**: do not use this setting in combination with :ref:`setting-daemon` as all logging will disappear.
  ''',
@@ -1261,7 +1261,7 @@ If an address in :ref:`setting-local-address` does not have an explicit port, th
         'oldname' : 'log-timestamp',
         'type' : LType.Bool,
         'default' : 'true',
-        'help' : 'Print timestamps in log lines, useful to disable when running with a tool that timestamps stdout already',
+        'help' : 'Print timestamps in log lines, useful to disable when running with a tool that timestamps stderr already',
         'doc' : '''
 
  ''',

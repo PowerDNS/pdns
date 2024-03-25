@@ -601,7 +601,7 @@ regression testing.
 -  Boolean
 -  Default: no
 
-Do not log to syslog, only to stdout. Use this setting when running
+Do not log to syslog, only to stderr. Use this setting when running
 inside a supervisor that handles logging (like systemd).
 
 .. warning::
@@ -961,7 +961,7 @@ to at least 5 to see the logs.
 - Bool
 - Default: yes
 
-When printing log lines to stdout, prefix them with timestamps.
+When printing log lines to stderr, prefix them with timestamps.
 Disable this if the process supervisor timestamps these lines already.
 
 .. note::
