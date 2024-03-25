@@ -1,5 +1,7 @@
 {
   "version": "1.75.0",
+  "license": "MIT",
+  "publisher": "https://www.rust-lang.org/",
   "SHA256SUM_x86_64": "473978b6f8ff216389f9e89315211c6b683cf95a966196e7914b46e8cf0d74f6",
   "SHA256SUM_aarch64": "30828cd904fcfb47f1ac43627c7033c903889ea4aca538f53dcafbb3744a9a73"
 }
