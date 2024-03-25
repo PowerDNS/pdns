@@ -33,7 +33,7 @@
 #include "lock.hh"
 
 /************************************************************************************************
-The pdns::RecResove class implements a facility to use the system configured resolver. At the moment
+The pdns::RecResolve class implements a facility to use the system configured resolver. At the moment
 of writing, this can only be used to configure forwarding by name instead of IP.
  ************************************************************************************************/
 
@@ -43,12 +43,12 @@ DESIGN CONSIDERATIONS
 - all names looked up with lookupAndRegister() will be entered into a table.
 
 - the names in the table will ber periodically checked by a refresh thread. Set the period (before
-  starting to use the system resolver) by calling pdbs::RecResolve::setInstanceParameters().
+  starting to use the system resolver) by calling pdns::RecResolve::setInstanceParameters().
 
-- if *a* name resolves to a different result than stored, we will call the callback. Curently this is
+- if *a* name resolves to a different result than stored, we will call the callback. Currently this is
    used to call the equivalent of rec_control reload-zones
 
-- A manual rec_control reload-zones will *also* flush the existng table before doing the reload, so
+- A manual rec_control reload-zones will *also* flush the existing table before doing the reload, so
   we force a re-resolve all names. See
   rec_channel_rec.cc:reloadZoneConfigurationWithSysResolveReset()
 
@@ -62,8 +62,8 @@ PRACTICAL CONSIDERATIONS/IMPLEMENTATION LIMITS
 - We resolve with AI_ADDRCONFIG, the address families enabled will depend on the network config
   of the machine
 
-- We pick the first adress that getaddrinfo() produced. Currently no handling of multiple addresses
-  and/or multiple address famailies.
+- We pick the first address that getaddrinfo() produced. Currently no handling of multiple addresses
+  and/or multiple address families.
 
 - There is a check to detect *some* cases of self-resolve. This is done by resolving
   id.server/CH/TXT and comparing the result to the system-id set. Both false positives and false
@@ -110,7 +110,7 @@ private:
   LockGuarded<ResolveData> d_data;
   const time_t d_ttl;
 
-  // This private class impements the refresher thread
+  // This private class implements the refresher thread
   class Refresher
   {
   public:

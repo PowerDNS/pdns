@@ -262,7 +262,7 @@ void pdns::RecResolve::Refresher::refreshLoop()
         break;
       }
       condVar.wait_for(lock, std::chrono::seconds(remaining),
-                       [&wakeup = wakeup] { return wakeup.load(); });
+                       [&doWakeup = wakeup] { return doWakeup.load(); });
       wakeup = false;
       if (stop) {
         break;
