@@ -101,7 +101,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
         (*mplexer.lock())->removeReadFD(fd);
       }
 #ifdef HAVE_XSK
-      if (d_xskInfos.empty()) {
+      if (!d_xskInfos.empty()) {
         removeXSKDestination(fd);
       }
 #endif /* HAVE_XSK */
