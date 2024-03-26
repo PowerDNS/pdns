@@ -4,6 +4,8 @@ FROM dist-base as dist
 # If you want to install extra packages or do generic configuration,
 # do it before the COPY. Either here, or in the dist-base layer.
 
+# We NEED these because pdns-builder expects to find /sdist and /dist
+# in the final image
 COPY --from=sdist /sdist /sdist
 COPY --from=package-builder /dist /dist
 
