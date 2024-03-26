@@ -65,7 +65,13 @@ def addDependencyToSBOM(sbom, appInfos, pkg):
 def processDependencies(pkgDB, sbom, appInfos, depRelations):
     seenDeps = {}
     for require in appInfos.requires:
-        depName = require.name.split('(')[0]
+        if hasattr(require, 'name'):
+            depName = require.name.split('(')[0]
+            depSpec = require.name
+        else:
+            # hawkey.Reldep, el-8
+            depName = str(require).split('(')[0]
+            depSpec = require
         if depName in ['/bin/sh', 'config', 'ld-linux-x86-64.so.2', 'rpmlib', 'rtld']:
             continue
         if depName in seenDeps:
@@ -75,7 +81,7 @@ def processDependencies(pkgDB, sbom, appInfos, depRelations):
         matches = pkgDB.filter(name=depName).run()
         if len(matches) == 0:
             flags = []
-            matches = pkgDB.filter(*flags, provides__glob=[require.name]).run()
+            matches = pkgDB.filter(*flags, provides__glob=[depSpec]).run()
             if len(matches) == 0:
                 print(f'Unable to find a match for {depName}')
                 continue

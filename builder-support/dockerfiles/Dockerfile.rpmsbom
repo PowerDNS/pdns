@@ -1,7 +1,7 @@
+# No SBOM on el-7, which only has Python 2 and will be EOL soon anyway
+
 RUN touch /var/lib/rpm/* && \
-    if $(grep -q 'release 7' /etc/redhat-release); then \
-      yum upgrade -y && yum install -y python2 python2-dnf; \
-    else \
+    if ! $(grep -q 'release 7' /etc/redhat-release); then \
       yum upgrade -y && yum install -y python3 python3-dnf; \
     fi
 ADD builder-support/helpers/ /pdns/builder-support/helpers/
@@ -10,8 +10,6 @@ ADD builder-support/helpers/ /pdns/builder-support/helpers/
 RUN cd /pdns/builder-support/helpers/ && \
     if ! $(grep -q 'release 7' /etc/redhat-release); then \
       python3 generate-sbom-dnf.py /dist/pdns-recursor-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json pdns-recursor rust.json; \
-    else \
-      python2 generate-sbom-dnf.py /dist/pdns-recursor-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json pdns-recursor rust.json; \
     fi
 @ENDIF
 
@@ -19,18 +17,14 @@ RUN cd /pdns/builder-support/helpers/ && \
 RUN cd /pdns/builder-support/helpers/; \
     if ! $(grep -q 'release 7' /etc/redhat-release); then \
        python3 generate-sbom-dnf.py /dist/dnsdist-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json dnsdist rust.json quiche.json h2o.json; \
-    else \
-       python2 generate-sbom-dnf.py /dist/dnsdist-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json dnsdist h2o.json; \
     fi
 @ENDIF
 
 @IF [ -n "$M_authoritative$M_all" ]
 RUN cd /pdns/builder-support/helpers/ && \
-    for pkg in pdns pdns-backend-geoip pdns-backend-ldap pdns-backend-lmdb pdns-backend-lua2 pdns-backend-mysql pdns-backend-odbc pdns-backend-postgresql pdns-backend-remote pdns-backend-sqlite pdns-backend-tinydns pdns-backend-ixfrdist pdns-tools; do \
-      if ! $(grep -q 'release 7' /etc/redhat-release); then \
+    if ! $(grep -q 'release 7' /etc/redhat-release); then \
+      for pkg in pdns pdns-backend-geoip pdns-backend-ldap pdns-backend-lmdb pdns-backend-lua2 pdns-backend-mysql pdns-backend-odbc pdns-backend-postgresql pdns-backend-remote pdns-backend-sqlite pdns-backend-tinydns pdns-backend-ixfrdist pdns-tools; do \
         python3 generate-sbom-dnf.py /dist/${pkg}-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json ${pkg}; \
-      else \
-        python2 generate-sbom-dnf.py /dist/${pkg}-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json ${pkg}; \
-      fi \
-    done
+      done ; \
+    fi \
 @ENDIF
