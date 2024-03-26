@@ -94,11 +94,12 @@ time_t g_starttime;
 string g_programname = "pdns"; // used in packethandler.cc
 
 const char* funnytext = "*****************************************************************************\n"
-                        "Ok, you just ran pdns_server through 'strings' hoping to find funny messages.\n"
-                        "Well, you found one. \n"
-                        "Two ions are flying through their particle accelerator, says the one to the\n"
-                        "other 'I think I've lost an electron!' \n"
-                        "So the other one says, 'Are you sure?'. 'YEAH! I'M POSITIVE!'\n"
+                        "Ok, you just ran pdns-auth through 'strings' hoping to find funny messages.  \n"
+                        "Well, you found one.                                                         \n"
+                        "Two ions are flying through their particle accelerator, says the one to the  \n"
+                        "other 'I think I've lost an electron!'                                       \n"
+                        "So the other one says, 'Are you sure?'. 'YEAH! I'M POSITIVE!'                \n"
+                        "                                                                             \n"
                         "                                            the pdns crew - pdns@powerdns.com\n"
                         "*****************************************************************************\n";
 
