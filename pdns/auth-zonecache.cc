@@ -90,7 +90,7 @@ void AuthZoneCache::replace(const vector<std::tuple<DNSName, int>>& zone_indices
     auto& mc = newMaps[getMapIndex(zone)];
     auto iter = mc.find(zone);
     if (iter != mc.end()) {
-      iter->second = std::move(val);
+      iter->second = val;
     }
     else {
       mc.emplace(zone, val);
@@ -110,7 +110,7 @@ void AuthZoneCache::replace(const vector<std::tuple<DNSName, int>>& zone_indices
       auto iter = mc.find(zone);
       if (iter != mc.end()) {
         if (insert) {
-          iter->second = std::move(val);
+          iter->second = val;
         }
         else {
           mc.erase(iter);
@@ -157,7 +157,7 @@ void AuthZoneCache::add(const DNSName& zone, const int zoneId)
     auto map = mc.d_map.write_lock();
     auto iter = map->find(zone);
     if (iter != map->end()) {
-      iter->second = std::move(val);
+      iter->second = val;
     }
     else {
       map->emplace(zone, val);

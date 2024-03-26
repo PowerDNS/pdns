@@ -1141,7 +1141,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
     auto checker = [&url](const ComboAddress& addr, const opts_t& opts) {
         return g_up.isUp(addr, url, opts);
       };
-      return genericIfUp(ips, options, checker);
+    return genericIfUp(ips, std::move(options), checker);
     });
   /*
    * Returns a random IP address from the supplied list

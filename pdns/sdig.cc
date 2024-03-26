@@ -392,7 +392,7 @@ try {
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
     sock.setNonBlocking();
     setTCPNoDelay(sock.getHandle()); // disable NAGLE, which does not play nicely with delayed ACKs
-    TCPIOHandler handler(subjectName, false, sock.releaseHandle(), timeout, std::move(tlsCtx));
+    TCPIOHandler handler(subjectName, false, sock.releaseHandle(), timeout, tlsCtx);
     handler.connect(fastOpen, dest, timeout);
     // we are writing the proxyheader inside the TLS connection. Is that right?
     if (proxyheader.size() > 0 && handler.write(proxyheader.data(), proxyheader.size(), timeout) != proxyheader.size()) {
