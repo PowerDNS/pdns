@@ -43,7 +43,7 @@ AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
 PDNS_CHECK_OS
 PDNS_CHECK_NETWORK_LIBS
-AC_SEARCH_LIBS([res_query], [resolv])
+AC_SEARCH_LIBS([res_query], [resolv], [], [AC_SEARCH_LIBS([__res_query], [resolv])])
 # macOS uses an alternative name internally
 AC_SEARCH_LIBS([res_9_query], [resolv])
 PTHREAD_SET_NAME
