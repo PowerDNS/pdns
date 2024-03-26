@@ -1376,3 +1376,14 @@ uint16_t pdns::rust::settings::rec::qTypeStringToCode(::rust::Str str)
   std::string tmp(str.data(), str.length());
   return QType::chartocode(tmp.c_str());
 }
+
+bool pdns::rust::settings::rec::isValidHostname(::rust::Str str)
+{
+  try {
+    auto name = DNSName(string(str));
+    return name.isHostname();
+  }
+  catch (...) {
+    return false;
+  }
+}

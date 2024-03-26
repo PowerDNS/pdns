@@ -347,4 +347,5 @@ extern "Rust" {
 unsafe extern "C++" {
     include!("bridge.hh");
     fn qTypeStringToCode(name: &str) -> u16;
+    fn isValidHostname(name: &str) -> bool;
 }
