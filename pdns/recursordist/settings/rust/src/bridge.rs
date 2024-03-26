@@ -89,10 +89,10 @@ fn is_port_number(str: &str) -> bool {
 pub fn validate_socket_address_or_name(field: &str, val: &String) -> Result<(), ValidationError> {
     let sa = validate_socket_address(field, val);
     if sa.is_err() {
-        if !hostname_validator::is_valid(val) {
+        if !isValidHostname(val) {
             let parts: Vec<&str> = val.split(':').collect();
             if parts.len() != 2
-                || !hostname_validator::is_valid(parts[0])
+                || !isValidHostname(parts[0])
                 || !is_port_number(parts[1])
             {
                 let msg = format!(

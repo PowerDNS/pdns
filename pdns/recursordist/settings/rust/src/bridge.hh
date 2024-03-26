@@ -26,4 +26,5 @@
 namespace pdns::rust::settings::rec
 {
 uint16_t qTypeStringToCode(::rust::Str str);
+bool isValidHostname(::rust::Str str);
 }
