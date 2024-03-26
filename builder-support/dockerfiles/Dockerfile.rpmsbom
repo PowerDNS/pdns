@@ -1,8 +1,10 @@
-# No SBOM on el-7, which only has Python 2 and will be EOL soon anyway
+ARG BUILDER_VERSION
+ARG BUILDER_TARGET
 
+# No SBOM on el-7, which only has Python 2 and will be EOL soon anyway
 RUN touch /var/lib/rpm/* && \
     if ! $(grep -q 'release 7' /etc/redhat-release); then \
-      yum upgrade -y && yum install -y python3 python3-dnf; \
+      yum install -y python3 python3-dnf; \
     fi
 ADD builder-support/helpers/ /pdns/builder-support/helpers/
 
@@ -25,6 +27,6 @@ RUN cd /pdns/builder-support/helpers/ && \
     if ! $(grep -q 'release 7' /etc/redhat-release); then \
       for pkg in pdns pdns-backend-geoip pdns-backend-ldap pdns-backend-lmdb pdns-backend-lua2 pdns-backend-mysql pdns-backend-odbc pdns-backend-postgresql pdns-backend-remote pdns-backend-sqlite pdns-backend-tinydns pdns-backend-ixfrdist pdns-tools; do \
         python3 generate-sbom-dnf.py /dist/${pkg}-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json ${pkg}; \
-      done ; \
-    fi \
+      done; \
+    fi
 @ENDIF
