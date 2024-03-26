@@ -1,5 +1,5 @@
 ARG BUILDER_VERSION
-ARG BUILDER_TARGET
+@EVAL ARG BUILDER_TARGET=${BUILDER_TARGET}
 
 # No SBOM on el-7, which only has Python 2 and will be EOL soon anyway
 RUN touch /var/lib/rpm/* && \
