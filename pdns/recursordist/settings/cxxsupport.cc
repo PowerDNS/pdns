@@ -1168,7 +1168,7 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, 
           params.defpol->d_custom = make_unique<DNSFilterEngine::Policy::CustomData>();
         }
         params.defpol->d_custom->push_back(DNSRecordContent::make(QType::CNAME, QClass::IN,
-                                                                 std::string(params.defcontent)));
+                                                                  std::string(params.defcontent)));
 
         if (rpz.defttl != std::numeric_limits<uint32_t>::max()) {
           params.defpol->d_ttl = static_cast<int>(rpz.defttl);

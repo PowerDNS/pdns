@@ -3208,7 +3208,7 @@ If this check draws the wrong conclusion, you can disable it.
 Sequence of trust anchors. If the sequence contains an entry for the root zone, the default root zone trust anchor is not included.
 If a zone appears multiple times, the entries in ``dsrecords`` are merged.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/dnssec`',
         'versionadded': '5.1.0',
     },
     {
@@ -3220,7 +3220,7 @@ If a zone appears multiple times, the entries in ``dsrecords`` are merged.
         'doc' : '''
 Sequence of negative trust anchors.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/dnssec`',
         'versionadded': '5.1.0',
     },
     {
@@ -3233,7 +3233,7 @@ Sequence of negative trust anchors.
 A path to a zone file to read trust anchors from.
 This can be used to read distribution provided trust anchors, as for instance ``/usr/share/dns/root.key`` from Debian's ``dns-root-data`` package.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/dnssec`',
         'versionadded': '5.1.0',
     },
     {
@@ -3245,7 +3245,7 @@ This can be used to read distribution provided trust anchors, as for instance ``
         'doc' : '''
 Interval (in hours) to re-read the ``trustanchorfile``.  Zero disables periodic re-reads.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/dnssec`',
         'versionadded': '5.1.0',
     },
     {
@@ -3257,7 +3257,7 @@ Interval (in hours) to re-read the ``trustanchorfile``.  Zero disables periodic 
         'doc' : '''
 Sequence of outgoing protobuf servers. Currently the maximum size of this list is one.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
         'versionadded': '5.1.0',
     },
     {
@@ -3269,7 +3269,7 @@ Sequence of outgoing protobuf servers. Currently the maximum size of this list i
         'doc' : '''
 Sequence of outgoing protobuf servers. Currently the maximum size of this list is one.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
         'versionadded': '5.1.0',
     },
     {
@@ -3281,7 +3281,7 @@ Sequence of outgoing protobuf servers. Currently the maximum size of this list i
         'doc' : '''
 Network mask to apply to the client IPv4 addresses, for anonymization purposes. The default of 32 means no anonymization.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
         'versionadded': '5.1.0',
     },
     {
@@ -3293,7 +3293,7 @@ Network mask to apply to the client IPv4 addresses, for anonymization purposes. 
         'doc' : '''
 Network mask to apply to the client IPv6 addresses, for anonymization purposes. The default of 128 means no anonymization.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
         'versionadded': '5.1.0',
     },
     {
@@ -3305,7 +3305,7 @@ Network mask to apply to the client IPv6 addresses, for anonymization purposes. 
         'doc' : '''
 Sequence of dnstap servers. Currently the maximum size of this list is one.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
         'versionadded': '5.1.0',
     },
     {
@@ -3317,7 +3317,7 @@ Sequence of dnstap servers. Currently the maximum size of this list is one.
         'doc' : '''
 Sequence of NOD dnstap servers. Currently the maximum size of this list is one.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
         'versionadded': '5.1.0',
     },
     {
@@ -3329,7 +3329,7 @@ Sequence of NOD dnstap servers. Currently the maximum size of this list is one.
         'doc' : '''
 Sequence of sort lists.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/sortlist`',
         'versionadded': '5.1.0',
     },
     {
@@ -3341,7 +3341,7 @@ Sequence of sort lists.
         'doc' : '''
 Sequence of RPZ entries.
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/rpz`',
         'versionadded': '5.1.0',
     },
     {
@@ -3353,7 +3353,7 @@ Sequence of RPZ entries.
         'doc' : '''
 Sequence of ZoneToCache entries
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/ztc`',
         'versionadded': '5.1.0',
     },
     {
@@ -3365,7 +3365,7 @@ Sequence of ZoneToCache entries
         'doc' : '''
 Sequence of AllowedAdditionalQType
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/additionals`',
         'versionadded': '5.1.0',
     },
     {
@@ -3377,7 +3377,7 @@ Sequence of AllowedAdditionalQType
         'doc' : '''
 Sequence of ProxyMapping
         ''',
-        'skip-old' : 'Old style in Lua settings',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/proxymapping`',
         'versionadded': '5.1.0',
     },
 ]

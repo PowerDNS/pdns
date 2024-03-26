@@ -3322,8 +3322,8 @@ void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t
       continue;
     }
     try {
-      // The get calls all return a value object here. That is essential, since we want copies so that RPZIXFRTracker gets values
-      // with the proper lifetime.
+      // RPZIXTracker uses call by value for its args. That is essential, since we want copies so
+      // that RPZIXFRTracker gets values with the proper lifetime.
       std::thread theThread(RPZIXFRTracker, rpzPrimary, generation);
       theThread.detach();
     }

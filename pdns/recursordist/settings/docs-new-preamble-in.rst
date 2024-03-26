@@ -23,7 +23,7 @@ Settings on the command line are processed after the file-based settings are pro
    Starting with version 5.1.0, the settings originally specified in a Lua config file can also be put in YAML form.
    The conversion printed by ``rec_control show-yaml`` will print these settings if a Lua config file is specified in the config file being converted.
    You have to choose however: either set Lua settings the old way in the Lua config file, or convert all to YAML.
-   If you are using YAML settings of items originally specified in the Lua config file, do not set :ref:`setting-yaml-recursor.lua_config_file` any more. The :program:`Recursor` will check that you do not mix both configuration methods.
+   If you are using YAML settings of items originally specified in the Lua config file, do not set :ref:`setting-yaml-recursor.lua_config_file` anymore. The :program:`Recursor` will check that you do not mix both configuration methods.
 
 YAML settings file
 ------------------
