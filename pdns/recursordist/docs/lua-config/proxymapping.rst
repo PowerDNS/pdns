@@ -43,6 +43,7 @@ See :func:`protobufServer` on how to tune the source address logged in ``Protobu
 .. function:: addProxyMapping(subnet, ip [, domains])
 
   .. versionadded:: 4.7.0
+  .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-incoming.proxymappings`.
 
   Specify a table based mapping for a subnet.
 

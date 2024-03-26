@@ -15,6 +15,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 .. function:: protobufServer(servers [, options]))
 
   .. versionadded:: 4.2.0
+  .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-logging.protobuf_servers`.
 
   Send protocol buffer messages to one or more servers for incoming queries and/or outgoing responses. The client address may be masked using :func:`setProtobufMasks`, for anonymization purposes.
 
@@ -57,6 +58,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 .. function:: setProtobufMasks(maskv4, maskV6)
 
   .. versionadded:: 4.2.0
+  .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-logging.protobuf_mask_v4` and :ref:`setting-yaml-logging.protobuf_mask_v6`.
 
   :param int maskV4: network mask to apply to the client IPv4 addresses, for anonymization purposes. The default of 32 means no anonymization.
   :param int maskV6: Same as maskV4, but for IPv6. Defaults to 128.
@@ -69,6 +71,7 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
 .. function:: outgoingProtobufServer(servers [, options])
 
   .. versionadded:: 4.2.0
+  .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-logging.outgoing_protobuf_servers`.
 
   Send protocol buffer messages to one or more servers for outgoing queries and/or incoming responses.
 
@@ -116,6 +119,7 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
 .. function:: dnstapFrameStreamServer(servers, [, options])
 
   .. versionadded:: 4.3.0
+  .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-logging.dnstap_framestream_servers`.
 
   Send dnstap formatted message to one or more framestream servers for outgoing queries and/or incoming responses.
 
@@ -142,6 +146,7 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
 .. function:: dnstapNODFrameStreamServer(servers [, options])
 
   .. versionadded:: 4.8.0
+  .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-logging.dnstap_nod_framestream_servers`.
 
   Send dnstap formatted message for :ref:`Newly Observed Domain` and :ref:`Unique Domain Response`.
   ``Message.type`` will be set to ``CLIENT_QUERY`` for NOD and ``RESOLVER_RESPONSE`` for UDR. The concerned domain name will be attached in the ``Message.query_zone`` field.

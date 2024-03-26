@@ -106,15 +106,15 @@ static void parseRPZParameters(const rpzOptions_t& have, RPZTrackerParams& param
   }
   if (have.count("defpol") != 0) {
     params.defpol = DNSFilterEngine::Policy();
-    params.defcontent = boost::get<string>(have.at("defcontent"));
     params.defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have.at("defpol"));
     params.defpol->setName(params.polName);
     if (params.defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
+      params.defcontent = boost::get<string>(have.at("defcontent"));
       if (!params.defpol->d_custom) {
         params.defpol->d_custom = make_unique<DNSFilterEngine::Policy::CustomData>();
       }
       params.defpol->d_custom->push_back(DNSRecordContent::make(QType::CNAME, QClass::IN,
-                                                               params.defcontent));
+                                                                params.defcontent));
 
       if (have.count("defttl") != 0) {
         params.defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(have.at("defttl")));

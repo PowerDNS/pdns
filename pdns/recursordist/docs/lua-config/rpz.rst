@@ -91,6 +91,8 @@ RPZ Configuration Functions
 ---------------------------
 .. function:: rpzFile(filename, settings)
 
+  .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-recursor.rpzs`.
+
   Load an RPZ from disk.
   If multiple files are to be loaded, the zones can be distinguished by setting a ``policyName``, see below.
 
@@ -101,11 +103,13 @@ RPZ Configuration Functions
 
   .. versionchanged:: 4.2.0
 
-    The first parameter can be a list of addresses.
+  The first parameter can be a list of addresses.
 
   .. versionchanged:: 4.5.0
 
-    This function has been renamed from ``rpzMaster``.
+  This function has been renamed from ``rpzMaster``.
+
+  .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-recursor.rpzs`.
 
   Load an RPZ from AXFR and keep retrieving with IXFR.
 
