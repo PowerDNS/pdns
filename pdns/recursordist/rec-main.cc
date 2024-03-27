@@ -1946,12 +1946,8 @@ static void initSuffixMatchNodes([[maybe_unused]] Logr::log_t log)
     }
     g_dontThrottleNames.setState(std::move(dontThrottleNames));
 
-    parts.clear();
     NetmaskGroup dontThrottleNetmasks;
-    stringtok(parts, ::arg()["dont-throttle-netmasks"], " ,");
-    for (const auto& part : parts) {
-      dontThrottleNetmasks.addMask(Netmask(part));
-    }
+    dontThrottleNetmasks.toMasks(::arg()["dont-throttle-netmasks"]);
     g_dontThrottleNetmasks.setState(std::move(dontThrottleNetmasks));
   }
 
