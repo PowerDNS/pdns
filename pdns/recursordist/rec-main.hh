@@ -247,8 +247,8 @@ extern std::string g_nod_pbtag;
 extern bool g_udrEnabled;
 extern bool g_udrLog;
 extern std::string g_udr_pbtag;
-extern thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
-extern thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
+extern std::unique_ptr<nod::NODDB> g_nodDBp;
+extern std::unique_ptr<nod::UniqueResponseDB> g_udrDBp;
 #endif
 
 struct ProtobufServersInfo

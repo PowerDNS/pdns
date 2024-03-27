@@ -821,12 +821,14 @@ struct FDWrapper
     return d_fd;
   }
 
-  void reset()
+  int reset()
   {
+    int ret = 0;
     if (d_fd != -1) {
-      ::close(d_fd);
+      ret = close(d_fd);
       d_fd = -1;
     }
+    return ret;
   }
 
 private:

@@ -1739,6 +1739,19 @@ from this directory.
     'versionadded': '4.2.0'
     },
     {
+        'name' : 'db_snapshot_interval',
+        'section' : 'nod',
+        'oldname' : 'new-domain-db-snapshot-interval',
+        'type' : LType.Uint64,
+        'default' : '600',
+        'help' : 'Interval (in seconds) to write the NOD and UDR DB snapshots',
+        'doc' : '''
+Interval (in seconds) to write the NOD and UDR DB snapshots.
+Set to zero to disable snapshot writing.',
+ ''',
+        'versionadded': '5.1.0'
+    },
+    {
         'name' : 'whitelist',
         'section' : 'nod',
         'oldname' : 'new-domain-whitelist',

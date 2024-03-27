@@ -80,8 +80,8 @@ std::string g_nod_pbtag;
 bool g_udrEnabled;
 bool g_udrLog;
 std::string g_udr_pbtag;
-thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
-thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
+std::unique_ptr<nod::NODDB> g_nodDBp;
+std::unique_ptr<nod::UniqueResponseDB> g_udrDBp;
 #endif /* NOD_ENABLED */
 
 std::atomic<bool> statsWanted;
@@ -783,41 +783,51 @@ static void setupNODThread(Logr::log_t log)
 {
   if (g_nodEnabled) {
     uint32_t num_cells = ::arg().asNum("new-domain-db-size");
-    t_nodDBp = std::make_shared<nod::NODDB>(num_cells);
+    g_nodDBp = std::make_unique<nod::NODDB>(num_cells);
     try {
-      t_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
+      g_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
     }
     catch (const PDNSException& e) {
       SLOG(g_log << Logger::Error << "new-domain-history-dir (" << ::arg()["new-domain-history-dir"] << ") is not readable or does not exist" << endl,
            log->error(Logr::Error, e.reason, "new-domain-history-dir is not readable or does not exists", "dir", Logging::Loggable(::arg()["new-domain-history-dir"])));
       _exit(1);
     }
-    if (!t_nodDBp->init()) {
+    if (!g_nodDBp->init()) {
       SLOG(g_log << Logger::Error << "Could not initialize domain tracking" << endl,
            log->info(Logr::Error, "Could not initialize domain tracking"));
       _exit(1);
     }
-    std::thread thread(nod::NODDB::startHousekeepingThread, t_nodDBp, std::this_thread::get_id());
-    thread.detach();
+    if (::arg().asNum("new-domain-db-snapshot-interval") > 0) {
+      g_nodDBp->setSnapshotInterval(::arg().asNum("new-domain-db-snapshot-interval"));
+      std::thread thread([tid = std::this_thread::get_id()]() {
+        g_nodDBp->housekeepingThread(tid);
+      });
+      thread.detach();
+    }
   }
   if (g_udrEnabled) {
     uint32_t num_cells = ::arg().asNum("unique-response-db-size");
-    t_udrDBp = std::make_shared<nod::UniqueResponseDB>(num_cells);
+    g_udrDBp = std::make_unique<nod::UniqueResponseDB>(num_cells);
     try {
-      t_udrDBp->setCacheDir(::arg()["unique-response-history-dir"]);
+      g_udrDBp->setCacheDir(::arg()["unique-response-history-dir"]);
     }
     catch (const PDNSException& e) {
       SLOG(g_log << Logger::Error << "unique-response-history-dir (" << ::arg()["unique-response-history-dir"] << ") is not readable or does not exist" << endl,
            log->info(Logr::Error, "unique-response-history-dir is not readable or does not exist", "dir", Logging::Loggable(::arg()["unique-response-history-dir"])));
       _exit(1);
     }
-    if (!t_udrDBp->init()) {
+    if (!g_udrDBp->init()) {
       SLOG(g_log << Logger::Error << "Could not initialize unique response tracking" << endl,
            log->info(Logr::Error, "Could not initialize unique response tracking"));
       _exit(1);
     }
-    std::thread thread(nod::UniqueResponseDB::startHousekeepingThread, t_udrDBp, std::this_thread::get_id());
-    thread.detach();
+    if (::arg().asNum("new-domain-db-snapshot-interval") > 0) {
+      g_udrDBp->setSnapshotInterval(::arg().asNum("new-domain-db-snapshot-interval"));
+      std::thread thread([tid = std::this_thread::get_id()]() {
+        g_udrDBp->housekeepingThread(tid);
+      });
+      thread.detach();
+    }
   }
 }
 
@@ -2270,6 +2280,10 @@ static int serviceMain(Logr::log_t log)
     return ret;
   }
 
+#ifdef NOD_ENABLED
+  setupNODThread(log);
+#endif /* NOD_ENABLED */
+
   return RecThreadInfo::runThreads(log);
 }
 
@@ -2745,12 +2759,6 @@ static void recursorThread()
              log->info(Logr::Debug, "Done priming cache with root hints"));
       }
     }
-
-#ifdef NOD_ENABLED
-    if (threadInfo.isWorker()) {
-      setupNODThread(log);
-    }
-#endif /* NOD_ENABLED */
 
     /* the listener threads handle TCP queries */
     if (threadInfo.isWorker() || threadInfo.isListener()) {
