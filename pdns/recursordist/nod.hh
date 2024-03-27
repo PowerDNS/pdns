@@ -69,7 +69,10 @@ private:
   LockGuarded<bf::stableBF> d_sbf; // Stable Bloom Filter
   std::string d_cachedir;
   std::string d_prefix = sbf_prefix;
-  static std::mutex d_cachedir_mutex; // One mutex for all instances of this class
+  // One mutex for all instances of this class, used to avoid multiple init() calls happening
+  // simulateneously.  The snapshot code is thread safe wrt file operations, so it does not need to
+  // acquire this mutex, assuming the init() code never runs simulatenously with the snapshot code.
+  static std::mutex d_cachedir_mutex;
 };
 
 class NODDB
