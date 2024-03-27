@@ -857,6 +857,15 @@ static void dumpTrace(const string& trace, const timeval& timev)
   if (trace.empty()) {
     return;
   }
+  if (t_tracefd < 0) {
+    std::istringstream buf(trace);
+    g_log << Logger::Warning << "=== START OF FAIL TRACE ====" << endl;
+    for (string line; std::getline(buf, line);) {
+      g_log << Logger::Warning << line << endl;
+    }
+    g_log << Logger::Warning << "=== END OF FAIL TRACE ====" << endl;
+    return;
+  }
   timeval now{};
   Utility::gettimeofday(&now);
   int traceFd = dup(t_tracefd);
