@@ -38,10 +38,18 @@ jobs:
       env:
         ASAN_OPTIONS: detect_leaks=0
         FUZZING_TARGETS: yes
-        SANITIZERS: asan+ubsan
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         UNIT_TESTS: yes
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
+    strategy:
+      matrix:
+        include:
+          - build_system: meson
+            sanitizers: address,undefined
+            build_option: '--meson'
+          - build_system: autotools
+            sanitizers: asan+ubsan
+      fail-fast: false
     defaults:
       run:
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}
@@ -65,31 +73,50 @@ jobs:
           path: ~/.ccache
           key: auth-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: auth-ccache-
-      - run: inv ci-autoconf
+      - name: set sanitizers
+        run: echo "SANITIZERS=${{ matrix.sanitizers }}" >> "$GITHUB_ENV"
         working-directory: .
-      - run: inv ci-auth-configure
+      - if: ${{ matrix.build_system == 'autotools' }}
+        run: inv ci-autoconf
         working-directory: .
-      - run: inv ci-make-distdir
+      - if: ${{ matrix.build_system == 'autotools' }}
+        run: inv ci-auth-configure
         working-directory: .
-      - run: inv ci-auth-configure
-      - run: inv ci-auth-make-bear  # This runs under pdns-$BUILDER_VERSION/pdns/
+      - if: ${{ matrix.build_system == 'autotools' }}
+        run: inv ci-make-distdir
+        working-directory: .
+      - if: ${{ matrix.build_system == 'autotools' }}
+        run: inv ci-auth-configure
+      - if: ${{ matrix.build_system == 'autotools' }}
+        run: inv ci-auth-make-bear  # This runs under pdns-$BUILDER_VERSION/pdns/
+      - if: ${{ matrix.build_system == 'meson' }}
+        run: inv install-meson
+        working-directory: .
+      - if: ${{ matrix.build_system == 'meson' }}
+        run: inv ci-auth-configure-meson ${{ env.REPO_HOME }}/pdns-${{ env.BUILDER_VERSION }}
+        working-directory: .
+      - if: ${{ matrix.build_system == 'meson' }}
+        run: inv run-ninja
       - run: inv ci-auth-install-remotebackend-test-deps
-      - run: inv ci-auth-run-unit-tests
+      - run: inv ci-auth-run-unit-tests ${{ matrix.build_option }}
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.build_system == 'autotools' }}
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}/pdns
       - name: Coveralls Parallel auth unit
-        if: ${{ env.COVERAGE == 'yes' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.build_system == 'autotools'}}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: auth-unit-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
-      - run: inv ci-make-install
+      - if: ${{ matrix.build_system == 'autotools' }}
+        run: inv ci-make-install ${{ matrix.build_option }}
       - run: ccache -s
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
-      - name: Store the binaries
+      - if: ${{ matrix.build_system == 'autotools' }}
+        run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - if: ${{ matrix.build_system == 'autotools' }}
+        name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
           name: pdns-auth-${{ env.normalized-branch-name }}

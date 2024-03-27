@@ -9,6 +9,7 @@ import time
 auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
 
 clang_version = os.getenv('CLANG_VERSION', '13')
+repo_home = os.getenv('REPO_HOME', '.')
 
 all_build_deps = [
     'ccache',
@@ -212,7 +213,9 @@ def is_coverage_enabled():
             return False
     return os.getenv('COVERAGE') == 'yes'
 
-def get_coverage():
+def get_coverage(meson=False):
+    if meson:
+        return '-D b_coverage=true' if os.getenv('COVERAGE') == 'yes' else ''
     return '--enable-coverage=clang' if is_coverage_enabled() else ''
 
 @task
@@ -373,23 +376,29 @@ def ci_docs_add_ssh(c, ssh_key, host_key):
     c.run(f'echo "{host_key}" > ~/.ssh/known_hosts')
 
 
-def get_sanitizers():
+def get_sanitizers(meson=False):
     sanitizers = os.getenv('SANITIZERS', '')
+    if meson:
+        return f'-D b_sanitize={sanitizers}' if sanitizers != '' else ''
     if sanitizers != '':
         sanitizers = sanitizers.split('+')
         sanitizers = ['--enable-' + sanitizer for sanitizer in sanitizers]
         sanitizers = ' '.join(sanitizers)
     return sanitizers
 
-def get_unit_tests(auth=False):
+def get_unit_tests(meson=False, auth=False):
     if os.getenv('UNIT_TESTS') != 'yes':
         return ''
+    if meson:
+        return '-D unit-tests=true -D unit-tests-backends=true' if auth else '-D unit-tests=true'
     return '--enable-unit-tests --enable-backend-unit-tests' if auth else '--enable-unit-tests'
 
 def get_build_concurrency(default=8):
     return os.getenv('CONCURRENCY', default)
 
-def get_fuzzing_targets():
+def get_fuzzing_targets(meson=False):
+    if meson:
+        return '-D fuzz-targets=true' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
     return '--enable-fuzz-targets' if os.getenv('FUZZING_TARGETS') == 'yes' else ''
 
 def is_compiler_clang():
@@ -445,10 +454,27 @@ def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', enabl
         get_sanitizers()
     ])
 
+def get_base_configure_cmd_meson(build_dir, additional_c_flags='', additional_cxx_flags='', enable_systemd=True, enable_sodium=True):
+    cflags = " ".join([get_cflags(), additional_c_flags])
+    cxxflags = " ".join([get_cxxflags(), additional_cxx_flags])
+    return " ".join([
+        f'CFLAGS="{cflags}"',
+        f'CXXFLAGS="{cxxflags}"',
+        f"CC='{get_c_compiler()}'",
+        f"CXX='{get_cxx_compiler()}'",
+        f'. {repo_home}/.venv/bin/activate && meson setup {build_dir}',
+        # TODO
+        # "--enable-systemd" if enable_systemd else '',
+        "-D signers-libsodium={}".format("enabled" if enable_sodium else "disabled"),
+        "-D hardening-fortify-source=auto",
+        "-D auto-var-init=pattern",
+        get_coverage(meson=True),
+        get_sanitizers(meson=True)
+    ])
 
 @task
 def ci_auth_configure(c):
-    unittests = get_unit_tests(True)
+    unittests = get_unit_tests(auth=True)
     fuzz_targets = get_fuzzing_targets()
     modules = " ".join([
         "bind",
@@ -486,6 +512,40 @@ def ci_auth_configure(c):
         c.run('cat config.log')
         raise UnexpectedExit(res)
 
+@task
+def ci_auth_configure_meson(c, build_dir):
+    unittests = get_unit_tests(meson=True, auth=True)
+    fuzz_targets = get_fuzzing_targets(meson=True)
+    configure_cmd = " ".join([
+        "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
+        get_base_configure_cmd_meson(build_dir),
+        "-D module-bind=static",
+        "-D module-geoip=static",
+        "-D module-gmysql=static",
+        "-D module-godbc=static",
+        "-D module-gpgsql=static",
+        "-D module-gsqlite3=static",
+        "-D module-ldap=static",
+        "-D module-lmdb=static",
+        "-D module-lua2=static",
+        "-D module-pipe=static",
+        "-D module-remote=static",
+        "-D module-remote-zeromq=true",
+        "-D module-tinydns=static",
+        "-D tools=true",
+        "-D dns-over-tls=true",
+        "-D experimental-pkcs11=enabled",
+        "-D experimental-gss-tsig=enabled",
+        "-D signers-libdecaf=enabled" if os.getenv('DECAF_SUPPORT', 'no') == 'yes' else '',
+        "-D prefix=/opt/pdns-auth",
+        "-D tools-ixfrdist=true",
+        unittests,
+        fuzz_targets
+    ])
+    res = c.run(configure_cmd, warn=True)
+    if res.exited != 0:
+        c.run(f'cat {build_dir}/meson-logs/meson-log.txt')
+        raise UnexpectedExit(res)
 
 @task
 def ci_rec_configure(c, features):
@@ -643,12 +703,18 @@ def ci_auth_install_remotebackend_test_deps(c):
     c.sudo('apt-get install -y socat')
 
 @task
-def ci_auth_run_unit_tests(c):
-    res = c.run('make check', warn=True)
+def ci_auth_run_unit_tests(c, meson=False):
+    if meson:
+        suite_timeout_sec = 120
+        logfile = 'meson-logs/testlog.txt'
+        res = c.run(f'. {repo_home}/.venv/bin/activate && meson test --verbose -t {suite_timeout_sec}', warn=True)
+    else:
+        logfile = 'pdns/test-suite.log'
+        res = c.run('make check', warn=True)
     if res.exited != 0:
-      c.run('cat pdns/test-suite.log', warn=True)
-      c.run('more modules/remotebackend/*.log', warn=True)
-      raise UnexpectedExit(res)
+        c.run(f'cat {logfile}', warn=True)
+        c.run('cat ../modules/remotebackend/*.log', warn=True)
+        raise UnexpectedExit(res)
 
 @task
 def ci_rec_run_unit_tests(c):
@@ -666,11 +732,21 @@ def ci_dnsdist_run_unit_tests(c):
 
 @task
 def ci_make_distdir(c):
-    res = c.run('make distdir')
+    c.run('make distdir')
 
 @task
-def ci_make_install(c):
-    res = c.run('make install') # FIXME: this builds auth docs - again
+def ci_make_install(c, meson=False):
+    # TBD: meson: ninja install or equivalent
+    c.run('make install') # FIXME: this builds auth docs - again
+
+@task
+def install_meson(c):
+    c.run(f'python3 -m venv {repo_home}/.venv')
+    c.run(f'. {repo_home}/.venv/bin/activate && pip install meson pyyaml ninja')
+
+@task
+def run_ninja(c):
+    c.run(f'. {repo_home}/.venv/bin/activate && ninja --verbose')
 
 @task
 def add_auth_repo(c, dist_name, dist_release_name, pdns_repo_version):
