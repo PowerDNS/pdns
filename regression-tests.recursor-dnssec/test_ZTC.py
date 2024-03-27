@@ -9,10 +9,14 @@ class testZTC(RecursorTest):
 
     _confdir = 'ZTC'
     _config_template = """
-dnssec=validate
-"""
-    _lua_config_file = """
-zoneToCache(".", "axfr", "193.0.14.129") -- k-root
+dnssec:
+    validation: validate
+recordcache:
+    zonetocaches:
+    - zone: .
+      method: axfr
+      sources:
+      - 193.0.14.129
 """
 
     @classmethod
@@ -25,7 +29,7 @@ zoneToCache(".", "axfr", "193.0.14.129") -- k-root
         confdir = os.path.join('configs', cls._confdir)
         cls.createConfigDir(confdir)
 
-        cls.generateRecursorConfig(confdir)
+        cls.generateRecursorYamlConfig(confdir, False)
         cls.startRecursor(confdir, cls._recursorPort)
 
     @classmethod
