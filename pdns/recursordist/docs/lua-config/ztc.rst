@@ -40,6 +40,7 @@ Configuration
 .. function:: zoneToCache(zone, method, source [, settings ])
 
   .. versionadded:: 4.6.0
+  .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-recordcache.zonetocaches`.
 
   Load a zone and put it into the Recursor cache periodically.
 

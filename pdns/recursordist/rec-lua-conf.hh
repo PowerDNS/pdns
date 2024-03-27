@@ -21,6 +21,7 @@
  */
 #pragma once
 #include <set>
+#include <boost/variant.hpp>
 
 #include "sholder.hh"
 #include "sortlist.hh"
@@ -98,14 +99,17 @@ struct ProxyByTableValue
 
 using ProxyMapping = NetmaskTree<ProxyByTableValue, Netmask>;
 
+using rpzOptions_t = std::unordered_map<std::string, boost::variant<bool, uint32_t, std::string, std::vector<std::pair<int, std::string>>>>;
+
 class LuaConfigItems
 {
 public:
   LuaConfigItems();
   SortList sortlist;
   DNSFilterEngine dfe;
+  vector<RPZTrackerParams> rpzs;
   TrustAnchorFileInfo trustAnchorFileInfo; // Used to update the Trust Anchors from file periodically
-  map<DNSName, dsmap_t> dsAnchors;
+  map<DNSName, dsset_t> dsAnchors;
   map<DNSName, std::string> negAnchors;
   map<DNSName, RecZoneToCache::Config> ztcConfigs;
   std::map<QType, std::pair<std::set<QType>, AdditionalMode>> allowAdditionalQTypes;
@@ -124,10 +128,4 @@ public:
 
 extern GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
-struct luaConfigDelayedThreads
-{
-  std::vector<RPZTrackerParams> rpzPrimaryThreads;
-};
-
-void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads, ProxyMapping&);
-void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads, uint64_t generation);
+void loadRecursorLuaConfig(const std::string& fname, ProxyMapping&, LuaConfigItems& newLuaConfig);

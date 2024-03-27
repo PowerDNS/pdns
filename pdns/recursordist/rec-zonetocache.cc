@@ -258,8 +258,8 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
   resolver.setDoDNSSEC(true);
   resolver.setDNSSECValidationRequested(true);
 
-  dsmap_t dsmap; // Actually a set
-  vState dsState = resolver.getDSRecords(d_zone, dsmap, false, 0, "");
+  dsset_t dsset;
+  vState dsState = resolver.getDSRecords(d_zone, dsset, false, 0, "");
   if (dsState != vState::Secure) {
     return dsState;
   }
@@ -275,7 +275,7 @@ vState ZoneData::dnssecValidate(pdns::ZoneMD& zonemd, size_t& zonemdCount) const
   }
 
   skeyset_t validKeys;
-  vState dnsKeyState = validateDNSKeysAgainstDS(d_now, d_zone, dsmap, dnsKeys, records, zonemd.getRRSIGs(QType::DNSKEY), validKeys, std::nullopt, validationContext);
+  vState dnsKeyState = validateDNSKeysAgainstDS(d_now, d_zone, dsset, dnsKeys, records, zonemd.getRRSIGs(QType::DNSKEY), validKeys, std::nullopt, validationContext);
   if (dnsKeyState != vState::Secure) {
     return dnsKeyState;
   }

@@ -22,4 +22,9 @@
 
 #pragma once
 
-static const char* const rootDSs[]={"20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d"};
+#include <array>
+#include <string>
+
+static const std::array<std::string, 1> rootDSs = {
+  "20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d"
+};

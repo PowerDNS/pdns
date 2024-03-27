@@ -445,7 +445,7 @@ struct RPZWaiter
   std::atomic<bool> stop{false};
 };
 
-static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, RPZWaiter& rpzwaiter, Logr::log_t logger)
+static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, uint64_t configGeneration, RPZWaiter& rpzwaiter, Logr::log_t logger)
 {
   while (!params.soaRecordContent) {
     /* if we received an empty sr, the zone was not really preloaded */
@@ -454,7 +454,7 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
     for (const auto& primary : params.primaries) {
       try {
-        params.soaRecordContent = loadRPZFromServer(logger, primary, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.tsigtriplet, params.maxReceivedBytes, params.localAddress, params.xfrTimeout);
+        params.soaRecordContent = loadRPZFromServer(logger, primary, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.tsigtriplet, params.maxReceivedMBytes, params.localAddress, params.xfrTimeout);
         newZone->setSerial(params.soaRecordContent->d_st.serial);
         newZone->setRefresh(params.soaRecordContent->d_st.refresh);
         refresh = std::max(params.refreshFromConf != 0 ? params.refreshFromConf : newZone->getRefresh(), 1U);
@@ -490,6 +490,14 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
                                  [&stop = rpzwaiter.stop] { return stop.load(); });
     }
     rpzwaiter.stop = false;
+    auto luaconfsLocal = g_luaconfs.getLocal();
+
+    if (luaconfsLocal->generation != configGeneration) {
+      /* the configuration has been reloaded, meaning that a new thread
+         has been started to handle that zone and we are now obsolete.
+      */
+      return;
+    }
   }
 }
 
@@ -543,7 +551,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
     }
 
     try {
-      deltas = getIXFRDeltas(primary, zoneName, dnsRecord, params.xfrTimeout, true, params.tsigtriplet, &local, params.maxReceivedBytes);
+      deltas = getIXFRDeltas(primary, zoneName, dnsRecord, params.xfrTimeout, true, params.tsigtriplet, &local, params.maxReceivedMBytes);
 
       /* no need to try another primary */
       break;
@@ -724,7 +732,7 @@ void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
     auto lock = condVars.lock();
     lock->emplace(zoneName, waiter);
   }
-  preloadRPZFIle(params, zoneName, oldZone, refresh, polName, waiter, logger);
+  preloadRPZFIle(params, zoneName, oldZone, refresh, polName, configGeneration, waiter, logger);
 
   bool skipRefreshDelay = isPreloaded;
 

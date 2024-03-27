@@ -88,6 +88,7 @@ Calling  :func:`addAllowedAdditionalQType` multiple times with a specific qtype 
 .. function:: addAllowedAdditionalQType(qtype, targets [, options ]))
 
   .. versionadded:: 4.7.0
+  .. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-recursor.allowed_additional_qtypes`.
 
   Allow additional processing for ``qtype``.
 
@@ -95,5 +96,4 @@ Calling  :func:`addAllowedAdditionalQType` multiple times with a specific qtype 
   :param targets: the target qtypes to look for when adding the additionals. For example ``{pdns.A, pdns.AAAA}``.
   :type targets: list of qtype numbers
   :param table options: a table of options. Currently the only option is ``mode`` having an integer value. For the available modes, see above. If no mode is specified, the default ``pdns.AdditionalMode.CacheOnlyRequireAuth`` mode is used.
-
 
