@@ -654,6 +654,43 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_rr) {
   resetLuaContext();
 }
 
+BOOST_AUTO_TEST_CASE(test_lua_ffi_no_server_available) {
+  DNSName name("powerdns.com.");
+  static const std::string policySetupStr = R"foo(
+    local ffi = require("ffi")
+    local C = ffi.C
+    local counter = 0
+    function ffipolicy(servers_list, dq)
+      local serversCount = tonumber(C.dnsdist_ffi_servers_list_get_count(servers_list))
+      -- return clearly out of bounds value to indicate that no server can be used
+      return serversCount + 100
+    end
+
+    setServerPolicyLuaFFI("FFI policy", ffipolicy)
+  )foo";
+  resetLuaContext();
+  g_lua.lock()->executeCode(getLuaFFIWrappers());
+  g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
+      g_policy.setState(ServerPolicy(name, policy));
+    });
+  g_lua.lock()->executeCode(policySetupStr);
+
+  {
+    ServerPolicy pol = g_policy.getCopy();
+    ServerPolicy::NumberedServerVector servers;
+    for (size_t idx = 1; idx <= 10; idx++) {
+      servers.push_back({ idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")) });
+      servers.at(idx - 1).second->setUp();
+    }
+    BOOST_REQUIRE_EQUAL(servers.size(), 10U);
+
+    auto dq = getDQ(&name);
+    auto server = pol.getSelectedBackend(servers, dq);
+    BOOST_REQUIRE(server == nullptr);
+  }
+  resetLuaContext();
+}
+
 BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed) {
   std::vector<DNSName> names;
   names.reserve(1000);

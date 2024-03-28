@@ -379,6 +379,11 @@ std::shared_ptr<DownstreamState> ServerPolicy::getSelectedBackend(const ServerPo
         selected = policy(&serversList, &dnsq);
       }
 
+      if (selected >= servers.size()) {
+        /* invalid offset, meaning that there is no server available */
+        return {};
+      }
+
       selectedBackend = servers.at(selected).second;
     }
   }
