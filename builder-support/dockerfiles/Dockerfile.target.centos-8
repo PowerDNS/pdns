@@ -30,5 +30,5 @@ RUN touch /var/lib/rpm/* && dnf install -y epel-release && \
 @INCLUDE Dockerfile.rpmbuild
 
 # Do a test install and verify
-# Can be skipped with skiptests=1 in the environment
-# @EXEC [ "$skiptests" = "" ] && include Dockerfile.rpmtest
+# Can be skipped with skippackagetest=1 in the environment
+@EXEC [ "$skippackagetest" = "" ] && include Dockerfile.rpmtest
