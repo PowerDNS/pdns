@@ -28,6 +28,7 @@
 #include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-edns.hh"
 #include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rings.hh"
@@ -1212,6 +1213,23 @@ void IncomingTCPConnectionState::notifyIOError(const struct timeval& now, TCPRes
   }
 }
 
+static bool processXFRResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& xfrRespRuleActions, DNSResponse& dnsResponse)
+{
+  if (!applyRulesToResponse(xfrRespRuleActions, dnsResponse)) {
+    return false;
+  }
+
+  if (dnsResponse.isAsynchronous()) {
+    return true;
+  }
+
+  if (dnsResponse.ids.d_extendedError) {
+    dnsdist::edns::addExtendedDNSError(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.d_extendedError->infoCode, dnsResponse.ids.d_extendedError->extraText);
+  }
+
+  return true;
+}
+
 void IncomingTCPConnectionState::handleXFRResponse(const struct timeval& now, TCPResponse&& response)
 {
   if (std::this_thread::get_id() != d_creatorThreadID) {
@@ -1220,6 +1238,17 @@ void IncomingTCPConnectionState::handleXFRResponse(const struct timeval& now, TC
   }
 
   std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
+  auto& ids = response.d_idstate;
+  std::shared_ptr<DownstreamState> backend = response.d_ds ? response.d_ds : (response.d_connection ? response.d_connection->getDS() : nullptr);
+  DNSResponse dnsResponse(ids, response.d_buffer, backend);
+  dnsResponse.d_incomingTCPState = state;
+  memcpy(&response.d_cleartextDH, dnsResponse.getHeader().get(), sizeof(response.d_cleartextDH));
+
+  if (!processXFRResponse(response.d_buffer, *state->d_threadData.localXFRRespRuleActions, dnsResponse)) {
+    state->terminateClientConnection();
+    return;
+  }
+
   queueResponse(state, now, std::move(response), true);
 }
 

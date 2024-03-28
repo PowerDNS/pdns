@@ -40,7 +40,7 @@ enum class ResponseRuleChain : uint8_t
   CacheHitResponseRules = 1,
   CacheInsertedResponseRules = 2,
   SelfAnsweredResponseRules = 3,
-  ResponseRuleChainsCount = 4
+  XFRResponseRules = 4,
 };
 
 struct RuleAction

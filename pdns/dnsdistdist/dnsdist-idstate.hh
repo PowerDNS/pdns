@@ -129,6 +129,8 @@ struct InternalQueryState
 #endif /* HAVE_XSK */
   }
 
+  InternalQueryState partialCloneForXFR() const;
+
   boost::optional<Netmask> subnet{boost::none}; // 40
   std::string poolName; // 32
   ComboAddress origRemote; // 28

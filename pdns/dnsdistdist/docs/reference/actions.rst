@@ -10,6 +10,7 @@ Some actions allow further processing of rules, this is noted in their descripti
 - :func:`DnstapLogResponseAction`
 - :func:`LimitTTLResponseAction`
 - :func:`LogAction`
+- :func:`LogResponseAction`
 - :func:`NoneAction`
 - :func:`RemoteLogAction`
 - :func:`RemoteLogResponseAction`

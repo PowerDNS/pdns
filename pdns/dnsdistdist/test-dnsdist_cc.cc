@@ -53,6 +53,11 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist
   return false;
 }
 
+bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
+{
+  return true;
+}
+
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
   return false;
