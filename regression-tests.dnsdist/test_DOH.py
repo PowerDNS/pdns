@@ -8,12 +8,14 @@ import unittest
 import clientsubnetoption
 
 from dnsdistdohtests import DNSDistDOHTest
-from dnsdisttests import pickAvailablePort
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 import pycurl
 from io import BytesIO
 
 class DOHTests(object):
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
@@ -23,6 +25,9 @@ class DOHTests(object):
     _customResponseHeader2 = 'user-agent: derp'
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
     newServer{address="127.0.0.1:%d"}
 
     addAction("drop.doh.tests.powerdns.com.", DropAction())
@@ -58,7 +63,7 @@ class DOHTests(object):
     dohFE = getDOHFrontend(0)
     dohFE:setResponsesMap({newDOHResponseMapEntry('^/coffee$', 418, 'C0FFEE', {['FoO']='bar'})})
     """
-    _config_params = ['_testServerPort', '_serverName', '_dohServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_serverName', '_dohServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
     _verboseMode = True
 
     def testDOHSimple(self):
@@ -377,12 +382,27 @@ class DOHTests(object):
         except:
             pass
 
+    def getHTTPCounter(self, name):
+        lines = self.sendConsoleCommand("showDOHFrontends()").splitlines()
+        self.assertEqual(len(lines), 2)
+        metrics = lines[1].split()
+        self.assertEqual(len(metrics), 15)
+        if name == 'connects':
+            return int(metrics[2])
+        if name == 'http/1.1':
+            return int(metrics[3])
+        if name == 'http/2':
+            return int(metrics[4])
+
     def testDOHHTTP1(self):
         """
         DOH: HTTP/1.1
         """
         if self._dohLibrary == 'h2o':
             raise unittest.SkipTest('h2o supports HTTP/1.1, this test is only relevant for nghttp2')
+        httpConnections = self.getHTTPCounter('connects')
+        http1 = self.getHTTPCounter('http/1.1')
+        http2 = self.getHTTPCounter('http/2')
         name = 'http11.doh.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         wire = query.to_wire()
@@ -401,6 +421,9 @@ class DOHTests(object):
         rcode = conn.getinfo(pycurl.RESPONSE_CODE)
         self.assertEqual(rcode, 400)
         self.assertEqual(data, b'<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n')
+        self.assertEqual(self.getHTTPCounter('connects'), httpConnections + 1)
+        self.assertEqual(self.getHTTPCounter('http/1.1'), http1 + 1)
+        self.assertEqual(self.getHTTPCounter('http/2'), http2)
 
     def testDOHHTTP1NotSelectedOverH2(self):
         """
