@@ -347,6 +347,9 @@ void IncomingHTTP2Connection::handleIO()
     }
 
     if (d_state == State::starting) {
+      if (d_ci.cs != nullptr && d_ci.cs->dohFrontend != nullptr) {
+        ++d_ci.cs->dohFrontend->d_httpconnects;
+      }
       if (d_ci.cs != nullptr && d_ci.cs->d_enableProxyProtocol && isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
         d_state = State::readingProxyProtocolHeader;
         d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
