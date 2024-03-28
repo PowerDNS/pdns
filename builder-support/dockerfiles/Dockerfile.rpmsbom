@@ -25,7 +25,7 @@ RUN cd /pdns/builder-support/helpers/; \
 @IF [ -n "$M_authoritative$M_all" ]
 RUN cd /pdns/builder-support/helpers/ && \
     if ! $(grep -q 'release 7' /etc/redhat-release); then \
-      for pkg in $(dnf list installed 'pdns*' | grep -E ^'pdns' | grep -vF '-debuginfo-' | cut -d. -f1); do \
+      for pkg in $(dnf list installed 'pdns*' | grep -E ^'pdns' | grep -vE '\-debuginfo|\-debugsource' | cut -d. -f1); do \
         python3 generate-sbom-dnf.py /dist/${pkg}-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json ${pkg}; \
       done; \
     fi
