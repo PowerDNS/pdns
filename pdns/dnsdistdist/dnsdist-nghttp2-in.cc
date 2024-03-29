@@ -1099,7 +1099,9 @@ void IncomingHTTP2Connection::handleWritableIOCallback([[maybe_unused]] int desc
 
 void IncomingHTTP2Connection::stopIO()
 {
-  d_ioState->reset();
+  if (d_ioState) {
+    d_ioState->reset();
+  }
 }
 
 uint32_t IncomingHTTP2Connection::getConcurrentStreamsCount() const
@@ -1135,27 +1137,27 @@ void IncomingHTTP2Connection::updateIO(IOState newState, const FDMultiplexer::ca
   boost::optional<struct timeval> ttd{boost::none};
 
   auto shared = std::dynamic_pointer_cast<IncomingHTTP2Connection>(shared_from_this());
-  if (shared) {
-    struct timeval now
-    {
-    };
-    gettimeofday(&now, nullptr);
+  if (!shared || !d_ioState) {
+    return;
+  }
 
-    if (newState == IOState::NeedRead) {
-      /* use the idle TTL if the handshake has been completed (and proxy protocol payload received, if any),
-         and we have processed at least one query, otherwise we use the shorter read TTL  */
-      if ((d_state == State::waitingForQuery || d_state == State::idle) && (d_queriesCount > 0 || d_currentQueriesCount > 0)) {
-        ttd = getIdleClientReadTTD(now);
-      }
-      else {
-        ttd = getClientReadTTD(now);
-      }
-      d_ioState->update(newState, callback, shared, ttd);
+  timeval now{};
+  gettimeofday(&now, nullptr);
+
+  if (newState == IOState::NeedRead) {
+    /* use the idle TTL if the handshake has been completed (and proxy protocol payload received, if any),
+       and we have processed at least one query, otherwise we use the shorter read TTL  */
+    if ((d_state == State::waitingForQuery || d_state == State::idle) && (d_queriesCount > 0 || d_currentQueriesCount > 0)) {
+      ttd = getIdleClientReadTTD(now);
     }
-    else if (newState == IOState::NeedWrite) {
-      ttd = getClientWriteTTD(now);
-      d_ioState->update(newState, callback, shared, ttd);
+    else {
+      ttd = getClientReadTTD(now);
     }
+    d_ioState->update(newState, callback, shared, ttd);
+  }
+  else if (newState == IOState::NeedWrite) {
+    ttd = getClientWriteTTD(now);
+    d_ioState->update(newState, callback, shared, ttd);
   }
 }
 
