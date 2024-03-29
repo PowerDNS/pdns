@@ -738,5 +738,36 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
   }
 }
 
+BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_ClientTimeout_BackendTimeout, TestFixture)
+{
+  auto local = getBackendAddress("1", 80);
+  ClientState localCS(local, true, false, 0, "", {}, true);
+  localCS.dohFrontend = std::make_shared<DOHFrontend>(std::make_shared<MockupTLSCtx>());
+  localCS.dohFrontend->d_urls.insert("/dns-query");
+
+  TCPClientThreadData threadData;
+  threadData.mplexer = std::make_unique<MockupFDMultiplexer>();
+
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
+
+  timeval now{};
+  gettimeofday(&now, nullptr);
+
+  size_t counter = 0;
+  s_connectionContexts[counter++] = ExpectedData{{}, {}, {}, {}};
+  s_steps = {
+    {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+    /* write to client, but the client closes the connection */
+    {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 0},
+    /* server close */
+    {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
+  };
+
+  auto state = std::make_shared<IncomingHTTP2Connection>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
+  auto base = std::static_pointer_cast<IncomingTCPConnectionState>(state);
+  IncomingHTTP2Connection::handleTimeout(base, true);
+  state->handleIO();
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
