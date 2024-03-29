@@ -146,6 +146,13 @@ void TCPConnectionToBackend::release(){
   if (d_ioState) {
     d_ioState.reset();
   }
+
+  auto shared = std::dynamic_pointer_cast<TCPConnectionToBackend>(shared_from_this());
+  if (!willBeReusable(true)) {
+    /* remove ourselves from the connection cache, this might mean that our
+       reference count drops to zero after that, so we need to be careful */
+    t_downstreamTCPConnectionsManager.removeDownstreamConnection(shared);
+  }
 }
 
 static uint32_t getSerialFromRawSOAContent(const std::vector<uint8_t>& raw)
