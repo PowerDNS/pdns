@@ -87,7 +87,6 @@
 ./pdns/dnsdistdist/test-delaypipe_hh.cc
 ./pdns/dnsdistdist/test-dnsdistdynblocks_hh.cc
 ./pdns/dnsdistdist/test-dnsdistkvs_cc.cc
-./pdns/dnsdistdist/test-dnsdistlbpolicies_cc.cc
 ./pdns/dnsdistdist/test-dnsdistrings_cc.cc
 ./pdns/dnsdistdist/test-dnsdistrules_cc.cc
 ./pdns/dnsdistdist/test-dnsdisttcp_cc.cc
