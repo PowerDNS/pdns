@@ -615,7 +615,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   try {
     if (d_state == State::sendingQueryToBackend) {
       increaseCounters(d_currentQuery.d_query.d_idstate.cs);
-      auto sender = d_currentQuery.d_sender;
+      auto sender = std::move(d_currentQuery.d_sender);
       if (sender->active()) {
         TCPResponse response(std::move(d_currentQuery.d_query));
         sender->notifyIOError(now, std::move(response));
@@ -624,7 +624,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
 
     for (auto& query : pendingQueries) {
       increaseCounters(query.d_query.d_idstate.cs);
-      auto sender = query.d_sender;
+      auto sender = std::move(query.d_sender);
       if (sender->active()) {
         TCPResponse response(std::move(query.d_query));
         sender->notifyIOError(now, std::move(response));
@@ -633,7 +633,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
 
     for (auto& response : pendingResponses) {
       increaseCounters(response.second.d_query.d_idstate.cs);
-      auto sender = response.second.d_sender;
+      auto sender = std::move(response.second.d_sender);
       if (sender->active()) {
         TCPResponse tresp(std::move(response.second.d_query));
         sender->notifyIOError(now, std::move(tresp));
