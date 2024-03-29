@@ -147,6 +147,10 @@ passing the name of a function:
     end
   ]])
 
+Note that this version, like the one above, returns the index (starting at 0) of the server to select.
+It was initially not possible to indicate that all servers were unavailable from these policies, but
+since 1.9.2 returning a value equal or greater than the number of servers will be interpreted as such.
+
 ServerPolicy Objects
 --------------------
 
