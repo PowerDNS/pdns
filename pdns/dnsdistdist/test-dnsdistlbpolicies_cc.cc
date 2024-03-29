@@ -655,7 +655,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_rr) {
 }
 
 BOOST_AUTO_TEST_CASE(test_lua_ffi_no_server_available) {
-  DNSName name("powerdns.com.");
+  DNSName dnsName("powerdns.com.");
   static const std::string policySetupStr = R"foo(
     local ffi = require("ffi")
     local C = ffi.C
@@ -670,8 +670,8 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_no_server_available) {
   )foo";
   resetLuaContext();
   g_lua.lock()->executeCode(getLuaFFIWrappers());
-  g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](string name, ServerPolicy::ffipolicyfunc_t policy) {
-      g_policy.setState(ServerPolicy(name, policy));
+  g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](string policyName, ServerPolicy::ffipolicyfunc_t policy) {
+      g_policy.setState(ServerPolicy(policyName, policy));
     });
   g_lua.lock()->executeCode(policySetupStr);
 
@@ -684,7 +684,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_no_server_available) {
     }
     BOOST_REQUIRE_EQUAL(servers.size(), 10U);
 
-    auto dq = getDQ(&name);
+    auto dq = getDQ(&dnsName);
     auto server = pol.getSelectedBackend(servers, dq);
     BOOST_REQUIRE(server == nullptr);
   }
