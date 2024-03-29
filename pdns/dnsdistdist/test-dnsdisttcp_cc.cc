@@ -35,7 +35,6 @@
 #include "dnsdist-tcp-upstream.hh"
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
-GlobalStateHolder<std::vector<dnsdist::rules::RuleAction> > g_ruleactions;
 GlobalStateHolder<servers_t> g_dstates;
 
 QueryCount g_qcount;

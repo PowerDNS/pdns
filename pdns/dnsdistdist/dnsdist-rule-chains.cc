@@ -24,7 +24,8 @@
 
 namespace dnsdist::rules
 {
-GlobalStateHolder<std::vector<RuleAction>> g_ruleactions;
+GlobalStateHolder<std::vector<RuleAction>> s_ruleActions;
+GlobalStateHolder<std::vector<RuleAction>> s_cacheMissRuleActions;
 GlobalStateHolder<std::vector<ResponseRuleAction>> s_respruleactions;
 GlobalStateHolder<std::vector<ResponseRuleAction>> s_cachehitrespruleactions;
 GlobalStateHolder<std::vector<ResponseRuleAction>> s_selfansweredrespruleactions;
@@ -47,5 +48,20 @@ const std::vector<ResponseRuleChainDescription>& getResponseRuleChains()
 GlobalStateHolder<std::vector<ResponseRuleAction>>& getResponseRuleChainHolder(ResponseRuleChain chain)
 {
   return s_responseRuleChains.at(static_cast<size_t>(chain)).holder;
+}
+
+static const std::vector<RuleChainDescription> s_ruleChains{
+  {"", "rules", s_ruleActions},
+  {"CacheMiss", "cache-miss-rules", s_cacheMissRuleActions},
+};
+
+const std::vector<RuleChainDescription>& getRuleChains()
+{
+  return s_ruleChains;
+}
+
+GlobalStateHolder<std::vector<RuleAction>>& getRuleChainHolder(RuleChain chain)
+{
+  return s_ruleChains.at(static_cast<size_t>(chain)).holder;
 }
 }

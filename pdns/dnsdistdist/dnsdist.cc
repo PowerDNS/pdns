@@ -1050,7 +1050,28 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestio
   return false;
 }
 
-static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, const struct timespec& now)
+static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>& rules, DNSQuestion& dnsQuestion)
+{
+  DNSAction::Action action = DNSAction::Action::None;
+  string ruleresult;
+  bool drop = false;
+
+  for (const auto& rule : rules) {
+    if (!rule.d_rule->matches(&dnsQuestion)) {
+      continue;
+    }
+
+    rule.d_rule->d_matches++;
+    action = (*rule.d_action)(&dnsQuestion, &ruleresult);
+    if (processRulesResult(action, dnsQuestion, ruleresult, drop)) {
+      break;
+    }
+  }
+
+  return !drop;
+}
+
+static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, const timespec& now)
 {
   if (g_rings.shouldRecordQueries()) {
     g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
@@ -1211,20 +1232,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
   }
 #endif /* DISABLE_DYNBLOCKS */
 
-  DNSAction::Action action = DNSAction::Action::None;
-  string ruleresult;
-  bool drop = false;
-  for (const auto& rule : *holders.ruleactions) {
-    if (rule.d_rule->matches(&dnsQuestion)) {
-      rule.d_rule->d_matches++;
-      action = (*rule.d_action)(&dnsQuestion, &ruleresult);
-      if (processRulesResult(action, dnsQuestion, ruleresult, drop)) {
-        break;
-      }
-    }
-  }
-
-  return !drop;
+  return applyRulesChainToQuery(*holders.ruleactions, dnsQuestion);
 }
 
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& backend, const int socketDesc, const PacketBuffer& request, bool healthCheck)
@@ -1416,39 +1424,49 @@ static bool prepareOutgoingResponse(LocalHolders& holders, const ClientState& cl
   return true;
 }
 
+static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion& dnsQuestion, LocalHolders& holders)
+{
+  fixUpQueryTurnedResponse(dnsQuestion, dnsQuestion.ids.origFlags);
+
+  if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, false)) {
+    return ProcessQueryResult::Drop;
+  }
+
+  const auto rcode = dnsQuestion.getHeader()->rcode;
+  if (rcode == RCode::NXDomain) {
+    ++dnsdist::metrics::g_stats.ruleNXDomain;
+  }
+  else if (rcode == RCode::Refused) {
+    ++dnsdist::metrics::g_stats.ruleRefused;
+  }
+  else if (rcode == RCode::ServFail) {
+    ++dnsdist::metrics::g_stats.ruleServFail;
+  }
+
+  ++dnsdist::metrics::g_stats.selfAnswered;
+  ++dnsQuestion.ids.cs->responses;
+  return ProcessQueryResult::SendAnswer;
+}
+
+static void selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const std::shared_ptr<ServerPool>& serverPool, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+{
+  std::shared_ptr<ServerPolicy> poolPolicy = serverPool->policy;
+  const auto& policy = poolPolicy != nullptr ? *poolPolicy : *(holders.policy);
+  const auto servers = serverPool->getServers();
+  selectedBackend = policy.getSelectedBackend(*servers, dnsQuestion);
+}
+
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
   try {
     if (dnsQuestion.getHeader()->qr) { // something turned it into a response
-      fixUpQueryTurnedResponse(dnsQuestion, dnsQuestion.ids.origFlags);
-
-      if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, false)) {
-        return ProcessQueryResult::Drop;
-      }
-
-      const auto rcode = dnsQuestion.getHeader()->rcode;
-      if (rcode == RCode::NXDomain) {
-        ++dnsdist::metrics::g_stats.ruleNXDomain;
-      }
-      else if (rcode == RCode::Refused) {
-        ++dnsdist::metrics::g_stats.ruleRefused;
-      }
-      else if (rcode == RCode::ServFail) {
-        ++dnsdist::metrics::g_stats.ruleServFail;
-      }
-
-      ++dnsdist::metrics::g_stats.selfAnswered;
-      ++dnsQuestion.ids.cs->responses;
-      return ProcessQueryResult::SendAnswer;
+      return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion, holders);
     }
     std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, dnsQuestion.ids.poolName);
-    std::shared_ptr<ServerPolicy> poolPolicy = serverPool->policy;
     dnsQuestion.ids.packetCache = serverPool->packetCache;
-    const auto& policy = poolPolicy != nullptr ? *poolPolicy : *(holders.policy);
-    const auto servers = serverPool->getServers();
-    selectedBackend = policy.getSelectedBackend(*servers, dnsQuestion);
+    selectBackendForOutgoingQuery(dnsQuestion, serverPool, holders, selectedBackend);
 
     uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;
 
@@ -1527,6 +1545,21 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
       vinfolog("Packet cache miss for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
 
       ++dnsdist::metrics::g_stats.cacheMisses;
+
+      const auto existingPool = dnsQuestion.ids.poolName;
+      if (!applyRulesChainToQuery(*holders.cacheMissRuleActions, dnsQuestion)) {
+        return ProcessQueryResult::Drop;
+      }
+      if (dnsQuestion.getHeader()->qr) { // something turned it into a response
+        return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion, holders);
+      }
+      /* let's be nice and allow the selection of a different pool,
+         but no second cache-lookup for you */
+      if (dnsQuestion.ids.poolName != existingPool) {
+        serverPool = getPool(*holders.pools, dnsQuestion.ids.poolName);
+        dnsQuestion.ids.packetCache = serverPool->packetCache;
+        selectBackendForOutgoingQuery(dnsQuestion, serverPool, holders, selectedBackend);
+      }
     }
 
     if (!selectedBackend) {
@@ -2743,7 +2776,9 @@ static void cleanupLuaObjects()
 {
   /* when our coverage mode is enabled, we need to make sure
      that the Lua objects are destroyed before the Lua contexts. */
-  dnsdist::rules::g_ruleactions.setState({});
+  for (const auto& chain : dnsdist::rules::getRuleChains()) {
+    chain.holder.setState({});
+  }
   for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
     chain.holder.setState({});
   }

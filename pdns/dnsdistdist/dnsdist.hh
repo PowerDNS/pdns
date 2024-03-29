@@ -1225,13 +1225,14 @@ enum class ProcessQueryResult : uint8_t
 struct LocalHolders
 {
   LocalHolders() :
-    acl(g_ACL.getLocal()), policy(g_policy.getLocal()), ruleactions(dnsdist::rules::g_ruleactions.getLocal()), cacheHitRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheHitResponseRules).getLocal()), cacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), selfAnsweredRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules).getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
+    acl(g_ACL.getLocal()), policy(g_policy.getLocal()), ruleactions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::Rules).getLocal()), cacheMissRuleActions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::CacheMissRules).getLocal()), cacheHitRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheHitResponseRules).getLocal()), cacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), selfAnsweredRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules).getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
   {
   }
 
   LocalStateHolder<NetmaskGroup> acl;
   LocalStateHolder<ServerPolicy> policy;
   LocalStateHolder<vector<dnsdist::rules::RuleAction>> ruleactions;
+  LocalStateHolder<vector<dnsdist::rules::RuleAction>> cacheMissRuleActions;
   LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheHitRespRuleactions;
   LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheInsertedRespRuleActions;
   LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> selfAnsweredRespRuleactions;

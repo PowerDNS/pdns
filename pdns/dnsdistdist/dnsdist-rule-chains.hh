@@ -34,15 +34,6 @@ class DNSResponseAction;
 
 namespace dnsdist::rules
 {
-enum class ResponseRuleChain : uint8_t
-{
-  ResponseRules = 0,
-  CacheHitResponseRules = 1,
-  CacheInsertedResponseRules = 2,
-  SelfAnsweredResponseRules = 3,
-  XFRResponseRules = 4,
-};
-
 struct RuleAction
 {
   std::shared_ptr<DNSRule> d_rule;
@@ -51,6 +42,22 @@ struct RuleAction
   boost::uuids::uuid d_id;
   uint64_t d_creationOrder;
 };
+
+struct RuleChainDescription
+{
+  std::string prefix;
+  std::string metricName;
+  GlobalStateHolder<std::vector<RuleAction>>& holder;
+};
+
+enum class RuleChain : uint8_t
+{
+  Rules = 0,
+  CacheMissRules = 1,
+};
+
+const std::vector<RuleChainDescription>& getRuleChains();
+GlobalStateHolder<std::vector<RuleAction>>& getRuleChainHolder(RuleChain chain);
 
 struct ResponseRuleAction
 {
@@ -61,14 +68,21 @@ struct ResponseRuleAction
   uint64_t d_creationOrder;
 };
 
+enum class ResponseRuleChain : uint8_t
+{
+  ResponseRules = 0,
+  CacheHitResponseRules = 1,
+  CacheInsertedResponseRules = 2,
+  SelfAnsweredResponseRules = 3,
+  XFRResponseRules = 4,
+};
+
 struct ResponseRuleChainDescription
 {
   std::string prefix;
   std::string metricName;
   GlobalStateHolder<std::vector<ResponseRuleAction>>& holder;
 };
-
-extern GlobalStateHolder<std::vector<RuleAction>> g_ruleactions;
 
 const std::vector<ResponseRuleChainDescription>& getResponseRuleChains();
 GlobalStateHolder<std::vector<ResponseRuleAction>>& getResponseRuleChainHolder(ResponseRuleChain chain);

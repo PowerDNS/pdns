@@ -36,51 +36,11 @@ For Rules related to the incoming query:
 
   :param int n: The rule number
 
-.. function:: getCacheHitResponseRule(selector) -> DNSDistResponseRuleAction
-
-  .. versionadded:: 1.9.0
-
-  Return the cache-hit response rule corresponding to the selector, if any.
-  The selector can be the position of the rule in the list, as an integer,
-  its name as a string or its UUID as a string as well.
-
-  :param int or str selector: The position in the list, name or UUID of the rule to return.
-
-.. function:: getCacheInsertedResponseRule(selector) -> DNSDistResponseRuleAction
-
-  .. versionadded:: 1.9.0
-
-  Return the cache-inserted response rule corresponding to the selector, if any.
-  The selector can be the position of the rule in the list, as an integer,
-  its name as a string or its UUID as a string as well.
-
-  :param int or str selector: The position in the list, name or UUID of the rule to return.
-
-.. function:: getResponseRule(selector) -> DNSDistResponseRuleAction
-
-  .. versionadded:: 1.9.0
-
-  Return the response rule corresponding to the selector, if any.
-  The selector can be the position of the rule in the list, as an integer,
-  its name as a string or its UUID as a string as well.
-
-  :param int or str selector: The position in the list, name or UUID of the rule to return.
-
 .. function:: getRule(selector) -> DNSDistRuleAction
 
   .. versionadded:: 1.9.0
 
   Return the rule corresponding to the selector, if any.
-  The selector can be the position of the rule in the list, as an integer,
-  its name as a string or its UUID as a string as well.
-
-  :param int or str selector: The position in the list, name or UUID of the rule to return.
-
-.. function:: getSelfAnsweredResponseRule(selector) -> DNSDistResponseRuleAction
-
-  .. versionadded:: 1.9.0
-
-  Return the self-answered response rule corresponding to the selector, if any.
   The selector can be the position of the rule in the list, as an integer,
   its name as a string or its UUID as a string as well.
 
@@ -99,22 +59,6 @@ For Rules related to the incoming query:
   .. versionadded:: 1.6.0
 
   This function moves the last rule to the first position. Before 1.6.0 this was handled by :func:`topRule`.
-
-.. function:: newRuleAction(rule, action[, options])
-
-  .. versionchanged:: 1.6.0
-    Added ``name`` to the ``options``.
-
-  Return a pair of DNS Rule and DNS Action, to be used with :func:`setRules`.
-
-  :param Rule rule: A Rule (see :doc:`selectors`)
-  :param Action action: The Action (see :doc:`actions`) to apply to the matched traffic
-  :param table options: A table with key: value pairs with options.
-
-  Options:
-
-  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
-  * ``name``: string - Name to assign to the new rule.
 
 .. function:: setRules(rules)
 
@@ -149,6 +93,103 @@ For Rules related to the incoming query:
 
   :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
+Cache misses
+------------
+
+For Rules related to the incoming query after a cache miss:
+
+.. warning::
+  While all selectors and actions are available, some actions will no longer be honored at
+  this point. For example changing the backend pool will not trigger a second cache-lookup.
+  Switching from a backend pool that has EDNS Client Subnet enabled to one that doesn't
+  will result in the EDNS Client Subnet corresponding to the initial server pool to be
+  added to the query.
+
+.. function:: addCacheMissAction(DNSrule, action [, options])
+
+  .. versionadded:: 1.10
+
+  Add a Rule and Action to the existing cache miss rules.
+  If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`.
+  :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
+
+.. function:: clearCacheMissRules()
+
+  .. versionadded:: 1.10
+
+  Remove all current cache miss rules.
+
+.. function:: getCacheMissAction(n) -> DNSDistRuleAction
+
+  .. versionadded:: 1.10
+
+  Returns the :class:`DNSDistRuleAction` associated with cache miss rule ``n``.
+
+  :param int n: The rule number
+
+.. function:: getCacheMissRule(selector) -> DNSDistRuleAction
+
+  .. versionadded:: 1.10
+
+  Return the cache miss rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
+
+.. function:: mvCacheMissRule(from, to)
+
+  .. versionadded:: 1.10
+
+  Move cache miss rule ``from`` to a position where it is in front of ``to``.
+  ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
+
+  :param int from: Rule number to move
+  :param int to: Location to more the Rule to
+
+.. function:: mvCacheMissRuleToTop()
+
+  .. versionadded:: 1.10
+
+  This function moves the last cache miss rule to the first position.
+
+.. function:: setCacheMissRules(rules)
+
+  .. versionadded:: 1.10
+
+  Replace the current cache miss rules with the supplied list of pairs of DNS Rules and DNS Actions (see :func:`newRuleAction`)
+
+  :param [RuleAction] rules: A list of RuleActions
+
+.. function:: showCacheMissRules([options])
+
+  .. versionadded:: 1.10
+
+  Show all defined cache miss rules for queries, optionally displaying their UUIDs.
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
+
+.. function:: rmCacheMissRule(id)
+
+  .. versionadded:: 1.10
+
+  Remove rule ``id``.
+
+  :param int id: The position of the cache miss rule to remove if ``id`` is numerical, its UUID or name otherwise
+
 Responses
 ---------
 
@@ -173,6 +214,22 @@ For Rules related to responses:
 
   * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
   * ``name``: string - Name to assign to the new rule.
+
+.. function:: clearResponseRules()
+
+  .. versionadded:: 1.10
+
+  Remove all current response rules.
+
+.. function:: getResponseRule(selector) -> DNSDistResponseRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Return the response rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
 
 .. function:: mvResponseRule(from, to)
 
@@ -240,6 +297,22 @@ Functions for manipulating Cache Hit Response Rules:
   * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
   * ``name``: string - Name to assign to the new rule.
 
+.. function:: clearCacheHitResponseRules()
+
+  .. versionadded:: 1.10
+
+  Remove all current cache-hit response rules.
+
+.. function:: getCacheHitResponseRule(selector) -> DNSDistResponseRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Return the cache-hit response rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
+
 .. function:: mvCacheHitResponseRule(from, to)
 
   Move cache hit response rule ``from`` to a position where it is in front of ``to``.
@@ -303,6 +376,22 @@ Functions for manipulating Cache Inserted Response Rules:
   * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
   * ``name``: string - Name to assign to the new rule.
 
+.. function:: clearCacheInsertedResponseRules()
+
+  .. versionadded:: 1.10
+
+  Remove all current cache-inserted response rules.
+
+.. function:: getCacheInsertedResponseRule(selector) -> DNSDistResponseRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Return the cache-inserted response rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
+
 .. function:: mvCacheInsertedResponseRule(from, to)
 
   .. versionadded:: 1.8.0
@@ -362,6 +451,22 @@ Functions for manipulating Self-Answered Response Rules:
 
   * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
   * ``name``: string - Name to assign to the new rule.
+
+.. function:: clearSelfAnsweredResponseRules()
+
+  .. versionadded:: 1.10
+
+  Remove all current self-answered response rules.
+
+.. function:: getSelfAnsweredResponseRule(selector) -> DNSDistResponseRuleAction
+
+  .. versionadded:: 1.9.0
+
+  Return the self-answered response rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
 
 .. function:: mvSelfAnsweredResponseRule(from, to)
 
@@ -495,3 +600,19 @@ Convenience Functions
   ``makeRule("0.0.0.0/0")`` will for example match all IPv4 traffic, ``makeRule({"be","nl","lu"})`` will match all Benelux DNS traffic.
 
   :param string rule: A string, or list of strings, to convert to a rule.
+
+.. function:: newRuleAction(rule, action[, options])
+
+  .. versionchanged:: 1.6.0
+    Added ``name`` to the ``options``.
+
+  Return a pair of DNS Rule and DNS Action, to be used with :func:`setRules`.
+
+  :param Rule rule: A Rule (see :doc:`selectors`)
+  :param Action action: The Action (see :doc:`actions`) to apply to the matched traffic
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
