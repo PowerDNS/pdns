@@ -2123,7 +2123,7 @@ static int serviceMain(Logr::log_t log)
   {
     std::vector<std::string> vec;
     stringtok(vec, ::arg()["proxy-protocol-exceptions"], ", ");
-    for (const auto& sockAddrStr: vec) {
+    for (const auto& sockAddrStr : vec) {
       ComboAddress sockAddr(sockAddrStr, 53);
       g_proxyProtocolExceptions.emplace(sockAddr);
     }

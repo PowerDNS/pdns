@@ -603,3 +603,41 @@ class ProxyProtocolNotAllowedRecursorTest(ProxyProtocolRecursorTest):
             sender = getattr(self, method)
             res = sender(query, False, '127.0.0.42', '255.255.255.255', 0, 65535, [ [0, b'foo' ], [ 255, b'bar'] ])
             self.assertEqual(res, None)
+
+class ProxyProtocolExceptionRecursorTest(ProxyProtocolRecursorTest):
+    _confdir = 'ProxyProtocolException'
+    _lua_dns_script_file = """
+
+    function preresolve(dq)
+      dq:addAnswer(pdns.A, '192.0.2.1', 60)
+      return true
+    end
+    """
+
+    _config_template = """
+    proxy-protocol-from=127.0.0.1/32
+    proxy-protocol-exceptions=127.0.0.1:%d
+    allow-from=127.0.0.0/24, ::1/128
+""" % (ProxyProtocolRecursorTest._recursorPort)
+
+    def testNoHeaderProxyProtocol(self):
+        qname = 'no-header.proxy-protocol-not-allowed.recursor-tests.powerdns.com.'
+        expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+
+        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
+
+    def testIPv4ProxyProtocol(self):
+        qname = 'ipv4.proxy-protocol-not-allowed.recursor-tests.powerdns.com.'
+        expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+
+        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        for method in ("sendUDPQueryWithProxyProtocol", "sendTCPQueryWithProxyProtocol"):
+            sender = getattr(self, method)
+            res = sender(query, False, '127.0.0.42', '255.255.255.255', 0, 65535, [ [0, b'foo' ], [ 255, b'bar'] ])
+            self.assertEqual(res, None)
+
