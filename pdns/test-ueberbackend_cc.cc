@@ -467,7 +467,7 @@ BOOST_AUTO_TEST_CASE(test_simple) {
     zoneA.d_records->insert(SimpleBackend::SimpleDNSRecord(DNSName("geo.powerdns.com."), QType::A, "192.168.0.42", 60));
     SimpleBackend::s_zones[1].insert(zoneA);
 
-    BackendMakers().report(new SimpleBackendFactory());
+    BackendMakers().report(std::make_unique<SimpleBackendFactory>());
     BackendMakers().launch("SimpleBackend:1");
     UeberBackend::go();
 
@@ -580,7 +580,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_separate_zones) {
     zoneB.d_records->insert(SimpleBackend::SimpleDNSRecord(DNSName("geo.powerdns.org."), QType::AAAA, "2001:db8::42", 60));
     SimpleBackend::s_zones[2].insert(zoneB);
 
-    BackendMakers().report(new SimpleBackendFactory());
+    BackendMakers().report(std::make_unique<SimpleBackendFactory>());
     BackendMakers().launch("SimpleBackend:1, SimpleBackend:2");
     UeberBackend::go();
 
@@ -725,7 +725,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_overlay) {
     zoneB.d_records->insert(SimpleBackend::SimpleDNSRecord(DNSName("geo.powerdns.com."), QType::A, "192.168.0.42", 60));
     SimpleBackend::s_zones[2].insert(zoneB);
 
-    BackendMakers().report(new SimpleBackendFactory());
+    BackendMakers().report(std::make_unique<SimpleBackendFactory>());
     BackendMakers().launch("SimpleBackend:1, SimpleBackend:2");
     UeberBackend::go();
 
@@ -852,7 +852,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_overlay_name) {
     zoneB.d_records->insert(SimpleBackend::SimpleDNSRecord(DNSName("geo.powerdns.com."), QType::A, "192.168.0.42", 60));
     SimpleBackend::s_zones[2].insert(zoneB);
 
-    BackendMakers().report(new SimpleBackendFactory());
+    BackendMakers().report(std::make_unique<SimpleBackendFactory>());
     BackendMakers().launch("SimpleBackend:1, SimpleBackend:2");
     UeberBackend::go();
 
@@ -976,7 +976,7 @@ BOOST_AUTO_TEST_CASE(test_child_zone) {
     zoneB.d_records->insert(SimpleBackend::SimpleDNSRecord(DNSName("ns1.powerdns.com."), QType::A, "192.0.2.1", 3600));
     SimpleBackend::s_zones[2].insert(zoneB);
 
-    BackendMakers().report(new SimpleBackendFactory());
+    BackendMakers().report(std::make_unique<SimpleBackendFactory>());
     BackendMakers().launch("SimpleBackend:1, SimpleBackend:2");
     UeberBackend::go();
 
@@ -1049,8 +1049,8 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_best_soa) {
     zoneB.d_records->insert(SimpleBackend::SimpleDNSRecord(DNSName("0.1.0.0.2.ip6.arpa."), QType::SOA, "ns.apnic.net. read-txt-record-of-zone-first-dns-admin.apnic.net. 3005126844 7200 1800 604800 3600", 3600));
     SimpleBackend::s_zones[2].insert(zoneB);
 
-    BackendMakers().report(new SimpleBackendFactory());
-    BackendMakers().report(new SimpleBackendBestAuthFactory());
+    BackendMakers().report(std::make_unique<SimpleBackendFactory>());
+    BackendMakers().report(std::make_unique<SimpleBackendBestAuthFactory>());
     BackendMakers().launch("SimpleBackendBestAuth:1, SimpleBackend:2");
     UeberBackend::go();
 
@@ -1112,7 +1112,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_metadata) {
     SimpleBackend::s_zones[2].insert(zoneB);
     SimpleBackend::s_metadata[2].insert(SimpleBackend::SimpleMetaData(DNSName("powerdns.org."), "test-data-b", { "value1", "value2"}));
 
-    BackendMakers().report(new SimpleBackendFactory());
+    BackendMakers().report(std::make_unique<SimpleBackendFactory>());
     BackendMakers().launch("SimpleBackend:1, SimpleBackend:2");
     UeberBackend::go();
 

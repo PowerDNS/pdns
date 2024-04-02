@@ -62,7 +62,7 @@ class Lua2Loader
 public:
   Lua2Loader()
   {
-    BackendMakers().report(new Lua2Factory);
+    BackendMakers().report(std::make_unique<Lua2Factory>());
 
     g_log << Logger::Info << "[lua2backend] This is the lua2 backend version " VERSION
 #ifndef REPRODUCIBLE

@@ -217,7 +217,7 @@ furthermore, only about its A record:
     public:
       RandomLoader()
       {
-        BackendMakers().report(new RandomFactory);
+        BackendMakers().report(std::make_unique<RandomFactory>());
         g_log << Logger::Info << "[randombackend] This is the random backend version " VERSION " reporting" << endl;
       }
     };

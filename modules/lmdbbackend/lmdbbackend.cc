@@ -2792,7 +2792,7 @@ class LMDBLoader
 public:
   LMDBLoader()
   {
-    BackendMakers().report(new LMDBFactory);
+    BackendMakers().report(std::make_unique<LMDBFactory>());
     g_log << Logger::Info << "[lmdbbackend] This is the lmdb backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"

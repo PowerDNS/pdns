@@ -1007,7 +1007,7 @@ public:
 
 RemoteLoader::RemoteLoader()
 {
-  BackendMakers().report(new RemoteBackendFactory);
+  BackendMakers().report(std::make_unique<RemoteBackendFactory>());
   g_log << Logger::Info << kBackendId << " This is the remote backend version " VERSION
 #ifndef REPRODUCIBLE
         << " (" __DATE__ " " __TIME__ ")"

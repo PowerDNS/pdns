@@ -179,7 +179,7 @@ public:
   //! This reports us to the main UeberBackend class
   gSQLite3Loader()
   {
-    BackendMakers().report(new gSQLite3Factory("gsqlite3"));
+    BackendMakers().report(std::make_unique<gSQLite3Factory>("gsqlite3"));
     g_log << Logger::Info << "[gsqlite3] This is the gsqlite3 backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"
