@@ -500,7 +500,7 @@ private:
 class BackendMakerClass
 {
 public:
-  void report(BackendFactory* backendFactory);
+  void report(std::unique_ptr<BackendFactory>&& backendFactory);
   void launch(const string& instr);
   vector<std::unique_ptr<DNSBackend>> all(bool metadataOnly = false);
   static void load(const string& module);
@@ -510,7 +510,7 @@ public:
 
 private:
   static void load_all();
-  using d_repository_t = map<string, BackendFactory*>;
+  using d_repository_t = map<string, std::unique_ptr<BackendFactory>>;
   d_repository_t d_repository;
   vector<pair<string, string>> d_instances;
 };

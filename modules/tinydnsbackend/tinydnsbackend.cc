@@ -393,7 +393,7 @@ class TinyDNSLoader
 public:
   TinyDNSLoader()
   {
-    BackendMakers().report(new TinyDNSFactory);
+    BackendMakers().report(std::make_unique<TinyDNSFactory>());
     g_log << Logger::Info << "[tinydnsbackend] This is the tinydns backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"

@@ -169,7 +169,7 @@ public:
   //! This reports us to the main UeberBackend class
   gODBCLoader()
   {
-    BackendMakers().report(new gODBCFactory("godbc"));
+    BackendMakers().report(std::make_unique<gODBCFactory>("godbc"));
     g_log << Logger::Warning << "This is module godbcbackend reporting" << std::endl;
   }
 };
