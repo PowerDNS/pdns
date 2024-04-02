@@ -88,6 +88,7 @@ std::atomic<bool> statsWanted;
 uint32_t g_disthashseed;
 bool g_useIncomingECS;
 NetmaskGroup g_proxyProtocolACL;
+std::set<ComboAddress> g_proxyProtocolExceptions;
 boost::optional<ComboAddress> g_dns64Prefix{boost::none};
 DNSName g_dns64PrefixReverse;
 std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
@@ -2119,6 +2120,14 @@ static int serviceMain(Logr::log_t log)
   }
 
   g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
+  {
+    std::vector<std::string> vec;
+    stringtok(vec, ::arg()["proxy-protocol-exceptions"], ", ");
+    for (const auto& sockAddrStr : vec) {
+      ComboAddress sockAddr(sockAddrStr, 53);
+      g_proxyProtocolExceptions.emplace(sockAddr);
+    }
+  }
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
 
   ret = initDNS64(log);

@@ -14,8 +14,10 @@ Changed settings
 
 - Disabling :ref:`setting-structured-logging` is no longer supported.
 
-Changed Settings
-^^^^^^^^^^^^^^^^
+New Settings
+^^^^^^^^^^^^
+
+- The :ref:`setting-proxy-protocol-exceptions` has been added. It allows to exclude specific listen addresses from requiring the Proxy Protocol.
 
 5.0.2 to 5.0.3, 4.9.3 to 4.9.4 and 4.8.6 to 4.8.7
 -------------------------------------------------

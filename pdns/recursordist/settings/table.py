@@ -2065,6 +2065,19 @@ The dnsdist docs have `more information about the PROXY protocol <https://dnsdis
         'versionchanged' : ('5.0.4', 'YAML settings only: previously this was defined as a string instead of a sequence')
     },
     {
+        'name' : 'proxy_protocol_exceptions',
+        'section' : 'incoming',
+        'type' : LType.ListSocketAddresses,
+        'default' : '',
+        'help' : 'A Proxy Protocol header should not be used for these listen addresses.',
+        'doc' : '''
+If set, clients sending from an address in :ref:`setting-proxy-protocol-from` to a address:port listed here are excluded from using the Proxy Protocol.
+If no port is specified, port 53 is assumed.
+This is typically used to provide an easy to use address and port to send debug queries to.
+ ''',
+        'versionadded' : '5.1.0',
+    },
+    {
         'name' : 'proxy_protocol_maximum_size',
         'section' : 'incoming',
         'type' : LType.Uint64,
