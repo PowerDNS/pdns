@@ -88,18 +88,16 @@ public:
   {
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     DNSQuestion(const ComboAddress& prem, const ComboAddress& ploc, const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_, const struct timeval& queryTime_) :
-      qname(query), qtype(type), phys_local(ploc), phys_remote(prem), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_), queryTime(queryTime_)
+      qname(query), phys_local(ploc), phys_remote(prem), local(loc), remote(rem), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_), queryTime(queryTime_), qtype(type), isTcp(tcp)
     {
     }
     const DNSName& qname;
-    const uint16_t qtype;
     const ComboAddress& phys_local;
     const ComboAddress& phys_remote;
     const ComboAddress& local;
     const ComboAddress& remote;
     const ComboAddress* fromAuthIP{nullptr};
     const struct dnsheader* dh{nullptr};
-    const bool isTcp;
     const std::vector<pair<uint16_t, string>>* ednsOptions{nullptr};
     const uint16_t* ednsFlags{nullptr};
     vector<DNSRecord>* currentRecords{nullptr};
@@ -112,14 +110,31 @@ public:
     std::string requestorId;
     std::string deviceId;
     std::string deviceName;
-    vState validationState{vState::Indeterminate};
     bool& variable;
     bool& wantsRPZ;
     bool& logResponse;
     bool& addPaddingToResponse;
-    unsigned int tag{0};
     std::map<std::string, MetaValue> meta;
     struct timeval queryTime;
+
+    vector<DNSRecord> records;
+
+    string followupFunction;
+    string followupPrefix;
+
+    string udpQuery;
+    string udpAnswer;
+    string udpCallback;
+
+    LuaContext::LuaObject data;
+    DNSName followupName;
+    ComboAddress udpQueryDest;
+
+    unsigned int tag{0};
+    int rcode{0};
+    const uint16_t qtype;
+    const bool isTcp;
+    vState validationState{vState::Indeterminate};
 
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
     void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
@@ -132,21 +147,6 @@ public:
     [[nodiscard]] vector<string> getEDNSFlags() const;
     [[nodiscard]] bool getEDNSFlag(const string& flag) const;
     void setRecords(const vector<pair<int, DNSRecord>>& arg);
-
-    int rcode{0};
-    // struct dnsheader, packet length would be great
-    vector<DNSRecord> records;
-
-    string followupFunction;
-    string followupPrefix;
-
-    string udpQuery;
-    ComboAddress udpQueryDest;
-    string udpAnswer;
-    string udpCallback;
-
-    LuaContext::LuaObject data;
-    DNSName followupName;
   };
 
   struct PolicyEvent
