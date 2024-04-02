@@ -824,9 +824,9 @@ struct FDWrapper
   void reset()
   {
     if (d_fd >= 0) {
-      ::close(d_fd);
-      d_fd = -1;
+      close(d_fd);
     }
+    d_fd = -1;
   }
 
 private:
