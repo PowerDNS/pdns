@@ -826,8 +826,8 @@ struct FDWrapper
     int ret = 0;
     if (d_fd >= 0) {
       ret = close(d_fd);
-      d_fd = -1;
     }
+    d_fd = -1;
     return ret;
   }
 
