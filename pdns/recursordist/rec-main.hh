@@ -221,6 +221,7 @@ extern boost::optional<ComboAddress> g_dns64Prefix;
 extern DNSName g_dns64PrefixReverse;
 extern uint64_t g_latencyStatSize;
 extern NetmaskGroup g_proxyProtocolACL;
+extern std::set<ComboAddress> g_proxyProtocolExceptions;
 extern std::atomic<bool> g_statsWanted;
 extern uint32_t g_disthashseed;
 extern int g_argc;
@@ -610,7 +611,7 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
                          const std::unordered_set<std::string>& policyTags);
 void requestWipeCaches(const DNSName& canon);
 void startDoResolve(void*);
-bool expectProxyProtocol(const ComboAddress& from);
+bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAddress);
 void finishTCPReply(std::unique_ptr<DNSComboWriter>&, bool hadError, bool updateInFlight);
 void checkFastOpenSysctl(bool active, Logr::log_t);
 void checkTFOconnect(Logr::log_t);

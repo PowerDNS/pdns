@@ -697,7 +697,10 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
       t_remotes->push_back(addr);
     }
 
-    bool fromProxyProtocolSource = expectProxyProtocol(addr);
+    ComboAddress destaddr;
+    socklen_t len = sizeof(destaddr);
+    getsockname(newsock, reinterpret_cast<sockaddr*>(&destaddr), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    bool fromProxyProtocolSource = expectProxyProtocol(addr, destaddr);
     ComboAddress mappedSource = addr;
     if (!fromProxyProtocolSource && t_proxyMapping) {
       if (const auto* iter = t_proxyMapping->lookup(addr)) {
@@ -737,10 +740,7 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
     setTCPNoDelay(newsock);
     std::shared_ptr<TCPConnection> tcpConn = std::make_shared<TCPConnection>(newsock, addr);
     tcpConn->d_source = addr;
-    tcpConn->d_destination.reset();
-    tcpConn->d_destination.sin4.sin_family = addr.sin4.sin_family;
-    socklen_t len = tcpConn->d_destination.getSocklen();
-    getsockname(tcpConn->getFD(), reinterpret_cast<sockaddr*>(&tcpConn->d_destination), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    tcpConn->d_destination = destaddr;
     tcpConn->d_mappedSource = mappedSource;
 
     if (fromProxyProtocolSource) {

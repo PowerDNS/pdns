@@ -2113,9 +2113,9 @@ void requestWipeCaches(const DNSName& canon)
   // coverity[leaked_storage]
 }
 
-bool expectProxyProtocol(const ComboAddress& from)
+bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAddress)
 {
-  return g_proxyProtocolACL.match(from);
+  return g_proxyProtocolACL.match(from) && g_proxyProtocolExceptions.count(listenAddress) == 0;
 }
 
 // fromaddr: the address the query is coming from
@@ -2449,7 +2449,26 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
 
       data.resize(static_cast<size_t>(len));
 
-      if (expectProxyProtocol(fromaddr)) {
+      ComboAddress destaddr; // the address the query was sent to to
+      destaddr.reset(); // this makes sure we ignore this address if not explictly set below
+      const auto* loc = rplookup(g_listenSocketsAddresses, fileDesc);
+      if (HarvestDestinationAddress(&msgh, &destaddr)) {
+        // but.. need to get port too
+        if (loc != nullptr) {
+          destaddr.sin4.sin_port = loc->sin4.sin_port;
+        }
+      }
+      else {
+        if (loc != nullptr) {
+          destaddr = *loc;
+        }
+        else {
+          destaddr.sin4.sin_family = fromaddr.sin4.sin_family;
+          socklen_t slen = destaddr.getSocklen();
+          getsockname(fileDesc, reinterpret_cast<sockaddr*>(&destaddr), &slen); // if this fails, we're ok with it  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+        }
+      }
+      if (expectProxyProtocol(fromaddr, destaddr)) {
         bool tcp = false;
         ssize_t used = parseProxyHeader(data, proxyProto, source, destination, tcp, proxyProtocolValues);
         if (used <= 0) {
@@ -2569,25 +2588,6 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
 
           struct timeval tval = {0, 0};
           HarvestTimestamp(&msgh, &tval);
-          ComboAddress destaddr; // the address the query was sent to to
-          destaddr.reset(); // this makes sure we ignore this address if not returned by recvmsg above
-          const auto* loc = rplookup(g_listenSocketsAddresses, fileDesc);
-          if (HarvestDestinationAddress(&msgh, &destaddr)) {
-            // but.. need to get port too
-            if (loc != nullptr) {
-              destaddr.sin4.sin_port = loc->sin4.sin_port;
-            }
-          }
-          else {
-            if (loc != nullptr) {
-              destaddr = *loc;
-            }
-            else {
-              destaddr.sin4.sin_family = fromaddr.sin4.sin_family;
-              socklen_t slen = destaddr.getSocklen();
-              getsockname(fileDesc, reinterpret_cast<sockaddr*>(&destaddr), &slen); // if this fails, we're ok with it  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-            }
-          }
           if (!proxyProto) {
             destination = destaddr;
           }
