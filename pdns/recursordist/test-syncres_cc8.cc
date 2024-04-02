@@ -885,6 +885,68 @@ BOOST_AUTO_TEST_CASE(test_nsec3_denial_too_many_iterations)
   BOOST_CHECK_EQUAL(denialState, dState::INSECURE);
 }
 
+BOOST_AUTO_TEST_CASE(test_nsec3_many_labels_between_name_and_closest_encloser)
+{
+  initSR();
+
+  testkeysset_t keys;
+  generateKeyMaterial(DNSName("powerdns.com."), DNSSECKeeper::ECDSA256, DNSSECKeeper::DIGEST_SHA256, keys);
+
+  vector<DNSRecord> records;
+
+  sortedRecords_t recordContents;
+  vector<shared_ptr<RRSIGRecordContent>> signatureContents;
+
+  ContentSigPair pair;
+  cspmap_t denialMap;
+
+  const DNSName requestedName("_ldap._tcp.a.b.c.d.powerdns.com.");
+  const DNSName zone("powerdns.com.");
+  /* Add NSEC3 for the closest encloser */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3UnhashedRecordToLW(DNSName("powerdns.com."), zone, "whatever", {QType::A, QType::TXT, QType::RRSIG, QType::NSEC}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, zone, 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* Add NSEC3 for the next closer */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3NarrowRecordToLW(DNSName("d.powerdns.com."), zone, {QType::A, QType::TXT, QType::RRSIG, QType::NSEC3}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, zone, 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  /* add wildcard denial */
+  recordContents.clear();
+  signatureContents.clear();
+  records.clear();
+  addNSEC3NarrowRecordToLW(DNSName("*.powerdns.com."), zone, {QType::A, QType::TXT, QType::RRSIG, QType::NSEC3}, 600, records);
+  recordContents.insert(records.at(0).d_content);
+  addRRSIG(keys, records, zone, 300);
+  signatureContents.push_back(getRR<RRSIGRecordContent>(records.at(1)));
+
+  pair.records = recordContents;
+  pair.signatures = signatureContents;
+  denialMap[std::pair(records.at(0).d_name, records.at(0).d_type)] = pair;
+
+  g_maxNSEC3sPerRecordToConsider = 10;
+  auto denialState = getDenial(denialMap, requestedName, QType::A, false, true);
+  g_maxNSEC3sPerRecordToConsider = 0;
+  BOOST_CHECK_EQUAL(denialState, dState::NXDOMAIN);
+}
+
 BOOST_AUTO_TEST_CASE(test_nsec3_insecure_delegation_denial)
 {
   initSR();

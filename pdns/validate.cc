@@ -783,7 +783,6 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
   DNSName closestEncloser(qname);
   bool found = false;
   if (needWildcardProof) {
-    nsec3sConsidered = 0;
     /* We now need to look for a NSEC3 covering the closest (provable) encloser
        RFC 5155 section-7.2.1
        RFC 7129 section-5.5
@@ -791,6 +790,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
     LOG("Now looking for the closest encloser for "<<qname<<endl);
 
     while (!found && closestEncloser.chopOff() && closestEncloser.countLabels() >= numberOfLabelsOfParentZone) {
+      nsec3sConsidered = 0;
 
       for(const auto& validset : validrrsets) {
         if(validset.first.second==QType::NSEC3) {
