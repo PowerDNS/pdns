@@ -32,12 +32,14 @@ Dependencies
 To build :program:`PowerDNS Recursor`, a C++ compiler with support for C++ 2017 is required.
 This means ``gcc 5`` and newer and ``clang 5`` and newer.
 Furthermore, the Makefiles require GNU ``make``, not BSD ``make``.
+Starting with version 5, a Rust compiler is needed.
 
 By default, the :program:`Recursor` requires the following libraries and headers:
 
 * `Boost <http://boost.org/>`_ 1.35 or newer
 * `Lua <http://www.lua.org/>`_ 5.1+ or `LuaJit <http://luajit.org/>`_
 * `OpenSSL <https://openssl.org>`_
+* For :program:`Recursor` version 5 and higher, `cargo <https://www.rust-lang.org/tools/install>`_ version 1.64 or newer.
 
 .. note::
    On Debian and Ubuntu, the following will get you the dependencies::
@@ -45,7 +47,7 @@ By default, the :program:`Recursor` requires the following libraries and headers
       apt-get install libboost-dev libboost-filesystem-dev libboost-serialization-dev \
          libboost-system-dev libboost-thread-dev libboost-context-dev \
          libboost-test-dev libssl-dev libboost-test-dev g++ make pkg-config \
-         libluajit-5.1-dev
+         libluajit-5.1-dev cargo
 
 Compiling from a git checkout
 -----------------------------
