@@ -864,13 +864,14 @@ Lower this if you experience timeouts.
     {
         'name' : 'edns_padding_from',
         'section' : 'incoming',
-        'type' : LType.String,
+        'type' : LType.ListSubnets,
         'default' : '',
         'help' : 'List of netmasks (proxy IP in case of proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that \'edns-padding-mode\' applies',
         'doc' : '''
 List of netmasks (proxy IP in case of proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that :ref:`setting-edns-padding-mode` applies.
  ''',
-    'versionadded': '4.5.0'
+        'versionadded' : '4.5.0',
+        'versionchanged' : ('5.0.4', 'YAML settings only: previously this was defined as a string instead of a sequence')
     },
     {
         'name' : 'edns_padding_mode',
@@ -2035,9 +2036,9 @@ Whether to compute the latency of responses in protobuf messages using the times
     {
         'name' : 'proxy_protocol_from',
         'section' : 'incoming',
-        'type' : LType.String,
+        'type' : LType.ListSubnets,
         'default' : '',
-        'help' : 'A Proxy Protocol header is only allowed from these subnets',
+        'help' : 'A Proxy Protocol header is required from these subnets',
         'doc' : '''
 Ranges that are required to send a Proxy Protocol version 2 header in front of UDP and TCP queries, to pass the original source and destination addresses and ports to the recursor, as well as custom values.
 Queries that are not prefixed with such a header will not be accepted from clients in these ranges. Queries prefixed by headers from clients that are not listed in these ranges will be dropped.
@@ -2046,7 +2047,8 @@ Note that once a Proxy Protocol header has been received, the source address fro
 
 The dnsdist docs have `more information about the PROXY protocol <https://dnsdist.org/advanced/passing-source-address.html#proxy-protocol>`_.
  ''',
-    'versionadded': '4.4.0'
+        'versionadded' : '4.4.0',
+        'versionchanged' : ('5.0.4', 'YAML settings only: previously this was defined as a string instead of a sequence')
     },
     {
         'name' : 'proxy_protocol_maximum_size',
