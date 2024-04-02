@@ -50,10 +50,20 @@ The DNSQuestion object contains at least the following fields:
   .. attribute:: DNSQuestion.remoteaddr
 
       :class:`ComboAddress` of the requestor.
+      If the proxy protocol is used, this will contain the source address from the proxy protocol header.
 
   .. attribute:: DNSQuestion.localaddr
 
       :class:`ComboAddress` where this query was received on.
+      If the proxy protocol is used, this will contain the destination address from the proxy protocol header.
+
+  .. attribute:: DNSQuestion.phys_remoteaddr
+
+      :class:`ComboAddress` of the physical requestor, that is, the physical network source address of the request.
+
+  .. attribute:: DNSQuestion.phys_localaddr
+
+      The physical :class:`ComboAddress` where this query was received on, which is one of the listening addresses of the recursor.
 
   .. attribute:: DNSQuestion.variable
 

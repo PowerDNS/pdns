@@ -167,6 +167,8 @@ void RecursorLua4::postPrepareContext()
   d_lw->registerMember<bool (DNSQuestion::*)>("isTcp", [](const DNSQuestion& dnsQuestion) -> bool { return dnsQuestion.isTcp; }, [](DNSQuestion& /* dnsQuestion */, bool newTcp) { (void) newTcp; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("localaddr", [](const DNSQuestion& dnsQuestion) -> const ComboAddress& { return dnsQuestion.local; }, [](DNSQuestion& /* dnsQuestion */, const ComboAddress& newLocal) { (void) newLocal; });
   d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("remoteaddr", [](const DNSQuestion& dnsQuestion) -> const ComboAddress& { return dnsQuestion.remote; }, [](DNSQuestion& /* dnsQuestion */, const ComboAddress& newRemote) { (void) newRemote; });
+  d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("phys_localaddr", [](const DNSQuestion& dnsQuestion) -> const ComboAddress& { return dnsQuestion.phys_local; }, [](DNSQuestion& /* dnsQuestion */, const ComboAddress& newLocal) { (void) newLocal; });
+  d_lw->registerMember<const ComboAddress (DNSQuestion::*)>("phys_remoteaddr", [](const DNSQuestion& dnsQuestion) -> const ComboAddress& { return dnsQuestion.phys_remote; }, [](DNSQuestion& /* dnsQuestion */, const ComboAddress& newRemote) { (void) newRemote; });
   d_lw->registerMember<uint8_t (DNSQuestion::*)>("validationState", [](const DNSQuestion& dnsQuestion) -> uint8_t { return (vStateIsBogus(dnsQuestion.validationState) ? /* in order not to break older scripts */ static_cast<uint8_t>(255) : static_cast<uint8_t>(dnsQuestion.validationState)); }, [](DNSQuestion& /* dnsQuestion */, uint8_t newState) { (void) newState; });
   d_lw->registerMember<vState (DNSQuestion::*)>("detailedValidationState", [](const DNSQuestion& dnsQuestion) -> vState { return dnsQuestion.validationState; }, [](DNSQuestion& /* dnsQuestion */, vState newState) { (void) newState; });
 
@@ -610,7 +612,7 @@ bool RecursorLua4::preoutquery(const ComboAddress& nameserver, const ComboAddres
   bool wantsRPZ = false;
   bool logQuery = false;
   bool addPaddingToResponse = false;
-  RecursorLua4::DNSQuestion dnsQuestion(nameserver, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ, logQuery, addPaddingToResponse, theTime);
+  RecursorLua4::DNSQuestion dnsQuestion(nameserver, requestor, nameserver, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ, logQuery, addPaddingToResponse, theTime);
   dnsQuestion.currentRecords = &res;
   eventTrace.add(RecEventTrace::LuaPreOutQuery);
   bool isOK = genhook(d_preoutquery, dnsQuestion, ret);
@@ -706,6 +708,8 @@ public:
   std::unique_ptr<std::string> qnameStr{nullptr};
   std::unique_ptr<std::string> localStr{nullptr};
   std::unique_ptr<std::string> remoteStr{nullptr};
+  std::unique_ptr<std::string> physLocalStr{nullptr};
+  std::unique_ptr<std::string> physRemoteStr{nullptr};
   std::unique_ptr<std::string> ednssubnetStr{nullptr};
   std::vector<pdns_ednsoption_t> ednsOptionsVect;
   std::vector<pdns_proxyprotocol_value_t> proxyProtocolValuesVect;
@@ -864,6 +868,44 @@ void pdns_ffi_param_get_local_raw(pdns_ffi_param_t* ref, const void** addr, size
 uint16_t pdns_ffi_param_get_local_port(const pdns_ffi_param_t* ref)
 {
   return ref->params.local.getPort();
+}
+
+const char* pdns_ffi_param_get_phys_remote(pdns_ffi_param_t* ref)
+{
+  if (!ref->physRemoteStr) {
+    ref->physRemoteStr = std::make_unique<std::string>(ref->params.phys_remote.toString());
+  }
+
+  return ref->physRemoteStr->c_str();
+}
+
+void pdns_ffi_param_get_phys_remote_raw(pdns_ffi_param_t* ref, const void** addr, size_t* addrSize)
+{
+  pdns_ffi_comboaddress_to_raw(ref->params.phys_remote, addr, addrSize);
+}
+
+uint16_t pdns_ffi_param_get_phys_remote_port(const pdns_ffi_param_t* ref)
+{
+  return ref->params.phys_remote.getPort();
+}
+
+const char* pdns_ffi_param_get_phys_local(pdns_ffi_param_t* ref)
+{
+  if (!ref->physLocalStr) {
+    ref->physLocalStr = std::make_unique<std::string>(ref->params.phys_local.toString());
+  }
+
+  return ref->physLocalStr->c_str();
+}
+
+void pdns_ffi_param_get_phys_local_raw(pdns_ffi_param_t* ref, const void** addr, size_t* addrSize)
+{
+  pdns_ffi_comboaddress_to_raw(ref->params.phys_local, addr, addrSize);
+}
+
+uint16_t pdns_ffi_param_get_phys_local_port(const pdns_ffi_param_t* ref)
+{
+  return ref->params.phys_local.getPort();
 }
 
 const char* pdns_ffi_param_get_edns_cs(pdns_ffi_param_t* ref)
