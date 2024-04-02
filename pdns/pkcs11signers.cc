@@ -1030,7 +1030,7 @@ namespace {
     };
     ~LoaderStruct() {
 #ifdef HAVE_P11KIT1_V2
-      p11_kit_modules_release(p11_modules);
+      p11_kit_modules_finalize_and_release(p11_modules);
 #else
       p11_kit_finalize_registered();
 #endif
