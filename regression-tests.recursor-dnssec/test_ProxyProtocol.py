@@ -111,10 +111,24 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
         return true
       end
 
+      local physremoteaddr = dq.phys_remoteaddr:toString()
+      local physlocaladdr = dq.phys_localaddr:toStringWithPort()
+
+      if physremoteaddr ~= '127.0.0.1' and physremoteaddr ~= '[::]' then
+        pdnslog('invalid phys source '..physremoteaddr)
+        dq:addAnswer(pdns.A, '192.0.2.131', 60)
+        return true
+      end
+      if physlocaladdr ~= '127.0.0.1:%d' and physlocaladdr ~= '[::1]:%d' then
+        pdnslog('invalid physdest '..physlocaladdr)
+        dq:addAnswer(pdns.A, '192.0.2.132', 60)
+        return true
+      end
+
       dq:addAnswer(pdns.A, '192.0.2.1', 60)
       return true
     end
-    """
+    """ % (ProxyProtocolRecursorTest._recursorPort, ProxyProtocolRecursorTest._recursorPort)
 
     _config_template = """
     proxy-protocol-from=127.0.0.1
@@ -464,6 +478,11 @@ class ProxyProtocolAllowedFFIRecursorTest(ProxyProtocolAllowedRecursorTest):
       uint16_t pdns_ffi_param_get_remote_port(const pdns_ffi_param_t* ref);
       uint16_t pdns_ffi_param_get_local_port(const pdns_ffi_param_t* ref);
 
+      const char* pdns_ffi_param_get_phys_remote(pdns_ffi_param_t* ref);
+      const char* pdns_ffi_param_get_phys_local(pdns_ffi_param_t* ref);
+      uint16_t pdns_ffi_param_get_phys_remote_port(const pdns_ffi_param_t* ref);
+      uint16_t pdns_ffi_param_get_phys_local_port(const pdns_ffi_param_t* ref);
+
       void pdns_ffi_param_set_tag(pdns_ffi_param_t* ref, unsigned int tag);
     ]]
 
@@ -492,6 +511,26 @@ class ProxyProtocolAllowedFFIRecursorTest(ProxyProtocolAllowedRecursorTest):
 
       if ffi.C.pdns_ffi_param_get_local_port(obj) ~= 65535 then
         pdnslog('gettag-ffi: invalid source port '..ffi.C.pdns_ffi_param_get_local_port(obj))
+        ffi.C.pdns_ffi_param_set_tag(obj, 2)
+        return
+      end
+
+      local physremoteaddr = ffi.string(ffi.C.pdns_ffi_param_get_phys_remote(obj))
+      local physlocaladdr = ffi.string(ffi.C.pdns_ffi_param_get_phys_local(obj))
+
+      if physremoteaddr ~= '127.0.0.1' and remoteaddr ~= '::1' then
+        pdnslog('gettag-ffi: invalid phys source '..physremoteaddr)
+        ffi.C.pdns_ffi_param_set_tag(obj, 1)
+        return
+      end
+      if physlocaladdr ~= '127.0.0.1' and physlocaladdr ~= '::1' then
+        pdnslog('gettag-ffi: invalid phys dest '..physlocaladdr)
+        ffi.C.pdns_ffi_param_set_tag(obj, 2)
+        return
+      end
+
+      if ffi.C.pdns_ffi_param_get_phys_local_port(obj) ~= %d then
+        pdnslog('gettag-ffi: invalid phys source port '..ffi.C.pdns_ffi_param_get_phys_local_port(obj))
         ffi.C.pdns_ffi_param_set_tag(obj, 2)
         return
       end
@@ -566,7 +605,7 @@ class ProxyProtocolAllowedFFIRecursorTest(ProxyProtocolAllowedRecursorTest):
       dq:addAnswer(pdns.A, '192.0.2.1', 60)
       return true
     end
-    """
+    """ % (ProxyProtocolAllowedRecursorTest._recursorPort)
 
 class ProxyProtocolNotAllowedRecursorTest(ProxyProtocolRecursorTest):
     _confdir = 'ProxyProtocolNotAllowed'
