@@ -1,18 +1,15 @@
 import dns
-import time
 import os
+import time
 import subprocess
-
 from recursortests import RecursorTest
 
-class testZTC(RecursorTest):
+class testTraceFail(RecursorTest):
+    _confdir = 'TraceFail'
 
-    _confdir = 'ZTC'
     _config_template = """
-dnssec=validate
-"""
-    _lua_config_file = """
-zoneToCache(".", "axfr", "193.0.14.129") -- k-root
+trace=fail
+forward-zones-recurse=.=127.0.0.1:9999
 """
 
     @classmethod
@@ -32,10 +29,14 @@ zoneToCache(".", "axfr", "193.0.14.129") -- k-root
     def tearDownClass(cls):
         cls.tearDownRecursor()
 
-    def testZTC(self):
-        grepCmd = ['grep', 'validationStatus="Secure"', 'configs/' + self._confdir + '/recursor.log']
+    def testA(self):
+        query = dns.message.make_query('example', 'A', want_dnssec=False)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
+        grepCmd = ['grep', 'END OF FAIL TRACE', 'configs/' + self._confdir + '/recursor.log']
         ret = b''
-        for i in range(30):
+        for i in range(10):
             time.sleep(1)
             try:
                 ret = subprocess.check_output(grepCmd, stderr=subprocess.STDOUT)
@@ -45,4 +46,3 @@ zoneToCache(".", "axfr", "193.0.14.129") -- k-root
             break
         print(ret)
         self.assertNotEqual(ret, b'')
-
