@@ -803,7 +803,7 @@ struct FDWrapper
 
   FDWrapper& operator=(FDWrapper&& rhs) noexcept
   {
-    if (d_fd != -1) {
+    if (d_fd >= 0) {
       close(d_fd);
     }
     d_fd = rhs.d_fd;
@@ -823,10 +823,10 @@ struct FDWrapper
 
   void reset()
   {
-    if (d_fd != -1) {
-      ::close(d_fd);
-      d_fd = -1;
+    if (d_fd >= 0) {
+      close(d_fd);
     }
+    d_fd = -1;
   }
 
 private:
