@@ -62,11 +62,11 @@ namespace pdns {
     base_t operator--() {
       return --(ref());
     }
-    base_t operator+=(const stat_t_trait& arg) {
-      return ref() += arg.ref();
+    base_t operator+=(base_t arg) {
+      return ref() += arg;
     }
-    base_t operator-=(const stat_t_trait& arg) {
-      return ref() -= arg.ref();
+    base_t operator-=(base_t arg) {
+      return ref() -= arg;
     }
     base_t load() const {
       return ref().load();
@@ -85,7 +85,7 @@ namespace pdns {
     const atomic_t& ref() const {
       return *reinterpret_cast<const atomic_t *>(&counter); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
-    typename std::aligned_storage_t<sizeof(base_t), CPU_LEVEL1_DCACHE_LINESIZE> counter;
+    typename std::aligned_storage_t<sizeof(atomic_t), CPU_LEVEL1_DCACHE_LINESIZE> counter;
   };
 
   using stat_t = stat_t_trait<uint64_t>;
