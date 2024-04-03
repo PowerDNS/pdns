@@ -838,7 +838,7 @@ JSON Objects
   :property integer error-responses: Number of HTTP responses sent with a non-200 code
   :property integer get-queries: Number of DoH queries received via the GET HTTP method
   :property integer http-connects: Number of DoH TCP connections established to this frontend
-  :property integer http1-queries: Number of DoH queries received over HTTP/1
+  :property integer http1-queries: Number of DoH queries received over HTTP/1 (or connection attempts with a HTTP/1.1 ALPN when the nghttp2 provider is used)
   :property integer http1-x00-responses: Number of DoH responses sent, over HTTP/1, per response code (200, 400, 403, 500, 502)
   :property integer http1-other-responses: Number of DoH responses sent, over HTTP/1, with another response code
   :property integer http2-queries: Number of DoH queries received over HTTP/2
