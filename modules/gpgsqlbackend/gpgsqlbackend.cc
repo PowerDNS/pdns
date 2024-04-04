@@ -192,7 +192,7 @@ public:
   //! This reports us to the main UeberBackend class
   gPgSQLLoader()
   {
-    BackendMakers().report(new gPgSQLFactory("gpgsql"));
+    BackendMakers().report(std::make_unique<gPgSQLFactory>("gpgsql"));
     g_log << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"

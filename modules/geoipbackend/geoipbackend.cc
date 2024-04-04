@@ -1199,7 +1199,7 @@ class GeoIPLoader
 public:
   GeoIPLoader()
   {
-    BackendMakers().report(new GeoIPFactory);
+    BackendMakers().report(std::make_unique<GeoIPFactory>());
     g_log << Logger::Info << "[geoipbackend] This is the geoip backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"
