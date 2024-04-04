@@ -75,7 +75,7 @@ struct RemotebackendSetup
     try {
       // setup minimum arguments
       ::arg().set("module-dir") = "./.libs";
-      new RemoteLoader();
+      auto loader = std::make_unique<RemoteLoader>();
       BackendMakers().launch("remote");
       // then get us a instance of it
       ::arg().set("remote-connection-string") = "http:url=http://localhost:62434/dns";
