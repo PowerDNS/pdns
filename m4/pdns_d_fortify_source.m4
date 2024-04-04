@@ -28,13 +28,13 @@ AC_DEFUN([AC_CC_D_FORTIFY_SOURCE],[
   AS_IF([test "x$enable_fortify_source" != "xno"], [
 
     dnl Auto means the highest version we support, which is currently 3
-    AS_IF([test "x$enable_fortify_source" == "xauto"],
+    AS_IF([test "$enable_fortify_source" = "auto"],
       [enable_fortify_source=3],
       []
     )
 
     dnl If 3 is not supported, we try to fallback to 2
-    AS_IF([test "x$enable_fortify_source" == "x3"], [
+    AS_IF([test "$enable_fortify_source" = "3"], [
       gl_COMPILER_OPTION_IF([-D_FORTIFY_SOURCE=3], [
         CFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 $CFLAGS"
         CXXFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 $CXXFLAGS"
@@ -42,14 +42,14 @@ AC_DEFUN([AC_CC_D_FORTIFY_SOURCE],[
     ])
 
     dnl If 2 is not supported, we try to fallback to 1
-    AS_IF([test "x$enable_fortify_source" == "x2"], [
+    AS_IF([test "$enable_fortify_source" = "2"], [
       gl_COMPILER_OPTION_IF([-D_FORTIFY_SOURCE=2], [
         CFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 $CFLAGS"
         CXXFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 $CXXFLAGS"
       ], [enable_fortify_source=1])
     ])
 
-    AS_IF([test "x$enable_fortify_source" == "x1"], [
+    AS_IF([test "$enable_fortify_source" = "1"], [
       gl_COMPILER_OPTION_IF([-D_FORTIFY_SOURCE=1], [
         CFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1 $CFLAGS"
         CXXFLAGS="-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=1 $CXXFLAGS"
