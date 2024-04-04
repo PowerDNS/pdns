@@ -6,8 +6,18 @@ header_path = false
 
 if not opt_libdecaf.disabled()
   dep_libdecaf = dependency('libdecaf', required: false)
+
   if not dep_libdecaf.found()
-    dep_libdecaf = cxx.find_library('decaf', dirs: ['/usr', '/usr' / 'local'], required: opt_libdecaf)
+    dep_libdecaf = cxx.find_library(
+      'decaf',
+      dirs: [
+        '/usr',
+        '/usr' / 'lib',
+        '/usr' / 'local',
+        '/usr' / 'local' / 'lib',
+      ],
+      required: opt_libdecaf
+    )
   endif
 
   if dep_libdecaf.found()
@@ -15,7 +25,7 @@ if not opt_libdecaf.disabled()
       '/usr' / 'include',
       '/usr' / 'include' / 'decaf',
       '/usr' / 'local' / 'include',
-      '/usr' / 'local' / 'include' / 'decaf'
+      '/usr' / 'local' / 'include' / 'decaf',
     ]
 
     do_break = false
@@ -34,7 +44,7 @@ if not opt_libdecaf.disabled()
 
       if found_header
         dep_libdecaf = declare_dependency(
-          compile_args: ['-I' + dirname],
+          include_directories: dir,
           dependencies: dep_libdecaf,
         )
 
