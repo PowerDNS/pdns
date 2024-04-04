@@ -799,3 +799,37 @@ class TestRoutingHighValueWRandom(DNSDistTest):
             self.assertEqual(self._responsesCounter['UDP Responder 2'], numberOfQueries - self._responsesCounter['UDP Responder'])
         if 'TCP Responder 2' in self._responsesCounter:
             self.assertEqual(self._responsesCounter['TCP Responder 2'], numberOfQueries - self._responsesCounter['TCP Responder'])
+
+class TestRoutingLuaFFILBNoServer(DNSDistTest):
+
+    _config_template = """
+    -- we want a ServFail answer when all servers are down
+    setServFailWhenNoServer(true)
+
+    local ffi = require("ffi")
+    local C = ffi.C
+    function luaffipolicy(servers_list, dq)
+      -- return a large value, outside of the number of servers, to indicate that
+      -- no server is available
+      return tonumber(C.dnsdist_ffi_servers_list_get_count(servers_list)) + 100
+    end
+    setServerPolicyLuaFFI("luaffipolicy", luaffipolicy)
+
+    s1 = newServer{address="127.0.0.1:%s"}
+    s1:setDown()
+    """
+    _verboseMode = True
+
+    def testOurPolicy(self):
+        """
+        Routing: LuaFFI policy, all servers are down
+        """
+        name = 'lua-ffi-no-servers.routing.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.SERVFAIL)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(expectedResponse, receivedResponse)
