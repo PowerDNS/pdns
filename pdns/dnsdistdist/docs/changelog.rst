@@ -2,6 +2,106 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.2
+  :released: 5th of April 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13938
+
+    Fix compilation warnings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13939
+
+    Docker: Only print config if debug flag is set
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 13940
+    :tickets: 13850
+
+    Use server preference algorithm for ALPN selection
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13941
+    :tickets: 13903
+
+    Fix first IPv6 console connection being rejected
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13942
+
+    Shrink InternalQueryState's size by reordering its fields
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13943
+    :tickets: 13925
+
+    Fix annoying compiler warnings by introducing and switching to `pdns::UniqueFilePtr`
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13944
+
+    Fix XSK-enabled check when reconnecting a backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13945
+    :tickets: 13837
+
+    Properly handle a failure of the first lazy health-check
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13976
+    :tickets: 13945
+
+    Also handle EHOSTUNREACH as a case for reconnecting the socket
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 14012
+
+    Fix a null-deref in incoming DNS over HTTPS with the nghttp2 provider
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14013
+    :tickets: 13977
+
+    Support "no server available" result from Lua FFI load-balancing policies
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, Metrics
+    :pullreq: 14014
+
+    Fix DNS over HTTP connections/queries counters with the `nghttp2` provider
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14015
+
+    FDWrapper: Do not try to close negative file descriptors
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14016
+
+    Release incoming TCP connection right away on backend failure
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14017
+
+    Release failed TCP backend connections more quickly
+
+.. changelog::
   :version: 1.9.1
   :released: 14th of March 2024
 
