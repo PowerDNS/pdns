@@ -95,6 +95,16 @@ subdir('ext' / 'json11')
 subdir('ext' / 'luawrapper')
 subdir('ext' / 'protozero')
 subdir('ext' / 'yahttp')
+
+libpdns_gettime = declare_dependency(
+  link_whole: static_library(
+    'pdns-gettime',
+    src_dir / 'gettime.cc',
+    src_dir / 'gettime.hh',
+    dependencies: dep_rt,
+  )
+)
+
 if get_option('module-lmdb') != 'disabled'
   subdir('ext' / 'lmdb-safe')
 endif
@@ -322,15 +332,6 @@ if dep_sqlite3.found()
     )
   )
 endif
-
-libpdns_gettime = declare_dependency(
-  link_whole: static_library(
-    'pdns-gettime',
-    src_dir / 'gettime.cc',
-    src_dir / 'gettime.hh',
-    dependencies: dep_rt,
-  )
-)
 
 libpdns_signers_openssl = declare_dependency(
   link_whole: static_library(
