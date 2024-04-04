@@ -7,7 +7,7 @@ if get_option('module-gpgsql') != 'disabled'
     pg_config = find_program('pg_config', required: true)
 
     pg_includedir_res = run_command(pg_config, '--includedir', check: true)
-    pg_includedir = pg_includedir_res.stdout().strip()
+    pg_includedir = include_directories(pg_includedir_res.stdout().strip())
 
     # pg_cflags_res = run_command(pg_config, '--cflags', check: true)
     # pg_cflags = pg_cflags_res.stdout().strip().split()
@@ -30,7 +30,7 @@ if get_option('module-gpgsql') != 'disabled'
     dep_pgsql = declare_dependency(
       # compile_args: pg_cflags + pg_cppflags,
       # link_args: pg_ldflags,
-      compile_args: '-I' + pg_includedir,
+      include_directories: pg_includedir,
       link_args: ['-L' + pg_libdir, '-lpq'],
       version: pg_version,
     )
