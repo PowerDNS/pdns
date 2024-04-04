@@ -367,11 +367,13 @@ void TCPNameserver::doConnection(int fd)
         S.inc("tcp-cookie-queries");
 
       if(packet->qtype.getCode()==QType::AXFR) {
+        packet->d_xfr=true;
         doAXFR(packet->qdomain, packet, fd);
         continue;
       }
 
       if(packet->qtype.getCode()==QType::IXFR) {
+        packet->d_xfr=true;
         doIXFR(packet, fd);
         continue;
       }
