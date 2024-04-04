@@ -5,38 +5,52 @@ if not opt_libdecaf.disabled()
   dep_libdecaf = dependency('libdecaf', required: false)
 
   if not dep_libdecaf.found()
-    dep_libdecaf = cxx.find_library(
-      'decaf',
-      dirs: [
-        '/usr',
-        '/usr' / 'lib',
-        '/usr' / 'local',
-        '/usr' / 'local' / 'lib',
-      ],
-      required: opt_libdecaf
-    )
-  endif
+    all_lib_dirs = [
+      '/usr',
+      '/usr' / 'lib',
+      '/usr' / 'local',
+      '/usr' / 'local' / 'lib',
+    ]
 
-  if dep_libdecaf.found()
-    message('Libdecaf: Checking for header file')
-
-    include_dirs = include_directories(
+    all_include_dirs = [
       '/usr' / 'include',
       '/usr' / 'include' / 'decaf',
       '/usr' / 'local' / 'include',
       '/usr' / 'local' / 'include' / 'decaf',
-      is_system: true,
-    )
+    ]
 
-    cxx.has_header(
-      'decaf.hxx',
-      required: true,
-      include_directories: include_dirs,
+    fs = import('fs')
+
+    lib_dirs = []
+    foreach lib_dir: all_lib_dirs
+      if fs.is_dir(lib_dir)
+        lib_dirs += lib_dir
+      endif
+    endforeach
+
+    include_dirs = []
+    foreach include_dir: all_include_dirs
+      if fs.is_dir(include_dir)
+        include_dirs += include_dir
+      endif
+    endforeach
+    include_dirs = include_directories(include_dirs, is_system: true)
+
+    dep_libdecaf = cxx.find_library(
+      'decaf',
+      dirs: lib_dirs,
+      required: opt_libdecaf,
+      has_headers: [
+        'decaf.hxx',
+        'decaf' / 'spongerng.hxx',
+        'decaf' / 'eddsa.hxx',
+      ],
+      header_include_directories: include_dirs,
     )
 
     dep_libdecaf = declare_dependency(
-      include_directories: dir,
       dependencies: dep_libdecaf,
+      include_directories: include_dirs,
     )
   endif
 endif
