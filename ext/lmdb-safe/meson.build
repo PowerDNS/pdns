@@ -6,7 +6,12 @@ lib_lmdb_safe = static_library(
     'lmdb-safe.hh',
     'lmdb-typed.hh',
   ],
-  dependencies: [dep_pdns, dep_lmdb, dep_boost_serialization],
+  dependencies: [
+    dep_pdns,
+    dep_lmdb,
+    dep_boost_serialization,
+    libpdns_gettime,
+  ],
 )
 
 dep_lmdb_safe = declare_dependency(
