@@ -20,6 +20,10 @@ Once you have a console-enabled dnsdist, the first step to enable encryption is 
   > makeKey()
   setKey("ENCODED KEY")
 
+The key does not have a specific format, so base-64 encoding 32 random bytes works as well::
+
+  $ dd if=/dev/random bs=1 count=32 status=none | base64
+
 Then add the generated :func:`setKey` line to your dnsdist configuration file, along with a :func:`controlSocket`:
 
 .. code-block:: lua
