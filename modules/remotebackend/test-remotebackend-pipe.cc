@@ -76,7 +76,7 @@ struct RemotebackendSetup
       new RemoteLoader();
       BackendMakers().launch("remote");
       // then get us a instance of it
-      ::arg().set("remote-connection-string") = "pipe:command=unittest_pipe.rb";
+      ::arg().set("remote-connection-string") = "pipe:command=unittest_pipe.py";
       ::arg().set("remote-dnssec") = "yes";
       backendUnderTest = std::move(BackendMakers().all()[0]);
       // load few record types to help out
