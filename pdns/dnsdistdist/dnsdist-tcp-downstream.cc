@@ -137,7 +137,8 @@ TCPConnectionToBackend::~TCPConnectionToBackend()
   }
 }
 
-void TCPConnectionToBackend::release(){
+void TCPConnectionToBackend::release(bool removeFromCache)
+{
   d_ds->outstanding -= d_pendingResponses.size();
 
   d_pendingResponses.clear();
@@ -147,8 +148,8 @@ void TCPConnectionToBackend::release(){
     d_ioState.reset();
   }
 
-  auto shared = std::dynamic_pointer_cast<TCPConnectionToBackend>(shared_from_this());
-  if (!willBeReusable(true)) {
+  if (removeFromCache && !willBeReusable(true)) {
+    auto shared = std::dynamic_pointer_cast<TCPConnectionToBackend>(shared_from_this());
     /* remove ourselves from the connection cache, this might mean that our
        reference count drops to zero after that, so we need to be careful */
     t_downstreamTCPConnectionsManager.removeDownstreamConnection(shared);
@@ -371,7 +372,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
           catch (const std::exception& e) {
             vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getNameWithAddr() : "unknown", conn->d_currentQuery.d_query.d_idstate.origRemote.toStringWithPort(), e.what());
             ioGuard.release();
-            conn->release();
+            conn->release(true);
             return;
           }
         }
@@ -584,7 +585,7 @@ void TCPConnectionToBackend::handleTimeout(const struct timeval& now, bool write
     vinfolog("Got exception while notifying a timeout");
   }
 
-  release();
+  release(true);
 }
 
 void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, FailureReason reason)
@@ -647,7 +648,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
     vinfolog("Got exception while notifying");
   }
 
-  release();
+  release(true);
 }
 
 IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
