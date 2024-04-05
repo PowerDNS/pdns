@@ -527,7 +527,7 @@ In this case, :ref:`setting-dont-throttle-netmasks` could be set to include ``19
         'default' : 'false',
         'help' : 'Disable packetcache',
         'doc' : '''
-Turn off the packet cache. Useful when running with Lua scripts that cannot be cached, though individual query caching can be controlled from Lua as well.
+Turn off the packet cache. Useful when running with Lua scripts that modify answers in such a way they cannot be cached, though individual answer caching can be controlled from Lua as well.
  ''',
     },
     {
@@ -741,7 +741,7 @@ Number of bits of client IPv4 address to pass when sending EDNS Client Subnet ad
         'default' : '24',
         'help' : 'Maximum number of bits of IPv4 mask to cache ECS response',
         'doc' : '''
-Maximum number of bits of client IPv4 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-cache-limit-ttl``.
+Maximum number of bits of client IPv4 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the record cache. This condition applies in conjunction with ``ecs-cache-limit-ttl``.
 That is, only if both the limits apply, the record will not be cached. This decision can be overridden by ``ecs-ipv4-never-cache`` and ``ecs-ipv6-never-cache``.
  ''',
     'versionadded': '4.1.12'
@@ -766,7 +766,7 @@ Number of bits of client IPv6 address to pass when sending EDNS Client Subnet ad
         'default' : '56',
         'help' : 'Maximum number of bits of IPv6 mask to cache ECS response',
         'doc' : '''
-Maximum number of bits of client IPv6 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-cache-limit-ttl``.
+Maximum number of bits of client IPv6 address used by the authoritative server (as indicated by the EDNS Client Subnet scope in the answer) for an answer to be inserted into the record cache. This condition applies in conjunction with ``ecs-cache-limit-ttl``.
 That is, only if both the limits apply, the record will not be cached. This decision can be overridden by ``ecs-ipv4-never-cache`` and ``ecs-ipv6-never-cache``.
  ''',
     'versionadded': '4.1.12'
@@ -821,7 +821,7 @@ Can be set at runtime using ``rec_control set-ecs-minimum-ttl 3600``.
         'default' : '0',
         'help' : 'Minimum TTL to cache ECS response',
         'doc' : '''
-The minimum TTL for an ECS-specific answer to be inserted into the query cache. This condition applies in conjunction with ``ecs-ipv4-cache-bits`` or ``ecs-ipv6-cache-bits``.
+The minimum TTL for an ECS-specific answer to be inserted into the record cache. This condition applies in conjunction with ``ecs-ipv4-cache-bits`` or ``ecs-ipv6-cache-bits``.
 That is, only if both the limits apply, the record will not be cached. This decision can be overridden by ``ecs-ipv4-never-cache`` and ``ecs-ipv6-never-cache``.
  ''',
     'versionadded': '4.1.12'
