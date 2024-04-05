@@ -3624,8 +3624,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     g_tcpRecvTimeout = 2;
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
-    /* we have no connection to clear, because there was a timeout! */
-    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 0U);
+    /* we have one connection to clear, no proxy protocol */
+    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 1U);
   }
 
   {
