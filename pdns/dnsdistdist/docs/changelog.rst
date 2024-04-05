@@ -2,6 +2,16 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.3
+  :released: 5th of April 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14040
+
+    Revert "Release failed TCP backend connections more quickly" to fix a crash
+
+.. changelog::
   :version: 1.9.2
   :released: 5th of April 2024
 
