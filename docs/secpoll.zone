@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2024031500 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2024040500 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -544,3 +544,4 @@ dnsdist-1.9.0-alpha4.security-status                       60 IN TXT "2 Unsuppor
 dnsdist-1.9.0-rc1.security-status                          60 IN TXT "2 Unsupported pre-release (no known vulnerabilities)"
 dnsdist-1.9.0.security-status                              60 IN TXT "3 Upgrade now, see https://blog.powerdns.com/2024/03/14/powerdns-dnsdist-1.9.1-released"
 dnsdist-1.9.1.security-status                              60 IN TXT "1 OK"
+dnsdist-1.9.2.security-status                              60 IN TXT "1 OK"
