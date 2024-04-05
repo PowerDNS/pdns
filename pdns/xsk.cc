@@ -29,15 +29,6 @@
 #include <cstring>
 #include <fcntl.h>
 #include <iterator>
-#include <linux/bpf.h>
-#include <linux/if_ether.h>
-#include <linux/if_link.h>
-#include <linux/if_xdp.h>
-#include <linux/ip.h>
-#include <linux/ipv6.h>
-#include <linux/tcp.h>
-#include <linux/types.h>
-#include <linux/udp.h>
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
@@ -60,6 +51,21 @@ extern "C"
 
 #include "gettime.hh"
 #include "xsk.hh"
+
+/* we need to include the linux specific headers AFTER the regular
+   ones, because it then detects that some types have already been
+   defined (sockaddr_in6 for example) and does not attempt to
+   re-define them, which otherwise breaks the C++ One Definition Rule
+*/
+#include <linux/bpf.h>
+#include <linux/if_ether.h>
+#include <linux/if_link.h>
+#include <linux/if_xdp.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+#include <linux/tcp.h>
+#include <linux/types.h>
+#include <linux/udp.h>
 
 #ifdef DEBUG_UMEM
 namespace
