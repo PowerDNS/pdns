@@ -240,10 +240,11 @@ void DNSProxy::mainloop()
       memcpy(&dHead, &buffer[0], sizeof(dHead));
       {
         auto conntrack = d_conntrack.lock();
-#if BYTE_ORDER == BIG_ENDIAN
-        // this is needed because spoof ID down below does not respect the native byteorder
-        d.id = (256 * (uint16_t)buffer[1]) + (uint16_t)buffer[0];
-#endif
+        if (BYTE_ORDER == BIG_ENDIAN) {
+          // this is needed because spoof ID down below does not respect the native byteorder
+          dHead.id = (256 * (uint16_t)buffer[1]) + (uint16_t)buffer[0];
+        }
+
         auto iter = conntrack->find(dHead.id ^ d_xor);
         if (iter == conntrack->end()) {
           g_log << Logger::Error << "Discarding untracked packet from recursor backend with id " << (dHead.id ^ d_xor) << ". Conntrack table size=" << conntrack->size() << endl;
