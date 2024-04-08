@@ -1,3 +1,4 @@
+#include "dnsrecords.hh"
 #include <boost/smart_ptr/make_shared_array.hpp>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -250,7 +251,7 @@ static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   return result;
 }
 
-static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr)
+static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr) // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 {
   uint64_t numerrors=0, numwarnings=0;
 
@@ -376,6 +377,14 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       tlsas.insert(rr.qname);
     if(rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
       addresses.insert(rr.qname);
+    }
+    if(rr.qtype.getCode() == QType::LUA) {
+      shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, rr.content));
+      auto luarec = std::dynamic_pointer_cast<LUARecordContent>(drc);
+      QType qtype = luarec->d_type;
+      if(qtype == QType::A || qtype == QType::AAAA) {
+        addresses.insert(rr.qname);
+      }
     }
     if(rr.qtype.getCode() == QType::A) {
       arecords.insert(rr.qname);
