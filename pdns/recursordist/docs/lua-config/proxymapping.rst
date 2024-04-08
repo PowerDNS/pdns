@@ -8,18 +8,18 @@ If the :ref:`setting-proxy-protocol-from` is also used, the substitution is done
 
 Depending on context, the incoming address can be
 
-The physical address ``P``
-  the physical address the query is received on.
+The interface address ``I``
+  the source network interface address of the client
 The source address ``S``
   the source address as specified in the Proxy protocol
 The mapped address ``M``
   the source address mapped by Table Based Proxy Mapping
 
-``S equals P`` if no Proxy Protocol is used.
+``S equals I`` if no Proxy Protocol is used.
 
 ``M equals S`` if no Table Based Proxy Mapping is used.
 
-``P`` determines if the Proxy Protocol is used (:ref:`setting-proxy-protocol-from`).
+``I`` determines if the Proxy Protocol is used (:ref:`setting-proxy-protocol-from`).
 
 ``S`` is passed to Lua functions and RPZ processing
 
