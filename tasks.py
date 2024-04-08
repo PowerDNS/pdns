@@ -176,7 +176,7 @@ def ci_install_rust(c, repo):
         c.run('sudo sh install_rust.sh')
 
 def install_libdecaf(c, product):
-    c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
+    c.run('rm -rf /tmp/libdecaf && git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
     with c.cd('/tmp/libdecaf'):
         c.run('git checkout 41f349')
         c.run(f'CC={get_c_compiler()} CXX={get_cxx_compiler()} '
@@ -199,9 +199,14 @@ def install_doc_deps(c):
 def install_doc_deps_pdf(c):
     c.sudo('apt-get install -y ' + ' '.join(doc_deps_pdf))
 
+def install_meson(c):
+    c.run(f'python3 -m venv {repo_home}/.venv')
+    c.run(f'. {repo_home}/.venv/bin/activate && pip install meson pyyaml ninja')
+
 @task
 def install_auth_build_deps(c):
     c.sudo('apt-get install -y --no-install-recommends ' + ' '.join(all_build_deps + git_build_deps + auth_build_deps))
+    install_meson(c)
     if os.getenv('DECAF_SUPPORT', 'no') == 'yes':
         install_libdecaf(c, 'pdns-auth')
 
@@ -338,8 +343,9 @@ def install_dnsdist_build_deps(c, skipXDP=False):
     c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps + (dnsdist_xdp_build_deps if not skipXDP else [])))
 
 @task
-def ci_autoconf(c):
-    c.run('autoreconf -vfi')
+def ci_autoconf(c, meson=False):
+    if not meson:
+        c.run('autoreconf -vfi')
 
 @task
 def ci_docs_rec_generate(c):
@@ -472,8 +478,7 @@ def get_base_configure_cmd_meson(build_dir, additional_c_flags='', additional_cx
         get_sanitizers(meson=True)
     ])
 
-@task
-def ci_auth_configure(c):
+def ci_auth_configure_autotools(c):
     unittests = get_unit_tests(auth=True)
     fuzz_targets = get_fuzzing_targets()
     modules = " ".join([
@@ -512,7 +517,6 @@ def ci_auth_configure(c):
         c.run('cat config.log')
         raise UnexpectedExit(res)
 
-@task
 def ci_auth_configure_meson(c, build_dir):
     unittests = get_unit_tests(meson=True, auth=True)
     fuzz_targets = get_fuzzing_targets(meson=True)
@@ -546,6 +550,17 @@ def ci_auth_configure_meson(c, build_dir):
     if res.exited != 0:
         c.run(f'cat {build_dir}/meson-logs/meson-log.txt')
         raise UnexpectedExit(res)
+
+@task
+def ci_auth_configure(c, build_dir=None, meson=False):
+    if meson:
+        ci_auth_configure_meson(c, build_dir)
+    else:
+        ci_auth_configure_autotools(c)
+        if build_dir:
+            ci_make_distdir(c)
+            with c.cd(f'{build_dir}'):
+                ci_auth_configure_autotools(c)
 
 @task
 def ci_rec_configure(c, features):
@@ -680,6 +695,16 @@ def ci_auth_make(c):
 def ci_auth_make_bear(c):
     c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
 
+def run_ninja(c):
+    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency()} --verbose')
+
+@task
+def ci_auth_build(c, meson=False):
+    if meson:
+        run_ninja(c)
+    else:
+        ci_auth_make_bear(c)
+
 @task
 def ci_rec_make(c):
     c.run(f'make -j{get_build_concurrency()} -k V=1')
@@ -735,18 +760,13 @@ def ci_make_distdir(c):
     c.run('make distdir')
 
 @task
-def ci_make_install(c, meson=False):
-    # TBD: meson: ninja install or equivalent
-    c.run('make install') # FIXME: this builds auth docs - again
+def ci_auth_install(c, meson=False):
+    if not meson:
+        c.run('make install') # FIXME: this builds auth docs - again
 
 @task
-def install_meson(c):
-    c.run(f'python3 -m venv {repo_home}/.venv')
-    c.run(f'. {repo_home}/.venv/bin/activate && pip install meson pyyaml ninja')
-
-@task
-def run_ninja(c):
-    c.run(f'. {repo_home}/.venv/bin/activate && ninja --verbose')
+def ci_make_install(c):
+    c.run('make install')
 
 @task
 def add_auth_repo(c, dist_name, dist_release_name, pdns_repo_version):
