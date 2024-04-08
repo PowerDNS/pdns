@@ -88,12 +88,12 @@ public:
   {
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     DNSQuestion(const ComboAddress& prem, const ComboAddress& ploc, const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_, const struct timeval& queryTime_) :
-      qname(query), phys_local(ploc), phys_remote(prem), local(loc), remote(rem), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_), queryTime(queryTime_), qtype(type), isTcp(tcp)
+      qname(query), interface_local(ploc), interface_remote(prem), local(loc), remote(rem), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_), queryTime(queryTime_), qtype(type), isTcp(tcp)
     {
     }
     const DNSName& qname;
-    const ComboAddress& phys_local;
-    const ComboAddress& phys_remote;
+    const ComboAddress& interface_local;
+    const ComboAddress& interface_remote;
     const ComboAddress& local;
     const ComboAddress& remote;
     const ComboAddress* fromAuthIP{nullptr};
@@ -169,14 +169,14 @@ public:
   public:
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     FFIParams(const DNSName& qname_, uint16_t qtype_, const ComboAddress& plocal_, const ComboAddress& premote_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, LuaContext::LuaObject& data_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, std::string& routingTag_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_, boost::optional<uint16_t>& extendedErrorCode_, std::string& extendedErrorExtra_, bool& disablePadding_, std::map<std::string, MetaValue>& meta_) :
-      data(data_), qname(qname_), phys_local(plocal_), phys_remote(premote_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), extendedErrorExtra(extendedErrorExtra_), rcode(rcode_), extendedErrorCode(extendedErrorCode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), disablePadding(disablePadding_), qtype(qtype_), tcp(tcp_), meta(meta_)
+      data(data_), qname(qname_), interface_local(plocal_), interface_remote(premote_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), extendedErrorExtra(extendedErrorExtra_), rcode(rcode_), extendedErrorCode(extendedErrorCode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), disablePadding(disablePadding_), qtype(qtype_), tcp(tcp_), meta(meta_)
     {
     }
 
     LuaContext::LuaObject& data;
     const DNSName& qname;
-    const ComboAddress& phys_local;
-    const ComboAddress& phys_remote;
+    const ComboAddress& interface_local;
+    const ComboAddress& interface_remote;
     const ComboAddress& local;
     const ComboAddress& remote;
     const Netmask& ednssubnet;

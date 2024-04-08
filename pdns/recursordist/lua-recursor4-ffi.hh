@@ -77,12 +77,12 @@ extern "C"
   void pdns_ffi_param_get_local_raw(pdns_ffi_param_t* ref, const void** addr, size_t* addrSize) __attribute__((visibility("default")));
   uint16_t pdns_ffi_param_get_local_port(const pdns_ffi_param_t* ref) __attribute__((visibility("default")));
 
-  const char* pdns_ffi_param_get_phys_remote(pdns_ffi_param_t* ref) __attribute__((visibility("default")));
-  void pdns_ffi_param_get_phys_remote_raw(pdns_ffi_param_t* ref, const void** addr, size_t* addrSize) __attribute__((visibility("default")));
-  uint16_t pdns_ffi_param_get_phys_remote_port(const pdns_ffi_param_t* ref) __attribute__((visibility("default")));
-  const char* pdns_ffi_param_get_phys_local(pdns_ffi_param_t* ref) __attribute__((visibility("default")));
-  void pdns_ffi_param_get_phys_local_raw(pdns_ffi_param_t* ref, const void** addr, size_t* addrSize) __attribute__((visibility("default")));
-  uint16_t pdns_ffi_param_get_phys_local_port(const pdns_ffi_param_t* ref) __attribute__((visibility("default")));
+  const char* pdns_ffi_param_get_interface_remote(pdns_ffi_param_t* ref) __attribute__((visibility("default")));
+  void pdns_ffi_param_get_interface_remote_raw(pdns_ffi_param_t* ref, const void** addr, size_t* addrSize) __attribute__((visibility("default")));
+  uint16_t pdns_ffi_param_get_interface_remote_port(const pdns_ffi_param_t* ref) __attribute__((visibility("default")));
+  const char* pdns_ffi_param_get_interface_local(pdns_ffi_param_t* ref) __attribute__((visibility("default")));
+  void pdns_ffi_param_get_interface_local_raw(pdns_ffi_param_t* ref, const void** addr, size_t* addrSize) __attribute__((visibility("default")));
+  uint16_t pdns_ffi_param_get_interface_local_port(const pdns_ffi_param_t* ref) __attribute__((visibility("default")));
 
   const char* pdns_ffi_param_get_edns_cs(pdns_ffi_param_t* ref) __attribute__((visibility("default")));
   void pdns_ffi_param_get_edns_cs_raw(pdns_ffi_param_t* ref, const void** net, size_t* netSize) __attribute__((visibility("default")));

@@ -57,13 +57,13 @@ The DNSQuestion object contains at least the following fields:
       :class:`ComboAddress` where this query was received on.
       If the proxy protocol is used, this will contain the destination address from the proxy protocol header.
 
-  .. attribute:: DNSQuestion.phys_remoteaddr
+  .. attribute:: DNSQuestion.interface_remoteaddr
 
-      :class:`ComboAddress` of the physical requestor, that is, the physical network source address of the request.
+      :class:`ComboAddress` of the interface the requestor used, that is, the network source address of the request.
 
-  .. attribute:: DNSQuestion.phys_localaddr
+  .. attribute:: DNSQuestion.interface_localaddr
 
-      The physical :class:`ComboAddress` where this query was received on, which is one of the listening addresses of the recursor.
+      The :class:`ComboAddress` of the interface where this query was received on, which is one of the listening addresses of the recursor.
 
   .. attribute:: DNSQuestion.variable
 
