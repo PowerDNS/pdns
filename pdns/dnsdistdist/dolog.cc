@@ -32,7 +32,7 @@ std::string LoggingConfiguration::s_structuredLevelPrefix{"prio"};
 LoggingConfiguration::TimeFormat LoggingConfiguration::s_structuredTimeFormat{LoggingConfiguration::TimeFormat::Numeric};
 bool LoggingConfiguration::s_structuredLogging{false};
 bool LoggingConfiguration::s_logTimestamps{false};
-bool LoggingConfiguration::s_syslog{false};
+bool LoggingConfiguration::s_syslog{true};
 
 namespace
 {
