@@ -584,7 +584,7 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
 
     if (pdns_iequals(row[2], "PRODUCER")) {
       catalogs.insert(di.zone);
-      catalogHashes[di.zone].process("\0");
+      catalogHashes[di.zone].process("");
       continue; // Producer fresness check is performed elsewhere
     }
     else if (!pdns_iequals(row[2], "MASTER")) {
