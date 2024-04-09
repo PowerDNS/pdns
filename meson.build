@@ -149,6 +149,23 @@ deps = [
   dep_boost_test,
 ]
 
+if dep_systemd.found()
+  systemd_service_user = get_option('systemd-service-user')
+  systemd_service_group = get_option('systemd-service-group')
+  systemd_service = configure_file(
+    input: src_dir / 'pdns.service.in',
+    output: 'pdns-auth.service',
+    configuration: {
+      'sbindir': get_option('sbindir'),
+      'service_user': systemd_service_user,
+      'service_group': systemd_service_group,
+    },
+  )
+
+  summary('Service User', systemd_service_user, section: 'Systemd')
+  summary('Service Group', systemd_service_group, section: 'Systemd')
+endif
+
 libpdns_bindlexer_source = src_dir / 'bindlexer.l'
 libpdns_bindlexer_gen    = src_dir / 'bindlexer.c'
 if not fs.is_file(libpdns_bindlexer_gen)
