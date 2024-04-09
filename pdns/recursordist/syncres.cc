@@ -4345,7 +4345,10 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
         break;
       }
       initial = cnameIt->second;
-      wildcardCandidates.emplace(initial, false);
+      if (!wildcardCandidates.emplace(initial, false).second) {
+        // CNAME Loop
+        break;
+      }
     }
   }
 
