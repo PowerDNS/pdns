@@ -25,6 +25,7 @@
 #endif
 
 #include "dnsbackend.hh"
+#include "json.hh"
 
 void CatalogInfo::fromJson(const std::string& json, CatalogType type)
 {
@@ -32,48 +33,42 @@ void CatalogInfo::fromJson(const std::string& json, CatalogType type)
   if (d_type == CatalogType::None) {
     throw std::runtime_error("CatalogType is set to None");
   }
+
   if (json.empty()) {
     return;
   }
+
   std::string err;
   d_doc = json11::Json::parse(json, err);
-  if (!d_doc.is_null()) {
-    if (!d_doc[getTypeString(d_type)].is_null()) {
-      auto items = d_doc[getTypeString(type)].object_items();
-      if (!items["coo"].is_null()) {
-        if (items["coo"].is_string()) {
-          if (!items["coo"].string_value().empty()) {
-            d_coo = DNSName(items["coo"].string_value());
-          }
-        }
-        else {
-          throw std::out_of_range("Key 'coo' is not a string");
-        }
-      }
-      if (!items["unique"].is_null()) {
-        if (items["unique"].is_string()) {
-          if (!items["unique"].string_value().empty()) {
-            d_unique = DNSName(items["unique"].string_value());
-          }
-        }
-        else {
-          throw std::out_of_range("Key 'unique' is not a string");
-        }
-      }
-      if (!items["group"].is_null()) {
-        if (items["group"].is_array()) {
-          for (const auto& value : items["group"].array_items()) {
-            d_group.insert(value.string_value());
-          }
-        }
-        else {
-          throw std::out_of_range("Key 'group' is not an array");
-        }
+  if (d_doc.is_null()) {
+    throw std::runtime_error("Parsing of JSON options failed: " + err);
+  }
+
+  if (!d_doc[getTypeString(d_type)].is_null()) {
+    auto items = d_doc[getTypeString(type)].object_items();
+
+    // coo property
+    if (!items["coo"].is_null()) {
+      d_coo = DNSName(stringFromJson(items, "coo"));
+    }
+
+    // unique property
+    if (!items["unique"].is_null()) {
+      d_unique = DNSName(stringFromJson(items, "unique"));
+      if (d_unique.countLabels() != 1) {
+        throw std::out_of_range("Invalid number of labels in unique value");
       }
     }
-  }
-  else {
-    throw std::runtime_error("Parsing of JSON options failed: " + err);
+
+    // group properties
+    if (!items["group"].is_null()) {
+      if (!items["group"].is_array()) {
+        throw std::out_of_range("Key 'group' is not an array");
+      }
+      for (const auto& value : items["group"].array_items()) {
+        d_group.insert(value.string_value());
+      }
+    }
   }
 }
 
@@ -83,15 +78,21 @@ std::string CatalogInfo::toJson() const
     throw std::runtime_error("CatalogType is set to None");
   }
   json11::Json::object object;
+
+  // coo property
   if (!d_coo.empty()) {
     object["coo"] = d_coo.toString();
   }
+
+  // unique property
   if (!d_unique.empty()) {
-    if (d_unique.countLabels() > 1) {
-      throw std::out_of_range("Multiple labels in a unique value are not allowed");
+    if (d_unique.countLabels() != 1) {
+      throw std::out_of_range("Invalid number of labels in unique value");
     }
     object["unique"] = d_unique.toString();
   }
+
+  // group properties
   if (!d_group.empty()) {
     json11::Json::array entries;
     for (const auto& group : d_group) {
@@ -99,6 +100,7 @@ std::string CatalogInfo::toJson() const
     }
     object["group"] = entries;
   }
+
   auto tmp = d_doc.object_items();
   tmp[getTypeString(d_type)] = object;
   const json11::Json ret = tmp;
@@ -117,7 +119,6 @@ DNSZoneRecord CatalogInfo::getCatalogVersionRecord(const ZoneName& zone)
 {
   DNSZoneRecord dzr;
   dzr.dr.d_name = g_versiondnsname + zone.operator const DNSName&();
-  dzr.dr.d_ttl = 0;
   dzr.dr.d_type = QType::TXT;
   dzr.dr.setContent(std::make_shared<TXTRecordContent>("2"));
   return dzr;
@@ -134,24 +135,24 @@ void CatalogInfo::toDNSZoneRecords(const ZoneName& zone, vector<DNSZoneRecord>& 
   }
   prefix += g_zonesdnsname + zone.operator const DNSName&();
 
+  // member zone
   DNSZoneRecord dzr;
   dzr.dr.d_name = prefix;
-  dzr.dr.d_ttl = 0;
   dzr.dr.d_type = QType::PTR;
   dzr.dr.setContent(std::make_shared<PTRRecordContent>(d_zone.operator const DNSName&().toString()));
   dzrs.emplace_back(dzr);
 
+  // coo property
   if (!d_coo.empty()) {
     dzr.dr.d_name = g_coodnsname + prefix;
-    dzr.dr.d_ttl = 0;
     dzr.dr.d_type = QType::PTR;
     dzr.dr.setContent(std::make_shared<PTRRecordContent>(d_coo));
     dzrs.emplace_back(dzr);
   }
 
+  // group properties
   for (const auto& group : d_group) {
     dzr.dr.d_name = g_groupdnsname + prefix;
-    dzr.dr.d_ttl = 0;
     dzr.dr.d_type = QType::TXT;
     dzr.dr.setContent(std::make_shared<TXTRecordContent>("\"" + group + "\""));
     dzrs.emplace_back(dzr);
