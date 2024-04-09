@@ -469,7 +469,7 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
         continue;
       }
       catch (...) {
-        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << endl;
+        g_log << Logger::Warning << __PRETTY_FUNCTION__ << " error while parsing SOA data for zone '" << di.zone << "'" << endl;
         continue;
       }
 
