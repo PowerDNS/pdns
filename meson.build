@@ -58,6 +58,7 @@ subdir('meson' / 'dlopen')                  # dlopen
 subdir('meson' / 'verbose-logging')         # Verbose Logging
 subdir('meson' / 'pkcs11')                  # PKCS11
 subdir('meson' / 'gss-tsig')                # GSS-TSIG
+subdir('meson' / 'libsystemd')              # Systemd notification
 subdir('meson' / 'systemd')                 # Systemd and unit file handling
 subdir('meson' / 'code-coverage')           # Code coverage
 subdir('meson' / 'auto-var-init')           # Automatic Variable Initialization
