@@ -151,20 +151,132 @@ deps = [
 ]
 
 if dep_systemd.found()
+  systemd_service_conf = configuration_data()
+  systemd_service_conf.set('BinDir', get_option('bindir'))
+  systemd_service_conf.set('StaticBinDir', get_option('sbindir'))
   systemd_service_user = get_option('systemd-service-user')
   systemd_service_group = get_option('systemd-service-group')
-  systemd_service = configure_file(
-    input: src_dir / 'pdns.service.in',
-    output: 'pdns-auth.service',
-    configuration: {
-      'sbindir': get_option('sbindir'),
-      'service_user': systemd_service_user,
-      'service_group': systemd_service_group,
-    },
-  )
-
+  systemd_service_conf.set('ServiceUser', systemd_service_user)
+  systemd_service_conf.set('ServiceGroup', systemd_service_group)
   summary('Service User', systemd_service_user, section: 'Systemd')
   summary('Service Group', systemd_service_group, section: 'Systemd')
+
+  # ProtectSystem=full will disallow write access to /etc and /usr, possibly not being
+  # able to write slaved-zones into sqlite3 or zonefiles.
+  systemd_service_conf.set(
+    'ProtectSystem', have_systemd_protect_system ? 'ProtectSystem=full' : '',
+  )
+  systemd_service_conf.set(
+    'SystemCallArchitectures',
+    have_systemd_system_call_architectures ? 'SystemCallArchitectures=native' : '',
+  )
+  systemd_system_call_filter = '~ @clock @debug @module @mount @raw-io @reboot @swap @cpu-emulation @obsolete'
+  systemd_service_conf.set(
+    'SystemCallFilter',
+    have_systemd_system_call_filter ? 'SystemCallFilter=' + systemd_system_call_filter : '',
+  )
+  systemd_service_conf.set(
+    'ProtectProc',
+    have_systemd_protect_proc ? 'ProtectProc=invisible' : '',
+  )
+
+  systemd_features = {
+    'LockPersonality': have_systemd_lock_personality,
+    'PrivateDevices': have_systemd_private_devices,
+    'PrivateTmp': have_systemd_private_tmp,
+    'PrivateUsers': false, # Setting it to true prevents us from opening our sockets.
+    'ProtectClock': have_systemd_protect_clock,
+    'ProtectControlGroups': have_systemd_protect_control_groups,
+    'ProtectHome': have_systemd_protect_home,
+    'ProtectHostname': have_systemd_protect_hostname,
+    'ProtectKernelLogs': have_systemd_protect_kernel_logs,
+    'ProtectKernelModules': have_systemd_protect_kernel_modules,
+    'ProtectKernelTunables': have_systemd_protect_kernel_tunables,
+    'RestrictNamespaces': have_systemd_restrict_namespaces,
+    'RestrictRealtime': have_systemd_restrict_realtime,
+    'RestrictSUIDSGID': have_systemd_restrict_suidsgid,
+    'PrivateIPC': have_systemd_private_ipc,
+    'RemoveIPC': have_systemd_remove_ipc,
+  }
+
+  foreach feature, enable_it: systemd_features
+    systemd_service_conf.set(feature, enable_it ? feature + '=true': '')
+  endforeach
+
+  auth_service_conf = configuration_data()
+  auth_service_conf.merge_from(systemd_service_conf)
+  # Disabled, it breaks LuaJIT.
+  auth_service_conf.set(
+    'MemoryDenyWriteExecute',
+    have_systemd_memory_deny_write_execute ? 'MemoryDenyWriteExecute=false' : '',
+  )
+  auth_service_conf.set(
+    'RestrictAddressFamilies',
+    have_systemd_restrict_address_families ? 'RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6' : '',
+  )
+
+  enable_socket_dir = (not have_systemd_with_runtime_dir_env) and have_systemd_percent_t
+
+  auth_service_conf_general = configuration_data()
+  auth_service_conf_general.merge_from(auth_service_conf)
+  auth_service_conf_general.set('Description', 'PowerDNS Authoritative Server')
+  auth_service_conf_general.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns-auth' : '')
+  auth_service_conf_general.set('SyslogIdentifier', 'pdns-auth')
+  auth_service_conf_general.set('RuntimeDirectory', 'pdns-auth')
+
+  configure_file(
+    input: 'auth' / 'systemd' / 'pdns-auth.service.in',
+    output: 'pdns-auth.service',
+    configuration: auth_service_conf_general,
+  )
+
+  auth_service_conf_instance = configuration_data()
+  auth_service_conf_instance.merge_from(auth_service_conf)
+  auth_service_conf_instance.set('Description', 'PowerDNS Authoritative Server %i')
+  auth_service_conf_instance.set('ConfigName', '--config-name=%i')
+  auth_service_conf_instance.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns-auth-%i' : '')
+  auth_service_conf_instance.set('SyslogIdentifier', 'pdns-auth-%i')
+  auth_service_conf_instance.set('RuntimeDirectory', have_systemd_percent_t ? 'pdns-auth-%i' : 'pdns-auth')
+
+  configure_file(
+    input: 'auth' / 'systemd' / 'pdns-auth.service.in',
+    output: 'pdns-auth@.service',
+    configuration: auth_service_conf_instance,
+  )
+
+  if get_option('tools-ixfrdist')
+    ixfrdist_service_conf = configuration_data()
+    ixfrdist_service_conf.merge_from(systemd_service_conf)
+    ixfrdist_service_conf.set(
+      'MemoryDenyWriteExecute',
+      have_systemd_memory_deny_write_execute ? 'MemoryDenyWriteExecute=true' : '',
+    )
+    ixfrdist_service_conf.set(
+      'RestrictAddressFamilies',
+      have_systemd_restrict_address_families ? 'RestrictAddressFamilies=AF_INET AF_INET6' : '',
+    )
+
+    ixfrdist_service_conf_general = configuration_data()
+    ixfrdist_service_conf_general.merge_from(ixfrdist_service_conf)
+    ixfrdist_service_conf_general.set('Description', 'PowerDNS IXFR Distributor')
+
+    configure_file(
+      input: 'auth' / 'systemd' / 'ixfrdist.service.in',
+      output: 'ixfrdist.service',
+      configuration: ixfrdist_service_conf_general,
+    )
+
+    ixfrdist_service_conf_instance = configuration_data()
+    ixfrdist_service_conf_instance.merge_from(ixfrdist_service_conf)
+    ixfrdist_service_conf_instance.set('Description', 'PowerDNS IXFR Distributor %i')
+    ixfrdist_service_conf_instance.set('Config', '--config=' + get_option('sysconfdir') + '/ixfrdist-%.ymli')
+
+    configure_file(
+      input: 'auth' / 'systemd' / 'ixfrdist.service.in',
+      output: 'ixfrdist@.service',
+      configuration: ixfrdist_service_conf_instance,
+    )
+  endif
 endif
 
 libpdns_bindlexer_source = src_dir / 'bindlexer.l'
