@@ -11,6 +11,11 @@ on:
         required: true
         default: ''
         type: string
+      runner-docker-image-name:
+        description: 'Image name to be used for running all jobs'
+        required: false
+        default: ''
+        type: string
   schedule:
     - cron: '0 22 * * 3'
 
@@ -29,12 +34,28 @@ env:
   DECAF_SUPPORT: yes
 
 jobs:
+  get-runner-container-image:
+    name: generate docker runner image name
+    runs-on: ubuntu-22.04
+    outputs:
+      id: ${{ steps.get-runner-image.outputs.image-id }}
+      tag: ${{ steps.get-runner-image.outputs.tag }}
+    env:
+      DEFAULT_RUNNER_DOCKER_IMAGE: base-pdns-ci-image/debian-12-pdns-base
+      DEFAULT_IMAGE_TAG: master # update when backporting, e.g. auth-4.9.x
+    steps:
+      - id: get-runner-image
+        run: |
+          echo "image-id=ghcr.io/$(echo '${{ github.repository }}' | cut -d '/' -f 1 | tr '[:upper:]' '[:lower:]')/${{ inputs.runner-docker-image-name || env.DEFAULT_RUNNER_DOCKER_IMAGE }}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ env.DEFAULT_IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+
   build-auth:
     name: build auth
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-22.04
+    needs: get-runner-container-image
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         ASAN_OPTIONS: detect_leaks=0
         FUZZING_TARGETS: yes
@@ -100,6 +121,7 @@ jobs:
     name: build recursor
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-22.04
+    needs: get-runner-container-image
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -108,7 +130,7 @@ jobs:
           - sanitizers: tsan
             features: least
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         SANITIZERS: ${{ matrix.sanitizers }}
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
@@ -172,6 +194,7 @@ jobs:
     name: build dnsdist
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-22.04
+    needs: get-runner-container-image
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -180,7 +203,7 @@ jobs:
           - sanitizers: tsan
             features: least
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         SANITIZERS: ${{ matrix.sanitizers }}
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
@@ -244,10 +267,12 @@ jobs:
           retention-days: 1
 
   test-auth-api:
-    needs: build-auth
+    needs:
+      - build-auth
+      - get-runner-container-image
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
@@ -307,10 +332,12 @@ jobs:
           allow-empty: true
 
   test-auth-backend:
-    needs: build-auth
+    needs:
+      - build-auth
+      - get-runner-container-image
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
@@ -431,10 +458,12 @@ jobs:
           allow-empty: true
 
   test-ixfrdist:
-    needs: build-auth
+    needs:
+      - build-auth
+      - get-runner-container-image
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
@@ -466,7 +495,9 @@ jobs:
           allow-empty: true
 
   test-recursor-api:
-    needs: build-recursor
+    needs:
+      - build-recursor
+      - get-runner-container-image
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -475,7 +506,7 @@ jobs:
         dist_release_name: [bookworm]
         pdns_repo_version: ['48']
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
@@ -510,7 +541,9 @@ jobs:
           allow-empty: true
 
   test-recursor-regression:
-    needs: build-recursor
+    needs:
+      - build-recursor
+      - get-runner-container-image
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -519,7 +552,7 @@ jobs:
         dist_release_name: [bookworm]
         pdns_repo_version: ['48']
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
         ASAN_OPTIONS: detect_leaks=0
@@ -556,7 +589,9 @@ jobs:
 
   test-recursor-bulk:
     name: 'test rec *mini* bulk'
-    needs: build-recursor
+    needs:
+      - build-recursor
+      - get-runner-container-image
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -565,7 +600,7 @@ jobs:
         mthreads: [2048]
         shards: [1, 2, 1024]
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
         ASAN_OPTIONS: detect_leaks=0
@@ -598,13 +633,15 @@ jobs:
           allow-empty: true
 
   test-dnsdist-regression:
-    needs: build-dnsdist
+    needs:
+      - build-dnsdist
+      - get-runner-container-image
     runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         # Disabling (intercept_send=0) the custom send wrappers for ASAN and TSAN because they cause the tools to report a race that doesn't exist on actual implementations of send(), see https://github.com/google/sanitizers/issues/1498
@@ -690,7 +727,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
       - name: Get list of jobs in the workflow
-        run: "cat .github/workflows/build-and-test-all.yml | jc --yaml | jq -rS '.[].jobs | keys | .[]' | grep -v collect | tee /tmp/workflow-jobs-list.yml"
+        run: "cat .github/workflows/build-and-test-all.yml | jc --yaml | jq -rS '.[].jobs | keys | .[]' | grep -vE 'collect|get-runner-container-image' | tee /tmp/workflow-jobs-list.yml"
       - name: Get list of prerequisite jobs
         run: "echo '${{ toJSON(needs) }}' | jq -rS 'keys | .[]' | tee /tmp/workflow-needs-list.yml"
       - name: Fail if there is a job missing on the needs list
