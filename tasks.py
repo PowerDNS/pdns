@@ -469,8 +469,7 @@ def get_base_configure_cmd_meson(build_dir, additional_c_flags='', additional_cx
         f"CC='{get_c_compiler()}'",
         f"CXX='{get_cxx_compiler()}'",
         f'. {repo_home}/.venv/bin/activate && meson setup {build_dir}',
-        # TODO
-        # "--enable-systemd" if enable_systemd else '',
+        "-D systemd={}".format("enabled" if enable_systemd else "disabled"),
         "-D signers-libsodium={}".format("enabled" if enable_sodium else "disabled"),
         "-D hardening-fortify-source=auto",
         "-D auto-var-init=pattern",
