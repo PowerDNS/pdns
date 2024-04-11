@@ -11,6 +11,11 @@ on:
         required: true
         default: ''
         type: string
+      runner-docker-image-name:
+        description: 'Image name to be used for running all jobs'
+        required: false
+        default: ''
+        type: string
   schedule:
     - cron: '0 22 * * 3'
 
@@ -29,12 +34,28 @@ env:
   DECAF_SUPPORT: yes
 
 jobs:
+  get-runner-container-image:
+    name: generate docker runner image name
+    runs-on: ubuntu-22.04
+    outputs:
+      id: ${{ steps.get-runner-image.outputs.image-id }}
+      tag: ${{ steps.get-runner-image.outputs.tag }}
+    env:
+      DEFAULT_RUNNER_DOCKER_IMAGE: base-pdns-ci-image/debian-12-pdns-base
+      DEFAULT_IMAGE_TAG: master # update when backporting, e.g. auth-4.9.x
+    steps:
+      - id: get-runner-image
+        run: |
+          echo "image-id=ghcr.io/$(echo '${{ github.repository }}' | cut -d '/' -f 1 | tr '[:upper:]' '[:lower:]')/${{ inputs.runner-docker-image-name || env.DEFAULT_RUNNER_DOCKER_IMAGE }}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ env.DEFAULT_IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+
   build-auth:
     name: build auth
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-22.04
+    needs: get-runner-container-image
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         ASAN_OPTIONS: detect_leaks=0
         FUZZING_TARGETS: yes
@@ -109,10 +130,12 @@ jobs:
           retention-days: 1
 
   test-auth-api:
-    needs: build-auth
+    needs:
+      - build-auth
+      - get-runner-container-image
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
@@ -184,10 +207,12 @@ jobs:
           allow-empty: true
 
   test-auth-backend:
-    needs: build-auth
+    needs:
+      - build-auth
+      - get-runner-container-image
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
@@ -320,10 +345,12 @@ jobs:
           allow-empty: true
 
   test-ixfrdist:
-    needs: build-auth
+    needs:
+      - build-auth
+      - get-runner-container-image
     runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
@@ -409,7 +436,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
       - name: Get list of jobs in the workflow
-        run: "yq e '.jobs | keys' .github/workflows/build-and-test-all.yml | awk '{print $2}' | grep -v collect | sort | tee /tmp/workflow-jobs-list.yml"
+        run: "cat .github/workflows/build-and-test-all.yml | jc --yaml | jq -rS '.[].jobs | keys | .[]' | grep -vE 'collect|get-runner-container-image' | tee /tmp/workflow-jobs-list.yml"
       - name: Get list of prerequisite jobs
         run: "echo '${{ toJSON(needs) }}' | jq 'keys | .[]' | tr -d '\"' | sort | tee /tmp/workflow-needs-list.yml"
       - name: Fail if there is a job missing on the needs list
