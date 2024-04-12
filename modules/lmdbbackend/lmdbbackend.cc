@@ -2396,9 +2396,7 @@ void LMDBBackend::setLastCheckTime(domainid_t domain_id, time_t last_check)
 
 void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
-  CatalogInfo ci;
-
-  getAllDomainsFiltered(&(updatedDomains), [this, &catalogs, &catalogHashes, &ci](DomainInfo& di) {
+  getAllDomainsFiltered(&(updatedDomains), [this, &catalogs, &catalogHashes](DomainInfo& di) {
     if (!di.isPrimaryType()) {
       return false;
     }
@@ -2410,12 +2408,13 @@ void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
     }
 
     if (!di.catalog.empty()) {
-      ci.fromJson(di.options, CatalogInfo::CatalogType::Producer);
-      ci.updateHash(catalogHashes, di);
+      CatalogInfo::updateCatalogHash(catalogHashes, di);
     }
 
     if (getSerial(di) && di.serial != di.notified_serial) {
       di.backend = this;
+      di.catalog.clear();
+      di.options.clear();
       return true;
     }
 
