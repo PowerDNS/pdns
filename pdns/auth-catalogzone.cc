@@ -27,15 +27,17 @@
 #include "dnsbackend.hh"
 #include "json.hh"
 
-void CatalogInfo::fromJson(const std::string& json, CatalogType type)
+bool CatalogInfo::parseJson(const std::string& json, CatalogType type)
 {
-  d_type = type;
-  if (d_type == CatalogType::None) {
+  if (type == CatalogType::None) {
     throw std::runtime_error("CatalogType is set to None");
   }
 
+  d_type = type;
+
   if (json.empty()) {
-    return;
+    d_doc = nullptr;
+    return false;
   }
 
   std::string err;
@@ -44,7 +46,12 @@ void CatalogInfo::fromJson(const std::string& json, CatalogType type)
     throw std::runtime_error("Parsing of JSON options failed: " + err);
   }
 
-  if (!d_doc[getTypeString(d_type)].is_null()) {
+  return !d_doc[getTypeString(d_type)].is_null();
+}
+
+void CatalogInfo::fromJson(const std::string& json, CatalogType type)
+{
+  if (parseJson(json, type)) {
     auto items = d_doc[getTypeString(type)].object_items();
 
     // coo property
@@ -107,11 +114,12 @@ std::string CatalogInfo::toJson() const
   return ret.dump();
 }
 
-void CatalogInfo::updateHash(CatalogHashMap& hashes, const DomainInfo& di) const
+void CatalogInfo::updateCatalogHash(CatalogHashMap& hashes, const DomainInfo& di)
 {
-  hashes[di.catalog].process(std::to_string(di.id) + di.zone.toLogString() + string("\0", 1) + d_coo.toLogString() + string("\0", 1) + d_unique.toLogString());
-  for (const auto& group : d_group) {
-    hashes[di.catalog].process(std::to_string(group.length()) + group);
+  CatalogInfo ci;
+  hashes[di.catalog].process(std::to_string(di.id) + di.zone.toLogString());
+  if (ci.parseJson(di.options, CatalogType::Producer)) {
+    hashes[di.catalog].process(ci.d_doc["producer"].dump());
   }
 }
 

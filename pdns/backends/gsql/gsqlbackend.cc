@@ -599,8 +599,8 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
 
     try {
       if (!row[5].empty()) {
-        ci.fromJson(row[4], CatalogInfo::CatalogType::Producer);
-        ci.updateHash(catalogHashes, di);
+        di.options = row[4];
+        CatalogInfo::updateCatalogHash(catalogHashes, di);
       }
     }
     catch (const std::exception& e) {
@@ -632,6 +632,7 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
       di.kind = DomainInfo::Primary;
       di.serial = sd.serial;
       di.catalog.clear();
+      di.options.clear();
 
       updatedDomains.emplace_back(di);
     }
