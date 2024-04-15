@@ -969,6 +969,7 @@ static bool isValidMetadataKind(const string& kind, bool readonly)
     {"PRESIGNED", true},
     {"PUBLISH-CDNSKEY", false},
     {"PUBLISH-CDS", false},
+    {"SIGNALING-ZONE", false},
     {"SLAVE-RENOTIFY", false},
     {"SOA-EDIT", true},
     {"SOA-EDIT-DNSUPDATE", false},

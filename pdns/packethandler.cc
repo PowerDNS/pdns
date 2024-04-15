@@ -1342,6 +1342,9 @@ void PacketHandler::completeANYRecords(DNSPacket& p, std::unique_ptr<DNSPacket>&
 
 bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) {
   DLOG(g_log<<Logger::Warning<<"Let's try authenticated DNSSEC bootstrapping (RFC 9615) ..."<<endl);
+  if(d_sd.zonename.operator const DNSName&().getRawLabel(0) != "_signal" || !d_dk.isSignalingZone(d_sd.zonename)) {
+    return false;
+  }
 
   // Check that we're doing online signing in narrow mode (as we don't know next owner names)
   if(!d_dk.isSecuredZone(d_sd.zonename) || d_dk.isPresigned(d_sd.zonename)) {
