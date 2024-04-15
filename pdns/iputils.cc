@@ -67,10 +67,10 @@ int SConnect(int sockfd, const ComboAddress& remote)
 int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct timeval& timeout)
 {
   int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
-  if(ret < 0) {
+  if (ret < 0) {
     int savederrno = errno;
     if (savederrno == EINPROGRESS) {
-      if (timeout <= timeval{0,0}) {
+      if (timeout <= timeval{0, 0}) {
         return savederrno;
       }
 
@@ -82,7 +82,7 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct tim
         if (error) {
           savederrno = 0;
           socklen_t errlen = sizeof(savederrno);
-          if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (void *)&savederrno, &errlen) == 0) {
+          if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (void*)&savederrno, &errlen) == 0) {
             NetworkErr("connecting to " + remote.toStringWithPort() + " failed: " + stringerror(savederrno));
           }
           else {
@@ -96,7 +96,8 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct tim
       }
       else if (res == 0) {
         NetworkErr("timeout while connecting to " + remote.toStringWithPort());
-      } else if (res < 0) {
+      }
+      else if (res < 0) {
         savederrno = errno;
         NetworkErr("waiting to connect to " + remote.toStringWithPort() + ": " + stringerror(savederrno));
       }
@@ -153,40 +154,40 @@ void setSocketIgnorePMTU([[maybe_unused]] int sockfd, [[maybe_unused]] int famil
   if (family == AF_INET) {
 #if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
 #ifdef IP_PMTUDISC_OMIT
-  /* Linux 3.15+ has IP_PMTUDISC_OMIT, which discards PMTU information to prevent
-     poisoning, but still allows fragmentation if the packet size exceeds the
-     outgoing interface MTU, which is good.
-  */
+    /* Linux 3.15+ has IP_PMTUDISC_OMIT, which discards PMTU information to prevent
+       poisoning, but still allows fragmentation if the packet size exceeds the
+       outgoing interface MTU, which is good.
+    */
     try {
       SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_OMIT);
       return;
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
       /* failed, let's try IP_PMTUDISC_DONT instead */
     }
 #endif /* IP_PMTUDISC_OMIT */
 
-  /* IP_PMTUDISC_DONT disables Path MTU discovery */
+    /* IP_PMTUDISC_DONT disables Path MTU discovery */
     SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DONT);
 #endif /* defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT) */
   }
   else {
-    #if defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DONT)
+#if defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DONT)
 #ifdef IPV6_PMTUDISC_OMIT
-  /* Linux 3.15+ has IPV6_PMTUDISC_OMIT, which discards PMTU information to prevent
-     poisoning, but still allows fragmentation if the packet size exceeds the
-     outgoing interface MTU, which is good.
-  */
+    /* Linux 3.15+ has IPV6_PMTUDISC_OMIT, which discards PMTU information to prevent
+       poisoning, but still allows fragmentation if the packet size exceeds the
+       outgoing interface MTU, which is good.
+    */
     try {
       SSetsockopt(sockfd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, IPV6_PMTUDISC_OMIT);
       return;
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
       /* failed, let's try IP_PMTUDISC_DONT instead */
     }
 #endif /* IPV6_PMTUDISC_OMIT */
 
-  /* IPV6_PMTUDISC_DONT disables Path MTU discovery */
+    /* IPV6_PMTUDISC_DONT disables Path MTU discovery */
     SSetsockopt(sockfd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, IPV6_PMTUDISC_DONT);
 #endif /* defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DONT) */
   }
@@ -239,10 +240,9 @@ bool setReusePort(int sockfd)
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
 {
 #ifdef SO_TIMESTAMP
-  struct cmsghdr *cmsg;
-  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(msgh,cmsg)) {
-    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) &&
-	CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
+  struct cmsghdr* cmsg;
+  for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(msgh, cmsg)) {
+    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) && CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
       memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
       return true;
     }
@@ -260,15 +260,15 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 #endif
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(const_cast<struct msghdr*>(msgh), const_cast<struct cmsghdr*>(cmsg))) {
 #if defined(IP_PKTINFO)
-     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
-        struct in_pktinfo *i = (struct in_pktinfo *) CMSG_DATA(cmsg);
-        destination->sin4.sin_addr = i->ipi_addr;
-        destination->sin4.sin_family = AF_INET;
-        return true;
+    if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
+      struct in_pktinfo* i = (struct in_pktinfo*)CMSG_DATA(cmsg);
+      destination->sin4.sin_addr = i->ipi_addr;
+      destination->sin4.sin_family = AF_INET;
+      return true;
     }
 #elif defined(IP_RECVDSTADDR)
     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_RECVDSTADDR)) {
-      struct in_addr *i = (struct in_addr *) CMSG_DATA(cmsg);
+      struct in_addr* i = (struct in_addr*)CMSG_DATA(cmsg);
       destination->sin4.sin_addr = *i;
       destination->sin4.sin_family = AF_INET;
       return true;
@@ -276,10 +276,10 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 #endif
 
     if ((cmsg->cmsg_level == IPPROTO_IPV6) && (cmsg->cmsg_type == IPV6_PKTINFO)) {
-        struct in6_pktinfo *i = (struct in6_pktinfo *) CMSG_DATA(cmsg);
-        destination->sin6.sin6_addr = i->ipi6_addr;
-        destination->sin4.sin_family = AF_INET6;
-        return true;
+      struct in6_pktinfo* i = (struct in6_pktinfo*)CMSG_DATA(cmsg);
+      destination->sin6.sin6_addr = i->ipi6_addr;
+      destination->sin4.sin_family = AF_INET6;
+      return true;
     }
   }
   return false;
@@ -287,14 +287,14 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 
 bool IsAnyAddress(const ComboAddress& addr)
 {
-  if(addr.sin4.sin_family == AF_INET)
+  if (addr.sin4.sin_family == AF_INET)
     return addr.sin4.sin_addr.s_addr == 0;
-  else if(addr.sin4.sin_family == AF_INET6)
+  else if (addr.sin4.sin_family == AF_INET6)
     return !memcmp(&addr.sin6.sin6_addr, &in6addr_any, sizeof(addr.sin6.sin6_addr));
 
   return false;
 }
-int sendOnNBSocket(int fd, const struct msghdr *msgh)
+int sendOnNBSocket(int fd, const struct msghdr* msgh)
 {
   int sendErr = 0;
 #ifdef __OpenBSD__
@@ -323,7 +323,7 @@ int sendOnNBSocket(int fd, const struct msghdr *msgh)
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr)
 {
   iov->iov_base = data;
-  iov->iov_len  = datalen;
+  iov->iov_len = datalen;
 
   memset(msgh, 0, sizeof(struct msghdr));
 
@@ -331,7 +331,7 @@ void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, s
   msgh->msg_controllen = cbufsize;
   msgh->msg_name = addr;
   msgh->msg_namelen = addr->getSocklen();
-  msgh->msg_iov  = iov;
+  msgh->msg_iov = iov;
   msgh->msg_iovlen = 1;
   msgh->msg_flags = 0;
 }
@@ -340,30 +340,30 @@ void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, s
 void ComboAddress::truncate(unsigned int bits) noexcept
 {
   uint8_t* start;
-  int len=4;
-  if(sin4.sin_family==AF_INET) {
-    if(bits >= 32)
+  int len = 4;
+  if (sin4.sin_family == AF_INET) {
+    if (bits >= 32)
       return;
     start = (uint8_t*)&sin4.sin_addr.s_addr;
-    len=4;
+    len = 4;
   }
   else {
-    if(bits >= 128)
+    if (bits >= 128)
       return;
     start = (uint8_t*)&sin6.sin6_addr.s6_addr;
-    len=16;
+    len = 16;
   }
 
-  auto tozero= len*8 - bits; // if set to 22, this will clear 1 byte, as it should
+  auto tozero = len * 8 - bits; // if set to 22, this will clear 1 byte, as it should
 
-  memset(start + len - tozero/8, 0, tozero/8); // blot out the whole bytes on the right
+  memset(start + len - tozero / 8, 0, tozero / 8); // blot out the whole bytes on the right
 
-  auto bitsleft=tozero % 8; // 2 bits left to clear
+  auto bitsleft = tozero % 8; // 2 bits left to clear
 
   // a b c d, to truncate to 22 bits, we just zeroed 'd' and need to zero 2 bits from c
   // so and by '11111100', which is ~((1<<2)-1)  = ~3
-  uint8_t* place = start + len - 1 - tozero/8;
-  *place &= (~((1<<bitsleft)-1));
+  uint8_t* place = start + len - 1 - tozero / 8;
+  *place &= (~((1 << bitsleft) - 1));
 }
 
 size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags)
@@ -423,9 +423,9 @@ size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const 
       }
 
       /* partial write */
- #ifdef MSG_FASTOPEN
+#ifdef MSG_FASTOPEN
       firstTry = false;
- #endif
+#endif
       iov.iov_len -= written;
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic): it's the API
       iov.iov_base = reinterpret_cast<void*>(reinterpret_cast<char*>(iov.iov_base) + written);
@@ -445,8 +445,7 @@ size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const 
       }
       unixDie("failed in sendMsgWithOptions");
     }
-  }
-  while (true);
+  } while (true);
 
   return 0;
 }
@@ -522,7 +521,7 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
     return ComboAddress(input, port);
   case 1: { // case 3
     string::size_type cpos = input.rfind(':');
-    pair<std::string,std::string> both;
+    pair<std::string, std::string> both;
     both.first = input.substr(0, cpos);
     both.second = input.substr(cpos + 1);
 
@@ -598,12 +597,12 @@ std::set<std::string> getListOfNetworkInterfaces()
 {
   std::set<std::string> result;
 #ifdef HAVE_GETIFADDRS
-  struct ifaddrs *ifaddr;
+  struct ifaddrs* ifaddr;
   if (getifaddrs(&ifaddr) == -1) {
     return result;
   }
 
-  for (struct ifaddrs *ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+  for (struct ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
     if (ifa->ifa_name == nullptr) {
       continue;
     }
@@ -619,12 +618,12 @@ std::set<std::string> getListOfNetworkInterfaces()
 std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string& itf)
 {
   std::vector<ComboAddress> result;
-  struct ifaddrs *ifaddr = nullptr;
+  struct ifaddrs* ifaddr = nullptr;
   if (getifaddrs(&ifaddr) == -1) {
     return result;
   }
 
-  for (struct ifaddrs *ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+  for (struct ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
     if (ifa->ifa_name == nullptr || strcmp(ifa->ifa_name, itf.c_str()) != 0) {
       continue;
     }
@@ -651,7 +650,7 @@ std::vector<ComboAddress> getListOfAddressesOfNetworkInterface(const std::string
   std::vector<ComboAddress> result;
   return result;
 }
-#endif                          // HAVE_GETIFADDRS
+#endif // HAVE_GETIFADDRS
 
 #ifdef HAVE_GETIFADDRS
 static uint8_t convertNetmaskToBits(const uint8_t* mask, socklen_t len)
@@ -678,12 +677,12 @@ static uint8_t convertNetmaskToBits(const uint8_t* mask, socklen_t len)
 std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf)
 {
   std::vector<Netmask> result;
-  struct ifaddrs *ifaddr = nullptr;
+  struct ifaddrs* ifaddr = nullptr;
   if (getifaddrs(&ifaddr) == -1) {
     return result;
   }
 
-  for (struct ifaddrs *ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+  for (struct ifaddrs* ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
     if (ifa->ifa_name == nullptr || strcmp(ifa->ifa_name, itf.c_str()) != 0) {
       continue;
     }
@@ -719,4 +718,4 @@ std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& /* itf
   std::vector<Netmask> result;
   return result;
 }
-#endif                          // HAVE_GETIFADDRS
+#endif // HAVE_GETIFADDRS

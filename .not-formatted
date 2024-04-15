@@ -1,4 +1,4 @@
-./ext/lmdb-safe/lmdb-safe.cc
+]./ext/lmdb-safe/lmdb-safe.cc
 ./ext/lmdb-safe/lmdb-safe.hh
 ./ext/lmdb-safe/lmdb-typed.cc
 ./ext/lmdb-safe/lmdb-typed.hh
@@ -108,8 +108,6 @@
 ./pdns/gettime.hh
 ./pdns/histog.hh
 ./pdns/inflighter.cc
-./pdns/iputils.cc
-./pdns/iputils.hh
 ./pdns/ixfr.cc
 ./pdns/ixfr.hh
 ./pdns/ixfrdist-stats.cc
