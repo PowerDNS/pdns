@@ -1,4 +1,4 @@
-dnspython==2.1.0
+dnspython==2.6.1
 pytest
 git+https://github.com/PowerDNS/xfrserver.git@0.1
 requests
