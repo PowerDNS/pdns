@@ -85,6 +85,17 @@ bool DNSSECKeeper::isPresigned(const ZoneName& name, bool useCache)
   return meta=="1";
 }
 
+bool DNSSECKeeper::isSignalingZone(const ZoneName& name, bool useCache)
+{
+  string meta;
+  if (useCache) {
+    getFromMeta(name, "SIGNALING-ZONE", meta);
+  }
+  else {
+    getFromMetaNoCache(name, "SIGNALING-ZONE", meta);
+  }
+  return meta=="1";
+}
 
 bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, int64_t& keyId, int bits, bool active, bool published)
 {
