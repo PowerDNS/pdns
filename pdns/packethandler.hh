@@ -74,7 +74,9 @@ private:
   void addRootReferral(DNSPacket& r);
   int doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) const;
   bool addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
+  bool addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAData &sd);
   bool addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
+  bool addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAData &sd);
   bool addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   bool addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   void doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPacket>& r);

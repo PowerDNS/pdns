@@ -117,18 +117,23 @@ PacketHandler::~PacketHandler()
  *
  * @param p          Pointer to the DNSPacket containing the original question
  * @param r          Pointer to the DNSPacket where the records should be inserted into
+ * @param sd         SOAData of the zone from which CDNSKEY contents are taken (default: d_sd)
  * @return           bool that shows if any records were added
 **/
 bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 {
+  return addCDNSKEY(p, r, d_sd);
+}
+bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAData &sd)
+{
   string publishCDNSKEY;
-  d_dk.getPublishCDNSKEY(r->qdomainzone,publishCDNSKEY);
+  d_dk.getPublishCDNSKEY(sd.zonename,publishCDNSKEY);
   if (publishCDNSKEY.empty())
     return false;
 
   DNSZoneRecord rr;
   rr.dr.d_type=QType::CDNSKEY;
-  rr.dr.d_ttl=d_sd.minimum;
+  rr.dr.d_ttl=sd.minimum;
   rr.dr.d_name=p.qdomain;
   rr.auth=true;
 
@@ -139,7 +144,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   }
 
   bool haveOne=false;
-  for (const auto& value : d_dk.getEntryPoints(r->qdomainzone)) {
+  for (const auto& value : d_dk.getEntryPoints(sd.zonename)) {
     if (!value.second.published) {
       continue;
     }
@@ -149,10 +154,11 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::CDNSKEY), p.qdomain, d_sd.domain_id, &p);
+    B.lookup(QType(QType::CDNSKEY), sd.qname(), sd.domain_id, &p);
 
     while(B.get(rr)) {
-      rr.dr.d_ttl=d_sd.minimum;
+      rr.dr.d_ttl=sd.minimum;
+      rr.dr.d_name=p.qdomain;
       r->addRecord(std::move(rr));
       haveOne=true;
     }
@@ -204,12 +210,17 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
  * @param p   Pointer to the DNSPacket containing the original question.
  * @param r   Pointer to the DNSPacket where the records should be inserted into.
  *            used to determine record TTL.
+ * @param sd  SOAData of the zone from which CDS contents are taken (default: d_sd)
  * @return    bool that shows if any records were added.
 **/
-bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
+bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r) // NOLINT(readability-identifier-length)
+{
+  return addCDS(p, r, d_sd);
+}
+bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAData &sd) // NOLINT(readability-identifier-length)
 {
   string publishCDS;
-  d_dk.getPublishCDS(r->qdomainzone, publishCDS);
+  d_dk.getPublishCDS(sd.zonename, publishCDS);
   if (publishCDS.empty())
     return false;
 
@@ -218,7 +229,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 
   DNSZoneRecord rr;
   rr.dr.d_type=QType::CDS;
-  rr.dr.d_ttl=d_sd.minimum;
+  rr.dr.d_ttl=sd.minimum;
   rr.dr.d_name=p.qdomain;
   rr.auth=true;
 
@@ -230,22 +241,23 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 
   bool haveOne=false;
 
-  for (const auto& value : d_dk.getEntryPoints(r->qdomainzone)) {
+  for (const auto& value : d_dk.getEntryPoints(sd.zonename)) {
     if (!value.second.published) {
       continue;
     }
     for(auto const &digestAlgo : digestAlgos){
-      rr.dr.setContent(std::make_shared<DSRecordContent>(makeDSFromDNSKey(p.qdomain, value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo))));
+      rr.dr.setContent(std::make_shared<DSRecordContent>(makeDSFromDNSKey(sd.qname(), value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo))));
       r->addRecord(DNSZoneRecord(rr));
       haveOne=true;
     }
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::CDS), p.qdomain, d_sd.domain_id, &p);
+    B.lookup(QType(QType::CDS), sd.qname(), sd.domain_id, &p);
 
     while(B.get(rr)) {
-      rr.dr.d_ttl=d_sd.minimum;
+      rr.dr.d_ttl=sd.minimum;
+      rr.dr.d_name=p.qdomain;
       r->addRecord(std::move(rr));
       haveOne=true;
     }
