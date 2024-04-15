@@ -119,7 +119,7 @@ public:
   virtual bool reachedMaxStreamID() const = 0;
   virtual bool reachedMaxConcurrentQueries() const = 0;
   virtual bool isIdle() const = 0;
-  virtual void release() = 0;
+  virtual void release(bool removeFromCache) = 0;
   virtual void stopIO()
   {
   }
@@ -256,7 +256,7 @@ public:
 
   void queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query) override;
   void handleTimeout(const struct timeval& now, bool write) override;
-  void release() override;
+  void release(bool removeFromCache) override;
 
   std::string toString() const override
   {

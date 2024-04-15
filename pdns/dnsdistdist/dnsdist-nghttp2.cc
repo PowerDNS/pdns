@@ -70,8 +70,9 @@ public:
   bool reachedMaxConcurrentQueries() const override;
   bool reachedMaxStreamID() const override;
   bool isIdle() const override;
-  void release() override
+  void release(bool removeFromCache) override
   {
+    (void)removeFromCache;
   }
 
 private:

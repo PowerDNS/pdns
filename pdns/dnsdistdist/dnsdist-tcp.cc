@@ -342,7 +342,7 @@ void IncomingTCPConnectionState::terminateClientConnection()
      we don't care about the ones still waiting for responses */
   for (auto& backend : d_ownedConnectionsToBackend) {
     for (auto& conn : backend.second) {
-      conn->release();
+      conn->release(true);
     }
   }
   d_ownedConnectionsToBackend.clear();
@@ -475,7 +475,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
         for (auto it = list.begin(); it != list.end(); ++it) {
           if (*it == response.d_connection) {
             try {
-              response.d_connection->release();
+              response.d_connection->release(true);
             }
             catch (const std::exception& e) {
               vinfolog("Error releasing connection: %s", e.what());
