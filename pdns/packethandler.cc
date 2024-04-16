@@ -1342,6 +1342,18 @@ bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, D
     return false;
   }
 
+  // Check that we're doing online signing in narrow mode (as we don't know next owner names)
+  if(!d_dk.isSecuredZone(d_sd.zonename) || d_dk.isPresigned(d_sd.zonename)) {
+    g_log << Logger::Warning << "Signaling zone '" << d_sd.zonename << "' must be secured (but not presigned!); synthesis disabled (" << target << "/" << p.qtype << " from " << p.getRemoteString() << ")" << endl;
+    return false;
+  }
+  string val;
+  d_dk.getFromMeta(d_sd.zonename, "NSEC3NARROW", val);
+  if(val != "1") {
+    g_log << Logger::Warning << "Signaling zone '" << d_sd.zonename << "' must use NSEC3 narrow; synthesis disabled (" << target << "/" << p.qtype << ")" << " from " << p.getRemoteString() << ")" << endl;
+    return false;
+  }
+
   // Check for prefix mismatch
   if(target.getRawLabel(0) != "_dsboot") {
     makeNOError(p, r, target, DNSName(), 0); // could be ENT
