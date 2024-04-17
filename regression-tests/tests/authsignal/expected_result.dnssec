@@ -1,0 +1,5 @@
+0	_dsboot.cdnskey-cds-test.com._signal.ns1.example.net.	86400	IN	CDS	[keytag] 13 2 [digest]
+0	_dsboot.cdnskey-cds-test.com._signal.ns1.example.net.	86400	IN	RRSIG	CDS 13 7 86400 [expiry] [inception] [keytag] _signal.ns1.example.net. ...
+2	.	32768	IN	OPT	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='_dsboot.cdnskey-cds-test.com._signal.ns1.example.net.', qtype=CDS

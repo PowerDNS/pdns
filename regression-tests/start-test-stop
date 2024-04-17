@@ -172,6 +172,9 @@ securezone ()
                         $PDNSUTIL --config-dir=. $configname set-publish-cds $zone 0 2>&1
                         $PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone delete 2>&1
                 fi
+                if [ "$zone" = "_signal.ns1.example.net" ]; then
+                  $PDNSUTIL --config-dir=. $configname set-meta $zone SIGNALING-ZONE 1 2>&1
+                fi
         fi
 }
 
