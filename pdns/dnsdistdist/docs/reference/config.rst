@@ -128,7 +128,7 @@ Listen Sockets
      ``additionalAddresses``, ``ignoreTLSConfigurationErrors`` and ``keepIncomingHeaders`` options added.
 
   .. versionchanged:: 1.9.0
-     ``enableProxyProtocol``, ``library``, ``proxyProtocolOutsideTLS`` and ``readAhead`` options added.
+     ``enableProxyProtocol``, ``ktls``, ``library``, ``proxyProtocolOutsideTLS``, ``readAhead``, ``tlsAsyncMode`` options added.
 
   Listen on the specified address and TCP port for incoming DNS over HTTPS connections, presenting the specified X.509 certificate. See :doc:`../advanced/tls-certificates-management` for details about the handling of TLS certificates and keys.
   If no certificate (or key) files are specified, listen for incoming DNS over HTTP connections instead.
@@ -174,6 +174,8 @@ Listen Sockets
   * ``additionalAddresses``: list - List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses.
   * ``ignoreTLSConfigurationErrors=false``: bool - Ignore TLS configuration errors (such as invalid certificate path) and just issue a warning instead of aborting the whole process
   * ``library``: str - Which underlying HTTP2 library should be used, either h2o or nghttp2. Until 1.9.0 only h2o was available, but the use of this library is now deprecated as it is no longer maintained. nghttp2 is the new default since 1.9.0.
+  * ``ktls=false``: bool - Whether to enable the experimental kernel TLS support on Linux, if both the kernel and the OpenSSL library support it. Default is false.
+  * ``tlsAsyncMode=false``: bool - Whether to enable experimental asynchronous TLS I/O operations if the ``nghttp2`` library is used, ``OpenSSL`` is used as the TLS implementation and an asynchronous capable SSL engine (or provider) is loaded. See also :func:`loadTLSEngine` or :func:`loadTLSProvider` to load the engine (or provider).
   * ``readAhead``: bool - When the TLS provider is set to OpenSSL, whether we tell the library to read as many input bytes as possible, which leads to better performance by reducing the number of syscalls. Default is true.
   * ``proxyProtocolOutsideTLS``: bool - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text.
   * ``enableProxyProtocol=true``: bool - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address in :func:`setProxyProtocolACL`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the :func:`setProxyProtocolACL` ACL.
@@ -2167,7 +2169,7 @@ Other functions
 
   Load the OpenSSL engine named ``engineName``, setting the engine default string to ``defaultString`` if supplied. Engines can be used to accelerate cryptographic operations, like for example Intel QAT.
   At the moment up to a maximum of 32 loaded engines are supported, and that support is experimental.
-  Some engines might actually degrade performance unless the TLS asynchronous mode of OpenSSL is enabled. To enable it see the ``tlsAsyncMode`` parameter on :func:`addTLSLocal`.
+  Some engines might actually degrade performance unless the TLS asynchronous mode of OpenSSL is enabled. To enable it see the ``tlsAsyncMode`` parameter on :func:`addTLSLocal` and :func:`addDOHLocal`.
 
   :param string engineName: The name of the engine to load.
   :param string defaultString: The default string to pass to the engine. The exact value depends on the engine but represents the algorithms to register with the engine, as a list of  comma-separated keywords. For example "RSA,EC,DSA,DH,PKEY,PKEY_CRYPTO,PKEY_ASN1".
@@ -2179,7 +2181,7 @@ Other functions
   Load the OpenSSL provider named ``providerName``. Providers can be used to accelerate cryptographic operations, like for example Intel QAT.
   At the moment up to a maximum of 32 loaded providers are supported, and that support is experimental.
   Note that :func:`loadTLSProvider` is only available when building against OpenSSL version >= 3.0 and with the `--enable-tls-provider` configure flag on. In other cases, :func:`loadTLSEngine` should be used instead.
-  Some providers might actually degrade performance unless the TLS asynchronous mode of OpenSSL is enabled. To enable it see the ``tlsAsyncMode`` parameter on :func:`addTLSLocal`.
+  Some providers might actually degrade performance unless the TLS asynchronous mode of OpenSSL is enabled. To enable it see the ``tlsAsyncMode`` parameter on :func:`addTLSLocal` and :func:`addDOHLocal`.
 
   :param string providerName: The name of the provider to load.
 
