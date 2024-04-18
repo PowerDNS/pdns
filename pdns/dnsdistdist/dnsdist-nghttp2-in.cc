@@ -330,6 +330,27 @@ IOState IncomingHTTP2Connection::handleHandshake(const struct timeval& now)
   return iostate;
 }
 
+class ReadFunctionGuard
+{
+public:
+  ReadFunctionGuard(bool& inReadFunction) :
+    d_inReadFunctionRef(inReadFunction)
+  {
+    d_inReadFunctionRef = true;
+  }
+  ReadFunctionGuard(ReadFunctionGuard&&) = delete;
+  ReadFunctionGuard(const ReadFunctionGuard&) = delete;
+  ReadFunctionGuard& operator=(ReadFunctionGuard&&) = delete;
+  ReadFunctionGuard& operator=(const ReadFunctionGuard&) = delete;
+  ~ReadFunctionGuard()
+  {
+    d_inReadFunctionRef = false;
+  }
+
+private:
+  bool& d_inReadFunctionRef;
+};
+
 void IncomingHTTP2Connection::handleIO()
 {
   IOState iostate = IOState::Done;
@@ -392,10 +413,10 @@ void IncomingHTTP2Connection::handleIO()
       }
     }
 
-    if (active() && !d_connectionClosing && (d_state == State::waitingForQuery || d_state == State::idle)) {
+    if (!d_inReadFunction && active() && !d_connectionClosing && (d_state == State::waitingForQuery || d_state == State::idle)) {
       do {
         iostate = readHTTPData();
-      } while (active() && !d_connectionClosing && iostate == IOState::Done);
+      } while (!d_inReadFunction && active() && !d_connectionClosing && iostate == IOState::Done);
     }
 
     if (!active()) {
@@ -1064,6 +1085,11 @@ int IncomingHTTP2Connection::on_error_callback(nghttp2_session* session, int lib
 
 IOState IncomingHTTP2Connection::readHTTPData()
 {
+  if (d_inReadFunction) {
+    return IOState::Done;
+  }
+  ReadFunctionGuard readGuard(d_inReadFunction);
+
   IOState newState = IOState::Done;
   size_t got = 0;
   if (d_in.size() < s_initialReceiveBufferSize) {
