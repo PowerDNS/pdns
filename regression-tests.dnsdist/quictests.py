@@ -169,3 +169,25 @@ class QUICWithCacheTests(object):
             total += self._responsesCounter[key]
 
         self.assertEqual(total, 1)
+
+class QUICGetLocalAddressOnAnyBindTests(object):
+
+    def testGetLocalAddressOnAnyBind(self):
+        """
+        QUIC: Return CNAME containing the local address for an ANY bind
+        """
+        name = 'local-address-any.quic.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    'address-was-127-0-0-1.local-address-any.advanced.tests.powerdns.com.')
+        response.answer.append(rrset)
+
+        (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
