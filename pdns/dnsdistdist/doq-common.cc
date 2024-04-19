@@ -126,7 +126,18 @@ std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const Combo
   }
 }
 
-void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, uint32_t version, PacketBuffer& buffer)
+static ssize_t sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddress& local, PacketBuffer& buffer)
+{
+  const int flags = 0;
+  if (local.sin4.sin_family == 0) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return sendto(sock.getHandle(), buffer.data(), buffer.size(), flags, reinterpret_cast<const struct sockaddr*>(&peer), peer.getSocklen());
+  }
+
+  return sendMsgWithOptions(sock.getHandle(), buffer.data(), buffer.size(), &peer, &local, 0, 0);
+}
+
+void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, uint32_t version, PacketBuffer& buffer)
 {
   auto newServerConnID = getCID();
   if (!newServerConnID) {
@@ -148,11 +159,11 @@ void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const 
     return;
   }
 
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  sock.sendTo(reinterpret_cast<const char*>(buffer.data()), static_cast<size_t>(written), peer);
+  buffer.resize(static_cast<size_t>(written));
+  sendFromTo(sock, peer, localAddr, buffer);
 }
 
-void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, PacketBuffer& buffer)
+void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer)
 {
   buffer.resize(MAX_DATAGRAM_SIZE);
 
@@ -164,11 +175,12 @@ void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, co
     DEBUGLOG("failed to create vneg packet " << written);
     return;
   }
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  sock.sendTo(reinterpret_cast<const char*>(buffer.data()), static_cast<size_t>(written), peer);
+
+  buffer.resize(static_cast<size_t>(written));
+  sendFromTo(sock, peer, localAddr, buffer);
 }
 
-void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer, PacketBuffer& buffer)
+void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer)
 {
   buffer.resize(MAX_DATAGRAM_SIZE);
   quiche_send_info send_info;
@@ -183,8 +195,8 @@ void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer,
       return;
     }
     // FIXME pacing (as send_info.at should tell us when to send the packet) ?
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    sock.sendTo(reinterpret_cast<const char*>(buffer.data()), static_cast<size_t>(written), peer);
+    buffer.resize(static_cast<size_t>(written));
+    sendFromTo(sock, peer, localAddr, buffer);
   }
 }
 
@@ -256,6 +268,51 @@ void configureQuiche(QuicheConfig& config, const QuicheParams& params, bool isHT
     fillRandom(resetToken, 16);
     quiche_config_set_stateless_reset_token(config.get(), resetToken.data());
   }
+}
+
+bool recvAsync(Socket& socket, PacketBuffer& buffer, ComboAddress& clientAddr, ComboAddress& localAddr)
+{
+  msghdr msgh{};
+  iovec iov{};
+  /* used by HarvestDestinationAddress */
+  cmsgbuf_aligned cbuf;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  fillMSGHdr(&msgh, &iov, &cbuf, sizeof(cbuf), reinterpret_cast<char*>(&buffer.at(0)), buffer.size(), &clientAddr);
+
+  ssize_t got = recvmsg(socket.getHandle(), &msgh, 0);
+  if (got < 0) {
+    int error = errno;
+    if (error != EAGAIN) {
+      throw NetworkError("Error in recvmsg: " + stringerror(error));
+    }
+    return false;
+  }
+
+  if ((msgh.msg_flags & MSG_TRUNC) != 0) {
+    return false;
+  }
+
+  buffer.resize(static_cast<size_t>(got));
+
+  if (HarvestDestinationAddress(&msgh, &localAddr)) {
+    /* so it turns out that sometimes the kernel lies to us:
+       the address is set to 0.0.0.0:0 which makes our sendfromto() use
+       the wrong address. In that case it's better to let the kernel
+       do the work by itself and use sendto() instead.
+       This is indicated by setting the family to 0 which is acted upon
+       in sendUDPResponse() and DelayedPacket::().
+    */
+    const ComboAddress bogusV4("0.0.0.0:0");
+    const ComboAddress bogusV6("[::]:0");
+    if ((localAddr.sin4.sin_family == AF_INET && localAddr == bogusV4) || (localAddr.sin4.sin_family == AF_INET6 && localAddr == bogusV6)) {
+      localAddr.sin4.sin_family = 0;
+    }
+  }
+  else {
+    localAddr.sin4.sin_family = 0;
+  }
+
+  return !buffer.empty();
 }
 
 };
