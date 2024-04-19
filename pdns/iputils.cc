@@ -366,17 +366,18 @@ void ComboAddress::truncate(unsigned int bits) noexcept
   *place &= (~((1<<bitsleft)-1));
 }
 
-size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags)
+size_t sendMsgWithOptions(int fd, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags)
 {
-  struct msghdr msgh;
-  struct iovec iov;
+  msghdr msgh{};
+  iovec iov{};
   cmsgbuf_aligned cbuf;
 
   /* Set up iov and msgh structures. */
-  memset(&msgh, 0, sizeof(struct msghdr));
+  memset(&msgh, 0, sizeof(msgh));
   msgh.msg_control = nullptr;
   msgh.msg_controllen = 0;
   if (dest) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-const-cast): it's the API
     msgh.msg_name = reinterpret_cast<void*>(const_cast<ComboAddress*>(dest));
     msgh.msg_namelen = dest->getSocklen();
   }
@@ -387,11 +388,12 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
 
   msgh.msg_flags = 0;
 
-  if (localItf != 0 && local) {
+  if (local && local->sin4.sin_family != 0) {
     addCMsgSrcAddr(&msgh, &cbuf, local, localItf);
   }
 
-  iov.iov_base = reinterpret_cast<void*>(const_cast<char*>(buffer));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): it's the API
+  iov.iov_base = const_cast<void*>(buffer);
   iov.iov_len = len;
   msgh.msg_iov = &iov;
   msgh.msg_iovlen = 1;
@@ -425,6 +427,7 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
       firstTry = false;
  #endif
       iov.iov_len -= written;
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
       iov.iov_base = reinterpret_cast<void*>(reinterpret_cast<char*>(iov.iov_base) + written);
     }
     else if (res == 0) {
@@ -441,7 +444,7 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
         return sent;
       }
       else {
-        unixDie("failed in sendMsgWithTimeout");
+        unixDie("failed in sendMsgWithOptions");
       }
     }
   }
