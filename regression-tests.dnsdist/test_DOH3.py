@@ -4,7 +4,7 @@ import clientsubnetoption
 
 from dnsdisttests import DNSDistTest
 from dnsdisttests import pickAvailablePort
-from quictests import QUICTests, QUICWithCacheTests, QUICACLTests, QUICXFRTests
+from quictests import QUICTests, QUICWithCacheTests, QUICACLTests, QUICGetLocalAddressOnAnyBindTests, QUICXFRTests
 import doh3client
 
 class TestDOH3(QUICTests, DNSDistTest):
@@ -92,6 +92,36 @@ class TestDOH3Specifics(DNSDistTest):
         receivedQuery.id = expectedQuery.id
         self.assertEqual(expectedQuery, receivedQuery)
         self.assertEqual(receivedResponse, response)
+
+class TestDOH3GetLocalAddressOnAnyBind(QUICGetLocalAddressOnAnyBindTests, DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _doqServerPort))
+    _config_template = """
+    function answerBasedOnLocalAddress(dq)
+      local dest = tostring(dq.localaddr)
+      local i, j = string.find(dest, "[0-9.]+")
+      local addr = string.sub(dest, i, j)
+      local dashAddr = string.gsub(addr, "[.]", "-")
+      return DNSAction.Spoof, "address-was-"..dashAddr..".local-address-any.advanced.tests.powerdns.com."
+    end
+    addAction("local-address-any.quic.tests.powerdns.com.", LuaAction(answerBasedOnLocalAddress))
+    newServer{address="127.0.0.1:%s"}
+    addDOH3Local("0.0.0.0:%d", "%s", "%s")
+    addDOH3Local("[::]:%d", "%s", "%s")
+    """
+    _config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey', '_doqServerPort','_serverCert', '_serverKey']
+    _acl = ['127.0.0.1/32', '::1/128']
+    _skipListeningOnCL = True
+
+    def getQUICConnection(self):
+        return self.getDOQConnection(self._doqServerPort, self._caCert)
+
+    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
+        return self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
 
 class TestDOH3XFR(QUICXFRTests, DNSDistTest):
     _serverKey = 'server.key'
