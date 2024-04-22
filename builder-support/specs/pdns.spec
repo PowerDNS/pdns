@@ -254,7 +254,7 @@ sed -e 's!/pdns_server!& --socket-dir=%t/pdns-%i!' -e 's!RuntimeDirectory=pdns!&
 
 %check
 PDNS_TEST_NO_IPV6=1 make %{?_smp_mflags} -C pdns check || (cat pdns/test-suite.log && false)
-	
+
 %pre
 getent group pdns >/dev/null || groupadd -r pdns
 getent passwd pdns >/dev/null || \
