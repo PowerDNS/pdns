@@ -126,15 +126,25 @@ std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const Combo
   }
 }
 
-static ssize_t sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddress& local, PacketBuffer& buffer)
+static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddress& local, PacketBuffer& buffer)
 {
   const int flags = 0;
   if (local.sin4.sin_family == 0) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return sendto(sock.getHandle(), buffer.data(), buffer.size(), flags, reinterpret_cast<const struct sockaddr*>(&peer), peer.getSocklen());
+    auto ret = sendto(sock.getHandle(), buffer.data(), buffer.size(), flags, reinterpret_cast<const struct sockaddr*>(&peer), peer.getSocklen());
+    if (ret < 0) {
+      auto error = errno;
+      vinfolog("Error while sending QUIC datagram of size %d to %s: %s", buffer.size(), peer.toStringWithPort(), stringerror(error));
+    }
+    return;
   }
 
-  return sendMsgWithOptions(sock.getHandle(), buffer.data(), buffer.size(), &peer, &local, 0, 0);
+  try {
+    sendMsgWithOptions(sock.getHandle(), buffer.data(), buffer.size(), &peer, &local, 0, 0);
+  }
+  catch (const std::exception& exp) {
+    vinfolog("Error while sending QUIC datagram of size %d from %s to %s: %s", buffer.size(), local.toStringWithPort(), peer.toStringWithPort(), exp.what());
+  }
 }
 
 void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, uint32_t version, PacketBuffer& buffer)
