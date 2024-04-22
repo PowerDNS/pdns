@@ -25,7 +25,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <functional>
 #include <bitset>
 #include "pdnsexception.hh"
@@ -85,17 +85,18 @@
 
 union ComboAddress
 {
-  struct sockaddr_in sin4;
+  struct sockaddr_in sin4{};
   struct sockaddr_in6 sin6;
 
   bool operator==(const ComboAddress& rhs) const
   {
-    if (std::tie(sin4.sin_family, sin4.sin_port) != std::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
+    if (std::tie(sin4.sin_family, sin4.sin_port) != std::tie(rhs.sin4.sin_family, rhs.sin4.sin_port)) {
       return false;
-    if (sin4.sin_family == AF_INET)
+    }
+    if (sin4.sin_family == AF_INET) {
       return sin4.sin_addr.s_addr == rhs.sin4.sin_addr.s_addr;
-    else
-      return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, sizeof(sin6.sin6_addr.s6_addr)) == 0;
+    }
+    return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, sizeof(sin6.sin6_addr.s6_addr)) == 0;
   }
 
   bool operator!=(const ComboAddress& rhs) const
@@ -108,15 +109,16 @@ union ComboAddress
     if (sin4.sin_family == 0) {
       return false;
     }
-    if (std::tie(sin4.sin_family, sin4.sin_port) < std::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
+    if (std::tie(sin4.sin_family, sin4.sin_port) < std::tie(rhs.sin4.sin_family, rhs.sin4.sin_port)) {
       return true;
-    if (std::tie(sin4.sin_family, sin4.sin_port) > std::tie(rhs.sin4.sin_family, rhs.sin4.sin_port))
+    }
+    if (std::tie(sin4.sin_family, sin4.sin_port) > std::tie(rhs.sin4.sin_family, rhs.sin4.sin_port)) {
       return false;
-
-    if (sin4.sin_family == AF_INET)
+    }
+    if (sin4.sin_family == AF_INET) {
       return sin4.sin_addr.s_addr < rhs.sin4.sin_addr.s_addr;
-    else
-      return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, sizeof(sin6.sin6_addr.s6_addr)) < 0;
+    }
+    return memcmp(&sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, sizeof(sin6.sin6_addr.s6_addr)) < 0;
   }
 
   bool operator>(const ComboAddress& rhs) const
@@ -126,74 +128,78 @@ union ComboAddress
 
   struct addressPortOnlyHash
   {
-    uint32_t operator()(const ComboAddress& ca) const
+    uint32_t operator()(const ComboAddress& address) const
     {
-      const unsigned char* start = nullptr;
-      if (ca.sin4.sin_family == AF_INET) {
-        start = reinterpret_cast<const unsigned char*>(&ca.sin4.sin_addr.s_addr);
+      // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+      if (address.sin4.sin_family == AF_INET) {
+        const auto* start = reinterpret_cast<const unsigned char*>(&address.sin4.sin_addr.s_addr);
         auto tmp = burtle(start, 4, 0);
-        return burtle(reinterpret_cast<const uint8_t*>(&ca.sin4.sin_port), 2, tmp);
+        return burtle(reinterpret_cast<const uint8_t*>(&address.sin4.sin_port), 2, tmp);
       }
-      {
-        start = reinterpret_cast<const unsigned char*>(&ca.sin6.sin6_addr.s6_addr);
-        auto tmp = burtle(start, 16, 0);
-        return burtle(reinterpret_cast<const unsigned char*>(&ca.sin6.sin6_port), 2, tmp);
-      }
+      const auto* start = reinterpret_cast<const unsigned char*>(&address.sin6.sin6_addr.s6_addr);
+      auto tmp = burtle(start, 16, 0);
+      return burtle(reinterpret_cast<const unsigned char*>(&address.sin6.sin6_port), 2, tmp);
+      // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     }
   };
 
   struct addressOnlyHash
   {
-    uint32_t operator()(const ComboAddress& ca) const
+    uint32_t operator()(const ComboAddress& address) const
     {
       const unsigned char* start = nullptr;
       uint32_t len = 0;
-      if (ca.sin4.sin_family == AF_INET) {
-        start = reinterpret_cast<const unsigned char*>(&ca.sin4.sin_addr.s_addr);
+      // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+      if (address.sin4.sin_family == AF_INET) {
+        start = reinterpret_cast<const unsigned char*>(&address.sin4.sin_addr.s_addr);
         len = 4;
       }
       else {
-        start = reinterpret_cast<const unsigned char*>(&ca.sin6.sin6_addr.s6_addr);
+        start = reinterpret_cast<const unsigned char*>(&address.sin6.sin6_addr.s6_addr);
         len = 16;
       }
+      // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
       return burtle(start, len, 0);
     }
   };
 
   struct addressOnlyLessThan
   {
-    bool operator()(const ComboAddress& a, const ComboAddress& b) const
+    bool operator()(const ComboAddress& lhs, const ComboAddress& rhs) const
     {
-      if (a.sin4.sin_family < b.sin4.sin_family)
+      if (lhs.sin4.sin_family < rhs.sin4.sin_family) {
         return true;
-      if (a.sin4.sin_family > b.sin4.sin_family)
+      }
+      if (lhs.sin4.sin_family > rhs.sin4.sin_family) {
         return false;
-      if (a.sin4.sin_family == AF_INET)
-        return a.sin4.sin_addr.s_addr < b.sin4.sin_addr.s_addr;
-      else
-        return memcmp(&a.sin6.sin6_addr.s6_addr, &b.sin6.sin6_addr.s6_addr, sizeof(a.sin6.sin6_addr.s6_addr)) < 0;
+      }
+      if (lhs.sin4.sin_family == AF_INET) {
+        return lhs.sin4.sin_addr.s_addr < rhs.sin4.sin_addr.s_addr;
+      }
+      return memcmp(&lhs.sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, sizeof(lhs.sin6.sin6_addr.s6_addr)) < 0;
     }
   };
 
   struct addressOnlyEqual
   {
-    bool operator()(const ComboAddress& a, const ComboAddress& b) const
+    bool operator()(const ComboAddress& lhs, const ComboAddress& rhs) const
     {
-      if (a.sin4.sin_family != b.sin4.sin_family)
+      if (lhs.sin4.sin_family != rhs.sin4.sin_family) {
         return false;
-      if (a.sin4.sin_family == AF_INET)
-        return a.sin4.sin_addr.s_addr == b.sin4.sin_addr.s_addr;
-      else
-        return !memcmp(&a.sin6.sin6_addr.s6_addr, &b.sin6.sin6_addr.s6_addr, sizeof(a.sin6.sin6_addr.s6_addr));
+      }
+      if (lhs.sin4.sin_family == AF_INET) {
+        return lhs.sin4.sin_addr.s_addr == rhs.sin4.sin_addr.s_addr;
+      }
+      return memcmp(&lhs.sin6.sin6_addr.s6_addr, &rhs.sin6.sin6_addr.s6_addr, sizeof(lhs.sin6.sin6_addr.s6_addr)) == 0;
     }
   };
 
-  socklen_t getSocklen() const
+  [[nodiscard]] socklen_t getSocklen() const
   {
-    if (sin4.sin_family == AF_INET)
+    if (sin4.sin_family == AF_INET) {
       return sizeof(sin4);
-    else
-      return sizeof(sin6);
+    }
+    return sizeof(sin6);
   }
 
   ComboAddress()
@@ -205,26 +211,29 @@ union ComboAddress
     sin6.sin6_flowinfo = 0;
   }
 
-  ComboAddress(const struct sockaddr* sa, socklen_t salen)
+  ComboAddress(const struct sockaddr* socketAddress, socklen_t salen)
   {
-    setSockaddr(sa, salen);
+    setSockaddr(socketAddress, salen);
   };
 
-  ComboAddress(const struct sockaddr_in6* sa)
+  ComboAddress(const struct sockaddr_in6* socketAddress)
   {
-    setSockaddr((const struct sockaddr*)sa, sizeof(struct sockaddr_in6));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    setSockaddr(reinterpret_cast<const struct sockaddr*>(socketAddress), sizeof(struct sockaddr_in6));
   };
 
-  ComboAddress(const struct sockaddr_in* sa)
+  ComboAddress(const struct sockaddr_in* socketAddress)
   {
-    setSockaddr((const struct sockaddr*)sa, sizeof(struct sockaddr_in));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    setSockaddr(reinterpret_cast<const struct sockaddr*>(socketAddress), sizeof(struct sockaddr_in));
   };
 
-  void setSockaddr(const struct sockaddr* sa, socklen_t salen)
+  void setSockaddr(const struct sockaddr* socketAddress, socklen_t salen)
   {
-    if (salen > sizeof(struct sockaddr_in6))
+    if (salen > sizeof(struct sockaddr_in6)) {
       throw PDNSException("ComboAddress can't handle other than sockaddr_in or sockaddr_in6");
-    memcpy(this, sa, salen);
+    }
+    memcpy(this, socketAddress, salen);
   }
 
   // 'port' sets a default value in case 'str' does not set a port
@@ -233,124 +242,141 @@ union ComboAddress
     memset(&sin6, 0, sizeof(sin6));
     sin4.sin_family = AF_INET;
     sin4.sin_port = 0;
-    if (makeIPv4sockaddr(str, &sin4)) {
+    if (makeIPv4sockaddr(str, &sin4) != 0) {
       sin6.sin6_family = AF_INET6;
       if (makeIPv6sockaddr(str, &sin6) < 0) {
         throw PDNSException("Unable to convert presentation address '" + str + "'");
       }
     }
-    if (!sin4.sin_port) // 'str' overrides port!
+    if (sin4.sin_port == 0) { // 'str' overrides port!
       sin4.sin_port = htons(port);
+    }
   }
 
-  bool isIPv6() const
+  [[nodiscard]] bool isIPv6() const
   {
     return sin4.sin_family == AF_INET6;
   }
-  bool isIPv4() const
+  [[nodiscard]] bool isIPv4() const
   {
     return sin4.sin_family == AF_INET;
   }
 
-  bool isMappedIPv4() const
+  [[nodiscard]] bool isMappedIPv4() const
   {
-    if (sin4.sin_family != AF_INET6)
+    if (sin4.sin_family != AF_INET6) {
       return false;
+    }
 
-    int n = 0;
-    const unsigned char* ptr = reinterpret_cast<const unsigned char*>(&sin6.sin6_addr.s6_addr);
-    for (n = 0; n < 10; ++n)
-      if (ptr[n])
+    int iter = 0;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    const auto* ptr = reinterpret_cast<const unsigned char*>(&sin6.sin6_addr.s6_addr);
+    for (iter = 0; iter < 10; ++iter) {
+      if (ptr[iter] != 0) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         return false;
-
-    for (; n < 12; ++n)
-      if (ptr[n] != 0xff)
+      }
+    }
+    for (; iter < 12; ++iter) {
+      if (ptr[iter] != 0xff) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         return false;
-
+      }
+    }
     return true;
   }
 
-  ComboAddress mapToIPv4() const
+  [[nodiscard]] ComboAddress mapToIPv4() const
   {
-    if (!isMappedIPv4())
+    if (!isMappedIPv4()) {
       throw PDNSException("ComboAddress can't map non-mapped IPv6 address back to IPv4");
+    }
     ComboAddress ret;
     ret.sin4.sin_family = AF_INET;
     ret.sin4.sin_port = sin4.sin_port;
 
-    const unsigned char* ptr = reinterpret_cast<const unsigned char*>(&sin6.sin6_addr.s6_addr);
-    ptr += (sizeof(sin6.sin6_addr.s6_addr) - sizeof(ret.sin4.sin_addr.s_addr));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    const auto* ptr = reinterpret_cast<const unsigned char*>(&sin6.sin6_addr.s6_addr);
+    ptr += (sizeof(sin6.sin6_addr.s6_addr) - sizeof(ret.sin4.sin_addr.s_addr)); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     memcpy(&ret.sin4.sin_addr.s_addr, ptr, sizeof(ret.sin4.sin_addr.s_addr));
     return ret;
   }
 
-  string toString() const
+  [[nodiscard]] string toString() const
   {
-    char host[1024];
-    int retval = 0;
-    if (sin4.sin_family && !(retval = getnameinfo(reinterpret_cast<const struct sockaddr*>(this), getSocklen(), host, sizeof(host), 0, 0, NI_NUMERICHOST)))
-      return string(host);
-    else
+    std::array<char, 1024> host{};
+    if (sin4.sin_family != 0) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      int retval = getnameinfo(reinterpret_cast<const struct sockaddr*>(this), getSocklen(), host.data(), host.size(), nullptr, 0, NI_NUMERICHOST);
+      if (retval == 0) {
+        return host.data();
+      }
       return "invalid " + string(gai_strerror(retval));
+    }
+    return "invalid";
   }
 
   //! Ignores any interface specifiers possibly available in the sockaddr data.
-  string toStringNoInterface() const
+  [[nodiscard]] string toStringNoInterface() const
   {
-    char host[1024];
-    if (sin4.sin_family == AF_INET && (nullptr != inet_ntop(sin4.sin_family, &sin4.sin_addr, host, sizeof(host))))
-      return string(host);
-    else if (sin4.sin_family == AF_INET6 && (nullptr != inet_ntop(sin4.sin_family, &sin6.sin6_addr, host, sizeof(host))))
-      return string(host);
-    else
-      return "invalid " + stringerror();
+    std::array<char, 1024> host{};
+    if (sin4.sin_family == AF_INET) {
+      const auto* ret = inet_ntop(sin4.sin_family, &sin4.sin_addr, host.data(), host.size());
+      if (ret != nullptr) {
+        return host.data();
+      }
+    }
+    else if (sin4.sin_family == AF_INET6) {
+      const auto *ret = inet_ntop(sin4.sin_family, &sin6.sin6_addr, host.data(), host.size());
+      if (ret != nullptr) {
+        return host.data();
+      }
+    }
+    return "invalid " + stringerror();
   }
 
   [[nodiscard]] string toStringReversed() const
   {
     if (isIPv4()) {
-      const auto ip = ntohl(sin4.sin_addr.s_addr);
-      auto a = (ip >> 0) & 0xFF;
-      auto b = (ip >> 8) & 0xFF;
-      auto c = (ip >> 16) & 0xFF;
-      auto d = (ip >> 24) & 0xFF;
-      return std::to_string(a) + "." + std::to_string(b) + "." + std::to_string(c) + "." + std::to_string(d);
+      const auto address = ntohl(sin4.sin_addr.s_addr);
+      auto aaa = (address >> 0) & 0xFF;
+      auto bbb = (address >> 8) & 0xFF;
+      auto ccc = (address >> 16) & 0xFF;
+      auto ddd = (address >> 24) & 0xFF;
+      return std::to_string(aaa) + "." + std::to_string(bbb) + "." + std::to_string(ccc) + "." + std::to_string(ddd);
     }
-    else {
-      const auto* addr = &sin6.sin6_addr;
-      std::stringstream res{};
-      res << std::hex;
-      for (int i = 15; i >= 0; i--) {
-        auto byte = addr->s6_addr[i];
-        res << ((byte >> 0) & 0xF) << ".";
-        res << ((byte >> 4) & 0xF);
-        if (i != 0) {
-          res << ".";
-        }
+    const auto* addr = &sin6.sin6_addr;
+    std::stringstream res{};
+    res << std::hex;
+    for (int i = 15; i >= 0; i--) {
+      auto byte = addr->s6_addr[i]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+      res << ((byte >> 0) & 0xF) << ".";
+      res << ((byte >> 4) & 0xF);
+      if (i != 0) {
+        res << ".";
       }
-      return res.str();
     }
+    return res.str();
   }
 
-  string toStringWithPort() const
+  [[nodiscard]] string toStringWithPort() const
   {
-    if (sin4.sin_family == AF_INET)
+    if (sin4.sin_family == AF_INET) {
       return toString() + ":" + std::to_string(ntohs(sin4.sin_port));
-    else
-      return "[" + toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
+    }
+    return "[" + toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
   }
 
-  string toStringWithPortExcept(int port) const
+  [[nodiscard]] string toStringWithPortExcept(int port) const
   {
-    if (ntohs(sin4.sin_port) == port)
+    if (ntohs(sin4.sin_port) == port) {
       return toString();
-    if (sin4.sin_family == AF_INET)
+    }
+    if (sin4.sin_family == AF_INET) {
       return toString() + ":" + std::to_string(ntohs(sin4.sin_port));
-    else
-      return "[" + toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
+    }
+    return "[" + toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
   }
 
-  string toLogString() const
+  [[nodiscard]] string toLogString() const
   {
     return toStringWithPortExcept(53);
   }
@@ -360,21 +386,23 @@ union ComboAddress
     return toStringWithPort();
   }
 
-  string toByteString() const
+  [[nodiscard]] string toByteString() const
   {
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     if (isIPv4()) {
-      return string(reinterpret_cast<const char*>(&sin4.sin_addr.s_addr), sizeof(sin4.sin_addr.s_addr));
+      return {reinterpret_cast<const char*>(&sin4.sin_addr.s_addr), sizeof(sin4.sin_addr.s_addr)};
     }
-    return string(reinterpret_cast<const char*>(&sin6.sin6_addr.s6_addr), sizeof(sin6.sin6_addr.s6_addr));
+    return {reinterpret_cast<const char*>(&sin6.sin6_addr.s6_addr), sizeof(sin6.sin6_addr.s6_addr)};
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
   }
 
   void truncate(unsigned int bits) noexcept;
 
-  uint16_t getNetworkOrderPort() const noexcept
+  [[nodiscard]] uint16_t getNetworkOrderPort() const noexcept
   {
     return sin4.sin_port;
   }
-  uint16_t getPort() const noexcept
+  [[nodiscard]] uint16_t getPort() const noexcept
   {
     return ntohs(getNetworkOrderPort());
   }
@@ -390,26 +418,30 @@ union ComboAddress
   }
 
   //! Get the total number of address bits (either 32 or 128 depending on IP version)
-  uint8_t getBits() const
+  [[nodiscard]] uint8_t getBits() const
   {
-    if (isIPv4())
+    if (isIPv4()) {
       return 32;
-    if (isIPv6())
+    }
+    if (isIPv6()) {
       return 128;
+    }
     return 0;
   }
   /** Get the value of the bit at the provided bit index. When the index >= 0,
       the index is relative to the LSB starting at index zero. When the index < 0,
       the index is relative to the MSB starting at index -1 and counting down.
    */
-  bool getBit(int index) const
+  [[nodiscard]] bool getBit(int index) const
   {
     if (isIPv4()) {
-      if (index >= 32)
+      if (index >= 32) {
         return false;
+      }
       if (index < 0) {
-        if (index < -32)
+        if (index < -32) {
           return false;
+        }
         index = 32 + index;
       }
 
@@ -418,19 +450,21 @@ union ComboAddress
       return ((ls_addr & (1U << index)) != 0x00000000);
     }
     if (isIPv6()) {
-      if (index >= 128)
+      if (index >= 128) {
         return false;
+      }
       if (index < 0) {
-        if (index < -128)
+        if (index < -128) {
           return false;
+        }
         index = 128 + index;
       }
 
-      const uint8_t* ls_addr = reinterpret_cast<const uint8_t*>(sin6.sin6_addr.s6_addr);
+      const auto* ls_addr = reinterpret_cast<const uint8_t*>(sin6.sin6_addr.s6_addr); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       uint8_t byte_idx = index / 8;
       uint8_t bit_idx = index % 8;
 
-      return ((ls_addr[15 - byte_idx] & (1U << bit_idx)) != 0x00);
+      return ((ls_addr[15 - byte_idx] & (1U << bit_idx)) != 0x00); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
     return false;
   }
@@ -442,15 +476,15 @@ union ComboAddress
    * \param portExcept  Print the port, except when this is the port (default 53)
    */
   template <template <class...> class Container, class... Args>
-  static string caContainerToString(const Container<ComboAddress, Args...>& c, const bool withPort = true, const uint16_t portExcept = 53)
+  static string caContainerToString(const Container<ComboAddress, Args...>& container, const bool withPort = true, const uint16_t portExcept = 53)
   {
     vector<string> strs;
-    for (const auto& ca : c) {
+    for (const auto& address : container) {
       if (withPort) {
-        strs.push_back(ca.toStringWithPortExcept(portExcept));
+        strs.push_back(address.toStringWithPortExcept(portExcept));
         continue;
       }
-      strs.push_back(ca.toString());
+      strs.push_back(address.toString());
     }
     return boost::join(strs, ",");
   };
@@ -460,8 +494,8 @@ union ComboAddress
 class NetmaskException : public PDNSException
 {
 public:
-  NetmaskException(const string& a) :
-    PDNSException(a) {}
+  NetmaskException(const string& arg) :
+    PDNSException(arg) {}
 };
 
 inline ComboAddress makeComboAddress(const string& str)
@@ -470,8 +504,9 @@ inline ComboAddress makeComboAddress(const string& str)
   address.sin4.sin_family = AF_INET;
   if (inet_pton(AF_INET, str.c_str(), &address.sin4.sin_addr) <= 0) {
     address.sin4.sin_family = AF_INET6;
-    if (makeIPv6sockaddr(str, &address.sin6) < 0)
+    if (makeIPv6sockaddr(str, &address.sin6) < 0) {
       throw NetmaskException("Unable to convert '" + str + "' to a netmask");
+    }
   }
   return address;
 }
@@ -482,18 +517,21 @@ inline ComboAddress makeComboAddressFromRaw(uint8_t version, const char* raw, si
 
   if (version == 4) {
     address.sin4.sin_family = AF_INET;
-    if (len != sizeof(address.sin4.sin_addr))
+    if (len != sizeof(address.sin4.sin_addr)) {
       throw NetmaskException("invalid raw address length");
+    }
     memcpy(&address.sin4.sin_addr, raw, sizeof(address.sin4.sin_addr));
   }
   else if (version == 6) {
     address.sin6.sin6_family = AF_INET6;
-    if (len != sizeof(address.sin6.sin6_addr))
+    if (len != sizeof(address.sin6.sin6_addr)) {
       throw NetmaskException("invalid raw address length");
+    }
     memcpy(&address.sin6.sin6_addr, raw, sizeof(address.sin6.sin6_addr));
   }
-  else
+  else {
     throw NetmaskException("invalid address family");
+  }
 
   return address;
 }
@@ -512,8 +550,6 @@ public:
   {
     d_network.sin4.sin_family = 0; // disable this doing anything useful
     d_network.sin4.sin_port = 0; // this guarantees d_network compares identical
-    d_mask = 0;
-    d_bits = 0;
   }
 
   Netmask(const ComboAddress& network, uint8_t bits = 0xff) :
@@ -552,16 +588,16 @@ public:
     }
     else if (isIPv6()) {
       uint8_t bytes = d_bits / 8;
-      uint8_t* us = (uint8_t*)&d_network.sin6.sin6_addr.s6_addr;
+      auto* address = reinterpret_cast<uint8_t*>(&d_network.sin6.sin6_addr.s6_addr); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       uint8_t bits = d_bits % 8;
-      uint8_t mask = (uint8_t) ~(0xFF >> bits);
+      auto mask = static_cast<uint8_t>(~(0xFF >> bits));
 
       if (bytes < sizeof(d_network.sin6.sin6_addr.s6_addr)) {
-        us[bytes] &= mask;
+        address[bytes] &= mask; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       }
 
       for (size_t idx = bytes + 1; idx < sizeof(d_network.sin6.sin6_addr.s6_addr); ++idx) {
-        us[idx] = 0;
+        address[idx] = 0; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       }
     }
   }
@@ -583,99 +619,106 @@ public:
     }
   }
 
-  bool match(const ComboAddress& ip) const
+  [[nodiscard]] bool match(const ComboAddress& address) const
   {
-    return match(&ip);
+    return match(&address);
   }
 
   //! If this IP address in socket address matches
-  bool match(const ComboAddress* ip) const
+  bool match(const ComboAddress* address) const
   {
-    if (d_network.sin4.sin_family != ip->sin4.sin_family) {
+    if (d_network.sin4.sin_family != address->sin4.sin_family) {
       return false;
     }
     if (d_network.sin4.sin_family == AF_INET) {
-      return match4(htonl((unsigned int)ip->sin4.sin_addr.s_addr));
+      return match4(htonl((unsigned int)address->sin4.sin_addr.s_addr));
     }
     if (d_network.sin6.sin6_family == AF_INET6) {
-      uint8_t bytes = d_bits / 8, n;
-      const uint8_t* us = (const uint8_t*)&d_network.sin6.sin6_addr.s6_addr;
-      const uint8_t* them = (const uint8_t*)&ip->sin6.sin6_addr.s6_addr;
+      uint8_t bytes = d_bits / 8;
+      uint8_t index = 0;
+      // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+      const auto* lhs = reinterpret_cast<const uint8_t*>(&d_network.sin6.sin6_addr.s6_addr);
+      const auto* rhs = reinterpret_cast<const uint8_t*>(&address->sin6.sin6_addr.s6_addr);
+      // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
-      for (n = 0; n < bytes; ++n) {
-        if (us[n] != them[n]) {
+      // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      for (index = 0; index < bytes; ++index) {
+        if (lhs[index] != rhs[index]) {
           return false;
         }
       }
       // still here, now match remaining bits
       uint8_t bits = d_bits % 8;
-      uint8_t mask = (uint8_t) ~(0xFF >> bits);
+      auto mask = static_cast<uint8_t>(~(0xFF >> bits));
 
-      return ((us[n]) == (them[n] & mask));
+      return ((lhs[index]) == (rhs[index] & mask));
+      // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
     return false;
   }
 
   //! If this ASCII IP address matches
-  bool match(const string& ip) const
+  [[nodiscard]] bool match(const string& arg) const
   {
-    ComboAddress address = makeComboAddress(ip);
+    ComboAddress address = makeComboAddress(arg);
     return match(&address);
   }
 
   //! If this IP address in native format matches
-  bool match4(uint32_t ip) const
+  [[nodiscard]] bool match4(uint32_t arg) const
   {
-    return (ip & d_mask) == (ntohl(d_network.sin4.sin_addr.s_addr));
+    return (arg & d_mask) == (ntohl(d_network.sin4.sin_addr.s_addr));
   }
 
-  string toString() const
+  [[nodiscard]] string toString() const
   {
     return d_network.toStringNoInterface() + "/" + std::to_string((unsigned int)d_bits);
   }
 
-  string toStringNoMask() const
+  [[nodiscard]] string toStringNoMask() const
   {
     return d_network.toStringNoInterface();
   }
 
-  const ComboAddress& getNetwork() const
+  [[nodiscard]] const ComboAddress& getNetwork() const
   {
     return d_network;
   }
 
-  const ComboAddress& getMaskedNetwork() const
+  [[nodiscard]] const ComboAddress& getMaskedNetwork() const
   {
     return getNetwork();
   }
 
-  uint8_t getBits() const
+  [[nodiscard]] uint8_t getBits() const
   {
     return d_bits;
   }
 
-  bool isIPv6() const
+  [[nodiscard]] bool isIPv6() const
   {
     return d_network.sin6.sin6_family == AF_INET6;
   }
 
-  bool isIPv4() const
+  [[nodiscard]] bool isIPv4() const
   {
     return d_network.sin4.sin_family == AF_INET;
   }
 
   bool operator<(const Netmask& rhs) const
   {
-    if (empty() && !rhs.empty())
+    if (empty() && !rhs.empty()) {
       return false;
-
-    if (!empty() && rhs.empty())
+    }
+    if (!empty() && rhs.empty()) {
       return true;
-
-    if (d_bits > rhs.d_bits)
+    }
+    if (d_bits > rhs.d_bits) {
       return true;
-    if (d_bits < rhs.d_bits)
+    }
+    if (d_bits < rhs.d_bits) {
       return false;
+    }
 
     return d_network < rhs.d_network;
   }
@@ -690,24 +733,24 @@ public:
     return std::tie(d_network, d_bits) == std::tie(rhs.d_network, rhs.d_bits);
   }
 
-  bool empty() const
+  [[nodiscard]] bool empty() const
   {
     return d_network.sin4.sin_family == 0;
   }
 
   //! Get normalized version of the netmask. This means that all address bits below the network bits are zero.
-  Netmask getNormalized() const
+  [[nodiscard]] Netmask getNormalized() const
   {
-    return Netmask(getMaskedNetwork(), d_bits);
+    return {getMaskedNetwork(), d_bits};
   }
   //! Get Netmask for super network of this one (i.e. with fewer network bits)
-  Netmask getSuper(uint8_t bits) const
+  [[nodiscard]] Netmask getSuper(uint8_t bits) const
   {
-    return Netmask(d_network, std::min(d_bits, bits));
+    return {d_network, std::min(d_bits, bits)};
   }
 
   //! Get the total number of address bits for this netmask (either 32 or 128 depending on IP version)
-  uint8_t getFullBits() const
+  [[nodiscard]] uint8_t getFullBits() const
   {
     return d_network.getBits();
   }
@@ -717,18 +760,21 @@ public:
       the index is relative to the MSB starting at index -1 and counting down.
       When the index points outside the network bits, it always yields zero.
    */
-  bool getBit(int bit) const
+  [[nodiscard]] bool getBit(int bit) const
   {
-    if (bit < -d_bits)
+    if (bit < -d_bits) {
       return false;
+    }
     if (bit >= 0) {
       if (isIPv4()) {
-        if (bit >= 32 || bit < (32 - d_bits))
+        if (bit >= 32 || bit < (32 - d_bits)) {
           return false;
+        }
       }
-      if (isIPv6()) {
-        if (bit >= 128 || bit < (128 - d_bits))
+      if (isIPv6()) { 
+        if (bit >= 128 || bit < (128 - d_bits)) {
           return false;
+        }
       }
     }
     return d_network.getBit(bit);
@@ -736,16 +782,16 @@ public:
 
   struct Hash
   {
-    size_t operator()(const Netmask& nm) const
+    size_t operator()(const Netmask& netmask) const
     {
-      return burtle(&nm.d_bits, 1, ComboAddress::addressOnlyHash()(nm.d_network));
+      return burtle(&netmask.d_bits, 1, ComboAddress::addressOnlyHash()(netmask.d_network));
     }
   };
 
 private:
   ComboAddress d_network;
-  uint32_t d_mask;
-  uint8_t d_bits;
+  uint32_t d_mask{0};
+  uint8_t d_bits{0};
 };
 
 namespace std
@@ -753,9 +799,9 @@ namespace std
 template <>
 struct hash<Netmask>
 {
-  auto operator()(const Netmask& nm) const
+  auto operator()(const Netmask& netmask) const
   {
-    return Netmask::Hash{}(nm);
+    return Netmask::Hash{}(netmask);
   }
 };
 }
@@ -787,11 +833,11 @@ class NetmaskTree
 public:
   class Iterator;
 
-  typedef K key_type;
-  typedef T value_type;
-  typedef std::pair<const key_type, value_type> node_type;
-  typedef size_t size_type;
-  typedef class Iterator iterator;
+  using key_type = K;
+  using value_type = T;
+  using node_type = std::pair<const key_type, value_type>;
+  using size_type = size_t;
+  using iterator = class Iterator;
 
 private:
   /** Single node in tree, internal use only.
@@ -920,8 +966,9 @@ private:
     {
       TreeNode* tnode = this;
 
-      while (tnode->left)
+      while (tnode->left) {
         tnode = tnode->left.get();
+      }
       return tnode;
     }
 
@@ -944,8 +991,9 @@ private:
         tnode = tnode->parent;
 
         // return this node, but only when we come from the left child branch
-        if (tnode->left && tnode->left.get() == prev_child)
+        if (tnode->left && tnode->left.get() == prev_child) {
           return tnode;
+        }
       }
       return nullptr;
     }
@@ -955,8 +1003,9 @@ private:
     {
       TreeNode* tnode = traverse_lnr();
 
-      while (tnode != nullptr && !tnode->assigned)
+      while (tnode != nullptr && !tnode->assigned) {
         tnode = tnode->traverse_lnr();
+      }
       return tnode;
     }
 
@@ -978,10 +1027,12 @@ private:
       TreeNode* pparent = node->parent;
       // delete this node
       if (pparent) {
-        if (pparent->left.get() == node)
+        if (pparent->left.get() == node) {
           pparent->left.reset();
-        else
+        }
+        else {
           pparent->right.reset();
+        }
         // now recurse up to the parent
         cleanup_tree(pparent);
       }
@@ -992,11 +1043,13 @@ private:
   {
     try {
       TreeNode* node = rhs.d_root.get();
-      if (node != nullptr)
+      if (node != nullptr) {
         node = node->traverse_l();
+      }
       while (node != nullptr) {
-        if (node->assigned)
+        if (node->assigned) {
           insert(node->node.first).second = node->node.second;
+        }
         node = node->traverse_lnr();
       }
     }
@@ -1007,16 +1060,16 @@ private:
       abort();
     }
   }
-
+  
 public:
   class Iterator
   {
   public:
-    typedef node_type value_type;
-    typedef node_type& reference;
-    typedef node_type* pointer;
-    typedef std::forward_iterator_tag iterator_category;
-    typedef size_type difference_type;
+    using value_type = node_type;
+    using reference = node_type &;
+    using pointer = node_type *;
+    using iterator_category = std::forward_iterator_tag;
+    using difference_type = size_type;
 
   private:
     friend class NetmaskTree;
@@ -1077,30 +1130,31 @@ public:
     }
   };
 
-public:
   NetmaskTree() noexcept :
-    d_root(new TreeNode()), d_left(nullptr), d_size(0)
+    d_root(new TreeNode()), d_left(nullptr)
   {
   }
 
   NetmaskTree(const NetmaskTree& rhs) :
-    d_root(new TreeNode()), d_left(nullptr), d_size(0)
+    d_root(new TreeNode()), d_left(nullptr)
   {
     copyTree(rhs);
   }
 
   NetmaskTree& operator=(const NetmaskTree& rhs)
   {
-    clear();
-    copyTree(rhs);
+    if (this != &rhs) {
+      clear();
+      copyTree(rhs);
+    }
     return *this;
   }
 
-  const iterator begin() const
+  [[nodiscard]] iterator begin() const
   {
     return Iterator(this, d_left);
   }
-  const iterator end() const
+  [[nodiscard]] iterator end() const
   {
     return Iterator(this, nullptr);
   }
@@ -1121,7 +1175,7 @@ public:
   //<! Creates new value-pair in tree and returns it.
   node_type& insert(const key_type& key)
   {
-    TreeNode* node;
+    TreeNode* node{};
     bool is_left = true;
 
     // we turn left on IPv4 and right on IPv6
@@ -1147,15 +1201,18 @@ public:
 
         d_root->right = unique_ptr<TreeNode>(node);
         d_size++;
-        if (!d_root->left)
+        if (!d_root->left) {
           d_left = node;
+        }
         return node->node;
       }
-      if (d_root->left)
+      if (d_root->left) {
         is_left = false;
+      }
     }
-    else
+    else {
       throw NetmaskException("invalid address family");
+    }
 
     // we turn left on 0 and right on 1
     int bits = 0;
@@ -1165,8 +1222,9 @@ public:
       if (bits >= node->d_bits) {
         // the end of the current node is reached; continue with the next
         if (vall) {
-          if (node->left || node->assigned)
+          if (node->left || node->assigned) {
             is_left = false;
+          }
           if (!node->right) {
             // the right branch doesn't exist yet; attach our key here
             node = node->make_right(key);
@@ -1188,8 +1246,9 @@ public:
         // the matching branch ends here, yet the key netmask has more bits; add a
         // child node below the existing branch leaf.
         if (vall) {
-          if (node->assigned)
+          if (node->assigned) {
             is_left = false;
+          }
           node = node->make_right(key);
         }
         else {
@@ -1199,8 +1258,9 @@ public:
       }
       bool valr = node->node.first.getBit(-1 - bits);
       if (vall != valr) {
-        if (vall)
+        if (vall) {
           is_left = false;
+        }
         // the branch matches just upto this point, yet continues in a different
         // direction; fork the branch.
         node = node->fork(key, bits);
@@ -1214,8 +1274,9 @@ public:
       node = node->split(key, key.getBits());
     }
 
-    if (node->left)
+    if (node->left) {
       is_left = false;
+    }
 
     node_type& value = node->node;
 
@@ -1223,8 +1284,9 @@ public:
       // only increment size if not assigned before
       d_size++;
       // update the pointer to the left-most tree node
-      if (is_left)
+      if (is_left) {
         d_left = node;
+      }
       node->assigned = true;
     }
     else {
@@ -1250,7 +1312,7 @@ public:
   }
 
   //<! check if given key is present in TreeMap
-  bool has_key(const key_type& key) const
+  [[nodiscard]] bool has_key(const key_type& key) const
   {
     const node_type* ptr = lookup(key);
     return ptr && ptr->first == key;
@@ -1279,16 +1341,19 @@ public:
   {
     TreeNode* node = nullptr;
 
-    if (key.isIPv4())
+    if (key.isIPv4()) {
       node = d_root->left.get();
-    else if (key.isIPv6())
+    }
+    else if (key.isIPv6()) {
       node = d_root->right.get();
-    else
+    }
+    else {
       throw NetmaskException("invalid address family");
+    }
     // no tree, no value
-    if (node == nullptr)
+    if (node == nullptr) {
       return;
-
+    }
     int bits = 0;
     for (; node && bits < key.getBits(); bits++) {
       bool vall = key.getBit(-1 - bits);
@@ -1304,8 +1369,9 @@ public:
       }
       if (bits >= node->node.first.getBits()) {
         // the matching branch ends here
-        if (key.getBits() != node->node.first.getBits())
+        if (key.getBits() != node->node.first.getBits()) {
           node = nullptr;
+        }
         break;
       }
       bool valr = node->node.first.getBit(-1 - bits);
@@ -1325,9 +1391,9 @@ public:
       node->assigned = false;
       node->node.second = value_type();
 
-      if (node == d_left)
+      if (node == d_left) {
         d_left = d_left->traverse_lnr_assigned();
-
+      }
       cleanup_tree(node);
     }
   }
@@ -1344,18 +1410,18 @@ public:
   }
 
   //<! returns the number of elements
-  size_type size() const
+  [[nodiscard]] size_type size() const
   {
     return d_size;
   }
 
   //<! See if given ComboAddress matches any prefix
-  bool match(const ComboAddress& value) const
+  [[nodiscard]] bool match(const ComboAddress& value) const
   {
     return (lookup(value) != nullptr);
   }
 
-  bool match(const std::string& value) const
+  [[nodiscard]] bool match(const std::string& value) const
   {
     return match(ComboAddress(value));
   }
@@ -1381,14 +1447,18 @@ private:
   {
     TreeNode* node = nullptr;
 
-    if (value.isIPv4())
+    if (value.isIPv4()) {
       node = d_root->left.get();
-    else if (value.isIPv6())
+    }
+    else if (value.isIPv6()) {
       node = d_root->right.get();
-    else
+    }
+    else {
       throw NetmaskException("invalid address family");
-    if (node == nullptr)
+    }
+    if (node == nullptr) {
       return nullptr;
+    }
 
     node_type* ret = nullptr;
 
@@ -1398,16 +1468,19 @@ private:
       if (bits >= node->d_bits) {
         // the end of the current node is reached; continue with the next
         // (we keep track of last assigned node)
-        if (node->assigned && bits == node->node.first.getBits())
+        if (node->assigned && bits == node->node.first.getBits()) {
           ret = &node->node;
+        }
         if (vall) {
-          if (!node->right)
+          if (!node->right) {
             break;
+          }
           node = node->right.get();
         }
         else {
-          if (!node->left)
+          if (!node->left) {
             break;
+          }
           node = node->left.get();
         }
         continue;
@@ -1424,16 +1497,16 @@ private:
       }
     }
     // needed if we did not find one in loop
-    if (node->assigned && bits == node->node.first.getBits())
+    if (node->assigned && bits == node->node.first.getBits()) {
       ret = &node->node;
-
+    }
     // this can be nullptr.
     return ret;
   }
 
   unique_ptr<TreeNode> d_root; //<! Root of our tree
   TreeNode* d_left;
-  size_type d_size;
+  size_type d_size{0};
 };
 
 /** This class represents a group of supplemental Netmask classes. An IP address matches
@@ -1446,51 +1519,52 @@ public:
 
   //! If this IP address is matched by any of the classes within
 
-  bool match(const ComboAddress* ip) const
+  bool match(const ComboAddress* address) const
   {
-    const auto& ret = tree.lookup(*ip);
-    if (ret)
-      return ret->second;
-    return false;
-  }
-
-  bool match(const ComboAddress& ip) const
-  {
-    return match(&ip);
-  }
-
-  bool lookup(const ComboAddress* ip, Netmask* nmp) const
-  {
-    const auto& ret = tree.lookup(*ip);
-    if (ret) {
-      if (nmp != nullptr)
-        *nmp = ret->first;
-
+    const auto& ret = tree.lookup(*address);
+    if (ret != nullptr) {
       return ret->second;
     }
     return false;
   }
 
-  bool lookup(const ComboAddress& ip, Netmask* nmp) const
+  [[nodiscard]] bool match(const ComboAddress& address) const
   {
-    return lookup(&ip, nmp);
+    return match(&address);
+  }
+
+  bool lookup(const ComboAddress* address, Netmask* nmp) const
+  {
+    const auto& ret = tree.lookup(*address);
+    if (ret != nullptr) {
+      if (nmp != nullptr) {
+        *nmp = ret->first;
+      }
+      return ret->second;
+    }
+    return false;
+  }
+
+  bool lookup(const ComboAddress& address, Netmask* nmp) const
+  {
+    return lookup(&address, nmp);
   }
 
   //! Add this string to the list of possible matches
-  void addMask(const string& ip, bool positive = true)
+  void addMask(const string& address, bool positive = true)
   {
-    if (!ip.empty() && ip[0] == '!') {
-      addMask(Netmask(ip.substr(1)), false);
+    if (!address.empty() && address[0] == '!') {
+      addMask(Netmask(address.substr(1)), false);
     }
     else {
-      addMask(Netmask(ip), positive);
+      addMask(Netmask(address), positive);
     }
   }
 
   //! Add this Netmask to the list of possible matches
-  void addMask(const Netmask& nm, bool positive = true)
+  void addMask(const Netmask& netmask, bool positive = true)
   {
-    tree.insert(nm).second = positive;
+    tree.insert(netmask).second = positive;
   }
 
   void addMasks(const NetmaskGroup& group, boost::optional<bool> positive)
@@ -1501,9 +1575,9 @@ public:
   }
 
   //! Delete this Netmask from the list of possible matches
-  void deleteMask(const Netmask& nm)
+  void deleteMask(const Netmask& netmask)
   {
-    tree.erase(nm);
+    tree.erase(netmask);
   }
 
   void deleteMasks(const NetmaskGroup& group)
@@ -1513,10 +1587,11 @@ public:
     }
   }
 
-  void deleteMask(const std::string& ip)
+  void deleteMask(const std::string& address)
   {
-    if (!ip.empty())
-      deleteMask(Netmask(ip));
+    if (!address.empty()) {
+      deleteMask(Netmask(address));
+    }
   }
 
   void clear()
@@ -1524,30 +1599,32 @@ public:
     tree.clear();
   }
 
-  bool empty() const
+  [[nodiscard]] bool empty() const
   {
     return tree.empty();
   }
 
-  size_t size() const
+  [[nodiscard]] size_t size() const
   {
     return tree.size();
   }
 
-  string toString() const
+  [[nodiscard]] string toString() const
   {
     ostringstream str;
     for (auto iter = tree.begin(); iter != tree.end(); ++iter) {
-      if (iter != tree.begin())
+      if (iter != tree.begin()) {
         str << ", ";
-      if (!(iter->second))
+      }
+      if (!(iter->second)) {
         str << "!";
+      }
       str << iter->first.toString();
     }
     return str.str();
   }
 
-  std::vector<std::string> toStringVector() const
+  [[nodiscard]] std::vector<std::string> toStringVector() const
   {
     std::vector<std::string> out;
     out.reserve(tree.size());
@@ -1562,8 +1639,9 @@ public:
     vector<string> parts;
     stringtok(parts, ips, ", \t");
 
-    for (vector<string>::const_iterator iter = parts.begin(); iter != parts.end(); ++iter)
-      addMask(*iter);
+    for (const auto& part : parts) {
+      addMask(part);
+    }
   }
 
 private:
@@ -1579,7 +1657,7 @@ struct SComboAddress
   {
     return ComboAddress::addressOnlyLessThan()(ca, rhs.ca);
   }
-  operator const ComboAddress&()
+  operator const ComboAddress&() const
   {
     return ca;
   }
@@ -1606,8 +1684,8 @@ public:
     d_addr.sin4.sin_port = 0; // this guarantees d_network compares identical
   }
 
-  AddressAndPortRange(ComboAddress ca, uint8_t addrMask, uint8_t portMask = 0) :
-    d_addr(ca), d_addrMask(addrMask), d_portMask(portMask)
+  AddressAndPortRange(ComboAddress address, uint8_t addrMask, uint8_t portMask = 0) :
+    d_addr(address), d_addrMask(addrMask), d_portMask(portMask)
   {
     if (!d_addr.isIPv4()) {
       d_portMask = 0;
@@ -1628,12 +1706,12 @@ public:
     d_addr.setPort(port);
   }
 
-  uint8_t getFullBits() const
+  [[nodiscard]] uint8_t getFullBits() const
   {
     return d_addr.getBits() + 16;
   }
 
-  uint8_t getBits() const
+  [[nodiscard]] uint8_t getBits() const
   {
     if (d_addrMask < d_addr.getBits()) {
       return d_addrMask;
@@ -1646,7 +1724,7 @@ public:
       the index is relative to the LSB starting at index zero. When the index < 0,
       the index is relative to the MSB starting at index -1 and counting down.
   */
-  bool getBit(int index) const
+  [[nodiscard]] bool getBit(int index) const
   {
     if (index >= getFullBits()) {
       return false;
@@ -1666,39 +1744,39 @@ public:
     return d_addr.getBit(index);
   }
 
-  bool isIPv4() const
+  [[nodiscard]] bool isIPv4() const
   {
     return d_addr.isIPv4();
   }
 
-  bool isIPv6() const
+  [[nodiscard]] bool isIPv6() const
   {
     return d_addr.isIPv6();
   }
 
-  AddressAndPortRange getNormalized() const
+  [[nodiscard]] AddressAndPortRange getNormalized() const
   {
-    return AddressAndPortRange(d_addr, d_addrMask, d_portMask);
+    return {d_addr, d_addrMask, d_portMask};
   }
 
-  AddressAndPortRange getSuper(uint8_t bits) const
+  [[nodiscard]] AddressAndPortRange getSuper(uint8_t bits) const
   {
     if (bits <= d_addrMask) {
-      return AddressAndPortRange(d_addr, bits, 0);
+      return {d_addr, bits, 0};
     }
     if (bits <= d_addrMask + d_portMask) {
-      return AddressAndPortRange(d_addr, d_addrMask, d_portMask - (bits - d_addrMask));
+      return {d_addr, d_addrMask, static_cast<uint8_t>(d_portMask - (bits - d_addrMask))};
     }
 
-    return AddressAndPortRange(d_addr, d_addrMask, d_portMask);
+    return {d_addr, d_addrMask, d_portMask};
   }
 
-  const ComboAddress& getNetwork() const
+  [[nodiscard]] const ComboAddress& getNetwork() const
   {
     return d_addr;
   }
 
-  string toString() const
+  [[nodiscard]] string toString() const
   {
     if (d_addrMask < d_addr.getBits() || d_portMask == 0) {
       return d_addr.toStringNoInterface() + "/" + std::to_string(d_addrMask);
@@ -1706,7 +1784,7 @@ public:
     return d_addr.toStringNoInterface() + ":" + std::to_string(d_addr.getPort()) + "/" + std::to_string(d_portMask);
   }
 
-  bool empty() const
+  [[nodiscard]] bool empty() const
   {
     return d_addr.sin4.sin_family == 0;
   }
@@ -1766,7 +1844,7 @@ public:
       uint16_t port = apr.d_addr.getPort();
       /* it's fine to hash the whole address and port because the non-relevant parts have
          been masked to 0 */
-      return burtle(reinterpret_cast<const unsigned char*>(&port), sizeof(port), hashOp(apr.d_addr));
+      return burtle(reinterpret_cast<const unsigned char*>(&port), sizeof(port), hashOp(apr.d_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
   };
 
@@ -1800,7 +1878,7 @@ bool setReusePort(int sockfd);
 
 bool IsAnyAddress(const ComboAddress& addr);
 bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destination);
-bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
+bool HarvestTimestamp(struct msghdr* msgh, struct timeval* timeval);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 int sendOnNBSocket(int fd, const struct msghdr *msgh);
 size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags);
@@ -1817,8 +1895,8 @@ std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf);
 
 /* These functions throw if the value was already set to a higher value,
    or on error */
-void setSocketBuffer(int fd, int optname, uint32_t size);
-void setSocketReceiveBuffer(int fd, uint32_t size);
-void setSocketSendBuffer(int fd, uint32_t size);
+void setSocketBuffer(int fileDesc, int optname, uint32_t size);
+void setSocketReceiveBuffer(int fileDesc, uint32_t size);
+void setSocketSendBuffer(int fileDesc, uint32_t size);
 uint32_t raiseSocketReceiveBufferToMax(int socket);
 uint32_t raiseSocketSendBufferToMax(int socket);
