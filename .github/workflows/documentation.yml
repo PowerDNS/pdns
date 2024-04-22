@@ -14,9 +14,27 @@ jobs:
   build-upload-docs:
     name: Build and upload docs
     runs-on: ubuntu-22.04
+    env:
+      SERVICE_IP_ADDR: 127.0.0.1
+    services:
+      database:
+        image: epicwink/proxpi
+        ports:
+          - 5000:5000
+        options: >-
+          --restart always
+    outputs:
+      pip-list-auth: ${{ steps.pip-logs-auth.outputs.list-auth }}
+      pip-list-rec: ${{ steps.pip-logs-rec.outputs.list-rec }}
+      pip-list-dnsdist: ${{ steps.pip-logs-dnsdist.outputs.list-dnsdist }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
+      # Configure pip index-url set to proxpi
+      - run: pip config set global.index-url http://${{ env.SERVICE_IP_ADDR }}:5000/index/
+      - run: pip config set global.trusted-host ${{ env.SERVICE_IP_ADDR }}
+      - id: proxpi-docker
+        run: echo "id=$(docker ps | grep "epicwink/proxpi" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade  # this runs apt update
       - run: inv install-doc-deps
       - run: inv install-doc-deps-pdf
@@ -36,6 +54,7 @@ jobs:
 
       # Auth
       - run: inv ci-docs-build
+
       - run: mv html auth-html-docs
         working-directory: ./docs/_build
       - run: tar cf auth-html-docs.tar auth-html-docs
@@ -57,6 +76,10 @@ jobs:
           DOCS_HOST: ${{vars.DOCS_HOST}}
           AUTH_DOCS_DIR: ${{vars.AUTH_DOCS_DIR}}
         if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
+      - run: docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case > /tmp/proxpi-auth.log
+      - id: pip-logs-auth
+        run: echo "list-auth=$(cat /tmp/proxpi-auth.log | base64 -w0)" >> "$GITHUB_OUTPUT"
+      - run: sudo sh -c "truncate -s 0 /var/lib/docker/containers/${{ steps.proxpi-docker.outputs.id }}*/${{ steps.proxpi-docker.outputs.id }}*-json.log"
 
       # Rec
       - run: inv ci-docs-rec-generate
@@ -86,6 +109,10 @@ jobs:
           REC_DOCS_DIR: ${{vars.REC_DOCS_DIR}}
         if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
         working-directory: ./pdns/recursordist
+      - run: docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case > /tmp/proxpi-rec.log
+      - id: pip-logs-rec
+        run: echo "list-rec=$(cat /tmp/proxpi-rec.log | base64 -w0)" >> "$GITHUB_OUTPUT"
+      - run: sudo sh -c "truncate -s 0 /var/lib/docker/containers/${{ steps.proxpi-docker.outputs.id }}*/${{ steps.proxpi-docker.outputs.id }}*-json.log"
 
       # DNSdist
       - run: inv ci-docs-build
@@ -111,4 +138,19 @@ jobs:
         env:
           DOCS_HOST: ${{vars.DOCS_HOST}}
         if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
+        working-directory: ./pdns/dnsdistdist
+      - run: docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case > /tmp/proxpi-dnsdist.log
+      - id: pip-logs-dnsdist
+        run: echo "list-dnsdist=$(cat /tmp/proxpi-dnsdist.log | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+  validate-pip-hashes:
+    name: Validate list of packages and hashes
+    runs-on: ubuntu-22.04
+    needs: build-upload-docs
+    steps:
+      - uses: actions/checkout@v4
+      - run: for i in `echo "${{ needs.build-upload-docs.outputs.pip-list-auth }}" | base64 -d | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git=="`; do grep -qq -i $i docs/requirements.txt || ( echo "$i not found" && exit 1 ); done
+      - run: for i in `echo "${{ needs.build-upload-docs.outputs.pip-list-rec }}" | base64 -d | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git=="`; do grep -qq -i $i docs/requirements.txt || ( echo "$i not found" && exit 1 ); done
+        working-directory: ./pdns/recursordist
+      - run: for i in `echo "${{ needs.build-upload-docs.outputs.pip-list-dnsdist }}" | base64 -d | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git=="`; do grep -qq -i $i docs/requirements.txt || ( echo "$i not found" && exit 1 ); done
         working-directory: ./pdns/dnsdistdist
