@@ -1022,6 +1022,9 @@ vState validateWithKeySet(time_t now, const DNSName& name, const sortedRecords_t
     }
 
     vState ede = vState::Indeterminate;
+    if (!DNSCryptoKeyEngine::isAlgorithmSupported(signature->d_algorithm)) {
+        continue;
+    }
     if (!checkSignatureInceptionAndExpiry(name, now, *signature, ede, log)) {
       if (isRRSIGIncepted(now, *signature)) {
         noneIncepted = false;
@@ -1127,7 +1130,7 @@ bool haveNegativeTrustAnchor(const map<DNSName,std::string>& negAnchors, const D
   return true;
 }
 
-vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog& log, pdns::validation::ValidationContext& context)
+vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& dsmap, const skeyset_t& tkeys, const sortedRecords_t& toSign, const vector<shared_ptr<const RRSIGRecordContent> >& sigs, skeyset_t& validkeys, const OptLog& log, pdns::validation::ValidationContext& context) // NOLINT(readability-function-cognitive-complexity): FIXME
 {
   /*
    * Check all DNSKEY records against all DS records and place all DNSKEY records
@@ -1194,6 +1197,9 @@ vState validateDNSKeysAgainstDS(time_t now, const DNSName& zone, const dsmap_t& 
     // whole set
     uint16_t signaturesConsidered = 0;
     for (const auto& sig : sigs) {
+      if (!DNSCryptoKeyEngine::isAlgorithmSupported(sig->d_algorithm)) {
+        continue;
+      }
       if (!checkSignatureInceptionAndExpiry(zone, now, *sig, ede, log)) {
         continue;
       }
