@@ -48,10 +48,12 @@ if not opt_libdecaf.disabled()
       header_include_directories: include_dirs,
     )
 
-    dep_libdecaf = declare_dependency(
-      dependencies: dep_libdecaf,
-      include_directories: include_dirs,
-    )
+    if dep_libdecaf.found()
+      dep_libdecaf = declare_dependency(
+        dependencies: dep_libdecaf,
+        include_directories: include_dirs,
+      )
+    endif
   endif
 endif
 
