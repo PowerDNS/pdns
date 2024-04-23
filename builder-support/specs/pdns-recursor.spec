@@ -106,7 +106,7 @@ getent group pdns-recursor > /dev/null || groupadd -r pdns-recursor
 getent passwd pdns-recursor > /dev/null || \
     useradd -r -g pdns-recursor -d /var/lib/pdns-recursor -s /sbin/nologin \
     -c "PowerDNS Recursor user" pdns-recursor
-# Change home directory to /var/lib/pdns
+# Change home directory to /var/lib/pdns-recursor if needed
 if [[ $(getent passwd pdns-recursor | cut -d: -f6) == "/" ]]; then
     usermod -d /var/lib/pdns-recursor pdns-recursor
 fi
