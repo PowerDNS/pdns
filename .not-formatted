@@ -1,4 +1,4 @@
-]./ext/lmdb-safe/lmdb-safe.cc
+./ext/lmdb-safe/lmdb-safe.cc
 ./ext/lmdb-safe/lmdb-safe.hh
 ./ext/lmdb-safe/lmdb-typed.cc
 ./ext/lmdb-safe/lmdb-typed.hh

@@ -56,7 +56,7 @@ int SSocket(int family, int type, int flags)
 
 int SConnect(int sockfd, const ComboAddress& remote)
 {
-  int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
+  int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   if (ret < 0) {
     int savederrno = errno;
     RuntimeError("connecting socket to " + remote.toStringWithPort() + ": " + stringerror(savederrno));
@@ -66,7 +66,7 @@ int SConnect(int sockfd, const ComboAddress& remote)
 
 int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct timeval& timeout)
 {
-  int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen());
+  int ret = connect(sockfd, reinterpret_cast<const struct sockaddr*>(&remote), remote.getSocklen()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   if (ret < 0) {
     int savederrno = errno;
     if (savederrno == EINPROGRESS) {
@@ -77,7 +77,7 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct tim
       /* we wait until the connection has been established */
       bool error = false;
       bool disconnected = false;
-      int res = waitForRWData(sockfd, false, timeout.tv_sec, timeout.tv_usec, &error, &disconnected);
+      int res = waitForRWData(sockfd, false, static_cast<int>(timeout.tv_sec), timeout.tv_usec, &error, &disconnected);
       if (res == 1) {
         if (error) {
           savederrno = 0;
@@ -94,7 +94,7 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct tim
         }
         return 0;
       }
-      else if (res == 0) {
+      if (res == 0) {
         NetworkErr("timeout while connecting to " + remote.toStringWithPort());
       }
       else if (res < 0) {
@@ -112,7 +112,7 @@ int SConnectWithTimeout(int sockfd, const ComboAddress& remote, const struct tim
 
 int SBind(int sockfd, const ComboAddress& local)
 {
-  int ret = bind(sockfd, (struct sockaddr*)&local, local.getSocklen());
+  int ret = bind(sockfd, reinterpret_cast<const struct sockaddr*>(&local), local.getSocklen()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   if (ret < 0) {
     int savederrno = errno;
     RuntimeError("binding socket to " + local.toStringWithPort() + ": " + stringerror(savederrno));
@@ -124,7 +124,7 @@ int SAccept(int sockfd, ComboAddress& remote)
 {
   socklen_t remlen = remote.getSocklen();
 
-  int ret = accept(sockfd, (struct sockaddr*)&remote, &remlen);
+  int ret = accept(sockfd, reinterpret_cast<struct sockaddr*>(&remote), &remlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   if (ret < 0) {
     RuntimeError("accepting new connection on socket: " + stringerror());
   }
@@ -151,7 +151,7 @@ int SSetsockopt(int sockfd, int level, int opname, int value)
 
 void setSocketIgnorePMTU([[maybe_unused]] int sockfd, [[maybe_unused]] int family)
 {
-  if (family == AF_INET) {
+  if (family == AF_INET) { // NOLINT(bugprone-branch-clone)
 #if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DONT)
 #ifdef IP_PMTUDISC_OMIT
     /* Linux 3.15+ has IP_PMTUDISC_OMIT, which discards PMTU information to prevent
@@ -237,13 +237,14 @@ bool setReusePort(int sockfd)
   return false;
 }
 
-bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv)
+bool HarvestTimestamp(struct msghdr* msgh, struct timeval* timeval)
 {
+ // NOLINTBEGIN(cppcoreguidelines-pro-type-cstyle-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic, cppcoreguidelines-pro-type-const-cast, cppcoreguidelines-pro-type-reinterpret-cast)
 #ifdef SO_TIMESTAMP
-  struct cmsghdr* cmsg;
+  struct cmsghdr* cmsg{};
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(msgh, cmsg)) {
-    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) && CMSG_LEN(sizeof(*tv)) == cmsg->cmsg_len) {
-      memcpy(tv, CMSG_DATA(cmsg), sizeof(*tv));
+    if ((cmsg->cmsg_level == SOL_SOCKET) && (cmsg->cmsg_type == SO_TIMESTAMP || cmsg->cmsg_type == SCM_TIMESTAMP) && CMSG_LEN(sizeof(*timeval)) == cmsg->cmsg_len) {
+      memcpy(timeval, CMSG_DATA(cmsg), sizeof(*timeval));
       return true;
     }
   }
@@ -254,47 +255,50 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 {
   destination->reset();
 #ifdef __NetBSD__
-  struct cmsghdr* cmsg;
+  struct cmsghdr* cmsg{};
 #else
-  const struct cmsghdr* cmsg;
+  const struct cmsghdr* cmsg{};
 #endif
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(const_cast<struct msghdr*>(msgh), const_cast<struct cmsghdr*>(cmsg))) {
 #if defined(IP_PKTINFO)
     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_PKTINFO)) {
-      struct in_pktinfo* i = (struct in_pktinfo*)CMSG_DATA(cmsg);
-      destination->sin4.sin_addr = i->ipi_addr;
+      const auto* ptr = reinterpret_cast<const struct in_pktinfo*>(CMSG_DATA(cmsg));
+      destination->sin4.sin_addr = ptr->ipi_addr;
       destination->sin4.sin_family = AF_INET;
       return true;
     }
 #elif defined(IP_RECVDSTADDR)
     if ((cmsg->cmsg_level == IPPROTO_IP) && (cmsg->cmsg_type == IP_RECVDSTADDR)) {
-      struct in_addr* i = (struct in_addr*)CMSG_DATA(cmsg);
-      destination->sin4.sin_addr = *i;
+      const auto* ptr = reinterpret_cast<const struct in_addr*>(CMSG_DATA(cmsg));
+      destination->sin4.sin_addr = *ptr;
       destination->sin4.sin_family = AF_INET;
       return true;
     }
 #endif
 
     if ((cmsg->cmsg_level == IPPROTO_IPV6) && (cmsg->cmsg_type == IPV6_PKTINFO)) {
-      struct in6_pktinfo* i = (struct in6_pktinfo*)CMSG_DATA(cmsg);
-      destination->sin6.sin6_addr = i->ipi6_addr;
+      const auto* ptr = reinterpret_cast<const struct in6_pktinfo*>(CMSG_DATA(cmsg));
+      destination->sin6.sin6_addr = ptr->ipi6_addr;
       destination->sin4.sin_family = AF_INET6;
       return true;
     }
   }
   return false;
+ // NOLINTEND(cppcoreguidelines-pro-type-cstyle-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic, cppcoreguidelines-pro-type-const-cast, cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
 bool IsAnyAddress(const ComboAddress& addr)
 {
-  if (addr.sin4.sin_family == AF_INET)
+  if (addr.sin4.sin_family == AF_INET) {
     return addr.sin4.sin_addr.s_addr == 0;
-  else if (addr.sin4.sin_family == AF_INET6)
-    return !memcmp(&addr.sin6.sin6_addr, &in6addr_any, sizeof(addr.sin6.sin6_addr));
-
+  }
+  if (addr.sin4.sin_family == AF_INET6) {
+    return memcmp(&addr.sin6.sin6_addr, &in6addr_any, sizeof(addr.sin6.sin6_addr)) == 0;
+  }
   return false;
 }
-int sendOnNBSocket(int fd, const struct msghdr* msgh)
+
+int sendOnNBSocket(int fileDesc, const struct msghdr* msgh)
 {
   int sendErr = 0;
 #ifdef __OpenBSD__
@@ -310,7 +314,7 @@ int sendOnNBSocket(int fd, const struct msghdr* msgh)
     }
   }
 #else
-  if (sendmsg(fd, msgh, 0) == -1) {
+  if (sendmsg(fileDesc, msgh, 0) == -1) {
     sendErr = errno;
   }
 #endif
@@ -339,30 +343,32 @@ void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, s
 // warning: various parts of PowerDNS assume 'truncate' will never throw
 void ComboAddress::truncate(unsigned int bits) noexcept
 {
-  uint8_t* start;
+  uint8_t* start{};
   int len = 4;
   if (sin4.sin_family == AF_INET) {
-    if (bits >= 32)
+    if (bits >= 32) {
       return;
-    start = (uint8_t*)&sin4.sin_addr.s_addr;
+    }
+    start = reinterpret_cast<uint8_t*>(&sin4.sin_addr.s_addr); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     len = 4;
   }
   else {
-    if (bits >= 128)
+    if (bits >= 128) {
       return;
-    start = (uint8_t*)&sin6.sin6_addr.s6_addr;
+    }
+    start =  reinterpret_cast<uint8_t*>(&sin6.sin6_addr.s6_addr); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     len = 16;
   }
 
   auto tozero = len * 8 - bits; // if set to 22, this will clear 1 byte, as it should
 
-  memset(start + len - tozero / 8, 0, tozero / 8); // blot out the whole bytes on the right
+  memset(start + len - tozero / 8, 0, tozero / 8); // blot out the whole bytes on the right NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
   auto bitsleft = tozero % 8; // 2 bits left to clear
 
   // a b c d, to truncate to 22 bits, we just zeroed 'd' and need to zero 2 bits from c
   // so and by '11111100', which is ~((1<<2)-1)  = ~3
-  uint8_t* place = start + len - 1 - tozero / 8;
+  uint8_t* place = start + len - 1 - tozero / 8; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   *place &= (~((1 << bitsleft) - 1));
 }
 
@@ -469,25 +475,20 @@ bool isTCPSocketUsable(int sock)
       /* socket is usable, some data is even waiting to be read */
       return true;
     }
-    else if (got == 0) {
+    if (got == 0) {
       /* other end has closed the socket */
       return false;
     }
-    else {
-      err = errno;
-
-      if (err == EAGAIN || err == EWOULDBLOCK) {
-        /* socket is usable, no data waiting */
-        return true;
-      }
-      else {
-        if (err != EINTR) {
-          /* something is wrong, could be ECONNRESET,
-             ENOTCONN, EPIPE, but anyway this socket is
-             not usable. */
-          return false;
-        }
-      }
+    err = errno;
+    if (err == EAGAIN || err == EWOULDBLOCK) {
+      /* socket is usable, no data waiting */
+      return true;
+    }
+    if (err != EINTR) {
+      /* something is wrong, could be ECONNRESET,
+         ENOTCONN, EPIPE, but anyway this socket is
+         not usable. */
+      return false;
     }
   } while (err == EINTR);
 
@@ -508,8 +509,8 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
   }
 
   string::size_type count = 0;
-  for (char c : input) {
-    if (c == ':') {
+  for (char chr : input) {
+    if (chr == ':') {
       count++;
     }
     if (count > 1) {
@@ -533,30 +534,30 @@ ComboAddress parseIPAndPort(const std::string& input, uint16_t port)
   }
 }
 
-void setSocketBuffer(int fd, int optname, uint32_t size)
+void setSocketBuffer(int fileDesc, int optname, uint32_t size)
 {
   uint32_t psize = 0;
   socklen_t len = sizeof(psize);
 
-  if (getsockopt(fd, SOL_SOCKET, optname, &psize, &len) != 0) {
+  if (getsockopt(fileDesc, SOL_SOCKET, optname, &psize, &len) != 0) {
     throw std::runtime_error("Unable to retrieve socket buffer size:" + stringerror());
   }
   if (psize >= size) {
     return;
   }
-  if (setsockopt(fd, SOL_SOCKET, optname, &size, sizeof(size)) != 0) {
+  if (setsockopt(fileDesc, SOL_SOCKET, optname, &size, sizeof(size)) != 0) {
     throw std::runtime_error("Unable to raise socket buffer size to " + std::to_string(size) + ": " + stringerror());
   }
 }
 
-void setSocketReceiveBuffer(int fd, uint32_t size)
+void setSocketReceiveBuffer(int fileDesc, uint32_t size)
 {
-  setSocketBuffer(fd, SO_RCVBUF, size);
+  setSocketBuffer(fileDesc, SO_RCVBUF, size);
 }
 
-void setSocketSendBuffer(int fd, uint32_t size)
+void setSocketSendBuffer(int fileDesc, uint32_t size)
 {
-  setSocketBuffer(fd, SO_SNDBUF, size);
+  setSocketBuffer(fileDesc, SO_SNDBUF, size);
 }
 
 #ifdef __linux__
@@ -597,7 +598,7 @@ std::set<std::string> getListOfNetworkInterfaces()
 {
   std::set<std::string> result;
 #ifdef HAVE_GETIFADDRS
-  struct ifaddrs* ifaddr;
+  struct ifaddrs* ifaddr{};
   if (getifaddrs(&ifaddr) == -1) {
     return result;
   }
@@ -662,7 +663,7 @@ static uint8_t convertNetmaskToBits(const uint8_t* mask, socklen_t len)
   uint8_t result = 0;
   // for all bytes in the address (4 for IPv4, 16 for IPv6)
   for (size_t idx = 0; idx < len; idx++) {
-    uint8_t byte = *(mask + idx);
+    uint8_t byte = *(mask + idx); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     // count the number of bits set
     while (byte > 0) {
       result += (byte & 1);
@@ -697,16 +698,18 @@ std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf)
       continue;
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     if (ifa->ifa_addr->sa_family == AF_INET) {
-      auto netmask = reinterpret_cast<const struct sockaddr_in*>(ifa->ifa_netmask);
+      const auto* netmask = reinterpret_cast<const struct sockaddr_in*>(ifa->ifa_netmask);
       uint8_t maskBits = convertNetmaskToBits(reinterpret_cast<const uint8_t*>(&netmask->sin_addr.s_addr), sizeof(netmask->sin_addr.s_addr));
       result.emplace_back(addr, maskBits);
     }
     else if (ifa->ifa_addr->sa_family == AF_INET6) {
-      auto netmask = reinterpret_cast<const struct sockaddr_in6*>(ifa->ifa_netmask);
+      const auto* netmask = reinterpret_cast<const struct sockaddr_in6*>(ifa->ifa_netmask);
       uint8_t maskBits = convertNetmaskToBits(reinterpret_cast<const uint8_t*>(&netmask->sin6_addr.s6_addr), sizeof(netmask->sin6_addr.s6_addr));
       result.emplace_back(addr, maskBits);
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
   }
 
   freeifaddrs(ifaddr);
