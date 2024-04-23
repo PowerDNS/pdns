@@ -888,12 +888,11 @@ private:
           "NetmaskTree::TreeNode::split(): parent node reference is invalid");
       }
 
-      // create new tree node for the new key
-      TreeNode* new_node = new TreeNode(key);
-      new_node->d_bits = bits;
-
+      // create new tree node for the new key and
       // attach the new node under our former parent
-      unique_ptr<TreeNode> new_child(new_node);
+      auto new_child = make_unique<TreeNode>(key);
+      auto* new_node = new_child.get();
+      new_node->d_bits = bits;
       std::swap(parent_ref, new_child); // hereafter new_child points to "this"
       new_node->parent = parent;
 
@@ -927,14 +926,14 @@ private:
       }
 
       // create new tree node for the branch point
-      TreeNode* branch_node = new TreeNode(node.first.getSuper(bits));
-      branch_node->d_bits = bits;
 
       // the current node will now be a child of the new branch node
       // (hereafter new_child1 points to "this")
       unique_ptr<TreeNode> new_child1 = std::move(parent_ref);
       // attach the branch node under our former parent
-      parent_ref = std::unique_ptr<TreeNode>(branch_node);
+      parent_ref = make_unique<TreeNode>(node.first.getSuper(bits));
+      auto* branch_node = parent_ref.get();
+      branch_node->d_bits = bits;
       branch_node->parent = parent;
 
       // create second new leaf node for the new key
@@ -1060,7 +1059,7 @@ private:
       abort();
     }
   }
-  
+
 public:
   class Iterator
   {
@@ -1141,6 +1140,8 @@ public:
     copyTree(rhs);
   }
 
+  ~NetmaskTree() = default;
+
   NetmaskTree& operator=(const NetmaskTree& rhs)
   {
     if (this != &rhs) {
@@ -1149,6 +1150,9 @@ public:
     }
     return *this;
   }
+
+  NetmaskTree(NetmaskTree&&) noexcept = default;
+  NetmaskTree& operator=(NetmaskTree&&) noexcept = default;
 
   [[nodiscard]] iterator begin() const
   {
@@ -1182,11 +1186,11 @@ public:
     if (key.isIPv4()) {
       node = d_root->left.get();
       if (node == nullptr) {
-        node = new TreeNode(key);
+
+        d_root->left = make_unique<TreeNode>(key);
+        node = d_root->left.get();
         node->assigned = true;
         node->parent = d_root.get();
-
-        d_root->left = unique_ptr<TreeNode>(node);
         d_size++;
         d_left = node;
         return node->node;
@@ -1195,11 +1199,11 @@ public:
     else if (key.isIPv6()) {
       node = d_root->right.get();
       if (node == nullptr) {
-        node = new TreeNode(key);
+
+        d_root->right = make_unique<TreeNode>(key);
+        node = d_root->right.get();
         node->assigned = true;
         node->parent = d_root.get();
-
-        d_root->right = unique_ptr<TreeNode>(node);
         d_size++;
         if (!d_root->left) {
           d_left = node;
@@ -1429,7 +1433,7 @@ public:
   //<! Clean out the tree
   void clear()
   {
-    d_root.reset(new TreeNode());
+    d_root = make_unique<TreeNode>();
     d_left = nullptr;
     d_size = 0;
   }
