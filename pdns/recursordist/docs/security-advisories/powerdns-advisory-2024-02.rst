@@ -11,7 +11,7 @@ PowerDNS Security Advisory 2024-02: if recursive forwarding is configured, craft
     Risk of system compromise: None
     Solution: Upgrade to patched version
 
-When using recursive forwarding, a crafted response from an upstream server can cause a Denial of
+A crafted response from an upstream server the recursor has been configured to forward-recurse to can cause a Denial of
 Service in the Recursor. The default configuration of the Recursor does not use recursive forwarding
 and is not affected.
 
