@@ -134,7 +134,7 @@ getent group dnsdist >/dev/null || groupadd -r dnsdist
 getent passwd dnsdist >/dev/null || \
 	useradd -r -g dnsdist -d /var/lib/dnsdist -s /sbin/nologin \
 	-c "dnsdist user" dnsdist
-# Change home directory to /var/lib/pdns
+# Change home directory to /var/lib/dnsdist if needed
 if [[ $(getent passwd dnsdist | cut -d: -f6) == "/" ]]; then
     usermod -d /var/lib/dnsdist dnsdist
 fi
