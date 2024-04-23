@@ -678,6 +678,7 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     /* we don't move the whole IDS because we will need for the responses to come */
     response.d_idstate.qtype = it->second.d_query.d_idstate.qtype;
     response.d_idstate.qname = it->second.d_query.d_idstate.qname;
+    response.d_idstate.d_streamID = it->second.d_query.d_idstate.d_streamID;
     DEBUGLOG("passing XFRresponse to client connection for "<<response.d_idstate.qname);
 
     it->second.d_query.d_xfrStarted = true;

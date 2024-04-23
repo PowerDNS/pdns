@@ -1712,3 +1712,39 @@ class TestDOHLimitsNGHTTP2(DOHLimits, DNSDistDOHTest):
 
 class TestDOHLimitsH2O(DOHLimits, DNSDistDOHTest):
     _dohLibrary = 'h2o'
+
+class DOHXFR(object):
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _maxTCPConnsPerClient = 3
+    _config_template = """
+    newServer{address="127.0.0.1:%d", tcpOnly=true}
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {library='%s'})
+    """
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
+
+    def testXFR(self):
+        """
+        DoH XFR: Check that XFR requests over DoH are refused with NotImp
+        """
+        name = 'xfr.doh.tests.powerdns.com.'
+        for xfrType in [dns.rdatatype.AXFR, dns.rdatatype.IXFR]:
+            query = dns.message.make_query(name, xfrType, 'IN')
+            url = self.getDOHGetURL(self._dohBaseURL, query)
+
+            expectedResponse = dns.message.make_response(query)
+            expectedResponse.set_rcode(dns.rcode.NOTIMP)
+
+            (_, receivedResponse) = self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, caFile=self._caCert, useQueue=False)
+
+            self.assertEqual(receivedResponse, expectedResponse)
+
+class TestDOHXFRNGHTTP2(DOHXFR, DNSDistDOHTest):
+    _dohLibrary = 'nghttp2'
+
+class TestDOHXFRH2O(DOHXFR, DNSDistDOHTest):
+    _dohLibrary = 'h2o'

@@ -1670,8 +1670,17 @@ ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::sha
     /* we need an accurate ("real") value for the response and
        to store into the IDS, but not for insertion into the
        rings for example */
-    struct timespec now;
+    timespec now{};
     gettime(&now);
+
+    if ((dq.ids.qtype == QType::AXFR || dq.ids.qtype == QType::IXFR) && (dq.getProtocol() == dnsdist::Protocol::DoH || dq.getProtocol() == dnsdist::Protocol::DoQ || dq.getProtocol() == dnsdist::Protocol::DoH3)) {
+      dq.editHeader([](dnsheader& header) {
+        header.rcode = RCode::NotImp;
+        header.qr = true;
+        return true;
+      });
+      return processQueryAfterRules(dq, holders, selectedBackend);
+    }
 
     if (!applyRulesToQuery(holders, dq, now)) {
       return ProcessQueryResult::Drop;
