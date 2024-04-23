@@ -85,7 +85,9 @@
 
 union ComboAddress
 {
-  struct sockaddr_in sin4{};
+  struct sockaddr_in sin4
+  {
+  };
   struct sockaddr_in6 sin6;
 
   bool operator==(const ComboAddress& rhs) const
@@ -304,7 +306,7 @@ union ComboAddress
   {
     std::array<char, 1024> host{};
     if (sin4.sin_family != 0) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       int retval = getnameinfo(reinterpret_cast<const struct sockaddr*>(this), getSocklen(), host.data(), host.size(), nullptr, 0, NI_NUMERICHOST);
       if (retval == 0) {
         return host.data();
@@ -325,7 +327,7 @@ union ComboAddress
       }
     }
     else if (sin4.sin_family == AF_INET6) {
-      const auto *ret = inet_ntop(sin4.sin_family, &sin6.sin6_addr, host.data(), host.size());
+      const auto* ret = inet_ntop(sin4.sin_family, &sin6.sin6_addr, host.data(), host.size());
       if (ret != nullptr) {
         return host.data();
       }
@@ -771,7 +773,7 @@ public:
           return false;
         }
       }
-      if (isIPv6()) { 
+      if (isIPv6()) {
         if (bit >= 128 || bit < (128 - d_bits)) {
           return false;
         }
@@ -1065,8 +1067,8 @@ public:
   {
   public:
     using value_type = node_type;
-    using reference = node_type &;
-    using pointer = node_type *;
+    using reference = node_type&;
+    using pointer = node_type*;
     using iterator_category = std::forward_iterator_tag;
     using difference_type = size_type;
 

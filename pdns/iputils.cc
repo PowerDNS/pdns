@@ -239,7 +239,7 @@ bool setReusePort(int sockfd)
 
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* timeval)
 {
- // NOLINTBEGIN(cppcoreguidelines-pro-type-cstyle-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic, cppcoreguidelines-pro-type-const-cast, cppcoreguidelines-pro-type-reinterpret-cast)
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-cstyle-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic, cppcoreguidelines-pro-type-const-cast, cppcoreguidelines-pro-type-reinterpret-cast)
 #ifdef SO_TIMESTAMP
   struct cmsghdr* cmsg{};
   for (cmsg = CMSG_FIRSTHDR(msgh); cmsg != nullptr; cmsg = CMSG_NXTHDR(msgh, cmsg)) {
@@ -284,7 +284,7 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
     }
   }
   return false;
- // NOLINTEND(cppcoreguidelines-pro-type-cstyle-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic, cppcoreguidelines-pro-type-const-cast, cppcoreguidelines-pro-type-reinterpret-cast)
+  // NOLINTEND(cppcoreguidelines-pro-type-cstyle-cast, cppcoreguidelines-pro-bounds-pointer-arithmetic, cppcoreguidelines-pro-type-const-cast, cppcoreguidelines-pro-type-reinterpret-cast)
 }
 
 bool IsAnyAddress(const ComboAddress& addr)
@@ -356,7 +356,7 @@ void ComboAddress::truncate(unsigned int bits) noexcept
     if (bits >= 128) {
       return;
     }
-    start =  reinterpret_cast<uint8_t*>(&sin6.sin6_addr.s6_addr); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    start = reinterpret_cast<uint8_t*>(&sin6.sin6_addr.s6_addr); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     len = 16;
   }
 
