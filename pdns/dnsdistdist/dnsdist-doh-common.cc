@@ -115,7 +115,9 @@ size_t DOHFrontend::getTicketsKeysCount()
 
 void DOHFrontend::reloadCertificates()
 {
-  d_tlsContext.setupTLS();
+  if (isHTTPS()) {
+    d_tlsContext.setupTLS();
+  }
 }
 
 void DOHFrontend::setup()
