@@ -1632,6 +1632,54 @@ BOOST_AUTO_TEST_CASE(test_cname_loop)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_cname_loop_forwarder)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver);
+
+  primeHints();
+
+  size_t count = 0;
+  const DNSName target("cname.powerdns.com.");
+  const DNSName cname1("cname1.cname.powerdns.com.");
+  const DNSName cname2("cname2.cname.powerdns.com.");
+
+  SyncRes::AuthDomain ad;
+  const std::vector<ComboAddress> forwardedNSs{ComboAddress("192.0.2.42:53")};
+  ad.d_rdForward = true;
+  ad.d_servers = forwardedNSs;
+  (*SyncRes::t_sstorage.domainmap)[target] = ad;
+
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+    count++;
+
+    if (isRootServer(address)) {
+
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (address == ComboAddress("192.0.2.42:53")) {
+
+      if (domain == target) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, cname1.toString());
+        addRecordToLW(res, cname1, QType::CNAME, cname2.toString());
+        addRecordToLW(res, cname2, QType::CNAME, domain.toString());
+        return LWResult::Result::Success;
+      }
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  BOOST_REQUIRE_THROW(resolver->beginResolve(target, QType(QType::A), QClass::IN, ret), ImmediateServFailException);
+}
+
 BOOST_AUTO_TEST_CASE(test_cname_long_loop)
 {
   std::unique_ptr<SyncRes> sr;
