@@ -1,10 +1,10 @@
 FROM dist-base as package-builder
 RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
       yum upgrade -y && \
-      yum install -y rpm-build rpmdevtools python2 python3 curl "@Development Tools"; \
+      yum install -y rpm-build rpmdevtools python2 python3 curl jq "@Development Tools"; \
     else \
       yum upgrade -y && \
-      yum install --allowerasing -y rpm-build rpmdevtools python3 curl "@Development Tools"; \
+      yum install --allowerasing -y rpm-build rpmdevtools python3 curl jq "@Development Tools"; \
     fi
 
 RUN mkdir /dist /pdns
@@ -16,16 +16,17 @@ ADD builder/helpers/ /pdns/builder/helpers/
 ADD builder-support/helpers/ /pdns/builder-support/helpers/
 
 @IF [ -n "$M_recursor$M_all" ]
-RUN /pdns/builder-support/helpers/install_rust.sh
+RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
-RUN /pdns/builder-support/helpers/install_rust.sh
 # We do not build Quiche (DNS over QUIC support) on el-7 because the clang
 # version is too old to build the 'boring-sys' crate needed by Quiche
 RUN if ! $(grep -q 'release 7' /etc/redhat-release); then \
+      cd /pdns/builder-support/helpers/ && ./install_rust.sh; \
       yum install -y git cmake clang; \
-      /pdns/builder-support/helpers/install_quiche.sh; \
+      cd /pdns/builder-support/helpers/ && \
+      ./install_quiche.sh; \
     fi
 @ENDIF
 
@@ -62,9 +63,8 @@ RUN touch /var/lib/rpm/* &&  if $(grep -q 'release 7' /etc/redhat-release); then
 # this is fine because --allowerasing is only there to deal with libcurl conflicting with libcurl-minimal on some el9 images
 RUN touch /var/lib/rpm/* && mkdir /libh2o && cd /libh2o && \
       yum install -y --allowerasing curl libcurl openssl-devel cmake || yum install -y curl libcurl openssl-devel cmake && \
-      curl -f -L https://github.com/PowerDNS/h2o/archive/refs/tags/v2.2.6+pdns2.tar.gz | tar xz && \
-      CFLAGS='-fPIC' cmake -DWITH_PICOTLS=off -DWITH_BUNDLED_SSL=off -DWITH_MRUBY=off -DCMAKE_INSTALL_PREFIX=/opt ./h2o-2.2.6-pdns2 && \
-      make install
+      cd /pdns/builder-support/helpers/ && \
+      ./install_h2o.sh
 
 RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
       scl enable devtoolset-11 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
