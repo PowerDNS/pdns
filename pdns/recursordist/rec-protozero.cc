@@ -122,6 +122,30 @@ void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<
     add(content->d_target.toString());
     break;
   }
+  case QType::SVCB: {
+    const auto& content = getRR<SVCBRecordContent>(record);
+    if (!content) {
+      return;
+    }
+    add(content->getZoneRepresentation());
+    break;
+  }
+  case QType::HTTPS: {
+    const auto& content = getRR<HTTPSRecordContent>(record);
+    if (!content) {
+      return;
+    }
+    add(content->getZoneRepresentation());
+    break;
+  }
+  case QType::NAPTR: {
+    const auto& content = getRR<NAPTRRecordContent>(record);
+    if (!content) {
+      return;
+    }
+    add(content->getZoneRepresentation());
+    break;
+  }
   default:
     break;
   }

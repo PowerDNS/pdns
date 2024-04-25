@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import binascii
 import datetime
@@ -175,7 +175,7 @@ class PDNSPBConnHandler(object):
                 if (rrclass == 1 or rrclass == 255) and rr.HasField('rdata'):
                     if rrtype == 1:
                         rdatastr = socket.inet_ntop(socket.AF_INET, rr.rdata)
-                    elif rrtype == 5:
+                    elif rrtype in (5, 35, 64, 65):
                         rdatastr = rr.rdata
                     elif rrtype == 28:
                         rdatastr = socket.inet_ntop(socket.AF_INET6, rr.rdata)
