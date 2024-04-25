@@ -87,17 +87,17 @@ public:
   struct DNSQuestion
   {
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    DNSQuestion(const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_, const struct timeval& queryTime_) :
-      qname(query), qtype(type), local(loc), remote(rem), isTcp(tcp), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_), queryTime(queryTime_)
+    DNSQuestion(const ComboAddress& prem, const ComboAddress& ploc, const ComboAddress& rem, const ComboAddress& loc, const DNSName& query, uint16_t type, bool tcp, bool& variable_, bool& wantsRPZ_, bool& logResponse_, bool& addPaddingToResponse_, const struct timeval& queryTime_) :
+      qname(query), interface_local(ploc), interface_remote(prem), local(loc), remote(rem), variable(variable_), wantsRPZ(wantsRPZ_), logResponse(logResponse_), addPaddingToResponse(addPaddingToResponse_), queryTime(queryTime_), qtype(type), isTcp(tcp)
     {
     }
     const DNSName& qname;
-    const uint16_t qtype;
+    const ComboAddress& interface_local;
+    const ComboAddress& interface_remote;
     const ComboAddress& local;
     const ComboAddress& remote;
     const ComboAddress* fromAuthIP{nullptr};
     const struct dnsheader* dh{nullptr};
-    const bool isTcp;
     const std::vector<pair<uint16_t, string>>* ednsOptions{nullptr};
     const uint16_t* ednsFlags{nullptr};
     vector<DNSRecord>* currentRecords{nullptr};
@@ -110,14 +110,31 @@ public:
     std::string requestorId;
     std::string deviceId;
     std::string deviceName;
-    vState validationState{vState::Indeterminate};
     bool& variable;
     bool& wantsRPZ;
     bool& logResponse;
     bool& addPaddingToResponse;
-    unsigned int tag{0};
     std::map<std::string, MetaValue> meta;
     struct timeval queryTime;
+
+    vector<DNSRecord> records;
+
+    string followupFunction;
+    string followupPrefix;
+
+    string udpQuery;
+    string udpAnswer;
+    string udpCallback;
+
+    LuaContext::LuaObject data;
+    DNSName followupName;
+    ComboAddress udpQueryDest;
+
+    unsigned int tag{0};
+    int rcode{0};
+    const uint16_t qtype;
+    const bool isTcp;
+    vState validationState{vState::Indeterminate};
 
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
     void addRecord(uint16_t type, const std::string& content, DNSResourceRecord::Place place, boost::optional<int> ttl, boost::optional<string> name);
@@ -130,21 +147,6 @@ public:
     [[nodiscard]] vector<string> getEDNSFlags() const;
     [[nodiscard]] bool getEDNSFlag(const string& flag) const;
     void setRecords(const vector<pair<int, DNSRecord>>& arg);
-
-    int rcode{0};
-    // struct dnsheader, packet length would be great
-    vector<DNSRecord> records;
-
-    string followupFunction;
-    string followupPrefix;
-
-    string udpQuery;
-    ComboAddress udpQueryDest;
-    string udpAnswer;
-    string udpCallback;
-
-    LuaContext::LuaObject data;
-    DNSName followupName;
   };
 
   struct PolicyEvent
@@ -166,13 +168,15 @@ public:
   {
   public:
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-    FFIParams(const DNSName& qname_, uint16_t qtype_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, LuaContext::LuaObject& data_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, std::string& routingTag_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_, boost::optional<uint16_t>& extendedErrorCode_, std::string& extendedErrorExtra_, bool& disablePadding_, std::map<std::string, MetaValue>& meta_) :
-      data(data_), qname(qname_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), extendedErrorExtra(extendedErrorExtra_), rcode(rcode_), extendedErrorCode(extendedErrorCode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), disablePadding(disablePadding_), qtype(qtype_), tcp(tcp_), meta(meta_)
+    FFIParams(const DNSName& qname_, uint16_t qtype_, const ComboAddress& plocal_, const ComboAddress& premote_, const ComboAddress& local_, const ComboAddress& remote_, const Netmask& ednssubnet_, LuaContext::LuaObject& data_, std::unordered_set<std::string>& policyTags_, std::vector<DNSRecord>& records_, const EDNSOptionViewMap& ednsOptions_, const std::vector<ProxyProtocolValue>& proxyProtocolValues_, std::string& requestorId_, std::string& deviceId_, std::string& deviceName_, std::string& routingTag_, boost::optional<int>& rcode_, uint32_t& ttlCap_, bool& variable_, bool tcp_, bool& logQuery_, bool& logResponse_, bool& followCNAMERecords_, boost::optional<uint16_t>& extendedErrorCode_, std::string& extendedErrorExtra_, bool& disablePadding_, std::map<std::string, MetaValue>& meta_) :
+      data(data_), qname(qname_), interface_local(plocal_), interface_remote(premote_), local(local_), remote(remote_), ednssubnet(ednssubnet_), policyTags(policyTags_), records(records_), ednsOptions(ednsOptions_), proxyProtocolValues(proxyProtocolValues_), requestorId(requestorId_), deviceId(deviceId_), deviceName(deviceName_), routingTag(routingTag_), extendedErrorExtra(extendedErrorExtra_), rcode(rcode_), extendedErrorCode(extendedErrorCode_), ttlCap(ttlCap_), variable(variable_), logQuery(logQuery_), logResponse(logResponse_), followCNAMERecords(followCNAMERecords_), disablePadding(disablePadding_), qtype(qtype_), tcp(tcp_), meta(meta_)
     {
     }
 
     LuaContext::LuaObject& data;
     const DNSName& qname;
+    const ComboAddress& interface_local;
+    const ComboAddress& interface_remote;
     const ComboAddress& local;
     const ComboAddress& remote;
     const Netmask& ednssubnet;
