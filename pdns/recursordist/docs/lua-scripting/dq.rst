@@ -59,11 +59,11 @@ The DNSQuestion object contains at least the following fields:
 
   .. attribute:: DNSQuestion.interface_remoteaddr
 
-      :class:`ComboAddress` of the interface the requestor used, that is, the network source address of the request.
+      Source :class:`ComboAddress` of the packet received by the recursor. If the proxy protocol is not used, the value will match ``remoteaddr``.
 
   .. attribute:: DNSQuestion.interface_localaddr
 
-      The :class:`ComboAddress` of the interface where this query was received on, which is one of the listening addresses of the recursor.
+      Destination :class:`ComboAddress` of the packet received by the recursor. If the proxy protocol is not used, the value will match ``localaddr``.
 
   .. attribute:: DNSQuestion.variable
 
