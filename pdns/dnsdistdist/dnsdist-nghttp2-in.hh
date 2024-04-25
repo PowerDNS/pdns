@@ -116,6 +116,10 @@ private:
   /* Whether we have data that we want to write to the socket,
      but the socket is full. */
   bool d_pendingWrite{false};
+  /* Whether we are currently inside the readHTTPData function,
+     which is not reentrant and could be called from itself via
+     the nghttp2 callbacks */
+  bool d_inReadFunction{false};
 };
 
 class NGHTTP2Headers
