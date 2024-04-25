@@ -157,34 +157,25 @@ static constexpr size_t s_maxUDPResponsePacketSize{4096U};
 static size_t const s_initialUDPPacketBufferSize = s_maxUDPResponsePacketSize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
 static_assert(s_initialUDPPacketBufferSize <= UINT16_MAX, "Packet size should fit in a uint16_t");
 
-static ssize_t sendfromto(int sock, const void* data, size_t len, int flags, const ComboAddress& from, const ComboAddress& dest)
+static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress& from, const ComboAddress& dest)
 {
+  const int flags = 0;
   if (from.sin4.sin_family == 0) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return sendto(sock, data, len, flags, reinterpret_cast<const struct sockaddr*>(&dest), dest.getSocklen());
+    auto ret = sendto(sock, buffer.data(), buffer.size(), flags, reinterpret_cast<const struct sockaddr*>(&dest), dest.getSocklen());
+    if (ret == -1) {
+      int error = errno;
+      vinfolog("Error sending UDP response to %s: %s", dest.toStringWithPort(), stringerror(error));
+    }
+    return;
   }
-  msghdr msgh{};
-  iovec iov{};
-  cmsgbuf_aligned cbuf;
 
-  /* Set up iov and msgh structures. */
-  memset(&msgh, 0, sizeof(struct msghdr));
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): it's the API
-  iov.iov_base = const_cast<void*>(data);
-  iov.iov_len = len;
-  msgh.msg_iov = &iov;
-  msgh.msg_iovlen = 1;
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-const-cast)
-  msgh.msg_name = const_cast<sockaddr*>(reinterpret_cast<const sockaddr*>(&dest));
-  msgh.msg_namelen = dest.getSocklen();
-
-  if (from.sin4.sin_family != 0) {
-    addCMsgSrcAddr(&msgh, &cbuf, &from, 0);
+  try {
+    sendMsgWithOptions(sock, buffer.data(), buffer.size(), &dest, &from, 0, 0);
   }
-  else {
-    msgh.msg_control = nullptr;
+  catch (const std::exception& exp) {
+    vinfolog("Error sending UDP response from %s to %s: %s", from.toStringWithPort(), dest.toStringWithPort(), exp.what());
   }
-  return sendmsg(sock, &msgh, flags);
 }
 
 static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength)
@@ -223,13 +214,9 @@ struct DelayedPacket
   PacketBuffer packet;
   ComboAddress destination;
   ComboAddress origDest;
-  void operator()()
+  void operator()() const
   {
-    ssize_t res = sendfromto(fd, packet.data(), packet.size(), 0, origDest, destination);
-    if (res == -1) {
-      int err = errno;
-      vinfolog("Error sending delayed response to %s: %s", destination.toStringWithPort(), stringerror(err));
-    }
+    sendfromto(fd, packet, origDest, destination);
   }
 };
 
@@ -667,12 +654,7 @@ bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMs
   }
 #endif /* DISABLE_DELAY_PIPE */
   // NOLINTNEXTLINE(readability-suspicious-call-argument)
-  ssize_t res = sendfromto(origFD, response.data(), response.size(), 0, origDest, origRemote);
-  if (res == -1) {
-    int err = errno;
-    vinfolog("Error sending response to %s: %s", origRemote.toStringWithPort(), stringerror(err));
-  }
-
+  sendfromto(origFD, response, origDest, origRemote);
   return true;
 }
 
