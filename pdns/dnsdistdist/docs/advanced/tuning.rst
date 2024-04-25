@@ -62,9 +62,9 @@ Note that, since 1.7, dnsdist supports marking a backend as "TCP only", as well 
    :align: center
    :alt: DNSDist UDP design for TCP-only, DoT backends
 
-For DNS over HTTPS, every :func:`addDOHLocal` directive adds a new thread dealing with incoming connections, so it might be useful to add more than one directive, as indicated above.
+For DNS over HTTPS, every :func:`addDOHLocal`/:func:`addDOH3Local` directive adds a new thread dealing with incoming connections, so it might be useful to add more than one directive, as indicated above.
 
-.. figure:: ../imgs/DNSDistDoH17.png
+.. figure:: ../imgs/DNSDistDoH19.png
    :align: center
    :alt: DNSDist DoH design
 
@@ -119,9 +119,9 @@ A different possibility is that there is not enough threads accepting new connec
 
 For incoming and outgoing DNS over TLS support, the choice of the TLS provider (OpenSSL and GnuTLS are both supported) might yield very different results depending on the exact architecture.
 
-Since 1.8.0, incoming DNS over TLS might also benefit from experimental support for TLS acceleration engines, like Intel QAT. See :func:`loadTLSEngine`, and the `tlsAsyncMode` parameter of :func:`addTLSLocal` for more information.
+Incoming DNS over TLS (since 1.8.0) and incoming DNS over HTTPS (since 1.9.0) might also benefit from experimental support for TLS acceleration engines, like Intel QAT. See :func:`loadTLSEngine`, and the `tlsAsyncMode` parameter of :func:`addTLSLocal` and :func:`addDOHLocal` for more information.
 
-Incoming and outgoing DNS over TLS, as well as outgoing DNS over HTTPS, might benefit from experimental support kernel-accelerated TLS on Linux, when supported by the kernel and OpenSSL. See the `ktls` options on :func:`addTLSLocal` and :func:`newServer` for more information. Kernel support for kTLS might be verified by looking at the counters in ``/proc/net/tls_stat``. Note that:
+Incoming and outgoing DNS over TLS, outgoing DNS over HTTPS, as well as incoming DNS over HTTPS with the ``nghttp2`` library (since 1.9.0), might benefit from experimental support kernel-accelerated TLS on Linux, when supported by the kernel and OpenSSL. See the `ktls` options on :func:`addTLSLocal`, :func:`addDOHLocal` and :func:`newServer` for more information. Kernel support for kTLS might be verified by looking at the counters in ``/proc/net/tls_stat``. Note that:
 
  * supported ciphers depend on the exact kernel version used. ``TLS_AES_128_GCM_SHA256`` might be a good option for testing purpose since it was supported pretty early
  * as of OpenSSL 3.0.7, kTLS can only be used for sending TLS 1.3 packets, not receiving them. Both sending and receiving packets should be working for TLS 1.2.
@@ -130,6 +130,15 @@ TLS performance
 ---------------
 
 For DNS over HTTPS and DNS over TLS, in addition to the advice above we suggest reading the :doc:`tls-sessions-management` page to learn how to improve TLS session resumption ratio, which has a huge impact on CPU usage and latency.
+
+DNS over QUIC
+-------------
+
+For DNS over QUIC, every :func:`addDOQLocal` directive adds a new thread dealing with incoming datagrams, so it might be useful to add more than one directive.
+
+.. figure:: ../imgs/DNSDistDoQ.png
+   :align: center
+   :alt: DNSDist QUIC design
 
 Rules and Lua
 -------------
