@@ -2139,7 +2139,6 @@ static int serviceMain(Logr::log_t log)
   std::tie(g_initialDomainMap, g_initialAllowNotifyFor) = parseZoneConfiguration(g_yamlSettings);
 
   g_latencyStatSize = ::arg().asNum("latency-statistic-size");
-
   g_logCommonErrors = ::arg().mustDo("log-common-errors");
   g_logRPZChanges = ::arg().mustDo("log-rpz-changes");
 

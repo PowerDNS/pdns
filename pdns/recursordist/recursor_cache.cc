@@ -581,7 +581,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
   // for an auth to keep a "ghost" zone alive forever, even after the delegation is gone from
   // the parent
   // BUT make sure that we CAN refresh the root
-  if (cacheEntry.d_auth && auth && qtype == QType::NS && !isNew && !qname.isRoot()) {
+  if (cacheEntry.d_auth && auth && qtype == QType::NS && !isNew && !qname.isRoot() && cacheEntry.d_servedStale == 0) {
     maxTTD = cacheEntry.d_ttd;
   }
 
