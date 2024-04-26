@@ -2,6 +2,36 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.4
+  :released: 13th of May 2024
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 14081
+    :tickets: 14046
+
+    Fix DNS over plain HTTP broken by `reloadAllCertificates()`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14082
+    :tickets: 13925
+
+    Fix "C++ One Definition Rule" warnings in XSK
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 14105
+
+    Fix a crash in incoming DoH with nghttp2
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: TBD
+
+    Fix handling of XFR requests over DoH
+
+.. changelog::
   :version: 1.9.3
   :released: 5th of April 2024
 
