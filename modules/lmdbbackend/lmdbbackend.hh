@@ -65,7 +65,7 @@ public:
   bool list(const DNSName& target, int id, bool include_disabled) override;
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getserial = true) override;
-  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account) override;
+  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
 
   bool startTransaction(const DNSName& domain, int domain_id = -1) override;
   bool commitTransaction() override;
@@ -82,12 +82,12 @@ public:
   bool get(DNSZoneRecord& dzr) override;
 
   // secondary support
-  void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
+  void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
 
   // primary support
-  void getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
+  void getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   void setNotified(uint32_t id, uint32_t serial) override;
 
   // catalog zones
@@ -95,7 +95,7 @@ public:
   bool setOptions(const DNSName& domain, const std::string& options) override;
   bool setCatalog(const DNSName& domain, const DNSName& options) override;
 
-  bool setMasters(const DNSName& domain, const vector<ComboAddress>& masters) override;
+  bool setPrimaries(const DNSName& domain, const vector<ComboAddress>& primaries) override;
   bool setKind(const DNSName& domain, const DomainInfo::DomainKind kind) override;
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override;
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override
@@ -137,7 +137,7 @@ public:
 
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
 
-  virtual bool getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after) override;
+  bool getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after) override;
 
   bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype = QType::ANY) override;
 
@@ -243,7 +243,7 @@ public:
   class LMDBResourceRecord : public DNSResourceRecord
   {
   public:
-    LMDBResourceRecord() {}
+    LMDBResourceRecord() = default;
     LMDBResourceRecord(const DNSResourceRecord& rr) :
       DNSResourceRecord(rr), ordername(false) {}
 
@@ -305,9 +305,9 @@ private:
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
   std::shared_ptr<RecordsRWTransaction> getRecordsRWTransaction(uint32_t id);
-  std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id, std::shared_ptr<LMDBBackend::RecordsRWTransaction> rwtxn = nullptr);
-  int genChangeDomain(const DNSName& domain, std::function<void(DomainInfo&)> func);
-  int genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func);
+  std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn = nullptr);
+  int genChangeDomain(const DNSName& domain, const std::function<void(DomainInfo&)>& func);
+  int genChangeDomain(uint32_t id, const std::function<void(DomainInfo&)>& func);
   void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype = QType::ANY);
 
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);

@@ -62,7 +62,7 @@ public:
                                boost::optional<int>& alt, boost::optional<int>& prec)
     = 0;
 
-  virtual ~GeoIPInterface() {}
+  virtual ~GeoIPInterface() = default;
 
   static unique_ptr<GeoIPInterface> makeInterface(const string& dbStr);
 

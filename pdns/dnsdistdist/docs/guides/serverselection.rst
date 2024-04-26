@@ -110,6 +110,25 @@ Or::
 
   setServerPolicyLua("splitsetup", splitSetup)
 
+A faster, FFI version is also available since 1.5.0:
+
+.. code-block:: lua
+
+  local ffi = require("ffi")
+  local C = ffi.C
+
+  local counter = 0
+  function luaffiroundrobin(servers_list, dq)
+    counter = counter + 1
+    return (counter % tonumber(C.dnsdist_ffi_servers_list_get_count(servers_list)))
+  end
+  setServerPolicyLuaFFI("luaffiroundrobin", luaffiroundrobin)
+
+Note that this version returns the index (starting at 0) of the server to select,
+instead of returning the server itself. It was initially not possible to indicate
+that all servers were unavailable from these policies, but since 1.9.2 returning
+a value equal or greater than the number of servers will be interpreted as such.
+
 For performance reasons, 1.6.0 introduced per-thread Lua FFI policies that are run in a lock-free per-thread Lua context instead of the global one.
 This reduces contention between threads at the cost of preventing sharing data between threads for these policies. Since the policy needs to be recompiled
 in the context of each thread instead of the global one, Lua code that returns a function should be passed to the function as a string instead of directly
@@ -127,6 +146,10 @@ passing the name of a function:
       return (counter % tonumber(C.dnsdist_ffi_servers_list_get_count(servers_list)))
     end
   ]])
+
+Note that this version, like the one above, returns the index (starting at 0) of the server to select.
+It was initially not possible to indicate that all servers were unavailable from these policies, but
+since 1.9.2 returning a value equal or greater than the number of servers will be interpreted as such.
 
 ServerPolicy Objects
 --------------------
@@ -214,6 +237,9 @@ Functions
 
   .. versionadded:: 1.5.0
 
+  .. versionchanged:: 1.9.2
+    Returning a value equal or greater than the number of servers will be interpreted as all servers being unavailable.
+
   Set server selection policy to one named ``name`` and provided by the FFI function ``function``.
 
   :param string name: name for this policy
@@ -222,6 +248,9 @@ Functions
 .. function:: setServerPolicyLuaFFIPerThread(name, code)
 
   .. versionadded:: 1.6.0
+
+  .. versionchanged:: 1.9.2
+    Returning a value equal or greater than the number of servers will be interpreted as all servers being unavailable.
 
   Set server selection policy to one named ``name`` and the Lua FFI function returned by the Lua code passed in ``code``.
   The resulting policy will be executed in a lock-free per-thread context, instead of running in the global Lua context.

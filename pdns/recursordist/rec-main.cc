@@ -40,7 +40,8 @@
 #include "logging.hh"
 #include "dnsseckeeper.hh"
 #include "settings/cxxsettings.hh"
-
+#include "json.hh"
+#include "rec-system-resolve.hh"
 #ifdef NOD_ENABLED
 #include "nod.hh"
 #endif /* NOD_ENABLED */
@@ -79,14 +80,15 @@ std::string g_nod_pbtag;
 bool g_udrEnabled;
 bool g_udrLog;
 std::string g_udr_pbtag;
-thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
-thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
+std::unique_ptr<nod::NODDB> g_nodDBp;
+std::unique_ptr<nod::UniqueResponseDB> g_udrDBp;
 #endif /* NOD_ENABLED */
 
 std::atomic<bool> statsWanted;
 uint32_t g_disthashseed;
 bool g_useIncomingECS;
 NetmaskGroup g_proxyProtocolACL;
+std::set<ComboAddress> g_proxyProtocolExceptions;
 boost::optional<ComboAddress> g_dns64Prefix{boost::none};
 DNSName g_dns64PrefixReverse;
 std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
@@ -583,14 +585,14 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
   if (!luaconfsLocal->protobufExportConfig.logMappedFrom) {
     pbMessage.setSocketFamily(source.sin4.sin_family);
     Netmask requestorNM(source, source.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-    auto requestor = requestorNM.getMaskedNetwork();
+    const auto& requestor = requestorNM.getMaskedNetwork();
     pbMessage.setFrom(requestor);
     pbMessage.setFromPort(source.getPort());
   }
   else {
     pbMessage.setSocketFamily(mappedSource.sin4.sin_family);
     Netmask requestorNM(mappedSource, mappedSource.sin4.sin_family == AF_INET ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
-    auto requestor = requestorNM.getMaskedNetwork();
+    const auto& requestor = requestorNM.getMaskedNetwork();
     pbMessage.setFrom(requestor);
     pbMessage.setFromPort(mappedSource.getPort());
   }
@@ -782,41 +784,51 @@ static void setupNODThread(Logr::log_t log)
 {
   if (g_nodEnabled) {
     uint32_t num_cells = ::arg().asNum("new-domain-db-size");
-    t_nodDBp = std::make_shared<nod::NODDB>(num_cells);
+    g_nodDBp = std::make_unique<nod::NODDB>(num_cells);
     try {
-      t_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
+      g_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
     }
     catch (const PDNSException& e) {
       SLOG(g_log << Logger::Error << "new-domain-history-dir (" << ::arg()["new-domain-history-dir"] << ") is not readable or does not exist" << endl,
            log->error(Logr::Error, e.reason, "new-domain-history-dir is not readable or does not exists", "dir", Logging::Loggable(::arg()["new-domain-history-dir"])));
       _exit(1);
     }
-    if (!t_nodDBp->init()) {
+    if (!g_nodDBp->init()) {
       SLOG(g_log << Logger::Error << "Could not initialize domain tracking" << endl,
            log->info(Logr::Error, "Could not initialize domain tracking"));
       _exit(1);
     }
-    std::thread thread(nod::NODDB::startHousekeepingThread, t_nodDBp, std::this_thread::get_id());
-    thread.detach();
+    if (::arg().asNum("new-domain-db-snapshot-interval") > 0) {
+      g_nodDBp->setSnapshotInterval(::arg().asNum("new-domain-db-snapshot-interval"));
+      std::thread thread([tid = std::this_thread::get_id()]() {
+        g_nodDBp->housekeepingThread(tid);
+      });
+      thread.detach();
+    }
   }
   if (g_udrEnabled) {
     uint32_t num_cells = ::arg().asNum("unique-response-db-size");
-    t_udrDBp = std::make_shared<nod::UniqueResponseDB>(num_cells);
+    g_udrDBp = std::make_unique<nod::UniqueResponseDB>(num_cells);
     try {
-      t_udrDBp->setCacheDir(::arg()["unique-response-history-dir"]);
+      g_udrDBp->setCacheDir(::arg()["unique-response-history-dir"]);
     }
     catch (const PDNSException& e) {
       SLOG(g_log << Logger::Error << "unique-response-history-dir (" << ::arg()["unique-response-history-dir"] << ") is not readable or does not exist" << endl,
            log->info(Logr::Error, "unique-response-history-dir is not readable or does not exist", "dir", Logging::Loggable(::arg()["unique-response-history-dir"])));
       _exit(1);
     }
-    if (!t_udrDBp->init()) {
+    if (!g_udrDBp->init()) {
       SLOG(g_log << Logger::Error << "Could not initialize unique response tracking" << endl,
            log->info(Logr::Error, "Could not initialize unique response tracking"));
       _exit(1);
     }
-    std::thread thread(nod::UniqueResponseDB::startHousekeepingThread, t_udrDBp, std::this_thread::get_id());
-    thread.detach();
+    if (::arg().asNum("new-domain-db-snapshot-interval") > 0) {
+      g_udrDBp->setSnapshotInterval(::arg().asNum("new-domain-db-snapshot-interval"));
+      std::thread thread([tid = std::this_thread::get_id()]() {
+        g_udrDBp->housekeepingThread(tid);
+      });
+      thread.detach();
+    }
   }
 }
 
@@ -928,29 +940,6 @@ static void checkOrFixFDS(Logr::log_t log)
   }
 }
 
-// static std::string s_timestampFormat = "%m-%dT%H:%M:%S";
-static std::string s_timestampFormat = "%s";
-
-static const char* toTimestampStringMilli(const struct timeval& tval, std::array<char, 64>& buf)
-{
-  size_t len = 0;
-  if (s_timestampFormat != "%s") {
-    // strftime is not thread safe, it can access locale information
-    static std::mutex mutex;
-    auto lock = std::lock_guard(mutex);
-    struct tm theTime // clang-format insists on formatting it like this
-    {
-    };
-    len = strftime(buf.data(), buf.size(), s_timestampFormat.c_str(), localtime_r(&tval.tv_sec, &theTime));
-  }
-  if (len == 0) {
-    len = snprintf(buf.data(), buf.size(), "%lld", static_cast<long long>(tval.tv_sec));
-  }
-
-  snprintf(&buf.at(len), buf.size() - len, ".%03ld", static_cast<long>(tval.tv_usec) / 1000);
-  return buf.data();
-}
-
 #ifdef HAVE_SYSTEMD
 static void loggerSDBackend(const Logging::Entry& entry)
 {
@@ -997,7 +986,7 @@ static void loggerSDBackend(const Logging::Entry& entry)
     appendKeyAndVal("SUBSYSTEM", entry.name.get());
   }
   std::array<char, 64> timebuf{};
-  appendKeyAndVal("TIMESTAMP", toTimestampStringMilli(entry.d_timestamp, timebuf));
+  appendKeyAndVal("TIMESTAMP", Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
   for (const auto& value : entry.values) {
     if (value.first.at(0) == '_' || special.count(value.first) != 0) {
       string key{"PDNS"};
@@ -1021,6 +1010,49 @@ static void loggerSDBackend(const Logging::Entry& entry)
   sd_journal_sendv(iov.data(), static_cast<int>(iov.size()));
 }
 #endif
+
+static void loggerJSONBackend(const Logging::Entry& entry)
+{
+  // First map SL priority to syslog's Urgency
+  Logger::Urgency urg = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  if (urg > s_logUrgency) {
+    // We do not log anything if the Urgency of the message is lower than the requested loglevel.
+    // Not that lower Urgency means higher number.
+    return;
+  }
+
+  std::array<char, 64> timebuf{};
+  json11::Json::object json = {
+    {"msg", entry.message},
+    {"level", std::to_string(entry.level)},
+    // Thread id filled in by backend, since the SL code does not know about RecursorThreads
+    // We use the Recursor thread, other threads get id 0. May need to revisit.
+    {"tid", std::to_string(RecThreadInfo::id())},
+    {"ts", Logging::toTimestampStringMilli(entry.d_timestamp, timebuf)},
+  };
+
+  if (entry.error) {
+    json.emplace("error", entry.error.get());
+  }
+
+  if (entry.name) {
+    json.emplace("subsystem", entry.name.get());
+  }
+
+  if (entry.d_priority != 0) {
+    json.emplace("priority", std::to_string(entry.d_priority));
+  }
+
+  for (auto const& value : entry.values) {
+    json.emplace(value.first, value.second);
+  }
+
+  static thread_local std::string out;
+  out.clear();
+  json11::Json doc(std::move(json));
+  doc.dump(out);
+  cerr << out << endl;
+}
 
 static void loggerBackend(const Logging::Entry& entry)
 {
@@ -1050,7 +1082,7 @@ static void loggerBackend(const Logging::Entry& entry)
   // We use the Recursor thread, other threads get id 0. May need to revisit.
   buf << " tid=" << std::quoted(std::to_string(RecThreadInfo::id()));
   std::array<char, 64> timebuf{};
-  buf << " ts=" << std::quoted(toTimestampStringMilli(entry.d_timestamp, timebuf));
+  buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
   for (auto const& value : entry.values) {
     buf << " ";
     buf << value.first << "=" << std::quoted(value.second);
@@ -1348,11 +1380,13 @@ void parseACLs()
   }
 
   g_initialAllowFrom = allowFrom;
+  // coverity[copy_constructor_call] maybe this can be avoided, but be careful as pointers get passed to other threads
   broadcastFunction([=] { return pleaseSupplantAllowFrom(allowFrom); });
 
   auto allowNotifyFrom = parseACL("allow-notify-from-file", "allow-notify-from", log);
 
   g_initialAllowNotifyFrom = allowNotifyFrom;
+  // coverity[copy_constructor_call] maybe this can be avoided, but be careful as pointers get passed to other threads
   broadcastFunction([=] { return pleaseSupplantAllowNotifyFrom(allowNotifyFrom); });
 
   l_initialized = true;
@@ -1563,6 +1597,10 @@ static int initDNSSEC(Logr::log_t log)
 
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
   g_maxNSEC3Iterations = ::arg().asNum("nsec3-max-iterations");
+  g_maxRRSIGsPerRecordToConsider = ::arg().asNum("max-rrsigs-per-record");
+  g_maxNSEC3sPerRecordToConsider = ::arg().asNum("max-nsec3s-per-record");
+  g_maxDNSKEYsToConsider = ::arg().asNum("max-dnskeys");
+  g_maxDSsToConsider = ::arg().asNum("max-ds-per-zone");
 
   vector<string> nums;
   bool automatic = true;
@@ -1652,6 +1690,8 @@ static int initSyncRes(Logr::log_t log)
   SyncRes::s_maxnsaddressqperq = ::arg().asNum("max-ns-address-qperq");
   SyncRes::s_maxtotusec = 1000 * ::arg().asNum("max-total-msec");
   SyncRes::s_maxdepth = ::arg().asNum("max-recursion-depth");
+  SyncRes::s_maxvalidationsperq = ::arg().asNum("max-signature-validations-per-query");
+  SyncRes::s_maxnsec3iterationsperq = ::arg().asNum("max-nsec3-hash-computations-per-query");
   SyncRes::s_rootNXTrust = ::arg().mustDo("root-nx-trust");
   SyncRes::s_refresh_ttlperc = ::arg().asNum("refresh-on-ttl-perc");
   SyncRes::s_locked_ttlperc = ::arg().asNum("record-cache-locked-ttl-perc");
@@ -1940,12 +1980,8 @@ static void initSuffixMatchNodes([[maybe_unused]] Logr::log_t log)
     }
     g_dontThrottleNames.setState(std::move(dontThrottleNames));
 
-    parts.clear();
     NetmaskGroup dontThrottleNetmasks;
-    stringtok(parts, ::arg()["dont-throttle-netmasks"], " ,");
-    for (const auto& part : parts) {
-      dontThrottleNetmasks.addMask(Netmask(part));
-    }
+    dontThrottleNetmasks.toMasks(::arg()["dont-throttle-netmasks"]);
     g_dontThrottleNetmasks.setState(std::move(dontThrottleNetmasks));
   }
 
@@ -2084,6 +2120,14 @@ static int serviceMain(Logr::log_t log)
   }
 
   g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
+  {
+    std::vector<std::string> vec;
+    stringtok(vec, ::arg()["proxy-protocol-exceptions"], ", ");
+    for (const auto& sockAddrStr : vec) {
+      ComboAddress sockAddr(sockAddrStr, 53);
+      g_proxyProtocolExceptions.emplace(sockAddr);
+    }
+  }
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
 
   ret = initDNS64(log);
@@ -2099,6 +2143,7 @@ static int serviceMain(Logr::log_t log)
   g_logRPZChanges = ::arg().mustDo("log-rpz-changes");
 
   g_anyToTcp = ::arg().mustDo("any-to-tcp");
+  g_allowNoRD = ::arg().mustDo("allow-no-rd");
   g_udpTruncationThreshold = ::arg().asNum("udp-truncation-threshold");
 
   g_lowercaseOutgoing = ::arg().mustDo("lowercase-outgoing");
@@ -2166,6 +2211,7 @@ static int serviceMain(Logr::log_t log)
     }
   }
 
+  AggressiveNSECCache::s_nsec3DenialProofMaxCost = ::arg().asNum("aggressive-cache-max-nsec3-hash-cost");
   AggressiveNSECCache::s_maxNSEC3CommonPrefix = static_cast<uint8_t>(std::round(std::log2(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio"))));
   SLOG(g_log << Logger::Debug << "NSEC3 aggressive cache tuning: aggressive-cache-min-nsec3-hit-ratio: " << ::arg().asNum("aggressive-cache-min-nsec3-hit-ratio") << " max common prefix bits: " << std::to_string(AggressiveNSECCache::s_maxNSEC3CommonPrefix) << endl,
        log->info(Logr::Debug, "NSEC3 aggressive cache tuning", "aggressive-cache-min-nsec3-hit-ratio", Logging::Loggable(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio")), "maxCommonPrefixBits", Logging::Loggable(AggressiveNSECCache::s_maxNSEC3CommonPrefix)));
@@ -2241,6 +2287,10 @@ static int serviceMain(Logr::log_t log)
   if (ret != 0) {
     return ret;
   }
+
+#ifdef NOD_ENABLED
+  setupNODThread(log);
+#endif /* NOD_ENABLED */
 
   return RecThreadInfo::runThreads(log);
 }
@@ -2626,7 +2676,7 @@ static void recLoop()
   auto& threadInfo = RecThreadInfo::self();
 
   while (!RecursorControlChannel::stop) {
-    while (g_multiTasker->schedule(&g_now)) {
+    while (g_multiTasker->schedule(g_now)) {
       ; // MTasker letting the mthreads do their thing
     }
 
@@ -2718,12 +2768,6 @@ static void recursorThread()
       }
     }
 
-#ifdef NOD_ENABLED
-    if (threadInfo.isWorker()) {
-      setupNODThread(log);
-    }
-#endif /* NOD_ENABLED */
-
     /* the listener threads handle TCP queries */
     if (threadInfo.isWorker() || threadInfo.isListener()) {
       try {
@@ -2741,8 +2785,7 @@ static void recursorThread()
       }
     }
 
-    unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numUDPWorkers();
-    if (ringsize != 0) {
+    if (unsigned int ringsize = ::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numUDPWorkers(); ringsize != 0) {
       t_remotes = std::make_unique<addrringbuf_t>();
       if (RecThreadInfo::weDistributeQueries()) {
         t_remotes->set_capacity(::arg().asNum("stats-ringbuffer-entries") / RecThreadInfo::numDistributors());
@@ -2769,14 +2812,16 @@ static void recursorThread()
     g_multiTasker = std::make_unique<MT_t>(::arg().asNum("stack-size"), ::arg().asNum("stack-cache-size"));
     threadInfo.setMT(g_multiTasker.get());
 
-    /* start protobuf export threads if needed */
-    auto luaconfsLocal = g_luaconfs.getLocal();
-    checkProtobufExport(luaconfsLocal);
-    checkOutgoingProtobufExport(luaconfsLocal);
+    {
+      /* start protobuf export threads if needed, don;'t keep a ref to lua config around */
+      auto luaconfsLocal = g_luaconfs.getLocal();
+      checkProtobufExport(luaconfsLocal);
+      checkOutgoingProtobufExport(luaconfsLocal);
 #ifdef HAVE_FSTRM
-    checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
-    checkFrameStreamExport(luaconfsLocal, luaconfsLocal->nodFrameStreamExportConfig, t_nodFrameStreamServersInfo);
+      checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
+      checkFrameStreamExport(luaconfsLocal, luaconfsLocal->nodFrameStreamExportConfig, t_nodFrameStreamServersInfo);
 #endif
+    }
 
     t_fdm = unique_ptr<FDMultiplexer>(getMultiplexer(log));
 
@@ -2848,313 +2893,6 @@ static void recursorThread()
   }
 }
 
-#if 0
-// THIS FUNCTION IS REPLACED BY GENERATED CODE IN settings/cxxsettings-generated.cc
-static void initArgs()
-{
-#if HAVE_FIBER_SANITIZER
-  // Asan needs more stack
-  ::arg().set("stack-size", "stack size per mthread") = "600000";
-#else
-  ::arg().set("stack-size", "stack size per mthread") = "200000";
-#endif
-  ::arg().set("stack-cache-size", "Size of the stack cache, per mthread") = "100";
-  // This mode forces metrics snap updates and disable root-refresh, to get consistent counters
-  ::arg().setSwitch("devonly-regression-test-mode", "internal use only") = "no";
-  ::arg().set("soa-minimum-ttl", "Don't change") = "0";
-  ::arg().setSwitch("no-shuffle", "Don't change") = "off";
-  ::arg().set("local-port", "port to listen on") = "53";
-  ::arg().set("local-address", "IP addresses to listen on, separated by spaces or commas. Also accepts ports.") = "127.0.0.1";
-  ::arg().setSwitch("non-local-bind", "Enable binding to non-local addresses by using FREEBIND / BINDANY socket options") = "no";
-  ::arg().set("trace", "if we should output heaps of logging. set to 'fail' to only log failing domains") = "off";
-  ::arg().set("dnssec", "DNSSEC mode: off/process-no-validate/process (default)/log-fail/validate") = "process";
-  ::arg().setSwitch("dnssec-log-bogus", "Log DNSSEC bogus validations") = "no";
-  ::arg().set("signature-inception-skew", "Allow the signature inception to be off by this number of seconds") = "60";
-  ::arg().set("dnssec-disabled-algorithms", "List of DNSSEC algorithm numbers that are considered unsupported") = "";
-  ::arg().setSwitch("daemon", "Operate as a daemon") = "no";
-  ::arg().setSwitch("write-pid", "Write a PID file") = "yes";
-  ::arg().set("loglevel", "Amount of logging. Higher is more. Do not set below 3") = "6";
-  ::arg().setSwitch("disable-syslog", "Disable logging to syslog, useful when running inside a supervisor that logs stdout") = "no";
-  ::arg().setSwitch("log-timestamp", "Print timestamps in log lines, useful to disable when running with a tool that timestamps stdout already") = "yes";
-  ::arg().setSwitch("log-common-errors", "If we should log rather common errors") = "no";
-  ::arg().set("chroot", "switch to chroot jail") = "";
-  ::arg().set("setgid", "If set, change group id to this gid for more security"
-#ifdef HAVE_SYSTEMD
-#define SYSTEMD_SETID_MSG ". When running inside systemd, use the User and Group settings in the unit-file!"
-              SYSTEMD_SETID_MSG
-#endif
-              )
-    = "";
-  ::arg().set("setuid", "If set, change user id to this uid for more security"
-#ifdef HAVE_SYSTEMD
-              SYSTEMD_SETID_MSG
-#endif
-              )
-    = "";
-  ::arg().set("network-timeout", "Wait this number of milliseconds for network i/o") = "1500";
-  ::arg().set("threads", "Launch this number of threads") = "2";
-  ::arg().set("distributor-threads", "Launch this number of distributor threads, distributing queries to other threads") = "0";
-  ::arg().set("processes", "Launch this number of processes (EXPERIMENTAL, DO NOT CHANGE)") = "1"; // if we un-experimental this, need to fix openssl rand seeding for multiple PIDs!
-  ::arg().set("config-name", "Name of this virtual configuration - will rename the binary image") = "";
-  ::arg().set("api-config-dir", "Directory where REST API stores config and zones") = "";
-  ::arg().set("api-key", "Static pre-shared authentication key for access to the REST API") = "";
-  ::arg().setSwitch("webserver", "Start a webserver (for REST API)") = "no";
-  ::arg().set("webserver-address", "IP Address of webserver to listen on") = "127.0.0.1";
-  ::arg().set("webserver-port", "Port of webserver to listen on") = "8082";
-  ::arg().set("webserver-password", "Password required for accessing the webserver") = "";
-  ::arg().set("webserver-allow-from", "Webserver access is only allowed from these subnets") = "127.0.0.1,::1";
-  ::arg().set("webserver-loglevel", "Amount of logging in the webserver (none, normal, detailed)") = "normal";
-  ::arg().setSwitch("webserver-hash-plaintext-credentials", "Whether to hash passwords and api keys supplied in plaintext, to prevent keeping the plaintext version in memory at runtime") = "no";
-  ::arg().set("carbon-ourname", "If set, overrides our reported hostname for carbon stats") = "";
-  ::arg().set("carbon-server", "If set, send metrics in carbon (graphite) format to this server IP address") = "";
-  ::arg().set("carbon-interval", "Number of seconds between carbon (graphite) updates") = "30";
-  ::arg().set("carbon-namespace", "If set overwrites the first part of the carbon string") = "pdns";
-  ::arg().set("carbon-instance", "If set overwrites the instance name default") = "recursor";
-
-  ::arg().set("statistics-interval", "Number of seconds between printing of recursor statistics, 0 to disable") = "1800";
-  ::arg().setSwitch("quiet", "Suppress logging of questions and answers") = "yes";
-  ::arg().set("logging-facility", "Facility to log messages as. 0 corresponds to local0") = "";
-  ::arg().set("config-dir", "Location of configuration directory (recursor.conf)") = SYSCONFDIR;
-  ::arg().set("socket-owner", "Owner of socket") = "";
-  ::arg().set("socket-group", "Group of socket") = "";
-  ::arg().set("socket-mode", "Permissions for socket") = "";
-
-  ::arg().set("socket-dir", string("Where the controlsocket will live, ") + LOCALSTATEDIR + "/pdns-recursor when unset and not chrooted"
-#ifdef HAVE_SYSTEMD
-                + ". Set to the RUNTIME_DIRECTORY environment variable when that variable has a value (e.g. under systemd).")
-    = "";
-  auto* runtimeDir = getenv("RUNTIME_DIRECTORY"); // NOLINT(concurrency-mt-unsafe,cppcoreguidelines-pro-type-vararg)
-  if (runtimeDir != nullptr) {
-    ::arg().set("socket-dir") = runtimeDir;
-  }
-#else
-              )
-    = "";
-#endif
-  ::arg().set("query-local-address", "Source IP address for sending queries") = "0.0.0.0";
-  ::arg().set("client-tcp-timeout", "Timeout in seconds when talking to TCP clients") = "2";
-  ::arg().set("max-mthreads", "Maximum number of simultaneous Mtasker threads") = "2048";
-  ::arg().set("max-tcp-clients", "Maximum number of simultaneous TCP clients") = "128";
-  ::arg().set("max-concurrent-requests-per-tcp-connection", "Maximum number of requests handled concurrently per TCP connection") = "10";
-  ::arg().set("server-down-max-fails", "Maximum number of consecutive timeouts (and unreachables) to mark a server as down ( 0 => disabled )") = "64";
-  ::arg().set("server-down-throttle-time", "Number of seconds to throttle all queries to a server after being marked as down") = "60";
-  ::arg().set("dont-throttle-names", "Do not throttle nameservers with this name or suffix") = "";
-  ::arg().set("dont-throttle-netmasks", "Do not throttle nameservers with this IP netmask") = "";
-  ::arg().set("non-resolving-ns-max-fails", "Number of failed address resolves of a nameserver to start throttling it, 0 is disabled") = "5";
-  ::arg().set("non-resolving-ns-throttle-time", "Number of seconds to throttle a nameserver with a name failing to resolve") = "60";
-
-  ::arg().set("hint-file", "If set, load root hints from this file") = "";
-  ::arg().set("max-cache-entries", "If set, maximum number of entries in the main cache") = "1000000";
-  ::arg().set("max-negative-ttl", "maximum number of seconds to keep a negative cached entry in memory") = "3600";
-  ::arg().set("max-cache-bogus-ttl", "maximum number of seconds to keep a Bogus (positive or negative) cached entry in memory") = "3600";
-  ::arg().set("max-cache-ttl", "maximum number of seconds to keep a cached entry in memory") = "86400";
-  ::arg().set("packetcache-ttl", "maximum number of seconds to keep a cached entry in packetcache") = "86400";
-  ::arg().set("max-packetcache-entries", "maximum number of entries to keep in the packetcache") = "500000";
-  ::arg().set("packetcache-servfail-ttl", "maximum number of seconds to keep a cached servfail entry in packetcache") = "60";
-  ::arg().set("packetcache-negative-ttl", "maximum number of seconds to keep a cached NxDomain or NoData entry in packetcache") = "60";
-  ::arg().set("server-id", "Returned when queried for 'id.server' TXT or NSID, defaults to hostname, set custom or 'disabled'") = "";
-  ::arg().set("stats-ringbuffer-entries", "maximum number of packets to store statistics for") = "10000";
-  ::arg().set("version-string", "string reported on version.pdns or version.bind") = fullVersionString();
-  ::arg().set("allow-from", "If set, only allow these comma separated netmasks to recurse") = LOCAL_NETS;
-  ::arg().set("allow-from-file", "If set, load allowed netmasks from this file") = "";
-  ::arg().set("allow-notify-for", "If set, NOTIFY requests for these zones will be allowed") = "";
-  ::arg().set("allow-notify-for-file", "If set, load NOTIFY-allowed zones from this file") = "";
-  ::arg().set("allow-notify-from", "If set, NOTIFY requests from these comma separated netmasks will be allowed") = "";
-  ::arg().set("allow-notify-from-file", "If set, load NOTIFY-allowed netmasks from this file") = "";
-  ::arg().set("entropy-source", "If set, read entropy from this file") = "/dev/urandom";
-  ::arg().set("dont-query", "If set, do not query these netmasks for DNS data") = DONT_QUERY;
-  ::arg().set("max-tcp-per-client", "If set, maximum number of TCP sessions per client (IP address)") = "0";
-  ::arg().set("max-tcp-queries-per-connection", "If set, maximum number of TCP queries in a TCP connection") = "0";
-  ::arg().set("spoof-nearmiss-max", "If non-zero, assume spoofing after this many near misses") = "1";
-  ::arg().setSwitch("single-socket", "If set, only use a single socket for outgoing queries") = "off";
-  ::arg().set("auth-zones", "Zones for which we have authoritative data, comma separated domain=file pairs ") = "";
-  ::arg().set("lua-config-file", "More powerful configuration options") = "";
-  ::arg().setSwitch("allow-trust-anchor-query", "Allow queries for trustanchor.server CH TXT and negativetrustanchor.server CH TXT") = "no";
-
-  ::arg().set("forward-zones", "Zones for which we forward queries, comma separated domain=ip pairs") = "";
-  ::arg().set("forward-zones-recurse", "Zones for which we forward queries with recursion bit, comma separated domain=ip pairs") = "";
-  ::arg().set("forward-zones-file", "File with (+)domain=ip pairs for forwarding") = "";
-  ::arg().setSwitch("export-etc-hosts", "If we should serve up contents from /etc/hosts") = "off";
-  ::arg().set("export-etc-hosts-search-suffix", "Also serve up the contents of /etc/hosts with this suffix") = "";
-  ::arg().set("etc-hosts-file", "Path to 'hosts' file") = "/etc/hosts";
-  ::arg().setSwitch("serve-rfc1918", "If we should be authoritative for RFC 1918 private IP space") = "yes";
-  ::arg().set("lua-dns-script", "Filename containing an optional 'lua' script that will be used to modify dns answers") = "";
-  ::arg().set("lua-maintenance-interval", "Number of seconds between calls to the lua user defined maintenance() function") = "1";
-  ::arg().set("latency-statistic-size", "Number of latency values to calculate the qa-latency average") = "10000";
-  ::arg().setSwitch("disable-packetcache", "Disable packetcache") = "no";
-  ::arg().set("ecs-ipv4-bits", "Number of bits of IPv4 address to pass for EDNS Client Subnet") = "24";
-  ::arg().set("ecs-ipv4-cache-bits", "Maximum number of bits of IPv4 mask to cache ECS response") = "24";
-  ::arg().set("ecs-ipv6-bits", "Number of bits of IPv6 address to pass for EDNS Client Subnet") = "56";
-  ::arg().set("ecs-ipv6-cache-bits", "Maximum number of bits of IPv6 mask to cache ECS response") = "56";
-  ::arg().setSwitch("ecs-ipv4-never-cache", "If we should never cache IPv4 ECS responses") = "no";
-  ::arg().setSwitch("ecs-ipv6-never-cache", "If we should never cache IPv6 ECS responses") = "no";
-  ::arg().set("ecs-minimum-ttl-override", "The minimum TTL for records in ECS-specific answers") = "1";
-  ::arg().set("ecs-cache-limit-ttl", "Minimum TTL to cache ECS response") = "0";
-  ::arg().set("edns-subnet-whitelist", "List of netmasks and domains that we should enable EDNS subnet for (deprecated)") = "";
-  ::arg().set("edns-subnet-allow-list", "List of netmasks and domains that we should enable EDNS subnet for") = "";
-  ::arg().set("ecs-add-for", "List of client netmasks for which EDNS Client Subnet will be added") = "0.0.0.0/0, ::/0, " LOCAL_NETS_INVERSE;
-  ::arg().set("ecs-scope-zero-address", "Address to send to allow-listed authoritative servers for incoming queries with ECS prefix-length source of 0") = "";
-  ::arg().setSwitch("use-incoming-edns-subnet", "Pass along received EDNS Client Subnet information") = "no";
-  ::arg().setSwitch("pdns-distributes-queries", "If PowerDNS itself should distribute queries over threads") = "no";
-  ::arg().setSwitch("root-nx-trust", "If set, believe that an NXDOMAIN from the root means the TLD does not exist") = "yes";
-  ::arg().setSwitch("any-to-tcp", "Answer ANY queries with tc=1, shunting to TCP") = "no";
-  ::arg().setSwitch("lowercase-outgoing", "Force outgoing questions to lowercase") = "no";
-  ::arg().setSwitch("gettag-needs-edns-options", "If EDNS Options should be extracted before calling the gettag() hook") = "no";
-  ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate") = "1232";
-  ::arg().set("edns-outgoing-bufsize", "Outgoing EDNS buffer size") = "1232";
-  ::arg().set("minimum-ttl-override", "The minimum TTL") = "1";
-  ::arg().set("max-qperq", "Maximum outgoing queries per query") = "60";
-  ::arg().set("max-ns-per-resolve", "Maximum number of NS records to consider to resolve a name, 0 is no limit") = "13";
-  ::arg().set("max-ns-address-qperq", "Maximum outgoing NS address queries per query") = "10";
-  ::arg().set("max-total-msec", "Maximum total wall-clock time per query in milliseconds, 0 for unlimited") = "7000";
-  ::arg().set("max-recursion-depth", "Maximum number of internal recursion calls per query, 0 for unlimited") = "16";
-  ::arg().set("max-udp-queries-per-round", "Maximum number of UDP queries processed per recvmsg() round, before returning back to normal processing") = "10000";
-  ::arg().set("protobuf-use-kernel-timestamp", "Compute the latency of queries in protobuf messages by using the timestamp set by the kernel when the query was received (when available)") = "";
-  ::arg().set("distribution-pipe-buffer-size", "Size in bytes of the internal buffer of the pipe used by the distributor to pass incoming queries to a worker thread") = "0";
-
-  ::arg().set("include-dir", "Include *.conf files from this directory") = "";
-  ::arg().set("security-poll-suffix", "Domain name from which to query security update notifications") = "secpoll.powerdns.com.";
-
-#ifdef SO_REUSEPORT
-  ::arg().setSwitch("reuseport", "Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address") = "yes";
-#else
-  ::arg().setSwitch("reuseport", "Enable SO_REUSEPORT allowing multiple recursors processes to listen to 1 address") = "no";
-#endif
-  ::arg().setSwitch("snmp-agent", "If set, register as an SNMP agent") = "no";
-  ::arg().set("snmp-master-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon (deprecated)") = "";
-  ::arg().set("snmp-daemon-socket", "If set and snmp-agent is set, the socket to use to register to the SNMP daemon") = "";
-
-  std::string defaultAPIDisabledStats = "cache-bytes, packetcache-bytes, special-memory-usage";
-  for (size_t idx = 0; idx < 32; idx++) {
-    defaultAPIDisabledStats += ", ecs-v4-response-bits-" + std::to_string(idx + 1);
-  }
-  for (size_t idx = 0; idx < 128; idx++) {
-    defaultAPIDisabledStats += ", ecs-v6-response-bits-" + std::to_string(idx + 1);
-  }
-  std::string defaultDisabledStats = defaultAPIDisabledStats + ", cumul-clientanswers, cumul-authanswers, policy-hits, proxy-mapping-total, remote-logger-count";
-
-  ::arg().set("stats-api-blacklist", "List of statistics that are disabled when retrieving the complete list of statistics via the API (deprecated)") = defaultAPIDisabledStats;
-  ::arg().set("stats-carbon-blacklist", "List of statistics that are prevented from being exported via Carbon (deprecated)") = defaultDisabledStats;
-  ::arg().set("stats-rec-control-blacklist", "List of statistics that are prevented from being exported via rec_control get-all (deprecated)") = defaultDisabledStats;
-  ::arg().set("stats-snmp-blacklist", "List of statistics that are prevented from being exported via SNMP (deprecated)") = defaultDisabledStats;
-
-  ::arg().set("stats-api-disabled-list", "List of statistics that are disabled when retrieving the complete list of statistics via the API") = defaultAPIDisabledStats;
-  ::arg().set("stats-carbon-disabled-list", "List of statistics that are prevented from being exported via Carbon") = defaultDisabledStats;
-  ::arg().set("stats-rec-control-disabled-list", "List of statistics that are prevented from being exported via rec_control get-all") = defaultDisabledStats;
-  ::arg().set("stats-snmp-disabled-list", "List of statistics that are prevented from being exported via SNMP") = defaultDisabledStats;
-
-  ::arg().set("tcp-fast-open", "Enable TCP Fast Open support on the listening sockets, using the supplied numerical value as the queue size") = "0";
-  ::arg().setSwitch("tcp-fast-open-connect", "Enable TCP Fast Open support on outgoing sockets") = "no";
-  ::arg().set("nsec3-max-iterations", "Maximum number of iterations allowed for an NSEC3 record") = "150";
-
-  ::arg().set("cpu-map", "Thread to CPU mapping, space separated thread-id=cpu1,cpu2..cpuN pairs") = "";
-
-  ::arg().setSwitch("log-rpz-changes", "Log additions and removals to RPZ zones at Info level") = "no";
-
-  ::arg().set("proxy-protocol-from", "A Proxy Protocol header is only allowed from these subnets") = "";
-  ::arg().set("proxy-protocol-maximum-size", "The maximum size of a proxy protocol payload, including the TLV values") = "512";
-
-  ::arg().set("dns64-prefix", "DNS64 prefix") = "";
-
-  ::arg().set("udp-source-port-min", "Minimum UDP port to bind on") = "1024";
-  ::arg().set("udp-source-port-max", "Maximum UDP port to bind on") = "65535";
-  ::arg().set("udp-source-port-avoid", "List of comma separated UDP port number to avoid") = "11211";
-  ::arg().set("rng", "Specify random number generator to use. Valid values are auto,sodium,openssl,getrandom,arc4random,urandom.") = "auto";
-  ::arg().set("public-suffix-list-file", "Path to the Public Suffix List file, if any") = "";
-  ::arg().set("distribution-load-factor", "The load factor used when PowerDNS is distributing queries to worker threads") = "0.0";
-
-  ::arg().setSwitch("qname-minimization", "Use Query Name Minimization") = "yes";
-  ::arg().set("nothing-below-nxdomain", "When an NXDOMAIN exists in cache for a name with fewer labels than the qname, send NXDOMAIN without doing a lookup (see RFC 8020)") = "dnssec";
-  ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file") = "0";
-  ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file") = "20";
-
-  ::arg().set("record-cache-shards", "Number of shards in the record cache") = "1024";
-  ::arg().set("packetcache-shards", "Number of shards in the packet cache") = "1024";
-
-  ::arg().set("refresh-on-ttl-perc", "If a record is requested from the cache and only this % of original TTL remains, refetch") = "0";
-  ::arg().set("record-cache-locked-ttl-perc", "Replace records in record cache only after this % of original TTL has passed") = "0";
-
-  ::arg().set("x-dnssec-names", "Collect DNSSEC statistics for names or suffixes in this list in separate x-dnssec counters") = "";
-
-#ifdef NOD_ENABLED
-  ::arg().setSwitch("new-domain-tracking", "Track newly observed domains (i.e. never seen before).") = "no";
-  ::arg().setSwitch("new-domain-log", "Log newly observed domains.") = "yes";
-  ::arg().set("new-domain-lookup", "Perform a DNS lookup newly observed domains as a subdomain of the configured domain") = "";
-  ::arg().set("new-domain-history-dir", "Persist new domain tracking data here to persist between restarts") = string(NODCACHEDIR) + "/nod";
-  ::arg().set("new-domain-whitelist", "List of domains (and implicitly all subdomains) which will never be considered a new domain (deprecated)") = "";
-  ::arg().set("new-domain-ignore-list", "List of domains (and implicitly all subdomains) which will never be considered a new domain") = "";
-  ::arg().set("new-domain-db-size", "Size of the DB used to track new domains in terms of number of cells. Defaults to 67108864") = "67108864";
-  ::arg().set("new-domain-pb-tag", "If protobuf is configured, the tag to use for messages containing newly observed domains. Defaults to 'pdns-nod'") = "pdns-nod";
-  ::arg().setSwitch("unique-response-tracking", "Track unique responses (tuple of query name, type and RR).") = "no";
-  ::arg().setSwitch("unique-response-log", "Log unique responses") = "yes";
-  ::arg().set("unique-response-history-dir", "Persist unique response tracking data here to persist between restarts") = string(NODCACHEDIR) + "/udr";
-  ::arg().set("unique-response-db-size", "Size of the DB used to track unique responses in terms of number of cells. Defaults to 67108864") = "67108864";
-  ::arg().set("unique-response-pb-tag", "If protobuf is configured, the tag to use for messages containing unique DNS responses. Defaults to 'pdns-udr'") = "pdns-udr";
-#endif /* NOD_ENABLED */
-
-  ::arg().setSwitch("extended-resolution-errors", "If set, send an EDNS Extended Error extension on resolution failures, like DNSSEC validation errors") = "no";
-
-  ::arg().set("aggressive-nsec-cache-size", "The number of records to cache in the aggressive cache. If set to a value greater than 0, and DNSSEC processing or validation is enabled, the recursor will cache NSEC and NSEC3 records to generate negative answers, as defined in rfc8198") = "100000";
-  ::arg().set("aggressive-cache-min-nsec3-hit-ratio", "The minimum expected hit ratio to store NSEC3 records into the aggressive cache") = "2000";
-
-  ::arg().set("edns-padding-from", "List of netmasks (proxy IP in case of proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that 'edns-padding-mode' applies") = "";
-  ::arg().set("edns-padding-mode", "Whether to add EDNS padding to all responses ('always') or only to responses for queries containing the EDNS padding option ('padded-queries-only', the default). In both modes, padding will only be added to responses for queries coming from `edns-padding-from`_ sources") = "padded-queries-only";
-  ::arg().set("edns-padding-tag", "Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to clients for which padding is not enabled.") = "7830";
-  ::arg().setSwitch("edns-padding-out", "Whether to add EDNS padding to outgoing DoT messages") = "yes";
-
-  ::arg().setSwitch("dot-to-port-853", "Force DoT connection to target port 853 if DoT compiled in") = "yes";
-  ::arg().set("dot-to-auth-names", "Use DoT to authoritative servers with these names or suffixes") = "";
-  ::arg().set("event-trace-enabled", "If set, event traces are collected and send out via protobuf logging (1), logfile (2) or both(3)") = "0";
-
-  ::arg().set("tcp-out-max-idle-ms", "Time TCP/DoT connections are left idle in milliseconds or 0 if no limit") = "10000";
-  ::arg().set("tcp-out-max-idle-per-auth", "Maximum number of idle TCP/DoT connections to a specific IP per thread, 0 means do not keep idle connections open") = "10";
-  ::arg().set("tcp-out-max-queries", "Maximum total number of queries per TCP/DoT connection, 0 means no limit") = "0";
-  ::arg().set("tcp-out-max-idle-per-thread", "Maximum number of idle TCP/DoT connections per thread") = "100";
-  ::arg().setSwitch("structured-logging", "Prefer structured logging") = "yes";
-  ::arg().set("structured-logging-backend", "Structured logging backend") = "default";
-  ::arg().setSwitch("save-parent-ns-set", "Save parent NS set to be used if child NS set fails") = "yes";
-  ::arg().set("max-busy-dot-probes", "Maximum number of concurrent DoT probes") = "0";
-  ::arg().set("serve-stale-extensions", "Number of times a record's ttl is extended by 30s to be served stale") = "0";
-
-  ::arg().setCmd("help", "Provide a helpful message");
-  ::arg().setCmd("version", "Print version string");
-  ::arg().setCmd("config", "Output blank configuration. You can use --config=check to test the config file and command line arguments.");
-  ::arg().setDefaults();
-  g_log.toConsole(Logger::Info);
-
-  if (s_generateConfigTable) {
-    auto file = ofstream("settings/table.py");
-    const std::map<std::string, std::string> overrideMap = {
-      {"allow-from", "LType.ListSubnets"},
-      {"allow-notify-for", "LType.ListStrings"},
-      {"allow-notify-from", "LType.ListSubnets"},
-      {"auth-zones", "LType.ListStrings"},
-      {"dnssec-disabled-algorithms", "LType.ListStrings"},
-      {"dont-query", "LType.ListSubnets"},
-      {"dont-throttle-names", "LType.ListStrings"},
-      {"dont-throttle-netmasks", "LType.ListSubnets"},
-      {"dot-to-auth-names", "LType.ListStrings"},
-      {"ecs-add-for", "LType.ListSubnets"},
-      {"edbs-padding-from", "LType.ListSubnets"},
-      {"edns-subnet-allow-list", "LType.ListSubnets"},
-      {"forwad-zones", "LType.ListStrings"},
-      {"forwad-zones-recurse", "LType.Strings"},
-      {"local-address", "LType.ListSocketAddresses"},
-      {"new-domain-ignore-list", "LType.ListStrings"},
-      {"query-local-address", "LType.ListSubnets"},
-      {"stats-api-disabled-list", "LType.ListStrings"},
-      {"stats-carbon-disabled-list", "LType.ListStrings"},
-      {"stats-rec-control-disabled-list", "LType.ListStrings"},
-      {"stats-snmp-disabled-list", "LType.ListStrings"},
-      {"webserver-allow-from", "LType.ListSubnets"},
-      {"x-dnssec-names", "LType.ListStrings"},
-    };
-    file << ::arg().table(overrideMap);
-    file.close();
-  }
-}
-#endif
-
 static pair<int, bool> doYamlConfig(Logr::log_t /* startupLog */, int argc, char* argv[]) // NOLINT: Posix API
 {
   if (!::arg().mustDo("config")) {
@@ -3223,7 +2961,7 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
 
 static void handleRuntimeDefaults(Logr::log_t log)
 {
-#if HAVE_FIBER_SANITIZER
+#ifdef HAVE_FIBER_SANITIZER
   // Asan needs more stack
   if (::arg().asNum("stack-size") == 200000) { // the default in table.py
     ::arg().set("stack-size", "stack size per mthread") = "600000";
@@ -3242,6 +2980,13 @@ static void handleRuntimeDefaults(Logr::log_t log)
            log->info(Logr::Warning, "Unable to get the hostname, NSID and id.server values will be empty"));
     }
     ::arg().set("server-id") = myHostname.has_value() ? *myHostname : "";
+  }
+
+  if (::arg()["socket-dir"].empty()) {
+    auto* runtimeDir = getenv("RUNTIME_DIRECTORY"); // NOLINT(concurrency-mt-unsafe,cppcoreguidelines-pro-type-vararg)
+    if (runtimeDir != nullptr) {
+      ::arg().set("socket-dir") = runtimeDir;
+    }
   }
 
   if (::arg()["socket-dir"].empty()) {
@@ -3271,6 +3016,31 @@ static void handleRuntimeDefaults(Logr::log_t log)
     SLOG(g_log << Logger::Warning << "Not distributing queries, setting distributor threads to 0" << endl,
          log->info(Logr::Warning, "Not distributing queries, setting distributor threads to 0"));
     ::arg().set("distributor-threads") = "0";
+  }
+}
+
+static void setupLogging(const string& logname)
+{
+  if (logname == "systemd-journal") {
+#ifdef HAVE_SYSTEMD
+    if (int fileDesc = sd_journal_stream_fd("pdns-recusor", LOG_DEBUG, 0); fileDesc >= 0) {
+      g_slog = Logging::Logger::create(loggerSDBackend);
+      close(fileDesc);
+    }
+#endif
+    if (g_slog == nullptr) {
+      cerr << "Requested structured logging to systemd-journal, but it is not available" << endl;
+    }
+  }
+  else if (logname == "json") {
+    g_slog = Logging::Logger::create(loggerJSONBackend);
+    if (g_slog == nullptr) {
+      cerr << "JSON logging requested but it is not available" << endl;
+    }
+  }
+
+  if (g_slog == nullptr) {
+    g_slog = Logging::Logger::create(loggerBackend);
   }
 }
 
@@ -3305,7 +3075,6 @@ int main(int argc, char** argv)
     // Pick up options given on command line to setup logging asap.
     g_quiet = ::arg().mustDo("quiet");
     s_logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
-    g_slogStructured = ::arg().mustDo("structured-logging");
     s_structured_logger_backend = ::arg()["structured-logging-backend"];
 
     if (!g_quiet && s_logUrgency < Logger::Info) { // Logger::Info=6, Logger::Debug=7
@@ -3314,6 +3083,9 @@ int main(int argc, char** argv)
     g_log.setLoglevel(s_logUrgency);
     g_log.toConsole(s_logUrgency);
     showProductVersion();
+    if (!::arg().mustDo("structured-logging")) {
+      g_log << Logger::Error << "Disabling structured logging is not supported anymore" << endl;
+    }
 
     g_yamlSettings = false;
     string configname = ::arg()["config-dir"] + "/recursor";
@@ -3341,21 +3113,7 @@ int main(int argc, char** argv)
       return 99;
     }
 
-    if (s_structured_logger_backend == "systemd-journal") {
-#ifdef HAVE_SYSTEMD
-      if (int fd = sd_journal_stream_fd("pdns-recusor", LOG_DEBUG, 0); fd >= 0) {
-        g_slog = Logging::Logger::create(loggerSDBackend);
-        close(fd);
-      }
-#endif
-      if (g_slog == nullptr) {
-        cerr << "Structured logging to systemd-journal requested but it is not available" << endl;
-      }
-    }
-
-    if (g_slog == nullptr) {
-      g_slog = Logging::Logger::create(loggerBackend);
-    }
+    setupLogging(s_structured_logger_backend);
 
     // Missing: a mechanism to call setVerbosity(x)
     auto startupLog = g_slog->withName("config");
@@ -3416,7 +3174,6 @@ int main(int argc, char** argv)
 
     g_quiet = ::arg().mustDo("quiet");
     s_logUrgency = (Logger::Urgency)::arg().asNum("loglevel");
-    g_slogStructured = ::arg().mustDo("structured-logging");
 
     if (s_logUrgency < Logger::Error) {
       s_logUrgency = Logger::Error;
@@ -3434,6 +3191,16 @@ int main(int argc, char** argv)
     }
 
     handleRuntimeDefaults(startupLog);
+
+    if (auto ttl = ::arg().asNum("system-resolver-ttl"); ttl != 0) {
+      time_t interval = ttl;
+      if (::arg().asNum("system-resolver-interval") != 0) {
+        interval = ::arg().asNum("system-resolver-interval");
+      }
+      bool selfResolveCheck = ::arg().mustDo("system-resolver-self-resolve-check");
+      // Cannot use SyncRes::s_serverID, it is not set yet
+      pdns::RecResolve::setInstanceParameters(arg()["server-id"], ttl, interval, selfResolveCheck, []() { reloadZoneConfiguration(g_yamlSettings); });
+    }
 
     g_recCache = std::make_unique<MemRecursorCache>(::arg().asNum("record-cache-shards"));
     g_negCache = std::make_unique<NegCache>(::arg().asNum("record-cache-shards") / 8);

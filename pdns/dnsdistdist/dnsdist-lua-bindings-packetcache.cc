@@ -41,6 +41,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     size_t maxNegativeTTL = 3600;
     size_t staleTTL = 60;
     size_t numberOfShards = 20;
+    size_t maxEntrySize{0};
     bool dontAge = false;
     bool deferrableInsertLock = true;
     bool ecsParsing = false;
@@ -59,6 +60,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     getOptionalValue<size_t>(vars, "staleTTL", staleTTL);
     getOptionalValue<size_t>(vars, "temporaryFailureTTL", tempFailTTL);
     getOptionalValue<bool>(vars, "cookieHashing", cookieHashing);
+    getOptionalValue<size_t>(vars, "maximumEntrySize", maxEntrySize);
 
     if (getOptionalValue<decltype(skipOptions)>(vars, "skipOptions", skipOptions) > 0) {
       for (const auto& option : skipOptions) {
@@ -87,6 +89,9 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 
     res->setKeepStaleData(keepStaleData);
     res->setSkippedOptions(optionsToSkip);
+    if (maxEntrySize >= sizeof(dnsheader)) {
+      res->setMaximumEntrySize(maxEntrySize);
+    }
 
     return res;
   });

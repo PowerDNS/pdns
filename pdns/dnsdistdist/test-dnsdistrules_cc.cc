@@ -1,5 +1,8 @@
 
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
 
 #include <thread>
@@ -152,6 +155,77 @@ BOOST_AUTO_TEST_CASE(test_poolOutstandingRule) {
 
   PoolOutstandingRule pOR2("test", 1000);
   BOOST_CHECK_EQUAL(pOR2.matches(&dq), false);
+}
+
+BOOST_AUTO_TEST_CASE(test_payloadSizeRule) {
+  auto dnsQuestion = getDQ();
+
+  {
+    PayloadSizeRule rule("equal", dnsQuestion.getData().size());
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), true);
+    BOOST_CHECK_EQUAL(rule.toString(), "payload size is equal to " + std::to_string(dnsQuestion.getData().size()));
+  }
+
+  {
+    PayloadSizeRule rule("equal", dnsQuestion.getData().size() + 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), false);
+  }
+
+  {
+    PayloadSizeRule rule("greater", dnsQuestion.getData().size());
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), false);
+    BOOST_CHECK_EQUAL(rule.toString(), "payload size is greater than " + std::to_string(dnsQuestion.getData().size()));
+  }
+
+  {
+    PayloadSizeRule rule("greater", dnsQuestion.getData().size() - 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), true);
+  }
+
+  {
+    PayloadSizeRule rule("smaller", dnsQuestion.getData().size());
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), false);
+    BOOST_CHECK_EQUAL(rule.toString(), "payload size is smaller than " + std::to_string(dnsQuestion.getData().size()));
+  }
+
+  {
+    PayloadSizeRule rule("smaller", dnsQuestion.getData().size() + 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), true);
+  }
+
+  {
+    PayloadSizeRule rule("greaterOrEqual", dnsQuestion.getData().size());
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), true);
+    BOOST_CHECK_EQUAL(rule.toString(), "payload size is equal to or greater than " + std::to_string(dnsQuestion.getData().size()));
+  }
+
+  {
+    PayloadSizeRule rule("greaterOrEqual", dnsQuestion.getData().size() - 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), true);
+  }
+
+  {
+    PayloadSizeRule rule("greaterOrEqual", dnsQuestion.getData().size() + 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), false);
+  }
+
+  {
+    PayloadSizeRule rule("smallerOrEqual", dnsQuestion.getData().size());
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), true);
+    BOOST_CHECK_EQUAL(rule.toString(), "payload size is equal to or smaller than " + std::to_string(dnsQuestion.getData().size()));
+  }
+
+  {
+    PayloadSizeRule rule("smallerOrEqual", dnsQuestion.getData().size() + 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), true);
+  }
+
+  {
+    PayloadSizeRule rule("smallerOrEqual", dnsQuestion.getData().size() - 1);
+    BOOST_CHECK_EQUAL(rule.matches(&dnsQuestion), false);
+  }
+
+  BOOST_CHECK_THROW(PayloadSizeRule("invalid", 42U), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -192,13 +192,13 @@ struct DNSRecord;
 class DNSRecordContent
 {
 public:
-  static std::shared_ptr<DNSRecordContent> mastermake(const DNSRecord &dr, PacketReader& pr);
-  static std::shared_ptr<DNSRecordContent> mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t opcode);
-  static std::shared_ptr<DNSRecordContent> mastermake(uint16_t qtype, uint16_t qclass, const string& zone);
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord& dr, PacketReader& pr);
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord& dr, PacketReader& pr, uint16_t opcode);
+  static std::shared_ptr<DNSRecordContent> make(uint16_t qtype, uint16_t qclass, const string& zone);
   static string upgradeContent(const DNSName& qname, const QType& qtype, const string& content);
 
   virtual std::string getZoneRepresentation(bool noDot=false) const = 0;
-  virtual ~DNSRecordContent() {}
+  virtual ~DNSRecordContent() = default;
   virtual void toPacket(DNSPacketWriter& pw) const = 0;
   // returns the wire format of the content, possibly including compressed pointers pointing to the owner name (unless canonic or lowerCase are set)
   string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) const

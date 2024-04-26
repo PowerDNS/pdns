@@ -1,5 +1,9 @@
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -272,6 +276,12 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::URI, "10000 1 \"ftp://ftp1.example.com/public\"", "\x27\x10\x00\x01\x66\x74\x70\x3a\x2f\x2f\x66\x74\x70\x31\x2e\x65\x78\x61\x6d\x70\x6c\x65\x2e\x63\x6f\x6d\x2f\x70\x75\x62\x6c\x69\x63"))
      (CASE_S(QType::URI, "10 1 \"ftp://ftp1.example.com/public/with/a/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/very/long/url\"", "\x00\x0a\x00\x01\x66\x74\x70\x3a\x2f\x2f\x66\x74\x70\x31\x2e\x65\x78\x61\x6d\x70\x6c\x65\x2e\x63\x6f\x6d\x2f\x70\x75\x62\x6c\x69\x63\x2f\x77\x69\x74\x68\x2f\x61\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x76\x65\x72\x79\x2f\x6c\x6f\x6e\x67\x2f\x75\x72\x6c"))
      (CASE_S(QType::CAA, "0 issue \"example.net\"", "\x00\x05\x69\x73\x73\x75\x65\x65\x78\x61\x6d\x70\x6c\x65\x2e\x6e\x65\x74"))
+     (CASE_S(QType::CAA, "0 issue \"\"", "\x00\x05\x69\x73\x73\x75\x65"))
+     (CASE_S(QType::CAA, "0 issue \";\"", "\x00\x05\x69\x73\x73\x75\x65\x3b"))
+     (CASE_S(QType::CAA, "0 issue \"a\"", "\x00\x05\x69\x73\x73\x75\x65\x61"))
+     (CASE_S(QType::CAA, "0 issue \"aa\"", "\x00\x05\x69\x73\x73\x75\x65\x61\x61"))
+     (CASE_S(QType::CAA, "0 issue \"aaaaaaa\"", "\x00\x05\x69\x73\x73\x75\x65\x61\x61\x61\x61\x61\x61\x61"))
+     (CASE_S(QType::CAA, "0 issue \"aaaaaaa.aaa\"", "\x00\x05\x69\x73\x73\x75\x65\x61\x61\x61\x61\x61\x61\x61\x2e\x61\x61\x61"))
      (CASE_S(QType::DLV, "20642 8 2 04443abe7e94c3985196beae5d548c727b044dda5151e60d7cd76a9fd931d00e", "\x50\xa2\x08\x02\x04\x44\x3a\xbe\x7e\x94\xc3\x98\x51\x96\xbe\xae\x5d\x54\x8c\x72\x7b\x04\x4d\xda\x51\x51\xe6\x0d\x7c\xd7\x6a\x9f\xd9\x31\xd0\x0e"))
      (CASE_S((QType::typeenum)65226,"\\# 3 414243","\x41\x42\x43"))
 
@@ -295,8 +305,8 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    BOOST_TEST_MESSAGE("Checking record type " << q.toString() << " test #" << n);
    try {
       std::string recData;
-      auto rec = DNSRecordContent::mastermake(q.getCode(), 1, inval);
-      BOOST_CHECK_MESSAGE(rec != NULL, "mastermake( " << q.getCode() << ", 1, " << inval << ") should not return NULL");
+      auto rec = DNSRecordContent::make(q.getCode(), 1, inval);
+      BOOST_CHECK_MESSAGE(rec != NULL, "make( " << q.getCode() << ", 1, " << inval << ") should not return NULL");
       if (rec == NULL) continue;
       // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
 
@@ -399,23 +409,21 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
       bool success=true;
       BOOST_WARN_EXCEPTION(
         {
-          auto drc = DNSRecordContent::mastermake(q.getCode(), 1, input);
+          auto drc = DNSRecordContent::make(q.getCode(), 1, input);
           pw.startRecord(DNSName("unit.test"), q.getCode());
           drc->toPacket(pw);
           success=false;
         },
-        std::exception, test_dnsrecords_cc_predicate
-      );
+        std::exception, test_dnsrecords_cc_predicate);
       if (success) REC_FAIL_XSUCCESS(q.toString() << " test #" << n << " has unexpectedly passed"); // a bad record was detected when it was supposed not to be detected
     } else {
       BOOST_CHECK_EXCEPTION(
         {
-          auto drc = DNSRecordContent::mastermake(q.getCode(), 1, input);
+          auto drc = DNSRecordContent::make(q.getCode(), 1, input);
           pw.startRecord(DNSName("unit.test"), q.getCode());
           drc->toPacket(pw);
         },
-        std::exception, test_dnsrecords_cc_predicate
-      );
+        std::exception, test_dnsrecords_cc_predicate);
     }
   };
 }
@@ -463,27 +471,27 @@ BOOST_AUTO_TEST_CASE(test_opt_record_out) {
 // special record test, because Unknown record types are the worst
 BOOST_AUTO_TEST_CASE(test_unknown_records_in) {
 
-  auto validUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 42");
+  auto validUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 42");
 
   // we need at least two parts
-  BOOST_CHECK_THROW(auto notEnoughPartsUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\#"), MOADNSException);
+  BOOST_CHECK_THROW(auto notEnoughPartsUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\#"), MOADNSException);
 
   // two parts are OK when the RDATA size is 0, not OK otherwise
-  auto validEmptyUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 0");
-  BOOST_CHECK_THROW(auto twoPartsNotZeroUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1"), MOADNSException);
+  auto validEmptyUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 0");
+  BOOST_CHECK_THROW(auto twoPartsNotZeroUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1"), MOADNSException);
 
   // the first part has to be "\#"
-  BOOST_CHECK_THROW(auto invalidFirstPartUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\$ 0"), MOADNSException);
+  BOOST_CHECK_THROW(auto invalidFirstPartUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\$ 0"), MOADNSException);
 
   // RDATA length is not even
-  BOOST_CHECK_THROW(auto unevenUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 A"), MOADNSException);
+  BOOST_CHECK_THROW(auto unevenUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 A"), MOADNSException);
 
   // RDATA length is not equal to the expected size
-  BOOST_CHECK_THROW(auto wrongRDATASizeUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 2 AA"), MOADNSException);
+  BOOST_CHECK_THROW(auto wrongRDATASizeUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 2 AA"), MOADNSException);
 
   // RDATA is invalid (invalid hex value)
   try {
-    auto invalidRDATAUnknown = DNSRecordContent::mastermake(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 JJ");
+    auto invalidRDATAUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 JJ");
     // we should not reach that code
     BOOST_CHECK(false);
     // but if we do let's see what we got (likely what was left over on the stack)
@@ -498,28 +506,27 @@ BOOST_AUTO_TEST_CASE(test_unknown_records_in) {
 // test that we reject invalid SVCB escaping
 BOOST_AUTO_TEST_CASE(test_svcb_records_in) {
 
-  BOOST_CHECK_THROW(auto invalidSVCB1=DNSRecordContent::mastermake(QType::SVCB, QClass::IN, R"FOO(1 . alpn=foo\\)FOO"), std::runtime_error);
-
+  BOOST_CHECK_THROW(auto invalidSVCB1 = DNSRecordContent::make(QType::SVCB, QClass::IN, R"FOO(1 . alpn=foo\\)FOO"), std::runtime_error);
 }
 
 // special record test, because EUI are odd
 BOOST_AUTO_TEST_CASE(test_eui_records_in) {
 
-  auto validEUI48=DNSRecordContent::mastermake(QType::EUI48, QClass::IN, "00-00-5e-00-53-2a");
+  auto validEUI48 = DNSRecordContent::make(QType::EUI48, QClass::IN, "00-00-5e-00-53-2a");
 
-  BOOST_CHECK_THROW(auto invalidEUI48=DNSRecordContent::mastermake(QType::EUI48, QClass::IN, "00-00-5e-00-53-"), MOADNSException);
+  BOOST_CHECK_THROW(auto invalidEUI48 = DNSRecordContent::make(QType::EUI48, QClass::IN, "00-00-5e-00-53-"), MOADNSException);
 
-  auto validEUI64=DNSRecordContent::mastermake(QType::EUI64, QClass::IN, "00-00-5e-ef-10-00-00-2a");
+  auto validEUI64 = DNSRecordContent::make(QType::EUI64, QClass::IN, "00-00-5e-ef-10-00-00-2a");
 
-  BOOST_CHECK_THROW(auto invalidEUI64=DNSRecordContent::mastermake(QType::EUI64, QClass::IN, "00-00-5e-ef-10-00-00-"), MOADNSException);
+  BOOST_CHECK_THROW(auto invalidEUI64 = DNSRecordContent::make(QType::EUI64, QClass::IN, "00-00-5e-ef-10-00-00-"), MOADNSException);
 }
 
 // special record test, because LOC is weird
 BOOST_AUTO_TEST_CASE(test_loc_records_in) {
 
-  auto validLOC=DNSRecordContent::mastermake(QType::LOC, QClass::IN, "52 22 23.000 N 4 53 32.000 E -2.00m 0.00m 10000m 10m");
+  auto validLOC = DNSRecordContent::make(QType::LOC, QClass::IN, "52 22 23.000 N 4 53 32.000 E -2.00m 0.00m 10000m 10m");
 
-  BOOST_CHECK_THROW(auto invalidLOC=DNSRecordContent::mastermake(QType::LOC, QClass::IN, "52 22 23.000 N"), MOADNSException);
+  BOOST_CHECK_THROW(auto invalidLOC = DNSRecordContent::make(QType::LOC, QClass::IN, "52 22 23.000 N"), MOADNSException);
 
   vector<uint8_t> packet;
   DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::LOC, QClass::IN, 0);
@@ -537,7 +544,7 @@ BOOST_AUTO_TEST_CASE(test_loc_records_in) {
 BOOST_AUTO_TEST_CASE(test_nsec_records_in) {
 
   {
-    auto validNSEC=DNSRecordContent::mastermake(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC TYPE1234");
+    auto validNSEC = DNSRecordContent::make(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC TYPE1234");
 
     vector<uint8_t> packet;
     DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::NSEC, QClass::IN, 0);
@@ -552,7 +559,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_in) {
   }
 
   {
-    auto validNSEC3=DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s A RRSIG");
+    auto validNSEC3 = DNSRecordContent::make(QType::NSEC3, QClass::IN, "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s A RRSIG");
 
     vector<uint8_t> packet;
     DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::NSEC3, QClass::IN, 0);
@@ -567,7 +574,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_in) {
   }
 
   {
-    auto validNSEC3PARAM=DNSRecordContent::mastermake(QType::NSEC3PARAM, QClass::IN, "1 0 12 aabbccdd");
+    auto validNSEC3PARAM = DNSRecordContent::make(QType::NSEC3PARAM, QClass::IN, "1 0 12 aabbccdd");
 
     vector<uint8_t> packet;
     DNSPacketWriter writer(packet, DNSName("powerdns.com."), QType::NSEC3PARAM, QClass::IN, 0);
@@ -585,7 +592,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_in) {
 BOOST_AUTO_TEST_CASE(test_nsec_records_types) {
 
   {
-    auto validNSEC = DNSRecordContent::mastermake(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC TYPE1234");
+    auto validNSEC = DNSRecordContent::make(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC TYPE1234");
     auto nsecContent = std::dynamic_pointer_cast<NSECRecordContent>(validNSEC);
     BOOST_REQUIRE(nsecContent);
 
@@ -613,7 +620,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_types) {
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_invalid_bitmap_len) {
-  auto validNSEC = DNSRecordContent::mastermake(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC AAAA NSEC3 TYPE1234 TYPE65535");
+  auto validNSEC = DNSRecordContent::make(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC AAAA NSEC3 TYPE1234 TYPE65535");
   const DNSName powerdnsName("powerdns.com.");
 
   vector<uint8_t> packet;
@@ -637,7 +644,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
 
   {
     const std::string str = "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s a mx rrsig nsec3 type1234 type65535";
-    auto validNSEC3 = DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, str);
+    auto validNSEC3 = DNSRecordContent::make(QType::NSEC3, QClass::IN, str);
     auto nsec3Content = std::dynamic_pointer_cast<NSEC3RecordContent>(validNSEC3);
     BOOST_REQUIRE(nsec3Content);
 
@@ -677,7 +684,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
     const std::string salt = "aabbccdd";
     const std::string hash =  "2vptu5timamqttgl4luu9kg21e0aor3s";
     const std::string str = "1 1 12 " + salt + " " + hash;
-    auto validNSEC3=DNSRecordContent::mastermake(QType::NSEC3, QClass::IN, str);
+    auto validNSEC3 = DNSRecordContent::make(QType::NSEC3, QClass::IN, str);
 
     vector<uint8_t> packet;
     DNSPacketWriter writer(packet, qname, QType::NSEC3, QClass::IN, 0);

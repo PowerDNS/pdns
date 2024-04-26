@@ -409,3 +409,51 @@ class TestBackendDiscovery(DNSDistTest):
             # let's wait a bit longer
             time.sleep(5)
             self.assertTrue(self.checkBackendsUpgraded())
+
+class TestBackendDiscoveryByHostname(DNSDistTest):
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = ['_consoleKeyB64', '_consolePort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+
+    function resolveCB(hostname, ips)
+      print('Got response for '..hostname)
+      for _, ip in ipairs(ips) do
+        print(ip)
+        newServer(ip:toString())
+      end
+    end
+
+    getAddressInfo('dns.quad9.net.', resolveCB)
+    """
+    def checkBackends(self):
+        output = self.sendConsoleCommand('showServers()')
+        print(output)
+        backends = {}
+        for line in output.splitlines(False):
+            if line.startswith('#') or line.startswith('All'):
+                continue
+            tokens = line.split()
+            self.assertTrue(len(tokens) == 13 or len(tokens) == 14)
+            backends[tokens[1]] = tokens[2]
+
+        if len(backends) != 4:
+            return False
+
+        for expected in ['9.9.9.9:53', '149.112.112.112:53', '[2620:fe::9]:53', '[2620:fe::fe]:53']:
+            self.assertIn(expected, backends)
+        for backend in backends:
+            self.assertTrue(backends[backend])
+        return True
+
+    def testBackendFromHostname(self):
+        """
+        Backend Discovery: From hostname
+        """
+        # enough time for resolution to happen
+        time.sleep(4)
+        if not self.checkBackends():
+            time.sleep(4)
+            self.assertTrue(self.checkBackends())

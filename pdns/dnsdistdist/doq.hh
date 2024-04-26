@@ -28,6 +28,7 @@
 #include "iputils.hh"
 #include "libssl.hh"
 #include "noinitvector.hh"
+#include "doq.hh"
 #include "stat_t.hh"
 #include "dnsdist-idstate.hh"
 
@@ -35,6 +36,8 @@ struct DOQServerConfig;
 struct DownstreamState;
 
 #ifdef HAVE_DNS_OVER_QUIC
+
+#include "doq-common.hh"
 
 struct DOQFrontend
 {
@@ -46,11 +49,11 @@ struct DOQFrontend
   ~DOQFrontend();
 
   void setup();
+  void reloadCertificates();
 
   std::unique_ptr<DOQServerConfig> d_server_config;
-  TLSConfig d_tlsConfig;
+  dnsdist::doq::QuicheParams d_quicheParams;
   ComboAddress d_local;
-  std::string d_keyLogFile;
 
 #ifdef __linux__
   // On Linux this gives us 128k pending queries (default is 8192 queries),
@@ -59,16 +62,11 @@ struct DOQFrontend
 #else
   uint32_t d_internalPipeBufferSize{0};
 #endif
-  uint64_t d_idleTimeout{5};
-  uint64_t d_maxInFlight{65535};
-  std::string d_ccAlgo{"reno"};
 
   pdns::stat_t d_doqUnsupportedVersionErrors{0}; // Unsupported protocol version errors
   pdns::stat_t d_doqInvalidTokensReceived{0}; // Discarded received tokens
   pdns::stat_t d_validResponses{0}; // Valid responses sent
   pdns::stat_t d_errorResponses{0}; // Empty responses (no backend, drops, invalid queries, etc.)
-
-  static std::map<const string, int> s_available_cc_algorithms;
 };
 
 struct DOQUnit

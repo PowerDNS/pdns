@@ -43,6 +43,12 @@ message PBDNSMessage {
     DOH = 4;                                    // DNS over HTTPS (RFC 8484)
     DNSCryptUDP = 5;                            // DNSCrypt over UDP (https://dnscrypt.info/protocol)
     DNSCryptTCP = 6;                            // DNSCrypt over TCP (https://dnscrypt.info/protocol)
+    DOQ = 7;                                    // DNS over QUIC (RFC 9250)
+  }
+  enum HTTPVersion {
+    HTTP1 = 1;                                  // HTTP/1.1
+    HTTP2 = 2;                                  // HTTP/2
+    HTTP3 = 3;                                  // HTTP/3
   }
   enum PolicyType {
     UNKNOWN = 1;                                // No RPZ policy applied, or unknown type
@@ -177,6 +183,7 @@ message PBDNSMessage {
     optional string custom = 8;                 // The name of the event for custom events
   }
   repeated Event trace = 23;
+  optional HTTPVersion httpVersion = 24;        // HTTP version used for DNS over HTTP
 }
 
 message PBDNSMessageList {

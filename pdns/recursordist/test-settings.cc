@@ -1,4 +1,7 @@
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #include <boost/test/unit_test.hpp>
 
 #include <memory>
@@ -109,7 +112,7 @@ recursor:
     - zone: "example.com"
       forwarders:
         - 1.2.3.4
-        - a.b
+        - '-a.b'
 )EOT";
 
   auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
@@ -253,7 +256,7 @@ example1.com= 1.2.3.4, 5.6.7.8; 8.9.0.1
   std::string temp("/tmp/test-settingsXXXXXXXXXX");
   int fileDesc = mkstemp(temp.data());
   BOOST_REQUIRE(fileDesc > 0);
-  auto filePtr = std::unique_ptr<FILE, decltype(&fclose)>(fdopen(fileDesc, "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(fileDesc, "w"));
   BOOST_REQUIRE(filePtr != nullptr);
   size_t written = fwrite(fileContent.data(), 1, fileContent.length(), filePtr.get());
   BOOST_REQUIRE(written == fileContent.length());

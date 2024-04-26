@@ -62,13 +62,14 @@ bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
     }
 
     // Reset and store some values for the next chunks.
-    d_prevMac = theirMac;
+    d_prevMac = std::move(theirMac);
     d_nonSignedMessages = 0;
     d_signData.clear();
     d_tsigPos = 0;
   }
-  else
+  else {
     d_nonSignedMessages++;
+  }
 
   return true;
 }

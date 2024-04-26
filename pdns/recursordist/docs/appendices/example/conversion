@@ -1,4 +1,3 @@
-# THIS IS A PROOF OF CONCEPT! STRUCTURE, TYPES AND NAMES ARE SUBJECT TO CHANGE
 # Start of converted recursor.yml based on recursor.conf
 dnssec:
   validation: validate

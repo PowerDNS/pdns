@@ -14,8 +14,11 @@ To make sense of the statistics, the following relation should hold:
 
 	queries - noncompliant-queries
 	=
-	responses - noncompliant-responses + cache-hits + downstream-timeouts + self-answered + no-policy
-	+ rule-drop
+	responses - noncompliant-responses + downstream-timeouts + no-policy + rule-drop
+
+Before 1.8.0, cache hits and self-answered responses were not accounted in the responses counters, so the relation was:
+
+	responses - noncompliant-responses + cache-hits + downstream-timeouts + self-answered + no-policy + rule-drop
 
 Note that packets dropped by eBPF (see :doc:`../advanced/ebpf`) are
 accounted for in the eBPF statistics, and do not show up in the metrics
@@ -111,23 +114,23 @@ Number of ServFail answers sent to clients.
 
 latency-avg100
 --------------
-Average response latency in microseconds of the last 100 packets
+Average response latency in microseconds of the last 100 packets received over UDP.
 
 latency-avg1000
 ---------------
-Average response latency in microseconds of the last 1000 packets.
+Average response latency in microseconds of the last 1000 packets received over UDP.
 
 latency-avg10000
 ----------------
-Average response latency in microseconds of the last 10000 packets.
+Average response latency in microseconds of the last 10000 packets received over UDP.
 
 latency-avg1000000
 ------------------
-Average response latency in microseconds of the last 1000000 packets.
+Average response latency in microseconds of the last 1000000 packets received over UDP.
 
 latency-bucket
 --------------
-Histogram of response time latencies.
+Histogram of response time latencies for queries received over UDP.
 
 latency-count
 -------------
@@ -183,12 +186,11 @@ Average response latency, in microseconds, of the last 1000000 packets received 
 
 latency-slow
 ------------
-Number of queries answered in more than 1 second.
+Number of queries received over UDP answered in more than 1 second.
 
 latency-sum
 -----------
-Total response time of all queries combined in milliseconds since the start of :program:`dnsdist`. Can be used to calculate the
-average response time over all queries.
+Total response time of all queries received over UDP combined in milliseconds since the start of :program:`dnsdist`. Can be used to calculate the average response time over all queries received over UDP.
 
 latency-tcp-avg100
 ------------------
@@ -208,23 +210,23 @@ Average response latency, in microseconds, of the last 1000000 packets received 
 
 latency0-1
 ----------
-Number of queries answered in less than 1 ms.
+Number of queries received over UDP answered in less than 1 ms.
 
 latency1-10
 -----------
-Number of queries answered in 1-10 ms.
+Number of queries received over UDP answered in 1-10 ms.
 
 latency10-50
 ------------
-Number of queries answered in 10-50 ms.
+Number of queries received over UDP answered in 10-50 ms.
 
 latency50-100
 -------------
-Number of queries answered in 50-100 ms.
+Number of queries received over UDP answered in 50-100 ms.
 
 latency100-1000
 ---------------
-Number of queries answered in 100-1000 ms.
+Number of queries received over UDP answered in 100-1000 ms.
 
 no-policy
 ---------
@@ -262,9 +264,9 @@ Current memory usage.
 
 responses
 ---------
-Number of responses received from backends. Note! This is not the number of
-responses sent to clients. To get that number, add 'cache-hits' and
-'responses'.
+Number of response sent to clients.
+
+Before 1.8.0, it was the number of responses received from backends, not accounting for cache hits or self-answered responses.
 
 rule-drop
 ---------

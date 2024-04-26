@@ -1,4 +1,7 @@
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -19,13 +22,12 @@ BOOST_AUTO_TEST_CASE(test_equality) {
 
   BOOST_CHECK(aaaa == aaaa1);
 
-
-  auto rec1=DNSRecordContent::mastermake(QType::A, 1, "192.168.0.1");
-  auto rec2=DNSRecordContent::mastermake(QType::A, 1, "192.168.222.222");
-  auto rec3=DNSRecordContent::mastermake(QType::AAAA, 1, "::1");
-  auto recMX=DNSRecordContent::mastermake(QType::MX, 1, "25 smtp.powerdns.com");
-  auto recMX2=DNSRecordContent::mastermake(QType::MX, 1, "26 smtp.powerdns.com");
-  auto recMX3=DNSRecordContent::mastermake(QType::MX, 1, "26 SMTP.powerdns.com");
+  auto rec1 = DNSRecordContent::make(QType::A, 1, "192.168.0.1");
+  auto rec2 = DNSRecordContent::make(QType::A, 1, "192.168.222.222");
+  auto rec3 = DNSRecordContent::make(QType::AAAA, 1, "::1");
+  auto recMX = DNSRecordContent::make(QType::MX, 1, "25 smtp.powerdns.com");
+  auto recMX2 = DNSRecordContent::make(QType::MX, 1, "26 smtp.powerdns.com");
+  auto recMX3 = DNSRecordContent::make(QType::MX, 1, "26 SMTP.powerdns.com");
   BOOST_CHECK(!(*rec1==*rec2));
   BOOST_CHECK(*rec1==*rec1);
   BOOST_CHECK(*rec3==*rec3);

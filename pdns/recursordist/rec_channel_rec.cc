@@ -38,6 +38,7 @@
 #include "rec-taskqueue.hh"
 #include "rec-tcpout.hh"
 #include "rec-main.hh"
+#include "rec-system-resolve.hh"
 
 #include "settings/cxxsettings.hh"
 
@@ -152,7 +153,7 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
     name = getPrometheusName(name);
   }
 
-  auto ret = dynmetrics{new std::atomic<unsigned long>(), name};
+  auto ret = dynmetrics{new std::atomic<unsigned long>(), std::move(name)};
   (*dm)[str] = ret;
   return ret.d_ptr;
 }
@@ -326,15 +327,15 @@ static uint64_t dumpAggressiveNSECCache(int fd)
   if (newfd == -1) {
     return 0;
   }
-  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
-  if (!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
+  if (!filePtr) {
     return 0;
   }
-  fprintf(fp.get(), "; aggressive NSEC cache dump follows\n;\n");
+  fprintf(filePtr.get(), "; aggressive NSEC cache dump follows\n;\n");
 
   struct timeval now;
   Utility::gettimeofday(&now, nullptr);
-  return g_aggressiveNSECCache->dumpToFile(fp, now);
+  return g_aggressiveNSECCache->dumpToFile(filePtr, now);
 }
 
 static uint64_t* pleaseDumpEDNSMap(int fd)
@@ -480,13 +481,13 @@ static RecursorControlChannel::Answer doDumpRPZ(int s, T begin, T end)
     return {1, "No RPZ zone named " + zoneName + "\n"};
   }
 
-  auto fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(fdw, "w"), fclose);
-  if (!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fdopen(fdw, "w"));
+  if (!filePtr) {
     int err = errno;
     return {1, "converting file descriptor: " + stringerror(err) + "\n"};
   }
 
-  zone->dump(fp.get());
+  zone->dump(filePtr.get());
 
   return {0, "done\n"};
 }
@@ -888,6 +889,25 @@ static string setMaxPacketCacheEntries(T begin, T end)
   }
 }
 
+template <typename T>
+static RecursorControlChannel::Answer setAggrNSECCacheSize(T begin, T end)
+{
+  if (end - begin != 1) {
+    return {1, "Need to supply new aggressive NSEC cache size\n"};
+  }
+  if (!g_aggressiveNSECCache) {
+    return {1, "Aggressive NSEC cache is disabled by startup config\n"};
+  }
+  try {
+    auto newmax = pdns::checked_stoi<uint64_t>(*begin);
+    g_aggressiveNSECCache->setMaxEntries(newmax);
+    return {0, "New aggressive NSEC cache size: " + std::to_string(newmax) + "\n"};
+  }
+  catch (const std::exception& e) {
+    return {1, "Error parsing the new aggressive NSEC cache size: " + std::string(e.what()) + "\n"};
+  }
+}
+
 static uint64_t getSysTimeMsec()
 {
   struct rusage ru;
@@ -1050,13 +1070,13 @@ static string* pleaseGetCurrentQueries()
   struct timeval now;
   gettimeofday(&now, 0);
 
-  ostr << getMT()->d_waiters.size() << " currently outstanding questions\n";
+  ostr << getMT()->getWaiters().size() << " currently outstanding questions\n";
 
   boost::format fmt("%1% %|40t|%2% %|47t|%3% %|63t|%4% %|68t|%5% %|78t|%6%\n");
 
   ostr << (fmt % "qname" % "qtype" % "remote" % "tcp" % "chained" % "spent(ms)");
   unsigned int n = 0;
-  for (const auto& mthread : getMT()->d_waiters) {
+  for (const auto& mthread : getMT()->getWaiters()) {
     const std::shared_ptr<PacketID>& pident = mthread.key;
     const double spent = g_networkTimeoutMsec - (DiffTime(now, mthread.ttd) * 1000);
     ostr << (fmt
@@ -1208,7 +1228,7 @@ static StatsMap toRPZStatsMap(const string& name, const std::unordered_map<std::
       sname = name + "-rpz-" + key;
       pname = pbasename + "{type=\"rpz\",policyname=\"" + key + "\"}";
     }
-    entries.emplace(sname, StatsMapEntry{pname, std::to_string(count)});
+    entries.emplace(sname, StatsMapEntry{std::move(pname), std::to_string(count)});
     total += count;
   }
   entries.emplace(name, StatsMapEntry{pbasename, std::to_string(total)});
@@ -2085,12 +2105,14 @@ static RecursorControlChannel::Answer help()
           "reload-lua-config [filename]     (re)load Lua configuration file\n"
           "reload-zones                     reload all auth and forward zones\n"
           "set-ecs-minimum-ttl value        set ecs-minimum-ttl-override\n"
-          "set-max-cache-entries value      set new maximum cache size\n"
+          "set-max-aggr-nsec-cache-size value set new maximum aggressive NSEC cache size\n"
+          "set-max-cache-entries value      set new maximum record cache size\n"
           "set-max-packetcache-entries val  set new maximum packet cache size\n"
           "set-minimum-ttl value            set minimum-ttl-override\n"
           "set-carbon-server                set a carbon server for telemetry\n"
           "set-dnssec-log-bogus SETTING     enable (SETTING=yes) or disable (SETTING=no) logging of DNSSEC validation failures\n"
           "set-event-trace-enabled SETTING  set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 3 = both\n"
+          "show-yaml [file]                 show yaml config derived from old-style config\n"
           "trace-regex [regex file]         emit resolution trace for matching queries (no arguments clears tracing)\n"
           "top-largeanswer-remotes          show top remotes receiving large answers\n"
           "top-queries                      show top queries\n"
@@ -2106,8 +2128,7 @@ static RecursorControlChannel::Answer help()
           "unload-lua-script                unload Lua script\n"
           "version                          return Recursor version number\n"
           "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
-          "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"
-          "show-yaml [file]                 EXPERIMENTAL command to show yaml config derived from old-style config\n"};
+          "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"};
 }
 
 template <typename T>
@@ -2152,6 +2173,16 @@ static RecursorControlChannel::Answer reloadACLs()
     return {1, ae.reason + string("\n")};
   }
   return {0, "ok\n"};
+}
+
+static std::string reloadZoneConfigurationWithSysResolveReset()
+{
+  auto& sysResolver = pdns::RecResolve::getInstance();
+  sysResolver.stopRefresher();
+  sysResolver.wipe();
+  auto ret = reloadZoneConfiguration(g_yamlSettings);
+  sysResolver.startRefresher();
+  return ret;
 }
 
 RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, const string& question, RecursorControlParser::func_t** command)
@@ -2297,7 +2328,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
       g_log << Logger::Error << "Unable to reload zones and forwards when chroot()'ed, requested via control channel" << endl;
       return {1, "Unable to reload zones and forwards when chroot()'ed, please restart\n"};
     }
-    return {0, reloadZoneConfiguration(g_yamlSettings)};
+    return {0, reloadZoneConfigurationWithSysResolveReset()};
   }
   if (cmd == "set-ecs-minimum-ttl") {
     return {0, setMinimumECSTTL(begin, end)};
@@ -2364,6 +2395,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
   }
   if (cmd == "list-dnssec-algos") {
     return {0, DNSCryptoKeyEngine::listSupportedAlgoNames()};
+  }
+  if (cmd == "set-aggr-nsec-cache-size") {
+    return setAggrNSECCacheSize(begin, end);
   }
 
   return {1, "Unknown command '" + cmd + "', try 'help'\n"};

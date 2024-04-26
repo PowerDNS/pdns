@@ -274,6 +274,7 @@ time_t Utility::timegm(struct tm *const t)
 
   /* day is now the number of days since 'Jan 1 1970' */
   i = 7;
+  // coverity[store_truncates_time_t]
   t->tm_wday = (day + 4) % i;                        /* Sunday=0, Monday=1, ..., Saturday=6 */
 
   i = 24;

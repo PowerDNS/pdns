@@ -33,6 +33,7 @@
 #include "syncres.hh"
 #include "zoneparser-tng.hh"
 #include "settings/cxxsettings.hh"
+#include "rec-system-resolve.hh"
 
 extern int g_argc;
 extern char** g_argv;
@@ -62,6 +63,29 @@ bool primeHints(time_t now)
   return ret;
 }
 
+static ComboAddress fromNameOrIP(const string& str, uint16_t defPort, Logr::log_t log)
+{
+  try {
+    ComboAddress addr = parseIPAndPort(str, defPort);
+    return addr;
+  }
+  catch (const PDNSException&) {
+    uint16_t port = defPort;
+    string::size_type pos = str.rfind(':');
+    if (pos != string::npos) {
+      port = pdns::checked_stoi<uint16_t>(str.substr(pos + 1));
+    }
+    auto& res = pdns::RecResolve::getInstance();
+    ComboAddress address = res.lookupAndRegister(str.substr(0, pos), time(nullptr));
+    if (address != ComboAddress()) {
+      address.setPort(port);
+      return address;
+    }
+    log->error(Logr::Error, "Could not resolve name", "name", Logging::Loggable(str));
+    throw PDNSException("Could not resolve " + str);
+  }
+}
+
 static void convertServersForAD(const std::string& zone, const std::string& input, SyncRes::AuthDomain& authDomain, const char* sepa, Logr::log_t log, bool verbose = true)
 {
   vector<string> servers;
@@ -70,7 +94,7 @@ static void convertServersForAD(const std::string& zone, const std::string& inpu
 
   vector<string> addresses;
   for (auto& server : servers) {
-    ComboAddress addr = parseIPAndPort(server, 53);
+    ComboAddress addr = fromNameOrIP(server, 53, log);
     authDomain.d_servers.push_back(addr);
     if (verbose) {
       addresses.push_back(addr.toStringWithPort());
@@ -335,7 +359,7 @@ static void processApiZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, shared
 
 static void processForwardZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, shared_ptr<notifyset_t>& newSet, Logr::log_t log)
 {
-  const auto filename = ::arg()["forward-zones-file"];
+  const auto& filename = ::arg()["forward-zones-file"];
   if (filename.empty()) {
     return;
   }
@@ -361,7 +385,7 @@ static void processForwardZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, sh
   else {
     SLOG(g_log << Logger::Warning << "Reading zone forwarding information from '" << filename << "'" << endl,
          log->info(Logr::Notice, "Reading zone forwarding information", "file", Logging::Loggable(filename)));
-    auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(filename.c_str(), "r"), fclose);
+    auto filePtr = pdns::UniqueFilePtr(fopen(filename.c_str(), "r"));
     if (!filePtr) {
       int err = errno;
       throw PDNSException("Error opening forward-zones-file '" + filename + "': " + stringerror(err));
@@ -493,7 +517,7 @@ static void processAllowNotifyFor(shared_ptr<notifyset_t>& newSet)
 
 static void processAllowNotifyForFile(shared_ptr<notifyset_t>& newSet, Logr::log_t log)
 {
-  const auto filename = ::arg()["allow-notify-for-file"];
+  const auto& filename = ::arg()["allow-notify-for-file"];
   if (filename.empty()) {
     return;
   }
@@ -508,7 +532,7 @@ static void processAllowNotifyForFile(shared_ptr<notifyset_t>& newSet, Logr::log
   else {
     SLOG(g_log << Logger::Warning << "Reading NOTIFY-allowed zones from '" << filename << "'" << endl,
          log->info(Logr::Notice, "Reading NOTIFY-allowed zones from file", "file", Logging::Loggable(filename)));
-    auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fopen(filename.c_str(), "r"), fclose);
+    auto filePtr = pdns::UniqueFilePtr(fopen(filename.c_str(), "r"));
     if (!filePtr) {
       throw PDNSException("Error opening allow-notify-for-file '" + filename + "': " + stringerror());
     }

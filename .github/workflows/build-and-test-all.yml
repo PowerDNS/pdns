@@ -4,6 +4,13 @@ name: 'Build and test everything'
 on:
   push:
   pull_request:
+  workflow_call:
+    inputs:
+      branch-name:
+        description: 'Checkout to a specific branch'
+        required: true
+        default: ''
+        type: string
   schedule:
     - cron: '0 22 * * 3'
 
@@ -14,9 +21,9 @@ env:
   COMPILER: clang
   CLANG_VERSION: '13'
   # github.workspace variable points to the Runner home folder. Container home folder defined below.
-  REPO_HOME: '/__w/pdns/pdns'
+  REPO_HOME: '/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}'
   BUILDER_VERSION: '0.0.0-git1'
-  COVERAGE: yes
+  COVERAGE: ${{ github.repository == 'PowerDNS/pdns' && 'yes' || 'no' }}
   LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
   OPTIMIZATIONS: yes
   DECAF_SUPPORT: yes
@@ -25,9 +32,9 @@ jobs:
   build-auth:
     name: build auth
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
         ASAN_OPTIONS: detect_leaks=0
         FUZZING_TARGETS: yes
@@ -39,10 +46,11 @@ jobs:
       run:
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -52,7 +60,7 @@ jobs:
       - run: mkdir -p ~/.ccache
         working-directory: .
       - name: let GitHub cache our ccache data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.ccache
           key: auth-ccache-${{ steps.get-stamp.outputs.stamp }}
@@ -68,8 +76,10 @@ jobs:
       - run: inv ci-auth-install-remotebackend-test-deps
       - run: inv ci-auth-run-unit-tests
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+        if: ${{ env.COVERAGE == 'yes' }}
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}/pdns
       - name: Coveralls Parallel auth unit
+        if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: auth-unit-${{ matrix.sanitizers }}
@@ -78,24 +88,28 @@ jobs:
           allow-empty: true
       - run: inv ci-make-install
       - run: ccache -s
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
-        uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
           retention-days: 1
 
   build-recursor:
     name: build recursor
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
+        features: [least, full]
+        exclude:
+          - sanitizers: tsan
+            features: least
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
-        ASAN_OPTIONS: detect_leaks=0
         SANITIZERS: ${{ matrix.sanitizers }}
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         UNIT_TESTS: yes
@@ -104,10 +118,11 @@ jobs:
       run:
         working-directory: ./pdns/recursordist/pdns-recursor-${{ env.BUILDER_VERSION }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -117,45 +132,46 @@ jobs:
       - run: mkdir -p ~/.ccache
         working-directory: .
       - name: let GitHub cache our ccache data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: recursor-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: recursor-${{ matrix.sanitizers }}-ccache-
+          key: recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-
       - run: inv ci-install-rust ${{ env.REPO_HOME }}
         working-directory: ./pdns/recursordist/
       - run: inv ci-autoconf
         working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-configure
+      - run: inv ci-rec-configure ${{ matrix.features }}
         working-directory: ./pdns/recursordist/
       - run: inv ci-make-distdir
         working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-configure
+      - run: inv ci-rec-configure ${{ matrix.features }}
       - run: inv ci-rec-make-bear
       - run: inv ci-rec-run-unit-tests
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel rec unit
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
-          flag-name: rec-unit-${{ matrix.sanitizers }}
+          flag-name: rec-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
       - run: inv ci-make-install
       - run: ccache -s
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
-        uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}
+          name: pdns-recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
           retention-days: 1
 
   build-dnsdist:
     name: build dnsdist
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -164,9 +180,8 @@ jobs:
           - sanitizers: tsan
             features: least
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
-        ASAN_OPTIONS: detect_leaks=0
         SANITIZERS: ${{ matrix.sanitizers }}
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         UNIT_TESTS: yes
@@ -176,10 +191,11 @@ jobs:
       run:
         working-directory: ./pdns/dnsdistdist/dnsdist-${{ env.BUILDER_VERSION }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -189,14 +205,14 @@ jobs:
       - run: mkdir -p ~/.ccache
         working-directory: .
       - name: let GitHub cache our ccache data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.ccache
           key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-
       - run: inv ci-install-rust ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-build-and-install-quiche
+      - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-autoconf
         working-directory: ./pdns/dnsdistdist/
@@ -208,9 +224,9 @@ jobs:
       - run: inv ci-dnsdist-make-bear
       - run: inv ci-dnsdist-run-unit-tests
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel dnsdist unit
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: dnsdist-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
@@ -219,18 +235,19 @@ jobs:
           allow-empty: true
       - run: inv ci-make-install
       - run: ccache -s
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
-        uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
-          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}
+          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
           retention-days: 1
 
   test-auth-api:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
@@ -263,21 +280,25 @@ jobs:
         options: >-
           --restart always
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - run: inv apt-fresh
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps -b ${{ matrix.backend }}
       - run: inv test-api auth -b ${{ matrix.backend }}
       - run: inv generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
+        if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth API ${{ matrix.backend }}
+        if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: auth-api-${{ matrix.backend }}
@@ -287,9 +308,9 @@ jobs:
 
   test-auth-backend:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
@@ -359,7 +380,7 @@ jobs:
             image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
             env:
               ACCEPT_EULA: Y
-              SA_PASSWORD: 'SAsa12%%'
+              SA_PASSWORD: 'SAsa12%%-not-a-secret-password'
             ports:
               - 1433:1433
           - backend: ldap
@@ -383,21 +404,25 @@ jobs:
         options: >-
           --restart always
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       # FIXME: install recursor for backends that have ALIAS
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps -b ${{ matrix.backend }}
       - run: inv test-auth-backend -b ${{ matrix.backend }}
       - run: inv generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
+        if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth backend ${{ matrix.backend }}
+        if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: auth-backend-${{ matrix.backend }}
@@ -407,28 +432,32 @@ jobs:
 
   test-ixfrdist:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: pdns-auth
+          name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - run: inv install-clang-runtime
       - run: inv install-auth-test-deps
       - run: inv test-ixfrdist
       - run: inv generate-coverage-info /opt/pdns-auth/bin/ixfrdist $GITHUB_WORKSPACE
+        if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel ixfrdist
+        if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: ixfrdist
@@ -438,29 +467,31 @@ jobs:
 
   test-recursor-api:
     needs: build-recursor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
         dist_name: [debian]
-        dist_release_name: [bullseye]
-        pdns_repo_version: ['45']
+        dist_release_name: [bookworm]
+        pdns_repo_version: ['48']
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         ASAN_OPTIONS: detect_leaks=0
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: inv apt-fresh
       - run: inv add-auth-repo  ${{ matrix.dist_name }} ${{ matrix.dist_release_name }} ${{ matrix.pdns_repo_version }}
@@ -468,27 +499,27 @@ jobs:
       - run: inv install-rec-test-deps
       - run: inv test-api recursor
       - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor API
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
-          flag-name: rec-api
+          flag-name: rec-api-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
 
   test-recursor-regression:
     needs: build-recursor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
         dist_name: [debian]
-        dist_release_name: [bullseye]
-        pdns_repo_version: ['45']
+        dist_release_name: [bookworm]
+        pdns_repo_version: ['48']
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
         UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
         ASAN_OPTIONS: detect_leaks=0
@@ -496,14 +527,16 @@ jobs:
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
       # - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3.1.0
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: inv apt-fresh
       - run: inv add-auth-repo ${{ matrix.dist_name }} ${{ matrix.dist_release_name }} ${{ matrix.pdns_repo_version }}
@@ -511,12 +544,12 @@ jobs:
       - run: inv install-rec-test-deps
       - run: inv test-regression-recursor
       - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor regression
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
-          flag-name: rec-regression
+          flag-name: rec-regression-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
@@ -524,7 +557,7 @@ jobs:
   test-recursor-bulk:
     name: 'test rec *mini* bulk'
     needs: build-recursor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -532,44 +565,46 @@ jobs:
         mthreads: [2048]
         shards: [1, 2, 1024]
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
         UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
         ASAN_OPTIONS: detect_leaks=0
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: pdns-recursor-${{ matrix.sanitizers }}
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: inv install-clang-runtime
       - run: inv install-rec-bulk-deps
       - run: inv test-bulk-recursor ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }}
       - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor bulk
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
-          flag-name: rec-regression-bulk
+          flag-name: rec-regression-bulk-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
 
   test-dnsdist-regression:
     needs: build-dnsdist
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
     container:
-      image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         # Disabling (intercept_send=0) the custom send wrappers for ASAN and TSAN because they cause the tools to report a race that doesn't exist on actual implementations of send(), see https://github.com/google/sanitizers/issues/1498
@@ -579,24 +614,26 @@ jobs:
         SKIP_INCLUDEDIR_TESTS: yes
         SANITIZERS: ${{ matrix.sanitizers }}
         COVERAGE: yes
-      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0 --privileged
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: dnsdist-full-${{ matrix.sanitizers }}
+          name: dnsdist-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
       - run: inv install-clang-runtime
       - run: inv install-dnsdist-test-deps
       - run: inv test-dnsdist
       - run: inv generate-coverage-info /opt/dnsdist/bin/dnsdist $GITHUB_WORKSPACE
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel dnsdist regression
-        if: ${{ matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: dnsdist-regression-full-${{ matrix.sanitizers }}
@@ -606,17 +643,18 @@ jobs:
 
   swagger-syntax-check:
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     # FIXME: https://github.com/PowerDNS/pdns/pull/12880
     # container:
     #   image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
     #   options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-swagger-tools
       - run: inv swagger-syntax-check
@@ -635,24 +673,26 @@ jobs:
       - test-recursor-regression
       - test-recursor-bulk
     if: success() || failure()
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Coveralls Parallel Finished
+        if: ${{ env.COVERAGE == 'yes' }}
         uses: coverallsapp/github-action@v2
         with:
           parallel-finished: true
-      - name: Install jq and yq
-        run: "sudo snap install jq yq"
+      - name: Install jq and jc
+        run: "sudo apt-get update && sudo apt-get install jq jc"
       - name: Fail job if any of the previous jobs failed
-        run: "for i in `echo '${{ toJSON(needs) }}' | jq '.[].result' | tr -d '\"'`; do if [[ $i == 'failure' ]]; then echo '${{ toJSON(needs) }}'; exit 1; fi; done;"
-      - uses: actions/checkout@v3
+        run: "for i in `echo '${{ toJSON(needs) }}' | jq -r '.[].result'`; do if [[ $i == 'failure' ]]; then echo '${{ toJSON(needs) }}'; exit 1; fi; done;"
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
+          ref: ${{ inputs.branch-name }}
       - name: Get list of jobs in the workflow
-        run: "yq e '.jobs | keys' .github/workflows/build-and-test-all.yml | awk '{print $2}' | grep -v collect | sort | tee /tmp/workflow-jobs-list.yml"
+        run: "cat .github/workflows/build-and-test-all.yml | jc --yaml | jq -rS '.[].jobs | keys | .[]' | grep -v collect | tee /tmp/workflow-jobs-list.yml"
       - name: Get list of prerequisite jobs
-        run: "echo '${{ toJSON(needs) }}' | jq 'keys | .[]' | tr -d '\"' | sort | tee /tmp/workflow-needs-list.yml"
+        run: "echo '${{ toJSON(needs) }}' | jq -rS 'keys | .[]' | tee /tmp/workflow-needs-list.yml"
       - name: Fail if there is a job missing on the needs list
         run: "if ! diff -q /tmp/workflow-jobs-list.yml /tmp/workflow-needs-list.yml; then exit 1; fi"
 

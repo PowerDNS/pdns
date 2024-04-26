@@ -110,7 +110,7 @@ int main(int argc, char **argv)
     string command = commands[0];
     shared_ptr<DynMessenger> D;
     if(::arg()["remote-address"].empty())
-      D=shared_ptr<DynMessenger>(new DynMessenger(socketname));
+      D = std::make_shared<DynMessenger>(socketname);
     else {
       uint16_t port;
       try {
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
         exit(99);
       }
 
-      D=shared_ptr<DynMessenger>(new DynMessenger(ComboAddress(::arg()["remote-address"], port), ::arg()["secret"]));
+      D = std::make_shared<DynMessenger>(ComboAddress(::arg()["remote-address"], port), ::arg()["secret"]);
     }
 
     string message;

@@ -5,6 +5,15 @@ case $context in
 		narrow=$(echo $context | cut -d- -f 4)
 		testsdir=../modules/remotebackend/regression-tests/
 
+		if [ ! -d $testsdir/../venv ]; then
+			python3 -m venv $testsdir/../venv
+			source $testsdir/../venv/bin/activate
+			pip install -U wheel
+			pip install -r $testsdir/../requirements.txt
+		else
+			source $testsdir/../venv/bin/activate
+		fi
+
 		# cleanup unbound-host.conf to avoid failures
 		rm -f unbound-host.conf
 
@@ -19,7 +28,7 @@ case $context in
 			connstr="http:url=http://localhost:62434/dns"
 			rm -f remotebackend-server.log
 			rm -f remotebackend-access.log
-			$testsdir/http-backend.rb &
+			$testsdir/http-backend.py &
 			echo $! > pdns-remotebackend.pid
 			set +e
 			# make sure it runs before continuing
@@ -37,17 +46,17 @@ case $context in
 			;;
 		zeromq)
 			connstr="zeromq:endpoint=ipc:///tmp/pdns.0"
-			$testsdir/zeromq-backend.rb &
+			$testsdir/zeromq-backend.py &
 			echo $! > pdns-remotebackend.pid
 			;;
 		unix)
 			connstr="unix:path=$testsdir/remote.socket"
                         rm -f $testsdir/remote.socket
-			socat unix-listen:$testsdir/remote.socket,fork exec:$testsdir/unix-backend.rb &
+			socat unix-listen:$testsdir/remote.socket,fork exec:$testsdir/unix-backend.py &
 			echo $! > pdns-remotebackend.pid
 			;;
 		pipe)
-			connstr="pipe:command=$testsdir/pipe-backend.rb"
+			connstr="pipe:command=$testsdir/pipe-backend.py"
 			;;
 		*)
 			echo "Invalid usage"

@@ -52,17 +52,16 @@ gMySQLBackend::gMySQLBackend(const string& mode, const string& suffix) :
 
 void gMySQLBackend::reconnect()
 {
-  setDB(new SMySQL(getArg("dbname"),
-                   getArg("host"),
-                   getArgAsNum("port"),
-                   getArg("socket"),
-                   getArg("user"),
-                   getArg("password"),
-                   getArg("group"),
-                   mustDo("innodb-read-committed"),
-                   getArgAsNum("timeout"),
-                   mustDo("thread-cleanup"),
-                   mustDo("ssl")));
+  setDB(std::unique_ptr<SSql>(new SMySQL(getArg("dbname"),
+                                         getArg("host"),
+                                         getArgAsNum("port"),
+                                         getArg("socket"),
+                                         getArg("user"),
+                                         getArg("password"),
+                                         getArg("group"),
+                                         mustDo("innodb-read-committed"),
+                                         getArgAsNum("timeout"),
+                                         mustDo("thread-cleanup"))));
   allocateStatements();
 }
 
@@ -103,10 +102,10 @@ public:
 
     declare(suffix, "info-zone-query", "", "select id,name,master,last_check,notified_serial,type,options,catalog,account from domains where name=?");
 
-    declare(suffix, "info-all-slaves-query", "", "select domains.id, domains.name, domains.type, domains.master, domains.last_check, records.content from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name where domains.type in ('SLAVE', 'CONSUMER')");
-    declare(suffix, "supermaster-query", "", "select account from supermasters where ip=? and nameserver=?");
-    declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=? and account=?");
-    declare(suffix, "supermaster-add", "", "insert into supermasters (ip, nameserver, account) values (?,?,?)");
+    declare(suffix, "info-all-secondaries-query", "", "select domains.id, domains.name, domains.type, domains.master, domains.last_check, records.content from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name where domains.type in ('SLAVE', 'CONSUMER')");
+    declare(suffix, "autoprimary-query", "", "select account from supermasters where ip=? and nameserver=?");
+    declare(suffix, "autoprimary-name-to-ips", "", "select ip,account from supermasters where nameserver=? and account=?");
+    declare(suffix, "autoprimary-add", "", "insert into supermasters (ip, nameserver, account) values (?,?,?)");
     declare(suffix, "autoprimary-remove", "", "delete from supermasters where ip = ? and nameserver = ?");
     declare(suffix, "list-autoprimaries", "", "select ip,nameserver,account from supermasters");
 
@@ -125,14 +124,14 @@ public:
     declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth for a qname query", "update records set ordername=NULL,auth=? where domain_id=? and name=? and disabled=0");
     declare(suffix, "nullify-ordername-and-update-auth-type-query", "DNSSEC nullify ordername and update auth for a rrset query", "update records set ordername=NULL,auth=? where domain_id=? and name=? and type=? and disabled=0");
 
-    declare(suffix, "update-master-query", "", "update domains set master=? where name=?");
+    declare(suffix, "update-primary-query", "", "update domains set master=? where name=?");
     declare(suffix, "update-kind-query", "", "update domains set type=? where name=?");
     declare(suffix, "update-options-query", "", "update domains set options=? where name=?");
     declare(suffix, "update-catalog-query", "", "update domains set catalog=? where name=?");
     declare(suffix, "update-account-query", "", "update domains set account=? where name=?");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=? where id=?");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=? where id=?");
-    declare(suffix, "info-all-master-query", "", "select d.id, d.name, d.type, d.notified_serial,d.options, d.catalog,r.content from records r join domains d on r.domain_id=d.id and r.name=d.name where r.type='SOA' and r.disabled=0 and d.type in ('MASTER', 'PRODUCER')");
+    declare(suffix, "info-all-primary-query", "", "select d.id, d.name, d.type, d.notified_serial,d.options, d.catalog,r.content from records r join domains d on r.domain_id=d.id and r.name=d.name where r.type='SOA' and r.disabled=0 and d.type in ('MASTER', 'PRODUCER')");
     declare(suffix, "info-producer-members-query", "", "select domains.id, domains.name, domains.options from records join domains on records.domain_id=domains.id and records.name=domains.name where domains.type='MASTER' and domains.catalog=? and records.type='SOA' and records.disabled=0");
     declare(suffix, "info-consumer-members-query", "", "select id, name, options, master from domains where type='SLAVE' and catalog=?");
     declare(suffix, "delete-domain-query", "", "delete from domains where name=?");
@@ -159,7 +158,7 @@ public:
     declare(suffix, "delete-tsig-key-query", "", "delete from tsigkeys where name=?");
     declare(suffix, "get-tsig-keys-query", "", "select name,algorithm, secret from tsigkeys");
 
-    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR ?");
+    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account, domains.catalog from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR ?");
 
     declare(suffix, "list-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=?");
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (?, ?, ?, ?, ?, ?)");
@@ -185,7 +184,7 @@ public:
   //! This reports us to the main UeberBackend class
   gMySQLLoader()
   {
-    BackendMakers().report(new gMySQLFactory("gmysql"));
+    BackendMakers().report(std::make_unique<gMySQLFactory>("gmysql"));
     g_log << Logger::Info << "[gmysqlbackend] This is the gmysql backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"

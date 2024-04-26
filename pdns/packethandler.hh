@@ -60,7 +60,7 @@ public:
  
   UeberBackend *getBackend();
 
-  int trySuperMasterSynchronous(const DNSPacket& p, const DNSName& tsigkeyname);
+  int tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& tsigkeyname);
   static NetmaskGroup s_allowNotifyFrom;
   static set<string> s_forwardNotify;
   static bool s_SVCAutohints;
@@ -68,7 +68,7 @@ public:
   static const std::shared_ptr<CDSRecordContent> s_deleteCDSContent;
 
 private:
-  int trySuperMaster(const DNSPacket& p, const DNSName& tsigkeyname);
+  int tryAutoPrimary(const DNSPacket& p, const DNSName& tsigkeyname);
   int processNotify(const DNSPacket& );
   void addRootReferral(DNSPacket& r);
   int doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) const;

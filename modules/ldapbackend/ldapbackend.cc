@@ -293,12 +293,10 @@ public:
 
 class LdapLoader
 {
-  LdapFactory factory;
-
 public:
   LdapLoader()
   {
-    BackendMakers().report(&factory);
+    BackendMakers().report(std::make_unique<LdapFactory>());
     g_log << Logger::Info << "[ldapbackend] This is the ldap backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"

@@ -53,7 +53,6 @@ EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
 	dnsmessage.proto \
-	mtasker.cc \
 	inflighter.cc \
 	bindparser.hh \
 	named.conf.parsertest \
@@ -96,15 +95,15 @@ endif
 
 # use a $(wildcard) wrapper here to allow build to proceed if output
 # file is present but input file is not (e.g. in a dist tarball)
-api-swagger.yaml: $(wildcard ../docs/http-api/swagger/authoritative-api-swagger.yaml)
+api-swagger.yaml: $(wildcard ${srcdir}/../docs/http-api/swagger/authoritative-api-swagger.yaml)
 	cp $< $@
 
 if HAVE_VENV
 api-swagger.json: api-swagger.yaml requirements.txt
 	$(PYTHON) -m venv .venv
 	.venv/bin/pip install -U pip setuptools setuptools-git wheel
-	.venv/bin/pip install -r requirements.txt
-	.venv/bin/python convert-yaml-to-json.py $< $@
+	.venv/bin/pip install -r ${srcdir}/requirements.txt
+	.venv/bin/python ${srcdir}/convert-yaml-to-json.py $< $@
 else # if HAVE_VENV
 if !HAVE_API_SWAGGER_JSON
 api-swagger.json:
@@ -114,7 +113,8 @@ endif
 endif
 
 apidocfiles.h: api-swagger.yaml api-swagger.json
-	./incfiles $^ > $@
+	$(AM_V_GEN)$(srcdir)/incfiles $^ > $@.tmp
+	@mv $@.tmp $@
 
 sysconf_DATA = pdns.conf-dist
 
@@ -196,7 +196,9 @@ pdns_server_SOURCES = \
 	auth-catalogzone.cc auth-catalogzone.hh \
 	auth-main.cc auth-main.hh \
 	auth-packetcache.cc auth-packetcache.hh \
+	auth-primarycommunicator.cc \
 	auth-querycache.cc auth-querycache.hh \
+	auth-secondarycommunicator.cc \
 	auth-zonecache.cc auth-zonecache.hh \
 	axfr-retriever.cc axfr-retriever.hh \
 	backends/gsql/gsqlbackend.cc backends/gsql/gsqlbackend.hh \
@@ -246,7 +248,6 @@ pdns_server_SOURCES = \
 	logging.hh \
 	lua-auth4.cc lua-auth4.hh \
 	lua-base4.cc lua-base4.hh \
-	mastercommunicator.cc \
 	misc.cc misc.hh \
 	nameserver.cc nameserver.hh \
 	namespaces.hh \
@@ -270,7 +271,6 @@ pdns_server_SOURCES = \
 	shuffle.cc shuffle.hh \
 	signingpipe.cc signingpipe.hh \
 	sillyrecords.cc \
-	slavecommunicator.cc \
 	stat_t.hh \
 	statbag.cc statbag.hh \
 	stubresolver.cc stubresolver.hh \
@@ -287,6 +287,7 @@ pdns_server_SOURCES = \
 	utility.hh \
 	uuid-utils.hh uuid-utils.cc \
 	version.cc version.hh \
+	views.hh \
 	webserver.cc webserver.hh \
 	ws-api.cc ws-api.hh \
 	ws-auth.cc ws-auth.hh \
@@ -660,6 +661,8 @@ stubquery_SOURCES = \
 	dnsparser.cc \
 	dnsrecords.cc \
 	dnswriter.cc \
+	ednsoptions.cc ednsoptions.hh \
+	ednssubnet.cc ednssubnet.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \
@@ -714,18 +717,28 @@ endif
 
 ixfrdist_SOURCES = \
 	arguments.cc \
+	auth-caches.cc auth-caches.hh \
+	auth-packetcache.cc auth-packetcache.hh \
+	auth-querycache.cc auth-querycache.hh \
+	auth-zonecache.cc auth-zonecache.hh \
 	axfr-retriever.cc \
 	base32.cc \
 	base64.cc base64.hh \
 	credentials.cc credentials.hh \
 	dns.cc \
 	dns_random.hh \
+	dnsbackend.cc \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
+	dnspacket.cc dnspacket.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	ednscookies.cc ednscookies.hh \
+	ednsextendederror.cc ednsextendederror.hh \
+	ednsoptions.cc ednsoptions.hh \
+	ednssubnet.cc ednssubnet.hh \
 	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
@@ -742,12 +755,14 @@ ixfrdist_SOURCES = \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
+	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
 	svc-records.cc svc-records.hh \
 	threadname.hh threadname.cc \
 	tsigverifier.cc tsigverifier.hh \
+	ueberbackend.cc ueberbackend.hh \
 	unix_utility.cc \
 	uuid-utils.hh uuid-utils.cc \
 	webserver.hh webserver.cc \
@@ -756,6 +771,7 @@ ixfrdist_SOURCES = \
 ixfrdist_LDADD = \
 	$(BOOST_PROGRAM_OPTIONS_LIBS) \
 	$(JSON11_LIBS) \
+	$(LIBDL) \
 	$(LIBCRYPTO_LIBS) \
 	$(YAHTTP_LIBS) \
 	$(YAML_LIBS)
@@ -792,6 +808,8 @@ ixplore_SOURCES = \
 	dnsrecords.cc \
 	dnssecinfra.cc \
 	dnswriter.cc dnswriter.hh \
+	ednsoptions.cc ednsoptions.hh \
+	ednssubnet.cc ednssubnet.hh \
 	gss_context.cc gss_context.hh  \
 	iputils.cc \
 	ixfr.cc ixfr.hh \

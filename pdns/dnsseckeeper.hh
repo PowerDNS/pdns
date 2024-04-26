@@ -220,7 +220,7 @@ public:
   bool unsetPublishCDS(const DNSName& zname);
 
   bool TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname);
-  bool getTSIGForAccess(const DNSName& zone, const ComboAddress& master, DNSName* keyname);
+  bool getTSIGForAccess(const DNSName& zone, const ComboAddress& primary, DNSName* keyname);
 
   void startTransaction(const DNSName& zone, int zone_id)
   {

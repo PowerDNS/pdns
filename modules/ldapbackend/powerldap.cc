@@ -287,7 +287,7 @@ PowerLDAP::SearchResult::Ptr PowerLDAP::search(const string& base, int scope, co
     throw LDAPException("Starting LDAP search: " + getError(rc));
   }
 
-  return SearchResult::Ptr(new SearchResult(msgid, d_ld));
+  return std::make_unique<SearchResult>(msgid, d_ld);
 }
 
 /**

@@ -123,6 +123,24 @@ union ComboAddress {
     return rhs.operator<(*this);
   }
 
+  struct addressPortOnlyHash
+  {
+    uint32_t operator()(const ComboAddress& ca) const
+    {
+      const unsigned char* start = nullptr;
+      if (ca.sin4.sin_family == AF_INET) {
+        start = reinterpret_cast<const unsigned char*>(&ca.sin4.sin_addr.s_addr);
+        auto tmp = burtle(start, 4, 0);
+        return burtle(reinterpret_cast<const uint8_t*>(&ca.sin4.sin_port), 2, tmp);
+      }
+      {
+        start = reinterpret_cast<const unsigned char*>(&ca.sin6.sin6_addr.s6_addr);
+        auto tmp = burtle(start, 16, 0);
+        return burtle(reinterpret_cast<const unsigned char*>(&ca.sin6.sin6_port), 2, tmp);
+      }
+    }
+  };
+
   struct addressOnlyHash
   {
     uint32_t operator()(const ComboAddress& ca) const
@@ -212,8 +230,9 @@ union ComboAddress {
     sin4.sin_port = 0;
     if(makeIPv4sockaddr(str, &sin4)) {
       sin6.sin6_family = AF_INET6;
-      if(makeIPv6sockaddr(str, &sin6) < 0)
+      if(makeIPv6sockaddr(str, &sin6) < 0) {
         throw PDNSException("Unable to convert presentation address '"+ str +"'");
+      }
 
     }
     if(!sin4.sin_port) // 'str' overrides port!
@@ -347,11 +366,14 @@ union ComboAddress {
 
   void truncate(unsigned int bits) noexcept;
 
-  uint16_t getPort() const
+  uint16_t getNetworkOrderPort() const noexcept
   {
-    return ntohs(sin4.sin_port);
+    return sin4.sin_port;
   }
-
+  uint16_t getPort() const noexcept
+  {
+    return ntohs(getNetworkOrderPort());
+  }
   void setPort(uint16_t port)
   {
     sin4.sin_port = htons(port);
@@ -1187,13 +1209,13 @@ public:
   }
 
   //<! Returns "best match" for key_type, which might not be value
-  const node_type* lookup(const key_type& value) const {
+  [[nodiscard]] node_type* lookup(const key_type& value) const {
     uint8_t max_bits = value.getBits();
     return lookupImpl(value, max_bits);
   }
 
   //<! Perform best match lookup for value, using at most max_bits
-  const node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
+  [[nodiscard]] node_type* lookup(const ComboAddress& value, int max_bits = 128) const {
     uint8_t addr_bits = value.getBits();
     if (max_bits < 0 || max_bits > addr_bits) {
       max_bits = addr_bits;
@@ -1288,7 +1310,8 @@ public:
   }
 
   //<! swaps the contents with another NetmaskTree
-  void swap(NetmaskTree& rhs) {
+  void swap(NetmaskTree& rhs) noexcept
+  {
     std::swap(d_root, rhs.d_root);
     std::swap(d_left, rhs.d_left);
     std::swap(d_size, rhs.d_size);
@@ -1296,7 +1319,7 @@ public:
 
 private:
 
-  const node_type* lookupImpl(const key_type& value, uint8_t max_bits) const {
+  [[nodiscard]] node_type* lookupImpl(const key_type& value, uint8_t max_bits) const {
     TreeNode *node = nullptr;
 
     if (value.isIPv4())
@@ -1358,8 +1381,7 @@ private:
 class NetmaskGroup
 {
 public:
-  NetmaskGroup() noexcept {
-  }
+  NetmaskGroup() noexcept = default;
 
   //! If this IP address is matched by any of the classes within
 
@@ -1462,11 +1484,14 @@ public:
     return str.str();
   }
 
-  void toStringVector(vector<string>* vec) const
+  std::vector<std::string> toStringVector() const
   {
-    for(auto iter = tree.begin(); iter != tree.end(); ++iter) {
-      vec->push_back((iter->second ? "" : "!") + iter->first.toString());
+    std::vector<std::string> out;
+    out.reserve(tree.size());
+    for (const auto& entry : tree) {
+      out.push_back((entry.second ? "" : "!") + entry.first.toString());
     }
+    return out;
   }
 
   void toMasks(const string &ips)
@@ -1514,7 +1539,8 @@ public:
     d_addr.sin4.sin_port = 0; // this guarantees d_network compares identical
   }
 
-  AddressAndPortRange(ComboAddress ca, uint8_t addrMask, uint8_t portMask = 0): d_addr(std::move(ca)), d_addrMask(addrMask), d_portMask(portMask)
+  AddressAndPortRange(ComboAddress ca, uint8_t addrMask, uint8_t portMask = 0) :
+    d_addr(ca), d_addrMask(addrMask), d_portMask(portMask)
   {
     if (!d_addr.isIPv4()) {
       d_portMask = 0;
@@ -1696,6 +1722,7 @@ int SAccept(int sockfd, ComboAddress& remote);
 int SListen(int sockfd, int limit);
 int SSetsockopt(int sockfd, int level, int opname, int value);
 void setSocketIgnorePMTU(int sockfd, int family);
+void setSocketForcePMTU(int sockfd, int family);
 bool setReusePort(int sockfd);
 
 #if defined(IP_PKTINFO)
@@ -1709,7 +1736,7 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 int sendOnNBSocket(int fd, const struct msghdr *msgh);
-size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags);
+size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags);
 
 /* requires a non-blocking, connected TCP socket */
 bool isTCPSocketUsable(int sock);
@@ -1726,3 +1753,5 @@ std::vector<Netmask> getListOfRangesOfNetworkInterface(const std::string& itf);
 void setSocketBuffer(int fd, int optname, uint32_t size);
 void setSocketReceiveBuffer(int fd, uint32_t size);
 void setSocketSendBuffer(int fd, uint32_t size);
+uint32_t raiseSocketReceiveBufferToMax(int socket);
+uint32_t raiseSocketSendBufferToMax(int socket);

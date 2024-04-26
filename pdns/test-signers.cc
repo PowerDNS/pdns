@@ -1,5 +1,9 @@
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -350,11 +354,11 @@ static void checkRR(const SignerParams& signer)
     rrc.d_signer = DNSName("example.net.");
     inception = 946684800;
     expire = 1893456000;
-    rrs.insert(DNSRecordContent::mastermake(QType::A, QClass::IN, "192.0.2.1"));
+    rrs.insert(DNSRecordContent::make(QType::A, QClass::IN, "192.0.2.1"));
   }
   else {
     rrc.d_signer = qname;
-    rrs.insert(DNSRecordContent::mastermake(QType::MX, QClass::IN, "10 mail.example.com."));
+    rrs.insert(DNSRecordContent::make(QType::MX, QClass::IN, "10 mail.example.com."));
   }
 
   rrc.d_originalttl = 3600;

@@ -471,23 +471,23 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 {
   const EVP_MD* rmd = EVP_sha256();
 
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(certFile.c_str(), "r"), fclose);
-  if (!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fopen(certFile.c_str(), "r"));
+  if (!filePtr) {
     throw std::runtime_error("Unable to open '" + certFile + "' when loading the certificate to generate an OCSP response");
   }
-  auto cert = std::unique_ptr<X509, void(*)(X509*)>(PEM_read_X509_AUX(fp.get(), nullptr, nullptr, nullptr), X509_free);
+  auto cert = std::unique_ptr<X509, void(*)(X509*)>(PEM_read_X509_AUX(filePtr.get(), nullptr, nullptr, nullptr), X509_free);
 
-  fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(caCert.c_str(), "r"), fclose);
-  if (!fp) {
+  filePtr = pdns::UniqueFilePtr(fopen(caCert.c_str(), "r"));
+  if (!filePtr) {
     throw std::runtime_error("Unable to open '" + caCert + "' when loading the issuer certificate to generate an OCSP response");
   }
-  auto issuer = std::unique_ptr<X509, void(*)(X509*)>(PEM_read_X509_AUX(fp.get(), nullptr, nullptr, nullptr), X509_free);
-  fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(caKey.c_str(), "r"), fclose);
-  if (!fp) {
+  auto issuer = std::unique_ptr<X509, void(*)(X509*)>(PEM_read_X509_AUX(filePtr.get(), nullptr, nullptr, nullptr), X509_free);
+  filePtr = pdns::UniqueFilePtr(fopen(caKey.c_str(), "r"));
+  if (!filePtr) {
     throw std::runtime_error("Unable to open '" + caKey + "' when loading the issuer key to generate an OCSP response");
   }
-  auto issuerKey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(PEM_read_PrivateKey(fp.get(), nullptr, nullptr, nullptr), EVP_PKEY_free);
-  fp.reset();
+  auto issuerKey = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(PEM_read_PrivateKey(filePtr.get(), nullptr, nullptr, nullptr), EVP_PKEY_free);
+  filePtr.reset();
 
   auto bs = std::unique_ptr<OCSP_BASICRESP, void(*)(OCSP_BASICRESP*)>(OCSP_BASICRESP_new(), OCSP_BASICRESP_free);
   auto thisupd = std::unique_ptr<ASN1_TIME, void(*)(ASN1_TIME*)>(X509_gmtime_adj(nullptr, 0), ASN1_TIME_free);
@@ -626,9 +626,7 @@ OpenSSLTLSTicketKeysRing::OpenSSLTLSTicketKeysRing(size_t capacity)
   d_ticketKeys.write_lock()->set_capacity(capacity);
 }
 
-OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing()
-{
-}
+OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing() = default;
 
 void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& newKey)
 {
@@ -939,13 +937,13 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
   /* load certificate and private key */
   for (const auto& pair : config.d_certKeyPairs) {
     if (!pair.d_key) {
-#if defined(HAVE_SSL_CTX_USE_CERT_AND_KEY) && HAVE_SSL_CTX_USE_CERT_AND_KEY == 1
+#if defined(HAVE_SSL_CTX_USE_CERT_AND_KEY)
       // If no separate key is given, treat it as a pkcs12 file
-      auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(pair.d_cert.c_str(), "r"), fclose);
-      if (!fp) {
+      auto filePtr = pdns::UniqueFilePtr(fopen(pair.d_cert.c_str(), "r"));
+      if (!filePtr) {
         throw std::runtime_error("Unable to open file " + pair.d_cert);
       }
-      auto p12 = std::unique_ptr<PKCS12, void(*)(PKCS12*)>(d2i_PKCS12_fp(fp.get(), nullptr), PKCS12_free);
+      auto p12 = std::unique_ptr<PKCS12, void(*)(PKCS12*)>(d2i_PKCS12_fp(filePtr.get(), nullptr), PKCS12_free);
       if (!p12) {
         throw std::runtime_error("Unable to open PKCS12 file " + pair.d_cert);
       }
@@ -1013,7 +1011,7 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
 #ifndef DISABLE_OCSP_STAPLING
   if (!config.d_ocspFiles.empty()) {
     try {
-      ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, keyTypes, warnings);
+      ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, std::move(keyTypes), warnings);
     }
     catch(const std::exception& e) {
       throw std::runtime_error("Unable to load OCSP responses: " + std::string(e.what()));
@@ -1042,36 +1040,30 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
     return;
   }
 
-  auto fp = reinterpret_cast<FILE*>(SSL_CTX_get_ex_data(sslCtx, s_keyLogIndex));
-  if (fp == nullptr) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): OpenSSL's API
+  auto* filePtr = reinterpret_cast<FILE*>(SSL_CTX_get_ex_data(sslCtx, s_keyLogIndex));
+  if (filePtr == nullptr) {
     return;
   }
 
-  fprintf(fp, "%s\n", line);
-  fflush(fp);
+  fprintf(filePtr, "%s\n", line);
+  fflush(filePtr);
 }
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 
-std::unique_ptr<FILE, int(*)(FILE*)> libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const std::string& logFile)
+pdns::UniqueFilePtr libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
-  int fd = open(logFile.c_str(),  O_WRONLY | O_CREAT | O_APPEND, 0600);
-  if (fd == -1) {
-    unixDie("Error opening TLS log file '" + logFile + "'");
+  auto filePtr = pdns::openFileForWriting(logFile, 0600, false, true);
+  if (!filePtr) {
+    auto error = errno;
+    throw std::runtime_error("Error opening file " + logFile + " for writing: " + stringerror(error));
   }
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fdopen(fd, "a"), fclose);
-  if (!fp) {
-    int error = errno; // close might clobber errno
-    close(fd);
-    throw std::runtime_error("Error opening TLS log file '" + logFile + "': " + stringerror(error));
-  }
-
-  SSL_CTX_set_ex_data(ctx.get(), s_keyLogIndex, fp.get());
+  SSL_CTX_set_ex_data(ctx.get(), s_keyLogIndex, filePtr.get());
   SSL_CTX_set_keylog_callback(ctx.get(), &libssl_key_log_file_callback);
-
-  return fp;
+  return filePtr;
 #else
-  return std::unique_ptr<FILE, int(*)(FILE*)>(nullptr, fclose);
+  return pdns::UniqueFilePtr(nullptr);
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 }
 

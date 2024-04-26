@@ -606,6 +606,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
        prior to calling this function, so the TTL actually holds a TTD. */
     cacheEntry.d_ttd = min(maxTTD, static_cast<time_t>(record.d_ttl)); // XXX this does weird things if TTLs differ in the set
 
+    // coverity[store_truncates_time_t]
     cacheEntry.d_orig_ttl = cacheEntry.d_ttd - ttl_time;
     // Even though we record the time the ttd was computed, there still seems to be a case where the computed
     // d_orig_ttl can wrap.
@@ -707,6 +708,7 @@ bool MemRecursorCache::doAgeCache(time_t now, const DNSName& name, const QType q
     return false; // would be dead anyhow
   }
 
+  // coverity[store_truncates_time_t]
   auto maxTTL = static_cast<uint32_t>(cacheEntry.d_ttd - now);
   if (maxTTL > newTTL) {
     lockedShard->d_cachecachevalid = false;
@@ -775,7 +777,7 @@ uint64_t MemRecursorCache::doDump(int fileDesc, size_t maxCacheEntries)
   if (newfd == -1) {
     return 0;
   }
-  auto filePtr = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(newfd, "w"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fdopen(newfd, "w"));
   if (!filePtr) { // dup probably failed
     close(newfd);
     return 0;

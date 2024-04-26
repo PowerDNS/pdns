@@ -154,6 +154,9 @@ All named `QTypes <https://www.iana.org/assignments/dns-parameters/dns-parameter
 DNSResponseAction
 -----------------
 
+.. versionchanged:: 1.9.0
+  The ``DNSResponseAction.Truncate`` value was added.
+
 These constants represent an Action that can be returned from :func:`LuaResponseAction` functions.
 
  * ``DNSResponseAction.Allow``: let the response pass, skipping other rules
@@ -162,3 +165,4 @@ These constants represent an Action that can be returned from :func:`LuaResponse
  * ``DNSResponseAction.HeaderModify``: indicate that the query has been turned into a response
  * ``DNSResponseAction.None``: continue to the next rule
  * ``DNSResponseAction.ServFail``: return a response with a ServFail rcode
+ * ``DNSResponseAction.Truncate``: truncate the response, removing all records from the answer, authority and additional sections if any

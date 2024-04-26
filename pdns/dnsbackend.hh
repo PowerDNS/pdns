@@ -27,6 +27,7 @@ class DNSPacket;
 
 #include "utility.hh"
 #include <string>
+#include <utility>
 #include <vector>
 #include <map>
 #include <sys/types.h>
@@ -51,15 +52,15 @@ struct SOAData;
 
 struct DomainInfo
 {
-  DomainInfo() : last_check(0), backend(nullptr), id(0), notified_serial(0), receivedNotify(false), serial(0), kind(DomainInfo::Native) {}
+  DomainInfo() = default;
 
   DNSName zone;
   DNSName catalog;
   time_t last_check{};
   string options;
   string account;
-  vector<ComboAddress> masters;
-  DNSBackend *backend{};
+  vector<ComboAddress> primaries;
+  DNSBackend* backend{};
 
   uint32_t id{};
   uint32_t notified_serial{};
@@ -76,32 +77,32 @@ struct DomainInfo
   // Do not reorder (lmdbbackend)!!! One exception 'All' is always last.
   enum DomainKind : uint8_t
   {
-    Master,
-    Slave,
+    Primary,
+    Secondary,
     Native,
     Producer,
     Consumer,
     All
-  } kind;
+  } kind{DomainInfo::Native};
 
-  [[nodiscard]] const char *getKindString() const
+  [[nodiscard]] const char* getKindString() const
   {
     return DomainInfo::getKindString(kind);
   }
 
-  static const char *getKindString(enum DomainKind kind)
+  static const char* getKindString(enum DomainKind kind)
   {
-    const char* kinds[] = {"Master", "Slave", "Native", "Producer", "Consumer", "All"};
-    return kinds[kind];
+    std::array<const char*, 6> kinds{"Master", "Slave", "Native", "Producer", "Consumer", "All"};
+    return kinds.at(kind);
   }
 
   static DomainKind stringToKind(const string& kind)
   {
     if (pdns_iequals(kind, "SECONDARY") || pdns_iequals(kind, "SLAVE")) {
-      return DomainInfo::Slave;
+      return DomainInfo::Secondary;
     }
     if (pdns_iequals(kind, "PRIMARY") || pdns_iequals(kind, "MASTER")) {
-      return DomainInfo::Master;
+      return DomainInfo::Primary;
     }
     if (pdns_iequals(kind, "PRODUCER")) {
       return DomainInfo::Producer;
@@ -113,28 +114,30 @@ struct DomainInfo
     return DomainInfo::Native;
   }
 
-  [[nodiscard]] bool isPrimaryType() const { return (kind == DomainInfo::Master || kind == DomainInfo::Producer); }
-  [[nodiscard]] bool isSecondaryType() const { return (kind == DomainInfo::Slave || kind == DomainInfo::Consumer); }
+  [[nodiscard]] bool isPrimaryType() const { return (kind == DomainInfo::Primary || kind == DomainInfo::Producer); }
+  [[nodiscard]] bool isSecondaryType() const { return (kind == DomainInfo::Secondary || kind == DomainInfo::Consumer); }
   [[nodiscard]] bool isCatalogType() const { return (kind == DomainInfo::Producer || kind == DomainInfo::Consumer); }
 
-  [[nodiscard]] bool isMaster(const ComboAddress& ipAddress) const
+  [[nodiscard]] bool isPrimary(const ComboAddress& ipAddress) const
   {
-    return std::any_of(masters.begin(), masters.end(), [ipAddress](auto master) { return ComboAddress::addressOnlyEqual()(ipAddress, master); });
+    return std::any_of(primaries.begin(), primaries.end(), [ipAddress](auto primary) { return ComboAddress::addressOnlyEqual()(ipAddress, primary); });
   }
 };
 
-struct TSIGKey {
-   DNSName name;
-   DNSName algorithm;
-   std::string key;
+struct TSIGKey
+{
+  DNSName name;
+  DNSName algorithm;
+  std::string key;
 };
 
-struct AutoPrimary {
-   AutoPrimary(const string& new_ip, const string& new_nameserver, const string& new_account) :
-     ip(new_ip), nameserver(new_nameserver), account(new_account){};
-   std::string ip;
-   std::string nameserver;
-   std::string account;
+struct AutoPrimary
+{
+  AutoPrimary(string new_ip, string new_nameserver, string new_account) :
+    ip(std::move(new_ip)), nameserver(std::move(new_nameserver)), account(std::move(new_account)){};
+  std::string ip;
+  std::string nameserver;
+  std::string account;
 };
 
 class DNSPacket;
@@ -154,21 +157,21 @@ class DNSBackend
 {
 public:
   //! lookup() initiates a lookup. A lookup without results should not throw!
-  virtual void lookup(const QType &qtype, const DNSName &qdomain, int zoneId=-1, DNSPacket *pkt_p=nullptr)=0;
-  virtual bool get(DNSResourceRecord &)=0; //!< retrieves one DNSResource record, returns false if no more were available
-  virtual bool get(DNSZoneRecord &r);
+  virtual void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = nullptr) = 0;
+  virtual bool get(DNSResourceRecord&) = 0; //!< retrieves one DNSResource record, returns false if no more were available
+  virtual bool get(DNSZoneRecord& zoneRecord);
 
   //! Initiates a list of the specified domain
   /** Once initiated, DNSResourceRecord objects can be retrieved using get(). Should return false
       if the backend does not consider itself responsible for the id passed.
       \param domain_id ID of which a list is requested
   */
-  virtual bool list(const DNSName &target, int domain_id, bool include_disabled=false)=0;
+  virtual bool list(const DNSName& target, int domain_id, bool include_disabled = false) = 0;
 
-  virtual ~DNSBackend(){};
+  virtual ~DNSBackend() = default;
 
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
-  virtual bool getSOA(const DNSName &name, SOAData &soadata);
+  virtual bool getSOA(const DNSName& domain, SOAData& soaData);
 
   virtual bool replaceRRSet(uint32_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<DNSResourceRecord>& /* rrset */)
   {
@@ -211,7 +214,8 @@ public:
   /** Determines if we are authoritative for a zone, and at what level */
   virtual bool getAuth(const DNSName& target, SOAData* /* sd */);
 
-  struct KeyData {
+  struct KeyData
+  {
     std::string content;
     unsigned int id{0};
     unsigned int flags{0};
@@ -279,7 +283,7 @@ public:
     return false;
   }
 
-  //! returns true if master ip is master for domain name.
+  //! returns true if primary ip is primary for domain name.
   //! starts the transaction for updating domain qname (FIXME: what is id?)
   virtual bool startTransaction(const DNSName& /* qname */, int /* id */ = -1)
   {
@@ -330,8 +334,8 @@ public:
   {
     return false;
   }
-  //! slave capable backends should return a list of slaves that should be rechecked for staleness
-  virtual void getUnfreshSlaveInfos(vector<DomainInfo>* /* domains */)
+  //! secondary capable backends should return a list of secondaries that should be rechecked for staleness
+  virtual void getUnfreshSecondaryInfos(vector<DomainInfo>* /* domains */)
   {
   }
 
@@ -343,8 +347,8 @@ public:
     ips->insert(meta.begin(), meta.end());
   }
 
-  //! get list of domains that have been changed since their last notification to slaves
-  virtual void getUpdatedMasters(vector<DomainInfo>& /* domains */, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
+  //! get list of domains that have been changed since their last notification to secondaries
+  virtual void getUpdatedPrimaries(vector<DomainInfo>& /* domains */, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
   {
   }
 
@@ -364,18 +368,18 @@ public:
   {
   }
 
-  //! Called by PowerDNS to inform a backend that the changes in the domain have been reported to slaves
+  //! Called by PowerDNS to inform a backend that the changes in the domain have been reported to secondaries
   virtual void setNotified(uint32_t /* id */, uint32_t /* serial */)
   {
   }
 
-  //! Called when the Master list of a domain should be changed
-  virtual bool setMasters(const DNSName& /* domain */, const vector<ComboAddress>& /* masters */)
+  //! Called when the Primary list of a domain should be changed
+  virtual bool setPrimaries(const DNSName& /* domain */, const vector<ComboAddress>& /* primaries */)
   {
     return false;
   }
 
-  //! Called when the Kind of a domain should be changed (master -> native and similar)
+  //! Called when the Kind of a domain should be changed (primary -> native and similar)
   virtual bool setKind(const DNSName& /* domain */, const DomainInfo::DomainKind /* kind */)
   {
     return false;
@@ -400,40 +404,40 @@ public:
   }
 
   //! Can be called to seed the getArg() function with a prefix
-  void setArgPrefix(const string &prefix);
+  void setArgPrefix(const string& prefix);
 
-  //! Add an entry for a super master
-  virtual bool superMasterAdd(const struct AutoPrimary& /* primary */)
+  //! Add an entry for a super primary
+  virtual bool autoPrimaryAdd(const struct AutoPrimary& /* primary */)
   {
     return false;
   }
 
-  //! Remove an entry for a super master
+  //! Remove an entry for a super primary
   virtual bool autoPrimaryRemove(const struct AutoPrimary& /* primary */)
   {
     return false;
   }
 
-  //! List all SuperMasters, returns false if feature not supported.
+  //! List all AutoPrimaries, returns false if feature not supported.
   virtual bool autoPrimariesList(std::vector<AutoPrimary>& /* primaries */)
   {
     return false;
   }
 
-  //! determine if ip is a supermaster or a domain
-  virtual bool superMasterBackend(const string& /* ip */, const DNSName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* /* account */, DNSBackend** /* db */)
+  //! determine if ip is a autoprimary or a domain
+  virtual bool autoPrimaryBackend(const string& /* ip */, const DNSName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* /* account */, DNSBackend** /* db */)
   {
     return false;
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const DNSName& /* domain */, const DomainInfo::DomainKind /* kind */, const vector<ComboAddress>& /* masters */, const string& /* account */)
+  virtual bool createDomain(const DNSName& /* domain */, const DomainInfo::DomainKind /* kind */, const vector<ComboAddress>& /* primaries */, const string& /* account */)
   {
     return false;
   }
 
-  //! called by PowerDNS to create a slave record for a superMaster
-  virtual bool createSlaveDomain(const string& /* ip */, const DNSName& /* domain */, const string& /* nameserver */, const string& /* account */)
+  //! called by PowerDNS to create a secondary record for a autoPrimary
+  virtual bool createSecondaryDomain(const string& /* ip */, const DNSName& /* domain */, const string& /* nameserver */, const string& /* account */)
   {
     return false;
   }
@@ -462,10 +466,11 @@ public:
   }
 
   const string& getPrefix() { return d_prefix; };
+
 protected:
-  bool mustDo(const string &key);
-  const string &getArg(const string &key);
-  int getArgAsNum(const string &key);
+  bool mustDo(const string& key);
+  const string& getArg(const string& key);
+  int getArgAsNum(const string& key);
 
 private:
   string d_prefix;
@@ -474,10 +479,11 @@ private:
 class BackendFactory
 {
 public:
-  BackendFactory(const string &name) : d_name(name) {}
-  virtual ~BackendFactory(){}
-  virtual DNSBackend *make(const string &suffix)=0;
-  virtual DNSBackend *makeMetadataOnly(const string &suffix)
+  BackendFactory(const string& name) :
+    d_name(name) {}
+  virtual ~BackendFactory() = default;
+  virtual DNSBackend* make(const string& suffix) = 0;
+  virtual DNSBackend* makeMetadataOnly(const string& suffix)
   {
     return this->make(suffix);
   }
@@ -485,62 +491,63 @@ public:
   [[nodiscard]] const string& getName() const;
 
 protected:
-  void declare(const string &suffix, const string &param, const string &explanation, const string &value);
+  void declare(const string& suffix, const string& param, const string& explanation, const string& value);
 
 private:
-  const string d_name;
+  string d_name;
 };
 
 class BackendMakerClass
 {
 public:
-  void report(BackendFactory *bf);
-  void launch(const string &instr);
-  vector<std::unique_ptr<DNSBackend>> all(bool metadataOnly=false);
-  void load(const string &module);
+  void report(std::unique_ptr<BackendFactory>&& backendFactory);
+  void launch(const string& instr);
+  vector<std::unique_ptr<DNSBackend>> all(bool metadataOnly = false);
+  static void load(const string& module);
   [[nodiscard]] size_t numLauncheable() const;
   vector<string> getModules();
   void clear();
 
 private:
-  void load_all();
-  using d_repository_t = map<string, BackendFactory *>;
+  static void load_all();
+  using d_repository_t = map<string, std::unique_ptr<BackendFactory>>;
   d_repository_t d_repository;
-  vector<pair<string,string> >d_instances;
+  vector<pair<string, string>> d_instances;
 };
 
-extern BackendMakerClass &BackendMakers();
+extern BackendMakerClass& BackendMakers();
 
 //! Exception that can be thrown by a DNSBackend to indicate a failure
 class DBException : public PDNSException
 {
 public:
-  DBException(const string &reason_) : PDNSException(reason_){}
+  DBException(const string& reason_) :
+    PDNSException(reason_) {}
 };
-
 
 struct SOAData
 {
-  SOAData() : domain_id(-1) {};
+  SOAData() :
+    domain_id(-1){};
 
   DNSName qname;
   DNSName nameserver;
-  DNSName hostmaster;
+  DNSName rname;
   uint32_t ttl{};
   uint32_t serial{};
   uint32_t refresh{};
   uint32_t retry{};
   uint32_t expire{};
   uint32_t minimum{};
-  DNSBackend *db{};
+  DNSBackend* db{};
   int domain_id{};
 
   [[nodiscard]] uint32_t getNegativeTTL() const { return min(ttl, minimum); }
 };
 
 /** helper function for both DNSPacket and addSOARecord() - converts a line into a struct, for easier parsing */
-void fillSOAData(const string &content, SOAData &data);
+void fillSOAData(const string& content, SOAData& soaData);
 // same but more karmic
-void fillSOAData(const DNSZoneRecord& in, SOAData& data);
+void fillSOAData(const DNSZoneRecord& inZoneRecord, SOAData& soaData);
 // the reverse
-std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& sd);
+std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& soaData);

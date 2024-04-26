@@ -20,8 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "base64.hh"
 #include "dnsdist-dnsparser.hh"
+#include "dnsdist-doh-common.hh"
 #include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsparser.hh"
@@ -271,6 +271,16 @@ bool IncomingHTTP2Connection::checkALPN()
   if (protocols.size() == h2ALPN.size() && memcmp(protocols.data(), h2ALPN.data(), h2ALPN.size()) == 0) {
     return true;
   }
+
+  constexpr std::array<uint8_t, 8> http11ALPN{'h', 't', 't', 'p', '/', '1', '.', '1'};
+  if (protocols.size() == http11ALPN.size() && memcmp(protocols.data(), http11ALPN.data(), http11ALPN.size()) == 0) {
+    ++d_ci.cs->dohFrontend->d_http1Stats.d_nbQueries;
+  }
+
+  const std::string data("HTTP/1.1 400 Bad Request\r\nConnection: Close\r\n\r\n<html><body>This server implements RFC 8484 - DNS Queries over HTTP, and requires HTTP/2 in accordance with section 5.2 of the RFC.</body></html>\r\n");
+  d_out.insert(d_out.end(), data.begin(), data.end());
+  writeToSocket(false);
+
   vinfolog("DoH connection from %s expected ALPN value 'h2', got '%s'", d_ci.remote.toStringWithPort(), std::string(protocols.begin(), protocols.end()));
   return false;
 }
@@ -307,7 +317,7 @@ IOState IncomingHTTP2Connection::handleHandshake(const struct timeval& now)
       }
     }
 
-    if (!isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
+    if (d_ci.cs != nullptr && d_ci.cs->d_enableProxyProtocol && !isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
       d_state = State::readingProxyProtocolHeader;
       d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
       d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
@@ -319,6 +329,27 @@ IOState IncomingHTTP2Connection::handleHandshake(const struct timeval& now)
   }
   return iostate;
 }
+
+class ReadFunctionGuard
+{
+public:
+  ReadFunctionGuard(bool& inReadFunction) :
+    d_inReadFunctionRef(inReadFunction)
+  {
+    d_inReadFunctionRef = true;
+  }
+  ReadFunctionGuard(ReadFunctionGuard&&) = delete;
+  ReadFunctionGuard(const ReadFunctionGuard&) = delete;
+  ReadFunctionGuard& operator=(ReadFunctionGuard&&) = delete;
+  ReadFunctionGuard& operator=(const ReadFunctionGuard&) = delete;
+  ~ReadFunctionGuard()
+  {
+    d_inReadFunctionRef = false;
+  }
+
+private:
+  bool& d_inReadFunctionRef;
+};
 
 void IncomingHTTP2Connection::handleIO()
 {
@@ -337,7 +368,10 @@ void IncomingHTTP2Connection::handleIO()
     }
 
     if (d_state == State::starting) {
-      if (isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
+      if (d_ci.cs != nullptr && d_ci.cs->dohFrontend != nullptr) {
+        ++d_ci.cs->dohFrontend->d_httpconnects;
+      }
+      if (d_ci.cs != nullptr && d_ci.cs->d_enableProxyProtocol && isProxyPayloadOutsideTLS() && expectProxyProtocolFrom(d_ci.remote)) {
         d_state = State::readingProxyProtocolHeader;
         d_buffer.resize(s_proxyProtocolMinimumHeaderSize);
         d_proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
@@ -379,10 +413,10 @@ void IncomingHTTP2Connection::handleIO()
       }
     }
 
-    if (active() && !d_connectionClosing && (d_state == State::waitingForQuery || d_state == State::idle)) {
+    if (!d_inReadFunction && active() && !d_connectionClosing && (d_state == State::waitingForQuery || d_state == State::idle)) {
       do {
         iostate = readHTTPData();
-      } while (active() && !d_connectionClosing && iostate == IOState::Done);
+      } while (!d_inReadFunction && active() && !d_connectionClosing && iostate == IOState::Done);
     }
 
     if (!active()) {
@@ -740,66 +774,6 @@ static void processForwardedForHeader(const std::unique_ptr<HeadersMap>& headers
   }
 }
 
-static std::optional<PacketBuffer> getPayloadFromPath(const std::string_view& path)
-{
-  std::optional<PacketBuffer> result{std::nullopt};
-
-  if (path.size() <= 5) {
-    return result;
-  }
-
-  auto pos = path.find("?dns=");
-  if (pos == string::npos) {
-    pos = path.find("&dns=");
-  }
-
-  if (pos == string::npos) {
-    return result;
-  }
-
-  // need to base64url decode this
-  string sdns;
-  const size_t payloadSize = path.size() - pos - 5;
-  size_t neededPadding = 0;
-  switch (payloadSize % 4) {
-  case 2:
-    neededPadding = 2;
-    break;
-  case 3:
-    neededPadding = 1;
-    break;
-  }
-  sdns.reserve(payloadSize + neededPadding);
-  sdns = path.substr(pos + 5);
-  for (auto& entry : sdns) {
-    switch (entry) {
-    case '-':
-      entry = '+';
-      break;
-    case '_':
-      entry = '/';
-      break;
-    }
-  }
-
-  if (neededPadding != 0) {
-    // re-add padding that may have been missing
-    sdns.append(neededPadding, '=');
-  }
-
-  PacketBuffer decoded;
-  /* rough estimate so we hopefully don't need a new allocation later */
-  /* We reserve at few additional bytes to be able to add EDNS later */
-  const size_t estimate = ((sdns.size() * 3) / 4);
-  decoded.reserve(estimate);
-  if (B64Decode(sdns, decoded) < 0) {
-    return result;
-  }
-
-  result = std::move(decoded);
-  return result;
-}
-
 void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::PendingQuery&& query, IncomingHTTP2Connection::StreamID streamID)
 {
   const auto handleImmediateResponse = [this, &query, streamID](uint16_t code, const std::string& reason, PacketBuffer&& response = PacketBuffer()) {
@@ -878,7 +852,7 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
   }
 
   if (query.d_buffer.empty() && query.d_method == PendingQuery::Method::Get && !query.d_queryString.empty()) {
-    auto payload = getPayloadFromPath(query.d_queryString);
+    auto payload = dnsdist::doh::getPayloadFromPath(query.d_queryString);
     if (payload) {
       query.d_buffer = std::move(*payload);
     }
@@ -1002,7 +976,7 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
       return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
 
-#if HAVE_NGHTTP2_CHECK_HEADER_VALUE_RFC9113
+#ifdef HAVE_NGHTTP2_CHECK_HEADER_VALUE_RFC9113
     if (nghttp2_check_header_value_rfc9113(value, valuelen) == 0) {
       vinfolog("Invalid header value");
       return NGHTTP2_ERR_CALLBACK_FAILURE;
@@ -1022,7 +996,7 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
     auto valueView = std::string_view(reinterpret_cast<const char*>(value), valuelen);
     if (headerMatches(s_pathHeaderName)) {
-#if HAVE_NGHTTP2_CHECK_PATH
+#ifdef HAVE_NGHTTP2_CHECK_PATH
       if (nghttp2_check_path(value, valuelen) == 0) {
         vinfolog("Invalid path value");
         return NGHTTP2_ERR_CALLBACK_FAILURE;
@@ -1111,6 +1085,11 @@ int IncomingHTTP2Connection::on_error_callback(nghttp2_session* session, int lib
 
 IOState IncomingHTTP2Connection::readHTTPData()
 {
+  if (d_inReadFunction) {
+    return IOState::Done;
+  }
+  ReadFunctionGuard readGuard(d_inReadFunction);
+
   IOState newState = IOState::Done;
   size_t got = 0;
   if (d_in.size() < s_initialReceiveBufferSize) {
@@ -1154,7 +1133,9 @@ void IncomingHTTP2Connection::handleWritableIOCallback([[maybe_unused]] int desc
 
 void IncomingHTTP2Connection::stopIO()
 {
-  d_ioState->reset();
+  if (d_ioState) {
+    d_ioState->reset();
+  }
 }
 
 uint32_t IncomingHTTP2Connection::getConcurrentStreamsCount() const
@@ -1190,27 +1171,27 @@ void IncomingHTTP2Connection::updateIO(IOState newState, const FDMultiplexer::ca
   boost::optional<struct timeval> ttd{boost::none};
 
   auto shared = std::dynamic_pointer_cast<IncomingHTTP2Connection>(shared_from_this());
-  if (shared) {
-    struct timeval now
-    {
-    };
-    gettimeofday(&now, nullptr);
+  if (!shared || !d_ioState) {
+    return;
+  }
 
-    if (newState == IOState::NeedRead) {
-      /* use the idle TTL if the handshake has been completed (and proxy protocol payload received, if any),
-         and we have processed at least one query, otherwise we use the shorter read TTL  */
-      if ((d_state == State::waitingForQuery || d_state == State::idle) && (d_queriesCount > 0 || d_currentQueriesCount > 0)) {
-        ttd = getIdleClientReadTTD(now);
-      }
-      else {
-        ttd = getClientReadTTD(now);
-      }
-      d_ioState->update(newState, callback, shared, ttd);
+  timeval now{};
+  gettimeofday(&now, nullptr);
+
+  if (newState == IOState::NeedRead) {
+    /* use the idle TTL if the handshake has been completed (and proxy protocol payload received, if any),
+       and we have processed at least one query, otherwise we use the shorter read TTL  */
+    if ((d_state == State::waitingForQuery || d_state == State::idle) && (d_queriesCount > 0 || d_currentQueriesCount > 0)) {
+      ttd = getIdleClientReadTTD(now);
     }
-    else if (newState == IOState::NeedWrite) {
-      ttd = getClientWriteTTD(now);
-      d_ioState->update(newState, callback, shared, ttd);
+    else {
+      ttd = getClientReadTTD(now);
     }
+    d_ioState->update(newState, callback, shared, ttd);
+  }
+  else if (newState == IOState::NeedWrite) {
+    ttd = getClientWriteTTD(now);
+    d_ioState->update(newState, callback, shared, ttd);
   }
 }
 

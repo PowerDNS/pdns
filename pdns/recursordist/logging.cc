@@ -22,6 +22,7 @@
 
 #include "logging.hh"
 #include <string>
+#include <mutex>
 #include "utility.hh"
 
 namespace Logging
@@ -156,4 +157,23 @@ Logger::~Logger()
 };
 
 std::shared_ptr<Logging::Logger> g_slog{nullptr};
-bool g_slogStructured = true;
+
+const char* Logging::toTimestampStringMilli(const struct timeval& tval, std::array<char, 64>& buf, const std::string& format)
+{
+  size_t len = 0;
+  if (format != "%s") {
+    // strftime is not thread safe, it can access locale information
+    static std::mutex mutex;
+    auto lock = std::lock_guard(mutex);
+    struct tm theTime // clang-format insists on formatting it like this
+    {
+    };
+    len = strftime(buf.data(), buf.size(), format.c_str(), localtime_r(&tval.tv_sec, &theTime));
+  }
+  if (len == 0) {
+    len = snprintf(buf.data(), buf.size(), "%lld", static_cast<long long>(tval.tv_sec));
+  }
+
+  snprintf(&buf.at(len), buf.size() - len, ".%03ld", static_cast<long>(tval.tv_usec) / 1000);
+  return buf.data();
+}

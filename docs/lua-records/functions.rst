@@ -34,6 +34,8 @@ Client variables
   resolver. This is a :class:`ComboAddress`.
 ``who``
   IP address of requesting resolver as a :class:`ComboAddress`.
+``localwho``
+  IP address (including port) of socket on which the question arrived.
 
 Functions available
 -------------------
@@ -205,6 +207,31 @@ Record creation functions
 
   This function also works for CNAME or TXT records.
 
+.. function:: pickchashed(values)
+
+  Based on the hash of ``bestwho``, returns a string from the list
+  supplied, as weighted by the various ``weight`` parameters and distributed consistently.
+  Performs no uptime checking.
+
+  :param values: table of weight, string (such as IPv4 or IPv6 address).
+
+  This function works almost like :func:`pickwhashed` while bringing the following properties:
+  - reordering the list of entries won't affect the distribution
+  - updating the weight of an entry will only affect a part of the distribution
+  - because of the previous properties, the CPU and memory cost is a bit higher than :func:`pickwhashed`
+
+  Hashes will be pre computed the first time such a record is hit and refreshed if needed. If updating the list is done often,
+  the cash may grow. A cleanup routine is performed every :ref:`setting-lua-consistent-hashes-cleanup-interval` seconds (default 1h)
+  and cleans cached entries for records that haven't been used for :ref:`setting-lua-consistent-hashes-expire-delay` seconds (default 24h)
+
+  An example::
+
+    mydomain.example.com    IN    LUA    A ("pickchashed({                             "
+                                            "        {15,  "192.0.2.1"},               "
+                                            "        {100, "198.51.100.5"}             "
+                                            "})                                        ")
+
+
 .. function:: pickwhashed(values)
 
   Based on the hash of ``bestwho``, returns a string from the list
@@ -225,6 +252,28 @@ Record creation functions
                                             "        {15,  "192.0.2.1"},               "
                                             "        {100, "198.51.100.5"}             "
                                             "})                                        ")
+
+.. function:: picknamehashed(values)
+
+  Based on the hash of the DNS record name, returns a string from the list supplied, as weighted by the various ``weight`` parameters.
+  Performs no uptime checking.
+
+  :param values: table of weight, string (such as IPv4 or IPv6 address).
+
+  This allows basic persistent load balancing across a number of backends.
+  It means that ``test.mydomain.example.com`` will always resolve to the same IP, but ``test2.mydomain.example.com`` may go elsewhere.
+  This function is only useful for wildcard records.
+
+  This works similar to round-robin load balancing, but has the advantage of making traffic for the same domain always end up on the same server which can help cache hit rates.
+
+  This function also works for CNAME or TXT records.
+
+  An example::
+
+    *.mydomain.example.com    IN    LUA    A ("picknamehashed({                        "
+                                              "        {15,  "192.0.2.1"},             "
+                                              "        {100, "198.51.100.5"}           "
+                                              "})                                      ")
 
 
 .. function:: pickwrandom(values)
@@ -247,12 +296,12 @@ Reverse DNS functions
 
 .. function:: createReverse(format, [exceptions])
 
-  Used for generating default hostnames from IPv4 wildcard reverse DNS records, e.g. ``*.0.0.127.in-addr.arpa`` 
-  
+  Used for generating default hostnames from IPv4 wildcard reverse DNS records, e.g. ``*.0.0.127.in-addr.arpa``
+
   See :func:`createReverse6` for IPv6 records (ip6.arpa)
 
   See :func:`createForward` for creating the A records on a wildcard record such as ``*.static.example.com``
-  
+
   Returns a formatted hostname based on the format string passed.
 
   :param format: A hostname string to format, for example ``%1%.%2%.%3%.%4%.static.example.com``.
@@ -273,13 +322,13 @@ Reverse DNS functions
       - ``%6`` would be ``7f00000f`` (127 is 7f, and 15 is 0f in hexadecimal)
 
   Example records::
-  
+
     *.0.0.127.in-addr.arpa IN    LUA    PTR "createReverse('%1%.%2%.%3%.%4%.static.example.com')"
     *.1.0.127.in-addr.arpa IN    LUA    PTR "createReverse('%5%.static.example.com')"
     *.2.0.127.in-addr.arpa IN    LUA    PTR "createReverse('%6%.static.example.com')"
- 
+
   When queried::
-  
+
     # -x is syntactic sugar to request the PTR record for an IPv4/v6 address such as 127.0.0.5
     # Equivalent to dig PTR 5.0.0.127.in-addr.arpa
     $ dig +short -x 127.0.0.5 @ns1.example.com
@@ -290,44 +339,44 @@ Reverse DNS functions
     7f000205.static.example.com.
 
 .. function:: createForward()
-  
+
   Used to generate the reverse DNS domains made from :func:`createReverse`
-  
+
   Generates an A record for a dotted or hexadecimal IPv4 domain (e.g. 127.0.0.1.static.example.com)
-  
+
   It does not take any parameters, it simply interprets the zone record to find the IP address.
-  
+
   An example record for zone ``static.example.com``::
-    
+
     *.static.example.com    IN    LUA    A "createForward()"
-  
+
   This function supports the forward dotted format (``127.0.0.1.static.example.com``), and the hex format, when prefixed by two ignored characters (``ip40414243.static.example.com``)
-  
+
   When queried::
-  
+
     $ dig +short A 127.0.0.5.static.example.com @ns1.example.com
     127.0.0.5
-  
+
   Since 4.8.0: the hex format can be prefixed by any number of characters (within DNS label length limits), including zero characters (so no prefix).
 
 .. function:: createReverse6(format[, exceptions])
 
   Used for generating default hostnames from IPv6 wildcard reverse DNS records, e.g. ``*.1.0.0.2.ip6.arpa``
-  
+
   **For simplicity purposes, only small sections of IPv6 rDNS domains are used in most parts of this guide,**
   **as a full ip6.arpa record is around 80 characters long**
-  
+
   See :func:`createReverse` for IPv4 records (in-addr.arpa)
 
   See :func:`createForward6` for creating the AAAA records on a wildcard record such as ``*.static.example.com``
-  
+
   Returns a formatted hostname based on the format string passed.
 
   :param format: A hostname string to format, for example ``%33%.static6.example.com``.
   :param exceptions: An optional table of overrides. For example ``{['2001:db8::1'] = 'example.example.com.'}`` would, when generating a name for IP ``2001:db8::1``, return ``example.example.com`` instead of something like ``2001--db8.example.com``.
 
   Formatting options:
-   
+
   - ``%1%`` to ``%32%`` are individual characters (nibbles)
       - **Example PTR record query:** ``a.0.0.0.1.0.0.2.ip6.arpa``
       - ``%1%`` = 2
@@ -340,40 +389,40 @@ Reverse DNS functions
       - ``%34%`` - returns ``2001`` (chunk 1)
       - ``%35%`` - returns ``000a`` (chunk 2)
       - ``%41%`` - returns ``0123`` (chunk 8)
-  
+
   Example records::
-  
+
     *.1.0.0.2.ip6.arpa IN    LUA    PTR "createReverse6('%33%.static6.example.com')"
     *.2.0.0.2.ip6.arpa IN    LUA    PTR "createReverse6('%34%.%35%.static6.example.com')"
- 
+
   When queried::
-  
+
     # -x is syntactic sugar to request the PTR record for an IPv4/v6 address such as 2001::1
     # Equivalent to dig PTR 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.b.0.0.0.a.0.0.0.1.0.0.2.ip6.arpa
     # readable version:     1.0.0.0 .0.0.0.0 .0.0.0.0 .0.0.0.0 .0.0.0.0 .b.0.0.0 .a.0.0.0 .1.0.0.2 .ip6.arpa
-    
+
     $ dig +short -x 2001:a:b::1 @ns1.example.com
     2001-a-b--1.static6.example.com.
-    
+
     $ dig +short -x 2002:a:b::1 @ns1.example.com
     2002.000a.static6.example.com
 
 .. function:: createForward6()
-  
+
   Used to generate the reverse DNS domains made from :func:`createReverse6`
-  
+
   Generates an AAAA record for a dashed compressed IPv6 domain (e.g. ``2001-a-b--1.static6.example.com``)
-  
+
   It does not take any parameters, it simply interprets the zone record to find the IP address.
-  
+
   An example record for zone ``static.example.com``::
-    
+
     *.static6.example.com    IN    LUA    AAAA "createForward6()"
-  
+
   This function supports the dashed compressed format (i.e. ``2001-a-b--1.static6.example.com``), and the dot-split uncompressed format (``2001.db8.6.5.4.3.2.1.static6.example.com``)
-  
+
   When queried::
-  
+
     $ dig +short AAAA 2001-a-b--1.static6.example.com @ns1.example.com
     2001:a:b::1
 
@@ -392,6 +441,9 @@ Reverse DNS functions
   Example::
 
     *.static4.example.com IN LUA A "filterForward(createForward(), newNMG({'192.0.2.0/24', '10.0.0.0/8'}))"
+
+  Since 4.9.0: if the fallback parameter is an empty string, ``filterForward`` returns an empty set, yielding a NODATA answer.
+  You cannot combine this feature with DNSSEC.
 
 Helper functions
 ~~~~~~~~~~~~~~~~
@@ -452,3 +504,22 @@ Helper functions
   Returns true if ``bestwho`` is within any of the listed subnets.
 
   :param [string] netmasks: The list of IP addresses to check against
+
+.. function:: dblookup(name, type)
+
+  .. versionadded:: 4.9.0
+
+  Does a database lookup for name and type, and returns a (possibly empty) array of string results.
+
+  Please keep the following in mind:
+
+  * it does not evaluate any LUA code found
+  * if you needed just one string, perhaps you want ``dblookup('www.example.org', pdns.A)[1]`` to take the first item from the array
+  * some things, like ifurlup, don't like empty tables, so be careful not to accidentally look up a name that does not have any records of that type, if you are going to use the result in ``ifurlup``
+
+  Example usage: ::
+
+    www IN LUA A "ifurlup('https://www.example.com/', {dblookup('www1.example.com', pdns.A), dblookup('www2.example.com', pdns.A), dblookup('www3.example.com', pdns.A)})"
+
+  :param string name: Name to look up in the database
+  :param int type: DNS type to look for

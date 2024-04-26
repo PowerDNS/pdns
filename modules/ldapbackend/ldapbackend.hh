@@ -167,7 +167,7 @@ class LdapBackend : public DNSBackend
 
 public:
   LdapBackend(const string& suffix = "");
-  ~LdapBackend();
+  ~LdapBackend() override;
 
   // Native backend
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
@@ -176,7 +176,7 @@ public:
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
 
-  // Master backend
-  void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
+  // Primary backend
+  void getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   void setNotified(uint32_t id, uint32_t serial) override;
 };

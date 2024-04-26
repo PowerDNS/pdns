@@ -1,5 +1,8 @@
 
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
 
 #include <boost/test/unit_test.hpp>
@@ -261,8 +264,8 @@ BOOST_AUTO_TEST_CASE(test_LazyExponentialBackOff)
   BOOST_CHECK_EQUAL(ds.getStatus(), "down");
   BOOST_CHECK_EQUAL(ds.healthCheckRequired(currentTime), false);
   /* and the wait time between two checks will double every time a failure occurs */
-  BOOST_CHECK_EQUAL(ds.getNextLazyHealthCheck(), (currentTime + (config.d_lazyHealthCheckFailedInterval * std::pow(2U, ds.currentCheckFailures))));
-  BOOST_CHECK_EQUAL(ds.currentCheckFailures, 0U);
+  BOOST_CHECK_EQUAL(ds.getNextLazyHealthCheck(), (currentTime + (config.d_lazyHealthCheckFailedInterval * std::pow(2U, ds.currentCheckFailures - 1))));
+  BOOST_CHECK_EQUAL(ds.currentCheckFailures, 1U);
 
   /* so after 5 failures */
   const size_t nbFailures = 5;
@@ -271,8 +274,8 @@ BOOST_AUTO_TEST_CASE(test_LazyExponentialBackOff)
     BOOST_CHECK(ds.healthCheckRequired(currentTime));
     ds.submitHealthCheckResult(false, false);
   }
-  BOOST_CHECK_EQUAL(ds.currentCheckFailures, nbFailures);
-  BOOST_CHECK_EQUAL(ds.getNextLazyHealthCheck(), (currentTime + (config.d_lazyHealthCheckFailedInterval * std::pow(2U, ds.currentCheckFailures))));
+  BOOST_CHECK_EQUAL(ds.currentCheckFailures, nbFailures + 1);
+  BOOST_CHECK_EQUAL(ds.getNextLazyHealthCheck(), (currentTime + (config.d_lazyHealthCheckFailedInterval * std::pow(2U, ds.currentCheckFailures - 1))));
 
   /* we need minRiseSuccesses successful health-checks to go up */
   BOOST_REQUIRE(config.minRiseSuccesses >= 1);

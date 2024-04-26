@@ -52,17 +52,13 @@ public:
   OpenSSLTLSTicketKeysRing d_ticketKeys;
   std::map<int, std::string> d_ocspResponses;
   std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx{nullptr, SSL_CTX_free};
-  std::unique_ptr<FILE, int(*)(FILE*)> d_keyLogFile{nullptr, fclose};
+  pdns::UniqueFilePtr d_keyLogFile{nullptr};
 };
 
 class OpenSSLSession : public TLSSession
 {
 public:
   OpenSSLSession(std::unique_ptr<SSL_SESSION, void(*)(SSL_SESSION*)>&& sess): d_sess(std::move(sess))
-  {
-  }
-
-  virtual ~OpenSSLSession()
   {
   }
 
@@ -133,7 +129,7 @@ public:
 #endif
     }
     else {
-#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL) && HAVE_SSL_SET_HOSTFLAGS // grrr libressl
+#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL) && defined(HAVE_SSL_SET_HOSTFLAGS) // grrr libressl
       SSL_set_hostflags(d_conn.get(), X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
       if (SSL_set1_host(d_conn.get(), d_hostname.c_str()) != 1) {
         throw std::runtime_error("Error setting TLS hostname for certificate validation");
@@ -817,7 +813,7 @@ public:
     }
   }
 
-  void loadTicketsKeys(const std::string& keyFile) override final
+  void loadTicketsKeys(const std::string& keyFile) final
   {
     d_feContext->d_ticketKeys.loadTicketsKeys(keyFile);
 
@@ -880,25 +876,28 @@ private:
     if (!arg) {
       return SSL_TLSEXT_ERR_ALERT_WARNING;
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): OpenSSL's API
     OpenSSLTLSIOCtx* obj = reinterpret_cast<OpenSSLTLSIOCtx*>(arg);
 
-    size_t pos = 0;
-    while (pos < inlen) {
-      size_t protoLen = in[pos];
-      pos++;
-      if (protoLen > (inlen - pos)) {
-        /* something is very wrong */
-        return SSL_TLSEXT_ERR_ALERT_WARNING;
-      }
+    const pdns::views::UnsignedCharView inView(in, inlen);
+    // Server preference algorithm as per RFC 7301 section 3.2
+    for (const auto& tentative : obj->d_alpnProtos) {
+      size_t pos = 0;
+      while (pos < inView.size()) {
+        size_t protoLen = inView.at(pos);
+        pos++;
+        if (protoLen > (inlen - pos)) {
+          /* something is very wrong */
+          return SSL_TLSEXT_ERR_ALERT_WARNING;
+        }
 
-      for (const auto& tentative : obj->d_alpnProtos) {
-        if (tentative.size() == protoLen && memcmp(in + pos, tentative.data(), tentative.size()) == 0) {
-          *out = in + pos;
+        if (tentative.size() == protoLen && memcmp(&inView.at(pos), tentative.data(), tentative.size()) == 0) {
+          *out = &inView.at(pos);
           *outlen = protoLen;
           return SSL_TLSEXT_ERR_OK;
         }
+        pos += protoLen;
       }
-      pos += protoLen;
     }
 
     return SSL_TLSEXT_ERR_NOACK;
@@ -1015,7 +1014,7 @@ public:
     sess.size = 0;
   }
 
-  virtual ~GnuTLSSession()
+  ~GnuTLSSession() override
   {
     if (d_sess.data != nullptr && d_sess.size > 0) {
       safe_memory_release(d_sess.data, d_sess.size);
@@ -1110,7 +1109,7 @@ public:
     gnutls_handshake_set_timeout(d_conn.get(),  timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
     gnutls_record_set_timeout(d_conn.get(),  timeout.tv_sec * 1000 + timeout.tv_usec / 1000);
 
-#if HAVE_GNUTLS_SESSION_SET_VERIFY_CERT
+#ifdef HAVE_GNUTLS_SESSION_SET_VERIFY_CERT
     if (validateCerts && !d_host.empty()) {
       gnutls_session_set_verify_cert(d_conn.get(), d_host.c_str(), GNUTLS_VERIFY_ALLOW_UNSORTED_CHAIN);
       rc = gnutls_server_name_set(d_conn.get(), GNUTLS_NAME_DNS, d_host.c_str(), d_host.size());
@@ -1258,7 +1257,7 @@ public:
       else if (gnutls_error_is_fatal(ret) || ret == GNUTLS_E_WARNING_ALERT_RECEIVED) {
         if (d_client) {
           std::string error;
-#if HAVE_GNUTLS_SESSION_GET_VERIFY_CERT_STATUS
+#ifdef HAVE_GNUTLS_SESSION_GET_VERIFY_CERT_STATUS
           if (ret == GNUTLS_E_CERTIFICATE_VERIFICATION_ERROR) {
             gnutls_datum_t out;
             if (gnutls_certificate_verification_status_print(gnutls_session_get_verify_cert_status(d_conn.get()), gnutls_certificate_type_get(d_conn.get()), &out, 0) == 0) {
@@ -1664,7 +1663,7 @@ public:
     }
   }
 
-  virtual ~GnuTLSIOCtx() override
+  ~GnuTLSIOCtx() override
   {
     d_creds.reset();
 
@@ -1748,7 +1747,7 @@ public:
     }
   }
 
-  void loadTicketsKeys(const std::string& file) override final
+  void loadTicketsKeys(const std::string& file) final
   {
     if (!d_enableTickets) {
       return;
@@ -1815,9 +1814,15 @@ bool setupDoHProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
   if (ctx == nullptr) {
     return false;
   }
-  /* we want to set the ALPN to doh */
-  const std::vector<std::vector<uint8_t>> dohAlpns = {{'h', '2'}};
+  /* This code is only called for incoming/server TLS contexts (not outgoing/client),
+     and h2o sets it own ALPN values.
+     We want to set the ALPN for DoH:
+     - HTTP/1.1 so that the OpenSSL callback ALPN accepts it, letting us later return a static response
+     - HTTP/2
+  */
+  const std::vector<std::vector<uint8_t>> dohAlpns{{'h', '2'},{'h', 't', 't', 'p', '/', '1', '.', '1'}};
   ctx->setALPNProtos(dohAlpns);
+
   return true;
 }
 
@@ -1854,7 +1859,7 @@ bool TLSFrontend::setupTLS()
     setupDoHProtocolNegotiation(newCtx);
   }
 
-  std::atomic_store_explicit(&d_ctx, newCtx, std::memory_order_release);
+  std::atomic_store_explicit(&d_ctx, std::move(newCtx), std::memory_order_release);
 #endif /* HAVE_DNS_OVER_TLS || HAVE_DNS_OVER_HTTPS */
   return true;
 }

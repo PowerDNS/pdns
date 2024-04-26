@@ -156,7 +156,14 @@ includeSOA
 .. versionadded:: 4.9.0
 
 Include the RPZ's SOA record to the reply's additional section if modified by a policy hit.
-Defaults to ``no``.
+Defaults to ``false``.
+
+ignoreDuplicates
+^^^^^^^^^^^^^^^^
+.. versionadded:: 5.0.0
+
+When loading an RPZ, ignore duplicate entries, keeping only the first one present in the zone.
+Defaults to ``false``, duplicate entries will cause failure to load the zone.
 
 maxTTL
 ^^^^^^
@@ -207,7 +214,8 @@ Base64 encoded TSIG secret
 refresh
 ^^^^^^^
 An integer describing the interval between checks for updates.
-By default, the RPZ zone's default is used
+By default, the RPZ zone's default is used.
+If allowed by :ref:`setting-allow-notify-for` and :ref:`setting-allow-notify-from`, a ``notify`` for an RPZ zone will initiate a freshness check.
 
 maxReceivedMBytes
 ^^^^^^^^^^^^^^^^^

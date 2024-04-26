@@ -39,7 +39,7 @@ public:
   {
     name=DNSName();
     filename=type="";
-    masters.clear();
+    primaries.clear();
     alsoNotify.clear();
     d_dev=0;
     d_ino=0;
@@ -47,7 +47,7 @@ public:
   DNSName name;
   string viewName;
   string filename;
-  vector<ComboAddress> masters;
+  vector<ComboAddress> primaries;
   set<string> alsoNotify;
   string type;
   bool hadFileDirective;

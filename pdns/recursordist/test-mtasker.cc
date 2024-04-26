@@ -1,4 +1,7 @@
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
 
 #ifdef HAVE_CONFIG_H
@@ -29,8 +32,9 @@ BOOST_AUTO_TEST_CASE(test_Simple)
   bool first = true;
   int o = 24;
   for (;;) {
-    while (mt.schedule(&now))
-      ;
+    while (mt.schedule(now)) {
+    }
+
     if (first) {
       mt.sendEvent(12, &o);
       first = false;
@@ -39,6 +43,9 @@ BOOST_AUTO_TEST_CASE(test_Simple)
       break;
   }
   BOOST_CHECK_EQUAL(g_result, o);
+  vector<int> events;
+  mt.getEvents(events);
+  BOOST_CHECK_EQUAL(events.size(), 0U);
 }
 
 static const size_t stackSize = 8 * 1024;
@@ -64,7 +71,7 @@ BOOST_AUTO_TEST_CASE(test_AlmostStackOverflow)
   bool first = true;
   int o = 25;
   for (;;) {
-    while (mt.schedule(&now)) {
+    while (mt.schedule(now)) {
       ;
     }
     if (first) {
@@ -92,7 +99,7 @@ BOOST_AUTO_TEST_CASE(test_MtaskerException)
     now.tv_sec = now.tv_usec = 0;
 
     for (;;) {
-      mt.schedule(&now);
+      mt.schedule(now);
     }
   },
                     std::exception);

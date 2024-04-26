@@ -110,56 +110,36 @@ Connection tracking and firewalls
 A Recursor under high load puts a severe stress on any stateful (connection tracking) firewall, so much so that the firewall may fail.
 
 Specifically, many Linux distributions run with a connection tracking firewall configured.
-For high load operation (thousands of queries/second), It is advised to either turn off iptables completely, or use the ``NOTRACK`` feature to make sure DNS traffic bypasses the connection tracking.
+For high load operation (thousands of queries/second), It is advised to either turn off iptables completely, or use the ``NOTRACK`` feature to make sure client DNS traffic bypasses the connection tracking.
 
 Sample Linux command lines would be::
 
     ## IPv4
     ## NOTRACK rules for 53/udp, keep in mind that you also need your regular rules for 53/tcp
-    iptables -t raw -I OUTPUT -p udp --dport 53 -j CT --notrack
     iptables -t raw -I OUTPUT -p udp --sport 53 -j CT --notrack
     iptables -t raw -I PREROUTING -p udp --dport 53 -j CT --notrack
-    iptables -t raw -I PREROUTING -p udp --sport 53 -j CT --notrack
     iptables -I INPUT -p udp --dport 53 -j ACCEPT
-    iptables -I INPUT -p udp --sport 53 -j ACCEPT
-    iptables -I OUTPUT -p udp --dport 53 -j ACCEPT
-    iptables -I OUTPUT -p udp --sport 53 -j ACCEPT
 
     ## IPv6
     ## NOTRACK rules for 53/udp, keep in mind that you also need your regular rules for 53/tcp
-    ip6tables -t raw -I OUTPUT -p udp --dport 53 -j CT --notrack
     ip6tables -t raw -I OUTPUT -p udp --sport 53 -j CT --notrack
-    ip6tables -t raw -I PREROUTING -p udp --sport 53 -j CT --notrack
     ip6tables -t raw -I PREROUTING -p udp --dport 53 -j CT --notrack
     ip6tables -I INPUT -p udp --dport 53 -j ACCEPT
-    ip6tables -I INPUT -p udp --sport 53 -j ACCEPT
-    ip6tables -I OUTPUT -p udp --dport 53 -j ACCEPT
-    ip6tables -I OUTPUT -p udp --sport 53 -j ACCEPT
 
 When using FirewallD (Centos 7+ / Red Hat 7+ / Fedora 21+), connection tracking can be disabled via direct rules.
 The settings can be made permanent by using the ``--permanent`` flag::
 
     ## IPv4
     ## NOTRACK rules for 53/udp, keep in mind that you also need your regular rules for 53/tcp
-    firewall-cmd --direct --add-rule ipv4 raw OUTPUT 0 -p udp --dport 53 -j CT --notrack
     firewall-cmd --direct --add-rule ipv4 raw OUTPUT 0 -p udp --sport 53 -j CT --notrack
     firewall-cmd --direct --add-rule ipv4 raw PREROUTING 0 -p udp --dport 53 -j CT --notrack
-    firewall-cmd --direct --add-rule ipv4 raw PREROUTING 0 -p udp --sport 53 -j CT --notrack
     firewall-cmd --direct --add-rule ipv4 filter INPUT 0 -p udp --dport 53 -j ACCEPT
-    firewall-cmd --direct --add-rule ipv4 filter INPUT 0 -p udp --sport 53 -j ACCEPT
-    firewall-cmd --direct --add-rule ipv4 filter OUTPUT 0 -p udp --dport 53 -j ACCEPT
-    firewall-cmd --direct --add-rule ipv4 filter OUTPUT 0 -p udp --sport 53 -j ACCEPT
 
     ## IPv6
     ## NOTRACK rules for 53/udp, keep in mind that you also need your regular rules for 53/tcp
-    firewall-cmd --direct --add-rule ipv6 raw OUTPUT 0 -p udp --dport 53 -j CT --notrack
     firewall-cmd --direct --add-rule ipv6 raw OUTPUT 0 -p udp --sport 53 -j CT --notrack
     firewall-cmd --direct --add-rule ipv6 raw PREROUTING 0 -p udp --dport 53 -j CT --notrack
-    firewall-cmd --direct --add-rule ipv6 raw PREROUTING 0 -p udp --sport 53 -j CT --notrack
     firewall-cmd --direct --add-rule ipv6 filter INPUT 0 -p udp --dport 53 -j ACCEPT
-    firewall-cmd --direct --add-rule ipv6 filter INPUT 0 -p udp --sport 53 -j ACCEPT
-    firewall-cmd --direct --add-rule ipv6 filter OUTPUT 0 -p udp --dport 53 -j ACCEPT
-    firewall-cmd --direct --add-rule ipv6 filter OUTPUT 0 -p udp --sport 53 -j ACCEPT
 
 Following the instructions above, you should be able to attain very high query rates.
 

@@ -34,19 +34,53 @@ TCP / DoT design
 
 For TCP and DoT, a single thread is created for each :func:`addLocal` and :func:`addTLSLocal` directive, listening to the incoming TCP sockets, accepting new connections and distributing them over a pipe to the TCP worker threads. These threads handle both the TCP connection with the client and the one with the backend.
 
-DoH design
-----------
+DNS over HTTP/2 design
+----------------------
+
+h2o (up to 1.7)
+^^^^^^^^^^^^^^^
 
 .. figure:: ../imgs/DNSDistDoH.png
    :align: center
    :alt: DNSDist DoH design before 1.7
 
-For DoH, two threads are created for each :func:`addDOHLocal` directive, one handling the TLS and HTTP layers, then passing the queries to the second one over a pipe. The second thread does DNS processing, applying rules and forwarding the query to the backend if needed, over UDP.
+For DNS over HTTP/2, two threads are created for each :func:`addDOHLocal` directive, one handling the TLS and HTTP layers, then passing the queries to the second one over a pipe. The second thread does DNS processing, applying rules and forwarding the query to the backend if needed, over UDP.
 Note that even if the query does not need to be passed to a backend (cache-hit, self-generated answer), the response will be passed back to the first thread via a pipe, since only that thread deals with the client.
 If the response comes from a backend, it will be picked up by the regular UDP listener for that backend, the corresponding *IDState* object located, and the response sent to the first thread over a pipe.
+
+h2o (1.7 - 1.9)
+^^^^^^^^^^^^^^^
 
 Since 1.7, if the UDP response coming from the backend has been truncated (TC bit is set), dnsdist will retry over TCP by passing the query to a TCP worker over a pipe, as was already done for incoming TCP queries. The response will then be passed back to the DoH worker thread over the same pipe that for UDP queries. That also happens if the backend is marked TCP-only, or configured for DNS over TLS, in which case the query is obviously not sent over UDP first but immediately sent to a TCP worker thread.
 
 .. figure:: ../imgs/DNSDistDoH17.png
    :align: center
    :alt: DNSDist DoH design since 1.7
+
+nghttp2 (since 1.9)
+^^^^^^^^^^^^^^^^^^^
+
+Since 1.9 incoming DNS over HTTP/2 is no longer implemented via the ``h2o`` library but by ``nghttp2`` instead. The design is roughly the same but has been simplified a bit.
+As before, if the UDP response coming from the backend has been truncated (TC bit is set), dnsdist will retry over TCP by passing the query to a TCP worker over a pipe, as was already done for incoming TCP queries. The response will then be passed back to the DoH worker thread over the same pipe that for UDP queries. That also happens if the backend is marked TCP-only, or configured for DNS over TLS, in which case the query is obviously not sent over UDP first but immediately sent to a TCP worker thread.
+
+.. figure:: ../imgs/DNSDistDoH19.png
+   :align: center
+   :alt: DNSDist DoH design since 1.9
+
+DNS over HTTP/3 design
+----------------------
+
+DNS over HTTP/3 is implemented since 1.9.0 via the ``Quiche`` library. In 1.9.x, queries received over DNS over HTTP/3 are forwarded to the backend over TCP (Do53 TCP, DoT or DoH2).
+
+.. figure:: ../imgs/DNSDistDoH3.png
+   :align: center
+   :alt: DNSDist DoH3 design since 1.9
+
+DoQ design
+----------
+
+DNS over QUIC is implemented since 1.9.0 via the ``Quiche`` library. In 1.9.x, queries received over DNS over QUIC are forwarded to the backend over TCP (Do53 TCP, DoT or DoH2).
+
+.. figure:: ../imgs/DNSDistDoQ.png
+   :align: center
+   :alt: DNSDist DoH3 design since 1.9

@@ -255,21 +255,27 @@ void RecordTextReader::xfrName(DNSName& val, bool, bool)
   skipSpaces();
   DNSName sval;
 
-  const char* strptr=d_string.c_str();
   string::size_type begin_pos = d_pos;
-  while(d_pos < d_end) {
-    if(strptr[d_pos]!='\r' && dns_isspace(strptr[d_pos]))
+  while (d_pos < d_end) {
+    if (d_string[d_pos]!='\r' && dns_isspace(d_string[d_pos])) {
       break;
+    }
 
     d_pos++;
   }
-  sval = DNSName(std::string(strptr+begin_pos, strptr+d_pos));
 
-  if(sval.empty())
-    sval=d_zone;
-  else if(!d_zone.empty())
-    sval+=d_zone;
-  val = sval;
+  {
+    std::string_view view(d_string);
+    sval = DNSName(view.substr(begin_pos, d_pos - begin_pos));
+  }
+
+  if (sval.empty()) {
+    sval = d_zone;
+  }
+  else if (!d_zone.empty()) {
+    sval += d_zone;
+  }
+  val = std::move(sval);
 }
 
 static bool isbase64(char c, bool acceptspace)

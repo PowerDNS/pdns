@@ -1,4 +1,7 @@
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
 
 #ifdef HAVE_CONFIG_H
@@ -36,21 +39,21 @@ BOOST_AUTO_TEST_CASE(test_parser)
   vector<BindDomainInfo> domains = BP.getDomains();
   BOOST_CHECK_EQUAL(domains.size(), 11U);
 
-#define checkzone(i, dname, fname, ztype, nmasters)         \
-  {                                                         \
-    BOOST_CHECK(domains[i].name == DNSName(dname));         \
-    BOOST_CHECK_EQUAL(domains[i].filename, fname);          \
-    BOOST_CHECK_EQUAL(domains[i].type, #ztype);             \
-    BOOST_CHECK_EQUAL(domains[i].masters.size(), nmasters); \
+#define checkzone(i, dname, fname, ztype, nprimaries)           \
+  {                                                             \
+    BOOST_CHECK(domains[i].name == DNSName(dname));             \
+    BOOST_CHECK_EQUAL(domains[i].filename, fname);              \
+    BOOST_CHECK_EQUAL(domains[i].type, #ztype);                 \
+    BOOST_CHECK_EQUAL(domains[i].primaries.size(), nprimaries); \
   }
 
   checkzone(0, "example.com", "./zones/example.com", master, 0U);
   checkzone(1, "test.com", "./zones/test.com", slave, 1U);
-  BOOST_CHECK_EQUAL(domains[1].masters[0].toString(), ComboAddress("1.2.3.4", 5678).toString());
+  BOOST_CHECK_EQUAL(domains[1].primaries[0].toString(), ComboAddress("1.2.3.4", 5678).toString());
   checkzone(2, "test.dyndns", "./zones/test.dyndns", garblewarble, 0U);
   checkzone(3, "wtest.com", "./zones/wtest.com", primary, 0U);
   checkzone(4, "nztest.com", "./zones/nztest.com", secondary, 1U);
-  BOOST_CHECK_EQUAL(domains[1].masters[0].toString(), ComboAddress("1.2.3.4", 5678).toString());
+  BOOST_CHECK_EQUAL(domains[1].primaries[0].toString(), ComboAddress("1.2.3.4", 5678).toString());
   checkzone(5, "dnssec-parent.com", "./zones/dnssec-parent.com", primary, 0U);
   checkzone(6, "delegated.dnssec-parent.com", "./zones/delegated.dnssec-parent.com", primary, 0U);
   checkzone(7, "secure-delegated.dnssec-parent.com", "./zones/secure-delegated.dnssec-parent.com", primary, 0U);

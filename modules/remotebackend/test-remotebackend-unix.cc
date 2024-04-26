@@ -19,7 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_MODULE unit
 
@@ -70,7 +73,7 @@ struct RemotebackendSetup
     try {
       // setup minimum arguments
       ::arg().set("module-dir") = "./.libs";
-      new RemoteLoader();
+      auto loader = std::make_unique<RemoteLoader>();
       BackendMakers().launch("remote");
       // then get us a instance of it
       ::arg().set("remote-connection-string") = "unix:path=/tmp/remotebackend.sock";

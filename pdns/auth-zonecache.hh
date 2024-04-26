@@ -66,8 +66,8 @@ private:
 
   struct MapCombo
   {
-    MapCombo() {}
-    ~MapCombo() {}
+    MapCombo() = default;
+    ~MapCombo() = default;
     MapCombo(const MapCombo&) = delete;
     MapCombo& operator=(const MapCombo&) = delete;
 

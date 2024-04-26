@@ -1,0 +1,2 @@
+If a CNAME and another type exist on a wildcard (ignoring RFC requirements),
+only the CNAME shall be returned, ignoring the other type.

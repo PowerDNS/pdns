@@ -211,6 +211,7 @@ extern uint16_t g_udpTruncationThreshold;
 extern double g_balancingFactor;
 extern size_t g_maxUDPQueriesPerRound;
 extern bool g_useKernelTimestamp;
+extern bool g_allowNoRD;
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 extern thread_local std::shared_ptr<NetmaskGroup> t_allowNotifyFrom;
 extern thread_local std::shared_ptr<notifyset_t> t_allowNotifyFor;
@@ -220,6 +221,7 @@ extern boost::optional<ComboAddress> g_dns64Prefix;
 extern DNSName g_dns64PrefixReverse;
 extern uint64_t g_latencyStatSize;
 extern NetmaskGroup g_proxyProtocolACL;
+extern std::set<ComboAddress> g_proxyProtocolExceptions;
 extern std::atomic<bool> g_statsWanted;
 extern uint32_t g_disthashseed;
 extern int g_argc;
@@ -246,8 +248,8 @@ extern std::string g_nod_pbtag;
 extern bool g_udrEnabled;
 extern bool g_udrLog;
 extern std::string g_udr_pbtag;
-extern thread_local std::shared_ptr<nod::NODDB> t_nodDBp;
-extern thread_local std::shared_ptr<nod::UniqueResponseDB> t_udrDBp;
+extern std::unique_ptr<nod::NODDB> g_nodDBp;
+extern std::unique_ptr<nod::UniqueResponseDB> g_udrDBp;
 #endif
 
 struct ProtobufServersInfo
@@ -609,7 +611,7 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
                          const std::unordered_set<std::string>& policyTags);
 void requestWipeCaches(const DNSName& canon);
 void startDoResolve(void*);
-bool expectProxyProtocol(const ComboAddress& from);
+bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAddress);
 void finishTCPReply(std::unique_ptr<DNSComboWriter>&, bool hadError, bool updateInFlight);
 void checkFastOpenSysctl(bool active, Logr::log_t);
 void checkTFOconnect(Logr::log_t);

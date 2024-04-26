@@ -1,0 +1,44 @@
+[Unit]
+Description=@Description@
+Documentation=man:ixfrdist(1)
+Documentation=man:ixfrdist.yml(5)
+Documentation=https://doc.powerdns.com
+Wants=network-online.target
+After=network-online.target time-sync.target
+
+[Service]
+Type=simple
+ExecStart=@BinDir@/ixfrdist @Config@
+Restart=on-failure
+RestartSec=1
+StartLimitInterval=0
+
+# Sandboxing
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SETGID CAP_SETUID
+NoNewPrivileges=true
+DevicePolicy=closed
+@LockPersonality@
+@PrivateDevices@
+@PrivateTmp@
+@PrivateUsers@
+@ProtectClock@
+@ProtectControlGroups@
+@ProtectHome@
+@ProtectHostname@
+@ProtectKernelLogs@
+@ProtectKernelModules@
+@ProtectKernelTunables@
+@ProtectSystem@
+@RestrictAddressFamilies@
+@RestrictNamespaces@
+@RestrictRealtime@
+@RestrictSUIDSGID@
+@SystemCallArchitectures@
+@SystemCallFilter@
+@ProtectProc@
+@PrivateIPC@
+@RemoveIPC@
+@MemoryDenyWriteExecute@
+
+[Install]
+WantedBy=multi-user.target

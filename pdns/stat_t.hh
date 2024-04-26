@@ -30,53 +30,67 @@ namespace pdns {
   template <typename T>
   class stat_t_trait {
   public:
-    typedef T base_t;
-    typedef std::atomic<base_t> atomic_t;
+    using base_t = T;
+    using atomic_t = std::atomic<base_t>;
 
     stat_t_trait() : stat_t_trait(base_t(0)) {
     }
-    stat_t_trait(const base_t x) {
-      new(&counter) atomic_t(x);
+    stat_t_trait(const base_t value)
+    {
+      new(&counter) atomic_t(value);
+    }
+    stat_t_trait& operator=(const base_t& value) {
+      ref().store(value);
+      return *this;
     }
     ~stat_t_trait() {
-      reinterpret_cast<atomic_t *>(&counter)->~atomic_t();
+      ref().~atomic_t();
     }
+    stat_t_trait(stat_t_trait&&) = delete;
+    stat_t_trait& operator=(const stat_t_trait&) = delete;
+    stat_t_trait& operator=(stat_t_trait&&) = delete;
     stat_t_trait(const stat_t_trait&) = delete;
     base_t operator++(int) {
-      return (*reinterpret_cast<atomic_t *>(&counter))++;
+      return ref()++;
     }
     base_t operator++() {
-      return ++(*reinterpret_cast<atomic_t *>(&counter));
+      return ++(ref());
     }
     base_t operator--(int) {
-      return (*reinterpret_cast<atomic_t *>(&counter))--;
+      return ref()--;
     }
     base_t operator--() {
-      return --(*reinterpret_cast<atomic_t *>(&counter));
+      return --(ref());
     }
-    base_t operator+=(const stat_t_trait& v) {
-      return *reinterpret_cast<atomic_t *>(&counter) += *reinterpret_cast<const atomic_t *>(&v.counter);
+    base_t operator+=(base_t arg) {
+      return ref() += arg;
     }
-    base_t operator-=(const stat_t_trait& v) {
-      return *reinterpret_cast<atomic_t *>(&counter) -= *reinterpret_cast<const atomic_t *>(&v.counter);
+    base_t operator-=(base_t arg) {
+      return ref() -= arg;
     }
     base_t load() const {
-      return reinterpret_cast<const atomic_t *>(&counter)->load();
+      return ref().load();
     }
-    void store(base_t v) {
-      reinterpret_cast<atomic_t *>(&counter)->store(v);
+    void store(base_t value) {
+      ref().store(value);
     }
     operator base_t() const {
-      return reinterpret_cast<const atomic_t *>(&counter)->load();
+      return ref().load();
     }
 
   private:
-    typename std::aligned_storage<sizeof(base_t), CPU_LEVEL1_DCACHE_LINESIZE>::type counter;
+    atomic_t& ref()  {
+      return *reinterpret_cast<atomic_t *>(&counter); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    }
+    const atomic_t& ref() const {
+      return *reinterpret_cast<const atomic_t *>(&counter); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    }
+    typename std::aligned_storage_t<sizeof(atomic_t), CPU_LEVEL1_DCACHE_LINESIZE> counter;
   };
 
-  typedef stat_t_trait<uint64_t> stat_t;
-  typedef stat_t_trait<uint32_t> stat32_t;
-  typedef stat_t_trait<uint16_t> stat16_t;
+  using stat_t = stat_t_trait<uint64_t>;
+  using stat32_t = stat_t_trait<uint32_t>;
+  using stat16_t = stat_t_trait<uint16_t>;
 }
 #else
 namespace pdns {

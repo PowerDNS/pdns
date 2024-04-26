@@ -9,9 +9,18 @@ but is now deprecated, disabled by default (see ``--with-h2o`` to enable it back
 (see https://github.com/h2o/h2o/issues/3230). See the ``library`` parameter on the :func:`addDOHLocal` directive for more information on how to select
 the library used when dnsdist is built with support for both ``h2o`` and ``nghttp2``. The default is now ``nghttp2`` whenever possible.
 Note that ``nghttp2`` only supports HTTP/2, and not HTTP/1, while ``h2o`` supported both. This is not an issue for actual DNS over HTTPS clients that
-support HTTP/2, but might be one in setups running dnsdist behind a reverse-proxy that does not support HTTP/1. See :doc:`guides/dns-over-https` for some work-around.
+support HTTP/2, but might be one in setups running dnsdist behind a reverse-proxy that does not support HTTP/2. See :doc:`guides/dns-over-https` for some work-around.
 
 SNMP support is no longer enabled by default during ``configure``, requiring ``--with-net-snmp`` to be built.
+
+The use of :func:`makeRule` is now deprecated, please use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead.
+Passing a string or list of strings instead of a :class:`DNSRule` to these functions is deprecated as well, :func:`NetmaskGroupRule` and :func:`QNameSuffixRule` should there again be used instead:
+
+* :func:`addAction`
+* :func:`addResponseAction`
+* :func:`addCacheHitResponseAction`
+* :func:`addCacheInsertedResponseAction`
+* :func:`addSelfAnsweredResponseAction`
 
 1.7.x to 1.8.0
 --------------
@@ -19,6 +28,8 @@ SNMP support is no longer enabled by default during ``configure``, requiring ``-
 Responses to AXFR and IXFR queries are no longer cached.
 
 Cache-hits are now counted as responses in our metrics.
+
+Cache hits are now inserted into the in-memory ring buffers, while before 1.8.0 only cache misses were inserted. This has a very noticeable impact on :doc:`guides/dynblocks` since cache hits now considered when computing the rcode rates and ratios, as well as the response bandwidth rate.
 
 The :func:`setMaxTCPConnectionsPerClient` limit is now properly applied to DNS over HTTPS connections, in addition to DNS over TCP and DNS over TLS ones.
 

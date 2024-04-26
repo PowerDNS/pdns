@@ -780,8 +780,7 @@ Pkcs11Token::Pkcs11Token(const std::shared_ptr<LockGuarded<Pkcs11Slot>>& slot, c
   if (this->d_slot->lock()->LoggedIn()) LoadAttributes();
 }
 
-Pkcs11Token::~Pkcs11Token() {
-}
+Pkcs11Token::~Pkcs11Token() = default;
 
 bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, const std::string& pin)
 {
@@ -791,7 +790,7 @@ bool PKCS11ModuleSlotLogin(const std::string& module, const string& tokenId, con
 }
 
 PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(unsigned int algorithm): DNSCryptoKeyEngine(algorithm) {}
-PKCS11DNSCryptoKeyEngine::~PKCS11DNSCryptoKeyEngine() {}
+PKCS11DNSCryptoKeyEngine::~PKCS11DNSCryptoKeyEngine() = default;
 PKCS11DNSCryptoKeyEngine::PKCS11DNSCryptoKeyEngine(const PKCS11DNSCryptoKeyEngine& orig) : DNSCryptoKeyEngine(orig.d_algorithm) {}
 
 void PKCS11DNSCryptoKeyEngine::create(unsigned int bits) {
@@ -909,19 +908,19 @@ std::string PKCS11DNSCryptoKeyEngine::hash(const std::string& msg) const {
     // FINE! I'll do this myself, then, shall I?
     switch(d_algorithm) {
     case 5: {
-      return pdns_sha1sum(msg);
+      return pdns::sha1sum(msg);
     }
     case 8: {
-      return pdns_sha256sum(msg);
+      return pdns::sha256sum(msg);
     }
     case 10: {
-      return pdns_sha512sum(msg);
+      return pdns::sha512sum(msg);
     }
     case 13: {
-      return pdns_sha256sum(msg);
+      return pdns::sha256sum(msg);
     }
     case 14: {
-      return pdns_sha384sum(msg);
+      return pdns::sha384sum(msg);
     }
     };
   };
@@ -1031,7 +1030,7 @@ namespace {
     };
     ~LoaderStruct() {
 #ifdef HAVE_P11KIT1_V2
-      p11_kit_modules_release(p11_modules);
+      p11_kit_modules_finalize_and_release(p11_modules);
 #else
       p11_kit_finalize_registered();
 #endif

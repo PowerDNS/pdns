@@ -68,16 +68,16 @@ public:
   Semaphore( unsigned int value = 0 );
 
   //! Destructor.
-  ~Semaphore( void );
+  ~Semaphore();
 
   //! Posts to a semaphore.
-  int post( void );
+  int post();
 
   //! Waits for a semaphore.
-  int wait( void );
+  int wait();
 
   //! Tries to wait for a semaphore.
-  int tryWait( void );
+  int tryWait();
 
   //! Retrieves the semaphore value.
   int getValue( Semaphore::sem_value_t *sval );
@@ -104,7 +104,7 @@ public:
     int timeout_usec);
 
   //! Returns the process id of the current process.
-  static pid_t getpid( void );
+  static pid_t getpid();
 
   //! Gets the current time.
   static int gettimeofday( struct timeval *tv, void *tz = NULL );

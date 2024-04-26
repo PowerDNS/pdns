@@ -233,8 +233,10 @@ void UDPNameserver::send(DNSPacket& p)
   if(buffer.length() > p.getMaxReplyLen()) {
     g_log<<Logger::Error<<"Weird, trying to send a message that needs truncation, "<< buffer.length()<<" > "<<p.getMaxReplyLen()<<". Question was for "<<p.qdomain<<"|"<<p.qtype.toString()<<endl;
   }
-  if(sendmsg(p.getSocket(), &msgh, 0) < 0)
-    g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p.getSocket()<<", dest="<<p.d_remote.toStringWithPort()<<"): "<<stringerror()<<endl;
+  if (sendOnNBSocket(p.getSocket(), &msgh) < 0) {
+    int err = errno;
+    g_log<<Logger::Error<<"Error sending reply with sendmsg (socket="<<p.getSocket()<<", dest="<<p.d_remote.toStringWithPort()<<"): "<<stringerror(err)<<endl;
+  }
 }
 
 bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)

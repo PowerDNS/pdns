@@ -392,7 +392,7 @@ namespace YaHTTP {
         }
         key = decodeURL(key);
         value = decodeURL(value);
-        parameter_map[key] = value;
+        parameter_map[key] = std::move(value);
         if (nextpos == std::string::npos) {
           // no more parameters left
           break;

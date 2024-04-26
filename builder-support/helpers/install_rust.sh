@@ -5,7 +5,8 @@ set -e
 ARCH=$(arch)
 
 # Default version
-RUST_VERSION=rust-1.72.0-$ARCH-unknown-linux-gnu
+RUST_VERSION_NUMBER=$(jq -r .version < rust.json)
+RUST_VERSION=rust-$RUST_VERSION_NUMBER-$ARCH-unknown-linux-gnu
 
 if [ $# -ge 1 ]; then
     RUST_VERSION=$1
@@ -15,7 +16,8 @@ fi
 SITE=https://downloads.powerdns.com/rust
 RUST_TARBALL=$RUST_VERSION.tar.gz
 
-SHA256SUM_x86_64=f2bbe23e685852104fd48d0e34ac981b0917e76c62cfcd6d0ac5283e4710c7b9
+SHA256SUM_x86_64=$(jq -r .SHA256SUM_x86_64 < rust.json)
+SHA256SUM_aarch64=$(jq -r .SHA256SUM_aarch64 < rust.json)
 
 NAME=SHA256SUM_$ARCH
 eval VALUE=\$$NAME
@@ -34,6 +36,7 @@ fi
 #
 cd /tmp
 echo $0: Downloading $RUST_TARBALL
+echo $0: Expecting hash $VALUE
 
 curl -f -o $RUST_TARBALL $SITE/$RUST_TARBALL
 # Line below should echo two spaces between digest and name

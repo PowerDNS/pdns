@@ -360,7 +360,7 @@ boilerplate_conv(SMIMEA,
                  conv.xfrHexBlob(d_cert, true);
                  )
 
-DSRecordContent::DSRecordContent() {}
+DSRecordContent::DSRecordContent() = default;
 boilerplate_conv(DS,
                  conv.xfr16BitInt(d_tag);
                  conv.xfr8BitInt(d_algorithm);
@@ -368,7 +368,7 @@ boilerplate_conv(DS,
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
 
-CDSRecordContent::CDSRecordContent() {}
+CDSRecordContent::CDSRecordContent() = default;
 boilerplate_conv(CDS,
                  conv.xfr16BitInt(d_tag);
                  conv.xfr8BitInt(d_algorithm);
@@ -376,7 +376,7 @@ boilerplate_conv(CDS,
                  conv.xfrHexBlob(d_digest, true); // keep reading across spaces
                  )
 
-DLVRecordContent::DLVRecordContent() {}
+DLVRecordContent::DLVRecordContent() = default;
 boilerplate_conv(DLV,
                  conv.xfr16BitInt(d_tag);
                  conv.xfr8BitInt(d_algorithm);
@@ -403,7 +403,7 @@ boilerplate_conv(RRSIG,
                  conv.xfrBlob(d_signature);
                  )
 
-RRSIGRecordContent::RRSIGRecordContent() {}
+RRSIGRecordContent::RRSIGRecordContent() = default;
 
 boilerplate_conv(DNSKEY,
                  conv.xfr16BitInt(d_flags);
@@ -411,7 +411,7 @@ boilerplate_conv(DNSKEY,
                  conv.xfr8BitInt(d_algorithm);
                  conv.xfrBlob(d_key);
                  )
-DNSKEYRecordContent::DNSKEYRecordContent() {}
+DNSKEYRecordContent::DNSKEYRecordContent() = default;
 
 boilerplate_conv(CDNSKEY,
                  conv.xfr16BitInt(d_flags);
@@ -419,7 +419,7 @@ boilerplate_conv(CDNSKEY,
                  conv.xfr8BitInt(d_algorithm);
                  conv.xfrBlob(d_key);
                  )
-CDNSKEYRecordContent::CDNSKEYRecordContent() {}
+CDNSKEYRecordContent::CDNSKEYRecordContent() = default;
 
 boilerplate_conv(RKEY,
                  conv.xfr16BitInt(d_flags);
@@ -427,7 +427,7 @@ boilerplate_conv(RKEY,
                  conv.xfr8BitInt(d_algorithm);
                  conv.xfrBlob(d_key);
                  )
-RKEYRecordContent::RKEYRecordContent() {}
+RKEYRecordContent::RKEYRecordContent() = default;
 
 boilerplate_conv(NID,
                  conv.xfr16BitInt(d_preference);

@@ -5,8 +5,6 @@
 #include "router.hpp"
 
 namespace YaHTTP {
-  typedef funcptr::tuple<int,int> TDelim;
-
   // router is defined here.
   YaHTTP::Router Router::router;
 
@@ -24,76 +22,108 @@ namespace YaHTTP {
     routes.push_back(funcptr::make_tuple(method2, url, handler, name));
   };
 
-  bool Router::route(Request *req, THandlerFunction& handler) {
-    std::map<std::string, TDelim> params;
-    int pos1,pos2;
-    bool matched = false;
-    std::string rname;
-
-    // iterate routes
-    for(TRouteList::iterator i = routes.begin(); !matched && i != routes.end(); i++) {
-      int k1,k2,k3;
-      std::string pname;
-      std::string method, url;
-      funcptr::tie(method, url, handler, rname) = *i;
-    
-      if (method.empty() == false && req->method != method) continue; // no match on method
-      // see if we can't match the url
-      params.clear();
-      // simple matcher func
-      for(k1=0, k2=0; k1 < static_cast<int>(url.size()) && k2 < static_cast<int>(req->url.path.size()); ) {
-        if (url[k1] == '<') {
-          pos1 = k2;
-          k3 = k1+1;
+  bool Router::match(const std::string& route, const URL& requrl, std::map<std::string, TDelim> &params) {
+     size_t rpos = 0;
+     size_t upos = 0;
+     size_t npos = 0;
+     size_t nstart = 0;
+     size_t nend = 0;
+     std::string pname;
+     for(; rpos < route.size() && upos < requrl.path.size(); ) {
+        if (route[rpos] == '<') {
+          nstart = upos;
+          npos = rpos+1;
           // start of parameter
-          while(k1 < static_cast<int>(url.size()) && url[k1] != '>') k1++;
-          pname = std::string(url.begin()+k3, url.begin()+k1);
+          while(rpos < route.size() && route[rpos] != '>') {
+            rpos++;
+          }
+          pname = std::string(route.begin()+static_cast<long>(npos), route.begin()+static_cast<long>(rpos));
           // then we also look it on the url
-          if (pname[0]=='*') {
+          if (pname[0] == '*') {
             pname = pname.substr(1);
             // this matches whatever comes after it, basically end of string
-            pos2 = req->url.path.size();
-            if (pname != "") 
-              params[pname] = funcptr::tie(pos1,pos2);
-            k1 = url.size();
-            k2 = req->url.path.size();
+            nend = requrl.path.size();
+            if (!pname.empty()) {
+              params[pname] = funcptr::tie(nstart,nend);
+            }
+            rpos = route.size();
+            upos = requrl.path.size();
             break;
           } else { 
-            // match until url[k1]
-            while(k2 < static_cast<int>(req->url.path.size()) && req->url.path[k2] != url[k1+1]) k2++;
-            pos2 = k2;
-            params[pname] = funcptr::tie(pos1,pos2);
+            // match until url[upos] or next / if pattern is at end
+            while (upos < requrl.path.size()) {
+               if (route[rpos+1] == '\0' && requrl.path[upos] == '/') {
+                  break;
+               }
+               if (requrl.path[upos] == route[rpos+1]) {
+                  break;
+               }
+               upos++;
+            }
+            nend = upos;
+            params[pname] = funcptr::tie(nstart, nend);
           }
-          k2--;
+          upos--;
         }
-        else if (url[k1] != req->url.path[k2]) {
+        else if (route[rpos] != requrl.path[upos]) {
           break;
         }
 
-        k1++; k2++;
+        rpos++; upos++;
       }
+      return route[rpos] == requrl.path[upos];
+  }
 
-      // ensure.
-      if (url[k1] != req->url.path[k2]) 
-        matched = false;
-      else
-        matched = true;
+  RoutingResult Router::route(Request *req, THandlerFunction& handler) {
+    std::map<std::string, TDelim> params;
+    bool matched = false;
+    bool seen = false;
+    std::string rname;
+
+    // iterate routes
+    for (auto& route: routes) {
+      std::string method;
+      std::string url;
+      funcptr::tie(method, url, handler, rname) = route;
+
+      // see if we can't match the url
+      params.clear();
+      // simple matcher func
+      matched = match(url, req->url, params);
+
+      if (matched && !method.empty() && req->method != method) {
+         // method did not match, record it though so we can return correct result
+         matched = false;
+         seen = true;
+         continue;
+      }
+      if (matched) {
+        break;
+      }
     }
 
-    if (!matched) { return false; } // no route
-    req->parameters.clear();    
+    if (!matched) {
+      if (seen) {
+        return RouteNoMethod;
+      }
+      // no route
+      return RouteNotFound;
+    }
 
-    for(std::map<std::string, TDelim>::iterator i = params.begin(); i != params.end(); i++) {
-      int p1,p2;
-      funcptr::tie(p1,p2) = i->second;
-      std::string value(req->url.path.begin() + p1, req->url.path.begin() + p2);
+    req->parameters.clear();
+
+    for (const auto& param: params) {
+      int nstart = 0;
+      int nend = 0;
+      funcptr::tie(nstart, nend) = param.second;
+      std::string value(req->url.path.begin() + nstart, req->url.path.begin() + nend);
       value = Utility::decodeURL(value);
-      req->parameters[i->first] = value;
+      req->parameters[param.first] = std::move(value);
     }
 
-    req->routeName = rname;
+    req->routeName = std::move(rname);
 
-    return true;
+    return RouteFound;
   };
 
   void Router::printRoutes(std::ostream &os) {

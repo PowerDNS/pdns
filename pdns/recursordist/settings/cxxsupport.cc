@@ -58,7 +58,7 @@
 
 void pdns::settings::rec::oldStyleForwardsFileToBridgeStruct(const std::string& file, ::rust::Vec<ForwardZone>& vec)
 {
-  auto filePtr = std::unique_ptr<FILE, decltype(&fclose)>(fopen(file.c_str(), "r"), fclose);
+  auto filePtr = pdns::UniqueFilePtr(fopen(file.c_str(), "r"));
   if (!filePtr) {
     throw PDNSException("Error opening forward-zones-file '" + file + "': " + stringerror());
   }
@@ -95,7 +95,7 @@ void pdns::settings::rec::oldStyleForwardsFileToBridgeStruct(const std::string& 
     }
     ::rust::Vec<::rust::String> addresses;
     stringtok(addresses, instructions, ",; ");
-    ForwardZone forwardzone{domain, addresses, recurse, allowNotify};
+    ForwardZone forwardzone{domain, std::move(addresses), recurse, allowNotify};
     vec.push_back(std::move(forwardzone));
   }
 }
@@ -320,7 +320,7 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::readYamlSettings(co
       mergeYamlSubFile(yamlfile, yamlstruct, false, log);
     }
     yamlstruct.validate();
-    settings = yamlstruct;
+    settings = std::move(yamlstruct);
     return YamlSettingsStatus::OK;
   }
   catch (const ::rust::Error& ex) {
@@ -348,7 +348,7 @@ void pdns::settings::rec::readYamlAllowFromFile(const std::string& filename, ::r
   auto data = string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
   auto yamlvec = pdns::rust::settings::rec::parse_yaml_string_to_allow_from(data);
   pdns::rust::settings::rec::validate_allow_from(filename, yamlvec);
-  vec = yamlvec;
+  vec = std::move(yamlvec);
 }
 
 void pdns::settings::rec::readYamlForwardZonesFile(const std::string& filename, ::rust::Vec<pdns::rust::settings::rec::ForwardZone>& vec, Logr::log_t log)
@@ -362,7 +362,7 @@ void pdns::settings::rec::readYamlForwardZonesFile(const std::string& filename, 
   auto data = string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
   auto yamlvec = pdns::rust::settings::rec::parse_yaml_string_to_forward_zones(data);
   pdns::rust::settings::rec::validate_forward_zones("forward_zones", yamlvec);
-  vec = yamlvec;
+  vec = std::move(yamlvec);
 }
 
 void pdns::settings::rec::readYamlAllowNotifyForFile(const std::string& filename, ::rust::Vec<::rust::String>& vec, Logr::log_t log)
@@ -376,7 +376,7 @@ void pdns::settings::rec::readYamlAllowNotifyForFile(const std::string& filename
   auto data = string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
   auto yamlvec = pdns::rust::settings::rec::parse_yaml_string_to_allow_notify_for(data);
   pdns::rust::settings::rec::validate_allow_notify_for("allow-notify-for", yamlvec);
-  vec = yamlvec;
+  vec = std::move(yamlvec);
 }
 
 std::string pdns::settings::rec::to_arg(const AuthZone& authzone)
@@ -467,7 +467,7 @@ void pdns::settings::rec::to_yaml(::rust::Vec<ForwardZone>& field, const std::st
     boost::trim(headers.second);
     ::rust::Vec<::rust::String> addresses;
     stringtok(addresses, headers.second, " ;");
-    ForwardZone forwardzone{headers.first, addresses, recurse, false};
+    ForwardZone forwardzone{headers.first, std::move(addresses), recurse, false};
     field.push_back(std::move(forwardzone));
   }
 }
@@ -521,7 +521,7 @@ static void processLine(const std::string& arg, FieldMap& map, bool mainFile)
   pdns::rust::settings::rec::Value rustvalue = {false, 0, 0.0, "", {}, {}, {}};
   if (pdns::settings::rec::oldKVToBridgeStruct(var, val, section, fieldname, type_name, rustvalue)) {
     auto overriding = !mainFile && !incremental && !simpleRustType(type_name);
-    auto [existing, inserted] = map.emplace(std::pair{std::pair{section, fieldname}, pdns::rust::settings::rec::OldStyle{section, fieldname, var, type_name, rustvalue, overriding}});
+    auto [existing, inserted] = map.emplace(std::pair{std::pair{section, fieldname}, pdns::rust::settings::rec::OldStyle{section, fieldname, var, std::move(type_name), rustvalue, overriding}});
     if (!inserted) {
       // Simple values overwrite always
       existing->second.value.bool_val = rustvalue.bool_val;
@@ -622,7 +622,7 @@ std::string pdns::settings::rec::defaultsToYaml()
     string name = var;
     string val = arg().getDefault(var);
     if (pdns::settings::rec::oldKVToBridgeStruct(name, val, section, fieldname, type_name, rustvalue)) {
-      map.emplace(std::pair{std::pair{section, fieldname}, pdns::rust::settings::rec::OldStyle{section, fieldname, name, type_name, rustvalue, false}});
+      map.emplace(std::pair{std::pair{section, fieldname}, pdns::rust::settings::rec::OldStyle{section, fieldname, name, std::move(type_name), std::move(rustvalue), false}});
     }
   }
   // Convert the map to a vector, as CXX does not have any dictionary like support.

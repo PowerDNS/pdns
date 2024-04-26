@@ -4,8 +4,44 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-4.9.0 to 5.0.0 and master
---------------------------
+5.0.3 to master
+---------------
+
+Changed settings
+----------------
+
+- For YAML settings only: the type of the :ref:`setting-yaml-incoming.edns_padding_from` and :ref:`setting-yaml-incoming.proxy_protocol_from` has been changed from ``String`` to ``Sequence of Subnet``.
+
+- Disabling :ref:`setting-structured-logging` is no longer supported.
+
+New Settings
+^^^^^^^^^^^^
+
+- The :ref:`setting-proxy-protocol-exceptions` has been added. It allows to exclude specific listen addresses from requiring the Proxy Protocol.
+
+5.0.2 to 5.0.3, 4.9.3 to 4.9.4 and 4.8.6 to 4.8.7
+-------------------------------------------------
+
+Known Issue Solved
+^^^^^^^^^^^^^^^^^^
+The DNSSEC validation issue with the :func:`zoneToCache` function has been resolved and workarounds can be removed.
+
+5.0.1 to 5.0.2, 4.9.2 to 4.9.3 and 4.8.5 to 4.8.6
+-------------------------------------------------
+
+Known Issues
+^^^^^^^^^^^^
+The :func:`zoneToCache` function fails to perform DNSSEC validation if the zone has more than :ref:`setting-max-rrsigs-per-record` RRSIG records at its apex.
+There are two workarounds: either increase the :ref:`setting-max-rrsigs-per-record` to the number of RRSIGs in the zone's apex, or tell :func:`zoneToCache` to skip DNSSEC validation. by adding ``dnssec="ignore"``, e.g.::
+
+  zoneToCache(".", "url", "https://www.internic.net/domain/root.zone", {dnssec="ignore"})
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-max-rrsigs-per-record`, :ref:`setting-max-nsec3s-per-record`, :ref:`setting-max-signature-validations-per-query`, :ref:`setting-max-nsec3-hash-computations-per-query`, :ref:`setting-aggressive-cache-max-nsec3-hash-cost`, :ref:`setting-max-ds-per-zone` and :ref:`setting-max-dnskeys` settings have been introduced to limit the amount of work done for DNSSEC validation.
+
+4.9.0 to 5.0.0
+--------------
 
 YAML settings
 ^^^^^^^^^^^^^
@@ -17,7 +53,7 @@ Refer to :doc:`yamlsettings` for details and the :doc:`appendices/yamlconversion
 Rust
 ^^^^
 Some parts of the Recursor code are now written in Rust.
-This has impact if you do local builds or are third-package maintainer.
+This has impact if you do local builds or are a third-party package maintainer.
 According to `cargo msrv` the minimum version to compile the Rust code and its dependencies is 1.64.
 Some distributions ship with an older Rust compiler, see `Rustup <https://rustup.rs/>`__ for a way to install a more recent one.
 For our package builds, we install a Rust compiler from the ``Standalone`` section of `Other Rust Installation Methods <https://forge.rust-lang.org/infra/other-installation-methods.html>`__.
@@ -28,11 +64,18 @@ New settings
 - The :ref:`setting-tcp-threads` setting has been introduced to set the number of threads dedicated to processing incoming queries over TCP.
   Previously either the distributor thread(s) or the general worker threads would process TCP queries.
 - The :ref:`setting-qname-max-minimize-count` and :ref:`setting-qname-minimize-one-label` have been introduced to allow tuning of the parameters specified in :rfc:`9156`.
+- The :ref:`setting-allow-no-rd` has been introduced, default disabled, *disallowing* queries that do not have the ``Recursion Desired (RD)`` flag set.
+  This is a change in behavior compared to previous releases.
+- The setting ``ignoreDuplicates`` was added to the RPZ loading Lua functions :func:`rpzPrimary` and :func:`rpzFile`.
+  If set, duplicate records in RPZs will be allowed but ignored.
+  The default is to fail loading an RPZ with duplicate records.
 
 Changed settings
 ^^^^^^^^^^^^^^^^
 - The :ref:`setting-loglevel` can now be set to a level below 3 (error).
 - The :ref:`setting-extended-resolution-errors` now defaults to enabled.
+- The :ref:`setting-nsec3-max-iterations` now defaults to 50.
+- Disabling :ref:`setting-structured-logging` has been deprecated and will be removed in a future release.
 
 4.8.0 to 4.9.0
 --------------

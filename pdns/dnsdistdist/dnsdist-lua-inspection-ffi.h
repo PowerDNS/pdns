@@ -22,25 +22,31 @@
 
 typedef struct dnsdist_ffi_stat_node_t dnsdist_ffi_stat_node_t;
 
-uint64_t dnsdist_ffi_stat_node_get_queries_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_noerrors_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_nxdomains_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_servfails_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_drops_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_bytes(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_hits(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-unsigned int dnsdist_ffi_stat_node_get_labels_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-void dnsdist_ffi_stat_node_get_full_name_raw(const dnsdist_ffi_stat_node_t* node, const char** name, size_t* nameSize) __attribute__ ((visibility ("default")));
+uint64_t dnsdist_ffi_stat_node_get_queries_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_noerrors_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_nxdomains_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_servfails_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_drops_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_bytes(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_hits(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+unsigned int dnsdist_ffi_stat_node_get_labels_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+void dnsdist_ffi_stat_node_get_full_name_raw(const dnsdist_ffi_stat_node_t* node, const char** name, size_t* nameSize) __attribute__((visibility("default")));
 
-unsigned int dnsdist_ffi_stat_node_get_children_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
+unsigned int dnsdist_ffi_stat_node_get_children_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
 
-uint64_t dnsdist_ffi_stat_node_get_children_queries_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_children_noerrors_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_children_nxdomains_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_children_servfails_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_children_drops_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_children_bytes_count(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
-uint64_t dnsdist_ffi_stat_node_get_children_hits(const dnsdist_ffi_stat_node_t* node) __attribute__ ((visibility ("default")));
+uint64_t dnsdist_ffi_stat_node_get_children_queries_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_children_noerrors_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_children_nxdomains_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_children_servfails_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_children_drops_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_children_bytes_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
+uint64_t dnsdist_ffi_stat_node_get_children_hits(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
 
-void dnsdist_ffi_state_node_set_reason(dnsdist_ffi_stat_node_t* node, const char* reason, size_t reasonSize) __attribute__ ((visibility ("default")));
+void dnsdist_ffi_state_node_set_reason(dnsdist_ffi_stat_node_t* node, const char* reason, size_t reasonSize) __attribute__((visibility("default")));
+void dnsdist_ffi_state_node_set_action(dnsdist_ffi_stat_node_t* node, int blockAction) __attribute__((visibility("default")));
 
+typedef enum
+{
+  dnsdist_ffi_dynamic_block_type_nmt = 0,
+  dnsdist_ffi_dynamic_block_type_smt = 1,
+} dnsdist_ffi_dynamic_block_type;

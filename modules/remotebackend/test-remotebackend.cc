@@ -19,7 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
 
 #ifdef HAVE_CONFIG_H
@@ -191,7 +194,7 @@ BOOST_AUTO_TEST_CASE(test_method_getBeforeAndAfterNamesAbsolute)
   DNSName after;
   BOOST_TEST_MESSAGE("Testing getBeforeAndAfterNamesAbsolute method");
 
-  backendUnderTest->getBeforeAndAfterNamesAbsolute(-1, DNSName("middle.unit.test."), unhashed, before, after);
+  backendUnderTest->getBeforeAndAfterNamesAbsolute(1, DNSName("middle.unit.test."), unhashed, before, after);
   BOOST_CHECK_EQUAL(unhashed.toString(), "middle.");
   BOOST_CHECK_EQUAL(before.toString(), "begin.");
   BOOST_CHECK_EQUAL(after.toString(), "stop.");
@@ -272,12 +275,12 @@ BOOST_AUTO_TEST_CASE(test_method_getAllDomains)
   BOOST_CHECK_EQUAL(domainInfo.backend, backendUnderTest.get());
 }
 
-BOOST_AUTO_TEST_CASE(test_method_superMasterBackend)
+BOOST_AUTO_TEST_CASE(test_method_autoPrimaryBackend)
 {
   DNSResourceRecord resourceRecord;
   std::vector<DNSResourceRecord> nsset;
   DNSBackend* dbd = nullptr;
-  BOOST_TEST_MESSAGE("Testing superMasterBackend method");
+  BOOST_TEST_MESSAGE("Testing autoPrimaryBackend method");
 
   resourceRecord.qname = DNSName("example.com.");
   resourceRecord.qtype = QType::NS;
@@ -292,23 +295,23 @@ BOOST_AUTO_TEST_CASE(test_method_superMasterBackend)
   resourceRecord.content = "ns2.example.com.";
   nsset.push_back(resourceRecord);
 
-  BOOST_CHECK(backendUnderTest->superMasterBackend("10.0.0.1", DNSName("example.com."), nsset, nullptr, nullptr, &dbd));
+  BOOST_CHECK(backendUnderTest->autoPrimaryBackend("10.0.0.1", DNSName("example.com."), nsset, nullptr, nullptr, &dbd));
 
   // let's see what we got
   BOOST_CHECK_EQUAL(dbd, backendUnderTest.get());
 }
 
-BOOST_AUTO_TEST_CASE(test_method_createSlaveDomain)
+BOOST_AUTO_TEST_CASE(test_method_createSecondaryDomain)
 {
-  BOOST_TEST_MESSAGE("Testing createSlaveDomain method");
-  BOOST_CHECK(backendUnderTest->createSlaveDomain("10.0.0.1", DNSName("pirate.unit.test."), "", ""));
+  BOOST_TEST_MESSAGE("Testing createSecondaryDomain method");
+  BOOST_CHECK(backendUnderTest->createSecondaryDomain("10.0.0.1", DNSName("pirate.unit.test."), "", ""));
 }
 
 BOOST_AUTO_TEST_CASE(test_method_feedRecord)
 {
   DNSResourceRecord resourceRecord;
   BOOST_TEST_MESSAGE("Testing feedRecord method");
-  backendUnderTest->startTransaction(DNSName("example.com."), 2);
+  backendUnderTest->startTransaction(DNSName("example.com."), 3);
   resourceRecord.qname = DNSName("example.com.");
   resourceRecord.qtype = QType::SOA;
   resourceRecord.qclass = QClass::IN;
@@ -326,7 +329,7 @@ BOOST_AUTO_TEST_CASE(test_method_feedRecord)
 
 BOOST_AUTO_TEST_CASE(test_method_replaceRRSet)
 {
-  backendUnderTest->startTransaction(DNSName("example.com."), 2);
+  backendUnderTest->startTransaction(DNSName("example.com."), 3);
   DNSResourceRecord resourceRecord;
   std::vector<DNSResourceRecord> rrset;
   BOOST_TEST_MESSAGE("Testing replaceRRSet method");
@@ -343,7 +346,7 @@ BOOST_AUTO_TEST_CASE(test_method_replaceRRSet)
 BOOST_AUTO_TEST_CASE(test_method_feedEnts)
 {
   BOOST_TEST_MESSAGE("Testing feedEnts method");
-  backendUnderTest->startTransaction(DNSName("example.com."), 2);
+  backendUnderTest->startTransaction(DNSName("example.com."), 3);
   map<DNSName, bool> nonterm = boost::assign::map_list_of(DNSName("_udp"), true)(DNSName("_sip._udp"), true);
   BOOST_CHECK(backendUnderTest->feedEnts(2, nonterm));
   backendUnderTest->commitTransaction();
@@ -352,7 +355,7 @@ BOOST_AUTO_TEST_CASE(test_method_feedEnts)
 BOOST_AUTO_TEST_CASE(test_method_feedEnts3)
 {
   BOOST_TEST_MESSAGE("Testing feedEnts3 method");
-  backendUnderTest->startTransaction(DNSName("example.com"), 2);
+  backendUnderTest->startTransaction(DNSName("example.com"), 3);
   NSEC3PARAMRecordContent ns3prc;
   ns3prc.d_iterations = 1;
   ns3prc.d_salt = "\u00aa\u00bb\u00cc\u00dd";
@@ -364,7 +367,7 @@ BOOST_AUTO_TEST_CASE(test_method_feedEnts3)
 BOOST_AUTO_TEST_CASE(test_method_abortTransaction)
 {
   BOOST_TEST_MESSAGE("Testing abortTransaction method");
-  backendUnderTest->startTransaction(DNSName("example.com."), 2);
+  backendUnderTest->startTransaction(DNSName("example.com."), 3);
   BOOST_CHECK(backendUnderTest->abortTransaction());
 }
 
@@ -374,15 +377,15 @@ BOOST_AUTO_TEST_CASE(test_method_directBackendCmd)
   BOOST_CHECK_EQUAL(backendUnderTest->directBackendCmd("PING 1234"), "PING 1234");
 }
 
-BOOST_AUTO_TEST_CASE(test_method_getUpdatedMasters)
+BOOST_AUTO_TEST_CASE(test_method_getUpdatedPrimaries)
 {
   DomainInfo domainInfo;
-  BOOST_TEST_MESSAGE("Testing getUpdatedMasters method");
+  BOOST_TEST_MESSAGE("Testing getUpdatedPrimaries method");
   vector<DomainInfo> result;
   std::unordered_set<DNSName> catalogs;
   CatalogHashMap hashes;
 
-  backendUnderTest->getUpdatedMasters(result, catalogs, hashes);
+  backendUnderTest->getUpdatedPrimaries(result, catalogs, hashes);
 
   BOOST_REQUIRE(!result.empty());
 
@@ -390,7 +393,7 @@ BOOST_AUTO_TEST_CASE(test_method_getUpdatedMasters)
   BOOST_CHECK_EQUAL(domainInfo.zone.toString(), "master.test.");
   BOOST_CHECK_EQUAL(domainInfo.serial, 2);
   BOOST_CHECK_EQUAL(domainInfo.notified_serial, 2);
-  BOOST_CHECK_EQUAL(domainInfo.kind, DomainInfo::Master);
+  BOOST_CHECK_EQUAL(domainInfo.kind, DomainInfo::Primary);
   BOOST_CHECK_EQUAL(domainInfo.backend, backendUnderTest.get());
 }
 

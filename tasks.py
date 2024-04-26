@@ -1,6 +1,7 @@
 from invoke import task
 from invoke.exceptions import Failure, UnexpectedExit
 
+import json
 import os
 import sys
 import time
@@ -8,16 +9,13 @@ import time
 auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
 
 clang_version = os.getenv('CLANG_VERSION', '13')
-rust_version = 'rust-1.72.0-x86_64-unknown-linux-gnu'
-quiche_version = '0.18.0'
-quiche_hash = 'eb242a14c4d801a90b57b6021dd29f7a62099f3a4d7a7ba889e105f8328e6c1f'
 
 all_build_deps = [
     'ccache',
     'libboost-all-dev',
     'libluajit-5.1-dev',
     'libsodium-dev',
-    'libssl-dev',
+    'libssl-dev', # This will install libssl 1.1 on Debian 11 and libssl3 on Debian 12
     'libsystemd-dev',
     'libtool',
     'make',
@@ -49,8 +47,7 @@ auth_build_deps = [    # FIXME: perhaps we should be stealing these from the deb
     'libsqlite3-dev',
     'libyaml-cpp-dev',
     'libzmq3-dev',
-    'ruby-bundler',
-    'ruby-dev',
+    'python3-venv',
     'sqlite3',
     'unixodbc-dev',
     'cmake',
@@ -68,7 +65,6 @@ rec_bulk_deps = [
     'libluajit-5.1-2',
     '"libsnmp[1-9]+"',
     'libsodium23',
-    'libssl1.1',
     'libsystemd0',
     'moreutils',
     'pdns-tools',
@@ -86,6 +82,10 @@ dnsdist_build_deps = [
     'libre2-dev',
     'libsnmp-dev',
 ]
+dnsdist_xdp_build_deps = [
+    'libbpf-dev',
+    'libxdp-dev',
+]
 auth_test_deps = [   # FIXME: we should be generating some of these from shlibdeps in build
     'authbind',
     'bc',
@@ -102,7 +102,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'libcurl4',
     'libgeoip1',
     'libkrb5-3',
-    'libldap-2.4-2',
+    '"libldap-2.[1-9]+"',
     'liblmdb0',
     'libluajit-5.1-2',
     'libmaxminddb0',
@@ -111,14 +111,12 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'libpq5',
     'libsodium23',
     'libsqlite3-dev',
-    'libssl1.1',
     'libsystemd0',
-    'libyaml-cpp0.6',
+    '"libyaml-cpp0.[1-9]+"',
     'libzmq3-dev',
     'lmdb-utils',
     'prometheus',
-    'ruby-bundler',
-    'ruby-dev',
+    'python3-venv',
     'socat',
     'softhsm2',
     'unbound-host',
@@ -152,7 +150,6 @@ doc_deps_pdf = [
 
 @task
 def apt_fresh(c):
-    c.sudo('sed -i \'s/azure\.//\' /etc/apt/sources.list')
     c.sudo('apt-get update')
     c.sudo('apt-get -y --allow-downgrades dist-upgrade')
 
@@ -174,7 +171,8 @@ def install_clang_runtime(c):
 
 @task
 def ci_install_rust(c, repo):
-    c.sudo(f'{repo}/builder-support/helpers/install_rust.sh {rust_version}')
+    with c.cd(f'{repo}/builder-support/helpers/'):
+        c.run('sudo sh install_rust.sh')
 
 def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
@@ -297,27 +295,32 @@ def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
     time.sleep(5)
     c.sudo('chmod 755 /var/agentx')
 
-@task
-def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-get
-    c.sudo('apt-get install -y \
-              libluajit-5.1-2 \
-              libboost-all-dev \
-              libcap2 \
-              libcdb1 \
-              libcurl4-openssl-dev \
-              libfstrm0 \
-              libgnutls30 \
-              libh2o-evloop0.13 \
-              liblmdb0 \
-              libnghttp2-14 \
-              "libre2-[1-9]+" \
-              libssl-dev \
-              libsystemd0 \
-              libsodium23 \
-              lua-socket \
-              patch \
-              protobuf-compiler \
-              python3-venv snmpd prometheus')
+@task(optional=['skipXDP'])
+def install_dnsdist_test_deps(c, skipXDP=False): # FIXME: rename this, we do way more than apt-get
+    deps = 'libluajit-5.1-2 \
+            libboost-all-dev \
+            libcap2 \
+            libcdb1 \
+            libcurl4-openssl-dev \
+            libfstrm0 \
+            libgnutls30 \
+            libh2o-evloop0.13 \
+            liblmdb0 \
+            libnghttp2-14 \
+            "libre2-[1-9]+" \
+            libssl-dev \
+            libsystemd0 \
+            libsodium23 \
+            lua-socket \
+            patch \
+            protobuf-compiler \
+            python3-venv snmpd prometheus'
+    if not skipXDP:
+        deps = deps + '\
+               libbpf1 \
+               libxdp1'
+
+    c.sudo(f'apt-get install -y {deps}')
     c.run('sed "s/agentxperms 0700 0755 dnsdist/agentxperms 0777 0755/g" regression-tests.dnsdist/snmpd.conf | sudo tee /etc/snmp/snmpd.conf')
     c.sudo('/etc/init.d/snmpd restart')
     time.sleep(5)
@@ -327,9 +330,9 @@ def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-
 def install_rec_build_deps(c):
     c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + rec_build_deps))
 
-@task
-def install_dnsdist_build_deps(c):
-    c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps))
+@task(optional=['skipXDP'])
+def install_dnsdist_build_deps(c, skipXDP=False):
+    c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps + (dnsdist_xdp_build_deps if not skipXDP else [])))
 
 @task
 def ci_autoconf(c):
@@ -410,6 +413,9 @@ def get_cflags():
         "-Werror=shadow",
         "-Wformat=2",
         "-Werror=format-security",
+        "-fstack-clash-protection",
+        "-fstack-protector-strong",
+        "-fcf-protection=full",
         "-Werror=string-plus-int" if is_compiler_clang() else '',
     ])
 
@@ -467,6 +473,7 @@ def ci_auth_configure(c):
         "--enable-experimental-pkcs11",
         "--enable-experimental-gss-tsig",
         "--enable-remotebackend-zeromq",
+        "--enable-verbose-logging",
         "--with-lmdb=/usr",
         "--with-libdecaf" if os.getenv('DECAF_SUPPORT', 'no') == 'yes' else '',
         "--prefix=/opt/pdns-auth",
@@ -481,19 +488,40 @@ def ci_auth_configure(c):
 
 
 @task
-def ci_rec_configure(c):
+def ci_rec_configure(c, features):
     unittests = get_unit_tests()
 
-    configure_cmd = " ".join([
-        get_base_configure_cmd(),
-        "--enable-nod",
-        "--prefix=/opt/pdns-recursor",
-        "--with-lua=luajit",
-        "--with-libcap",
-        "--with-net-snmp",
-        "--enable-dns-over-tls",
-        unittests,
-    ])
+    if features == 'full':
+        configure_cmd = " ".join([
+            get_base_configure_cmd(),
+            "--prefix=/opt/pdns-recursor",
+            "--enable-option-checking",
+            "--enable-verbose-logging",
+            "--enable-dns-over-tls",
+            "--enable-nod",
+            "--with-libcap",
+            "--with-lua=luajit",
+            "--with-net-snmp",
+            unittests,
+        ])
+    else:
+        configure_cmd = " ".join([
+            get_base_configure_cmd(),
+            "--prefix=/opt/pdns-recursor",
+            "--enable-option-checking",
+            "--enable-verbose-logging",
+            "--disable-dns-over-tls",
+            "--disable-dnstap",
+            "--disable-nod",
+            "--disable-systemd",
+            "--with-lua=luajit",
+            "--without-libcap",
+            "--without-libcurl",
+            "--without-libdecaf",
+            "--without-libsodium",
+            "--without-net-snmp",
+            unittests,
+        ])
     res = c.run(configure_cmd, warn=True)
     if res.exited != 0:
         c.run('cat config.log')
@@ -509,6 +537,7 @@ def ci_dnsdist_configure(c, features):
                       --enable-dns-over-tls \
                       --enable-dns-over-https \
                       --enable-dns-over-quic \
+                      --enable-dns-over-http3 \
                       --enable-systemd \
                       --prefix=/opt/dnsdist \
                       --with-gnutls \
@@ -574,7 +603,7 @@ def ci_dnsdist_configure(c, features):
         features_set,
         unittests,
         fuzztargets,
-        ' --enable-lto=thin',
+        '--enable-lto=thin',
         '--prefix=/opt/dnsdist'
     ])
 
@@ -611,9 +640,6 @@ def ci_dnsdist_make_bear(c):
 
 @task
 def ci_auth_install_remotebackend_test_deps(c):
-    with c.cd('modules/remotebackend'):
-      # c.run('bundle config set path vendor/bundle')
-      c.run('sudo ruby -S bundle install')
     c.sudo('apt-get install -y socat')
 
 @task
@@ -621,7 +647,7 @@ def ci_auth_run_unit_tests(c):
     res = c.run('make check', warn=True)
     if res.exited != 0:
       c.run('cat pdns/test-suite.log', warn=True)
-      c.run('cat modules/remotebackend/test-suite.log', warn=True)
+      c.run('more modules/remotebackend/*.log', warn=True)
       raise UnexpectedExit(res)
 
 @task
@@ -677,7 +703,7 @@ backend_regress_tests = dict(
         'bind-dnssec-nsec3-both',
         'bind-dnssec-nsec3-optout-both',
         'bind-dnssec-nsec3-narrow',
-        # FIXME  'bind-dnssec-pkcs11'
+        'bind-dnssec-pkcs11'
     ],
     geoip = [
         'geoip',
@@ -741,7 +767,7 @@ backend_regress_tests = dict(
     geoip_mmdb = ['geoip'],
 )
 
-godbc_mssql_credentials = {"username": "sa", "password": "SAsa12%%"}
+godbc_mssql_credentials = {"username": "sa", "password": "SAsa12%%-not-a-secret-password"}
 
 godbc_config = f'''
 [pdns-mssql-docker]
@@ -786,6 +812,12 @@ def setup_ldap_client(c):
     c.sudo('DEBIAN_FRONTEND=noninteractive apt-get install -y ldap-utils')
     c.sudo(f'sh -c \'echo "{auth_backend_ip_addr} ldapserver" | tee -a /etc/hosts\'')
 
+def setup_softhsm(c):
+    # Modify the location of the softhsm tokens and configuration directory.
+    # Enables token generation by non-root users (runner)
+    c.run('mkdir -p /opt/pdns-auth/softhsm/tokens')
+    c.run('echo "directories.tokendir = /opt/pdns-auth/softhsm/tokens" > /opt/pdns-auth/softhsm/softhsm2.conf')
+
 @task
 def test_auth_backend(c, backend):
     pdns_auth_env_vars = f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST={auth_backend_ip_addr} GMYSQL2HOST={auth_backend_ip_addr} MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432'
@@ -797,6 +829,13 @@ def test_auth_backend(c, backend):
         c.sudo(f'sh -c \'echo "{auth_backend_ip_addr} kerberos-server" | tee -a /etc/hosts\'')
         with c.cd('regression-tests.auth-py'):
             c.run(f'{pdns_auth_env_vars} WITHKERBEROS=YES ./runtests')
+        return
+
+    if backend == 'bind':
+        setup_softhsm(c)
+        with c.cd('regression-tests'):
+            for variant in backend_regress_tests[backend]:
+                c.run(f'{pdns_auth_env_vars} SOFTHSM2_CONF=/opt/pdns-auth/softhsm/softhsm2.conf ./start-test-stop 5300 {variant}')
         return
 
     if backend == 'godbc_sqlite3':
@@ -847,7 +886,7 @@ def test_dnsdist(c):
     c.run('ls -ald /var /var/agentx /var/agentx/master')
     c.run('ls -al /var/agentx/master')
     with c.cd('regression-tests.dnsdist'):
-        c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist LD_LIBRARY_PATH=/opt/dnsdist/lib/ ./runtests')
+        c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist LD_LIBRARY_PATH=/opt/dnsdist/lib/ ENABLE_SUDO_TESTS=1 ./runtests')
 
 @task
 def test_regression_recursor(c):
@@ -899,7 +938,12 @@ def coverity_upload(c, email, project, tarball):
             https://scan.coverity.com/builds?project={project}', hide=True)
 
 @task
-def ci_build_and_install_quiche(c):
+def ci_build_and_install_quiche(c, repo):
+    with open(f'{repo}/builder-support/helpers/quiche.json') as quiche_json:
+        quiche_data = json.load(quiche_json)
+        quiche_version = quiche_data['version']
+        quiche_hash = quiche_data['SHA256SUM']
+
     # we have to pass -L because GitHub will do a redirect, sadly
     c.run(f'curl -L -o quiche-{quiche_version}.tar.gz https://github.com/cloudflare/quiche/archive/{quiche_version}.tar.gz')
     # Line below should echo two spaces between digest and name

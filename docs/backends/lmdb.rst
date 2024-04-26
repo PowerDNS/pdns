@@ -51,10 +51,14 @@ Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 ``lmdb-sync-mode``
 ^^^^^^^^^^^^^^^^^^
 
-* Synchronisation mode: sync, nosync, nometasync, mapasync
-* Default: mapasync
+  .. versionchanged:: 4.9.0
 
-``sync``
+  ``mapasync`` choice removed
+
+* Synchronisation mode: sync, nosync, nometasync
+* Default: sync
+
+``sync`` (default since 4.9.0)
   LMDB synchronous mode. Safest option, but also slightly slower. Can  also be enabled with ``lmdb-sync-mode=``
 
 ``nosync``
@@ -64,8 +68,9 @@ Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 ``nometasync``
   flush system buffers to disk only once per transaction, omit the metadata flush. This maintains database integrity, but can potentially lose the last committed transaction if the operating system crashes.
 
-``mapasync`` (default)
-  Use asynchronous flushes to disk. As with nosync, a system crash can then corrupt the database or lose the last transactions.
+``mapasync`` (default before 4.9.0)
+  Due to a bug before version 4.9.0, this actually gave ``sync`` behaviour.
+  The ``mapasync`` choice has been removed in version 4.9.0.
 
 .. _setting-lmdb-schema-version:
 

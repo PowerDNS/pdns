@@ -137,7 +137,8 @@ TCPConnectionToBackend::~TCPConnectionToBackend()
   }
 }
 
-void TCPConnectionToBackend::release(){
+void TCPConnectionToBackend::release(bool removeFromCache)
+{
   d_ds->outstanding -= d_pendingResponses.size();
 
   d_pendingResponses.clear();
@@ -145,6 +146,13 @@ void TCPConnectionToBackend::release(){
 
   if (d_ioState) {
     d_ioState.reset();
+  }
+
+  if (removeFromCache && !willBeReusable(true)) {
+    auto shared = std::dynamic_pointer_cast<TCPConnectionToBackend>(shared_from_this());
+    /* remove ourselves from the connection cache, this might mean that our
+       reference count drops to zero after that, so we need to be careful */
+    t_downstreamTCPConnectionsManager.removeDownstreamConnection(shared);
   }
 }
 
@@ -191,7 +199,7 @@ static bool getSerialFromIXFRQuery(TCPQuery& query)
       if (!unknownContent) {
         return false;
       }
-      auto raw = unknownContent->getRawContent();
+      const auto& raw = unknownContent->getRawContent();
       query.d_ixfrQuerySerial = getSerialFromRawSOAContent(raw);
       return true;
     }
@@ -364,7 +372,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
           catch (const std::exception& e) {
             vinfolog("Got an exception while handling TCP response from %s (client is %s): %s", conn->d_ds ? conn->d_ds->getNameWithAddr() : "unknown", conn->d_currentQuery.d_query.d_idstate.origRemote.toStringWithPort(), e.what());
             ioGuard.release();
-            conn->release();
+            conn->release(true);
             return;
           }
         }
@@ -577,7 +585,7 @@ void TCPConnectionToBackend::handleTimeout(const struct timeval& now, bool write
     vinfolog("Got exception while notifying a timeout");
   }
 
-  release();
+  release(true);
 }
 
 void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, FailureReason reason)
@@ -608,7 +616,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
   try {
     if (d_state == State::sendingQueryToBackend) {
       increaseCounters(d_currentQuery.d_query.d_idstate.cs);
-      auto sender = d_currentQuery.d_sender;
+      auto sender = std::move(d_currentQuery.d_sender);
       if (sender->active()) {
         TCPResponse response(std::move(d_currentQuery.d_query));
         sender->notifyIOError(now, std::move(response));
@@ -617,7 +625,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
 
     for (auto& query : pendingQueries) {
       increaseCounters(query.d_query.d_idstate.cs);
-      auto sender = query.d_sender;
+      auto sender = std::move(query.d_sender);
       if (sender->active()) {
         TCPResponse response(std::move(query.d_query));
         sender->notifyIOError(now, std::move(response));
@@ -626,7 +634,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
 
     for (auto& response : pendingResponses) {
       increaseCounters(response.second.d_query.d_idstate.cs);
-      auto sender = response.second.d_sender;
+      auto sender = std::move(response.second.d_sender);
       if (sender->active()) {
         TCPResponse tresp(std::move(response.second.d_query));
         sender->notifyIOError(now, std::move(tresp));
@@ -640,7 +648,7 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
     vinfolog("Got exception while notifying");
   }
 
-  release();
+  release(true);
 }
 
 IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
@@ -675,9 +683,9 @@ IOState TCPConnectionToBackend::handleResponse(std::shared_ptr<TCPConnectionToBa
     response.d_buffer = std::move(d_responseBuffer);
     response.d_connection = conn;
     response.d_ds = conn->d_ds;
-    /* we don't move the whole IDS because we will need for the responses to come */
-    response.d_idstate.qtype = it->second.d_query.d_idstate.qtype;
-    response.d_idstate.qname = it->second.d_query.d_idstate.qname;
+    const auto& queryIDS = it->second.d_query.d_idstate;
+    /* we don't move the whole IDS because we will need it for the responses to come */
+    response.d_idstate = queryIDS.partialCloneForXFR();
     DEBUGLOG("passing XFRresponse to client connection for "<<response.d_idstate.qname);
 
     it->second.d_query.d_xfrStarted = true;
@@ -815,13 +823,13 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
         if (!unknownContent) {
           continue;
         }
-        auto raw = unknownContent->getRawContent();
+        const auto& raw = unknownContent->getRawContent();
         auto serial = getSerialFromRawSOAContent(raw);
-        if (query.d_xfrMasterSerial == 0) {
+        if (query.d_xfrPrimarySerial == 0) {
           // store the first SOA in our client's connection metadata
-          query.d_xfrMasterSerial = serial;
-          if (query.d_idstate.qtype == QType::IXFR && (query.d_xfrMasterSerial == query.d_ixfrQuerySerial || rfc1982LessThan(query.d_xfrMasterSerial, query.d_ixfrQuerySerial))) {
-            /* This is the first message with a master SOA:
+          query.d_xfrPrimarySerial = serial;
+          if (query.d_idstate.qtype == QType::IXFR && (query.d_xfrPrimarySerial == query.d_ixfrQuerySerial || rfc1982LessThan(query.d_xfrPrimarySerial, query.d_ixfrQuerySerial))) {
+            /* This is the first message with a primary SOA:
                RFC 1995 Section 2:
                  If an IXFR query with the same or newer version number
                  than that of the server is received, it is replied to
@@ -833,16 +841,16 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
         }
 
         ++query.d_xfrSerialCount;
-        if (serial == query.d_xfrMasterSerial) {
-          ++query.d_xfrMasterSerialCount;
-          // figure out if it's end when receiving master's SOA again
+        if (serial == query.d_xfrPrimarySerial) {
+          ++query.d_xfrPrimarySerialCount;
+          // figure out if it's end when receiving primary's SOA again
           if (query.d_xfrSerialCount == 2) {
             // if there are only two SOA records marks a finished AXFR
             done = true;
             break;
           }
-          if (query.d_xfrMasterSerialCount == 3) {
-            // receiving master's SOA 3 times marks a finished IXFR
+          if (query.d_xfrPrimarySerialCount == 3) {
+            // receiving primary's SOA 3 times marks a finished IXFR
             done = true;
             break;
           }

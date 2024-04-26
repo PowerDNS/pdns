@@ -1825,6 +1825,7 @@ localdata
 localname
 localsock
 localstatedir
+localwho
 loctext
 locwild
 logaction
@@ -3335,7 +3336,6 @@ sockname
 sockowner
 socktype
 sodbc
-sodcrypto
 sodiumsigners
 sokolov
 somedata

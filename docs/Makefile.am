@@ -62,14 +62,14 @@ endif # if !HAVE_MANPAGES
 mans/.complete: manpages := $(addprefix manpages/,$(addsuffix .rst,$(MANPAGES_DIST)))
 mans/.complete: .venv
 	rm -rf "$(@D).tmp"
-	.venv/bin/python -msphinx -b man . "$(@D).tmp" $(manpages) && rm -rf "$(@D)" && mv "$(@D).tmp" "$(@D)"
+	(cd "${srcdir}" && $(CURDIR)/.venv/bin/python -msphinx -b man . "$(CURDIR)/$(@D).tmp" $(manpages)) && rm -rf "$(@D)" && mv "$(@D).tmp" "$(@D)"
 	touch "$@"
 	rm -rf "$(@D).tmp"
 
 .venv: requirements.txt
 	$(PYTHON) -m venv .venv
 	.venv/bin/pip install -U pip setuptools setuptools-git wheel
-	.venv/bin/pip install -r requirements.txt
+	.venv/bin/pip install -r ${srcdir}/requirements.txt
 
 .NOTPARALLEL: \
 	all-docs \

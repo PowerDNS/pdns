@@ -157,7 +157,8 @@ public:
   uint16_t qclass{QClass::IN};  //!< class of the question - should always be INternet 2
   QType qtype;  //!< type of the question 2
 
-  bool d_tcp{false};
+  bool d_tcp{false}; // whether DNS packet is using TCP (false when UDP)
+  bool d_xfr{false}; // whether DNS packet is a zone transfer, either AXFR or IXFR
   bool d_dnssecOk{false};
   bool d_havetsig{false};
 
@@ -172,6 +173,7 @@ public:
   static bool s_doEDNSSubnetProcessing;
   static bool s_doEDNSCookieProcessing;
   static string s_EDNSCookieKey;
+  EDNSSubnetOpts d_eso;
 
 #ifdef ENABLE_GSS_TSIG
   void cleanupGSS(int rcode);
@@ -187,7 +189,6 @@ private:
   vector<DNSZoneRecord> d_rrs; // 8
   std::unordered_set<size_t> d_dedup;
   string d_rawpacket; // this is where everything lives 8
-  EDNSSubnetOpts d_eso;
   EDNSCookiesOpt d_eco;
 
   int d_maxreplylen{0};

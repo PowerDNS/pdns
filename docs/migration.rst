@@ -112,7 +112,7 @@ For backends supporting slave operation, there is also an option to keep
 slave zones as slaves, and not convert them to native operation.
 
 ``zone2sql`` can generate SQL for nearly all the Generic SQL backends.
-See `its manpage <manpages/zone2sql.1>` for more information.
+See :doc:`its manpage <manpages/zone2sql.1>` for more information.
 
 An example call to ``zone2sql`` could be:
 

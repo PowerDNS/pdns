@@ -81,6 +81,10 @@ italy			IN	NS	italy-ns2
 italy-ns1		IN	A	192.168.5.1
 italy-ns2		IN	A	192.168.5.2
 ;
+; CNAME on wildcard mixed with another type
+*.mixed-wc			IN	A	192.168.1.1
+*.mixed-wc			IN	CNAME	outpost
+;
 mail			IN	MX	25	smtp1
 smtp1			IN	CNAME	outpost
 ;

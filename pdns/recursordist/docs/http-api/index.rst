@@ -47,6 +47,37 @@ And restart ``pdns_recursor``, the following examples should start working::
     curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8082/api/v1/servers/localhost | jq .
     curl -v -H 'X-API-Key: changeme' http://127.0.0.1:8082/api/v1/servers/localhost/zones | jq .
 
+A few examples for zone manipulation follow, first one is to create a forwarding zone::
+
+  curl --no-progress-meter -H 'X-API-Key: changeme' -H 'Content-type: application/json' -X POST --data-binary @- http://localhost:8082/api/v1/servers/localhost/zones << EOF | jq
+  {
+    "name": "example.com.",
+    "type": "Zone",
+    "kind": "Forwarded",
+    "servers": ["192.168.178.1", "192.168.178.2:5353"],
+    "recursion_desired" : false
+  }
+  EOF
+
+Example output of the above command::
+
+  {
+    "id": "example.com.",
+    "kind": "Forwarded",
+    "name": "example.com.",
+    "records": [],
+    "recursion_desired": false,
+    "servers": [
+      "192.168.178.1:53",
+      "192.168.178.2:5353"
+    ],
+    "url": "/api/v1/servers/localhost/zones/example.com."
+  }
+
+To delete the forwarding zone added above::
+
+  curl --no-progress-meter -H 'X-API-Key: changeme' -X DELETE http://localhost:8082/api/v1/servers/localhost/zones/example.com.
+
 URL Endpoints
 -------------
 

@@ -21,61 +21,67 @@
  */
 #pragma once
 
+#include "config.h"
+#include <memory>
 #include <stdexcept>
 #include <string>
 
 #include <openssl/evp.h>
 
-inline std::string pdns_hash(const EVP_MD * md, const std::string& input)
+namespace pdns
+{
+inline std::string hash(const EVP_MD* messageDigest, const std::string& input)
 {
 #if defined(HAVE_EVP_MD_CTX_NEW) && defined(HAVE_EVP_MD_CTX_FREE)
-  auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
+  auto mdctx = std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)>(EVP_MD_CTX_new(), EVP_MD_CTX_free);
 #else
-  auto mdctx = std::unique_ptr<EVP_MD_CTX, void(*)(EVP_MD_CTX*)>(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
+  auto mdctx = std::unique_ptr<EVP_MD_CTX, void (*)(EVP_MD_CTX*)>(EVP_MD_CTX_create(), EVP_MD_CTX_destroy);
 #endif
   if (!mdctx) {
-    throw std::runtime_error(std::string(EVP_MD_name(md)) + " context initialization failed");
+    throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " context initialization failed");
   }
 
-  if (EVP_DigestInit_ex(mdctx.get(), md, nullptr) != 1) {
-    throw std::runtime_error(std::string(EVP_MD_name(md)) + " EVP initialization failed");
+  if (EVP_DigestInit_ex(mdctx.get(), messageDigest, nullptr) != 1) {
+    throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " EVP initialization failed");
   }
 
   if (EVP_DigestUpdate(mdctx.get(), input.data(), input.size()) != 1) {
-    throw std::runtime_error(std::string(EVP_MD_name(md)) + " EVP update failed");
+    throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " EVP update failed");
   }
 
-  unsigned int written;
+  unsigned int written = 0;
   std::string result;
-  result.resize(EVP_MD_size(md));
+  result.resize(EVP_MD_size(messageDigest));
 
-  if (EVP_DigestFinal_ex(mdctx.get(), const_cast<unsigned char *>(reinterpret_cast<const unsigned char*>(result.c_str())), &written) != 1) {
-    throw std::runtime_error(std::string(EVP_MD_name(md)) + " EVP final failed");
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  if (EVP_DigestFinal_ex(mdctx.get(), const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>(result.c_str())), &written) != 1) {
+    throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " EVP final failed");
   }
 
   if (written != result.size()) {
-    throw std::runtime_error(std::string(EVP_MD_name(md)) + " EVP final wrote " + std::to_string(written) + ", expected " + std::to_string(result.size()));
+    throw std::runtime_error(std::string(EVP_MD_name(messageDigest)) + " EVP final wrote " + std::to_string(written) + ", expected " + std::to_string(result.size()));
   }
 
   return result;
 }
 
-inline std::string pdns_md5(const std::string& input)
+inline std::string md5(const std::string& input)
 {
-  const auto md = EVP_md5();
-  if (md == nullptr) {
+  const auto* const messageDigest = EVP_md5();
+  if (messageDigest == nullptr) {
     throw std::runtime_error("The MD5 digest is not available via the OpenSSL EVP interface");
   }
 
-  return pdns_hash(md, input);
+  return pdns::hash(messageDigest, input);
 }
 
-inline std::string pdns_sha1(const std::string& input)
+inline std::string sha1(const std::string& input)
 {
-  const auto md = EVP_sha1();
-  if (md == nullptr) {
+  const auto* const messageDigest = EVP_sha1();
+  if (messageDigest == nullptr) {
     throw std::runtime_error("The SHA1 digest is not available via the OpenSSL EVP interface");
   }
 
-  return pdns_hash(md, input);
+  return pdns::hash(messageDigest, input);
+}
 }

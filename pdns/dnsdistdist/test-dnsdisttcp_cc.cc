@@ -19,7 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
 
 #include <boost/test/unit_test.hpp>
@@ -32,11 +35,6 @@
 #include "dnsdist-tcp-upstream.hh"
 
 GlobalStateHolder<NetmaskGroup> g_ACL;
-GlobalStateHolder<vector<DNSDistRuleAction> > g_ruleactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_respruleactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cachehitrespruleactions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_cacheInsertedRespRuleActions;
-GlobalStateHolder<vector<DNSDistResponseRuleAction> > g_selfansweredrespruleactions;
 GlobalStateHolder<servers_t> g_dstates;
 
 QueryCount g_qcount;
@@ -48,7 +46,7 @@ bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_
   return false;
 }
 
-bool checkQueryHeaders(const struct dnsheader* dh, ClientState&)
+bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState)
 {
   return true;
 }
@@ -73,17 +71,17 @@ ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::sha
   return ProcessQueryResult::Drop;
 }
 
-bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, unsigned int& qnameWireLength)
+bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote)
 {
   return true;
 }
 
 static std::function<bool(PacketBuffer& response, DNSResponse& dr, bool muted)> s_processResponse;
 
-bool processResponse(PacketBuffer& response, const std::vector<DNSDistResponseRuleAction>& localRespRuleActions, const std::vector<DNSDistResponseRuleAction>& localCacheInsertedRespRuleActions, DNSResponse& dr, bool muted)
+bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
 {
   if (s_processResponse) {
-    return s_processResponse(response, dr, muted);
+    return s_processResponse(response, dnsResponse, muted);
   }
 
   return false;
@@ -485,7 +483,7 @@ static void testInit(const std::string& name, TCPClientThreadData& threadData)
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, false, "", {});
+  ClientState localCS(local, true, false, 0, "", {}, true);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -732,7 +730,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, false, "", {});
+  ClientState localCS(local, true, false, 0, "", {}, true);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -862,7 +860,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, false, "", {});
+  ClientState localCS(local, true, false, 0, "", {}, true);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
   localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
 
@@ -1762,7 +1760,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, false, "", {});
+  ClientState localCS(local, true, false, 0, "", {}, true);
   /* enable out-of-order on the front side */
   localCS.d_maxInFlightQueriesPerConn = 65536;
 
@@ -3621,8 +3619,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     g_tcpRecvTimeout = 2;
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
-    /* we have one connection to clear, no proxy protocol */
-    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 1U);
+    /* we have no connection to clear, because there was a timeout! */
+    BOOST_CHECK_EQUAL(IncomingTCPConnectionState::clearAllDownstreamConnections(), 0U);
   }
 
   {
@@ -3902,7 +3900,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, false, "", {});
+  ClientState localCS(local, true, false, 0, "", {}, true);
   /* enable out-of-order on the front side */
   localCS.d_maxInFlightQueriesPerConn = 65536;
 

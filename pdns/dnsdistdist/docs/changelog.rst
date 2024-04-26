@@ -2,6 +2,541 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.3
+  :released: 5th of April 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14040
+
+    Revert "Release failed TCP backend connections more quickly" to fix a crash
+
+.. changelog::
+  :version: 1.9.2
+  :released: 5th of April 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13938
+
+    Fix compilation warnings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13939
+
+    Docker: Only print config if debug flag is set
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 13940
+    :tickets: 13850
+
+    Use server preference algorithm for ALPN selection
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13941
+    :tickets: 13903
+
+    Fix first IPv6 console connection being rejected
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13942
+
+    Shrink InternalQueryState's size by reordering its fields
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13943
+    :tickets: 13925
+
+    Fix annoying compiler warnings by introducing and switching to `pdns::UniqueFilePtr`
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13944
+
+    Fix XSK-enabled check when reconnecting a backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13945
+    :tickets: 13837
+
+    Properly handle a failure of the first lazy health-check
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13976
+    :tickets: 13945
+
+    Also handle EHOSTUNREACH as a case for reconnecting the socket
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 14012
+
+    Fix a null-deref in incoming DNS over HTTPS with the nghttp2 provider
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14013
+    :tickets: 13977
+
+    Support "no server available" result from Lua FFI load-balancing policies
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, Metrics
+    :pullreq: 14014
+
+    Fix DNS over HTTP connections/queries counters with the `nghttp2` provider
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14015
+
+    FDWrapper: Do not try to close negative file descriptors
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14016
+
+    Release incoming TCP connection right away on backend failure
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14017
+
+    Release failed TCP backend connections more quickly
+
+.. changelog::
+  :version: 1.9.1
+  :released: 14th of March 2024
+
+  This release does not contain any dnsdist code changes compared to 1.9.0.
+  The only thing that changed is the version of Quiche, because of a `security update <https://github.com/cloudflare/quiche/releases/tag/0.20.1>`_.
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13912
+
+    update Quiche to 0.20.1. Fixes `CVE-2024-1410 <https://www.cve.org/CVERecord?id=CVE-2024-1410>`_ and `CVE-2024-1765 <https://www.cve.org/CVERecord?id=CVE-2024-1765>`_.
+
+.. changelog::
+  :version: 1.9.0
+  :released: 16th of February 2024
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13755
+
+    Better handling of short, non-initial QUIC headers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13757
+
+    Fix a warning reported by Coverity
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13768
+
+    Add a Lua maintenance hook
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13771
+    :tickets: 13766
+
+    Do not allocate 16-byte aligned objects through lua(jit)
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13774
+
+    Fix a missing explicit atomic load of the Quiche configuration
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13779
+
+    Fix performance inefficiencies reported by Coverity
+
+.. changelog::
+  :version: 1.9.0-rc1
+  :released: 30th of January 2024
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 13647
+
+    Set the DNS over HTTP/3 default port to 443
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13638
+    :tickets: 13631
+
+    Handle congested DoQ streams
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 13630
+
+    Fix the 'TCP Died Reading Query" metric, as reported by Coverity
+
+  .. change::
+    :tags: Improvements, Performance, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13666
+
+    Optimize the DoQ packet handling path
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 13664
+
+    Increase UDP receive and send buffers to the maximum allowed
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13670
+
+    Make sure we enforce the ACL over DoQ and DoH3
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13674
+
+    Enable DoQ and DoH3 in dockerfile-dnsdist (Denis Machard)
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 13678
+
+    Grant unidirectional HTTP/3 streams for DoH3
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13676
+
+    Enable PMTU discovery and disable fragmentation on QUIC binds
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13667
+
+    Clean up the Lua objects before exiting
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 13689
+    :tickets: 13687
+
+    Buffer HTTP/3 headers until the query has been dispatched
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTP3
+    :pullreq: 13713
+    :tickets: 13690
+
+    Add content-type header information in DoH3 responses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13711
+
+    Cleanup of code doing SNMP OID handling
+
+  .. change::
+    :tags: Bug Fixes, Protobuf, DNSTAP
+    :pullreq: 13716
+
+    Properly set the incoming protocol when logging via Protobuf or dnstap
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13727
+
+    Fix missed optimizations reported by Coverity
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 13650
+
+    Fall back to libcrypto for authenticated encryption
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13735
+
+    Move the console socket instead of copying it
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13723
+
+    DNSName: Correct len and offset types
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13724
+
+    DNSName: Optimize parsing of uncompressed labels
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11652
+
+    Add AF_XDP support for UDP (Y7n05h)
+
+.. changelog::
+  :version: 1.8.3
+  :released: 15th of December 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 13523
+    :tickets: 13519
+
+    Refactor the exponential back-off timer code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13598
+
+    Detect and dismiss truncated UDP responses from a backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13599
+
+    Fix the removal of the last rule by name or UUID
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13601
+
+    Add a `DynBlockRulesGroup:removeRange()` binding
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13602
+    :tickets: 13307
+
+    Fix several cosmetic issues in eBPF dynamic blocks, update documentation
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13605
+
+    Add a `DNSHeader:getTC()` Lua binding
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 13607
+    :tickets: 13050
+
+    Fix code producing JSON
+
+.. changelog::
+  :version: 1.9.0-alpha4
+  :released: 14th of December 2023
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13023
+
+    Remove legacy terms from the codebase (Kees Monshouwer)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13191
+
+    Wrap `DIR*` objects in unique pointers to prevent memory leaks
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13342
+
+    Add a DynBlockRulesGroup:removeRange() binding
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 13381
+
+    Fix the case where nghttp2 is available but DoH is disabled
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13435
+
+    Fix a few Coverity warnings
+
+  .. change::
+    :tags: Improvements, DNS over QUIC
+    :pullreq: 13437
+
+    Require Quiche >= 0.15.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13445
+
+    Fix Coverity CID 1523748: Performance inefficiencies in dolog.hh
+
+  .. change::
+    :tags: Improvements, DNS over QUIC
+    :pullreq: 13472
+
+    Add missing DoQ latency metrics
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13473
+
+    Add support for setting Extended DNS Error statuses
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13485
+    :tickets: 13191
+
+    Add `pdns::visit_directory()`, wrapping opendir/readdir/closedir
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13488
+
+    Fix the removal of the last rule by name or UUID
+
+  .. change::
+    :tags: New Features, Webserver
+    :pullreq: 13489
+
+    Add a 'rings' endpoint to the REST API
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13492
+
+    Add a cache-miss ratio dynamic block rule
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13500
+
+    Improve `NetmaskGroupRule`/`SuffixMatchNodeRule`, deprecate `makeRule`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13503
+
+    Add `NetmaskGroup:addNMG()` to merge Netmask groups
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13505
+
+    Add `getAddressInfo()` for asynchronous DNS resolution
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13506
+
+    Add an option to set the SSL proxy protocol TLV
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13509
+
+    Add Proxy Protocol v2 support to `TeeAction`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13515
+
+    Allow setting the action from `setSuffixMatchRule{,FFI}()`'s visitor
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13517
+
+    Allow enabling incoming PROXY protocol on a per-bind basis
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13520
+
+    Refactor the exponential back-off timer code
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC
+    :pullreq: 13524
+
+    Fix building with DoQ but without DoH or DoT
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13536
+
+    Detect and dismiss truncated UDP responses from a backend
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13537
+
+    Make the max size of entries in the packet cache configurable
+
+  .. change::
+    :tags: New Features, DNS over HTTP3, DNS over HTTPS
+    :pullreq: 13556
+
+    Add support for incoming DNS over HTTP/3
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13560
+
+    Spoof a raw response for ANY queries
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13564
+
+    Add `PayloadSizeRule` and `TCResponseAction`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13565
+
+    Add Lua FFI bindings: hashing arbitrary data and knowing if the query was received over IPv6
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13592
+
+    Add `QNameSuffixRule`
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 13594
+
+    Send a HTTP 400 response to HTTP/1.1 clients
+
+.. changelog::
   :version: 1.9.0-alpha3
   :released: 20th of October 2023
 

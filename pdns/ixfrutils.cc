@@ -23,13 +23,15 @@
 #include <cinttypes>
 #include <dirent.h>
 #include <cerrno>
+#include <sys/stat.h>
+
 #include "ixfrutils.hh"
 #include "sstuff.hh"
 #include "dnssecinfra.hh"
 #include "zoneparser-tng.hh"
 #include "dnsparser.hh"
 
-uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, shared_ptr<const SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
+uint32_t getSerialFromPrimary(const ComboAddress& primary, const DNSName& zone, shared_ptr<const SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, zone, QType::SOA);
@@ -43,8 +45,8 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
     addTSIG(pw, trc, tt.name, tt.secret, "", false);
   }
 
-  Socket s(master.sin4.sin_family, SOCK_DGRAM);
-  s.connect(master);
+  Socket s(primary.sin4.sin_family, SOCK_DGRAM);
+  s.connect(primary);
   string msg((const char*)&packet[0], packet.size());
   s.writen(msg);
 
@@ -75,18 +77,23 @@ uint32_t getSerialFromMaster(const ComboAddress& master, const DNSName& zone, sh
 
 uint32_t getSerialFromDir(const std::string& dir)
 {
-  uint32_t ret=0;
-  DIR* dirhdl=opendir(dir.c_str());
-  if(!dirhdl)
-    throw runtime_error("Could not open IXFR directory '" + dir + "': " + stringerror());
-  struct dirent *entry;
+  uint32_t ret = 0;
+  auto directoryError = pdns::visit_directory(dir, [&ret]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
+    try {
+      auto version = pdns::checked_stoi<uint32_t>(std::string(name));
+      if (std::to_string(version) == name) {
+        ret = std::max(version, ret);
+      }
+    }
+    catch (...) {
+    }
+    return true;
+  });
 
-  while((entry = readdir(dirhdl))) {
-    uint32_t num = atoi(entry->d_name);
-    if(std::to_string(num) == entry->d_name)
-      ret = max(num, ret);
+  if (directoryError) {
+    throw runtime_error("Could not open IXFR directory '" + dir + "': " + *directoryError);
   }
-  closedir(dirhdl);
+
   return ret;
 }
 
@@ -123,32 +130,35 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
 {
   DNSRecord soa;
   auto serial = getSerialFromRecords(records, soa);
-  string fname=directory +"/"+std::to_string(serial);
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen((fname+".partial").c_str(), "w"), fclose);
-  if (!fp) {
+  string fname = directory + "/" + std::to_string(serial);
+  /* ensure that the partial zone file will only be accessible by the current user, not even
+     by other users in the same group, and certainly not by other users. */
+  umask(S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+  auto filePtr = pdns::UniqueFilePtr(fopen((fname+".partial").c_str(), "w"));
+  if (!filePtr) {
     throw runtime_error("Unable to open file '"+fname+".partial' for writing: "+stringerror());
   }
 
   records_t soarecord;
   soarecord.insert(soa);
-  if (fprintf(fp.get(), "$ORIGIN %s\n", zone.toString().c_str()) < 0) {
+  if (fprintf(filePtr.get(), "$ORIGIN %s\n", zone.toString().c_str()) < 0) {
     string error = "Error writing to zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + stringerror();
-    fp.reset();
+    filePtr.reset();
     unlink((fname+".partial").c_str());
     throw std::runtime_error(error);
   }
 
   try {
-    writeRecords(fp.get(), soarecord);
-    writeRecords(fp.get(), records);
-    writeRecords(fp.get(), soarecord);
+    writeRecords(filePtr.get(), soarecord);
+    writeRecords(filePtr.get(), records);
+    writeRecords(filePtr.get(), soarecord);
   } catch (runtime_error &e) {
-    fp.reset();
+    filePtr.reset();
     unlink((fname+".partial").c_str());
     throw runtime_error("Error closing zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + e.what());
   }
 
-  if (fclose(fp.release()) != 0) {
+  if (fclose(filePtr.release()) != 0) {
     string error = "Error closing zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + stringerror();
     unlink((fname+".partial").c_str());
     throw std::runtime_error(error);

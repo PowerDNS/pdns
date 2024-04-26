@@ -116,7 +116,10 @@ def pdnsutil_rectify(zonename):
     pdnsutil('rectify-zone', zonename)
 
 def sdig(*args):
-    sdig_command_line = [SDIG, '127.0.0.1', str(DNSPORT)] + list(args)
+    if is_auth():
+        sdig_command_line = [SDIG, '127.0.0.1', str(DNSPORT)] + list(args)
+    else:
+        sdig_command_line = [SDIG, '127.0.0.1', str(DNSPORT)] + list(args) + ["recurse"]
     try:
         return subprocess.check_output(sdig_command_line).decode('utf-8')
     except subprocess.CalledProcessError as except_inst:

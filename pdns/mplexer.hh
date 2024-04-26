@@ -73,8 +73,7 @@ public:
   FDMultiplexer() :
     d_inrun(false)
   {}
-  virtual ~FDMultiplexer()
-  {}
+  virtual ~FDMultiplexer() = default;
 
   // The maximum number of events processed in a single run, not the maximum of watched descriptors
   static constexpr unsigned int s_maxevents = 1024;

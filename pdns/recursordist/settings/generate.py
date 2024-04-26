@@ -163,9 +163,21 @@ def get_default_newdoc_value(typ, val):
         return '(empty)'
     if typ == LType.String:
         return '``' + val + '``'
-    if val == '':
-        return '``[]``'
-    return '``[' + val + ']``'
+    parts = re.split('[ \t,]+', val)
+    if len(parts) > 0:
+        ret = ''
+        for part in parts:
+            if part == '':
+                continue
+            if ret != '':
+                ret += ', '
+            if ':' in part or '!' in part:
+                ret += "'" + part + "'"
+            else:
+                ret += part
+    else:
+        ret = ''
+    return '``[' + ret + ']``'
 
 def get_rust_type(typ):
     """Determine which Rust type is used for a logical type"""
@@ -193,6 +205,9 @@ def quote(arg):
     """Return a quoted string"""
     return '"' + arg + '"'
 
+def isEnvVar(name):
+    return name in ('SYSCONFDIR', 'NODCACHEDIRNOD', 'NODCACHEDIRUDR')
+
 def gen_cxx_defineoldsettings(file, entries):
     """Generate C++ code to declare old-style settings"""
     file.write('void pdns::settings::rec::defineOldStyleSettings()\n{\n')
@@ -209,7 +224,7 @@ def gen_cxx_defineoldsettings(file, entries):
         elif entry['type'] == LType.Command:
             file.write(f"  ::arg().setCmd({oldname}, {helptxt});\n")
         else:
-            cxxdef = 'SYSCONFDIR' if entry['default'] == 'SYSCONFDIR' else quote(entry['default'])
+            cxxdef = entry['default'] if isEnvVar(entry['default']) else quote(entry['default'])
             file.write(f"  ::arg().set({oldname}, {helptxt}) = {cxxdef};\n")
     file.write('}\n\n')
 
@@ -403,7 +418,8 @@ def gen_rust_default_functions(entry, name, rust_type):
         return gen_rust_authzonevec_default_functions(name)
     ret = f'// DEFAULT HANDLING for {name}\n'
     ret += f'fn default_value_{name}() -> {rust_type} {{\n'
-    rustdef = 'env!("SYSCONFDIR")' if entry['default'] == 'SYSCONFDIR' else quote(entry['default'])
+    defvalue = entry['default']
+    rustdef = f'env!("{defvalue}")' if isEnvVar(defvalue) else quote(defvalue)
     ret += f"    String::from({rustdef})\n"
     ret += '}\n'
     if rust_type == 'String':

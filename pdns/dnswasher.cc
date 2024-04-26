@@ -57,9 +57,7 @@ po::variables_map g_vm;
 class IPObfuscator
 {
 public:
-  virtual ~IPObfuscator()
-  {
-  }
+  virtual ~IPObfuscator() = default;
   virtual uint32_t obf4(uint32_t orig)=0;
   virtual struct in6_addr obf6(const struct in6_addr& orig)=0;
 };
@@ -70,9 +68,6 @@ public:
   IPSeqObfuscator() : d_romap(d_ipmap), d_ro6map(d_ip6map), d_counter(0)
   {
   }
-
-  ~IPSeqObfuscator()
-  {}
 
   static std::unique_ptr<IPObfuscator> make()
   {
@@ -132,9 +127,7 @@ public:
     }
   }
 
-  ~IPCipherObfuscator()
-  {}
-  static std::unique_ptr<IPObfuscator> make(std::string key, bool decrypt)
+  static std::unique_ptr<IPObfuscator> make(const std::string& key, bool decrypt)
   {
     return std::make_unique<IPCipherObfuscator>(key, decrypt);
   }

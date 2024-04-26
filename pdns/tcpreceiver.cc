@@ -131,12 +131,14 @@ static int readnWithTimeout(int fd, void* buffer, unsigned int n, unsigned int i
     bytes -= ret;
     if (totalTimeout) {
       time_t now = time(nullptr);
-      unsigned int elapsed = now - start;
-      if (elapsed >= remainingTotal) {
+      const auto elapsed = now - start;
+      if (elapsed >= static_cast<time_t>(remainingTotal)) {
         throw NetworkError("Timeout while reading data");
       }
       start = now;
-      remainingTotal -= elapsed;
+      if (elapsed > 0) {
+        remainingTotal -= elapsed;
+      }
     }
   }
   return n;
@@ -200,7 +202,9 @@ static bool maxConnectionDurationReached(unsigned int maxConnectionDuration, tim
     if (elapsed >= maxConnectionDuration) {
       return true;
     }
-    remainingTime = maxConnectionDuration - elapsed;
+    if (elapsed > 0) {
+      remainingTime = static_cast<unsigned int>(maxConnectionDuration - elapsed);
+    }
   }
   return false;
 }
@@ -363,11 +367,13 @@ void TCPNameserver::doConnection(int fd)
         S.inc("tcp-cookie-queries");
 
       if(packet->qtype.getCode()==QType::AXFR) {
+        packet->d_xfr=true;
         doAXFR(packet->qdomain, packet, fd);
         continue;
       }
 
       if(packet->qtype.getCode()==QType::IXFR) {
+        packet->d_xfr=true;
         doIXFR(packet, fd);
         continue;
       }
@@ -1299,10 +1305,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
   return doAXFR(q->qdomain, q, outsock);
 }
 
-TCPNameserver::~TCPNameserver()
-{
-}
-
+TCPNameserver::~TCPNameserver() = default;
 TCPNameserver::TCPNameserver()
 {
   d_maxTransactionsPerConn = ::arg().asNum("max-tcp-transactions-per-conn");

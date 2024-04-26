@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "base64.hh"
 #include "dnsdist-doh-common.hh"
 #include "dnsdist-rules.hh"
 
@@ -114,7 +115,9 @@ size_t DOHFrontend::getTicketsKeysCount()
 
 void DOHFrontend::reloadCertificates()
 {
-  d_tlsContext.setupTLS();
+  if (isHTTPS()) {
+    d_tlsContext.setupTLS();
+  }
 }
 
 void DOHFrontend::setup()
@@ -127,3 +130,66 @@ void DOHFrontend::setup()
 }
 
 #endif /* HAVE_DNS_OVER_HTTPS */
+
+namespace dnsdist::doh
+{
+std::optional<PacketBuffer> getPayloadFromPath(const std::string_view& path)
+{
+  std::optional<PacketBuffer> result{std::nullopt};
+
+  if (path.size() <= 5) {
+    return result;
+  }
+
+  auto pos = path.find("?dns=");
+  if (pos == string::npos) {
+    pos = path.find("&dns=");
+  }
+
+  if (pos == string::npos) {
+    return result;
+  }
+
+  // need to base64url decode this
+  string sdns;
+  const size_t payloadSize = path.size() - pos - 5;
+  size_t neededPadding = 0;
+  switch (payloadSize % 4) {
+  case 2:
+    neededPadding = 2;
+    break;
+  case 3:
+    neededPadding = 1;
+    break;
+  }
+  sdns.reserve(payloadSize + neededPadding);
+  sdns = path.substr(pos + 5);
+  for (auto& entry : sdns) {
+    switch (entry) {
+    case '-':
+      entry = '+';
+      break;
+    case '_':
+      entry = '/';
+      break;
+    }
+  }
+
+  if (neededPadding != 0) {
+    // re-add padding that may have been missing
+    sdns.append(neededPadding, '=');
+  }
+
+  PacketBuffer decoded;
+  /* rough estimate so we hopefully don't need a new allocation later */
+  /* We reserve at few additional bytes to be able to add EDNS later */
+  const size_t estimate = ((sdns.size() * 3) / 4);
+  decoded.reserve(estimate);
+  if (B64Decode(sdns, decoded) < 0) {
+    return result;
+  }
+
+  result = std::move(decoded);
+  return result;
+}
+}

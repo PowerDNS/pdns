@@ -79,7 +79,7 @@ Phase: new DS
 
 Our zone is currently fully signed with two algorithms, and keys for both algorithms are published.
 This means that a DS for either the old or new algorithm is sufficient for validation.
-So, we can switch the DS - there is no need to have DSes for both algorithms in the parent zone.
+We can now switch the DS - there is no need to have DSes for both algorithms in the parent zone.
 
 Using ``pdnsutil show-zone example.com`` or ``pdnsutil export-zone-ds example.com``, extract the new DNSKEYs or new DSes, depending on what the parent zone operator takes as input.
 Note that these commands print DNSKEYs and/or DSes for both the old and the new algorithm.
@@ -128,5 +128,6 @@ Alternatively, you can use ``remove-zone-key`` to remove all traces of the old k
 Conclusion
 ----------
 
-In another hours-to-a-few-days, the old signatures will have expired from caches.
+In another hours-to-a-few-days, the old signatures will expire from caches.
+
 Your algorithm roll is complete.

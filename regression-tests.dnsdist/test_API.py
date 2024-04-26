@@ -2,6 +2,7 @@
 import os.path
 
 import base64
+import dns
 import json
 import requests
 import socket
@@ -33,13 +34,14 @@ class APITestsBase(DNSDistTest):
                         'latency-tcp-avg10000', 'latency-tcp-avg1000000', 'latency-dot-avg100', 'latency-dot-avg1000',
                         'latency-dot-avg10000', 'latency-dot-avg1000000', 'latency-doh-avg100', 'latency-doh-avg1000',
                         'latency-doh-avg10000', 'latency-doh-avg1000000', 'latency-doq-avg100', 'latency-doq-avg1000',
-                        'latency-doq-avg10000', 'latency-doq-avg1000000','uptime', 'real-memory-usage', 'noncompliant-queries',
+                        'latency-doq-avg10000', 'latency-doq-avg1000000', 'latency-doh3-avg100', 'latency-doh3-avg1000',
+                        'latency-doh3-avg10000', 'latency-doh3-avg1000000','uptime', 'real-memory-usage', 'noncompliant-queries',
                         'noncompliant-responses', 'rdqueries', 'empty-queries', 'cache-hits',
                         'cache-misses', 'cpu-iowait', 'cpu-steal', 'cpu-sys-msec', 'cpu-user-msec', 'fd-usage', 'dyn-blocked',
                         'dyn-block-nmg-size', 'rule-servfail', 'rule-truncated', 'security-status',
                         'udp-in-csum-errors', 'udp-in-errors', 'udp-noport-errors', 'udp-recvbuf-errors', 'udp-sndbuf-errors',
                         'udp6-in-errors', 'udp6-recvbuf-errors', 'udp6-sndbuf-errors', 'udp6-noport-errors', 'udp6-in-csum-errors',
-                        'doh-query-pipe-full', 'doh-response-pipe-full', 'doq-response-pipe-full', 'proxy-protocol-invalid', 'tcp-listen-overflows',
+                        'doh-query-pipe-full', 'doh-response-pipe-full', 'doq-response-pipe-full', 'doh3-response-pipe-full', 'proxy-protocol-invalid', 'tcp-listen-overflows',
                         'outgoing-doh-query-pipe-full', 'tcp-query-pipe-full', 'tcp-cross-protocol-query-pipe-full',
                         'tcp-cross-protocol-response-pipe-full']
     _verboseMode = True
@@ -350,6 +352,59 @@ class TestAPIBasics(APITestsBase):
 
             for key in ['blocks']:
                 self.assertTrue(content[key] >= 0)
+
+    def testServersLocalhostRings(self):
+        """
+        API: /api/v1/servers/localhost/rings
+        """
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost/rings'
+        expectedValues = ['age', 'id', 'name', 'requestor', 'size', 'qtype', 'protocol', 'rd']
+        expectedResponseValues = expectedValues + ['latency', 'rcode', 'tc', 'aa', 'answers', 'backend']
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        self.assertIn('queries', content)
+        self.assertIn('responses', content)
+        self.assertEqual(len(content['queries']), 0)
+        self.assertEqual(len(content['responses']), 0)
+
+        name = 'simple.api.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        self.assertIn('queries', content)
+        self.assertIn('responses', content)
+        self.assertEqual(len(content['queries']), 2)
+        self.assertEqual(len(content['responses']), 2)
+        for entry in content['queries']:
+            for value in expectedValues:
+                self.assertIn(value, entry)
+        for entry in content['responses']:
+            for value in expectedResponseValues:
+                self.assertIn(value, entry)
 
 class TestAPIServerDown(APITestsBase):
     __test__ = True

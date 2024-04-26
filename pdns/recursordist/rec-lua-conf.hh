@@ -29,6 +29,7 @@
 #include "rec-zonetocache.hh"
 #include "logging.hh"
 #include "fstrm_logger.hh"
+#include "rpzloader.hh"
 
 struct ProtobufExportConfig
 {
@@ -125,8 +126,7 @@ extern GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
 struct luaConfigDelayedThreads
 {
-  // Please make sure that the tuple below only contains value types since they are used as parameters in a thread ct
-  std::vector<std::tuple<std::vector<ComboAddress>, boost::optional<DNSFilterEngine::Policy>, bool, uint32_t, size_t, TSIGTriplet, size_t, ComboAddress, uint16_t, uint32_t, std::shared_ptr<const SOARecordContent>, std::string>> rpzPrimaryThreads;
+  std::vector<RPZTrackerParams> rpzPrimaryThreads;
 };
 
 void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& delayedThreads, ProxyMapping&);

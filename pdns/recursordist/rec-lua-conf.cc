@@ -109,8 +109,11 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
     defpol->d_kind = (DNSFilterEngine::PolicyKind)boost::get<uint32_t>(have["defpol"]);
     defpol->setName(polName);
     if (defpol->d_kind == DNSFilterEngine::PolicyKind::Custom) {
-      defpol->d_custom.push_back(DNSRecordContent::mastermake(QType::CNAME, QClass::IN,
-                                                              boost::get<string>(have["defcontent"])));
+      if (!defpol->d_custom) {
+        defpol->d_custom = make_unique<DNSFilterEngine::Policy::CustomData>();
+      }
+      defpol->d_custom->push_back(DNSRecordContent::make(QType::CNAME, QClass::IN,
+                                                         boost::get<string>(have["defcontent"])));
 
       if (have.count("defttl") != 0) {
         defpol->d_ttl = static_cast<int32_t>(boost::get<uint32_t>(have["defttl"]));
@@ -134,7 +137,7 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
     }
   }
   if (have.count("tags") != 0) {
-    const auto tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have["tags"]);
+    const auto& tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have["tags"]);
     std::unordered_set<std::string> tags;
     for (const auto& tag : tagsTable) {
       tags.insert(tag.second);
@@ -157,6 +160,9 @@ static void parseRPZParameters(rpzOptions_t& have, std::shared_ptr<DNSFilterEngi
   }
   if (have.count("includeSOA") != 0) {
     zone->setIncludeSOA(boost::get<bool>(have["includeSOA"]));
+  }
+  if (have.count("ignoreDuplicates") != 0) {
+    zone->setIgnoreDuplicates(boost::get<bool>(have["ignoreDuplicates"]));
   }
 }
 
@@ -384,7 +390,7 @@ static void rpzPrimary(LuaConfigItems& lci, luaConfigDelayedThreads& delayedThre
          lci.d_slog->error(Logr::Error, e.reason, "Exception configuring 'rpzPrimary'", Logging::Loggable("PDNSException")));
   }
 
-  delayedThreads.rpzPrimaryThreads.emplace_back(primaries, defpol, defpolOverrideLocal, maxTTL, zoneIdx, tt, maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, sr, dumpFile);
+  delayedThreads.rpzPrimaryThreads.emplace_back(RPZTrackerParams{std::move(primaries), std::move(defpol), defpolOverrideLocal, maxTTL, zoneIdx, std::move(tt), maxReceivedXFRMBytes, localAddress, axfrTimeout, refresh, std::move(sr), std::move(dumpFile)});
 }
 
 // A wrapper class that loads the standard Lua defintions into the context, so that we can use things like pdns.A
@@ -463,7 +469,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
            log->info(Logr::Info, "Loading RPZ from file"));
       zone->setName(polName);
       loadRPZFromFile(filename, zone, defpol, defpolOverrideLocal, maxTTL);
-      lci.dfe.addZone(zone);
+      lci.dfe.addZone(std::move(zone));
       SLOG(g_log << Logger::Warning << "Done loading RPZ from file '" << filename << "'" << endl,
            log->info(Logr::Info,  "Done loading RPZ from file"));
     }
@@ -557,7 +563,7 @@ void loadRecursorLuaConfig(const std::string& fname, luaConfigDelayedThreads& de
         }
       }
 
-      lci.ztcConfigs[validZoneName] = conf;
+      lci.ztcConfigs[validZoneName] = std::move(conf);
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << "Problem configuring zoneToCache for zone '" << zoneName << "': " << e.what() << endl,
@@ -901,8 +907,8 @@ void startLuaConfigDelayedThreads(const luaConfigDelayedThreads& delayedThreads,
     try {
       // The get calls all return a value object here. That is essential, since we want copies so that RPZIXFRTracker gets values
       // with the proper lifetime.
-      std::thread t(RPZIXFRTracker, std::get<0>(rpzPrimary), std::get<1>(rpzPrimary), std::get<2>(rpzPrimary), std::get<3>(rpzPrimary), std::get<4>(rpzPrimary), std::get<5>(rpzPrimary), std::get<6>(rpzPrimary) * 1024 * 1024, std::get<7>(rpzPrimary), std::get<8>(rpzPrimary), std::get<9>(rpzPrimary), std::get<10>(rpzPrimary), std::get<11>(rpzPrimary), generation);
-      t.detach();
+      std::thread theThread(RPZIXFRTracker, rpzPrimary, generation);
+      theThread.detach();
     }
     catch (const std::exception& e) {
       SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.what() << endl,

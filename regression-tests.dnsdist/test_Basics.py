@@ -13,7 +13,7 @@ class TestBasics(DNSDistTest):
     mySMN = newSuffixMatchNode()
     mySMN:add(newDNSName("nameAndQtype.tests.powerdns.com."))
     addAction(AndRule{SuffixMatchNodeRule(mySMN), QTypeRule("TXT")}, RCodeAction(DNSRCode.NOTIMP))
-    addAction(makeRule("drop.test.powerdns.com."), DropAction())
+    addAction(QNameSuffixRule({"drop.test.powerdns.com.", "drop2.test.powerdns.com."}), DropAction())
     addAction(AndRule({QTypeRule(DNSQType.A),QNameRule("ds9a.nl")}), SpoofAction("1.2.3.4"))
     addAction(newDNSName("dnsname.addaction.powerdns.com."), RCodeAction(DNSRCode.REFUSED))
     addAction({newDNSName("dnsname-table1.addaction.powerdns.com."), newDNSName("dnsname-table2.addaction.powerdns.com.")}, RCodeAction(DNSRCode.REFUSED))
@@ -27,12 +27,12 @@ class TestBasics(DNSDistTest):
         which is dropped by configuration. We expect
         no response.
         """
-        name = 'drop.test.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
-        for method in ("sendUDPQuery", "sendTCPQuery"):
-            sender = getattr(self, method)
-            (_, receivedResponse) = sender(query, response=None, useQueue=False)
-            self.assertEqual(receivedResponse, None)
+        for name in ['drop.test.powerdns.com.', 'drop2.test.powerdns.com.']:
+            query = dns.message.make_query(name, 'A', 'IN')
+            for method in ("sendUDPQuery", "sendTCPQuery"):
+                sender = getattr(self, method)
+                (_, receivedResponse) = sender(query, response=None, useQueue=False)
+                self.assertEqual(receivedResponse, None)
 
     def testAWithECS(self):
         """

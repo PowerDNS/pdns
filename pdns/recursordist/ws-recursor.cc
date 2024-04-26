@@ -86,75 +86,15 @@ static void apiWriteConfigFile(const string& filebasename, const string& content
   ofconf.close();
 }
 
-static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, HttpResponse* resp)
+static void apiServerConfigACLGET(const std::string& aclType, HttpRequest* /* req */, HttpResponse* resp)
 {
-  if (req->method == "PUT") {
-    Json document = req->json();
-
-    auto jlist = document["value"];
-    if (!jlist.is_array()) {
-      throw ApiException("'value' must be an array");
-    }
-
-    if (g_yamlSettings) {
-      ::rust::Vec<::rust::String> vec;
-      for (const auto& value : jlist.array_items()) {
-        vec.emplace_back(value.string_value());
-      }
-
-      try {
-        ::pdns::rust::settings::rec::validate_allow_from(aclType, vec);
-      }
-      catch (const ::rust::Error& e) {
-        throw ApiException(string("Unable to convert: ") + e.what());
-      }
-      ::rust::String yaml;
-      if (aclType == "allow-from") {
-        yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_from", "allow_from_file", vec);
-      }
-      else {
-        yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_notify_from", "allow_notify_from_file", vec);
-      }
-      apiWriteConfigFile(aclType, string(yaml));
-    }
-    else {
-      NetmaskGroup nmg;
-      for (const auto& value : jlist.array_items()) {
-        try {
-          nmg.addMask(value.string_value());
-        }
-        catch (const NetmaskException& e) {
-          throw ApiException(e.reason);
-        }
-      }
-
-      ostringstream strStream;
-
-      // Clear <foo>-from-file if set, so our changes take effect
-      strStream << aclType << "-file=" << endl;
-
-      // Clear ACL setting, and provide a "parent" value
-      strStream << aclType << "=" << endl;
-      strStream << aclType << "+=" << nmg.toString() << endl;
-
-      apiWriteConfigFile(aclType, strStream.str());
-    }
-
-    parseACLs();
-
-    // fall through to GET
-  }
-  else if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
-  }
-
   // Return currently configured ACLs
   vector<string> entries;
   if (t_allowFrom && aclType == "allow-from") {
-    t_allowFrom->toStringVector(&entries);
+    entries = t_allowFrom->toStringVector();
   }
   else if (t_allowNotifyFrom && aclType == "allow-notify-from") {
-    t_allowNotifyFrom->toStringVector(&entries);
+    entries = t_allowNotifyFrom->toStringVector();
   }
 
   resp->setJsonBody(Json::object{
@@ -163,14 +103,83 @@ static void apiServerConfigACL(const std::string& aclType, HttpRequest* req, Htt
   });
 }
 
-static void apiServerConfigAllowFrom(HttpRequest* req, HttpResponse* resp)
+static void apiServerConfigACLPUT(const std::string& aclType, HttpRequest* req, HttpResponse* resp)
 {
-  apiServerConfigACL("allow-from", req, resp);
+  const auto& document = req->json();
+
+  const auto& jlist = document["value"];
+
+  if (!jlist.is_array()) {
+    throw ApiException("'value' must be an array");
+  }
+
+  if (g_yamlSettings) {
+    ::rust::Vec<::rust::String> vec;
+    for (const auto& value : jlist.array_items()) {
+      vec.emplace_back(value.string_value());
+    }
+
+    try {
+      ::pdns::rust::settings::rec::validate_allow_from(aclType, vec);
+    }
+    catch (const ::rust::Error& e) {
+      throw ApiException(string("Unable to convert: ") + e.what());
+    }
+    ::rust::String yaml;
+    if (aclType == "allow-from") {
+      yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_from", "allow_from_file", vec);
+    }
+    else {
+      yaml = pdns::rust::settings::rec::allow_from_to_yaml_string_incoming("allow_notify_from", "allow_notify_from_file", vec);
+    }
+    apiWriteConfigFile(aclType, string(yaml));
+  }
+  else {
+    NetmaskGroup nmg;
+    for (const auto& value : jlist.array_items()) {
+      try {
+        nmg.addMask(value.string_value());
+      }
+      catch (const NetmaskException& e) {
+        throw ApiException(e.reason);
+      }
+    }
+
+    ostringstream strStream;
+
+    // Clear <foo>-from-file if set, so our changes take effect
+    strStream << aclType << "-file=" << endl;
+
+    // Clear ACL setting, and provide a "parent" value
+    strStream << aclType << "=" << endl;
+    strStream << aclType << "+=" << nmg.toString() << endl;
+
+    apiWriteConfigFile(aclType, strStream.str());
+  }
+
+  parseACLs();
+
+  apiServerConfigACLGET(aclType, req, resp);
 }
 
-static void apiServerConfigAllowNotifyFrom(HttpRequest* req, HttpResponse* resp)
+static void apiServerConfigAllowFromGET(HttpRequest* req, HttpResponse* resp)
 {
-  apiServerConfigACL("allow-notify-from", req, resp);
+  apiServerConfigACLGET("allow-from", req, resp);
+}
+
+static void apiServerConfigAllowNotifyFromGET(HttpRequest* req, HttpResponse* resp)
+{
+  apiServerConfigACLGET("allow-notify-from", req, resp);
+}
+
+static void apiServerConfigAllowFromPUT(HttpRequest* req, HttpResponse* resp)
+{
+  apiServerConfigACLPUT("allow-from", req, resp);
+}
+
+static void apiServerConfigAllowNotifyFromPUT(HttpRequest* req, HttpResponse* resp)
+{
+  apiServerConfigACLPUT("allow-notify-from", req, resp);
 }
 
 static void fillZone(const DNSName& zonename, HttpResponse* resp)
@@ -184,7 +193,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
 
   Json::array servers;
   for (const ComboAddress& server : zone.d_servers) {
-    servers.push_back(server.toStringWithPort());
+    servers.emplace_back(server.toStringWithPort());
   }
 
   Json::array records;
@@ -260,7 +269,7 @@ static void doCreateZone(const Json& document)
       pdns::rust::settings::rec::AuthZone authzone;
       authzone.zone = zonename;
       authzone.file = zonefilename;
-      pdns::rust::settings::rec::api_add_auth_zone(yamlAPiZonesFile, authzone);
+      pdns::rust::settings::rec::api_add_auth_zone(yamlAPiZonesFile, std::move(authzone));
     }
     else {
       apiWriteConfigFile(confbasename, "auth-zones+=" + zonename + "=" + zonefilename);
@@ -275,7 +284,7 @@ static void doCreateZone(const Json& document)
       for (const auto& value : document["servers"].array_items()) {
         forward.forwarders.emplace_back(value.string_value());
       }
-      pdns::rust::settings::rec::api_add_forward_zone(yamlAPiZonesFile, forward);
+      pdns::rust::settings::rec::api_add_forward_zone(yamlAPiZonesFile, std::move(forward));
     }
     else {
       string serverlist;
@@ -337,39 +346,35 @@ static bool doDeleteZone(const DNSName& zonename)
   return true;
 }
 
-static void apiServerZones(HttpRequest* req, HttpResponse* resp)
+static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method == "POST") {
-    if (::arg()["api-config-dir"].empty()) {
-      throw ApiException("Config Option \"api-config-dir\" must be set");
-    }
-
-    Json document = req->json();
-
-    DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
-
-    auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
-    if (iter != SyncRes::t_sstorage.domainmap->end()) {
-      throw ApiException("Zone already exists");
-    }
-
-    doCreateZone(document);
-    reloadZoneConfiguration(g_yamlSettings);
-    fillZone(zonename, resp);
-    resp->status = 201;
-    return;
+  if (::arg()["api-config-dir"].empty()) {
+    throw ApiException("Config Option \"api-config-dir\" must be set");
   }
 
-  if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
+  Json document = req->json();
+
+  DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
+
+  const auto& iter = SyncRes::t_sstorage.domainmap->find(zonename);
+  if (iter != SyncRes::t_sstorage.domainmap->cend()) {
+    throw ApiException("Zone already exists");
   }
 
+  doCreateZone(document);
+  reloadZoneConfiguration(g_yamlSettings);
+  fillZone(zonename, resp);
+  resp->status = 201;
+}
+
+static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
+{
   Json::array doc;
-  for (const SyncRes::domainmap_t::value_type& val : *SyncRes::t_sstorage.domainmap) {
+  for (const auto& val : *SyncRes::t_sstorage.domainmap) {
     const SyncRes::AuthDomain& zone = val.second;
     Json::array servers;
-    for (const ComboAddress& server : zone.d_servers) {
-      servers.push_back(server.toStringWithPort());
+    for (const auto& server : zone.d_servers) {
+      servers.emplace_back(server.toStringWithPort());
     }
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     string zoneId = apiZoneNameToId(val.first);
@@ -384,48 +389,48 @@ static void apiServerZones(HttpRequest* req, HttpResponse* resp)
   resp->setJsonBody(doc);
 }
 
-static void apiServerZoneDetail(HttpRequest* req, HttpResponse* resp)
+static inline DNSName findZoneById(HttpRequest* req)
 {
-  DNSName zonename = apiZoneIdToName(req->parameters["id"]);
-
-  auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
-  if (iter == SyncRes::t_sstorage.domainmap->end()) {
+  auto zonename = apiZoneIdToName(req->parameters["id"]);
+  if (SyncRes::t_sstorage.domainmap->find(zonename) == SyncRes::t_sstorage.domainmap->end()) {
     throw ApiException("Could not find domain '" + zonename.toLogString() + "'");
   }
+  return zonename;
+}
 
-  if (req->method == "PUT") {
-    Json document = req->json();
+static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
+{
+  auto zonename = findZoneById(req);
+  const auto& document = req->json();
 
-    doDeleteZone(zonename);
-    doCreateZone(document);
-    reloadZoneConfiguration(g_yamlSettings);
-    resp->body = "";
-    resp->status = 204; // No Content, but indicate success
-  }
-  else if (req->method == "DELETE") {
-    if (!doDeleteZone(zonename)) {
-      throw ApiException("Deleting domain failed");
-    }
+  doDeleteZone(zonename);
+  doCreateZone(document);
+  reloadZoneConfiguration(g_yamlSettings);
+  resp->body = "";
+  resp->status = 204; // No Content, but indicate success
+}
 
-    reloadZoneConfiguration(g_yamlSettings);
-    // empty body on success
-    resp->body = "";
-    resp->status = 204; // No Content: declare that the zone is gone now
+static void apiServerZoneDetailDELETE(HttpRequest* req, HttpResponse* resp)
+{
+  auto zonename = findZoneById(req);
+  if (!doDeleteZone(zonename)) {
+    throw ApiException("Deleting domain failed");
   }
-  else if (req->method == "GET") {
-    fillZone(zonename, resp);
-  }
-  else {
-    throw HttpMethodNotAllowedException();
-  }
+
+  reloadZoneConfiguration(g_yamlSettings);
+  // empty body on success
+  resp->body = "";
+  resp->status = 204; // No Content: declare that the zone is gone now
+}
+
+static void apiServerZoneDetailGET(HttpRequest* req, HttpResponse* resp)
+{
+  auto zonename = findZoneById(req);
+  fillZone(zonename, resp);
 }
 
 static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
-  }
-
   string qVar = req->getvars["q"];
   if (qVar.empty()) {
     throw ApiException("Query q can't be blank");
@@ -467,10 +472,6 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
 {
-  if (req->method != "PUT") {
-    throw HttpMethodNotAllowedException();
-  }
-
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
   bool subtree = req->getvars.count("subtree") > 0 && req->getvars["subtree"] == "true";
   uint16_t qtype = 0xffff;
@@ -484,12 +485,8 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
     {"result", "Flushed cache."}});
 }
 
-static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp)
+static void apiServerRPZStats(HttpRequest* /* req */, HttpResponse* resp)
 {
-  if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
-  }
-
   auto luaconf = g_luaconfs.getLocal();
   auto numZones = luaconf->dfe.size();
 
@@ -518,13 +515,9 @@ static void apiServerRPZStats(HttpRequest* req, HttpResponse* resp)
   resp->setJsonBody(ret);
 }
 
-static void prometheusMetrics(HttpRequest* req, HttpResponse* resp)
+static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
 {
   static MetricDefinitionStorage s_metricDefinitions;
-
-  if (req->method != "GET") {
-    throw HttpMethodNotAllowedException();
-  }
 
   std::ostringstream output;
 
@@ -616,7 +609,7 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
 const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics = {
   {"all-outqueries",
    MetricDefinition(PrometheusMetricType::counter,
-                    "Number of outgoing UDP queries since starting")},
+                    "Number of outgoing queries since starting")},
 
   {"answers-slow",
    MetricDefinition(PrometheusMetricType::counter,
@@ -1303,27 +1296,32 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
 
   // legacy dispatch
   d_ws->registerApiHandler(
-    "/jsonstat", [](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, true);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFrom);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", &apiServerConfigAllowNotifyFrom);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", apiServerRPZStats);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", apiServerStatistics, true);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetail);
-  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZones);
-  d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail, true);
-  d_ws->registerApiHandler("/api/v1/servers", apiServer);
-  d_ws->registerApiHandler("/api/v1", apiDiscoveryV1);
-  d_ws->registerApiHandler("/api", apiDiscovery);
+    "/jsonstat", [](HttpRequest* req, HttpResponse* resp) { jsonstat(req, resp); }, "GET", true);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/cache/flush", apiServerCacheFlush, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFromPUT, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-from", apiServerConfigAllowFromGET, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", apiServerConfigAllowNotifyFromGET, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config/allow-notify-from", apiServerConfigAllowNotifyFromPUT, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/config", apiServerConfig, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/rpzstatistics", apiServerRPZStats, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/search-data", apiServerSearchData, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/statistics", apiServerStatistics, "GET", true);
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailGET, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailPUT, "PUT");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>", apiServerZoneDetailDELETE, "DELETE");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZonesGET, "GET");
+  d_ws->registerApiHandler("/api/v1/servers/localhost/zones", apiServerZonesPOST, "POST");
+  d_ws->registerApiHandler("/api/v1/servers/localhost", apiServerDetail, "GET", true);
+  d_ws->registerApiHandler("/api/v1/servers", apiServer, "GET");
+  d_ws->registerApiHandler("/api/v1", apiDiscoveryV1, "GET");
+  d_ws->registerApiHandler("/api", apiDiscovery, "GET");
 
   for (const auto& url : g_urlmap) {
-    d_ws->registerWebHandler("/" + url.first, serveStuff);
+    d_ws->registerWebHandler("/" + url.first, serveStuff, "GET");
   }
 
-  d_ws->registerWebHandler("/", serveStuff);
-  d_ws->registerWebHandler("/metrics", prometheusMetrics);
+  d_ws->registerWebHandler("/", serveStuff, "GET");
+  d_ws->registerWebHandler("/metrics", prometheusMetrics, "GET");
   d_ws->go();
 }
 

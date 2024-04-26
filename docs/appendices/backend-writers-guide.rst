@@ -217,7 +217,7 @@ furthermore, only about its A record:
     public:
       RandomLoader()
       {
-        BackendMakers().report(new RandomFactory);
+        BackendMakers().report(std::make_unique<RandomFactory>());
         g_log << Logger::Info << "[randombackend] This is the random backend version " VERSION " reporting" << endl;
       }
     };
@@ -905,6 +905,7 @@ In order for a backend to support DNSSEC, quite a few number of additional opera
 .. cpp:function:: virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 
   Asks the names before and after qname for NSEC and NSEC3. The qname will be hashed when using NSEC3. Care must be taken to handle wrap-around when qname is the first or last in the ordered list of zone names.
+  Please note that in case the requested name is present in the zone, it should be returned as the "before" name.
 
 .. cpp:function:: virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY)
 

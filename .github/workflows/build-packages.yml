@@ -23,6 +23,7 @@ on:
           debian-bookworm
           ubuntu-focal
           ubuntu-jammy
+          ubuntu-noble
       ref:
         description: git ref to checkout
         type: string
@@ -76,9 +77,10 @@ jobs:
       pkghashes-debian-bookworm: ${{ steps.pkghashes.outputs.pkghashes-debian-bookworm }}
       pkghashes-ubuntu-focal: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-focal }}
       pkghashes-ubuntu-jammy: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-jammy }}
+      pkghashes-ubuntu-noble: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-noble }}
       srchashes: ${{ steps.srchashes.outputs.srchashes }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # for correct version numbers
           submodules: recursive
@@ -90,7 +92,7 @@ jobs:
           echo "version=$(readlink builder/tmp/latest)" >> $GITHUB_OUTPUT
         id: getversion
       - name: Upload packages as GH artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
           path: built_pkgs/
@@ -158,7 +160,7 @@ jobs:
       actions: read   # To read the workflow path.
       id-token: write # To sign the provenance.
       contents: write # To be able to upload assets as release artifacts
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.10.0
     with:
       base64-subjects: "${{ needs.build.outputs[format('pkghashes-{0}', matrix.os)] }}"
       upload-assets: false
@@ -171,7 +173,7 @@ jobs:
       actions: read   # To read the workflow path.
       id-token: write # To sign the provenance.
       contents: write # To be able to upload assets as release artifacts
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.10.0
     with:
       base64-subjects: "${{ needs.build.outputs.srchashes }}"
       upload-assets: false
@@ -187,12 +189,12 @@ jobs:
     steps:
       - name: Download source tarball provenance for ${{ inputs.product }} (${{ inputs.ref }})
         id: download-src-provenance
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v3 # we need v3, see https://github.com/slsa-framework/slsa-github-generator/pull/3067/files
         with:
           name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-src.intoto.jsonl"
       - name: Download provenance for ${{ inputs.product }} (${{ inputs.ref }}) for ${{ matrix.os }}
         id: download-provenance
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v3 # we need v3, see https://github.com/slsa-framework/slsa-github-generator/pull/3067/files
         with:
           name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-${{ matrix.os}}.intoto.jsonl"
       - name: Upload provenance artifacts to downloads.powerdns.com

@@ -21,40 +21,48 @@
  */
 #pragma once
 
+#include "config.h"
+#include <array>
+#include <memory>
+#include <stdexcept>
 #include <string>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
 
-inline std::string pdns_sha1sum(const std::string& input)
-{
-  unsigned char result[20] = {0};
-  SHA1(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result);
-  return std::string(result, result + sizeof result);
-}
-
-inline std::string pdns_sha256sum(const std::string& input)
-{
-  unsigned char result[32] = {0};
-  SHA256(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result);
-  return std::string(result, result + sizeof result);
-}
-
-inline std::string pdns_sha384sum(const std::string& input)
-{
-  unsigned char result[48] = {0};
-  SHA384(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result);
-  return std::string(result, result + sizeof result);
-}
-
-inline std::string pdns_sha512sum(const std::string& input)
-{
-  unsigned char result[64] = {0};
-  SHA512(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result);
-  return std::string(result, result + sizeof result);
-}
-
 namespace pdns
 {
+inline std::string sha1sum(const std::string& input)
+{
+  std::array<unsigned char, 20> result{};
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  SHA1(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result.data());
+  return {result.begin(), result.end()};
+}
+
+inline std::string sha256sum(const std::string& input)
+{
+  std::array<unsigned char, 32> result{};
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  SHA256(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result.data());
+  return {result.begin(), result.end()};
+}
+
+inline std::string sha384sum(const std::string& input)
+{
+  std::array<unsigned char, 48> result{};
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  SHA384(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result.data());
+  return {result.begin(), result.end()};
+}
+
+inline std::string sha512sum(const std::string& input)
+{
+  std::array<unsigned char, 64> result{};
+  // NOLINTNEXTLINE(*-cast): Using OpenSSL C APIs.
+  SHA512(reinterpret_cast<const unsigned char*>(input.c_str()), input.length(), result.data());
+  return {result.begin(), result.end()};
+}
+
 class SHADigest
 {
 public:
@@ -83,15 +91,13 @@ public:
     default:
       throw std::invalid_argument("SHADigest: unsupported size");
     }
-    if (EVP_DigestInit_ex(mdctx.get(), md, NULL) == 0) {
+    if (EVP_DigestInit_ex(mdctx.get(), md, nullptr) == 0) {
       throw std::runtime_error("SHADigest: init error");
     }
   }
 
-  ~SHADigest()
-  {
-    // No free of md needed and mdctx is cleaned up by unique_ptr
-  }
+  // No free of md needed and mdctx is cleaned up by unique_ptr
+  ~SHADigest() = default;
 
   void process(const std::string& msg)
   {
@@ -104,7 +110,7 @@ public:
   {
     std::string md_value;
     md_value.resize(EVP_MD_size(md));
-    unsigned int md_len;
+    unsigned int md_len = 0;
     if (EVP_DigestFinal_ex(mdctx.get(), reinterpret_cast<unsigned char*>(md_value.data()), &md_len) == 0) {
       throw std::runtime_error("SHADigest: finalize error");
     }

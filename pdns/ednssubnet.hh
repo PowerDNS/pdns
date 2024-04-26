@@ -26,8 +26,8 @@
 
 struct EDNSSubnetOpts
 {
-	Netmask source;
-	Netmask scope;
+  Netmask source;
+  Netmask scope;
 };
 
 bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso);

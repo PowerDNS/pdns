@@ -62,7 +62,7 @@ jobs:
     steps:
     - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.
@@ -70,7 +70,7 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
         queries: +security-and-quality
@@ -147,7 +147,7 @@ jobs:
     - name: Install dependencies for dnsdist
       if: matrix.product == 'dnsdist'
       run: |
-        inv install-dnsdist-build-deps
+        inv install-dnsdist-build-deps --skipXDP
     - name: Autoreconf dnsdist
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
@@ -156,7 +156,7 @@ jobs:
     - run: inv ci-install-rust ${{ env.REPO_HOME }}
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
-    - run: inv ci-build-and-install-quiche
+    - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
     - name: Configure dnsdist
@@ -212,7 +212,7 @@ jobs:
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
       run: |
-        inv ci-rec-configure
+        inv ci-rec-configure full
     - name: Build rec
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
@@ -246,11 +246,11 @@ jobs:
         fi
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
 
   check-clang-tidy:
     needs: analyze
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     name: Check whether clang-tidy succeeded
     steps:
       - run: |
@@ -266,3 +266,14 @@ jobs:
             echo "::error::Rec clang-tidy failed"
             exit 1
           fi
+
+  check-for-binaries:
+    runs-on: ubuntu-22.04
+    name: Force failure in case there are binaries present in a pull request
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+    - run: if [[ "$(file -i --dereference $(git diff --name-only HEAD^..HEAD -- . :^fuzzing/corpus) | grep binary | grep -v 'image/' | grep -v 'inode/x-empty' | grep -v 'inode/directory')" != "" ]]; then exit 1; fi

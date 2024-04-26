@@ -44,14 +44,14 @@ public:
     d_nstatement = nstatement;
   }
 
-  SSqlStatement* bind(const string& name, bool value) { return bind(name, string(value ? "t" : "f")); }
-  SSqlStatement* bind(const string& name, int value) { return bind(name, std::to_string(value)); }
-  SSqlStatement* bind(const string& name, uint32_t value) { return bind(name, std::to_string(value)); }
-  SSqlStatement* bind(const string& name, long value) { return bind(name, std::to_string(value)); }
-  SSqlStatement* bind(const string& name, unsigned long value) { return bind(name, std::to_string(value)); }
-  SSqlStatement* bind(const string& name, long long value) { return bind(name, std::to_string(value)); }
-  SSqlStatement* bind(const string& name, unsigned long long value) { return bind(name, std::to_string(value)); }
-  SSqlStatement* bind(const string& /* name */, const std::string& value)
+  SSqlStatement* bind(const string& name, bool value) override { return bind(name, string(value ? "t" : "f")); }
+  SSqlStatement* bind(const string& name, int value) override { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& name, uint32_t value) override { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& name, long value) override { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& name, unsigned long value) override { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& name, long long value) override { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& name, unsigned long long value) override { return bind(name, std::to_string(value)); }
+  SSqlStatement* bind(const string& /* name */, const std::string& value) override
   {
     prepareStatement();
     allocate();
@@ -66,13 +66,13 @@ public:
     d_paridx++;
     return this;
   }
-  SSqlStatement* bindNull(const string& /* name */)
+  SSqlStatement* bindNull(const string& /* name */) override
   {
     prepareStatement();
     d_paridx++;
     return this;
   } // these are set null in allocate()
-  SSqlStatement* execute()
+  SSqlStatement* execute() override
   {
     prepareStatement();
     if (d_dolog) {
@@ -140,7 +140,7 @@ public:
     }
   }
 
-  bool hasNextRow()
+  bool hasNextRow() override
   {
     if (d_dolog && d_residx == d_resnum) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiff() << " us total to last row" << endl;
@@ -149,7 +149,7 @@ public:
     return d_residx < d_resnum;
   }
 
-  SSqlStatement* nextRow(row_t& row)
+  SSqlStatement* nextRow(row_t& row) override
   {
     int i;
     row.clear();
@@ -177,7 +177,7 @@ public:
     return this;
   }
 
-  SSqlStatement* getResult(result_t& result)
+  SSqlStatement* getResult(result_t& result) override
   {
     result.clear();
     if (d_res == nullptr)
@@ -191,7 +191,7 @@ public:
     return this;
   }
 
-  SSqlStatement* reset()
+  SSqlStatement* reset() override
   {
     int i;
     if (d_res) {
@@ -217,9 +217,9 @@ public:
     return this;
   }
 
-  const std::string& getQuery() { return d_query; }
+  const std::string& getQuery() override { return d_query; }
 
-  ~SPgSQLStatement()
+  ~SPgSQLStatement() override
   {
     releaseStatement();
   }

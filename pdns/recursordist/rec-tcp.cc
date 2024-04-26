@@ -314,7 +314,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   logQuery = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logQueries;
   comboWriter->d_logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
 
-  if (needECS || (t_pdl && (t_pdl->d_gettag_ffi || t_pdl->d_gettag)) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
+  if (needECS || (t_pdl && (t_pdl->hasGettagFFIFunc() || t_pdl->hasGettagFunc())) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
 
     try {
       EDNSOptionViewMap ednsOptions;
@@ -326,13 +326,13 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
 
       if (t_pdl) {
         try {
-          if (t_pdl->d_gettag_ffi) {
-            RecursorLua4::FFIParams params(qname, qtype, comboWriter->d_destination, comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_data, comboWriter->d_policyTags, comboWriter->d_records, ednsOptions, comboWriter->d_proxyProtocolValues, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_rcode, comboWriter->d_ttlCap, comboWriter->d_variable, true, logQuery, comboWriter->d_logResponse, comboWriter->d_followCNAMERecords, comboWriter->d_extendedErrorCode, comboWriter->d_extendedErrorExtra, comboWriter->d_responsePaddingDisabled, comboWriter->d_meta);
+          if (t_pdl->hasGettagFFIFunc()) {
+            RecursorLua4::FFIParams params(qname, qtype, comboWriter->d_local, comboWriter->d_remote, comboWriter->d_destination, comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_data, comboWriter->d_policyTags, comboWriter->d_records, ednsOptions, comboWriter->d_proxyProtocolValues, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_rcode, comboWriter->d_ttlCap, comboWriter->d_variable, true, logQuery, comboWriter->d_logResponse, comboWriter->d_followCNAMERecords, comboWriter->d_extendedErrorCode, comboWriter->d_extendedErrorExtra, comboWriter->d_responsePaddingDisabled, comboWriter->d_meta);
             comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
             comboWriter->d_tag = t_pdl->gettag_ffi(params);
             comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, comboWriter->d_tag, false);
           }
-          else if (t_pdl->d_gettag) {
+          else if (t_pdl->hasGettagFunc()) {
             comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag);
             comboWriter->d_tag = t_pdl->gettag(comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_destination, qname, qtype, &comboWriter->d_policyTags, comboWriter->d_data, ednsOptions, true, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_proxyProtocolValues);
             comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag, comboWriter->d_tag, false);
@@ -362,9 +362,9 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   const struct dnsheader* dnsheader = headerdata.get();
 
   if (t_protobufServers.servers || t_outgoingProtobufServers.servers) {
-    comboWriter->d_requestorId = requestorId;
-    comboWriter->d_deviceId = deviceId;
-    comboWriter->d_deviceName = deviceName;
+    comboWriter->d_requestorId = std::move(requestorId);
+    comboWriter->d_deviceId = std::move(deviceId);
+    comboWriter->d_deviceName = std::move(deviceName);
     comboWriter->d_uuid = getUniqueID();
   }
 
@@ -697,7 +697,10 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
       t_remotes->push_back(addr);
     }
 
-    bool fromProxyProtocolSource = expectProxyProtocol(addr);
+    ComboAddress destaddr;
+    socklen_t len = sizeof(destaddr);
+    getsockname(newsock, reinterpret_cast<sockaddr*>(&destaddr), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    bool fromProxyProtocolSource = expectProxyProtocol(addr, destaddr);
     ComboAddress mappedSource = addr;
     if (!fromProxyProtocolSource && t_proxyMapping) {
       if (const auto* iter = t_proxyMapping->lookup(addr)) {
@@ -737,10 +740,7 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
     setTCPNoDelay(newsock);
     std::shared_ptr<TCPConnection> tcpConn = std::make_shared<TCPConnection>(newsock, addr);
     tcpConn->d_source = addr;
-    tcpConn->d_destination.reset();
-    tcpConn->d_destination.sin4.sin_family = addr.sin4.sin_family;
-    socklen_t len = tcpConn->d_destination.getSocklen();
-    getsockname(tcpConn->getFD(), reinterpret_cast<sockaddr*>(&tcpConn->d_destination), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    tcpConn->d_destination = destaddr;
     tcpConn->d_mappedSource = mappedSource;
 
     if (fromProxyProtocolSource) {

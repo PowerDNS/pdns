@@ -36,16 +36,16 @@ class GSQLBackend : public DNSBackend
 {
 public:
   GSQLBackend(const string &mode, const string &suffix); //!< Makes our connection to the database. Throws an exception if it fails.
-  virtual ~GSQLBackend()
+  ~GSQLBackend() override
   {
     freeStatements();
     d_db.reset();
   }
 
-  void setDB(SSql *db)
+  void setDB(std::unique_ptr<SSql>&& database)
   {
     freeStatements();
-    d_db=std::unique_ptr<SSql>(db);
+    d_db = std::move(database);
     if (d_db) {
       d_db->setLog(::arg().mustDo("query-logging"));
     }
@@ -61,25 +61,25 @@ protected:
       d_ANYIdQuery_stmt = d_db->prepare(d_ANYIdQuery, 2);
       d_listQuery_stmt = d_db->prepare(d_listQuery, 2);
       d_listSubZoneQuery_stmt = d_db->prepare(d_listSubZoneQuery, 3);
-      d_MasterOfDomainsZoneQuery_stmt = d_db->prepare(d_MasterOfDomainsZoneQuery, 1);
+      d_PrimaryOfDomainsZoneQuery_stmt = d_db->prepare(d_PrimaryOfDomainsZoneQuery, 1);
       d_InfoOfDomainsZoneQuery_stmt = d_db->prepare(d_InfoOfDomainsZoneQuery, 1);
-      d_InfoOfAllSlaveDomainsQuery_stmt = d_db->prepare(d_InfoOfAllSlaveDomainsQuery, 0);
-      d_SuperMasterInfoQuery_stmt = d_db->prepare(d_SuperMasterInfoQuery, 2);
-      d_GetSuperMasterIPs_stmt = d_db->prepare(d_GetSuperMasterIPs, 2);
-      d_AddSuperMaster_stmt = d_db->prepare(d_AddSuperMaster, 3);
+      d_InfoOfAllSecondaryDomainsQuery_stmt = d_db->prepare(d_InfoOfAllSecondaryDomainsQuery, 0);
+      d_AutoPrimaryInfoQuery_stmt = d_db->prepare(d_AutoPrimaryInfoQuery, 2);
+      d_GetAutoPrimaryIPs_stmt = d_db->prepare(d_GetAutoPrimaryIPs, 2);
+      d_AddAutoPrimary_stmt = d_db->prepare(d_AddAutoPrimary, 3);
       d_RemoveAutoPrimary_stmt = d_db->prepare(d_RemoveAutoPrimaryQuery, 2);
       d_ListAutoPrimaries_stmt = d_db->prepare(d_ListAutoPrimariesQuery, 0);
       d_InsertZoneQuery_stmt = d_db->prepare(d_InsertZoneQuery, 4);
       d_InsertRecordQuery_stmt = d_db->prepare(d_InsertRecordQuery, 9);
       d_InsertEmptyNonTerminalOrderQuery_stmt = d_db->prepare(d_InsertEmptyNonTerminalOrderQuery, 4);
-      d_UpdateMasterOfZoneQuery_stmt = d_db->prepare(d_UpdateMasterOfZoneQuery, 2);
+      d_UpdatePrimaryOfZoneQuery_stmt = d_db->prepare(d_UpdatePrimaryOfZoneQuery, 2);
       d_UpdateKindOfZoneQuery_stmt = d_db->prepare(d_UpdateKindOfZoneQuery, 2);
       d_UpdateOptionsOfZoneQuery_stmt = d_db->prepare(d_UpdateOptionsOfZoneQuery, 2);
       d_UpdateCatalogOfZoneQuery_stmt = d_db->prepare(d_UpdateCatalogOfZoneQuery, 2);
       d_UpdateAccountOfZoneQuery_stmt = d_db->prepare(d_UpdateAccountOfZoneQuery, 2);
       d_UpdateSerialOfZoneQuery_stmt = d_db->prepare(d_UpdateSerialOfZoneQuery, 2);
       d_UpdateLastCheckOfZoneQuery_stmt = d_db->prepare(d_UpdateLastCheckOfZoneQuery, 2);
-      d_InfoOfAllMasterDomainsQuery_stmt = d_db->prepare(d_InfoOfAllMasterDomainsQuery, 0);
+      d_InfoOfAllPrimaryDomainsQuery_stmt = d_db->prepare(d_InfoOfAllPrimaryDomainsQuery, 0);
       d_InfoProducerMembersQuery_stmt = d_db->prepare(d_InfoProducerMembersQuery, 1);
       d_InfoConsumerMembersQuery_stmt = d_db->prepare(d_InfoConsumerMembersQuery, 1);
       d_DeleteDomainQuery_stmt = d_db->prepare(d_DeleteDomainQuery, 1);
@@ -131,25 +131,25 @@ protected:
     d_ANYIdQuery_stmt.reset();
     d_listQuery_stmt.reset();
     d_listSubZoneQuery_stmt.reset();
-    d_MasterOfDomainsZoneQuery_stmt.reset();
+    d_PrimaryOfDomainsZoneQuery_stmt.reset();
     d_InfoOfDomainsZoneQuery_stmt.reset();
-    d_InfoOfAllSlaveDomainsQuery_stmt.reset();
-    d_SuperMasterInfoQuery_stmt.reset();
-    d_GetSuperMasterIPs_stmt.reset();
-    d_AddSuperMaster_stmt.reset();
+    d_InfoOfAllSecondaryDomainsQuery_stmt.reset();
+    d_AutoPrimaryInfoQuery_stmt.reset();
+    d_GetAutoPrimaryIPs_stmt.reset();
+    d_AddAutoPrimary_stmt.reset();
     d_RemoveAutoPrimary_stmt.reset();
     d_ListAutoPrimaries_stmt.reset();
     d_InsertZoneQuery_stmt.reset();
     d_InsertRecordQuery_stmt.reset();
     d_InsertEmptyNonTerminalOrderQuery_stmt.reset();
-    d_UpdateMasterOfZoneQuery_stmt.reset();
+    d_UpdatePrimaryOfZoneQuery_stmt.reset();
     d_UpdateKindOfZoneQuery_stmt.reset();
     d_UpdateOptionsOfZoneQuery_stmt.reset();
     d_UpdateCatalogOfZoneQuery_stmt.reset();
     d_UpdateAccountOfZoneQuery_stmt.reset();
     d_UpdateSerialOfZoneQuery_stmt.reset();
     d_UpdateLastCheckOfZoneQuery_stmt.reset();
-    d_InfoOfAllMasterDomainsQuery_stmt.reset();
+    d_InfoOfAllPrimaryDomainsQuery_stmt.reset();
     d_InfoProducerMembersQuery_stmt.reset();
     d_InfoConsumerMembersQuery_stmt.reset();
     d_DeleteDomainQuery_stmt.reset();
@@ -204,21 +204,21 @@ public:
   bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
-  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account) override;
-  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
+  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
+  bool createSecondaryDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
   bool deleteDomain(const DNSName &domain) override;
-  bool superMasterAdd(const AutoPrimary& primary) override;
+  bool autoPrimaryAdd(const AutoPrimary& primary) override;
   bool autoPrimaryRemove(const AutoPrimary& primary) override;
   bool autoPrimariesList(std::vector<AutoPrimary>& primaries) override;
-  bool superMasterBackend(const string &ip, const DNSName &domain, const vector<DNSResourceRecord>&nsset, string *nameserver, string *account, DNSBackend **db) override;
+  bool autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
-  void getUnfreshSlaveInfos(vector<DomainInfo> *domains) override;
-  void getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
+  void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
+  void getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   bool getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type) override;
   bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true) override;
   void setNotified(uint32_t domain_id, uint32_t serial) override;
-  bool setMasters(const DNSName &domain, const vector<ComboAddress> &masters) override;
+  bool setPrimaries(const DNSName& domain, const vector<ComboAddress>& primaries) override;
   bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind) override;
   bool setOptions(const DNSName& domain, const string& options) override;
   bool setCatalog(const DNSName& domain, const DNSName& catalog) override;
@@ -277,7 +277,7 @@ protected:
     reconnect();
   }
   virtual void reconnect() { }
-  virtual bool inTransaction() override
+  bool inTransaction() override
   {
     return d_inTransaction;
   }
@@ -298,27 +298,27 @@ private:
   string d_listSubZoneQuery;
   string d_logprefix;
 
-  string d_MasterOfDomainsZoneQuery;
+  string d_PrimaryOfDomainsZoneQuery;
   string d_InfoOfDomainsZoneQuery;
-  string d_InfoOfAllSlaveDomainsQuery;
-  string d_SuperMasterInfoQuery;
-  string d_GetSuperMasterName;
-  string d_GetSuperMasterIPs;
-  string d_AddSuperMaster;
+  string d_InfoOfAllSecondaryDomainsQuery;
+  string d_AutoPrimaryInfoQuery;
+  string d_GetAutoPrimaryName;
+  string d_GetAutoPrimaryIPs;
+  string d_AddAutoPrimary;
   string d_RemoveAutoPrimaryQuery;
   string d_ListAutoPrimariesQuery;
 
   string d_InsertZoneQuery;
   string d_InsertRecordQuery;
   string d_InsertEmptyNonTerminalOrderQuery;
-  string d_UpdateMasterOfZoneQuery;
+  string d_UpdatePrimaryOfZoneQuery;
   string d_UpdateKindOfZoneQuery;
   string d_UpdateOptionsOfZoneQuery;
   string d_UpdateCatalogOfZoneQuery;
   string d_UpdateAccountOfZoneQuery;
   string d_UpdateSerialOfZoneQuery;
   string d_UpdateLastCheckOfZoneQuery;
-  string d_InfoOfAllMasterDomainsQuery;
+  string d_InfoOfAllPrimaryDomainsQuery;
   string d_InfoProducerMembersQuery;
   string d_InfoConsumerMembersQuery;
   string d_DeleteDomainQuery;
@@ -377,25 +377,25 @@ private:
   unique_ptr<SSqlStatement> d_ANYIdQuery_stmt;
   unique_ptr<SSqlStatement> d_listQuery_stmt;
   unique_ptr<SSqlStatement> d_listSubZoneQuery_stmt;
-  unique_ptr<SSqlStatement> d_MasterOfDomainsZoneQuery_stmt;
+  unique_ptr<SSqlStatement> d_PrimaryOfDomainsZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_InfoOfDomainsZoneQuery_stmt;
-  unique_ptr<SSqlStatement> d_InfoOfAllSlaveDomainsQuery_stmt;
-  unique_ptr<SSqlStatement> d_SuperMasterInfoQuery_stmt;
-  unique_ptr<SSqlStatement> d_GetSuperMasterIPs_stmt;
-  unique_ptr<SSqlStatement> d_AddSuperMaster_stmt;
+  unique_ptr<SSqlStatement> d_InfoOfAllSecondaryDomainsQuery_stmt;
+  unique_ptr<SSqlStatement> d_AutoPrimaryInfoQuery_stmt;
+  unique_ptr<SSqlStatement> d_GetAutoPrimaryIPs_stmt;
+  unique_ptr<SSqlStatement> d_AddAutoPrimary_stmt;
   unique_ptr<SSqlStatement> d_RemoveAutoPrimary_stmt;
   unique_ptr<SSqlStatement> d_ListAutoPrimaries_stmt;
   unique_ptr<SSqlStatement> d_InsertZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_InsertRecordQuery_stmt;
   unique_ptr<SSqlStatement> d_InsertEmptyNonTerminalOrderQuery_stmt;
-  unique_ptr<SSqlStatement> d_UpdateMasterOfZoneQuery_stmt;
+  unique_ptr<SSqlStatement> d_UpdatePrimaryOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateKindOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateOptionsOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateCatalogOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateAccountOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateSerialOfZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_UpdateLastCheckOfZoneQuery_stmt;
-  unique_ptr<SSqlStatement> d_InfoOfAllMasterDomainsQuery_stmt;
+  unique_ptr<SSqlStatement> d_InfoOfAllPrimaryDomainsQuery_stmt;
   unique_ptr<SSqlStatement> d_InfoProducerMembersQuery_stmt;
   unique_ptr<SSqlStatement> d_InfoConsumerMembersQuery_stmt;
   unique_ptr<SSqlStatement> d_DeleteDomainQuery_stmt;

@@ -1615,6 +1615,7 @@ if test x$boost_cv_inc_path != xno; then
   # I'm not sure about my test for `il' (be careful: Intel's ICC pre-defines
   # the same defines as GCC's).
   for i in \
+    "defined __clang__ && __clang_major__ == 18 && __clang_minor__ == 1 @ clang181" \
     "defined __clang__ && __clang_major__ == 17 && __clang_minor__ == 0 @ clang170" \
     "defined __clang__ && __clang_major__ == 16 && __clang_minor__ == 0 @ clang160" \
     "defined __clang__ && __clang_major__ == 15 && __clang_minor__ == 0 @ clang150" \
@@ -1633,14 +1634,38 @@ if test x$boost_cv_inc_path != xno; then
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 9 @ clang39" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 8 @ clang38" \
     "defined __clang__ && __clang_major__ == 3 && __clang_minor__ == 7 @ clang37" \
+    _BOOST_mingw_test(13, 2) \
+    _BOOST_gcc_test(13, 2) \
+    _BOOST_mingw_test(13, 1) \
+    _BOOST_gcc_test(13, 1) \
+    _BOOST_mingw_test(12, 3) \
+    _BOOST_gcc_test(12, 3) \
+    _BOOST_mingw_test(12, 2) \
+    _BOOST_gcc_test(12, 2) \
+    _BOOST_mingw_test(12, 1) \
+    _BOOST_gcc_test(12, 1) \
+    _BOOST_mingw_test(11, 4) \
+    _BOOST_gcc_test(11, 4) \
+    _BOOST_mingw_test(11, 3) \
+    _BOOST_gcc_test(11, 3) \
+    _BOOST_mingw_test(11, 2) \
+    _BOOST_gcc_test(11, 2) \
     _BOOST_mingw_test(11, 1) \
     _BOOST_gcc_test(11, 1) \
+    _BOOST_mingw_test(10, 5) \
+    _BOOST_gcc_test(10, 5) \
+    _BOOST_mingw_test(10, 4) \
+    _BOOST_gcc_test(10, 4) \
     _BOOST_mingw_test(10, 3) \
     _BOOST_gcc_test(10, 3) \
     _BOOST_mingw_test(10, 2) \
     _BOOST_gcc_test(10, 2) \
     _BOOST_mingw_test(10, 1) \
     _BOOST_gcc_test(10, 1) \
+    _BOOST_mingw_test(9, 5) \
+    _BOOST_gcc_test(9, 5) \
+    _BOOST_mingw_test(9, 4) \
+    _BOOST_gcc_test(9, 4) \
     _BOOST_mingw_test(9, 3) \
     _BOOST_gcc_test(9, 3) \
     _BOOST_mingw_test(9, 2) \

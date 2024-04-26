@@ -4,7 +4,7 @@ Dynamic DNS Update (RFC 2136)
 Starting with the PowerDNS Authoritative Server 3.4.0, DNS update
 support is available. There are a number of items NOT supported:
 
--  There is no support for GSS\*TSIG and SIG (TSIG is supported);
+-  There is no support for SIG (TSIG and GSS\*TSIG are supported);
 -  WKS records are specifically mentioned in the RFC, we don't
    specifically care about WKS records;
 -  Anything we forgot....
@@ -45,6 +45,13 @@ be left empty to disallow everything, this then should be used in
 combination with the ``ALLOW-DNSUPDATE-FROM`` :doc:`domain metadata <domainmetadata>` setting per
 zone. Setting a range here and in ``ALLOW-DNSUPDATE-FROM`` enables updates
 from either address range.
+
+``dnsupdate-require-tsig``
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A setting to require DNS updates to be signed by a valid TSIG signature.
+The default is no, which means zones without TSIG keys can be updated by
+unauthenticated agents operating from an allowed address range.
 
 ``forward-dnsupdate``
 ~~~~~~~~~~~~~~~~~~~~~
@@ -152,6 +159,7 @@ both requirements need to be satisfied before an update will be accepted.
 By default, an update can add, update or delete any resource records in
 the zone.  See :ref:`dnsupdate-update-policy` for finer-grained
 control of what an update is allowed to do.
+Use :ref:`setting-dnsupdate-require-tsig` to disallow unsigned updates.
 
 .. _metadata-forward-dnsupdate:
 

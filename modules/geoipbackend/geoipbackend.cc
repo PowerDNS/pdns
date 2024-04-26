@@ -85,12 +85,11 @@ GeoIPBackend::GeoIPBackend(const string& suffix)
   WriteLock writeLock(&s_state_lock);
   setArgPrefix("geoip" + suffix);
   if (!getArg("dnssec-keydir").empty()) {
-    DIR* dir = opendir(getArg("dnssec-keydir").c_str());
-    if (dir == nullptr) {
+    auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(getArg("dnssec-keydir").c_str()), closedir);
+    if (!dirHandle) {
       throw PDNSException("dnssec-keydir " + getArg("dnssec-keydir") + " does not exist");
     }
     d_dnssec = true;
-    closedir(dir);
   }
   if (s_rc == 0) { // first instance gets to open everything
     initialize();
@@ -198,7 +197,7 @@ void GeoIPBackend::setupNetmasks(const YAML::Node& domain, GeoIPDomain& dom)
         throw PDNSException(string("%mp is not allowed in mapping lookup formats of domain ") + dom.domain.toLogString());
       }
 
-      dom.mapping_lookup_formats = mapping_lookup_formats;
+      dom.mapping_lookup_formats = std::move(mapping_lookup_formats);
     }
     else {
       dom.mapping_lookup_formats = d_global_mapping_lookup_formats;
@@ -655,9 +654,10 @@ static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribut
       break;
     }
 
-    if (!found || val.empty() || val == "--")
+    if (!found || val.empty() || val == "--") {
       continue; // try next database
-    ret = val;
+    }
+    ret = std::move(val);
     std::transform(ret.begin(), ret.end(), ret.begin(), ::tolower);
     break;
   }
@@ -1199,7 +1199,7 @@ class GeoIPLoader
 public:
   GeoIPLoader()
   {
-    BackendMakers().report(new GeoIPFactory);
+    BackendMakers().report(std::make_unique<GeoIPFactory>());
     g_log << Logger::Info << "[geoipbackend] This is the geoip backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"

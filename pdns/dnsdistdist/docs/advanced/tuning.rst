@@ -62,13 +62,23 @@ Note that, since 1.7, dnsdist supports marking a backend as "TCP only", as well 
    :align: center
    :alt: DNSDist UDP design for TCP-only, DoT backends
 
-For DNS over HTTPS, every :func:`addDOHLocal` directive adds a new thread dealing with incoming connections, so it might be useful to add more than one directive, as indicated above.
+For DNS over HTTPS, every :func:`addDOHLocal`/:func:`addDOH3Local` directive adds a new thread dealing with incoming connections, so it might be useful to add more than one directive, as indicated above.
 
-.. figure:: ../imgs/DNSDistDoH17.png
+.. figure:: ../imgs/DNSDistDoH19.png
    :align: center
    :alt: DNSDist DoH design
 
 When dealing with a large traffic load, it might happen that the internal pipe used to pass queries between the threads handling the incoming connections and the one getting a response from the backend become full too quickly, degrading performance and causing timeouts. This can be prevented by increasing the size of the internal pipe buffer, via the `internalPipeBufferSize` option of :func:`addDOHLocal`. Setting a value of `1048576` is known to yield good results on Linux.
+
+`AF_XDP` / `XSK`
+----------------
+
+On recent versions of Linux (`>= 4.18`), DNSDist supports receiving UDP datagrams directly from the kernel, bypassing the usual network stack, via `AF_XDP`/`XSK`. This yields much better performance but comes with some limitations. Please see :doc:`xsk` for more information.
+
+UDP buffer sizes
+----------------
+
+The operating system usually maintains buffers of incoming and outgoing datagrams for UDP sockets, to deal with short spikes where packets are received or emitted faster than the network layer can process them. On medium to large setups, it is usually useful to increase these buffers to deal with large spikes. This can be done via the :func:`setUDPSocketBufferSizes`.
 
 Outgoing DoH
 ------------
@@ -109,9 +119,9 @@ A different possibility is that there is not enough threads accepting new connec
 
 For incoming and outgoing DNS over TLS support, the choice of the TLS provider (OpenSSL and GnuTLS are both supported) might yield very different results depending on the exact architecture.
 
-Since 1.8.0, incoming DNS over TLS might also benefit from experimental support for TLS acceleration engines, like Intel QAT. See :func:`loadTLSEngine`, and the `tlsAsyncMode` parameter of :func:`addTLSLocal` for more information.
+Incoming DNS over TLS (since 1.8.0) and incoming DNS over HTTPS (since 1.9.0) might also benefit from experimental support for TLS acceleration engines, like Intel QAT. See :func:`loadTLSEngine`, and the `tlsAsyncMode` parameter of :func:`addTLSLocal` and :func:`addDOHLocal` for more information.
 
-Incoming and outgoing DNS over TLS, as well as outgoing DNS over HTTPS, might benefit from experimental support kernel-accelerated TLS on Linux, when supported by the kernel and OpenSSL. See the `ktls` options on :func:`addTLSLocal` and :func:`newServer` for more information. Kernel support for kTLS might be verified by looking at the counters in ``/proc/net/tls_stat``. Note that:
+Incoming and outgoing DNS over TLS, outgoing DNS over HTTPS, as well as incoming DNS over HTTPS with the ``nghttp2`` library (since 1.9.0), might benefit from experimental support kernel-accelerated TLS on Linux, when supported by the kernel and OpenSSL. See the `ktls` options on :func:`addTLSLocal`, :func:`addDOHLocal` and :func:`newServer` for more information. Kernel support for kTLS might be verified by looking at the counters in ``/proc/net/tls_stat``. Note that:
 
  * supported ciphers depend on the exact kernel version used. ``TLS_AES_128_GCM_SHA256`` might be a good option for testing purpose since it was supported pretty early
  * as of OpenSSL 3.0.7, kTLS can only be used for sending TLS 1.3 packets, not receiving them. Both sending and receiving packets should be working for TLS 1.2.
@@ -120,6 +130,15 @@ TLS performance
 ---------------
 
 For DNS over HTTPS and DNS over TLS, in addition to the advice above we suggest reading the :doc:`tls-sessions-management` page to learn how to improve TLS session resumption ratio, which has a huge impact on CPU usage and latency.
+
+DNS over QUIC
+-------------
+
+For DNS over QUIC, every :func:`addDOQLocal` directive adds a new thread dealing with incoming datagrams, so it might be useful to add more than one directive.
+
+.. figure:: ../imgs/DNSDistDoQ.png
+   :align: center
+   :alt: DNSDist QUIC design
 
 Rules and Lua
 -------------
@@ -193,3 +212,29 @@ Memory usage per connection for connected protocols:
 +---------------------------------+-----------------------------+
 | DoH (w/ releaseBuffers)         | 15 kB                       |
 +---------------------------------+-----------------------------+
+
+Firewall connection tracking
+----------------------------
+
+When dealing with a lot of queries per second, dnsdist puts a severe stress on any stateful (connection tracking) firewall, so much so that the firewall may fail.
+
+Specifically, many Linux distributions run with a connection tracking firewall configured. For high load operation (thousands of queries/second), it is advised to either turn off ``iptables`` and ``nftables`` completely, or use the ``NOTRACK`` feature to make sure client DNS traffic bypasses the connection tracking.
+
+Network interface receive queues
+--------------------------------
+
+Most high-speed (>= 10 Gbps) network interfaces support multiple queues to offer better performance, using hashing to dispatch incoming packets into a specific queue.
+
+Unfortunately the default hashing algorithm is very often considering the source and destination addresses only, which might be an issue when dnsdist is placed behind a frontend, for example.
+
+On Linux it is possible to inspect the current network flow hashing policy via ``ethtool``::
+
+  $ sudo ethtool -n enp1s0 rx-flow-hash udp4
+  UDP over IPV4 flows use these fields for computing Hash flow key:
+  IP SA
+  IP DA
+
+In this example only the source (``IP SA``) and destination (``IP DA``) addresses are indeed used, meaning that all packets coming from the same source address to the same destination address will end up in the same receive queue, which is not optimal. To take the source and destination ports into account as well::
+
+  $ sudo ethtool -N enp1s0 rx-flow-hash udp4 sdfn
+  $

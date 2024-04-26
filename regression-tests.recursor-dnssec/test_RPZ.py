@@ -17,7 +17,7 @@ class RPZServer(object):
         self._targetSerial = 1
         self._serverPort = port
         listener = threading.Thread(name='RPZ Listener', target=self._listener, args=[])
-        listener.setDaemon(True)
+        listener.daemon = True
         listener.start()
 
     def getCurrentSerial(self):
@@ -213,7 +213,7 @@ class RPZServer(object):
                 thread = threading.Thread(name='RPZ Connection Handler',
                                       target=self._connectionHandler,
                                       args=[conn])
-                thread.setDaemon(True)
+                thread.daemon = True
                 thread.start()
 
             except socket.error as e:
@@ -252,6 +252,14 @@ webserver-password=%s
 api-key=%s
 log-rpz-changes=yes
 """ % (_confdir, _wsPort, _wsPassword, _apiKey)
+
+    def sendNotify(self):
+        notify = dns.message.make_query('zone.rpz', 'SOA', want_dnssec=False)
+        notify.set_opcode(4) # notify
+        res = self.sendUDPQuery(notify)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.opcode(), 4)
+        self.assertEqual(res.question[0].to_text(), 'zone.rpz. IN SOA')
 
     def assertAdditionalHasSOA(self, msg):
         if not isinstance(msg, dns.message.Message):
@@ -392,6 +400,8 @@ webserver-address=127.0.0.1
 webserver-password=%s
 api-key=%s
 disable-packetcache
+allow-notify-from=127.0.0.0/8
+allow-notify-for=zone.rpz
 """ % (_confdir, _wsPort, _wsPassword, _apiKey)
     _xfrDone = 0
 
@@ -429,6 +439,7 @@ e 3600 IN A 192.0.2.42
         raise AssertionError("Waited %d seconds for the serial to be updated to %d but the serial is still %d" % (timeout, serial, currentSerial))
 
     def testRPZ(self):
+        # Fresh RPZ does not need a notify
         self.waitForTCPSocket("127.0.0.1", self._wsPort)
         # first zone, only a should be blocked
         self.waitUntilCorrectSerialIsLoaded(1)
@@ -438,6 +449,7 @@ e 3600 IN A 192.0.2.42
         self.checkNotBlocked('c.example.')
 
         # second zone, a and b should be blocked
+        self.sendNotify()
         self.waitUntilCorrectSerialIsLoaded(2)
         self.checkRPZStats(2, 2, 1, self._xfrDone)
         self.checkBlocked('a.example.', soa=True)
@@ -445,6 +457,7 @@ e 3600 IN A 192.0.2.42
         self.checkNotBlocked('c.example.')
 
         # third zone, only b should be blocked
+        self.sendNotify()
         self.waitUntilCorrectSerialIsLoaded(3)
         self.checkRPZStats(3, 1, 1, self._xfrDone)
         self.checkNotBlocked('a.example.')
@@ -452,6 +465,7 @@ e 3600 IN A 192.0.2.42
         self.checkNotBlocked('c.example.')
 
         # fourth zone, only c should be blocked
+        self.sendNotify()
         self.waitUntilCorrectSerialIsLoaded(4)
         self.checkRPZStats(4, 1, 1, self._xfrDone)
         self.checkNotBlocked('a.example.')
@@ -459,6 +473,7 @@ e 3600 IN A 192.0.2.42
         self.checkBlocked('c.example.', soa=True)
 
         # fifth zone, we should get a full AXFR this time, and only d should be blocked
+        self.sendNotify()
         self.waitUntilCorrectSerialIsLoaded(5)
         self.checkRPZStats(5, 3, 2, self._xfrDone)
         self.checkNotBlocked('a.example.')
@@ -467,6 +482,7 @@ e 3600 IN A 192.0.2.42
         self.checkBlocked('d.example.', soa=True)
 
         # sixth zone, only e should be blocked, f is a local data record
+        self.sendNotify()
         self.waitUntilCorrectSerialIsLoaded(6)
         self.checkRPZStats(6, 2, 2, self._xfrDone)
         self.checkNotBlocked('a.example.')
@@ -479,6 +495,7 @@ e 3600 IN A 192.0.2.42
         self.checkCustom('f.example.', 'A', dns.rrset.from_text('f.example.', 0, dns.rdataclass.IN, 'CNAME', 'e.example.'), soa=True)
 
         # seventh zone, e should only have one A
+        self.sendNotify()
         self.waitUntilCorrectSerialIsLoaded(7)
         self.checkRPZStats(7, 4, 2, self._xfrDone)
         self.checkNotBlocked('a.example.')
@@ -496,6 +513,7 @@ e 3600 IN A 192.0.2.42
         self.checkDropped('drop.example.')
 
         # eighth zone, all entries should be gone
+        self.sendNotify()
         self.waitUntilCorrectSerialIsLoaded(8)
         self.checkRPZStats(8, 0, 3, self._xfrDone)
         self.checkNotBlocked('a.example.')
@@ -510,7 +528,9 @@ e 3600 IN A 192.0.2.42
         # 9th zone is a duplicate, it might get skipped
         global rpzServer
         rpzServer.moveToSerial(9)
+        self.sendNotify()
         time.sleep(3)
+        self.sendNotify()
         self.waitUntilCorrectSerialIsLoaded(10)
         self.checkRPZStats(10, 1, 4, self._xfrDone)
         self.checkNotBlocked('a.example.')
@@ -524,7 +544,9 @@ e 3600 IN A 192.0.2.42
 
         # the next update will update the zone twice
         rpzServer.moveToSerial(11)
+        self.sendNotify()
         time.sleep(3)
+        self.sendNotify()
         self.waitUntilCorrectSerialIsLoaded(12)
         self.checkRPZStats(12, 1, 4, self._xfrDone)
         self.checkNotBlocked('a.example.')
@@ -704,7 +726,7 @@ class RPZSimpleAuthServer(object):
     def __init__(self, port):
         self._serverPort = port
         listener = threading.Thread(name='RPZ Simple Auth Listener', target=self._listener, args=[])
-        listener.setDaemon(True)
+        listener.daemon = True
         listener.start()
 
     def _getAnswer(self, message):

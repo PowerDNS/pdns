@@ -672,7 +672,7 @@ class TestECSDisabledByRuleOrLua(DNSDistTest):
     setECSSourcePrefixV4(16)
     setECSSourcePrefixV6(16)
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    addAction(makeRule("disabled.ecsrules.tests.powerdns.com."), SetDisableECSAction())
+    addAction(SuffixMatchNodeRule("disabled.ecsrules.tests.powerdns.com."), SetDisableECSAction())
     function disableECSViaLua(dq)
         dq.useECS = false
         return DNSAction.None, ""
@@ -765,7 +765,7 @@ class TestECSOverrideSetByRuleOrLua(DNSDistTest):
     setECSSourcePrefixV4(24)
     setECSSourcePrefixV6(56)
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    addAction(makeRule("overridden.ecsrules.tests.powerdns.com."), SetECSOverrideAction(true))
+    addAction(SuffixMatchNodeRule("overridden.ecsrules.tests.powerdns.com."), SetECSOverrideAction(true))
     function overrideECSViaLua(dq)
         dq.ecsOverride = true
         return DNSAction.None, ""
@@ -864,7 +864,7 @@ class TestECSPrefixLengthSetByRuleOrLua(DNSDistTest):
     setECSSourcePrefixV4(24)
     setECSSourcePrefixV6(56)
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    addAction(makeRule("overriddenprefixlength.ecsrules.tests.powerdns.com."), SetECSPrefixLengthAction(32, 128))
+    addAction(SuffixMatchNodeRule("overriddenprefixlength.ecsrules.tests.powerdns.com."), SetECSPrefixLengthAction(32, 128))
     function overrideECSPrefixLengthViaLua(dq)
         dq.ecsPrefixLength = 32
         return DNSAction.None, ""
@@ -966,7 +966,7 @@ class TestECSPrefixSetByRule(DNSDistTest):
     setECSSourcePrefixV4(32)
     setECSSourcePrefixV6(128)
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    addAction(makeRule("setecsaction.ecsrules.tests.powerdns.com."), SetECSAction("192.0.2.1/32"))
+    addAction(SuffixMatchNodeRule("setecsaction.ecsrules.tests.powerdns.com."), SetECSAction("192.0.2.1/32"))
     """
 
     def testWithRegularECS(self):

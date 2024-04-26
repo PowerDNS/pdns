@@ -30,7 +30,7 @@
 #include "namespaces.hh"
 PcapPacketReader::PcapPacketReader(const string& fname) : d_fname(fname)
 {
-  d_fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname.c_str(), "r"), fclose);
+  d_fp = pdns::UniqueFilePtr(fopen(fname.c_str(), "r"));
   if (!d_fp) {
     unixDie("Unable to open file " + fname);
   }
@@ -235,8 +235,7 @@ PcapPacketWriter::PcapPacketWriter(const string& fname, const PcapPacketReader& 
 
 PcapPacketWriter::PcapPacketWriter(const string& fname) : d_fname(fname)
 {
-  d_fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname.c_str(),"w"), fclose);
-
+  d_fp = pdns::openFileForWriting(fname, 0600, true, false);
   if (!d_fp) {
     unixDie("Unable to open file");
   }

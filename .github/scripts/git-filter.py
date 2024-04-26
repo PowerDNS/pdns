@@ -15,6 +15,7 @@ from pathlib import Path
 import helpers
 import unidiff
 
+
 def create_argument_parser():
     """Create command-line argument parser."""
     parser = argparse.ArgumentParser(
@@ -42,27 +43,38 @@ def main():
     diff = sys.stdin.read()
     patch_set = unidiff.PatchSet(diff)
     for patch in patch_set:
-        # We have to deal with several possible cases for input files, as shown by git:
+        # We have to deal with several possible cases for input files, as shown
+        # by git:
+        #
         # - in ext/: ext/lmdb-safe/lmdb-safe.cc
         # - in modules/: modules/lmdbbackend/lmdbbackend.cc
-        # - files that live in the dnsdist or rec dir only: pdns/dnsdistdist/dnsdist-dnsparser.cc or pdns/recursordist/rec-tcp.cc
-        # - files that live in pdns/ and are used by several products (but possibly not with the same compilation flags, so
-        #   it is actually important that they are processed for all products: pdns/misc.cc
+        # - files that live in the dnsdist or rec dir only:
+        #   pdns/dnsdistdist/dnsdist-dnsparser.cc or
+        #   pdns/recursordist/rec-tcp.cc
+        # - files that live in pdns/ and are used by several products (but
+        #   possibly not with the same compilation flags, so it is actually
+        #   important that they are processed for all products: pdns/misc.cc
         path = Path(patch.path)
-        if product == 'auth':
+        if product == "auth":
             path = Path(cwd).joinpath(path)
         else:
-            if str(path).startswith('modules'):
-                print(f'Skipping {path}: modules do not apply to {product}', file=sys.stderr)
+            if str(path).startswith("modules"):
+                print(
+                    f"Skipping {path}: modules do not apply to {product}",
+                    file=sys.stderr,
+                )
                 continue
 
-            if str(path).startswith('ext'):
+            if str(path).startswith("ext"):
                 subpath = Path(cwd).joinpath(path)
             else:
                 subpath = Path(cwd).joinpath(path.name)
 
             if not subpath.exists():
-                print(f'Skipping {path}: does not exist for {product} ({subpath})', file=sys.stderr)
+                print(
+                    f"Skip {path}: doesn't exist for {product} ({subpath})",
+                    file=sys.stderr,
+                )
                 continue
 
             path = subpath
@@ -71,7 +83,10 @@ def main():
             patch.target_file = str(path)
 
         if not str(path) in compdb:
-            print(f'Skipping {path}: it is not in the compilation db', file=sys.stderr)
+            print(
+                f"Skipping {path}: it is not in the compilation db",
+                file=sys.stderr,
+            )
             continue
 
         print(patch, file=sys.stderr)

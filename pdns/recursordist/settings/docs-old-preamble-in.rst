@@ -6,7 +6,8 @@ The command line overrides the configuration file.
 .. note::
    Starting with version 5.0.0, :program:`Recursor` supports a new YAML syntax for configuration files.
    A configuration using the old style syntax can be converted to a YAML configuration using the instructions in :doc:`appendices/yamlconversion`.
-   In a future release support for the "old-style" settings will be dropped.
+   In a future release support for the "old-style" settings decribed here will be dropped.
+   See :doc:`yamlsettings` for details.
 
 .. note::
    Settings marked as ``Boolean`` can either be set to an empty value, which means **on**, or to ``no`` or ``off`` which means **off**.

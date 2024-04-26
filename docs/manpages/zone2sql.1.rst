@@ -66,7 +66,7 @@ OTHER Options
     List all options
 --on-error-resume-next
     Ignore missing zone files during parsing. Dangerous.
---slave
+--secondary
     Maintain slave status of zones listed in named.conf as being slaves.
     The default behaviour is to convert all zones to native operation.
 --verbose

@@ -5,10 +5,19 @@ Each setting can appear on the command line, prefixed by ``--`` and using the ol
 Settings on the command line are processed after the file-based settings are processed.
 
 .. note::
-   Starting with version 5.0.0., :program:`Recursor` supports a new YAML syntax for configuration files
+   Starting with version 5.0.0, :program:`Recursor` supports a new YAML syntax for configuration files
    as described here.
+   If both ``recursor.conf`` and ``recursor.yml`` files are found in the configuration directory the YAML file is used.
    A configuration using the old style syntax can be converted to a YAML configuration using the instructions in :doc:`appendices/yamlconversion`.
-   In a future release support for the "old-style" settings will be dropped.
+
+   Release 5.0.0 will install a default old-style ``recursor.conf`` files only.
+
+   With the release of version 5.1.0, packages will stop installing a default ``recursor.conf`` and start installing a default ``recursor.yml`` file if no existing ``recursor.conf`` is present.
+   In the absense of a ``recursor.yml`` file, an existing ``recursor.conf`` file will be accepted and used.
+
+   With the release of 5.2.0, the default will be to expect a ``recursor.yml`` file and reading of ``recursor.conf`` files will have to be enabled specifically by providing a command line option.
+
+   In a future release support for the "old-style" ``recursor.conf`` settings file will be dropped.
 
 
 YAML settings file
@@ -36,14 +45,14 @@ An example :program:`Recursor` YAML configuration file looks like:
         forwarders:
           - 127.0.0.1:5301
   outgoing:
-    query_local_address:
+    source_address:
       - 0.0.0.0
       - '::'
   logging:
     loglevel: 6
 
 Take care when listing IPv6 addresses, as characters used for these are special to YAML.
-If in doubt, quote any string containing ``:``, ``[`` or ``]`` and use (online) tools to check your YAML syntax.
+If in doubt, quote any string containing ``:``, ``!``, ``[`` or ``]`` and use (online) tools to check your YAML syntax.
 Specify an empty sequence using ``[]``.
 
 The main setting file is called ``recursor.yml`` and will be processed first.
@@ -71,7 +80,7 @@ For example, with the above example ``recursor.yml`` and an include directory co
         forwarders:
           - '::1'
   outgoing:
-     query_local_address: !override
+     source_address: !override
        - 0.0.0.0
      dont_query: []
 
@@ -127,7 +136,7 @@ For example, ``alow-from`` takes a sequence of subnets:
    allow_from:
      - '2001:DB8::/32'
      - 128.66.0.0/16
-     - !128.66.1.2
+     - '!128.66.1.2'
 
 In this case the address ``128.66.1.2`` is excluded from the addresses allowed access.
 
@@ -158,6 +167,11 @@ An example of a ``forward_zones`` entry, which consists of a sequence of forward
       - '::1'
     recurse: true
     notify_allowed: true
+
+Starting with version 5.1.0, names can be used if
+:ref:`setting-yaml-recursor.system_resolver_ttl` is set.
+The names will be resolved using the system resolver and an automatic refresh of the forwarding zones will happen if a name starts resolving to a new address.
+The refresh is done by performing the equivalent of ``rec_control reload-zones``.
 
 
 Auth Zone

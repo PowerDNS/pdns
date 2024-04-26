@@ -119,7 +119,7 @@ public:
   virtual bool reachedMaxStreamID() const = 0;
   virtual bool reachedMaxConcurrentQueries() const = 0;
   virtual bool isIdle() const = 0;
-  virtual void release() = 0;
+  virtual void release(bool removeFromCache) = 0;
   virtual void stopIO()
   {
   }
@@ -226,7 +226,7 @@ protected:
 class TCPConnectionToBackend : public ConnectionToBackend
 {
 public:
-  TCPConnectionToBackend(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& /* proxyProtocolPayload*, unused but there to match the HTTP2 connections, so we can use the same templated connections manager class */): ConnectionToBackend(ds, mplexer, now), d_responseBuffer(s_maxPacketCacheEntrySize)
+  TCPConnectionToBackend(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, const struct timeval& now, std::string&& /* proxyProtocolPayload*, unused but there to match the HTTP2 connections, so we can use the same templated connections manager class */): ConnectionToBackend(ds, mplexer, now), d_responseBuffer(512)
   {
   }
 
@@ -256,7 +256,7 @@ public:
 
   void queueQuery(std::shared_ptr<TCPQuerySender>& sender, TCPQuery&& query) override;
   void handleTimeout(const struct timeval& now, bool write) override;
-  void release() override;
+  void release(bool removeFromCache) override;
 
   std::string toString() const override
   {

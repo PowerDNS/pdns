@@ -19,10 +19,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <ostream>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
+#include <iomanip>
 #include <mutex>
 
 #include "logger.hh"
@@ -56,53 +58,65 @@ void Logger::log(const string& msg, Urgency u) noexcept
   bool mustAccount(false);
 #endif
   if (u <= consoleUrgency) {
-    char buffer[50] = "";
+    std::array<char, 50> buffer{};
+    buffer[0] = '\0';
     if (d_timestamps) {
       struct tm tm;
       time_t t;
       time(&t);
       localtime_r(&t, &tm);
-      if (strftime(buffer, sizeof(buffer), "%b %d %H:%M:%S ", &tm) == 0) {
+      if (strftime(buffer.data(), buffer.size(), "%b %d %H:%M:%S ", &tm) == 0) {
         buffer[0] = '\0';
       }
     }
 
-    string prefix;
+    string severity;
     if (d_prefixed) {
       switch (u) {
       case All:
-        prefix = "[all] ";
+        severity = "All";
         break;
       case Alert:
-        prefix = "[ALERT] ";
+        severity = "Alert";
         break;
       case Critical:
-        prefix = "[CRITICAL] ";
+        severity = "Critical";
         break;
       case Error:
-        prefix = "[ERROR] ";
+        severity = "Error";
         break;
       case Warning:
-        prefix = "[WARNING] ";
+        severity = "Warning";
         break;
       case Notice:
-        prefix = "[NOTICE] ";
+        severity = "Notice";
         break;
       case Info:
-        prefix = "[INFO] ";
+        severity = "Info";
         break;
       case Debug:
-        prefix = "[DEBUG] ";
+        severity = "Debug";
         break;
       case None:
-        prefix = "[none] ";
+        severity = "None";
         break;
       }
     }
 
-    static std::mutex m;
-    std::lock_guard<std::mutex> l(m); // the C++-2011 spec says we need this, and OSX actually does
-    clog << string(buffer) + prefix + msg << endl;
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex); // the C++-2011 spec says we need this, and OSX actually does
+
+    // To avoid issuing multiple syscalls, we write the complete line to clog with a single << call.
+    // For that we need a buffer allocated, we might want to use writev(2) one day to avoid that.
+    ostringstream line;
+    line << buffer.data();
+    if (d_prefixed) {
+      line << "msg=" << std::quoted(msg) << " prio=" << std::quoted(severity) << endl;
+    }
+    else {
+      line << msg << endl;
+    }
+    clog << line.str() << std::flush;
 #ifndef RECURSOR
     mustAccount = true;
 #endif

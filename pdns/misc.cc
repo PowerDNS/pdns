@@ -582,16 +582,24 @@ string bitFlip(const string &str)
 
 void cleanSlashes(string &str)
 {
-  string::const_iterator i;
   string out;
-  for(i=str.begin();i!=str.end();++i) {
-    if(*i=='/' && i!=str.begin() && *(i-1)=='/')
-      continue;
-    out.append(1,*i);
+  bool keepNextSlash = true;
+  for (const auto& value : str) {
+    if (value == '/') {
+      if (keepNextSlash) {
+        keepNextSlash = false;
+      }
+      else {
+        continue;
+      }
+    }
+    else {
+      keepNextSlash = true;
+    }
+    out.append(1, value);
   }
-  str=out;
+  str = std::move(out);
 }
-
 
 bool IpToU32(const string &str, uint32_t *ip)
 {
@@ -853,11 +861,11 @@ bool stringfgets(FILE* fp, std::string& line)
 bool readFileIfThere(const char* fname, std::string* line)
 {
   line->clear();
-  auto fp = std::unique_ptr<FILE, int(*)(FILE*)>(fopen(fname, "r"), fclose);
-  if (!fp) {
+  auto filePtr = pdns::UniqueFilePtr(fopen(fname, "r"));
+  if (!filePtr) {
     return false;
   }
-  return stringfgets(fp.get(), *line);
+  return stringfgets(filePtr.get(), *line);
 }
 
 Regex::Regex(const string &expr)
@@ -1377,30 +1385,29 @@ DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 uint64_t getOpenFileDescriptors(const std::string&)
 {
 #ifdef __linux__
-  DIR* dirhdl=opendir(("/proc/"+std::to_string(getpid())+"/fd/").c_str());
-  if(!dirhdl)
-    return 0;
-
-  struct dirent *entry;
-  int ret=0;
-  while((entry = readdir(dirhdl))) {
+  uint64_t nbFileDescriptors = 0;
+  const auto dirName = "/proc/" + std::to_string(getpid()) + "/fd/";
+  auto directoryError = pdns::visit_directory(dirName, [&nbFileDescriptors]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
     uint32_t num;
     try {
-      pdns::checked_stoi_into(num, entry->d_name);
+      pdns::checked_stoi_into(num, std::string(name));
+      if (std::to_string(num) == name) {
+        nbFileDescriptors++;
+      }
     } catch (...) {
-      continue; // was not a number.
+      // was not a number.
     }
-    if(std::to_string(num) == entry->d_name)
-      ret++;
+    return true;
+  });
+  if (directoryError) {
+    return 0U;
   }
-  closedir(dirhdl);
-  return ret;
-
+  return nbFileDescriptors;
 #elif defined(__OpenBSD__)
   // FreeBSD also has this in libopenbsd, but I don't know if that's available always
   return getdtablecount();
 #else
-  return 0;
+  return 0U;
 #endif
 }
 
@@ -1740,4 +1747,58 @@ bool constantTimeStringEquals(const std::string& a, const std::string& b)
   return res == 0;
 #endif /* !HAVE_SODIUM_MEMCMP */
 #endif /* !HAVE_CRYPTO_MEMCMP */
+}
+
+namespace pdns
+{
+struct CloseDirDeleter
+{
+  void operator()(DIR* dir) const noexcept {
+    closedir(dir);
+  }
+};
+
+std::optional<std::string> visit_directory(const std::string& directory, const std::function<bool(ino_t inodeNumber, const std::string_view& name)>& visitor)
+{
+  auto dirHandle = std::unique_ptr<DIR, CloseDirDeleter>(opendir(directory.c_str()));
+  if (!dirHandle) {
+    auto err = errno;
+    return std::string("Error opening directory '" + directory + "': " + stringerror(err));
+  }
+
+  bool keepGoing = true;
+  struct dirent* ent = nullptr;
+  // NOLINTNEXTLINE(concurrency-mt-unsafe): readdir is thread-safe nowadays and readdir_r is deprecated
+  while (keepGoing && (ent = readdir(dirHandle.get())) != nullptr) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay: dirent API
+    auto name = std::string_view(ent->d_name, strlen(ent->d_name));
+    keepGoing = visitor(ent->d_ino, name);
+  }
+
+  return std::nullopt;
+}
+
+UniqueFilePtr openFileForWriting(const std::string& filePath, mode_t permissions, bool mustNotExist, bool appendIfExists)
+{
+  int flags = O_WRONLY | O_CREAT;
+  if (mustNotExist) {
+    flags |= O_EXCL;
+  }
+  else if (appendIfExists) {
+    flags |= O_APPEND;
+  }
+  int fileDesc = open(filePath.c_str(), flags, permissions);
+  if (fileDesc == -1) {
+    return {};
+  }
+  auto filePtr = pdns::UniqueFilePtr(fdopen(fileDesc, appendIfExists ? "a" : "w"));
+  if (!filePtr) {
+    auto error = errno;
+    close(fileDesc);
+    errno = error;
+    return {};
+  }
+  return filePtr;
+}
+
 }

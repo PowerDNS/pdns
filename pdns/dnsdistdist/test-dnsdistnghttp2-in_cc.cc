@@ -19,7 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
 
 #include <boost/test/unit_test.hpp>
@@ -195,7 +198,7 @@ private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
   {
     auto* conn = static_cast<DOHConnection*>(user_data);
-    //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
     conn->d_clientOutBuffer.insert(conn->d_clientOutBuffer.end(), data, data + length);
     return static_cast<ssize_t>(length);
   }
@@ -230,7 +233,7 @@ private:
   {
     auto* conn = static_cast<DOHConnection*>(user_data);
     auto& response = conn->d_responses[stream_id];
-    //NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
     response.insert(response.end(), data, data + len);
     return 0;
   }
@@ -244,7 +247,7 @@ private:
         try {
           uint16_t responseCode{0};
           auto expected = s_connectionContexts.at(conn->d_connectionID).d_responseCodes.at((frame->hd.stream_id - 1) / 2);
-          //NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
           pdns::checked_stoi_into(responseCode, std::string(reinterpret_cast<const char*>(value), valuelen));
           conn->d_responseCodes[frame->hd.stream_id] = responseCode;
           if (responseCode != expected) {
@@ -347,10 +350,10 @@ public:
 
     BOOST_REQUIRE_GE(buffer.size(), toRead);
 
-    //NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     std::copy(externalBuffer.begin(), externalBuffer.begin() + toRead, buffer.begin() + pos);
     pos += toRead;
-    //NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     externalBuffer.erase(externalBuffer.begin(), externalBuffer.begin() + toRead);
 
     return step.nextState;
@@ -476,7 +479,7 @@ private:
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {});
+  ClientState localCS(local, true, false, 0, "", {}, true);
   localCS.dohFrontend = std::make_shared<DOHFrontend>(std::make_shared<MockupTLSCtx>());
   localCS.dohFrontend->d_urls.insert("/dns-query");
 
@@ -664,7 +667,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
 {
   auto local = getBackendAddress("1", 80);
-  ClientState localCS(local, true, false, 0, "", {});
+  ClientState localCS(local, true, false, 0, "", {}, true);
   localCS.dohFrontend = std::make_shared<DOHFrontend>(std::make_shared<MockupTLSCtx>());
   localCS.dohFrontend->d_urls.insert("/dns-query");
 
@@ -733,6 +736,37 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
       threadData.mplexer->run(&now);
     }
   }
+}
+
+BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_ClientTimeout_BackendTimeout, TestFixture)
+{
+  auto local = getBackendAddress("1", 80);
+  ClientState localCS(local, true, false, 0, "", {}, true);
+  localCS.dohFrontend = std::make_shared<DOHFrontend>(std::make_shared<MockupTLSCtx>());
+  localCS.dohFrontend->d_urls.insert("/dns-query");
+
+  TCPClientThreadData threadData;
+  threadData.mplexer = std::make_unique<MockupFDMultiplexer>();
+
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
+
+  timeval now{};
+  gettimeofday(&now, nullptr);
+
+  size_t counter = 0;
+  s_connectionContexts[counter++] = ExpectedData{{}, {}, {}, {}};
+  s_steps = {
+    {ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done},
+    /* write to client, but the client closes the connection */
+    {ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, 0},
+    /* server close */
+    {ExpectedStep::ExpectedRequest::closeClient, IOState::Done},
+  };
+
+  auto state = std::make_shared<IncomingHTTP2Connection>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
+  auto base = std::static_pointer_cast<IncomingTCPConnectionState>(state);
+  IncomingHTTP2Connection::handleTimeout(base, true);
+  state->handleIO();
 }
 
 BOOST_AUTO_TEST_SUITE_END();

@@ -253,7 +253,7 @@ set-options-json *ZONE* *JSON*
 set-option *ZONE* [*producer*|*consumer*] [*coo*|*unique*|*group*] *VALUE* [*VALUE* ...]
     Set or remove an option for *ZONE*. Providing an empty value removes an option.
 set-catalog *ZONE* *CATALOG*
-    Change the catalog of *ZONE* to *CATALOG*
+    Change the catalog of *ZONE* to *CATALOG*. Setting *CATALOG* to an empty "" removes *ZONE* from the catalog it is in.
 set-account *ZONE* *ACCOUNT*
     Change the account (owner) of *ZONE* to *ACCOUNT*.
 add-meta *ZONE* *ATTRIBUTE* *VALUE* [*VALUE*]...

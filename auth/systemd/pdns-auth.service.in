@@ -1,0 +1,49 @@
+[Unit]
+Description=@Description@
+Documentation=man:pdns-auth(1)
+Documentation=man:pdns-auth-control(1)
+Documentation=https://doc.powerdns.com
+Wants=network-online.target
+After=network-online.target mysql.service mysqld.service postgresql.service slapd.service mariadb.service time-sync.target
+
+[Service]
+ExecStart=@StaticBinDir@/pdns-auth @ConfigName@ @SocketDir@ --guardian=no --daemon=no --disable-syslog --log-timestamp=no --write-pid=no
+SyslogIdentifier=@SyslogIdentifier@
+User=@ServiceUser@
+Group=@ServiceGroup@
+Type=notify
+Restart=on-failure
+RestartSec=1
+StartLimitInterval=0
+RuntimeDirectory=@RuntimeDirectory@
+
+# Sandboxing
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_CHOWN
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_CHOWN
+NoNewPrivileges=true
+DevicePolicy=closed
+@LockPersonality@
+@PrivateDevices@
+@PrivateTmp@
+@PrivateUsers@
+@ProtectClock@
+@ProtectControlGroups@
+@ProtectHome@
+@ProtectHostname@
+@ProtectKernelLogs@
+@ProtectKernelModules@
+@ProtectKernelTunables@
+@ProtectSystem@
+@RestrictAddressFamilies@
+@RestrictNamespaces@
+@RestrictRealtime@
+@RestrictSUIDSGID@
+@SystemCallArchitectures@
+@SystemCallFilter@
+@ProtectProc@
+@PrivateIPC@
+@RemoveIPC@
+@MemoryDenyWriteExecute@
+
+[Install]
+WantedBy=multi-user.target

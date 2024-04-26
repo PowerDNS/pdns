@@ -2,6 +2,57 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
+   :version: 4.8.8
+  :released: 24th of April 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq:
+
+    `Security advisory 2024-02 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-02.html>`__: CVE-2024-25583
+
+.. changelog::
+  :version: 4.8.7
+  :released: 7th of March 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13797
+    :tickets: 13353
+
+    If serving stale, wipe CNAME records from cache when we get a NODATA negative response for them.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13799
+
+    Fix the zoneToCache regression introduced by SA 2024-01.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13854
+    :tickets: 13847
+
+    Fix gathering of denial of existence proof for wildcard-expanded names.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13796
+    :tickets: 13387
+
+    Update new b-root-server.net addresses in built-in hints.
+
+.. changelog::
+  :version: 4.8.6
+  :released: 13th of February 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13784
+
+   `Security advisory 2024-01 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-01.html>`__: CVE-2023-50387 and CVE-2023-50868
+
+.. changelog::
   :version: 4.8.5
   :released: 25th of August 2023
 

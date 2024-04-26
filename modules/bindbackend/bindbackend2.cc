@@ -78,7 +78,7 @@ SharedLockGuarded<Bind2Backend::state_t> Bind2Backend::s_state;
 int Bind2Backend::s_first = 1;
 bool Bind2Backend::s_ignore_broken_records = false;
 
-std::mutex Bind2Backend::s_supermaster_config_lock; // protects writes to config file
+std::mutex Bind2Backend::s_autosecondary_config_lock; // protects writes to config file
 std::mutex Bind2Backend::s_startup_lock;
 string Bind2Backend::s_binddirectory;
 
@@ -235,8 +235,8 @@ bool Bind2Backend::startTransaction(const DNSName& qname, int id)
     fd = -1;
 
     *d_of << "; Written by PowerDNS, don't edit!" << endl;
-    *d_of << "; Zone '" << bbd.d_name << "' retrieved from master " << endl
-          << "; at " << nowTime() << endl; // insert master info here again
+    *d_of << "; Zone '" << bbd.d_name << "' retrieved from primary " << endl
+          << "; at " << nowTime() << endl; // insert primary info here again
 
     return true;
   }
@@ -298,7 +298,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ord
     throw DBException("out-of-zone data '" + rr.qname.toLogString() + "' during AXFR of zone '" + d_transaction_qname.toLogString() + "'");
   }
 
-  shared_ptr<DNSRecordContent> drc(DNSRecordContent::mastermake(rr.qtype.getCode(), QClass::IN, rr.content));
+  shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, rr.content));
   string content = drc->getZoneRepresentation();
 
   // SOA needs stripping too! XXX FIXME - also, this should not be here I think
@@ -318,14 +318,14 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ord
   return true;
 }
 
-void Bind2Backend::getUpdatedMasters(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
+void Bind2Backend::getUpdatedPrimaries(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
 {
   vector<DomainInfo> consider;
   {
     auto state = s_state.read_lock();
 
     for (const auto& i : *state) {
-      if (i.d_kind != DomainInfo::Master && this->alsoNotify.empty() && i.d_also_notify.empty())
+      if (i.d_kind != DomainInfo::Primary && this->alsoNotify.empty() && i.d_also_notify.empty())
         continue;
 
       DomainInfo di;
@@ -334,7 +334,7 @@ void Bind2Backend::getUpdatedMasters(vector<DomainInfo>& changedDomains, std::un
       di.last_check = i.d_lastcheck;
       di.notified_serial = i.d_lastnotified;
       di.backend = this;
-      di.kind = DomainInfo::Master;
+      di.kind = DomainInfo::Primary;
       consider.push_back(std::move(di));
     }
   }
@@ -377,7 +377,7 @@ void Bind2Backend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bo
       di.zone = i.d_name;
       di.last_check = i.d_lastcheck;
       di.kind = i.d_kind;
-      di.masters = i.d_masters;
+      di.primaries = i.d_primaries;
       di.backend = this;
       domains->push_back(std::move(di));
     };
@@ -399,22 +399,22 @@ void Bind2Backend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bo
   }
 }
 
-void Bind2Backend::getUnfreshSlaveInfos(vector<DomainInfo>* unfreshDomains)
+void Bind2Backend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
 {
   vector<DomainInfo> domains;
   {
     auto state = s_state.read_lock();
     domains.reserve(state->size());
     for (const auto& i : *state) {
-      if (i.d_kind != DomainInfo::Slave)
+      if (i.d_kind != DomainInfo::Secondary)
         continue;
       DomainInfo sd;
       sd.id = i.d_id;
       sd.zone = i.d_name;
-      sd.masters = i.d_masters;
+      sd.primaries = i.d_primaries;
       sd.last_check = i.d_lastcheck;
       sd.backend = this;
-      sd.kind = DomainInfo::Slave;
+      sd.kind = DomainInfo::Secondary;
       domains.push_back(std::move(sd));
     }
   }
@@ -444,7 +444,7 @@ bool Bind2Backend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool get
 
   di.id = bbd.d_id;
   di.zone = domain;
-  di.masters = bbd.d_masters;
+  di.primaries = bbd.d_primaries;
   di.last_check = bbd.d_lastcheck;
   di.backend = this;
   di.kind = bbd.d_kind;
@@ -520,7 +520,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
   bbd->d_status = "parsed into memory at " + nowTime();
   bbd->d_records = LookButDontTouch<recordstorage_t>(std::move(records));
   bbd->d_nsec3zone = nsec3zone;
-  bbd->d_nsec3param = ns3pr;
+  bbd->d_nsec3param = std::move(ns3pr);
 }
 
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedance matching
@@ -624,19 +624,19 @@ static void printDomainExtendedStatus(ostringstream& ret, const BB2DomainInfo& i
   ret << "\t On-disk file: " << info.d_filename << " (" << info.d_ctime << ")" << std::endl;
   ret << "\t Kind: ";
   switch (info.d_kind) {
-  case DomainInfo::Master:
-    ret << "Master";
+  case DomainInfo::Primary:
+    ret << "Primary";
     break;
-  case DomainInfo::Slave:
-    ret << "Slave";
+  case DomainInfo::Secondary:
+    ret << "Secondary";
     break;
   default:
     ret << "Native";
   }
   ret << std::endl;
-  ret << "\t Masters: " << std::endl;
-  for (const auto& master : info.d_masters) {
-    ret << "\t\t - " << master.toStringWithPort() << std::endl;
+  ret << "\t Primaries: " << std::endl;
+  for (const auto& primary : info.d_primaries) {
+    ret << "\t\t - " << primary.toStringWithPort() << std::endl;
   }
   ret << "\t Also Notify: " << std::endl;
   for (const auto& also : info.d_also_notify) {
@@ -955,17 +955,17 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
       // overwrite what we knew about the domain
       bbd.d_name = domain.name;
       bool filenameChanged = (bbd.d_filename != domain.filename);
-      bool addressesChanged = (bbd.d_masters != domain.masters || bbd.d_also_notify != domain.alsoNotify);
+      bool addressesChanged = (bbd.d_primaries != domain.primaries || bbd.d_also_notify != domain.alsoNotify);
       bbd.d_filename = domain.filename;
-      bbd.d_masters = domain.masters;
+      bbd.d_primaries = domain.primaries;
       bbd.d_also_notify = domain.alsoNotify;
 
       DomainInfo::DomainKind kind = DomainInfo::Native;
       if (domain.type == "primary" || domain.type == "master") {
-        kind = DomainInfo::Master;
+        kind = DomainInfo::Primary;
       }
       if (domain.type == "secondary" || domain.type == "slave") {
-        kind = DomainInfo::Slave;
+        kind = DomainInfo::Secondary;
       }
 
       bool kindChanged = (bbd.d_kind != kind);
@@ -992,7 +992,7 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
         catch (std::system_error& ae) {
           ostringstream msg;
           if (ae.code().value() == ENOENT && isNew && domain.type == "slave")
-            msg << " error at " + nowTime() << " no file found for new slave domain '" << domain.name << "'. Has not been AXFR'd yet";
+            msg << " error at " + nowTime() << " no file found for new secondary domain '" << domain.name << "'. Has not been AXFR'd yet";
           else
             msg << " error at " + nowTime() + " parsing '" << domain.name << "' from file '" << domain.filename << "': " << ae.what();
 
@@ -1197,7 +1197,7 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
 
   if (!bbd.d_loaded) {
     d_handle.reset();
-    throw DBException("Zone for '" + d_handle.domain.toLogString() + "' in '" + bbd.d_filename + "' not loaded (file missing, corrupt or master dead)"); // fsck
+    throw DBException("Zone for '" + d_handle.domain.toLogString() + "' in '" + bbd.d_filename + "' not loaded (file missing, corrupt or primary dead)"); // fsck
   }
 
   d_handle.d_records = bbd.d_records.get();
@@ -1331,12 +1331,12 @@ bool Bind2Backend::handle::get_list(DNSResourceRecord& r)
 
 bool Bind2Backend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
 {
-  if (getArg("supermaster-config").empty())
+  if (getArg("autoprimary-config").empty())
     return false;
 
-  ifstream c_if(getArg("supermasters"), std::ios::in);
+  ifstream c_if(getArg("autoprimaries"), std::ios::in);
   if (!c_if) {
-    g_log << Logger::Error << "Unable to open supermasters file for read: " << stringerror() << endl;
+    g_log << Logger::Error << "Unable to open autoprimaries file for read: " << stringerror() << endl;
     return false;
   }
 
@@ -1354,15 +1354,15 @@ bool Bind2Backend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   return true;
 }
 
-bool Bind2Backend::superMasterBackend(const string& ip, const DNSName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* account, DNSBackend** db)
+bool Bind2Backend::autoPrimaryBackend(const string& ip, const DNSName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* account, DNSBackend** db)
 {
   // Check whether we have a configfile available.
-  if (getArg("supermaster-config").empty())
+  if (getArg("autoprimary-config").empty())
     return false;
 
-  ifstream c_if(getArg("supermasters").c_str(), std::ios::in); // this was nocreate?
+  ifstream c_if(getArg("autoprimaries").c_str(), std::ios::in); // this was nocreate?
   if (!c_if) {
-    g_log << Logger::Error << "Unable to open supermasters file for read: " << stringerror() << endl;
+    g_log << Logger::Error << "Unable to open autoprimaries file for read: " << stringerror() << endl;
     return false;
   }
 
@@ -1382,7 +1382,7 @@ bool Bind2Backend::superMasterBackend(const string& ip, const DNSName& /* domain
   if (sip != ip) // ip not found in authorization list - reject
     return false;
 
-  // ip authorized as supermaster - accept
+  // ip authorized as autoprimary - accept
   *db = this;
   if (saccount.length() > 0)
     *account = saccount.c_str();
@@ -1413,25 +1413,25 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const DNSName& domain, const strin
   return bbd;
 }
 
-bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, const string& /* nameserver */, const string& account)
+bool Bind2Backend::createSecondaryDomain(const string& ip, const DNSName& domain, const string& /* nameserver */, const string& account)
 {
-  string filename = getArg("supermaster-destdir") + '/' + domain.toStringNoDot();
+  string filename = getArg("autoprimary-destdir") + '/' + domain.toStringNoDot();
 
   g_log << Logger::Warning << d_logprefix
         << " Writing bind config zone statement for superslave zone '" << domain
-        << "' from supermaster " << ip << endl;
+        << "' from autoprimary " << ip << endl;
 
   {
-    std::lock_guard<std::mutex> l2(s_supermaster_config_lock);
+    std::lock_guard<std::mutex> l2(s_autosecondary_config_lock);
 
-    ofstream c_of(getArg("supermaster-config").c_str(), std::ios::app);
+    ofstream c_of(getArg("autoprimary-config").c_str(), std::ios::app);
     if (!c_of) {
-      g_log << Logger::Error << "Unable to open supermaster configfile for append: " << stringerror() << endl;
-      throw DBException("Unable to open supermaster configfile for append: " + stringerror());
+      g_log << Logger::Error << "Unable to open autoprimary configfile for append: " << stringerror() << endl;
+      throw DBException("Unable to open autoprimary configfile for append: " + stringerror());
     }
 
     c_of << endl;
-    c_of << "# Superslave zone '" << domain.toString() << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
+    c_of << "# AutoSecondary zone '" << domain.toString() << "' (added: " << nowTime() << ") (account: " << account << ')' << endl;
     c_of << "zone \"" << domain.toStringNoDot() << "\" {" << endl;
     c_of << "\ttype secondary;" << endl;
     c_of << "\tfile \"" << filename << "\";" << endl;
@@ -1441,8 +1441,8 @@ bool Bind2Backend::createSlaveDomain(const string& ip, const DNSName& domain, co
   }
 
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
-  bbd.d_kind = DomainInfo::Slave;
-  bbd.d_masters.push_back(ComboAddress(ip, 53));
+  bbd.d_kind = DomainInfo::Secondary;
+  bbd.d_primaries.push_back(ComboAddress(ip, 53));
   bbd.setCtime();
   safePutBBDomainInfo(bbd);
 
@@ -1475,7 +1475,7 @@ bool Bind2Backend::searchRecords(const string& pattern, size_t maxResults, vecto
         DNSName name = ri->qname.empty() ? i.d_name : (ri->qname + i.d_name);
         if (sm.match(name) || sm.match(ri->content)) {
           DNSResourceRecord r;
-          r.qname = name;
+          r.qname = std::move(name);
           r.domain_id = i.d_id;
           r.content = ri->content;
           r.qtype = ri->qtype;
@@ -1501,9 +1501,9 @@ public:
     declare(suffix, "ignore-broken-records", "Ignore records that are out-of-bound for the zone.", "no");
     declare(suffix, "config", "Location of named.conf", "");
     declare(suffix, "check-interval", "Interval for zonefile changes", "0");
-    declare(suffix, "supermaster-config", "Location of (part of) named.conf where pdns can write zone-statements to", "");
-    declare(suffix, "supermasters", "List of IP-addresses of supermasters", "");
-    declare(suffix, "supermaster-destdir", "Destination directory for newly added slave zones", ::arg()["config-dir"]);
+    declare(suffix, "autoprimary-config", "Location of (part of) named.conf where pdns can write zone-statements to", "");
+    declare(suffix, "autoprimaries", "List of IP-addresses of autoprimaries", "");
+    declare(suffix, "autoprimary-destdir", "Destination directory for newly added secondary zones", ::arg()["config-dir"]);
     declare(suffix, "dnssec-db", "Filename to store & access our DNSSEC metadatabase, empty for none", "");
     declare(suffix, "dnssec-db-journal-mode", "SQLite3 journal mode", "WAL");
     declare(suffix, "hybrid", "Store DNSSEC metadata in other backend", "no");
@@ -1535,7 +1535,7 @@ class Bind2Loader
 public:
   Bind2Loader()
   {
-    BackendMakers().report(new Bind2Factory);
+    BackendMakers().report(std::make_unique<Bind2Factory>());
     g_log << Logger::Info << "[bind2backend] This is the bind backend version " << VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"

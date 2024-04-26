@@ -48,6 +48,10 @@
 
 #include <boost/iostreams/device/back_inserter.hpp>
 
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
+
 #include <stdio.h>
 #include <unistd.h>
 
@@ -385,6 +389,13 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     throw std::runtime_error("mdb_txn_begin failed");
   }
 
+#ifdef HAVE_SYSTEMD
+  /* A schema migration may take a long time. Extend the startup service timeout to 1 day,
+   * but only if this is beyond the original maximum time of TimeoutStartSec=.
+   */
+  sd_notify(0, "EXTEND_TIMEOUT_USEC=86400000000");
+#endif
+
   std::cerr << "migrating shards" << std::endl;
   for (uint32_t i = 0; i < shards; i++) {
     string shardfile = filename + "-" + std::to_string(i);
@@ -651,8 +662,6 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     d_asyncFlag = MDB_NOSYNC;
   else if (syncMode == "nometasync")
     d_asyncFlag = MDB_NOMETASYNC;
-  else if (syncMode == "mapasync")
-    d_asyncFlag = MDB_MAPASYNC;
   else if (syncMode.empty() || syncMode == "sync")
     d_asyncFlag = 0;
   else
@@ -819,7 +828,7 @@ namespace serialization
     ar& g.zone;
     ar& g.last_check;
     ar& g.account;
-    ar& g.masters;
+    ar& g.primaries;
     ar& g.id;
     ar& g.notified_serial;
     ar& g.kind;
@@ -833,7 +842,7 @@ namespace serialization
     ar& g.zone;
     ar& g.last_check;
     ar& g.account;
-    ar& g.masters;
+    ar& g.primaries;
     ar& g.id;
     ar& g.notified_serial;
     ar& g.kind;
@@ -948,7 +957,7 @@ void serFromString(const string_view& str, vector<LMDBBackend::LMDBResourceRecor
 
 static std::string serializeContent(uint16_t qtype, const DNSName& domain, const std::string& content)
 {
-  auto drc = DNSRecordContent::mastermake(qtype, QClass::IN, content);
+  auto drc = DNSRecordContent::make(qtype, QClass::IN, content);
   return drc->serialize(domain, false);
 }
 
@@ -1211,7 +1220,7 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
   return ret;
 }
 
-std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTransaction(uint32_t id, std::shared_ptr<LMDBBackend::RecordsRWTransaction> rwtxn)
+std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTransaction(uint32_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn)
 {
   auto& shard = d_trecords[id % s_shards];
   if (!shard.env) {
@@ -1616,7 +1625,7 @@ bool LMDBBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool gets
   return true;
 }
 
-int LMDBBackend::genChangeDomain(const DNSName& domain, std::function<void(DomainInfo&)> func)
+int LMDBBackend::genChangeDomain(const DNSName& domain, const std::function<void(DomainInfo&)>& func)
 {
   auto txn = d_tdomains->getRWTransaction();
 
@@ -1630,7 +1639,7 @@ int LMDBBackend::genChangeDomain(const DNSName& domain, std::function<void(Domai
   return true;
 }
 
-int LMDBBackend::genChangeDomain(uint32_t id, std::function<void(DomainInfo&)> func)
+int LMDBBackend::genChangeDomain(uint32_t id, const std::function<void(DomainInfo&)>& func)
 {
   DomainInfo di;
 
@@ -1661,14 +1670,14 @@ bool LMDBBackend::setAccount(const DNSName& domain, const std::string& account)
   });
 }
 
-bool LMDBBackend::setMasters(const DNSName& domain, const vector<ComboAddress>& masters)
+bool LMDBBackend::setPrimaries(const DNSName& domain, const vector<ComboAddress>& primaries)
 {
-  return genChangeDomain(domain, [&masters](DomainInfo& di) {
-    di.masters = masters;
+  return genChangeDomain(domain, [&primaries](DomainInfo& di) {
+    di.primaries = primaries;
   });
 }
 
-bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& masters, const string& account)
+bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
 {
   DomainInfo di;
 
@@ -1680,7 +1689,7 @@ bool LMDBBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
 
     di.zone = domain;
     di.kind = kind;
-    di.masters = masters;
+    di.primaries = primaries;
     di.account = account;
 
     txn.put(di, 0, d_random_ids);
@@ -1754,7 +1763,7 @@ void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */
   });
 }
 
-void LMDBBackend::getUnfreshSlaveInfos(vector<DomainInfo>* domains)
+void LMDBBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 {
   uint32_t serial;
   time_t now = time(0);
@@ -1799,7 +1808,7 @@ void LMDBBackend::setFresh(uint32_t domain_id)
   });
 }
 
-void LMDBBackend::getUpdatedMasters(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
+void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
   CatalogInfo ci;
 
@@ -1848,14 +1857,14 @@ bool LMDBBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
 
   try {
     getAllDomainsFiltered(&scratch, [&catalog, &members, &type](DomainInfo& di) {
-      if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Master) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Slave) || di.catalog != catalog) {
+      if ((type == CatalogInfo::CatalogType::Producer && di.kind != DomainInfo::Primary) || (type == CatalogInfo::CatalogType::Consumer && di.kind != DomainInfo::Secondary) || di.catalog != catalog) {
         return false;
       }
 
       CatalogInfo ci;
       ci.d_id = di.id;
       ci.d_zone = di.zone;
-      ci.d_primaries = di.masters;
+      ci.d_primaries = di.primaries;
       try {
         ci.fromJson(di.options, type);
       }
@@ -2761,7 +2770,7 @@ public:
   void declareArguments(const string& suffix = "") override
   {
     declare(suffix, "filename", "Filename for lmdb", "./pdns.lmdb");
-    declare(suffix, "sync-mode", "Synchronisation mode: nosync, nometasync, mapasync, sync", "mapasync");
+    declare(suffix, "sync-mode", "Synchronisation mode: nosync, nometasync, sync", "sync");
     // there just is no room for more on 32 bit
     declare(suffix, "shards", "Records database will be split into this number of shards", (sizeof(void*) == 4) ? "2" : "64");
     declare(suffix, "schema-version", "Maximum allowed schema version to run on this DB. If a lower version is found, auto update is performed", std::to_string(SCHEMAVERSION));
@@ -2783,7 +2792,7 @@ class LMDBLoader
 public:
   LMDBLoader()
   {
-    BackendMakers().report(new LMDBFactory);
+    BackendMakers().report(std::make_unique<LMDBFactory>());
     g_log << Logger::Info << "[lmdbbackend] This is the lmdb backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"

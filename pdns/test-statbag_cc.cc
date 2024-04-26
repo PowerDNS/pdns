@@ -1,4 +1,7 @@
+#ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
+#endif
+
 #define BOOST_TEST_NO_MAIN
 
 #ifdef HAVE_CONFIG_H
@@ -38,7 +41,7 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
   s.declare("c", "description");
   s.inc("a");
   BOOST_CHECK_EQUAL(s.read("a"), 1UL);
-  
+
   unsigned long n;
   for(n=0; n < 1000000; ++n)
     s.inc("b");
@@ -63,7 +66,7 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
   manglers.clear();
 
   BOOST_CHECK_EQUAL(s.read("c"), 4000000U);
- 
+
   s.set("c", 0);
 
   for (int i=0; i < 4; ++i) {
@@ -83,7 +86,7 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
   s.inc("c");
   BOOST_CHECK_EQUAL(s.read("c"), (1ULL<<31) +1 );
 
-#ifdef UINTPTR_MAX  
+#ifdef UINTPTR_MAX
 #if UINTPTR_MAX > 0xffffffffULL
     BOOST_CHECK_EQUAL(sizeof(AtomicCounterInner), 8U);
     s.set("c", 1ULL<<33);
@@ -108,4 +111,3 @@ BOOST_AUTO_TEST_CASE(test_StatBagBasic) {
 
 
 BOOST_AUTO_TEST_SUITE_END()
-

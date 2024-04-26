@@ -38,9 +38,9 @@
 #include "responsestats.hh"
 #include "statbag.hh"
 #endif
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+#include <cstdio>
+#include <cstring>
+#include <cctype>
 #include <sys/types.h>
 #include <iomanip>
 
@@ -60,48 +60,49 @@ extern StatBag S;
  * If s2 is empty, the function returns s1.
  */
 
-static char *
-strcasestr(const char *s1, const char *s2)
+static char*
+strcasestr(const char* s1, const char* s2)
 {
-        int *cm = __trans_lower;
-        const uchar_t *us1 = (const uchar_t *)s1;
-        const uchar_t *us2 = (const uchar_t *)s2;
-        const uchar_t *tptr;
-        int c;
+  int* cm = __trans_lower;
+  const uchar_t* us1 = (const uchar_t*)s1;
+  const uchar_t* us2 = (const uchar_t*)s2;
+  const uchar_t* tptr;
+  int c;
 
-        if (us2 == NULL || *us2 == '\0')
-                return ((char *)us1);
+  if (us2 == NULL || *us2 == '\0')
+    return ((char*)us1);
 
-        c = cm[*us2];
-        while (*us1 != '\0') {
-                if (c == cm[*us1++]) {
-                        tptr = us1;
-                        while (cm[c = *++us2] == cm[*us1++] && c != '\0')
-                                continue;
-                        if (c == '\0')
-                                return ((char *)tptr - 1);
-                        us1 = tptr;
-                        us2 = (const uchar_t *)s2;
-                        c = cm[*us2];
-                }
-        }
+  c = cm[*us2];
+  while (*us1 != '\0') {
+    if (c == cm[*us1++]) {
+      tptr = us1;
+      while (cm[c = *++us2] == cm[*us1++] && c != '\0')
+        continue;
+      if (c == '\0')
+        return ((char*)tptr - 1);
+      us1 = tptr;
+      us2 = (const uchar_t*)s2;
+      c = cm[*us2];
+    }
+  }
 
-        return (NULL);
+  return (NULL);
 }
 
 #endif // HAVE_STRCASESTR
 
-static Json getServerDetail() {
-  return Json::object {
-    { "type", "Server" },
-    { "id", "localhost" },
-    { "url", "/api/v1/servers/localhost" },
-    { "daemon_type", productTypeApiType() },
-    { "version", getPDNSVersion() },
-    { "config_url", "/api/v1/servers/localhost/config{/config_setting}" },
-    { "zones_url", "/api/v1/servers/localhost/zones{/zone}" },
+static Json getServerDetail()
+{
+  return Json::object{
+    {"type", "Server"},
+    {"id", "localhost"},
+    {"url", "/api/v1/servers/localhost"},
+    {"daemon_type", productTypeApiType()},
+    {"version", getPDNSVersion()},
+    {"config_url", "/api/v1/servers/localhost/config{/config_setting}"},
+    {"zones_url", "/api/v1/servers/localhost/zones{/zone}"},
 #ifndef RECURSOR
-    { "autoprimaries_url", "/api/v1/servers/localhost/autoprimaries{/autoprimary}" }
+    {"autoprimaries_url", "/api/v1/servers/localhost/autoprimaries{/autoprimary}"}
 #endif
   };
 }
@@ -109,86 +110,73 @@ static Json getServerDetail() {
 /* Return information about the supported API versions.
  * The format of this MUST NEVER CHANGE at it's not versioned.
  */
-void apiDiscovery(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  Json version1 = Json::object {
-    { "version", 1 },
-    { "url", "/api/v1" }
-  };
-  Json doc = Json::array { std::move(version1) };
+void apiDiscovery(HttpRequest* /* req */, HttpResponse* resp)
+{
+  Json version1 = Json::object{
+    {"version", 1},
+    {"url", "/api/v1"}};
+  Json doc = Json::array{std::move(version1)};
 
   resp->setJsonBody(doc);
 }
 
-void apiDiscoveryV1(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
+void apiDiscoveryV1(HttpRequest* /* req */, HttpResponse* resp)
+{
+  const Json& version1 = Json::object{
+    {"server_url", "/api/v1/servers{/server}"},
+    {"api_features", Json::array{}}};
+  const Json& doc = Json::array{version1};
 
-  Json version1 = Json::object {
-    { "server_url", "/api/v1/servers{/server}" },
-    { "api_features", Json::array {} }
-  };
-  Json doc = Json::array { std::move(version1) };
-
-  resp->setJsonBody(doc);
-
-}
-
-void apiServer(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  Json doc = Json::array {getServerDetail()};
   resp->setJsonBody(doc);
 }
 
-void apiServerDetail(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
+void apiServer(HttpRequest* /* req */, HttpResponse* resp)
+{
+  const Json& doc = Json::array{getServerDetail()};
+  resp->setJsonBody(doc);
+}
 
+void apiServerDetail(HttpRequest* /* req */, HttpResponse* resp)
+{
   resp->setJsonBody(getServerDetail());
 }
 
-void apiServerConfig(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
-  vector<string> items = ::arg().list();
+void apiServerConfig(HttpRequest* /* req */, HttpResponse* resp)
+{
+  const vector<string>& items = ::arg().list();
   string value;
   Json::array doc;
-  for(const string& item : items) {
-    if(item.find("password") != string::npos || item.find("api-key") != string::npos)
+  for (const string& item : items) {
+    if (item.find("password") != string::npos || item.find("api-key") != string::npos) {
       value = "***";
-    else
+    }
+    else {
       value = ::arg()[item];
+    }
 
-    doc.push_back(Json::object {
-      { "type", "ConfigSetting" },
-      { "name", item },
-      { "value", value },
+    doc.push_back(Json::object{
+      {"type", "ConfigSetting"},
+      {"name", item},
+      {"value", value},
     });
   }
   resp->setJsonBody(doc);
 }
 
-void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
-  if(req->method != "GET")
-    throw HttpMethodNotAllowedException();
-
+void apiServerStatistics(HttpRequest* req, HttpResponse* resp)
+{
   Json::array doc;
   string name = req->getvars["statistic"];
   if (!name.empty()) {
-    auto stat = productServerStatisticsFetch(name);
+    const auto& stat = productServerStatisticsFetch(name);
     if (!stat) {
       throw ApiException("Unknown statistic name");
     }
 
-    doc.push_back(Json::object {
-      { "type", "StatisticItem" },
-      { "name", name },
-      { "value", std::to_string(*stat) },
+    doc.push_back(Json::object{
+      {"type", "StatisticItem"},
+      {"name", name},
+      {"value", std::to_string(*stat)},
     });
 
     resp->setJsonBody(doc);
@@ -200,11 +188,11 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   stat_items_t general_stats;
   productServerStatisticsFetch(general_stats);
 
-  for(const auto& item : general_stats) {
-    doc.push_back(Json::object {
-      { "type", "StatisticItem" },
-      { "name", item.first },
-      { "value", item.second },
+  for (const auto& item : general_stats) {
+    doc.push_back(Json::object{
+      {"type", "StatisticItem"},
+      {"name", item.first},
+      {"value", item.second},
     });
   }
 
@@ -220,80 +208,84 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
 #endif
   {
     Json::array values;
-    for(const auto& item : resp_qtype_stats) {
-      if (item.second == 0)
+    for (const auto& item : resp_qtype_stats) {
+      if (item.second == 0) {
         continue;
-      values.push_back(Json::object {
-        { "name", DNSRecordContent::NumberToType(item.first) },
-        { "value", std::to_string(item.second) },
+      }
+      values.push_back(Json::object{
+        {"name", DNSRecordContent::NumberToType(item.first)},
+        {"value", std::to_string(item.second)},
       });
     }
 
-    doc.push_back(Json::object {
-      { "type", "MapStatisticItem" },
-      { "name", "response-by-qtype" },
-      { "value", values },
+    doc.push_back(Json::object{
+      {"type", "MapStatisticItem"},
+      {"name", "response-by-qtype"},
+      {"value", values},
     });
   }
 
   {
     Json::array values;
-    for(const auto& item : resp_size_stats) {
-      if (item.second == 0)
+    for (const auto& item : resp_size_stats) {
+      if (item.second == 0) {
         continue;
+      }
 
-      values.push_back(Json::object {
-        { "name", std::to_string(item.first) },
-        { "value", std::to_string(item.second) },
+      values.push_back(Json::object{
+        {"name", std::to_string(item.first)},
+        {"value", std::to_string(item.second)},
       });
     }
 
-    doc.push_back(Json::object {
-      { "type", "MapStatisticItem" },
-      { "name", "response-sizes" },
-      { "value", values },
+    doc.push_back(Json::object{
+      {"type", "MapStatisticItem"},
+      {"name", "response-sizes"},
+      {"value", values},
     });
   }
 
   {
     Json::array values;
-    for(const auto& item : resp_rcode_stats) {
-      if (item.second == 0)
+    for (const auto& item : resp_rcode_stats) {
+      if (item.second == 0) {
         continue;
-      values.push_back(Json::object {
-        { "name", RCode::to_s(item.first) },
-        { "value", std::to_string(item.second) },
+      }
+
+      values.push_back(Json::object{
+        {"name", RCode::to_s(item.first)},
+        {"value", std::to_string(item.second)},
       });
     }
 
-    doc.push_back(Json::object {
-      { "type", "MapStatisticItem" },
-      { "name", "response-by-rcode" },
-      { "value", values },
+    doc.push_back(Json::object{
+      {"type", "MapStatisticItem"},
+      {"name", "response-by-rcode"},
+      {"value", values},
     });
   }
 
 #ifndef RECURSOR
-  if (!req->getvars.count("includerings") ||
-       req->getvars["includerings"] != "false") {
-    for(const auto& ringName : S.listRings()) {
+  if ((req->getvars.count("includerings") == 0) || req->getvars["includerings"] != "false") {
+    for (const auto& ringName : S.listRings()) {
       Json::array values;
       const auto& ring = S.getRing(ringName);
-      for(const auto& item : ring) {
-        if (item.second == 0)
+      for (const auto& item : ring) {
+        if (item.second == 0) {
           continue;
+        }
 
-        values.push_back(Json::object {
-          { "name", item.first },
-          { "value", std::to_string(item.second) },
+        values.push_back(Json::object{
+          {"name", item.first},
+          {"value", std::to_string(item.second)},
         });
       }
 
-      doc.push_back(Json::object {
-        { "type", "RingStatisticItem" },
-        { "name", ringName },
-        { "size", std::to_string(S.getRingSize(ringName)) },
-        { "value", values },
+      doc.push_back(Json::object{
+        {"type", "RingStatisticItem"},
+        {"name", ringName},
+        {"size", std::to_string(S.getRingSize(ringName))},
+        {"value", values},
       });
     }
   }
@@ -302,100 +294,116 @@ void apiServerStatistics(HttpRequest* req, HttpResponse* resp) {
   resp->setJsonBody(doc);
 }
 
-DNSName apiNameToDNSName(const string& name) {
+DNSName apiNameToDNSName(const string& name)
+{
   if (!isCanonical(name)) {
     throw ApiException("DNS Name '" + name + "' is not canonical");
   }
   try {
     return DNSName(name);
-  } catch (...) {
+  }
+  catch (...) {
     throw ApiException("Unable to parse DNS Name '" + name + "'");
   }
 }
 
-DNSName apiZoneIdToName(const string& id) {
+DNSName apiZoneIdToName(const string& identifier)
+{
   string zonename;
-  ostringstream ss;
+  ostringstream outputStringStream;
 
-  if(id.empty())
+  if (identifier.empty()) {
     throw HttpBadRequestException();
+  }
 
-  std::size_t lastpos = 0, pos = 0;
-  while ((pos = id.find('=', lastpos)) != string::npos) {
-    ss << id.substr(lastpos, pos-lastpos);
-    char c;
+  std::size_t lastpos = 0;
+  std::size_t pos = 0;
+  while ((pos = identifier.find('=', lastpos)) != string::npos) {
+    outputStringStream << identifier.substr(lastpos, pos - lastpos);
+    char currentChar{};
     // decode tens
-    if (id[pos+1] >= '0' && id[pos+1] <= '9') {
-      c = id[pos+1] - '0';
-    } else if (id[pos+1] >= 'A' && id[pos+1] <= 'F') {
-      c = id[pos+1] - 'A' + 10;
-    } else {
+    if (identifier[pos + 1] >= '0' && identifier[pos + 1] <= '9') {
+      currentChar = static_cast<char>(identifier[pos + 1] - '0');
+    }
+    else if (identifier[pos + 1] >= 'A' && identifier[pos + 1] <= 'F') {
+      currentChar = static_cast<char>(identifier[pos + 1] - 'A' + 10);
+    }
+    else {
       throw HttpBadRequestException();
     }
-    c = c * 16;
+    currentChar = static_cast<char>(currentChar * 16);
 
     // decode unit place
-    if (id[pos+2] >= '0' && id[pos+2] <= '9') {
-      c += id[pos+2] - '0';
-    } else if (id[pos+2] >= 'A' && id[pos+2] <= 'F') {
-      c += id[pos+2] - 'A' + 10;
-    } else {
+    if (identifier[pos + 2] >= '0' && identifier[pos + 2] <= '9') {
+      currentChar = static_cast<char>(currentChar + identifier[pos + 2] - '0');
+    }
+    else if (identifier[pos + 2] >= 'A' && identifier[pos + 2] <= 'F') {
+      currentChar = static_cast<char>(currentChar + identifier[pos + 2] - 'A' + 10);
+    }
+    else {
       throw HttpBadRequestException();
     }
 
-    ss << c;
+    outputStringStream << currentChar;
 
-    lastpos = pos+3;
+    lastpos = pos + 3;
   }
   if (lastpos < pos) {
-    ss << id.substr(lastpos, pos-lastpos);
+    outputStringStream << identifier.substr(lastpos, pos - lastpos);
   }
 
-  zonename = ss.str();
+  zonename = outputStringStream.str();
 
   try {
     return DNSName(zonename);
-  } catch (...) {
+  }
+  catch (...) {
     throw ApiException("Unable to parse DNS Name '" + zonename + "'");
   }
 }
 
-string apiZoneNameToId(const DNSName& dname) {
-  string name=dname.toString();
-  ostringstream ss;
+string apiZoneNameToId(const DNSName& dname)
+{
+  string name = dname.toString();
+  ostringstream outputStringStream;
 
-  for(char iter : name) {
-    if ((iter >= 'A' && iter <= 'Z') ||
-        (iter >= 'a' && iter <= 'z') ||
-        (iter >= '0' && iter <= '9') ||
-        (iter == '.') || (iter == '-')) {
-      ss << iter;
-    } else {
-      ss << (boost::format("=%02X") % (int)iter);
+  for (char iter : name) {
+    if ((iter >= 'A' && iter <= 'Z') || (iter >= 'a' && iter <= 'z') || (iter >= '0' && iter <= '9') || (iter == '.') || (iter == '-')) {
+      outputStringStream << iter;
+    }
+    else {
+      outputStringStream << (boost::format("=%02X") % (int)iter);
     }
   }
 
-  string id = ss.str();
+  string identifier = outputStringStream.str();
 
   // add trailing dot
-  if (id.size() == 0 || id.substr(id.size()-1) != ".") {
-    id += ".";
+  if (identifier.empty() || identifier.substr(identifier.size() - 1) != ".") {
+    identifier += ".";
   }
 
   // special handling for the root zone, as a dot on it's own doesn't work
   // everywhere.
-  if (id == ".") {
-    id = (boost::format("=%02X") % (int)('.')).str();
+  if (identifier == ".") {
+    identifier = (boost::format("=%02X") % (int)('.')).str();
   }
-  return id;
+  return identifier;
 }
 
-void apiCheckNameAllowedCharacters(const string& name) {
-  if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos)
-    throw ApiException("Name '"+name+"' contains unsupported characters");
+void apiCheckNameAllowedCharacters(const string& name)
+{
+  if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos) {
+    throw ApiException("Name '" + name + "' contains unsupported characters");
+  }
 }
 
-void apiCheckQNameAllowedCharacters(const string& qname) {
-  if (qname.compare(0, 2, "*.") == 0) apiCheckNameAllowedCharacters(qname.substr(2));
-  else apiCheckNameAllowedCharacters(qname);
+void apiCheckQNameAllowedCharacters(const string& qname)
+{
+  if (qname.compare(0, 2, "*.") == 0) {
+    apiCheckNameAllowedCharacters(qname.substr(2));
+  }
+  else {
+    apiCheckNameAllowedCharacters(qname);
+  }
 }

@@ -23,7 +23,6 @@ StatBag S;
 
 // Vars below used by tcpiohandler.cc
 bool g_verbose = true;
-bool g_syslog = false;
 
 static bool hidettl = false;
 
@@ -41,7 +40,6 @@ static void usage()
   cerr << "Syntax: sdig IP-ADDRESS-OR-DOH-URL PORT QNAME QTYPE "
           "[dnssec] [ednssubnet SUBNET/MASK] [hidesoadetails] [hidettl] [recurse] [showflags] "
           "[tcp] [dot] [insecure] [fastOpen] [subjectName name] [caStore file] [tlsProvider openssl|gnutls] "
-          "[xpf XPFDATA] [class CLASSNUM] "
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT] "
           "[dumpluaraw] [opcode OPNUM]"
        << endl;
@@ -58,10 +56,8 @@ static const string nameForClass(QClass qclass, uint16_t qtype)
 static std::unordered_set<uint16_t> s_expectedIDs;
 
 static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
-                       bool dnssec, const boost::optional<Netmask> ednsnm,
-                       bool recurse, uint16_t xpfcode, uint16_t xpfversion,
-                       uint64_t xpfproto, char* xpfsrc, char* xpfdst,
-                       QClass qclass, uint8_t opcode, uint16_t qid)
+                       bool dnssec, const boost::optional<Netmask>& ednsnm,
+                       bool recurse, QClass qclass, uint8_t opcode, uint16_t qid)
 {
   DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
 
@@ -80,19 +76,6 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
     }
 
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
-    pw.commit();
-  }
-
-  if (xpfcode) {
-    ComboAddress src(xpfsrc), dst(xpfdst);
-    pw.startRecord(g_rootdnsname, xpfcode, 0, QClass::IN, DNSResourceRecord::ADDITIONAL);
-    // xpf->toPacket(pw);
-    pw.xfr8BitInt(xpfversion);
-    pw.xfr8BitInt(xpfproto);
-    pw.xfrCAWithoutPort(xpfversion, src);
-    pw.xfrCAWithoutPort(xpfversion, dst);
-    pw.xfrCAPort(src);
-    pw.xfrCAPort(dst);
     pw.commit();
   }
 
@@ -213,8 +196,6 @@ try {
   bool insecureDoT = false;
   bool fromstdin = false;
   boost::optional<Netmask> ednsnm;
-  uint16_t xpfcode = 0, xpfversion = 0, xpfproto = 0;
-  char *xpfsrc = NULL, *xpfdst = NULL;
   QClass qclass = QClass::IN;
   uint8_t opcode = 0;
   string proxyheader;
@@ -268,17 +249,6 @@ try {
           exit(EXIT_FAILURE);
         }
         ednsnm = Netmask(argv[++i]);
-      }
-      else if (strcmp(argv[i], "xpf") == 0) {
-        if (argc < i + 6) {
-          cerr << "xpf needs five arguments" << endl;
-          exit(EXIT_FAILURE);
-        }
-        xpfcode = atoi(argv[++i]);
-        xpfversion = atoi(argv[++i]);
-        xpfproto = atoi(argv[++i]);
-        xpfsrc = argv[++i];
-        xpfdst = argv[++i];
       }
       else if (strcmp(argv[i], "class") == 0) {
         if (argc < i+2) {
@@ -378,8 +348,7 @@ try {
 #ifdef HAVE_LIBCURL
     vector<uint8_t> packet;
     s_expectedIDs.insert(0);
-    fillPacket(packet, name, type, dnssec, ednsnm, recurse, xpfcode, xpfversion,
-               xpfproto, xpfsrc, xpfdst, qclass, opcode, 0);
+    fillPacket(packet, name, type, dnssec, ednsnm, recurse, qclass, opcode, 0);
     MiniCurl mc;
     MiniCurl::MiniCurlHeaders mch;
     mch.emplace("Content-Type", "application/dns-message");
@@ -423,7 +392,7 @@ try {
     Socket sock(dest.sin4.sin_family, SOCK_STREAM);
     sock.setNonBlocking();
     setTCPNoDelay(sock.getHandle()); // disable NAGLE, which does not play nicely with delayed ACKs
-    TCPIOHandler handler(subjectName, false, sock.releaseHandle(), timeout, tlsCtx);
+    TCPIOHandler handler(subjectName, false, sock.releaseHandle(), timeout, std::move(tlsCtx));
     handler.connect(fastOpen, dest, timeout);
     // we are writing the proxyheader inside the TLS connection. Is that right?
     if (proxyheader.size() > 0 && handler.write(proxyheader.data(), proxyheader.size(), timeout) != proxyheader.size()) {
@@ -433,8 +402,7 @@ try {
     for (const auto& it : questions) {
       vector<uint8_t> packet;
       s_expectedIDs.insert(counter);
-      fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, xpfcode,
-                 xpfversion, xpfproto, xpfsrc, xpfdst, qclass, opcode, counter);
+      fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, qclass, opcode, counter);
       counter++;
 
       // Prefer to do a single write, so that fastopen can send all the data on SYN
@@ -464,8 +432,7 @@ try {
   {
     vector<uint8_t> packet;
     s_expectedIDs.insert(0);
-    fillPacket(packet, name, type, dnssec, ednsnm, recurse, xpfcode, xpfversion,
-               xpfproto, xpfsrc, xpfdst, qclass, opcode, 0);
+    fillPacket(packet, name, type, dnssec, ednsnm, recurse, qclass, opcode, 0);
     string question(packet.begin(), packet.end());
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     question = proxyheader + question;

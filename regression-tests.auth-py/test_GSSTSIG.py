@@ -27,6 +27,7 @@ gsqlite3-dnssec=yes
 enable-gss-tsig=yes
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
+dnsupdate-require-tsig=no
 """
     _auth_env = {'KRB5_CONFIG' : './kerberos-client/krb5.conf',
                  'KRB5_KTNAME' : './kerberos-client/kt.keytab'
@@ -54,10 +55,13 @@ dnsupdate=yes
         ret = subprocess.run(["kinit", "-Vt", "./kerberos-client/kt.keytab", user], env=self._auth_env)
         self.assertEqual(ret.returncode, 0)
 
-    def nsupdate(self, commands, expected=0):
+    def nsupdate(self, commands, expected=0, unauth=False):
         full = "server 127.0.0.1 %s\n" % self._authPort
         full += commands + "\nsend\nquit\n"
-        ret = subprocess.run(["nsupdate", "-g"], input=full, env=self._auth_env, capture_output=True, text=True)
+        if unauth:
+            ret = subprocess.run(["nsupdate"], input=full, capture_output=True, text=True)
+        else:
+            ret = subprocess.run(["nsupdate", "-g"], input=full, env=self._auth_env, capture_output=True, text=True)
         self.assertEqual(ret.returncode, expected)
 
     def checkInDB(self, zone, record):
@@ -93,12 +97,12 @@ dnsupdate=yes
     def testNoAcceptor(self):
         self.kinit("testuser1")
         self.nsupdate("add inserted3.noacceptor.net 10 A 1.2.3.3", 2)
-        self.checkNotInDB('example.net', 'inserted3.example.net')
+        self.checkNotInDB('noacceptor.net', 'inserted3.noacceptor.net')
 
     def testWrongAcceptor(self):
         self.kinit("testuser1")
         self.nsupdate("add inserted4.wrongacceptor.net 10 A 1.2.3.4", 2)
-        self.checkNotInDB('example.net', 'inserted4.example.net')
+        self.checkNotInDB('wrongacceptor.net', 'inserted4.wrongacceptor.net')
 
 class TestLuaGSSTSIG(GSSTSIGBase):
 
@@ -126,10 +130,76 @@ lua-dnsupdate-policy-script=kerberos-client/update-policy.lua
     def testNoAcceptor(self):
         self.kinit("testuser1")
         self.nsupdate("add inserted12.noacceptor.net 10 A 1.2.3.12", 2)
-        self.checkNotInDB('example.net', 'inserted12.example.net')
+        self.checkNotInDB('noacceptor.net', 'inserted12.noacceptor.net')
 
     def testWrongAcceptor(self):
         self.kinit("testuser1")
         self.nsupdate("add inserted13.wrongacceptor.net 10 A 1.2.3.13", 2)
-        self.checkNotInDB('example.net', 'inserted13.example.net')
+        self.checkNotInDB('wrongacceptor.net', 'inserted13.wrongacceptor.net')
+
+class TestUnauthTSIG(GSSTSIGBase):
+
+    _config_template = """
+launch=gsqlite3
+gsqlite3-database=configs/auth/powerdns.sqlite
+gsqlite3-pragma-foreign-keys=yes
+gsqlite3-dnssec=yes
+enable-gss-tsig=no
+allow-dnsupdate-from=0.0.0.0/0
+dnsupdate=yes
+"""
+    def testNoAcceptor(self):
+        self.checkNotInDB('noacceptor.net', 'inserted20.noacceptor.net')
+        self.nsupdate("add inserted20.noacceptor.net 10 A 1.2.3.3", 0, True)
+        self.checkInDB('noacceptor.net', 'inserted20.noacceptor.net')
+
+class TestAuthTSIG(GSSTSIGBase):
+
+    _config_template = """
+launch=gsqlite3
+gsqlite3-database=configs/auth/powerdns.sqlite
+gsqlite3-pragma-foreign-keys=yes
+gsqlite3-dnssec=yes
+enable-gss-tsig=no
+allow-dnsupdate-from=0.0.0.0/0
+dnsupdate=yes
+dnsupdate-require-tsig=yes
+"""
+    def testNoAcceptor(self):
+        self.nsupdate("add inserted30.noacceptor.net 10 A 1.2.3.3", 2, True)
+        self.checkNotInDB('noacceptor.net', 'inserted30.noacceptor.net')
+
+class TestBasicRequiredGSSTSIG(GSSTSIGBase):
+
+    _config_template = """
+launch=gsqlite3
+gsqlite3-database=configs/auth/powerdns.sqlite
+gsqlite3-pragma-foreign-keys=yes
+gsqlite3-dnssec=yes
+enable-gss-tsig=yes
+allow-dnsupdate-from=0.0.0.0/0
+dnsupdate=yes
+dnsupdate-require-tsig=yes
+"""
+    def testAllowedUpdate(self):
+        self.checkNotInDB('example.net', 'inserted40.example.net')
+        self.kinit("testuser1")
+        self.nsupdate("add inserted40.example.net 10 A 1.2.3.1")
+        self.checkInDB('example.net', '^inserted40.example.net.*10.*IN.*A.*1.2.3.1$')
+
+    def testDisallowedUpdate(self):
+        self.kinit("testuser2")
+        self.nsupdate("add inserted41.example.net 10 A 1.2.3.2", 2)
+        self.checkNotInDB('example.net', 'inserted41.example.net')
+
+    def testNoAcceptor(self):
+        self.kinit("testuser1")
+        self.nsupdate("add inserted42.noacceptor.net 10 A 1.2.3.3", 2)
+        self.checkNotInDB('noacceptor.net', 'inserted42.noacceptor.net')
+
+    def testWrongAcceptor(self):
+        self.kinit("testuser1")
+        self.nsupdate("add inserted43.wrongacceptor.net 10 A 1.2.3.4", 2)
+        self.checkNotInDB('wrongacceptor.net', 'inserted43.wrongacceptor.net')
+
 

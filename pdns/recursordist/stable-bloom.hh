@@ -40,119 +40,139 @@ namespace bf
 class stableBF
 {
 public:
-  stableBF(float fp_rate, uint32_t num_cells, uint8_t p) :
+  stableBF(float fp_rate, uint32_t num_cells, uint8_t pArg) :
     d_k(optimalK(fp_rate)),
     d_num_cells(num_cells),
-    d_p(p),
+    d_p(pArg),
     d_cells(num_cells),
     d_gen(std::random_device()()),
-    d_dis(0, num_cells) {}
-  stableBF(uint8_t k, uint32_t num_cells, uint8_t p, const std::string& bitstr) :
-    d_k(k),
+    d_dis(0, static_cast<int>(num_cells)) {}
+  stableBF(uint8_t kArg, uint32_t num_cells, uint8_t pArg, const std::string& bitstr) :
+    d_k(kArg),
     d_num_cells(num_cells),
-    d_p(p),
+    d_p(pArg),
     d_cells(bitstr),
     d_gen(std::random_device()()),
-    d_dis(0, num_cells) {}
+    d_dis(0, static_cast<int>(num_cells)) {}
+
   void add(const std::string& data)
   {
     decrement();
     auto hashes = hash(data);
-    for (auto& i : hashes) {
-      d_cells.set(i % d_num_cells);
+    for (auto& hash : hashes) {
+      d_cells.set(hash % d_num_cells);
     }
   }
-  bool test(const std::string& data) const
+
+  [[nodiscard]] bool test(const std::string& data) const
   {
     auto hashes = hash(data);
-    for (auto& i : hashes) {
-      if (d_cells.test(i % d_num_cells) == false)
+    for (auto& hash : hashes) { // NOLINT(readability-use-anyofallof) not more clear IMO
+      if (!d_cells.test(hash % d_num_cells)) {
         return false;
+      }
     }
     return true;
   }
+
   bool testAndAdd(const std::string& data)
   {
     auto hashes = hash(data);
     bool retval = true;
-    for (auto& i : hashes) {
-      if (d_cells.test(i % d_num_cells) == false) {
+    for (auto& hash : hashes) {
+      if (!d_cells.test(hash % d_num_cells)) {
         retval = false;
         break;
       }
     }
     decrement();
-    for (auto& i : hashes) {
-      d_cells.set(i % d_num_cells);
+    for (auto& hash : hashes) {
+      d_cells.set(hash % d_num_cells);
     }
     return retval;
   }
-  void dump(std::ostream& os)
+
+  void dump(std::ostream& ostr)
   {
-    os.write((char*)&d_k, sizeof(d_k));
+    ostr.write(charPtr(&d_k), sizeof(d_k));
     uint32_t nint = htonl(d_num_cells);
-    os.write((char*)&nint, sizeof(nint));
-    os.write((char*)&d_p, sizeof(d_p));
+    ostr.write(charPtr(&nint), sizeof(nint));
+    ostr.write(charPtr(&d_p), sizeof(d_p));
     std::string temp_str;
     boost::to_string(d_cells, temp_str);
-    uint32_t bitstr_length = htonl((uint32_t)temp_str.length());
-    os.write((char*)&bitstr_length, sizeof(bitstr_length));
-    os.write((char*)temp_str.c_str(), temp_str.length());
-    if (os.fail()) {
+    uint32_t bitstr_length = htonl(static_cast<uint32_t>(temp_str.length()));
+    ostr.write(charPtr(&bitstr_length), sizeof(bitstr_length));
+    ostr.write(charPtr(temp_str.c_str()), static_cast<std::streamsize>(temp_str.length()));
+    if (ostr.fail()) {
       throw std::runtime_error("SBF: Failed to dump");
     }
   }
-  void restore(std::istream& is)
+
+  void restore(std::istream& istr)
   {
-    uint8_t k, p;
-    uint32_t num_cells, bitstr_len;
-    is.read((char*)&k, sizeof(k));
-    if (is.fail()) {
+    uint8_t kValue{};
+    istr.read(charPtr(&kValue), sizeof(kValue));
+    if (istr.fail()) {
       throw std::runtime_error("SBF: read failed (file too short?)");
     }
-    is.read((char*)&num_cells, sizeof(num_cells));
-    if (is.fail()) {
+    uint32_t num_cells{};
+    istr.read(charPtr(&num_cells), sizeof(num_cells));
+    if (istr.fail()) {
       throw std::runtime_error("SBF: read failed (file too short?)");
     }
     num_cells = ntohl(num_cells);
-    is.read((char*)&p, sizeof(p));
-    if (is.fail()) {
+    uint8_t pValue{};
+    istr.read(charPtr(&pValue), sizeof(pValue));
+    if (istr.fail()) {
       throw std::runtime_error("SBF: read failed (file too short?)");
     }
-    is.read((char*)&bitstr_len, sizeof(bitstr_len));
-    if (is.fail()) {
+    uint32_t bitstr_len{};
+    istr.read(charPtr(&bitstr_len), sizeof(bitstr_len));
+    if (istr.fail()) {
       throw std::runtime_error("SBF: read failed (file too short?)");
     }
     bitstr_len = ntohl(bitstr_len);
     if (bitstr_len > 2 * 64 * 1024 * 1024U) { // twice the current size
       throw std::runtime_error("SBF: read failed (bitstr_len too big)");
     }
-    auto bitcstr = std::make_unique<char[]>(bitstr_len);
-    is.read(bitcstr.get(), bitstr_len);
-    if (is.fail()) {
+    auto bitcstr = NoInitVector<char>(bitstr_len);
+    istr.read(bitcstr.data(), bitstr_len);
+    if (istr.fail()) {
       throw std::runtime_error("SBF: read failed (file too short?)");
     }
-    std::string bitstr(bitcstr.get(), bitstr_len);
-    stableBF tempbf(k, num_cells, p, bitstr);
+    const std::string bitstr(bitcstr.data(), bitstr_len);
+    stableBF tempbf(kValue, num_cells, pValue, bitstr);
     swap(tempbf);
   }
 
 private:
-  unsigned int optimalK(float fp_rate)
+  static const char* charPtr(const void* ptr)
   {
-    return std::ceil(std::log2(1 / fp_rate));
+    return static_cast<const char*>(ptr);
   }
+
+  static char* charPtr(void* ptr)
+  {
+    return static_cast<char*>(ptr);
+  }
+
+  static unsigned int optimalK(float fp_rate)
+  {
+    return std::ceil(std::log2(1.0 / fp_rate));
+  }
+
   void decrement()
   {
     // Choose a random cell then decrement the next p-1
     // The stable bloom algorithm described in the paper says
     // to choose p independent positions, but that is much slower
     // and this shouldn't change the properties of the SBF
-    size_t r = d_dis(d_gen);
+    size_t randomValue = d_dis(d_gen);
     for (uint64_t i = 0; i < d_p; ++i) {
-      d_cells.reset((r + i) % d_num_cells);
+      d_cells.reset((randomValue + i) % d_num_cells);
     }
   }
+
   void swap(stableBF& rhs)
   {
     std::swap(d_k, rhs.d_k);
@@ -160,29 +180,32 @@ private:
     std::swap(d_p, rhs.d_p);
     d_cells.swap(rhs.d_cells);
   }
+
   // This is a double hash implementation returning an array of
   // k hashes
-  std::vector<uint32_t> hash(const std::string& data) const
+  [[nodiscard]] std::vector<uint32_t> hash(const std::string& data) const
   {
-    uint32_t h1, h2;
+    uint32_t hash1{};
+    uint32_t hash2{};
     // MurmurHash3 assumes the data is uint32_t aligned, so fixup if needed
     // It does handle string lengths that are not a multiple of sizeof(uint32_t) correctly
-    if (reinterpret_cast<uintptr_t>(data.data()) % sizeof(uint32_t) != 0) {
-      NoInitVector<uint32_t> x((data.length() / sizeof(uint32_t)) + 1);
-      memcpy(x.data(), data.data(), data.length());
-      MurmurHash3_x86_32(x.data(), data.length(), 1, &h1);
-      MurmurHash3_x86_32(x.data(), data.length(), 2, &h2);
+    if (reinterpret_cast<uintptr_t>(data.data()) % sizeof(uint32_t) != 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+      NoInitVector<uint32_t> vec((data.length() / sizeof(uint32_t)) + 1);
+      memcpy(vec.data(), data.data(), data.length());
+      MurmurHash3_x86_32(vec.data(), static_cast<int>(data.length()), 1, &hash1);
+      MurmurHash3_x86_32(vec.data(), static_cast<int>(data.length()), 2, &hash2);
     }
     else {
-      MurmurHash3_x86_32(data.data(), data.length(), 1, &h1);
-      MurmurHash3_x86_32(data.data(), data.length(), 2, &h2);
+      MurmurHash3_x86_32(data.data(), static_cast<int>(data.length()), 1, &hash1);
+      MurmurHash3_x86_32(data.data(), static_cast<int>(data.length()), 2, &hash2);
     }
     std::vector<uint32_t> ret_hashes(d_k);
     for (size_t i = 0; i < d_k; ++i) {
-      ret_hashes[i] = h1 + i * h2;
+      ret_hashes[i] = hash1 + i * hash2;
     }
     return ret_hashes;
   }
+
   uint8_t d_k;
   uint32_t d_num_cells;
   uint8_t d_p;

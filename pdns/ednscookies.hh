@@ -28,7 +28,7 @@ struct EDNSCookiesOpt
   static const size_t EDNSCookieSecretSize = 32;
   static const size_t EDNSCookieOptSize = 24;
 
-  EDNSCookiesOpt(){};
+  EDNSCookiesOpt() = default;
   EDNSCookiesOpt(const std::string& option);
   EDNSCookiesOpt(const char* option, unsigned int len);
 

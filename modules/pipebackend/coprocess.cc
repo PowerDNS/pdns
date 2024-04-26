@@ -204,7 +204,7 @@ void CoProcess::receive(string& received)
 
   if (eolPos != received.size() - 1) {
     /* we have some data remaining after the first '\n', let's keep it for later */
-    d_remaining.append(received, eolPos + 1, received.size() - eolPos - 1);
+    d_remaining = std::string(received, eolPos + 1, received.size() - eolPos - 1);
   }
 
   received.resize(eolPos);
@@ -233,7 +233,7 @@ UnixRemote::UnixRemote(const string& path)
   if (connect(d_fd, (struct sockaddr*)&remote, sizeof(remote)) < 0)
     unixDie("Unable to connect to remote '" + path + "' using UNIX domain socket");
 
-  d_fp = std::unique_ptr<FILE, int (*)(FILE*)>(fdopen(d_fd, "r"), fclose);
+  d_fp = pdns::UniqueFilePtr(fdopen(d_fd, "r"));
 }
 
 void UnixRemote::send(const string& line)

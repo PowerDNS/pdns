@@ -71,7 +71,7 @@ public:
     loadFile(getArg("filename"));
   }
 
-  ~Lua2BackendAPIv2();
+  ~Lua2BackendAPIv2() override;
 
 #define logCall(func, var)                                                                               \
   {                                                                                                      \
@@ -87,12 +87,12 @@ public:
     }                                                                 \
   }
 
-  virtual void postPrepareContext() override
+  void postPrepareContext() override
   {
     AuthLua4::postPrepareContext();
   }
 
-  virtual void postLoad() override
+  void postLoad() override
   {
     f_lookup = d_lw->readVariable<boost::optional<lookup_call_t>>("dns_lookup").get_value_or(0);
     f_list = d_lw->readVariable<boost::optional<list_call_t>>("dns_list").get_value_or(0);
@@ -255,8 +255,8 @@ public:
       else if (item.first == "last_check")
         di.last_check = static_cast<time_t>(boost::get<long>(item.second));
       else if (item.first == "masters")
-        for (const auto& master : boost::get<vector<string>>(item.second))
-          di.masters.push_back(ComboAddress(master, 53));
+        for (const auto& primary : boost::get<vector<string>>(item.second))
+          di.primaries.push_back(ComboAddress(primary, 53));
       else if (item.first == "id")
         di.id = static_cast<int>(boost::get<long>(item.second));
       else if (item.first == "notified_serial")

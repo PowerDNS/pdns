@@ -25,6 +25,7 @@
 
 #include "iputils.hh"
 
+#include <fstream>
 #include <sys/socket.h>
 #include <boost/format.hpp>
 
@@ -34,14 +35,14 @@
 
 /** these functions provide a very lightweight wrapper to the Berkeley sockets API. Errors -> exceptions! */
 
-static void RuntimeError(std::string&& error)
+static void RuntimeError(const std::string& error)
 {
-  throw runtime_error(std::move(error));
+  throw runtime_error(error);
 }
 
-static void NetworkErr(std::string&& error)
+static void NetworkErr(const std::string& error)
 {
-  throw NetworkError(std::move(error));
+  throw NetworkError(error);
 }
 
 int SSocket(int family, int type, int flags)
@@ -191,6 +192,27 @@ void setSocketIgnorePMTU([[maybe_unused]] int sockfd, [[maybe_unused]] int famil
   }
 }
 
+void setSocketForcePMTU([[maybe_unused]] int sockfd, [[maybe_unused]] int family)
+{
+  if (family == AF_INET) {
+#if defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DO)
+    /* IP_PMTUDISC_DO enables Path MTU discovery and prevents fragmentation */
+    SSetsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, IP_PMTUDISC_DO);
+#elif defined(IP_DONTFRAG)
+    /* at least this prevents fragmentation */
+    SSetsockopt(sockfd, IPPROTO_IP, IP_DONTFRAG, 1);
+#endif /* defined(IP_MTU_DISCOVER) && defined(IP_PMTUDISC_DO) */
+  }
+  else {
+#if defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DO)
+    /* IPV6_PMTUDISC_DO enables Path MTU discovery and prevents fragmentation */
+    SSetsockopt(sockfd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, IPV6_PMTUDISC_DO);
+#elif defined(IPV6_DONTFRAG)
+    /* at least this prevents fragmentation */
+    SSetsockopt(sockfd, IPPROTO_IPV6, IPV6_DONTFRAG, 1);
+#endif /* defined(IPV6_MTU_DISCOVER) && defined(IPV6_PMTUDISC_DO) */
+  }
+}
 
 bool setReusePort(int sockfd)
 {
@@ -344,17 +366,18 @@ void ComboAddress::truncate(unsigned int bits) noexcept
   *place &= (~((1<<bitsleft)-1));
 }
 
-size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags)
+size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags)
 {
-  struct msghdr msgh;
-  struct iovec iov;
+  msghdr msgh{};
+  iovec iov{};
   cmsgbuf_aligned cbuf;
 
   /* Set up iov and msgh structures. */
-  memset(&msgh, 0, sizeof(struct msghdr));
+  memset(&msgh, 0, sizeof(msgh));
   msgh.msg_control = nullptr;
   msgh.msg_controllen = 0;
-  if (dest) {
+  if (dest != nullptr) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-const-cast): it's the API
     msgh.msg_name = reinterpret_cast<void*>(const_cast<ComboAddress*>(dest));
     msgh.msg_namelen = dest->getSocklen();
   }
@@ -365,11 +388,12 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
 
   msgh.msg_flags = 0;
 
-  if (localItf != 0 && local) {
-    addCMsgSrcAddr(&msgh, &cbuf, local, localItf);
+  if (local != nullptr && local->sin4.sin_family != 0) {
+    addCMsgSrcAddr(&msgh, &cbuf, local, static_cast<int>(localItf));
   }
 
-  iov.iov_base = reinterpret_cast<void*>(const_cast<char*>(buffer));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): it's the API
+  iov.iov_base = const_cast<void*>(buffer);
   iov.iov_len = len;
   msgh.msg_iov = &iov;
   msgh.msg_iovlen = 1;
@@ -383,15 +407,15 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
   do {
 
 #ifdef MSG_FASTOPEN
-    if (flags & MSG_FASTOPEN && firstTry == false) {
+    if ((flags & MSG_FASTOPEN) != 0 && !firstTry) {
       flags &= ~MSG_FASTOPEN;
     }
 #endif /* MSG_FASTOPEN */
 
-    ssize_t res = sendmsg(fd, &msgh, flags);
+    ssize_t res = sendmsg(socketDesc, &msgh, flags);
 
     if (res > 0) {
-      size_t written = static_cast<size_t>(res);
+      auto written = static_cast<size_t>(res);
       sent += written;
 
       if (sent == len) {
@@ -403,6 +427,7 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
       firstTry = false;
  #endif
       iov.iov_len -= written;
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic): it's the API
       iov.iov_base = reinterpret_cast<void*>(reinterpret_cast<char*>(iov.iov_base) + written);
     }
     else if (res == 0) {
@@ -413,14 +438,12 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
       if (err == EINTR) {
         continue;
       }
-      else if (err == EAGAIN || err == EWOULDBLOCK || err == EINPROGRESS || err == ENOTCONN) {
+      if (err == EAGAIN || err == EWOULDBLOCK || err == EINPROGRESS || err == ENOTCONN) {
         /* EINPROGRESS might happen with non blocking socket,
            especially with TCP Fast Open */
         return sent;
       }
-      else {
-        unixDie("failed in sendMsgWithTimeout");
-      }
+      unixDie("failed in sendMsgWithOptions");
     }
   }
   while (true);
@@ -535,6 +558,40 @@ void setSocketReceiveBuffer(int fd, uint32_t size)
 void setSocketSendBuffer(int fd, uint32_t size)
 {
   setSocketBuffer(fd, SO_SNDBUF, size);
+}
+
+#ifdef __linux__
+static uint32_t raiseSocketBufferToMax(int socket, int optname, const std::string& readMaxFromFile)
+{
+  std::ifstream ifs(readMaxFromFile);
+  if (ifs) {
+    std::string line;
+    if (getline(ifs, line)) {
+      auto max = pdns::checked_stoi<uint32_t>(line);
+      setSocketBuffer(socket, optname, max);
+      return max;
+    }
+  }
+  return 0;
+}
+#endif
+
+uint32_t raiseSocketReceiveBufferToMax([[maybe_unused]] int socket)
+{
+#ifdef __linux__
+  return raiseSocketBufferToMax(socket, SO_RCVBUF, "/proc/sys/net/core/rmem_max");
+#else
+  return 0;
+#endif
+}
+
+uint32_t raiseSocketSendBufferToMax([[maybe_unused]] int socket)
+{
+#ifdef __linux__
+  return raiseSocketBufferToMax(socket, SO_SNDBUF, "/proc/sys/net/core/wmem_max");
+#else
+  return 0;
+#endif
 }
 
 std::set<std::string> getListOfNetworkInterfaces()

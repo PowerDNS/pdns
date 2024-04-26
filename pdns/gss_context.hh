@@ -160,7 +160,7 @@ public:
 
 private:
 #ifdef ENABLE_GSS_TSIG
-  OM_uint32 d_maj, d_min;
+  OM_uint32 d_maj{0}, d_min{0};
   gss_name_t d_name;
 #endif
 }; // GssName

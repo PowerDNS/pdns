@@ -227,6 +227,12 @@ set-dnssec-log-bogus *SETTING*
 set-ecs-minimum-ttl *NUM*
     Set ecs-minimum-ttl-override to *NUM*.
 
+set-max-aggr-nsec-cache-size *NUM*
+    Change the maximum number of entries in the NSEC aggressive cache. If the
+    cache is disabled by setting its size to 0 in the config, the cache size
+    cannot be set by this command. Setting the size to 0 by this command still
+    keeps the cache, but makes it mostly ineffective as it is emptied periodically.
+
 set-max-cache-entries *NUM*
     Change the maximum number of entries in the DNS cache.  If reduced, the
     cache size will start shrinking to this number as part of the normal
@@ -243,6 +249,9 @@ set-minimum-ttl *NUM*
 set-event-trace-enabled *NUM*
     Set logging of event trace messages, ``0`` = disabled, ``1`` = protobuf,
     ``2`` = log file, ``3`` = protobuf and log file.
+
+show-yaml [*FILE*]
+    Show Yaml representation of odl-style config.
 
 top-queries
     Shows the top-20 queries. Statistics are over the last
@@ -337,9 +346,6 @@ wipe-cache *DOMAIN* [*DOMAIN*] [...]
 
 wipe-cache-typed *qtype* *DOMAIN* [*DOMAIN*] [...]
     Same as wipe-cache, but only wipe records of type *qtype*.
-
-show-yaml [*FILE*]
-    Show Yaml representation of config. EXPERIMENTAL.
 
 See also
 --------

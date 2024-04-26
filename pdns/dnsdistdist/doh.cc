@@ -11,7 +11,6 @@
 
 #include <boost/algorithm/string.hpp>
 #include <h2o.h>
-//#include <h2o/http1.h>
 #include <h2o/http2.h>
 
 #include <openssl/err.h>
@@ -160,7 +159,8 @@ public:
 
   std::map<int, std::string> d_ocspResponses;
   std::unique_ptr<OpenSSLTLSTicketKeysRing> d_ticketKeys{nullptr};
-  std::unique_ptr<FILE, int(*)(FILE*)> d_keyLogFile{nullptr, fclose};
+  // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
+  pdns::UniqueFilePtr d_keyLogFile{nullptr};
   ClientState* d_cs{nullptr};
   time_t d_ticketsKeyRotationDelay{0};
 
@@ -503,8 +503,8 @@ public:
     memcpy(&cleartextDH, dr.getHeader().get(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
-      static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
-      static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
+      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
+      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
 
       dr.ids.du = std::move(dohUnit);
 
@@ -719,7 +719,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       const dnsheader_aligned dnsHeader(unit->query.data());
 
-      if (!checkQueryHeaders(dnsHeader.get(), clientState)) {
+      if (!checkQueryHeaders(*dnsHeader, clientState)) {
         unit->status_code = 400;
         handleImmediateResponse(std::move(unit), "DoH invalid headers");
         return;
@@ -1649,8 +1649,8 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&&
     }
   }
   if (!dohUnit->truncated) {
-    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localRespRuleActions = g_respruleactions.getLocal();
-    static thread_local LocalStateHolder<vector<DNSDistResponseRuleAction>> localCacheInsertedRespRuleActions = g_cacheInsertedRespRuleActions.getLocal();
+    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
+    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
 
     DNSResponse dnsResponse(dohUnit->ids, udpResponse, dohUnit->downstream);
     dnsheader cleartextDH{};
@@ -1728,7 +1728,7 @@ void H2ODOHFrontend::reloadCertificates()
 {
   auto newAcceptContext = std::make_shared<DOHAcceptContext>();
   setupAcceptContext(*newAcceptContext, *d_dsc, true);
-  std::atomic_store_explicit(&d_dsc->accept_ctx, newAcceptContext, std::memory_order_release);
+  std::atomic_store_explicit(&d_dsc->accept_ctx, std::move(newAcceptContext), std::memory_order_release);
 }
 
 void H2ODOHFrontend::setup()

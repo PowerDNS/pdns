@@ -119,12 +119,12 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
   PacketReader pr(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), packet.size() - serialized.size() - sizeof(dnsrecordheader));
   /* needed to get the record boundaries right */
   pr.getDnsrecordheader(drh);
-  auto content = DNSRecordContent::mastermake(dr, pr, Opcode::Query);
+  auto content = DNSRecordContent::make(dr, pr, Opcode::Query);
   return content;
 }
 
-std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &dr,
-                                               PacketReader& pr)
+std::shared_ptr<DNSRecordContent> DNSRecordContent::make(const DNSRecord& dr,
+                                                         PacketReader& pr)
 {
   uint16_t searchclass = (dr.d_type == QType::OPT) ? 1 : dr.d_class; // class is invalid for OPT
 
@@ -136,8 +136,8 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &
   return i->second(dr, pr);
 }
 
-std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(uint16_t qtype, uint16_t qclass,
-                                               const string& content)
+std::shared_ptr<DNSRecordContent> DNSRecordContent::make(uint16_t qtype, uint16_t qclass,
+                                                         const string& content)
 {
   auto i = getZmakermap().find(pair(qclass, qtype));
   if(i==getZmakermap().end()) {
@@ -147,7 +147,8 @@ std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(uint16_t qtype, u
   return i->second(content);
 }
 
-std::shared_ptr<DNSRecordContent> DNSRecordContent::mastermake(const DNSRecord &dr, PacketReader& pr, uint16_t oc) {
+std::shared_ptr<DNSRecordContent> DNSRecordContent::make(const DNSRecord& dr, PacketReader& pr, uint16_t oc)
+{
   // For opcode UPDATE and where the DNSRecord is an answer record, we don't care about content, because this is
   // not used within the prerequisite section of RFC2136, so - we can simply use unknownrecordcontent.
   // For section 3.2.3, we do need content so we need to get it properly. But only for the correct QClasses.
@@ -207,19 +208,20 @@ DNSRecord::DNSRecord(const DNSResourceRecord& rr): d_name(rr.qname)
   d_class = rr.qclass;
   d_place = DNSResourceRecord::ANSWER;
   d_clen = 0;
-  d_content = DNSRecordContent::mastermake(d_type, rr.qclass, rr.content);
+  d_content = DNSRecordContent::make(d_type, rr.qclass, rr.content);
 }
 
 // If you call this and you are not parsing a packet coming from a socket, you are doing it wrong.
-DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& d) {
-  DNSResourceRecord rr;
-  rr.qname = d.d_name;
-  rr.qtype = QType(d.d_type);
-  rr.ttl = d.d_ttl;
-  rr.content = d.getContent()->getZoneRepresentation(true);
-  rr.auth = false;
-  rr.qclass = d.d_class;
-  return rr;
+DNSResourceRecord DNSResourceRecord::fromWire(const DNSRecord& wire)
+{
+  DNSResourceRecord resourceRecord;
+  resourceRecord.qname = wire.d_name;
+  resourceRecord.qtype = QType(wire.d_type);
+  resourceRecord.ttl = wire.d_ttl;
+  resourceRecord.content = wire.getContent()->getZoneRepresentation(true);
+  resourceRecord.auth = false;
+  resourceRecord.qclass = wire.d_class;
+  return resourceRecord;
 }
 
 void MOADNSParser::init(bool query, const std::string_view& packet)
@@ -288,7 +290,7 @@ void MOADNSParser::init(bool query, const std::string_view& packet)
       }
       else {
 //        cerr<<"parsing RR, query is "<<query<<", place is "<<dr.d_place<<", type is "<<dr.d_type<<", class is "<<dr.d_class<<endl;
-        dr.setContent(DNSRecordContent::mastermake(dr, pr, d_header.opcode));
+        dr.setContent(DNSRecordContent::make(dr, pr, d_header.opcode));
       }
 
       /* XXX: XPF records should be allowed after TSIG as soon as the actual XPF option code has been assigned:
@@ -515,6 +517,10 @@ string PacketReader::getText(bool multi, bool lenField)
       break;
   }
 
+  if (ret.empty() && !lenField) {
+    // all lenField == false cases (CAA and URI at the time of this writing) want that emptiness to be explicit
+    return "\"\"";
+  }
   return ret;
 }
 
@@ -535,7 +541,7 @@ string PacketReader::getUnquotedText(bool lenField)
     return "";
 
   d_pos++;
-  string ret(&d_content.at(d_pos), &d_content.at(stop_at));
+  string ret(d_content.substr(d_pos, stop_at-d_pos));
   d_pos = stop_at;
   return ret;
 }

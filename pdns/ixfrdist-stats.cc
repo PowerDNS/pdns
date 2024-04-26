@@ -54,9 +54,9 @@ std::string ixfrdistStats::getStats() {
   if (!domainStats.empty()) {
     stats<<"# HELP "<<prefix<<"soa_serial The SOA serial number of a domain"<<std::endl;
     stats<<"# TYPE "<<prefix<<"soa_serial gauge"<<std::endl;
-    stats<<"# HELP "<<prefix<<"soa_checks_total Number of times a SOA check at the master was attempted"<<std::endl;
+    stats << "# HELP " << prefix << "soa_checks_total Number of times a SOA check at the primary was attempted" << std::endl;
     stats<<"# TYPE "<<prefix<<"soa_checks_total counter"<<std::endl;
-    stats<<"# HELP "<<prefix<<"soa_checks_failed_total Number of times a SOA check at the master failed"<<std::endl;
+    stats << "# HELP " << prefix << "soa_checks_failed_total Number of times a SOA check at the primary failed" << std::endl;
     stats<<"# TYPE "<<prefix<<"soa_checks_failed_total counter"<<std::endl;
     stats<<"# HELP "<<prefix<<"soa_inqueries_total Number of times a SOA query was received"<<std::endl;
     stats<<"# TYPE "<<prefix<<"soa_inqueries_total counter"<<std::endl;

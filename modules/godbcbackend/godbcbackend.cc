@@ -38,7 +38,7 @@ gODBCBackend::gODBCBackend(const std::string& mode, const std::string& suffix) :
   GSQLBackend(mode, suffix)
 {
   try {
-    setDB(new SODBC(getArg("datasource"), getArg("username"), getArg("password")));
+    setDB(std::unique_ptr<SSql>(new SODBC(getArg("datasource"), getArg("username"), getArg("password"))));
   }
   catch (SSqlException& e) {
     g_log << Logger::Error << mode << " Connection failed: " << e.txtReason() << std::endl;
@@ -83,10 +83,10 @@ public:
 
     declare(suffix, "info-zone-query", "", "select id,name,master,last_check,notified_serial,type,options,catalog,account from domains where name=?");
 
-    declare(suffix, "info-all-slaves-query", "", "select domains.id, domains.name, domains.type, domains.master, domains.last_check, records.content from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name where domains.type in ('SLAVE', 'CONSUMER')");
-    declare(suffix, "supermaster-query", "", "select account from supermasters where ip=? and nameserver=?");
-    declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=? and account=?");
-    declare(suffix, "supermaster-add", "", "insert into supermasters (ip, nameserver, account) values (?,?,?)");
+    declare(suffix, "info-all-secondaries-query", "", "select domains.id, domains.name, domains.type, domains.master, domains.last_check, records.content from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name where domains.type in ('SLAVE', 'CONSUMER')");
+    declare(suffix, "autoprimary-query", "", "select account from supermasters where ip=? and nameserver=?");
+    declare(suffix, "autoprimary-name-to-ips", "", "select ip,account from supermasters where nameserver=? and account=?");
+    declare(suffix, "autoprimary-add", "", "insert into supermasters (ip, nameserver, account) values (?,?,?)");
     declare(suffix, "autoprimary-remove", "", "delete from supermasters where ip = ? and nameserver = ?");
     declare(suffix, "list-autoprimaries", "", "select ip,nameserver,account from supermasters");
 
@@ -105,14 +105,14 @@ public:
     declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth for a qname query", "update records set ordername=NULL,auth=? where domain_id=? and name=? and disabled=0");
     declare(suffix, "nullify-ordername-and-update-auth-type-query", "DNSSEC nullify ordername and update auth for a rrset query", "update records set ordername=NULL,auth=? where domain_id=? and name=? and type=? and disabled=0");
 
-    declare(suffix, "update-master-query", "", "update domains set master=? where name=?");
+    declare(suffix, "update-primary-query", "", "update domains set master=? where name=?");
     declare(suffix, "update-kind-query", "", "update domains set type=? where name=?");
     declare(suffix, "update-options-query", "", "update domains set options=? where name=?");
     declare(suffix, "update-catalog-query", "", "update domains set catalog=? where name=?");
     declare(suffix, "update-account-query", "", "update domains set account=? where name=?");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=? where id=?");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=? where id=?");
-    declare(suffix, "info-all-master-query", "", "select domains.id, domains.name, domains.type, domains.notified_serial, domains.options, domains.catalog, records.content from records join domains on records.domain_id=domains.id and records.name=domains.name where records.type='SOA' and records.disabled=0 and domains.type in ('MASTER', 'PRODUCER')");
+    declare(suffix, "info-all-primary-query", "", "select domains.id, domains.name, domains.type, domains.notified_serial, domains.options, domains.catalog, records.content from records join domains on records.domain_id=domains.id and records.name=domains.name where records.type='SOA' and records.disabled=0 and domains.type in ('MASTER', 'PRODUCER')");
     declare(suffix, "info-producer-members-query", "", "select domains.id, domains.name, domains.options from records join domains on records.domain_id=domains.id and records.name=domains.name where domains.type='MASTER' and domains.catalog=? and records.type='SOA' and records.disabled=0");
     declare(suffix, "info-consumer-members-query", "", "select id, name, options, master from domains where type='SLAVE' and catalog=?");
     declare(suffix, "delete-domain-query", "", "delete from domains where name=?");
@@ -142,7 +142,7 @@ public:
     declare(suffix, "delete-tsig-key-query", "", "delete from tsigkeys where name=?");
     declare(suffix, "get-tsig-keys-query", "", "select name,algorithm, secret from tsigkeys");
 
-    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR records.disabled=?");
+    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account, domains.catalog from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=0 OR records.disabled=?");
 
     declare(suffix, "list-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=?");
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES (?, ?, ?, ?, ?, ?)");
@@ -169,7 +169,7 @@ public:
   //! This reports us to the main UeberBackend class
   gODBCLoader()
   {
-    BackendMakers().report(new gODBCFactory("godbc"));
+    BackendMakers().report(std::make_unique<gODBCFactory>("godbc"));
     g_log << Logger::Warning << "This is module godbcbackend reporting" << std::endl;
   }
 };

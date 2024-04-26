@@ -40,6 +40,7 @@ PDNS_ENABLE_FUZZ_TARGETS
 PDNS_WITH_RE2
 DNSDIST_ENABLE_DNSCRYPT
 PDNS_WITH_EBPF
+PDNS_WITH_XSK
 PDNS_WITH_NET_SNMP
 PDNS_WITH_LIBCAP
 
@@ -82,10 +83,13 @@ DNSDIST_ENABLE_TLS_PROVIDERS
 PDNS_ENABLE_DNS_OVER_TLS
 DNSDIST_ENABLE_DNS_OVER_HTTPS
 DNSDIST_ENABLE_DNS_OVER_QUIC
+DNSDIST_ENABLE_DNS_OVER_HTTP3
 
-AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xno"], [
+AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xno" -o "x$enable_dns_over_quic" != "xno" ], [
   PDNS_WITH_LIBSSL
-  PDNS_WITH_GNUTLS
+  AS_IF([test "x$enable_dns_over_tls" != "xno" -o "x$enable_dns_over_https" != "xno"], [
+    PDNS_WITH_GNUTLS
+  ])
 ])
 
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
@@ -110,6 +114,15 @@ AS_IF([test "x$enable_dns_over_https" != "xno"], [
 AS_IF([test "x$enable_dns_over_quic" != "xno"], [
   AS_IF([test "x$HAVE_QUICHE" != "x1"], [
     AC_MSG_ERROR([DNS over QUIC support requested but quiche was not found])
+  ])
+  AS_IF([test "x$HAVE_LIBSSL" != "x1"], [
+    AC_MSG_ERROR([DNS over QUIC support requested but OpenSSL is not available])
+  ])
+])
+
+AS_IF([test "x$enable_dns_over_http3" != "xno"], [
+  AS_IF([test "x$HAVE_QUICHE" != "x1"], [
+    AC_MSG_ERROR([DNS over HTTP/3 support requested but quiche was not found])
   ])
 ])
 
@@ -206,6 +219,10 @@ AS_IF([test "x$systemd" != "xn"],
   [AC_MSG_NOTICE([systemd: yes])],
   [AC_MSG_NOTICE([systemd: no])]
 )
+AS_IF([test x"$BPF_LIBS" != "x" -a x"$XDP_LIBS" != "x"],
+  [AC_MSG_NOTICE([AF_XDP/XSK: yes])],
+  [AC_MSG_NOTICE([AF_XDP/XSK: no])]
+)
 AS_IF([test "x$HAVE_IPCIPHER" = "x1"],
   [AC_MSG_NOTICE([ipcipher: yes])],
   [AC_MSG_NOTICE([ipcipher: no])]
@@ -249,6 +266,10 @@ AS_IF([test "x$enable_dns_over_https" != "xno"],
 AS_IF([test "x$enable_dns_over_quic" != "xno"],
   [AC_MSG_NOTICE([DNS over QUIC (DoQ): yes])],
   [AC_MSG_NOTICE([DNS over QUIC (DoQ): no])]
+)
+AS_IF([test "x$enable_dns_over_http3" != "xno"],
+  [AC_MSG_NOTICE([DNS over HTTP/3 (DoH3): yes])],
+  [AC_MSG_NOTICE([DNS over HTTP/3 (DoH3): no])]
 )
 AS_IF([test "x$enable_dns_over_tls" != "xno"], [
   AS_IF([test "x$GNUTLS_LIBS" != "x"],

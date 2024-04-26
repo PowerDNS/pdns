@@ -22,67 +22,43 @@
 #pragma once
 #include <string>
 #include <map>
-#include <time.h>
+#include <ctime>
 #include <pthread.h>
 #include "misc.hh"
 #include "namespaces.hh"
 #include "webserver.hh"
+#include "statbag.hh"
 
 class Ewma
 {
 public:
-  Ewma() : d_last(0), d_10(0), d_5(0), d_1(0), d_max(0){dt.set();}
-  void submit(int val) 
-  {
-    int rate=val-d_last;
-    double difft=dt.udiff()/1000000.0;
-    dt.set();
-    
-    d_10=((600.0-difft)*d_10+(difft*rate))/600.0;
-    d_5=((300.0-difft)*d_5+(difft*rate))/300.0;
-    d_1=((60.0-difft)*d_1+(difft*rate))/60.0;
-    d_max=max(d_1,d_max);
-      
-    d_last=val;
-  }
-  double get10()
-  {
-    return d_10;
-  }
-  double get5()
-  {
-    return d_5;
-  }
-  double get1()
-  {
-    return d_1;
-  }
-  double getMax()
-  {
-    return d_max;
-  }
+  Ewma();
+
+  void submit(int val);
+  [[nodiscard]] double get10() const;
+  [[nodiscard]] double get5() const;
+  [[nodiscard]] double get1() const;
+  [[nodiscard]] double getMax() const;
+
 private:
   DTime dt;
-  int d_last;
-  double d_10, d_5, d_1, d_max;
+  int d_last{};
+  double d_10{}, d_5{}, d_1{}, d_max{};
 };
 
 class AuthWebServer
 {
 public:
   AuthWebServer();
-  void go();
+  void go(StatBag& stats);
   static string makePercentage(const double& val);
 
 private:
   void indexfunction(HttpRequest* req, HttpResponse* resp);
-  void cssfunction(HttpRequest* req, HttpResponse* resp);
   void jsonstat(HttpRequest* req, HttpResponse* resp);
   void registerApiHandler(const string& url, std::function<void(HttpRequest*, HttpResponse*)> handler);
-  void printvars(ostringstream &ret);
-  void printargs(ostringstream &ret);
   void webThread();
-  void statThread();
+  void statThread(StatBag& stats);
 
   time_t d_start;
   double d_min10, d_min5, d_min1;

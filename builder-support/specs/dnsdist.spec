@@ -55,6 +55,10 @@ Requires(pre): shadow-utils
 BuildRequires: fstrm-devel
 %systemd_requires
 %endif
+%if 0%{?rhel} >= 8
+BuildRequires: libbpf-devel
+BuildRequires: libxdp-devel
+%endif
 
 %description
 dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
@@ -103,6 +107,7 @@ export RANLIB=gcc-ranlib
 %endif
 %if 0%{?rhel} >= 8 || 0%{?amzn} == 2023
   --enable-dns-over-quic \
+  --enable-dns-over-http3 \
   --with-quiche \
 %endif
   PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
@@ -122,11 +127,17 @@ install -Dm644 /usr/lib/libdnsdist-quiche.so %{buildroot}/%{_libdir}/libdnsdist-
 %{__mv} %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf-dist %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf
 chmod 0640 %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.conf
 
+%{__install } -d %{buildroot}/%{_sharedstatedir}/%{name}
+
 %pre
 getent group dnsdist >/dev/null || groupadd -r dnsdist
 getent passwd dnsdist >/dev/null || \
-	useradd -r -g dnsdist -d / -s /sbin/nologin \
+	useradd -r -g dnsdist -d /var/lib/dnsdist -s /sbin/nologin \
 	-c "dnsdist user" dnsdist
+# Change home directory to /var/lib/dnsdist if needed
+if [[ $(getent passwd dnsdist | cut -d: -f6) == "/" ]]; then
+    usermod -d /var/lib/dnsdist dnsdist
+fi
 exit 0
 
 %post
@@ -165,4 +176,5 @@ systemctl daemon-reload ||:
 %{_mandir}/man1/*
 %dir %{_sysconfdir}/dnsdist
 %attr(-, root, dnsdist) %config(noreplace) %{_sysconfdir}/%{name}/dnsdist.conf
+%dir %attr(-,dnsdist,dnsdist) %{_sharedstatedir}/%{name}
 %{_unitdir}/dnsdist*

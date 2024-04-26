@@ -15,8 +15,7 @@
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "dns_random.hh"
 
-BaseLua4::BaseLua4() {
-}
+BaseLua4::BaseLua4() = default;
 
 void BaseLua4::loadFile(const std::string& fname)
 {
@@ -217,7 +216,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
 
   // DNSRecord
-  d_lw->writeFunction("newDR", [](const DNSName &name, const std::string &type, unsigned int ttl, const std::string &content, int place){ QType qtype; qtype = type; auto dr = DNSRecord(); dr.d_name = name; dr.d_type = qtype.getCode(); dr.d_ttl = ttl; dr.setContent(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr.d_type, QClass::IN, content))); dr.d_place = static_cast<DNSResourceRecord::Place>(place); return dr; });
+  d_lw->writeFunction("newDR", [](const DNSName& name, const std::string& type, unsigned int ttl, const std::string& content, int place) { QType qtype; qtype = type; auto dr = DNSRecord(); dr.d_name = name; dr.d_type = qtype.getCode(); dr.d_ttl = ttl; dr.setContent(shared_ptr<DNSRecordContent>(DNSRecordContent::make(dr.d_type, QClass::IN, content))); dr.d_place = static_cast<DNSResourceRecord::Place>(place); return dr; });
   d_lw->registerMember("name", &DNSRecord::d_name);
   d_lw->registerMember("type", &DNSRecord::d_type);
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);
@@ -232,7 +231,7 @@ void BaseLua4::prepareContext() {
         ret=aaaarec->getCA(53);
       return ret;
     });
-  d_lw->registerFunction<void(DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.setContent(shared_ptr<DNSRecordContent>(DNSRecordContent::mastermake(dr.d_type, 1, newContent))); });
+  d_lw->registerFunction<void (DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.setContent(shared_ptr<DNSRecordContent>(DNSRecordContent::make(dr.d_type, 1, newContent))); });
 
   // pdnsload
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) {
@@ -296,4 +295,4 @@ void BaseLua4::loadStream(std::istream &is) {
   postLoad();
 }
 
-BaseLua4::~BaseLua4() { }
+BaseLua4::~BaseLua4() = default;

@@ -54,6 +54,7 @@ ASEP
 Ashish
 associateddomain
 asyncresolve
+ATHENE
 Atlassian
 Atomia
 aton
@@ -257,6 +258,7 @@ Davids
 Dayneko
 dbfile
 dblfilename
+dblookup
 dbpf
 dbr
 dcobject
@@ -388,6 +390,7 @@ Ekkelenkamp
 elgoog
 endbr
 Enden
+enp
 ent
 envoutput
 epel
@@ -449,6 +452,7 @@ gaba
 gacogne
 gatech
 Gavarret
+Gbps
 gdpr
 Geijn
 genindex
@@ -477,6 +481,7 @@ gettime
 gettsigkey
 Geuze
 GFm
+Ghz
 Gibheer
 Gieben
 Gillstrom
@@ -518,6 +523,7 @@ headfont
 headlinkcolor
 headtextcolor
 healthcheck
+Heftrig
 Heimhilcher
 Helbekkmo
 Hendriks
@@ -648,6 +654,7 @@ ktls
 KTNAME
 Kuehrer
 kvs
+kxdpgun
 Ladot
 Lafon
 Lakkas
@@ -701,6 +708,7 @@ libsodium
 libsofthsm
 libsystemd
 libtdsodbc
+libxdp
 libyaml
 libzmq
 lightningstream
@@ -861,7 +869,9 @@ NETWORKMASK
 Neue
 Neuf
 newcontent
+nftables
 nic
+Niklas
 Nilsen
 nimber
 Nixu
@@ -872,6 +882,8 @@ noaction
 noad
 noall
 nocookie
+NODCACHEDIRNOD
+NODCACHEDIRUDR
 noedns
 noerrors
 NOLOCK
@@ -912,6 +924,7 @@ Nuitari
 NULs
 NUMA
 numreceived
+nvd
 nxd
 NXDATA
 nxdomain
@@ -995,8 +1008,10 @@ pgp
 pgpsql
 phishing
 phonedph
+pickchashed
 pickclosest
 pickhashed
+picknamehashed
 pickrandom
 pickrandomsample
 pickwhashed
@@ -1074,6 +1089,7 @@ querycount
 querytime
 qytpe
 ragel
+Rak
 randombackend
 randombit
 randombytes
@@ -1178,9 +1194,11 @@ Schlich
 Scholten
 Schryver
 Schueler
+Schulmann
 schwer
 scopebits
 scopemask
+sdfn
 sdfoijdfio
 sdig
 secpoll
@@ -1237,6 +1255,7 @@ slapindex
 slaveness
 SLES
 smartcard
+Smeenk
 smellyspice
 smimea
 smn
@@ -1300,6 +1319,7 @@ Storesund
 stou
 strcasestr
 stringmatch
+structuredlogging
 stubquery
 stubresolver
 Stussy
@@ -1407,6 +1427,7 @@ Ueber
 Ueli
 UIDs
 Uisms
+UMEM
 unauth
 unbreak
 unescaping
@@ -1457,6 +1478,7 @@ Volker
 voxel
 Vranken
 vulns
+Waidner
 WAITFORONE
 wal
 wallclock
@@ -1507,10 +1529,13 @@ xdp
 Xek
 Xeon
 XForwarded
+XFR
 Xiang
 xorbooter
 xpf
 XRecord
+xsk
+xskmap
 XXXXXX
 yahttp
 yamlconversion

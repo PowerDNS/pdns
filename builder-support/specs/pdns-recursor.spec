@@ -4,6 +4,7 @@ Release: %{getenv:BUILDER_RPM_RELEASE}%{?dist}
 Summary: Modern, advanced and high performance recursing/non authoritative name server
 Group: System Environment/Daemons
 License: GPLv2
+Vendor: PowerDNS.COM BV
 URL: https://powerdns.com
 Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
 
@@ -90,6 +91,8 @@ sed -i \
     -e 's!# include-dir=.*!&\ninclude-dir=%{_sysconfdir}/%{name}/recursor.d!' \
     %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
 
+%{__install } -d %{buildroot}/%{_sharedstatedir}/%{name}
+
 # The EL7 and 8 systemd actually supports %t, but its version number is older than that, so we do use seperate runtime dirs, but don't rely on RUNTIME_DIRECTORY
 %if 0%{?rhel} < 9
 sed -e 's!/pdns_recursor!& --socket-dir=%t/pdns-recursor!' -i %{buildroot}/%{_unitdir}/pdns-recursor.service
@@ -101,8 +104,12 @@ sed -e 's!/pdns_recursor!& --socket-dir=%t/pdns-recursor-%i!' -e 's!RuntimeDirec
 %pre
 getent group pdns-recursor > /dev/null || groupadd -r pdns-recursor
 getent passwd pdns-recursor > /dev/null || \
-    useradd -r -g pdns-recursor -d / -s /sbin/nologin \
+    useradd -r -g pdns-recursor -d /var/lib/pdns-recursor -s /sbin/nologin \
     -c "PowerDNS Recursor user" pdns-recursor
+# Change home directory to /var/lib/pdns-recursor if needed
+if [[ $(getent passwd pdns-recursor | cut -d: -f6) == "/" ]]; then
+    usermod -d /var/lib/pdns-recursor pdns-recursor
+fi
 exit 0
 
 %post
@@ -126,4 +133,5 @@ systemctl daemon-reload ||:
 %dir %{_sysconfdir}/%{name}/recursor.d
 %config(noreplace) %{_sysconfdir}/%{name}/recursor.conf
 %config %{_sysconfdir}/%{name}/recursor.yml-dist
+%dir %attr(-,pdns-recursor,pdns-recursor) %{_sharedstatedir}/%{name}
 %doc README

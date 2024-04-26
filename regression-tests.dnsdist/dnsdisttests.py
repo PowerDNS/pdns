@@ -29,6 +29,7 @@ import pycurl
 from io import BytesIO
 
 from doqclient import quic_query
+from doh3client import doh3_query
 
 from eqdnsmessage import AssertEqualDNSMessageMixin
 from proxyprotocol import ProxyProtocol
@@ -87,6 +88,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _answerUnexpected = True
     _checkConfigExpectedOutput = None
     _verboseMode = False
+    _sudoMode = False
     _skipListeningOnCL = False
     _alternateListeningAddr = None
     _alternateListeningPort = None
@@ -149,6 +151,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         if cls._verboseMode:
             dnsdistcmd.append('-v')
+        if cls._sudoMode:
+            preserve_env_values = ['LD_LIBRARY_PATH', 'LLVM_PROFILE_FILE']
+            for value in preserve_env_values:
+                if value in os.environ:
+                    dnsdistcmd.insert(0, value + '=' + os.environ[value])
+            dnsdistcmd.insert(0, 'sudo')
 
         for acl in cls._acl:
             dnsdistcmd.extend(['--acl', acl])
@@ -692,11 +700,15 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         if useQueue:
             cls._toResponderQueue.put(response, True, timeout)
 
-        sock = cls.openTCPConnection(timeout)
+        try:
+            sock = cls.openTCPConnection(timeout)
+        except socket.timeout as e:
+            print("Timeout while opening TCP connection: %s" % (str(e)))
+            return (None, None)
 
         try:
-            cls.sendTCPQueryOverConnection(sock, query, rawQuery)
-            message = cls.recvTCPResponseOverConnection(sock)
+            cls.sendTCPQueryOverConnection(sock, query, rawQuery, timeout=timeout)
+            message = cls.recvTCPResponseOverConnection(sock, timeout=timeout)
         except socket.timeout as e:
             print("Timeout while sending or receiving TCP data: %s" % (str(e)))
         except socket.error as e:
@@ -804,15 +816,15 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return result.decode('UTF-8')
 
     @classmethod
-    def sendConsoleCommand(cls, command, timeout=5.0):
+    def sendConsoleCommand(cls, command, timeout=5.0, IPv6=False):
         ourNonce = libnacl.utils.rand_nonce()
         theirNonce = None
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock = socket.socket(socket.AF_INET if not IPv6 else socket.AF_INET6, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
             sock.settimeout(timeout)
 
-        sock.connect(("127.0.0.1", cls._consolePort))
+        sock.connect(("::1", cls._consolePort, 0, 0) if IPv6 else ("127.0.0.1", cls._consolePort))
         sock.send(ourNonce)
         theirNonce = sock.recv(len(ourNonce))
         if len(theirNonce) != len(ourNonce):
@@ -1095,6 +1107,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     def sendDOQQueryWrapper(self, query, response, useQueue=True):
         return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName)
 
+    def sendDOH3QueryWrapper(self, query, response, useQueue=True):
+        return self.sendDOH3Query(self._doh3ServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName)
     @classmethod
     def getDOQConnection(cls, port, caFile=None, source=None, source_port=0):
 
@@ -1113,7 +1127,30 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             else:
                 cls._toResponderQueue.put(response, True, timeout)
 
-        message = quic_query(query, '127.0.0.1', timeout, port, verify=caFile, server_hostname=serverName)
+        (message, _) = quic_query(query, '127.0.0.1', timeout, port, verify=caFile, server_hostname=serverName)
+
+        receivedQuery = None
+
+        if useQueue:
+            if fromQueue:
+                if not fromQueue.empty():
+                    receivedQuery = fromQueue.get(True, timeout)
+            else:
+                if not cls._fromResponderQueue.empty():
+                    receivedQuery = cls._fromResponderQueue.get(True, timeout)
+
+        return (receivedQuery, message)
+
+    @classmethod
+    def sendDOH3Query(cls, port, baseurl, query, response=None, timeout=2.0, caFile=None, useQueue=True, rawQuery=False, fromQueue=None, toQueue=None, connection=None, serverName=None, post=False):
+
+        if response:
+            if toQueue:
+                toQueue.put(response, True, timeout)
+            else:
+                cls._toResponderQueue.put(response, True, timeout)
+
+        message = doh3_query(query, baseurl, timeout, port, verify=caFile, server_hostname=serverName, post=post)
 
         receivedQuery = None
 

@@ -118,7 +118,7 @@ namespace YaHTTP {
         if (s.find("=") != std::string::npos)
           keyValuePair(s, k, v);
         else
-          k = s;
+          k = std::move(s);
         if (k == "expires") {
           DateTime dt;
           dt.parseCookie(v);

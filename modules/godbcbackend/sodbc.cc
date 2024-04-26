@@ -112,31 +112,31 @@ public:
     return this;
   }
 
-  SSqlStatement* bind(const string& name, bool value)
+  SSqlStatement* bind(const string& name, bool value) override
   {
     prepareStatement();
     return bind(name, (uint32_t)value);
   }
 
-  SSqlStatement* bind(const string& name, long value)
+  SSqlStatement* bind(const string& name, long value) override
   {
     prepareStatement();
     return bind(name, (unsigned long)value);
   }
 
-  SSqlStatement* bind(const string& name, int value)
+  SSqlStatement* bind(const string& name, int value) override
   {
     prepareStatement();
     return bind(name, (uint32_t)value);
   }
 
-  SSqlStatement* bind(const string& name, long long value)
+  SSqlStatement* bind(const string& name, long long value) override
   {
     prepareStatement();
     return bind(name, (unsigned long long)value);
   }
 
-  SSqlStatement* bind(const string& name, uint32_t value)
+  SSqlStatement* bind(const string& name, uint32_t value) override
   {
     prepareStatement();
     ODBCParam p;
@@ -147,7 +147,7 @@ public:
     return bind(name, p);
   }
 
-  SSqlStatement* bind(const string& name, unsigned long value)
+  SSqlStatement* bind(const string& name, unsigned long value) override
   {
     prepareStatement();
     ODBCParam p;
@@ -158,7 +158,7 @@ public:
     return bind(name, p);
   }
 
-  SSqlStatement* bind(const string& name, unsigned long long value)
+  SSqlStatement* bind(const string& name, unsigned long long value) override
   {
     prepareStatement();
     ODBCParam p;
@@ -169,7 +169,7 @@ public:
     return bind(name, p);
   }
 
-  SSqlStatement* bind(const string& name, const std::string& value)
+  SSqlStatement* bind(const string& name, const std::string& value) override
   {
 
     // cerr<<"asked to bind string "<<value<<endl;
@@ -190,7 +190,7 @@ public:
     return bind(name, p);
   }
 
-  SSqlStatement* bindNull(const string& name)
+  SSqlStatement* bindNull(const string& name) override
   {
     if (d_req_bind.size() > (d_parnum + 1))
       throw SSqlException("Trying to bind too many parameters.");
@@ -207,7 +207,7 @@ public:
     return bind(name, p);
   }
 
-  SSqlStatement* execute()
+  SSqlStatement* execute() override
   {
     prepareStatement();
     SQLRETURN result;
@@ -238,14 +238,14 @@ public:
     return this;
   }
 
-  bool hasNextRow()
+  bool hasNextRow() override
   {
     // cerr<<"hasNextRow d_result="<<d_result<<endl;
     return d_result != SQL_NO_DATA;
   }
-  SSqlStatement* nextRow(row_t& row);
+  SSqlStatement* nextRow(row_t& row) override;
 
-  SSqlStatement* getResult(result_t& result)
+  SSqlStatement* getResult(result_t& result) override
   {
     result.clear();
     // if (d_res == NULL) return this;
@@ -257,7 +257,7 @@ public:
     return this;
   }
 
-  SSqlStatement* reset()
+  SSqlStatement* reset() override
   {
     SQLCloseCursor(d_statement); // hack, this probably violates some state transitions
 
@@ -275,9 +275,9 @@ public:
     d_paridx = 0;
     return this;
   }
-  const std::string& getQuery() { return d_query; }
+  const std::string& getQuery() override { return d_query; }
 
-  ~SODBCStatement()
+  ~SODBCStatement() override
   {
     releaseStatement();
   }
@@ -439,7 +439,7 @@ SODBC::SODBC(
 }
 
 // Destructor.
-SODBC::~SODBC(void)
+SODBC::~SODBC()
 {
   // Disconnect from database and free all used resources.
   // SQLFreeHandle( SQL_HANDLE_STMT, m_statement );

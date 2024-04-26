@@ -25,8 +25,7 @@
 # include <net-snmp/library/large_fd_set.h>
 #endif
 
-const oid SNMPAgent::snmpTrapOID[] = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
-const size_t SNMPAgent::snmpTrapOIDLen = OID_LENGTH(SNMPAgent::snmpTrapOID);
+const std::array<oid, 11> SNMPAgent::snmpTrapOID = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
 
 int SNMPAgent::setCounter64Value(netsnmp_request_info* request,
                                  uint64_t value)

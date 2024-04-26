@@ -72,7 +72,7 @@ static void recvThread(const std::shared_ptr<std::vector<std::unique_ptr<Socket>
 
   int err;
 
-#if HAVE_RECVMMSG
+#ifdef HAVE_RECVMMSG
   vector<struct mmsghdr> buf(100);
   for(auto& m : buf) {
     cmsgbuf_aligned *cbuf = new cmsgbuf_aligned;
@@ -96,7 +96,7 @@ static void recvThread(const std::shared_ptr<std::vector<std::unique_ptr<Socket>
 
     for(auto &pfd : fds) {
       if (pfd.revents & POLLIN) {
-#if HAVE_RECVMMSG
+#ifdef HAVE_RECVMMSG
         if ((err=recvmmsg(pfd.fd, &buf[0], buf.size(), MSG_WAITFORONE, 0)) < 0 ) {
           if(errno != EAGAIN)
             unixDie("recvmmsg");
@@ -167,7 +167,6 @@ static void sendPackets(const vector<std::unique_ptr<Socket>>& sockets, const ve
     cmsgbuf_aligned cbuf;
   };
   vector<unique_ptr<Unit> > units;
-  int ret;
 
   for(const auto& p : packets) {
     count++;
@@ -179,12 +178,15 @@ static void sendPackets(const vector<std::unique_ptr<Socket>>& sockets, const ve
     }
 
     fillMSGHdr(&u.msgh, &u.iov, nullptr, 0, (char*)&(*p)[0], p->size(), &dest);
-    if((ret=sendmsg(sockets[count % sockets.size()]->getHandle(), 
-		    &u.msgh, 0)))
-      if(ret < 0)
-	      unixDie("sendmsg");
-    
-    
+
+    auto socketHandle = sockets[count % sockets.size()]->getHandle();
+    ssize_t sendmsgRet = sendmsg(socketHandle, &u.msgh, 0);
+    if (sendmsgRet != 0) {
+      if (sendmsgRet < 0) {
+        unixDie("sendmsg");
+      }
+    }
+
     if(!(count%burst)) {
       nBursts++;
       // Calculate the time in nsec we need to sleep to the next burst.
@@ -264,11 +266,11 @@ void parseQueryFile(const std::string& queryFile, vector<std::shared_ptr<vector<
   We then move the 1000 unique queries to the 'known' pool.
 
   For the next second, say 20000 qps, we know we are going to need 2000 new queries,
-  so we take 2000 from the unknown pool. Then we need 18000 cache hits. We can get 1000 from 
+  so we take 2000 from the unknown pool. Then we need 18000 cache hits. We can get 1000 from
   the known pool, leaving us down 17000. Or, we have 3000 in total now and we need 2000. We simply
   repeat the 3000 mix we have ~7 times. The 2000 can now go to the known pool too.
 
-  For the next second, say 30000 qps, we'll need 3000 cache misses, which we get from 
+  For the next second, say 30000 qps, we'll need 3000 cache misses, which we get from
   the unknown pool. To this we add 3000 queries from the known pool. Next up we repeat this batch 5
   times.
 
@@ -384,7 +386,7 @@ try
   struct sched_param param;
   param.sched_priority=99;
 
-#if HAVE_SCHED_SETSCHEDULER
+#ifdef HAVE_SCHED_SETSCHEDULER
   if(sched_setscheduler(0, SCHED_FIFO, &param) < 0) {
     if (!g_quiet) {
       cerr<<"Unable to set SCHED_FIFO: "<<stringerror()<<endl;
@@ -400,7 +402,7 @@ try
   if (!g_quiet) {
     cout<<"Generated "<<unknown.size()<<" ready to use queries"<<endl;
   }
-  
+
   auto sockets = std::make_shared<std::vector<std::unique_ptr<Socket>>>();
   ComboAddress dest;
   try {
@@ -489,13 +491,13 @@ try
     dt.set();
 
     sendPackets(*sockets, toSend, qps, dest, ecsRange);
-    
+
     const auto udiff = dt.udiffNoReset();
     const auto realqps=toSend.size()/(udiff/1000000.0);
     if (!g_quiet) {
       cout<<"Achieved "<<realqps<<" qps over "<< udiff/1000000.0<<" seconds"<<endl;
     }
-    
+
     usleep(50000);
     const auto received = g_recvcounter.load();
     const auto udiffReceived = dt.udiff();

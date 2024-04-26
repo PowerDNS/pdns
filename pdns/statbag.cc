@@ -166,9 +166,7 @@ AtomicCounter *StatBag::getPointer(const string &key)
   return d_stats[key].get();
 }
 
-StatBag::~StatBag()
-{
-}
+StatBag::~StatBag() = default;
 
 template<typename T, typename Comp>
 StatRing<T,Comp>::StatRing(unsigned int size)
@@ -265,15 +263,12 @@ vector<pair<string, unsigned int> > StatBag::getRing(const string &name)
   vector<pair<string, unsigned int> > ret;
 
   if (d_comboRings.count(name)) {
-    typedef pair<SComboAddress, unsigned int> stor_t;
-    vector<stor_t> raw =d_comboRings[name].lock()->get();
-    for(const stor_t& stor :  raw) {
-      ret.emplace_back(stor.first.ca.toString(), stor.second);
+    for (const auto& [addr, num] : d_comboRings[name].lock()->get()) {
+      ret.emplace_back(addr.ca.toString(), num);
     }
   } else if (d_dnsnameqtyperings.count(name)) {
-    auto raw = d_dnsnameqtyperings[name].lock()->get();
-    for (auto const &e : raw) {
-      ret.emplace_back(std::get<0>(e.first).toLogString() + "/" + std::get<1>(e.first).toString(), e.second);
+    for (auto const& [d, t] : d_dnsnameqtyperings[name].lock()->get()) {
+      ret.emplace_back(std::get<0>(d).toLogString() + "/" + std::get<1>(d).toString(), t);
     }
   }
   return ret;

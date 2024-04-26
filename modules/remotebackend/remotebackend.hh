@@ -158,7 +158,7 @@ private:
   int d_fd1[2]{}, d_fd2[2]{};
   int d_pid;
   int d_timeout;
-  std::unique_ptr<FILE, int (*)(FILE*)> d_fp{nullptr, fclose};
+  pdns::UniqueFilePtr d_fp{nullptr};
 };
 
 class RemoteBackend : public DNSBackend
@@ -186,8 +186,8 @@ public:
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
   void setNotified(uint32_t id, uint32_t serial) override;
   bool doesDNSSEC() override;
-  bool superMasterBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb) override;
-  bool createSlaveDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
+  bool autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb) override;
+  bool createSecondaryDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
   bool feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool feedEnts(int domain_id, map<DNSName, bool>& nonterm) override;
@@ -202,8 +202,8 @@ public:
   bool searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string& pattern, size_t maxResults, vector<Comment>& result) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
-  void getUpdatedMasters(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
-  void getUnfreshSlaveInfos(vector<DomainInfo>* domains) override;
+  void getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
+  void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
 

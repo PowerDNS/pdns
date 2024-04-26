@@ -1643,6 +1643,7 @@ private:
               // creating the object
               // lua_newuserdata allocates memory in the internals of the lua library and returns it so we can fill it
               //   and that's what we do with placement-new
+              static_assert(alignof(TType) <= 8);
               const auto pointerLocation = static_cast<TType*>(lua_newuserdata(state, sizeof(TType)));
               new (pointerLocation) TType(std::forward<TType2>(value));
             }
@@ -2292,6 +2293,7 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
         // creating the object
         // lua_newuserdata allocates memory in the internals of the lua library and returns it so we can fill it
         //   and that's what we do with placement-new
+        // static_assert(alignof(TFunctionObject) <= 8); XXX trips on at least c++lib 17, see #13766
         const auto functionLocation = static_cast<TFunctionObject*>(lua_newuserdata(state, sizeof(TFunctionObject)));
         new (functionLocation) TFunctionObject(std::move(fn));
 
@@ -2335,6 +2337,7 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
         };
 
         // we copy the function object onto the stack
+        static_assert(alignof(TFunctionObject) <= 8);
         const auto functionObjectLocation = static_cast<TFunctionObject*>(lua_newuserdata(state, sizeof(TFunctionObject)));
         new (functionObjectLocation) TFunctionObject(std::move(fn));
 

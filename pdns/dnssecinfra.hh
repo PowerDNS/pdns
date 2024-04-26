@@ -36,7 +36,7 @@ class DNSCryptoKeyEngine
 {
   public:
     explicit DNSCryptoKeyEngine(unsigned int algorithm) : d_algorithm(algorithm) {}
-    virtual ~DNSCryptoKeyEngine() {};
+    virtual ~DNSCryptoKeyEngine() = default;
     [[nodiscard]] virtual string getName() const = 0;
 
     using stormap_t = std::map<std::string, std::string>;
@@ -66,7 +66,7 @@ class DNSCryptoKeyEngine
     void createFromPEMString(DNSKEYRecordContent& drc, const std::string& contents)
     {
       // NOLINTNEXTLINE(*-cast): POSIX APIs.
-      unique_ptr<std::FILE, decltype(&std::fclose)> inputFile{fmemopen(const_cast<char*>(contents.data()), contents.length(), "r"), &std::fclose};
+      pdns::UniqueFilePtr inputFile{fmemopen(const_cast<char*>(contents.data()), contents.length(), "r")};
       createFromPEMFile(drc, *inputFile);
     }
 
@@ -89,7 +89,7 @@ class DNSCryptoKeyEngine
 
       std::string output{};
       output.resize(buflen);
-      unique_ptr<std::FILE, decltype(&std::fclose)> outputFile{fmemopen(output.data(), output.length() - 1, "w"), &std::fclose};
+      pdns::UniqueFilePtr outputFile{fmemopen(output.data(), output.length() - 1, "w")};
       convertToPEMFile(*outputFile);
       std::fflush(outputFile.get());
       output.resize(std::ftell(outputFile.get()));

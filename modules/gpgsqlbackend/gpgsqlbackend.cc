@@ -40,13 +40,13 @@ gPgSQLBackend::gPgSQLBackend(const string& mode, const string& suffix) :
   GSQLBackend(mode, suffix)
 {
   try {
-    setDB(new SPgSQL(getArg("dbname"),
-                     getArg("host"),
-                     getArg("port"),
-                     getArg("user"),
-                     getArg("password"),
-                     getArg("extra-connection-parameters"),
-                     mustDo("prepared-statements")));
+    setDB(std::unique_ptr<SSql>(new SPgSQL(getArg("dbname"),
+                                           getArg("host"),
+                                           getArg("port"),
+                                           getArg("user"),
+                                           getArg("password"),
+                                           getArg("extra-connection-parameters"),
+                                           mustDo("prepared-statements"))));
   }
 
   catch (SSqlException& e) {
@@ -110,10 +110,10 @@ public:
 
     declare(suffix, "info-zone-query", "", "select id,name,master,last_check,notified_serial,type,options,catalog,account from domains where name=$1");
 
-    declare(suffix, "info-all-slaves-query", "", "select domains.id, domains.name, domains.type, domains.master, domains.last_check, records.content from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name where domains.type in ('SLAVE', 'CONSUMER')");
-    declare(suffix, "supermaster-query", "", "select account from supermasters where ip=$1 and nameserver=$2");
-    declare(suffix, "supermaster-name-to-ips", "", "select ip,account from supermasters where nameserver=$1 and account=$2");
-    declare(suffix, "supermaster-add", "", "insert into supermasters (ip, nameserver, account) values ($1,$2,$3)");
+    declare(suffix, "info-all-secondaries-query", "", "select domains.id, domains.name, domains.type, domains.master, domains.last_check, records.content from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name where domains.type in ('SLAVE', 'CONSUMER')");
+    declare(suffix, "autoprimary-query", "", "select account from supermasters where ip=$1 and nameserver=$2");
+    declare(suffix, "autoprimary-name-to-ips", "", "select ip,account from supermasters where nameserver=$1 and account=$2");
+    declare(suffix, "autoprimary-add", "", "insert into supermasters (ip, nameserver, account) values ($1,$2,$3)");
     declare(suffix, "autoprimary-remove", "", "delete from supermasters where ip = $1 and nameserver = $2");
     declare(suffix, "list-autoprimaries", "", "select ip,nameserver,account from supermasters");
 
@@ -132,14 +132,14 @@ public:
     declare(suffix, "nullify-ordername-and-update-auth-query", "DNSSEC nullify ordername and update auth for a qname query", "update records set ordername=NULL,auth=$1 where domain_id=$2 and name=$3 and disabled=false");
     declare(suffix, "nullify-ordername-and-update-auth-type-query", "DNSSEC nullify ordername and update auth for a rrset query", "update records set ordername=NULL,auth=$1 where domain_id=$2 and name=$3 and type=$4 and disabled=false");
 
-    declare(suffix, "update-master-query", "", "update domains set master=$1 where name=$2");
+    declare(suffix, "update-primary-query", "", "update domains set master=$1 where name=$2");
     declare(suffix, "update-kind-query", "", "update domains set type=$1 where name=$2");
     declare(suffix, "update-options-query", "", "update domains set options=$1 where name=$2");
     declare(suffix, "update-catalog-query", "", "update domains set catalog=$1 where name=$2");
     declare(suffix, "update-account-query", "", "update domains set account=$1 where name=$2");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=$1 where id=$2");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=$1 where id=$2");
-    declare(suffix, "info-all-master-query", "", "select domains.id, domains.name, domains.type, domains.notified_serial, domains.options, domains.catalog, records.content from records join domains on records.domain_id=domains.id and records.name=domains.name where records.type='SOA' and records.disabled=false and domains.type in ('MASTER', 'PRODUCER')");
+    declare(suffix, "info-all-primary-query", "", "select domains.id, domains.name, domains.type, domains.notified_serial, domains.options, domains.catalog, records.content from records join domains on records.domain_id=domains.id and records.name=domains.name where records.type='SOA' and records.disabled=false and domains.type in ('MASTER', 'PRODUCER')");
     declare(suffix, "info-producer-members-query", "", "select domains.id, domains.name, domains.options from records join domains on records.domain_id=domains.id and records.name=domains.name where domains.type='MASTER' and domains.catalog=$1 and records.type='SOA' and records.disabled=false");
     declare(suffix, "info-consumer-members-query", "", "select id, name, options, master from domains where type='SLAVE' and catalog=$1");
     declare(suffix, "delete-domain-query", "", "delete from domains where name=$1");
@@ -166,7 +166,7 @@ public:
     declare(suffix, "delete-tsig-key-query", "", "delete from tsigkeys where name=$1");
     declare(suffix, "get-tsig-keys-query", "", "select name,algorithm, secret from tsigkeys");
 
-    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=false OR $1");
+    declare(suffix, "get-all-domains-query", "Retrieve all domains", "select domains.id, domains.name, records.content, domains.type, domains.master, domains.notified_serial, domains.last_check, domains.account, domains.catalog from domains LEFT JOIN records ON records.domain_id=domains.id AND records.type='SOA' AND records.name=domains.name WHERE records.disabled=false OR $1");
 
     declare(suffix, "list-comments-query", "", "SELECT domain_id,name,type,modified_at,account,comment FROM comments WHERE domain_id=$1");
     declare(suffix, "insert-comment-query", "", "INSERT INTO comments (domain_id, name, type, modified_at, account, comment) VALUES ($1, $2, $3, $4, $5, $6)");
@@ -192,7 +192,7 @@ public:
   //! This reports us to the main UeberBackend class
   gPgSQLLoader()
   {
-    BackendMakers().report(new gPgSQLFactory("gpgsql"));
+    BackendMakers().report(std::make_unique<gPgSQLFactory>("gpgsql"));
     g_log << Logger::Info << "[gpgsqlbackend] This is the gpgsql backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"

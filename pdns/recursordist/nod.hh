@@ -55,31 +55,30 @@ public:
   bool snapshotCurrent(std::thread::id tid); // Write the current file out to disk
   void add(const std::string& data)
   {
-    // The only time this should block is when snapshotting
     d_sbf.lock()->add(data);
   }
   bool test(const std::string& data) { return d_sbf.lock()->test(data); }
   bool testAndAdd(const std::string& data)
   {
-    // The only time this should block is when snapshotting
     return d_sbf.lock()->testAndAdd(data);
   }
 
 private:
   void remove_tmp_files(const boost::filesystem::path&, std::lock_guard<std::mutex>&);
 
-  bool d_init{false};
   LockGuarded<bf::stableBF> d_sbf; // Stable Bloom Filter
   std::string d_cachedir;
   std::string d_prefix = sbf_prefix;
-  static std::mutex d_cachedir_mutex; // One mutex for all instances of this class
+  // One mutex for all instances of this class, used to avoid multiple init() calls happening
+  // simulateneously.  The snapshot code is thread safe wrt file operations, so it does not need to
+  // acquire this mutex, assuming the init() code never runs simulatenously with the snapshot code.
+  static std::mutex d_cachedir_mutex;
 };
 
 class NODDB
 {
 public:
-  NODDB() :
-    d_psbf{} {}
+  NODDB() = default;
   NODDB(uint32_t num_cells) :
     d_psbf{num_cells} {}
   // Set ignore_pid to true if you don't mind loading files
@@ -98,22 +97,17 @@ public:
   void setSnapshotInterval(unsigned int secs) { d_snapshot_interval = secs; }
   void setCacheDir(const std::string& cachedir) { d_psbf.setCacheDir(cachedir); }
   bool snapshotCurrent(std::thread::id tid) { return d_psbf.snapshotCurrent(tid); }
-  static void startHousekeepingThread(std::shared_ptr<NODDB> noddbp, std::thread::id tid)
-  {
-    noddbp->housekeepingThread(tid);
-  }
+  void housekeepingThread(std::thread::id tid);
 
 private:
   PersistentSBF d_psbf;
   unsigned int d_snapshot_interval{snapshot_interval_default}; // Number seconds between snapshots
-  void housekeepingThread(std::thread::id tid);
 };
 
 class UniqueResponseDB
 {
 public:
-  UniqueResponseDB() :
-    d_psbf{} {}
+  UniqueResponseDB() = default;
   UniqueResponseDB(uint32_t num_cells) :
     d_psbf{num_cells} {}
   bool init(bool ignore_pid = false)
@@ -126,15 +120,11 @@ public:
   void setSnapshotInterval(unsigned int secs) { d_snapshot_interval = secs; }
   void setCacheDir(const std::string& cachedir) { d_psbf.setCacheDir(cachedir); }
   bool snapshotCurrent(std::thread::id tid) { return d_psbf.snapshotCurrent(tid); }
-  static void startHousekeepingThread(std::shared_ptr<UniqueResponseDB> udrdbp, std::thread::id tid)
-  {
-    udrdbp->housekeepingThread(tid);
-  }
+  void housekeepingThread(std::thread::id tid);
 
 private:
   PersistentSBF d_psbf;
   unsigned int d_snapshot_interval{snapshot_interval_default}; // Number seconds between snapshots
-  void housekeepingThread(std::thread::id tid);
 };
 
 }
