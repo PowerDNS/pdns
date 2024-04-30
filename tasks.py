@@ -862,6 +862,22 @@ backend_regress_tests = dict(
     geoip_mmdb = ['geoip'],
 )
 
+backend_rootzone_tests = dict(
+    geoip = False,
+    geoip_mmdb = False,
+    lua2 = False,
+    ldap = False,
+    tinydns = False,
+    remote = False,
+    bind = True,
+    lmdb = True,
+    gmysql = True,
+    gpgsql = True,
+    gsqlite3 = True,
+    godbc_sqlite3 = True,
+    godbc_mssql = True,
+)
+
 godbc_mssql_credentials = {"username": "sa", "password": "SAsa12%%-not-a-secret-password"}
 
 godbc_config = f'''
@@ -916,6 +932,7 @@ def setup_softhsm(c):
 @task
 def test_auth_backend(c, backend):
     pdns_auth_env_vars = f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST={auth_backend_ip_addr} GMYSQL2HOST={auth_backend_ip_addr} MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432'
+    backend_env_vars = ''
 
     if backend == 'remote':
         ci_auth_install_remotebackend_test_deps(c)
@@ -928,39 +945,32 @@ def test_auth_backend(c, backend):
 
     if backend == 'bind':
         setup_softhsm(c)
-        with c.cd('regression-tests'):
-            for variant in backend_regress_tests[backend]:
-                c.run(f'{pdns_auth_env_vars} SOFTHSM2_CONF=/opt/pdns-auth/softhsm/softhsm2.conf ./start-test-stop 5300 {variant}')
-        return
+        backend_env_vars = 'SOFTHSM2_CONF=/opt/pdns-auth/softhsm/softhsm2.conf'
 
     if backend == 'godbc_sqlite3':
         setup_godbc_sqlite3(c)
-        with c.cd('regression-tests'):
-            for variant in backend_regress_tests[backend]:
-                c.run(f'{pdns_auth_env_vars} GODBC_SQLITE3_DSN=pdns-sqlite3-1 ./start-test-stop 5300 {variant}')
-        return
+        backend_env_vars = 'GODBC_SQLITE3_DSN=pdns-sqlite3-1'
 
     if backend == 'godbc_mssql':
         setup_godbc_mssql(c)
-        with c.cd('regression-tests'):
-            for variant in backend_regress_tests[backend]:
-                c.run(f'{pdns_auth_env_vars} GODBC_MSSQL_PASSWORD={godbc_mssql_credentials["password"]} GODBC_MSSQL_USERNAME={godbc_mssql_credentials["username"]} GODBC_MSSQL_DSN=pdns-mssql-docker GODBC_MSSQL2_PASSWORD={godbc_mssql_credentials["password"]} GODBC_MSSQL2_USERNAME={godbc_mssql_credentials["username"]} GODBC_MSSQL2_DSN=pdns-mssql-docker ./start-test-stop 5300 {variant}')
-        return
+        backend_env_vars = f'GODBC_MSSQL_PASSWORD={godbc_mssql_credentials["password"]} GODBC_MSSQL_USERNAME={godbc_mssql_credentials["username"]} GODBC_MSSQL_DSN=pdns-mssql-docker GODBC_MSSQL2_PASSWORD={godbc_mssql_credentials["password"]} GODBC_MSSQL2_USERNAME={godbc_mssql_credentials["username"]} GODBC_MSSQL2_DSN=pdns-mssql-docker'
 
     if backend == 'ldap':
         setup_ldap_client(c)
 
     if backend == 'geoip_mmdb':
-        with c.cd('regression-tests'):
-            for variant in backend_regress_tests[backend]:
-                c.run(f'{pdns_auth_env_vars} geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb ./start-test-stop 5300 {variant}')
-        return
+        backend_env_vars = 'geoipdatabase=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb'
 
     with c.cd('regression-tests'):
         if backend == 'lua2':
             c.run('touch trustedkeys')  # avoid silly error during cleanup
         for variant in backend_regress_tests[backend]:
-            c.run(f'{pdns_auth_env_vars} ./start-test-stop 5300 {variant}')
+            c.run(f'{pdns_auth_env_vars} {backend_env_vars} ./start-test-stop 5300 {variant}')
+
+    if backend_rootzone_tests[backend]:
+        with c.cd('regression-tests.rootzone'):
+            for variant in backend_regress_tests[backend]:
+                c.run(f'{pdns_auth_env_vars} {backend_env_vars} ./start-test-stop 5300 {variant}')
 
     if backend == 'gsqlite3':
         if os.getenv('SKIP_IPV6_TESTS'):
