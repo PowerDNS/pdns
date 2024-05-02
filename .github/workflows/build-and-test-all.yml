@@ -42,7 +42,7 @@ jobs:
       tag: ${{ steps.get-runner-image.outputs.tag }}
     env:
       DEFAULT_RUNNER_DOCKER_IMAGE: base-pdns-ci-image/debian-12-pdns-base
-      DEFAULT_IMAGE_TAG: master # update when backporting, e.g. auth-4.9.x
+      DEFAULT_IMAGE_TAG: auth-4.9.x # update when backporting, e.g. auth-4.9.x
     steps:
       - id: get-runner-image
         run: |
