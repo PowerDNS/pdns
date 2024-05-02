@@ -2,14 +2,12 @@
 #  pip-compile --generate-hashes requirements.in
 
 Sphinx>=1.5.0,!=1.8.0,<2.0
-https://github.com/PowerDNS/sphinxcontrib-openapi/archive/refs/heads/use-jsondomain-pdns-py3.10-noscm.zip
+https://github.com/PowerDNS/sphinx-lua/archive/refs/heads/pdns.zip
 https://github.com/PowerDNS/sphinx-jsondomain/archive/refs/heads/no-type-links.zip
 changelog>=0.5.6,<0.6
-sphinxcontrib-fulltoc
 guzzle_sphinx_theme
+sphinxcontrib.httpdomain
+sphinxcontrib-fulltoc
 docutils!=0.15,<0.18
 jinja2<3.1.0
-pyyaml==6.0.1
-packaging==24.0
-setuptools-scm==8.0.3 # setup-requires for sphinxcontrib-openapi
-pbr # setup-requires for sphinxcontrib-fulltoc
+alabaster==0.7.13
