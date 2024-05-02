@@ -22,6 +22,7 @@ Comments are per-RRset.
   :property [RRSet] rrsets: RRSets in this zone
   :property [str] servers: For zones of type "Forwarded", addresses to send the queries to
   :property bool recursion_desired: For zones of type "Forwarded", Whether or not the RD bit should be set in the query
+  :property bool notify_allowed: For zones of type "Forwarded", Whether or not to permit incoming NOTIFY to wipe cache for the domain
 
 To properly process new zones, the following conditions must
 be true:
