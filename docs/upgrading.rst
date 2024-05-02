@@ -11,6 +11,11 @@ upgrade notes if your version is older than 3.4.2.
 4.9.0 to 5.0.0/master
 --------------
 
+LUA records whitespace insertion
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:ref:`setting-lua-records-insert-whitespace`, introduced in 4.9.1 with the default value (``yes``) set to maintain the old behaviour of inserting whitespace, is set to ``no`` in 5.0.
+
 ixfrdist IPv6 support
 ^^^^^^^^^^^^^^^^^^^^^
 

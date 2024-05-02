@@ -50,6 +50,7 @@ extern size_t g_proxyProtocolMaximumSize;
 #ifdef HAVE_LUA_RECORDS
 extern bool g_doLuaRecord;
 extern bool g_LuaRecordSharedState;
+extern bool g_luaRecordInsertWhitespace;
 extern time_t g_luaHealthChecksInterval;
 extern time_t g_luaHealthChecksExpireDelay;
 extern time_t g_luaConsistentHashesExpireDelay;
