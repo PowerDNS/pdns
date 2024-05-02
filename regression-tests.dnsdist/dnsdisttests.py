@@ -215,6 +215,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 print("kill...", p, file=sys.stderr)
                 p.kill()
                 p.wait()
+            if p.returncode != 0:
+              raise AssertionError('Process exited with return code %d' % (p.returncode))
         except OSError as e:
             # There is a race-condition with the poll() and
             # kill() statements, when the process is dead on the

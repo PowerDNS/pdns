@@ -78,6 +78,10 @@ AC_DEFUN([PDNS_ENABLE_ASAN], [
             [#include <sanitizer/common_interface_defs.h>]
           )]
         )
+        AC_CHECK_HEADERS([sanitizer/lsan_interface.h],
+          AC_DEFINE([HAVE_LEAK_SANITIZER_INTERFACE], [1], [Define if LSAN interface is available.]),
+         []
+        )
       ],
       [AC_MSG_ERROR([Cannot enable AddressSanitizer])]
     )
@@ -120,6 +124,10 @@ AC_DEFUN([PDNS_ENABLE_LSAN], [
     gl_COMPILER_OPTION_IF([-fsanitize=leak],
       [SANITIZER_FLAGS="-fsanitize=leak $SANITIZER_FLAGS"],
       [AC_MSG_ERROR([Cannot enable LeakSanitizer])]
+    )
+    AC_CHECK_HEADERS([sanitizer/lsan_interface.h],
+      AC_DEFINE([HAVE_LEAK_SANITIZER_INTERFACE], [1], [Define if LSAN interface is available.]),
+      []
     )
   ])
   AC_SUBST([SANITIZER_FLAGS])
@@ -164,4 +172,3 @@ AC_DEFUN([PDNS_ENABLE_MSAN], [
   ])
   AC_SUBST([SANITIZER_FLAGS])
 ])
-
