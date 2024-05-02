@@ -655,7 +655,7 @@ jobs:
       env:
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         # Disabling (intercept_send=0) the custom send wrappers for ASAN and TSAN because they cause the tools to report a race that doesn't exist on actual implementations of send(), see https://github.com/google/sanitizers/issues/1498
-        ASAN_OPTIONS: detect_leaks=0:intercept_send=0
+        ASAN_OPTIONS: intercept_send=0
         TSAN_OPTIONS: "halt_on_error=1:intercept_send=0:suppressions=${{ env.REPO_HOME }}/pdns/dnsdistdist/dnsdist-tsan.supp"
         # IncludeDir tests are disabled because of a weird interaction between TSAN and these tests which ever only happens on GH actions
         SKIP_INCLUDEDIR_TESTS: yes
