@@ -570,8 +570,9 @@ IOState IncomingHTTP2Connection::sendResponse(const struct timeval& now, TCPResp
     responseBuffer = std::move(response.d_buffer);
   }
 
+  auto sent = responseBuffer.size();
   sendResponse(response.d_idstate.d_streamID, context, statusCode, d_ci.cs->dohFrontend->d_customResponseHeaders, contentType, sendContentType);
-  handleResponseSent(response);
+  handleResponseSent(response, sent);
 
   return hasPendingWrite() ? IOState::NeedWrite : IOState::Done;
 }
