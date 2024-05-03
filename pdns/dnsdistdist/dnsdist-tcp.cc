@@ -398,7 +398,7 @@ void IncomingTCPConnectionState::queueResponse(std::shared_ptr<IncomingTCPConnec
 
     // for the same reason we need to update the state right away, nobody will do that for us
     if (state->active()) {
-      updateIO(state, iostate, now);
+      state->updateIO(state, iostate, now);
       // if we have not finished reading every available byte, we _need_ to do an actual read
       // attempt before waiting for the socket to become readable again, because if there is
       // buffered data available the socket might never become readable again.
@@ -440,18 +440,23 @@ void IncomingTCPConnectionState::handleAsyncReady([[maybe_unused]] int desc, FDM
   }
 }
 
+void IncomingTCPConnectionState::updateIOForAsync(std::shared_ptr<IncomingTCPConnectionState>& conn)
+{
+  auto fds = conn->d_handler.getAsyncFDs();
+  for (const auto desc : fds) {
+    conn->d_threadData.mplexer->addReadFD(desc, handleAsyncReady, conn);
+  }
+  conn->d_ioState->update(IOState::Done, handleIOCallback, conn);
+}
+
 void IncomingTCPConnectionState::updateIO(std::shared_ptr<IncomingTCPConnectionState>& state, IOState newState, const struct timeval& now)
 {
   if (newState == IOState::Async) {
-    auto fds = state->d_handler.getAsyncFDs();
-    for (const auto desc : fds) {
-      state->d_threadData.mplexer->addReadFD(desc, handleAsyncReady, state);
-    }
-    state->d_ioState->update(IOState::Done, handleIOCallback, state);
+    updateIOForAsync(state);
+    return;
   }
-  else {
-    state->d_ioState->update(newState, handleIOCallback, state, newState == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
-  }
+
+  state->d_ioState->update(newState, handleIOCallback, state, newState == IOState::NeedWrite ? state->getClientWriteTTD(now) : state->getClientReadTTD(now));
 }
 
 /* called from the backend code when a new response has been received */
