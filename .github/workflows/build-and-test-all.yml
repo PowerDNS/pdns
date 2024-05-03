@@ -32,7 +32,7 @@ jobs:
   build-recursor:
     name: build recursor
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -100,7 +100,7 @@ jobs:
 
   test-recursor-api:
     needs: build-recursor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -144,7 +144,7 @@ jobs:
 
   test-recursor-regression:
     needs: build-recursor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -190,7 +190,7 @@ jobs:
   test-recursor-bulk:
     name: 'test rec *mini* bulk'
     needs: build-recursor
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -237,7 +237,7 @@ jobs:
       - test-recursor-regression
       - test-recursor-bulk
     if: success() || failure()
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Coveralls Parallel Finished
         if: ${{ env.COVERAGE == 'yes' }}
