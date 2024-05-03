@@ -128,10 +128,10 @@ public:
 
   static void queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response, bool fromBackend);
   static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write);
+  static void updateIOForAsync(std::shared_ptr<IncomingTCPConnectionState>& conn);
 
   virtual void handleIO();
   virtual void updateIO(std::shared_ptr<IncomingTCPConnectionState>& conn, IOState newState, const timeval& now);
-  void updateIOForAsync(std::shared_ptr<IncomingTCPConnectionState>& conn);
 
   QueryProcessingResult handleQuery(PacketBuffer&& query, const struct timeval& now, std::optional<int32_t> streamID);
   virtual void handleResponse(const struct timeval& now, TCPResponse&& response) override;
