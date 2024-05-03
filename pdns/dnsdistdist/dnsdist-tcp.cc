@@ -196,7 +196,7 @@ static IOState sendQueuedResponses(std::shared_ptr<IncomingTCPConnectionState>& 
   return IOState::Done;
 }
 
-void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse)
+void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse, size_t sentBytes)
 {
   if (currentResponse.d_idstate.qtype == QType::AXFR || currentResponse.d_idstate.qtype == QType::IXFR) {
     return;
@@ -208,13 +208,13 @@ void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse
   if (!currentResponse.d_idstate.selfGenerated && backend) {
     const auto& ids = currentResponse.d_idstate;
     double udiff = ids.queryRealTime.udiff();
-    vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %f us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), getProtocol().toString(), currentResponse.d_buffer.size(), udiff);
+    vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %f us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), getProtocol().toString(), sentBytes, udiff);
 
     auto backendProtocol = backend->getProtocol();
     if (backendProtocol == dnsdist::Protocol::DoUDP && !currentResponse.d_idstate.forwardedOverUDP) {
       backendProtocol = dnsdist::Protocol::DoTCP;
     }
-    ::handleResponseSent(ids, udiff, d_ci.remote, backend->d_config.remote, static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, backendProtocol, true);
+    ::handleResponseSent(ids, udiff, d_ci.remote, backend->d_config.remote, static_cast<unsigned int>(sentBytes), currentResponse.d_cleartextDH, backendProtocol, true);
   }
   else {
     const auto& ids = currentResponse.d_idstate;
@@ -316,7 +316,7 @@ IOState IncomingTCPConnectionState::sendResponse(const struct timeval& now, TCPR
     auto iostate = d_handler.tryWrite(d_currentResponse.d_buffer, d_currentPos, d_currentResponse.d_buffer.size());
     if (iostate == IOState::Done) {
       DEBUGLOG("response sent from " << __PRETTY_FUNCTION__);
-      handleResponseSent(d_currentResponse);
+      handleResponseSent(d_currentResponse, d_currentResponse.d_buffer.size());
       return iostate;
     }
     d_lastIOBlocked = true;
@@ -1121,7 +1121,7 @@ void IncomingTCPConnectionState::handleIO()
         iostate = d_handler.tryWrite(d_currentResponse.d_buffer, d_currentPos, d_currentResponse.d_buffer.size());
         if (iostate == IOState::Done) {
           DEBUGLOG("response sent from " << __PRETTY_FUNCTION__);
-          handleResponseSent(d_currentResponse);
+          handleResponseSent(d_currentResponse, d_currentResponse.d_buffer.size());
           d_state = State::idle;
         }
         else {
