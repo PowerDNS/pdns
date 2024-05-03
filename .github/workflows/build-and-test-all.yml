@@ -436,7 +436,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
       - name: Get list of jobs in the workflow
-        run: "cat .github/workflows/build-and-test-all.yml | jc --yaml | jq -rS '.[].jobs | keys | .[]' | grep -vE 'collect|get-runner-container-image' | tee /tmp/workflow-jobs-list.yml"
+        run: "yq e '.jobs | keys' .github/workflows/build-and-test-all.yml | awk '{print $2}' | grep -vE 'collect|get-runner-container-image' | sort | tee /tmp/workflow-jobs-list.yml"
       - name: Get list of prerequisite jobs
         run: "echo '${{ toJSON(needs) }}' | jq 'keys | .[]' | tr -d '\"' | sort | tee /tmp/workflow-needs-list.yml"
       - name: Fail if there is a job missing on the needs list
