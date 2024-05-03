@@ -922,6 +922,9 @@ int IncomingHTTP2Connection::on_frame_recv_callback(nghttp2_session* session, co
       return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
   }
+  else if (frame->hd.type == NGHTTP2_PING) {
+    conn->d_needFlush = true;
+  }
 
   return 0;
 }
