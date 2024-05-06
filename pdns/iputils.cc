@@ -304,7 +304,7 @@ int sendOnNBSocket(int fileDesc, const struct msghdr* msgh)
 #ifdef __OpenBSD__
   // OpenBSD can and does return EAGAIN on non-blocking datagram sockets
   for (int i = 0; i < 10; i++) { // Arbitrary upper bound
-    if (sendmsg(fd, msgh, 0) != -1) {
+    if (sendmsg(fileDesc, msgh, 0) != -1) {
       sendErr = 0;
       break;
     }
