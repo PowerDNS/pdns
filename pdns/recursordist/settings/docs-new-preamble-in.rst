@@ -161,7 +161,7 @@ An example of a ``forward_zones`` entry, which consists of a sequence of forward
     forwarders:
       - 127.0.0.1
       - 127.0.0.1:5353
-      - '[::1]53'
+      - '[::1]:53'
   - zone: example2.com
     forwarders:
       - '::1'
