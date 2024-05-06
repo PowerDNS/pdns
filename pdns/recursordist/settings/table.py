@@ -1107,7 +1107,7 @@ The DNSSEC notes from :ref:`setting-forward-zones` apply here as well.
     forwarders:
     - 127.0.0.1
     - 127.0.0.1:5353
-    - '[::1]53'
+    - '[::1]:53'
   - zone: example2.com
     forwarders:
     - ::1
