@@ -3,7 +3,7 @@ PowerDNS Security Advisory 2024-02: if recursive forwarding is configured, craft
 
 - CVE: CVE-2024-25583
 - Date: 24th of April 2024.
-- Affects: PowerDNS Recursor 4.8.7, 4.9.4 and 5.0.3, earlier versions are not affected
+- Affects: PowerDNS Recursor 4.8.7, 4.9.4 and 5.0.3; earlier versions are not affected
 - Not affected: PowerDNS Recursor 4.8.8, 4.9.5 and 5.0.4
 - Severity: High (only when using recursive forwarding)
 - Impact: Denial of service
