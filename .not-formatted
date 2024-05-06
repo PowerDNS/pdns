@@ -108,8 +108,6 @@
 ./pdns/gettime.hh
 ./pdns/histog.hh
 ./pdns/inflighter.cc
-./pdns/iputils.cc
-./pdns/iputils.hh
 ./pdns/ixfr.cc
 ./pdns/ixfr.hh
 ./pdns/ixfrdist-stats.cc
