@@ -8,7 +8,7 @@ PowerDNS installation with DNSSEC.
 
 Zone material is enhanced with signatures using ``keys``. Such a signature
 (called an RRSIG) is a cryptographic guarantee that the data served is
-the original data. DNSSEC keys are asymmetric (RSA, DSA, ECSDA or GOST),
+the original data. DNSSEC keys are asymmetric (RSA, DSA, ECDSA or GOST),
 the public part is published in DNS and is called a DNSKEY record, and
 is used for verification. The private part is used for signing and is
 never published.
