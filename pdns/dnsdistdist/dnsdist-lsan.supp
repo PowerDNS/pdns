@@ -1,2 +1,2 @@
-# h2o
-leak:create_socket
+# it's hard to clean up the per-thread Lua load-balancing policies on exit
+leak:setupLuaLoadBalancingContext

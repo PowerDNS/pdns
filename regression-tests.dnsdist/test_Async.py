@@ -510,6 +510,11 @@ class TestAsyncFFI(DNSDistTest, AsyncTests):
       return DNSResponseAction.Allow
     end
 
+    function atExit()
+      listener = nil
+      collectgarbage()
+    end
+
     -- this only matters for tests actually reaching the backend
     addAction('tcp-only.async.tests.powerdns.com', PoolAction('tcp-only', false))
     addAction('cache.async.tests.powerdns.com', PoolAction('cache', false))
@@ -616,6 +621,11 @@ class TestAsyncLua(DNSDistTest, AsyncTests):
       asyncResponderEndpoint:send(buffer)
 
       return DNSResponseAction.Allow
+    end
+
+    function atExit()
+      listener = nil
+      collectgarbage()
     end
 
     -- this only matters for tests actually reaching the backend

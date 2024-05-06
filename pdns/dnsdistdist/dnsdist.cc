@@ -2810,9 +2810,14 @@ static void sigTermHandler([[maybe_unused]] int sig)
   std::cout << "Exiting on user request" << std::endl;
 #endif /* __SANITIZE_THREAD__ */
 #if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
-  auto lock = g_lua.lock();
-  cleanupLuaObjects();
-  *lock = LuaContext();
+  if (dnsdist::g_asyncHolder) {
+    dnsdist::g_asyncHolder->stop();
+  }
+  {
+    auto lock = g_lua.lock();
+    cleanupLuaObjects();
+    *lock = LuaContext();
+  }
   __lsan_do_leak_check();
 #endif /* __SANITIZE_ADDRESS__ && HAVE_LEAK_SANITIZER_INTERFACE */
   _exit(EXIT_SUCCESS);
