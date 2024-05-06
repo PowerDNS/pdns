@@ -131,7 +131,7 @@ public:
   static void updateIOForAsync(std::shared_ptr<IncomingTCPConnectionState>& conn);
 
   virtual void handleIO();
-  virtual void updateIO(std::shared_ptr<IncomingTCPConnectionState>& conn, IOState newState, const timeval& now);
+  virtual void updateIO(IOState newState, const timeval& now);
 
   QueryProcessingResult handleQuery(PacketBuffer&& query, const struct timeval& now, std::optional<int32_t> streamID);
   virtual void handleResponse(const struct timeval& now, TCPResponse&& response) override;

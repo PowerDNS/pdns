@@ -1166,9 +1166,8 @@ boost::optional<struct timeval> IncomingHTTP2Connection::getIdleClientReadTTD(st
   return now;
 }
 
-void IncomingHTTP2Connection::updateIO(std::shared_ptr<IncomingTCPConnectionState>& conn, IOState newState, const timeval& now)
+void IncomingHTTP2Connection::updateIO(IOState newState, const timeval& now)
 {
-  (void)conn;
   (void)now;
   updateIO(newState, newState == IOState::NeedWrite ? handleWritableIOCallback : handleReadableIOCallback);
 }
