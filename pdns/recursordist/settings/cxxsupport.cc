@@ -760,7 +760,7 @@ void fromLuaToRust(const FrameStreamExportConfig& fsc, pdns::rust::settings::rec
     dnstap.servers.emplace_back(server);
   }
   dnstap.logQueries = fsc.logQueries;
-  dnstap.logResponses = fsc.logQueries;
+  dnstap.logResponses = fsc.logResponses;
   dnstap.bufferHint = fsc.bufferHint;
   dnstap.flushTimeout = fsc.flushTimeout;
   dnstap.inputQueueSize = fsc.inputQueueSize;
@@ -1295,7 +1295,7 @@ void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings
   fromRustToLuaConfig(settings.incoming.proxymappings, proxyMapping);
 }
 
-// Return true if an item that's (also) a Lua config ite is set
+// Return true if an item that's (also) a Lua config item is set
 bool pdns::settings::rec::luaItemSet(const pdns::rust::settings::rec::Recursorsettings& settings)
 {
   bool alldefault = true;

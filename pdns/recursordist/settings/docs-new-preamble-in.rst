@@ -390,7 +390,7 @@ As of version 5.1.0, an allowed addtional qtype entry is defined as:
 
 .. code-block:: yaml
 
-   qtype: string represeting a QType
+   qtype: string representing a QType
    targets: [] Sequence of string representing QType
    mode: One of Ignore, CacheOnly, CacheOnlyRequireAuth, ResolveImmediately, ResolveDeferred, default CacheOnlyRequireAuth
 

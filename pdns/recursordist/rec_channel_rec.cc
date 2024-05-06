@@ -2204,7 +2204,7 @@ static RecursorControlChannel::Answer luaconfig(T begin, T end)
 {
   if (begin != end) {
     if (g_luaSettingsInYAML) {
-      return {1, "Unable to reload Lua script from '" + ::arg()["lua-config-file"] + " as there is not active Lua configuration\n"};
+      return {1, "Unable to reload Lua script from '" + ::arg()["lua-config-file"] + " as there is no active Lua configuration\n"};
     }
     ::arg().set("lua-config-file") = *begin;
   }
