@@ -164,7 +164,7 @@ jobs:
       - test-recursor-regression
       - test-recursor-bulk
     if: success() || failure()
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Install jq and yq
         run: "sudo snap install jq yq"
