@@ -124,9 +124,9 @@ fake-factory==0.5.11 \
     --hash=sha256:24950d2cf028080f70830b79e8ceba8711cd2b9dccd99e3b6992dcf7da6e46cd \
     --hash=sha256:cc450de0e0e9f3f4f89fea715b772b38bb5ad9d458e594fd7fed0f8b934ba636
     # via sphinx-jsondomain
-idna==3.6 \
-    --hash=sha256:9ecdbbd083b06798ae1e86adcbfe8ab1479cf864e4ee30fe4e46a003d12491ca \
-    --hash=sha256:c05567e9c24a6b9faaa835c4821bad0590fbb9d5779e7caa6e1cc4978e7eb24f
+idna==3.7 \
+    --hash=sha256:028ff3aadf0609c1fd278d8ea3089299412a7a8b9bd005dd08b9f8285bcb5cfc \
+    --hash=sha256:82fee1fc78add43492d3a1898bfa6d8a904cc97d8427f683ed8e798d07761aa0
     # via requests
 imagesize==1.4.1 \
     --hash=sha256:0d8d18d08f840c19d0ee7ca1fd82490fdc3729b7ac93f49870406ddde8ef8d8b \
