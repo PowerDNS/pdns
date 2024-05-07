@@ -1145,8 +1145,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
           return true;
         });
         return true;
-      case DNSAction::Action::SetTag:
-      {
+      case DNSAction::Action::SetTag: {
         if (!got->second.tagSettings) {
           vinfolog("Skipping set tag dynamic block for query from %s because of missing options", dnsQuestion.ids.origRemote.toStringWithPort());
           break;
@@ -1220,8 +1219,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
           return true;
         });
         return true;
-      case DNSAction::Action::SetTag:
-      {
+      case DNSAction::Action::SetTag: {
         if (!got->tagSettings) {
           vinfolog("Skipping set tag dynamic block for query from %s because of missing options", dnsQuestion.ids.origRemote.toStringWithPort());
           break;

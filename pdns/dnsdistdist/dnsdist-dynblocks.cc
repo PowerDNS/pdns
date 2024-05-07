@@ -214,7 +214,7 @@ static DNSAction::Action getActualAction(const DynBlock& block)
 
 namespace dnsdist::DynamicBlocks
 {
-  bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const std::string& reason, unsigned int duration, DNSAction::Action action, bool warning, bool beQuiet, std::shared_ptr<DynBlock::TagSettings> tagSettings)
+bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const std::string& reason, unsigned int duration, DNSAction::Action action, bool warning, bool beQuiet, std::shared_ptr<DynBlock::TagSettings> tagSettings)
 {
   unsigned int count = 0;
   bool expired = false;
