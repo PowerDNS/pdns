@@ -380,7 +380,7 @@ struct DynBlock
   string reason;
   DNSName domain;
   timespec until{};
-  std::unique_ptr<TagSettings> tagSettings{nullptr};
+  std::shared_ptr<TagSettings> tagSettings{nullptr};
   mutable std::atomic<uint32_t> blocks{0};
   DNSAction::Action action{DNSAction::Action::None};
   bool warning{false};

@@ -1651,8 +1651,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          for (const auto& capair : names) {
                            DNSName domain(capair.second);
                            domain.makeUsLowerCase();
-
-                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, domain, msg, actualSeconds, action ? *action : DNSAction::Action::None, false)) {
+#warning FIXME: need to handle tags
+                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, domain, msg, actualSeconds, action ? *action : DNSAction::Action::None, false, nullptr)) {
                              needUpdate = true;
                            }
                          }
@@ -1690,7 +1690,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          timespec now{};
                          gettime(&now);
                          auto slow = g_dynblockNMG.getCopy();
-                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, msg, actualSeconds, action ? *action : DNSAction::Action::None, false, false)) {
+#warning FIXME: need to handle tags
+                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, msg, actualSeconds, action ? *action : DNSAction::Action::None, false, false, nullptr)) {
                            g_dynblockNMG.setState(slow);
                          }
                        });

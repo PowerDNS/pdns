@@ -111,6 +111,9 @@ DNSAction
 .. versionchanged:: 1.8.0
   ``DNSAction.SpoofPacket`` has been added.
 
+.. versionchanged:: 2.0.0
+  ``DNSAction.SetTag`` has been added.
+
 These constants represent an Action that can be returned from :func:`LuaAction` functions.
 
  * ``DNSAction.Allow``: let the query pass, skipping other rules
@@ -119,15 +122,16 @@ These constants represent an Action that can be returned from :func:`LuaAction` 
  * ``DNSAction.HeaderModify``: indicate that the query has been turned into a response
  * ``DNSAction.None``: continue to the next rule
  * ``DNSAction.NoOp``: continue to the next rule (used for Dynamic Block actions where None has a different meaning)
+ * ``DNSAction.NoRecurse``: set rd=0 on the query
  * ``DNSAction.Nxdomain``: return a response with a NXDomain rcode
  * ``DNSAction.Pool``: use the specified pool to forward this query
  * ``DNSAction.Refused``: return a response with a Refused rcode
  * ``DNSAction.ServFail``: return a response with a ServFail rcode
+ * ``DNSAction.SetTag``: set a tag, see :function:`SetTagAction` (only used for Dynamic Block actions, see meth:`DNSQuestion:setTag` to set a tag from Lua)
  * ``DNSAction.Spoof``: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value. TTL will be 60 seconds.
  * ``DNSAction.SpoofPacket``: spoof the response using the supplied raw packet
  * ``DNSAction.SpoofRaw``: spoof the response using the supplied raw value as record data (see also :meth:`DNSQuestion:spoof` and :func:`dnsdist_ffi_dnsquestion_spoof_raw` to spoof multiple values)
  * ``DNSAction.Truncate``: truncate the response
- * ``DNSAction.NoRecurse``: set rd=0 on the query
 
 .. _DNSQType:
 

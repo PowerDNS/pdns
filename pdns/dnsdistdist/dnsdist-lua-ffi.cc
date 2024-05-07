@@ -1839,12 +1839,11 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
 
     AddressAndPortRange target(clientIPCA, clientIPMask, clientIPPortMask);
 
-    struct timespec now
-    {
-    };
+    timespec now{};
     gettime(&now);
     auto slow = g_dynblockNMG.getCopy();
-    if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, message, duration, static_cast<DNSAction::Action>(action), false, false)) {
+#warning FIXME: need to handle tags
+    if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, message, duration, static_cast<DNSAction::Action>(action), false, false, nullptr)) {
       g_dynblockNMG.setState(slow);
       return true;
     }
@@ -1878,12 +1877,11 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
       return false;
     }
 
-    struct timespec now
-    {
-    };
+    timespec now{};
     gettime(&now);
     auto slow = g_dynblockSMT.getCopy();
-    if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, domain, message, duration, static_cast<DNSAction::Action>(action), false)) {
+#warning FIXME: need to handle tags
+    if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, domain, message, duration, static_cast<DNSAction::Action>(action), false, nullptr)) {
       g_dynblockSMT.setState(slow);
       return true;
     }

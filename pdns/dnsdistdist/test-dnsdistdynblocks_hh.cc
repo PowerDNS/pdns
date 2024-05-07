@@ -56,8 +56,11 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate, TestFixture) {
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
-  /* block above 50 qps for numberOfSeconds seconds, no warning */
-  dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
+  {
+    /* block above 50 qps for numberOfSeconds seconds, no warning */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 50, 0, numberOfSeconds, action);
+    dbrg.setQueryRate(std::move(rule));
+  }
 
   {
     /* insert 45 qps from a given client in the last 10s
@@ -194,8 +197,11 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_RangeV6, TestFixture) 
   dbrg.setQuiet(true);
   dbrg.setMasks(32, 64, 0);
 
-  /* block above 50 qps for numberOfSeconds seconds, no warning */
-  dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
+  {
+    /* block above 50 qps for numberOfSeconds seconds, no warning */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 50, 0, numberOfSeconds, action);
+    dbrg.setQueryRate(std::move(rule));
+  }
 
   {
     /* insert 45 qps from a given client in the last 10s
@@ -294,8 +300,11 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_V4Ports, TestFixture) 
   /* split v4 by ports using a  /2 (0 - 16383, 16384 - 32767, 32768 - 49151, 49152 - 65535) */
   dbrg.setMasks(32, 128, 2);
 
-  /* block above 50 qps for numberOfSeconds seconds, no warning */
-  dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
+  {
+    /* block above 50 qps for numberOfSeconds seconds, no warning */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 50, 0, numberOfSeconds, action);
+    dbrg.setQueryRate(std::move(rule));
+  }
 
   {
     /* insert 45 qps from a given client in the last 10s
@@ -430,9 +439,15 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_responses, TestFixture
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
-  /* block above 50 qps for numberOfSeconds seconds, no warning */
-  dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
-  dbrg.setRCodeRate(RCode::ServFail, 50, 40, 5, "Exceeded ServFail rate", 60, DNSAction::Action::Drop);
+  {
+    /* block above 50 qps for numberOfSeconds seconds, no warning */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 50, 0, numberOfSeconds, action);
+    dbrg.setQueryRate(std::move(rule));
+  }
+  {
+    DynBlockRulesGroup::DynBlockRule rule("Exceeded ServFail rate", 60, 50, 40, 5, DNSAction::Action::Drop);
+    dbrg.setRCodeRate(RCode::ServFail, std::move(rule));
+  }
 
   {
     /* insert 45 qps (including responses) from a given client for the last 100s
@@ -482,8 +497,11 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QTypeRate, TestFixture) {
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
-  /* block above 50 qps for numberOfSeconds seconds, no warning */
-  dbrg.setQTypeRate(QType::AAAA, 50, 0, numberOfSeconds, reason, blockDuration, action);
+  {
+    /* block above 50 qps for numberOfSeconds seconds, no warning */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 50, 0, numberOfSeconds, action);
+    dbrg.setQTypeRate(QType::AAAA, std::move(rule));
+  }
 
   {
     /* insert 45 qps from a given client in the last 10s
@@ -573,8 +591,11 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_RCodeRate, TestFixture) {
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
-  /* block above 50 ServFail/s for numberOfSeconds seconds, no warning */
-  dbrg.setRCodeRate(rcode, 50, 0, numberOfSeconds, reason, blockDuration, action);
+  {
+    /* block above 50 ServFail/s for numberOfSeconds seconds, no warning */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 50, 0, numberOfSeconds, action);
+    dbrg.setRCodeRate(rcode, std::move(rule));
+  }
 
   {
     /* insert 45 ServFail/s from a given client in the last 10s
@@ -666,8 +687,11 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_RCodeRatio, TestFixture) {
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
-  /* block above 0.2 ServFail/Total ratio over numberOfSeconds seconds, no warning, minimum number of queries should be at least 51 */
-  dbrg.setRCodeRatio(rcode, 0.2, 0, numberOfSeconds, reason, blockDuration, action, 51);
+  {
+    /* block above 0.2 ServFail/Total ratio over numberOfSeconds seconds, no warning, minimum number of queries should be at least 51 */
+    DynBlockRulesGroup::DynBlockRatioRule rule(reason, blockDuration, 0.2, 0.0, numberOfSeconds, action, 51);
+    dbrg.setRCodeRatio(rcode, std::move(rule));
+  }
 
   {
     /* insert 20 ServFail and 80 NoErrors from a given client in the last 10s
@@ -785,8 +809,11 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_ResponseByteRate, TestFixture) {
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
-  /* block above 10kB/s for numberOfSeconds seconds, no warning */
-  dbrg.setResponseByteRate(10000, 0, numberOfSeconds, reason, blockDuration, action);
+  {
+    /* block above 10kB/s for numberOfSeconds seconds, no warning */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 10000, 0, numberOfSeconds, action);
+    dbrg.setResponseByteRate(std::move(rule));
+  }
 
   {
     /* insert 99 answers of 100 bytes per second from a given client in the last 10s
@@ -863,7 +890,10 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_CacheMissRatio, TestFixture) {
   /* block above 0.5 Cache-Miss/Total ratio over numberOfSeconds seconds, no warning, minimum number of queries should be at least 51, global cache hit at least 80% */
   dnsdist::metrics::g_stats.cacheHits.store(80);
   dnsdist::metrics::g_stats.cacheMisses.store(20);
-  dbrg.setCacheMissRatio(0.5, 0, numberOfSeconds, reason, blockDuration, action, 51, 0.8);
+  {
+    DynBlockRulesGroup::DynBlockCacheMissRatioRule rule(reason, blockDuration, 0.5, 0.0, numberOfSeconds, action, 51, 0.8);
+    dbrg.setCacheMissRatio(std::move(rule));
+  }
 
   {
     /* insert 50 cache misses and 50 cache hits from a given client in the last 10s
@@ -977,8 +1007,11 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_Warning, TestFixture) {
   DynBlockRulesGroup dbrg;
   dbrg.setQuiet(true);
 
-  /* warn above 20 qps for numberOfSeconds seconds, block above 50 qps */
-  dbrg.setQueryRate(50, 20, numberOfSeconds, reason, blockDuration, action);
+  {
+    /* warn above 20 qps for numberOfSeconds seconds, block above 50 qps */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 50, 20, numberOfSeconds, action);
+    dbrg.setQueryRate(std::move(rule));
+  }
 
   {
     /* insert 20 qps from a given client in the last 10s
@@ -1141,8 +1174,11 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_Ranges, TestFixture) {
   /* but exclude 192.0.2.42 only */
   dbrg.excludeRange(Netmask("192.0.2.42/32"));
 
-  /* block above 50 qps for numberOfSeconds seconds, no warning */
-  dbrg.setQueryRate(50, 0, numberOfSeconds, reason, blockDuration, action);
+  {
+    /* block above 50 qps for numberOfSeconds seconds, no warning */
+    DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 50, 0, numberOfSeconds, action);
+    dbrg.setQueryRate(std::move(rule));
+  }
 
   {
     /* insert just above 50 qps from the two clients in the last 10s
@@ -1202,8 +1238,11 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
     g_rings.clear();
     g_dynblockNMG.setState(emptyNMG);
 
-    /* block above 0 qps for numberOfSeconds seconds, no warning */
-    dbrg.setQueryRate(0, 0, numberOfSeconds, reason, blockDuration, action);
+    {
+      /* block above 0 qps for numberOfSeconds seconds, no warning */
+      DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 0, 0, numberOfSeconds, action);
+      dbrg.setQueryRate(std::move(rule));
+    }
 
     /* insert one fake query from 255 clients:
      */
@@ -1255,12 +1294,15 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
     g_dynblockNMG.setState(emptyNMG);
     g_dynblockSMT.setState(emptySMT);
 
-    dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
-      if (self.queries > 0) {
-        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, boost::none, boost::none);
-      }
-      return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
-    });
+    {
+      DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 0, 0, numberOfSeconds, action);
+      dbrg.setSuffixMatchRule(std::move(rule), [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
+        if (self.queries > 0) {
+          return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, boost::none, boost::none);
+        }
+        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
+      });
+    }
 
     /* insert one fake response for 255 DNS names */
     const ComboAddress requestor("192.0.2.1");
@@ -1312,12 +1354,15 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
     g_dynblockNMG.setState(emptyNMG);
     g_dynblockSMT.setState(emptySMT);
 
-    dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
-      if (self.queries > 0) {
-        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, "blocked for a different reason", static_cast<int>(DNSAction::Action::Truncate));
-      }
-      return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
-    });
+    {
+      DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 0, 0, numberOfSeconds, action);
+      dbrg.setSuffixMatchRule(std::move(rule), [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
+        if (self.queries > 0) {
+          return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, "blocked for a different reason", static_cast<int>(DNSAction::Action::Truncate));
+        }
+        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
+      });
+    }
 
     /* insert one fake response for 255 DNS names */
     const ComboAddress requestor("192.0.2.1");
@@ -1370,12 +1415,15 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
     g_dynblockNMG.setState(emptyNMG);
     g_dynblockSMT.setState(emptySMT);
 
-    dbrg.setSuffixMatchRule(numberOfSeconds, reason, blockDuration, action, [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
-      if (self.queries > 0) {
-        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, boost::none, boost::none);
-      }
-      return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
-    });
+    {
+      DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 0, 0, numberOfSeconds, action);
+      dbrg.setSuffixMatchRule(std::move(rule), [](const StatNode& node, const StatNode::Stat& self, const StatNode::Stat& children) {
+        if (self.queries > 0) {
+          return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(true, boost::none, boost::none);
+        }
+        return std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(false, boost::none, boost::none);
+      });
+    }
 
     bool done = false;
     const ComboAddress requestor("192.0.2.1");
@@ -1421,7 +1469,10 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesMetricsCache_GetTopN, TestFixture) {
     g_rings.clear();
     g_dynblockNMG.setState(emptyNMG);
     g_dynblockSMT.setState(emptySMT);
-    dbrg.setQueryRate(0, 0, numberOfSeconds, reason, blockDuration, action);
+    {
+      DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 0, 0, numberOfSeconds, action);
+      dbrg.setQueryRate(std::move(rule));
+    }
 
     bool done = false;
     for (size_t idxB = 0; !done && idxB < 256; idxB++) {
