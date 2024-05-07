@@ -635,7 +635,7 @@ std::string pdns::settings::rec::defaultsToYaml()
   auto def = [&](const string& section, const string& name, const string& type) {
     pdns::rust::settings::rec::Value rustvalue{};
     // Dirty hack: trustanchorfile_interval is the only u64 value, set the right default for it.
-    // All for all other values below, the default is either an empty string or an empty vector.
+    // And for all other values below, the default is either an empty string or an empty vector.
     // Once we get more u64 values below with different default values this hack no longer works.
     rustvalue.u64_val = 24;
     map.emplace(std::pair{std::pair{section, name}, pdns::rust::settings::rec::OldStyle{section, name, name, type, rustvalue, false}});
@@ -1066,7 +1066,7 @@ namespace
 void fromRustToLuaConfig(const pdns::rust::settings::rec::Dnssec& dnssec, LuaConfigItems& luaConfig)
 {
   // This function fills a luaConfig equivalent to the given YAML config, assuming luaConfig has
-  // it's default content.  The docs say: "If the sequence contains an entry for the root zone, the
+  // its default content.  The docs say: "If the sequence contains an entry for the root zone, the
   // default root zone trust anchor is not included."  By default, a newly created luaConfig has the
   // TAs for the root in it.  If the YAML config has an entry for these, clear them from
   // luaConfig. Otherwise the default TA's would remain even if the YAML config is trying to set
