@@ -24,7 +24,9 @@
 #include <string>
 #include "rust/cxx.h"
 #include "rust/lib.rs.h"
+#include "sholder.hh"
 #include "logging.hh"
+#include "rec-lua-conf.hh"
 
 namespace pdns::settings::rec
 {
@@ -50,4 +52,8 @@ void readYamlAllowFromFile(const std::string& filename, ::rust::Vec<::rust::Stri
 void readYamlAllowNotifyForFile(const std::string& filename, ::rust::Vec<::rust::String>& vec, Logr::log_t log);
 void setArgsForZoneRelatedSettings(pdns::rust::settings::rec::Recursorsettings& settings);
 void setArgsForACLRelatedSettings(pdns::rust::settings::rec::Recursorsettings& settings);
+void fromLuaConfigToBridgeStruct(LuaConfigItems& luaConfig, const ProxyMapping& proxyMapping, pdns::rust::settings::rec::Recursorsettings& settings);
+void fromBridgeStructToLuaConfig(const pdns::rust::settings::rec::Recursorsettings& settings, LuaConfigItems& luaConfig, ProxyMapping& proxyMapping);
+bool luaItemSet(const pdns::rust::settings::rec::Recursorsettings& settings);
+YamlSettingsStatus tryReadYAML(const string& yamlconfigname, bool setGlobals, bool& yamlSettings, bool& luaSettingsInYAML, rust::settings::rec::Recursorsettings& settings, Logr::log_t startupLog);
 }

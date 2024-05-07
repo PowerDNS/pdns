@@ -335,6 +335,10 @@ public:
     {
       d_zoneData->d_tags = std::move(tags);
     }
+    void setTags(const std::unordered_set<std::string>& tags)
+    {
+      d_zoneData->d_tags = tags;
+    }
     void setPolicyOverridesGettag(bool flag)
     {
       d_zoneData->d_policyOverridesGettag = flag;

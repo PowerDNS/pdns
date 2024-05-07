@@ -11,7 +11,11 @@ If netmasks are grouped, this means these get equal ordering.
 
 ``addSortList``
 ^^^^^^^^^^^^^^^
+
+.. versionadded:: 5.1.0 Alternative equivalent YAML setting: :ref:`setting-yaml-recursor.sortlists`.
+
 ``addSortList()`` is used in the :ref:`setting-lua-config-file` and is intended to exactly mirror the semantics of the BIND sortlist option, but the syntax is slightly different.
+
 
 As an example, the following BIND sortlist:
 
@@ -31,3 +35,4 @@ Gets transformed into:
 
 In other words: each IP address is put within quotes, and are separated by commas instead of semicolons.
 For the rest everything is identical.
+

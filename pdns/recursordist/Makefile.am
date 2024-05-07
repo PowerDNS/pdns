@@ -14,6 +14,7 @@ AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/protozero/include \
 	-I$(top_srcdir)/settings \
 	-I$(top_builddir)/settings \
+	-I$(top_srcdir)/settings/rust/src \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES) \
 	-DBOOST_CONTAINER_USE_STD_EXCEPTIONS
@@ -323,6 +324,7 @@ testrunner_SOURCES = \
 	settings/cxxsupport.cc \
 	sholder.hh \
 	sillyrecords.cc \
+	sortlist.cc sortlist.hh \
 	sstuff.hh \
 	stable-bloom.hh \
 	svc-records.cc svc-records.hh \
@@ -444,6 +446,7 @@ endif
 
 if LUA
 pdns_recursor_LDADD += $(LUA_LIBS)
+rec_control_LDADD += $(LUA_LIBS)
 testrunner_LDADD += $(LUA_LIBS)
 endif
 
@@ -505,17 +508,30 @@ endif
 
 rec_control_SOURCES = \
 	arguments.cc arguments.hh \
+	base32.cc base32.hh \
 	base64.cc base64.hh \
 	credentials.cc credentials.hh \
 	dnslabeltext.cc \
 	dnsname.hh dnsname.cc \
+	dnsparser.cc dnsparser.hh \
+	dnsrecords.cc dnsrecords.hh \
+	dnswriter.cc dnswriter.hh \
+	filterpo.cc filterpo.hh \
+	iputils.cc iputils.hh \
 	logger.cc \
 	logging.cc \
+	lua-base4.cc lua-base4.hh \
 	misc.cc \
+	nsecrecords.cc \
 	qtype.cc \
+	rcpgenerator.cc	rcpgenerator.hh \
+	rec-lua-conf.cc rec-lua-conf.hh \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
 	settings/cxxsupport.cc \
+	sillyrecords.cc \
+	sortlist.cc sortlist.hh \
+	svc-records.cc svc-records.hh \
 	unix_utility.cc
 
 nodist_rec_control_SOURCES = \

@@ -214,7 +214,7 @@ class TestRecursorDNSTap(RecursorTest):
             try:
                 (conn, addr) = sock.accept()
                 listener = threading.Thread(name='DNSTap Worker', target=cls.FrameStreamUnixListener, args=[conn, param])
-                listener.setDaemon(True)
+                listener.daemon = True
                 listener.start()
             except socket.error as e:
                 if e.errno != errno.EBADF:
@@ -233,7 +233,7 @@ class TestRecursorDNSTap(RecursorTest):
         cls.startResponders()
 
         listener = threading.Thread(name='DNSTap Listener', target=cls.FrameStreamUnixListenerMain, args=[DNSTapServerParameters])
-        listener.setDaemon(True)
+        listener.daemon = True
         listener.start()
 
         confdir = os.path.join('configs', cls._confdir)

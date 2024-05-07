@@ -1941,7 +1941,7 @@ Maximum estimated NSEC3 cost for a given query to consider aggressive use of the
         'default' : '8',
         'help' : 'Maximum number of DS records to consider per zone',
         'doc' : '''
-Maximum number of DS records to consider when validating records inside a zone..
+Maximum number of DS records to consider when validating records inside a zone.
  ''',
         'versionadded': ['5.0.2', '4.9.3', '4.8.6'],
     },
@@ -3187,6 +3187,197 @@ If set to zero (the default), the value :ref:`setting-system-resolver-ttl` is us
 Warn on potential self-resolve.
 If this check draws the wrong conclusion, you can disable it.
 ''',
-    'versionadded': '5.1.0'
+        'versionadded': '5.1.0'
+    },
+    {
+        'name' : 'trustanchors',
+        'section' : 'dnssec',
+        'type' : LType.ListTrustAnchors,
+        'default' : '[{name: ., dsrecords: [\'20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d\']}]',
+        'docdefault' : '''
+
+.. code-block:: yaml
+
+   - name: .
+     dsrecords:
+     - 20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+
+''',
+        'help' : 'Sequence of trust anchors',
+        'doc' : '''
+Sequence of trust anchors. If the sequence contains an entry for the root zone, the default root zone trust anchor is not included.
+If a zone appears multiple times, the entries in ``dsrecords`` are merged.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/dnssec`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'negative_trustanchors',
+        'section' : 'dnssec',
+        'type' : LType.ListNegativeTrustAnchors,
+        'default' : '',
+        'help' : 'A sequence of negative trust anchors',
+        'doc' : '''
+Sequence of negative trust anchors.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/dnssec`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'trustanchorfile',
+        'section' : 'dnssec',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'A path to a zone file containing trust anchors',
+        'doc' : '''
+A path to a zone file to read trust anchors from.
+This can be used to read distribution provided trust anchors, as for instance ``/usr/share/dns/root.key`` from Debian's ``dns-root-data`` package.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/dnssec`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'trustanchorfile_interval',
+        'section' : 'dnssec',
+        'type' : LType.Uint64,
+        'default' : '24',
+        'help' : 'Interval (in hours) to read the trust anchors file',
+        'doc' : '''
+Interval (in hours) to re-read the ``trustanchorfile``.  Zero disables periodic re-reads.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/dnssec`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'protobuf_servers',
+        'section' : 'logging',
+        'type' : LType.ListProtobufServers,
+        'default' : '',
+        'help' : 'Sequence of protobuf servers',
+        'doc' : '''
+Sequence of outgoing protobuf servers. Currently the maximum size of this list is one.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'outgoing_protobuf_servers',
+        'section' : 'logging',
+        'type' : LType.ListProtobufServers,
+        'default' : '',
+        'help' : 'List of outgoing protobuf servers',
+        'doc' : '''
+Sequence of outgoing protobuf servers. Currently the maximum size of this list is one.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'protobuf_mask_v4',
+        'section' : 'logging',
+        'type' : LType.Uint64,
+        'default' : '32',
+        'help' : 'Network mask to apply for client IPv4 addresses in protobuf messages',
+        'doc' : '''
+Network mask to apply to the client IPv4 addresses, for anonymization purposes. The default of 32 means no anonymization.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'protobuf_mask_v6',
+        'section' : 'logging',
+        'type' : LType.Uint64,
+        'default' : '128',
+        'help' : 'Network mask to apply for client IPv6 addresses in protobuf messages',
+        'doc' : '''
+Network mask to apply to the client IPv6 addresses, for anonymization purposes. The default of 128 means no anonymization.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'dnstap_framestream_servers',
+        'section' : 'logging',
+        'type' : LType.ListDNSTapFrameStreamServers,
+        'default' : '',
+        'help' : 'Sequence of dnstap servers',
+        'doc' : '''
+Sequence of dnstap servers. Currently the maximum size of this list is one.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'dnstap_nod_framestream_servers',
+        'section' : 'logging',
+        'type' : LType.ListDNSTapNODFrameStreamServers,
+        'default' : '',
+        'help' : 'Sequence of NOD dnstap servers',
+        'doc' : '''
+Sequence of NOD dnstap servers. Currently the maximum size of this list is one.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/protobuf`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'sortlists',
+        'section' : 'recursor',
+        'type' : LType.ListSortLists,
+        'default' : '',
+        'help' : 'Sequence of sort lists',
+        'doc' : '''
+Sequence of sort lists.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/sortlist`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'rpzs',
+        'section' : 'recursor',
+        'type' : LType.ListRPZs,
+        'default' : '',
+        'help' : 'Sequence of RPZ entries',
+        'doc' : '''
+Sequence of RPZ entries.
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/rpz`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'zonetocaches',
+        'section' : 'recordcache',
+        'type' : LType.ListZoneToCaches,
+        'default' : '',
+        'help' : 'Sequence of ZoneToCache entries ',
+        'doc' : '''
+Sequence of ZoneToCache entries
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/ztc`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'allowed_additional_qtypes',
+        'section' : 'recursor',
+        'type' : LType.ListAllowedAdditionalQTypes,
+        'default' : '',
+        'help' : 'Sequence of AllowedAdditionalQType',
+        'doc' : '''
+Sequence of AllowedAdditionalQType
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/additionals`',
+        'versionadded': '5.1.0',
+    },
+    {
+        'name' : 'proxymappings',
+        'section' : 'incoming',
+        'type' : LType.ListProxyMappings,
+        'default' : '',
+        'help' : 'Sequence of ProxyMapping',
+        'doc' : '''
+Sequence of ProxyMapping
+        ''',
+        'skip-old' : 'Equivalent Lua config in :doc:`lua-config/proxymapping`',
+        'versionadded': '5.1.0',
     },
 ]

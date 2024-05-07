@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+use base64::prelude::*;
 use once_cell::sync::Lazy;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, ErrorKind, Write};
@@ -28,7 +29,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 
 use crate::helpers::OVERRIDE_TAG;
-use crate::recsettings::*;
+use crate::recsettings::{self, *};
 use crate::{Merge, ValidationError};
 
 impl Default for ForwardZone {
@@ -41,6 +42,20 @@ impl Default for ForwardZone {
 impl Default for AuthZone {
     fn default() -> Self {
         let deserialized: AuthZone = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+impl Default for TrustAnchor {
+    fn default() -> Self {
+        let deserialized: TrustAnchor = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+impl Default for NegativeTrustAnchor {
+    fn default() -> Self {
+        let deserialized: NegativeTrustAnchor = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
@@ -74,10 +89,10 @@ fn is_port_number(str: &str) -> bool {
 pub fn validate_socket_address_or_name(field: &str, val: &String) -> Result<(), ValidationError> {
     let sa = validate_socket_address(field, val);
     if sa.is_err() {
-        if !hostname_validator::is_valid(val) {
+        if !isValidHostname(val) {
             let parts: Vec<&str> = val.split(':').collect();
             if parts.len() != 2
-                || !hostname_validator::is_valid(parts[0])
+                || !isValidHostname(parts[0])
                 || !is_port_number(parts[1])
             {
                 let msg = format!(
@@ -87,6 +102,15 @@ pub fn validate_socket_address_or_name(field: &str, val: &String) -> Result<(), 
                 return Err(ValidationError { msg });
             }
         }
+    }
+    Ok(())
+}
+
+fn validate_qtype(field: &str, val: &String) -> Result<(), ValidationError> {
+    let code = qTypeStringToCode(val);
+    if code == 0 {
+        let msg = format!("{}: value `{}' is not a qtype", field, val);
+        return Err(ValidationError { msg });
     }
     Ok(())
 }
@@ -138,6 +162,44 @@ pub fn validate_subnet(field: &str, val: &String) -> Result<(), ValidationError>
     Ok(())
 }
 
+fn validate_address_family(addrfield: &str, localfield: &str, vec: &[String], local_address: &String) -> Result<(), ValidationError> {
+    if vec.len() == 0 {
+        let msg = format!("{}: cannot be empty", addrfield);
+        return Err(ValidationError { msg });
+    }
+    validate_vec(addrfield, vec, validate_socket_address)?;
+    if local_address.is_empty() {
+        return Ok(());
+    }
+    let local = IpAddr::from_str(local_address);
+    if local.is_err() {
+        let msg = format!("{}: value `{}' is not an IP", localfield, local_address);
+        return Err(ValidationError { msg });
+    }
+    let local = local.unwrap();
+    for addr_str in vec {
+        let mut wrong = false;
+        let sa = SocketAddr::from_str(addr_str);
+        if sa.is_err() {
+            let ip = IpAddr::from_str(addr_str).unwrap();
+            if local.is_ipv4() != ip.is_ipv4() || local.is_ipv6() != ip.is_ipv6() {
+                wrong = true;
+            }
+        }
+        else {
+            let sa = sa.unwrap();
+            if local.is_ipv4() != sa.is_ipv4() || local.is_ipv6() != sa.is_ipv6() {
+                wrong = true;
+            }
+        }
+        if wrong {
+            let msg = format!("{}: value `{}' and `{}' differ in address family", localfield, local_address, addr_str);
+            return Err(ValidationError { msg });
+        }
+    }
+    Ok(())
+}
+
 pub fn validate_vec<T, F>(field: &str, vec: &[T], func: F) -> Result<(), ValidationError>
 where
     F: Fn(&str, &T) -> Result<(), ValidationError>,
@@ -171,6 +233,41 @@ pub fn forward_zones_to_yaml_string(vec: &Vec<ForwardZone>) -> Result<String, se
     serde_yaml::to_string(vec)
 }
 
+fn insertb(map: &mut serde_yaml::Mapping, name: &str, val: bool) {
+    map.insert(
+        serde_yaml::Value::String(name.to_owned()),
+        serde_yaml::Value::Bool(val),
+    );
+}
+
+fn insertu(map: &mut serde_yaml::Mapping, name: &str, val: u64) {
+    map.insert(
+        serde_yaml::Value::String(name.to_owned()),
+        serde_yaml::Value::Number(serde_yaml::Number::from(val)),
+    );
+}
+
+fn insertu32(map: &mut serde_yaml::Mapping, name: &str, val: u32) {
+    map.insert(
+        serde_yaml::Value::String(name.to_owned()),
+        serde_yaml::Value::Number(serde_yaml::Number::from(val)),
+    );
+}
+
+fn inserts(map: &mut serde_yaml::Mapping, name: &str, val: &str) {
+    map.insert(
+        serde_yaml::Value::String(name.to_owned()),
+        serde_yaml::Value::String(val.to_owned()),
+    );
+}
+
+fn insertseq(map: &mut serde_yaml::Mapping, name: &str, val: &serde_yaml::Sequence) {
+    map.insert(
+        serde_yaml::Value::String(name.to_owned()),
+        serde_yaml::Value::Sequence(val.to_owned()),
+    );
+}
+
 impl ForwardZone {
     pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
         validate_name(&(field.to_owned() + ".zone"), &self.zone)?;
@@ -192,14 +289,8 @@ impl ForwardZone {
         }
 
         let mut map = serde_yaml::Mapping::new();
-        map.insert(
-            serde_yaml::Value::String("zone".to_owned()),
-            serde_yaml::Value::String(self.zone.to_owned()),
-        );
-        map.insert(
-            serde_yaml::Value::String("recurse".to_owned()),
-            serde_yaml::Value::Bool(self.recurse),
-        );
+        inserts(&mut map, "zone", &self.zone);
+        insertb(&mut map, "recurse", self.recurse);
         map.insert(
             serde_yaml::Value::String("forwarders".to_owned()),
             serde_yaml::Value::Sequence(seq),
@@ -220,15 +311,328 @@ impl AuthZone {
 
     fn to_yaml_map(&self) -> serde_yaml::Value {
         let mut map = serde_yaml::Mapping::new();
-        map.insert(
-            serde_yaml::Value::String("zone".to_owned()),
-            serde_yaml::Value::String(self.zone.to_owned()),
-        );
-        map.insert(
-            serde_yaml::Value::String("file".to_owned()),
-            serde_yaml::Value::String(self.file.to_owned()),
-        );
+        inserts(&mut map, "zone", &self.zone);
+        inserts(&mut map, "file", &self.file);
         serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl TrustAnchor {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.dsrecords {
+            seq.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "name", &self.name);
+        insertseq(&mut map, "dsrecords", &seq);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl NegativeTrustAnchor {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "name", &self.name);
+        inserts(&mut map, "reason", &self.reason);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl ProtobufServer {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        validate_vec(
+            &(field.to_owned() + ".servers"),
+            &self.servers,
+            validate_socket_address,
+        )?;
+        validate_vec(
+            &(field.to_owned() + ".exportTypes"),
+            &self.exportTypes,
+            validate_qtype,
+        )?;
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.servers {
+            seq.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        let mut map = serde_yaml::Mapping::new();
+        insertseq(&mut map, "servers", &seq);
+        insertu(&mut map, "timeout", self.timeout);
+        insertu(&mut map, "maxQueuedEntries", self.maxQueuedEntries);
+        insertu(&mut map, "reconnectWaitTime", self.reconnectWaitTime);
+        insertb(&mut map, "taggedOnly", self.taggedOnly);
+        insertb(&mut map, "asyncConnect", self.asyncConnect);
+        insertb(&mut map, "logQueries", self.logQueries);
+        insertb(&mut map, "logResponses", self.logResponses);
+        let mut seq2 = serde_yaml::Sequence::new();
+        for entry in &self.exportTypes {
+            seq2.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "exportTypes", &seq2);
+        insertb(&mut map, "logMappedFrom", self.logMappedFrom);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl DNSTapFrameStreamServer {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.servers {
+            seq.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        let mut map = serde_yaml::Mapping::new();
+        insertseq(&mut map, "servers", &seq);
+        insertb(&mut map, "logQueries", self.logQueries);
+        insertb(&mut map, "logResponses", self.logResponses);
+        insertu(&mut map, "bufferHint", self.bufferHint);
+        insertu(&mut map, "flushTimeout", self.flushTimeout);
+        insertu(&mut map, "inputQueueSize", self.inputQueueSize);
+        insertu(&mut map, "outputQueueSize", self.outputQueueSize);
+        insertu(&mut map, "queueNotifyThreshold", self.queueNotifyThreshold);
+        insertu(&mut map, "reopenInterval", self.reopenInterval);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl DNSTapNODFrameStreamServer {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.servers {
+            seq.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        let mut map = serde_yaml::Mapping::new();
+        insertseq(&mut map, "servers", &seq);
+        insertb(&mut map, "logNODs", self.logNODs);
+        insertb(&mut map, "logUDRs", self.logUDRs);
+        insertu(&mut map, "bufferHint", self.bufferHint);
+        insertu(&mut map, "flushTimeout", self.flushTimeout);
+        insertu(&mut map, "inputQueueSize", self.inputQueueSize);
+        insertu(&mut map, "outputQueueSize", self.outputQueueSize);
+        insertu(&mut map, "queueNotifyThreshold", self.queueNotifyThreshold);
+        insertu(&mut map, "reopenInterval", self.reopenInterval);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl SortList {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "key", &self.key);
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.subnets {
+            let mut submap = serde_yaml::Mapping::new();
+            inserts(&mut submap, "subnet", &entry.subnet);
+            insertu32(&mut submap, "order", entry.order);
+            seq.push(serde_yaml::Value::Mapping(submap));
+        }
+        insertseq(&mut map, "subnets", &seq);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl RPZ {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        if self.extendedErrorCode > u16::MAX as u32 && self.extendedErrorCode != u32::MAX {
+            let msg = format!(
+                "{}: value `{}' is no a valid extendedErrorCode",
+                field, self.extendedErrorCode
+            );
+            return Err(ValidationError { msg });
+        }
+        self.tsig.validate(&(field.to_owned() + ".tsig"))?;
+        if !self.addresses.is_empty() {
+            validate_address_family(&(field.to_owned() + ".addresses"), &(field.to_owned() + ".localAddress"), &self.addresses, &self.localAddress)?;
+        }
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        let mut seq1 = serde_yaml::Sequence::new();
+        for entry in &self.addresses {
+            seq1.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "addresses", &seq1);
+        inserts(&mut map, "name", &self.name);
+        inserts(&mut map, "defcontent", &self.defcontent);
+        inserts(&mut map, "defpol", &self.defpol);
+        insertb(
+            &mut map,
+            "defpolOverrideLocalData",
+            self.defpolOverrideLocalData,
+        );
+        insertu32(&mut map, "defttl", self.defttl);
+        insertu32(&mut map, "extendedErrorCode", self.extendedErrorCode);
+        insertb(&mut map, "includeSOA", self.includeSOA);
+        insertb(&mut map, "ignoreDuplicates", self.ignoreDuplicates);
+        insertu32(&mut map, "maxTTL", self.maxTTL);
+        inserts(&mut map, "policyName", &self.policyName);
+        let mut seq2 = serde_yaml::Sequence::new();
+        for entry in &self.tags {
+            seq2.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "tags", &seq2);
+        insertb(&mut map, "overridesGettag", self.overridesGettag);
+        insertu32(&mut map, "zoneSizeHint", self.zoneSizeHint);
+
+        let mut tsigmap = serde_yaml::Mapping::new();
+        inserts(&mut tsigmap, "name", &self.tsig.name);
+        inserts(&mut tsigmap, "algo", &self.tsig.algo);
+        inserts(&mut tsigmap, "secret", &self.tsig.secret);
+        map.insert(
+            serde_yaml::Value::String("tsig".to_owned()),
+            serde_yaml::Value::Mapping(tsigmap),
+        );
+
+        insertu32(&mut map, "refresh", self.refresh);
+        insertu32(&mut map, "maxReceivedMBytes", self.maxReceivedMBytes);
+        inserts(&mut map, "localAddress", &self.localAddress);
+        insertu32(&mut map, "axfrTimeout", self.axfrTimeout);
+        inserts(&mut map, "dumpFile", &self.dumpFile);
+        inserts(&mut map, "seedFile", &self.seedFile);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl ZoneToCache {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        match self.method.as_str() {
+            "axfr" | "url" | "file" => {}
+            _ => {
+                let msg = format!(
+                    "{}: must be one of axfr, url, file",
+                    &(field.to_string() + ".method")
+                );
+                return Err(ValidationError { msg });
+            }
+        }
+        if self.sources.is_empty() {
+            let msg = format!(
+                "{}: at least one source required",
+                &(field.to_string() + ".sources")
+            );
+            return Err(ValidationError { msg });
+        }
+        if self.method == "axfr" {
+            validate_vec(
+                &(field.to_string() + ".sources"),
+                &self.sources,
+                validate_socket_address,
+            )?;
+            validate_address_family(&(field.to_string() + ".sources"), &(field.to_string() + ".localAddress"), &self.sources, &self.localAddress)?;
+        }
+        self.tsig.validate(&(field.to_owned() + ".tsig"))?;
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "zone", &self.zone);
+        inserts(&mut map, "method", &self.method);
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.sources {
+            seq.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "sources", &seq);
+        insertu(&mut map, "timeout", self.timeout);
+
+        let mut tsigmap = serde_yaml::Mapping::new();
+        inserts(&mut tsigmap, "name", &self.tsig.name);
+        inserts(&mut tsigmap, "algo", &self.tsig.algo);
+        inserts(&mut tsigmap, "secret", &self.tsig.secret);
+        map.insert(
+            serde_yaml::Value::String("tsig".to_owned()),
+            serde_yaml::Value::Mapping(tsigmap),
+        );
+
+        insertu(&mut map, "refreshPeriod", self.refreshPeriod);
+        insertu(&mut map, "retryOnErrorPeriod", self.retryOnErrorPeriod);
+        insertu(&mut map, "maxReceivedMBytes", self.maxReceivedMBytes);
+        inserts(&mut map, "localAddress", &self.localAddress);
+        inserts(&mut map, "zonemd", &self.zonemd);
+        inserts(&mut map, "dnssec", &self.dnssec);
+
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl AllowedAdditionalQType {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "qtype", &self.qtype);
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.targets {
+            seq.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "targets", &seq);
+        inserts(&mut map, "mode", &self.mode);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl ProxyMapping {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "subnet", &self.subnet);
+        inserts(&mut map, "address", &self.address);
+        let mut seq = serde_yaml::Sequence::new();
+        for entry in &self.domains {
+            seq.push(serde_yaml::Value::String(entry.to_owned()));
+        }
+        insertseq(&mut map, "domains", &seq);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl TSIGTriplet {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        let namelen = self.name.len();
+        let algolen = self.algo.len();
+        let secretlen = self.secret.len();
+        if namelen == 0 && algolen == 0 && secretlen == 0 {
+            return Ok(());
+        }
+        if namelen == 0 || algolen == 0 || secretlen == 0 {
+            let msg = format!("{}: a field value is missing", field);
+            return Err(ValidationError { msg });
+        }
+        if BASE64_STANDARD.decode(&self.secret).is_err() {
+            let msg = format!("{}.secret: `{}' is not a Base64 string", field, self.secret);
+            return Err(ValidationError { msg });
+        }
+        Ok(())
     }
 }
 
@@ -239,6 +643,19 @@ pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), Valid
 
 #[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_forward_zones(field: &str, vec: &Vec<ForwardZone>) -> Result<(), ValidationError> {
+    validate_vec(field, vec, |field, element| element.validate(field))
+}
+
+#[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
+pub fn validate_trustanchors(field: &str, vec: &Vec<TrustAnchor>) -> Result<(), ValidationError> {
+    validate_vec(field, vec, |field, element| element.validate(field))
+}
+
+#[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
+pub fn validate_negativetrustanchors(
+    field: &str,
+    vec: &Vec<NegativeTrustAnchor>,
+) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))
 }
 
@@ -366,6 +783,76 @@ pub fn map_to_yaml_string(vec: &Vec<OldStyle>) -> Result<String, serde_yaml::Err
                     "Vec<AuthZone>" => {
                         let mut seq = serde_yaml::Sequence::new();
                         for element in &entry.value.vec_authzone_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<TrustAnchor>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_trustanchor_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<NegativeTrustAnchor>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_negativetrustanchor_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<ProtobufServer>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_protobufserver_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<DNSTapFrameStreamServer>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_dnstap_framestream_server_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<DNSTapNODFrameStreamServer>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_dnstap_nod_framestream_server_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<RPZ>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_rpz_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<SortList>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_sortlist_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<ZoneToCache>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_zonetocache_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<AllowedAdditionalQType>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_allowedadditionalqtype_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<ProxyMapping>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_proxymapping_val {
                             seq.push(element.to_yaml_map());
                         }
                         serde_yaml::Value::Sequence(seq)
@@ -506,4 +993,112 @@ pub fn api_delete_zone(path: &str, zone: &str) -> Result<(), std::io::Error> {
     // Zone data file is unlinked in the C++ caller ws-recursor.cc:doDeleteZone()
     zones.forward_zones.retain(|x| x.zone != zone);
     api_write_zones(path, &zones)
+}
+
+pub fn def_pb_export_qtypes() -> Vec<String> {
+    vec![
+        String::from("A"),
+        String::from("CNAME"),
+        String::from("AAAA"),
+    ]
+}
+
+pub fn default_value_equal_pb_export_qtypes(value: &Vec<String>) -> bool {
+    &def_pb_export_qtypes() == value
+}
+
+pub fn def_ztc_validate() -> String {
+    String::from("validate")
+}
+
+pub fn def_value_equals_ztc_validate(value: &String) -> bool {
+    &def_ztc_validate() == value
+}
+
+pub fn def_additional_mode() -> String {
+    String::from("CacheOnlyRequireAuth")
+}
+
+pub fn default_value_equals_additional_mode(value: &String) -> bool {
+    &def_additional_mode() == value
+}
+
+pub fn validate_dnssec(dnssec: &recsettings::Dnssec) -> Result<(), ValidationError> {
+    let val = dnssec.validation.as_str();
+    match val {
+        "off" | "process-no-validate" | "process" | "log-fail" | "validate" => {}
+        _ => {
+            let msg = format!("dnssec.validation: value `{}' is unknown", val);
+            return Err(ValidationError { msg });
+        }
+    };
+    Ok(())
+}
+
+pub fn validate_incoming(_incoming: &recsettings::Incoming) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_recursor(_recursor: &recsettings::Recursor) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_webservice(_webservice: &recsettings::Webservice) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_carbon(_carbon: &recsettings::Carbon) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_outgoing(_outgoing: &recsettings::Outgoing) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_packetcache(
+    _packetcache: &recsettings::Packetcache,
+) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_logging(logging: &recsettings::Logging) -> Result<(), ValidationError> {
+    if logging.protobuf_servers.len() > 1 {
+        return Err(ValidationError {
+            msg: String::from("number of protobuf_servers must be <= 1"),
+        });
+    }
+    if logging.outgoing_protobuf_servers.len() > 1 {
+        return Err(ValidationError {
+            msg: String::from("number of outgoing_protobuf_servers must be <= 1"),
+        });
+    }
+    if logging.dnstap_framestream_servers.len() > 1 {
+        return Err(ValidationError {
+            msg: String::from("number of dnstap_framestream_servers must be <= 1"),
+        });
+    }
+    if logging.dnstap_nod_framestream_servers.len() > 1 {
+        return Err(ValidationError {
+            msg: String::from("number of dnstap_nod_framestream_servers must be <= 1"),
+        });
+    }
+    Ok(())
+}
+
+pub fn validate_ecs(_ecs: &recsettings::Ecs) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_nod(_nod: &recsettings::Nod) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_recordcache(
+    _recordcache: &recsettings::Recordcache,
+) -> Result<(), ValidationError> {
+    Ok(())
+}
+
+pub fn validate_snmp(_snmp: &recsettings::Snmp) -> Result<(), ValidationError> {
+    Ok(())
 }

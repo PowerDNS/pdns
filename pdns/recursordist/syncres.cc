@@ -3579,7 +3579,7 @@ void SyncRes::updateValidationState(const DNSName& qname, vState& state, const v
   LOG(", validation state is now " << state << endl);
 }
 
-vState SyncRes::getTA(const DNSName& zone, dsmap_t& dsMap, const string& prefix)
+vState SyncRes::getTA(const DNSName& zone, dsset_t& dsSet, const string& prefix)
 {
   auto luaLocal = g_luaconfs.getLocal();
 
@@ -3595,7 +3595,7 @@ vState SyncRes::getTA(const DNSName& zone, dsmap_t& dsMap, const string& prefix)
     return vState::NTA;
   }
 
-  if (getTrustAnchor(luaLocal->dsAnchors, zone, dsMap)) {
+  if (getTrustAnchor(luaLocal->dsAnchors, zone, dsSet)) {
     if (!zone.isRoot()) {
       LOG(prefix << zone << ": Got TA" << endl);
     }
@@ -3610,11 +3610,11 @@ vState SyncRes::getTA(const DNSName& zone, dsmap_t& dsMap, const string& prefix)
   return vState::Indeterminate;
 }
 
-size_t SyncRes::countSupportedDS(const dsmap_t& dsmap, const string& prefix)
+size_t SyncRes::countSupportedDS(const dsset_t& dsset, const string& prefix)
 {
   size_t count = 0;
 
-  for (const auto& dsRecordContent : dsmap) {
+  for (const auto& dsRecordContent : dsset) {
     if (isSupportedDS(dsRecordContent, LogObject(prefix))) {
       count++;
     }
@@ -3627,12 +3627,12 @@ void SyncRes::initZoneCutsFromTA(const DNSName& from, const string& prefix)
 {
   DNSName zone(from);
   do {
-    dsmap_t dsMap;
-    vState result = getTA(zone, dsMap, prefix);
+    dsset_t dsSet;
+    vState result = getTA(zone, dsSet, prefix);
     if (result != vState::Indeterminate) {
       if (result == vState::TA) {
-        if (countSupportedDS(dsMap, prefix) == 0) {
-          dsMap.clear();
+        if (countSupportedDS(dsSet, prefix) == 0) {
+          dsSet.clear();
           result = vState::Insecure;
         }
         else {
@@ -3648,9 +3648,9 @@ void SyncRes::initZoneCutsFromTA(const DNSName& from, const string& prefix)
   } while (zone.chopOff());
 }
 
-vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& dsMap, bool onlyTA, unsigned int depth, const string& prefix, bool bogusOnNXD, bool* foundCut)
+vState SyncRes::getDSRecords(const DNSName& zone, dsset_t& dsSet, bool onlyTA, unsigned int depth, const string& prefix, bool bogusOnNXD, bool* foundCut)
 {
-  vState result = getTA(zone, dsMap, prefix);
+  vState result = getTA(zone, dsSet, prefix);
 
   if (result != vState::Indeterminate || onlyTA) {
     if (foundCut != nullptr) {
@@ -3658,8 +3658,8 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& dsMap, bool onlyTA, u
     }
 
     if (result == vState::TA) {
-      if (countSupportedDS(dsMap, prefix) == 0) {
-        dsMap.clear();
+      if (countSupportedDS(dsSet, prefix) == 0) {
+        dsSet.clear();
         result = vState::Insecure;
       }
       else {
@@ -3707,7 +3707,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& dsMap, bool onlyTA, u
         if (dscontent->d_digesttype > bestDigestType || (bestDigestType == DNSSECKeeper::DIGEST_GOST && dscontent->d_digesttype == DNSSECKeeper::DIGEST_SHA256)) {
           bestDigestType = dscontent->d_digesttype;
         }
-        dsMap.insert(*dscontent);
+        dsSet.insert(*dscontent);
       }
     }
     else if (record.d_type == QType::CNAME && record.d_name == zone) {
@@ -3719,9 +3719,9 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& dsMap, bool onlyTA, u
    * digests if DS RRs with SHA-256 digests are present in the DS RRset."
    * We interpret that as: do not use SHA-1 if SHA-256 or SHA-384 is available
    */
-  for (auto dsrec = dsMap.begin(); dsrec != dsMap.end();) {
+  for (auto dsrec = dsSet.begin(); dsrec != dsSet.end();) {
     if (dsrec->d_digesttype == DNSSECKeeper::DIGEST_SHA1 && dsrec->d_digesttype != bestDigestType) {
-      dsrec = dsMap.erase(dsrec);
+      dsrec = dsSet.erase(dsrec);
     }
     else {
       ++dsrec;
@@ -3729,7 +3729,7 @@ vState SyncRes::getDSRecords(const DNSName& zone, dsmap_t& dsMap, bool onlyTA, u
   }
 
   if (rcode == RCode::NoError) {
-    if (dsMap.empty()) {
+    if (dsSet.empty()) {
       /* we have no DS, it's either:
          - a delegation to a non-DNSSEC signed zone
          - no delegation, we stay in the same zone
@@ -3817,7 +3817,7 @@ vState SyncRes::getValidationStatus(const DNSName& name, bool wouldBeValid, bool
       LOG(prefix << name << ": - Looking for a DS at " << dsName << endl);
 
       bool foundCut = false;
-      dsmap_t results;
+      dsset_t results;
       vState dsState = getDSRecords(dsName, results, false, depth, prefix, false, &foundCut);
 
       if (foundCut) {
@@ -3857,7 +3857,7 @@ vState SyncRes::getValidationStatus(const DNSName& name, bool wouldBeValid, bool
 
 vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, unsigned int depth, const string& prefix)
 {
-  dsmap_t dsMap;
+  dsset_t dsSet;
   if (signatures.empty()) {
     LOG(prefix << zone << ": We have " << std::to_string(dnskeys.size()) << " DNSKEYs but no signature, going Bogus!" << endl);
     return vState::BogusNoRRSIG;
@@ -3866,7 +3866,7 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
   DNSName signer = getSigner(signatures);
 
   if (!signer.empty() && zone.isPartOf(signer)) {
-    vState state = getDSRecords(signer, dsMap, false, depth, prefix);
+    vState state = getDSRecords(signer, dsSet, false, depth, prefix);
 
     if (state != vState::Secure) {
       return state;
@@ -3897,9 +3897,9 @@ vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord
     }
   }
 
-  LOG(prefix << zone << ": Trying to validate " << std::to_string(tentativeKeys.size()) << " DNSKEYs with " << std::to_string(dsMap.size()) << " DS" << endl);
+  LOG(prefix << zone << ": Trying to validate " << std::to_string(tentativeKeys.size()) << " DNSKEYs with " << std::to_string(dsSet.size()) << " DS" << endl);
   skeyset_t validatedKeys;
-  auto state = validateDNSKeysAgainstDS(d_now.tv_sec, zone, dsMap, tentativeKeys, toSign, signatures, validatedKeys, LogObject(prefix), d_validationContext);
+  auto state = validateDNSKeysAgainstDS(d_now.tv_sec, zone, dsSet, tentativeKeys, toSign, signatures, validatedKeys, LogObject(prefix), d_validationContext);
 
   if (s_maxvalidationsperq != 0 && d_validationContext.d_validationsCounter > s_maxvalidationsperq) {
     throw ImmediateServFailException("Server Failure while validating DNSKEYs, too many signature validations for this query");
@@ -4011,7 +4011,7 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const string& prefix
              or more likely NSEC(3)s proving that it does not exist, we have a problem.
              In that case let's see if the DS does exist, and if it does let's go Bogus
           */
-          dsmap_t results;
+          dsset_t results;
           vState dsState = getDSRecords(signer, results, false, depth, prefix, true);
           if (vStateIsBogus(dsState) || dsState == vState::Insecure) {
             state = dsState;

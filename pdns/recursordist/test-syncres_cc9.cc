@@ -766,12 +766,12 @@ BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo)
     return LWResult::Result::Timeout;
   });
 
-  dsmap_t ds;
-  auto state = sr->getDSRecords(target, ds, false, 0, "", false);
+  dsset_t dsSet;
+  auto state = sr->getDSRecords(target, dsSet, false, 0, "", false);
   BOOST_CHECK_EQUAL(state, vState::Secure);
-  BOOST_REQUIRE_EQUAL(ds.size(), 1U);
-  for (const auto& i : ds) {
-    BOOST_CHECK_EQUAL(i.d_digesttype, DNSSECKeeper::DIGEST_SHA256);
+  BOOST_REQUIRE_EQUAL(dsSet.size(), 1U);
+  for (const auto& dsRecord : dsSet) {
+    BOOST_CHECK_EQUAL(dsRecord.d_digesttype, DNSSECKeeper::DIGEST_SHA256);
   }
 }
 
@@ -819,12 +819,12 @@ BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_all_sha)
     return LWResult::Result::Timeout;
   });
 
-  dsmap_t ds;
-  auto state = sr->getDSRecords(target, ds, false, 0, "", false);
+  dsset_t dsSet;
+  auto state = sr->getDSRecords(target, dsSet, false, 0, "", false);
   BOOST_CHECK_EQUAL(state, vState::Secure);
-  BOOST_REQUIRE_EQUAL(ds.size(), 2U);
-  for (const auto& i : ds) {
-    BOOST_CHECK(i.d_digesttype == DNSSECKeeper::DIGEST_SHA384 || i.d_digesttype == DNSSECKeeper::DIGEST_SHA256);
+  BOOST_REQUIRE_EQUAL(dsSet.size(), 2U);
+  for (const auto& dsRecord : dsSet) {
+    BOOST_CHECK(dsRecord.d_digesttype == DNSSECKeeper::DIGEST_SHA384 || dsRecord.d_digesttype == DNSSECKeeper::DIGEST_SHA256);
   }
 }
 
@@ -872,12 +872,12 @@ BOOST_AUTO_TEST_CASE(test_getDSRecords_multialgo_two_highest)
     return LWResult::Result::Timeout;
   });
 
-  dsmap_t ds;
-  auto state = sr->getDSRecords(target, ds, false, 0, "", false);
+  dsset_t dsSet;
+  auto state = sr->getDSRecords(target, dsSet, false, 0, "", false);
   BOOST_CHECK_EQUAL(state, vState::Secure);
-  BOOST_REQUIRE_EQUAL(ds.size(), 2U);
-  for (const auto& i : ds) {
-    BOOST_CHECK_EQUAL(i.d_digesttype, DNSSECKeeper::DIGEST_SHA256);
+  BOOST_REQUIRE_EQUAL(dsSet.size(), 2U);
+  for (const auto& dsRecord : dsSet) {
+    BOOST_CHECK_EQUAL(dsRecord.d_digesttype, DNSSECKeeper::DIGEST_SHA256);
   }
 }
 

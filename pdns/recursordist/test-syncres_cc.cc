@@ -495,7 +495,7 @@ void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest,
   keys[name] = std::pair<DNSSECPrivateKey, DSRecordContent>(dpk, ds);
 }
 
-void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest, testkeysset_t& keys, map<DNSName, dsmap_t>& dsAnchors)
+void generateKeyMaterial(const DNSName& name, unsigned int algo, uint8_t digest, testkeysset_t& keys, map<DNSName, dsset_t>& dsAnchors)
 {
   generateKeyMaterial(name, algo, digest, keys);
   dsAnchors[name].insert(keys[name].second);
