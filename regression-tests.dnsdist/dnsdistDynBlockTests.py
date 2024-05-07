@@ -547,3 +547,48 @@ class DynBlocksTest(DNSDistTest):
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
+
+    def doTestCacheMissRatio(self, name, cacheHits, cacheMisses):
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '192.0.2.1')
+
+        for idx in range(cacheMisses):
+            query = dns.message.make_query(str(idx) + '.' + name, 'A', 'IN')
+            response = dns.message.make_response(query)
+            response.answer.append(rrset)
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            if receivedQuery:
+                receivedQuery.id = query.id
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
+            else:
+                # the query has not reached the responder,
+                # let's clear the response queue
+                self.clearToResponderQueue()
+
+        query = dns.message.make_query('0.' + name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.answer.append(rrset)
+        for _ in range(cacheHits):
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+
+        waitForMaintenanceToRun()
+
+        # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=0.5)
+        self.assertEqual(receivedResponse, None)
+
+        # wait until we are not blocked anymore
+        time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
+
+        # this one should succeed
+        query = dns.message.make_query(str(cacheMisses + 1) + name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        response.answer.append(rrset)
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
