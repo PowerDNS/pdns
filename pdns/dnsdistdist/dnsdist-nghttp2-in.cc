@@ -1170,9 +1170,21 @@ boost::optional<struct timeval> IncomingHTTP2Connection::getIdleClientReadTTD(st
   return now;
 }
 
+void IncomingHTTP2Connection::updateIO(IOState newState, const timeval& now)
+{
+  (void)now;
+  updateIO(newState, newState == IOState::NeedWrite ? handleWritableIOCallback : handleReadableIOCallback);
+}
+
 void IncomingHTTP2Connection::updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback)
 {
   boost::optional<struct timeval> ttd{boost::none};
+
+  if (newState == IOState::Async) {
+    auto shared = shared_from_this();
+    updateIOForAsync(shared);
+    return;
+  }
 
   auto shared = std::dynamic_pointer_cast<IncomingHTTP2Connection>(shared_from_this());
   if (!shared || !d_ioState) {

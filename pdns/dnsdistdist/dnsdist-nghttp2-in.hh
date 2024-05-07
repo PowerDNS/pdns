@@ -87,6 +87,7 @@ private:
 
   void stopIO();
   uint32_t getConcurrentStreamsCount() const;
+  void updateIO(IOState newState, const timeval& now) override;
   void updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback);
   void handleIOError();
   bool sendResponse(StreamID streamID, PendingQuery& context, uint16_t responseCode, const HeadersMap& customResponseHeaders, const std::string& contentType = "", bool addContentType = true);

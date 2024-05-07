@@ -125,12 +125,13 @@ public:
 
   static void handleIOCallback(int desc, FDMultiplexer::funcparam_t& param);
   static void handleAsyncReady(int desc, FDMultiplexer::funcparam_t& param);
-  static void updateIO(std::shared_ptr<IncomingTCPConnectionState>& state, IOState newState, const struct timeval& now);
 
   static void queueResponse(std::shared_ptr<IncomingTCPConnectionState>& state, const struct timeval& now, TCPResponse&& response, bool fromBackend);
   static void handleTimeout(std::shared_ptr<IncomingTCPConnectionState>& state, bool write);
+  static void updateIOForAsync(std::shared_ptr<IncomingTCPConnectionState>& conn);
 
   virtual void handleIO();
+  virtual void updateIO(IOState newState, const timeval& now);
 
   QueryProcessingResult handleQuery(PacketBuffer&& query, const struct timeval& now, std::optional<int32_t> streamID);
   virtual void handleResponse(const struct timeval& now, TCPResponse&& response) override;
