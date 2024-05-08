@@ -1,7 +1,7 @@
 DNS Modes of Operation
 ======================
 
-PowerDNS offers full master and slave semantics for replicating domain
+PowerDNS offers full primary and secondary semantics for replicating domain
 information. Furthermore, PowerDNS can benefit from native database
 replication.
 
@@ -22,10 +22,10 @@ over transatlantic connections between badly peering ISPs.
 To use native replication, configure your backend storage to do the
 replication and do not configure PowerDNS to do so.
 
-Typically, a database slave will be configured as read-only as
+Typically, a database secondary will be configured as read-only as
 uni-directional database replication is usually sufficient. A PowerDNS
 server only requires database write access if it is participating as a
-master or slave in zone transfers, or has a frontend attached for
+primary or secondary in zone transfers, or has a frontend attached for
 managing records, etc.
 
 .. _master-operation:
@@ -34,37 +34,40 @@ managing records, etc.
 Primary operation
 -----------------
 
-When operating as a master, PowerDNS sends out notifications of changes
-to slaves, which react to these notifications by querying PowerDNS to
+When operating as a primary, PowerDNS sends out notifications of changes
+to secondaries, which react to these notifications by querying PowerDNS to
 see if the zone changed, and transferring its contents if it has.
-Notifications are a way to promptly propagate zone changes to slaves, as
+Notifications are a way to promptly signal zone changes to secondaries, as
 described in :rfc:`1996`. Since
 version 4.0.0, the NOTIFY messages have a TSIG record added (transaction
 signature) if the zone has been configured to use TSIG and the feature has been
 enabled.
 
 .. warning::
-  Master support is OFF by default, turn it on by adding
-  :ref:`setting-master` to the configuration.
+  Primary support is OFF by default, turn it on by adding
+  :ref:`setting-primary` to the configuration.
+  You also need to set the type of the zones to be served as primary,
+  see next warning.
 
 .. warning::
-  If you have DNSSEC-signed zones and non-PowerDNS slaves,
+  Notifications are only sent for domains with type PRIMARY or MASTER in
+  your backend unless :ref:`setting-secondary-do-renotify` is enabled.
+
+.. warning::
+  If you have DNSSEC-signed zones and non-PowerDNS secondaries,
   please check your :ref:`metadata-soa-edit`
   settings.
 
-.. warning::
-  Notifications are only sent for domains with type MASTER in
-  your backend unless :ref:`setting-slave-renotify` is enabled.
 
 Left open by :rfc:`1996` is who is to be notified - which is harder to
-figure out than it sounds. All slaves for this domain must receive a
-notification but the nameserver only knows the names of the slaves - not
+figure out than it sounds. All secondaries for this domain must receive a
+notification but the nameserver only knows the names of the secondaries - not
 the IP addresses, which is where the problem lies. The nameserver itself
 might be authoritative for the name of its secondary, but not have the
 data available.
 
 To resolve this issue, PowerDNS tries multiple tactics to figure out the
-IP addresses of the slaves and notifies everybody. In contrived
+IP addresses of the secondaries and notifies everybody. In contrived
 configurations, this may lead to duplicate notifications being sent out,
 which shouldn't hurt.
 
@@ -73,12 +76,12 @@ let the operator indicate which zones have changed and which haven't.
 Consult the documentation for your backend to see how it processes
 changes in zones.
 
-To help deal with slaves that may have missed notifications, or have
+To help deal with secondaries that may have missed notifications, or have
 failed to respond to them, several override commands are available via
 the :ref:`pdns_control <running-pdnscontrol>` tool:
 
 -  ``pdns_control notify <domain>`` This instructs PowerDNS to notify
-   all IP addresses it considers to be slaves of this domain.
+   all IP addresses it considers to be secondaries of this domain.
 
 -  ``pdns_control notify-host <domain> <ip-address>`` This is truly an
    override and sends a notification to an arbitrary IP address. Can be
@@ -97,7 +100,7 @@ have not been checked recently for changes. This should happen every
 '**refresh**' seconds, as specified in the SOA record. All domains that
 are unfresh are then checked for changes over at their primary server. If the
 :ref:`types-SOA` serial number there is higher, the domain is
-retrieved and inserted into the database. In any case, after the check,
+retrieved and updated in the database. In any case, after the check,
 the domain is declared 'fresh', and will only be checked again after
 '**refresh**' seconds have passed.
 
@@ -115,7 +118,7 @@ turned off by disabling
 :ref:`setting-secondary-check-signature-freshness`.
 
 When the freshness of a domain cannot be checked, e.g. because the
-master is offline, PowerDNS will retry the domain after
+primary is offline, PowerDNS will retry the domain after
 :ref:`setting-xfr-cycle-interval` seconds.
 Every time the domain fails its freshness check, PowerDNS will hold
 back on checking the domain for
@@ -124,15 +127,19 @@ back on checking the domain for
 between checks. With default settings, this means that PowerDNS will
 back off for 1, then 2, then 3, etc. minutes, to a maximum of 60 minutes
 between checks. The same hold back algorithm is also applied if the zone
-transfer fails due to problems on the master, i.e. if zone transfer is
+transfer fails due to problems on the primary, i.e. if zone transfer is
 not allowed.
 
 Receiving a NOTIFY immediately clears the back-off period for the
 respective domain to allow immediate freshness checks for this domain.
 
 .. warning::
-  Slave support is OFF by default, turn it on by adding
-  :ref:`setting-slave` to the configuration.
+  Secondary support is OFF by default, turn it on by adding
+  :ref:`setting-secondary` to the configuration.
+
+.. warning::
+  Only domains with type SECONDARY or SLAVE are considered for
+  secondary support.
 
 .. note::
   When running PowerDNS via the provided systemd service file,
@@ -150,37 +157,37 @@ requirement, as does PostgreSQL. The BIND backend implements
 transaction semantics by renaming files if and only if they have been
 retrieved completely and parsed correctly.
 
-Slave operation can also be programmed using several
+Secondary operation can also be programmed using several
 :ref:`running-pdnscontrol` commands. The ``retrieve``
 command is especially useful as it triggers an immediate retrieval of
-the zone from the configured master.
+the zone from the configured primary.
 
 Since 4.5.0, zone transfers are added to a queue and processed according to priority
 and order of addition. Order levels are (from high to low): pdns control,
 api, notify, serial changed during refresh and signatures changed during
-refresh. High priority zone transfers are always processed first, in a 
+refresh. High priority zone transfers are always processed first, in a
 first in first out order.
 
-PowerDNS supports multiple masters. For the BIND backend, the native
-BIND configuration language suffices to specify multiple masters, for
-SQL-based backends, list all master servers separated by commas in the
+PowerDNS supports multiple primaries. For the BIND backend, the native
+BIND configuration language suffices to specify multiple primaries, for
+SQL-based backends, list all primaries servers separated by commas in the
 'master' field of the domains table.
 
-Since version 4.0.0, PowerDNS requires that masters sign their
+Since version 4.0.0, PowerDNS requires that primaries sign their
 notifications. During transition and interoperation with other
 nameservers, you can use options :ref:`setting-allow-unsigned-notify` to permit
 unsigned notifications. For 4.0.0 this is turned on by default, but it
 might be turned off permanently in future releases.
 
-Master/Slave Setup Requirements
--------------------------------
+Primary/Secondary Setup Requirements
+------------------------------------
 
-Generally to enable a Master/Slave setup you have to take care of
+Generally to enable a Primary/Secondary setup you have to take care of
 the following properties.
 
-* The :ref:`setting-master`/:ref:`setting-slave` state has to be enabled in the respective ``/etc/powerdns/pdns.conf`` config files.
-* The nameservers have to be set up correctly as NS domain records i.e. defining a NS and A record for each slave.
-* Master/Slave state has to be configured on a per-domain basis in the ``domains`` table. Namely, the ``type`` column has to be either ``MASTER`` or ``SLAVE`` respectively and the slave needs a comma-separated list of master node IP addresses in the ``master`` column in the ``domains`` table. :doc:`more to this topic <backends/generic-sql>`.
+* The :ref:`setting-primary`/:ref:`setting-secondary` state has to be enabled in the respective ``/etc/powerdns/pdns.conf`` config files.
+* The nameservers have to be set up correctly as NS domain records i.e. defining a NS and A record for each secondary.
+* Primary/Secondary state has to be configured on a per-domain basis in the ``domains`` table. Namely, the ``type`` column has to be either ``MASTER`` or ``SLAVE`` respectively and the secondary needs a comma-separated list of primary node IP addresses in the ``master`` column in the ``domains`` table. :doc:`more to this topic <backends/generic-sql>`.
 
 IXFR: incremental zone transfers
 --------------------------------
@@ -189,7 +196,7 @@ If the 'IXFR' zone metadata item is set to 1 for a zone, PowerDNS will
 attempt to retrieve zone updates via IXFR.
 
 .. warning::
-  If a slave zone changes from non-DNSSEC to DNSSEC, an IXFR
+  If a secondary zone changes from non-DNSSEC to DNSSEC, an IXFR
   update will not set the PRESIGNED flag. In addition, a change in NSEC3
   mode will also not be picked up.
 
@@ -245,7 +252,7 @@ There is no need to fill the account name out but it does help keep
 track of where a domain comes from.
 Additionally, if a secondary selects multiple autoprimaries for a zone based on the name of the primary, it also checks that the ``account`` field is the same for all.
 Adding a autoprimary can be done either directly in the database,
-or by using the 'pdnsutil add-supermaster' command. 
+or by using the 'pdnsutil add-autoprimary' command.
 
 .. note::
   Removal of zones provisioned using the autoprimary must be
@@ -254,8 +261,8 @@ or by using the 'pdnsutil add-supermaster' command.
 
 .. _modes-of-operation-axfrfilter:
 
-Modifying a slave zone using a script
--------------------------------------
+Modifying a secondary zone using a script
+-----------------------------------------
 
 The PowerDNS Authoritative Server can invoke a Lua script on an incoming
 AXFR zone transfer. The user-defined function ``axfrfilter`` within your
