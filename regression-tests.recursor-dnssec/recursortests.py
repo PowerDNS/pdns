@@ -768,6 +768,7 @@ distributor-threads={threads}""".format(confdir=confdir,
                 print("kill...", p, file=sys.stderr)
                 p.kill()
                 p.wait()
+            return p
         except OSError as e:
             # There is a race-condition with the poll() and
             # kill() statements, when the process is dead on the
@@ -782,7 +783,9 @@ distributor-threads={threads}""".format(confdir=confdir,
 
     @classmethod
     def tearDownRecursor(cls):
-        cls.killProcess(cls._recursor)
+        p = cls.killProcess(cls._recursor)
+        if p.returncode != 0:
+            raise AssertionError('Process exited with return code %d' % (p.returncode))
 
     @classmethod
     def sendUDPQuery(cls, query, timeout=2.0, decode=True, fwparams=dict()):
