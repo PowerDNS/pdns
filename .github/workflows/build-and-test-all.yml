@@ -109,7 +109,7 @@ jobs:
       - build-dnsdist
       - test-dnsdist-regression
     if: success() || failure()
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Install jq and jc
         run: "sudo apt-get update && sudo apt-get install jq jc"
