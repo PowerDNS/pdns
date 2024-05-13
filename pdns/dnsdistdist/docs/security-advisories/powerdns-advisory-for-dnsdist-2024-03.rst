@@ -19,6 +19,7 @@ DNS over HTTPS is not enabled by default, and backends are using plain DNS (Do53
 `CVSS Score: 7.5 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H&version=3.1>`__, only for configurations where incoming DoH is enabled and a TCP-only/DoT backend is enabled.
 
 Two workarounds are available:
+
 - refuse incoming XFR requests via a DNSdist rule: ``addAction(OrRule({QTypeRule(DNSQType.AXFR), QTypeRule(DNSQType.IXFR)}), RCodeAction(DNSRCode.REFUSED))``
 - switch to the legacy h2o provider by setting ``library='h2o'`` in the ``addDOHLocal`` directive
 
