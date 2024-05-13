@@ -42,6 +42,21 @@
 
 #include "settings/cxxsettings.hh"
 
+/* g++ defines __SANITIZE_THREAD__
+   clang++ supports the nice __has_feature(thread_sanitizer),
+   let's merge them */
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define __SANITIZE_THREAD__ 1
+#endif
+#if __has_feature(address_sanitizer)
+#define __SANITIZE_ADDRESS__ 1
+#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
+#include <sanitizer/lsan_interface.h>
+#endif
+#endif
+#endif
+
 std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNum(const std::string& a)
 {
   auto i = a.length();
@@ -1592,8 +1607,18 @@ void registerAllStats()
   }
 }
 
+static auto clearLuaScript()
+{
+  vector<string> empty;
+  empty.emplace_back();
+  return doQueueReloadLuaScript(empty.begin(), empty.end());
+}
+
 void doExitGeneric(bool nicely)
 {
+#if defined(__SANITIZE_THREAD__)
+  _exit(0); // regression test check for exit 0
+#endif
   g_log << Logger::Error << "Exiting on user request" << endl;
   g_rcc.~RecursorControlChannel();
 
@@ -1605,8 +1630,15 @@ void doExitGeneric(bool nicely)
     RecursorControlChannel::stop = true;
   }
   else {
+#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
+    clearLuaScript();
     pdns::coverage::dumpCoverageData();
-    _exit(1);
+    __lsan_do_leak_check();
+    _exit(0); // let the regression test distinguish between leaks and no leaks as __lsan_do_leak_check() exits 1 on leaks
+#else
+    pdns::coverage::dumpCoverageData();
+    _exit(1); // for historic reasons we exit 1
+#endif
   }
 }
 
@@ -2334,9 +2366,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     return {0, doTraceRegex(begin == end ? FDWrapper(-1) : getfd(socket), begin, end)};
   }
   if (cmd == "unload-lua-script") {
-    vector<string> empty;
-    empty.emplace_back();
-    return doQueueReloadLuaScript(empty.begin(), empty.end());
+    return clearLuaScript();
   }
   if (cmd == "reload-acls") {
     return reloadACLs();

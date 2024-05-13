@@ -759,7 +759,7 @@ distributor-threads={threads}""".format(confdir=confdir,
             return
         try:
             p.terminate()
-            for count in range(10):
+            for count in range(100): # tsan can be slow
                 x = p.poll()
                 if x is not None:
                     break

@@ -67,6 +67,18 @@ thread_local FrameStreamServersInfo t_frameStreamServersInfo;
 thread_local FrameStreamServersInfo t_nodFrameStreamServersInfo;
 #endif /* HAVE_FSTRM */
 
+/* g++ defines __SANITIZE_THREAD__
+   clang++ supports the nice __has_feature(thread_sanitizer),
+   let's merge them */
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define __SANITIZE_THREAD__ 1
+#endif
+#if __has_feature(address_sanitizer)
+#define __SANITIZE_ADDRESS__ 1
+#endif
+#endif
+
 string g_programname = "pdns_recursor";
 string g_pidfname;
 RecursorControlChannel g_rcc; // only active in the handler thread
@@ -1870,6 +1882,10 @@ static int initForks(Logr::log_t log)
     signal(SIGTERM, termIntHandler);
     signal(SIGINT, termIntHandler);
   }
+#if defined(__SANITIZE_THREAD__) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE))
+  // If san is wanted, we dump the info ourselves
+  signal(SIGTERM, termIntHandler);
+#endif
 
   signal(SIGUSR1, usr1Handler);
   signal(SIGUSR2, usr2Handler);
