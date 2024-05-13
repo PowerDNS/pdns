@@ -49,6 +49,8 @@ from either address range.
 ``dnsupdate-require-tsig``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. versionadded:: 5.0.0
+
 A setting to require DNS updates to be signed by a valid TSIG signature.
 The default is no, which means zones without TSIG keys can be updated by
 unauthenticated agents operating from an allowed address range.

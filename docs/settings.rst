@@ -657,7 +657,9 @@ Enable/Disable DNS update (RFC2136) support. See :doc:`dnsupdate` for more.
 .. _setting-dnsupdate-require-tsig:
 
 ``dnsupdate-require-tsig``
--------------
+--------------------------
+
+.. versionadded:: 5.0.0
 
 -  Boolean
 -  Default: no
