@@ -4,20 +4,26 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-5.0.3 to master
+5.0.5 to master
 ---------------
-
-Changed settings
-----------------
-
-- For YAML settings only: the type of the :ref:`setting-yaml-incoming.edns_padding_from` and :ref:`setting-yaml-incoming.proxy_protocol_from` has been changed from ``String`` to ``Sequence of Subnet``.
-
-- Disabling :ref:`setting-structured-logging` is no longer supported.
 
 New Settings
 ^^^^^^^^^^^^
 
 - The :ref:`setting-proxy-protocol-exceptions` has been added. It allows to exclude specific listen addresses from requiring the Proxy Protocol.
+
+Changed settings
+----------------
+
+- Disabling :ref:`setting-structured-logging` is no longer supported.
+
+5.0.4 to 5.0.5
+--------------
+
+Changed settings
+----------------
+
+- For YAML settings only: the type of the :ref:`setting-yaml-incoming.edns_padding_from` and :ref:`setting-yaml-incoming.proxy_protocol_from` has been changed from ``String`` to ``Sequence of Subnet``.
 
 5.0.2 to 5.0.3, 4.9.3 to 4.9.4 and 4.8.6 to 4.8.7
 -------------------------------------------------

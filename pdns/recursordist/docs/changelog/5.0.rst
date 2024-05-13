@@ -4,12 +4,58 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
-   :version: 5.0.4
+   :version: 5.0.5
+   :released: 14th of May 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14091
+    :tickets: 14049
+
+    Do not count RRSIGs using unsupported algorithms toward RRSIGs limit.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13992
+    :tickets: 13984
+
+    Correctly count NSEC3s considered when chasing the closest encloser.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13991
+    :tickets: 13966
+
+    Let NetmaskGroup parse dont-throttle-netmasks, allowing negations.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13990
+    :tickets: 13947
+
+    Fix types of two YAML settings (incoming.edns_padding_from, incoming.proxy_protocol_from) that should be sequences of subnets.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13989
+    :tickets: 13926
+
+    Fix trace=fail regression and add regression test for it.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13988
+    :tickets: 13849
+
+    Only print Docker config if debug flag is set.
+
+.. changelog::
+  :version: 5.0.4
   :released: 24th of April 2024
 
   .. change::
     :tags: Bug Fixes
-    :pullreq:
+    :pullreq: 14108
 
     `Security advisory 2024-02 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-02.html>`__: CVE-2024-25583
 
