@@ -27,7 +27,7 @@ Changelog
 
   .. change::
     :tags: Bug Fixes, DNS over HTTPS
-    :pullreq: TBD
+    :pullreq: 14156
 
     Fix handling of XFR requests over DoH
 
