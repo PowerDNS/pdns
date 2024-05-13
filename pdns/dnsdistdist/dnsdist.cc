@@ -2753,7 +2753,22 @@ static void usage()
   cout << "-V,--version          Show dnsdist version information and exit\n";
 }
 
-#ifdef COVERAGE
+/* g++ defines __SANITIZE_THREAD__
+   clang++ supports the nice __has_feature(thread_sanitizer),
+   let's merge them */
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define __SANITIZE_THREAD__ 1
+#endif
+#if __has_feature(address_sanitizer)
+#define __SANITIZE_ADDRESS__ 1
+#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
+#include <sanitizer/lsan_interface.h>
+#endif
+#endif
+#endif
+
+#if defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE))
 static void cleanupLuaObjects()
 {
   /* when our coverage mode is enabled, we need to make sure
@@ -2770,24 +2785,16 @@ static void cleanupLuaObjects()
   clearWebHandlers();
   dnsdist::lua::hooks::clearMaintenanceHooks();
 }
+#endif /* defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)) */
 
+#if defined(COVERAGE)
 static void sigTermHandler(int)
 {
   cleanupLuaObjects();
   pdns::coverage::dumpCoverageData();
   _exit(EXIT_SUCCESS);
 }
-#else /* COVERAGE */
-
-/* g++ defines __SANITIZE_THREAD__
-   clang++ supports the nice __has_feature(thread_sanitizer),
-   let's merge them */
-#if defined(__has_feature)
-#if __has_feature(thread_sanitizer)
-#define __SANITIZE_THREAD__ 1
-#endif
-#endif
-
+#else
 static void sigTermHandler([[maybe_unused]] int sig)
 {
 #if !defined(__SANITIZE_THREAD__)
@@ -2802,7 +2809,17 @@ static void sigTermHandler([[maybe_unused]] int sig)
   }
   std::cout << "Exiting on user request" << std::endl;
 #endif /* __SANITIZE_THREAD__ */
-
+#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
+  if (dnsdist::g_asyncHolder) {
+    dnsdist::g_asyncHolder->stop();
+  }
+  {
+    auto lock = g_lua.lock();
+    cleanupLuaObjects();
+    *lock = LuaContext();
+  }
+  __lsan_do_leak_check();
+#endif /* __SANITIZE_ADDRESS__ && HAVE_LEAK_SANITIZER_INTERFACE */
   _exit(EXIT_SUCCESS);
 }
 #endif /* COVERAGE */

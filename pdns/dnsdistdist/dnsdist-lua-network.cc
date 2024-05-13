@@ -41,6 +41,11 @@ NetworkListener::NetworkListener() :
 NetworkListener::~NetworkListener()
 {
   d_data->d_exiting = true;
+
+  /* wake up the listening thread */
+  for (const auto& socket : d_data->d_sockets) {
+    shutdown(socket.second.getHandle(), SHUT_RD);
+  }
 }
 
 void NetworkListener::readCB(int desc, FDMultiplexer::funcparam_t& param)

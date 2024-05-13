@@ -352,6 +352,11 @@ class TestRoutingLuaFFIPerThreadRoundRobinLB(RoundRobinTest, DNSDistTest):
     s1:setUp()
     s2 = newServer{address="127.0.0.1:%s"}
     s2:setUp()
+
+    function atExit()
+      setServerPolicy(leastOutstanding)
+      collectgarbage()
+    end
     """
 
     @classmethod
