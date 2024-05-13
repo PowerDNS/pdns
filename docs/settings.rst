@@ -1074,13 +1074,25 @@ guaranteed to be stable, and is in fact likely to change.
 .. _setting-lua-records-exec-limit:
 
 ``lua-records-exec-limit``
------------------------------
+--------------------------
 
 -  Integer
 -  Default: 1000
 
 Limit LUA records scripts to ``lua-records-exec-limit`` instructions.
 Setting this to any value less than or equal to 0 will set no limit.
+
+.. _setting-lua-records-insert-whitespace:
+
+``lua-records-insert-whitespace``
+---------------------------------
+
+- Boolean
+- Default: no in 5.0, yes before that
+
+.. versionadded:: 4.9.1
+
+When combining the ``"`` delimited chunks of a LUA record, whether to insert whitespace between each chunk.
 
 .. _setting-master:
 

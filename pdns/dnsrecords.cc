@@ -167,15 +167,27 @@ boilerplate_conv(OPT,
                  );
 
 #ifdef HAVE_LUA_RECORDS
+
+bool g_luaRecordInsertWhitespace;
+
 string LUARecordContent::getCode() const
 {
   // in d_code, series of "part1" "part2"
   vector<string> parts;
   stringtok(parts, d_code, "\"");
   string ret;
-  for(const auto& p : parts) {
-    ret += p;
-    ret.append(1, ' ');
+  if (g_luaRecordInsertWhitespace) { // default before 5.0
+    for(const auto& part : parts) {
+      ret += part;
+      ret.append(1, ' ');
+    }
+  }
+  else { // default since 5.0
+    for(const auto& part : parts) {
+      if (part != " ") {
+        ret += part;
+      }
+    }
   }
   return ret;
 }

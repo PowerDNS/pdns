@@ -43,6 +43,7 @@ edns-subnet-processing=yes
 launch=bind geoip
 any-to-tcp=no
 enable-lua-records
+lua-records-insert-whitespace=yes
 lua-health-checks-interval=1
 """
 
@@ -157,6 +158,8 @@ counter          IN    LUA    TXT  ";counter = counter or 0 counter=counter+1 re
 
 lookmeup         IN           A  192.0.2.5
 dblookup         IN    LUA    A  "dblookup('lookmeup.example.org', pdns.A)[1]"
+
+whitespace       IN    LUA    TXT "'foo" "bar'"
         """,
         'createforward6.example.org': """
 createforward6.example.org.                 3600 IN SOA  {soa}
@@ -1090,6 +1093,22 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(self.sortRRsets(res.answer), self.sortRRsets(response.answer))
 
+    def testWhitespace(self, expectws=True):
+        """
+        Test TXT query for whitespace
+        """
+        name = 'whitespace.example.org.'
+
+        query = dns.message.make_query(name, 'TXT')
+
+        response = dns.message.make_response(query)
+
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.TXT, '"foo   bar"' if expectws else '"foobar"'))
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.answer, response.answer)
+
 
 class TestLuaRecordsShared(TestLuaRecords):
     _config_template = """
@@ -1098,6 +1117,7 @@ edns-subnet-processing=yes
 launch=bind geoip
 any-to-tcp=no
 enable-lua-records=shared
+lua-records-insert-whitespace=yes
 lua-health-checks-interval=1
 """
 
@@ -1111,6 +1131,20 @@ lua-health-checks-interval=1
 
         self.assertEqual(len(resUDP), 50)
         self.assertEqual(len(resTCP), 50)
+
+class TestLuaRecordsNoWhiteSpace(TestLuaRecords):
+    _config_template = """
+geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
+edns-subnet-processing=yes
+launch=bind geoip
+any-to-tcp=no
+enable-lua-records
+lua-records-insert-whitespace=no
+lua-health-checks-interval=1
+"""
+
+    def testWhitespace(self):
+        return TestLuaRecords.testWhitespace(self, False)
 
 if __name__ == '__main__':
     unittest.main()
