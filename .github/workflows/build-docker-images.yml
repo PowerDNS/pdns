@@ -1,0 +1,162 @@
+---
+name: Build push and test docker images
+
+on:
+  workflow_call:
+    inputs:
+      product:
+        required: true
+        description: Product to build
+        type: string
+      ref:
+        description: git ref to checkout
+        type: string
+        default: master
+        required: false
+      image-name:
+        description: repository name for the requested image
+        type: string
+        required: true
+      image-tags:
+        description: tag for the requested image
+        type: string
+        required: true
+      image-description:
+        description: short description for the image repository
+        type: string
+        required: true
+      platforms:
+        description: target platform(s)
+        type: string
+        default: linux/arm64/v8,linux/amd64
+        required: false
+      build-args:
+        description: build-time variables
+        type: string
+        default: ''
+        required: false
+      push:
+        description: push image to DockerHub
+        type: boolean
+        required: true
+    secrets:
+      DOCKERHUB_ORGANIZATION_NAME:
+        required: true
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
+jobs:
+  validate-push-image:
+    name: Check only images built from tags and master are pushed
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          ref: ${{ inputs.ref }}
+      - name: validate reference only if image will be pushed
+        if: ${{ inputs.push }}
+        run: |
+          [[ "${{ inputs.ref }}" == "master" ]] || git describe --tags --exact-match
+
+  build:
+    name: build docker image for a product
+    runs-on: ubuntu-22.04
+    needs: validate-push-image
+    outputs:
+      image-digest: ${{ steps.build-image.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          ref: ${{ inputs.ref }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/arm64/v8
+      - name: Set up Docker Buildx for multi-platform builds
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: ${{ inputs.platforms }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Docker image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
+          tags: ${{ inputs.image-tags }}
+      - name: Build and load powerdns product images
+        id: build-image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile-${{ inputs.product }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.push }}
+          sbom: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: ${{ inputs.build-args }}
+      - name: Update repo description
+        if: ${{ inputs.push }}
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
+          short-description: ${{ inputs.image-description }}
+
+  test-uploaded-images:
+    name: test uploaded images
+    if: ${{ inputs.push }}
+    needs: build
+    runs-on: ${{ matrix.runner-os }}
+    strategy:
+      matrix:
+        runner-os:
+          - ubuntu-22.04
+          - ubicloud-standard-2-arm
+      fail-fast: false
+    steps:
+      - name: Check running image
+        if: ${{ ( matrix.runner-os == 'ubuntu-22.04' && contains(inputs.platforms, 'amd64') ) || ( matrix.runner-os == 'ubicloud-standard-2-arm' && contains(inputs.platforms, 'arm64') ) }}
+        run: |
+          image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
+          for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
+            echo 'Testing: '${image_name}':'${tag};
+            # pdns-auth image returns a 134 exit code
+            docker run ${image_name}:${tag} --version || [ "$?" == "134" ]
+          done
+      - name: Check image digest matches
+        if: ${{ ( matrix.runner-os == 'ubuntu-22.04' && contains(inputs.platforms, 'amd64') ) || ( matrix.runner-os == 'ubicloud-standard-2-arm' && contains(inputs.platforms, 'arm64') ) }}
+        run: |
+          output_digest='${{ needs.build.outputs.image-digest }}'
+          image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
+          for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
+            image_digest=$(docker inspect --format='{{index .RepoDigests 0}}' ${image_name}:${tag} | cut -d '@' -f 2)
+            [[ "${output_digest}" == "${image_digest}" ]] || \
+              ( echo "Image digest does not match => output_digest: "${output_digest}" - image_digest: "${image_digest} && exit 1 )
+          done
+      - name: Check SBOM and Provenance
+        if: ${{ ( matrix.runner-os == 'ubuntu-22.04' && contains(inputs.platforms, 'amd64') ) || ( matrix.runner-os == 'ubicloud-standard-2-arm' && contains(inputs.platforms, 'arm64') ) }}
+        run: |
+          image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
+          for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
+            if $(echo '${{ inputs.platforms }}' | grep -qq ','); then
+              docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .Provenance}}" | jq -e '."linux/'$(dpkg --print-architecture)'" | has("SLSA")'
+              docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .SBOM}}" | jq -e '."linux/'$(dpkg --print-architecture)'" | has("SPDX")'
+            else
+              docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .Provenance}}" | jq -e 'has("SLSA")'
+              docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .SBOM}}" | jq -e 'has("SPDX")'
+            fi
+          done
