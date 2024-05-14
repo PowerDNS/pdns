@@ -2,12 +2,43 @@ Changelogs for 4.9.X
 ====================
 
 .. changelog::
-   :version: 4.9.5
+  :version: 4.9.6
+  :released: 14th of May 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14093
+    :tickets: 14049
+
+    Do not count RRSIGs using unsupported algorithms toward RRSIGs limit.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13995
+    :tickets: 13984
+
+    Correctly count NSEC3s considered when chasing the closest encloser.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13994
+    :tickets: 13926
+
+    Fix trace=fail regression and add regression test for it.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13993
+
+    Only print Docker config if debug flag is set.
+
+.. changelog::
+  :version: 4.9.5
   :released: 24th of April 2024
 
   .. change::
     :tags: Bug Fixes
-    :pullreq:
+    :pullreq: 14109
 
     `Security advisory 2024-02 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-02.html>`__: CVE-2024-25583
 

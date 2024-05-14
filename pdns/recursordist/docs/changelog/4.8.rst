@@ -2,12 +2,30 @@ Changelogs for 4.8.X
 ====================
 
 .. changelog::
-   :version: 4.8.8
+  :version: 4.8.9
+  :released: 14 of May 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14095
+    :tickets: 14049
+
+    Do not count RRSIGs using unsupported algorithms toward RRSIGs limit.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13996
+    :tickets: 13984
+
+    Correctly count NSEC3s considered when chasing the closest encloser.
+
+.. changelog::
+  :version: 4.8.8
   :released: 24th of April 2024
 
   .. change::
     :tags: Bug Fixes
-    :pullreq:
+    :pullreq: 14110
 
     `Security advisory 2024-02 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-02.html>`__: CVE-2024-25583
 
