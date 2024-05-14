@@ -4,18 +4,25 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-5.0.5 to master
----------------
+5.0.5 to 5.1.0 and master
+-------------------------
 
-New Settings
+New settings
 ^^^^^^^^^^^^
 
-- The :ref:`setting-proxy-protocol-exceptions` has been added. It allows to exclude specific listen addresses from requiring the Proxy Protocol.
+- All settings that can be set in the Lua config now can alternatively be set in YAML.  See :doc:`yamlsettings`.
+- The :ref:`setting-new-domain-db-snapshot-interval` settings has been introduced to set the interval of NOD DB snapshots taken.
+- The :ref:`setting-proxy-protocol-exceptions` setting has been introduced to exempt addresses from using the proxy protocol.
+- The :ref:`setting-system-resolver-ttl` setting has been introduced to set the TTL of the system resolver. The system resolver can be used to resolve forwarding names.
+- The :ref:`setting-system-resolver-interval` setting has been introduced to set the interval of resolve checks done by the system resolver.
+- The :ref:`setting-system-resolver-self-resolve-check` setting has been introduced to disable to discovery of self-resolving configurations.
 
 Changed settings
-----------------
+^^^^^^^^^^^^^^^^
 
+- The :ref:`setting-max-qperq` default value has been lowered to 50, and the qname-minimization special case has been removed.
 - Disabling :ref:`setting-structured-logging` is no longer supported.
+- The :ref:`setting-structured-logging-backend` setting has gained the possibility to request JSON formatted output of structured logging information.
 
 5.0.4 to 5.0.5
 --------------
@@ -28,14 +35,14 @@ Changed settings
 5.0.2 to 5.0.3, 4.9.3 to 4.9.4 and 4.8.6 to 4.8.7
 -------------------------------------------------
 
-Known Issue Solved
+Known issue solved
 ^^^^^^^^^^^^^^^^^^
 The DNSSEC validation issue with the :func:`zoneToCache` function has been resolved and workarounds can be removed.
 
 5.0.1 to 5.0.2, 4.9.2 to 4.9.3 and 4.8.5 to 4.8.6
 -------------------------------------------------
 
-Known Issues
+Known issues
 ^^^^^^^^^^^^
 The :func:`zoneToCache` function fails to perform DNSSEC validation if the zone has more than :ref:`setting-max-rrsigs-per-record` RRSIG records at its apex.
 There are two workarounds: either increase the :ref:`setting-max-rrsigs-per-record` to the number of RRSIGs in the zone's apex, or tell :func:`zoneToCache` to skip DNSSEC validation. by adding ``dnssec="ignore"``, e.g.::
