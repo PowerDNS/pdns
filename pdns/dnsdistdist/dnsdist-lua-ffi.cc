@@ -1841,9 +1841,12 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
 
     timespec now{};
     gettime(&now);
+    timespec until{now};
+    until.tv_sec += duration;
+    DynBlock dblock{message, until, DNSName(), static_cast<DNSAction::Action>(action)};
     auto slow = g_dynblockNMG.getCopy();
 #warning FIXME: need to handle tags
-    if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, message, duration, static_cast<DNSAction::Action>(action), false, false, nullptr)) {
+    if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, std::move(dblock), false)) {
       g_dynblockNMG.setState(slow);
       return true;
     }
@@ -1879,9 +1882,12 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
 
     timespec now{};
     gettime(&now);
+    timespec until{now};
+    until.tv_sec += duration;
+    DynBlock dblock{message, until, domain, static_cast<DNSAction::Action>(action)};
     auto slow = g_dynblockSMT.getCopy();
 #warning FIXME: need to handle tags
-    if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, domain, message, duration, static_cast<DNSAction::Action>(action), false, nullptr)) {
+    if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, std::move(dblock), false)) {
       g_dynblockSMT.setState(slow);
       return true;
     }

@@ -1037,5 +1037,76 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.registerMember("action", &DynBlock::action);
   luaCtx.registerMember("warning", &DynBlock::warning);
   luaCtx.registerMember("bpf", &DynBlock::bpf);
+
+  luaCtx.writeFunction("addDynBlockSMT",
+                       [](const LuaArray<std::string>& names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action, DynamicActionOptionalParameters optionalParameters) {
+                         if (names.empty()) {
+                           return;
+                         }
+                         setLuaSideEffect();
+                         timespec now{};
+                         gettime(&now);
+                         unsigned int actualSeconds = seconds ? *seconds : 10;
+                         DynBlockRulesGroup::DynBlockRule rule;
+                         parseDynamicActionOptionalParameters("addDynBlockSMT", rule, action, optionalParameters);
+
+                         bool needUpdate = false;
+                         auto slow = g_dynblockSMT.getCopy();
+                         for (const auto& capair : names) {
+                           DNSName domain(capair.second);
+                           domain.makeUsLowerCase();
+                           timespec until{now};
+                           until.tv_sec += actualSeconds;
+                           DynBlock dblock{msg, until, std::move(domain), action ? *action : DNSAction::Action::None};
+                           dblock.tagSettings = rule.d_tagSettings;
+                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, std::move(dblock), false)) {
+                             needUpdate = true;
+                           }
+                         }
+
+                         if (needUpdate) {
+                           g_dynblockSMT.setState(slow);
+                         }
+                       });
+
+  luaCtx.writeFunction("addDynamicBlock",
+                       [](const boost::variant<ComboAddress, std::string>& clientIP, const std::string& msg, const boost::optional<DNSAction::Action> action, const boost::optional<int> seconds, boost::optional<uint8_t> clientIPMask, boost::optional<uint8_t> clientIPPortMask, DynamicActionOptionalParameters optionalParameters) {
+                         setLuaSideEffect();
+
+                         ComboAddress clientIPCA;
+                         if (clientIP.type() == typeid(ComboAddress)) {
+                           clientIPCA = boost::get<ComboAddress>(clientIP);
+                         }
+                         else {
+                           const auto& clientIPStr = boost::get<std::string>(clientIP);
+                           try {
+                             clientIPCA = ComboAddress(clientIPStr);
+                           }
+                           catch (const std::exception& exp) {
+                             errlog("addDynamicBlock: Unable to parse '%s': %s", clientIPStr, exp.what());
+                             return;
+                           }
+                           catch (const PDNSException& exp) {
+                             errlog("addDynamicBlock: Unable to parse '%s': %s", clientIPStr, exp.reason);
+                             return;
+                           }
+                         }
+                         AddressAndPortRange target(clientIPCA, clientIPMask ? *clientIPMask : (clientIPCA.isIPv4() ? 32 : 128), clientIPPortMask ? *clientIPPortMask : 0);
+                         unsigned int actualSeconds = seconds ? *seconds : 10;
+                         DynBlockRulesGroup::DynBlockRule rule;
+                         parseDynamicActionOptionalParameters("addDynBlockSMT", rule, action, optionalParameters);
+
+                         timespec now{};
+                         gettime(&now);
+                         timespec until{now};
+                         until.tv_sec += actualSeconds;
+                         DynBlock dblock{msg, until, DNSName(), action ? *action : DNSAction::Action::None};
+                         dblock.tagSettings = rule.d_tagSettings;
+
+                         auto slow = g_dynblockNMG.getCopy();
+                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, std::move(dblock), false)) {
+                           g_dynblockNMG.setState(slow);
+                         }
+                       });
 #endif /* DISABLE_DYNBLOCKS */
 }
