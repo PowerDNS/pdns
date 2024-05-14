@@ -7,20 +7,22 @@ on:
 
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
+  actions: read
 
 jobs:
-  build:
-    name: docker build
+  call-build-image-recursor:
+    uses: PowerDNS/pdns/.github/workflows/build-docker-images.yml@rel/rec-4.9.x
     if: ${{ vars.SCHEDULED_DOCKER }}
-    # on a ubuntu-20.04 VM
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        product: ['recursor']
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 5
-          submodules: recursive
-      # this builds packages and runs our unit test (make check)
-      - run: docker build --rm -t powerdns-${{ matrix.product }} -f Dockerfile-${{ matrix.product }} .
+    with:
+      product: recursor
+      ref: ${{ github.ref_name }}
+      image-name: pdns-recursor-4.9.x
+      image-tags: |-
+        latest
+      image-description: 'EXPERIMENTAL pdns recursor image'
+      platforms: linux/amd64,linux/arm64/v8
+      push: false
+    secrets:
+      DOCKERHUB_ORGANIZATION_NAME: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
