@@ -1720,18 +1720,20 @@ static void handleRings(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.headers["Content-Type"] = "application/json";
 }
 
-static std::unordered_map<std::string, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)>> s_webHandlers;
+using WebHandler = std::function<void(const YaHTTP::Request&, YaHTTP::Response&)>;
+static SharedLockGuarded<std::unordered_map<std::string, WebHandler>> s_webHandlers;
 
-void registerWebHandler(const std::string& endpoint, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)> handler);
+void registerWebHandler(const std::string& endpoint, WebHandler handler);
 
-void registerWebHandler(const std::string& endpoint, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)> handler)
+void registerWebHandler(const std::string& endpoint, WebHandler handler)
 {
-  s_webHandlers[endpoint] = std::move(handler);
+  auto handlers = s_webHandlers.write_lock();
+  (*handlers)[endpoint] = std::move(handler);
 }
 
 void clearWebHandlers()
 {
-  s_webHandlers.clear();
+  s_webHandlers.write_lock()->clear();
 }
 
 #ifndef DISABLE_BUILTIN_HTML
@@ -1862,9 +1864,17 @@ static void connectionThread(WebClientConnection&& conn)
       resp.status = 405;
     }
     else {
-      const auto it = s_webHandlers.find(req.url.path);
-      if (it != s_webHandlers.end()) {
-        it->second(req, resp);
+      WebHandler handler;
+      {
+        auto handlers = s_webHandlers.read_lock();
+        const auto webHandlersIt = handlers->find(req.url.path);
+        if (webHandlersIt != handlers->end()) {
+          handler = webHandlersIt->second;
+        }
+      }
+
+      if (handler) {
+        handler(req, resp);
       }
       else {
         resp.status = 404;
