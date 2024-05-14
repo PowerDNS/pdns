@@ -191,3 +191,18 @@ class QUICGetLocalAddressOnAnyBindTests(object):
 
         (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
         self.assertEqual(receivedResponse, response)
+
+class QUICXFRTests(object):
+
+    def testXFR(self):
+        """
+        QUIC: XFR
+        """
+        name = 'xfr.doq.tests.powerdns.com.'
+        for xfrType in [dns.rdatatype.AXFR, dns.rdatatype.IXFR]:
+            query = dns.message.make_query(name, xfrType, 'IN')
+            expectedResponse = dns.message.make_response(query)
+            expectedResponse.set_rcode(dns.rcode.NOTIMP)
+
+            (_, receivedResponse) = self.sendQUICQuery(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, expectedResponse)

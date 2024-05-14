@@ -1685,6 +1685,15 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders,
     timespec now{};
     gettime(&now);
 
+    if ((dnsQuestion.ids.qtype == QType::AXFR || dnsQuestion.ids.qtype == QType::IXFR) && (dnsQuestion.getProtocol() == dnsdist::Protocol::DoH || dnsQuestion.getProtocol() == dnsdist::Protocol::DoQ || dnsQuestion.getProtocol() == dnsdist::Protocol::DoH3)) {
+      dnsQuestion.editHeader([](dnsheader& header) {
+        header.rcode = RCode::NotImp;
+        header.qr = true;
+        return true;
+      });
+      return processQueryAfterRules(dnsQuestion, holders, selectedBackend);
+    }
+
     if (!applyRulesToQuery(holders, dnsQuestion, now)) {
       return ProcessQueryResult::Drop;
     }

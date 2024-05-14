@@ -50,5 +50,7 @@ InternalQueryState InternalQueryState::partialCloneForXFR() const
     ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>(*d_protoBufData);
   }
   ids.cs = cs;
+  /* in case we want to support XFR over DoH, or the stream ID becomes used for QUIC */
+  ids.d_streamID = d_streamID;
   return ids;
 }
