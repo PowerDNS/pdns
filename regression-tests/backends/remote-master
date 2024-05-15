@@ -77,7 +77,7 @@ case $context in
 				extracontexts="dnssec nsec3"
 				skipreasons="nsec3 nodyndns"
 			fi
-			
+
 			remote_add_param="--remote-dnssec=yes"
 		elif [ "$remotesec" = "dnssec" ]
 		then
@@ -90,7 +90,7 @@ case $context in
 
 		# generate pdns.conf for pdnsutil
 		cat > pdns-remote.conf <<EOF
-module-dir=./modules
+module-dir=$PDNS_MESON_PATH/./modules
 launch=remote
 remote-connection-string=$connstr,timeout=10000
 EOF
@@ -114,16 +114,16 @@ EOF
 
 			# add DS records into list-all-records
                         $PDNSUTIL --config-dir=. --config-name=remote show-zone -v up.example.com | gawk '{ if ($1=="DS") { printf "up.example.com.		120	IN	DS	" $6 " " $7 " " $8 " " substr(toupper($9),0,56); if (length($9)>56) { print " " substr(toupper($9),57) } else { print "" } } }' > $testsdir/list-all-records/expected_dnssec_part2
-			cat $testsdir/list-all-records/expected_dnssec_part1 $testsdir/list-all-records/expected_dnssec_part2 $testsdir/list-all-records/expected_dnssec_part3 > $testsdir/list-all-records/expected_result.dnssec 
+			cat $testsdir/list-all-records/expected_dnssec_part1 $testsdir/list-all-records/expected_dnssec_part2 $testsdir/list-all-records/expected_dnssec_part3 > $testsdir/list-all-records/expected_result.dnssec
 			cp -f $testsdir/list-all-records/expected_result.dnssec $testsdir/list-all-records/expected_result.nsec3
 		fi
 
-		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
+		$RUNWRAPPER $PDNS --loglevel=7 --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=remote \
 			--cache-ttl=$cachettl --dname-processing --no-config \
 			--distributor-threads=1 \
 			--dnsupdate=yes --zone-cache-refresh-interval=0 \
-			--remote-connection-string="$connstr" $remote_add_param --module-dir=./modules &
+			--remote-connection-string="$connstr" $remote_add_param --module-dir="$PDNS_MESON_PATH/./modules" &
 		;;
 
 	*)
