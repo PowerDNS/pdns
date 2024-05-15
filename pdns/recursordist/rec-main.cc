@@ -905,6 +905,24 @@ static void checkLinuxIPv6Limits([[maybe_unused]] Logr::log_t log)
 #endif
 }
 
+static void checkLinuxMapCountLimits([[maybe_unused]] Logr::log_t log)
+{
+#ifdef __linux__
+  string line;
+  if (readFileIfThere("/proc/sys/vm/max_map_count", &line)) {
+    auto lim = std::stoull(line);
+    // mthread stack use 3 maps per stack (2 guard pages + stack itself). Multiple by 4 for extra allowance.
+    // Also add 2 for handler and task threads.
+    auto mapsNeeded = 4ULL * g_maxMThreads * (RecThreadInfo::numTCPWorkers() + RecThreadInfo::numUDPWorkers() + 2);
+    if (lim < mapsNeeded) {
+      SLOG(g_log << Logger::Error << "sysctl kern.max_map_count= <" << mapsNeeded << ", this may cause 'bad_alloc' exceptions" << endl,
+           log->info(Logr::Error, "sysctl kern.max_map_count < mapsNeeded, this may cause 'bad_alloc' exceptions",
+                     "kern.max_map_count", Logging::Loggable(lim), "mapsNeeded", Logging::Loggable(mapsNeeded)));
+    }
+  }
+#endif
+}
+
 static void checkOrFixFDS(Logr::log_t log)
 {
   unsigned int availFDs = getFilenumLimit();
@@ -2137,6 +2155,8 @@ static int serviceMain(Logr::log_t log)
   }
 
   g_maxMThreads = ::arg().asNum("max-mthreads");
+
+  checkLinuxMapCountLimits(log);
 
   int64_t maxInFlight = ::arg().asNum("max-concurrent-requests-per-tcp-connection");
   if (maxInFlight < 1 || maxInFlight > USHRT_MAX || maxInFlight >= g_maxMThreads) {
