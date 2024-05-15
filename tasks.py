@@ -259,11 +259,15 @@ auth_backend_test_deps = dict(
 )
 
 @task(help={'backend': 'Backend to install test deps for, e.g. gsqlite3; can be repeated'}, iterable=['backend'], optional=['backend'])
-def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more than apt-get
+def install_auth_test_deps_only(c, backend):
     extra=[]
     for b in backend:
         extra.extend(auth_backend_test_deps[b])
     c.sudo('DEBIAN_FRONTEND=noninteractive apt-get -y install ' + ' '.join(extra+auth_test_deps))
+
+@task(help={'backend': 'Backend to install test deps for, e.g. gsqlite3; can be repeated'}, iterable=['backend'], optional=['backend'])
+def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more than apt-get
+    install_auth_test_deps_only(c, backend)
 
     c.run('chmod +x /opt/pdns-auth/bin/* /opt/pdns-auth/sbin/*')
     # c.run('''if [ ! -e $HOME/bin/jdnssec-verifyzone ]; then

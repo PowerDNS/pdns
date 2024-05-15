@@ -104,7 +104,11 @@ jobs:
         working-directory: .
       - run: inv ci-auth-build ${{ matrix.build_option }} # This runs under pdns-$BUILDER_VERSION/pdns/ for make bear
       - run: inv ci-auth-install-remotebackend-test-deps
+      - if: ${{ matrix.builder == 'meson' }}
+        run: inv install-auth-test-deps-only -b geoip
       - run: inv ci-auth-run-unit-tests ${{ matrix.build_option }}
+        env:
+          PDNS_MESON_PATH: ../pdns-${{ env.BUILDER_VERSION }}
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.builder != 'meson' }}
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}/pdns
