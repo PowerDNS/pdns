@@ -65,7 +65,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - builder: autootols
+          - builder: autotools
             sanitizers: asan+ubsan
           - builder: meson
             sanitizers: address,undefined
