@@ -1,0 +1,208 @@
+Changelogs for 5.1.X
+====================
+
+Before upgrading, it is advised to read the :doc:`../upgrade`.
+
+.. changelog::
+  :version: 5.1.0-alpha1
+  :released: 15th of May 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13819
+
+    Add possibility to set existing Lua config in YAML settings.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14097,14139
+
+    Tidy iputils.hh and iputils.cc
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14023
+    :tickets: 13730
+
+    Add interface (not subject to proxy protocol substitutions) addresses in Lua DNSQuestion and corresponding FFI.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13596
+
+    Configure.ac fixup: do not require bash (Eli Schwartz)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14018
+    :tickets: 13948
+
+    Add setting to exclude specific listen socket addresses from requiring proxy protocol.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14006
+
+    FDWrapper: Do not try to close negative file descriptors.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13969
+    :tickets: 13677
+
+    Use shared NOD (and/or UDR) DB, to avoid multiple copies in memory and on disk.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13985
+
+    Fixup res-system-resolve.cc on FreeBSD: resolve.h needs netinet/in.h.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13921
+    :tickets: 11393
+
+    Add feature to allow names (resolved by system resolver) in forwarding config.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 10933
+
+    Enable 64-bit time_t on 32-bit systems with glibc-2.34 (Sven Wegener).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13844
+
+    Remove the possibility to disable structured logging.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13842
+
+    Add structured logging backend that uses JSON representation.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13919
+
+    Don't throttle lame servers if they are marked as dontThrottle.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13894
+
+    Fix Coverity 1534473 Unintended sign extension.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13889
+
+    Tidy recursor-lua4.cc and recursor-lua4.hh.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13866
+
+    Don't enter wildcard qnames into the cache in the ZoneToCache function.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13864
+
+    Support v6 in FrameStreamLogger, including tidy.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13861
+
+    Tidy rpzloader.cc and .hh.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13824
+
+    Log if a dnssec related limit was hit (if log_bogus is set).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13746
+
+    Tidy ResolveContext class.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13741
+
+    Fix Coverity issues in new RPZ code.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13744
+
+    Tidy filterpo.?? (reaching into iputils.hh as well).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13504
+    :tickets: 13265
+
+    Introduce command to set aggressive NSEC cache size.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13701
+    :tickets: 12777
+
+    RPZ from primary refactor and allow notifies for RPZs
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13702
+
+    Use ref wrapper instead of raw pointer in variant.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13706, 13719
+
+    Fix a few coverity reports.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13711
+
+    Cleanup of code doing SNMP OID handling.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13654
+
+    Allow out-of-tree builds (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13714
+
+    Fix country()/countryCode() mixup in example Lua Record documentation (Edward Dore)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13680
+
+    Fix a potential null deref in `MTasker::schedule()`.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13652
+
+    MTasker cleanup and move to recursordist.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13566
+    :tickets: 8646
+
+    Lower default max-qperq limit.
+
