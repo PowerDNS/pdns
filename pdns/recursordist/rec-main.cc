@@ -2282,17 +2282,17 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
   try {
     resp = tmsg->func();
   }
-  catch (std::exception& e) {
-    if (g_logCommonErrors) {
-      SLOG(g_log << Logger::Error << "PIPE function we executed created exception: " << e.what() << endl, // but what if they wanted an answer.. we send 0
-           g_slog->withName("runtime")->error(Logr::Error, e.what(), "PIPE function we executed created exception", "exception", Logging::Loggable("std::exception")));
-    }
+  catch (const PDNSException& e) {
+    SLOG(g_log << Logger::Error << "PIPE function we executed created PDNS exception: " << e.reason << endl, // but what if they wanted an answer.. we send 0
+         g_slog->withName("runtime")->error(Logr::Error, e.reason, "PIPE function we executed created exception", "exception", Logging::Loggable("PDNSException")));
   }
-  catch (PDNSException& e) {
-    if (g_logCommonErrors) {
-      SLOG(g_log << Logger::Error << "PIPE function we executed created PDNS exception: " << e.reason << endl, // but what if they wanted an answer.. we send 0
-           g_slog->withName("runtime")->error(Logr::Error, e.reason, "PIPE function we executed created exception", "exception", Logging::Loggable("PDNSException")));
-    }
+  catch (const std::exception& e) {
+    SLOG(g_log << Logger::Error << "PIPE function we executed created exception: " << e.what() << endl, // but what if they wanted an answer.. we send 0
+         g_slog->withName("runtime")->error(Logr::Error, e.what(), "PIPE function we executed created exception", "exception", Logging::Loggable("std::exception")));
+  }
+  catch (...) {
+    SLOG(g_log << Logger::Error << "PIPE function we executed created another exception" << endl, // but what if they wanted an answer.. we send 0
+         g_slog->withName("runtime")->info(Logr::Error, "PIPE function we executed created another exception"));
   }
   if (tmsg->wantAnswer) {
     if (write(RecThreadInfo::self().getPipes().writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
@@ -2651,62 +2651,72 @@ static void recLoop()
   auto& threadInfo = RecThreadInfo::self();
 
   while (!RecursorControlChannel::stop) {
-    while (g_multiTasker->schedule(&g_now)) {
-      ; // MTasker letting the mthreads do their thing
-    }
-
-    // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
-    // We want to call handler thread often, it gets scheduled about 2 times per second
-    if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % 11 == 0) || s_counter % 499 == 0) {
-      struct timeval start
-      {
-      };
-      Utility::gettimeofday(&start);
-      g_multiTasker->makeThread(houseKeeping, nullptr);
-      if (!threadInfo.isTaskThread()) {
-        struct timeval stop
-        {
-        };
-        Utility::gettimeofday(&stop);
-        t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
-        ++t_Counters.at(rec::Counter::maintenanceCalls);
+    try {
+      while (g_multiTasker->schedule(&g_now)) {
+        ; // MTasker letting the mthreads do their thing
       }
-    }
 
-    if (s_counter % 55 == 0) {
-      auto expired = t_fdm->getTimeouts(g_now);
-
-      for (const auto& exp : expired) {
-        auto conn = boost::any_cast<shared_ptr<TCPConnection>>(exp.second);
-        if (g_logCommonErrors) {
-          SLOG(g_log << Logger::Warning << "Timeout from remote TCP client " << conn->d_remote.toStringWithPort() << endl,
-               g_slogtcpin->info(Logr::Warning, "Timeout from remote TCP client", "remote", Logging::Loggable(conn->d_remote)));
+      // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
+      // We want to call handler thread often, it gets scheduled about 2 times per second
+      if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % 11 == 0) || s_counter % 499 == 0) {
+        timeval start{};
+        Utility::gettimeofday(&start);
+        g_multiTasker->makeThread(houseKeeping, nullptr);
+        if (!threadInfo.isTaskThread()) {
+          timeval stop{};
+          Utility::gettimeofday(&stop);
+          t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
+          ++t_Counters.at(rec::Counter::maintenanceCalls);
         }
-        t_fdm->removeReadFD(exp.first);
       }
+
+      if (s_counter % 55 == 0) {
+        auto expired = t_fdm->getTimeouts(g_now);
+
+        for (const auto& exp : expired) {
+          auto conn = boost::any_cast<shared_ptr<TCPConnection>>(exp.second);
+          if (g_logCommonErrors) {
+            SLOG(g_log << Logger::Warning << "Timeout from remote TCP client " << conn->d_remote.toStringWithPort() << endl,
+                 g_slogtcpin->info(Logr::Warning, "Timeout from remote TCP client", "remote", Logging::Loggable(conn->d_remote)));
+          }
+          t_fdm->removeReadFD(exp.first);
+        }
+      }
+
+      s_counter++;
+
+      if (threadInfo.isHandler()) {
+        if (statsWanted || (s_statisticsInterval > 0 && (g_now.tv_sec - last_stat) >= s_statisticsInterval)) {
+          doStats();
+          last_stat = g_now.tv_sec;
+        }
+
+        Utility::gettimeofday(&g_now, nullptr);
+
+        if ((g_now.tv_sec - last_carbon) >= carbonInterval) {
+          g_multiTasker->makeThread(doCarbonDump, nullptr);
+          last_carbon = g_now.tv_sec;
+        }
+      }
+      runLuaMaintenance(threadInfo, last_lua_maintenance, luaMaintenanceInterval);
+
+      t_fdm->run(&g_now);
+      // 'run' updates g_now for us
+
+      runTCPMaintenance(threadInfo, listenOnTCP, maxTcpClients);
     }
-
-    s_counter++;
-
-    if (threadInfo.isHandler()) {
-      if (statsWanted || (s_statisticsInterval > 0 && (g_now.tv_sec - last_stat) >= s_statisticsInterval)) {
-        doStats();
-        last_stat = g_now.tv_sec;
-      }
-
-      Utility::gettimeofday(&g_now, nullptr);
-
-      if ((g_now.tv_sec - last_carbon) >= carbonInterval) {
-        g_multiTasker->makeThread(doCarbonDump, nullptr);
-        last_carbon = g_now.tv_sec;
-      }
+    catch (const PDNSException& ae) {
+      SLOG(g_log << Logger::Error << "PDNSException in recLoop: " << ae.reason << endl,
+           g_slog->withName("runtime")->error(Logr::Error, ae.reason, "Exception in recLoop", "exception", Logging::Loggable("PDNSException")));
     }
-    runLuaMaintenance(threadInfo, last_lua_maintenance, luaMaintenanceInterval);
-
-    t_fdm->run(&g_now);
-    // 'run' updates g_now for us
-
-    runTCPMaintenance(threadInfo, listenOnTCP, maxTcpClients);
+    catch (const std::exception& e) {
+      SLOG(g_log << Logger::Error << "Exception in recLoop: " << e.what() << endl,
+           g_slog->withName("runtime")->error(Logr::Error, e.what(), "Exception in recLoop", "exception", Logging::Loggable("std::exception")));
+    }
+    catch (...) {
+      SLOG(g_log << Logger::Error << "Any other exception in recLoop: " << endl,
+           g_slog->withName("runtime")->info(Logr::Error, "Exception in recLoop"));
+    }
   }
 }
 
@@ -2860,11 +2870,11 @@ static void recursorThread()
 
     recLoop();
   }
-  catch (PDNSException& ae) {
+  catch (const PDNSException& ae) {
     SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
          log->error(Logr::Error, ae.reason, "Exception in RecursorThread", "exception", Logging::Loggable("PDNSException")));
   }
-  catch (std::exception& e) {
+  catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
          log->error(Logr::Error, e.what(), "Exception in RecursorThread", "exception", Logging::Loggable("std::exception")));
   }
