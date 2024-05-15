@@ -124,14 +124,22 @@ void BackendMakerClass::load(const string& module)
 {
   bool res = false;
 
+  g_log << Logger::Debug << "BackendMakerClass: module = " << module << endl;
+  g_log << Logger::Debug << "BackendMakerClass: module-dir = " << arg()["module-dir"] << endl;
   if (module.find('.') == string::npos) {
-    res = UeberBackend::loadmodule(arg()["module-dir"] + "/lib" + module + "backend.so");
+    auto modulePath = arg()["module-dir"] + "/lib" + module + "backend.so";
+    g_log << Logger::Debug << "BackendMakerClass: Loading '" << modulePath << "'" << endl;
+    res = UeberBackend::loadmodule(modulePath);
   }
-  else if (module[0] == '/' || (module[0] == '.' && module[1] == '/') || (module[0] == '.' && module[1] == '.')) { // absolute or current path
+  else if (module[0] == '/' || (module[0] == '.' && module[1] == '/') || (module[0] == '.' && module[1] == '.')) {
+    // Absolute path, Current path or Parent path
+    g_log << Logger::Debug << "BackendMakerClass: Loading '" << module << "'" << endl;
     res = UeberBackend::loadmodule(module);
   }
   else {
-    res = UeberBackend::loadmodule(arg()["module-dir"] + "/" + module);
+    auto modulePath = arg()["module-dir"] + "/" + module;
+    g_log << Logger::Debug << "BackendMakerClass: Loading '" << modulePath << "'" << endl;
+    res = UeberBackend::loadmodule(modulePath);
   }
 
   if (!res) {

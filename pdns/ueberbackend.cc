@@ -76,24 +76,31 @@ bool UeberBackend::loadmodule(const string& name)
 
 bool UeberBackend::loadModules(const vector<string>& modules, const string& path)
 {
+  g_log << Logger::Debug << "UeberBackend: path = " << path << endl;
+
   for (const auto& module : modules) {
     bool res = false;
+
+    g_log << Logger::Debug << "UeberBackend: Attempting to load module '" << module << "'" << endl;
 
     if (module.find('.') == string::npos) {
       auto fullPath = path;
       fullPath += "/lib";
       fullPath += module;
       fullPath += "backend.so";
+      g_log << Logger::Debug << "UeberBackend: Loading '" << fullPath << "'" << endl;
       res = UeberBackend::loadmodule(fullPath);
     }
     else if (module[0] == '/' || (module[0] == '.' && module[1] == '/') || (module[0] == '.' && module[1] == '.')) {
-      // absolute or current path
+      // Absolute path, Current path or Parent path
+      g_log << Logger::Debug << "UeberBackend: Loading '" << module << "'" << endl;
       res = UeberBackend::loadmodule(module);
     }
     else {
       auto fullPath = path;
       fullPath += "/";
       fullPath += module;
+      g_log << Logger::Debug << "UeberBackend: Loading '" << fullPath << "'" << endl;
       res = UeberBackend::loadmodule(fullPath);
     }
 
