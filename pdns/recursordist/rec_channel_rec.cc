@@ -51,10 +51,11 @@
 #endif
 #if __has_feature(address_sanitizer)
 #define __SANITIZE_ADDRESS__ 1
+#endif
+#endif
+
 #if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
 #include <sanitizer/lsan_interface.h>
-#endif
-#endif
 #endif
 
 std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNum(const std::string& a)
