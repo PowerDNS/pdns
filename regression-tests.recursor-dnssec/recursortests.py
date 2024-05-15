@@ -784,7 +784,7 @@ distributor-threads={threads}""".format(confdir=confdir,
     @classmethod
     def tearDownRecursor(cls):
         p = cls.killProcess(cls._recursor)
-        if p.returncode != 0:
+        if p.returncode not in (0, -15):
             raise AssertionError('Process exited with return code %d' % (p.returncode))
 
     @classmethod
