@@ -1,4 +1,4 @@
-dnspython==2.1.0
+dnspython==2.6.1
 pytest
 Twisted>0.15.0
 requests>=2.18.4
