@@ -895,6 +895,7 @@ void setupLuaInspection(LuaContext& luaCtx)
 
   /* DynBlockRulesGroup */
   luaCtx.writeFunction("dynBlockRulesGroup", []() { return std::make_shared<DynBlockRulesGroup>(); });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
   luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>, DynamicActionOptionalParameters)>("setQueryRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate, DynamicActionOptionalParameters optionalParameters) {
     if (group) {
       DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, rate, warningRate ? *warningRate : 0, seconds, action ? *action : DNSAction::Action::None);
@@ -902,6 +903,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       group->setQueryRate(std::move(rule));
     }
   });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
   luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>, DynamicActionOptionalParameters)>("setResponseByteRate", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate, DynamicActionOptionalParameters optionalParameters) {
     if (group) {
       DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, rate, warningRate ? *warningRate : 0, seconds, action ? *action : DNSAction::Action::None);
@@ -909,6 +911,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       group->setResponseByteRate(std::move(rule));
     }
   });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
   luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, DynBlockRulesGroup::smtVisitor_t, DynamicActionOptionalParameters)>("setSuffixMatchRule", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, DynBlockRulesGroup::smtVisitor_t visitor, DynamicActionOptionalParameters optionalParameters) {
     if (group) {
       DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 0, 0, seconds, action ? *action : DNSAction::Action::None);
@@ -916,6 +919,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       group->setSuffixMatchRule(std::move(rule), std::move(visitor));
     }
   });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
   luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, dnsdist_ffi_stat_node_visitor_t, DynamicActionOptionalParameters)>("setSuffixMatchRuleFFI", [](std::shared_ptr<DynBlockRulesGroup>& group, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, dnsdist_ffi_stat_node_visitor_t visitor, DynamicActionOptionalParameters optionalParameters) {
     if (group) {
       DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, 0, 0, seconds, action ? *action : DNSAction::Action::None);
@@ -928,6 +932,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       group->setNewBlockHook(hook);
     }
   });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
   luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>, DynamicActionOptionalParameters)>("setRCodeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate, DynamicActionOptionalParameters optionalParameters) {
     if (group) {
       DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, rate, warningRate ? *warningRate : 0, seconds, action ? *action : DNSAction::Action::None);
@@ -935,6 +940,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       group->setRCodeRate(rcode, std::move(rule));
     }
   });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
   luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(uint8_t, double, unsigned int, const std::string&, unsigned int, size_t, boost::optional<DNSAction::Action>, boost::optional<double>, DynamicActionOptionalParameters)>("setRCodeRatio", [](std::shared_ptr<DynBlockRulesGroup>& group, uint8_t rcode, double ratio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, size_t minimumNumberOfResponses, boost::optional<DNSAction::Action> action, boost::optional<double> warningRatio, DynamicActionOptionalParameters optionalParameters) {
     if (group) {
       DynBlockRulesGroup::DynBlockRatioRule rule(reason, blockDuration, ratio, warningRatio ? *warningRatio : 0.0, seconds, action ? *action : DNSAction::Action::None, minimumNumberOfResponses);
@@ -942,13 +948,15 @@ void setupLuaInspection(LuaContext& luaCtx)
       group->setRCodeRatio(rcode, std::move(rule));
     }
   });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
   luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(uint16_t, unsigned int, unsigned int, const std::string&, unsigned int, boost::optional<DNSAction::Action>, boost::optional<unsigned int>, DynamicActionOptionalParameters)>("setQTypeRate", [](std::shared_ptr<DynBlockRulesGroup>& group, uint16_t qtype, unsigned int rate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, boost::optional<DNSAction::Action> action, boost::optional<unsigned int> warningRate, DynamicActionOptionalParameters optionalParameters) {
     if (group) {
-      DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, rate, warningRate ? *warningRate : 0.0, seconds, action ? *action : DNSAction::Action::None);
+      DynBlockRulesGroup::DynBlockRule rule(reason, blockDuration, rate, warningRate ? *warningRate : 0, seconds, action ? *action : DNSAction::Action::None);
       parseDynamicActionOptionalParameters("setQTypeRate", rule, action, optionalParameters);
       group->setQTypeRate(qtype, std::move(rule));
     }
   });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
   luaCtx.registerFunction<void (std::shared_ptr<DynBlockRulesGroup>::*)(double, unsigned int, const std::string&, unsigned int, size_t, double, boost::optional<DNSAction::Action>, boost::optional<double>, DynamicActionOptionalParameters)>("setCacheMissRatio", [](std::shared_ptr<DynBlockRulesGroup>& group, double ratio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, size_t minimumNumberOfResponses, double minimumGlobalCacheHitRatio, boost::optional<DNSAction::Action> action, boost::optional<double> warningRatio, DynamicActionOptionalParameters optionalParameters) {
     if (group) {
       DynBlockRulesGroup::DynBlockCacheMissRatioRule rule(reason, blockDuration, ratio, warningRatio ? *warningRatio : 0.0, seconds, action ? *action : DNSAction::Action::None, minimumNumberOfResponses, minimumGlobalCacheHitRatio);
@@ -1039,6 +1047,7 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.registerMember("bpf", &DynBlock::bpf);
 
   luaCtx.writeFunction("addDynBlockSMT",
+                       // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
                        [](const LuaArray<std::string>& names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action, DynamicActionOptionalParameters optionalParameters) {
                          if (names.empty()) {
                            return;
@@ -1057,7 +1066,7 @@ void setupLuaInspection(LuaContext& luaCtx)
                            domain.makeUsLowerCase();
                            timespec until{now};
                            until.tv_sec += actualSeconds;
-                           DynBlock dblock{msg, until, std::move(domain), action ? *action : DNSAction::Action::None};
+                           DynBlock dblock{msg, until, domain, action ? *action : DNSAction::Action::None};
                            dblock.tagSettings = rule.d_tagSettings;
                            if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, std::move(dblock), false)) {
                              needUpdate = true;
@@ -1070,6 +1079,7 @@ void setupLuaInspection(LuaContext& luaCtx)
                        });
 
   luaCtx.writeFunction("addDynamicBlock",
+                       // NOLINTNEXTLINE(performance-unnecessary-value-param): optional parameters cannot be passed by const reference
                        [](const boost::variant<ComboAddress, std::string>& clientIP, const std::string& msg, const boost::optional<DNSAction::Action> action, const boost::optional<int> seconds, boost::optional<uint8_t> clientIPMask, boost::optional<uint8_t> clientIPPortMask, DynamicActionOptionalParameters optionalParameters) {
                          setLuaSideEffect();
 
