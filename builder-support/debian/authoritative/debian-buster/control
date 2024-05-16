@@ -81,7 +81,7 @@ Description: Tools for DNS debugging by PowerDNS
    * nsec3dig: Calculate the correctness of NSEC3 proofs
    * pdns_notify: Simple tool for sending DNS notifies
    * saxfr: AXFR zones and show extra information
-   * sdig: dig-like tool supporting DoH, DoT, PROXY-protocol and XPF
+   * sdig: dig-like tool supporting DoH, DoT and PROXY-protocol
    * stubquery: Stub resolver query tool
 
 Package: pdns-ixfrdist

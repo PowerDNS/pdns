@@ -638,6 +638,9 @@ Servers
   .. versionchanged:: 1.9.0
     Added ``MACAddr``, ``proxyProtocolAdvertiseTLS`` and ``xskSockets`` to server_table.
 
+  .. versionchanged:: 2.0.0
+    Removed ``addXPF`` from server_table.
+
   :param str server_string: A simple IP:PORT string.
   :param table server_table: A table with at least an ``address`` key
 
@@ -688,7 +691,6 @@ Servers
                                                              - address, e.g. ``""192.0.2.2""``
                                                              - interface name, e.g. ``""eth0""``
                                                              - address@interface, e.g. ``""192.0.2.2@eth0""`` "
-     ``addXPF``                              ``number``            "Add the client's IP address and port to the query, along with the original destination address and port, using the experimental XPF record from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_ and the specified option code. Default is disabled (0). This is a deprecated feature that will be removed in the near future."
     ``sockets``                              ``number``            "Number of UDP sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set 'sockets' to a number somewhat higher than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via `reuseport`). See also :func:`setRandomizedOutgoingSockets`."
     ``disableZeroScope``                     ``bool``              "Disable the EDNS Client Subnet 'zero scope' feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. This requires the ``parseECS`` option of the corresponding cache to be set to true"
     ``rise``                                 ``number``               "Require ``number`` consecutive successful checks before declaring the backend up, default: 1"

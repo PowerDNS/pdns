@@ -30,7 +30,6 @@
 #include "dnsdist-metrics.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-rules.hh"
-#include "dnsdist-xpf.hh"
 #include "libssl.hh"
 #include "threadname.hh"
 

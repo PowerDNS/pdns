@@ -26,7 +26,7 @@ In addition to the global settings, rules and Lua bindings can alter this behavi
 
 In effect this means that for the EDNS Client Subnet option to be added to the request, ``useClientSubnet`` should be set to ``true`` for the backend used (default to ``false``) and ECS should not have been disabled by calling :func:`SetDisableECSAction` or setting ``dq.useECS`` to ``false`` (default to true).
 
-Note that any trailing data present in the incoming query is removed when an OPT (or XPF) record has to be inserted.
+Note that any trailing data present in the incoming query is removed when an OPT record has to be inserted.
 
 In addition to the drawback that it can only pass the source IP address, and the fact that it needs to override any existing ECS option, adding that option requires parsing and editing the query, as well as parsing and editing the response in most cases.
 
@@ -45,24 +45,6 @@ In addition to the drawback that it can only pass the source IP address, and the
 +----------------------------+-------------------------------------------------+
 | Response, EDNS with ECS    | remove or edit the ECS option if needed         |
 +----------------------------+-------------------------------------------------+
-
-X-Proxied-For
--------------
-
-.. note::
-  This is a deprecated feature that will be removed in the near future.
-
-The experimental XPF record (from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_) is an alternative to the use of EDNS Client Subnet which has the advantages of preserving any existing EDNS Client Subnet value sent by the client, and of passing along the original destination address, as well as the initial source and destination ports.
-
-In order to provide the downstream server with the address of the real client, or at least the one talking to dnsdist, the ``addXPF`` parameter can be used when creating a :func:`new server <newServer>`.
-This parameter indicates whether an XPF record shall be added to the query. Since that record is experimental, there is currently no option code assigned to it, and therefore one needs to be specified as an argument to the ``addXPF`` parameter.
-
-If the incoming request already contains a XPF record, it will not be overwritten. Instead a new one will be added to the query and the existing one will be preserved.
-That might be an issue by allowing clients to spoof their source address by adding a forged XPF record to their query. That can be prevented by using a rule to drop incoming queries containing a XPF record (in that example the 65280 option code has been assigned to XPF):
-
-.. code-block:: lua
-
-  addAction(RecordsTypeCountRule(DNSSection.Additional, 65280, 1, 65535), DropAction())
 
 Proxy Protocol
 --------------
@@ -85,6 +67,24 @@ dnsdist 1.5.0 only supports outgoing Proxy Protocol. Support for parsing incomin
 
 Both the PowerDNS Authoritative Server and the Recursor can parse PROXYv2 headers, if configured to do so with their `proxy-protocol-from` setting.
 
+X-Proxied-For
+-------------
+
+.. note::
+  XPF support has been removed in 2.0.0.
+
+The experimental XPF record (from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_) is an alternative to the use of EDNS Client Subnet which has the advantages of preserving any existing EDNS Client Subnet value sent by the client, and of passing along the original destination address, as well as the initial source and destination ports.
+
+In order to provide the downstream server with the address of the real client, or at least the one talking to dnsdist, the ``addXPF`` parameter can be used when creating a :func:`new server <newServer>`.
+This parameter indicates whether an XPF record shall be added to the query. Since that record is experimental, there is currently no option code assigned to it, and therefore one needs to be specified as an argument to the ``addXPF`` parameter.
+
+If the incoming request already contains a XPF record, it will not be overwritten. Instead a new one will be added to the query and the existing one will be preserved.
+That might be an issue by allowing clients to spoof their source address by adding a forged XPF record to their query. That can be prevented by using a rule to drop incoming queries containing a XPF record (in that example the 65280 option code has been assigned to XPF):
+
+.. code-block:: lua
+
+  addAction(RecordsTypeCountRule(DNSSection.Additional, 65280, 1, 65535), DropAction())
+
 Influence on caching
 --------------------
 
@@ -97,7 +97,7 @@ For that feature to work, dnsdist will look up twice into the packet cache when 
 That feature is enabled by setting ``disableZeroScope=false`` on :func:`newServer` (default) and ``parseECS=true`` on :func:`newPacketCache` (not the default).
 
 
-Things are different for XPF and the proxy protocol, because dnsdist then does the cache lookup **before** adding the payload. It means that caching can still be enabled as long as the response is not source-dependent, but should be disabled otherwise.
+Things are different for the proxy protocol, because dnsdist then does the cache lookup **before** adding the payload. It means that caching can still be enabled as long as the response is not source-dependent, but should be disabled otherwise.
 
 +------------------+----------+---------------------+----------------+------------------------+
 | Protocol         | Standard | Require DNS parsing | Contains ports | Caching                |
@@ -105,8 +105,6 @@ Things are different for XPF and the proxy protocol, because dnsdist then does t
 | ECS              | Yes      | Query and response  | No             | Only with broad source |
 +------------------+----------+---------------------+----------------+------------------------+
 | ECS (zero-scope) | Yes      | Query and response  | No             | Yes                    |
-+------------------+----------+---------------------+----------------+------------------------+
-| XPF              | No       | Query               | Yes            | Depends on the backend |
 +------------------+----------+---------------------+----------------+------------------------+
 | Proxy Protocol   | No       | No                  | Yes            | Depends on the backend |
 +------------------+----------+---------------------+----------------+------------------------+

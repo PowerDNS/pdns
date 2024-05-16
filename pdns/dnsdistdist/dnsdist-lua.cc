@@ -534,8 +534,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalValue<bool>(vars, "disableZeroScope", config.disableZeroScope);
                          getOptionalValue<bool>(vars, "ipBindAddrNoPort", config.ipBindAddrNoPort);
 
-                         getOptionalIntegerValue("newServer", vars, "addXPF", config.xpfRRCode);
-
                          getOptionalValue<bool>(vars, "reconnectOnUp", config.reconnectOnUp);
 
                          LuaArray<string> cpuMap;

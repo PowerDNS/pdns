@@ -194,7 +194,6 @@ public:
   uint8_t ednsRCode{0};
   bool ecsOverride;
   bool useECS{true};
-  bool addXPF{true};
   bool asynchronous{false};
 };
 
@@ -775,7 +774,6 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     QType checkType{QType::A};
     uint16_t checkClass{QClass::IN};
     uint16_t d_retries{5};
-    uint16_t xpfRRCode{0};
     uint16_t checkTimeout{1000}; /* in milliseconds */
     uint16_t d_lazyHealthCheckSampleSize{100};
     uint16_t d_lazyHealthCheckMinSampleCount{1};

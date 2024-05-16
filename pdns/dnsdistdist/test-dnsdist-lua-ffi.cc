@@ -215,10 +215,6 @@ BOOST_AUTO_TEST_CASE(test_Query)
   }
 
   {
-    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_add_xpf(&lightDQ), true);
-  }
-
-  {
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_override(&lightDQ), false);
     dnsdist_ffi_dnsquestion_set_ecs_override(&lightDQ, true);
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_override(&lightDQ), true);
