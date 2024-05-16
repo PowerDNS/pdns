@@ -669,43 +669,7 @@ if dep_cdb.found()
   )
 endif
 
-# Modules
-all_modules = [
-  'bind',
-  'pipe',
-  'gmysql',
-  'godbc',
-  'gpgsql',
-  'gsqlite3',
-  'ldap',
-  'lua2',
-  'remote',
-  'tinydns',
-  'geoip',
-  'lmdb',
-]
-
-selected_modules = []
-selected_dyn_modules = []
-dep_modules = []
-foreach module_name: all_modules
-  module_backend_name = module_name + 'backend'
-  module_opt = get_option('module-' + module_name)
-
-  if module_opt == 'disabled'
-    continue
-  elif module_opt == 'static'
-    selected_modules += module_name
-  else
-    selected_dyn_modules += module_name
-  endif
-
-  subdir('modules' / module_backend_name)
-  dep_modules += get_variable('dep_' + module_backend_name)
-endforeach
-
-conf.set_quoted('PDNS_MODULES', ' '.join(selected_modules), description: 'Built-in modules')
-conf.set_quoted('PDNS_DYN_MODULES', ' '.join(selected_dyn_modules), description: 'Loadable modules')
+subdir('modules')
 
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
