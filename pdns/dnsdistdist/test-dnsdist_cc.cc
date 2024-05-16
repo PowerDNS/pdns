@@ -81,6 +81,8 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap([[maybe_unused]] DownstreamSt
 {
   return false;
 }
+
+#ifdef HAVE_XSK
 namespace dnsdist::xsk
 {
 bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket& packet)
@@ -88,6 +90,7 @@ bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket&
   return false;
 }
 }
+#endif /* HAVE_XSK */
 
 bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids)
 {
