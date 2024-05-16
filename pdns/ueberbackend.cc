@@ -20,22 +20,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include <memory>
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 
 #include "auth-querycache.hh"
 #include "auth-zonecache.hh"
-#include "utility.hh"
 
-#include <cerrno>
 #include <dlfcn.h>
-#include <functional>
-#include <iostream>
 #include <map>
-#include <sstream>
 #include <string>
 #include <sys/types.h>
 
@@ -114,7 +106,7 @@ void UeberBackend::go()
   s_backendQueries = S.getPointer("backend-queries");
 
   {
-    std::unique_lock<std::mutex> l(d_mut);
+    std::unique_lock<std::mutex> lock(d_mut);
     d_go = true;
   }
   d_cond.notify_all();
@@ -606,10 +598,10 @@ bool UeberBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   return false;
 }
 
-bool UeberBackend::autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)
+bool UeberBackend::autoPrimaryBackend(const string& ipAddr, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)
 {
   for (auto& backend : backends) {
-    if (backend->autoPrimaryBackend(ip, domain, nsset, nameserver, account, dnsBackend)) {
+    if (backend->autoPrimaryBackend(ipAddr, domain, nsset, nameserver, account, dnsBackend)) {
       return true;
     }
   }
@@ -654,6 +646,7 @@ enum UeberBackend::CacheResult UeberBackend::cacheHas(const Question& question, 
 void UeberBackend::addNegCache(const Question& question) const
 {
   extern AuthQueryCache QC;
+
   if (d_negcache_ttl == 0) {
     return;
   }
@@ -709,8 +702,8 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
   DLOG(g_log << "UeberBackend received question for " << qtype << " of " << qname << endl);
   if (!d_go) {
     g_log << Logger::Error << "UeberBackend is blocked, waiting for 'go'" << endl;
-    std::unique_lock<std::mutex> l(d_mut);
-    d_cond.wait(l, [] { return d_go; });
+    std::unique_lock<std::mutex> lock(d_mut);
+    d_cond.wait(lock, [] { return d_go; });
     g_log << Logger::Error << "Broadcast received, unblocked" << endl;
   }
 
