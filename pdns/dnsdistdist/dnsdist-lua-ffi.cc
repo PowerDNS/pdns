@@ -1821,7 +1821,7 @@ uint16_t dnsdist_ffi_network_message_get_endpoint_id(const dnsdist_ffi_network_m
 }
 
 #ifndef DISABLE_DYNBLOCKS
-bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, uint8_t action, unsigned int duration, uint8_t clientIPMask, uint8_t clientIPPortMask)
+bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, uint8_t action, unsigned int duration, uint8_t clientIPMask, uint8_t clientIPPortMask, const char* tagKey, const char* tagValue)
 {
   try {
     ComboAddress clientIPCA;
@@ -1845,7 +1845,13 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
     until.tv_sec += duration;
     DynBlock dblock{message, until, DNSName(), static_cast<DNSAction::Action>(action)};
     auto slow = g_dynblockNMG.getCopy();
-#warning FIXME: need to handle tags
+    if (dblock.action == DNSAction::Action::SetTag && tagKey != nullptr) {
+      dblock.tagSettings = std::make_shared<DynBlock::TagSettings>();
+      dblock.tagSettings->d_name = tagKey;
+      if (tagValue != nullptr) {
+        dblock.tagSettings->d_value = tagValue;
+      }
+    }
     if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, std::move(dblock), false)) {
       g_dynblockNMG.setState(slow);
       return true;
@@ -1863,7 +1869,7 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
   return false;
 }
 
-bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message, uint8_t action, unsigned int duration)
+bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message, uint8_t action, unsigned int duration, const char* tagKey, const char* tagValue)
 {
   try {
     DNSName domain;
@@ -1886,7 +1892,13 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
     until.tv_sec += duration;
     DynBlock dblock{message, until, domain, static_cast<DNSAction::Action>(action)};
     auto slow = g_dynblockSMT.getCopy();
-#warning FIXME: need to handle tags
+    if (dblock.action == DNSAction::Action::SetTag && tagKey != nullptr) {
+      dblock.tagSettings = std::make_shared<DynBlock::TagSettings>();
+      dblock.tagSettings->d_name = tagKey;
+      if (tagValue != nullptr) {
+        dblock.tagSettings->d_value = tagValue;
+      }
+    }
     if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, std::move(dblock), false)) {
       g_dynblockSMT.setState(slow);
       return true;

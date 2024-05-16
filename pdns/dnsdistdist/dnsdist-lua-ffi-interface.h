@@ -261,10 +261,12 @@ uint16_t dnsdist_ffi_network_message_get_endpoint_id(const dnsdist_ffi_network_m
    - action should be a DNSAction
    - duration is the duration of the block, in seconds
    - clientIPMask indicates whether the exact IP address should be blocked (32 for IPv4, 128 for IPv6) or if a range should be used instead, by indicating the number of bits of the address to consider
-   - clientIPPort indicates It is also possible to take the IPv4 UDP and TCP ports into account, for CGNAT deployments, by setting the number of bits of the port to consider. For example passing 2 as the last parameter, which only makes sense if the previous parameters are respectively 32 and 128, will split a given IP address into four port ranges: 0-16383, 16384-32767, 32768-49151 and 49152-65535.
+   - clientIPPort indicates It is also possible to take the IPv4 UDP and TCP ports into account, for CGNAT deployments, by setting the number of bits of the port to consider. For example passing 2 as the last parameter, which only makes sense if the previous parameters are respectively 32 and 128, will split a given IP address into four port ranges: 0-16383, 16384-32767, 32768-49151 and 49152-65535
+   - tagKey is the name of the tag set if the action is SetTag
+   - tagValue is the value of the tag set if the action is SetTag
 */
-bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, uint8_t action, unsigned int duration, uint8_t clientIPMask, uint8_t clientIPPortMask) __attribute__ ((visibility ("default")));
-bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message, uint8_t action, unsigned int duration) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, uint8_t action, unsigned int duration, uint8_t clientIPMask, uint8_t clientIPPortMask, const char* tagKey, const char* tagValue) __attribute__ ((visibility ("default")));
+bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message, uint8_t action, unsigned int duration, const char* tagKey, const char* tagValue) __attribute__ ((visibility ("default")));
 
 typedef struct dnsdist_ffi_dynamic_block_entry {
   char* key; /* Client IP for NMT blocks, domain name for SMT ones */

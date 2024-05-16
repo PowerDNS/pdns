@@ -332,13 +332,13 @@ struct DynBlock
   }
 
   DynBlock(const DynBlock& rhs) :
-    reason(rhs.reason), domain(rhs.domain), until(rhs.until), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
+    reason(rhs.reason), domain(rhs.domain), until(rhs.until), tagSettings(rhs.tagSettings), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
   {
     blocks.store(rhs.blocks);
   }
 
   DynBlock(DynBlock&& rhs) :
-    reason(std::move(rhs.reason)), domain(std::move(rhs.domain)), until(rhs.until), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
+    reason(std::move(rhs.reason)), domain(std::move(rhs.domain)), until(rhs.until), tagSettings(std::move(rhs.tagSettings)), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
   {
     blocks.store(rhs.blocks);
   }
@@ -352,9 +352,7 @@ struct DynBlock
     blocks.store(rhs.blocks);
     warning = rhs.warning;
     bpf = rhs.bpf;
-    if (rhs.tagSettings != nullptr) {
-      tagSettings = std::make_unique<TagSettings>(*rhs.tagSettings);
-    }
+    tagSettings = rhs.tagSettings;
     return *this;
   }
 
