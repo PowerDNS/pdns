@@ -35,9 +35,11 @@ class DNSCryptContext
 
 class DNSCryptQuery
 {
-  DNSCryptQuery(const std::shared_ptr<DNSCryptContext>& ctx): d_ctx(ctx)
+  DNSCryptQuery(const std::shared_ptr<DNSCryptContext>& ctx) :
+    d_ctx(ctx)
   {
   }
+
 private:
   std::shared_ptr<DNSCryptContext> d_ctx{nullptr};
 };
@@ -73,10 +75,19 @@ static_assert(crypto_box_curve25519xchacha20poly1305_BEFORENMBYTES == crypto_box
 #endif /* HAVE_CRYPTO_BOX_CURVE25519XCHACHA20POLY1305_EASY */
 
 #define DNSCRYPT_CERT_MAGIC_SIZE (4)
-#define DNSCRYPT_CERT_MAGIC_VALUE { 0x44, 0x4e, 0x53, 0x43 }
-#define DNSCRYPT_CERT_PROTOCOL_MINOR_VERSION_VALUE { 0x00, 0x00 }
+#define DNSCRYPT_CERT_MAGIC_VALUE \
+  {                               \
+    0x44, 0x4e, 0x53, 0x43        \
+  }
+#define DNSCRYPT_CERT_PROTOCOL_MINOR_VERSION_VALUE \
+  {                                                \
+    0x00, 0x00                                     \
+  }
 #define DNSCRYPT_CLIENT_MAGIC_SIZE (8)
-#define DNSCRYPT_RESOLVER_MAGIC { 0x72, 0x36, 0x66, 0x6e, 0x76, 0x57, 0x6a, 0x38 }
+#define DNSCRYPT_RESOLVER_MAGIC                    \
+  {                                                \
+    0x72, 0x36, 0x66, 0x6e, 0x76, 0x57, 0x6a, 0x38 \
+  }
 #define DNSCRYPT_RESOLVER_MAGIC_SIZE (8)
 #define DNSCRYPT_PADDED_BLOCK_SIZE (64)
 #define DNSCRYPT_MAX_TCP_PADDING_SIZE (256)
@@ -88,14 +99,20 @@ static_assert(crypto_box_curve25519xchacha20poly1305_BEFORENMBYTES == crypto_box
 
 static_assert(DNSCRYPT_CLIENT_MAGIC_SIZE <= DNSCRYPT_PUBLIC_KEY_SIZE, "DNSCrypt Client Nonce size should be smaller or equal to public key size.");
 
-#define DNSCRYPT_CERT_ES_VERSION1_VALUE { 0x00, 0x01 }
-#define DNSCRYPT_CERT_ES_VERSION2_VALUE { 0x00, 0x02 }
+#define DNSCRYPT_CERT_ES_VERSION1_VALUE \
+  {                                     \
+    0x00, 0x01                          \
+  }
+#define DNSCRYPT_CERT_ES_VERSION2_VALUE \
+  {                                     \
+    0x00, 0x02                          \
+  }
 
 class DNSCryptContext;
 
 struct DNSCryptCertSignedData
 {
-  using ResolverPublicKeyType =  std::array<unsigned char, DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE>;
+  using ResolverPublicKeyType = std::array<unsigned char, DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE>;
   using ResolverPrivateKeyType = std::array<unsigned char, DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE>;
   using ClientMagicType = std::array<unsigned char, DNSCRYPT_CLIENT_MAGIC_SIZE>;
   ResolverPublicKeyType resolverPK;
@@ -166,7 +183,8 @@ struct DNSCryptResponseHeader
 static_assert(sizeof(DNSCryptResponseHeader) == (DNSCRYPT_RESOLVER_MAGIC_SIZE + DNSCRYPT_NONCE_SIZE), "Dnscrypt response header size is incorrect!");
 static_assert(std::is_trivially_copyable_v<DNSCryptResponseHeader> == true);
 
-typedef enum {
+typedef enum
+{
   VERSION1,
   VERSION2
 } DNSCryptExchangeVersion;
@@ -195,7 +213,8 @@ struct DNSCryptCertificatePair
 class DNSCryptQuery
 {
 public:
-  DNSCryptQuery(const std::shared_ptr<DNSCryptContext>& ctx): d_ctx(ctx)
+  DNSCryptQuery(const std::shared_ptr<DNSCryptContext>& ctx) :
+    d_ctx(ctx)
   {
     memset(&d_header, 0, sizeof(d_header));
 #ifdef HAVE_CRYPTO_BOX_EASY_AFTERNM
@@ -277,7 +296,7 @@ public:
   static void generateProviderKeys(DNSCryptCertSignedData::ResolverPublicKeyType& publicKey, DNSCryptCertSignedData::ResolverPrivateKeyType& privateKey);
   static std::string getProviderFingerprint(const DNSCryptCertSignedData::ResolverPublicKeyType& publicKey);
   static void generateCertificate(uint32_t serial, time_t begin, time_t end, const DNSCryptExchangeVersion& version, const DNSCryptCertSignedData::ResolverPrivateKeyType& providerPrivateKey, DNSCryptPrivateKey& privateKey, DNSCryptCert& cert);
-  static void saveCertFromFile(const DNSCryptCert& cert, const std::string&filename);
+  static void saveCertFromFile(const DNSCryptCert& cert, const std::string& filename);
   static std::string certificateDateToStr(uint32_t date);
   static void generateResolverKeyPair(DNSCryptPrivateKey& privK, DNSCryptPublicKeyType& pubK);
   static void setExchangeVersion(const DNSCryptExchangeVersion& version, DNSCryptCert::ESVersionType& esVersion);
@@ -296,8 +315,8 @@ public:
   ~DNSCryptContext();
 
   void reloadCertificates();
-  void loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active=true, bool reload=false);
-  void addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active=true, bool reload=false);
+  void loadNewCertificate(const std::string& certFile, const std::string& keyFile, bool active = true, bool reload = false);
+  void addNewCertificate(const DNSCryptCert& newCert, const DNSCryptPrivateKey& newKey, bool active = true, bool reload = false);
 
   void markActive(uint32_t serial);
   void markInactive(uint32_t serial);
@@ -310,10 +329,10 @@ public:
 
 private:
   static void computePublicKeyFromPrivate(const DNSCryptPrivateKey& privK, DNSCryptCertificatePair::PublicKeyType& pubK);
-  static void loadCertFromFile(const std::string&filename, DNSCryptCert& dest);
+  static void loadCertFromFile(const std::string& filename, DNSCryptCert& dest);
   static std::shared_ptr<DNSCryptCertificatePair> loadCertificatePair(const std::string& certFile, const std::string& keyFile);
 
-  void addNewCertificate(std::shared_ptr<DNSCryptCertificatePair>& newCert, bool reload=false);
+  void addNewCertificate(std::shared_ptr<DNSCryptCertificatePair>& newCert, bool reload = false);
 
   SharedLockGuarded<std::vector<std::shared_ptr<DNSCryptCertificatePair>>> d_certs;
   SharedLockGuarded<std::vector<CertKeyPaths>> d_certKeyPaths;

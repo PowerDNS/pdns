@@ -41,7 +41,8 @@ BOOST_AUTO_TEST_SUITE(test_dnscrypt_cc)
 #ifdef HAVE_DNSCRYPT
 
 // plaintext query for cert
-BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
+BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery)
+{
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
   DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
@@ -66,7 +67,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
 
   query->getCertificateResponse(now, response);
 
-  MOADNSParser mdp(false, (char*) response.data(), response.size());
+  MOADNSParser mdp(false, (char*)response.data(), response.size());
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1U);
@@ -79,7 +80,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
 }
 
 // invalid plaintext query (A)
-BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidA) {
+BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidA)
+{
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
   DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
@@ -102,7 +104,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidA) {
 }
 
 // invalid plaintext query (wrong provider name)
-BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidProviderName) {
+BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidProviderName)
+{
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
   DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
@@ -125,7 +128,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidProviderName) {
 }
 
 // valid encrypted query
-BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
+BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid)
+{
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
   DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
@@ -139,7 +143,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
   DNSCryptPublicKeyType clientPublicKey;
   DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
-  DNSCryptClientNonceType clientNonce{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
+  DNSCryptClientNonceType clientNonce{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B};
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
@@ -159,7 +163,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
   BOOST_CHECK_EQUAL(query->isValid(), true);
   BOOST_CHECK_EQUAL(query->isEncrypted(), true);
 
-  MOADNSParser mdp(true, (char*) plainQuery.data(), plainQuery.size());
+  MOADNSParser mdp(true, (char*)plainQuery.data(), plainQuery.size());
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
@@ -172,7 +176,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
 }
 
 // valid encrypted query with not enough room
-BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort) {
+BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort)
+{
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
   DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
@@ -187,7 +192,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort) {
 
   DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
-  DNSCryptClientNonceType clientNonce{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
+  DNSCryptClientNonceType clientNonce{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B};
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
@@ -199,7 +204,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort) {
 }
 
 // valid encrypted query with old key
-BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
+BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey)
+{
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
   DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
@@ -214,7 +220,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
 
   DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
-  DNSCryptClientNonceType clientNonce{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
+  DNSCryptClientNonceType clientNonce{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B};
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
@@ -239,7 +245,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
   BOOST_CHECK_EQUAL(query->isValid(), true);
   BOOST_CHECK_EQUAL(query->isEncrypted(), true);
 
-  MOADNSParser mdp(true, (char*) plainQuery.data(), plainQuery.size());
+  MOADNSParser mdp(true, (char*)plainQuery.data(), plainQuery.size());
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
@@ -252,7 +258,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
 }
 
 // valid encrypted query with wrong key
-BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey) {
+BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey)
+{
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
   DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
@@ -267,7 +274,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey) {
 
   DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
-  DNSCryptClientNonceType clientNonce{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
+  DNSCryptClientNonceType clientNonce{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B};
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
