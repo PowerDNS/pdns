@@ -77,7 +77,9 @@ static ComboAddress encryptCA6(const ComboAddress& address, const std::string& k
   const auto inSize = sizeof(address.sin6.sin6_addr.s6_addr);
   static_assert(inSize == 16, "We disable padding and so we must assume a data size of 16 bytes");
   const auto blockSize = EVP_CIPHER_get_block_size(aes128cbc.get());
-  assert(blockSize == 16);
+  if (blockSize != 16) {
+    throw pdns::OpenSSL::error("encryptCA6: unexpected block size");
+  }
   EVP_CIPHER_CTX_set_padding(ctx.get(), 0);
 
   int updateLen = 0;
@@ -94,7 +96,9 @@ static ComboAddress encryptCA6(const ComboAddress& address, const std::string& k
     throw pdns::OpenSSL::error("encryptCA6: Could not finalize address encryption");
   }
 
-  assert(updateLen + finalLen == inSize);
+  if ((updateLen + finalLen) != inSize) {
+    throw pdns::OpenSSL::error("encryptCA6: unexpected final size");
+  }
 #else
   AES_KEY wctx;
   AES_set_encrypt_key((const unsigned char*)key.c_str(), 128, &wctx);
@@ -130,7 +134,9 @@ static ComboAddress decryptCA6(const ComboAddress& address, const std::string& k
   const auto inSize = sizeof(address.sin6.sin6_addr.s6_addr);
   static_assert(inSize == 16, "We disable padding and so we must assume a data size of 16 bytes");
   const auto blockSize = EVP_CIPHER_get_block_size(aes128cbc.get());
-  assert(blockSize == 16);
+  if (blockSize != 16) {
+    throw pdns::OpenSSL::error("decryptCA6: unexpected block size");
+  }
   EVP_CIPHER_CTX_set_padding(ctx.get(), 0);
 
   int updateLen = 0;
@@ -147,7 +153,9 @@ static ComboAddress decryptCA6(const ComboAddress& address, const std::string& k
     throw pdns::OpenSSL::error("decryptCA6: Could not finalize address decryption");
   }
 
-  assert(updateLen + finalLen == inSize);
+  if ((updateLen + finalLen) != inSize) {
+    throw pdns::OpenSSL::error("decryptCA6: unexpected final size");
+  }
 #else
   AES_KEY wctx;
   AES_set_decrypt_key((const unsigned char*)key.c_str(), 128, &wctx);

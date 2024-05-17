@@ -45,12 +45,14 @@ bool getNextEDNSOption(const char* data, size_t dataLen, uint16_t& optionCode, u
 /* extract the position (relative to the optRR pointer!) and size of a specific EDNS0 option from a pointer on the beginning rdLen of the OPT RR */
 int getEDNSOption(const char* optRR, const size_t len, uint16_t wantedOption, size_t* optionValuePosition, size_t * optionValueSize)
 {
-  assert(optRR != nullptr);
-  assert(optionValuePosition != nullptr);
-  assert(optionValueSize != nullptr);
-  size_t pos = 0;
-  if (len < DNS_RDLENGTH_SIZE)
+  if (optRR == nullptr || optionValuePosition == nullptr || optionValueSize == nullptr) {
     return EINVAL;
+  }
+
+  size_t pos = 0;
+  if (len < DNS_RDLENGTH_SIZE) {
+    return EINVAL;
+  }
 
   const uint16_t rdLen = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
   size_t rdPos = 0;
@@ -94,10 +96,10 @@ int getEDNSOption(const char* optRR, const size_t len, uint16_t wantedOption, si
 /* extract all EDNS0 options from a pointer on the beginning rdLen of the OPT RR */
 int getEDNSOptions(const char* optRR, const size_t len, EDNSOptionViewMap& options)
 {
-  assert(optRR != nullptr);
   size_t pos = 0;
-  if (len < DNS_RDLENGTH_SIZE)
+  if (optRR == nullptr || len < DNS_RDLENGTH_SIZE) {
     return EINVAL;
+  }
 
   const uint16_t rdLen = (((unsigned char) optRR[pos]) * 256) + ((unsigned char) optRR[pos+1]);
   size_t rdPos = 0;
