@@ -85,18 +85,14 @@ BackendMakerClass& BackendMakers()
   return bmc;
 }
 
-void BackendMakerClass::report(BackendFactory* backendFactory)
+void BackendMakerClass::report(std::unique_ptr<BackendFactory>&& backendFactory)
 {
-  d_repository[backendFactory->getName()] = backendFactory;
+  d_repository[backendFactory->getName()] = std::move(backendFactory);
 }
 
 void BackendMakerClass::clear()
 {
   d_instances.clear();
-  for (auto& repo : d_repository) {
-    delete repo.second;
-    repo.second = nullptr;
-  }
   d_repository.clear();
 }
 
@@ -199,7 +195,7 @@ vector<std::unique_ptr<DNSBackend>> BackendMakerClass::all(bool metadataOnly)
   try {
     for (const auto& instance : d_instances) {
       current = instance.first + instance.second;
-      auto* repo = d_repository[instance.first];
+      const auto& repo = d_repository[instance.first];
       std::unique_ptr<DNSBackend> made{metadataOnly ? repo->makeMetadataOnly(instance.second) : repo->make(instance.second)};
       if (made == nullptr) {
         throw PDNSException("Unable to launch backend '" + instance.first + "'");

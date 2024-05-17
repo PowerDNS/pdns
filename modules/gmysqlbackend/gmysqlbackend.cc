@@ -185,7 +185,7 @@ public:
   //! This reports us to the main UeberBackend class
   gMySQLLoader()
   {
-    BackendMakers().report(new gMySQLFactory("gmysql"));
+    BackendMakers().report(std::make_unique<gMySQLFactory>("gmysql"));
     g_log << Logger::Info << "[gmysqlbackend] This is the gmysql backend version " VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"

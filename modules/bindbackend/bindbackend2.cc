@@ -1535,7 +1535,7 @@ class Bind2Loader
 public:
   Bind2Loader()
   {
-    BackendMakers().report(new Bind2Factory);
+    BackendMakers().report(std::make_unique<Bind2Factory>());
     g_log << Logger::Info << "[bind2backend] This is the bind backend version " << VERSION
 #ifndef REPRODUCIBLE
           << " (" __DATE__ " " __TIME__ ")"
