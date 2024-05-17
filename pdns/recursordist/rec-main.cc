@@ -43,6 +43,7 @@
 #include "json.hh"
 #include "rec-system-resolve.hh"
 #include "root-dnssec.hh"
+#include "ratelimitedlog.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -140,6 +141,8 @@ unsigned int RecThreadInfo::s_numDistributorThreads;
 unsigned int RecThreadInfo::s_numUDPWorkerThreads;
 unsigned int RecThreadInfo::s_numTCPWorkerThreads;
 thread_local unsigned int RecThreadInfo::t_id;
+
+static pdns::RateLimitedLog s_rateLimitedLogger;
 
 static std::map<unsigned int, std::set<int>> parseCPUMap(Logr::log_t log)
 {
@@ -942,8 +945,8 @@ static void checkLinuxMapCountLimits([[maybe_unused]] Logr::log_t log)
     // Also add 2 for handler and task threads.
     auto mapsNeeded = 4ULL * g_maxMThreads * (RecThreadInfo::numTCPWorkers() + RecThreadInfo::numUDPWorkers() + 2);
     if (lim < mapsNeeded) {
-      SLOG(g_log << Logger::Error << "sysctl kern.max_map_count= <" << mapsNeeded << ", this may cause 'bad_alloc' exceptions" << endl,
-           log->info(Logr::Error, "sysctl kern.max_map_count < mapsNeeded, this may cause 'bad_alloc' exceptions",
+      SLOG(g_log << Logger::Error << "sysctl vm.max_map_count= <" << mapsNeeded << ", this may cause 'bad_alloc' exceptions" << endl,
+           log->info(Logr::Error, "sysctl vm.max_map_count < mapsNeeded, this may cause 'bad_alloc' exceptions",
                      "kern.max_map_count", Logging::Loggable(lim), "mapsNeeded", Logging::Loggable(mapsNeeded)));
     }
   }
@@ -2343,17 +2346,14 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
   try {
     resp = tmsg->func();
   }
-  catch (const PDNSException& e) {
-    SLOG(g_log << Logger::Error << "PIPE function we executed created PDNS exception: " << e.reason << endl, // but what if they wanted an answer.. we send 0
-         g_slog->withName("runtime")->error(Logr::Error, e.reason, "PIPE function we executed created exception", "exception", Logging::Loggable("PDNSException")));
+  catch (const PDNSException& pdnsException) {
+    s_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function", pdnsException);
   }
-  catch (const std::exception& e) {
-    SLOG(g_log << Logger::Error << "PIPE function we executed created exception: " << e.what() << endl, // but what if they wanted an answer.. we send 0
-         g_slog->withName("runtime")->error(Logr::Error, e.what(), "PIPE function we executed created exception", "exception", Logging::Loggable("std::exception")));
+  catch (const std::exception& stdException) {
+    s_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function", stdException);
   }
   catch (...) {
-    SLOG(g_log << Logger::Error << "PIPE function we executed created another exception" << endl, // but what if they wanted an answer.. we send 0
-         g_slog->withName("runtime")->info(Logr::Error, "PIPE function we executed created another exception"));
+    s_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function");
   }
   if (tmsg->wantAnswer) {
     if (write(RecThreadInfo::self().getPipes().writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
@@ -2766,17 +2766,14 @@ static void recLoop()
 
       runTCPMaintenance(threadInfo, listenOnTCP, maxTcpClients);
     }
-    catch (const PDNSException& ae) {
-      SLOG(g_log << Logger::Error << "PDNSException in recLoop: " << ae.reason << endl,
-           g_slog->withName("runtime")->error(Logr::Error, ae.reason, "Exception in recLoop", "exception", Logging::Loggable("PDNSException")));
+    catch (const PDNSException& pdnsException) {
+      s_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop", pdnsException);
     }
-    catch (const std::exception& e) {
-      SLOG(g_log << Logger::Error << "Exception in recLoop: " << e.what() << endl,
-           g_slog->withName("runtime")->error(Logr::Error, e.what(), "Exception in recLoop", "exception", Logging::Loggable("std::exception")));
+    catch (const std::exception& stdException) {
+      s_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop", stdException);
     }
     catch (...) {
-      SLOG(g_log << Logger::Error << "Any other exception in recLoop: " << endl,
-           g_slog->withName("runtime")->info(Logr::Error, "Exception in recLoop"));
+      s_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop");
     }
   }
 }

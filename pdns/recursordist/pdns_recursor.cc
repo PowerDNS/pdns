@@ -31,6 +31,8 @@
 #include "shuffle.hh"
 #include "validate-recursor.hh"
 
+#include "ratelimitedlog.hh"
+
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
@@ -97,6 +99,8 @@ GlobalStateHolder<SuffixMatchNode> g_dontThrottleNames;
 GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 uint64_t g_latencyStatSize;
+
+static pdns::RateLimitedLog s_rateLimitedLogger;
 
 LWResult::Result UDPClientSocks::getSocket(const ComboAddress& toaddr, int* fileDesc)
 {
@@ -2229,19 +2233,13 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
               eventTrace.add(RecEventTrace::LuaGetTag, ctag, false);
             }
           }
-          catch (const std::exception& e) {
-            if (g_logCommonErrors) {
-              SLOG(g_log << Logger::Warning << "Error parsing a query packet qname='" << qname << "' for tag determination, setting tag=0: " << e.what() << endl,
-                   g_slogudpin->error(Logr::Warning, e.what(), "Error parsing a query packet for tag determination, setting tag=0", "qname", Logging::Loggable(qname), "remote", Logging::Loggable(fromaddr), "exception", Logging::Loggable("std;:exception")));
-            }
+          catch (const std::exception& stdException) {
+            s_rateLimitedLogger.log(g_slogudpin, "Error parsing a query packet for tag determination", stdException, "qname", Logging::Loggable(qname), "remote", Logging::Loggable(fromaddr));
           }
         }
       }
-      catch (const std::exception& e) {
-        if (g_logCommonErrors) {
-          SLOG(g_log << Logger::Warning << "Error parsing a query packet for tag determination, setting tag=0: " << e.what() << endl,
-               g_slogudpin->error(Logr::Warning, e.what(), "Error parsing a query packet for tag determination, setting tag=0", "remote", Logging::Loggable(fromaddr), "exception", Logging::Loggable("std;:exception")));
-        }
+      catch (const std::exception& stdException) {
+        s_rateLimitedLogger.log(g_slogudpin, "Error parsing a query packet for tag determination, setting tag=0", stdException);
       }
     }
 
