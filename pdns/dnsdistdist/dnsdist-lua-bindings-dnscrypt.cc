@@ -142,12 +142,12 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
     });
 
     /* DNSCryptCert */
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getMagic", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.magic), sizeof(cert.magic)); });
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getEsVersion", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.esVersion), sizeof(cert.esVersion)); });
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getProtocolMinorVersion", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.protocolMinorVersion), sizeof(cert.protocolMinorVersion)); });
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getSignature", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signature), sizeof(cert.signature)); });
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getResolverPublicKey", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signedData.resolverPK), sizeof(cert.signedData.resolverPK)); });
-    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getClientMagic", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signedData.clientMagic), sizeof(cert.signedData.clientMagic)); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getMagic", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.magic.data()), cert.magic.size()); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getEsVersion", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.esVersion.data()), cert.esVersion.size()); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getProtocolMinorVersion", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.protocolMinorVersion.data()), cert.protocolMinorVersion.size()); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getSignature", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signature.data()), cert.signature.size()); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getResolverPublicKey", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signedData.resolverPK.data()), cert.signedData.resolverPK.size()); });
+    luaCtx.registerFunction<std::string(DNSCryptCert::*)()const>("getClientMagic", [](const DNSCryptCert& cert) { return std::string(reinterpret_cast<const char*>(cert.signedData.clientMagic.data()), cert.signedData.clientMagic.size()); });
     luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()const>("getSerial", [](const DNSCryptCert& cert) { return cert.getSerial(); });
     luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()const>("getTSStart", [](const DNSCryptCert& cert) { return ntohl(cert.getTSStart()); });
     luaCtx.registerFunction<uint32_t(DNSCryptCert::*)()const>("getTSEnd", [](const DNSCryptCert& cert) { return ntohl(cert.getTSEnd()); });
@@ -177,19 +177,19 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
       if (client) {
         return;
       }
-      unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
-      unsigned char privateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
-      sodium_mlock(privateKey, sizeof(privateKey));
+      DNSCryptCertSignedData::ResolverPublicKeyType publicKey;
+      DNSCryptCertSignedData::ResolverPrivateKeyType privateKey;
+      sodium_mlock(privateKey.data(), privateKey.size());
 
       try {
         DNSCryptContext::generateProviderKeys(publicKey, privateKey);
 
         ofstream pubKStream(publicKeyFile);
-        pubKStream.write(reinterpret_cast<char*>(publicKey), sizeof(publicKey));
+        pubKStream.write(reinterpret_cast<char*>(publicKey.data()), publicKey.size());
         pubKStream.close();
 
         ofstream privKStream(privateKeyFile);
-        privKStream.write(reinterpret_cast<char*>(privateKey), sizeof(privateKey));
+        privKStream.write(reinterpret_cast<char*>(privateKey.data()), privateKey.size());
         privKStream.close();
 
         g_outputBuffer = "Provider fingerprint is: " + DNSCryptContext::getProviderFingerprint(publicKey) + "\n";
@@ -199,17 +199,17 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
         g_outputBuffer = "Error generating a DNSCrypt provider key: " + string(e.what()) + "\n";
       }
 
-      sodium_memzero(privateKey, sizeof(privateKey));
-      sodium_munlock(privateKey, sizeof(privateKey));
+      sodium_memzero(privateKey.data(), privateKey.size());
+      sodium_munlock(privateKey.data(), privateKey.size());
     });
 
     luaCtx.writeFunction("printDNSCryptProviderFingerprint", [](const std::string& publicKeyFile) {
       setLuaNoSideEffect();
-      unsigned char publicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
+      DNSCryptCertSignedData::ResolverPublicKeyType publicKey;
 
       try {
         ifstream file(publicKeyFile);
-        file.read(reinterpret_cast<char*>(&publicKey), sizeof(publicKey));
+        file.read(reinterpret_cast<char*>(publicKey.data()), publicKey.size());
 
         if (file.fail()) {
           throw std::runtime_error("Invalid dnscrypt provider public key file " + publicKeyFile);

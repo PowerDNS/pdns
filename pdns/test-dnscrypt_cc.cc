@@ -44,8 +44,8 @@ BOOST_AUTO_TEST_SUITE(test_dnscrypt_cc)
 BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
-  unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
-  unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+  DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
+  DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
   DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
@@ -82,8 +82,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery) {
 BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidA) {
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
-  unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
-  unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+  DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
+  DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
   DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
@@ -105,8 +105,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidA) {
 BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidProviderName) {
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
-  unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
-  unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+  DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
+  DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
   DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
@@ -128,19 +128,18 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidProviderName) {
 BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
-  unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
-  unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+  DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
+  DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
   DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSCryptPrivateKey clientPrivateKey;
-  unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE];
-
+  DNSCryptPublicKeyType clientPublicKey;
   DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
-  unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
+  DNSCryptClientNonceType clientNonce{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
@@ -176,19 +175,19 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid) {
 BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort) {
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
-  unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
-  unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+  DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
+  DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
   DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSCryptPrivateKey clientPrivateKey;
-  unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE];
+  DNSCryptCertSignedData::ResolverPublicKeyType clientPublicKey;
 
   DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
-  unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
+  DNSCryptClientNonceType clientNonce{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
@@ -203,19 +202,19 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort) {
 BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
-  unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
-  unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+  DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
+  DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
   DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSCryptPrivateKey clientPrivateKey;
-  unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE];
+  DNSCryptCertSignedData::ResolverPublicKeyType clientPublicKey;
 
   DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
-  unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
+  DNSCryptClientNonceType clientNonce{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
@@ -256,19 +255,19 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey) {
 BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey) {
   DNSCryptPrivateKey resolverPrivateKey;
   DNSCryptCert resolverCert;
-  unsigned char providerPublicKey[DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE];
-  unsigned char providerPrivateKey[DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE];
+  DNSCryptCertSignedData::ResolverPublicKeyType providerPublicKey;
+  DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
   DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSCryptPrivateKey clientPrivateKey;
-  unsigned char clientPublicKey[DNSCRYPT_PUBLIC_KEY_SIZE];
+  DNSCryptCertSignedData::ResolverPublicKeyType clientPublicKey;
 
   DNSCryptContext::generateResolverKeyPair(clientPrivateKey, clientPublicKey);
 
-  unsigned char clientNonce[DNSCRYPT_NONCE_SIZE / 2] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
+  DNSCryptClientNonceType clientNonce{ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B };
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
