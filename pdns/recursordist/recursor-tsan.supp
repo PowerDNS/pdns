@@ -1,3 +1,5 @@
 # We don't care about stats for now
 race:doStats
 race:g_stats
+# Just calling _exit in the TSAN case
+signal:termIntHandler
