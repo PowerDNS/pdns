@@ -871,7 +871,7 @@ Lower this if you experience timeouts.
 List of netmasks (proxy IP in case of proxy-protocol presence, client IP otherwise) for which EDNS padding will be enabled in responses, provided that :ref:`setting-edns-padding-mode` applies.
  ''',
         'versionadded' : '4.5.0',
-        'versionchanged' : ('5.0.4', 'YAML settings only: previously this was defined as a string instead of a sequence')
+        'versionchanged' : ('5.0.5', 'YAML settings only: previously this was defined as a string instead of a sequence')
     },
     {
         'name' : 'edns_padding_mode',
@@ -2062,7 +2062,7 @@ Note that once a Proxy Protocol header has been received, the source address fro
 The dnsdist docs have `more information about the PROXY protocol <https://dnsdist.org/advanced/passing-source-address.html#proxy-protocol>`_.
  ''',
         'versionadded' : '4.4.0',
-        'versionchanged' : ('5.0.4', 'YAML settings only: previously this was defined as a string instead of a sequence')
+        'versionchanged' : ('5.0.5', 'YAML settings only: previously this was defined as a string instead of a sequence')
     },
     {
         'name' : 'proxy_protocol_exceptions',
