@@ -40,6 +40,11 @@ BOOST_AUTO_TEST_SUITE(test_dnscrypt_cc)
 
 #ifdef HAVE_DNSCRYPT
 
+static time_t oneDayFromNow(time_t now)
+{
+  return now + static_cast<time_t>(24 * 60 * 3600);
+}
+
 // plaintext query for cert
 BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery)
 {
@@ -49,13 +54,13 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery)
   DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  DNSCryptContext::generateCertificate(1, now, oneDayFromNow(now), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSName name("2.name.");
   PacketBuffer plainQuery;
-  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::TXT, QClass::IN, 0);
-  pw.getHeader()->rd = 0;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(plainQuery, name, QType::TXT, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 0;
 
   std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
   query->parsePacket(plainQuery, false, now);
@@ -67,7 +72,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQuery)
 
   query->getCertificateResponse(now, response);
 
-  MOADNSParser mdp(false, (char*)response.data(), response.size());
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): this is the API we have
+  MOADNSParser mdp(false, reinterpret_cast<const char*>(response.data()), response.size());
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1U);
@@ -88,14 +94,14 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidA)
   DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  DNSCryptContext::generateCertificate(1, now, oneDayFromNow(now), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSName name("2.name.");
 
   PacketBuffer plainQuery;
-  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::A, QClass::IN, 0);
-  pw.getHeader()->rd = 0;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(plainQuery, name, QType::A, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 0;
 
   std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
   query->parsePacket(plainQuery, false, now);
@@ -112,14 +118,14 @@ BOOST_AUTO_TEST_CASE(DNSCryptPlaintextQueryInvalidProviderName)
   DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  DNSCryptContext::generateCertificate(1, now, oneDayFromNow(now), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSName name("2.WRONG.name.");
 
   PacketBuffer plainQuery;
-  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::TXT, QClass::IN, 0);
-  pw.getHeader()->rd = 0;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(plainQuery, name, QType::TXT, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 0;
 
   std::shared_ptr<DNSCryptQuery> query = std::make_shared<DNSCryptQuery>(ctx);
   query->parsePacket(plainQuery, false, now);
@@ -136,7 +142,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid)
   DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  DNSCryptContext::generateCertificate(1, now, oneDayFromNow(now), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSCryptPrivateKey clientPrivateKey;
@@ -147,8 +153,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid)
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
-  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
-  pw.getHeader()->rd = 1;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(plainQuery, name, QType::AAAA, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 1;
 
   size_t initialSize = plainQuery.size();
   int res = ctx->encryptQuery(plainQuery, 4096, clientPublicKey, clientPrivateKey, clientNonce, false, std::make_shared<DNSCryptCert>(resolverCert));
@@ -163,7 +169,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValid)
   BOOST_CHECK_EQUAL(query->isValid(), true);
   BOOST_CHECK_EQUAL(query->isEncrypted(), true);
 
-  MOADNSParser mdp(true, (char*)plainQuery.data(), plainQuery.size());
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): this is the API we have
+  MOADNSParser mdp(true, reinterpret_cast<const char*>(plainQuery.data()), plainQuery.size());
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
@@ -184,7 +191,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort)
   DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  DNSCryptContext::generateCertificate(1, now, oneDayFromNow(now), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSCryptPrivateKey clientPrivateKey;
@@ -196,8 +203,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidButShort)
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
-  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
-  pw.getHeader()->rd = 1;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(plainQuery, name, QType::AAAA, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 1;
 
   int res = ctx->encryptQuery(plainQuery, /* not enough room */ plainQuery.size(), clientPublicKey, clientPrivateKey, clientNonce, false, std::make_shared<DNSCryptCert>(resolverCert));
   BOOST_CHECK_EQUAL(res, ENOBUFS);
@@ -212,7 +219,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey)
   DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  DNSCryptContext::generateCertificate(1, now, oneDayFromNow(now), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSCryptPrivateKey clientPrivateKey;
@@ -224,8 +231,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey)
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
-  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
-  pw.getHeader()->rd = 1;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(plainQuery, name, QType::AAAA, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 1;
 
   size_t initialSize = plainQuery.size();
   int res = ctx->encryptQuery(plainQuery, 4096, clientPublicKey, clientPrivateKey, clientNonce, false, std::make_shared<DNSCryptCert>(resolverCert));
@@ -234,7 +241,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey)
   BOOST_CHECK(plainQuery.size() > initialSize);
 
   DNSCryptCert newResolverCert;
-  DNSCryptContext::generateCertificate(2, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, newResolverCert);
+  DNSCryptContext::generateCertificate(2, now, oneDayFromNow(now), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, newResolverCert);
   ctx->addNewCertificate(newResolverCert, resolverPrivateKey);
   ctx->markInactive(resolverCert.getSerial());
 
@@ -245,7 +252,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryValidWithOldKey)
   BOOST_CHECK_EQUAL(query->isValid(), true);
   BOOST_CHECK_EQUAL(query->isEncrypted(), true);
 
-  MOADNSParser mdp(true, (char*)plainQuery.data(), plainQuery.size());
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): this is the API we have
+  MOADNSParser mdp(true, reinterpret_cast<const char*>(plainQuery.data()), plainQuery.size());
 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
@@ -266,7 +274,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey)
   DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
   time_t now = time(nullptr);
   DNSCryptContext::generateProviderKeys(providerPublicKey, providerPrivateKey);
-  DNSCryptContext::generateCertificate(1, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
+  DNSCryptContext::generateCertificate(1, now, oneDayFromNow(now), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, resolverCert);
   auto ctx = std::make_shared<DNSCryptContext>("2.name", resolverCert, resolverPrivateKey);
 
   DNSCryptPrivateKey clientPrivateKey;
@@ -278,8 +286,8 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey)
 
   DNSName name("www.powerdns.com.");
   PacketBuffer plainQuery;
-  GenericDNSPacketWriter<PacketBuffer> pw(plainQuery, name, QType::AAAA, QClass::IN, 0);
-  pw.getHeader()->rd = 1;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(plainQuery, name, QType::AAAA, QClass::IN, 0);
+  packetWriter.getHeader()->rd = 1;
 
   size_t initialSize = plainQuery.size();
   int res = ctx->encryptQuery(plainQuery, 4096, clientPublicKey, clientPrivateKey, clientNonce, false, std::make_shared<DNSCryptCert>(resolverCert));
@@ -288,7 +296,7 @@ BOOST_AUTO_TEST_CASE(DNSCryptEncryptedQueryInvalidWithWrongKey)
   BOOST_CHECK(plainQuery.size() > initialSize);
 
   DNSCryptCert newResolverCert;
-  DNSCryptContext::generateCertificate(2, now, now + (24 * 60 * 3600), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, newResolverCert);
+  DNSCryptContext::generateCertificate(2, now, oneDayFromNow(now), DNSCryptExchangeVersion::VERSION1, providerPrivateKey, resolverPrivateKey, newResolverCert);
   ctx->addNewCertificate(newResolverCert, resolverPrivateKey);
   ctx->markInactive(resolverCert.getSerial());
   ctx->removeInactiveCertificate(resolverCert.getSerial());
