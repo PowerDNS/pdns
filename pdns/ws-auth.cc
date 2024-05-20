@@ -80,6 +80,7 @@ AuthWebServer::AuthWebServer() :
     d_ws->setACL(acl);
 
     d_ws->setMaxBodySize(::arg().asNum("webserver-max-bodysize"));
+    d_ws->setConnectionTimeout(::arg().asNum("webserver-connection-timeout"));
 
     d_ws->bind();
   }

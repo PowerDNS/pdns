@@ -530,7 +530,7 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
     YaHTTP::AsyncRequestLoader yarl;
     yarl.initialize(&req);
     req.max_request_size=d_maxbodysize;
-    int timeout = 5;
+    int timeout = d_connectiontimeout;
     client->setNonBlocking();
 
     try {
@@ -598,7 +598,8 @@ WebServer::WebServer(string listenaddress, int port) :
   d_listenaddress(std::move(listenaddress)),
   d_port(port),
   d_server(nullptr),
-  d_maxbodysize(2*1024*1024)
+  d_maxbodysize(2*1024*1024),
+  d_connectiontimeout(5)
 {
 }
 

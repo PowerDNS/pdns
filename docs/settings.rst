@@ -1953,6 +1953,17 @@ The value between the hooks is a UUID that is generated for each request. This c
 
 Maximum request/response body size in megabytes.
 
+.. _setting-webserver-connection-timeout:
+
+``webserver-connection-timeout``
+--------------------------------
+.. versionadded:: 4.8.5
+
+-  Integer
+-  Default: 5
+
+Request/response timeout in seconds.
+
 .. _setting-webserver-password:
 
 ``webserver-password``
