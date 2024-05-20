@@ -20,6 +20,7 @@ The following webserver related configuration items are available:
 * :ref:`setting-webserver-port`: Port to bind the webserver to.
 * :ref:`setting-webserver-allow-from`: Netmasks that are allowed to connect to the webserver
 * :ref:`setting-webserver-max-bodysize`: Maximum request/response body size in megabytes
+* :ref:`setting-webserver-connection-timeout`: Request/response timeout in seconds
 
 
 Metrics Endpoint

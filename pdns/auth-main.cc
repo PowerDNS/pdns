@@ -244,6 +244,7 @@ static void declareArguments()
   ::arg().set("webserver-allow-from", "Webserver/API access is only allowed from these subnets") = "127.0.0.1,::1";
   ::arg().set("webserver-loglevel", "Amount of logging in the webserver (none, normal, detailed)") = "normal";
   ::arg().set("webserver-max-bodysize", "Webserver/API maximum request/response body size in megabytes") = "2";
+  ::arg().set("webserver-connection-timeout", "Webserver/API request/response timeout in seconds") = "5";
   ::arg().setSwitch("webserver-hash-plaintext-credentials", "Whether to hash passwords and api keys supplied in plaintext, to prevent keeping the plaintext version in memory at runtime") = "no";
 
   ::arg().setSwitch("query-logging", "Hint backends that queries should be logged") = "no";
