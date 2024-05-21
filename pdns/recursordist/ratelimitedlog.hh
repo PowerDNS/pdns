@@ -50,7 +50,7 @@ public:
   {
     uint32_t count{};
     if (doLog(count)) {
-      SLOG(g_log << Logger::Error << msg << " created an exception: " << except.what() << endl,
+      SLOG(g_log << Logger::Error << msg << " created an exception: " << stdException.what() << endl,
            slog->error(Logr::Error, stdException.what(), msg + " created an exception",
                        "ratelimitingSkipped", Logging::Loggable(count),
                        "exception", Logging::Loggable("std::exception"), args...));
@@ -62,7 +62,7 @@ public:
   {
     uint32_t count{};
     if (doLog(count)) {
-      SLOG(g_log << Logger::Error << msg << " created an PDNSException: " << except.reason << endl,
+      SLOG(g_log << Logger::Error << msg << " created an PDNSException: " << pdnsException.reason << endl,
            slog->error(Logr::Error, pdnsException.reason, msg + " created an exception",
                        "ratelimitingSkipped", Logging::Loggable(count),
                        "exception", Logging::Loggable("PDNSException"), args...));
