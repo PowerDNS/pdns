@@ -86,7 +86,8 @@ private:
   }
   const time_t d_period;
 
-  struct LockedObject {
+  struct LockedObject
+  {
     time_t d_last{0};
     uint32_t d_count{0};
   };

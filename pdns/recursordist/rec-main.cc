@@ -919,7 +919,7 @@ static void checkOrFixLinuxMapCountLimits([[maybe_unused]] Logr::log_t log)
     auto workers = RecThreadInfo::numTCPWorkers() + RecThreadInfo::numUDPWorkers() + 2;
     auto mapsNeeded = 4ULL * g_maxMThreads * workers;
     if (lim < mapsNeeded) {
-      g_maxMThreads = lim / (4 * workers);
+      g_maxMThreads = static_cast<unsigned int>(lim / (4ULL * workers));
       SLOG(g_log << Logger::Error << "sysctl vm.max_map_count= <" << mapsNeeded << ", this may cause 'bad_alloc' exceptions; adjusting max-mthreads to " << g_maxMThreads << endl,
            log->info(Logr::Error, "sysctl vm.max_map_count < mapsNeeded, this may cause 'bad_alloc' exceptions, adjusting max-mthreads",
                      "kern.max_map_count", Logging::Loggable(lim), "mapsNeeded", Logging::Loggable(mapsNeeded),
