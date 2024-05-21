@@ -26,7 +26,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <sys/types.h>
-#include <iostream>  
+#include <iostream>
 #include <string>
 #include <boost/tokenizer.hpp>
 #include <boost/functional/hash.hpp>
@@ -57,7 +57,7 @@ bool DNSPacket::s_doEDNSSubnetProcessing;
 bool DNSPacket::s_doEDNSCookieProcessing;
 string DNSPacket::s_EDNSCookieKey;
 uint16_t DNSPacket::s_udpTruncationThreshold;
- 
+
 DNSPacket::DNSPacket(bool isQuery): d_isQuery(isQuery)
 {
   memset(&d, 0, sizeof(d));
@@ -132,7 +132,7 @@ void DNSPacket::setAnswer(bool b)
   if(b) {
     d_rawpacket.assign(12,(char)0);
     memset((void *)&d,0,sizeof(d));
-    
+
     d.qr=b;
   }
 }
@@ -295,12 +295,12 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   pw.getHeader()->id=d.id;
   pw.getHeader()->rd=d.rd;
   pw.getHeader()->tc=d.tc;
-  
+
   DNSPacketWriter::optvect_t opts;
 
   /* optsize is expected to hold an upper bound of data that will be
-     added after actual record data - i.e. OPT, TSIG, perhaps one day
-     XPF. Because of the way `pw` incrementally writes the packet, we
+     added after actual record data - i.e. OPT, TSIG.
+     Because of the way `pw` incrementally writes the packet, we
      cannot easily 'go back' and remove a few records. So, to prevent
      going over our maximum size, we keep our (potential) extra data
      in mind.
@@ -369,13 +369,13 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
       if(!d_rrs.empty()) pw.commit();
 
       noCommit:;
-      
+
       if(d_haveednssubnet) {
         EDNSSubnetOpts eso = d_eso;
         // use the scopeMask from the resolver, if it is greater - issue #5469
         maxScopeMask = max(maxScopeMask, eso.scope.getBits());
         eso.scope = Netmask(eso.source.getNetwork(), maxScopeMask);
-    
+
         string opt = makeEDNSSubnetOptsString(eso);
         opts.emplace_back(8, opt); // 'EDNS SUBNET'
       }
@@ -396,10 +396,10 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
       throw;
     }
   }
-  
+
   if(d_trc.d_algoName.countLabels())
     addTSIG(pw, d_trc, d_tsigkeyname, d_tsigsecret, d_tsigprevious, d_tsigtimersonly);
-  
+
   d_rawpacket.assign((char*)&packet[0], packet.size()); // XXX we could do this natively on a vector..
 
   // copy RR counts so they can be read later
@@ -433,7 +433,7 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
   r->setAnswer(true);  // this implies the allocation of the header
   r->setA(true); // and we are authoritative
   r->setRA(false); // no recursion available
-  r->setRD(d.rd); // if you wanted to recurse, answer will say you wanted it 
+  r->setRD(d.rd); // if you wanted to recurse, answer will say you wanted it
   r->setID(d.id);
   r->setOpcode(d.opcode);
 
@@ -469,7 +469,7 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
 void DNSPacket::spoofQuestion(const DNSPacket& qd)
 {
   d_wrapped=true; // if we do this, don't later on wrapup
-  
+
   int labellen;
   string::size_type i=sizeof(d);
 
@@ -484,8 +484,8 @@ void DNSPacket::spoofQuestion(const DNSPacket& qd)
 
 int DNSPacket::noparse(const char *mesg, size_t length)
 {
-  d_rawpacket.assign(mesg,length); 
-  if(length < 12) { 
+  d_rawpacket.assign(mesg,length);
+  if(length < 12) {
     g_log << Logger::Debug << "Ignoring packet: too short ("<<length<<" < 12) from "
       << getRemoteStringWithPort();
     return -1;
@@ -571,9 +571,9 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 int DNSPacket::parse(const char *mesg, size_t length)
 try
 {
-  d_rawpacket.assign(mesg,length); 
+  d_rawpacket.assign(mesg,length);
   d_wrapped=true;
-  if(length < 12) { 
+  if(length < 12) {
     g_log << Logger::Debug << "Ignoring packet: too short from "
       << getRemoteString() << endl;
     return -1;
@@ -611,7 +611,7 @@ try
         if(getEDNSSubnetOptsFromString(option.second, &d_eso)) {
           //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
           d_haveednssubnet=true;
-        } 
+        }
       }
       else if (s_doEDNSCookieProcessing && option.first == EDNSOptionCode::COOKIE) {
         d_haveednscookie = true;
@@ -641,7 +641,7 @@ try
       return -1;
     }
   }
-  
+
   qtype=mdp.d_qtype;
   qclass=mdp.d_qclass;
 
@@ -775,4 +775,3 @@ void DNSPacket::cleanupGSS(int rcode)
   }
 }
 #endif
-

@@ -32,7 +32,6 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-internal-queries.hh"
 #include "dnsdist-tcp.hh"
-#include "dnsdist-xpf.hh"
 #include "dnsdist-xsk.hh"
 
 #include "dolog.hh"
@@ -102,7 +101,7 @@ BOOST_AUTO_TEST_SUITE(test_dnsdist_cc)
 static const uint16_t ECSSourcePrefixV4 = 24;
 static const uint16_t ECSSourcePrefixV6 = 56;
 
-static void validateQuery(const PacketBuffer& packet, bool hasEdns = true, bool hasXPF = false, uint16_t additionals = 0, uint16_t answers = 0, uint16_t authorities = 0)
+static void validateQuery(const PacketBuffer& packet, bool hasEdns = true, uint16_t additionals = 0, uint16_t answers = 0, uint16_t authorities = 0)
 {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   MOADNSParser mdp(true, reinterpret_cast<const char*>(packet.data()), packet.size());
@@ -112,7 +111,7 @@ static void validateQuery(const PacketBuffer& packet, bool hasEdns = true, bool 
   BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, answers);
   BOOST_CHECK_EQUAL(mdp.d_header.nscount, authorities);
-  uint16_t expectedARCount = additionals + (hasEdns ? 1U : 0U) + (hasXPF ? 1U : 0U);
+  uint16_t expectedARCount = additionals + (hasEdns ? 1U : 0U);
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, expectedARCount);
 }
 
@@ -150,82 +149,6 @@ static void validateResponse(const PacketBuffer& packet, bool hasEdns, uint8_t a
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1U);
   BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, (hasEdns ? 1U : 0U) + additionalCount);
-}
-
-BOOST_AUTO_TEST_CASE(test_addXPF)
-{
-  static const uint16_t xpfOptionCode = 65422;
-
-  DNSName name("www.powerdns.com.");
-  InternalQueryState ids;
-  ids.protocol = dnsdist::Protocol::DoUDP;
-  ids.origRemote = ComboAddress("::1");
-  ids.origDest = ComboAddress("::1");
-
-  PacketBuffer query;
-  GenericDNSPacketWriter<PacketBuffer> packetWriter(query, name, QType::A, QClass::IN, 0);
-  packetWriter.getHeader()->rd = 1;
-  PacketBuffer queryWithXPF;
-
-  {
-    PacketBuffer packet = query;
-
-    /* large enough packet */
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    ids.qname = DNSName(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-    DNSQuestion dnsQuestion(ids, const_cast<PacketBuffer&>(packet));
-    BOOST_CHECK_EQUAL(ids.qname, name);
-    BOOST_CHECK(ids.qtype == QType::A);
-
-    BOOST_CHECK(addXPF(dnsQuestion, xpfOptionCode));
-    BOOST_CHECK(packet.size() > query.size());
-    validateQuery(packet, false, true);
-    queryWithXPF = packet;
-  }
-
-  {
-    PacketBuffer packet = query;
-
-    /* packet is already too large for the 4096 limit over UDP */
-    packet.resize(4096);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    ids.qname = DNSName(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-    DNSQuestion dnsQuestion(ids, const_cast<PacketBuffer&>(packet));
-    BOOST_CHECK_EQUAL(ids.qname, name);
-    BOOST_CHECK(ids.qtype == QType::A);
-
-    BOOST_REQUIRE(!addXPF(dnsQuestion, xpfOptionCode));
-    BOOST_CHECK_EQUAL(packet.size(), 4096U);
-    packet.resize(query.size());
-    validateQuery(packet, false, false);
-  }
-
-  {
-    PacketBuffer packet = query;
-
-    /* packet with trailing data (overriding it) */
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    ids.qname = DNSName(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &ids.qtype, &ids.qclass);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-    DNSQuestion dnsQuestion(ids, const_cast<PacketBuffer&>(packet));
-    BOOST_CHECK_EQUAL(ids.qname, name);
-    BOOST_CHECK(ids.qtype == QType::A);
-
-    /* add trailing data */
-    const size_t trailingDataSize = 10;
-    /* Making sure we have enough room to allow for fake trailing data */
-    packet.resize(packet.size() + trailingDataSize);
-    for (size_t idx = 0; idx < trailingDataSize; idx++) {
-      packet.push_back('A');
-    }
-
-    BOOST_CHECK(addXPF(dnsQuestion, xpfOptionCode));
-    BOOST_CHECK_EQUAL(packet.size(), queryWithXPF.size());
-    BOOST_CHECK_EQUAL(memcmp(queryWithXPF.data(), packet.data(), queryWithXPF.size()), 0);
-    validateQuery(packet, false, true);
-  }
 }
 
 BOOST_AUTO_TEST_CASE(addECSWithoutEDNS)
@@ -337,7 +260,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNSButWithAnswer)
   BOOST_CHECK(packet.size() > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, true);
   BOOST_CHECK_EQUAL(ecsAdded, true);
-  validateQuery(packet, true, false, 0, 1);
+  validateQuery(packet, true, 0, 1);
   validateECS(packet, remote);
   PacketBuffer queryWithEDNS = packet;
 
@@ -356,7 +279,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNSButWithAnswer)
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
   packet.resize(query.size());
-  validateQuery(packet, false, false, 0, 1);
+  validateQuery(packet, false, 0, 1);
 
   /* packet with trailing data (overriding it) */
   packet = query;
@@ -380,7 +303,7 @@ BOOST_AUTO_TEST_CASE(addECSWithoutEDNSButWithAnswer)
   BOOST_CHECK_EQUAL(memcmp(queryWithEDNS.data(), packet.data(), queryWithEDNS.size()), 0);
   BOOST_CHECK_EQUAL(ednsAdded, true);
   BOOST_CHECK_EQUAL(ecsAdded, true);
-  validateQuery(packet, true, false, 0, 1);
+  validateQuery(packet, true, 0, 1);
 }
 
 BOOST_AUTO_TEST_CASE(addECSWithoutEDNSAlreadyParsed)
@@ -759,7 +682,7 @@ BOOST_AUTO_TEST_CASE(replaceECSFollowedByTSIG)
   BOOST_CHECK(packet.size() > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
-  validateQuery(packet, true, false, 1);
+  validateQuery(packet, true, 1);
   validateECS(packet, remote);
 
   /* not large enough packet */
@@ -777,7 +700,7 @@ BOOST_AUTO_TEST_CASE(replaceECSFollowedByTSIG)
   BOOST_CHECK_EQUAL(packet.size(), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
-  validateQuery(packet, true, false, 1);
+  validateQuery(packet, true, 1);
 }
 
 BOOST_AUTO_TEST_CASE(replaceECSAfterAN)
@@ -817,7 +740,7 @@ BOOST_AUTO_TEST_CASE(replaceECSAfterAN)
   BOOST_CHECK(packet.size() > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
-  validateQuery(packet, true, false, 0, 1, 0);
+  validateQuery(packet, true, 0, 1, 0);
   validateECS(packet, remote);
 
   /* not large enough packet */
@@ -835,7 +758,7 @@ BOOST_AUTO_TEST_CASE(replaceECSAfterAN)
   BOOST_CHECK_EQUAL(packet.size(), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
-  validateQuery(packet, true, false, 0, 1, 0);
+  validateQuery(packet, true, 0, 1, 0);
 }
 
 BOOST_AUTO_TEST_CASE(replaceECSAfterAuth)
@@ -875,7 +798,7 @@ BOOST_AUTO_TEST_CASE(replaceECSAfterAuth)
   BOOST_CHECK(packet.size() > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
-  validateQuery(packet, true, false, 0, 0, 1);
+  validateQuery(packet, true, 0, 0, 1);
   validateECS(packet, remote);
 
   /* not large enough packet */
@@ -893,7 +816,7 @@ BOOST_AUTO_TEST_CASE(replaceECSAfterAuth)
   BOOST_CHECK_EQUAL(packet.size(), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
-  validateQuery(packet, true, false, 0, 0, 1);
+  validateQuery(packet, true, 0, 0, 1);
 }
 
 BOOST_AUTO_TEST_CASE(replaceECSBetweenTwoRecords)
@@ -934,7 +857,7 @@ BOOST_AUTO_TEST_CASE(replaceECSBetweenTwoRecords)
   BOOST_CHECK(packet.size() > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
-  validateQuery(packet, true, false, 2);
+  validateQuery(packet, true, 2);
   validateECS(packet, remote);
 
   /* not large enough packet */
@@ -952,7 +875,7 @@ BOOST_AUTO_TEST_CASE(replaceECSBetweenTwoRecords)
   BOOST_CHECK_EQUAL(packet.size(), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
-  validateQuery(packet, true, false, 2);
+  validateQuery(packet, true, 2);
 }
 
 BOOST_AUTO_TEST_CASE(insertECSInEDNSBetweenTwoRecords)
@@ -988,7 +911,7 @@ BOOST_AUTO_TEST_CASE(insertECSInEDNSBetweenTwoRecords)
   BOOST_CHECK(packet.size() > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, true);
-  validateQuery(packet, true, false, 2);
+  validateQuery(packet, true, 2);
   validateECS(packet, remote);
 
   /* not large enough packet */
@@ -1006,7 +929,7 @@ BOOST_AUTO_TEST_CASE(insertECSInEDNSBetweenTwoRecords)
   BOOST_CHECK_EQUAL(packet.size(), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
-  validateQuery(packet, true, false, 2);
+  validateQuery(packet, true, 2);
 }
 
 BOOST_AUTO_TEST_CASE(insertECSAfterTSIG)
@@ -1039,8 +962,8 @@ BOOST_AUTO_TEST_CASE(insertECSAfterTSIG)
   BOOST_CHECK(packet.size() > query.size());
   BOOST_CHECK_EQUAL(ednsAdded, true);
   BOOST_CHECK_EQUAL(ecsAdded, true);
-  /* the MOADNSParser does not allow anything except XPF after a TSIG */
-  BOOST_CHECK_THROW(validateQuery(packet, true, false, 1), MOADNSException);
+  /* the MOADNSParser does not allow anything after a TSIG */
+  BOOST_CHECK_THROW(validateQuery(packet, true, 1), MOADNSException);
   validateECS(packet, remote);
 
   /* not large enough packet */
@@ -1058,7 +981,7 @@ BOOST_AUTO_TEST_CASE(insertECSAfterTSIG)
   BOOST_CHECK_EQUAL(packet.size(), query.size());
   BOOST_CHECK_EQUAL(ednsAdded, false);
   BOOST_CHECK_EQUAL(ecsAdded, false);
-  validateQuery(packet, true, false);
+  validateQuery(packet, true);
 }
 
 BOOST_AUTO_TEST_CASE(removeEDNSWhenFirst)

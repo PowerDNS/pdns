@@ -69,7 +69,6 @@
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-web.hh"
-#include "dnsdist-xpf.hh"
 #include "dnsdist-xsk.hh"
 
 #include "base64.hh"
@@ -1571,10 +1570,6 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
 
     /* save the DNS flags as sent to the backend so we can cache the answer with the right flags later */
     dnsQuestion.ids.cacheFlags = *getFlagsFromDNSHeader(dnsQuestion.getHeader().get());
-
-    if (dnsQuestion.addXPF && selectedBackend->d_config.xpfRRCode != 0) {
-      addXPF(dnsQuestion, selectedBackend->d_config.xpfRRCode);
-    }
 
     if (selectedBackend->d_config.useProxyProtocol && dnsQuestion.getProtocol().isEncrypted() && selectedBackend->d_config.d_proxyProtocolAdvertiseTLS) {
       if (!dnsQuestion.proxyProtocolValues) {
