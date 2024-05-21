@@ -1460,11 +1460,11 @@ and also smaller than `max-mthreads`.
         'doc': '''
 The maximum number of queries that can be attached to an outgoing request chain. Attaching requests to a chain
 saves on outgoing queries, but the processing of a chain when the reply to the outgoing query comes in
-might result in a large outgoing traffic spikes. Reducing the maximum chain length mitigate this.
+might result in a large outgoing traffic spikes. Reducing the maximum chain length mitigates this.
 If this value is zero, no maximum is enforced, though the maximum number of mthreads (:ref:`setting-max-mthreads`)
 also limits the chain length.
 ''',
-        'versionadded': ['4.8.7', '4.9.4', '5.0.3']
+        'versionadded': '5.1.0'
     },
     {
         'name' : 'max_include_depth',
