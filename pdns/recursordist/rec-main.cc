@@ -935,7 +935,7 @@ static void checkLinuxIPv6Limits([[maybe_unused]] Logr::log_t log)
 #endif
 }
 
-static void checkLinuxMapCountLimits([[maybe_unused]] Logr::log_t log)
+static void checkOrFixLinuxMapCountLimits([[maybe_unused]] Logr::log_t log)
 {
 #ifdef __linux__
   string line;
@@ -943,11 +943,14 @@ static void checkLinuxMapCountLimits([[maybe_unused]] Logr::log_t log)
     auto lim = std::stoull(line);
     // mthread stack use 3 maps per stack (2 guard pages + stack itself). Multiple by 4 for extra allowance.
     // Also add 2 for handler and task threads.
-    auto mapsNeeded = 4ULL * g_maxMThreads * (RecThreadInfo::numTCPWorkers() + RecThreadInfo::numUDPWorkers() + 2);
+    auto workers = RecThreadInfo::numTCPWorkers() + RecThreadInfo::numUDPWorkers() + 2;
+    auto mapsNeeded = 4ULL * g_maxMThreads * workers;
     if (lim < mapsNeeded) {
-      SLOG(g_log << Logger::Error << "sysctl vm.max_map_count= <" << mapsNeeded << ", this may cause 'bad_alloc' exceptions" << endl,
-           log->info(Logr::Error, "sysctl vm.max_map_count < mapsNeeded, this may cause 'bad_alloc' exceptions",
-                     "kern.max_map_count", Logging::Loggable(lim), "mapsNeeded", Logging::Loggable(mapsNeeded)));
+      g_maxMThreads = lim / (4 * workers);
+      SLOG(g_log << Logger::Error << "sysctl vm.max_map_count= <" << mapsNeeded << ", this may cause 'bad_alloc' exceptions; adjusting max-mthreads to " << g_maxMThreads << endl,
+           log->info(Logr::Error, "sysctl vm.max_map_count < mapsNeeded, this may cause 'bad_alloc' exceptions, adjusting max-mthreads",
+                     "kern.max_map_count", Logging::Loggable(lim), "mapsNeeded", Logging::Loggable(mapsNeeded),
+                     "max-mthreads", Logging::Loggable(g_maxMThreads)));
     }
   }
 #endif
@@ -2214,8 +2217,6 @@ static int serviceMain(Logr::log_t log)
 
   g_maxMThreads = ::arg().asNum("max-mthreads");
 
-  checkLinuxMapCountLimits(log);
-
   int64_t maxInFlight = ::arg().asNum("max-concurrent-requests-per-tcp-connection");
   if (maxInFlight < 1 || maxInFlight > USHRT_MAX || maxInFlight >= g_maxMThreads) {
     SLOG(g_log << Logger::Warning << "Asked to run with illegal max-concurrent-requests-per-tcp-connection, setting to default (10)" << endl,
@@ -2265,6 +2266,7 @@ static int serviceMain(Logr::log_t log)
   auto forks = initForks(log);
 
   checkOrFixFDS(log);
+  checkOrFixLinuxMapCountLimits(log);
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
