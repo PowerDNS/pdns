@@ -81,7 +81,8 @@ public:
      minimum value of maxEventsHint and s_maxevents, to reduce memory usage. */
   static FDMultiplexer* getMultiplexerSilent(unsigned int maxEventsHint = s_maxevents);
 
-  struct InRun {
+  struct InRun
+  {
     InRun(const InRun&) = delete;
     InRun(InRun&&) = delete;
     InRun& operator=(const InRun&) = delete;
@@ -94,7 +95,8 @@ public:
       }
       d_inrun = true;
     }
-    ~InRun() {
+    ~InRun()
+    {
       d_inrun = false;
     }
     bool& d_inrun;
