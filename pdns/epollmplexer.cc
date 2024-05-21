@@ -166,9 +166,7 @@ void EpollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
 
 int EpollFDMultiplexer::run(struct timeval* now, int timeout)
 {
-  if (d_inrun) {
-    throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
-  }
+  InRun guard(d_inrun);
 
   int ret = epoll_wait(d_epollfd, d_eevents.data(), d_eevents.size(), timeout);
   gettimeofday(now, nullptr); // MANDATORY
@@ -181,8 +179,8 @@ int EpollFDMultiplexer::run(struct timeval* now, int timeout)
     return 0;
   }
 
-  d_inrun = true;
   int count = 0;
+
   for (int n = 0; n < ret; ++n) {
     if ((d_eevents[n].events & EPOLLIN) || (d_eevents[n].events & EPOLLERR) || (d_eevents[n].events & EPOLLHUP)) {
       const auto& iter = d_readCallbacks.find(d_eevents[n].data.fd);
@@ -201,7 +199,6 @@ int EpollFDMultiplexer::run(struct timeval* now, int timeout)
     }
   }
 
-  d_inrun = false;
   return count;
 }
 
