@@ -55,7 +55,7 @@ Requires(pre): shadow-utils
 BuildRequires: fstrm-devel
 %systemd_requires
 %endif
-%if 0%{?rhel} >= 8
+%if ( "%{_arch}" != "aarch64" && 0%{?rhel} >= 8 ) || ( "%{_arch}" == "aarch64" && 0%{?rhel} >= 9 )
 BuildRequires: libbpf-devel
 BuildRequires: libxdp-devel
 %endif
