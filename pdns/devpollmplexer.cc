@@ -140,9 +140,8 @@ void DevPollFDMultiplexer::getAvailableFDs(std::vector<int>& fds, int timeout)
 
 int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
 {
-  if (d_inrun) {
-    throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!\n");
-  }
+  InRun guard(d_inrun);
+
   std::vector<struct pollfd> fds(d_readCallbacks.size() + d_writeCallbacks.size());
   struct dvpoll dvp;
   dvp.dp_nfds = d_readCallbacks.size() + d_writeCallbacks.size();
@@ -160,7 +159,6 @@ int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
     return 0;
   }
 
-  d_inrun = true;
   int count = 0;
   for (int n = 0; n < ret; ++n) {
     if ((fds.at(n).revents & POLLIN) || (fds.at(n).revents & POLLERR) || (fds.at(n).revents & POLLHUP)) {
@@ -180,7 +178,6 @@ int DevPollFDMultiplexer::run(struct timeval* now, int timeout)
     }
   }
 
-  d_inrun = false;
   return count;
 }
 

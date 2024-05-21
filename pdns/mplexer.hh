@@ -81,6 +81,25 @@ public:
      minimum value of maxEventsHint and s_maxevents, to reduce memory usage. */
   static FDMultiplexer* getMultiplexerSilent(unsigned int maxEventsHint = s_maxevents);
 
+  struct InRun {
+    InRun(const InRun&) = delete;
+    InRun(InRun&&) = delete;
+    InRun& operator=(const InRun&) = delete;
+    InRun& operator=(InRun&&) = delete;
+    InRun(bool& ref) :
+      d_inrun(ref)
+    {
+      if (d_inrun) {
+        throw FDMultiplexerException("FDMultiplexer::run() is not reentrant!");
+      }
+      d_inrun = true;
+    }
+    ~InRun() {
+      d_inrun = false;
+    }
+    bool& d_inrun;
+  };
+
   /* tv will be updated to 'now' before run returns */
   /* timeout is in ms, 0 will return immediately, -1 will block until at
      least one descriptor is ready */
