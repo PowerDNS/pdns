@@ -806,7 +806,9 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   .. method:: Server:isUp() -> bool
 
-    Returns the up status of the server
+    Returns the up status of the server.
+    Result is based on the administrative status of the server (as set by either :meth:`Server:setDown` or :meth:`Server:setUp`).
+    If no administrative status is set, result is based on :attr:`Server.upStatus`
 
     :returns: true when the server is up, false otherwise
 
@@ -825,7 +827,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   .. method:: Server:setDown()
 
-    Set the server in a ``DOWN`` state.
+    Administratively set the server in a ``DOWN`` state.
     The server will not receive queries and the health checks are disabled.
 
   .. method:: Server:setLazyAuto([status])
@@ -846,7 +848,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   .. method:: Server:setUp()
 
-    Set the server in an ``UP`` state.
+    Administratively set the server in an ``UP`` state.
     This server will still receive queries and health checks are disabled
 
   Apart from the functions, a :class:`Server` object has these attributes:
@@ -857,7 +859,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   .. attribute:: Server.upStatus
 
-    Whether or not this server is up or down
+    Whether or not this server is ``up`` (true) or ``down`` (false) based on the last known state of heatlh-checks.
 
   .. attribute:: Server.order
 
