@@ -39,7 +39,6 @@
 ./pdns/dnsdistdist/dnsdist-kvs.cc
 ./pdns/dnsdistdist/dnsdist-kvs.hh
 ./pdns/dnsdistdist/dnsdist-lbpolicies.cc
-./pdns/dnsdistdist/dnsdist-lua-bindings-dnscrypt.cc
 ./pdns/dnsdistdist/dnsdist-lua-bindings-kvs.cc
 ./pdns/dnsdistdist/dnsdist-lua-bindings-packetcache.cc
 ./pdns/dnsdistdist/dnsdist-lua-bindings-protobuf.cc
