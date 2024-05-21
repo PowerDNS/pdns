@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include "lock.hh"
 #include "logger.hh"
 #include "logging.hh"
 
@@ -31,11 +32,6 @@ class RateLimitedLog
 public:
   RateLimitedLog(time_t arg = 60) :
     d_period(arg) {}
-
-  [[nodiscard]] uint32_t getCount() const
-  {
-    return d_count;
-  }
 
   template <typename... Args>
   void log(Logr::log_t slog, const string& msg, const Args&... args)
@@ -48,6 +44,7 @@ public:
                       "exception", Logging::Loggable("other"), args...));
     };
   }
+
   template <typename... Args>
   void log(Logr::log_t slog, const string& msg, const std::exception& stdException, const Args&... args)
   {
@@ -75,21 +72,24 @@ public:
 private:
   [[nodiscard]] bool doLog(uint32_t& count)
   {
-    std::lock_guard lock(d_mutex);
+    auto data = d_data.lock();
     time_t now = time(nullptr);
-    if (d_last + d_period < now) {
-      d_last = now;
-      count = d_count;
-      d_count = 0;
+    if (data->d_last + d_period < now) {
+      data->d_last = now;
+      count = data->d_count;
+      data->d_count = 0;
       return true;
     }
-    count = d_count;
-    d_count++;
+    count = data->d_count;
+    data->d_count++;
     return false;
   }
-  std::mutex d_mutex;
-  time_t d_last{0};
   const time_t d_period;
-  uint32_t d_count{0};
+
+  struct LockedObject {
+    time_t d_last{0};
+    uint32_t d_count{0};
+  };
+  LockGuarded<LockedObject> d_data;
 };
 }
