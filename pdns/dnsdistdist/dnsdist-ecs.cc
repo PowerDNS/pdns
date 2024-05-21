@@ -44,7 +44,10 @@ bool g_addEDNSToSelfGeneratedResponses{true};
 
 int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& newContent)
 {
-  assert(initialPacket.size() >= sizeof(dnsheader));
+  if (initialPacket.size() < sizeof(dnsheader)) {
+    return ENOENT;
+  }
+
   const dnsheader_aligned dnsHeader(initialPacket.data());
 
   if (ntohs(dnsHeader->arcount) == 0) {
@@ -153,7 +156,10 @@ static bool addOrReplaceEDNSOption(std::vector<std::pair<uint16_t, std::string>>
 
 bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, PacketBuffer& newContent, bool& ednsAdded, uint16_t optionToReplace, bool& optionAdded, bool overrideExisting, const string& newOptionContent)
 {
-  assert(initialPacket.size() >= sizeof(dnsheader));
+  if (initialPacket.size() < sizeof(dnsheader)) {
+    return false;
+  }
+
   const dnsheader_aligned dnsHeader(initialPacket.data());
 
   if (ntohs(dnsHeader->qdcount) == 0) {
@@ -321,9 +327,10 @@ static bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& 
 
 int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optLen, bool* last)
 {
-  assert(optStart != nullptr);
-  assert(optLen != nullptr);
-  assert(last != nullptr);
+  if (optStart == nullptr || optLen == nullptr || last == nullptr) {
+    throw std::runtime_error("Invalid values passed to locateEDNSOptRR");
+  }
+
   const dnsheader_aligned dnsHeader(packet.data());
 
   if (ntohs(dnsHeader->arcount) == 0) {
@@ -390,8 +397,10 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optL
 /* extract the start of the OPT RR in a QUERY packet if any */
 int getEDNSOptionsStart(const PacketBuffer& packet, const size_t offset, uint16_t* optRDPosition, size_t* remaining)
 {
-  assert(optRDPosition != nullptr);
-  assert(remaining != nullptr);
+  if (optRDPosition == nullptr || remaining == nullptr) {
+    throw std::runtime_error("Invalid values passed to getEDNSOptionsStart");
+  }
+
   const dnsheader_aligned dnsHeader(packet.data());
 
   if (offset >= packet.size()) {
@@ -474,8 +483,9 @@ bool generateOptRR(const std::string& optRData, PacketBuffer& res, size_t maximu
 
 static bool replaceEDNSClientSubnetOption(PacketBuffer& packet, size_t maximumSize, size_t const oldEcsOptionStartPosition, size_t const oldEcsOptionSize, size_t const optRDLenPosition, const string& newECSOption)
 {
-  assert(oldEcsOptionStartPosition < packet.size());
-  assert(optRDLenPosition < packet.size());
+  if (oldEcsOptionStartPosition >= packet.size() || optRDLenPosition >= packet.size()) {
+    throw std::runtime_error("Invalid values passed to replaceEDNSClientSubnetOption");
+  }
 
   if (newECSOption.size() == oldEcsOptionSize) {
     /* same size as the existing option */
@@ -593,7 +603,9 @@ static bool addEDNSWithECS(PacketBuffer& packet, size_t maximumSize, const strin
 
 bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, const size_t qnameWireLength, bool& ednsAdded, bool& ecsAdded, bool overrideExisting, const string& newECSOption)
 {
-  assert(qnameWireLength <= packet.size());
+  if (qnameWireLength > packet.size()) {
+    throw std::runtime_error("Invalid value passed to handleEDNSClientSubnet");
+  }
 
   const dnsheader_aligned dnsHeader(packet.data());
 
@@ -763,7 +775,10 @@ bool isEDNSOptionInOpt(const PacketBuffer& packet, const size_t optStart, const 
 
 int rewriteResponseWithoutEDNSOption(const PacketBuffer& initialPacket, const uint16_t optionCodeToSkip, PacketBuffer& newContent)
 {
-  assert(initialPacket.size() >= sizeof(dnsheader));
+  if (initialPacket.size() < sizeof(dnsheader)) {
+    return ENOENT;
+  }
+
   const dnsheader_aligned dnsHeader(initialPacket.data());
 
   if (ntohs(dnsHeader->arcount) == 0) {
