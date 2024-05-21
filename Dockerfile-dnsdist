@@ -49,6 +49,7 @@ RUN mkdir /libh2o && cd /libh2o && \
 
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
+    apt-get install -y lib${LUAVER}-*dev && \
     ./configure \
       --with-lua=${LUAVER} \
       LDFLAGS=-rdynamic \
