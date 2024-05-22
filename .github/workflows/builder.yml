@@ -19,8 +19,7 @@ jobs:
   build:
     name: build.sh
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
-    # on a ubuntu-20.04 VM
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         product: ['authoritative', 'recursor', 'dnsdist']
