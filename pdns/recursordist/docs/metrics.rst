@@ -110,10 +110,8 @@ Sending metrics over SNMP
 
 The recursor can export statistics over SNMP and send traps from :doc:`Lua <lua-scripting/index>`, provided support is compiled into the Recursor and :ref:`setting-snmp-agent` set.
 
-MIB
-^^^
+For the details of all values that can be retrieved using SNMP, see the `SNMP MIB <https://github.com/PowerDNS/pdns/blob/master/pdns/recursordist/RECURSOR-MIB.txt>`_.
 
-.. literalinclude:: ../RECURSOR-MIB.txt
 
 .. _metricnames:
 
