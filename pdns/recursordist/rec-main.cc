@@ -43,6 +43,7 @@
 #include "json.hh"
 #include "rec-system-resolve.hh"
 #include "root-dnssec.hh"
+#include "ratelimitedlog.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -140,6 +141,8 @@ unsigned int RecThreadInfo::s_numDistributorThreads;
 unsigned int RecThreadInfo::s_numUDPWorkerThreads;
 unsigned int RecThreadInfo::s_numTCPWorkerThreads;
 thread_local unsigned int RecThreadInfo::t_id;
+
+static pdns::RateLimitedLog s_rateLimitedLogger;
 
 static std::map<unsigned int, std::set<int>> parseCPUMap(Logr::log_t log)
 {
@@ -927,6 +930,27 @@ static void checkLinuxIPv6Limits([[maybe_unused]] Logr::log_t log)
     if (lim < 16384) {
       SLOG(g_log << Logger::Error << "If using IPv6, please raise sysctl net.ipv6.route.max_size, currently set to " << lim << " which is < 16384" << endl,
            log->info(Logr::Error, "If using IPv6, please raise sysctl net.ipv6.route.max_size to a size >= 16384", "current", Logging::Loggable(lim)));
+    }
+  }
+#endif
+}
+
+static void checkOrFixLinuxMapCountLimits([[maybe_unused]] Logr::log_t log)
+{
+#ifdef __linux__
+  string line;
+  if (readFileIfThere("/proc/sys/vm/max_map_count", &line)) {
+    auto lim = std::stoull(line);
+    // mthread stack use 3 maps per stack (2 guard pages + stack itself). Multiple by 4 for extra allowance.
+    // Also add 2 for handler and task threads.
+    auto workers = RecThreadInfo::numTCPWorkers() + RecThreadInfo::numUDPWorkers() + 2;
+    auto mapsNeeded = 4ULL * g_maxMThreads * workers;
+    if (lim < mapsNeeded) {
+      g_maxMThreads = static_cast<unsigned int>(lim / (4ULL * workers));
+      SLOG(g_log << Logger::Error << "sysctl vm.max_map_count= <" << mapsNeeded << ", this may cause 'bad_alloc' exceptions; adjusting max-mthreads to " << g_maxMThreads << endl,
+           log->info(Logr::Error, "sysctl vm.max_map_count < mapsNeeded, this may cause 'bad_alloc' exceptions, adjusting max-mthreads",
+                     "vm.max_map_count", Logging::Loggable(lim), "mapsNeeded", Logging::Loggable(mapsNeeded),
+                     "max-mthreads", Logging::Loggable(g_maxMThreads)));
     }
   }
 #endif
@@ -2242,6 +2266,7 @@ static int serviceMain(Logr::log_t log)
   auto forks = initForks(log);
 
   checkOrFixFDS(log);
+  checkOrFixLinuxMapCountLimits(log);
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
@@ -2323,17 +2348,14 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
   try {
     resp = tmsg->func();
   }
-  catch (std::exception& e) {
-    if (g_logCommonErrors) {
-      SLOG(g_log << Logger::Error << "PIPE function we executed created exception: " << e.what() << endl, // but what if they wanted an answer.. we send 0
-           g_slog->withName("runtime")->error(Logr::Error, e.what(), "PIPE function we executed created exception", "exception", Logging::Loggable("std::exception")));
-    }
+  catch (const PDNSException& pdnsException) {
+    s_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function", pdnsException);
   }
-  catch (PDNSException& e) {
-    if (g_logCommonErrors) {
-      SLOG(g_log << Logger::Error << "PIPE function we executed created PDNS exception: " << e.reason << endl, // but what if they wanted an answer.. we send 0
-           g_slog->withName("runtime")->error(Logr::Error, e.reason, "PIPE function we executed created exception", "exception", Logging::Loggable("PDNSException")));
-    }
+  catch (const std::exception& stdException) {
+    s_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function", stdException);
+  }
+  catch (...) {
+    s_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function");
   }
   if (tmsg->wantAnswer) {
     if (write(RecThreadInfo::self().getPipes().writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
@@ -2692,62 +2714,69 @@ static void recLoop()
   auto& threadInfo = RecThreadInfo::self();
 
   while (!RecursorControlChannel::stop) {
-    while (g_multiTasker->schedule(g_now)) {
-      ; // MTasker letting the mthreads do their thing
-    }
-
-    // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
-    // We want to call handler thread often, it gets scheduled about 2 times per second
-    if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % 11 == 0) || s_counter % 499 == 0) {
-      struct timeval start
-      {
-      };
-      Utility::gettimeofday(&start);
-      g_multiTasker->makeThread(houseKeeping, nullptr);
-      if (!threadInfo.isTaskThread()) {
-        struct timeval stop
-        {
-        };
-        Utility::gettimeofday(&stop);
-        t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
-        ++t_Counters.at(rec::Counter::maintenanceCalls);
+    try {
+      while (g_multiTasker->schedule(g_now)) {
+        ; // MTasker letting the mthreads do their thing
       }
-    }
 
-    if (s_counter % 55 == 0) {
-      auto expired = t_fdm->getTimeouts(g_now);
-
-      for (const auto& exp : expired) {
-        auto conn = boost::any_cast<shared_ptr<TCPConnection>>(exp.second);
-        if (g_logCommonErrors) {
-          SLOG(g_log << Logger::Warning << "Timeout from remote TCP client " << conn->d_remote.toStringWithPort() << endl,
-               g_slogtcpin->info(Logr::Warning, "Timeout from remote TCP client", "remote", Logging::Loggable(conn->d_remote)));
+      // Use primes, it avoid not being scheduled in cases where the counter has a regular pattern.
+      // We want to call handler thread often, it gets scheduled about 2 times per second
+      if (((threadInfo.isHandler() || threadInfo.isTaskThread()) && s_counter % 11 == 0) || s_counter % 499 == 0) {
+        timeval start{};
+        Utility::gettimeofday(&start);
+        g_multiTasker->makeThread(houseKeeping, nullptr);
+        if (!threadInfo.isTaskThread()) {
+          timeval stop{};
+          Utility::gettimeofday(&stop);
+          t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
+          ++t_Counters.at(rec::Counter::maintenanceCalls);
         }
-        t_fdm->removeReadFD(exp.first);
       }
+
+      if (s_counter % 55 == 0) {
+        auto expired = t_fdm->getTimeouts(g_now);
+
+        for (const auto& exp : expired) {
+          auto conn = boost::any_cast<shared_ptr<TCPConnection>>(exp.second);
+          if (g_logCommonErrors) {
+            SLOG(g_log << Logger::Warning << "Timeout from remote TCP client " << conn->d_remote.toStringWithPort() << endl,
+                 g_slogtcpin->info(Logr::Warning, "Timeout from remote TCP client", "remote", Logging::Loggable(conn->d_remote)));
+          }
+          t_fdm->removeReadFD(exp.first);
+        }
+      }
+
+      s_counter++;
+
+      if (threadInfo.isHandler()) {
+        if (statsWanted || (s_statisticsInterval > 0 && (g_now.tv_sec - last_stat) >= s_statisticsInterval)) {
+          doStats();
+          last_stat = g_now.tv_sec;
+        }
+
+        Utility::gettimeofday(&g_now, nullptr);
+
+        if ((g_now.tv_sec - last_carbon) >= carbonInterval) {
+          g_multiTasker->makeThread(doCarbonDump, nullptr);
+          last_carbon = g_now.tv_sec;
+        }
+      }
+      runLuaMaintenance(threadInfo, last_lua_maintenance, luaMaintenanceInterval);
+
+      t_fdm->run(&g_now);
+      // 'run' updates g_now for us
+
+      runTCPMaintenance(threadInfo, listenOnTCP, maxTcpClients);
     }
-
-    s_counter++;
-
-    if (threadInfo.isHandler()) {
-      if (statsWanted || (s_statisticsInterval > 0 && (g_now.tv_sec - last_stat) >= s_statisticsInterval)) {
-        doStats();
-        last_stat = g_now.tv_sec;
-      }
-
-      Utility::gettimeofday(&g_now, nullptr);
-
-      if ((g_now.tv_sec - last_carbon) >= carbonInterval) {
-        g_multiTasker->makeThread(doCarbonDump, nullptr);
-        last_carbon = g_now.tv_sec;
-      }
+    catch (const PDNSException& pdnsException) {
+      s_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop", pdnsException);
     }
-    runLuaMaintenance(threadInfo, last_lua_maintenance, luaMaintenanceInterval);
-
-    t_fdm->run(&g_now);
-    // 'run' updates g_now for us
-
-    runTCPMaintenance(threadInfo, listenOnTCP, maxTcpClients);
+    catch (const std::exception& stdException) {
+      s_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop", stdException);
+    }
+    catch (...) {
+      s_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop");
+    }
   }
 }
 
@@ -2895,11 +2924,11 @@ static void recursorThread()
 
     recLoop();
   }
-  catch (PDNSException& ae) {
+  catch (const PDNSException& ae) {
     SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
          log->error(Logr::Error, ae.reason, "Exception in RecursorThread", "exception", Logging::Loggable("PDNSException")));
   }
-  catch (std::exception& e) {
+  catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
          log->error(Logr::Error, e.what(), "Exception in RecursorThread", "exception", Logging::Loggable("std::exception")));
   }

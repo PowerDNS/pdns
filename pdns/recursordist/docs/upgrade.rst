@@ -23,6 +23,7 @@ Changed settings
 - The :ref:`setting-max-qperq` default value has been lowered to 50, and the qname-minimization special case has been removed.
 - Disabling :ref:`setting-structured-logging` is no longer supported.
 - The :ref:`setting-structured-logging-backend` setting has gained the possibility to request JSON formatted output of structured logging information.
+- The :ref:`setting-max-mthreads` setting will be adjusted to a lower value if the value of ``sysctl vm.max_map_count`` is too low to support the maximum number of mthread stacks. In this case :program:`Recursor` logs an error message including the suggested value of ``vm.max_map_count`` to not cause lowering of :ref:`setting-max-mthreads`.
 
 5.0.4 to 5.0.5
 --------------
