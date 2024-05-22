@@ -71,6 +71,8 @@ private:
     CheckState(time_t _lastAccess): lastAccess(_lastAccess) {}
     /* current status */
     std::atomic<bool> status{false};
+    /* current weight */
+    std::atomic<int> weight{0};
     /* first check ? */
     std::atomic<bool> first{true};
     /* last time the status was accessed */
@@ -83,9 +85,9 @@ public:
     d_checkerThreadStarted.clear();
   }
   ~IsUpOracle() = default;
-  bool isUp(const ComboAddress& remote, const opts_t& opts);
-  bool isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts);
-  bool isUp(const CheckDesc& cd);
+  int isUp(const ComboAddress& remote, const opts_t& opts);
+  int isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts);
+  int isUp(const CheckDesc& cd);
 
 private:
   void checkURL(const CheckDesc& cd, const bool status, const bool first = false)
@@ -127,8 +129,10 @@ private:
       }
 
       if(!status) {
-        g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<endl;
+        g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<" with WEIGHT "<<content<<"!"<<endl;
       }
+      
+      setWeight(cd, content);
       setUp(cd);
     }
     catch(std::exception& ne) {
@@ -219,6 +223,12 @@ private:
       state->first = false;
     }
   }
+  
+  void setWeight(const CheckDesc& cd, string content){
+    ReadLock lock{&d_lock};
+    auto& state = d_statuses[cd];
+    state->weight = stoi(content);
+  }
 
   void setDown(const ComboAddress& rem, const std::string& url=std::string(), const opts_t& opts = opts_t())
   {
@@ -244,7 +254,7 @@ private:
   }
 };
 
-bool IsUpOracle::isUp(const CheckDesc& cd)
+int IsUpOracle::isUp(const CheckDesc& cd)
 {
   if (!d_checkerThreadStarted.test_and_set()) {
     d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
@@ -255,6 +265,9 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
     auto iter = statuses->find(cd);
     if (iter != statuses->end()) {
       iter->second->lastAccess = now;
+      if (iter->second->weight > 0) {
+        return iter->second->weight;
+      }
       return iter->second->status;
     }
   }
@@ -272,13 +285,13 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
   return false;
 }
 
-bool IsUpOracle::isUp(const ComboAddress& remote, const opts_t& opts)
+int IsUpOracle::isUp(const ComboAddress& remote, const opts_t& opts)
 {
   CheckDesc cd{remote, "", opts};
   return isUp(cd);
 }
 
-bool IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts)
+int IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts)
 {
   CheckDesc cd{remote, url, opts};
   return isUp(cd);
@@ -1150,6 +1163,49 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   lua.writeFunction("pickrandom", [](const iplist_t& ips) {
       vector<string> items = convStringList(ips);
       return pickRandom<string>(items);
+    });
+
+  lua.writeFunction("selfweighted", [](const std::string& url,
+                                          const boost::variant<iplist_t, ipunitlist_t>& ips,
+                                          boost::optional<opts_t> options) {
+      vector<vector<ComboAddress> > candidates;
+      opts_t opts;
+      if(options)
+        opts = *options;
+      if(auto simple = boost::get<iplist_t>(&ips)) {
+        vector<ComboAddress> unit = convIplist(*simple);
+        candidates.push_back(unit);
+      } else {
+        auto units = boost::get<ipunitlist_t>(ips);
+        for(const auto& u : units) {
+          vector<ComboAddress> unit = convIplist(u.second);
+          candidates.push_back(unit);
+        }
+      }
+
+      for(const auto& unit : candidates) {
+        vector<pair<int,ComboAddress> > conv;
+        bool available = 0;
+        for(const auto& c : unit) {
+          int weight = 0;
+          weight = g_up.isUp(c, url, opts);
+          if(weight>0){
+            available = 1;
+          }
+          conv.emplace_back(weight, c);
+        }
+        if(available) {
+          return pickwhashed(s_lua_record_ctx->bestwho, conv).toString();
+        }
+      }
+
+      // All units down, apply backupSelector on all candidates
+      vector<ComboAddress> ret{};
+      for(const auto& unit : candidates) {
+        ret.insert(ret.end(), unit.begin(), unit.end());
+      }
+
+      return pickrandom(ret).toString();
     });
 
   lua.writeFunction("pickrandomsample", [](int n, const iplist_t& ips) {
