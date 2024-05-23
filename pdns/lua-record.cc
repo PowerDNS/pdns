@@ -1181,47 +1181,36 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       return pickRandom<string>(items);
     });
 
-  lua.writeFunction("selfweighted", [](const std::string& url,
-                                          const boost::variant<iplist_t, ipunitlist_t>& ips,
+  /*
+   * Based on the hash of `bestwho`, returns an IP address from the list
+   * supplied, weighted according to the results of isUp calls.
+   * @example selfweighted("{ "192.0.2.20", "203.0.113.4", "203.0.113.2" })
+   */
+  lua.writeFunction("selfweighted", [](const iplist_t& ips,
                                           boost::optional<opts_t> options) {
-      vector<vector<ComboAddress> > candidates;
+      vector< pair<int, ComboAddress> > items;
       opts_t opts;
       if(options)
         opts = *options;
-      if(auto simple = boost::get<iplist_t>(&ips)) {
-        vector<ComboAddress> unit = convIplist(*simple);
-        candidates.push_back(unit);
-      } else {
-        auto units = boost::get<ipunitlist_t>(ips);
-        for(const auto& u : units) {
-          vector<ComboAddress> unit = convIplist(u.second);
-          candidates.push_back(unit);
-        }
-      }
 
-      for(const auto& unit : candidates) {
-        vector<pair<int,ComboAddress> > conv;
-        bool available = 0;
-        for(const auto& c : unit) {
-          int weight = 0;
-          weight = g_up.isUp(c, url, opts);
-          if(weight>0){
-            available = 1;
-          }
-          conv.emplace_back(weight, c);
+      items.reserve(ips.capacity());
+      bool available = 0;
+
+      vector<ComboAddress> conv = convComboAddressList(ips);
+      for (auto& entry : conv) {
+        int weight = 0;
+        weight = g_up.isUp(entry, opts);
+        if(weight>0){
+          available = 1;
         }
-        if(available) {
-          return pickwhashed(s_lua_record_ctx->bestwho, conv).toString();
-        }
+        items.emplace_back(weight, entry);
+      }
+      if(available) {
+        return pickWeightedHashed<ComboAddress>(s_lua_record_ctx->bestwho, items).toString();
       }
 
       // All units down, apply backupSelector on all candidates
-      vector<ComboAddress> ret{};
-      for(const auto& unit : candidates) {
-        ret.insert(ret.end(), unit.begin(), unit.end());
-      }
-
-      return pickrandom(ret).toString();
+      return pickWeightedRandom<ComboAddress>(items).toString();
     });
 
   lua.writeFunction("pickrandomsample", [](int n, const iplist_t& ips) {
