@@ -1589,7 +1589,6 @@ private:
 
         template<typename TType2>
         static PushedObject push(lua_State* state, TType2&& value) noexcept {
-          std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             // this function is called when lua's garbage collector wants to destroy our object
             // we simply call its destructor
             const auto garbageCallbackFunction = [](lua_State* lua) -> int {
@@ -2340,7 +2339,6 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
     static auto push(lua_State* state, TFunctionObject fn) noexcept
         -> typename std::enable_if<!boost::has_trivial_destructor<TFunctionObject>::value, PushedObject>::type
     {
-      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         // TODO: is_move_constructible not supported by some compilers
         //static_assert(std::is_move_constructible<TFunctionObject>::value, "The function object must be move-constructible");
 
@@ -2429,7 +2427,6 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
     static auto push(lua_State* state, TReturnType (*fn)(TParameters...)) noexcept
         -> PushedObject
     {
-      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         // when the lua script calls the thing we will push on the stack, we want "fn" to be executed
         // since "fn" doesn't need to be destroyed, we simply push it on the stack
 
@@ -2453,7 +2450,6 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
     static auto push(lua_State* state, TReturnType (&fn)(TParameters...)) noexcept
         -> PushedObject
     {
-      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         return push(state, &fn);
     }
 
@@ -2541,7 +2537,6 @@ struct LuaContext::Pusher<TReturnType (*)(TParameters...)>
 
     template<typename TType>
     static PushedObject push(lua_State* state, TType value) noexcept {
-      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         return SubPusher::push(state, value);
     }
 };
@@ -2558,7 +2553,6 @@ struct LuaContext::Pusher<TReturnType (&)(TParameters...)>
 
     template<typename TType>
     static PushedObject push(lua_State* state, TType value) noexcept {
-      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         return SubPusher::push(state, value);
     }
 };
@@ -2574,7 +2568,6 @@ struct LuaContext::Pusher<std::function<TReturnType (TParameters...)>>
     static const int maxSize = SubPusher::maxSize;
 
     static PushedObject push(lua_State* state, const std::function<TReturnType (TParameters...)>& value) noexcept {
-      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         return SubPusher::push(state, value);
     }
 };
