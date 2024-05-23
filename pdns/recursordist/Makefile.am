@@ -166,6 +166,7 @@ pdns_recursor_SOURCES = \
 	pubsuffixloader.cc \
 	qtype.hh qtype.cc \
 	query-local-address.hh query-local-address.cc \
+	ratelimitedlog.hh \
 	rcpgenerator.cc rcpgenerator.hh \
 	rec-carbon.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
@@ -302,6 +303,7 @@ testrunner_SOURCES = \
 	pollmplexer.cc \
 	qtype.cc qtype.hh \
 	query-local-address.hh query-local-address.cc \
+	ratelimitedlog.hh \
 	rcpgenerator.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
 	rec-responsestats.hh rec-responsestats.cc \
