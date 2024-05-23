@@ -808,7 +808,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     Returns the up status of the server.
     Result is based on the administrative status of the server (as set by either :meth:`Server:setDown` or :meth:`Server:setUp`).
-    If no administrative status is set (see :meth:`Server.setAuto`), result is based on :attr:`Server.upStatus`
+    If no administrative status is set (see :meth:`Server:setAuto`), result is based on :attr:`Server.upStatus`
 
     :returns: true when the server is up, false otherwise
 
