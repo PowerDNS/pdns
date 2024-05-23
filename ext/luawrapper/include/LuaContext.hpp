@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <cstring>
 #include <functional>
+#include <iostream>
 #include <limits>
 #include <list>
 #include <map>
@@ -145,7 +146,7 @@ public:
     {
         s.mState = luaL_newstate();
     }
-    
+
     /**
      * Move operator
      */
@@ -159,7 +160,7 @@ public:
      * Copy is forbidden
      */
     LuaContext(const LuaContext&) = delete;
-    
+
     /**
      * Copy is forbidden
      */
@@ -173,7 +174,7 @@ public:
         assert(mState);
         lua_close(mState);
     }
-    
+
     /**
      * Thrown when an error happens during execution of lua code (like not enough parameters for a function)
      */
@@ -210,7 +211,7 @@ public:
             destination(destination_)
         {
         }
-        
+
         std::string luaType;
         const std::type_info& destination;
     };
@@ -288,7 +289,7 @@ public:
     {
         executeCode(code.c_str());
     }
-    
+
     /*
      * Executes Lua code from the stream and returns a value
      * @param code      A string containing code that will be executed by Lua
@@ -355,7 +356,7 @@ public:
     {
         executeCode(thread, code.c_str());
     }
-    
+
     /*
      * Executes Lua code from the stream and returns a value
      * @param code      A string containing code that will be executed by Lua
@@ -390,7 +391,7 @@ public:
         auto toCall = load(thread.state, code);
         return call<TType>(thread.state, std::move(toCall));
     }
-    
+
     /**
      * Tells that Lua will be allowed to access an object's function
      * This is the version "registerFunction(name, &Foo::function)"
@@ -490,18 +491,18 @@ public:
         lua_pushnil(mState);
         lua_settable(mState, LUA_REGISTRYINDEX);
         checkTypeRegistration(mState, &typeid(TType));
-        
+
         lua_pushlightuserdata(mState, const_cast<std::type_info*>(&typeid(TType*)));
         lua_pushnil(mState);
         lua_settable(mState, LUA_REGISTRYINDEX);
         checkTypeRegistration(mState, &typeid(TType*));
-        
+
         lua_pushlightuserdata(mState, const_cast<std::type_info*>(&typeid(std::shared_ptr<TType>)));
         lua_pushnil(mState);
         lua_settable(mState, LUA_REGISTRYINDEX);
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TType>));
     }
-    
+
     /**
      * Registers a member variable
      * This is the version "registerMember(name, &Foo::member)"
@@ -653,10 +654,10 @@ public:
     {
         id.threadInRegistry.reset();
     }
-    
+
     /**
      * Reads the content of a Lua variable
-     * 
+     *
      * @tparam TType                Type requested for the read
      * @throw WrongTypeException    When the variable is not convertible to the requested type
      * @sa writeVariable
@@ -677,7 +678,7 @@ public:
         lookIntoStackTop(mState, std::forward<TTypes>(elements)...);
         return readTopAndPop<TType>(mState, PushedObject{mState, 1});
     }
-    
+
     /**
      * @sa readVariable
      */
@@ -688,7 +689,7 @@ public:
         lookIntoStackTop(mState, std::forward<TTypes>(elements)...);
         return readTopAndPop<TType>(mState, PushedObject{mState, 1});
     }
-    
+
     /**
      * @sa readVariable
      */
@@ -699,7 +700,7 @@ public:
         lookIntoStackTop(thread.state, std::forward<TTypes>(elements)...);
         return readTopAndPop<TType>(thread.state, PushedObject{thread.state, 1});
     }
-    
+
     /**
      * @sa readVariable
      */
@@ -710,10 +711,10 @@ public:
         lookIntoStackTop(thread.state, std::forward<TTypes>(elements)...);
         return readTopAndPop<TType>(thread.state, PushedObject{thread.state, 1});
     }
-    
+
     /**
      * Changes the content of a Lua variable
-     * 
+     *
      * Accepted values are:
      * - all base types (char, short, int, float, double, bool)
      * - std::string
@@ -733,10 +734,10 @@ public:
         typedef typename std::decay<typename std::tuple_element<sizeof...(TData) - 1,std::tuple<TData...>>::type>::type
             RealDataType;
         static_assert(!std::is_same<typename Tupleizer<RealDataType>::type,RealDataType>::value, "Error: you can't use LuaContext::writeVariable with a tuple");
-        
+
         setTable<RealDataType>(mState, Globals, std::forward<TData>(data)...);
     }
-    
+
     /**
      * Equivalent to writeVariable(varName, ..., std::function<TFunctionType>(data));
      * This version is more efficient than writeVariable if you want to write functions
@@ -744,7 +745,7 @@ public:
     template<typename TFunctionType, typename... TData>
     void writeFunction(TData&&... data) noexcept {
         static_assert(sizeof...(TData) >= 2, "You must pass at least a variable name and a value to writeFunction");
-        
+
         setTable<TFunctionType>(mState, Globals, std::forward<TData>(data)...);
     }
 
@@ -759,10 +760,10 @@ public:
             RealDataType;
         typedef typename FunctionTypeDetector<RealDataType>::type
             DetectedFunctionType;
-        
+
         return writeFunction<DetectedFunctionType>(std::forward<TData>(data)...);
     }
-    
+
 
 private:
     // the state is the most important variable in the class since it is our interface with Lua
@@ -771,14 +772,14 @@ private:
     //    offset 3 is unused, setter members at offset 4, default setter at offset 5
     lua_State*                  mState;
 
-    
+
     /**************************************************/
     /*                 PUSH OBJECT                    */
     /**************************************************/
     struct PushedObject {
         PushedObject(lua_State* state_, int num_ = 1) : state(state_), num(num_) {}
         ~PushedObject() { assert(lua_gettop(state) >= num); if (num >= 1) lua_pop(state, num); }
-        
+
         PushedObject& operator=(const PushedObject&) = delete;
         PushedObject(const PushedObject&) = delete;
         PushedObject& operator=(PushedObject&& other) { std::swap(state, other.state); std::swap(num, other.num); return *this; }
@@ -786,7 +787,7 @@ private:
 
         PushedObject operator+(PushedObject&& other) && { PushedObject obj(state, num + other.num); num = 0; other.num = 0; return obj; }
         void operator+=(PushedObject&& other) { assert(state == other.state); num += other.num; other.num = 0; }
-        
+
         auto getState() const -> lua_State* { return state; }
         auto getNum() const -> int { return num; }
 
@@ -798,7 +799,7 @@ private:
         lua_State* state;
         int num = 0;
     };
-    
+
 
     /**************************************************/
     /*                     MISC                       */
@@ -809,7 +810,7 @@ private:
 
     // tag for "the registry"
     enum RegistryTag { Registry };
-    
+
     // this function takes a value representing the offset to look into
     // it will look into the top element of the stack and replace the element by its content at the given index
     template<typename OffsetType1, typename... OffsetTypeOthers>
@@ -830,10 +831,10 @@ private:
 
         lookIntoStackTop(state, std::forward<OffsetTypeOthers>(offsetOthers)...);
     }
-    
+
     static void lookIntoStackTop(lua_State*) {
     }
-    
+
     // equivalent of lua_settable with t[k]=n, where t is the value at the index in the template parameter, k is the second parameter, n is the last parameter, and n is pushed by the function in the first parameter
     // if there are more than 3 parameters, parameters 3 to n-1 are considered as sub-indices into the array
     // the dataPusher MUST push only one thing on the stack
@@ -843,7 +844,7 @@ private:
     {
         static_assert(Pusher<typename std::decay<TIndex>::type>::minSize == 1 && Pusher<typename std::decay<TIndex>::type>::maxSize == 1, "Impossible to have a multiple-values index");
         static_assert(Pusher<typename std::decay<TDataType>::type>::minSize == 1 && Pusher<typename std::decay<TDataType>::type>::maxSize == 1, "Impossible to have a multiple-values data");
-        
+
         auto p1 = Pusher<typename std::decay<TIndex>::type>::push(state, index);
         auto p2 = Pusher<typename std::decay<TDataType>::type>::push(state, std::forward<TData>(data));
 
@@ -866,7 +867,7 @@ private:
     static void setTable(lua_State* state, const PushedObject&, const char* index, TData&& data) noexcept
     {
         static_assert(Pusher<typename std::decay<TDataType>::type>::minSize == 1 && Pusher<typename std::decay<TDataType>::type>::maxSize == 1, "Impossible to have a multiple-values data");
-        
+
         auto p1 = Pusher<typename std::decay<TDataType>::type>::push(state, std::forward<TData>(data));
         lua_setfield(state, -2, index);
         p1.release();
@@ -876,7 +877,7 @@ private:
     static void setTable(lua_State* state, const PushedObject&, Metatable_t, TData&& data) noexcept
     {
         static_assert(Pusher<typename std::decay<TDataType>::type>::minSize == 1 && Pusher<typename std::decay<TDataType>::type>::maxSize == 1, "Impossible to have a multiple-values data");
-        
+
         auto p1 = Pusher<typename std::decay<TDataType>::type>::push(state, std::forward<TData>(data));
         lua_setmetatable(state, -2);
         p1.release();
@@ -887,7 +888,7 @@ private:
         -> typename std::enable_if<!std::is_same<typename std::decay<TIndex1>::type, Metatable_t>::value>::type
     {
         static_assert(Pusher<typename std::decay<TIndex1>::type>::minSize == 1 && Pusher<typename std::decay<TIndex1>::type>::maxSize == 1, "Impossible to have a multiple-values index");
-        
+
         auto p1 = Pusher<typename std::decay<TIndex1>::type>::push(state, std::forward<TIndex1>(index1));
         lua_gettable(state, -2);
 
@@ -899,7 +900,7 @@ private:
         -> typename std::enable_if<!std::is_same<typename std::decay<TIndex1>::type, Metatable_t>::value>::type
     {
         static_assert(Pusher<typename std::decay<TIndex1>::type>::minSize == 1 && Pusher<typename std::decay<TIndex1>::type>::maxSize == 1, "Impossible to have a multiple-values index");
-        
+
         auto p1 = Pusher<typename std::decay<TIndex1>::type>::push(state, std::forward<TIndex1>(index1)) + std::move(pushedTable);
         lua_gettable(state, -2);
 
@@ -949,7 +950,7 @@ private:
     {
         static_assert(Pusher<typename std::decay<TIndex>::type>::minSize == 1 && Pusher<typename std::decay<TIndex>::type>::maxSize == 1, "Impossible to have a multiple-values index");
         static_assert(Pusher<typename std::decay<TDataType>::type>::minSize == 1 && Pusher<typename std::decay<TDataType>::type>::maxSize == 1, "Impossible to have a multiple-values data");
-        
+
         auto p1 = Pusher<typename std::decay<TIndex>::type>::push(state, index);
         auto p2 = Pusher<typename std::decay<TDataType>::type>::push(state, std::forward<TData>(data));
 
@@ -982,7 +983,7 @@ private:
     static void setTable(lua_State* state, RegistryTag, TIndex1&& index1, TIndex2&& index2, TIndex3&& index3, TIndices&&... indices) noexcept
     {
         static_assert(Pusher<typename std::decay<TIndex1>::type>::minSize == 1 && Pusher<typename std::decay<TIndex1>::type>::maxSize == 1, "Impossible to have a multiple-values index");
-        
+
         auto p1 = Pusher<typename std::decay<TIndex1>::type>::push(state, std::forward<TIndex1>(index1));
         lua_gettable(state, LUA_REGISTRYINDEX);
 
@@ -994,8 +995,8 @@ private:
     {
         static_assert(Pusher<typename std::decay<TIndex>::type>::minSize == 1 && Pusher<typename std::decay<TIndex>::type>::maxSize == 1, "Impossible to have a multiple-values index");
         static_assert(Pusher<typename std::decay<TDataType>::type>::minSize == 1 && Pusher<typename std::decay<TDataType>::type>::maxSize == 1, "Impossible to have a multiple-values data");
-        
-        
+
+
 #       if LUA_VERSION_NUM >= 502
 
             lua_pushglobaltable(state);
@@ -1005,7 +1006,7 @@ private:
             lua_settable(state, -3);
 
 #       else
-            
+
             auto p1 = Pusher<typename std::decay<TIndex>::type>::push(state, index);
             auto p2 = Pusher<typename std::decay<TDataType>::type>::push(state, std::forward<TData>(data));
             lua_settable(state, LUA_GLOBALSINDEX);
@@ -1040,7 +1041,7 @@ private:
     static void setTable(lua_State* state, Globals_t, TIndex1&& index1, TIndex2&& index2, TIndex3&& index3, TIndices&&... indices) noexcept
     {
         static_assert(Pusher<typename std::decay<TIndex1>::type>::minSize == 1 && Pusher<typename std::decay<TIndex1>::type>::maxSize == 1, "Impossible to have a multiple-values index");
-        
+
 #       if LUA_VERSION_NUM >= 502
 
             lua_pushglobaltable(state);
@@ -1122,7 +1123,7 @@ private:
         lua_settable(state, LUA_REGISTRYINDEX);
     }
 
-    // 
+    //
 #   ifdef _MSC_VER
         __declspec(noreturn)
 #   else
@@ -1134,7 +1135,7 @@ private:
         assert(false);
         std::terminate();   // removes compilation warning
     }
-    
+
 
     /**************************************************/
     /*            FUNCTIONS REGISTRATION              */
@@ -1147,24 +1148,28 @@ private:
 
         checkTypeRegistration(mState, &typeid(TObject));
         setTable<TRetValue(TObject&, TOtherParams...)>(mState, Registry, &typeid(TObject), 0, functionName, function);
-        
+
         checkTypeRegistration(mState, &typeid(TObject*));
         setTable<TRetValue(TObject*, TOtherParams...)>(mState, Registry, &typeid(TObject*), 0, functionName, [=](TObject* obj, TOtherParams... rest) {
           if (obj == nullptr) {
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
           }
+          std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
           return function(*obj, std::forward<TOtherParams>(rest)...);
         });
 
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject>));
         setTable<TRetValue(std::shared_ptr<TObject>, TOtherParams...)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 0, functionName, [=](const std::shared_ptr<TObject>& obj, TOtherParams... rest) {
           if (obj == nullptr) {
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
           }
+          std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
           return function(*obj, std::forward<TOtherParams>(rest)...);
         });
     }
-    
+
     template<typename TFunctionType, typename TRetValue, typename TObject, typename... TOtherParams>
     void registerFunctionImpl(const std::string& functionName, TFunctionType function, tag<const TObject>, tag<TRetValue (TOtherParams...)> fTypeTag)
     {
@@ -1173,16 +1178,20 @@ private:
         checkTypeRegistration(mState, &typeid(TObject const*));
         setTable<TRetValue(TObject const*, TOtherParams...)>(mState, Registry, &typeid(TObject const*), 0, functionName, [=](TObject const* obj, TOtherParams... rest) {
           if (obj == nullptr) {
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
           }
+          std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
           return function(*obj, std::forward<TOtherParams>(rest)...);
         });
 
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject const>));
         setTable<TRetValue(std::shared_ptr<TObject const>, TOtherParams...)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 0, functionName, [=](const std::shared_ptr<TObject const>& obj, TOtherParams... rest) {
           if (obj == nullptr) {
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
           }
+          std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
           return function(*obj, std::forward<TOtherParams>(rest)...);
         });
     }
@@ -1225,32 +1234,40 @@ private:
         checkTypeRegistration(mState, &typeid(TObject*));
         setTable<TVarType (TObject*)>(mState, Registry, &typeid(TObject*), 1, name, [readFunction,name](TObject const* object) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object);
         });
 
         checkTypeRegistration(mState, &typeid(TObject const*));
         setTable<TVarType (TObject const*)>(mState, Registry, &typeid(TObject const*), 1, name, [readFunction,name](TObject const* object) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object);
         });
 
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject>));
         setTable<TVarType (std::shared_ptr<TObject>)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 1, name, [readFunction,name](const std::shared_ptr<TObject>& object) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object);
         });
 
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject const>));
         setTable<TVarType (std::shared_ptr<TObject const>)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 1, name, [readFunction,name](const std::shared_ptr<TObject const>& object) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object);
         });
     }
@@ -1266,15 +1283,19 @@ private:
 
         setTable<void (TObject*, TVarType)>(mState, Registry, &typeid(TObject*), 4, name, [writeFunction_,name](TObject* object, const TVarType& value) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             writeFunction_(*object, value);
         });
 
         setTable<void (std::shared_ptr<TObject>, TVarType)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 4, name, [writeFunction_,name](std::shared_ptr<TObject> object, const TVarType& value) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             writeFunction_(*object, value);
         });
     }
@@ -1303,32 +1324,40 @@ private:
         checkTypeRegistration(mState, &typeid(TObject*));
         setTable<TVarType (TObject*, std::string)>(mState, Registry, &typeid(TObject*), 2, [readFunction](TObject const* object, const std::string& name) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object, name);
         });
 
         checkTypeRegistration(mState, &typeid(TObject const*));
         setTable<TVarType (TObject const*, std::string)>(mState, Registry, &typeid(TObject const*), 2, [readFunction](TObject const* object, const std::string& name) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object, name);
         });
 
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject>));
         setTable<TVarType (std::shared_ptr<TObject>, std::string)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 2, [readFunction](const std::shared_ptr<TObject>& object, const std::string& name) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object, name);
         });
 
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject const>));
         setTable<TVarType (std::shared_ptr<TObject const>, std::string)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 2, [readFunction](const std::shared_ptr<TObject const>& object, const std::string& name) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object, name);
         });
     }
@@ -1344,15 +1373,19 @@ private:
 
         setTable<void (TObject*, std::string, TVarType)>(mState, Registry, &typeid(TObject*), 2, [writeFunction_](TObject* object, const std::string& name, const TVarType& value) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             writeFunction_(*object, name, value);
         });
 
         setTable<void (std::shared_ptr<TObject>, std::string, TVarType)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 2, [writeFunction_](const std::shared_ptr<TObject>& object, const std::string& name, const TVarType& value) {
             if (object == nullptr) {
+              std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
+            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             writeFunction_(*object, name, value);
         });
     }
@@ -1368,7 +1401,7 @@ private:
     {
         registerMemberImpl<TObject, TVarType>(std::move(readFunction));
     }
-    
+
 
     /**************************************************/
     /*              LOADING AND CALLING               */
@@ -1419,7 +1452,7 @@ private:
 
         return PushedObject{state, 1};
     }
-    
+
     // this function loads data and pushes a function at the top of the stack
     // throws in case of syntax error
     static PushedObject load(lua_State* state, const char* code) {
@@ -1448,18 +1481,18 @@ private:
     {
         typedef typename Tupleizer<TReturnType>::type
             RealReturnType;
-        
+
         // we push the parameters on the stack
         auto inArguments = Pusher<std::tuple<TParameters&&...>>::push(state, std::forward_as_tuple(std::forward<TParameters>(input)...));
 
-        // 
+        //
         const int outArgumentsCount = std::tuple_size<RealReturnType>::value;
         auto outArguments = callRaw(state, std::move(toCall) + std::move(inArguments), outArgumentsCount);
 
         // pcall succeeded, we pop the returned values and return them
         return readTopAndPop<TReturnType>(state, std::move(outArguments));
     }
-    
+
     static int gettraceback(lua_State* L) {
         lua_getglobal(L, "debug"); // stack: error, debug library
         lua_getfield(L, -1, "traceback"); // stack: error, debug library, debug.traceback function
@@ -1533,7 +1566,7 @@ private:
         return PushedObject{state, outArguments};
     }
 
-    
+
     /**************************************************/
     /*                PUSH FUNCTIONS                  */
     /**************************************************/
@@ -1556,6 +1589,7 @@ private:
 
         template<typename TType2>
         static PushedObject push(lua_State* state, TType2&& value) noexcept {
+          std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             // this function is called when lua's garbage collector wants to destroy our object
             // we simply call its destructor
             const auto garbageCallbackFunction = [](lua_State* lua) -> int {
@@ -1576,7 +1610,7 @@ private:
                     lua_pushlightuserdata(lua, const_cast<std::type_info*>(&typeid(TType)));
                     lua_gettable(lua, LUA_REGISTRYINDEX);
                     assert(!lua_isnil(lua, -1));
-                    
+
                     // looking into getter functions
                     lua_pushinteger(lua, 0);
                     lua_gettable(lua, -2);
@@ -1585,7 +1619,7 @@ private:
                     if (!lua_isnil(lua, -1))
                         return 1;
                     lua_pop(lua, 2);
-                    
+
                     // looking into getter members
                     lua_pushinteger(lua, 1);
                     lua_gettable(lua, -2);
@@ -1622,7 +1656,7 @@ private:
                     lua_pushlightuserdata(lua, const_cast<std::type_info*>(&typeid(TType)));
                     lua_rawget(lua, LUA_REGISTRYINDEX);
                     assert(!lua_isnil(lua, -1));
-                    
+
                     // looking into setter members
                     lua_pushinteger(lua, 4);
                     lua_rawget(lua, -2);
@@ -1741,11 +1775,11 @@ private:
             // our custom type remains on the stack (and that's what we want since this is a push function)
             lua_setmetatable(state, -2);
             pushedTable.release();
-            
+
             return obj;
         }
     };
-    
+
     // this structure has a "size" int static member which is equal to the total of the push min size of all the types
     template<typename... TTypes>
     struct PusherTotalMinSize;
@@ -1753,28 +1787,28 @@ private:
     // this structure has a "size" int static member which is equal to the total of the push max size of all the types
     template<typename... TTypes>
     struct PusherTotalMaxSize;
-    
+
     // this structure has a "size" int static member which is equal to the maximum size of the push of all the types
     template<typename... TTypes>
     struct PusherMinSize;
-    
+
     // this structure has a "size" int static member which is equal to the maximum size of the push of all the types
     template<typename... TTypes>
     struct PusherMaxSize;
 
-    
+
     /**************************************************/
     /*                READ FUNCTIONS                  */
     /**************************************************/
     // the "Reader" structures allow to read data from the stack
     // - the "ReturnType" type is what is returned by the reader, and can be different than the template parameter (especially with references and constness)
     // - the "read" static function will check and read at the same time, returning an empty optional if it is the wrong type
-    
+
     template<typename TType, typename = void>
     struct Reader {
         typedef typename std::conditional<std::is_pointer<TType>::value, TType, TType&>::type
             ReturnType;
-        
+
         static auto read(lua_State* state, int index)
             -> boost::optional<ReturnType>
         {
@@ -1806,7 +1840,7 @@ private:
             return true;
         }
     };
-    
+
     /**
      * This functions reads multiple values starting at "index" and passes them to the callback
      */
@@ -1861,7 +1895,7 @@ private:
             lua_pushvalue(lua, -1 + index);
             lua_settable(lua, LUA_REGISTRYINDEX);
         }
-        
+
         // removing the function from the registry
         ~ValueInRegistry()
         {
@@ -1884,7 +1918,7 @@ private:
     private:
         lua_State* lua;
     };
-    
+
     // binds the first parameter of a function object
     template<typename TFunctionObject, typename TFirstParamType>
     struct Binder {
@@ -1898,7 +1932,7 @@ private:
             return function(param, std::forward<TParams>(params)...);
         }
     };
-    
+
     // turns a type into a tuple
     // void is turned into std::tuple<>
     // existing tuples are untouched
@@ -1917,7 +1951,7 @@ private:
     // the only case where "min != max" is with boost::optional at the end of the list
     template<typename... TArgumentsList>
     struct FunctionArgumentsCounter {};
-    
+
     // true is the template parameter is a boost::optional
     template<typename T>
     struct IsOptional : public std::false_type {};
@@ -1929,7 +1963,7 @@ static LuaContext::EmptyArray_t ATTR_UNUSED
 /// @deprecated
 static LuaContext::Metatable_t ATTR_UNUSED
     LuaMetatable {};
-    
+
 /**************************************************/
 /*            PARTIAL IMPLEMENTATIONS             */
 /**************************************************/
@@ -1979,12 +2013,12 @@ struct LuaContext::PusherTotalMaxSize<> { static const int size = 0; };
 
 // implementation of PusherMinSize
 template<typename TFirst, typename TSecond, typename... TTypes>
-struct LuaContext::PusherMinSize<TFirst, TSecond, TTypes...> 
-{ 
-    static const int size = Pusher<typename std::decay<TFirst>::type>::minSize < Pusher<typename std::decay<TSecond>::type>::minSize 
-                            ? 
-                            PusherMinSize<typename std::decay<TFirst>::type, TTypes...>::size 
-                            : 
+struct LuaContext::PusherMinSize<TFirst, TSecond, TTypes...>
+{
+    static const int size = Pusher<typename std::decay<TFirst>::type>::minSize < Pusher<typename std::decay<TSecond>::type>::minSize
+                            ?
+                            PusherMinSize<typename std::decay<TFirst>::type, TTypes...>::size
+                            :
                             PusherMinSize<typename std::decay<TSecond>::type, TTypes...>::size;
 };
 
@@ -2192,12 +2226,12 @@ struct LuaContext::Pusher<std::map<TKey,TValue>> {
     static PushedObject push(lua_State* state, const std::map<TKey,TValue>& value) noexcept {
         static_assert(Pusher<typename std::decay<TKey>::type>::minSize == 1 && Pusher<typename std::decay<TKey>::type>::maxSize == 1, "Can't push multiple elements for a table key");
         static_assert(Pusher<typename std::decay<TValue>::type>::minSize == 1 && Pusher<typename std::decay<TValue>::type>::maxSize == 1, "Can't push multiple elements for a table value");
-        
+
         auto obj = Pusher<EmptyArray_t>::push(state, EmptyArray);
 
         for (auto i = value.begin(), e = value.end(); i != e; ++i)
             setTable<TValue>(state, obj, i->first, i->second);
-        
+
         return obj;
     }
 };
@@ -2211,12 +2245,12 @@ struct LuaContext::Pusher<std::unordered_map<TKey,TValue,THash,TKeyEqual>> {
     static PushedObject push(lua_State* state, const std::unordered_map<TKey,TValue,THash,TKeyEqual>& value) noexcept {
         static_assert(Pusher<typename std::decay<TKey>::type>::minSize == 1 && Pusher<typename std::decay<TKey>::type>::maxSize == 1, "Can't push multiple elements for a table key");
         static_assert(Pusher<typename std::decay<TValue>::type>::minSize == 1 && Pusher<typename std::decay<TValue>::type>::maxSize == 1, "Can't push multiple elements for a table value");
-        
+
         auto obj = Pusher<EmptyArray_t>::push(state, EmptyArray);
 
         for (auto i = value.begin(), e = value.end(); i != e; ++i)
             setTable<TValue>(state, obj, i->first, i->second);
-        
+
         return obj;
     }
 };
@@ -2235,7 +2269,7 @@ struct LuaContext::Pusher<std::vector<std::pair<TType1,TType2>>> {
 
         for (auto i = value.begin(), e = value.end(); i != e; ++i)
             setTable<TType2>(state, obj, i->first, i->second);
-        
+
         return obj;
     }
 };
@@ -2248,12 +2282,12 @@ struct LuaContext::Pusher<std::vector<TType>> {
 
     static PushedObject push(lua_State* state, const std::vector<TType>& value) noexcept {
         static_assert(Pusher<typename std::decay<TType>::type>::minSize == 1 && Pusher<typename std::decay<TType>::type>::maxSize == 1, "Can't push multiple elements for a table value");
-        
+
         auto obj = Pusher<EmptyArray_t>::push(state, EmptyArray);
 
         for (unsigned int i = 0; i < value.size(); ++i)
             setTable<TType>(state, obj, i + 1, value[i]);
-        
+
         return obj;
     }
 };
@@ -2306,13 +2340,14 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
     static auto push(lua_State* state, TFunctionObject fn) noexcept
         -> typename std::enable_if<!boost::has_trivial_destructor<TFunctionObject>::value, PushedObject>::type
     {
+      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         // TODO: is_move_constructible not supported by some compilers
         //static_assert(std::is_move_constructible<TFunctionObject>::value, "The function object must be move-constructible");
 
         // when the lua script calls the thing we will push on the stack, we want "fn" to be executed
         // if we used lua's cfunctions system, we could not detect when the function is no longer in use, which could cause problems
         // so we use userdata instead
-        
+
         // this function is called when the lua script tries to call our custom data type
         // we transfer execution to the "callback" function below
         const auto callCallback = [](lua_State* lua) -> int {
@@ -2389,11 +2424,12 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
         lua_pushcclosure(state, function, 1);
         return PushedObject{state, 1};
     }
-    
+
     // this is the version of "push" for pointer to functions
     static auto push(lua_State* state, TReturnType (*fn)(TParameters...)) noexcept
         -> PushedObject
     {
+      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         // when the lua script calls the thing we will push on the stack, we want "fn" to be executed
         // since "fn" doesn't need to be destroyed, we simply push it on the stack
 
@@ -2412,11 +2448,12 @@ struct LuaContext::Pusher<TReturnType (TParameters...)>
         lua_pushcclosure(state, function, 1);
         return PushedObject{state, 1};
     }
-    
+
     // this is the version of "push" for references to functions
     static auto push(lua_State* state, TReturnType (&fn)(TParameters...)) noexcept
         -> PushedObject
     {
+      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         return push(state, &fn);
     }
 
@@ -2446,7 +2483,7 @@ private:
             lua_concat(state, 4);
             luaError(state);
         }
-                
+
         // calling the function
         try {
             return callback2(state, *toCall, argumentsCount);
@@ -2472,7 +2509,7 @@ private:
             luaError(state);
         }
     }
-    
+
     template<typename TFunctionObject>
     static auto callback2(lua_State* state, TFunctionObject&& toCall, int argumentsCount)
         -> typename std::enable_if<!std::is_void<TReturnType>::value && !std::is_void<TFunctionObject>::value, PushedObject>::type
@@ -2482,7 +2519,7 @@ private:
             P;
         return P::push(state, readIntoFunction(state, tag<TReturnType>{}, toCall, -argumentsCount, tag<TParameters>{}...));
     }
-    
+
     template<typename TFunctionObject>
     static auto callback2(lua_State* state, TFunctionObject&& toCall, int argumentsCount)
         -> typename std::enable_if<std::is_void<TReturnType>::value && !std::is_void<TFunctionObject>::value, PushedObject>::type
@@ -2504,6 +2541,7 @@ struct LuaContext::Pusher<TReturnType (*)(TParameters...)>
 
     template<typename TType>
     static PushedObject push(lua_State* state, TType value) noexcept {
+      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         return SubPusher::push(state, value);
     }
 };
@@ -2520,6 +2558,7 @@ struct LuaContext::Pusher<TReturnType (&)(TParameters...)>
 
     template<typename TType>
     static PushedObject push(lua_State* state, TType value) noexcept {
+      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         return SubPusher::push(state, value);
     }
 };
@@ -2535,6 +2574,7 @@ struct LuaContext::Pusher<std::function<TReturnType (TParameters...)>>
     static const int maxSize = SubPusher::maxSize;
 
     static PushedObject push(lua_State* state, const std::function<TReturnType (TParameters...)>& value) noexcept {
+      std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
         return SubPusher::push(state, value);
     }
 };
@@ -2617,11 +2657,11 @@ private:
         return Pusher<typename std::decay<ElemType>::type>::push(state, std::move(std::get<N>(value))).release() +
             push2(state, std::move(value), std::integral_constant<int,N+1>{});
     }
-    
+
     static int push2(lua_State* /*state*/, const std::tuple<TTypes...>&, std::integral_constant<int,sizeof...(TTypes)>) noexcept {
         return 0;
     }
-    
+
     static int push2(lua_State* /*state*/, std::tuple<TTypes...>&&, std::integral_constant<int,sizeof...(TTypes)>) noexcept {
         return 0;
     }
@@ -2964,7 +3004,7 @@ private:
     struct VariantReader<TIterBegin, TIterEnd, typename std::enable_if<boost::mpl::distance<TIterBegin, TIterEnd>::type::value == 0>::type>
     {
         static auto read(lua_State* /*state*/, int /*index*/)
-            -> boost::optional<ReturnType> 
+            -> boost::optional<ReturnType>
         {
             return boost::none;
         }
@@ -3013,7 +3053,7 @@ struct LuaContext::Reader<std::tuple<TFirst, TOthers...>,
 
         auto firstVal = Reader<TFirst>::read(state, index);
         auto othersVal = Reader<std::tuple<TOthers...>>::read(state, index + 1, maxSize - 1);
-        
+
         if (!firstVal || !othersVal)
             return boost::none;
 
@@ -3027,20 +3067,20 @@ struct LuaContext::Reader<std::tuple<TFirst, TOthers...>,
     >
 {
     // this is the "TFirst is default-constructible" version
-	
+
 	typedef std::tuple<TFirst, TOthers...>
 		ReturnType;
-    
+
     static auto read(lua_State* state, int index, int maxSize = std::tuple_size<ReturnType>::value)
         -> boost::optional<ReturnType>
     {
         auto othersVal = Reader<std::tuple<TOthers...>>::read(state, index + 1, maxSize - 1);
         if (!othersVal)
             return boost::none;
-        
+
         if (maxSize <= 0)
             return std::tuple_cat(std::tuple<TFirst>(), std::move(*othersVal));
-        
+
         auto firstVal = Reader<TFirst>::read(state, index);
         if (!firstVal)
             return boost::none;
