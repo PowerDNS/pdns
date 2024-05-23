@@ -1155,7 +1155,6 @@ private:
             std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
           }
-          std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
           return function(*obj, std::forward<TOtherParams>(rest)...);
         });
 
@@ -1165,7 +1164,6 @@ private:
             std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
           }
-          std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
           return function(*obj, std::forward<TOtherParams>(rest)...);
         });
     }
@@ -1181,7 +1179,6 @@ private:
             std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
           }
-          std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
           return function(*obj, std::forward<TOtherParams>(rest)...);
         });
 
@@ -1191,7 +1188,6 @@ private:
             std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
           }
-          std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
           return function(*obj, std::forward<TOtherParams>(rest)...);
         });
     }
@@ -1237,7 +1233,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object);
         });
 
@@ -1247,7 +1242,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object);
         });
 
@@ -1257,7 +1251,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object);
         });
 
@@ -1267,7 +1260,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object);
         });
     }
@@ -1286,7 +1278,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             writeFunction_(*object, value);
         });
 
@@ -1295,7 +1286,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             writeFunction_(*object, value);
         });
     }
@@ -1327,7 +1317,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object, name);
         });
 
@@ -1337,7 +1326,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object, name);
         });
 
@@ -1347,7 +1335,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object, name);
         });
 
@@ -1357,7 +1344,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             return readFunction(*object, name);
         });
     }
@@ -1376,7 +1362,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             writeFunction_(*object, name, value);
         });
 
@@ -1385,7 +1370,6 @@ private:
               std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
               throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
             }
-            std::cerr<<__PRETTY_FUNCTION__<<" "<<__LINE__<<std::endl;
             writeFunction_(*object, name, value);
         });
     }
