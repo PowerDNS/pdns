@@ -1249,7 +1249,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         self.checkProtobufIdentity(msg, self._requestorId + port, (self._deviceId + port).encode('ascii'), self._deviceName + port)
         self.checkNoRemainingMessage()
 
-        # Agin, but now the PC is involved
+        # Again, but now the PC is involved
         # check the protobuf messages corresponding to the UDP query and answer
         # Re-init socket so we get a different port
         self.setUpSockets();
