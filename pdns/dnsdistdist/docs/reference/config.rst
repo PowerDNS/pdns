@@ -859,7 +859,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   .. attribute:: Server.upStatus
 
-    Whether or not this server is ``up`` (true) or ``down`` (false) based on the last known state of heatlh-checks.
+    Whether or not this server is ``up`` (true) or ``down`` (false) based on the last known state of health-checks.
 
   .. attribute:: Server.order
 
