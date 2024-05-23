@@ -60,7 +60,7 @@ rec MODULE-IDENTITY
     REVISION "202306080000Z"
     DESCRIPTION "Added metrics for NOD and UDR events"
 
-    REVISION "202311060000Z"
+    REVISION "202405230000Z"
     DESCRIPTION "Added metrics for maximum chain length and weight"
 
     ::= { powerdns 2 }
