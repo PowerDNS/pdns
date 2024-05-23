@@ -1673,9 +1673,12 @@ faster than the existing rules.
 
   Represents a group of dynamic block rules.
 
-  .. method:: DynBlockRulesGroup:setCacheMissRatio(ratio, seconds, reason, blockingTime, minimumNumberOfResponses, minimumGlobalCacheHitRatio, [, action [, warningRate]])
+  .. method:: DynBlockRulesGroup:setCacheMissRatio(ratio, seconds, reason, blockingTime, minimumNumberOfResponses, minimumGlobalCacheHitRatio, [, action [, warningRate, [options]]])
 
     .. versionadded:: 1.9.0
+
+    .. versionadded:: 2.0.0
+      ``options`` optional parameter added
 
     Adds a rate-limiting rule for the ratio of cache-misses responses over the total number of responses for a given client.
     A minimum global cache-hit ratio has to specified to prevent false-positive when the cache is empty.
@@ -1688,6 +1691,12 @@ faster than the existing rules.
     :param float minimumGlobalCacheHitRatio: The minimum global cache-hit ratio (over all pools, so ``cache-hits / (cache-hits + cache-misses)``) for that rule to be applied.
     :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param float warningRatio: If set to a non-zero value, the ratio above which a warning message will be issued and a no-op block inserted
+    :param table options: A table with key: value pairs, see below for supported values.
+
+    Options:
+
+    * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string.
 
   .. method:: DynBlockRulesGroup:setMasks(v4, v6, port)
 
@@ -1704,7 +1713,10 @@ faster than the existing rules.
     :param int v6: Number of bits to keep for IPv6 addresses. Default is 128
     :param int port: Number of bits of port to consider over IPv4. Default is 0 meaning that the port is not taken into account
 
-  .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
+  .. method:: DynBlockRulesGroup:setQueryRate(rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
+
+    .. versionadded:: 2.0.0
+      ``options`` optional parameter added
 
     Adds a query rate-limiting rule, equivalent to:
     ```
@@ -1717,6 +1729,12 @@ faster than the existing rules.
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
+    :param table options: A table with key: value pairs, see below for supported values.
+
+    Options:
+
+    * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
   .. method:: DynBlockRulesGroup:setNewBlockInsertedHook(hook)
 
@@ -1731,7 +1749,10 @@ faster than the existing rules.
     * the duration of the block in seconds
     * whether this is a warning block (true) or not (false)
 
-  .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action [, warningRate]])
+  .. method:: DynBlockRulesGroup:setRCodeRate(rcode, rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
+
+    .. versionadded:: 2.0.0
+      ``options`` optional parameter added
 
     .. note::
       Cache hits are inserted into the in-memory ring buffers since 1.8.0, so they are now considered when computing the rcode rate.
@@ -1748,10 +1769,19 @@ faster than the existing rules.
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
+    :param table options: A table with key: value pairs, see below for supported values.
 
-  .. method:: DynBlockRulesGroup:setRCodeRatio(rcode, ratio, seconds, reason, blockingTime, minimumNumberOfResponses [, action [, warningRate]])
+    Options:
+
+    * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
+
+  .. method:: DynBlockRulesGroup:setRCodeRatio(rcode, ratio, seconds, reason, blockingTime, minimumNumberOfResponses [, action [, warningRate, [options]]])
 
     .. versionadded:: 1.5.0
+
+    .. versionadded:: 2.0.0
+      ``options`` optional parameter added
 
     .. note::
       Cache hits are inserted into the in-memory ring buffers since 1.8.0, so they are now considered when computing the rcode ratio.
@@ -1766,8 +1796,17 @@ faster than the existing rules.
     :param int minimumNumberOfResponses: How many total responses is required for this rule to apply
     :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param float warningRatio: If set to a non-zero value, the ratio above which a warning message will be issued and a no-op block inserted
+    :param table options: A table with key: value pairs, see below for supported values.
 
-  .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action [, warningRate]])
+    Options:
+
+    * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
+
+  .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
+
+    .. versionadded:: 2.0.0
+      ``options`` optional parameter added
 
     Adds a rate-limiting rule for queries of type ``qtype``, equivalent to:
     ```
@@ -1781,8 +1820,17 @@ faster than the existing rules.
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
+    :param table options: A table with key: value pairs, see below for supported values.
 
-  .. method:: DynBlockRulesGroup:setResponseByteRate(rate, seconds, reason, blockingTime [, action [, warningRate]])
+    Options:
+
+    * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
+
+  .. method:: DynBlockRulesGroup:setResponseByteRate(rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
+
+    .. versionadded:: 2.0.0
+      ``options`` optional parameter added
 
     .. note::
       Cache hits are inserted into the in-memory ring buffers since 1.8.0, so they are now considered when computing the bandwidth rate.
@@ -1798,8 +1846,14 @@ faster than the existing rules.
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param int warningRate: If set to a non-zero value, the rate above which a warning message will be issued and a no-op block inserted
+    :param table options: A table with key: value pairs, see below for supported values.
 
-  .. method:: DynBlockRulesGroup:setSuffixMatchRule(seconds, reason, blockingTime, action , visitor)
+    Options:
+
+    * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
+
+  .. method:: DynBlockRulesGroup:setSuffixMatchRule(seconds, reason, blockingTime, action, visitor, [options])
 
     .. versionadded:: 1.4.0
 
@@ -1808,6 +1862,9 @@ faster than the existing rules.
 
     .. versionchanged:: 1.9.0
       This visitor function can now optionally return an additional integer which will be set as the ``action`` for the dynamic block.
+
+    .. versionadded:: 2.0.0
+      ``options`` optional parameter added
 
     Set a Lua visitor function that will be called for each label of every domain seen in queries and responses. The function receives a :class:`StatNode` object representing the stats of the parent, a :class:`StatNodeStats` one with the stats of the current label and a second :class:`StatNodeStats` with the stats of the current node plus all its children.
     Note that this function will not be called if a FFI version has been set using :meth:`DynBlockRulesGroup:setSuffixMatchRuleFFI`
@@ -1821,10 +1878,19 @@ faster than the existing rules.
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param function visitor: The Lua function to call.
+    :param table options: A table with key: value pairs, see below for supported values.
 
-  .. method:: DynBlockRulesGroup:setSuffixMatchRuleFFI(seconds, reason, blockingTime, action , visitor)
+    Options:
+
+    * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
+
+  .. method:: DynBlockRulesGroup:setSuffixMatchRuleFFI(seconds, reason, blockingTime, action , visitor, [options])
 
     .. versionadded:: 1.4.0
+
+    .. versionadded:: 2.0.0
+      ``options`` optional parameter added
 
     Set a Lua FFI visitor function that will be called for each label of every domain seen in queries and responses. The function receives a `dnsdist_ffi_stat_node_t` object containing the stats of the parent, a second one with the stats of the current label and one with the stats of the current node plus all its children.
     If the function returns ``true``, the current suffix will be added to the block list, meaning that the exact name and all its sub-domains will be blocked according to the `seconds`, `reason`, `blockingTime` and `action` parameters.
@@ -1835,6 +1901,12 @@ faster than the existing rules.
     :param int blockingTime: The number of seconds this block to expire
     :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to the one set with :func:`setDynBlocksAction`)
     :param function visitor: The Lua FFI function to call.
+    :param table options: A table with key: value pairs, see below for supported values.
+
+    Options:
+
+    * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
   .. method:: DynBlockRulesGroup:apply()
 

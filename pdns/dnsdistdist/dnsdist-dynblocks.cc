@@ -8,7 +8,7 @@ GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
 
 #ifndef DISABLE_DYNBLOCKS
-void DynBlockRulesGroup::apply(const struct timespec& now)
+void DynBlockRulesGroup::apply(const timespec& now)
 {
   counts_t counts;
   StatNode statNodeRoot;
@@ -214,32 +214,27 @@ static DNSAction::Action getActualAction(const DynBlock& block)
 
 namespace dnsdist::DynamicBlocks
 {
-bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const std::string& reason, unsigned int duration, DNSAction::Action action, bool warning, bool beQuiet)
+bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const timespec& now, const AddressAndPortRange& requestor, DynBlock&& dblock, bool beQuiet)
 {
   unsigned int count = 0;
   bool expired = false;
   bool wasWarning = false;
   bool bpf = false;
-  struct timespec until = now;
-  until.tv_sec += duration;
-
-  DynBlock dblock{reason, until, DNSName(), warning ? DNSAction::Action::NoOp : action};
-  dblock.warning = warning;
 
   const auto& got = blocks.lookup(requestor);
   if (got != nullptr) {
     bpf = got->second.bpf;
 
-    if (warning && !got->second.warning) {
+    if (dblock.warning && !got->second.warning) {
       /* we have an existing entry which is not a warning,
          don't override it */
       return false;
     }
-    if (!warning && got->second.warning) {
+    if (!dblock.warning && got->second.warning) {
       wasWarning = true;
     }
     else {
-      if (until < got->second.until) {
+      if (dblock.until < got->second.until) {
         // had a longer policy
         return false;
       }
@@ -273,7 +268,7 @@ bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const
     }
 
     if (!beQuiet) {
-      warnlog("Inserting %s%sdynamic block for %s for %d seconds: %s", warning ? "(warning) " : "", bpf ? "eBPF " : "", requestor.toString(), duration, reason);
+      warnlog("Inserting %s%sdynamic block for %s for %d seconds: %s", dblock.warning ? "(warning) " : "", bpf ? "eBPF " : "", requestor.toString(), dblock.until.tv_sec - now.tv_sec, dblock.reason);
     }
   }
 
@@ -284,23 +279,20 @@ bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const
   return true;
 }
 
-bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const std::string& reason, unsigned int duration, DNSAction::Action action, bool beQuiet)
+bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const timespec& now, DynBlock&& dblock, bool beQuiet)
 {
-  struct timespec until = now;
-  until.tv_sec += duration;
   unsigned int count = 0;
-  DynBlock dblock{reason, until, name.makeLowerCase(), action};
   /* be careful, if you try to insert a longer suffix
      lookup() might return a shorter one if it is
      already in the tree as a final node */
-  const DynBlock* got = blocks.lookup(name);
-  if (got != nullptr && got->domain != name) {
+  const DynBlock* got = blocks.lookup(dblock.domain);
+  if (got != nullptr && got->domain != dblock.domain) {
     got = nullptr;
   }
   bool expired = false;
 
   if (got != nullptr) {
-    if (until < got->until) {
+    if (dblock.until < got->until) {
       // had a longer policy
       return false;
     }
@@ -317,9 +309,9 @@ bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timesp
   dblock.blocks = count;
 
   if (!beQuiet && (got == nullptr || expired)) {
-    warnlog("Inserting dynamic block for %s for %d seconds: %s", name, duration, reason);
+    warnlog("Inserting dynamic block for %s for %d seconds: %s", dblock.domain, dblock.until.tv_sec - now.tv_sec, dblock.reason);
   }
-  blocks.add(name, std::move(dblock));
+  blocks.add(dblock.domain, std::move(dblock));
   return true;
 }
 }
@@ -332,11 +324,18 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
     return;
   }
 
+  timespec until{now};
+  until.tv_sec += rule.d_blockDuration;
+  DynBlock dblock{rule.d_blockReason, until, DNSName(), warning ? DNSAction::Action::NoOp : rule.d_action};
+  dblock.warning = warning;
+  if (!warning && rule.d_action == DNSAction::Action::SetTag) {
+    dblock.tagSettings = rule.d_tagSettings;
+  }
   if (!blocks) {
     blocks = g_dynblockNMG.getCopy();
   }
 
-  updated = dnsdist::DynamicBlocks::addOrRefreshBlock(*blocks, now, requestor, rule.d_blockReason, rule.d_blockDuration, rule.d_action, warning, d_beQuiet);
+  updated = dnsdist::DynamicBlocks::addOrRefreshBlock(*blocks, now, requestor, std::move(dblock), d_beQuiet);
   if (updated && d_newBlockHook) {
     try {
       d_newBlockHook(dnsdist_ffi_dynamic_block_type_nmt, requestor.toString().c_str(), rule.d_blockReason.c_str(), static_cast<uint8_t>(rule.d_action), rule.d_blockDuration, warning);
@@ -354,7 +353,13 @@ void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks,
     return;
   }
 
-  updated = dnsdist::DynamicBlocks::addOrRefreshBlockSMT(blocks, now, name, rule.d_blockReason, rule.d_blockDuration, rule.d_action, d_beQuiet);
+  timespec until{now};
+  until.tv_sec += rule.d_blockDuration;
+  DynBlock dblock{rule.d_blockReason, until, name.makeLowerCase(), rule.d_action};
+  if (rule.d_action == DNSAction::Action::SetTag) {
+    dblock.tagSettings = rule.d_tagSettings;
+  }
+  updated = dnsdist::DynamicBlocks::addOrRefreshBlockSMT(blocks, now, std::move(dblock), d_beQuiet);
   if (updated && d_newBlockHook) {
     try {
       d_newBlockHook(dnsdist_ffi_dynamic_block_type_smt, name.toString().c_str(), rule.d_blockReason.c_str(), static_cast<uint8_t>(rule.d_action), rule.d_blockDuration, false);

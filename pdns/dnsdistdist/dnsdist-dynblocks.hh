@@ -72,17 +72,7 @@ using dnsdist_ffi_dynamic_block_inserted_hook = std::function<void(uint8_t type,
 
 class DynBlockRulesGroup
 {
-private:
-  struct Counts
-  {
-    std::map<uint8_t, uint64_t> d_rcodeCounts;
-    std::map<uint16_t, uint64_t> d_qtypeCounts;
-    uint64_t queries{0};
-    uint64_t responses{0};
-    uint64_t respBytes{0};
-    uint64_t cacheMisses{0};
-  };
-
+public:
   struct DynBlockRule
   {
     DynBlockRule() = default;
@@ -103,6 +93,7 @@ private:
     std::string toString() const;
 
     std::string d_blockReason;
+    std::shared_ptr<DynBlock::TagSettings> d_tagSettings;
     struct timespec d_cutOff;
     struct timespec d_minTime;
     unsigned int d_blockDuration{0};
@@ -146,6 +137,16 @@ private:
     double d_minimumGlobalCacheHitRatio{0.0};
   };
 
+private:
+  struct Counts
+  {
+    std::map<uint8_t, uint64_t> d_rcodeCounts;
+    std::map<uint16_t, uint64_t> d_qtypeCounts;
+    uint64_t queries{0};
+    uint64_t responses{0};
+    uint64_t respBytes{0};
+    uint64_t cacheMisses{0};
+  };
   using counts_t = std::unordered_map<AddressAndPortRange, Counts, AddressAndPortRange::hash>;
 
 public:
@@ -153,51 +154,48 @@ public:
   {
   }
 
-  void setQueryRate(unsigned int rate, unsigned int warningRate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action)
+  void setQueryRate(DynBlockRule&& rule)
   {
-    d_queryRateRule = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
+    d_queryRateRule = std::move(rule);
   }
 
   /* rate is in bytes per second */
-  void setResponseByteRate(unsigned int rate, unsigned int warningRate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action)
+  void setResponseByteRate(DynBlockRule&& rule)
   {
-    d_respRateRule = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
+    d_respRateRule = std::move(rule);
   }
 
-  void setRCodeRate(uint8_t rcode, unsigned int rate, unsigned int warningRate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action)
+  void setRCodeRate(uint8_t rcode, DynBlockRule&& rule)
   {
-    auto& entry = d_rcodeRules[rcode];
-    entry = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
+    d_rcodeRules[rcode] = std::move(rule);
   }
 
-  void setRCodeRatio(uint8_t rcode, double ratio, double warningRatio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action, size_t minimumNumberOfResponses)
+  void setRCodeRatio(uint8_t rcode, DynBlockRatioRule&& rule)
   {
-    auto& entry = d_rcodeRatioRules[rcode];
-    entry = DynBlockRatioRule(reason, blockDuration, ratio, warningRatio, seconds, action, minimumNumberOfResponses);
+    d_rcodeRatioRules[rcode] = std::move(rule);
   }
 
-  void setQTypeRate(uint16_t qtype, unsigned int rate, unsigned int warningRate, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action)
+  void setQTypeRate(uint16_t qtype, DynBlockRule&& rule)
   {
-    auto& entry = d_qtypeRules[qtype];
-    entry = DynBlockRule(reason, blockDuration, rate, warningRate, seconds, action);
+    d_qtypeRules[qtype] = std::move(rule);
   }
 
-  void setCacheMissRatio(double ratio, double warningRatio, unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action, size_t minimumNumberOfResponses, double minimumGlobalCacheHitRatio)
+  void setCacheMissRatio(DynBlockCacheMissRatioRule&& rule)
   {
-    d_respCacheMissRatioRule = DynBlockCacheMissRatioRule(reason, blockDuration, ratio, warningRatio, seconds, action, minimumNumberOfResponses, minimumGlobalCacheHitRatio);
+    d_respCacheMissRatioRule = std::move(rule);
   }
 
   using smtVisitor_t = std::function<std::tuple<bool, boost::optional<std::string>, boost::optional<int>>(const StatNode&, const StatNode::Stat&, const StatNode::Stat&)>;
 
-  void setSuffixMatchRule(unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action, smtVisitor_t visitor)
+  void setSuffixMatchRule(DynBlockRule&& rule, smtVisitor_t visitor)
   {
-    d_suffixMatchRule = DynBlockRule(reason, blockDuration, 0, 0, seconds, action);
+    d_suffixMatchRule = std::move(rule);
     d_smtVisitor = std::move(visitor);
   }
 
-  void setSuffixMatchRuleFFI(unsigned int seconds, const std::string& reason, unsigned int blockDuration, DNSAction::Action action, dnsdist_ffi_stat_node_visitor_t visitor)
+  void setSuffixMatchRuleFFI(DynBlockRule&& rule, dnsdist_ffi_stat_node_visitor_t visitor)
   {
-    d_suffixMatchRule = DynBlockRule(reason, blockDuration, 0, 0, seconds, action);
+    d_suffixMatchRule = std::move(rule);
     d_smtVisitorFFI = std::move(visitor);
   }
 
@@ -215,13 +213,13 @@ public:
 
   void apply()
   {
-    struct timespec now;
+    timespec now{};
     gettime(&now);
 
     apply(now);
   }
 
-  void apply(const struct timespec& now);
+  void apply(const timespec& now);
 
   void excludeRange(const Netmask& range)
   {
@@ -387,7 +385,7 @@ private:
 
 namespace dnsdist::DynamicBlocks
 {
-bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const std::string& reason, unsigned int duration, DNSAction::Action action, bool warning, bool beQuiet);
-bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const std::string& reason, unsigned int duration, DNSAction::Action action, bool beQuiet);
+bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const timespec& now, const AddressAndPortRange& requestor, DynBlock&& dblock, bool beQuiet);
+bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const timespec& now, DynBlock&& dblock, bool beQuiet);
 }
 #endif /* DISABLE_DYNBLOCKS */

@@ -1634,65 +1634,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 #endif /* DISABLE_DEPRECATED_DYNBLOCK */
 
-  luaCtx.writeFunction("addDynBlockSMT",
-                       [](const LuaArray<std::string>& names, const std::string& msg, boost::optional<int> seconds, boost::optional<DNSAction::Action> action) {
-                         if (names.empty()) {
-                           return;
-                         }
-                         setLuaSideEffect();
-                         timespec now{};
-                         gettime(&now);
-                         unsigned int actualSeconds = seconds ? *seconds : 10;
-
-                         bool needUpdate = false;
-                         auto slow = g_dynblockSMT.getCopy();
-                         for (const auto& capair : names) {
-                           DNSName domain(capair.second);
-                           domain.makeUsLowerCase();
-
-                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, domain, msg, actualSeconds, action ? *action : DNSAction::Action::None, false)) {
-                             needUpdate = true;
-                           }
-                         }
-
-                         if (needUpdate) {
-                           g_dynblockSMT.setState(slow);
-                         }
-                       });
-
-  luaCtx.writeFunction("addDynamicBlock",
-                       [](const boost::variant<ComboAddress, std::string>& clientIP, const std::string& msg, const boost::optional<DNSAction::Action> action, const boost::optional<int> seconds, boost::optional<uint8_t> clientIPMask, boost::optional<uint8_t> clientIPPortMask) {
-                         setLuaSideEffect();
-
-                         ComboAddress clientIPCA;
-                         if (clientIP.type() == typeid(ComboAddress)) {
-                           clientIPCA = boost::get<ComboAddress>(clientIP);
-                         }
-                         else {
-                           const auto& clientIPStr = boost::get<std::string>(clientIP);
-                           try {
-                             clientIPCA = ComboAddress(clientIPStr);
-                           }
-                           catch (const std::exception& exp) {
-                             errlog("addDynamicBlock: Unable to parse '%s': %s", clientIPStr, exp.what());
-                             return;
-                           }
-                           catch (const PDNSException& exp) {
-                             errlog("addDynamicBlock: Unable to parse '%s': %s", clientIPStr, exp.reason);
-                             return;
-                           }
-                         }
-                         AddressAndPortRange target(clientIPCA, clientIPMask ? *clientIPMask : (clientIPCA.isIPv4() ? 32 : 128), clientIPPortMask ? *clientIPPortMask : 0);
-                         unsigned int actualSeconds = seconds ? *seconds : 10;
-
-                         timespec now{};
-                         gettime(&now);
-                         auto slow = g_dynblockNMG.getCopy();
-                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, msg, actualSeconds, action ? *action : DNSAction::Action::None, false, false)) {
-                           g_dynblockNMG.setState(slow);
-                         }
-                       });
-
   luaCtx.writeFunction("setDynBlocksPurgeInterval", [](uint64_t interval) {
     DynBlockMaintenance::s_expiredDynBlocksPurgeInterval = static_cast<time_t>(interval);
   });

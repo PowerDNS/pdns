@@ -238,7 +238,8 @@ public:
     NoOp,
     NoRecurse,
     SpoofRaw,
-    SpoofPacket
+    SpoofPacket,
+    SetTag,
   };
   static std::string typeToString(const Action& action)
   {
@@ -267,6 +268,8 @@ public:
       return "Truncate over UDP";
     case Action::ServFail:
       return "Send ServFail";
+    case Action::SetTag:
+      return "Set Tag";
     case Action::None:
     case Action::NoOp:
       return "Do nothing";
@@ -316,26 +319,25 @@ public:
 
 struct DynBlock
 {
-  DynBlock() :
-    action(DNSAction::Action::None), warning(false)
+  DynBlock()
   {
     until.tv_sec = 0;
     until.tv_nsec = 0;
   }
 
   DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_) :
-    reason(reason_), domain(domain_), until(until_), action(action_), warning(false)
+    reason(reason_), domain(domain_), until(until_), action(action_)
   {
   }
 
   DynBlock(const DynBlock& rhs) :
-    reason(rhs.reason), domain(rhs.domain), until(rhs.until), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
+    reason(rhs.reason), domain(rhs.domain), until(rhs.until), tagSettings(rhs.tagSettings), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
   {
     blocks.store(rhs.blocks);
   }
 
   DynBlock(DynBlock&& rhs) :
-    reason(std::move(rhs.reason)), domain(std::move(rhs.domain)), until(rhs.until), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
+    reason(std::move(rhs.reason)), domain(std::move(rhs.domain)), until(rhs.until), tagSettings(std::move(rhs.tagSettings)), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
   {
     blocks.store(rhs.blocks);
   }
@@ -349,6 +351,7 @@ struct DynBlock
     blocks.store(rhs.blocks);
     warning = rhs.warning;
     bpf = rhs.bpf;
+    tagSettings = rhs.tagSettings;
     return *this;
   }
 
@@ -361,13 +364,21 @@ struct DynBlock
     blocks.store(rhs.blocks);
     warning = rhs.warning;
     bpf = rhs.bpf;
+    tagSettings = std::move(rhs.tagSettings);
     return *this;
   }
 
+  struct TagSettings
+  {
+    std::string d_name;
+    std::string d_value;
+  };
+
   string reason;
   DNSName domain;
-  struct timespec until;
-  mutable std::atomic<unsigned int> blocks;
+  timespec until{};
+  std::shared_ptr<TagSettings> tagSettings{nullptr};
+  mutable std::atomic<uint32_t> blocks{0};
   DNSAction::Action action{DNSAction::Action::None};
   bool warning{false};
   bool bpf{false};
