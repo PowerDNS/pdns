@@ -233,9 +233,17 @@ private:
   }
   
   void setWeight(const CheckDesc& cd, string content){
-    ReadLock lock{&d_lock};
-    auto& state = d_statuses[cd];
-    state->weight = stoi(content);
+    auto statuses = d_statuses.write_lock();
+    auto& state = (*statuses)[cd];
+    try {
+      state->weight = stoi(content);
+    } catch (const PDNSException& e) {
+      // set weight to 0
+      state->weight = 0;
+    }
+    if (state->first) {
+      state->first = false;
+    }
   }
 
   void setDown(const ComboAddress& rem, const std::string& url=std::string(), const opts_t& opts = opts_t())
