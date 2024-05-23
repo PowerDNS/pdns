@@ -128,10 +128,18 @@ private:
         throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.opts.at("stringmatch")));
       }
 
-      if(!status) {
-        g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<" with WEIGHT "<<content<<"!"<<endl;
+      try {
+        stoi(content);
+        if(!status) {
+          g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<" with WEIGHT "<<content<<"!"<<endl;
+        }
       }
-      
+      catch (const std::exception&) {
+        if(!status) {
+          g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<endl;
+        }
+      }
+
       setWeight(cd, content);
       setUp(cd);
     }
