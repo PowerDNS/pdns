@@ -9,12 +9,6 @@ FROM centos:8 as dist-base
 @IF [ ${BUILDER_TARGET} = centos-8-stream ]
 FROM quay.io/centos/centos:stream8 as dist-base
 @ENDIF
-@IF [ ${BUILDER_TARGET} = centos-8-amd64 ]
-FROM amd64/centos:8 as dist-base
-@ENDIF
-@IF [ ${BUILDER_TARGET} = centos-8-arm64 ]
-FROM arm64v8/centos:8 as dist-base
-@ENDIF
 
 ARG BUILDER_CACHE_BUSTER=
 
