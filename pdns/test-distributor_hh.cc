@@ -67,9 +67,17 @@ struct BackendSlow
 {
   std::unique_ptr<DNSPacket> question(Question&)
   {
-    sleep(1);
+    if (d_shouldSleep) {
+      /* only sleep once per distributor thread, otherwise
+         we are sometimes destroyed before picking up the queued
+         queries, triggering a memory leak reported by Leak Sanitizer */
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+      d_shouldSleep = false;
+    }
     return make_unique<DNSPacket>(true);
   }
+private:
+  bool d_shouldSleep{true};
 };
 
 static std::atomic<int> g_receivedAnswers1;
