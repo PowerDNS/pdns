@@ -1149,10 +1149,20 @@ private:
         setTable<TRetValue(TObject&, TOtherParams...)>(mState, Registry, &typeid(TObject), 0, functionName, function);
         
         checkTypeRegistration(mState, &typeid(TObject*));
-        setTable<TRetValue(TObject*, TOtherParams...)>(mState, Registry, &typeid(TObject*), 0, functionName, [=](TObject* obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
-        
+        setTable<TRetValue(TObject*, TOtherParams...)>(mState, Registry, &typeid(TObject*), 0, functionName, [=](TObject* obj, TOtherParams... rest) {
+          if (obj == nullptr) {
+            throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
+          }
+          return function(*obj, std::forward<TOtherParams>(rest)...);
+        });
+
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject>));
-        setTable<TRetValue(std::shared_ptr<TObject>, TOtherParams...)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 0, functionName, [=](const std::shared_ptr<TObject>& obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
+        setTable<TRetValue(std::shared_ptr<TObject>, TOtherParams...)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 0, functionName, [=](const std::shared_ptr<TObject>& obj, TOtherParams... rest) {
+          if (obj == nullptr) {
+            throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
+          }
+          return function(*obj, std::forward<TOtherParams>(rest)...);
+        });
     }
     
     template<typename TFunctionType, typename TRetValue, typename TObject, typename... TOtherParams>
@@ -1161,10 +1171,20 @@ private:
         registerFunctionImpl(functionName, function, tag<TObject>{}, fTypeTag);
 
         checkTypeRegistration(mState, &typeid(TObject const*));
-        setTable<TRetValue(TObject const*, TOtherParams...)>(mState, Registry, &typeid(TObject const*), 0, functionName, [=](TObject const* obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
-        
+        setTable<TRetValue(TObject const*, TOtherParams...)>(mState, Registry, &typeid(TObject const*), 0, functionName, [=](TObject const* obj, TOtherParams... rest) {
+          if (obj == nullptr) {
+            throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
+          }
+          return function(*obj, std::forward<TOtherParams>(rest)...);
+        });
+
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject const>));
-        setTable<TRetValue(std::shared_ptr<TObject const>, TOtherParams...)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 0, functionName, [=](const std::shared_ptr<TObject const>& obj, TOtherParams... rest) { assert(obj); return function(*obj, std::forward<TOtherParams>(rest)...); });
+        setTable<TRetValue(std::shared_ptr<TObject const>, TOtherParams...)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 0, functionName, [=](const std::shared_ptr<TObject const>& obj, TOtherParams... rest) {
+          if (obj == nullptr) {
+            throw ExecutionErrorException{"Calling method " + functionName + " on a NULL object of type " + typeid(TObject).name()};
+          }
+          return function(*obj, std::forward<TOtherParams>(rest)...);
+        });
     }
 
     template<typename TFunctionType, typename TRetValue, typename TObject, typename... TOtherParams>
@@ -1196,33 +1216,41 @@ private:
     void registerMemberImpl(const std::string& name, TReadFunction readFunction)
     {
         static_assert(std::is_class<TObject>::value || std::is_pointer<TObject>::value, "registerMember can only be called on a class or a pointer");
-        
+
         checkTypeRegistration(mState, &typeid(TObject));
         setTable<TVarType (TObject&)>(mState, Registry, &typeid(TObject), 1, name, [readFunction](TObject const& object) {
             return readFunction(object);
         });
-        
+
         checkTypeRegistration(mState, &typeid(TObject*));
-        setTable<TVarType (TObject*)>(mState, Registry, &typeid(TObject*), 1, name, [readFunction](TObject const* object) {
-            assert(object);
+        setTable<TVarType (TObject*)>(mState, Registry, &typeid(TObject*), 1, name, [readFunction,name](TObject const* object) {
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             return readFunction(*object);
         });
-        
+
         checkTypeRegistration(mState, &typeid(TObject const*));
-        setTable<TVarType (TObject const*)>(mState, Registry, &typeid(TObject const*), 1, name, [readFunction](TObject const* object) {
-            assert(object);
+        setTable<TVarType (TObject const*)>(mState, Registry, &typeid(TObject const*), 1, name, [readFunction,name](TObject const* object) {
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             return readFunction(*object);
         });
-        
+
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject>));
-        setTable<TVarType (std::shared_ptr<TObject>)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 1, name, [readFunction](const std::shared_ptr<TObject>& object) {
-            assert(object);
+        setTable<TVarType (std::shared_ptr<TObject>)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 1, name, [readFunction,name](const std::shared_ptr<TObject>& object) {
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             return readFunction(*object);
         });
-        
+
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject const>));
-        setTable<TVarType (std::shared_ptr<TObject const>)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 1, name, [readFunction](const std::shared_ptr<TObject const>& object) {
-            assert(object);
+        setTable<TVarType (std::shared_ptr<TObject const>)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 1, name, [readFunction,name](const std::shared_ptr<TObject const>& object) {
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             return readFunction(*object);
         });
     }
@@ -1235,14 +1263,18 @@ private:
         setTable<void (TObject&, TVarType)>(mState, Registry, &typeid(TObject), 4, name, [writeFunction_](TObject& object, const TVarType& value) {
             writeFunction_(object, value);
         });
-        
-        setTable<void (TObject*, TVarType)>(mState, Registry, &typeid(TObject*), 4, name, [writeFunction_](TObject* object, const TVarType& value) {
-            assert(object);
+
+        setTable<void (TObject*, TVarType)>(mState, Registry, &typeid(TObject*), 4, name, [writeFunction_,name](TObject* object, const TVarType& value) {
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             writeFunction_(*object, value);
         });
-        
-        setTable<void (std::shared_ptr<TObject>, TVarType)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 4, name, [writeFunction_](std::shared_ptr<TObject> object, const TVarType& value) {
-            assert(object);
+
+        setTable<void (std::shared_ptr<TObject>, TVarType)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 4, name, [writeFunction_,name](std::shared_ptr<TObject> object, const TVarType& value) {
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             writeFunction_(*object, value);
         });
     }
@@ -1267,28 +1299,36 @@ private:
         setTable<TVarType (TObject const&, std::string)>(mState, Registry, &typeid(TObject), 2, [readFunction](TObject const& object, const std::string& name) {
             return readFunction(object, name);
         });
-        
+
         checkTypeRegistration(mState, &typeid(TObject*));
         setTable<TVarType (TObject*, std::string)>(mState, Registry, &typeid(TObject*), 2, [readFunction](TObject const* object, const std::string& name) {
-            assert(object);
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             return readFunction(*object, name);
         });
-        
+
         checkTypeRegistration(mState, &typeid(TObject const*));
         setTable<TVarType (TObject const*, std::string)>(mState, Registry, &typeid(TObject const*), 2, [readFunction](TObject const* object, const std::string& name) {
-            assert(object);
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             return readFunction(*object, name);
         });
-        
+
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject>));
         setTable<TVarType (std::shared_ptr<TObject>, std::string)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 2, [readFunction](const std::shared_ptr<TObject>& object, const std::string& name) {
-            assert(object);
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             return readFunction(*object, name);
         });
-        
+
         checkTypeRegistration(mState, &typeid(std::shared_ptr<TObject const>));
         setTable<TVarType (std::shared_ptr<TObject const>, std::string)>(mState, Registry, &typeid(std::shared_ptr<TObject const>), 2, [readFunction](const std::shared_ptr<TObject const>& object, const std::string& name) {
-            assert(object);
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             return readFunction(*object, name);
         });
     }
@@ -1301,14 +1341,18 @@ private:
         setTable<void (TObject&, std::string, TVarType)>(mState, Registry, &typeid(TObject), 5, [writeFunction_](TObject& object, const std::string& name, const TVarType& value) {
             writeFunction_(object, name, value);
         });
-        
+
         setTable<void (TObject*, std::string, TVarType)>(mState, Registry, &typeid(TObject*), 2, [writeFunction_](TObject* object, const std::string& name, const TVarType& value) {
-            assert(object);
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             writeFunction_(*object, name, value);
         });
-        
+
         setTable<void (std::shared_ptr<TObject>, std::string, TVarType)>(mState, Registry, &typeid(std::shared_ptr<TObject>), 2, [writeFunction_](const std::shared_ptr<TObject>& object, const std::string& name, const TVarType& value) {
-            assert(object);
+            if (object == nullptr) {
+              throw ExecutionErrorException{"Accessing attribute " + name + " on a NULL object of type " + typeid(TObject).name()};
+            }
             writeFunction_(*object, name, value);
         });
     }
