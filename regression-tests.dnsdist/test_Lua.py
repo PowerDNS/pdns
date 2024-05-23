@@ -93,3 +93,19 @@ class TestLuaDNSHeaderBindings(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
+
+class TestLuaCallingMethodOnInvalidObject(DNSDistTest):
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+
+    _config_params = ['_consoleKeyB64', '_consolePort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+    """
+
+    def testLuaCallingMethodOnInvalidObject(self):
+        # calling setUp() method on an invalid server should not crash
+        wrongID = '0BAD1DEA-0000-0000-0000-123456789ABC'
+        for _ in range(2):
+            self.sendConsoleCommand(f"getServer('{wrongID}'):setUp()")
