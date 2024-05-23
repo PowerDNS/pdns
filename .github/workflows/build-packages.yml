@@ -67,6 +67,7 @@ jobs:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
       fail-fast: false
     outputs:
+      product-name: ${{ steps.normalize-name.outputs.normalized-package-name }}
       version: ${{ steps.getversion.outputs.version }}
       pkghashes-el-7: ${{ steps.pkghashes.outputs.pkghashes-el-7 }}
       pkghashes-el-8: ${{ steps.pkghashes.outputs.pkghashes-el-8 }}
@@ -143,7 +144,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Get list of outputs from build jobs
-        run: echo '${{ toJSON(needs.build.outputs) }}' | jq 'keys[]' | grep -v version | tee /tmp/build-outputs.txt
+        run: echo '${{ toJSON(needs.build.outputs) }}' | jq 'keys[]' | grep -vE 'version|product-name' | tee /tmp/build-outputs.txt
       - name: Get list of OS inputs
         run: for i in ${{ inputs.os }}; do echo "\"pkghashes-$i\""; done | sort | tee /tmp/os-inputs.txt; echo "\"srchashes\"" | tee -a /tmp/os-inputs.txt
       - name: Fail if there is a hash missing
@@ -202,7 +203,7 @@ jobs:
           SSHKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
           RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
           HOSTKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_HOSTKEY }}
-          PRODUCT: ${{ inputs.product }}
+          PRODUCT: ${{ needs.build.outputs.product-name }}
           VERSION: ${{ needs.build.outputs.version }}
         if:
           "${{ env.SSHKEY != '' }}"
