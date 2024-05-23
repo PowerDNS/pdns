@@ -33,15 +33,12 @@
 ./pdns/dns.cc
 ./pdns/dns.hh
 ./pdns/dnsbulktest.cc
-./pdns/dnscrypt.cc
-./pdns/dnscrypt.hh
 ./pdns/dnsdemog.cc
 ./pdns/dnsdistdist/connection-management.hh
 ./pdns/dnsdistdist/dnsdist-backend.cc
 ./pdns/dnsdistdist/dnsdist-kvs.cc
 ./pdns/dnsdistdist/dnsdist-kvs.hh
 ./pdns/dnsdistdist/dnsdist-lbpolicies.cc
-./pdns/dnsdistdist/dnsdist-lua-bindings-dnscrypt.cc
 ./pdns/dnsdistdist/dnsdist-lua-bindings-kvs.cc
 ./pdns/dnsdistdist/dnsdist-lua-bindings-packetcache.cc
 ./pdns/dnsdistdist/dnsdist-lua-bindings-protobuf.cc
@@ -201,7 +198,6 @@
 ./pdns/test-base64_cc.cc
 ./pdns/test-common.hh
 ./pdns/test-distributor_hh.cc
-./pdns/test-dnscrypt_cc.cc
 ./pdns/test-dnsname_cc.cc
 ./pdns/test-dnsparser_cc.cc
 ./pdns/test-dnsparser_hh.cc
