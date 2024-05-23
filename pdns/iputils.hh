@@ -1736,7 +1736,7 @@ bool HarvestDestinationAddress(const struct msghdr* msgh, ComboAddress* destinat
 bool HarvestTimestamp(struct msghdr* msgh, struct timeval* tv);
 void fillMSGHdr(struct msghdr* msgh, struct iovec* iov, cmsgbuf_aligned* cbuf, size_t cbufsize, char* data, size_t datalen, ComboAddress* addr);
 int sendOnNBSocket(int fd, const struct msghdr *msgh);
-size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags);
+size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags);
 
 /* requires a non-blocking, connected TCP socket */
 bool isTCPSocketUsable(int sock);

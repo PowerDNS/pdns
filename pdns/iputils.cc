@@ -366,17 +366,18 @@ void ComboAddress::truncate(unsigned int bits) noexcept
   *place &= (~((1<<bitsleft)-1));
 }
 
-size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags)
+size_t sendMsgWithOptions(int socketDesc, const void* buffer, size_t len, const ComboAddress* dest, const ComboAddress* local, unsigned int localItf, int flags)
 {
-  struct msghdr msgh;
-  struct iovec iov;
+  msghdr msgh{};
+  iovec iov{};
   cmsgbuf_aligned cbuf;
 
   /* Set up iov and msgh structures. */
-  memset(&msgh, 0, sizeof(struct msghdr));
+  memset(&msgh, 0, sizeof(msgh));
   msgh.msg_control = nullptr;
   msgh.msg_controllen = 0;
-  if (dest) {
+  if (dest != nullptr) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-const-cast): it's the API
     msgh.msg_name = reinterpret_cast<void*>(const_cast<ComboAddress*>(dest));
     msgh.msg_namelen = dest->getSocklen();
   }
@@ -387,11 +388,12 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
 
   msgh.msg_flags = 0;
 
-  if (localItf != 0 && local) {
-    addCMsgSrcAddr(&msgh, &cbuf, local, localItf);
+  if (local != nullptr && local->sin4.sin_family != 0) {
+    addCMsgSrcAddr(&msgh, &cbuf, local, static_cast<int>(localItf));
   }
 
-  iov.iov_base = reinterpret_cast<void*>(const_cast<char*>(buffer));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): it's the API
+  iov.iov_base = const_cast<void*>(buffer);
   iov.iov_len = len;
   msgh.msg_iov = &iov;
   msgh.msg_iovlen = 1;
@@ -405,15 +407,15 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
   do {
 
 #ifdef MSG_FASTOPEN
-    if (flags & MSG_FASTOPEN && firstTry == false) {
+    if ((flags & MSG_FASTOPEN) != 0 && !firstTry) {
       flags &= ~MSG_FASTOPEN;
     }
 #endif /* MSG_FASTOPEN */
 
-    ssize_t res = sendmsg(fd, &msgh, flags);
+    ssize_t res = sendmsg(socketDesc, &msgh, flags);
 
     if (res > 0) {
-      size_t written = static_cast<size_t>(res);
+      auto written = static_cast<size_t>(res);
       sent += written;
 
       if (sent == len) {
@@ -425,6 +427,7 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
       firstTry = false;
  #endif
       iov.iov_len -= written;
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic): it's the API
       iov.iov_base = reinterpret_cast<void*>(reinterpret_cast<char*>(iov.iov_base) + written);
     }
     else if (res == 0) {
@@ -435,14 +438,12 @@ size_t sendMsgWithOptions(int fd, const char* buffer, size_t len, const ComboAdd
       if (err == EINTR) {
         continue;
       }
-      else if (err == EAGAIN || err == EWOULDBLOCK || err == EINPROGRESS || err == ENOTCONN) {
+      if (err == EAGAIN || err == EWOULDBLOCK || err == EINPROGRESS || err == ENOTCONN) {
         /* EINPROGRESS might happen with non blocking socket,
            especially with TCP Fast Open */
         return sent;
       }
-      else {
-        unixDie("failed in sendMsgWithTimeout");
-      }
+      unixDie("failed in sendMsgWithOptions");
     }
   }
   while (true);
