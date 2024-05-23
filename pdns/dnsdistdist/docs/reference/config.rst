@@ -1692,7 +1692,7 @@ faster than the existing rules.
     Options:
 
     * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
-    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string.
 
   .. method:: DynBlockRulesGroup:setMasks(v4, v6, port)
 
@@ -1730,7 +1730,7 @@ faster than the existing rules.
     Options:
 
     * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
-    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
   .. method:: DynBlockRulesGroup:setNewBlockInsertedHook(hook)
 
@@ -1770,7 +1770,7 @@ faster than the existing rules.
     Options:
 
     * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
-    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
   .. method:: DynBlockRulesGroup:setRCodeRatio(rcode, ratio, seconds, reason, blockingTime, minimumNumberOfResponses [, action [, warningRate, [options]]])
 
@@ -1797,7 +1797,7 @@ faster than the existing rules.
     Options:
 
     * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
-    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
   .. method:: DynBlockRulesGroup:setQTypeRate(qtype, rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
 
@@ -1821,7 +1821,7 @@ faster than the existing rules.
     Options:
 
     * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
-    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
   .. method:: DynBlockRulesGroup:setResponseByteRate(rate, seconds, reason, blockingTime [, action [, warningRate, [options]]])
 
@@ -1847,7 +1847,7 @@ faster than the existing rules.
     Options:
 
     * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
-    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
   .. method:: DynBlockRulesGroup:setSuffixMatchRule(seconds, reason, blockingTime, action, visitor, [options])
 
@@ -1879,7 +1879,7 @@ faster than the existing rules.
     Options:
 
     * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
-    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
   .. method:: DynBlockRulesGroup:setSuffixMatchRuleFFI(seconds, reason, blockingTime, action , visitor, [options])
 
@@ -1902,7 +1902,7 @@ faster than the existing rules.
     Options:
 
     * ``tagKey``: str - If ``action`` is set to ``DNSAction.SetTag``, the name of the tag that will be set
-    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set
+    * ``tagValue``: str - If ``action`` is set to ``DNSAction.SetTag``, the value of the tag that will be set. Default is an empty string
 
   .. method:: DynBlockRulesGroup:apply()
 
