@@ -2,6 +2,80 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.1
+  :released: 28th of May 2024
+
+  This is release 4.9.1 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14229
+
+    YaHTTP: Enforce max # of request fields and max request line size
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14188
+
+    rpm: Change home directory to /var/lib/pdns
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14199
+
+    Fix memory leaks in the bind file format parser
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14186
+
+    dnsproxy: fix build on s390x
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14191
+
+    m4: Add option for 64-bit time_t on 32-bit systems with glibc-2.34
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14189
+
+    pdnsutil check-zone: accept LUA A/AAAA as SVCB address targets
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14190
+
+    Properly finalize PKCS11 modules before releasing them
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14187
+
+    Wrap backend factories in smart pointers
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14058
+
+    don't crash when a catalog SOA is invalid 
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14126
+
+    (optionally) drop whitespace on join
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13929
+
+    debian: adjust option name in shipped postinst
+
+.. changelog::
   :version: 4.9.0
   :released: 15th of March 2024
 
