@@ -1647,15 +1647,16 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
     }
 
     if (config["gid"].IsDefined()) {
+      bool gidParsed = false;
       auto gid = config["gid"].as<string>();
       try {
         configuration.gid = pdns::checked_stoi<gid_t>(gid);
+        gidParsed = true;
       }
       catch (const std::exception& e) {
-        g_log<<Logger::Error<<"Can not parse gid "<<gid<<endl;
-        had_error = true;
+        configuration.gid = 0;
       }
-      if (configuration.gid != 0) {
+      if (!gidParsed) {
         //NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
         const struct group *gr = getgrnam(gid.c_str());
         if (gr == nullptr) {
@@ -1696,15 +1697,16 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
     }
 
     if (config["uid"].IsDefined()) {
+      bool uidParsed = false;
       auto uid = config["uid"].as<string>();
       try {
         configuration.uid = pdns::checked_stoi<uid_t>(uid);
+        uidParsed = true;
       }
       catch (const std::exception& e) {
-        g_log<<Logger::Error<<"Can not parse uid "<<uid<<endl;
-        had_error = true;
+        configuration.uid = 0;
       }
-      if (configuration.uid != 0) {
+      if (!uidParsed) {
         //NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
         const struct passwd *pw = getpwnam(uid.c_str());
         if (pw == nullptr) {
@@ -1712,8 +1714,11 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
           had_error = true;
         } else {
           configuration.uid = pw->pw_uid;
+          uidParsed = true;
         }
         //NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
+      }
+      if (uidParsed) {
         configuration.userInfo = getpwuid(configuration.uid);
       }
     }
@@ -1799,11 +1804,6 @@ int main(int argc, char** argv) {
     }
 
     if (configuration->uid != 0) {
-      g_log<<Logger::Notice<<"Dropping effective user-id to "<<configuration->uid<<endl;
-      if (setuid(configuration->uid) < 0) {
-        g_log<<Logger::Error<<"Could not set user id to "<<configuration->uid<<": "<<stringerror()<<endl;
-        had_error = true;
-      }
       if (configuration->userInfo == nullptr) {
         if (setgroups(0, nullptr) < 0) {
           g_log<<Logger::Error<<"Unable to drop supplementary gids: "<<stringerror()<<endl;
@@ -1814,6 +1814,12 @@ int main(int argc, char** argv) {
           g_log<<Logger::Error<<"Unable to set supplementary groups: "<<stringerror()<<endl;
           had_error = true;
         }
+      }
+
+      g_log<<Logger::Notice<<"Dropping effective user-id to "<<configuration->uid<<endl;
+      if (setuid(configuration->uid) < 0) {
+        g_log<<Logger::Error<<"Could not set user id to "<<configuration->uid<<": "<<stringerror()<<endl;
+        had_error = true;
       }
     }
 
