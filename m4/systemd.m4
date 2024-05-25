@@ -134,7 +134,7 @@ AC_DEFUN([AX_CHECK_SYSTEMD_FEATURES], [
           AC_PATH_PROG([SYSTEMCTL], [systemctl], [no])
           AS_IF([test "$SYSTEMCTL" = "no"],
             [AC_MSG_ERROR([systemctl not found])], [
-              _systemd_version=`${SYSTEMCTL} --version|head -1 |cut -d" " -f 2`
+              _systemd_version=`${SYSTEMCTL} --version|head -1 | tr ".~" "  " | cut -d" " -f 2`
               if test $_systemd_version -ge 183; then
                  systemd_private_tmp=y
               fi
