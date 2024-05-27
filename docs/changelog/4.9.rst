@@ -11,6 +11,12 @@ Changelogs for 4.9.x
 
   .. change::
     :tags: Bug Fixes
+    :pullreq: 14251
+
+    ixfrdist: Fix broken 'uid' and 'gid' parsing for non-numerical values
+
+  .. change::
+    :tags: Bug Fixes
     :pullreq: 14229
 
     YaHTTP: Enforce max # of request fields and max request line size
