@@ -231,7 +231,8 @@ The DNSQuestion object contains at least the following fields:
 
   .. attribute:: DNSQuestion.tag
 
-      The packet-cache tag set via :func:`gettag`, or 0 if it has not been set.
+      The packetcache tag set via :func:`gettag` or :func:`gettag_ffi`.
+      Default tag is zero. Internally to the recursor, the tag is interpret as an unsigned 32-bit integer.
 
   .. attribute:: DNSQuestion.queryTime
 

@@ -72,10 +72,13 @@ Interception Functions
 
       The ``proxyprotocolvalues`` parameter was added.
 
-    The ``gettag`` function is invoked when the Recursor attempts to discover in which packetcache an answer is available.
+    The :func:`gettag` function is invoked when :program:`Recursor` attempts to discover in which packetcache an answer is available.
 
-    This function must return an integer, which is the tag number of the packetcache.
-    In addition to this integer, this function can return a table of policy tags.
+    This function must return an unsigned 32-bit integer, which is the tag number of the packetcache.
+    The tag is used to partition the packet cache. The default tag (when :func:`gettag` is not defined) is zero.
+    If :func:`gettag` throws an exception, the zero tag is used.
+
+    In addition to the tag, this function can return a table of policy tags and a few more values to be passed to the resolving process.
     The resulting tag number can be accessed via :attr:`dq.tag <DNSQuestion.tag>` in the :func:`preresolve` hook, and the policy tags via :meth:`dq:getPolicyTags() <DNSQuestion:getPolicyTags>` in every hook.
 
     .. versionadded:: 4.1.0
@@ -94,7 +97,7 @@ Interception Functions
 
     The tagged packetcache can e.g. be used to answer queries from cache that have e.g. been filtered for certain IPs (this logic should be implemented in :func:`gettag`).
     This ensure that queries are answered quickly compared to setting :attr:`dq.variable <DNSQuestion.variable>` to true.
-    In the latter case, repeated queries will pass through the entire Lua script.
+    In the latter case, repeated queries will not be found in the packetcache and pass through the entire resolving process, and all relevant Lua hooks wil be called.
 
     :param ComboAddress remote: The sender's IP address
     :param Netmask ednssubnet: The EDNS Client subnet that was extracted from the packet
@@ -109,15 +112,18 @@ Interception Functions
 
 .. function:: gettag_ffi(param) -> optional Lua object
 
-    .. versionadded:: 4.1.2
+   .. versionadded:: 4.1.2
 
-    .. versionchanged:: 4.3.0
+   .. versionchanged:: 4.3.0
 
       The ability to craft answers was added.
 
-    This function is the FFI counterpart of the :func:`gettag` function, and offers the same functionality.
-    It accepts a single, scalable parameter which can be accessed using :doc:`FFI accessors <ffi>`.
-    Like the non-FFI version, it has the ability to set a tag for the packetcache, policy tags, a routing tag, the :attr:`DNSQuestion.requestorId` and :attr:`DNSQuestion.deviceId` values and to fill the :attr:`DNSQuestion.data` table. It also offers ways to mark the answer as variable so it's not inserted into the packetcache, to set a cap on the TTL of the returned records, and to generate a response by adding records and setting the RCode. It can also instruct the recursor to do a proper resolution in order to follow any `CNAME` records added in this step.
+   This function is the FFI counterpart of the :func:`gettag` function, and offers the same functionality.
+   It accepts a single parameter which can be accessed and modified using :doc:`FFI accessors <ffi>`.
+
+   Like the non-FFI version, it has the ability to set a tag for the packetcache, policy tags, a routing tag, the :attr:`DNSQuestion.requestorId` and :attr:`DNSQuestion.deviceId` values and to fill the :attr:`DNSQuestion.data` table. It also offers ways to mark the answer as variable so it's not inserted into the packetcache, to set a cap on the TTL of the returned records, and to generate a response by adding records and setting the RCode. It can also instruct the recursor to do a proper resolution in order to follow any `CNAME` records added in this step.
+
+   If this function does not set the tag or an exception is thrown, the zero tag is assumed. 
 
 .. function:: prerpz(dq) -> bool
 
