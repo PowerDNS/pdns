@@ -20,10 +20,8 @@ GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 std::unique_ptr<MemRecursorCache> g_recCache;
 std::unique_ptr<NegCache> g_negCache;
 bool g_lowercaseOutgoing = false;
-#if 0
-pdns::TaskQueue g_test_tasks;
-pdns::TaskQueue g_resolve_tasks;
-#endif
+unsigned int g_networkTimeoutMsec = 1500;
+
 /* Fake some required functions we didn't want the trouble to
    link with */
 ArgvMap& arg()

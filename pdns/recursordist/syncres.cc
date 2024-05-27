@@ -5317,6 +5317,23 @@ void SyncRes::updateQueryCounts(const string& prefix, const DNSName& qname, cons
   }
 }
 
+void SyncRes::incTimeoutStats(const ComboAddress& remoteIP)
+{
+  d_timeouts++;
+  t_Counters.at(rec::Counter::outgoingtimeouts)++;
+
+  if (remoteIP.sin4.sin_family == AF_INET) {
+    t_Counters.at(rec::Counter::outgoing4timeouts)++;
+  }
+  else {
+    t_Counters.at(rec::Counter::outgoing6timeouts)++;
+  }
+
+  if (t_timeouts) {
+    t_timeouts->push_back(remoteIP);
+  }
+}
+
 bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle)
 {
   bool chained = false;
@@ -5367,22 +5384,8 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   if (resolveret != LWResult::Result::Success) {
     /* Error while resolving */
     if (resolveret == LWResult::Result::Timeout) {
-      /* Time out */
-
       LOG(prefix << qname << ": Timeout resolving after " << lwr.d_usec / 1000.0 << " ms " << (doTCP ? "over TCP" : "") << endl);
-      d_timeouts++;
-      t_Counters.at(rec::Counter::outgoingtimeouts)++;
-
-      if (remoteIP.sin4.sin_family == AF_INET) {
-        t_Counters.at(rec::Counter::outgoing4timeouts)++;
-      }
-      else {
-        t_Counters.at(rec::Counter::outgoing6timeouts)++;
-      }
-
-      if (t_timeouts) {
-        t_timeouts->push_back(remoteIP);
-      }
+      incTimeoutStats(remoteIP);
     }
     else if (resolveret == LWResult::Result::OSLimitError) {
       /* OS resource limit reached */
@@ -5425,15 +5428,25 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     LOG(prefix << qname << ": " << nsName << " (" << remoteIP.toString() << ") returned a packet we could not parse over " << (doTCP ? "TCP" : "UDP") << ", trying sibling IP or NS" << endl);
     if (!chained && !dontThrottle) {
 
-      // let's make sure we prefer a different server for some time, if there is one available
-      s_nsSpeeds.lock()->find_or_enter(nsName.empty() ? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
-
-      if (doTCP) {
-        // we can be more heavy-handed over TCP
-        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 10);
+      uint32_t responseUsec = 1000000; // 1 sec for non-timeout cases
+      // Use the actual time if we saw a timeout
+      if (resolveret == LWResult::Result::Timeout) {
+        responseUsec = lwr.d_usec;
       }
-      else {
-        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 2);
+      // let's make sure we prefer a different server for some time, if there is one available
+      s_nsSpeeds.lock()->find_or_enter(nsName.empty() ? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, static_cast<int>(responseUsec), d_now);
+
+      // If the actual response time was more than 80% of the default timeout, we throttle. On a
+      // busy rec we reduce the time we are willing to wait for an auth, it is unfair to throttle on
+      // such a shortened timeout.
+      if (resolveret != LWResult::Result::Timeout || responseUsec > g_networkTimeoutMsec * 800) {
+        if (doTCP) {
+          // we can be more heavy-handed over TCP
+          doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 10);
+        }
+        else {
+          doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 2);
+        }
       }
     }
     return false;
