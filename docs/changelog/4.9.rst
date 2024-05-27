@@ -11,6 +11,12 @@ Changelogs for 4.9.x
 
   .. change::
     :tags: Bug Fixes
+    :pullreq: 14253
+
+    autoconf: allow prerelease systemd versions (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
     :pullreq: 14251
 
     ixfrdist: Fix broken 'uid' and 'gid' parsing for non-numerical values
@@ -37,13 +43,13 @@ Changelogs for 4.9.x
     :tags: Bug Fixes
     :pullreq: 14186
 
-    dnsproxy: fix build on s390x
+    dnsproxy: fix build on s390x (Chris Hofstaedtler)
 
   .. change::
     :tags: Improvements
     :pullreq: 14191
 
-    m4: Add option for 64-bit time_t on 32-bit systems with glibc-2.34
+    m4: Add option for 64-bit time_t on 32-bit systems with glibc-2.34 (Sven Wegener)
 
   .. change::
     :tags: Bug Fixes
@@ -55,7 +61,7 @@ Changelogs for 4.9.x
     :tags: Bug Fixes
     :pullreq: 14190
 
-    Properly finalize PKCS11 modules before releasing them
+    Properly finalize PKCS11 modules before releasing them (Aki Tuomi)
 
   .. change::
     :tags: Improvements
