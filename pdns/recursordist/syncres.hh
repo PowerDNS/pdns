@@ -620,6 +620,7 @@ private:
                   unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, Context& context, StopAtDelegation* stopAtDelegation,
                   std::map<DNSName, std::vector<ComboAddress>>* fallback);
   void ednsStats(boost::optional<Netmask>& ednsmask, const DNSName& qname, const string& prefix);
+  void incTimeoutStats(const ComboAddress& remoteIP);
   bool doResolveAtThisIP(const std::string& prefix, const DNSName& qname, QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool sendRDQuery, bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle = false);
   bool processAnswer(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask>& ednsmask, bool sendRDQuery, NsSet& nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP);
 
@@ -741,6 +742,7 @@ private:
 /* external functions, opaque to us */
 LWResult::Result asendtcp(const PacketBuffer& data, shared_ptr<TCPIOHandler>&);
 LWResult::Result arecvtcp(PacketBuffer& data, size_t len, shared_ptr<TCPIOHandler>&, bool incompleteOkay);
+void mthreadSleep(unsigned int jitterMsec);
 
 enum TCPAction : uint8_t
 {
@@ -762,8 +764,9 @@ struct PacketID
   PacketBuffer outMSG; // the outgoing message that needs to be sent
 
   using chain_t = set<uint16_t>;
-  mutable chain_t chain;
+  mutable chain_t authReqChain;
   shared_ptr<TCPIOHandler> tcphandler{nullptr};
+  timeval creationTime{};
   string::size_type inPos{0}; // how far are we along in the inMSG
   size_t inWanted{0}; // if this is set, we'll read until inWanted bytes are read
   string::size_type outPos{0}; // how far we are along in the outMSG

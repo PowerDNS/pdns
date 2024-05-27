@@ -110,10 +110,8 @@ Sending metrics over SNMP
 
 The recursor can export statistics over SNMP and send traps from :doc:`Lua <lua-scripting/index>`, provided support is compiled into the Recursor and :ref:`setting-snmp-agent` set.
 
-MIB
-^^^
+For the details of all values that can be retrieved using SNMP, see the `SNMP MIB <https://github.com/PowerDNS/pdns/blob/master/pdns/recursordist/RECURSOR-MIB.txt>`_.
 
-.. literalinclude:: ../RECURSOR-MIB.txt
 
 .. _metricnames:
 
@@ -534,6 +532,14 @@ returns the number of bytes allocated by the process (broken, always returns 0)
 max-cache-entries
 ^^^^^^^^^^^^^^^^^
 currently configured maximum number of cache entries
+
+max-chain-length
+^^^^^^^^^^^^^^^^
+maximum chain length
+
+max-chain-weight
+^^^^^^^^^^^^^^^^
+maximum chain weight. The weight of a chain of outgoing queries is the product of the number of chained queries by the size of the response received from the external authoritative server. 
 
 max-packetcache-entries
 ^^^^^^^^^^^^^^^^^^^^^^^

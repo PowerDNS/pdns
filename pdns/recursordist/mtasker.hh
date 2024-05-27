@@ -81,6 +81,7 @@ public:
   }
 
   using tfunc_t = void(void*); //!< type of the pointer that starts a thread
+  uint64_t nextWaiterDelayUsec(uint64_t defusecs);
   int waitEvent(EventKey& key, EventVal* val = nullptr, unsigned int timeoutMsec = 0, const struct timeval* now = nullptr);
   void yield();
   int sendEvent(const EventKey& key, const EventVal* val = nullptr);
@@ -215,6 +216,29 @@ private:
 #ifdef PDNS_USE_VALGRIND
 #include <valgrind/valgrind.h>
 #endif /* PDNS_USE_VALGRIND */
+
+template <class EventKey, class EventVal, class Cmp>
+uint64_t MTasker<EventKey, EventVal, Cmp>::nextWaiterDelayUsec(uint64_t defusecs)
+{
+  if (d_waiters.empty()) {
+    // no waiters
+    return defusecs;
+  }
+  auto& ttdindex = boost::multi_index::get<KeyTag>(d_waiters);
+  auto iter = ttdindex.begin();
+  timeval rnow{};
+  gettimeofday(&rnow, nullptr);
+  if (iter->ttd.tv_sec != 0) {
+    // we have a waiter with a timeout specified
+    if (rnow < iter->ttd) {
+      // we should not wait longer than the default timeout
+      return std::min(defusecs, uSec(iter->ttd - rnow));
+    }
+    // already expired
+    return 0;
+  }
+  return defusecs;
+}
 
 //! puts a thread to sleep waiting until a specified event arrives
 /** Threads can call waitEvent to register that they are waiting on an event with a certain key.

@@ -251,7 +251,7 @@ PacketBuffer GenUDPQueryResponse(const ComboAddress& dest, const string& query)
   t_fdm->addReadFD(socket.getHandle(), handleGenUDPQueryResponse, pident);
 
   PacketBuffer data;
-  int ret = g_multiTasker->waitEvent(pident, &data, g_networkTimeoutMsec);
+  int ret = g_multiTasker->waitEvent(pident, &data, authWaitTimeMSec(g_multiTasker));
 
   if (ret == 0 || ret == -1) { // timeout
     t_fdm->removeReadFD(socket.getHandle());
@@ -267,9 +267,23 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
 
 thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 
+// If we have plenty of mthreads slot left, use default timeout.
+// Otherwise reduce the timeout to be between g_networkTimeoutMsec/10 and g_networkTimeoutMsec
+unsigned int authWaitTimeMSec(const std::unique_ptr<MT_t>& mtasker)
+{
+  const auto max = g_maxMThreads;
+  const auto current = mtasker->numProcesses();
+  const unsigned int cutoff = max / 10; // if we have less than 10% used,  do not reduce auth timeout
+  if (current < cutoff) {
+    return g_networkTimeoutMsec;
+  }
+  const auto avail = max - current;
+  return std::max(g_networkTimeoutMsec / 10, g_networkTimeoutMsec * avail / (max - cutoff));
+}
+
 /* these two functions are used by LWRes */
 LWResult::Result asendto(const void* data, size_t len, int /* flags */,
-                         const ComboAddress& toAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc)
+                         const ComboAddress& toAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc, timeval& now)
 {
 
   auto pident = std::make_shared<PacketID>();
@@ -291,8 +305,21 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
       assert(chain.first->key->domain == pident->domain); // NOLINT
       // don't chain onto existing chained waiter or a chain already processed
       if (chain.first->key->fd > -1 && !chain.first->key->closed) {
-        chain.first->key->chain.insert(qid); // we can chain
         *fileDesc = -1; // gets used in waitEvent / sendEvent later on
+        auto currentChainSize = chain.first->key->authReqChain.size();
+        if (g_maxChainLength > 0 && currentChainSize >= g_maxChainLength) {
+          return LWResult::Result::OSLimitError;
+        }
+        assert(uSec(chain.first->key->creationTime) != 0); // NOLINT
+        auto age = now - chain.first->key->creationTime;
+        if (uSec(age) > static_cast<uint64_t>(1000) * authWaitTimeMSec(g_multiTasker) * 2 / 3) {
+          return LWResult::Result::OSLimitError;
+        }
+        chain.first->key->authReqChain.insert(qid); // we can chain
+        auto maxLength = t_Counters.at(rec::Counter::maxChainLength);
+        if (currentChainSize > maxLength) {
+          t_Counters.at(rec::Counter::maxChainLength) = currentChainSize;
+        }
         return LWResult::Result::Success;
       }
     }
@@ -331,8 +358,9 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
   pident->domain = domain;
   pident->type = qtype;
   pident->remote = fromAddr;
+  pident->creationTime = now;
 
-  int ret = g_multiTasker->waitEvent(pident, &packet, g_networkTimeoutMsec, &now);
+  int ret = g_multiTasker->waitEvent(pident, &packet, authWaitTimeMSec(g_multiTasker), &now);
   len = 0;
 
   /* -1 means error, 0 means timeout, 1 means a result from handleUDPServerResponse() which might still be an error */
@@ -485,7 +513,7 @@ public:
   }
 
 private:
-  std::unique_ptr<DNSComboWriter>& d_dc;
+  std::unique_ptr<DNSComboWriter>& d_dc; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
   bool d_handled{false};
 };
 
@@ -2356,7 +2384,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     variable = true;
   }
 
-  if (g_multiTasker->numProcesses() > g_maxMThreads) {
+  if (g_multiTasker->numProcesses() >= g_maxMThreads) {
     if (!g_quiet) {
       SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " [" << g_multiTasker->getTid() << "/" << g_multiTasker->numProcesses() << "] DROPPED question from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << ", over capacity" << endl,
            g_slogudpin->info(Logr::Notice, "Dropped question, over capacity", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
@@ -2834,16 +2862,34 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
   // We close the chain for new entries, since they won't be processed anyway
   iter->key->closed = true;
 
-  if (iter->key->chain.empty()) {
+  if (iter->key->authReqChain.empty()) {
     return;
   }
-  for (auto i = iter->key->chain.begin(); i != iter->key->chain.end(); ++i) {
+
+  auto maxWeight = t_Counters.at(rec::Counter::maxChainWeight);
+  auto weight = iter->key->authReqChain.size() * content.size();
+  if (weight > maxWeight) {
+    t_Counters.at(rec::Counter::maxChainWeight) = weight;
+  }
+
+  for (auto qid : iter->key->authReqChain) {
     auto packetID = std::make_shared<PacketID>(*resend);
     packetID->fd = -1;
-    packetID->id = *i;
+    packetID->id = qid;
     g_multiTasker->sendEvent(packetID, &content);
     t_Counters.at(rec::Counter::chainResends)++;
   }
+}
+
+void mthreadSleep(unsigned int jitterMsec)
+{
+  auto neverHappens = std::make_shared<PacketID>();
+  neverHappens->id = dns_random_uint16();
+  neverHappens->type = dns_random_uint16();
+  neverHappens->remote = ComboAddress("100::"); // discard-only
+  neverHappens->remote.setPort(dns_random_uint16());
+  neverHappens->fd = -1;
+  assert(g_multiTasker->waitEvent(neverHappens, nullptr, jitterMsec) != -1); // NOLINT
 }
 
 static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& var)

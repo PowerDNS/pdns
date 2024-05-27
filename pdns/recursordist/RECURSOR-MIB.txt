@@ -60,6 +60,9 @@ rec MODULE-IDENTITY
     REVISION "202306080000Z"
     DESCRIPTION "Added metrics for NOD and UDR events"
 
+    REVISION "202405230000Z"
+    DESCRIPTION "Added metrics for maximum chain length and weight"
+
     ::= { powerdns 2 }
 
 powerdns		OBJECT IDENTIFIER ::= { enterprises 43315 }
@@ -1250,6 +1253,22 @@ udrEvents OBJECT-TYPE
         "Count of UDR events"
     ::= { stats 148 }
 
+maxChainLength OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Maximum chain length"
+    ::= { stats 149 }
+
+maxChainWeight OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Maximum chain weight"
+    ::= { stats 150 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1445,7 +1464,9 @@ recGroup OBJECT-GROUP
         packetCacheContended,
         packetCacheAcquired,
         nodEvents,
-        udrEvents
+        udrEvents,
+        maxChainLength,
+        maxChainWeight
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

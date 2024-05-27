@@ -468,7 +468,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   if (!doTCP) {
     int queryfd;
 
-    ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, weWantEDNSSubnet, &queryfd);
+    ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, weWantEDNSSubnet, &queryfd, *now);
 
     if (ret != LWResult::Result::Success) {
       return ret;
@@ -536,6 +536,16 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
       logIncomingResponse(outgoingLoggers, context.d_initialRequestId, uuid, address, domain, type, qid, doTCP, dnsOverTLS, srcmask, 0, -1, {}, queryTime, exportTypes);
     }
     return ret;
+  }
+
+  if (*chained) {
+    auto msec = lwr->d_usec / 1000;
+    if (msec > g_networkTimeoutMsec * 2 / 3) {
+      auto jitterMsec = dns_random(msec);
+      if (jitterMsec > 0) {
+        mthreadSleep(jitterMsec);
+      }
+    }
   }
 
   buf.resize(len);

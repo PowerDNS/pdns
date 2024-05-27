@@ -1452,6 +1452,21 @@ and also smaller than `max-mthreads`.
     'versionadded': '4.3.0'
     },
     {
+        'name': 'max_chain_length',
+        'section': 'recursor',
+        'type': LType.Uint64,
+        'default': '0',
+        'help': 'maximum number of queries that can be chained to an outgoing request, 0 is no limit',
+        'doc': '''
+The maximum number of queries that can be attached to an outgoing request chain. Attaching requests to a chain
+saves on outgoing queries, but the processing of a chain when the reply to the outgoing query comes in
+might result in a large outgoing traffic spike. Reducing the maximum chain length mitigates this.
+If this value is zero, no maximum is enforced, though the maximum number of mthreads (:ref:`setting-max-mthreads`)
+also limits the chain length.
+''',
+        'versionadded': '5.1.0'
+    },
+    {
         'name' : 'max_include_depth',
         'section' : 'recursor',
         'type' : LType.Uint64,
@@ -1484,7 +1499,7 @@ means unlimited.
         'default' : '2048',
         'help' : 'Maximum number of simultaneous Mtasker threads',
         'doc' : '''
-Maximum number of simultaneous MTasker threads.
+Maximum number of simultaneous MTasker threads, per worker thread.
  ''',
     },
     {
@@ -1801,6 +1816,7 @@ a new domain is observed.
         'help' : 'Wait this number of milliseconds for network i/o',
         'doc' : '''
 Number of milliseconds to wait for a remote authoritative server to respond.
+If the number of concurrent requests is high, the :program:Recursor uses a lower value.
  ''',
     },
     {
