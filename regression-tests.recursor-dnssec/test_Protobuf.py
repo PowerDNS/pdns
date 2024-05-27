@@ -1192,7 +1192,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
     function gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp)
       if qname:equal('tagged.example.') then
         -- tag number, policy tags, data, requestorId, deviceId, deviceName
-        return 0, {}, {}, '%s', '%s', '%s'
+        return 0, {}, {}, '%s:'..remote:getPort(), '%s:'..remote:getPort(), '%s:'..remote:getPort()
       end
       return 0
     end
@@ -1235,7 +1235,8 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # check the protobuf messages corresponding to the UDP query and answer
         msg = self.getFirstProtobufMessage()
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
-        self.checkProtobufIdentity(msg, self._requestorId, self._deviceId.encode('ascii'), self._deviceName)
+        port = ':' + str(msg.fromPort)
+        self.checkProtobufIdentity(msg, self._requestorId + port, (self._deviceId + port).encode('ascii'), self._deviceName + port)
 
         # then the response
         msg = self.getFirstProtobufMessage()
@@ -1245,7 +1246,29 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # we have max-cache-ttl set to 15
         self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
         self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
-        self.checkProtobufIdentity(msg, self._requestorId, self._deviceId.encode('ascii'), self._deviceName)
+        self.checkProtobufIdentity(msg, self._requestorId + port, (self._deviceId + port).encode('ascii'), self._deviceName + port)
+        self.checkNoRemainingMessage()
+
+        # Again, but now the PC is involved
+        # check the protobuf messages corresponding to the UDP query and answer
+        # Re-init socket so we get a different port
+        self.setUpSockets();
+        res = self.sendUDPQuery(query)
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        port2 = ':' + str(msg.fromPort)
+        self.assertNotEqual(port, port2)
+        self.checkProtobufIdentity(msg, self._requestorId + port2, (self._deviceId + port2).encode('ascii'), self._deviceName + port2)
+
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
+        self.assertEqual(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
+        self.checkProtobufIdentity(msg, self._requestorId + port2, (self._deviceId + port2).encode('ascii'), self._deviceName + port2)
         self.checkNoRemainingMessage()
 
 class ProtobufTaggedExtraFieldsFFITest(ProtobufTaggedExtraFieldsTest):
@@ -1265,6 +1288,7 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
       typedef struct pdns_ffi_param pdns_ffi_param_t;
 
       const char* pdns_ffi_param_get_qname(pdns_ffi_param_t* ref);
+      uint16_t pdns_ffi_param_get_remote_port(pdns_ffi_param_t* ref);
       void pdns_ffi_param_set_tag(pdns_ffi_param_t* ref, unsigned int tag);
       void pdns_ffi_param_set_requestorid(pdns_ffi_param_t* ref, const char* name);
       void pdns_ffi_param_set_devicename(pdns_ffi_param_t* ref, const char* name);
@@ -1274,10 +1298,11 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
     function gettag_ffi(obj)
       qname = ffi.string(ffi.C.pdns_ffi_param_get_qname(obj))
       if qname == 'tagged.example' then
-        ffi.C.pdns_ffi_param_set_requestorid(obj, "%s")
-        deviceid = "%s"
+        port = ':'..tostring(ffi.C.pdns_ffi_param_get_remote_port(obj))
+        ffi.C.pdns_ffi_param_set_requestorid(obj, "%s"..port)
+        deviceid = "%s"..port
         ffi.C.pdns_ffi_param_set_deviceid(obj, string.len(deviceid), deviceid)
-        ffi.C.pdns_ffi_param_set_devicename(obj, "%s")
+        ffi.C.pdns_ffi_param_set_devicename(obj, "%s"..port)
       end
       return 0
     end
