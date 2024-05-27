@@ -109,7 +109,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
   .. versionadded:: 1.7.0
 
-  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi.hh``.
+  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
 
   The ``function`` should return true if the query matches, or false otherwise. If the Lua code fails, false is returned.
 
@@ -123,7 +123,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
   .. versionadded:: 1.5.0
 
-  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi.hh``.
+  Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``.
 
   The ``function`` should return true if the query matches, or false otherwise. If the Lua code fails, false is returned.
 
