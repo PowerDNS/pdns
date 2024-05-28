@@ -187,7 +187,7 @@ message PBDNSMessage {
   optional HTTPVersion httpVersion = 24;        // HTTP version used for DNS over HTTP
   optional uint64 workerId = 25;                // Thread id
   optional bool packetCacheHit = 26;            // Was it a packet cache hit?
-  optional uint32 outgoingQueries = 27;         // NUmber of outgoing queries used to answer the query
+  optional uint32 outgoingQueries = 27;         // Number of outgoing queries used to answer the query
 }
 
 message PBDNSMessageList {
