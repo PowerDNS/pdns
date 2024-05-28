@@ -245,8 +245,21 @@ class PDNSPBConnHandler(object):
         if msg.HasField('newlyObservedDomain'):
             nod = msg.newlyObservedDomain
 
+        workerId = 'N/A'
+        if msg.HasField('workerId'):
+           workerId = str(msg.workerId)
+ 
+        pcCacheHit = 'N/A'
+        if msg.HasField('packetCacheHit'):
+           pcCacheHit = str(msg.packetCacheHit)
+
+        outgoingQs = 'N/A'
+        if msg.HasField('outgoingQueries'):
+           outgoingQs = str(msg.outgoingQueries)
+	
+
         print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
-                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %d' % (datestr,
+                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %d workerId: %s pcCacheHit: %s outgoingQueries: %s' % (datestr,
                                                     typestr,
                                                     msg.inBytes,
                                                     ipfromstr,
@@ -262,7 +275,10 @@ class PDNSPBConnHandler(object):
                                                     deviceId,
                                                     deviceName,
                                                     serveridstr,
-                                                    nod))
+                                                    nod,
+                                                    workerId,
+                                                    pcCacheHit,
+                                                    outgoingQs))
 
         for mt in msg.meta:
             values = ''
