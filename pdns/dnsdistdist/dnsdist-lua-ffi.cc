@@ -1088,6 +1088,25 @@ size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi
   return payload.size();
 }
 
+bool dnsdist_ffi_dnsquestion_add_proxy_protocol_values(dnsdist_ffi_dnsquestion_t* dnsQuestion, const size_t valuesCount, const dnsdist_ffi_proxy_protocol_value_t* values)
+{
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || values == nullptr || valuesCount == 0) {
+    return false;
+  }
+
+  if (!dnsQuestion->dq->proxyProtocolValues) {
+    dnsQuestion->dq->proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
+  }
+  if (valuesCount > 0) {
+    dnsQuestion->dq->proxyProtocolValues->reserve(dnsQuestion->dq->proxyProtocolValues->size() + valuesCount);
+    for (size_t idx = 0; idx < valuesCount; idx++) {
+      dnsQuestion->dq->proxyProtocolValues->push_back({ std::string(values[idx].value, values[idx].size), values[idx].type });
+    }
+  }
+
+  return true;
+}
+
 struct dnsdist_ffi_domain_list_t
 {
   std::vector<std::string> d_domains;
