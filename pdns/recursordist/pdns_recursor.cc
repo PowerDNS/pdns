@@ -836,9 +836,8 @@ bool isAllowNotifyForZone(DNSName qname)
     return false;
   }
 
-  notifyset_t::const_iterator ret;
   do {
-    ret = t_allowNotifyFor->find(qname);
+    auto ret = t_allowNotifyFor->find(qname);
     if (ret != t_allowNotifyFor->end()) {
       return true;
     }

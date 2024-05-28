@@ -2555,7 +2555,7 @@ class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
 @unittest.skipIf(not is_recursor(), "Not applicable")
 class RecursorZones(ApiTestCase):
 
-    def create_zone(self, name=None, kind=None, rd=False, servers=None):
+    def create_zone(self, name=None, kind=None, rd=False, servers=None, notify_allowed=False):
         if name is None:
             name = unique_zone_name()
         if servers is None:
@@ -2564,7 +2564,8 @@ class RecursorZones(ApiTestCase):
             'name': name,
             'kind': kind,
             'servers': servers,
-            'recursion_desired': rd
+            'recursion_desired': rd,
+            'notify_allowed': notify_allowed
         }
         r = self.session.post(
             self.url("/api/v1/servers/localhost/zones"),
@@ -2595,6 +2596,13 @@ class RecursorZones(ApiTestCase):
 
     def test_create_forwarded_zone(self):
         payload, data = self.create_zone(kind='Forwarded', rd=False, servers=['8.8.8.8'])
+        # return values are normalized
+        payload['servers'][0] += ':53'
+        for k in payload.keys():
+            self.assertEqual(data[k], payload[k])
+
+    def test_create_forwarded_zone_notify_allowed(self):
+        payload, data = self.create_zone(kind='Forwarded', rd=False, servers=['8.8.8.8'], notify_allowed=True)
         # return values are normalized
         payload['servers'][0] += ':53'
         for k in payload.keys():
