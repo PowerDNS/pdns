@@ -1097,11 +1097,11 @@ bool dnsdist_ffi_dnsquestion_add_proxy_protocol_values(dnsdist_ffi_dnsquestion_t
   if (!dnsQuestion->dq->proxyProtocolValues) {
     dnsQuestion->dq->proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
   }
-  if (valuesCount > 0) {
-    dnsQuestion->dq->proxyProtocolValues->reserve(dnsQuestion->dq->proxyProtocolValues->size() + valuesCount);
-    for (size_t idx = 0; idx < valuesCount; idx++) {
-      dnsQuestion->dq->proxyProtocolValues->push_back({ std::string(values[idx].value, values[idx].size), values[idx].type });
-    }
+
+  dnsQuestion->dq->proxyProtocolValues->reserve(dnsQuestion->dq->proxyProtocolValues->size() + valuesCount);
+  for (size_t idx = 0; idx < valuesCount; idx++) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): the Lua FFI API is a C API..
+    dnsQuestion->dq->proxyProtocolValues->push_back({ std::string(values[idx].value, values[idx].size), values[idx].type });
   }
 
   return true;
