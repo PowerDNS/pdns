@@ -1,6 +1,7 @@
 [package]
 name = "settings"
-version = "0.1.0"
+# Convention: major/minor is equal to rec's major/minor
+version = "5.1.0"
 edition = "2021"
 
 [lib]
