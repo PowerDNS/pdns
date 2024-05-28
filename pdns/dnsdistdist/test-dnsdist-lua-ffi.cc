@@ -590,8 +590,8 @@ BOOST_AUTO_TEST_CASE(test_ProxyProtocolQuery)
   pwQ.getHeader()->rd = 1;
   pwQ.getHeader()->id = htons(42);
 
-  DNSQuestion dq(ids, query);
-  dnsdist_ffi_dnsquestion_t lightDQ(&dq);
+  DNSQuestion dnsQuestion(ids, query);
+  dnsdist_ffi_dnsquestion_t lightDQ(&dnsQuestion);
 
   std::vector<dnsdist_ffi_proxy_protocol_value> values;
   values.push_back({"test-value", 10U, 1U});
@@ -614,11 +614,11 @@ BOOST_AUTO_TEST_CASE(test_ProxyProtocolQuery)
   {
     auto added = dnsdist_ffi_dnsquestion_add_proxy_protocol_values(&lightDQ, values.size(), values.data());
     BOOST_CHECK_EQUAL(added, true);
-    BOOST_REQUIRE(dq.proxyProtocolValues != nullptr);
-    BOOST_REQUIRE_EQUAL(dq.proxyProtocolValues->size(), values.size());
-    BOOST_CHECK_EQUAL(dq.proxyProtocolValues->at(0).type, values.at(0).type);
-    BOOST_REQUIRE_EQUAL(dq.proxyProtocolValues->at(0).content.size(), values.at(0).size);
-    BOOST_CHECK_EQUAL(memcmp(dq.proxyProtocolValues->at(0).content.data(), values.at(0).value, values.at(0).size), 0);
+    BOOST_REQUIRE(dnsQuestion.proxyProtocolValues != nullptr);
+    BOOST_REQUIRE_EQUAL(dnsQuestion.proxyProtocolValues->size(), values.size());
+    BOOST_CHECK_EQUAL(dnsQuestion.proxyProtocolValues->at(0).type, values.at(0).type);
+    BOOST_REQUIRE_EQUAL(dnsQuestion.proxyProtocolValues->at(0).content.size(), values.at(0).size);
+    BOOST_CHECK_EQUAL(memcmp(dnsQuestion.proxyProtocolValues->at(0).content.data(), values.at(0).value, values.at(0).size), 0);
   }
 }
 
