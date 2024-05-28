@@ -137,8 +137,6 @@ Rings g_rings;
 
 GlobalStateHolder<servers_t> g_dstates;
 
-std::set<std::string> g_capabilitiesToRetain;
-
 // we are not willing to receive a bigger UDP response than that, no matter what
 static constexpr size_t s_maxUDPResponsePacketSize{4096U};
 static size_t const s_initialUDPPacketBufferSize = s_maxUDPResponsePacketSize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
@@ -3102,7 +3100,7 @@ static void dropPrivileges()
   }
 
   bool retainedCapabilities = true;
-  if (!g_capabilitiesToRetain.empty() && (getegid() != newgid || geteuid() != newuid)) {
+  if (!dnsdist::configuration::getImmutableConfiguration().d_capabilitiesToRetain.empty() && (getegid() != newgid || geteuid() != newuid)) {
     retainedCapabilities = keepCapabilitiesAfterSwitchingIDs();
   }
 
@@ -3133,7 +3131,7 @@ static void dropPrivileges()
        or as an unprivileged user with ambient
        capabilities like CAP_NET_BIND_SERVICE.
     */
-    dropCapabilities(g_capabilitiesToRetain);
+    dropCapabilities(dnsdist::configuration::getImmutableConfiguration().d_capabilitiesToRetain);
   }
   catch (const std::exception& e) {
     warnlog("%s", e.what());

@@ -1057,8 +1057,6 @@ extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
 bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 
-extern std::set<std::string> g_capabilitiesToRetain;
-
 enum class ProcessQueryResult : uint8_t
 {
   Drop,

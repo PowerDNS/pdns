@@ -443,7 +443,9 @@ static void handleNewServerSourceParameter(boost::optional<newserver_t>& vars, D
         }
 #ifdef SO_BINDTODEVICE
         /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
-        g_capabilitiesToRetain.insert("CAP_NET_RAW");
+        dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::Configuration& config) {
+          config.d_capabilitiesToRetain.insert("CAP_NET_RAW");
+        });
 #endif
       }
       else {
@@ -3297,17 +3299,22 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_LIBSSL && HAVE_OCSP_BASIC_SIGN && !DISABLE_OCSP_STAPLING */
 
   luaCtx.writeFunction("addCapabilitiesToRetain", [](LuaTypeOrArrayOf<std::string> caps) {
-    if (!checkConfigurationTime("addCapabilitiesToRetain")) {
-      return;
+    try {
+      dnsdist::configuration::updateImmutableConfiguration([&caps](dnsdist::configuration::Configuration& config) {
+        if (caps.type() == typeid(std::string)) {
+          config.d_capabilitiesToRetain.insert(boost::get<std::string>(caps));
+        }
+        else if (caps.type() == typeid(LuaArray<std::string>)) {
+          for (const auto& cap : boost::get<LuaArray<std::string>>(caps)) {
+            config.d_capabilitiesToRetain.insert(cap.second);
+          }
+        }
+      });
+      setLuaSideEffect();
     }
-    setLuaSideEffect();
-    if (caps.type() == typeid(std::string)) {
-      g_capabilitiesToRetain.insert(boost::get<std::string>(caps));
-    }
-    else if (caps.type() == typeid(LuaArray<std::string>)) {
-      for (const auto& cap : boost::get<LuaArray<std::string>>(caps)) {
-        g_capabilitiesToRetain.insert(cap.second);
-      }
+    catch (const std::exception& exp) {
+      g_outputBuffer = "addCapabilitiesToRetain cannot be used at runtime!\n";
+      errlog("addCapabilitiesToRetain cannot be used at runtime!");
     }
   });
 

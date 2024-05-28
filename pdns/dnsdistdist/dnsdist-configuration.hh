@@ -145,6 +145,7 @@ static_assert(s_defaultPayloadSizeSelfGenAnswers < s_udpIncomingBufferSize, "The
 
 struct Configuration
 {
+  std::set<std::string> d_capabilitiesToRetain;
   std::string d_consoleKey;
 #ifdef __linux__
   // On Linux this gives us 128k pending queries (default is 8192 queries),
