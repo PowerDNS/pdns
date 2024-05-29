@@ -638,7 +638,7 @@ std::string pdns::settings::rec::defaultsToYaml()
     // And for all other values below, the default is either an empty string or an empty vector.
     // Once we get more u64 values below with different default values this hack no longer works.
     rustvalue.u64_val = 24;
-    map.emplace(std::pair{std::pair{section, name}, pdns::rust::settings::rec::OldStyle{section, name, name, type, rustvalue, false}});
+    map.emplace(std::pair{std::pair{section, name}, pdns::rust::settings::rec::OldStyle{section, name, name, type, std::move(rustvalue), false}});
   };
   def("dnssec", "trustanchors", "Vec<TrustAnchor>");
   def("dnssec", "negative_trustanchors", "Vec<NegativeTrustAnchor>");

@@ -3193,7 +3193,7 @@ int main(int argc, char** argv)
     }
     if (yamlstatus == pdns::settings::rec::YamlSettingsStatus::OK) {
       auto lock = g_yamlStruct.lock();
-      *lock = settings;
+      *lock = std::move(settings);
     }
     if (yamlstatus == pdns::settings::rec::YamlSettingsStatus::CannotOpen) {
       configname += ".conf";
