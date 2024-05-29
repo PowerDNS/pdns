@@ -560,7 +560,7 @@ def write_rust_merge_trait_impl(file, section, entries):
         name = entry['name']
         file.write(f'            if m.contains_key("{name}") {{\n')
         if rtype in ('bool', 'u64', 'f64', 'String'):
-            file.write(f'                self.{name} = rhs.{name}.to_owned();\n')
+            file.write(f'                rhs.{name}.clone_into(&mut self.{name});\n')
         else:
             file.write(f'                if is_overriding(m, "{name}") || ')
             file.write(f'self.{name} == DEFAULT_CONFIG.{section}.{name} {{\n')
