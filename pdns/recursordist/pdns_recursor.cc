@@ -1850,7 +1850,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       pbMessage.setDeviceName(dnsQuestion.deviceName);
       pbMessage.setToPort(comboWriter->d_destination.getPort());
       pbMessage.addPolicyTags(comboWriter->d_gettagPolicyTags);
-
+      pbMessage.setWorkerId(RecThreadInfo::id());
+      pbMessage.setPacketCacheHit(false);
+      pbMessage.setOutgoingQueries(resolver.d_outqueries);
       for (const auto& metaValue : dnsQuestion.meta) {
         pbMessage.setMeta(metaValue.first, metaValue.second.stringVal, metaValue.second.intVal);
       }

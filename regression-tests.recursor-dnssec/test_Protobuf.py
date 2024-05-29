@@ -190,6 +190,7 @@ class TestRecursorProtobuf(RecursorTest):
         # because it doesn't keep the information around.
         self.assertTrue(msg.HasField('to'))
         self.assertEqual(socket.inet_ntop(socket.AF_INET, msg.to), to)
+        self.assertTrue(msg.HasField('workerId'))
         self.assertTrue(msg.HasField('question'))
         self.assertTrue(msg.question.HasField('qClass'))
         self.assertEqual(msg.question.qClass, qclass)
@@ -201,6 +202,8 @@ class TestRecursorProtobuf(RecursorTest):
     def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1', receivedSize=None, vstate=dnsmessage_pb2.PBDNSMessage.VState.Indeterminate):
         self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
         self.checkProtobufBase(msg, protocol, response, initiator, receivedSize=receivedSize)
+        self.assertTrue(msg.HasField('workerId'))
+        self.assertTrue(msg.HasField('packetCacheHit'))
         self.assertTrue(msg.HasField('response'))
         self.assertTrue(msg.response.HasField('queryTimeSec'))
         self.assertTrue(msg.response.HasField('validationState'))

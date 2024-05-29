@@ -548,6 +548,8 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   msg.setRequestorId(requestorId);
   msg.setDeviceId(deviceId);
   msg.setDeviceName(deviceName);
+  msg.setWorkerId(RecThreadInfo::id());
+  // For queries, packetCacheHit and outgoingQueries are not relevant
 
   if (!policyTags.empty()) {
     msg.addPolicyTags(policyTags);
@@ -626,6 +628,11 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
   pbMessage.setDeviceId(deviceId);
   pbMessage.setDeviceName(deviceName);
   pbMessage.setToPort(destination.getPort());
+  pbMessage.setWorkerId(RecThreadInfo::id());
+  // this method is only used for PC cache hits
+  pbMessage.setPacketCacheHit(true);
+  // we do not set outgoingQueries, it is not relevant for PC cache hits
+
   for (const auto& metaItem : meta) {
     pbMessage.setMeta(metaItem.first, metaItem.second.stringVal, metaItem.second.intVal);
   }
