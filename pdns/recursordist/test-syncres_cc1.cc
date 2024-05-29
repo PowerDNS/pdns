@@ -471,6 +471,7 @@ BOOST_AUTO_TEST_CASE(test_all_nss_down)
       return LWResult::Result::Success;
     }
     downServers.insert(address);
+    res->d_usec = g_networkTimeoutMsec * 1000;
     return LWResult::Result::Timeout;
   });
 
@@ -516,6 +517,7 @@ BOOST_AUTO_TEST_CASE(test_all_nss_network_error)
       return LWResult::Result::Success;
     }
     downServers.insert(address);
+    res->d_usec = g_networkTimeoutMsec * 1000;
     return LWResult::Result::Timeout;
   });
 

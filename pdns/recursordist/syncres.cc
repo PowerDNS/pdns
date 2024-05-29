@@ -5403,7 +5403,13 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     // don't account for resource limits, they are our own fault
     // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
     if (resolveret != LWResult::Result::OSLimitError && !chained && !dontThrottle) {
-      s_nsSpeeds.lock()->find_or_enter(nsName.empty() ? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
+      uint32_t responseUsec = 1000000; // 1 sec for non-timeout cases
+      // Use the actual time if we saw a timeout
+      if (resolveret == LWResult::Result::Timeout) {
+        responseUsec = lwr.d_usec;
+      }
+
+      s_nsSpeeds.lock()->find_or_enter(nsName.empty() ? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, static_cast<int>(responseUsec), d_now);
 
       // make sure we don't throttle the root
       if (s_serverdownmaxfails > 0 && auth != g_rootdnsname && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
@@ -5416,8 +5422,13 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
         doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 100);
       }
       else {
-        // timeout, 10 seconds or 5 queries
-        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 5);
+        // If the actual response time was more than 80% of the default timeout, we throttle. On a
+        // busy rec we reduce the time we are willing to wait for an auth, it is unfair to throttle on
+        // such a shortened timeout.
+        if (responseUsec > g_networkTimeoutMsec * 800) {
+          // timeout, 10 seconds or 5 queries
+          doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 5);
+        }
       }
     }
 
@@ -5428,25 +5439,15 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     LOG(prefix << qname << ": " << nsName << " (" << remoteIP.toString() << ") returned a packet we could not parse over " << (doTCP ? "TCP" : "UDP") << ", trying sibling IP or NS" << endl);
     if (!chained && !dontThrottle) {
 
-      uint32_t responseUsec = 1000000; // 1 sec for non-timeout cases
-      // Use the actual time if we saw a timeout
-      if (resolveret == LWResult::Result::Timeout) {
-        responseUsec = lwr.d_usec;
-      }
       // let's make sure we prefer a different server for some time, if there is one available
-      s_nsSpeeds.lock()->find_or_enter(nsName.empty() ? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, static_cast<int>(responseUsec), d_now);
+      s_nsSpeeds.lock()->find_or_enter(nsName.empty() ? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
 
-      // If the actual response time was more than 80% of the default timeout, we throttle. On a
-      // busy rec we reduce the time we are willing to wait for an auth, it is unfair to throttle on
-      // such a shortened timeout.
-      if (resolveret != LWResult::Result::Timeout || responseUsec > g_networkTimeoutMsec * 800) {
-        if (doTCP) {
-          // we can be more heavy-handed over TCP
-          doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 10);
-        }
-        else {
-          doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 2);
-        }
+      if (doTCP) {
+        // we can be more heavy-handed over TCP
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 10);
+      }
+      else {
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 2);
       }
     }
     return false;
