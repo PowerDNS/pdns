@@ -74,26 +74,33 @@ static void initArguments(int argc, char** argv, Logr::log_t log)
 
   cleanSlashes(configname);
 
-  const string yamlconfigname = configname + ".yml";
   string msg;
   pdns::rust::settings::rec::Recursorsettings settings;
+  pdns::settings::rec::YamlSettingsStatus yamlstatus{};
 
-  auto yamlstatus = pdns::settings::rec::readYamlSettings(yamlconfigname, "", settings, msg, g_slog);
+  for (const string suffix : {".yml", ".conf"}) {
+    const string yamlconfigname = configname + suffix;
+    yamlstatus = pdns::settings::rec::readYamlSettings(yamlconfigname, "", settings, msg, g_slog);
 
-  switch (yamlstatus) {
-  case pdns::settings::rec::YamlSettingsStatus::CannotOpen:
-    break;
-  case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
-    log->error(Logr::Error, msg, "YAML config found, but error ocurred processing it", "configname", Logging::Loggable(yamlconfigname));
-    exit(1); // NOLINT(concurrency-mt-unsafe)
-    break;
-  case pdns::settings::rec::YamlSettingsStatus::OK:
-    log->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname));
-    pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
-    break;
+    switch (yamlstatus) {
+    case pdns::settings::rec::YamlSettingsStatus::CannotOpen:
+      break;
+    case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
+      if (suffix == ".yml") {
+        log->error(Logr::Error, msg, "YAML config found, but error ocurred processing it", "configname", Logging::Loggable(yamlconfigname));
+        exit(1); // NOLINT(concurrency-mt-unsafe)
+      }
+      break;
+    case pdns::settings::rec::YamlSettingsStatus::OK:
+      log->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname));
+      pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
+      break;
+    }
+    if (yamlstatus == pdns::settings::rec::YamlSettingsStatus::OK) {
+      break;
+    }
   }
-
-  if (yamlstatus == pdns::settings::rec::YamlSettingsStatus::CannotOpen) {
+  if (yamlstatus != pdns::settings::rec::YamlSettingsStatus::OK) {
     configname += ".conf";
     arg().laxFile(configname);
   }
