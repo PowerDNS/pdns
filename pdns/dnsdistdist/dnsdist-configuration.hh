@@ -214,10 +214,21 @@ struct RuntimeConfiguration
   bool d_applyACLToProxiedClients{false};
 };
 
+/* Be careful not to hold on this for too long, it can be invalidated
+   by the next call to getCurrentRuntimeConfiguration() from the
+   same thread, so better be sure that any function you are not calling
+   while holding to this reference does not call getCurrentRuntimeConfiguration()
+   itself. When in doubt, better call getCurrentRuntimeConfiguration() twice.
+*/
 const RuntimeConfiguration& getCurrentRuntimeConfiguration();
+/* Get the runtime-immutable configuration */
 const Configuration& getImmutableConfiguration();
+/* Update the runtime-immutable part of the configuration. This function can only be called
+   during configuration time (isConfigurationDone() returns false), and will throw otherwise. */
 void updateImmutableConfiguration(const std::function<void(Configuration&)>& mutator);
 void updateRuntimeConfiguration(const std::function<void(RuntimeConfiguration&)>& mutator);
+/* Whether parsing the configuration is done, meaning the runtime-immutable part of the
+   configuration is now sealed */
 bool isConfigurationDone();
 void setConfigurationDone();
 }
