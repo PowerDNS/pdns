@@ -143,9 +143,12 @@ static constexpr uint16_t s_defaultPayloadSizeSelfGenAnswers = 1232;
 static constexpr uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries larger than this value
 static_assert(s_defaultPayloadSizeSelfGenAnswers < s_udpIncomingBufferSize, "The UDP responder's payload size should be smaller or equal to our incoming buffer size");
 
+/* this part of the configuration can only be updated at configuration
+   time, and is immutable once the configuration phase is over */
 struct Configuration
 {
   std::set<std::string> d_capabilitiesToRetain;
+  ComboAddress d_consoleServerAddress{"127.0.0.1:5199"};
   std::string d_consoleKey;
 #ifdef __linux__
   // On Linux this gives us 128k pending queries (default is 8192 queries),
@@ -158,6 +161,7 @@ struct Configuration
 #endif
   double d_weightedBalancingFactor{0};
   double d_consistentHashBalancingFactor{0};
+  uint64_t d_consoleMaxConcurrentConnections{0};
   uint64_t d_maxTCPClientThreads{0};
   size_t d_maxTCPConnectionsPerClient{0};
   size_t d_udpVectorSize{1};
@@ -170,6 +174,8 @@ struct Configuration
   bool d_randomizeIDsToBackend{false};
 };
 
+/* this part of the configuration can be updated at runtime via
+   a RCU-like mechanism */
 struct RuntimeConfiguration
 {
   NetmaskGroup d_proxyProtocolACL;

@@ -1031,8 +1031,6 @@ extern GlobalStateHolder<servers_t> g_dstates;
 extern GlobalStateHolder<pools_t> g_pools;
 extern GlobalStateHolder<NetmaskGroup> g_ACL;
 
-extern ComboAddress g_serverControl; // not changed during runtime
-
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
 extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
 extern std::vector<shared_ptr<DOQFrontend>> g_doqlocals;

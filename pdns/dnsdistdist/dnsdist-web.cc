@@ -1452,7 +1452,7 @@ static void handleConfigDump(const YaHTTP::Request& req, YaHTTP::Response& resp)
   std::vector<std::pair<std::string, configentry_t>> configEntries{
     {"acl", g_ACL.getLocal()->toString()},
     {"allow-empty-response", runtimeConfiguration.d_allowEmptyResponse},
-    {"control-socket", g_serverControl.toStringWithPort()},
+    {"control-socket", immutableConfig.d_consoleServerAddress.toStringWithPort()},
     {"ecs-override", runtimeConfiguration.d_ecsOverride},
     {"ecs-source-prefix-v4", static_cast<double>(runtimeConfiguration.d_ECSSourcePrefixV4)},
     {"ecs-source-prefix-v6", static_cast<double>(runtimeConfiguration.d_ECSSourcePrefixV6)},

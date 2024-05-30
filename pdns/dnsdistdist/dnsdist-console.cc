@@ -28,7 +28,7 @@
 
 #ifdef HAVE_LIBEDIT
 #if defined(__OpenBSD__) || defined(__NetBSD__)
-// If this is not undeffed, __attribute__ wil be redefined by /usr/include/readline/rlstdc.h
+// If this is not undeffed, __attribute__ will be redefined by /usr/include/readline/rlstdc.h
 #undef __STRICT_ANSI__
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -90,11 +90,6 @@ private:
   ComboAddress d_client;
   FDWrapper d_fileDesc;
 };
-
-void setConsoleMaximumConcurrentConnections(size_t max)
-{
-  s_connManager.setMaxConcurrentConnections(max);
-}
 
 static void feedConfigDelta(const std::string& line)
 {
@@ -226,9 +221,12 @@ static ConsoleCommandResult sendMessageToServer(int fileDesc, const std::string&
   return ConsoleCommandResult::Valid;
 }
 
-void doClient(ComboAddress server, const std::string& command)
+namespace dnsdist::console
 {
-  const auto& consoleKey = dnsdist::configuration::getImmutableConfiguration().d_consoleKey;
+void doClient(const std::string& command)
+{
+  const auto consoleKey = dnsdist::configuration::getImmutableConfiguration().d_consoleKey;
+  const auto server = dnsdist::configuration::getImmutableConfiguration().d_consoleServerAddress;
   if (!dnsdist::crypto::authenticated::isValidKey(consoleKey)) {
     cerr << "The currently configured console key is not valid, please configure a valid key using the setKey() directive" << endl;
     return;
@@ -475,10 +473,11 @@ void doConsole()
     }
   }
 }
+}
 
 #ifndef DISABLE_COMPLETION
 /**** CARGO CULT CODE AHEAD ****/
-const std::vector<ConsoleKeyword> g_consoleKeywords
+static const std::vector<dnsdist::console::ConsoleKeyword> s_consoleKeywords
 {
   /* keyword, function, parameters, description */
   {"addACL", true, "netmask", "add to the ACL set who can use this server"},
@@ -855,7 +854,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords
 #if defined(HAVE_LIBEDIT)
 extern "C"
 {
-  static char* my_generator(const char* text, int state)
+  static char* dnsdist_completion_generator(const char* text, int state)
   {
     string textStr(text);
     /* to keep it readable, we try to keep only 4 keywords per line
@@ -866,7 +865,7 @@ extern "C"
       s_counter = 0;
     }
 
-    for (const auto& keyword : g_consoleKeywords) {
+    for (const auto& keyword : s_consoleKeywords) {
       if (boost::starts_with(keyword.name, textStr) && counter++ == s_counter) {
         std::string value(keyword.name);
         s_counter++;
@@ -882,12 +881,12 @@ extern "C"
     return nullptr;
   }
 
-  char** my_completion(const char* text, int start, int end)
+  static char** dnsdist_completion_callback(const char* text, int start, int end)
   {
     char** matches = nullptr;
     if (start == 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): readline
-      matches = rl_completion_matches(const_cast<char*>(text), &my_generator);
+      matches = rl_completion_matches(const_cast<char*>(text), &dnsdist_completion_generator);
     }
 
     // skip default filename completion.
@@ -898,6 +897,33 @@ extern "C"
 }
 #endif /* HAVE_LIBEDIT */
 #endif /* DISABLE_COMPLETION */
+
+namespace dnsdist::console
+{
+#ifndef DISABLE_COMPLETION
+const std::vector<ConsoleKeyword>& getConsoleKeywords()
+{
+  return s_consoleKeywords;
+}
+#endif /* DISABLE_COMPLETION */
+
+void setupCompletion()
+{
+#ifndef DISABLE_COMPLETION
+#ifdef HAVE_LIBEDIT
+  rl_attempted_completion_function = dnsdist_completion_callback;
+  rl_completion_append_character = 0;
+#endif /* DISABLE_COMPLETION */
+#endif /* HAVE_LIBEDIT */
+}
+
+void clearHistory()
+{
+#ifdef HAVE_LIBEDIT
+  clear_history();
+#endif /* HAVE_LIBEDIT */
+  s_confDelta.lock()->clear();
+}
 
 static void controlClientThread(ConsoleConnection&& conn)
 {
@@ -1040,10 +1066,12 @@ static void controlClientThread(ConsoleConnection&& conn)
 }
 
 // NOLINTNEXTLINE(performance-unnecessary-value-param): this is thread
-void controlThread(std::shared_ptr<Socket> acceptFD, ComboAddress local)
+void controlThread(std::shared_ptr<Socket>&& acceptFD, ComboAddress local)
 {
   try {
     setThreadName("dnsdist/control");
+    s_connManager.setMaxConcurrentConnections(dnsdist::configuration::getImmutableConfiguration().d_consoleMaxConcurrentConnections);
+
     ComboAddress client;
     // make sure that the family matches the one from the listening IP,
     // so that getSocklen() returns the correct size later, otherwise
@@ -1085,11 +1113,4 @@ void controlThread(std::shared_ptr<Socket> acceptFD, ComboAddress local)
     errlog("Control thread died: %s", e.what());
   }
 }
-
-void clearConsoleHistory()
-{
-#ifdef HAVE_LIBEDIT
-  clear_history();
-#endif /* HAVE_LIBEDIT */
-  s_confDelta.lock()->clear();
 }

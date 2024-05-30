@@ -33,16 +33,6 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
-#ifdef HAVE_LIBEDIT
-#if defined(__OpenBSD__) || defined(__NetBSD__)
-// If this is not undeffed, __attribute__ wil be redefined by /usr/include/readline/rlstdc.h
-#undef __STRICT_ANSI__
-#include <readline/readline.h>
-#else
-#include <editline/readline.h>
-#endif
-#endif /* HAVE_LIBEDIT */
-
 #include "dnsdist-systemd.hh"
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -877,7 +867,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 }
 
 RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};
-ComboAddress g_serverControl{"127.0.0.1:5199"};
 
 static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoofContent, bool raw)
 {
@@ -3267,12 +3256,8 @@ int main(int argc, char** argv)
   try {
     size_t udpBindsCount = 0;
     size_t tcpBindsCount = 0;
-#ifdef HAVE_LIBEDIT
-#ifndef DISABLE_COMPLETION
-    rl_attempted_completion_function = my_completion;
-    rl_completion_append_character = 0;
-#endif /* DISABLE_COMPLETION */
-#endif /* HAVE_LIBEDIT */
+
+    dnsdist::console::setupCompletion();
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast): SIG_IGN macro
     signal(SIGPIPE, SIG_IGN);
@@ -3315,9 +3300,11 @@ int main(int argc, char** argv)
     if (g_cmdLine.beClient || !g_cmdLine.command.empty()) {
       setupLua(*(g_lua.lock()), true, false, g_cmdLine.config);
       if (clientAddress != ComboAddress()) {
-        g_serverControl = clientAddress;
+        dnsdist::configuration::updateImmutableConfiguration([&clientAddress](dnsdist::configuration::Configuration& config) {
+          config.d_consoleServerAddress = clientAddress;
+        });
       }
-      doClient(g_serverControl, g_cmdLine.command);
+      dnsdist::console::doClient(g_cmdLine.command);
 #ifdef COVERAGE
       exit(EXIT_SUCCESS);
 #else
@@ -3516,7 +3503,7 @@ int main(int argc, char** argv)
     }
     else {
       healththread.detach();
-      doConsole();
+      dnsdist::console::doConsole();
     }
 #ifdef COVERAGE
     cleanupLuaObjects();
