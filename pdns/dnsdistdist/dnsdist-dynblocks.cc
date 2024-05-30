@@ -612,8 +612,6 @@ struct DynBlockEntryStat
 std::list<DynBlockMaintenance::MetricsSnapshot> DynBlockMaintenance::s_metricsData;
 
 LockGuarded<DynBlockMaintenance::Tops> DynBlockMaintenance::s_tops;
-size_t DynBlockMaintenance::s_topN{20};
-time_t DynBlockMaintenance::s_expiredDynBlocksPurgeInterval{60};
 
 void DynBlockMaintenance::collectMetrics()
 {
@@ -773,13 +771,14 @@ void DynBlockMaintenance::run()
   static const time_t metricsGenerationInterval = 60;
 
   time_t now = time(nullptr);
-  time_t nextExpiredPurge = now + s_expiredDynBlocksPurgeInterval;
+  auto purgeInterval = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlocksPurgeInterval;
+  time_t nextExpiredPurge = now + purgeInterval;
   time_t nextMetricsCollect = now + metricsCollectionInterval;
   time_t nextMetricsGeneration = now + metricsGenerationInterval;
 
   while (true) {
     time_t sleepDelay = std::numeric_limits<time_t>::max();
-    if (s_expiredDynBlocksPurgeInterval > 0) {
+    if (purgeInterval > 0) {
       sleepDelay = std::min(sleepDelay, (nextExpiredPurge - now));
     }
     sleepDelay = std::min(sleepDelay, (nextMetricsCollect - now));
@@ -807,15 +806,14 @@ void DynBlockMaintenance::run()
         nextMetricsGeneration = now + metricsGenerationInterval;
       }
 
-      if (s_expiredDynBlocksPurgeInterval > 0 && now >= nextExpiredPurge) {
-        struct timespec tspec
-        {
-        };
+      purgeInterval = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlocksPurgeInterval;
+      if (purgeInterval > 0 && now >= nextExpiredPurge) {
+        timespec tspec{};
         gettime(&tspec);
         purgeExpired(tspec);
 
         now = time(nullptr);
-        nextExpiredPurge = now + s_expiredDynBlocksPurgeInterval;
+        nextExpiredPurge = now + purgeInterval;
       }
     }
     catch (const std::exception& e) {
