@@ -814,6 +814,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
        config.d_payloadSizeSelfGenAnswers = newValue;
      },
      std::numeric_limits<uint64_t>::max()},
+#ifndef DISABLE_DYNBLOCKS
+    {"setDynBlocksPurgeInterval", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_dynBlocksPurgeInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
+#endif /* DISABLE_DYNBLOCKS */
   };
 
   struct StringConfigurationItems
@@ -1735,10 +1738,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 #endif /* DISABLE_DEPRECATED_DYNBLOCK */
-
-  luaCtx.writeFunction("setDynBlocksPurgeInterval", [](uint64_t interval) {
-    DynBlockMaintenance::s_expiredDynBlocksPurgeInterval = static_cast<time_t>(interval);
-  });
 #endif /* DISABLE_DYNBLOCKS */
 
 #ifdef HAVE_DNSCRYPT

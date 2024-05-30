@@ -183,6 +183,7 @@ struct RuntimeConfiguration
   dnsdist::QueryCount::Configuration d_queryCountConfig;
   std::string d_secPollSuffix{"secpoll.powerdns.com."};
   std::string d_apiConfigDirectory;
+  uint64_t d_dynBlocksPurgeInterval{60};
   size_t d_maxTCPQueriesPerConn{0};
   size_t d_maxTCPConnectionDuration{0};
   size_t d_proxyProtocolMaximumSize{512};

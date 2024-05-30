@@ -358,8 +358,6 @@ public:
   static std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> getTopSuffixes(size_t topN);
   static void purgeExpired(const struct timespec& now);
 
-  static time_t s_expiredDynBlocksPurgeInterval;
-
 private:
   static void collectMetrics();
   static void generateMetrics();
@@ -380,7 +378,7 @@ private:
   /* s_metricsData should only be accessed by the dynamic blocks maintenance thread so it does not need a lock */
   // need N+1 datapoints to be able to do the diff after a collection point has been reached
   static std::list<MetricsSnapshot> s_metricsData;
-  static size_t s_topN;
+  static constexpr size_t s_topN{20};
 };
 
 namespace dnsdist::DynamicBlocks
