@@ -114,7 +114,7 @@ bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, Loc
 {
   const auto& from = packet.getFromAddr();
   expectProxyProtocol = expectProxyProtocolFrom(from);
-  if (!holders.acl->match(from) && !expectProxyProtocol) {
+  if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(from) && !expectProxyProtocol) {
     vinfolog("Query from %s dropped because of ACL", from.toStringWithPort());
     ++dnsdist::metrics::g_stats.aclDrops;
     return false;

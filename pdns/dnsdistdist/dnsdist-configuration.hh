@@ -178,6 +178,7 @@ struct Configuration
    a RCU-like mechanism */
 struct RuntimeConfiguration
 {
+  NetmaskGroup d_ACL;
   NetmaskGroup d_proxyProtocolACL;
   NetmaskGroup d_consoleACL;
   dnsdist::QueryCount::Configuration d_queryCountConfig;

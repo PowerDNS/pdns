@@ -416,7 +416,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
-    if (!holders.acl->match(remote)) {
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       vinfolog("Query from %s (DoQ) dropped because of ACL", remote.toStringWithPort());
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();

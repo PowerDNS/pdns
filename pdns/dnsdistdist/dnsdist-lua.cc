@@ -948,14 +948,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getVerbose", []() { return dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose; });
 
-  luaCtx.writeFunction("addACL", [](const std::string& domain) {
+  luaCtx.writeFunction("addACL", [](const std::string& mask) {
     setLuaSideEffect();
-    g_ACL.modify([domain](NetmaskGroup& nmg) { nmg.addMask(domain); });
+    dnsdist::configuration::updateRuntimeConfiguration([&mask](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_ACL.addMask(mask);
+    });
   });
 
   luaCtx.writeFunction("rmACL", [](const std::string& netmask) {
     setLuaSideEffect();
-    g_ACL.modify([netmask](NetmaskGroup& nmg) { nmg.deleteMask(netmask); });
+    dnsdist::configuration::updateRuntimeConfiguration([&netmask](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_ACL.deleteMask(netmask);
+    });
   });
 
   luaCtx.writeFunction("setLocal", [client](const std::string& addr, boost::optional<localbind_t> vars) {
@@ -1094,7 +1098,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         nmg.addMask(entry.second);
       }
     }
-    g_ACL.setState(nmg);
+    dnsdist::configuration::updateRuntimeConfiguration([&nmg](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_ACL = std::move(nmg);
+    });
   });
 
   luaCtx.writeFunction("setACLFromFile", [](const std::string& file) {
@@ -1121,12 +1127,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       nmg.addMask(line);
     }
 
-    g_ACL.setState(nmg);
+    dnsdist::configuration::updateRuntimeConfiguration([&nmg](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_ACL = std::move(nmg);
+    });
   });
 
   luaCtx.writeFunction("showACL", []() {
     setLuaNoSideEffect();
-    auto aclEntries = g_ACL.getLocal()->toStringVector();
+    auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.toStringVector();
 
     for (const auto& entry : aclEntries) {
       g_outputBuffer += entry + "\n";

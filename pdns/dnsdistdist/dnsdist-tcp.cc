@@ -892,7 +892,7 @@ IncomingTCPConnectionState::ProxyProtocolResult IncomingTCPConnectionState::hand
       else {
         /* proxy header received */
         std::vector<ProxyProtocolValue> proxyProtocolValues;
-        if (!handleProxyProtocol(d_ci.remote, true, *d_threadData.holders.acl, d_buffer, d_proxiedRemote, d_proxiedDestination, proxyProtocolValues)) {
+        if (!handleProxyProtocol(d_ci.remote, true, dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL, d_buffer, d_proxiedRemote, d_proxiedDestination, proxyProtocolValues)) {
           vinfolog("Error handling the Proxy Protocol received from TCP client %s", d_ci.remote.toStringWithPort());
           return ProxyProtocolResult::Error;
         }
@@ -1371,8 +1371,6 @@ struct TCPAcceptorParam
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
   ClientState& clientState;
   ComboAddress local;
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
-  LocalStateHolder<NetmaskGroup>& acl;
   int socket{-1};
 };
 
@@ -1494,14 +1492,13 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
     data.mplexer->addReadFD(data.crossProtocolResponseReceiver.getDescriptor(), handleCrossProtocolResponse, &data);
 
     /* only used in single acceptor mode for now */
-    auto acl = g_ACL.getLocal();
     std::vector<TCPAcceptorParam> acceptParams;
     acceptParams.reserve(tcpAcceptStates.size());
 
     for (auto& state : tcpAcceptStates) {
-      acceptParams.emplace_back(TCPAcceptorParam{*state, state->local, acl, state->tcpFD});
+      acceptParams.emplace_back(TCPAcceptorParam{*state, state->local, state->tcpFD});
       for (const auto& [addr, socket] : state->d_additionalAddresses) {
-        acceptParams.emplace_back(TCPAcceptorParam{*state, addr, acl, socket});
+        acceptParams.emplace_back(TCPAcceptorParam{*state, addr, socket});
       }
     }
 
@@ -1547,7 +1544,6 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
 static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadData* threadData)
 {
   auto& clientState = param.clientState;
-  auto& acl = param.acl;
   const bool checkACL = clientState.dohFrontend == nullptr || (!clientState.dohFrontend->d_trustForwardedForHeader && clientState.dohFrontend->d_earlyACLDrop);
   const int socket = param.socket;
   bool tcpClientCountIncremented = false;
@@ -1572,7 +1568,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
       throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());
     }
 
-    if (checkACL && !acl->match(remote)) {
+    if (checkACL && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       ++dnsdist::metrics::g_stats.aclDrops;
       vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
       return;
@@ -1652,14 +1648,13 @@ void tcpAcceptorThread(const std::vector<ClientState*>& states)
 {
   setThreadName("dnsdist/tcpAcce");
 
-  auto acl = g_ACL.getLocal();
   std::vector<TCPAcceptorParam> params;
   params.reserve(states.size());
 
   for (const auto& state : states) {
-    params.emplace_back(TCPAcceptorParam{*state, state->local, acl, state->tcpFD});
+    params.emplace_back(TCPAcceptorParam{*state, state->local, state->tcpFD});
     for (const auto& [addr, socket] : state->d_additionalAddresses) {
-      params.emplace_back(TCPAcceptorParam{*state, addr, acl, socket});
+      params.emplace_back(TCPAcceptorParam{*state, addr, socket});
     }
   }
 
