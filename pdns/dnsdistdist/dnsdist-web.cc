@@ -1273,7 +1273,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   string acl;
   {
-    auto aclEntries = g_ACL.getLocal()->toStringVector();
+    auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.toStringVector();
 
     for (const auto& entry : aclEntries) {
       if (!acl.empty()) {
@@ -1446,7 +1446,7 @@ static void handleConfigDump(const YaHTTP::Request& req, YaHTTP::Response& resp)
   const auto immutableConfig = dnsdist::configuration::getImmutableConfiguration();
   using configentry_t = boost::variant<bool, double, std::string>;
   std::vector<std::pair<std::string, configentry_t>> configEntries{
-    {"acl", g_ACL.getLocal()->toString()},
+    {"acl", runtimeConfiguration.d_ACL.toString()},
     {"allow-empty-response", runtimeConfiguration.d_allowEmptyResponse},
     {"control-socket", immutableConfig.d_consoleServerAddress.toStringWithPort()},
     {"ecs-override", runtimeConfiguration.d_ecsOverride},
@@ -1514,7 +1514,9 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
         if (resp.status == 200) {
           infolog("Updating the ACL via the API to %s", nmg.toString());
-          g_ACL.setState(nmg);
+          dnsdist::configuration::updateRuntimeConfiguration([&nmg](dnsdist::configuration::RuntimeConfiguration& config) {
+            config.d_ACL = nmg;
+          });
           apiSaveACL(nmg);
         }
       }
@@ -1527,7 +1529,7 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
     }
   }
   if (resp.status == 200) {
-    auto aclEntries = g_ACL.getLocal()->toStringVector();
+    auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.toStringVector();
 
     Json::object obj{
       {"type", "ConfigSetting"},

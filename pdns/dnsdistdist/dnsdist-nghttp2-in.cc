@@ -805,8 +805,7 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
     processForwardedForHeader(query.d_headers, d_proxiedRemote);
 
     /* second ACL lookup based on the updated address */
-    auto& holders = d_threadData.holders;
-    if (!holders.acl->match(d_proxiedRemote)) {
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(d_proxiedRemote)) {
       ++dnsdist::metrics::g_stats.aclDrops;
       vinfolog("Query from %s (%s) (DoH) dropped because of ACL", d_ci.remote.toStringWithPort(), d_proxiedRemote.toStringWithPort());
       handleImmediateResponse(403, "DoH query not allowed because of ACL");

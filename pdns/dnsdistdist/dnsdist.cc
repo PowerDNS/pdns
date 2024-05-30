@@ -93,7 +93,6 @@
 
 using std::thread;
 
-GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
 
 std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
@@ -1272,7 +1271,7 @@ static bool isUDPQueryAcceptable(ClientState& clientState, LocalHolders& holders
   }
 
   expectProxyProtocol = clientState.d_enableProxyProtocol && expectProxyProtocolFrom(remote);
-  if (!holders.acl->match(remote) && !expectProxyProtocol) {
+  if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote) && !expectProxyProtocol) {
     vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
     ++dnsdist::metrics::g_stats.aclDrops;
     return false;
@@ -1810,7 +1809,7 @@ static void processUDPQuery(ClientState& clientState, LocalHolders& holders, con
     }
 
     std::vector<ProxyProtocolValue> proxyProtocolValues;
-    if (expectProxyProtocol && !handleProxyProtocol(remote, false, *holders.acl, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
+    if (expectProxyProtocol && !handleProxyProtocol(remote, false, dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
       return;
     }
 
@@ -1935,7 +1934,7 @@ bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket&
 
     auto query = packet.clonePacketBuffer();
     std::vector<ProxyProtocolValue> proxyProtocolValues;
-    if (expectProxyProtocol && !handleProxyProtocol(remote, false, *holders.acl, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
+    if (expectProxyProtocol && !handleProxyProtocol(remote, false, dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
       return false;
     }
 
@@ -2985,7 +2984,7 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
       break;
     case 'a':
       optstring = optarg;
-      g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
+      newConfig.d_ACL.addMask(optstring);
       break;
     case 'k':
 #if defined HAVE_LIBSODIUM || defined(HAVE_LIBCRYPTO)
@@ -3312,13 +3311,14 @@ int main(int argc, char** argv)
 #endif
     }
 
-    auto acl = g_ACL.getCopy();
-    if (acl.empty()) {
-      for (const auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"}) {
-        acl.addMask(addr);
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      auto& acl = config.d_ACL;
+      if (acl.empty()) {
+        for (const auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"}) {
+          acl.addMask(addr);
+        }
       }
-      g_ACL.setState(acl);
-    }
+    });
 
     dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
       for (const auto& mask : {"127.0.0.1/8", "::1/128"}) {
@@ -3375,7 +3375,7 @@ int main(int argc, char** argv)
 
     {
       std::string acls;
-      auto aclEntries = g_ACL.getLocal()->toStringVector();
+      auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.toStringVector();
       for (const auto& aclEntry : aclEntries) {
         if (!acls.empty()) {
           acls += ", ";
