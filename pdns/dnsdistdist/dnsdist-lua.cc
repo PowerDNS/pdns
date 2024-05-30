@@ -881,6 +881,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     {"setUDPMultipleMessagesVectorSize", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpVectorSize = newValue; }, std::numeric_limits<uint32_t>::max()},
 #endif /* DISABLE_RECVMMSG */
     {"setUDPTimeout", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()},
+    {"setConsoleMaximumConcurrentConnections", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_consoleMaxConcurrentConnections = newValue; }, std::numeric_limits<uint32_t>::max()},
   };
   struct DoubleImmutableConfigurationItems
   {
@@ -1378,7 +1379,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     ComboAddress local(str, 5199);
 
     if (client || configCheck) {
-      g_serverControl = local;
+      dnsdist::configuration::updateImmutableConfiguration([&local](dnsdist::configuration::Configuration& config) {
+        config.d_consoleServerAddress = local;
+      });
       return;
     }
 
@@ -1396,7 +1399,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       sock->bind(local, true);
       sock->listen(5);
       auto launch = [sock = std::move(sock), local]() {
-        std::thread consoleControlThread(controlThread, sock, local);
+        std::thread consoleControlThread(dnsdist::console::controlThread, std::move(sock), local);
         consoleControlThread.detach();
       };
       if (g_launchWork) {
@@ -1456,11 +1459,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     for (const auto& entry : aclEntries) {
       g_outputBuffer += entry + "\n";
     }
-  });
-
-  luaCtx.writeFunction("setConsoleMaximumConcurrentConnections", [](uint64_t max) {
-    setLuaSideEffect();
-    setConsoleMaximumConcurrentConnections(max);
   });
 
   luaCtx.writeFunction("clearQueryCounters", []() {
@@ -1523,7 +1521,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("clearConsoleHistory", []() {
-    clearConsoleHistory();
+    dnsdist::console::clearHistory();
   });
 
   luaCtx.writeFunction("testCrypto", [](boost::optional<string> optTestMsg) {
@@ -1986,7 +1984,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaNoSideEffect();
     g_outputBuffer = "";
 #ifndef DISABLE_COMPLETION
-    for (const auto& keyword : g_consoleKeywords) {
+    for (const auto& keyword : dnsdist::console::getConsoleKeywords()) {
       if (!command) {
         g_outputBuffer += keyword.toString() + "\n";
       }
