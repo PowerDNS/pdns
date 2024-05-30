@@ -907,8 +907,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsquestion, std::string*
 
   bool dnssecOK = false;
   bool hadEDNS = false;
-  const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
-  if (runtimeConfiguration.d_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dnsquestion)) {
+  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dnsquestion)) {
     hadEDNS = true;
     dnssecOK = ((getEDNSZ(*dnsquestion) & EDNS_HEADER_FLAG_DO) != 0);
   }
@@ -1011,7 +1010,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsquestion, std::string*
   });
 
   if (hadEDNS && !raw) {
-    addEDNS(dnsquestion->getMutableData(), dnsquestion->getMaximumSize(), dnssecOK, runtimeConfiguration.d_payloadSizeSelfGenAnswers, 0);
+    addEDNS(dnsquestion->getMutableData(), dnsquestion->getMaximumSize(), dnssecOK, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers, 0);
   }
 
   return Action::HeaderModify;

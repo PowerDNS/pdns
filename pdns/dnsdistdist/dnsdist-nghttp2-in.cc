@@ -362,8 +362,7 @@ void IncomingHTTP2Connection::handleIO()
   gettimeofday(&now, nullptr);
 
   try {
-    const auto& currentConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
-    if (maxConnectionDurationReached(currentConfig.d_maxTCPConnectionDuration, now)) {
+    if (maxConnectionDurationReached(dnsdist::configuration::getCurrentRuntimeConfiguration().d_maxTCPConnectionDuration, now)) {
       vinfolog("Terminating DoH connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
       stopIO();
       d_connectionClosing = true;

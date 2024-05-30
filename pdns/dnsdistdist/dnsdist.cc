@@ -1048,25 +1048,28 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
     g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
   }
 
-  const auto runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
-  if (runtimeConfig.d_queryCountConfig.d_enabled) {
-    string qname = dnsQuestion.ids.qname.toLogString();
-    bool countQuery{true};
-    if (runtimeConfig.d_queryCountConfig.d_filter) {
-      auto lock = g_lua.lock();
-      std::tie(countQuery, qname) = runtimeConfig.d_queryCountConfig.d_filter(&dnsQuestion);
-    }
-
-    if (countQuery) {
-      auto records = dnsdist::QueryCount::g_queryCountRecords.write_lock();
-      if (records->count(qname) == 0) {
-        (*records)[qname] = 0;
+  {
+    const auto runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    if (runtimeConfig.d_queryCountConfig.d_enabled) {
+      string qname = dnsQuestion.ids.qname.toLogString();
+      bool countQuery{true};
+      if (runtimeConfig.d_queryCountConfig.d_filter) {
+        auto lock = g_lua.lock();
+        std::tie(countQuery, qname) = runtimeConfig.d_queryCountConfig.d_filter(&dnsQuestion);
       }
-      (*records)[qname]++;
+
+      if (countQuery) {
+        auto records = dnsdist::QueryCount::g_queryCountRecords.write_lock();
+        if (records->count(qname) == 0) {
+          (*records)[qname] = 0;
+        }
+        (*records)[qname]++;
+      }
     }
   }
 
 #ifndef DISABLE_DYNBLOCKS
+  const auto defaultDynBlockAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
   auto setRCode = [&dnsQuestion](uint8_t rcode) {
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [rcode](dnsheader& header) {
       header.rcode = rcode;
@@ -1085,7 +1088,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
     if (now < got->second.until) {
       DNSAction::Action action = got->second.action;
       if (action == DNSAction::Action::None) {
-        action = runtimeConfig.d_dynBlockAction;
+        action = defaultDynBlockAction;
       }
 
       switch (action) {
@@ -1162,7 +1165,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
     if (now < got->until) {
       DNSAction::Action action = got->action;
       if (action == DNSAction::Action::None) {
-        action = runtimeConfig.d_dynBlockAction;
+        action = defaultDynBlockAction;
       }
       switch (action) {
       case DNSAction::Action::NoOp:
@@ -2267,7 +2270,6 @@ static void maintThread()
 
   for (;;) {
     std::this_thread::sleep_for(std::chrono::seconds(interval));
-    const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
 
     {
       auto lua = g_lua.lock();
@@ -2289,7 +2291,7 @@ static void maintThread()
     }
 
     counter++;
-    if (counter >= config.d_cacheCleaningDelay) {
+    if (counter >= dnsdist::configuration::getCurrentRuntimeConfiguration().d_cacheCleaningDelay) {
       /* keep track, for each cache, of whether we should keep
        expired entries */
       std::map<std::shared_ptr<DNSDistPacketCache>, bool> caches;
@@ -2325,7 +2327,7 @@ static void maintThread()
           continue;
         }
         const auto& packetCache = pair.first;
-        size_t upTo = (packetCache->getMaxEntries() * (100 - config.d_cacheCleaningPercentage)) / 100;
+        size_t upTo = (packetCache->getMaxEntries() * (100 - dnsdist::configuration::getCurrentRuntimeConfiguration().d_cacheCleaningPercentage)) / 100;
         packetCache->purgeExpired(upTo, now);
       }
       counter = 0;

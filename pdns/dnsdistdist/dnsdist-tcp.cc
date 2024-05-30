@@ -485,12 +485,11 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
     return;
   }
 
-  const auto config = dnsdist::configuration::getCurrentRuntimeConfiguration();
   if (!response.isAsync()) {
     try {
       auto& ids = response.d_idstate;
       std::shared_ptr<DownstreamState> backend = response.d_ds ? response.d_ds : (response.d_connection ? response.d_connection->getDS() : nullptr);
-      if (backend == nullptr || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, backend, config.d_allowEmptyResponse)) {
+      if (backend == nullptr || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, backend, dnsdist::configuration::getCurrentRuntimeConfiguration().d_allowEmptyResponse)) {
         state->terminateClientConnection();
         return;
       }
@@ -1056,8 +1055,7 @@ void IncomingTCPConnectionState::handleIO()
     iostate = IOState::Done;
     IOStateGuard ioGuard(d_ioState);
 
-    const auto& currentConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
-    if (maxConnectionDurationReached(currentConfig.d_maxTCPConnectionDuration, now)) {
+    if (maxConnectionDurationReached(dnsdist::configuration::getCurrentRuntimeConfiguration().d_maxTCPConnectionDuration, now)) {
       vinfolog("Terminating TCP connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
       // will be handled by the ioGuard
       // handleNewIOState(state, IOState::Done, fd, handleIOCallback);

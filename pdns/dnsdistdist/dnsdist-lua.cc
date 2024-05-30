@@ -1598,7 +1598,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifndef DISABLE_DYNBLOCKS
   luaCtx.writeFunction("showDynBlocks", []() {
     setLuaNoSideEffect();
-    const auto runtimeConf = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    const auto dynBlockDefaultAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
     auto slow = g_dynblockNMG.getCopy();
     timespec now{};
     gettime(&now);
@@ -1610,17 +1610,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         if (g_defaultBPFFilter && entry.second.bpf) {
           counter += g_defaultBPFFilter->getHits(entry.first.getNetwork());
         }
-        g_outputBuffer += (fmt % entry.first.toString() % (entry.second.until.tv_sec - now.tv_sec) % counter % (entry.second.warning ? "true" : "false") % DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : runtimeConf.d_dynBlockAction) % (g_defaultBPFFilter && entry.second.bpf ? "*" : "") % entry.second.reason).str();
+        g_outputBuffer += (fmt % entry.first.toString() % (entry.second.until.tv_sec - now.tv_sec) % counter % (entry.second.warning ? "true" : "false") % DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : dynBlockDefaultAction) % (g_defaultBPFFilter && entry.second.bpf ? "*" : "") % entry.second.reason).str();
       }
     }
     auto slow2 = g_dynblockSMT.getCopy();
-    slow2.visit([&now, &fmt, &runtimeConf](const SuffixMatchTree<DynBlock>& node) {
+    slow2.visit([&now, &fmt, dynBlockDefaultAction](const SuffixMatchTree<DynBlock>& node) {
       if (now < node.d_value.until) {
         string dom("empty");
         if (!node.d_value.domain.empty()) {
           dom = node.d_value.domain.toString();
         }
-        g_outputBuffer += (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % (node.d_value.warning ? "true" : "false") % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : runtimeConf.d_dynBlockAction) % "" % node.d_value.reason).str();
+        g_outputBuffer += (fmt % dom % (node.d_value.until.tv_sec - now.tv_sec) % node.d_value.blocks % (node.d_value.warning ? "true" : "false") % DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : dynBlockDefaultAction) % "" % node.d_value.reason).str();
       }
     });
   });
@@ -2226,8 +2226,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     {
-      const auto runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
-      if (runtimeConfiguration.d_snmpEnabled) {
+      if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpEnabled) {
         errlog("snmpAgent() cannot be used twice!");
         g_outputBuffer = "snmpAgent() cannot be used twice!\n";
         return;
@@ -2243,8 +2242,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("sendCustomTrap", [](const std::string& str) {
-    const auto runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
-    if (g_snmpAgent != nullptr && runtimeConfiguration.d_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendCustomTrap(str);
     }
   });
