@@ -378,6 +378,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     if(rr.qtype.getCode() == QType::A || rr.qtype.getCode() == QType::AAAA) {
       addresses.insert(rr.qname);
     }
+#ifdef HAVE_LUA_RECORDS
     if(rr.qtype.getCode() == QType::LUA) {
       shared_ptr<DNSRecordContent> drc(DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, rr.content));
       auto luarec = std::dynamic_pointer_cast<LUARecordContent>(drc);
@@ -386,6 +387,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         addresses.insert(rr.qname);
       }
     }
+#endif
     if(rr.qtype.getCode() == QType::A) {
       arecords.insert(rr.qname);
     }
