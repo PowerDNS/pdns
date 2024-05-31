@@ -443,8 +443,8 @@ static void handleNewServerSourceParameter(boost::optional<newserver_t>& vars, D
         }
 #ifdef SO_BINDTODEVICE
         /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
-        dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::Configuration& config) {
-          config.d_capabilitiesToRetain.insert("CAP_NET_RAW");
+        dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::Configuration& currentConfig) {
+          currentConfig.d_capabilitiesToRetain.insert("CAP_NET_RAW");
         });
 #endif
       }
