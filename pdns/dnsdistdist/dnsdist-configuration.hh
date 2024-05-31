@@ -134,6 +134,9 @@ public:
   }
 };
 
+class ServerPolicy;
+struct ServerPool;
+
 namespace dnsdist::configuration
 {
 /* when we add EDNS to a query, we don't want to advertise
@@ -178,6 +181,8 @@ struct Configuration
    a RCU-like mechanism */
 struct RuntimeConfiguration
 {
+  std::map<std::string, std::shared_ptr<ServerPool>> d_pools;
+  std::shared_ptr<ServerPolicy> d_lbPolicy;
   NetmaskGroup d_ACL;
   NetmaskGroup d_proxyProtocolACL;
   NetmaskGroup d_consoleACL;

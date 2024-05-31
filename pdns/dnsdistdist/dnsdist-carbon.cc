@@ -177,8 +177,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       }
     }
 
-    auto localPools = g_pools.getLocal();
-    for (const auto& entry : *localPools) {
+    for (const auto& entry : dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools) {
       string poolName = entry.first;
       boost::replace_all(poolName, ".", "_");
       if (poolName.empty()) {
