@@ -145,7 +145,7 @@ dnsdist_SOURCES = \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-async.cc dnsdist-async.hh \
-	dnsdist-backend.cc \
+	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
@@ -272,7 +272,7 @@ testrunner_SOURCES = \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-async.cc dnsdist-async.hh \
-	dnsdist-backend.cc \
+	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-concurrent-connections.hh \

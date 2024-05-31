@@ -136,6 +136,9 @@ public:
 
 class ServerPolicy;
 struct ServerPool;
+struct DownstreamState;
+
+using servers_t = std::vector<std::shared_ptr<DownstreamState>>;
 
 namespace dnsdist::configuration
 {
@@ -181,6 +184,7 @@ struct Configuration
    a RCU-like mechanism */
 struct RuntimeConfiguration
 {
+  servers_t d_backends;
   std::map<std::string, std::shared_ptr<ServerPool>> d_pools;
   std::shared_ptr<ServerPolicy> d_lbPolicy;
   NetmaskGroup d_ACL;

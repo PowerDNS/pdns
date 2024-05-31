@@ -22,6 +22,7 @@
 
 #include "config.h"
 #include "dnsdist-discovery.hh"
+#include "dnsdist-backend.hh"
 #include "dnsdist.hh"
 #include "dnsdist-random.hh"
 #include "dnsparser.hh"
@@ -459,16 +460,17 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
     newServer->start();
 
-    auto states = g_dstates.getCopy();
-    states.push_back(newServer);
     /* remove the existing backend if needed */
     if (!backend.keepAfterUpgrade) {
-      for (auto it = states.begin(); it != states.end(); ++it) {
-        if (*it == backend.d_ds) {
-          states.erase(it);
-          break;
+      dnsdist::configuration::updateRuntimeConfiguration([&backend](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto& backends = config.d_backends;
+        for (auto backendIt = backends.begin(); backendIt != backends.end(); ++backendIt) {
+          if (*backendIt == backend.d_ds) {
+            backends.erase(backendIt);
+            break;
+          }
         }
-      }
+      });
 
       for (const string& poolName : backend.d_ds->d_config.pools) {
         removeServerFromPool(poolName, backend.d_ds);
@@ -477,11 +479,8 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
       removeServerFromPool("", backend.d_ds);
     }
 
-    std::stable_sort(states.begin(), states.end(), [](const decltype(newServer)& a, const decltype(newServer)& b) {
-      return a->d_config.order < b->d_config.order;
-    });
+    dnsdist::backend::registerNewBackend(newServer);
 
-    g_dstates.setState(states);
     if (!backend.keepAfterUpgrade) {
       backend.d_ds->stop();
     }

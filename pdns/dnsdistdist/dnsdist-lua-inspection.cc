@@ -742,9 +742,8 @@ void setupLuaInspection(LuaContext& luaCtx)
     fmt = boost::format("%-3d %-20.20s %-20.20s %-20d %-20d %-25d %-25d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20f %-20f");
     ret << (fmt % "#" % "Name" % "Address" % "Connections" % "Max concurrent conn" % "Died sending query" % "Died reading response" % "Gave up" % "Read timeouts" % "Write timeouts" % "Connect timeouts" % "Too many conn" % "Total connections" % "Reused connections" % "TLS resumptions" % "Avg queries/conn" % "Avg duration") << endl;
 
-    auto states = g_dstates.getLocal();
     counter = 0;
-    for (const auto& backend : *states) {
+    for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
       ret << (fmt % counter % backend->getName() % backend->d_config.remote.toStringWithPort() % backend->tcpCurrentConnections % backend->tcpMaxConcurrentConnections % backend->tcpDiedSendingQuery % backend->tcpDiedReadingResponse % backend->tcpGaveUp % backend->tcpReadTimeouts % backend->tcpWriteTimeouts % backend->tcpConnectTimeouts % backend->tcpTooManyConcurrentConnections % backend->tcpNewConnections % backend->tcpReusedConnections % backend->tlsResumptions % backend->tcpAvgQueriesPerConnection % backend->tcpAvgConnectionDuration) << endl;
       ++counter;
     }
