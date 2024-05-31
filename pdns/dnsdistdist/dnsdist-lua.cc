@@ -785,9 +785,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   static const std::vector<UnsignedIntegerConfigurationItems> unsignedIntegerConfigItems{
     {"setCacheCleaningDelay", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_cacheCleaningDelay = newValue; }, std::numeric_limits<uint32_t>::max()},
     {"setCacheCleaningPercentage", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_cacheCleaningPercentage = newValue; }, 100U},
-    {"setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheMaxSessionsPerBackend = newValue; }, std::numeric_limits<uint16_t>::max() },
-    {"setOutgoingTLSSessionsCacheCleanupDelay", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheCleanupDelay = newValue; }, std::numeric_limits<uint16_t>::max() },
-    {"setOutgoingTLSSessionsCacheMaxTicketValidity", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheSessionValidity = newValue; }, std::numeric_limits<uint16_t>::max() },
+    {"setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheMaxSessionsPerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setOutgoingTLSSessionsCacheCleanupDelay", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheCleanupDelay = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setOutgoingTLSSessionsCacheMaxTicketValidity", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheSessionValidity = newValue; }, std::numeric_limits<uint16_t>::max()},
     {"setECSSourcePrefixV4", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_ECSSourcePrefixV4 = newValue; }, std::numeric_limits<uint16_t>::max()},
     {"setECSSourcePrefixV6", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_ECSSourcePrefixV6 = newValue; }, std::numeric_limits<uint16_t>::max()},
     {"setTCPRecvTimeout", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tcpRecvTimeout = newValue; }, std::numeric_limits<uint16_t>::max()},

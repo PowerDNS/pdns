@@ -81,9 +81,9 @@ public:
   static bool isHashingAvailable();
   static SensitiveData readFromTerminal();
 
-  static uint64_t constexpr s_defaultWorkFactor{1024U}; /* N */;
-  static uint64_t constexpr s_defaultParallelFactor{1U}; /* p */;
-  static uint64_t constexpr s_defaultBlockSize{8U}; /* r */;
+  static uint64_t constexpr s_defaultWorkFactor{1024U}; /* N */
+  static uint64_t constexpr s_defaultParallelFactor{1U}; /* p */
+  static uint64_t constexpr s_defaultBlockSize{8U}; /* r */
 
 private:
   SensitiveData d_credentials;
