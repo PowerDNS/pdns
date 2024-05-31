@@ -471,6 +471,7 @@ BOOST_AUTO_TEST_CASE(test_all_nss_down)
       return LWResult::Result::Success;
     }
     downServers.insert(address);
+    res->d_usec = g_networkTimeoutMsec * 1000;
     return LWResult::Result::Timeout;
   });
 
@@ -516,6 +517,7 @@ BOOST_AUTO_TEST_CASE(test_all_nss_network_error)
       return LWResult::Result::Success;
     }
     downServers.insert(address);
+    res->d_usec = g_networkTimeoutMsec * 1000;
     return LWResult::Result::Timeout;
   });
 
@@ -854,6 +856,7 @@ BOOST_AUTO_TEST_CASE(test_os_limit_errors)
       if (downServers.size() < 3) {
         /* only the last one will answer */
         downServers.insert(address);
+        res->d_usec = g_networkTimeoutMsec * 1000;
         return LWResult::Result::OSLimitError;
       }
       setLWResult(res, 0, true, false, true);
