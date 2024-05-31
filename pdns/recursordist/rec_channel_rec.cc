@@ -2218,7 +2218,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     lci = g_luaconfs.getCopy();
     if (broadcast) {
       startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
-      broadcastFunction([=] { return pleaseSupplantProxyMapping(proxyMapping); });
+      broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
     }
     else {
       // Initial proxy mapping
