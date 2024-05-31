@@ -109,17 +109,17 @@ void pdns::ProtoZero::Message::addRRsFromPacket(const char* packet, const size_t
   rrname = pr.getName();
   rrtype = pr.get16BitInt();
   rrclass = pr.get16BitInt();
-  (void) rrtype;
-  (void) rrclass;
+  (void)rrtype;
+  (void)rrclass;
 
   /* consume remaining qd if any */
   if (qdcount > 1) {
-    for(idx = 1; idx < qdcount; idx++) {
+    for (idx = 1; idx < qdcount; idx++) {
       rrname = pr.getName();
       rrtype = pr.get16BitInt();
       rrclass = pr.get16BitInt();
-      (void) rrtype;
-      (void) rrclass;
+      (void)rrtype;
+      (void)rrclass;
     }
   }
 
@@ -132,8 +132,8 @@ void pdns::ProtoZero::Message::addRRsFromPacket(const char* packet, const size_t
       pr.xfrBlob(blob);
 
       addRR(rrname, ah.d_type, ah.d_class, ah.d_ttl, blob);
-
-    } else if (ah.d_type == QType::CNAME && includeCNAME) {
+    }
+    else if (ah.d_type == QType::CNAME && includeCNAME) {
       protozero::pbf_writer pbf_rr{d_response, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::ResponseField::rrs)};
 
       encodeDNSName(pbf_rr, d_buffer, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::name), rrname);
