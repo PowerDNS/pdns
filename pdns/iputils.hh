@@ -890,23 +890,34 @@ private:
 
       // create new tree node for the new key and
       // attach the new node under our former parent
-      auto new_child = make_unique<TreeNode>(key);
-      auto* new_node = new_child.get();
-      new_node->d_bits = bits;
-      std::swap(parent_ref, new_child); // hereafter new_child points to "this"
-      new_node->parent = parent;
+      auto new_intermediate_node = make_unique<TreeNode>(key);
+      new_intermediate_node->d_bits = bits;
+      new_intermediate_node->parent = parent;
+      auto* new_intermediate_node_raw = new_intermediate_node.get();
+
+      // hereafter new_intermediate points to "this"
+      // ie the child of the new intermediate node
+      std::swap(parent_ref, new_intermediate_node);
+      // and we now assign this to current_node so
+      // it's clear it no longer refers to the new
+      // intermediate node
+      std::unique_ptr<TreeNode> current_node = std::move(new_intermediate_node);
 
       // attach "this" node below the new node
       // (left or right depending on bit)
-      new_child->parent = new_node;
-      if (new_child->node.first.getBit(-1 - bits)) {
-        std::swap(new_node->right, new_child);
+      // technically the raw pointer escapes the duration of the
+      // unique pointer, but just below we store the unique pointer
+      // in the parent, so it lives as long as necessary
+      // coverity[escape]
+      current_node->parent = new_intermediate_node_raw;
+      if (current_node->node.first.getBit(-1 - bits)) {
+        new_intermediate_node_raw->right = std::move(current_node);
       }
       else {
-        std::swap(new_node->left, new_child);
+        new_intermediate_node_raw->left = std::move(current_node);
       }
 
-      return new_node;
+      return new_intermediate_node_raw;
     }
 
     //<! Forks branch for new key at indicated bit position
