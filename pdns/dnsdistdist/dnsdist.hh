@@ -964,7 +964,6 @@ public:
     return latencyUsec;
   }
 };
-using servers_t = vector<std::shared_ptr<DownstreamState>>;
 
 void responderThread(std::shared_ptr<DownstreamState> dss);
 extern RecursiveLockGuarded<LuaContext> g_lua;
@@ -1026,8 +1025,6 @@ enum ednsHeaderFlags
 
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 
-extern GlobalStateHolder<servers_t> g_dstates;
-
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
 extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
 extern std::vector<shared_ptr<DOQFrontend>> g_doqlocals;
@@ -1065,7 +1062,7 @@ enum class ProcessQueryResult : uint8_t
 struct LocalHolders
 {
   LocalHolders() :
-    ruleactions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::Rules).getLocal()), cacheMissRuleActions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::CacheMissRules).getLocal()), cacheHitRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheHitResponseRules).getLocal()), cacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), selfAnsweredRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules).getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal())
+    ruleactions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::Rules).getLocal()), cacheMissRuleActions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::CacheMissRules).getLocal()), cacheHitRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheHitResponseRules).getLocal()), cacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), selfAnsweredRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules).getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal())
   {
   }
 
@@ -1074,7 +1071,6 @@ struct LocalHolders
   LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheHitRespRuleactions;
   LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheInsertedRespRuleActions;
   LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> selfAnsweredRespRuleactions;
-  LocalStateHolder<servers_t> servers;
   LocalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> dynNMGBlock;
   LocalStateHolder<SuffixMatchTree<DynBlock>> dynSMTBlock;
 };

@@ -34,9 +34,6 @@
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
 
-GlobalStateHolder<NetmaskGroup> g_ACL;
-GlobalStateHolder<servers_t> g_dstates;
-
 const bool TCPIOHandler::s_disableConnectForUnitTests = true;
 
 bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)

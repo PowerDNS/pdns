@@ -561,7 +561,6 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "dnsdist_latency_sum " << dnsdist::metrics::g_stats.latencySum << "\n";
   output << "dnsdist_latency_count " << dnsdist::metrics::g_stats.latencyCount << "\n";
 
-  auto states = g_dstates.getLocal();
   const string statesbase = "dnsdist_server_";
 
   // clang-format off
@@ -628,7 +627,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# HELP " << statesbase << "healthcheckfailuresinvalid "      << "Number of health check attempts where the DNS response was invalid"                   << "\n";
   output << "# TYPE " << statesbase << "healthcheckfailuresinvalid "      << "counter"                                                                              << "\n";
 
-  for (const auto& state : *states) {
+  for (const auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
     string serverName;
 
     if (state->getName().empty()) {
@@ -1153,9 +1152,9 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   Json::array servers;
   {
-    auto localServers = g_dstates.getLocal();
-    servers.reserve(localServers->size());
-    for (const auto& server : *localServers) {
+    const auto& localServers = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
+    servers.reserve(localServers.size());
+    for (const auto& server : localServers) {
       addServerToJSON(servers, num++, server);
     }
   }

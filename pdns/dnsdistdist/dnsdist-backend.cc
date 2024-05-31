@@ -21,6 +21,7 @@
  */
 #include "config.h"
 #include "dnsdist.hh"
+#include "dnsdist-backend.hh"
 #include "dnsdist-backoff.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-nghttp2.hh"
@@ -1004,4 +1005,18 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
     }
   }
   *servers = std::move(newServers);
+}
+
+namespace dnsdist::backend
+{
+void registerNewBackend(std::shared_ptr<DownstreamState>& backend)
+{
+  dnsdist::configuration::updateRuntimeConfiguration([&backend](dnsdist::configuration::RuntimeConfiguration& config) {
+    auto& backends = config.d_backends;
+    backends.push_back(backend);
+    std::stable_sort(backends.begin(), backends.end(), [](const std::shared_ptr<DownstreamState>& lhs, const std::shared_ptr<DownstreamState>& rhs) {
+      return lhs->d_config.order < rhs->d_config.order;
+    });
+  });
+}
 }

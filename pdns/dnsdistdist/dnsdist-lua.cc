@@ -37,6 +37,7 @@
 #include <vector>
 
 #include "dnsdist.hh"
+#include "dnsdist-backend.hh"
 #include "dnsdist-carbon.hh"
 #include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-configuration.hh"
@@ -709,12 +710,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
                          }
 
-                         auto states = g_dstates.getCopy();
-                         states.push_back(ret);
-                         std::stable_sort(states.begin(), states.end(), [](const decltype(ret)& lhs, const decltype(ret)& rhs) {
-                           return lhs->d_config.order < rhs->d_config.order;
-                         });
-                         g_dstates.setState(states);
+                         dnsdist::backend::registerNewBackend(ret);
+
                          checkAllParametersConsumed("newServer", vars);
                          return ret;
                        });
@@ -723,13 +720,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                        [](boost::variant<std::shared_ptr<DownstreamState>, int, std::string> var) {
                          setLuaSideEffect();
                          shared_ptr<DownstreamState> server = nullptr;
-                         auto states = g_dstates.getCopy();
                          if (auto* rem = boost::get<shared_ptr<DownstreamState>>(&var)) {
                            server = *rem;
                          }
                          else if (auto* str = boost::get<std::string>(&var)) {
                            const auto uuid = getUniqueID(*str);
-                           for (auto& state : states) {
+                           for (auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
                              if (*state->d_config.id == uuid) {
                                server = state;
                              }
@@ -737,7 +733,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
                          else {
                            int idx = boost::get<int>(var);
-                           server = states.at(idx);
+                           server = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends.at(idx);
                          }
                          if (!server) {
                            throw std::runtime_error("unable to locate the requested server");
@@ -747,8 +743,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
                          /* the server might also be in the default pool */
                          removeServerFromPool("", server);
-                         states.erase(remove(states.begin(), states.end(), server), states.end());
-                         g_dstates.setState(states);
+
+                         dnsdist::configuration::updateRuntimeConfiguration([&server](dnsdist::configuration::RuntimeConfiguration& config) {
+                           config.d_backends.erase(std::remove(config.d_backends.begin(), config.d_backends.end(), server), config.d_backends.end());
+                         });
+
                          server->stop();
                        });
 
@@ -1181,8 +1180,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       uint64_t totQueries{0};
       uint64_t totDrops{0};
       int counter = 0;
-      auto states = g_dstates.getLocal();
-      for (const auto& backend : *states) {
+      for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
         string status = backend->getStatus();
         string pools;
         for (const auto& pool : backend->d_config.pools) {
@@ -1227,7 +1225,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaNoSideEffect();
     LuaArray<std::shared_ptr<DownstreamState>> ret;
     int count = 1;
-    for (const auto& backend : g_dstates.getCopy()) {
+    for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
       ret.emplace_back(count++, backend);
     }
     return ret;
@@ -1242,7 +1240,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (client) {
       return std::make_shared<DownstreamState>(ComboAddress());
     }
-    auto states = g_dstates.getCopy();
+    const auto& states = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
     if (auto* str = boost::get<std::string>(&identifier)) {
       const auto uuid = getUniqueID(*str);
       for (auto& state : states) {

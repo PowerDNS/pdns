@@ -123,8 +123,6 @@ std::vector<uint32_t> g_TCPFastOpenKey;
 
 Rings g_rings;
 
-GlobalStateHolder<servers_t> g_dstates;
-
 // we are not willing to receive a bigger UDP response than that, no matter what
 static constexpr size_t s_maxUDPResponsePacketSize{4096U};
 static size_t const s_initialUDPPacketBufferSize = s_maxUDPResponsePacketSize + DNSCRYPT_MAX_RESPONSE_PADDING_AND_MAC_SIZE;
@@ -2360,7 +2358,6 @@ static void healthChecksThread()
     .tv_sec = 0,
     .tv_usec = 0
   };
-  auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
 
   for (;;) {
     timeval now{};
@@ -2375,7 +2372,9 @@ static void healthChecksThread()
     }
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
-    for (const auto& dss : *states) {
+    // this points to the actual shared_ptrs!
+    const auto servers = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
+    for (const auto& dss : servers) {
       dss->updateStatisticsInfo();
 
       dss->handleUDPTimeouts();
@@ -2385,7 +2384,7 @@ static void healthChecksThread()
       }
 
       if (!mplexer) {
-        mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states->size()));
+        mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(servers.size()));
       }
 
       if (!queueHealthCheck(mplexer, dss)) {
@@ -2458,16 +2457,16 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   const auto immutableConfig = dnsdist::configuration::getImmutableConfiguration();
   /* stdin, stdout, stderr */
   rlim_t requiredFDsCount = 3;
-  auto backends = g_dstates.getLocal();
+  const auto backends = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
   /* UDP sockets to backends */
   size_t backendUDPSocketsCount = 0;
-  for (const auto& backend : *backends) {
+  for (const auto& backend : backends) {
     backendUDPSocketsCount += backend->sockets.size();
   }
   requiredFDsCount += backendUDPSocketsCount;
   /* TCP sockets to backends */
   if (immutableConfig.d_maxTCPClientThreads > 0) {
-    requiredFDsCount += (backends->size() * immutableConfig.d_maxTCPClientThreads);
+    requiredFDsCount += (backends.size() * immutableConfig.d_maxTCPClientThreads);
   }
   /* listening sockets */
   requiredFDsCount += udpBindsCount;
@@ -2789,10 +2788,10 @@ static void cleanupLuaObjects()
   for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
     chain.holder.setState({});
   }
-  g_dstates.setState({});
   dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
     config.d_lbPolicy = std::make_shared<ServerPolicy>();
     config.d_pools.clear();
+    config.d_backends.clear();
   });
   clearWebHandlers();
   dnsdist::lua::hooks::clearMaintenanceHooks();
@@ -3063,8 +3062,7 @@ static void setupPools()
   if (precompute) {
     vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
     // pre compute hashes
-    auto backends = g_dstates.getLocal();
-    for (const auto& backend : *backends) {
+    for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
       if (backend->d_config.d_weight < 100) {
         vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->d_config.d_weight);
       }
@@ -3436,11 +3434,13 @@ int main(int argc, char** argv)
         auto ret = std::make_shared<DownstreamState>(std::move(config), nullptr, true);
         addServerToPool("", ret);
         ret->start();
-        g_dstates.modify([&ret](servers_t& servers) { servers.push_back(std::move(ret)); });
+        dnsdist::configuration::updateRuntimeConfiguration([&ret](dnsdist::configuration::RuntimeConfiguration& config) {
+          config.d_backends.push_back(std::move(ret));
+        });
       }
     }
 
-    if (g_dstates.getLocal()->empty()) {
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends.empty()) {
       errlog("No downstream servers defined: all packets will get dropped");
       // you might define them later, but you need to know
     }
@@ -3448,7 +3448,7 @@ int main(int argc, char** argv)
     checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
     {
-      auto states = g_dstates.getCopy(); // it is a copy, but the internal shared_ptrs are the real deal
+      const auto states = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends; // it is a copy, but the internal shared_ptrs are the real deal
       auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states.size()));
       for (auto& dss : states) {
 

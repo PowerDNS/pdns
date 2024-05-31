@@ -74,8 +74,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       }
     }
 
-    auto states = g_dstates.getLocal();
-    for (const auto& state : *states) {
+    for (const auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
       string serverName = state->getName().empty() ? state->d_config.remote.toStringWithPort() : state->getName();
       boost::replace_all(serverName, ".", "_");
       string base = namespace_name;
