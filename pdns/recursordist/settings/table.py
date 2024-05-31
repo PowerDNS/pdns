@@ -203,10 +203,6 @@ Like :ref:`setting-allow-notify-from`, except reading a sequence of `Subnet`_ fr
         'doc' : '''
 Allow ``no recursion desired (RD=0) queries`` to query cache contents.
 If not set (the default), these queries are answered with rcode ``Refused``.
-
-Note that there is a short while after restarting that the cache has no authoritative data on the root,
-so it will answer with an NODATA (NOERROR and no answer records) in that period for RD=0 queries.
-This affects for example older versions of dig when using its +trace option causing it to fail.
  ''',
     'versionadded': '5.0.0'
     },
