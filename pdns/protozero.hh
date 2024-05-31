@@ -146,13 +146,13 @@ namespace ProtoZero
       d_buffer(buffer), d_message{d_buffer}
     {
     }
-
+    ~Message() = default;
     Message(const Message&) = delete;
     Message(Message&&) = delete;
     Message& operator=(const Message&) = delete;
     Message& operator=(Message&&) = delete;
 
-    void setRequest(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t id, TransportProtocol proto, size_t len);
+    void setRequest(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t qid, TransportProtocol proto, size_t len);
     void setResponse(const DNSName& qname, uint16_t qtype, uint16_t qclass);
 
     void setType(MessageType mtype)
@@ -167,7 +167,7 @@ namespace ProtoZero
 
     void setMessageIdentity(const boost::uuids::uuid& uniqueId)
     {
-      add_bytes(d_message, Field::messageId, reinterpret_cast<const char*>(uniqueId.begin()), uniqueId.size());
+      add_bytes(d_message, Field::messageId, reinterpret_cast<const char*>(uniqueId.begin()), uniqueId.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
     }
 
     void setServerIdentity(const std::string& serverIdentity)
@@ -185,14 +185,14 @@ namespace ProtoZero
       add_enum(d_message, Field::socketProtocol, static_cast<int32_t>(proto));
     }
 
-    void setFrom(const ComboAddress& ca)
+    void setFrom(const ComboAddress& address)
     {
-      encodeComboAddress(static_cast<protozero::pbf_tag_type>(Field::from), ca);
+      encodeComboAddress(static_cast<protozero::pbf_tag_type>(Field::from), address);
     }
 
-    void setTo(const ComboAddress& ca)
+    void setTo(const ComboAddress& address)
     {
-      encodeComboAddress(static_cast<protozero::pbf_tag_type>(Field::to), ca);
+      encodeComboAddress(static_cast<protozero::pbf_tag_type>(Field::to), address);
     }
 
     void setInBytes(uint64_t len)
@@ -202,10 +202,10 @@ namespace ProtoZero
 
     void setTime()
     {
-      struct timespec ts;
-      gettime(&ts, true);
+      timespec timesp{};
+      gettime(&timesp, true);
 
-      setTime(ts.tv_sec, ts.tv_nsec / 1000);
+      setTime(timesp.tv_sec, timesp.tv_nsec / 1000);
     }
 
     void setTime(time_t sec, uint32_t usec)
@@ -215,9 +215,9 @@ namespace ProtoZero
       add_uint32(d_message, Field::timeUsec, usec);
     }
 
-    void setId(uint16_t id)
+    void setId(uint16_t qid)
     {
-      add_uint32(d_message, Field::id, ntohs(id));
+      add_uint32(d_message, Field::id, ntohs(qid));
     }
 
     void setQuestion(const DNSName& qname, uint16_t qtype, uint16_t qclass)
@@ -233,17 +233,17 @@ namespace ProtoZero
       protozero::pbf_writer pbf_meta{d_message, static_cast<protozero::pbf_tag_type>(Field::meta)};
       pbf_meta.add_string(static_cast<protozero::pbf_tag_type>(MetaField::key), key);
       protozero::pbf_writer pbf_meta_value{pbf_meta, static_cast<protozero::pbf_tag_type>(MetaField::value)};
-      for (const auto& s : stringVal) {
-        pbf_meta_value.add_string(static_cast<protozero::pbf_tag_type>(MetaValueField::stringVal), s);
+      for (const auto& str : stringVal) {
+        pbf_meta_value.add_string(static_cast<protozero::pbf_tag_type>(MetaValueField::stringVal), str);
       }
-      for (const auto& i : intVal) {
-        pbf_meta_value.add_uint64(static_cast<protozero::pbf_tag_type>(MetaValueField::intVal), i);
+      for (const auto& val : intVal) {
+        pbf_meta_value.add_uint64(static_cast<protozero::pbf_tag_type>(MetaValueField::intVal), val);
       }
     }
 
-    void setEDNSSubnet(const Netmask& nm, uint8_t mask)
+    void setEDNSSubnet(const Netmask& netmask, uint8_t mask)
     {
-      encodeNetmask(static_cast<protozero::pbf_tag_type>(Field::originalRequestorSubnet), nm, mask);
+      encodeNetmask(static_cast<protozero::pbf_tag_type>(Field::originalRequestorSubnet), netmask, mask);
     }
 
     void setRequestorId(const std::string& req)
@@ -255,13 +255,13 @@ namespace ProtoZero
 
     void setInitialRequestID(const boost::uuids::uuid& uniqueId)
     {
-      add_bytes(d_message, Field::initialRequestId, reinterpret_cast<const char*>(uniqueId.begin()), uniqueId.size());
+      add_bytes(d_message, Field::initialRequestId, reinterpret_cast<const char*>(uniqueId.begin()), uniqueId.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
     }
 
-    void setDeviceId(const std::string& id)
+    void setDeviceId(const std::string& deviceId)
     {
-      if (!id.empty()) {
-        add_string(d_message, Field::deviceId, id);
+      if (!deviceId.empty()) {
+        add_string(d_message, Field::deviceId, deviceId);
       }
     }
 
@@ -346,13 +346,13 @@ namespace ProtoZero
       d_response.add_uint32(static_cast<protozero::pbf_tag_type>(ResponseField::queryTimeUsec), usec);
     }
 
-    void addRRsFromPacket(const char* packet, const size_t len, bool includeCNAME = false);
+    void addRRsFromPacket(const char* packet, size_t len, bool includeCNAME = false);
     void addRR(const DNSName& name, uint16_t uType, uint16_t uClass, uint32_t uTTL, const std::string& blob);
 
   protected:
-    void encodeComboAddress(protozero::pbf_tag_type type, const ComboAddress& ca);
+    void encodeComboAddress(protozero::pbf_tag_type type, const ComboAddress& address);
     void encodeNetmask(protozero::pbf_tag_type type, const Netmask& subnet, uint8_t mask);
-    void encodeDNSName(protozero::pbf_writer& pbf, std::string& buffer, protozero::pbf_tag_type type, const DNSName& name);
+    static void encodeDNSName(protozero::pbf_writer& pbf, std::string& buffer, protozero::pbf_tag_type type, const DNSName& name);
 
     static void add_enum(protozero::pbf_writer& writer, Field type, int32_t value)
     {
@@ -384,9 +384,11 @@ namespace ProtoZero
       writer.add_string(static_cast<protozero::pbf_tag_type>(type), str);
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes)
     std::string& d_buffer;
     protozero::pbf_writer d_message;
     protozero::pbf_writer d_response;
+    // NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes)
   };
 };
 };
