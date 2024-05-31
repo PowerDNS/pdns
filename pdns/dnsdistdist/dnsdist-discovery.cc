@@ -448,14 +448,13 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
     infolog("Added automatically upgraded server %s", newServer->getNameWithAddr());
 
-    auto localPools = g_pools.getCopy();
     if (!newServer->d_config.pools.empty()) {
       for (const auto& poolName : newServer->d_config.pools) {
-        addServerToPool(localPools, poolName, newServer);
+        addServerToPool(poolName, newServer);
       }
     }
     else {
-      addServerToPool(localPools, "", newServer);
+      addServerToPool("", newServer);
     }
 
     newServer->start();
@@ -472,17 +471,16 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
       }
 
       for (const string& poolName : backend.d_ds->d_config.pools) {
-        removeServerFromPool(localPools, poolName, backend.d_ds);
+        removeServerFromPool(poolName, backend.d_ds);
       }
       /* the server might also be in the default pool */
-      removeServerFromPool(localPools, "", backend.d_ds);
+      removeServerFromPool("", backend.d_ds);
     }
 
     std::stable_sort(states.begin(), states.end(), [](const decltype(newServer)& a, const decltype(newServer)& b) {
       return a->d_config.order < b->d_config.order;
     });
 
-    g_pools.setState(localPools);
     g_dstates.setState(states);
     if (!backend.keepAfterUpgrade) {
       backend.d_ds->stop();

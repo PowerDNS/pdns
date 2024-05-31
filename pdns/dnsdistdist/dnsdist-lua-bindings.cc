@@ -116,15 +116,11 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   /* DownstreamState */
   luaCtx.registerFunction<void (DownstreamState::*)(int)>("setQPS", [](DownstreamState& state, int lim) { state.qps = lim > 0 ? QPSLimiter(lim, lim) : QPSLimiter(); });
   luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(string)>("addPool", [](const std::shared_ptr<DownstreamState>& state, const string& pool) {
-    auto localPools = g_pools.getCopy();
-    addServerToPool(localPools, pool, state);
-    g_pools.setState(localPools);
+    addServerToPool( pool, state);
     state->d_config.pools.insert(pool);
   });
   luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(string)>("rmPool", [](const std::shared_ptr<DownstreamState>& state, const string& pool) {
-    auto localPools = g_pools.getCopy();
-    removeServerFromPool(localPools, pool, state);
-    g_pools.setState(localPools);
+    removeServerFromPool(pool, state);
     state->d_config.pools.erase(pool);
   });
   luaCtx.registerFunction<uint64_t (DownstreamState::*)() const>("getOutstanding", [](const DownstreamState& state) { return state.outstanding.load(); });

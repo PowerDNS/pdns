@@ -1161,9 +1161,9 @@ size_t dnsdist_ffi_packetcache_get_domain_list_by_addr(const char* poolName, con
     return 0;
   }
 
-  const auto localPools = g_pools.getCopy();
-  auto it = localPools.find(poolName);
-  if (it == localPools.end()) {
+  const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+  auto it = pools.find(poolName);
+  if (it == pools.end()) {
     return 0;
   }
 
@@ -1210,9 +1210,9 @@ size_t dnsdist_ffi_packetcache_get_address_list_by_domain(const char* poolName, 
     return 0;
   }
 
-  const auto localPools = g_pools.getCopy();
-  auto it = localPools.find(poolName);
-  if (it == localPools.end()) {
+  const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+  auto it = pools.find(poolName);
+  if (it == pools.end()) {
     return 0;
   }
 

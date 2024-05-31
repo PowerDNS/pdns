@@ -1026,9 +1026,7 @@ enum ednsHeaderFlags
 
 extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 
-extern GlobalStateHolder<ServerPolicy> g_policy;
 extern GlobalStateHolder<servers_t> g_dstates;
-extern GlobalStateHolder<pools_t> g_pools;
 
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
 extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
@@ -1067,11 +1065,10 @@ enum class ProcessQueryResult : uint8_t
 struct LocalHolders
 {
   LocalHolders() :
-    policy(g_policy.getLocal()), ruleactions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::Rules).getLocal()), cacheMissRuleActions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::CacheMissRules).getLocal()), cacheHitRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheHitResponseRules).getLocal()), cacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), selfAnsweredRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules).getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
+    ruleactions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::Rules).getLocal()), cacheMissRuleActions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::CacheMissRules).getLocal()), cacheHitRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheHitResponseRules).getLocal()), cacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), selfAnsweredRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules).getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal())
   {
   }
 
-  LocalStateHolder<ServerPolicy> policy;
   LocalStateHolder<vector<dnsdist::rules::RuleAction>> ruleactions;
   LocalStateHolder<vector<dnsdist::rules::RuleAction>> cacheMissRuleActions;
   LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheHitRespRuleactions;
@@ -1080,7 +1077,6 @@ struct LocalHolders
   LocalStateHolder<servers_t> servers;
   LocalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> dynNMGBlock;
   LocalStateHolder<SuffixMatchTree<DynBlock>> dynSMTBlock;
-  LocalStateHolder<pools_t> pools;
 };
 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);

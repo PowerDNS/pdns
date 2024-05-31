@@ -689,16 +689,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          /* this needs to be done _AFTER_ the order has been set,
                             since the server are kept ordered inside the pool */
-                         auto localPools = g_pools.getCopy();
                          if (!ret->d_config.pools.empty()) {
                            for (const auto& poolName : ret->d_config.pools) {
-                             addServerToPool(localPools, poolName, ret);
+                             addServerToPool(poolName, ret);
                            }
                          }
                          else {
-                           addServerToPool(localPools, "", ret);
+                           addServerToPool("", ret);
                          }
-                         g_pools.setState(localPools);
 
                          if (ret->connected) {
                            if (g_launchWork) {
@@ -744,13 +742,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          if (!server) {
                            throw std::runtime_error("unable to locate the requested server");
                          }
-                         auto localPools = g_pools.getCopy();
                          for (const string& poolName : server->d_config.pools) {
-                           removeServerFromPool(localPools, poolName, server);
+                           removeServerFromPool(poolName, server);
                          }
                          /* the server might also be in the default pool */
-                         removeServerFromPool(localPools, "", server);
-                         g_pools.setState(localPools);
+                         removeServerFromPool("", server);
                          states.erase(remove(states.begin(), states.end(), server), states.end());
                          g_dstates.setState(states);
                          server->stop();
@@ -1238,7 +1234,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("getPoolServers", [](const string& pool) {
-    const auto poolServers = getDownstreamCandidates(g_pools.getCopy(), pool);
+    const auto poolServers = getDownstreamCandidates(pool);
     return *poolServers;
   });
 
@@ -1865,12 +1861,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       //             1        2         3                4
       ret << (fmt % "Name" % "Cache" % "ServerPolicy" % "Servers") << endl;
 
-      const auto localPools = g_pools.getCopy();
-      for (const auto& entry : localPools) {
+      const auto defaultPolicyName = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName();
+      const auto pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+      for (const auto& entry : pools) {
         const string& name = entry.first;
         const std::shared_ptr<ServerPool> pool = entry.second;
         string cache = pool->packetCache != nullptr ? pool->packetCache->toString() : "";
-        string policy = g_policy.getLocal()->getName();
+        string policy = defaultPolicyName;
         if (pool->policy != nullptr) {
           policy = pool->policy->getName();
         }
@@ -1902,8 +1899,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaNoSideEffect();
     LuaArray<std::string> ret;
     int count = 1;
-    const auto localPools = g_pools.getCopy();
-    for (const auto& entry : localPools) {
+    const auto pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+    for (const auto& entry : pools) {
       const string& name = entry.first;
       ret.emplace_back(count++, name);
     }
@@ -1914,9 +1911,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (client) {
       return std::make_shared<ServerPool>();
     }
-    auto localPools = g_pools.getCopy();
-    std::shared_ptr<ServerPool> pool = createPoolIfNotExists(localPools, poolName);
-    g_pools.setState(localPools);
+    std::shared_ptr<ServerPool> pool = createPoolIfNotExists(poolName);
     return pool;
   });
 
@@ -2256,65 +2251,65 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifndef DISABLE_POLICIES_BINDINGS
   luaCtx.writeFunction("setServerPolicy", [](const std::shared_ptr<ServerPolicy>& policy) {
     setLuaSideEffect();
-    g_policy.setState(*policy);
+    dnsdist::configuration::updateRuntimeConfiguration([&policy](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = policy;
+    });
   });
 
   luaCtx.writeFunction("setServerPolicyLua", [](const string& name, ServerPolicy::policyfunc_t policy) {
     setLuaSideEffect();
-    g_policy.setState(ServerPolicy{name, std::move(policy), true});
+    auto pol = std::make_shared<ServerPolicy>(name, std::move(policy), true);
+    dnsdist::configuration::updateRuntimeConfiguration([&pol](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::move(pol);
+    });
   });
 
   luaCtx.writeFunction("setServerPolicyLuaFFI", [](const string& name, ServerPolicy::ffipolicyfunc_t policy) {
     setLuaSideEffect();
-    auto pol = ServerPolicy(name, std::move(policy));
-    g_policy.setState(std::move(pol));
+    auto pol = std::make_shared<ServerPolicy>(name, std::move(policy));
+    dnsdist::configuration::updateRuntimeConfiguration([&pol](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::move(pol);
+    });
   });
 
   luaCtx.writeFunction("setServerPolicyLuaFFIPerThread", [](const string& name, const std::string& policyCode) {
     setLuaSideEffect();
-    auto pol = ServerPolicy(name, policyCode);
-    g_policy.setState(std::move(pol));
+    auto policy = std::make_shared<ServerPolicy>(name, policyCode);
+    dnsdist::configuration::updateRuntimeConfiguration([&policy](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::move(policy);
+    });
   });
 
   luaCtx.writeFunction("showServerPolicy", []() {
     setLuaSideEffect();
-    g_outputBuffer = g_policy.getLocal()->getName() + "\n";
+    g_outputBuffer = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName() + "\n";
   });
 
   luaCtx.writeFunction("setPoolServerPolicy", [](const std::shared_ptr<ServerPolicy>& policy, const string& pool) {
     setLuaSideEffect();
-    auto localPools = g_pools.getCopy();
-    setPoolPolicy(localPools, pool, policy);
-    g_pools.setState(localPools);
+    setPoolPolicy(pool, policy);
   });
 
   luaCtx.writeFunction("setPoolServerPolicyLua", [](const string& name, ServerPolicy::policyfunc_t policy, const string& pool) {
     setLuaSideEffect();
-    auto localPools = g_pools.getCopy();
-    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, std::move(policy), true}));
-    g_pools.setState(localPools);
+    setPoolPolicy(pool, std::make_shared<ServerPolicy>(ServerPolicy{name, std::move(policy), true}));
   });
 
   luaCtx.writeFunction("setPoolServerPolicyLuaFFI", [](const string& name, ServerPolicy::ffipolicyfunc_t policy, const string& pool) {
     setLuaSideEffect();
-    auto localPools = g_pools.getCopy();
-    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, std::move(policy)}));
-    g_pools.setState(localPools);
+    setPoolPolicy(pool, std::make_shared<ServerPolicy>(ServerPolicy{name, std::move(policy)}));
   });
 
   luaCtx.writeFunction("setPoolServerPolicyLuaFFIPerThread", [](const string& name, const std::string& policyCode, const std::string& pool) {
     setLuaSideEffect();
-    auto localPools = g_pools.getCopy();
-    setPoolPolicy(localPools, pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policyCode}));
-    g_pools.setState(localPools);
+    setPoolPolicy(pool, std::make_shared<ServerPolicy>(ServerPolicy{name, policyCode}));
   });
 
   luaCtx.writeFunction("showPoolServerPolicy", [](const std::string& pool) {
     setLuaSideEffect();
-    auto localPools = g_pools.getCopy();
-    auto poolObj = getPool(localPools, pool);
+    auto poolObj = getPool(pool);
     if (poolObj->policy == nullptr) {
-      g_outputBuffer = g_policy.getLocal()->getName() + "\n";
+      g_outputBuffer = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName() + "\n";
     }
     else {
       g_outputBuffer = poolObj->policy->getName() + "\n";

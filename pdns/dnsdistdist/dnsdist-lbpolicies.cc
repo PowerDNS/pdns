@@ -27,8 +27,6 @@
 #include "dolog.hh"
 #include "dns_random.hh"
 
-GlobalStateHolder<ServerPolicy> g_policy;
-
 static constexpr size_t s_staticArrayCutOff = 16;
 template <typename T> using DynamicIndexArray = std::vector<std::pair<T, size_t>>;
 template <typename T> using StaticIndexArray = std::array<std::pair<T, size_t>, s_staticArrayCutOff>;
@@ -258,31 +256,37 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
   return servers.at(candidates.at((counter++) % candidates.size()) - 1).second;
 }
 
-const std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const pools_t& pools, const std::string& poolName)
+const std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName)
 {
-  std::shared_ptr<ServerPool> pool = getPool(pools, poolName);
+  std::shared_ptr<ServerPool> pool = getPool(poolName);
   return pool->getServers();
 }
 
-std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName)
+std::shared_ptr<ServerPool> createPoolIfNotExists(const string& poolName)
 {
-  std::shared_ptr<ServerPool> pool;
-  pools_t::iterator it = pools.find(poolName);
-  if (it != pools.end()) {
-    pool = it->second;
+  {
+    const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+    const auto it = pools.find(poolName);
+    if (it != pools.end()) {
+      return it->second;
+    }
   }
-  else {
-    if (!poolName.empty())
-      vinfolog("Creating pool %s", poolName);
-    pool = std::make_shared<ServerPool>();
-    pools.insert(std::pair<std::string, std::shared_ptr<ServerPool> >(poolName, pool));
+
+  if (!poolName.empty()) {
+    vinfolog("Creating pool %s", poolName);
   }
+
+  auto pool = std::make_shared<ServerPool>();
+  dnsdist::configuration::updateRuntimeConfiguration([&poolName,&pool](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_pools.emplace(poolName, pool);
+  });
+
   return pool;
 }
 
-void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy)
+void setPoolPolicy(const string& poolName, std::shared_ptr<ServerPolicy> policy)
 {
-  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
+  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(poolName);
   if (!poolName.empty()) {
     vinfolog("Setting pool %s server selection policy to %s", poolName, policy->getName());
   } else {
@@ -291,9 +295,9 @@ void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<Serve
   pool->policy = std::move(policy);
 }
 
-void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
+void addServerToPool(const string& poolName, std::shared_ptr<DownstreamState> server)
 {
-  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
+  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(poolName);
   if (!poolName.empty()) {
     vinfolog("Adding server to pool %s", poolName);
   } else {
@@ -302,9 +306,9 @@ void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<Dow
   pool->addServer(server);
 }
 
-void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
+void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamState> server)
 {
-  std::shared_ptr<ServerPool> pool = getPool(pools, poolName);
+  std::shared_ptr<ServerPool> pool = getPool(poolName);
 
   if (!poolName.empty()) {
     vinfolog("Removing server from pool %s", poolName);
@@ -316,10 +320,10 @@ void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_pt
   pool->removeServer(server);
 }
 
-std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName)
+std::shared_ptr<ServerPool> getPool(const std::string& poolName)
 {
-  pools_t::const_iterator it = pools.find(poolName);
-
+  const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+  auto it = pools.find(poolName);
   if (it == pools.end()) {
     throw std::out_of_range("No pool named " + poolName);
   }

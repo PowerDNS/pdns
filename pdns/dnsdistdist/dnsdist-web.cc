@@ -842,7 +842,6 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 #endif /* HAVE_DNS_OVER_HTTPS */
 
-  auto localPools = g_pools.getLocal();
   const string cachebase = "dnsdist_pool_";
   output << "# HELP dnsdist_pool_servers " << "Number of servers in that pool" << "\n";
   output << "# TYPE dnsdist_pool_servers " << "gauge" << "\n";
@@ -870,7 +869,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# HELP dnsdist_pool_cache_cleanup_count_total " << "Number of times the cache has been scanned to remove expired entries, if any" << "\n";
   output << "# TYPE dnsdist_pool_cache_cleanup_count_total " << "counter" << "\n";
 
-  for (const auto& entry : *localPools) {
+  for (const auto& entry : dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools) {
     string poolName = entry.first;
 
     if (poolName.empty()) {
@@ -980,7 +979,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       {"packetcache-misses", 0},
       {"over-capacity-drops", 0},
       {"too-old-drops", 0},
-      {"server-policy", g_policy.getLocal()->getName()}};
+      {"server-policy", runtimeConfig.d_lbPolicy->getName()}};
 
     addStatsToJSONObject(obj);
 
@@ -1252,10 +1251,10 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   Json::array pools;
   {
-    auto localPools = g_pools.getLocal();
     num = 0;
-    pools.reserve(localPools->size());
-    for (const auto& pool : *localPools) {
+    const auto localPools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+    pools.reserve(localPools.size());
+    for (const auto& pool : localPools) {
       const auto& cache = pool.second->packetCache;
       Json::object entry{
         {"id", num++},
@@ -1357,9 +1356,9 @@ static void handlePoolStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.status = 200;
   Json::array doc;
 
-  auto localPools = g_pools.getLocal();
-  const auto poolIt = localPools->find(poolName->second);
-  if (poolIt == localPools->end()) {
+  const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+  const auto poolIt = pools.find(poolName->second);
+  if (poolIt == pools.end()) {
     resp.status = 404;
     return;
   }
@@ -1458,7 +1457,7 @@ static void handleConfigDump(const YaHTTP::Request& req, YaHTTP::Response& resp)
     {"ecs-source-prefix-v6", static_cast<double>(runtimeConfiguration.d_ECSSourcePrefixV6)},
     {"fixup-case", runtimeConfiguration.d_fixupCase},
     {"max-outstanding", static_cast<double>(immutableConfig.d_maxUDPOutstanding)},
-    {"server-policy", g_policy.getLocal()->getName()},
+    {"server-policy", runtimeConfiguration.d_lbPolicy->getName()},
     {"stale-cache-entries-ttl", static_cast<double>(runtimeConfiguration.d_staleCacheEntriesTTL)},
     {"tcp-recv-timeout", static_cast<double>(runtimeConfiguration.d_tcpRecvTimeout)},
     {"tcp-send-timeout", static_cast<double>(runtimeConfiguration.d_tcpSendTimeout)},
@@ -1596,7 +1595,7 @@ static void handleCacheManagement(const YaHTTP::Request& req, YaHTTP::Response& 
 
   std::shared_ptr<ServerPool> pool;
   try {
-    pool = getPool(g_pools.getCopy(), poolName->second);
+    pool = getPool(poolName->second);
   }
   catch (const std::exception& e) {
     resp.status = 404;

@@ -105,7 +105,6 @@ shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
 
 std::vector<std::unique_ptr<ClientState>> g_frontends;
-GlobalStateHolder<pools_t> g_pools;
 std::vector<uint32_t> g_TCPFastOpenKey;
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers.
@@ -1435,10 +1434,10 @@ static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion&
   return ProcessQueryResult::SendAnswer;
 }
 
-static void selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const std::shared_ptr<ServerPool>& serverPool, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+static void selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const std::shared_ptr<ServerPool>& serverPool, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   std::shared_ptr<ServerPolicy> poolPolicy = serverPool->policy;
-  const auto& policy = poolPolicy != nullptr ? *poolPolicy : *(holders.policy);
+  const auto& policy = poolPolicy != nullptr ? *poolPolicy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
   const auto servers = serverPool->getServers();
   selectedBackend = policy.getSelectedBackend(*servers, dnsQuestion);
 }
@@ -1451,9 +1450,9 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
     if (dnsQuestion.getHeader()->qr) { // something turned it into a response
       return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion, holders);
     }
-    std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, dnsQuestion.ids.poolName);
+    std::shared_ptr<ServerPool> serverPool = getPool(dnsQuestion.ids.poolName);
     dnsQuestion.ids.packetCache = serverPool->packetCache;
-    selectBackendForOutgoingQuery(dnsQuestion, serverPool, holders, selectedBackend);
+    selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
 
     uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
 
@@ -1543,9 +1542,9 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
       /* let's be nice and allow the selection of a different pool,
          but no second cache-lookup for you */
       if (dnsQuestion.ids.poolName != existingPool) {
-        serverPool = getPool(*holders.pools, dnsQuestion.ids.poolName);
+        serverPool = getPool(dnsQuestion.ids.poolName);
         dnsQuestion.ids.packetCache = serverPool->packetCache;
-        selectBackendForOutgoingQuery(dnsQuestion, serverPool, holders, selectedBackend);
+        selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
       }
     }
 
@@ -2286,8 +2285,8 @@ static void maintThread()
 
       /* gather all caches actually used by at least one pool, and see
          if something prevents us from cleaning the expired entries */
-      auto localPools = g_pools.getLocal();
-      for (const auto& entry : *localPools) {
+      const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+      for (const auto& entry : pools) {
         const auto& pool = entry.second;
 
         auto packetCache = pool->packetCache;
@@ -2791,8 +2790,10 @@ static void cleanupLuaObjects()
     chain.holder.setState({});
   }
   g_dstates.setState({});
-  g_policy.setState(ServerPolicy());
-  g_pools.setState({});
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_lbPolicy = std::make_shared<ServerPolicy>();
+    config.d_pools.clear();
+  });
   clearWebHandlers();
   dnsdist::lua::hooks::clearMaintenanceHooks();
 }
@@ -3047,31 +3048,28 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
 }
 static void setupPools()
 {
-  auto pools = g_pools.getCopy();
-  {
-    bool precompute = false;
-    if (g_policy.getLocal()->getName() == "chashed") {
-      precompute = true;
-    }
-    else {
-      for (const auto& entry : pools) {
-        if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
-          precompute = true;
-          break;
-        }
+  bool precompute = false;
+  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName() == "chashed") {
+    precompute = true;
+  }
+  else {
+    for (const auto& entry : dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools) {
+      if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
+        precompute = true;
+        break;
       }
     }
-    if (precompute) {
-      vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
-      // pre compute hashes
-      auto backends = g_dstates.getLocal();
-      for (const auto& backend : *backends) {
-        if (backend->d_config.d_weight < 100) {
-          vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->d_config.d_weight);
-        }
+  }
+  if (precompute) {
+    vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
+    // pre compute hashes
+    auto backends = g_dstates.getLocal();
+    for (const auto& backend : *backends) {
+      if (backend->d_config.d_weight < 100) {
+        vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->d_config.d_weight);
+      }
 
-        backend->hash();
-      }
+      backend->hash();
     }
   }
 }
@@ -3293,9 +3291,10 @@ int main(int argc, char** argv)
 
     parseParameters(argc, argv, clientAddress);
 
-    ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding, false};
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::make_shared<ServerPolicy>("leastOutstanding", leastOutstanding, false);
+    });
 
-    g_policy.setState(leastOutstandingPol);
     if (g_cmdLine.beClient || !g_cmdLine.command.empty()) {
       setupLua(*(g_lua.lock()), true, false, g_cmdLine.config);
       if (clientAddress != ComboAddress()) {
@@ -3428,20 +3427,18 @@ int main(int argc, char** argv)
       todoItem();
     }
 
-    auto localPools = g_pools.getCopy();
     /* create the default pool no matter what */
-    createPoolIfNotExists(localPools, "");
+    createPoolIfNotExists("");
     if (!g_cmdLine.remotes.empty()) {
       for (const auto& address : g_cmdLine.remotes) {
         DownstreamState::Config config;
         config.remote = ComboAddress(address, 53);
         auto ret = std::make_shared<DownstreamState>(std::move(config), nullptr, true);
-        addServerToPool(localPools, "", ret);
+        addServerToPool("", ret);
         ret->start();
         g_dstates.modify([&ret](servers_t& servers) { servers.push_back(std::move(ret)); });
       }
     }
-    g_pools.setState(localPools);
 
     if (g_dstates.getLocal()->empty()) {
       errlog("No downstream servers defined: all packets will get dropped");
