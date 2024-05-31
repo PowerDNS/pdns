@@ -88,19 +88,17 @@ fn is_port_number(str: &str) -> bool {
 
 pub fn validate_socket_address_or_name(field: &str, val: &String) -> Result<(), ValidationError> {
     let sa = validate_socket_address(field, val);
-    if sa.is_err() {
-        if !isValidHostname(val) {
-            let parts: Vec<&str> = val.split(':').collect();
-            if parts.len() != 2
-                || !isValidHostname(parts[0])
-                || !is_port_number(parts[1])
-            {
-                let msg = format!(
-                    "{}: value `{}' is not an IP, IP:port, name or name:port combination",
-                    field, val
-                );
-                return Err(ValidationError { msg });
-            }
+    if sa.is_err() && !isValidHostname(val) {
+        let parts: Vec<&str> = val.split(':').collect();
+        if parts.len() != 2
+            || !isValidHostname(parts[0])
+            || !is_port_number(parts[1])
+        {
+            let msg = format!(
+                "{}: value `{}' is not an IP, IP:port, name or name:port combination",
+                field, val
+            );
+            return Err(ValidationError { msg });
         }
     }
     Ok(())
@@ -163,7 +161,7 @@ pub fn validate_subnet(field: &str, val: &String) -> Result<(), ValidationError>
 }
 
 fn validate_address_family(addrfield: &str, localfield: &str, vec: &[String], local_address: &String) -> Result<(), ValidationError> {
-    if vec.len() == 0 {
+    if vec.is_empty() {
         let msg = format!("{}: cannot be empty", addrfield);
         return Err(ValidationError { msg });
     }
