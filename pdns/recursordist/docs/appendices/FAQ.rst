@@ -86,3 +86,7 @@ With versions older than 4.8, there is another detail: after refreshing the root
 For example, in the default setup the root name servers are called ``[a-m].root-servers.net``, so the :program:`Recursor` will resolve the name servers of the ``.net`` domain.
 This is needed to correctly determine zone cuts to be able to decide if the ``.root-servers.net`` domain is DNSSEC protected. Newer versions solve this by querying the needed information top-down.
 
+Starting with version 5.0.0, enabling :ref:`allow-no-rd` allows for queries without the recursion desired bit to be answered from cache.
+Older versions of the ``dig`` program provided by ISC do not set the RD bit on the initial ``+trace`` query causing it to sometimes fail to perform a ``+trace`` when asking a freshly restarted :program:`Recursor` despite the :ref:`allow-no-rd` option being set.
+This is because there is a short while after restarting that the cache has no authoritative data on the root, so it will answer with an NODATA (NOERROR and no answer records) in that period for RD=0 queries asking for the root name servers.
+For ``dig`` this has been fixed in `BIND 9.15.1 <https://gitlab.isc.org/isc-projects/bind9/-/issues/1028>` by setting the RD bit.
