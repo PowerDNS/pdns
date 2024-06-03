@@ -59,7 +59,7 @@ The data is persisted to /var/lib/pdns-recursor/udr by default, which can be cha
 
 The SBF (which is maintained separately per recursor thread) cell size defaults to 67108864, which can be changed using the setting ``unique-response-db-size``. The same caveats regarding FPs/FNs apply as for NOD.
 
-Similarly to NOD, administrators may wish to prevent certain domains or subdomains from ever triggering the UDR algorithm, in which case those domains must be added to the ``udr-ignore-list`` setting as a comma separated list. No domain (or subdomain of a domain) listed will be considered a new unique domain response.
+Similarly to NOD, administrators may wish to prevent certain domains or subdomains from ever triggering the UDR algorithm, in which case those domains must be added to the ``udr-ignore-list`` setting as a comma separated list. No domain (or subdomain of a domain) listed will be considered a new unique domain response. It is also possible to use ``udr-ignore-list-file`` to read a file with ignored domains, one domain per line.
 
 Similarly to NOD, unique domain responses can be tracked using several mechanisms:
 

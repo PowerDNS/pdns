@@ -1813,6 +1813,23 @@ via the new-domain-lookup feature.
         'versionadded' : '5.1.0'
     },
     {
+        'name' : 'udr_ignore_list_file',
+        'section' : 'nod',
+        'oldname' : 'udr-ignore-list-file',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'File with list of domains (and implicitly all subdomains) which will never be considered for UDR',
+        'doc' : '''
+This setting is a list of all domains (and implicitly all subdomains)
+that will never be considered for a new unique domain request.
+For example, if the domain 'xyz123.tv' is in the list, then 'foo.bar.xyz123.tv'
+will never be considered for a new unique domain request. One use-case for the
+ignore list is to never reveal details of internal subdomains
+via the new-domain-lookup feature.
+ ''',
+        'versionadded' : '5.1.0'
+    },
+    {
         'name' : 'pb_tag',
         'section' : 'nod',
         'oldname' : 'new-domain-pb-tag',

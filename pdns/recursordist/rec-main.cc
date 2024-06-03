@@ -877,6 +877,39 @@ static void parseUDRIgnorelist(const std::string& wlist)
   }
 }
 
+static void parseUDRIgnorelistFile(const std::string& fname)
+{
+  string line;
+  std::ifstream udrIgnorelistFileStream(fname);
+  if (!udrIgnorelistFileStream) {
+    throw ArgException(fname + " could not be parsed");
+  }
+
+  while (getline(udrIgnorelistFileStream, line)) {
+    boost::trim_right(line);
+
+    // strip everything after a #
+    string::size_type pos = line.find('#');
+    if (pos != string::npos) {
+      // make sure it's either first char or has whitespace before
+      if (pos == 0 || (std::isspace(line[pos - 1]) != 0)) {
+        line = line.substr(0, pos);
+      }
+    }
+
+    // strip trailing spaces
+    boost::trim_right(line);
+
+    // strip leading spaces
+    pos = line.find_first_not_of(" \t\r\n");
+    if (pos != string::npos) {
+      line = line.substr(pos);
+    }
+
+    g_udrDomainWL.add(DNSName(line));
+  }
+}
+
 static void setupNODGlobal()
 {
   // Setup NOD subsystem
@@ -892,6 +925,7 @@ static void setupNODGlobal()
   g_nod_pbtag = ::arg()["new-domain-pb-tag"];
   g_udr_pbtag = ::arg()["unique-response-pb-tag"];
   parseUDRIgnorelist(::arg()["udr-ignore-list"]);
+  parseUDRIgnorelistFile(::arg()["udr-ignore-list-file"]);
 }
 #endif /* NOD_ENABLED */
 
