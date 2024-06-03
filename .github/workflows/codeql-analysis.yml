@@ -65,6 +65,9 @@ jobs:
         # We must fetch at least the immediate parents so that if this is
         # a pull request then we can checkout the head.
         fetch-depth: 2
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -123,7 +126,7 @@ jobs:
       if: matrix.product == 'auth'
     - name: Run clang-tidy for auth
       if: matrix.product == 'auth'
-      run: git diff --no-prefix -U0 HEAD^..HEAD | python3 .github/scripts/git-filter.py --product auth | python3 .github/scripts/clang-tidy-diff.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-auth.yml
+      run: git diff --no-prefix -U0 HEAD^..HEAD | /usr/bin/python3 .github/scripts/git-filter.py --product auth | /usr/bin/python3 .github/scripts/clang-tidy-diff.py -clang-tidy-binary /usr/bin/clang-tidy-${CLANG_VERSION} -extra-arg=-ferror-limit=0 -p0 -export-fixes clang-tidy-auth.yml
     - name: Print clang-tidy fixes YAML for auth
       if: matrix.product == 'auth'
       shell: bash
@@ -138,7 +141,7 @@ jobs:
       run: |
         if [ -f clang-tidy-auth.yml ]; then
           set +e
-          python3 .github/scripts/clang-tidy.py --fixes-file clang-tidy-auth.yml
+          /usr/bin/python3 .github/scripts/clang-tidy.py --fixes-file clang-tidy-auth.yml
           echo "failed=$?" >> $GITHUB_OUTPUT
         fi
 
