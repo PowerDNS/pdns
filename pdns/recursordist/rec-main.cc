@@ -92,6 +92,7 @@ bool g_nodEnabled;
 DNSName g_nodLookupDomain;
 bool g_nodLog;
 SuffixMatchNode g_nodDomainWL;
+SuffixMatchNode g_udrDomainWL;
 std::string g_nod_pbtag;
 bool g_udrEnabled;
 bool g_udrLog;
@@ -867,6 +868,15 @@ static void parseNODIgnorelist(const std::string& wlist)
   }
 }
 
+static void parseUDRIgnorelist(const std::string& wlist)
+{
+  vector<string> parts;
+  stringtok(parts, wlist, ",; ");
+  for (const auto& part : parts) {
+    g_udrDomainWL.add(DNSName(part));
+  }
+}
+
 static void setupNODGlobal()
 {
   // Setup NOD subsystem
@@ -881,6 +891,7 @@ static void setupNODGlobal()
   g_udrLog = ::arg().mustDo("unique-response-log");
   g_nod_pbtag = ::arg()["new-domain-pb-tag"];
   g_udr_pbtag = ::arg()["unique-response-pb-tag"];
+  parseUDRIgnorelist(::arg()["udr-ignore-list"]);
 }
 #endif /* NOD_ENABLED */
 
