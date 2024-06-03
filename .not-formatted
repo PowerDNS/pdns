@@ -149,8 +149,6 @@
 ./pdns/pdnsutil.cc
 ./pdns/pkcs11signers.cc
 ./pdns/pkcs11signers.hh
-./pdns/protozero.cc
-./pdns/protozero.hh
 ./pdns/proxy-protocol.cc
 ./pdns/proxy-protocol.hh
 ./pdns/qtype.cc

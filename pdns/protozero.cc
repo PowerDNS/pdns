@@ -25,26 +25,26 @@
 #ifndef DISABLE_PROTOBUF
 #include "dnsparser.hh"
 
-void pdns::ProtoZero::Message::encodeComboAddress(const protozero::pbf_tag_type type, const ComboAddress& ca)
+void pdns::ProtoZero::Message::encodeComboAddress(const protozero::pbf_tag_type type, const ComboAddress& address)
 {
-  if (ca.sin4.sin_family == AF_INET) {
-    d_message.add_bytes(type, reinterpret_cast<const char*>(&ca.sin4.sin_addr.s_addr), sizeof(ca.sin4.sin_addr.s_addr));
+  if (address.sin4.sin_family == AF_INET) {
+    d_message.add_bytes(type, reinterpret_cast<const char*>(&address.sin4.sin_addr.s_addr), sizeof(address.sin4.sin_addr.s_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
   }
-  else if (ca.sin4.sin_family == AF_INET6) {
-    d_message.add_bytes(type, reinterpret_cast<const char*>(&ca.sin6.sin6_addr.s6_addr), sizeof(ca.sin6.sin6_addr.s6_addr));
+  else if (address.sin4.sin_family == AF_INET6) {
+    d_message.add_bytes(type, reinterpret_cast<const char*>(&address.sin6.sin6_addr.s6_addr), sizeof(address.sin6.sin6_addr.s6_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
   }
 }
 
 void pdns::ProtoZero::Message::encodeNetmask(const protozero::pbf_tag_type type, const Netmask& subnet, uint8_t mask)
 {
   if (!subnet.empty()) {
-    ComboAddress ca(subnet.getNetwork());
-    ca.truncate(mask);
-    if (ca.sin4.sin_family == AF_INET) {
-      d_message.add_bytes(type, reinterpret_cast<const char*>(&ca.sin4.sin_addr.s_addr), sizeof(ca.sin4.sin_addr.s_addr));
+    ComboAddress address(subnet.getNetwork());
+    address.truncate(mask);
+    if (address.sin4.sin_family == AF_INET) {
+      d_message.add_bytes(type, reinterpret_cast<const char*>(&address.sin4.sin_addr.s_addr), sizeof(address.sin4.sin_addr.s_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
     }
-    else if (ca.sin4.sin_family == AF_INET6) {
-      d_message.add_bytes(type, reinterpret_cast<const char*>(&ca.sin6.sin6_addr.s6_addr), sizeof(ca.sin6.sin6_addr.s6_addr));
+    else if (address.sin4.sin_family == AF_INET6) {
+      d_message.add_bytes(type, reinterpret_cast<const char*>(&address.sin6.sin6_addr.s6_addr), sizeof(address.sin6.sin6_addr.s6_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
     }
   }
 }
@@ -58,7 +58,7 @@ void pdns::ProtoZero::Message::encodeDNSName(protozero::pbf_writer& pbf, std::st
   // leaving the block will cause the sub writer to compute how much was written based on the new size and update the size accordingly
 }
 
-void pdns::ProtoZero::Message::setRequest(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t id, pdns::ProtoZero::Message::TransportProtocol proto, size_t len)
+void pdns::ProtoZero::Message::setRequest(const boost::uuids::uuid& uniqueId, const ComboAddress& requestor, const ComboAddress& local, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint16_t qid, pdns::ProtoZero::Message::TransportProtocol proto, size_t len)
 {
   setMessageIdentity(uniqueId);
   setSocketFamily(requestor.sin4.sin_family);
@@ -67,7 +67,7 @@ void pdns::ProtoZero::Message::setRequest(const boost::uuids::uuid& uniqueId, co
   setTo(local);
   setInBytes(len);
   setTime();
-  setId(id);
+  setId(qid);
   setQuestion(qname, qtype, qclass);
   setFromPort(requestor.getPort());
   setToPort(local.getPort());
@@ -85,67 +85,67 @@ void pdns::ProtoZero::Message::addRRsFromPacket(const char* packet, const size_t
     return;
   }
 
-  const dnsheader_aligned dh(packet);
+  const dnsheader_aligned header(packet);
 
-  if (ntohs(dh->ancount) == 0) {
+  if (ntohs(header->ancount) == 0) {
     return;
   }
 
-  if (ntohs(dh->qdcount) == 0) {
+  if (ntohs(header->qdcount) == 0) {
     return;
   }
 
-  PacketReader pr(std::string_view(packet, len));
+  PacketReader packetReader(std::string_view(packet, len));
 
   size_t idx = 0;
   DNSName rrname;
-  uint16_t qdcount = ntohs(dh->qdcount);
-  uint16_t ancount = ntohs(dh->ancount);
-  uint16_t rrtype;
-  uint16_t rrclass;
+  uint16_t qdcount = ntohs(header->qdcount);
+  uint16_t ancount = ntohs(header->ancount);
+  uint16_t rrtype{};
+  uint16_t rrclass{};
   string blob;
-  struct dnsrecordheader ah;
+  dnsrecordheader recordHeader{};
 
-  rrname = pr.getName();
-  rrtype = pr.get16BitInt();
-  rrclass = pr.get16BitInt();
-  (void) rrtype;
-  (void) rrclass;
+  rrname = packetReader.getName();
+  rrtype = packetReader.get16BitInt();
+  rrclass = packetReader.get16BitInt();
+  (void)rrtype;
+  (void)rrclass;
 
   /* consume remaining qd if any */
   if (qdcount > 1) {
-    for(idx = 1; idx < qdcount; idx++) {
-      rrname = pr.getName();
-      rrtype = pr.get16BitInt();
-      rrclass = pr.get16BitInt();
-      (void) rrtype;
-      (void) rrclass;
+    for (idx = 1; idx < qdcount; idx++) {
+      rrname = packetReader.getName();
+      rrtype = packetReader.get16BitInt();
+      rrclass = packetReader.get16BitInt();
+      (void)rrtype;
+      (void)rrclass;
     }
   }
 
   /* parse AN */
   for (idx = 0; idx < ancount; idx++) {
-    rrname = pr.getName();
-    pr.getDnsrecordheader(ah);
+    rrname = packetReader.getName();
+    packetReader.getDnsrecordheader(recordHeader);
 
-    if (ah.d_type == QType::A || ah.d_type == QType::AAAA) {
-      pr.xfrBlob(blob);
+    if (recordHeader.d_type == QType::A || recordHeader.d_type == QType::AAAA) {
+      packetReader.xfrBlob(blob);
 
-      addRR(rrname, ah.d_type, ah.d_class, ah.d_ttl, blob);
-
-    } else if (ah.d_type == QType::CNAME && includeCNAME) {
+      addRR(rrname, recordHeader.d_type, recordHeader.d_class, recordHeader.d_ttl, blob);
+    }
+    else if (recordHeader.d_type == QType::CNAME && includeCNAME) {
       protozero::pbf_writer pbf_rr{d_response, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::ResponseField::rrs)};
 
       encodeDNSName(pbf_rr, d_buffer, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::name), rrname);
-      pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::type), ah.d_type);
-      pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::class_), ah.d_class);
-      pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::ttl), ah.d_ttl);
+      pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::type), recordHeader.d_type);
+      pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::class_), recordHeader.d_class);
+      pbf_rr.add_uint32(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::ttl), recordHeader.d_ttl);
       DNSName target;
-      pr.xfrName(target, true);
+      packetReader.xfrName(target, true);
       encodeDNSName(pbf_rr, d_buffer, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::rdata), target);
     }
     else {
-      pr.xfrBlob(blob);
+      packetReader.xfrBlob(blob);
     }
   }
 }
