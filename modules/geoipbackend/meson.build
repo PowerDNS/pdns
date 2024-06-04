@@ -10,4 +10,4 @@ module_extras = files(
   'geoipinterface.hh',
 )
 
-module_deps = [deps, dep_geoip, dep_mmdb, dep_yaml_cpp]
+module_deps = [deps, dep_geoip, dep_mmdb, dep_yaml_cpp, dep_cxx_fs]
