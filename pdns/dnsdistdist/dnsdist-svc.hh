@@ -49,18 +49,29 @@ struct SVCRecordParameters
   bool noDefaultAlpn{false};
 };
 
-typedef std::unordered_map<
+using svcParamsLua_t = std::unordered_map<
   std::string,
   boost::variant<
     uint16_t,
     bool,
     std::string,
     std::vector<std::pair<int, std::string>>,
-    std::vector<std::pair<int, ComboAddress>>>>
-  svcParamsLua_t;
+    std::vector<std::pair<int, ComboAddress>>>>;
 
 struct SVCRecordParameters parseSVCParameters(const svcParamsLua_t& params);
 
 bool generateSVCPayload(std::vector<uint8_t>& payload, uint16_t priority, const DNSName& target, const std::set<uint16_t>& mandatoryParams, const std::vector<std::string>& alpns, bool noDefaultAlpn, std::optional<uint16_t> port, const std::string& ech, const std::vector<ComboAddress>& ipv4hints, const std::vector<ComboAddress>& ipv6hints, const std::vector<std::pair<uint16_t, std::string>>& additionalParams);
 
 bool generateSVCPayload(std::vector<uint8_t>& payload, const SVCRecordParameters& parameters);
+
+struct DNSQuestion;
+namespace dnsdist
+{
+struct ResponseConfig;
+}
+
+namespace dnsdist::svc
+{
+bool generateSVCResponse(DNSQuestion& dnsQuestion, const std::vector<std::vector<uint8_t>>& svcRecordPayloads, const std::set<std::pair<DNSName, ComboAddress>>& additionals4, const std::set<std::pair<DNSName, ComboAddress>>& additionals6, const dnsdist::ResponseConfig& d_responseConfig);
+bool generateSVCResponse(DNSQuestion& dnsQuestion, uint32_t ttl, const std::vector<SVCRecordParameters>& parameters);
+}
