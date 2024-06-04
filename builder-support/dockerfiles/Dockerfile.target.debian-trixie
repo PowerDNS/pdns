@@ -1,15 +1,7 @@
 # First do the source builds
 @INCLUDE Dockerfile.target.sdist
 
-@IF [ ${BUILDER_TARGET} = debian-trixie ]
 FROM debian:trixie as dist-base
-@ENDIF
-@IF [ ${BUILDER_TARGET} = debian-trixie-amd64 ]
-FROM amd64/debian:trixie as dist-base
-@ENDIF
-@IF [ ${BUILDER_TARGET} = debian-trixie-arm64 ]
-FROM arm64v8/debian:trixie as dist-base
-@ENDIF
 
 ARG BUILDER_CACHE_BUSTER=
 ARG APT_URL
