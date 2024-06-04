@@ -1062,25 +1062,20 @@ enum class ProcessQueryResult : uint8_t
 struct LocalHolders
 {
   LocalHolders() :
-    ruleactions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::Rules).getLocal()), cacheMissRuleActions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::CacheMissRules).getLocal()), cacheHitRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheHitResponseRules).getLocal()), cacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), selfAnsweredRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules).getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal())
+    dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal())
   {
   }
 
-  LocalStateHolder<vector<dnsdist::rules::RuleAction>> ruleactions;
-  LocalStateHolder<vector<dnsdist::rules::RuleAction>> cacheMissRuleActions;
-  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheHitRespRuleactions;
-  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheInsertedRespRuleActions;
-  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> selfAnsweredRespRuleactions;
   LocalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> dynNMGBlock;
   LocalStateHolder<SuffixMatchTree<DynBlock>> dynSMTBlock;
 };
 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
-bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
+bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop);
-bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
-bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids);
+bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids);
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse);
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend = true);

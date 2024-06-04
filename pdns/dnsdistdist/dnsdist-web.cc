@@ -446,14 +446,13 @@ static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::
 }
 
 template <typename T>
-static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>* someResponseRules)
+static json11::Json::array someResponseRulesToJson(const std::vector<T>& someResponseRules)
 {
   using namespace json11;
   Json::array responseRules;
   int num = 0;
-  auto localResponseRules = someResponseRules->getLocal();
-  responseRules.reserve(localResponseRules->size());
-  for (const auto& rule : *localResponseRules) {
+  responseRules.reserve(someResponseRules.size());
+  for (const auto& rule : someResponseRules) {
     responseRules.emplace_back(Json::object{
       {"id", num++},
       {"creationOrder", static_cast<double>(rule.d_creationOrder)},
@@ -469,10 +468,9 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
 
 #ifndef DISABLE_PROMETHEUS
 template <typename T>
-static void addRulesToPrometheusOutput(std::ostringstream& output, GlobalStateHolder<vector<T>>& rules)
+static void addRulesToPrometheusOutput(std::ostringstream& output, const std::vector<T>& rules)
 {
-  auto localRules = rules.getLocal();
-  for (const auto& entry : *localRules) {
+  for (const auto& entry : rules) {
     std::string identifier = !entry.d_name.empty() ? entry.d_name : boost::uuids::to_string(entry.d_id);
     output << "dnsdist_rule_hits{id=\"" << identifier << "\"} " << entry.d_rule->d_matches << "\n";
   }
@@ -897,11 +895,14 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   output << "# HELP dnsdist_rule_hits " << "Number of hits of that rule" << "\n";
   output << "# TYPE dnsdist_rule_hits " << "counter" << "\n";
-  for (const auto& chain : dnsdist::rules::getRuleChains()) {
-    addRulesToPrometheusOutput(output, chain.holder);
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  for (const auto& chainDescription : dnsdist::rules::getRuleChainDescriptions()) {
+    const auto& chain = dnsdist::rules::getRuleChain(chains, chainDescription.identifier);
+    addRulesToPrometheusOutput(output, chain);
   }
-  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
-    addRulesToPrometheusOutput(output, chain.holder);
+  for (const auto& chainDescription : dnsdist::rules::getResponseRuleChainDescriptions()) {
+    const auto& chain = dnsdist::rules::getResponseRuleChain(chains, chainDescription.identifier);
+    addRulesToPrometheusOutput(output, chain);
   }
 
 #ifndef DISABLE_DYNBLOCKS
@@ -1314,12 +1315,13 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   /* unfortunately DNSActions have getStats(),
      and DNSResponseActions do not. */
-  for (const auto& chain : dnsdist::rules::getRuleChains()) {
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  for (const auto& chainDescription : dnsdist::rules::getRuleChainDescriptions()) {
     Json::array rules;
-    auto localRules = chain.holder.getLocal();
+    const auto& chain = dnsdist::rules::getRuleChain(chains, chainDescription.identifier);
     num = 0;
-    rules.reserve(localRules->size());
-    for (const auto& lrule : *localRules) {
+    rules.reserve(chain.size());
+    for (const auto& lrule : chain) {
       Json::object rule{
         {"id", num++},
         {"creationOrder", (double)lrule.d_creationOrder},
@@ -1331,12 +1333,13 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         {"action-stats", lrule.d_action->getStats()}};
       rules.emplace_back(std::move(rule));
     }
-    responseObject[chain.metricName] = std::move(rules);
+    responseObject[chainDescription.metricName] = std::move(rules);
   }
 
-  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
-    auto responseRules = someResponseRulesToJson(&chain.holder);
-    responseObject[chain.metricName] = std::move(responseRules);
+  for (const auto& chainDescription : dnsdist::rules::getResponseRuleChainDescriptions()) {
+    const auto& chain = dnsdist::rules::getResponseRuleChain(chains, chainDescription.identifier);
+    auto responseRules = someResponseRulesToJson(chain);
+    responseObject[chainDescription.metricName] = std::move(responseRules);
   }
 
   resp.headers["Content-Type"] = "application/json";

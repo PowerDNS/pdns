@@ -474,7 +474,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
   testPool->packetCache = packetCache;
   std::string poolWithNoCacheName("test-pool-without-cache");
   auto testPoolWithNoCache = std::make_shared<ServerPool>();
-  dnsdist::configuration::updateRuntimeConfiguration([&poolName,&testPool,&poolWithNoCacheName,&testPoolWithNoCache](dnsdist::configuration::RuntimeConfiguration& config) {
+  dnsdist::configuration::updateRuntimeConfiguration([&poolName, &testPool, &poolWithNoCacheName, &testPoolWithNoCache](dnsdist::configuration::RuntimeConfiguration& config) {
     config.d_pools.emplace(poolName, testPool);
     config.d_pools.emplace(poolWithNoCacheName, testPoolWithNoCache);
   });

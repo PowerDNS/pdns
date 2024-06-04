@@ -503,7 +503,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
 
       memcpy(&response.d_cleartextDH, dnsResponse.getHeader().get(), sizeof(response.d_cleartextDH));
 
-      if (!processResponse(response.d_buffer, *state->d_threadData.localRespRuleActions, *state->d_threadData.localCacheInsertedRespRuleActions, dnsResponse, false)) {
+      if (!processResponse(response.d_buffer, dnsResponse, false)) {
         state->terminateClientConnection();
         return;
       }
@@ -1205,8 +1205,11 @@ void IncomingTCPConnectionState::notifyIOError(const struct timeval& now, TCPRes
   }
 }
 
-static bool processXFRResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& xfrRespRuleActions, DNSResponse& dnsResponse)
+static bool processXFRResponse(PacketBuffer& response, DNSResponse& dnsResponse)
 {
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& xfrRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::XFRResponseRules);
+
   if (!applyRulesToResponse(xfrRespRuleActions, dnsResponse)) {
     return false;
   }
@@ -1236,7 +1239,7 @@ void IncomingTCPConnectionState::handleXFRResponse(const struct timeval& now, TC
   dnsResponse.d_incomingTCPState = state;
   memcpy(&response.d_cleartextDH, dnsResponse.getHeader().get(), sizeof(response.d_cleartextDH));
 
-  if (!processXFRResponse(response.d_buffer, *state->d_threadData.localXFRRespRuleActions, dnsResponse)) {
+  if (!processXFRResponse(response.d_buffer, dnsResponse)) {
     state->terminateClientConnection();
     return;
   }

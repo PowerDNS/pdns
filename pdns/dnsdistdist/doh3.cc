@@ -142,12 +142,9 @@ public:
 
     if (!response.isAsync()) {
 
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
       dnsResponse.ids.doh3u = std::move(unit);
 
-      if (!processResponse(dnsResponse.ids.doh3u->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
+      if (!processResponse(dnsResponse.ids.doh3u->response, dnsResponse, false)) {
         if (dnsResponse.ids.doh3u) {
 
           sendBackDOH3Unit(std::move(dnsResponse.ids.doh3u), "Response dropped by rules");

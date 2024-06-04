@@ -73,7 +73,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
 
 static std::function<bool(PacketBuffer& response, DNSResponse& dr, bool muted)> s_processResponse;
 
-bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
   if (s_processResponse) {
     return s_processResponse(response, dnsResponse, muted);

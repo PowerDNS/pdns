@@ -26,6 +26,7 @@
 #include <string>
 
 #include "dnsdist-query-count.hh"
+#include "dnsdist-rule-chains.hh"
 #include "iputils.hh"
 
 /* so what could you do:
@@ -184,6 +185,16 @@ struct Configuration
    a RCU-like mechanism */
 struct RuntimeConfiguration
 {
+  // ca tient pas la route: meilleure option: stocker un type plus opaque dans la configuration (dnsdist::rules::RuleChains) et
+  // laisser le soin a dnsdist::rules de le gerer
+  /*  std::vector<rules::RuleAction> d_cacheMissRuleActions;
+  std::vector<rules::ResponseRuleAction> d_respruleactions;
+  std::vector<rules::ResponseRuleAction> d_cachehitrespruleactions;
+  std::vector<rules::ResponseRuleAction> d_selfansweredrespruleactions;
+  std::vector<rules::ResponseRuleAction> d_cacheInsertedRespRuleActions;
+  std::vector<rules::ResponseRuleAction> d_XFRRespRuleActions;
+  */
+  rules::RuleChains d_ruleChains;
   servers_t d_backends;
   std::map<std::string, std::shared_ptr<ServerPool>> d_pools;
   std::shared_ptr<ServerPolicy> d_lbPolicy;

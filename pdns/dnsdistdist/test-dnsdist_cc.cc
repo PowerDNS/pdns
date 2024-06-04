@@ -48,7 +48,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
   return ProcessQueryResult::Drop;
 }
 
-bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
   return false;
 }
@@ -92,7 +92,7 @@ bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket&
 }
 #endif /* HAVE_XSK */
 
-bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids)
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids)
 {
   return false;
 }

@@ -39,8 +39,6 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
 {
   try {
     setThreadName("dnsdist/XskResp");
-    auto localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-    auto localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
     auto pollfds = getPollFdsForWorker(*xskInfo);
     while (!dss->isStopped()) {
       poll(pollfds.data(), pollfds.size(), -1);
@@ -71,7 +69,7 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
             /* fallback to sending the packet via normal socket */
             ids->xskPacketHeader.clear();
           }
-          if (!processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids))) {
+          if (!processResponderPacket(dss, response, std::move(*ids))) {
             xskInfo->markAsFree(packet);
             vinfolog("XSK packet dropped because processResponderPacket failed");
             return;
@@ -110,7 +108,7 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
   }
 }
 
-bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, LocalHolders& holders, bool& expectProxyProtocol)
+bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, bool& expectProxyProtocol)
 {
   const auto& from = packet.getFromAddr();
   expectProxyProtocol = expectProxyProtocolFrom(from);

@@ -222,8 +222,7 @@ static bool resumeResponse(std::unique_ptr<CrossProtocolQuery>&& response)
     auto& ids = response->query.d_idstate;
     DNSResponse dnsResponse = response->getDR();
 
-    LocalHolders holders;
-    auto result = processResponseAfterRules(response->query.d_buffer, *holders.cacheInsertedRespRuleActions, dnsResponse, ids.cs->muted);
+    auto result = processResponseAfterRules(response->query.d_buffer, dnsResponse, ids.cs->muted);
     if (!result) {
       /* easy */
       return true;

@@ -522,7 +522,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
   return true;
 }
 
-bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
@@ -552,6 +552,8 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist
 
     dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
 
+    const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+    const auto& cacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules);
     if (!applyRulesToResponse(cacheInsertedRespRuleActions, dnsResponse)) {
       return false;
     }
@@ -578,8 +580,11 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist
   return true;
 }
 
-bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& respRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::ResponseRules);
+
   if (!applyRulesToResponse(respRuleActions, dnsResponse)) {
     return false;
   }
@@ -588,7 +593,7 @@ bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::R
     return true;
   }
 
-  return processResponseAfterRules(response, cacheInsertedRespRuleActions, dnsResponse, muted);
+  return processResponseAfterRules(response, dnsResponse, muted);
 }
 
 static size_t getInitialUDPPacketBufferSize(bool expectProxyProtocol)
@@ -662,7 +667,7 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
   doLatencyStats(incomingProtocol, udiff);
 }
 
-static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
+static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
 {
   DNSResponse dnsResponse(ids, response, backend);
 
@@ -684,7 +689,7 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
 
   if (!isAsync) {
-    if (!processResponse(response, respRuleActions, cacheInsertedRespRuleActions, dnsResponse, ids.cs != nullptr && ids.cs->muted)) {
+    if (!processResponse(response, dnsResponse, ids.cs != nullptr && ids.cs->muted)) {
       return;
     }
 
@@ -725,7 +730,7 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   }
 }
 
-bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids)
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids)
 {
 
   const dnsheader_aligned dnsHeader(response.data());
@@ -757,7 +762,7 @@ bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer&
     return false;
   }
 
-  handleResponseForUDPClient(ids, response, localRespRuleActions, cacheInsertedRespRuleActions, dss, false, false);
+  handleResponseForUDPClient(ids, response, dss, false, false);
   return true;
 }
 
@@ -766,8 +771,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 {
   try {
     setThreadName("dnsdist/respond");
-    auto localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-    auto localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
     const size_t initialBufferSize = getInitialUDPPacketBufferSize(false);
     /* allocate one more byte so we can detect truncation */
     PacketBuffer response(initialBufferSize + 1);
@@ -826,7 +829,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             continue;
           }
 
-          if (processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfoResponder) {
+          if (processResponderPacket(dss, response, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfoResponder) {
 #ifdef HAVE_XSK
             auto& xskInfo = ids->cs->xskInfoResponder;
             auto xskPacket = xskInfo->getEmptyFrame();
@@ -1216,7 +1219,9 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
   }
 #endif /* DISABLE_DYNBLOCKS */
 
-  return applyRulesChainToQuery(*holders.ruleactions, dnsQuestion);
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& queryRules = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::Rules);
+  return applyRulesChainToQuery(queryRules, dnsQuestion);
 }
 
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& backend, const int socketDesc, const PacketBuffer& request, bool healthCheck)
@@ -1368,14 +1373,17 @@ struct mmsghdr
 #endif
 
 /* self-generated responses or cache hits */
-static bool prepareOutgoingResponse(LocalHolders& holders, const ClientState& clientState, DNSQuestion& dnsQuestion, bool cacheHit)
+static bool prepareOutgoingResponse(const ClientState& clientState, DNSQuestion& dnsQuestion, bool cacheHit)
 {
   std::shared_ptr<DownstreamState> backend{nullptr};
   DNSResponse dnsResponse(dnsQuestion.ids, dnsQuestion.getMutableData(), backend);
   dnsResponse.d_incomingTCPState = dnsQuestion.d_incomingTCPState;
   dnsResponse.ids.selfGenerated = true;
 
-  if (!applyRulesToResponse(cacheHit ? *holders.cacheHitRespRuleactions : *holders.selfAnsweredRespRuleactions, dnsResponse)) {
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& cacheHitRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules);
+  const auto& selfAnsweredRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules);
+  if (!applyRulesToResponse(cacheHit ? cacheHitRespRules : selfAnsweredRespRules, dnsResponse)) {
     return false;
   }
 
@@ -1408,11 +1416,11 @@ static bool prepareOutgoingResponse(LocalHolders& holders, const ClientState& cl
   return true;
 }
 
-static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion& dnsQuestion, LocalHolders& holders)
+static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion& dnsQuestion)
 {
   fixUpQueryTurnedResponse(dnsQuestion, dnsQuestion.ids.origFlags);
 
-  if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, false)) {
+  if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, false)) {
     return ProcessQueryResult::Drop;
   }
 
@@ -1446,7 +1454,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
 
   try {
     if (dnsQuestion.getHeader()->qr) { // something turned it into a response
-      return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion, holders);
+      return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
     }
     std::shared_ptr<ServerPool> serverPool = getPool(dnsQuestion.ids.poolName);
     dnsQuestion.ids.packetCache = serverPool->packetCache;
@@ -1467,7 +1475,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
 
           vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
 
-          if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, true)) {
+          if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
             return ProcessQueryResult::Drop;
           }
 
@@ -1505,7 +1513,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
 
         vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
 
-        if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, true)) {
+        if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
           return ProcessQueryResult::Drop;
         }
 
@@ -1516,7 +1524,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
       if (dnsQuestion.ids.protocol == dnsdist::Protocol::DoH && !forwardedOverUDP) {
         /* do a second-lookup for UDP responses, but we do not want TC=1 answers */
         if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyUDP, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, true, allowExpired, false, false, true)) {
-          if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, true)) {
+          if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
             return ProcessQueryResult::Drop;
           }
 
@@ -1531,11 +1539,14 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
       ++dnsdist::metrics::g_stats.cacheMisses;
 
       const auto existingPool = dnsQuestion.ids.poolName;
-      if (!applyRulesChainToQuery(*holders.cacheMissRuleActions, dnsQuestion)) {
+      const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+      const auto& cacheMissRuleActions = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::CacheMissRules);
+
+      if (!applyRulesChainToQuery(cacheMissRuleActions, dnsQuestion)) {
         return ProcessQueryResult::Drop;
       }
       if (dnsQuestion.getHeader()->qr) { // something turned it into a response
-        return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion, holders);
+        return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
       }
       /* let's be nice and allow the selection of a different pool,
          but no second cache-lookup for you */
@@ -1560,7 +1571,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
 
         fixUpQueryTurnedResponse(dnsQuestion, dnsQuestion.ids.origFlags);
 
-        if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, false)) {
+        if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, false)) {
           return ProcessQueryResult::Drop;
         }
         ++dnsdist::metrics::g_stats.responses;
@@ -1614,10 +1625,7 @@ public:
 
     auto& ids = response.d_idstate;
 
-    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
-    handleResponseForUDPClient(ids, response.d_buffer, *localRespRuleActions, *localCacheInsertedRespRuleActions, response.d_ds, response.isAsync(), response.d_idstate.selfGenerated);
+    handleResponseForUDPClient(ids, response.d_buffer, response.d_ds, response.isAsync(), response.d_idstate.selfGenerated);
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
@@ -1925,7 +1933,7 @@ bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket&
 
   try {
     bool expectProxyProtocol = false;
-    if (!XskIsQueryAcceptable(packet, clientState, holders, expectProxyProtocol)) {
+    if (!XskIsQueryAcceptable(packet, clientState, expectProxyProtocol)) {
       return false;
     }
 
@@ -2782,13 +2790,8 @@ static void cleanupLuaObjects()
 {
   /* when our coverage mode is enabled, we need to make sure
      that the Lua objects are destroyed before the Lua contexts. */
-  for (const auto& chain : dnsdist::rules::getRuleChains()) {
-    chain.holder.setState({});
-  }
-  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
-    chain.holder.setState({});
-  }
   dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_ruleChains = dnsdist::rules::RuleChains();
     config.d_lbPolicy = std::make_shared<ServerPolicy>();
     config.d_pools.clear();
     config.d_backends.clear();
