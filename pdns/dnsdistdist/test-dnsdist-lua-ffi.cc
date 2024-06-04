@@ -843,4 +843,64 @@ BOOST_AUTO_TEST_CASE(test_hash)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_SVC_Generation)
+{
+  dnsdist_ffi_svc_record_parameters* parameters{nullptr};
+
+  {
+    /* invalid parameters */
+    BOOST_CHECK_EQUAL(dnsdist_ffi_svc_record_parameters_new(nullptr, 0, false, &parameters), false);
+    BOOST_CHECK_EQUAL(dnsdist_ffi_svc_record_parameters_new("powerdns.com.", 0, false, nullptr), false);
+  }
+
+  BOOST_REQUIRE_EQUAL(dnsdist_ffi_svc_record_parameters_new("powerdns.com.", 1, true, &parameters), true);
+  BOOST_REQUIRE(parameters != nullptr);
+
+  {
+    /* invalid parameters */
+    dnsdist_ffi_svc_record_parameters_set_port(nullptr, 0);
+    dnsdist_ffi_svc_record_parameters_set_ech(nullptr, "alpn", 4);
+    dnsdist_ffi_svc_record_parameters_set_additional_param(nullptr, 7, "/dns-query{?dns}", 16);
+    dnsdist_ffi_svc_record_parameters_set_additional_param(parameters, 7, nullptr, 0);
+    dnsdist_ffi_svc_record_parameters_add_mandatory_param(nullptr, 0);
+    dnsdist_ffi_svc_record_parameters_add_alpn(nullptr, "h2", 2);
+    dnsdist_ffi_svc_record_parameters_add_alpn(parameters, nullptr, 0);
+    dnsdist_ffi_svc_record_parameters_add_ipv4_hint(parameters, nullptr, 0);
+    dnsdist_ffi_svc_record_parameters_add_ipv4_hint(nullptr, nullptr, 0);
+    dnsdist_ffi_svc_record_parameters_add_ipv6_hint(parameters, nullptr, 0);
+    dnsdist_ffi_svc_record_parameters_add_ipv6_hint(nullptr, nullptr, 0);
+    dnsdist_ffi_dnsquestion_generate_svc_response(nullptr, nullptr, 0, 0);
+  }
+
+  dnsdist_ffi_svc_record_parameters_set_port(parameters, 443);
+  dnsdist_ffi_svc_record_parameters_set_ech(parameters, "binary", 6);
+  dnsdist_ffi_svc_record_parameters_set_additional_param(parameters, 7, "/dns-query{?dns}", 16);
+  dnsdist_ffi_svc_record_parameters_add_mandatory_param(parameters, 7);
+  dnsdist_ffi_svc_record_parameters_add_alpn(parameters, "h2", 2);
+  dnsdist_ffi_svc_record_parameters_add_ipv4_hint(parameters, "9.9.9.9", 8);
+  dnsdist_ffi_svc_record_parameters_add_ipv6_hint(parameters, "2620:fe::fe", 11);
+
+  {
+    InternalQueryState ids;
+    ids.origRemote = ComboAddress("192.0.2.1:4242");
+    ids.origDest = ComboAddress("192.0.2.255:53");
+    ids.qtype = QType::A;
+    ids.qclass = QClass::IN;
+    ids.protocol = dnsdist::Protocol::DoUDP;
+    ids.qname = DNSName("www.powerdns.com.");
+    ids.queryRealTime.start();
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
+    pwQ.getHeader()->rd = 1;
+    pwQ.getHeader()->id = htons(42);
+
+    DNSQuestion dnsQuestion(ids, query);
+    dnsdist_ffi_dnsquestion_t lightDQ(&dnsQuestion);
+    std::array<const dnsdist_ffi_svc_record_parameters*, 1> list = {parameters};
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_generate_svc_response(&lightDQ, list.data(), list.size(), 42), true);
+  }
+
+  dnsdist_ffi_svc_record_parameters_free(parameters);
+}
+
 BOOST_AUTO_TEST_SUITE_END();

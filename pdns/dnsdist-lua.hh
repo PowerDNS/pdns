@@ -23,17 +23,9 @@
 
 #include "dolog.hh"
 #include "dnsdist.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsparser.hh"
 #include <random>
-
-struct ResponseConfig
-{
-  boost::optional<bool> setAA{boost::none};
-  boost::optional<bool> setAD{boost::none};
-  boost::optional<bool> setRA{boost::none};
-  uint32_t ttl{60};
-};
-void setResponseHeadersFromConfig(dnsheader& dnsheader, const ResponseConfig& config);
 
 class SpoofAction : public DNSAction
 {
@@ -84,13 +76,13 @@ public:
     return ret;
   }
 
-  [[nodiscard]] ResponseConfig& getResponseConfig()
+  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
   {
     return d_responseConfig;
   }
 
 private:
-  ResponseConfig d_responseConfig;
+  dnsdist::ResponseConfig d_responseConfig;
   static thread_local std::default_random_engine t_randomEngine;
   std::vector<ComboAddress> d_addrs;
   std::unordered_set<uint16_t> d_types;

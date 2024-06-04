@@ -382,13 +382,13 @@ public:
   {
     return "set rcode " + std::to_string(d_rcode);
   }
-  [[nodiscard]] ResponseConfig& getResponseConfig()
+  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
   {
     return d_responseConfig;
   }
 
 private:
-  ResponseConfig d_responseConfig;
+  dnsdist::ResponseConfig d_responseConfig;
   uint8_t d_rcode;
 };
 
@@ -412,13 +412,13 @@ public:
   {
     return "set ercode " + ERCode::to_s(d_rcode);
   }
-  [[nodiscard]] ResponseConfig& getResponseConfig()
+  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
   {
     return d_responseConfig;
   }
 
 private:
-  ResponseConfig d_responseConfig;
+  dnsdist::ResponseConfig d_responseConfig;
   uint8_t d_rcode;
 };
 
@@ -435,7 +435,6 @@ public:
         throw std::runtime_error("Unable to generate a valid SVC record from the supplied parameters");
       }
 
-      d_totalPayloadsSize += payload.size();
       d_payloads.push_back(std::move(payload));
 
       for (const auto& hint : param.second.ipv4hints) {
@@ -450,72 +449,28 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
-    /* it will likely be a bit bigger than that because of additionals */
-    auto numberOfRecords = d_payloads.size();
-    const auto qnameWireLength = dnsquestion->ids.qname.wirelength();
-    if (dnsquestion->getMaximumSize() < (sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords * 12 /* recordstart */ + d_totalPayloadsSize)) {
+    if (!dnsdist::svc::generateSVCResponse(*dnsquestion, d_payloads, d_additionals4, d_additionals6, d_responseConfig)) {
       return Action::None;
     }
-
-    PacketBuffer newPacket;
-    newPacket.reserve(sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords * 12 /* recordstart */ + d_totalPayloadsSize);
-    GenericDNSPacketWriter<PacketBuffer> packetWriter(newPacket, dnsquestion->ids.qname, dnsquestion->ids.qtype);
-    for (const auto& payload : d_payloads) {
-      packetWriter.startRecord(dnsquestion->ids.qname, dnsquestion->ids.qtype, d_responseConfig.ttl);
-      packetWriter.xfrBlob(payload);
-      packetWriter.commit();
-    }
-
-    if (newPacket.size() < dnsquestion->getMaximumSize()) {
-      for (const auto& additional : d_additionals4) {
-        packetWriter.startRecord(additional.first.isRoot() ? dnsquestion->ids.qname : additional.first, QType::A, d_responseConfig.ttl, QClass::IN, DNSResourceRecord::ADDITIONAL);
-        packetWriter.xfrCAWithoutPort(4, additional.second);
-        packetWriter.commit();
-      }
-    }
-
-    if (newPacket.size() < dnsquestion->getMaximumSize()) {
-      for (const auto& additional : d_additionals6) {
-        packetWriter.startRecord(additional.first.isRoot() ? dnsquestion->ids.qname : additional.first, QType::AAAA, d_responseConfig.ttl, QClass::IN, DNSResourceRecord::ADDITIONAL);
-        packetWriter.xfrCAWithoutPort(6, additional.second);
-        packetWriter.commit();
-      }
-    }
-
-    if (g_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dnsquestion)) {
-      bool dnssecOK = ((getEDNSZ(*dnsquestion) & EDNS_HEADER_FLAG_DO) != 0);
-      packetWriter.addOpt(g_PayloadSizeSelfGenAnswers, 0, dnssecOK ? EDNS_HEADER_FLAG_DO : 0);
-      packetWriter.commit();
-    }
-
-    if (newPacket.size() >= dnsquestion->getMaximumSize()) {
-      /* sorry! */
-      return Action::None;
-    }
-
-    packetWriter.getHeader()->id = dnsquestion->getHeader()->id;
-    packetWriter.getHeader()->qr = true; // for good measure
-    setResponseHeadersFromConfig(*packetWriter.getHeader(), d_responseConfig);
-    dnsquestion->getMutableData() = std::move(newPacket);
 
     return Action::HeaderModify;
   }
+
   [[nodiscard]] std::string toString() const override
   {
     return "spoof SVC record ";
   }
 
-  [[nodiscard]] ResponseConfig& getResponseConfig()
+  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
   {
     return d_responseConfig;
   }
 
 private:
-  ResponseConfig d_responseConfig;
+  dnsdist::ResponseConfig d_responseConfig;
   std::vector<std::vector<uint8_t>> d_payloads{};
   std::set<std::pair<DNSName, ComboAddress>> d_additionals4{};
   std::set<std::pair<DNSName, ComboAddress>> d_additionals6{};
-  size_t d_totalPayloadsSize{0};
 };
 
 class TCAction : public DNSAction
@@ -2093,13 +2048,13 @@ public:
     return "return an HTTP status of " + std::to_string(d_code);
   }
 
-  [[nodiscard]] ResponseConfig& getResponseConfig()
+  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
   {
     return d_responseConfig;
   }
 
 private:
-  ResponseConfig d_responseConfig;
+  dnsdist::ResponseConfig d_responseConfig;
   PacketBuffer d_body;
   std::string d_contentType;
   int d_code;
@@ -2259,13 +2214,13 @@ public:
   {
     return std::string(d_nxd ? "NXD " : "NODATA") + " with SOA";
   }
-  [[nodiscard]] ResponseConfig& getResponseConfig()
+  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
   {
     return d_responseConfig;
   }
 
 private:
-  ResponseConfig d_responseConfig;
+  dnsdist::ResponseConfig d_responseConfig;
 
   DNSName d_zone;
   DNSName d_mname;
@@ -2438,31 +2393,12 @@ static void addAction(GlobalStateHolder<vector<T>>* someRuleActions, const luadn
 
 using responseParams_t = std::unordered_map<std::string, boost::variant<bool, uint32_t>>;
 
-static void parseResponseConfig(boost::optional<responseParams_t>& vars, ResponseConfig& config)
+static void parseResponseConfig(boost::optional<responseParams_t>& vars, dnsdist::ResponseConfig& config)
 {
   getOptionalValue<uint32_t>(vars, "ttl", config.ttl);
   getOptionalValue<bool>(vars, "aa", config.setAA);
   getOptionalValue<bool>(vars, "ad", config.setAD);
   getOptionalValue<bool>(vars, "ra", config.setRA);
-}
-
-void setResponseHeadersFromConfig(dnsheader& dnsheader, const ResponseConfig& config)
-{
-  if (config.setAA) {
-    dnsheader.aa = *config.setAA;
-  }
-  if (config.setAD) {
-    dnsheader.ad = *config.setAD;
-  }
-  else {
-    dnsheader.ad = false;
-  }
-  if (config.setRA) {
-    dnsheader.ra = *config.setRA;
-  }
-  else {
-    dnsheader.ra = dnsheader.rd; // for good measure
-  }
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
