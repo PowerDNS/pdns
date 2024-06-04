@@ -128,91 +128,118 @@ static std::string rulesToString(const std::vector<T>& rules, boost::optional<ru
   return result;
 }
 
-template <typename T>
-static void showRules(GlobalStateHolder<vector<T>>* someRuleActions, boost::optional<ruleparams_t>& vars)
+template <typename IdentifierT>
+static void showRules(IdentifierT identifier, boost::optional<ruleparams_t>& vars)
 {
   setLuaNoSideEffect();
 
-  auto rules = someRuleActions->getLocal();
-  g_outputBuffer += rulesToString(*rules, vars);
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& rules = dnsdist::rules::getRuleChain(chains, identifier);
+  g_outputBuffer += rulesToString(rules, vars);
 }
 
-template <typename T>
-static void rmRule(GlobalStateHolder<vector<T>>* someRuleActions, const boost::variant<unsigned int, std::string>& ruleID)
+template <typename ChainTypeT, typename RuleTypeT>
+static bool removeRuleFromChain(ChainTypeT& rules, const std::function<bool(const RuleTypeT& rule)>& matchFunction)
 {
-  setLuaSideEffect();
-  auto rules = someRuleActions->getCopy();
+  auto removeIt = std::remove_if(rules.begin(),
+                                 rules.end(),
+                                 matchFunction);
+  if (removeIt == rules.end()) {
+    g_outputBuffer = "Error: no rule matched\n";
+    return false;
+  }
+  rules.erase(removeIt,
+              rules.end());
+  return true;
+}
+
+template <typename ChainIdentifierT>
+static void rmRule(ChainIdentifierT chainIdentifier, const boost::variant<unsigned int, std::string>& ruleID)
+{
   if (const auto* str = boost::get<std::string>(&ruleID)) {
     try {
       const auto uuid = getUniqueID(*str);
-      auto removeIt = std::remove_if(rules.begin(),
-                                     rules.end(),
-                                     [&uuid](const T& rule) { return rule.d_id == uuid; });
-      if (removeIt == rules.end()) {
-        g_outputBuffer = "Error: no rule matched\n";
-        return;
-      }
-      rules.erase(removeIt,
-                  rules.end());
+      dnsdist::configuration::updateRuntimeConfiguration([chainIdentifier, &uuid](dnsdist::configuration::RuntimeConfiguration& config) {
+        constexpr bool isResponseChain = std::is_same_v<ChainIdentifierT, dnsdist::rules::ResponseRuleChain>;
+        if constexpr (isResponseChain) {
+          auto& rules = dnsdist::rules::getResponseRuleChain(config.d_ruleChains, chainIdentifier);
+          std::function<bool(const dnsdist::rules::ResponseRuleAction&)> matchFunction = [&uuid](const dnsdist::rules::ResponseRuleAction& rule) -> bool { return rule.d_id == uuid; };
+          removeRuleFromChain(rules, matchFunction);
+        }
+        else {
+          auto& rules = dnsdist::rules::getRuleChain(config.d_ruleChains, chainIdentifier);
+          std::function<bool(const dnsdist::rules::RuleAction&)> matchFunction = [&uuid](const dnsdist::rules::RuleAction& rule) -> bool { return rule.d_id == uuid; };
+          removeRuleFromChain(rules, matchFunction);
+        }
+      });
     }
     catch (const std::runtime_error& e) {
-      /* it was not an UUID, let's see if it was a name instead */
-      auto removeIt = std::remove_if(rules.begin(),
-                                     rules.end(),
-                                     [&str](const T& rule) { return rule.d_name == *str; });
-      if (removeIt == rules.end()) {
-        g_outputBuffer = "Error: no rule matched\n";
-        return;
-      }
-      rules.erase(removeIt,
-                  rules.end());
+      dnsdist::configuration::updateRuntimeConfiguration([chainIdentifier, &str](dnsdist::configuration::RuntimeConfiguration& config) {
+        constexpr bool isResponseChain = std::is_same_v<ChainIdentifierT, dnsdist::rules::ResponseRuleChain>;
+        if constexpr (isResponseChain) {
+          auto& rules = dnsdist::rules::getResponseRuleChain(config.d_ruleChains, chainIdentifier);
+          std::function<bool(const dnsdist::rules::ResponseRuleAction&)> matchFunction = [&str](const dnsdist::rules::ResponseRuleAction& rule) -> bool { return rule.d_name == *str; };
+          removeRuleFromChain(rules, matchFunction);
+        }
+        else {
+          auto& rules = dnsdist::rules::getRuleChain(config.d_ruleChains, chainIdentifier);
+          std::function<bool(const dnsdist::rules::RuleAction&)> matchFunction = [&str](const dnsdist::rules::RuleAction& rule) -> bool { return rule.d_name == *str; };
+          removeRuleFromChain(rules, matchFunction);
+        }
+      });
     }
   }
   else if (const auto* pos = boost::get<unsigned int>(&ruleID)) {
-    if (*pos >= rules.size()) {
-      g_outputBuffer = "Error: attempt to delete non-existing rule\n";
+    dnsdist::configuration::updateRuntimeConfiguration([chainIdentifier, pos](dnsdist::configuration::RuntimeConfiguration& config) {
+      auto& rules = dnsdist::rules::getRuleChain(config.d_ruleChains, chainIdentifier);
+      if (*pos >= rules.size()) {
+        g_outputBuffer = "Error: attempt to delete non-existing rule\n";
+        return;
+      }
+      rules.erase(rules.begin() + *pos);
+    });
+  }
+  setLuaSideEffect();
+}
+
+template <typename IdentifierTypeT>
+static void moveRuleToTop(IdentifierTypeT chainIdentifier)
+{
+  setLuaSideEffect();
+  dnsdist::configuration::updateRuntimeConfiguration([chainIdentifier](dnsdist::configuration::RuntimeConfiguration& config) {
+    auto& rules = dnsdist::rules::getRuleChain(config.d_ruleChains, chainIdentifier);
+    if (rules.empty()) {
       return;
     }
-    rules.erase(rules.begin() + *pos);
-  }
-  someRuleActions->setState(std::move(rules));
+    auto subject = *rules.rbegin();
+    rules.erase(std::prev(rules.end()));
+    rules.insert(rules.begin(), subject);
+  });
+  setLuaSideEffect();
 }
 
-template <typename T>
-static void moveRuleToTop(GlobalStateHolder<vector<T>>* someRuleActions)
+template <typename IdentifierTypeT>
+static void mvRule(IdentifierTypeT chainIdentifier, unsigned int from, unsigned int destination)
 {
-  setLuaSideEffect();
-  auto rules = someRuleActions->getCopy();
-  if (rules.empty()) {
-    return;
-  }
-  auto subject = *rules.rbegin();
-  rules.erase(std::prev(rules.end()));
-  rules.insert(rules.begin(), subject);
-  someRuleActions->setState(std::move(rules));
-}
-
-template <typename T>
-static void mvRule(GlobalStateHolder<vector<T>>* someRespRuleActions, unsigned int from, unsigned int destination)
-{
-  setLuaSideEffect();
-  auto rules = someRespRuleActions->getCopy();
-  if (from >= rules.size() || destination > rules.size()) {
-    g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
-    return;
-  }
-  auto subject = rules[from];
-  rules.erase(rules.begin() + from);
-  if (destination > rules.size()) {
-    rules.push_back(subject);
-  }
-  else {
-    if (from < destination) {
-      --destination;
+  dnsdist::configuration::updateRuntimeConfiguration([chainIdentifier, from, &destination](dnsdist::configuration::RuntimeConfiguration& config) {
+    auto& rules = dnsdist::rules::getRuleChain(config.d_ruleChains, chainIdentifier);
+    if (from >= rules.size() || destination > rules.size()) {
+      g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
+      return;
     }
-    rules.insert(rules.begin() + destination, subject);
-  }
-  someRespRuleActions->setState(std::move(rules));
+    auto subject = rules[from];
+    rules.erase(rules.begin() + from);
+    if (destination > rules.size()) {
+      rules.push_back(subject);
+    }
+    else {
+      if (from < destination) {
+        --destination;
+      }
+      rules.insert(rules.begin() + destination, subject);
+    }
+  });
+  setLuaSideEffect();
 }
 
 template <typename T>
@@ -333,90 +360,100 @@ void setupLuaRules(LuaContext& luaCtx)
 
   luaCtx.registerFunction<std::shared_ptr<DNSResponseAction> (dnsdist::rules::ResponseRuleAction::*)() const>("getAction", [](const dnsdist::rules::ResponseRuleAction& rule) { return rule.d_action; });
 
-  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
+  for (const auto& chain : dnsdist::rules::getResponseRuleChainDescriptions()) {
     luaCtx.writeFunction("show" + chain.prefix + "ResponseRules", [&chain](boost::optional<ruleparams_t> vars) {
-      showRules(&chain.holder, vars);
+      showRules(chain.identifier, vars);
     });
     luaCtx.writeFunction("rm" + chain.prefix + "ResponseRule", [&chain](const boost::variant<unsigned int, std::string>& identifier) {
-      rmRule(&chain.holder, identifier);
+      rmRule(chain.identifier, identifier);
     });
     luaCtx.writeFunction("mv" + chain.prefix + "ResponseRuleToTop", [&chain]() {
-      moveRuleToTop(&chain.holder);
+      moveRuleToTop(chain.identifier);
     });
     luaCtx.writeFunction("mv" + chain.prefix + "ResponseRule", [&chain](unsigned int from, unsigned int dest) {
-      mvRule(&chain.holder, from, dest);
+      mvRule(chain.identifier, from, dest);
     });
     luaCtx.writeFunction("get" + chain.prefix + "ResponseRule", [&chain](const boost::variant<unsigned int, std::string>& selector) -> boost::optional<dnsdist::rules::ResponseRuleAction> {
-      auto rules = chain.holder.getLocal();
-      return getRuleFromSelector(*rules, selector);
+      const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+      const auto& rules = dnsdist::rules::getResponseRuleChain(chains, chain.identifier);
+      return getRuleFromSelector(rules, selector);
     });
 
     luaCtx.writeFunction("getTop" + chain.prefix + "ResponseRules", [&chain](boost::optional<unsigned int> top) {
       setLuaNoSideEffect();
-      auto rules = chain.holder.getLocal();
-      return toLuaArray(getTopRules(*rules, (top ? *top : 10)));
+      const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+      const auto& rules = dnsdist::rules::getResponseRuleChain(chains, chain.identifier);
+      return toLuaArray(getTopRules(rules, (top ? *top : 10)));
     });
 
     luaCtx.writeFunction("top" + chain.prefix + "ResponseRules", [&chain](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
       setLuaNoSideEffect();
-      auto rules = chain.holder.getLocal();
-      return rulesToString(getTopRules(*rules, (top ? *top : 10)), vars);
+      const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+      const auto& rules = dnsdist::rules::getResponseRuleChain(chains, chain.identifier);
+      return rulesToString(getTopRules(rules, (top ? *top : 10)), vars);
     });
 
     luaCtx.writeFunction("clear" + chain.prefix + "ResponseRules", [&chain]() {
       setLuaSideEffect();
-      chain.holder.modify([](std::remove_reference_t<decltype(chain.holder)>::value_type& ruleactions) {
-        ruleactions.clear();
+      dnsdist::configuration::updateRuntimeConfiguration([&chain](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto& rules = dnsdist::rules::getRuleChain(config.d_ruleChains, chain.identifier);
+        rules.clear();
       });
     });
   }
 
-  for (const auto& chain : dnsdist::rules::getRuleChains()) {
+  for (const auto& chain : dnsdist::rules::getRuleChainDescriptions()) {
     luaCtx.writeFunction("show" + chain.prefix + "Rules", [&chain](boost::optional<ruleparams_t> vars) {
-      showRules(&chain.holder, vars);
+      showRules(chain.identifier, vars);
     });
     luaCtx.writeFunction("rm" + chain.prefix + "Rule", [&chain](const boost::variant<unsigned int, std::string>& identifier) {
-      rmRule(&chain.holder, identifier);
+      rmRule(chain.identifier, identifier);
     });
     luaCtx.writeFunction("mv" + chain.prefix + "RuleToTop", [&chain]() {
-      moveRuleToTop(&chain.holder);
+      moveRuleToTop(chain.identifier);
     });
     luaCtx.writeFunction("mv" + chain.prefix + "Rule", [&chain](unsigned int from, unsigned int dest) {
-      mvRule(&chain.holder, from, dest);
+      mvRule(chain.identifier, from, dest);
     });
     luaCtx.writeFunction("get" + chain.prefix + "Rule", [&chain](const boost::variant<int, std::string>& selector) -> boost::optional<dnsdist::rules::RuleAction> {
-      auto rules = chain.holder.getLocal();
-      return getRuleFromSelector(*rules, selector);
+      const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+      const auto& rules = dnsdist::rules::getRuleChain(chains, chain.identifier);
+      return getRuleFromSelector(rules, selector);
     });
 
     luaCtx.writeFunction("getTop" + chain.prefix + "Rules", [&chain](boost::optional<unsigned int> top) {
       setLuaNoSideEffect();
-      auto rules = chain.holder.getLocal();
-      return toLuaArray(getTopRules(*rules, (top ? *top : 10)));
+      const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+      const auto& rules = dnsdist::rules::getRuleChain(chains, chain.identifier);
+      return toLuaArray(getTopRules(rules, (top ? *top : 10)));
     });
 
     luaCtx.writeFunction("top" + chain.prefix + "Rules", [&chain](boost::optional<unsigned int> top, boost::optional<ruleparams_t> vars) {
       setLuaNoSideEffect();
-      auto rules = chain.holder.getLocal();
-      return rulesToString(getTopRules(*rules, (top ? *top : 10)), vars);
+      const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+      const auto& rules = dnsdist::rules::getRuleChain(chains, chain.identifier);
+
+      return rulesToString(getTopRules(rules, (top ? *top : 10)), vars);
     });
 
     luaCtx.writeFunction("clear" + chain.prefix + "Rules", [&chain]() {
       setLuaSideEffect();
-      chain.holder.modify([](std::remove_reference_t<decltype(chain.holder)>::value_type& ruleactions) {
-        ruleactions.clear();
+      dnsdist::configuration::updateRuntimeConfiguration([&chain](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto& rules = dnsdist::rules::getRuleChain(config.d_ruleChains, chain.identifier);
+        rules.clear();
       });
     });
 
     luaCtx.writeFunction("set" + chain.prefix + "Rules", [&chain](const LuaArray<std::shared_ptr<dnsdist::rules::RuleAction>>& newruleactions) {
       setLuaSideEffect();
-      chain.holder.modify([newruleactions](std::remove_reference_t<decltype(chain.holder)>::value_type& gruleactions) {
-        gruleactions.clear();
+      dnsdist::configuration::updateRuntimeConfiguration([&chain, &newruleactions](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto& rules = dnsdist::rules::getRuleChain(config.d_ruleChains, chain.identifier);
+        rules.clear();
         for (const auto& pair : newruleactions) {
           const auto& newruleaction = pair.second;
           if (newruleaction->d_action) {
             auto rule = newruleaction->d_rule;
-            gruleactions.push_back({std::move(rule), newruleaction->d_action, newruleaction->d_name, newruleaction->d_id, newruleaction->d_creationOrder});
+            rules.push_back({std::move(rule), newruleaction->d_action, newruleaction->d_name, newruleaction->d_id, newruleaction->d_creationOrder});
           }
         }
       });
