@@ -95,14 +95,12 @@ std::string HTTPConnector::buildMemberListArgs(const std::string& prefix, const 
   std::stringstream stream;
 
   for (const auto& pair : args.object_items()) {
+    stream << prefix << "[" << YaHTTP::Utility::encodeURL(pair.first, false) << "]=";
     if (pair.second.is_bool()) {
       stream << (pair.second.bool_value() ? "1" : "0");
     }
-    else if (pair.second.is_null()) {
-      stream << prefix << "[" << YaHTTP::Utility::encodeURL(pair.first, false) << "]=";
-    }
-    else {
-      stream << prefix << "[" << YaHTTP::Utility::encodeURL(pair.first, false) << "]=" << YaHTTP::Utility::encodeURL(HTTPConnector::asString(pair.second), false);
+    else if (!pair.second.is_null()) {
+      stream << YaHTTP::Utility::encodeURL(HTTPConnector::asString(pair.second), false);
     }
     stream << "&";
   }
@@ -183,9 +181,9 @@ void HTTPConnector::restful_requestbuilder(const std::string& method, const Json
   else if (method == "replaceRRSet") {
     std::stringstream ss2;
     for (size_t index = 0; index < parameters["rrset"].array_items().size(); index++) {
-      ss2 << buildMemberListArgs("rrset[" + std::to_string(index) + "]", parameters["rrset"][index]);
+      ss2 << buildMemberListArgs("rrset[" + std::to_string(index) + "]", parameters["rrset"][index]) << "&";
     }
-    req.body = ss2.str();
+    req.body = ss2.str().substr(0, ss2.str().size() - 1); // remove trailing &
     req.headers["content-type"] = "application/x-www-form-urlencoded; charset=utf-8";
     req.headers["content-length"] = std::to_string(req.body.size());
     verb = "PATCH";
