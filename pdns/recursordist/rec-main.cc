@@ -859,33 +859,24 @@ static void setupNODThread(Logr::log_t log)
   }
 }
 
-static void parseNODIgnorelist(const std::string& wlist)
+static void parseIgnorelist(const std::string& wlist, SuffixMatchNode& matchNode)
 {
   vector<string> parts;
   stringtok(parts, wlist, ",; ");
   for (const auto& part : parts) {
-    g_nodDomainWL.add(DNSName(part));
+    matchNode.add(DNSName(part));
   }
 }
 
-static void parseUDRIgnorelist(const std::string& wlist)
-{
-  vector<string> parts;
-  stringtok(parts, wlist, ",; ");
-  for (const auto& part : parts) {
-    g_udrDomainWL.add(DNSName(part));
-  }
-}
-
-static void parseUDRIgnorelistFile(const std::string& fname)
+static void parseIgnorelistFile(const std::string& fname, SuffixMatchNode& matchNode)
 {
   string line;
-  std::ifstream udrIgnorelistFileStream(fname);
-  if (!udrIgnorelistFileStream) {
+  std::ifstream ignorelistFileStream(fname);
+  if (!ignorelistFileStream) {
     throw ArgException(fname + " could not be parsed");
   }
 
-  while (getline(udrIgnorelistFileStream, line)) {
+  while (getline(ignorelistFileStream, line)) {
     boost::trim_right(line);
 
     // strip everything after a #
@@ -906,7 +897,7 @@ static void parseUDRIgnorelistFile(const std::string& fname)
       line = line.substr(pos);
     }
 
-    g_udrDomainWL.add(DNSName(line));
+    matchNode.add(DNSName(line));
   }
 }
 
@@ -916,16 +907,19 @@ static void setupNODGlobal()
   g_nodEnabled = ::arg().mustDo("new-domain-tracking");
   g_nodLookupDomain = DNSName(::arg()["new-domain-lookup"]);
   g_nodLog = ::arg().mustDo("new-domain-log");
-  parseNODIgnorelist(::arg()["new-domain-whitelist"]);
-  parseNODIgnorelist(::arg()["new-domain-ignore-list"]);
+  parseIgnorelist(::arg()["new-domain-whitelist"], g_nodDomainWL);
+  parseIgnorelist(::arg()["new-domain-ignore-list"], g_nodDomainWL);
+  if (!::arg().isEmpty("new-domain-ignore-list-file"))
+    parseIgnorelistFile(::arg()["new-domain-ignore-list-file"], g_nodDomainWL);
 
   // Setup Unique DNS Response subsystem
   g_udrEnabled = ::arg().mustDo("unique-response-tracking");
   g_udrLog = ::arg().mustDo("unique-response-log");
   g_nod_pbtag = ::arg()["new-domain-pb-tag"];
   g_udr_pbtag = ::arg()["unique-response-pb-tag"];
-  parseUDRIgnorelist(::arg()["udr-ignore-list"]);
-  parseUDRIgnorelistFile(::arg()["udr-ignore-list-file"]);
+  parseIgnorelist(::arg()["udr-ignore-list"], g_udrDomainWL);
+  if (!::arg().isEmpty("udr-ignore-list-file"))
+    parseIgnorelistFile(::arg()["udr-ignore-list-file"], g_udrDomainWL);
 }
 #endif /* NOD_ENABLED */
 
