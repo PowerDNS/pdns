@@ -16,6 +16,7 @@ New settings
 - The :ref:`setting-system-resolver-ttl` setting has been introduced to set the TTL of the system resolver. The system resolver can be used to resolve forwarding names.
 - The :ref:`setting-system-resolver-interval` setting has been introduced to set the interval of resolve checks done by the system resolver.
 - The :ref:`setting-system-resolver-self-resolve-check` setting has been introduced to disable to discovery of self-resolving configurations.
+- The :ref:`setting-max-chain-length` setting has been introduced to limit the maximum number of queries that can be attached to an outgoing request chain.
 
 Changed settings
 ^^^^^^^^^^^^^^^^

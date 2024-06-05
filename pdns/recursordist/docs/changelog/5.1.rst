@@ -4,6 +4,41 @@ Changelogs for 5.1.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.1.0-beta1
+  :released: 6th of June 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14257
+    :tickets: 13020
+
+    Add a few more fields to the protobuf messages.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14221,14258
+
+    Handle authoritative servers slow to respond when load is high better.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14206
+
+    Be a bit more strict with respect to positive answers expanded from a wildcard.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14111
+
+    Extra export types for protobuf messages.
+
+ .. change::
+    :tags: Improvements
+    :pullreq: 14268,14259,14260,14262
+
+    Various code cleanups and Coverity prompted fixes.
+
+.. changelog::
   :version: 5.1.0-alpha1
   :released: 15th of May 2024
 
