@@ -1806,9 +1806,7 @@ feature.
 This setting is a list of all domains (and implicitly all subdomains)
 that will never be considered for a new unique domain request.
 For example, if the domain 'xyz123.tv' is in the list, then 'foo.bar.xyz123.tv'
-will never be considered for a new unique domain request. One use-case for the
-ignore list is to never reveal details of internal subdomains
-via the new-domain-lookup feature.
+will never be considered for a new unique domain request.
  ''',
         'versionadded' : '5.1.0'
     },
@@ -1823,9 +1821,7 @@ via the new-domain-lookup feature.
 This setting is a list of all domains (and implicitly all subdomains)
 that will never be considered for a new unique domain request.
 For example, if the domain 'xyz123.tv' is in the list, then 'foo.bar.xyz123.tv'
-will never be considered for a new unique domain request. One use-case for the
-ignore list is to never reveal details of internal subdomains
-via the new-domain-lookup feature.
+will never be considered for a new unique domain request.
  ''',
         'versionadded' : '5.1.0'
     },
