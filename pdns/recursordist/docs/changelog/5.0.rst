@@ -4,6 +4,24 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+   :version: 5.0.6
+   :released: 5th of June 2024
+
+  .. change::
+    :tags:  Improvements
+    :pullreq: 14223
+    :tickets: 14197
+
+    YaHTTP: Enforce max # of request fields and max request line size.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14222
+    :tickets: 14185
+
+    Report error and adjust max-mthreads when linux map limit (vm.max_map_count) is too low to accomodate resource usage under load.
+
+.. changelog::
    :version: 5.0.5
    :released: 14th of May 2024
 
