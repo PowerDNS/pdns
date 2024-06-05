@@ -60,7 +60,7 @@ jobs:
         run: echo "oslist=$(jo -a ${{ inputs.os }})" >> "$GITHUB_OUTPUT"
   build:
     needs: prepare
-    name: build ${{ inputs.product }} (${{ inputs.ref }}) for ${{ matrix.os }}
+    name: ${{ inputs.product }} (${{ inputs.ref }}) on ${{ matrix.runner-os }} for ${{ matrix.os }}
     runs-on: ${{ matrix.runner-os }}
     strategy:
       matrix:
