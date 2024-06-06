@@ -7,20 +7,22 @@ on:
 
 permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
   contents: read
+  actions: read
 
 jobs:
-  build:
-    name: docker build
+  call-build-image-dnsdist:
+    uses: PowerDNS/pdns/.github/workflows/build-docker-images.yml@rel/dnsdist-1.8.x
     if: ${{ vars.SCHEDULED_DOCKER }}
-    # on a ubuntu-20.04 VM
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        product: ['dnsdist']
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 5
-          submodules: recursive
-      # this builds packages and runs our unit test (make check)
-      - run: docker build --rm -t powerdns-${{ matrix.product }} -f Dockerfile-${{ matrix.product }} .
+    with:
+      product: dnsdist
+      ref: ${{ github.ref_name }}
+      image-name: dnsdist-1.8.x
+      image-tags: |-
+        latest
+      image-description: 'EXPERIMENTAL dnsdist image'
+      platforms: linux/amd64,linux/arm64/v8
+      push: true
+    secrets:
+      DOCKERHUB_ORGANIZATION_NAME: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
