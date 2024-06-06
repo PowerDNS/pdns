@@ -23,7 +23,7 @@ Proxy Protocol
 From dnsdist to its backend
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To enable the use of the proxy protocol between dnsdist and its backend, the ``useProxyProtocol`` parameter can be used when creating a :func:`new server <newServer>`:
+To enable the use of the Proxy Protocol between dnsdist and its backend, the ``useProxyProtocol`` parameter can be used when creating a :func:`new server <newServer>`:
 
 .. code-block:: lua
 
