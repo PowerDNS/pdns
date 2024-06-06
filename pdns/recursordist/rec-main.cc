@@ -873,7 +873,7 @@ static void parseIgnorelistFile(const std::string& fname, SuffixMatchNode& match
   string line;
   std::ifstream ignorelistFileStream(fname);
   if (!ignorelistFileStream) {
-    throw ArgException(fname + " could not be parsed");
+    throw ArgException(fname + " could not be opened");
   }
 
   while (getline(ignorelistFileStream, line)) {
