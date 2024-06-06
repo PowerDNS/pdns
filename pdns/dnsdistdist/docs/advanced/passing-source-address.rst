@@ -46,7 +46,7 @@ Such a Proxy Protocol header can also be passed from the client to dnsdist, usin
 
   setProxyProtocolACL({'192.0.2.0/24'})
 
-Note that a proxy protocol payload will be required from these clients, regular DNS queries will no longer be accepted if they are not preceded by a proxy protocol payload.
+Note that a Proxy Protocol payload will be required from these clients, regular DNS queries will no longer be accepted if they are not preceded by a Proxy Protocol payload.
 
 If :func:`setProxyProtocolApplyACLToProxiedClients` is set (default is false), the general ACL will be applied to the source IP address as seen by dnsdist first, but also to the source IP address provided in the Proxy Protocol header.
 
