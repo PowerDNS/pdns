@@ -54,6 +54,9 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-clang
       - run: inv install-auth-build-deps
@@ -80,6 +83,9 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-clang
       - run: inv install-dnsdist-build-deps --skipXDP
@@ -112,6 +118,9 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-clang
       - run: inv install-rec-build-deps
