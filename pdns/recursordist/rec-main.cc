@@ -877,8 +877,6 @@ static void parseIgnorelistFile(const std::string& fname, SuffixMatchNode& match
   }
 
   while (getline(ignorelistFileStream, line)) {
-    boost::trim_right(line);
-
     // strip everything after a #
     string::size_type pos = line.find('#');
     if (pos != string::npos) {
@@ -888,14 +886,7 @@ static void parseIgnorelistFile(const std::string& fname, SuffixMatchNode& match
       }
     }
 
-    // strip trailing spaces
-    boost::trim_right(line);
-
-    // strip leading spaces
-    pos = line.find_first_not_of(" \t\r\n");
-    if (pos != string::npos) {
-      line = line.substr(pos);
-    }
+    boost::trim(line);
 
     matchNode.add(DNSName(line));
   }
