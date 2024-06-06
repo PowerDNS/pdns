@@ -1798,7 +1798,6 @@ feature.
     {
         'name' : 'ignore_list_file',
         'section' : 'nod',
-        'oldname' : 'new-domain-ignore-list-file',
         'type' : LType.String,
         'default' : '',
         'help' : 'File with a list of domains (and implicitly all subdomains) which will never be considered a new domain',
@@ -1815,7 +1814,6 @@ feature.
     {
         'name' : 'udr_ignore_list',
         'section' : 'nod',
-        'oldname' : 'udr-ignore-list',
         'type' : LType.ListStrings,
         'default' : '',
         'help' : 'List of domains (and implicitly all subdomains) which will never be considered for UDR',
@@ -1830,7 +1828,6 @@ will never be considered for a new unique domain request.
     {
         'name' : 'udr_ignore_list_file',
         'section' : 'nod',
-        'oldname' : 'udr-ignore-list-file',
         'type' : LType.String,
         'default' : '',
         'help' : 'File with list of domains (and implicitly all subdomains) which will never be considered for UDR',
