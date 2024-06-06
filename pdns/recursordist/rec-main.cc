@@ -897,8 +897,9 @@ static void setupNODGlobal()
   g_nodLog = ::arg().mustDo("new-domain-log");
   parseIgnorelist(::arg()["new-domain-whitelist"], g_nodDomainWL);
   parseIgnorelist(::arg()["new-domain-ignore-list"], g_nodDomainWL);
-  if (!::arg().isEmpty("new-domain-ignore-list-file"))
+  if (!::arg().isEmpty("new-domain-ignore-list-file")) {
     parseIgnorelistFile(::arg()["new-domain-ignore-list-file"], g_nodDomainWL);
+  }
 
   // Setup Unique DNS Response subsystem
   g_udrEnabled = ::arg().mustDo("unique-response-tracking");
@@ -906,8 +907,9 @@ static void setupNODGlobal()
   g_nod_pbtag = ::arg()["new-domain-pb-tag"];
   g_udr_pbtag = ::arg()["unique-response-pb-tag"];
   parseIgnorelist(::arg()["udr-ignore-list"], g_udrDomainWL);
-  if (!::arg().isEmpty("udr-ignore-list-file"))
+  if (!::arg().isEmpty("udr-ignore-list-file")) {
     parseIgnorelistFile(::arg()["udr-ignore-list-file"], g_udrDomainWL);
+  }
 }
 #endif /* NOD_ENABLED */
 
