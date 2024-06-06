@@ -879,7 +879,13 @@ static void parseIgnorelistFile(const std::string& fname, SuffixMatchNode& match
   while (getline(ignorelistFileStream, line)) {
     boost::trim(line);
 
-    matchNode.add(DNSName(line));
+    try {
+      matchNode.add(DNSName(line));
+    }
+    catch (const std::exception& e) {
+      SLOG(g_log << Logger::Warning << "Ignoring line of ignorelist due to an error: " << e.what() << endl,
+           g_slog->withName("config")->error(Logr::Warning, e.what(), "Ignoring line of ignorelist due to an error", "exception", Logging::Loggable("std::exception")));
+    }
   }
 }
 
