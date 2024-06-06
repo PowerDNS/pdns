@@ -877,15 +877,6 @@ static void parseIgnorelistFile(const std::string& fname, SuffixMatchNode& match
   }
 
   while (getline(ignorelistFileStream, line)) {
-    // strip everything after a #
-    string::size_type pos = line.find('#');
-    if (pos != string::npos) {
-      // make sure it's either first char or has whitespace before
-      if (pos == 0 || (std::isspace(line[pos - 1]) != 0)) {
-        line = line.substr(0, pos);
-      }
-    }
-
     boost::trim(line);
 
     matchNode.add(DNSName(line));
