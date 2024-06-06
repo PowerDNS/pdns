@@ -209,6 +209,10 @@ public:
     d_maxbodysize = s * 1024 * 1024;
   }
 
+  void setConnectionTimeout(int t) { // in seconds
+    d_connectiontimeout = t;
+  }
+
   void setACL(const NetmaskGroup &nmg) {
     d_acl = nmg;
   }
@@ -282,6 +286,7 @@ protected:
   std::unique_ptr<CredentialsHolder> d_webserverPassword{nullptr};
 
   ssize_t d_maxbodysize; // in bytes
+  int d_connectiontimeout; // in seconds
 
   NetmaskGroup d_acl;
 
