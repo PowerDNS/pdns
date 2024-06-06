@@ -89,11 +89,11 @@ To reduce the cost of allocating a new stack for every query, the recursor can c
 This limit is per physical (Posix) thread.
 The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equals to the number of stacks specified by :ref:`setting-stack-cache-size` multiplied by the size of one stack, itself specified via :ref:`setting-stack-size`.
 
-Linux limits the number of memory mappings a process can allocate by the the ``vm.max_map_count`` kernel parameter.
-A single ``MThead`` stack can take up to 3 memory mappings.
-Starting with version 4.9, it is advised to set ``sysctl vm.max_map_count`` to make sure that the :program:`Recursor` can allocate enough stacks under load; suggested value is at least ``4 * (threads + 2) * max-mthreads``.
-Some Linux distributions use the value of about one million, which should be enough for most configurations.
-Other distributions default to 64k, which can be too low.
+Linux limits the number of memory mappings a process can allocate by the ``vm.max_map_count`` kernel parameter.
+A single ``MThread`` stack can take up to 3 memory mappings.
+Starting with version 4.9, it is advised to check and if needed update the value of ``sysctl vm.max_map_count`` to make sure that the :program:`Recursor` can allocate enough stacks under load; suggested value is at least ``4 * (threads + 2) * max-mthreads``.
+Some Linux distributions use a default value of about one million, which should be enough for most configurations.
+Other distributions default to 64k, which can be too low for large setups.
 
 Performance tips
 ----------------
