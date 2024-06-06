@@ -115,8 +115,8 @@ struct DNSCryptCertSignedData
   using ResolverPublicKeyType = std::array<unsigned char, DNSCRYPT_PROVIDER_PUBLIC_KEY_SIZE>;
   using ResolverPrivateKeyType = std::array<unsigned char, DNSCRYPT_PROVIDER_PRIVATE_KEY_SIZE>;
   using ClientMagicType = std::array<unsigned char, DNSCRYPT_CLIENT_MAGIC_SIZE>;
-  ResolverPublicKeyType resolverPK;
-  ClientMagicType clientMagic;
+  ResolverPublicKeyType resolverPK{};
+  ClientMagicType clientMagic{};
   uint32_t serial{0};
   uint32_t tsStart{0};
   uint32_t tsEnd{0};
@@ -148,10 +148,10 @@ public:
   using ESVersionType = std::array<unsigned char, 2>;
   using ProtocolMinorVersionType = std::array<unsigned char, 2>;
   using CertMagicType = std::array<unsigned char, DNSCRYPT_CERT_MAGIC_SIZE>;
-  CertMagicType magic;
-  ESVersionType esVersion;
-  ProtocolMinorVersionType protocolMinorVersion;
-  std::array<unsigned char, DNSCRYPT_SIGNATURE_SIZE> signature;
+  CertMagicType magic{};
+  ESVersionType esVersion{};
+  ProtocolMinorVersionType protocolMinorVersion{};
+  std::array<unsigned char, DNSCRYPT_SIGNATURE_SIZE> signature{};
   DNSCryptCertSignedData signedData;
 };
 
