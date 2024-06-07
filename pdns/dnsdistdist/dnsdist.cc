@@ -3436,8 +3436,8 @@ int main(int argc, char** argv)
         auto ret = std::make_shared<DownstreamState>(std::move(config), nullptr, true);
         addServerToPool("", ret);
         ret->start();
-        dnsdist::configuration::updateRuntimeConfiguration([&ret](dnsdist::configuration::RuntimeConfiguration& config) {
-          config.d_backends.push_back(std::move(ret));
+        dnsdist::configuration::updateRuntimeConfiguration([&ret](dnsdist::configuration::RuntimeConfiguration& runtimeConfig) {
+          runtimeConfig.d_backends.push_back(std::move(ret));
         });
       }
     }

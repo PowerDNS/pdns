@@ -462,8 +462,8 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
     /* remove the existing backend if needed */
     if (!backend.keepAfterUpgrade) {
-      dnsdist::configuration::updateRuntimeConfiguration([&backend](dnsdist::configuration::RuntimeConfiguration& config) {
-        auto& backends = config.d_backends;
+      dnsdist::configuration::updateRuntimeConfiguration([&backend](dnsdist::configuration::RuntimeConfiguration& runtimeConfig) {
+        auto& backends = runtimeConfig.d_backends;
         for (auto backendIt = backends.begin(); backendIt != backends.end(); ++backendIt) {
           if (*backendIt == backend.d_ds) {
             backends.erase(backendIt);
