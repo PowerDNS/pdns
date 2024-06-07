@@ -309,12 +309,15 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
 #ifdef HAVE_NGHTTP2
       setupDoHClientProtocolNegotiation(d_tlsCtx);
 
-      if (dnsdist::configuration::isConfigurationDone() && g_outgoingDoHWorkerThreads && *g_outgoingDoHWorkerThreads == 0) {
+      auto outgoingDoHWorkerThreads = dnsdist::configuration::getImmutableConfiguration().d_outgoingDoHWorkers;
+      if (dnsdist::configuration::isConfigurationDone() && outgoingDoHWorkerThreads && *outgoingDoHWorkerThreads == 0) {
         throw std::runtime_error("Error: setOutgoingDoHWorkerThreads() is set to 0 so no outgoing DoH worker thread is available to serve queries");
       }
 
-      if (!g_outgoingDoHWorkerThreads || *g_outgoingDoHWorkerThreads == 0) {
-        g_outgoingDoHWorkerThreads = 1;
+      if (!dnsdist::configuration::isConfigurationDone() && (!outgoingDoHWorkerThreads || *outgoingDoHWorkerThreads == 0)) {
+        dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::Configuration& immutableConfig) {
+          immutableConfig.d_outgoingDoHWorkers = 1;
+        });
       }
 #endif /* HAVE_NGHTTP2 */
     }

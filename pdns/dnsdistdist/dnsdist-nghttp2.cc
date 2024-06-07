@@ -43,7 +43,6 @@
 
 std::atomic<uint64_t> g_dohStatesDumpRequested{0};
 std::unique_ptr<DoHClientCollection> g_dohClientThreads{nullptr};
-std::optional<uint16_t> g_outgoingDoHWorkerThreads{std::nullopt};
 
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 class DoHConnectionToBackend : public ConnectionToBackend
@@ -1024,15 +1023,16 @@ void DoHClientCollection::addThread()
 bool initDoHWorkers()
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-  if (!g_outgoingDoHWorkerThreads) {
+  auto outgoingDoHWorkerThreads = dnsdist::configuration::getImmutableConfiguration().d_outgoingDoHWorkers;
+  if (!outgoingDoHWorkerThreads) {
     /* Unless the value has been set to 0 explicitly, always start at least one outgoing DoH worker thread, in case a DoH backend
        is added at a later time. */
-    g_outgoingDoHWorkerThreads = 1;
+    outgoingDoHWorkerThreads = 1;
   }
 
-  if (g_outgoingDoHWorkerThreads && *g_outgoingDoHWorkerThreads > 0) {
-    g_dohClientThreads = std::make_unique<DoHClientCollection>(*g_outgoingDoHWorkerThreads);
-    for (size_t idx = 0; idx < *g_outgoingDoHWorkerThreads; idx++) {
+  if (outgoingDoHWorkerThreads && *outgoingDoHWorkerThreads > 0) {
+    g_dohClientThreads = std::make_unique<DoHClientCollection>(*outgoingDoHWorkerThreads);
+    for (size_t idx = 0; idx < *outgoingDoHWorkerThreads; idx++) {
       g_dohClientThreads->addThread();
     }
   }

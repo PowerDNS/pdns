@@ -169,7 +169,14 @@ struct Configuration
 #endif
   double d_weightedBalancingFactor{0};
   double d_consistentHashBalancingFactor{0};
+  std::optional<uint64_t> d_outgoingDoHWorkers{std::nullopt};
   uint64_t d_consoleMaxConcurrentConnections{0};
+  uint64_t d_outgoingDoHMaxIdleTime{300};
+  uint64_t d_outgoingTCPMaxIdleTime{300};
+  uint64_t d_outgoingDoHCleanupInterval{60};
+  uint64_t d_outgoingTCPCleanupInterval{60};
+  uint64_t d_outgoingDoHMaxIdlePerBackend{10};
+  uint64_t d_outgoingTCPMaxIdlePerBackend{10};
   uint64_t d_maxTCPClientThreads{0};
   size_t d_maxTCPConnectionsPerClient{0};
   size_t d_udpVectorSize{1};
