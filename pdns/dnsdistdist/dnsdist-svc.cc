@@ -140,7 +140,7 @@ namespace dnsdist::svc
 bool generateSVCResponse(DNSQuestion& dnsQuestion, const std::vector<std::vector<uint8_t>>& svcRecordPayloads, const std::set<std::pair<DNSName, ComboAddress>>& additionals4, const std::set<std::pair<DNSName, ComboAddress>>& additionals6, const ResponseConfig& responseConfig)
 {
   /* it will likely be a bit bigger than that because of additionals */
-  auto totalPayloadsSize = 0;
+  size_t totalPayloadsSize = 0;
   for (const auto& payload : svcRecordPayloads) {
     totalPayloadsSize += payload.size();
   }

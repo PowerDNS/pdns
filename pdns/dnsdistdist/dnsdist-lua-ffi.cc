@@ -2165,15 +2165,18 @@ bool dnsdist_ffi_dnsquestion_generate_svc_response(dnsdist_ffi_dnsquestion_t* dn
   std::vector<SVCRecordParameters> parameters;
   parameters.reserve(parametersListSize);
   for (size_t idx = 0; idx < parametersListSize; idx++) {
-    if (parametersList[idx] == nullptr) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): this is a C API
+    const auto& parameter = parametersList[idx];
+    if (parameter == nullptr) {
       return false;
     }
-    parameters.push_back(parametersList[idx]->parameters);
+    parameters.push_back(parameter->parameters);
   }
   return dnsdist::svc::generateSVCResponse(*dnsQuestion->dq, ttl, parameters);
 }
 
 void dnsdist_ffi_svc_record_parameters_free(dnsdist_ffi_svc_record_parameters* parameters)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): this is a C API, RAII is not an option
   delete parameters;
 }
