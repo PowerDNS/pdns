@@ -155,6 +155,7 @@ static_assert(s_defaultPayloadSizeSelfGenAnswers < s_udpIncomingBufferSize, "The
 struct Configuration
 {
   std::set<std::string> d_capabilitiesToRetain;
+  std::vector<uint32_t> d_tcpFastOpenKey;
   ComboAddress d_consoleServerAddress{"127.0.0.1:5199"};
   std::string d_consoleKey;
 #ifdef __linux__
