@@ -2718,7 +2718,7 @@ static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
   cstate->ready = true;
 }
 
-struct
+struct CommandLineParameters
 {
   vector<string> locals;
   vector<string> remotes;
@@ -2729,9 +2729,7 @@ struct
   string config;
   string uid;
   string gid;
-} g_cmdLine;
-
-std::atomic<bool> g_configurationDone{false};
+};
 
 static void usage()
 {
@@ -2924,7 +2922,7 @@ static void reportFeatures()
   cout << endl;
 }
 
-static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
+static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLine, ComboAddress& clientAddress)
 {
   const std::array<struct option, 16> longopts{{{"acl", required_argument, nullptr, 'a'},
                                                 {"check-config", no_argument, nullptr, 1},
@@ -2954,28 +2952,28 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
     }
     switch (gotChar) {
     case 1:
-      g_cmdLine.checkConfig = true;
+      cmdLine.checkConfig = true;
       break;
     case 2:
       dnsdist::logging::LoggingConfiguration::setSyslog(false);
       break;
     case 3:
-      g_cmdLine.beSupervised = true;
+      cmdLine.beSupervised = true;
       break;
     case 4:
       dnsdist::logging::LoggingConfiguration::setLogTimestamps(true);
       break;
     case 'C':
-      g_cmdLine.config = optarg;
+      cmdLine.config = optarg;
       break;
     case 'c':
-      g_cmdLine.beClient = true;
+      cmdLine.beClient = true;
       break;
     case 'e':
-      g_cmdLine.command = optarg;
+      cmdLine.command = optarg;
       break;
     case 'g':
-      g_cmdLine.gid = optarg;
+      cmdLine.gid = optarg;
       break;
     case 'h':
       cout << "dnsdist " << VERSION << endl;
@@ -3008,10 +3006,10 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
 #endif
     break;
     case 'l':
-      g_cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
+      cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
       break;
     case 'u':
-      g_cmdLine.uid = optarg;
+      cmdLine.uid = optarg;
       break;
     case 'v':
       newConfig.d_verbose = true;
@@ -3035,11 +3033,11 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): argv
   for (const auto* ptr = argv; *ptr != nullptr; ++ptr) {
-    if (g_cmdLine.beClient) {
+    if (cmdLine.beClient) {
       clientAddress = ComboAddress(*ptr, 5199);
     }
     else {
-      g_cmdLine.remotes.emplace_back(*ptr);
+      cmdLine.remotes.emplace_back(*ptr);
     }
   }
 
@@ -3074,17 +3072,17 @@ static void setupPools()
   }
 }
 
-static void dropPrivileges()
+static void dropPrivileges(const CommandLineParameters& cmdLine)
 {
   uid_t newgid = getegid();
   gid_t newuid = geteuid();
 
-  if (!g_cmdLine.gid.empty()) {
-    newgid = strToGID(g_cmdLine.gid);
+  if (!cmdLine.gid.empty()) {
+    newgid = strToGID(cmdLine.gid);
   }
 
-  if (!g_cmdLine.uid.empty()) {
-    newuid = strToUID(g_cmdLine.uid);
+  if (!cmdLine.uid.empty()) {
+    newuid = strToUID(cmdLine.uid);
   }
 
   bool retainedCapabilities = true;
@@ -3126,9 +3124,9 @@ static void dropPrivileges()
   }
 }
 
-static void initFrontends()
+static void initFrontends(const CommandLineParameters& cmdLine)
 {
-  if (!g_cmdLine.locals.empty()) {
+  if (!cmdLine.locals.empty()) {
     for (auto it = g_frontends.begin(); it != g_frontends.end();) {
       /* DoH, DoT and DNSCrypt frontends are separate */
       if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->doqFrontend == nullptr && (*it)->doh3Frontend == nullptr) {
@@ -3139,7 +3137,7 @@ static void initFrontends()
       }
     }
 
-    for (const auto& loc : g_cmdLine.locals) {
+    for (const auto& loc : cmdLine.locals) {
       /* UDP */
       g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), false, false, 0, "", std::set<int>{}, true));
       /* TCP */
@@ -3251,6 +3249,7 @@ static void startFrontends()
 int main(int argc, char** argv)
 {
   try {
+    CommandLineParameters cmdLine{};
     size_t udpBindsCount = 0;
     size_t tcpBindsCount = 0;
 
@@ -3287,22 +3286,22 @@ int main(int argc, char** argv)
 #endif /* HAVE_XSK */
 
     ComboAddress clientAddress = ComboAddress();
-    g_cmdLine.config = SYSCONFDIR "/dnsdist.conf";
+    cmdLine.config = SYSCONFDIR "/dnsdist.conf";
 
-    parseParameters(argc, argv, clientAddress);
+    parseParameters(argc, argv, cmdLine, clientAddress);
 
     dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
       config.d_lbPolicy = std::make_shared<ServerPolicy>("leastOutstanding", leastOutstanding, false);
     });
 
-    if (g_cmdLine.beClient || !g_cmdLine.command.empty()) {
-      setupLua(*(g_lua.lock()), true, false, g_cmdLine.config);
+    if (cmdLine.beClient || !cmdLine.command.empty()) {
+      setupLua(*(g_lua.lock()), true, false, cmdLine.config);
       if (clientAddress != ComboAddress()) {
         dnsdist::configuration::updateImmutableConfiguration([&clientAddress](dnsdist::configuration::Configuration& config) {
           config.d_consoleServerAddress = clientAddress;
         });
       }
-      dnsdist::console::doClient(g_cmdLine.command);
+      dnsdist::console::doClient(cmdLine.command);
 #ifdef COVERAGE
       exit(EXIT_SUCCESS);
 #else
@@ -3327,10 +3326,10 @@ int main(int argc, char** argv)
 
     registerBuiltInWebHandlers();
 
-    if (g_cmdLine.checkConfig) {
-      setupLua(*(g_lua.lock()), false, true, g_cmdLine.config);
+    if (cmdLine.checkConfig) {
+      setupLua(*(g_lua.lock()), false, true, cmdLine.config);
       // No exception was thrown
-      infolog("Configuration '%s' OK!", g_cmdLine.config);
+      infolog("Configuration '%s' OK!", cmdLine.config);
 #ifdef COVERAGE
       cleanupLuaObjects();
       exit(EXIT_SUCCESS);
@@ -3343,11 +3342,11 @@ int main(int argc, char** argv)
 
     dnsdist::g_asyncHolder = std::make_unique<dnsdist::AsynchronousHolder>();
 
-    auto todo = setupLua(*(g_lua.lock()), false, false, g_cmdLine.config);
+    auto todo = setupLua(*(g_lua.lock()), false, false, cmdLine.config);
 
     setupPools();
 
-    initFrontends();
+    initFrontends(cmdLine);
 
     for (const auto& frontend : g_frontends) {
       if (!frontend->tcp) {
@@ -3364,7 +3363,7 @@ int main(int argc, char** argv)
       });
     }
 
-    g_configurationDone = true;
+    dnsdist::configuration::setConfigurationDone();
 
     g_rings.init();
 
@@ -3401,7 +3400,7 @@ int main(int argc, char** argv)
     }
 #endif
 
-    dropPrivileges();
+    dropPrivileges(cmdLine);
 
     /* this need to be done _after_ dropping privileges */
 #ifndef DISABLE_DELAY_PIPE
@@ -3429,8 +3428,8 @@ int main(int argc, char** argv)
 
     /* create the default pool no matter what */
     createPoolIfNotExists("");
-    if (!g_cmdLine.remotes.empty()) {
-      for (const auto& address : g_cmdLine.remotes) {
+    if (!cmdLine.remotes.empty()) {
+      for (const auto& address : cmdLine.remotes) {
         DownstreamState::Config config;
         config.remote = ComboAddress(address, 53);
         auto ret = std::make_shared<DownstreamState>(std::move(config), nullptr, true);
@@ -3494,7 +3493,7 @@ int main(int argc, char** argv)
     }
 #endif /* DISABLE_SECPOLL */
 
-    if (g_cmdLine.beSupervised) {
+    if (cmdLine.beSupervised) {
 #ifdef HAVE_SYSTEMD
       sd_notify(0, "READY=1");
 #endif

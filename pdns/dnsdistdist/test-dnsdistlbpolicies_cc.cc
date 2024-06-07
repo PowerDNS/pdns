@@ -75,7 +75,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 }
 
 string g_outputBuffer;
-std::atomic<bool> g_configurationDone{false};
 
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 {
