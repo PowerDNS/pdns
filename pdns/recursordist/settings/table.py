@@ -1703,9 +1703,9 @@ recursor log file. The log line looks something like::
 If a domain is specified, then each time a newly observed domain is
 detected, the recursor will perform an A record lookup of '<newly
 observed domain>.<lookup domain>'. For example if 'new-domain-lookup'
-is configured as 'nod.powerdns.com', and a new domain 'xyz123.tv' is
+is configured as 'nod.powerdns.com', and a new domain 'example.com' is
 detected, then an A record lookup will be made for
-'xyz123.tv.nod.powerdns.com'. This feature gives a way to share the
+'example.com.nod.powerdns.com'. This feature gives a way to share the
 newly observed domain with partners, vendors or security teams. The
 result of the DNS lookup will be ignored by the recursor.
  ''',
@@ -1788,7 +1788,7 @@ Set to zero to disable snapshot writing.',
         'doc': '''
 This setting is a list of all domains (and implicitly all subdomains)
 that will never be considered a new domain. For example, if the domain
-'xyz123.tv' is in the list, then 'foo.bar.xyz123.tv' will never be
+'example.com' is in the list, then 'foo.bar.example.com' will never be
 considered a new domain. One use-case for the ignore list is to never
 reveal details of internal subdomains via the new-domain-lookup
 feature.
@@ -1817,7 +1817,7 @@ See :doc:`ignore_list`.
         'doc': '''
 This setting is a list of all domains (and implicitly all subdomains)
 that will never be considered for a new unique domain request.
-For example, if the domain 'xyz123.tv' is in the list, then 'foo.bar.xyz123.tv'
+For example, if the domain 'example.com' is in the list, then 'foo.bar.example.com'
 will never be considered for a new unique domain request.
  ''',
         'versionadded': '5.1.0'
