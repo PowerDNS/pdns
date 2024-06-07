@@ -8,7 +8,7 @@ if get_option('module-geoip') != 'disabled'
     lib_cxx_fs = cxx.find_library('stdc++fs', disabler: true, required: false)
     if lib_cxx_fs.found()
       if cxx.links(prog, name: '-lstdc++fs is needed', dependencies: lib_cxx_fs)
-        need_cxx_fs = '-lstdc++fs'
+        need_cxx_fs = true
         dep_cxx_fs = declare_dependency(dependencies: lib_cxx_fs)
         summary('Filesystem library', lib_cxx_fs, section: 'System')
       endif
@@ -18,7 +18,7 @@ if get_option('module-geoip') != 'disabled'
       lib_cxx_fs = cxx.find_library('c++fs', disabler: true, required: false)
       if lib_cxx_fs.found()
         if cxx.links(prog, name: '-lc++fs is needed', dependencies: lib_cxx_fs)
-          need_cxx_fs = '-lc++fs'
+          need_cxx_fs = true
           dep_cxx_fs = declare_dependency(dependencies: lib_cxx_fs)
           summary('Filesystem library', lib_cxx_fs, section: 'System')
         else
