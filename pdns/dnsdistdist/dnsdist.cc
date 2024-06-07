@@ -60,6 +60,7 @@
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
+#include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
 
@@ -3364,6 +3365,18 @@ int main(int argc, char** argv)
     }
 
     dnsdist::configuration::setConfigurationDone();
+
+    {
+      const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
+      setTCPDownstreamMaxIdleConnectionsPerBackend(immutableConfig.d_outgoingTCPMaxIdlePerBackend);
+      setTCPDownstreamMaxIdleTime(immutableConfig.d_outgoingTCPMaxIdleTime);
+      setTCPDownstreamCleanupInterval(immutableConfig.d_outgoingTCPCleanupInterval);
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
+      setDoHDownstreamMaxIdleConnectionsPerBackend(immutableConfig.d_outgoingDoHMaxIdlePerBackend);
+      setDoHDownstreamMaxIdleTime(immutableConfig.d_outgoingDoHMaxIdleTime);
+      setDoHDownstreamCleanupInterval(immutableConfig.d_outgoingDoHCleanupInterval);
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
+    }
 
     g_rings.init();
 

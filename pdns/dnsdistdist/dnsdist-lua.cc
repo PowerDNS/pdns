@@ -60,7 +60,6 @@
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-session-cache.hh"
 #include "dnsdist-snmp.hh"
-#include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-web.hh"
 
 #include "base64.hh"
@@ -873,6 +872,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     {"setMaxTCPClientThreads", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPClientThreads = newValue; }, std::numeric_limits<uint16_t>::max()},
     {"setMaxTCPConnectionsPerClient", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPConnectionsPerClient = newValue; }, std::numeric_limits<uint64_t>::max()},
     {"setTCPInternalPipeBufferSize", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_tcpInternalPipeBufferSize = newValue; }, std::numeric_limits<uint64_t>::max()},
+    {"setMaxCachedTCPConnectionsPerDownstream", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setTCPDownstreamCleanupInterval", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
+    {"setTCPDownstreamMaxIdleTime", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
+    {"setOutgoingDoHWorkerThreads", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHWorkers = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setMaxIdleDoHConnectionsPerDownstream", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setDoHDownstreamCleanupInterval", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
+    {"setDoHDownstreamMaxIdleTime", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
     {"setMaxUDPOutstanding", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, std::numeric_limits<uint16_t>::max()},
     {"setWHashedPertubation", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()},
 #ifndef DISABLE_RECVMMSG
@@ -881,6 +889,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     {"setUDPTimeout", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()},
     {"setConsoleMaximumConcurrentConnections", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_consoleMaxConcurrentConnections = newValue; }, std::numeric_limits<uint32_t>::max()},
   };
+
   struct DoubleImmutableConfigurationItems
   {
     const std::string name;
@@ -1575,23 +1584,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = "Crypto not available.\n";
 #endif
   });
-
-  luaCtx.writeFunction("setMaxCachedTCPConnectionsPerDownstream", [](uint64_t max) {
-    setTCPDownstreamMaxIdleConnectionsPerBackend(max);
-  });
-
-#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-  luaCtx.writeFunction("setMaxIdleDoHConnectionsPerDownstream", [](uint64_t max) {
-    setDoHDownstreamMaxIdleConnectionsPerBackend(max);
-  });
-
-  luaCtx.writeFunction("setOutgoingDoHWorkerThreads", [](uint64_t workers) {
-    if (!checkConfigurationTime("setOutgoingDoHWorkerThreads")) {
-      return;
-    }
-    g_outgoingDoHWorkerThreads = workers;
-  });
-#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
   luaCtx.writeFunction("getOutgoingTLSSessionCacheSize", []() {
     setLuaNoSideEffect();
@@ -2311,34 +2303,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 #endif /* DISABLE_POLICIES_BINDINGS */
-
-  luaCtx.writeFunction("setTCPDownstreamCleanupInterval", [](uint64_t interval) {
-    setLuaSideEffect();
-    checkParameterBound("setTCPDownstreamCleanupInterval", interval);
-    setTCPDownstreamCleanupInterval(interval);
-  });
-
-#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-  luaCtx.writeFunction("setDoHDownstreamCleanupInterval", [](uint64_t interval) {
-    setLuaSideEffect();
-    checkParameterBound("setDoHDownstreamCleanupInterval", interval);
-    setDoHDownstreamCleanupInterval(interval);
-  });
-#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-
-  luaCtx.writeFunction("setTCPDownstreamMaxIdleTime", [](uint64_t max) {
-    setLuaSideEffect();
-    checkParameterBound("setTCPDownstreamMaxIdleTime", max);
-    setTCPDownstreamMaxIdleTime(max);
-  });
-
-#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-  luaCtx.writeFunction("setDoHDownstreamMaxIdleTime", [](uint64_t max) {
-    setLuaSideEffect();
-    checkParameterBound("setDoHDownstreamMaxIdleTime", max);
-    setDoHDownstreamMaxIdleTime(max);
-  });
-#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
   luaCtx.writeFunction("setProxyProtocolACL", [](LuaTypeOrArrayOf<std::string> inp) {
     if (!checkConfigurationTime("setProxyProtocolACL")) {
