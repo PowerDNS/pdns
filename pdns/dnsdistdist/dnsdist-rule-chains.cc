@@ -55,6 +55,8 @@ std::vector<RuleAction>& getRuleChain(RuleChains& chains, RuleChain chain)
   case RuleChain::CacheMissRules:
     return chains.d_cacheMissRuleActions;
   }
+
+  throw std::runtime_error("Trying to accept an invalid rule chain");
 }
 
 const std::vector<RuleAction>& getRuleChain(const RuleChains& chains, RuleChain chain)
@@ -65,6 +67,8 @@ const std::vector<RuleAction>& getRuleChain(const RuleChains& chains, RuleChain 
   case RuleChain::CacheMissRules:
     return chains.d_cacheMissRuleActions;
   }
+
+  throw std::runtime_error("Trying to accept an invalid rule chain");
 }
 
 std::vector<ResponseRuleAction>& getRuleChain(RuleChains& chains, ResponseRuleChain chain)
@@ -91,6 +95,8 @@ std::vector<ResponseRuleAction>& getResponseRuleChain(RuleChains& chains, Respon
   case ResponseRuleChain::XFRResponseRules:
     return chains.d_XFRRespRuleActions;
   }
+
+  throw std::runtime_error("Trying to accept an invalid response rule chain");
 }
 
 const std::vector<ResponseRuleAction>& getResponseRuleChain(const RuleChains& chains, ResponseRuleChain chain)
@@ -107,6 +113,8 @@ const std::vector<ResponseRuleAction>& getResponseRuleChain(const RuleChains& ch
   case ResponseRuleChain::XFRResponseRules:
     return chains.d_XFRRespRuleActions;
   }
+
+  throw std::runtime_error("Trying to accept an invalid response rule chain");
 }
 
 void add(RuleChains& chains, RuleChain identifier, const std::shared_ptr<DNSRule>& selector, const std::shared_ptr<DNSAction>& action, std::string&& name, const boost::uuids::uuid& uuid, uint64_t creationOrder)
