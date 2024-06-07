@@ -708,7 +708,7 @@ static void threadMangler(unsigned int offset)
   }
 }
 
-AtomicCounter g_missing;
+static std::atomic<uint64_t> s_missing{0};
 
 static void threadReader(unsigned int offset)
 {
@@ -731,7 +731,7 @@ static void threadReader(unsigned int offset)
       DNSQuestion dnsQuestion(ids, query);
       bool found = s_localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
       if (!found) {
-        g_missing++;
+        s_missing++;
       }
     }
   }
@@ -767,7 +767,7 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded)
       thr.join();
     }
 
-    BOOST_CHECK((s_localCache.getDeferredInserts() + s_localCache.getDeferredLookups() + s_localCache.getInsertCollisions()) >= g_missing);
+    BOOST_CHECK((s_localCache.getDeferredInserts() + s_localCache.getDeferredLookups() + s_localCache.getInsertCollisions()) >= s_missing.load());
   }
   catch (const PDNSException& e) {
     cerr << "Had error: " << e.reason << endl;
