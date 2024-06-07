@@ -105,7 +105,6 @@ shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
 
 std::vector<std::unique_ptr<ClientState>> g_frontends;
-std::vector<uint32_t> g_TCPFastOpenKey;
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers.
    We send directly to those sockets.
@@ -2527,8 +2526,8 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
 #ifdef TCP_FASTOPEN
       SSetsockopt(socket, IPPROTO_TCP, TCP_FASTOPEN, clientState.fastOpenQueueSize);
 #ifdef TCP_FASTOPEN_KEY
-      if (!g_TCPFastOpenKey.empty()) {
-        auto res = setsockopt(socket, IPPROTO_IP, TCP_FASTOPEN_KEY, g_TCPFastOpenKey.data(), g_TCPFastOpenKey.size() * sizeof(g_TCPFastOpenKey[0]));
+      if (!immutableConfig.d_tcpFastOpenKey.empty()) {
+        auto res = setsockopt(socket, IPPROTO_IP, TCP_FASTOPEN_KEY, immutableConfig.d_tcpFastOpenKey.data(), immutableConfig.d_tcpFastOpenKey.size() * sizeof(immutableConfig.d_tcpFastOpenKey.at(0)));
         if (res == -1) {
           throw runtime_error("setsockopt for level IPPROTO_TCP and opname TCP_FASTOPEN_KEY failed: " + stringerror());
         }

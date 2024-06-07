@@ -2200,18 +2200,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setTCPFastOpenKey", [](const std::string& keyString) {
-    setLuaSideEffect();
-    std::array<uint32_t, 4> key{};
-    // NOLINTNEXTLINE(readability-container-data-pointer)
-    auto ret = sscanf(keyString.c_str(), "%" SCNx32 "-%" SCNx32 "-%" SCNx32 "-%" SCNx32, &key[0], &key[1], &key[2], &key[3]);
-    if (ret != 4) {
+    std::vector<uint32_t> key(4);
+    auto ret = sscanf(keyString.c_str(), "%" SCNx32 "-%" SCNx32 "-%" SCNx32 "-%" SCNx32, &key.at(0), &key.at(1), &key.at(2), &key.at(3));
+    if (ret < 0 || static_cast<size_t>(ret) != key.size()) {
       g_outputBuffer = "Invalid value passed to setTCPFastOpenKey()!\n";
       return;
     }
-    extern vector<uint32_t> g_TCPFastOpenKey;
-    for (const auto byte : key) {
-      g_TCPFastOpenKey.push_back(byte);
-    }
+    dnsdist::configuration::updateImmutableConfiguration([&key](dnsdist::configuration::Configuration& config) {
+      config.d_tcpFastOpenKey = std::move(key);
+    });
   });
 
 #ifdef HAVE_NET_SNMP
