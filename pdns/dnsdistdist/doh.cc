@@ -207,7 +207,6 @@ struct DOHServerConfig
   DOHServerConfig& operator=(DOHServerConfig&&) = delete;
   ~DOHServerConfig() = default;
 
-  LocalHolders holders;
   std::set<std::string, std::less<>> paths;
   h2o_globalconf_t h2o_config{};
   h2o_context_t h2o_ctx{};
@@ -696,7 +695,6 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
 
     remote = ids.origRemote;
     DOHServerConfig* dsc = unit->dsc;
-    auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
     if (unit->query.size() < sizeof(dnsheader) || unit->query.size() > std::numeric_limits<uint16_t>::max()) {
@@ -757,7 +755,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     ids.cs = &clientState;
     dnsQuestion.sni = std::move(unit->sni);
     ids.du = std::move(unit);
-    auto result = processQuery(dnsQuestion, holders, downstream);
+    auto result = processQuery(dnsQuestion, downstream);
 
     if (result == ProcessQueryResult::Drop) {
       unit = getDUFromIDS(ids);

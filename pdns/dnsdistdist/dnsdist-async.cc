@@ -283,9 +283,8 @@ bool resumeQuery(std::unique_ptr<CrossProtocolQuery>&& query)
   }
 
   DNSQuestion dnsQuestion = query->getDQ();
-  LocalHolders holders;
 
-  auto result = processQueryAfterRules(dnsQuestion, holders, query->downstream);
+  auto result = processQueryAfterRules(dnsQuestion, query->downstream);
   if (result == ProcessQueryResult::Drop) {
     /* easy */
     return true;

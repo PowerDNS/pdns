@@ -202,7 +202,6 @@ void XskClientThread(ClientState* clientState)
 {
   setThreadName("dnsdist/xskClient");
   auto xskInfo = clientState->xskInfo;
-  LocalHolders holders;
 
   for (;;) {
 #if defined(__SANITIZE_THREAD__)
@@ -217,7 +216,7 @@ void XskClientThread(ClientState* clientState)
 #else
     xskInfo->incomingPacketsQueue.consume_all([&](XskPacket& packet) {
 #endif
-      if (XskProcessQuery(*clientState, holders, packet)) {
+      if (XskProcessQuery(*clientState, packet)) {
         packet.updatePacket();
         xskInfo->pushToSendQueue(packet);
       }

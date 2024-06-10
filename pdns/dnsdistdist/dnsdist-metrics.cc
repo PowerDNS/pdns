@@ -23,6 +23,7 @@
 
 #include "dnsdist-metrics.hh"
 #include "dnsdist.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-web.hh"
 
 namespace dnsdist::metrics
@@ -145,7 +146,7 @@ Stats::Stats() :
     {"cpu-user-msec", getCPUTimeUser},
     {"fd-usage", getOpenFileDescriptors},
     {"dyn-blocked", &dynBlocked},
-    {"dyn-block-nmg-size", [](const std::string&) { return g_dynblockNMG.getLocal()->size(); }},
+    {"dyn-block-nmg-size", [](const std::string&) { return dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(); }},
     {"security-status", &securityStatus},
     {"doh-query-pipe-full", &dohQueryPipeFull},
     {"doh-response-pipe-full", &dohResponsePipeFull},

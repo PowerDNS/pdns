@@ -1030,7 +1030,7 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
   return !drop;
 }
 
-static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, const timespec& now)
+static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 {
   if (g_rings.shouldRecordQueries()) {
     g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
@@ -1067,7 +1067,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
   };
 
   /* the Dynamic Block mechanism supports address and port ranges, so we need to pass the full address and port */
-  if (auto* got = holders.dynNMGBlock->lookup(AddressAndPortRange(dnsQuestion.ids.origRemote, dnsQuestion.ids.origRemote.isIPv4() ? 32 : 128, 16))) {
+  if (auto* got = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(AddressAndPortRange(dnsQuestion.ids.origRemote, dnsQuestion.ids.origRemote.isIPv4() ? 32 : 128, 16))) {
     auto updateBlockStats = [&got]() {
       ++dnsdist::metrics::g_stats.dynBlocked;
       got->second.blocks++;
@@ -1144,7 +1144,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
     }
   }
 
-  if (auto* got = holders.dynSMTBlock->lookup(dnsQuestion.ids.qname)) {
+  if (auto* got = dnsdist::DynamicBlocks::getSuffixDynamicRules().lookup(dnsQuestion.ids.qname)) {
     auto updateBlockStats = [&got]() {
       ++dnsdist::metrics::g_stats.dynBlocked;
       got->blocks++;
@@ -1262,7 +1262,7 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ba
   return result;
 }
 
-static bool isUDPQueryAcceptable(ClientState& clientState, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, bool& expectProxyProtocol)
+static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, bool& expectProxyProtocol)
 {
   if ((msgh->msg_flags & MSG_TRUNC) != 0) {
     /* message was too large for our buffer */
@@ -1448,7 +1448,7 @@ static void selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const std::s
   selectedBackend = policy.getSelectedBackend(*servers, dnsQuestion);
 }
 
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
@@ -1681,7 +1681,7 @@ std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& 
   return std::make_unique<UDPCrossProtocolQuery>(std::move(dnsQuestion.getMutableData()), std::move(dnsQuestion.ids), nullptr);
 }
 
-ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
@@ -1698,10 +1698,10 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders,
         header.qr = true;
         return true;
       });
-      return processQueryAfterRules(dnsQuestion, holders, selectedBackend);
+      return processQueryAfterRules(dnsQuestion, selectedBackend);
     }
 
-    if (!applyRulesToQuery(holders, dnsQuestion, now)) {
+    if (!applyRulesToQuery(dnsQuestion, now)) {
       return ProcessQueryResult::Drop;
     }
 
@@ -1709,7 +1709,7 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders,
       return ProcessQueryResult::Asynchronous;
     }
 
-    return processQueryAfterRules(dnsQuestion, holders, selectedBackend);
+    return processQueryAfterRules(dnsQuestion, selectedBackend);
   }
   catch (const std::exception& e) {
     vinfolog("Got an error while parsing a %s query from %s, id %d: %s", (dnsQuestion.overTCP() ? "TCP" : "UDP"), dnsQuestion.ids.origRemote.toStringWithPort(), queryId, e.what());
@@ -1783,7 +1783,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
   return true;
 }
 
-static void processUDPQuery(ClientState& clientState, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, PacketBuffer& query, std::vector<mmsghdr>* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
+static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, PacketBuffer& query, std::vector<mmsghdr>* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
 {
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
   uint16_t queryId = 0;
@@ -1795,7 +1795,7 @@ static void processUDPQuery(ClientState& clientState, LocalHolders& holders, con
 
   try {
     bool expectProxyProtocol = false;
-    if (!isUDPQueryAcceptable(clientState, holders, msgh, remote, dest, expectProxyProtocol)) {
+    if (!isUDPQueryAcceptable(clientState, msgh, remote, dest, expectProxyProtocol)) {
       return;
     }
     /* dest might have been updated, if we managed to harvest the destination address */
@@ -1861,7 +1861,7 @@ static void processUDPQuery(ClientState& clientState, LocalHolders& holders, con
     }
 
     std::shared_ptr<DownstreamState> backend{nullptr};
-    auto result = processQuery(dnsQuestion, holders, backend);
+    auto result = processQuery(dnsQuestion, backend);
 
     if (result == ProcessQueryResult::Drop || result == ProcessQueryResult::Asynchronous) {
       return;
@@ -1917,7 +1917,7 @@ static void processUDPQuery(ClientState& clientState, LocalHolders& holders, con
 #ifdef HAVE_XSK
 namespace dnsdist::xsk
 {
-bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket& packet)
+bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
 {
   uint16_t queryId = 0;
   const auto& remote = packet.getFromAddr();
@@ -1984,7 +1984,7 @@ bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket&
       dnsQuestion.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
     }
     std::shared_ptr<DownstreamState> backend{nullptr};
-    auto result = processQuery(dnsQuestion, holders, backend);
+    auto result = processQuery(dnsQuestion, backend);
 
     if (result == ProcessQueryResult::Drop) {
       return false;
@@ -2045,7 +2045,7 @@ bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket&
 
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-static void MultipleMessagesUDPClientThread(ClientState* clientState, LocalHolders& holders)
+static void MultipleMessagesUDPClientThread(ClientState* clientState)
 {
   struct MMReceiver
   {
@@ -2117,7 +2117,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState, LocalHolde
       }
 
       recvData[msgIdx].packet.resize(got);
-      processUDPQuery(*clientState, holders, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, &outMsgVec, &msgsToSend, &recvData[msgIdx].iov, &recvData[msgIdx].cbuf);
+      processUDPQuery(*clientState, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, &outMsgVec, &msgsToSend, &recvData[msgIdx].iov, &recvData[msgIdx].cbuf);
     }
 
     /* immediate (not delayed or sent to a backend) responses (mostly from a rule, dynamic block
@@ -2140,11 +2140,10 @@ static void udpClientThread(std::vector<ClientState*> states)
 {
   try {
     setThreadName("dnsdist/udpClie");
-    LocalHolders holders;
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
     if (dnsdist::configuration::getImmutableConfiguration().d_udpVectorSize > 1) {
-      MultipleMessagesUDPClientThread(states.at(0), holders);
+      MultipleMessagesUDPClientThread(states.at(0));
     }
     else
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
@@ -2169,7 +2168,7 @@ static void udpClientThread(std::vector<ClientState*> states)
       ComboAddress remote;
       ComboAddress dest;
 
-      auto handleOnePacket = [&packet, &iov, &holders, &msgh, &remote, &dest, initialBufferSize](const UDPStateParam& param) {
+      auto handleOnePacket = [&packet, &iov, &msgh, &remote, &dest, initialBufferSize](const UDPStateParam& param) {
         packet.resize(initialBufferSize);
         iov.iov_base = &packet.at(0);
         iov.iov_len = packet.size();
@@ -2184,7 +2183,7 @@ static void udpClientThread(std::vector<ClientState*> states)
 
         packet.resize(static_cast<size_t>(got));
 
-        processUDPQuery(*param.cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
+        processUDPQuery(*param.cs, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
       };
 
       std::vector<UDPStateParam> params;

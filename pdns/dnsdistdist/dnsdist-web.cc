@@ -986,10 +986,10 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   else if (command == "dynblocklist") {
     Json::object obj;
 #ifndef DISABLE_DYNBLOCKS
-    auto nmg = g_dynblockNMG.getLocal();
     timespec now{};
     gettime(&now);
-    for (const auto& entry : *nmg) {
+    const auto& dynamicClientAddressRules = dnsdist::DynamicBlocks::getClientAddressDynamicRules();
+    for (const auto& entry : dynamicClientAddressRules) {
       if (!(now < entry.second.until)) {
         continue;
       }
@@ -1007,8 +1007,8 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       obj.emplace(entry.first.toString(), thing);
     }
 
-    auto smt = g_dynblockSMT.getLocal();
-    smt->visit([&now, &obj, &runtimeConfig](const SuffixMatchTree<DynBlock>& node) {
+    const auto& dynamicSuffixRules = dnsdist::DynamicBlocks::getSuffixDynamicRules();
+    dynamicSuffixRules.visit([&now, &obj, &runtimeConfig](const SuffixMatchTree<DynBlock>& node) {
       if (!(now < node.d_value.until)) {
         return;
       }
@@ -1044,8 +1044,8 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       }
     }
     if (g_defaultBPFFilter) {
-      auto nmg = g_dynblockNMG.getLocal();
-      for (const auto& entry : *nmg) {
+      const auto& dynamicClientAddressRules = dnsdist::DynamicBlocks::getClientAddressDynamicRules();
+      for (const auto& entry : dynamicClientAddressRules) {
         if (!(now < entry.second.until) || !entry.second.bpf) {
           continue;
         }

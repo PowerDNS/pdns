@@ -1,5 +1,6 @@
 
 #include "dnsdist-snmp.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-metrics.hh"
 #include "dolog.hh"
 
@@ -597,7 +598,7 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& d
   registerGauge64Stat("cpuUserMSec", cpuUserMSecOID, &getCPUTimeUser);
   registerGauge64Stat("cpuSysMSec", cpuSysMSecOID, &getCPUTimeSystem);
   registerGauge64Stat("fdUsage", fdUsageOID, &getOpenFileDescriptors);
-  registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, [](const std::string&) { return g_dynblockNMG.getLocal()->size(); });
+  registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, [](const std::string&) { return dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(); });
   registerGauge64Stat("securityStatus", securityStatusOID, [](const std::string&) { return dnsdist::metrics::g_stats.securityStatus.load(); });
   registerGauge64Stat("realMemoryUsage", realMemoryUsageOID, &getRealMemoryUsage);
 
