@@ -40,13 +40,6 @@ jobs:
     with:
       branch-name: rel/auth-4.7.x
 
-  call-build-and-test-all-auth-46:
-    name: Call build-and-test-all rel/auth-4.6.x
-    if: ${{ vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    uses: PowerDNS/pdns/.github/workflows/build-and-test-all.yml@rel/auth-4.6.x
-    with:
-      branch-name: rel/auth-4.6.x
-
   call-build-and-test-all-rec-50:
     name: Call build-and-test-all rel/rec-5.0.x
     if: ${{ vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
