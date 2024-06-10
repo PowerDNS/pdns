@@ -474,7 +474,7 @@ bool SyncRes::s_dot_to_port_853;
 int SyncRes::s_event_trace_enabled;
 bool SyncRes::s_save_parent_ns_set;
 unsigned int SyncRes::s_max_busy_dot_probes;
-unsigned int SyncRes::s_max_CNAMES_followed = 10;
+unsigned int SyncRes::s_max_CNAMES_followed;
 bool SyncRes::s_addExtendedResolutionDNSErrors;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)

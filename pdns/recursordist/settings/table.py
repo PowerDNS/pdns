@@ -1526,6 +1526,18 @@ This is used to avoid cycles resolving names.
         'versionchanged': ('5.1.0', 'The default used to be 60, with an extra allowance if qname minimization was enabled. Having better algorithms allows for a lower default limit.'),
     },
     {
+        'name' : 'max_cnames_followed',
+        'section' : 'recursor',
+        'type' : LType.Uint64,
+        'default' : '10',
+        'help' : 'Maximum number CNAME records followed',
+        'doc' : '''
+Maximum length of a CNAME chain. If a CNAME chain exceeds this length, a ``ServFail`` answer will be returned.
+Previously, this limit was fixed at 10.
+ ''',
+    'versionadded': '5.1.0'
+    },    
+    {
         'name' : 'max_ns_address_qperq',
         'section' : 'outgoing',
         'type' : LType.Uint64,
