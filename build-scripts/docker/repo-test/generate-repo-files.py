@@ -166,12 +166,6 @@ def write_release_files (release):
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
 
-    if release in ['auth-46', 'auth-47', 'auth-master',
-                   'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-master',
-                   'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-master']:
-        write_dockerfile('ubuntu', 'bionic', release)
-        write_list_file('ubuntu', 'bionic', release)
-
     if release in ['auth-46', 'auth-47', 'auth-48', 'auth-49', 'auth-master',
                    'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-50', 'rec-master',
                    'dnsdist-17', 'dnsdist-18', 'dnsdist-19', 'dnsdist-master']:
@@ -188,6 +182,12 @@ def write_release_files (release):
                    'dnsdist-19', 'dnsdist-master']:
         write_dockerfile('debian', 'bookworm', release)
         write_list_file('debian', 'bookworm', release)
+
+    if release in ['auth-49', 'auth-master',
+                   'rec-50', 'rec-master',
+                   'dnsdist-19', 'dnsdist-master']:
+        write_dockerfile('ubuntu', 'noble', release)
+        write_list_file('ubuntu', 'noble', release)
 
 # Test Release Functions
 
