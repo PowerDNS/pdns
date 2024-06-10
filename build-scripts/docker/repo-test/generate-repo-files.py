@@ -218,8 +218,8 @@ def run (tag):
     print('Running Docker container tagged {}...'.format(tag))
     cp = subprocess.run(['docker', 'run', tag],
                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    version = re.search('(PowerDNS Authoritative Server|PowerDNS Recursor|' +
-                         'dnsdist) (\d+\.\d+\.\d+(-\w+)?)',
+    version = re.search(r'(PowerDNS Authoritative Server|PowerDNS Recursor|' +
+                        r'dnsdist) (\d+\.\d+\.\d+(-\w+)?)',
                         cp.stdout.decode())
     if g_verbose:
         print(cp.stdout.decode())
