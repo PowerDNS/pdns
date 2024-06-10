@@ -1862,7 +1862,8 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
     timespec until{now};
     until.tv_sec += duration;
     DynBlock dblock{message, until, DNSName(), static_cast<DNSAction::Action>(action)};
-    auto slow = g_dynblockNMG.getCopy();
+
+    auto dynamicRules = dnsdist::DynamicBlocks::getClientAddressDynamicRulesCopy();
     if (dblock.action == DNSAction::Action::SetTag && tagKey != nullptr) {
       dblock.tagSettings = std::make_shared<DynBlock::TagSettings>();
       dblock.tagSettings->d_name = tagKey;
@@ -1870,8 +1871,8 @@ bool dnsdist_ffi_dynamic_blocks_add(const char* address, const char* message, ui
         dblock.tagSettings->d_value = tagValue;
       }
     }
-    if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, std::move(dblock), false)) {
-      g_dynblockNMG.setState(slow);
+    if (dnsdist::DynamicBlocks::addOrRefreshBlock(dynamicRules, now, target, std::move(dblock), false)) {
+      dnsdist::DynamicBlocks::setClientAddressDynamicRules(std::move(dynamicRules));
       return true;
     }
   }
@@ -1909,7 +1910,7 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
     timespec until{now};
     until.tv_sec += duration;
     DynBlock dblock{message, until, domain, static_cast<DNSAction::Action>(action)};
-    auto slow = g_dynblockSMT.getCopy();
+    auto smtBlocks = dnsdist::DynamicBlocks::getSuffixDynamicRulesCopy();
     if (dblock.action == DNSAction::Action::SetTag && tagKey != nullptr) {
       dblock.tagSettings = std::make_shared<DynBlock::TagSettings>();
       dblock.tagSettings->d_name = tagKey;
@@ -1917,8 +1918,8 @@ bool dnsdist_ffi_dynamic_blocks_smt_add(const char* suffix, const char* message,
         dblock.tagSettings->d_value = tagValue;
       }
     }
-    if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, std::move(dblock), false)) {
-      g_dynblockSMT.setState(slow);
+    if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(smtBlocks, now, std::move(dblock), false)) {
+      dnsdist::DynamicBlocks::setSuffixDynamicRules(std::move(smtBlocks));
       return true;
     }
   }
@@ -1947,13 +1948,11 @@ size_t dnsdist_ffi_dynamic_blocks_get_entries(dnsdist_ffi_dynamic_blocks_list_t*
 
   auto list = std::make_unique<dnsdist_ffi_dynamic_blocks_list_t>();
 
-  struct timespec now
-  {
-  };
+  timespec now{};
   gettime(&now);
 
-  auto fullCopy = g_dynblockNMG.getCopy();
-  for (const auto& entry : fullCopy) {
+  const auto& dynamicRules = dnsdist::DynamicBlocks::getClientAddressDynamicRules();
+  for (const auto& entry : dynamicRules) {
     const auto& client = entry.first;
     const auto& details = entry.second;
     if (!(now < details.until)) {
@@ -1980,14 +1979,12 @@ size_t dnsdist_ffi_dynamic_blocks_smt_get_entries(dnsdist_ffi_dynamic_blocks_lis
 
   auto list = std::make_unique<dnsdist_ffi_dynamic_blocks_list_t>();
 
-  struct timespec now
-  {
-  };
+  timespec now{};
   gettime(&now);
 
   const auto defaultAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
-  auto fullCopy = g_dynblockSMT.getCopy();
-  fullCopy.visit([&now, &list, defaultAction](const SuffixMatchTree<DynBlock>& node) {
+  const auto& smtBlocks = dnsdist::DynamicBlocks::getSuffixDynamicRules();
+  smtBlocks.visit([&now, &list, defaultAction](const SuffixMatchTree<DynBlock>& node) {
     if (!(now < node.d_value.until)) {
       return;
     }

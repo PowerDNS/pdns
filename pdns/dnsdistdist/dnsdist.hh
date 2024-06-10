@@ -52,7 +52,6 @@
 #include "misc.hh"
 #include "mplexer.hh"
 #include "noinitvector.hh"
-#include "sholder.hh"
 #include "tcpiohandler.hh"
 #include "uuid-utils.hh"
 #include "proxy-protocol.hh"
@@ -273,8 +272,6 @@ struct DynBlock
   bool warning{false};
   bool bpf{false};
 };
-
-extern GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
 
 using pdns::stat_t;
 
@@ -1023,8 +1020,6 @@ enum ednsHeaderFlags
   EDNS_HEADER_FLAG_DO = 32768
 };
 
-extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
-
 extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
 extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
 extern std::vector<shared_ptr<DOQFrontend>> g_doqlocals;
@@ -1059,19 +1054,8 @@ enum class ProcessQueryResult : uint8_t
 
 #include "dnsdist-rule-chains.hh"
 
-struct LocalHolders
-{
-  LocalHolders() :
-    dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal())
-  {
-  }
-
-  LocalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> dynNMGBlock;
-  LocalStateHolder<SuffixMatchTree<DynBlock>> dynSMTBlock;
-};
-
-ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
+ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend);
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend);
 bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop);
 bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);

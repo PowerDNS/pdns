@@ -735,7 +735,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
   }
 
   std::shared_ptr<DownstreamState> backend;
-  auto result = processQuery(dnsQuestion, d_threadData.holders, backend);
+  auto result = processQuery(dnsQuestion, backend);
 
   if (result == ProcessQueryResult::Asynchronous) {
     /* we are done for now */

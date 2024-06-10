@@ -1071,7 +1071,7 @@ void setupLuaInspection(LuaContext& luaCtx)
                          parseDynamicActionOptionalParameters("addDynBlockSMT", rule, action, optionalParameters);
 
                          bool needUpdate = false;
-                         auto slow = g_dynblockSMT.getCopy();
+                         auto smtBlocks = dnsdist::DynamicBlocks::getSuffixDynamicRulesCopy();
                          for (const auto& capair : names) {
                            DNSName domain(capair.second);
                            domain.makeUsLowerCase();
@@ -1079,13 +1079,13 @@ void setupLuaInspection(LuaContext& luaCtx)
                            until.tv_sec += actualSeconds;
                            DynBlock dblock{msg, until, domain, action ? *action : DNSAction::Action::None};
                            dblock.tagSettings = rule.d_tagSettings;
-                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, std::move(dblock), false)) {
+                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(smtBlocks, now, std::move(dblock), false)) {
                              needUpdate = true;
                            }
                          }
 
                          if (needUpdate) {
-                           g_dynblockSMT.setState(slow);
+                           dnsdist::DynamicBlocks::setSuffixDynamicRules(std::move(smtBlocks));
                          }
                        });
 
@@ -1124,9 +1124,9 @@ void setupLuaInspection(LuaContext& luaCtx)
                          DynBlock dblock{msg, until, DNSName(), action ? *action : DNSAction::Action::None};
                          dblock.tagSettings = rule.d_tagSettings;
 
-                         auto slow = g_dynblockNMG.getCopy();
-                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, std::move(dblock), false)) {
-                           g_dynblockNMG.setState(slow);
+                         auto dynamicRules = dnsdist::DynamicBlocks::getClientAddressDynamicRulesCopy();
+                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(dynamicRules, now, target, std::move(dblock), false)) {
+                           dnsdist::DynamicBlocks::setClientAddressDynamicRules(std::move(dynamicRules));
                          }
                        });
 #endif /* DISABLE_DYNBLOCKS */

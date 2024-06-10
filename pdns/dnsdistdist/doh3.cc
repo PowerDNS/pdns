@@ -96,7 +96,6 @@ struct DOH3ServerConfig
 
   using ConnectionsMap = std::map<PacketBuffer, H3Connection>;
 
-  LocalHolders holders;
   ConnectionsMap d_connections;
   QuicheConfig config;
   QuicheHTTP3Config http3config;
@@ -488,7 +487,6 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
 
     remote = unit->ids.origRemote;
     DOH3ServerConfig* dsc = unit->dsc;
-    auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
@@ -559,7 +557,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
     });
     unit->ids.cs = &clientState;
 
-    auto result = processQuery(dnsQuestion, holders, downstream);
+    auto result = processQuery(dnsQuestion, downstream);
     if (result == ProcessQueryResult::Drop) {
       unit->status_code = 403;
       handleImmediateResponse(std::move(unit), "DoH3 dropped query");

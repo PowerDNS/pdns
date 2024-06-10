@@ -43,7 +43,7 @@
 #include "ednscookies.hh"
 #include "ednssubnet.hh"
 
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   return ProcessQueryResult::Drop;
 }
@@ -85,7 +85,7 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap([[maybe_unused]] DownstreamSt
 #ifdef HAVE_XSK
 namespace dnsdist::xsk
 {
-bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket& packet)
+bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
 {
   return false;
 }

@@ -1594,12 +1594,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("showDynBlocks", []() {
     setLuaNoSideEffect();
     const auto dynBlockDefaultAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
-    auto slow = g_dynblockNMG.getCopy();
+    const auto& clientAddressDynamicRules = dnsdist::DynamicBlocks::getClientAddressDynamicRules();
     timespec now{};
     gettime(&now);
     boost::format fmt("%-24s %8d %8d %-10s %-20s %-10s %s\n");
     g_outputBuffer = (fmt % "What" % "Seconds" % "Blocks" % "Warning" % "Action" % "eBPF" % "Reason").str();
-    for (const auto& entry : slow) {
+    for (const auto& entry : clientAddressDynamicRules) {
       if (now < entry.second.until) {
         uint64_t counter = entry.second.blocks;
         if (g_defaultBPFFilter && entry.second.bpf) {
@@ -1608,8 +1608,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         g_outputBuffer += (fmt % entry.first.toString() % (entry.second.until.tv_sec - now.tv_sec) % counter % (entry.second.warning ? "true" : "false") % DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : dynBlockDefaultAction) % (g_defaultBPFFilter && entry.second.bpf ? "*" : "") % entry.second.reason).str();
       }
     }
-    auto slow2 = g_dynblockSMT.getCopy();
-    slow2.visit([&now, &fmt, dynBlockDefaultAction](const SuffixMatchTree<DynBlock>& node) {
+    const auto& suffixDynamicRules = dnsdist::DynamicBlocks::getSuffixDynamicRules();
+    suffixDynamicRules.visit([&now, &fmt, dynBlockDefaultAction](const SuffixMatchTree<DynBlock>& node) {
       if (now < node.d_value.until) {
         string dom("empty");
         if (!node.d_value.domain.empty()) {
@@ -1627,8 +1627,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     LuaAssociativeTable<DynBlock> entries;
     const auto defaultAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
-    auto fullCopy = g_dynblockNMG.getCopy();
-    for (const auto& blockPair : fullCopy) {
+    for (const auto& blockPair : dnsdist::DynamicBlocks::getClientAddressDynamicRules()) {
       const auto& requestor = blockPair.first;
       if (!(now < blockPair.second.until)) {
         continue;
@@ -1652,8 +1651,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     LuaAssociativeTable<DynBlock> entries;
     const auto defaultAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
-    auto fullCopy = g_dynblockSMT.getCopy();
-    fullCopy.visit([&now, &entries, defaultAction](const SuffixMatchTree<DynBlock>& node) {
+    const auto& suffixDynamicRules = dnsdist::DynamicBlocks::getSuffixDynamicRules();
+    suffixDynamicRules.visit([&now, &entries, defaultAction](const SuffixMatchTree<DynBlock>& node) {
       if (!(now < node.d_value.until)) {
         return;
       }
@@ -1672,10 +1671,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("clearDynBlocks", []() {
     setLuaSideEffect();
-    nmts_t nmg;
-    g_dynblockNMG.setState(nmg);
-    SuffixMatchTree<DynBlock> smt;
-    g_dynblockSMT.setState(smt);
+    dnsdist::DynamicBlocks::clearClientAddressDynamicRules();
+    dnsdist::DynamicBlocks::clearSuffixDynamicRules();
   });
 
 #ifndef DISABLE_DEPRECATED_DYNBLOCK
@@ -1685,7 +1682,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            return;
                          }
                          setLuaSideEffect();
-                         auto slow = g_dynblockNMG.getCopy();
+                         auto dynamicRules = dnsdist::DynamicBlocks::getClientAddressDynamicRulesCopy();
+
                          timespec now{};
                          gettime(&now);
                          timespec until{now};
@@ -1695,7 +1693,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            unsigned int count = 0;
                            /* this legacy interface does not support ranges or ports, use DynBlockRulesGroup instead */
                            AddressAndPortRange requestor(capair.first, capair.first.isIPv4() ? 32 : 128, 0);
-                           auto* got = slow.lookup(requestor);
+                           auto* got = dynamicRules.lookup(requestor);
                            bool expired = false;
                            if (got != nullptr) {
                              if (until < got->second.until) {
@@ -1715,9 +1713,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            if (got == nullptr || expired) {
                              warnlog("Inserting dynamic block for %s for %d seconds: %s", capair.first.toString(), actualSeconds, msg);
                            }
-                           slow.insert(requestor).second = std::move(dblock);
+                           dynamicRules.insert(requestor).second = std::move(dblock);
                          }
-                         g_dynblockNMG.setState(slow);
+                         dnsdist::DynamicBlocks::setClientAddressDynamicRules(std::move(dynamicRules));
                        });
 
   luaCtx.writeFunction("setDynBlocksAction", [](DNSAction::Action action) {

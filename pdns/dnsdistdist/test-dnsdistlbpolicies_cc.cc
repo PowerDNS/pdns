@@ -21,8 +21,6 @@ std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
 #if BENCH_POLICIES
 #include "dnsdist-rings.hh"
 Rings g_rings;
-GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
-GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 #endif /* BENCH_POLICIES */
 
 std::vector<std::unique_ptr<ClientState>> g_frontends;

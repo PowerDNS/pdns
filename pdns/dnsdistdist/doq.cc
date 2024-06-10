@@ -91,7 +91,6 @@ struct DOQServerConfig
 
   using ConnectionsMap = std::map<PacketBuffer, Connection>;
 
-  LocalHolders holders;
   ConnectionsMap d_connections;
   QuicheConfig config;
   ClientState* clientState{nullptr};
@@ -409,7 +408,6 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
 
     remote = unit->ids.origRemote;
     DOQServerConfig* dsc = unit->dsc;
-    auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
     if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
@@ -476,7 +474,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     });
     unit->ids.cs = &clientState;
 
-    auto result = processQuery(dnsQuestion, holders, downstream);
+    auto result = processQuery(dnsQuestion, downstream);
     if (result == ProcessQueryResult::Drop) {
       handleImmediateResponse(std::move(unit), "DoQ dropped query");
       return;

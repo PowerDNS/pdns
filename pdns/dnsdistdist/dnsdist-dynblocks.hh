@@ -69,6 +69,8 @@ struct dnsdist_ffi_stat_node_t
 };
 
 using dnsdist_ffi_dynamic_block_inserted_hook = std::function<void(uint8_t type, const char* key, const char* reason, uint8_t action, uint64_t duration, bool warning)>;
+using ClientAddressDynamicRules = NetmaskTree<DynBlock, AddressAndPortRange>;
+using SuffixDynamicRules = SuffixMatchTree<DynBlock>;
 
 class DynBlockRulesGroup
 {
@@ -290,15 +292,15 @@ private:
   void applySMT(const struct timespec& now, StatNode& statNodeRoot);
   bool checkIfQueryTypeMatches(const Rings::Query& query);
   bool checkIfResponseCodeMatches(const Rings::Response& response);
-  void addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange>>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning);
-  void addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated);
+  void addOrRefreshBlock(boost::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning);
+  void addOrRefreshBlockSMT(SuffixDynamicRules& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated);
 
-  void addBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange>>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
+  void addBlock(boost::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
   {
     addOrRefreshBlock(blocks, now, requestor, rule, updated, false);
   }
 
-  void handleWarning(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange>>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
+  void handleWarning(boost::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated)
   {
     addOrRefreshBlock(blocks, now, requestor, rule, updated, true);
   }
@@ -383,7 +385,16 @@ private:
 
 namespace dnsdist::DynamicBlocks
 {
-bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const timespec& now, const AddressAndPortRange& requestor, DynBlock&& dblock, bool beQuiet);
-bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const timespec& now, DynBlock&& dblock, bool beQuiet);
+bool addOrRefreshBlock(ClientAddressDynamicRules& blocks, const timespec& now, const AddressAndPortRange& requestor, DynBlock&& dblock, bool beQuiet);
+bool addOrRefreshBlockSMT(SuffixDynamicRules& blocks, const timespec& now, DynBlock&& dblock, bool beQuiet);
+
+const ClientAddressDynamicRules& getClientAddressDynamicRules();
+const SuffixDynamicRules& getSuffixDynamicRules();
+ClientAddressDynamicRules getClientAddressDynamicRulesCopy();
+SuffixDynamicRules getSuffixDynamicRulesCopy();
+void setClientAddressDynamicRules(ClientAddressDynamicRules&& rules);
+void setSuffixDynamicRules(SuffixDynamicRules&& rules);
+void clearClientAddressDynamicRules();
+void clearSuffixDynamicRules();
 }
 #endif /* DISABLE_DYNBLOCKS */

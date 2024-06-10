@@ -57,7 +57,7 @@ void handleResponseSent(const InternalQueryState& ids, double udiff, const Combo
 
 std::function<ProcessQueryResult(DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend)> s_processQuery;
 
-ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQuery(DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   if (s_processQuery) {
     return s_processQuery(dq, selectedBackend);
