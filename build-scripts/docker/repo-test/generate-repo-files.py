@@ -25,7 +25,7 @@ from jinja2 import Environment, FileSystemLoader
 
 # Globals
 
-g_version = '1.0.3'
+g_version = '1.0.4'
 
 g_verbose = False
 
