@@ -137,7 +137,7 @@ EOF
 			--cache-ttl=$cachettl --dname-processing --no-config \
 			--distributor-threads=1 \
                         --geoip-zones-file=$testsdir/geo.yaml --geoip-database-files="$geoipdatabase" \
-                        --module-dir="$PDNS_MESON_PATH/./modules" --edns-subnet-processing=yes \
+                        --module-dir="$PDNS_BUILD_PATH/modules" --edns-subnet-processing=yes \
 			$geoipkeydir &
 		;;
 

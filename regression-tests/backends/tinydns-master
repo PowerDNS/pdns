@@ -4,7 +4,7 @@ case $context in
 			--no-shuffle --launch=tinydns \
 		 --cache-ttl=$cachettl --dname-processing --no-config \
 			--dnsupdate=yes \
-			--tinydns-dbfile=../modules/tinydnsbackend/data.cdb --module-dir="$PDNS_MESON_PATH/./modules" &
+			--tinydns-dbfile=../modules/tinydnsbackend/data.cdb --module-dir="$PDNS_BUILD_PATH/modules" &
 		skipreasons="nodnssec noent nodyndns nometa noaxfr noalias"
 		;;
 

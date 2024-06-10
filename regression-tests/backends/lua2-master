@@ -23,7 +23,7 @@ case $context in
 
 		# generate pdns.conf for pdnsutil
 		cat > pdns-lua2.conf <<EOF
-module-dir=$PDNS_MESON_PATH/./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=lua2
 lua2-filename=$testsdir/$luascript
 lua2-api=2

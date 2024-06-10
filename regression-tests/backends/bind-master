@@ -1,7 +1,7 @@
 case $context in
     bind)
         cat > pdns-bind.conf << __EOF__
-module-dir=$PDNS_MESON_PATH/./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=bind
 bind-config=./named.conf
 bind-ignore-broken-records=yes
@@ -18,7 +18,7 @@ __EOF__
     bind-dnssec | bind-dnssec-nsec3 | bind-hybrid-nsec3 | bind-dnssec-nsec3-optout | bind-dnssec-nsec3-narrow)
         rm -f dnssec.sqlite3
         cat > pdns-bind.conf << __EOF__
-module-dir=$PDNS_MESON_PATH/./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=bind
 bind-config=./named.conf
 bind-ignore-broken-records=yes

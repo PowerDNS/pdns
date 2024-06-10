@@ -90,7 +90,7 @@ case $context in
 
 		# generate pdns.conf for pdnsutil
 		cat > pdns-remote.conf <<EOF
-module-dir=$PDNS_MESON_PATH/./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=remote
 remote-connection-string=$connstr,timeout=10000
 EOF
@@ -123,7 +123,7 @@ EOF
 			--cache-ttl=$cachettl --dname-processing --no-config \
 			--distributor-threads=1 \
 			--dnsupdate=yes --zone-cache-refresh-interval=0 \
-			--remote-connection-string="$connstr" $remote_add_param --module-dir="$PDNS_MESON_PATH/./modules" &
+			--remote-connection-string="$connstr" $remote_add_param --module-dir="$PDNS_BUILD_PATH/modules" &
 		;;
 
 	*)

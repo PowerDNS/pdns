@@ -1,7 +1,7 @@
 case $context in
     lmdb | lmdb-nodnssec | lmdb-nsec3 | lmdb-nsec3-optout | lmdb-nsec3-narrow)
         cat > pdns-lmdb.conf << __EOF__
-module-dir=$PDNS_MESON_PATH/./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=lmdb
 lmdb-filename=./pdns.lmdb
 lmdb-random-ids=yes
