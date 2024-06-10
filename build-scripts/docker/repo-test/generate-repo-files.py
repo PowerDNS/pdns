@@ -45,13 +45,13 @@ def init_argparser():
     parser.add_argument('release', metavar='RELEASE',
                         choices=[# Authoritative Server
                                  'auth-44', 'auth-45', 'auth-46', 'auth-47',
-                                 'auth-48', 'auth-master',
+                                 'auth-48', 'auth-49', 'auth-master',
                                  # Recursor
-                                 'rec-46', 'rec-47', 'rec-48', 'rec-49',
+                                 'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-50',
                                  'rec-master',
                                  # DNSDist
                                  'dnsdist-15', 'dnsdist-16', 'dnsdist-17',
-                                 'dnsdist-18', 'dnsdist-master'
+                                 'dnsdist-18', 'dnsdist-19', 'dnsdist-master'
                                  ],
                         help='the release to generate Docker files for: ' +
                              '%(choices)s')
@@ -142,11 +142,11 @@ def write_release_files (release):
         print("Writing release files...")
 
     if release in ['auth-44', 'auth-45', 'auth-46', 'auth-47', 'auth-48',
-                   'auth-master',
-                   'rec-46', 'rec-47', 'rec-48', 'rec-49',
+                   'auth-49', 'auth-master',
+                   'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-50',
                    'rec-master',
                    'dnsdist-15', 'dnsdist-16', 'dnsdist-17', 'dnsdist-18',
-                   'dnsdist-master']:
+                   'dnsdist-19', 'dnsdist-master']:
         write_pkg_pin_file(release)
         write_dockerfile('centos', '7', release)
         write_dockerfile('el', '8', release)
@@ -159,9 +159,10 @@ def write_release_files (release):
         write_dockerfile('raspbian', 'buster', release)
         write_list_file('raspbian', 'buster', release)
 
-    if release in ['auth-46', 'auth-47', 'auth-48', 'auth-master',
-                   'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-master',
-                   'dnsdist-16', 'dnsdist-17', 'dnsdist-18', 'dnsdist-master']:
+    if release in ['auth-46', 'auth-47', 'auth-48', 'auth-49', 'auth-master',
+                   'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-50', 'rec-master',
+                   'dnsdist-16', 'dnsdist-17', 'dnsdist-18', 'dnsdist-19',
+                   'dnsdist-master']:
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
 
@@ -171,18 +172,20 @@ def write_release_files (release):
         write_dockerfile('ubuntu', 'bionic', release)
         write_list_file('ubuntu', 'bionic', release)
 
-    if release in ['auth-46', 'auth-47', 'auth-48', 'auth-master',
-                   'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-master',
-                   'dnsdist-17', 'dnsdist-18', 'dnsdist-master']:
+    if release in ['auth-46', 'auth-47', 'auth-48', 'auth-49', 'auth-master',
+                   'rec-46', 'rec-47', 'rec-48', 'rec-49', 'rec-50', 'rec-master',
+                   'dnsdist-17', 'dnsdist-18', 'dnsdist-19', 'dnsdist-master']:
         write_dockerfile('ubuntu', 'jammy', release)
         write_list_file('ubuntu', 'jammy', release)
 
-    if release in ['auth-47', 'auth-48', 'auth-master',
-                   'rec-47', 'rec-48', 'rec-49', 'rec-master',
-                   'dnsdist-17', 'dnsdist-18', 'dnsdist-master']:
+    if release in ['auth-47', 'auth-48', 'auth-49', 'auth-master',
+                   'rec-47', 'rec-48', 'rec-49', 'rec-50', 'rec-master',
+                   'dnsdist-17', 'dnsdist-18', 'dnsdist-19', 'dnsdist-master']:
         write_dockerfile('el', '9', release)
 
-    if release in ['auth-48', 'auth-master']:
+    if release in ['auth-48', 'auth-49', 'auth-master',
+                   'rec-48', 'rec-49', 'rec-50', 'rec-master',
+                   'dnsdist-19', 'dnsdist-master']:
         write_dockerfile('debian', 'bookworm', release)
         write_list_file('debian', 'bookworm', release)
 
