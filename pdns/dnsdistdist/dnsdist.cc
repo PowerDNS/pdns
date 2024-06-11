@@ -2995,7 +2995,7 @@ static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLin
         // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
         exit(EXIT_FAILURE);
       }
-      dnsdist::configuration::updateImmutableConfiguration([&consoleKey](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateRuntimeConfiguration([&consoleKey](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_consoleKey = std::move(consoleKey);
       });
     }
@@ -3246,6 +3246,44 @@ static void startFrontends()
 }
 }
 
+struct ListeningSockets
+{
+  Socket d_consoleSocket{-1};
+  Socket d_webServerSocket{-1};
+};
+
+static ListeningSockets initListeningSockets()
+{
+  ListeningSockets result;
+  const auto& currentConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+
+  if (currentConfig.d_consoleEnabled) {
+    const auto& local = currentConfig.d_consoleServerAddress;
+    try {
+      result.d_consoleSocket = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
+      result.d_consoleSocket.bind(local, true);
+      result.d_consoleSocket.listen(5);
+    }
+    catch (const std::exception& exp) {
+      errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), exp.what());
+    }
+  }
+
+  if (currentConfig.d_webServerAddress) {
+    const auto& local = *currentConfig.d_webServerAddress;
+    try {
+      result.d_webServerSocket = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
+      result.d_webServerSocket.bind(local, true);
+      result.d_webServerSocket.listen(5);
+    }
+    catch (const std::exception& exp) {
+      errlog("Unable to bind to web server socket on %s: %s", local.toStringWithPort(), exp.what());
+    }
+  }
+
+  return result;
+}
+
 int main(int argc, char** argv)
 {
   try {
@@ -3297,7 +3335,7 @@ int main(int argc, char** argv)
     if (cmdLine.beClient || !cmdLine.command.empty()) {
       setupLua(*(g_lua.lock()), true, false, cmdLine.config);
       if (clientAddress != ComboAddress()) {
-        dnsdist::configuration::updateImmutableConfiguration([&clientAddress](dnsdist::configuration::Configuration& config) {
+        dnsdist::configuration::updateRuntimeConfiguration([&clientAddress](dnsdist::configuration::RuntimeConfiguration& config) {
           config.d_consoleServerAddress = clientAddress;
         });
       }
@@ -3316,15 +3354,13 @@ int main(int argc, char** argv)
           acl.addMask(addr);
         }
       }
-    });
-
-    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
       for (const auto& mask : {"127.0.0.1/8", "::1/128"}) {
         config.d_consoleACL.addMask(mask);
       }
+      config.d_webServerACL.toMasks("127.0.0.1, ::1");
     });
 
-    registerBuiltInWebHandlers();
+    dnsdist::webserver::registerBuiltInWebHandlers();
 
     if (cmdLine.checkConfig) {
       setupLua(*(g_lua.lock()), false, true, cmdLine.config);
@@ -3406,8 +3442,10 @@ int main(int argc, char** argv)
       infolog("Console ACL allowing connections from: %s", acls.c_str());
     }
 
+    auto listeningSockets = initListeningSockets();
+
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
-    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleEnabled && dnsdist::configuration::getImmutableConfiguration().d_consoleKey.empty()) {
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleEnabled && dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey.empty()) {
       warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
     }
 #endif
@@ -3433,6 +3471,15 @@ int main(int argc, char** argv)
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
     initDoHWorkers();
 #endif
+
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleEnabled) {
+      std::thread consoleControlThread(dnsdist::console::controlThread, std::move(listeningSockets.d_consoleSocket));
+      consoleControlThread.detach();
+    }
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_webServerAddress) {
+      std::thread webServerThread(dnsdist::webserver::WebserverThread, std::move(listeningSockets.d_webServerSocket));
+      webServerThread.detach();
+    }
 
     for (auto& todoItem : todo) {
       todoItem();

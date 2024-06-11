@@ -178,7 +178,7 @@ static bool putMsgLen32(int fileDesc, uint32_t len)
 
 static ConsoleCommandResult sendMessageToServer(int fileDesc, const std::string& line, dnsdist::crypto::authenticated::Nonce& readingNonce, dnsdist::crypto::authenticated::Nonce& writingNonce, const bool outputEmptyLine)
 {
-  const auto& consoleKey = dnsdist::configuration::getImmutableConfiguration().d_consoleKey;
+  const auto& consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
   string msg = dnsdist::crypto::authenticated::encryptSym(line, consoleKey, writingNonce);
   const auto msgLen = msg.length();
   if (msgLen > std::numeric_limits<uint32_t>::max()) {
@@ -225,8 +225,8 @@ namespace dnsdist::console
 {
 void doClient(const std::string& command)
 {
-  const auto consoleKey = dnsdist::configuration::getImmutableConfiguration().d_consoleKey;
-  const auto server = dnsdist::configuration::getImmutableConfiguration().d_consoleServerAddress;
+  const auto consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
+  const auto server = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleServerAddress;
   if (!dnsdist::crypto::authenticated::isValidKey(consoleKey)) {
     cerr << "The currently configured console key is not valid, please configure a valid key using the setKey() directive" << endl;
     return;
@@ -932,7 +932,7 @@ static void controlClientThread(ConsoleConnection&& conn)
 
     setTCPNoDelay(conn.getFD());
 
-    const auto& consoleKey = dnsdist::configuration::getImmutableConfiguration().d_consoleKey;
+    const auto consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
     dnsdist::crypto::authenticated::Nonce theirs;
     dnsdist::crypto::authenticated::Nonce ours;
     dnsdist::crypto::authenticated::Nonce readingNonce;
@@ -1065,11 +1065,11 @@ static void controlClientThread(ConsoleConnection&& conn)
   }
 }
 
-// NOLINTNEXTLINE(performance-unnecessary-value-param): this is thread
-void controlThread(std::shared_ptr<Socket>&& acceptFD, ComboAddress local)
+void controlThread(Socket&& acceptFD)
 {
   try {
     setThreadName("dnsdist/control");
+    const ComboAddress local = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleServerAddress;
     s_connManager.setMaxConcurrentConnections(dnsdist::configuration::getImmutableConfiguration().d_consoleMaxConcurrentConnections);
 
     ComboAddress client;
@@ -1081,8 +1081,8 @@ void controlThread(std::shared_ptr<Socket>&& acceptFD, ComboAddress local)
     int sock{-1};
     infolog("Accepting control connections on %s", local.toStringWithPort());
 
-    while ((sock = SAccept(acceptFD->getHandle(), client)) >= 0) {
-      const auto& consoleKey = dnsdist::configuration::getImmutableConfiguration().d_consoleKey;
+    while ((sock = SAccept(acceptFD.getHandle(), client)) >= 0) {
+      const auto& consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
       FDWrapper socket(sock);
       if (!dnsdist::crypto::authenticated::isValidKey(consoleKey)) {
         vinfolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort());

@@ -45,105 +45,6 @@
 #include "threadname.hh"
 #include "sstuff.hh"
 
-struct WebserverConfig
-{
-  WebserverConfig()
-  {
-    acl.toMasks("127.0.0.1, ::1");
-  }
-
-  NetmaskGroup acl;
-  std::unique_ptr<CredentialsHolder> password;
-  std::unique_ptr<CredentialsHolder> apiKey;
-  boost::optional<std::unordered_map<std::string, std::string>> customHeaders;
-  bool apiRequiresAuthentication{true};
-  bool dashboardRequiresAuthentication{true};
-  bool statsRequireAuthentication{true};
-};
-
-LockGuarded<WebserverConfig> g_webserverConfig;
-
-static ConcurrentConnectionManager s_connManager(100);
-
-std::string getWebserverConfig()
-{
-  ostringstream out;
-
-  {
-    auto config = g_webserverConfig.lock();
-    out << "Current web server configuration:" << endl;
-    out << "ACL: " << config->acl.toString() << endl;
-    out << "Custom headers: ";
-    if (config->customHeaders) {
-      out << endl;
-      for (const auto& header : *config->customHeaders) {
-        out << " - " << header.first << ": " << header.second << endl;
-      }
-    }
-    else {
-      out << "None" << endl;
-    }
-    out << "API requires authentication: " << (config->apiRequiresAuthentication ? "yes" : "no") << endl;
-    out << "Dashboard requires authentication: " << (config->dashboardRequiresAuthentication ? "yes" : "no") << endl;
-    out << "Statistics require authentication: " << (config->statsRequireAuthentication ? "yes" : "no") << endl;
-    out << "Password: " << (config->password ? "set" : "unset") << endl;
-    out << "API key: " << (config->apiKey ? "set" : "unset") << endl;
-  }
-  {
-    const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
-    out << "API writable: " << (config.d_apiReadWrite ? "yes" : "no") << endl;
-    out << "API configuration directory: " << config.d_apiConfigDirectory << endl;
-    out << "Maximum concurrent connections: " << s_connManager.getMaxConcurrentConnections() << endl;
-  }
-
-  return out.str();
-}
-
-class WebClientConnection
-{
-public:
-  WebClientConnection(const ComboAddress& client, int socketDesc) :
-    d_client(client), d_socket(socketDesc)
-  {
-    if (!s_connManager.registerConnection()) {
-      throw std::runtime_error("Too many concurrent web client connections");
-    }
-  }
-  WebClientConnection(WebClientConnection&& rhs) noexcept :
-    d_client(rhs.d_client), d_socket(std::move(rhs.d_socket))
-  {
-  }
-  WebClientConnection(const WebClientConnection&) = delete;
-  WebClientConnection& operator=(const WebClientConnection&) = delete;
-  WebClientConnection& operator=(WebClientConnection&& rhs) noexcept
-  {
-    d_client = rhs.d_client;
-    d_socket = std::move(rhs.d_socket);
-    return *this;
-  }
-
-  ~WebClientConnection()
-  {
-    if (d_socket.getHandle() != -1) {
-      s_connManager.releaseConnection();
-    }
-  }
-
-  [[nodiscard]] const Socket& getSocket() const
-  {
-    return d_socket;
-  }
-
-  [[nodiscard]] const ComboAddress& getClient() const
-  {
-    return d_client;
-  }
-
-private:
-  ComboAddress d_client;
-  Socket d_socket;
-};
-
 #ifndef DISABLE_PROMETHEUS
 static MetricDefinitionStorage s_metricDefinitions;
 
@@ -228,6 +129,86 @@ std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
 };
 #endif /* DISABLE_PROMETHEUS */
 
+namespace dnsdist::webserver
+{
+static ConcurrentConnectionManager s_connManager(100);
+
+std::string getConfig()
+{
+  ostringstream out;
+
+  {
+    const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    out << "Current web server configuration:" << endl;
+    out << "ACL: " << config.d_webServerACL.toString() << endl;
+    out << "Custom headers: ";
+    if (config.d_webCustomHeaders) {
+      out << endl;
+      for (const auto& header : *config.d_webCustomHeaders) {
+        out << " - " << header.first << ": " << header.second << endl;
+      }
+    }
+    else {
+      out << "None" << endl;
+    }
+    out << "API requires authentication: " << (config.d_apiRequiresAuthentication ? "yes" : "no") << endl;
+    out << "Dashboard requires authentication: " << (config.d_dashboardRequiresAuthentication ? "yes" : "no") << endl;
+    out << "Statistics require authentication: " << (config.d_statsRequireAuthentication ? "yes" : "no") << endl;
+    out << "Password: " << (config.d_webPassword ? "set" : "unset") << endl;
+    out << "API key: " << (config.d_webAPIKey ? "set" : "unset") << endl;
+    out << "API writable: " << (config.d_apiReadWrite ? "yes" : "no") << endl;
+    out << "API configuration directory: " << config.d_apiConfigDirectory << endl;
+    out << "Maximum concurrent connections: " << s_connManager.getMaxConcurrentConnections() << endl;
+  }
+
+  return out.str();
+}
+
+class WebClientConnection
+{
+public:
+  WebClientConnection(const ComboAddress& client, int socketDesc) :
+    d_client(client), d_socket(socketDesc)
+  {
+    if (!s_connManager.registerConnection()) {
+      throw std::runtime_error("Too many concurrent web client connections");
+    }
+  }
+  WebClientConnection(WebClientConnection&& rhs) noexcept :
+    d_client(rhs.d_client), d_socket(std::move(rhs.d_socket))
+  {
+  }
+  WebClientConnection(const WebClientConnection&) = delete;
+  WebClientConnection& operator=(const WebClientConnection&) = delete;
+  WebClientConnection& operator=(WebClientConnection&& rhs) noexcept
+  {
+    d_client = rhs.d_client;
+    d_socket = std::move(rhs.d_socket);
+    return *this;
+  }
+
+  ~WebClientConnection()
+  {
+    if (d_socket.getHandle() != -1) {
+      s_connManager.releaseConnection();
+    }
+  }
+
+  [[nodiscard]] const Socket& getSocket() const
+  {
+    return d_socket;
+  }
+
+  [[nodiscard]] const ComboAddress& getClient() const
+  {
+    return d_client;
+  }
+
+private:
+  ComboAddress d_client;
+  Socket d_socket;
+};
+
 bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
 {
 #ifndef DISABLE_PROMETHEUS
@@ -280,7 +261,7 @@ static void apiSaveACL(const NetmaskGroup& nmg)
 }
 #endif /* DISABLE_WEB_CONFIG */
 
-static bool checkAPIKey(const YaHTTP::Request& req, const std::unique_ptr<CredentialsHolder>& apiKey)
+static bool checkAPIKey(const YaHTTP::Request& req, const std::shared_ptr<const CredentialsHolder>& apiKey)
 {
   if (!apiKey) {
     return false;
@@ -294,7 +275,7 @@ static bool checkAPIKey(const YaHTTP::Request& req, const std::unique_ptr<Creden
   return false;
 }
 
-static bool checkWebPassword(const YaHTTP::Request& req, const std::unique_ptr<CredentialsHolder>& password, bool dashboardRequiresAuthentication)
+static bool checkWebPassword(const YaHTTP::Request& req, const std::shared_ptr<const CredentialsHolder>& password, bool dashboardRequiresAuthentication)
 {
   if (!dashboardRequiresAuthentication) {
     return true;
@@ -341,26 +322,26 @@ static bool isAStatsRequest(const YaHTTP::Request& req)
 
 static bool handleAuthorization(const YaHTTP::Request& req)
 {
-  auto config = g_webserverConfig.lock();
+  const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
 
   if (isAStatsRequest(req)) {
-    if (config->statsRequireAuthentication) {
+    if (config.d_statsRequireAuthentication) {
       /* Access to the stats is allowed for both API and Web users */
-      return checkAPIKey(req, config->apiKey) || checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
+      return checkAPIKey(req, config.d_webAPIKey) || checkWebPassword(req, config.d_webPassword, config.d_dashboardRequiresAuthentication);
     }
     return true;
   }
 
   if (isAnAPIRequest(req)) {
     /* Access to the API requires a valid API key */
-    if (!config->apiRequiresAuthentication || checkAPIKey(req, config->apiKey)) {
+    if (!config.d_apiRequiresAuthentication || checkAPIKey(req, config.d_webAPIKey)) {
       return true;
     }
 
-    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
+    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, config.d_webPassword, config.d_dashboardRequiresAuthentication);
   }
 
-  return checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
+  return checkWebPassword(req, config.d_webPassword, config.d_dashboardRequiresAuthentication);
 }
 
 static bool isMethodAllowed(const YaHTTP::Request& req)
@@ -385,7 +366,8 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
 
 static bool isClientAllowedByACL(const ComboAddress& remote)
 {
-  return g_webserverConfig.lock()->acl.match(remote);
+  const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  return config.d_webServerACL.match(remote);
 }
 
 static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
@@ -411,7 +393,7 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 }
 
-static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std::unordered_map<std::string, std::string>>& customHeaders)
+static void addSecurityHeaders(YaHTTP::Response& resp, const std::optional<std::unordered_map<std::string, std::string>>& customHeaders)
 {
   static const std::vector<std::pair<std::string, std::string>> headers = {
     {"X-Content-Type-Options", "nosniff"},
@@ -432,7 +414,7 @@ static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std
   }
 }
 
-static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::unordered_map<std::string, std::string>>& customHeaders)
+static void addCustomHeaders(YaHTTP::Response& resp, const std::optional<std::unordered_map<std::string, std::string>>& customHeaders)
 {
   if (!customHeaders) {
     return;
@@ -1453,7 +1435,7 @@ static void handleConfigDump(const YaHTTP::Request& req, YaHTTP::Response& resp)
   std::vector<std::pair<std::string, configentry_t>> configEntries{
     {"acl", runtimeConfiguration.d_ACL.toString()},
     {"allow-empty-response", runtimeConfiguration.d_allowEmptyResponse},
-    {"control-socket", immutableConfig.d_consoleServerAddress.toStringWithPort()},
+    {"control-socket", runtimeConfiguration.d_consoleServerAddress.toStringWithPort()},
     {"ecs-override", runtimeConfiguration.d_ecsOverride},
     {"ecs-source-prefix-v4", static_cast<double>(runtimeConfiguration.d_ECSSourcePrefixV4)},
     {"ecs-source-prefix-v6", static_cast<double>(runtimeConfiguration.d_ECSSourcePrefixV6)},
@@ -1858,10 +1840,9 @@ static void connectionThread(WebClientConnection&& conn)
     resp.version = req.version;
 
     {
-      auto config = g_webserverConfig.lock();
-
-      addCustomHeaders(resp, config->customHeaders);
-      addSecurityHeaders(resp, config->customHeaders);
+      const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+      addCustomHeaders(resp, config.d_webCustomHeaders);
+      addSecurityHeaders(resp, config.d_webCustomHeaders);
     }
     /* indicate that the connection will be closed after completion of the response */
     resp.headers["Connection"] = "close";
@@ -1926,64 +1907,20 @@ static void connectionThread(WebClientConnection&& conn)
   }
 }
 
-void setWebserverAPIKey(std::unique_ptr<CredentialsHolder>&& apiKey)
-{
-  auto config = g_webserverConfig.lock();
-
-  if (apiKey) {
-    config->apiKey = std::move(apiKey);
-  }
-  else {
-    config->apiKey.reset();
-  }
-}
-
-void setWebserverPassword(std::unique_ptr<CredentialsHolder>&& password)
-{
-  g_webserverConfig.lock()->password = std::move(password);
-}
-
-void setWebserverACL(const std::string& acl)
-{
-  NetmaskGroup newACL;
-  newACL.toMasks(acl);
-
-  g_webserverConfig.lock()->acl = std::move(newACL);
-}
-
-void setWebserverCustomHeaders(const boost::optional<std::unordered_map<std::string, std::string>>& customHeaders)
-{
-  g_webserverConfig.lock()->customHeaders = customHeaders;
-}
-
-void setWebserverStatsRequireAuthentication(bool require)
-{
-  g_webserverConfig.lock()->statsRequireAuthentication = require;
-}
-
-void setWebserverAPIRequiresAuthentication(bool require)
-{
-  g_webserverConfig.lock()->apiRequiresAuthentication = require;
-}
-
-void setWebserverDashboardRequiresAuthentication(bool require)
-{
-  g_webserverConfig.lock()->dashboardRequiresAuthentication = require;
-}
-
-void setWebserverMaxConcurrentConnections(size_t max)
+void setMaxConcurrentConnections(size_t max)
 {
   s_connManager.setMaxConcurrentConnections(max);
 }
 
-void dnsdistWebserverThread(int sock, const ComboAddress& local)
+void WebserverThread(Socket sock)
 {
   setThreadName("dnsdist/webserv");
+  const auto local = *dnsdist::configuration::getCurrentRuntimeConfiguration().d_webServerAddress;
   infolog("Webserver launched on %s", local.toStringWithPort());
 
   {
-    auto config = g_webserverConfig.lock();
-    if (!config->password && config->dashboardRequiresAuthentication) {
+    const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    if (!config.d_webPassword && config.d_dashboardRequiresAuthentication) {
       warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
     }
   }
@@ -1991,7 +1928,7 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
   for (;;) {
     try {
       ComboAddress remote(local);
-      int fileDesc = SAccept(sock, remote);
+      int fileDesc = SAccept(sock.getHandle(), remote);
 
       if (!isClientAllowedByACL(remote)) {
         vinfolog("Connection to webserver from client %s is not allowed, closing", remote.toStringWithPort());
@@ -2009,4 +1946,5 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
       vinfolog("Had an error accepting new webserver connection: %s", e.what());
     }
   }
+}
 }

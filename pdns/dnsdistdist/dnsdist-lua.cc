@@ -82,7 +82,7 @@
 
 using std::thread;
 
-static boost::optional<std::vector<std::function<void(void)>>> g_launchWork = boost::none;
+static std::optional<std::vector<std::function<void(void)>>> s_launchWork{std::nullopt};
 
 static boost::tribool s_noLuaSideEffect;
 
@@ -699,8 +699,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (ret->connected) {
-                           if (g_launchWork) {
-                             g_launchWork->push_back([ret]() {
+                           if (s_launchWork) {
+                             s_launchWork->push_back([ret]() {
                                ret->start();
                              });
                            }
@@ -1292,29 +1292,26 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
 
-    try {
-      int sock = SSocket(local.sin4.sin_family, SOCK_STREAM, 0);
-      SSetsockopt(sock, SOL_SOCKET, SO_REUSEADDR, 1);
-      SBind(sock, local);
-      SListen(sock, 5);
-      auto launch = [sock, local]() {
-        thread thr(dnsdistWebserverThread, sock, local);
+    dnsdist::configuration::updateRuntimeConfiguration([local](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_webServerAddress = local;
+    });
+
+    if (dnsdist::configuration::isConfigurationDone()) {
+      try {
+        auto sock = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
+        sock.bind(local, true);
+        sock.listen(5);
+        thread thr(dnsdist::webserver::WebserverThread, std::move(sock));
         thr.detach();
-      };
-      if (g_launchWork) {
-        g_launchWork->push_back(launch);
       }
-      else {
-        launch();
+      catch (const std::exception& e) {
+        g_outputBuffer = "Unable to bind to webserver socket on " + local.toStringWithPort() + ": " + e.what();
+        errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what());
       }
-    }
-    catch (const std::exception& e) {
-      g_outputBuffer = "Unable to bind to webserver socket on " + local.toStringWithPort() + ": " + e.what();
-      errlog("Unable to bind to webserver socket on %s: %s", local.toStringWithPort(), e.what());
     }
   });
 
-  typedef LuaAssociativeTable<boost::variant<bool, std::string, LuaAssociativeTable<std::string>>> webserveropts_t;
+  using webserveropts_t = LuaAssociativeTable<boost::variant<bool, std::string, LuaAssociativeTable<std::string>>>;
 
   luaCtx.writeFunction("setWebserverConfig", [](boost::optional<webserveropts_t> vars) {
     setLuaSideEffect();
@@ -1323,64 +1320,65 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
 
-    bool hashPlaintextCredentials = false;
-    getOptionalValue<bool>(vars, "hashPlaintextCredentials", hashPlaintextCredentials);
+    dnsdist::configuration::updateRuntimeConfiguration([&vars](dnsdist::configuration::RuntimeConfiguration& config) {
+      std::string password;
+      std::string apiKey;
+      std::string acl;
+      LuaAssociativeTable<std::string> headers;
+      bool statsRequireAuthentication{true};
+      bool apiRequiresAuthentication{true};
+      bool dashboardRequiresAuthentication{true};
+      bool hashPlaintextCredentials = false;
+      getOptionalValue<bool>(vars, "hashPlaintextCredentials", hashPlaintextCredentials);
 
-    std::string password;
-    std::string apiKey;
-    std::string acl;
-    LuaAssociativeTable<std::string> headers;
-    bool statsRequireAuthentication{true};
-    bool apiRequiresAuthentication{true};
-    bool dashboardRequiresAuthentication{true};
+      if (getOptionalValue<std::string>(vars, "password", password) > 0) {
+        auto holder = std::make_shared<CredentialsHolder>(std::move(password), hashPlaintextCredentials);
+        if (!holder->wasHashed() && holder->isHashingAvailable()) {
+          infolog("Passing a plain-text password via the 'password' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+        }
+        config.d_webPassword = std::move(holder);
+      }
+
+      if (getOptionalValue<std::string>(vars, "apiKey", apiKey) > 0) {
+        auto holder = std::make_shared<CredentialsHolder>(std::move(apiKey), hashPlaintextCredentials);
+        if (!holder->wasHashed() && holder->isHashingAvailable()) {
+          infolog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+        }
+        config.d_webAPIKey = std::move(holder);
+      }
+
+      if (getOptionalValue<std::string>(vars, "acl", acl) > 0) {
+        NetmaskGroup ACLnmg;
+        ACLnmg.toMasks(acl);
+        config.d_webServerACL = std::move(ACLnmg);
+      }
+
+      if (getOptionalValue<decltype(headers)>(vars, "customHeaders", headers) > 0) {
+        config.d_webCustomHeaders = std::move(headers);
+      }
+
+      if (getOptionalValue<bool>(vars, "statsRequireAuthentication", statsRequireAuthentication) > 0) {
+        config.d_statsRequireAuthentication = statsRequireAuthentication;
+      }
+
+      if (getOptionalValue<bool>(vars, "apiRequiresAuthentication", apiRequiresAuthentication) > 0) {
+        config.d_apiRequiresAuthentication = apiRequiresAuthentication;
+      }
+
+      if (getOptionalValue<bool>(vars, "dashboardRequiresAuthentication", dashboardRequiresAuthentication) > 0) {
+        config.d_dashboardRequiresAuthentication = dashboardRequiresAuthentication;
+      }
+    });
+
     int maxConcurrentConnections = 0;
-
-    if (getOptionalValue<std::string>(vars, "password", password) > 0) {
-      auto holder = make_unique<CredentialsHolder>(std::move(password), hashPlaintextCredentials);
-      if (!holder->wasHashed() && holder->isHashingAvailable()) {
-        infolog("Passing a plain-text password via the 'password' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
-      }
-
-      setWebserverPassword(std::move(holder));
-    }
-
-    if (getOptionalValue<std::string>(vars, "apiKey", apiKey) > 0) {
-      auto holder = make_unique<CredentialsHolder>(std::move(apiKey), hashPlaintextCredentials);
-      if (!holder->wasHashed() && holder->isHashingAvailable()) {
-        infolog("Passing a plain-text API key via the 'apiKey' parameter to 'setWebserverConfig()' is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
-      }
-
-      setWebserverAPIKey(std::move(holder));
-    }
-
-    if (getOptionalValue<std::string>(vars, "acl", acl) > 0) {
-      setWebserverACL(acl);
-    }
-
-    if (getOptionalValue<decltype(headers)>(vars, "customHeaders", headers) > 0) {
-      setWebserverCustomHeaders(headers);
-    }
-
-    if (getOptionalValue<bool>(vars, "statsRequireAuthentication", statsRequireAuthentication) > 0) {
-      setWebserverStatsRequireAuthentication(statsRequireAuthentication);
-    }
-
-    if (getOptionalValue<bool>(vars, "apiRequiresAuthentication", apiRequiresAuthentication) > 0) {
-      setWebserverAPIRequiresAuthentication(apiRequiresAuthentication);
-    }
-
-    if (getOptionalValue<bool>(vars, "dashboardRequiresAuthentication", dashboardRequiresAuthentication) > 0) {
-      setWebserverDashboardRequiresAuthentication(dashboardRequiresAuthentication);
-    }
-
     if (getOptionalIntegerValue("setWebserverConfig", vars, "maxConcurrentConnections", maxConcurrentConnections) > 0) {
-      setWebserverMaxConcurrentConnections(maxConcurrentConnections);
+      dnsdist::webserver::setMaxConcurrentConnections(maxConcurrentConnections);
     }
   });
 
   luaCtx.writeFunction("showWebserverConfig", []() {
     setLuaNoSideEffect();
-    return getWebserverConfig();
+    return dnsdist::webserver::getConfig();
   });
 
   luaCtx.writeFunction("hashPassword", [](const std::string& password, boost::optional<uint64_t> workFactor) {
@@ -1395,39 +1393,31 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     ComboAddress local(str, 5199);
 
     if (client || configCheck) {
-      dnsdist::configuration::updateImmutableConfiguration([&local](dnsdist::configuration::Configuration& config) {
-        config.d_consoleServerAddress = local;
-      });
       return;
     }
 
-    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    dnsdist::configuration::updateRuntimeConfiguration([local](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_consoleServerAddress = local;
       config.d_consoleEnabled = true;
     });
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
-    if (dnsdist::configuration::isConfigurationDone() && dnsdist::configuration::getImmutableConfiguration().d_consoleKey.empty()) {
+    if (dnsdist::configuration::isConfigurationDone() && dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey.empty()) {
       warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
     }
 #endif
 
-    try {
-      auto sock = std::make_shared<Socket>(local.sin4.sin_family, SOCK_STREAM, 0);
-      sock->bind(local, true);
-      sock->listen(5);
-      auto launch = [sock = std::move(sock), local]() {
-        std::thread consoleControlThread(dnsdist::console::controlThread, std::move(sock), local);
+    if (dnsdist::configuration::isConfigurationDone()) {
+      try {
+        auto sock = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
+        sock.bind(local, true);
+        sock.listen(5);
+        std::thread consoleControlThread(dnsdist::console::controlThread, std::move(sock));
         consoleControlThread.detach();
-      };
-      if (g_launchWork) {
-        g_launchWork->emplace_back(std::move(launch));
       }
-      else {
-        launch();
+      catch (const std::exception& exp) {
+        g_outputBuffer = "Unable to bind to control socket on " + local.toStringWithPort() + ": " + exp.what();
+        errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), exp.what());
       }
-    }
-    catch (std::exception& e) {
-      g_outputBuffer = "Unable to bind to control socket on " + local.toStringWithPort() + ": " + e.what();
-      errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), e.what());
     }
   });
 
@@ -1516,7 +1506,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setKey", [](const std::string& key) {
-    if (!dnsdist::configuration::isConfigurationDone() && !dnsdist::configuration::getImmutableConfiguration().d_consoleKey.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
+    if (!dnsdist::configuration::isConfigurationDone() && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
       return; // but later setKeys() trump the -k value again
     }
 #if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
@@ -1531,7 +1521,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
 
-    dnsdist::configuration::updateImmutableConfiguration([&newKey](dnsdist::configuration::Configuration& config) {
+    dnsdist::configuration::updateRuntimeConfiguration([&newKey](dnsdist::configuration::RuntimeConfiguration& config) {
       config.d_consoleKey = std::move(newKey);
     });
   });
@@ -1544,7 +1534,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaNoSideEffect();
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
     try {
-      const auto& consoleKey = dnsdist::configuration::getImmutableConfiguration().d_consoleKey;
+      const auto& consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
       string testmsg;
 
       if (optTestMsg) {
@@ -3381,7 +3371,7 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
 {
   // this needs to exist only during the parsing of the configuration
   // and cannot be captured by lambdas
-  g_launchWork = std::vector<std::function<void(void)>>();
+  s_launchWork = std::vector<std::function<void(void)>>();
 
   setupLuaActions(luaCtx);
   setupLuaConfig(luaCtx, client, configCheck);
@@ -3418,7 +3408,8 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
 
   luaCtx.executeCode(ifs);
 
-  auto ret = *g_launchWork;
-  g_launchWork = boost::none;
+  auto ret = std::move(*s_launchWork);
+  s_launchWork = std::nullopt;
+
   return ret;
 }

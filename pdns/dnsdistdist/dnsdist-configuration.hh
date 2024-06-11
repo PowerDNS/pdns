@@ -23,8 +23,11 @@
 
 #include <functional>
 #include <map>
+#include <memory>
+#include <optional>
 #include <string>
 
+#include "credentials.hh"
 #include "dnsdist-query-count.hh"
 #include "dnsdist-rule-chains.hh"
 #include "iputils.hh"
@@ -156,8 +159,6 @@ struct Configuration
 {
   std::set<std::string> d_capabilitiesToRetain;
   std::vector<uint32_t> d_tcpFastOpenKey;
-  ComboAddress d_consoleServerAddress{"127.0.0.1:5199"};
-  std::string d_consoleKey;
 #ifdef __linux__
   // On Linux this gives us 128k pending queries (default is 8192 queries),
   // which should be enough to deal with huge spikes
@@ -193,23 +194,21 @@ struct Configuration
    a RCU-like mechanism */
 struct RuntimeConfiguration
 {
-  // ca tient pas la route: meilleure option: stocker un type plus opaque dans la configuration (dnsdist::rules::RuleChains) et
-  // laisser le soin a dnsdist::rules de le gerer
-  /*  std::vector<rules::RuleAction> d_cacheMissRuleActions;
-  std::vector<rules::ResponseRuleAction> d_respruleactions;
-  std::vector<rules::ResponseRuleAction> d_cachehitrespruleactions;
-  std::vector<rules::ResponseRuleAction> d_selfansweredrespruleactions;
-  std::vector<rules::ResponseRuleAction> d_cacheInsertedRespRuleActions;
-  std::vector<rules::ResponseRuleAction> d_XFRRespRuleActions;
-  */
   rules::RuleChains d_ruleChains;
   servers_t d_backends;
   std::map<std::string, std::shared_ptr<ServerPool>> d_pools;
+  std::shared_ptr<const CredentialsHolder> d_webPassword;
+  std::shared_ptr<const CredentialsHolder> d_webAPIKey;
+  std::optional<std::unordered_map<std::string, std::string>> d_webCustomHeaders;
   std::shared_ptr<ServerPolicy> d_lbPolicy;
   NetmaskGroup d_ACL;
   NetmaskGroup d_proxyProtocolACL;
   NetmaskGroup d_consoleACL;
+  NetmaskGroup d_webServerACL;
+  std::optional<ComboAddress> d_webServerAddress{std::nullopt};
   dnsdist::QueryCount::Configuration d_queryCountConfig;
+  ComboAddress d_consoleServerAddress{"127.0.0.1:5199"};
+  std::string d_consoleKey;
   std::string d_secPollSuffix{"secpoll.powerdns.com."};
   std::string d_apiConfigDirectory;
   uint64_t d_dynBlocksPurgeInterval{60};
@@ -231,6 +230,9 @@ struct RuntimeConfiguration
   uint16_t d_tlsSessionCacheSessionValidity{600};
   uint16_t d_tlsSessionCacheMaxSessionsPerBackend{20};
   DNSAction::Action d_dynBlockAction{DNSAction::Action::Drop};
+  bool d_apiRequiresAuthentication{true};
+  bool d_dashboardRequiresAuthentication{true};
+  bool d_statsRequireAuthentication{true};
   bool d_truncateTC{false};
   bool d_fixupCase{false};
   bool d_queryCountEnabled{false};

@@ -33,7 +33,7 @@
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 
-bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
+bool dnsdist::webserver::addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
 {
   return true;
 }

@@ -32,7 +32,7 @@ namespace dnsdist::console
 const std::vector<std::pair<timeval, std::string>>& getConfigurationDelta();
 void doClient(const std::string& command);
 void doConsole();
-void controlThread(std::shared_ptr<Socket>&& acceptFD, ComboAddress local);
+void controlThread(Socket&& acceptFD);
 void clearHistory();
 
 #ifndef DISABLE_COMPLETION
