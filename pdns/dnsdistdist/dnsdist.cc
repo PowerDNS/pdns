@@ -3378,7 +3378,7 @@ int main(int argc, char** argv)
 
     dnsdist::g_asyncHolder = std::make_unique<dnsdist::AsynchronousHolder>();
 
-    auto todo = setupLua(*(g_lua.lock()), false, false, cmdLine.config);
+    setupLua(*(g_lua.lock()), false, false, cmdLine.config);
 
     setupPools();
 
@@ -3481,12 +3481,15 @@ int main(int argc, char** argv)
       webServerThread.detach();
     }
 
-    for (auto& todoItem : todo) {
-      todoItem();
-    }
-
     /* create the default pool no matter what */
     createPoolIfNotExists("");
+
+    for (auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
+      if (backend->connected) {
+        backend->start();
+      }
+    }
+
     if (!cmdLine.remotes.empty()) {
       for (const auto& address : cmdLine.remotes) {
         DownstreamState::Config config;

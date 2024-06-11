@@ -82,8 +82,6 @@
 
 using std::thread;
 
-static std::optional<std::vector<std::function<void(void)>>> s_launchWork{std::nullopt};
-
 static boost::tribool s_noLuaSideEffect;
 
 /* this is a best effort way to prevent logging calls with no side-effects in the output of delta()
@@ -699,12 +697,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (ret->connected) {
-                           if (s_launchWork) {
-                             s_launchWork->push_back([ret]() {
-                               ret->start();
-                             });
-                           }
-                           else {
+                           if (!dnsdist::configuration::isConfigurationDone()) {
                              ret->start();
                            }
                          }
@@ -3367,12 +3360,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 }
 
-vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config)
+void setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config)
 {
-  // this needs to exist only during the parsing of the configuration
-  // and cannot be captured by lambdas
-  s_launchWork = std::vector<std::function<void(void)>>();
-
   setupLuaActions(luaCtx);
   setupLuaConfig(luaCtx, client, configCheck);
   setupLuaBindings(luaCtx, client, configCheck);
@@ -3407,9 +3396,4 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
   }
 
   luaCtx.executeCode(ifs);
-
-  auto ret = std::move(*s_launchWork);
-  s_launchWork = std::nullopt;
-
-  return ret;
 }
