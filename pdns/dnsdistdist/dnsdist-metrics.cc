@@ -178,7 +178,7 @@ std::optional<std::string> declareCustomMetric(const std::string& name, const st
     if (itp.second) {
       g_stats.entries.write_lock()->emplace_back(Stats::EntryPair{name, &(*customCounters)[name].d_value});
       dnsdist::prometheus::PrometheusMetricDefinition def{name, type, description, finalCustomName};
-      addMetricDefinition(def);
+      dnsdist::webserver::addMetricDefinition(def);
     }
   }
   else if (type == "gauge") {
@@ -187,7 +187,7 @@ std::optional<std::string> declareCustomMetric(const std::string& name, const st
     if (itp.second) {
       g_stats.entries.write_lock()->emplace_back(Stats::EntryPair{name, &(*customGauges)[name].d_value});
       dnsdist::prometheus::PrometheusMetricDefinition def{name, type, description, finalCustomName};
-      addMetricDefinition(def);
+      dnsdist::webserver::addMetricDefinition(def);
     }
   }
   else {

@@ -170,7 +170,7 @@ std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var, const std::string& ca
 void parseRuleParams(boost::optional<luaruleparams_t>& params, boost::uuids::uuid& uuid, std::string& name, uint64_t& creationOrder);
 void checkParameterBound(const std::string& parameter, uint64_t value, size_t max = std::numeric_limits<uint16_t>::max());
 
-vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config);
+std::vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config);
 void setupLuaActions(LuaContext& luaCtx);
 void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck);
 void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client);
