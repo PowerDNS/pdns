@@ -27,7 +27,6 @@ jobs:
           - centos-7
           - ubuntu-bionic
           - el-8
-          - centos-8-stream
           - centos-9-stream
           - ubuntu-jammy
           - debian-bookworm
