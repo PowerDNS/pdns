@@ -1262,12 +1262,17 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifndef DISABLE_CARBON
   luaCtx.writeFunction("carbonServer", [](const std::string& address, boost::optional<string> ourName, boost::optional<uint64_t> interval, boost::optional<string> namespace_name, boost::optional<string> instance_name) {
     setLuaSideEffect();
-    dnsdist::Carbon::Endpoint endpoint{ComboAddress(address, 2003),
-                                       (namespace_name && !namespace_name->empty()) ? *namespace_name : "dnsdist",
-                                       ourName ? *ourName : "",
-                                       (instance_name && !instance_name->empty()) ? *instance_name : "main",
-                                       (interval && *interval < std::numeric_limits<unsigned int>::max()) ? static_cast<unsigned int>(*interval) : 30};
-    dnsdist::Carbon::addEndpoint(std::move(endpoint));
+    auto newEndpoint = dnsdist::Carbon::newEndpoint(address,
+                                                    (ourName ? *ourName : ""),
+                                                    (interval ? *interval : 30),
+                                                    (namespace_name ? *namespace_name : "dnsdist"),
+                                                    (instance_name ? *instance_name : "main"));
+    if (dnsdist::configuration::isConfigurationDone()) {
+      dnsdist::Carbon::run({newEndpoint});
+    }
+    dnsdist::configuration::updateRuntimeConfiguration([&newEndpoint](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_carbonEndpoints.push_back(std::move(newEndpoint));
+    });
   });
 #endif /* DISABLE_CARBON */
 
