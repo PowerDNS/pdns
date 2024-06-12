@@ -3535,7 +3535,7 @@ int main(int argc, char** argv)
     dnsdist::ServiceDiscovery::run();
 
 #ifndef DISABLE_CARBON
-    dnsdist::Carbon::run();
+    dnsdist::Carbon::run(dnsdist::configuration::getCurrentRuntimeConfiguration().d_carbonEndpoints);
 #endif /* DISABLE_CARBON */
 
     thread stattid(maintThread);

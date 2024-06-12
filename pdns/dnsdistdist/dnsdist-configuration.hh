@@ -28,6 +28,7 @@
 #include <string>
 
 #include "credentials.hh"
+#include "dnsdist-carbon.hh"
 #include "dnsdist-query-count.hh"
 #include "dnsdist-rule-chains.hh"
 #include "iputils.hh"
@@ -196,6 +197,7 @@ struct RuntimeConfiguration
 {
   rules::RuleChains d_ruleChains;
   servers_t d_backends;
+  std::vector<dnsdist::Carbon::Endpoint> d_carbonEndpoints;
   std::map<std::string, std::shared_ptr<ServerPool>> d_pools;
   std::shared_ptr<const CredentialsHolder> d_webPassword;
   std::shared_ptr<const CredentialsHolder> d_webAPIKey;

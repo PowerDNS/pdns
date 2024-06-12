@@ -37,8 +37,6 @@
 namespace dnsdist
 {
 
-LockGuarded<Carbon::Config> Carbon::s_config;
-
 static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 {
   const auto& server = endpoint.server;
@@ -296,7 +294,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
   return true;
 }
 
-static void carbonHandler(Carbon::Endpoint&& endpoint)
+static void carbonHandler(Carbon::Endpoint endpoint)
 {
   setThreadName("dnsdist/carbon");
   const auto intervalUSec = endpoint.interval * 1000 * 1000;
@@ -337,41 +335,29 @@ static void carbonHandler(Carbon::Endpoint&& endpoint)
   }
 }
 
-bool Carbon::addEndpoint(Carbon::Endpoint&& endpoint)
+Carbon::Endpoint Carbon::newEndpoint(const std::string& address, std::string ourName, uint64_t interval, const std::string& namespace_name, const std::string& instance_name)
 {
-  if (endpoint.ourname.empty()) {
+  if (ourName.empty()) {
     try {
-      endpoint.ourname = getCarbonHostName();
+      ourName = getCarbonHostName();
     }
-    catch (const std::exception& e) {
-      throw std::runtime_error(std::string("The 'ourname' setting in 'carbonServer()' has not been set and we are unable to determine the system's hostname: ") + e.what());
+    catch (const std::exception& exp) {
+      throw std::runtime_error(std::string("The 'ourname' setting in 'carbonServer()' has not been set and we are unable to determine the system's hostname: ") + exp.what());
     }
   }
-
-  auto config = s_config.lock();
-  if (config->d_running) {
-    // we already started the threads, let's just spawn a new one
-    std::thread newHandler(carbonHandler, std::move(endpoint));
-    newHandler.detach();
-  }
-  else {
-    config->d_endpoints.push_back(std::move(endpoint));
-  }
-  return true;
+  return Carbon::Endpoint{ComboAddress(address, 2003),
+                          !namespace_name.empty() ? namespace_name : "dnsdist",
+                          ourName,
+                          !instance_name.empty() ? instance_name : "main",
+                          interval < std::numeric_limits<unsigned int>::max() ? static_cast<unsigned int>(interval) : 30};
 }
 
-void Carbon::run()
+void Carbon::run(const std::vector<Carbon::Endpoint>& endpoints)
 {
-  auto config = s_config.lock();
-  if (config->d_running) {
-    throw std::runtime_error("The carbon threads are already running");
-  }
-  for (auto& endpoint : config->d_endpoints) {
-    std::thread newHandler(carbonHandler, std::move(endpoint));
+  for (auto& endpoint : endpoints) {
+    std::thread newHandler(carbonHandler, endpoint);
     newHandler.detach();
   }
-  config->d_endpoints.clear();
-  config->d_running = true;
 }
 
 }
