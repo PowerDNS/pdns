@@ -1,15 +1,7 @@
 # First do the source builds
 @INCLUDE Dockerfile.target.sdist
 
-@IF [ ${BUILDER_TARGET} = debian-bookworm ]
 FROM debian:bookworm as dist-base
-@ENDIF
-@IF [ ${BUILDER_TARGET} = debian-bookworm-amd64 ]
-FROM amd64/debian:bookworm as dist-base
-@ENDIF
-@IF [ ${BUILDER_TARGET} = debian-bookworm-arm64 ]
-FROM arm64v8/debian:bookworm as dist-base
-@ENDIF
 
 ARG BUILDER_CACHE_BUSTER=
 ARG APT_URL

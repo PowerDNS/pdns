@@ -1,15 +1,7 @@
 # First do the source builds
 @INCLUDE Dockerfile.target.sdist
 
-@IF [ ${BUILDER_TARGET} = ubuntu-noble ]
 FROM ubuntu:noble as dist-base
-@ENDIF
-@IF [ ${BUILDER_TARGET} = ubuntu-noble-amd64 ]
-FROM amd64/ubuntu:noble as dist-base
-@ENDIF
-@IF [ ${BUILDER_TARGET} = ubuntu-noble-arm64 ]
-FROM arm64v8/ubuntu:noble as dist-base
-@ENDIF
 
 ARG BUILDER_CACHE_BUSTER=
 ARG APT_URL

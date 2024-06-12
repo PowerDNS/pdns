@@ -19,15 +19,13 @@ jobs:
   build:
     name: build.sh
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
-    # on a ubuntu-20.04 VM
-    runs-on: ubuntu-20.04
+    runs-on: ${{ matrix.runner-os }}
     strategy:
       matrix:
         product: ['authoritative', 'recursor', 'dnsdist']
         os:
           - centos-7
           - el-8
-          - centos-8-stream
           - centos-9-stream
           - ubuntu-lunar
           - ubuntu-mantic
@@ -35,6 +33,12 @@ jobs:
           - debian-bookworm
           - debian-trixie
           - amazon-2023
+        runner-os:
+          - ubuntu-22.04
+          - ubicloud-standard-2-arm
+        exclude:
+          - os: centos-7
+            runner-os: ubicloud-standard-2-arm
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
@@ -48,9 +52,13 @@ jobs:
         run: |
           echo "version=$(readlink builder/tmp/latest)" >> $GITHUB_OUTPUT
         id: getversion
+      - name: Get target architecture
+        run: |
+          echo "target-arch=$(uname -m)" >> $GITHUB_OUTPUT
+        id: getarch
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}
+          name: ${{ matrix.product }}-${{ matrix.os }}-${{ steps.getversion.outputs.version }}-${{ steps.getarch.outputs.target-arch }}
           path: built_pkgs/
           retention-days: 7

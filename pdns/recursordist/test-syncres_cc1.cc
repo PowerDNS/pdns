@@ -1771,6 +1771,18 @@ BOOST_AUTO_TEST_CASE(test_cname_length)
   BOOST_CHECK_EQUAL(res, RCode::ServFail);
   BOOST_CHECK_EQUAL(ret.size(), length);
   BOOST_CHECK_EQUAL(length, SyncRes::s_max_CNAMES_followed + 1);
+
+  // Currently a CNAME bounds check originating from the record cache causes an ImmediateServFail
+  // exception. This is different from the non-cached case, tested above. There a ServFail is
+  // returned with a partial CNAME chain. This should be fixed one way or another. For details, see
+  // how the result of syncres.cc:scanForCNAMELoop() is handled in the two cases.
+  ret.clear();
+  length = 0;
+  BOOST_CHECK_EXCEPTION(sr->beginResolve(target, QType(QType::A), QClass::IN, ret),
+                        ImmediateServFailException,
+                        [&](const ImmediateServFailException& isfe) {
+                          return isfe.reason == "max number of CNAMEs exceeded";
+                        });
 }
 
 BOOST_AUTO_TEST_CASE(test_cname_target_servfail)

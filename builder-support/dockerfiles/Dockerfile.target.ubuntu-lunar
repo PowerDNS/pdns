@@ -1,15 +1,7 @@
 # First do the source builds
 @INCLUDE Dockerfile.target.sdist
 
-@IF [ ${BUILDER_TARGET} = ubuntu-lunar ]
 FROM ubuntu:lunar as dist-base
-@ENDIF
-@IF [ ${BUILDER_TARGET} = ubuntu-lunar-amd64 ]
-FROM amd64/ubuntu:lunar as dist-base
-@ENDIF
-@IF [ ${BUILDER_TARGET} = ubuntu-lunar-arm64 ]
-FROM arm64v8/ubuntu:lunar as dist-base
-@ENDIF
 
 ARG BUILDER_CACHE_BUSTER=
 ARG APT_URL

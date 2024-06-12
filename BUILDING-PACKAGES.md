@@ -51,12 +51,6 @@ cp builder-support/dockerfiles/Dockerfile.target.debian-buster builder-support/d
 
 In the new `builder-support/dockerfiles/Dockerfile.target.debian-bookworm` file, replace every occurence of `debian-buster` by `debian-bookworm`, and of `debian:buster` by `debian:bookworm`
 
-Create symbolic links for the amd64 and arm64 versions:
-```
-ln -s builder-support/dockerfiles/Dockerfile.target.debian-bookworm builder-support/dockerfiles/Dockerfile.target.debian-bookworm-amd64
-ln -s builder-support/dockerfiles/Dockerfile.target.debian-bookworm builder-support/dockerfiles/Dockerfile.target.debian-bookworm-arm64
-```
-
 Then add the new target to the list of OSes in the `.github/workflows/builder-dispatch.yml` workflow file:
 ```
 default: >-

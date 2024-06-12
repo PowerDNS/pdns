@@ -139,7 +139,7 @@ class PDNSPBConnHandler(object):
             if response.HasField('queryTimeSec'):
                 datestr = datetime.datetime.fromtimestamp(response.queryTimeSec).strftime('%Y-%m-%d %H:%M:%S')
                 if response.HasField('queryTimeUsec'):
-                    datestr = datestr + '.' + str(response.queryTimeUsec)
+                    datestr = datestr + '.' + ("%06d" % response.queryTimeUsec)
                 print("- Query time: %s" % (datestr))
 
             policystr = ''
@@ -166,12 +166,12 @@ class PDNSPBConnHandler(object):
             for rr in response.rrs:
                 rrclass = 1
                 rdatastr = ''
-                rrudr = 0
+                rrudr = 'N/A'
                 if rr.HasField('class'):
                     rrclass = getattr(rr, 'class')
                 rrtype = rr.type
                 if rr.HasField('udr'):
-                    rrudr = rr.udr
+                    rrudr = str(rr.udr)
                 if (rrclass == 1 or rrclass == 255) and rr.HasField('rdata'):
                     if rrtype == 1:
                         rdatastr = socket.inet_ntop(socket.AF_INET, rr.rdata)
@@ -180,7 +180,7 @@ class PDNSPBConnHandler(object):
                     elif rrtype == 28:
                         rdatastr = socket.inet_ntop(socket.AF_INET6, rr.rdata)
 
-                print("\t - %d, %d, %s, %d, %s, %d" % (rrclass,
+                print("\t - %d, %d, %s, %d, %s, %s" % (rrclass,
                                                    rrtype,
                                                    rr.name,
                                                    rr.ttl,
@@ -190,7 +190,7 @@ class PDNSPBConnHandler(object):
     def printSummary(self, msg, typestr):
         datestr = datetime.datetime.fromtimestamp(msg.timeSec).strftime('%Y-%m-%d %H:%M:%S')
         if msg.HasField('timeUsec'):
-            datestr = datestr + '.' + str(msg.timeUsec)
+            datestr = datestr + '.' + ("%06d" % msg.timeUsec)
         ipfromstr = 'N/A'
         iptostr = 'N/A'
         toportstr = ''
@@ -241,14 +241,14 @@ class PDNSPBConnHandler(object):
         if msg.HasField('requestorId'):
             requestorId = msg.requestorId
 
-        nod = 0
+        nod = 'N/A';
         if msg.HasField('newlyObservedDomain'):
-            nod = msg.newlyObservedDomain
+            nod = str(msg.newlyObservedDomain)
 
         workerId = 'N/A'
         if msg.HasField('workerId'):
            workerId = str(msg.workerId)
- 
+
         pcCacheHit = 'N/A'
         if msg.HasField('packetCacheHit'):
            pcCacheHit = str(msg.packetCacheHit)
@@ -256,10 +256,9 @@ class PDNSPBConnHandler(object):
         outgoingQs = 'N/A'
         if msg.HasField('outgoingQueries'):
            outgoingQs = str(msg.outgoingQueries)
-	
 
         print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
-                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %d workerId: %s pcCacheHit: %s outgoingQueries: %s' % (datestr,
+                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s' % (datestr,
                                                     typestr,
                                                     msg.inBytes,
                                                     ipfromstr,

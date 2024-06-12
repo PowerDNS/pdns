@@ -24,7 +24,7 @@
 #include "rec-protozero.hh"
 #include <variant>
 
-void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, [[maybe_unused]] bool udr)
+void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<uint16_t>& exportTypes, [[maybe_unused]] std::optional<bool> udr)
 {
   if (record.d_place != DNSResourceRecord::ANSWER || record.d_class != QClass::IN) {
     return;
@@ -150,12 +150,14 @@ void pdns::ProtoZero::RecMessage::addRR(const DNSRecord& record, const std::set<
     break;
   }
 #ifdef NOD_ENABLED
-  pbf_rr.add_bool(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::udr), udr);
-  pbf_rr.commit();
+  if (udr) {
+    pbf_rr.add_bool(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::RRField::udr), *udr);
+    pbf_rr.commit();
 
-  // Save the offset of the byte containing the just added bool. We can do this since
-  // we know a bit about how protobuf's encoding works.
-  offsets.push_back(d_rspbuf.length() - 1);
+    // Save the offset of the byte containing the just added bool. We can do this since
+    // we know a bit about how protobuf's encoding works.
+    offsets.push_back(d_rspbuf.length() - 1);
+  }
 #endif
 }
 

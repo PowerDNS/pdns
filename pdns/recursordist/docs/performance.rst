@@ -77,17 +77,23 @@ If your systems shows great imbalance in the number of queries processed per thr
 MTasker and MThreads
 --------------------
 
-PowerDNS Recursor uses a cooperative multitasking in userspace called ``MTasker``, based either on ``boost::context`` if available, or on ``System V ucontexts`` otherwise. For maximum performance, please make sure that your system supports ``boost::context``, as the alternative has been known to be quite slower.
+PowerDNS :program:`Recursor` uses a cooperative multitasking in userspace called ``MTasker``, based either on ``boost::context`` if available, or on ``System V ucontexts`` otherwise. For maximum performance, please make sure that your system supports ``boost::context``, as the alternative has been known to be quite slower.
 
 The maximum number of simultaneous MTasker threads, called ``MThreads``, can be tuned via :ref:`setting-max-mthreads`, as the default value of 2048 might not be enough for large-scale installations.
 This setting limits the number of mthreads *per physical (Posix) thread*.
 The threads that create mthreads are the distributor and worker threads.
 
-When a ``MThread`` is started, a new stack is dynamically allocated for it on the heap. The size of that stack can be configured via the :ref:`setting-stack-size` parameter, whose default value is 200 kB which should be enough in most cases.
+When a ``MThread`` is started, a new stack is dynamically allocated for it. The size of that stack can be configured via the :ref:`setting-stack-size` parameter, whose default value is 200 kB which should be enough in most cases.
 
 To reduce the cost of allocating a new stack for every query, the recursor can cache a small amount of stacks to make sure that the allocation stays cheap. This can be configured via the :ref:`setting-stack-cache-size` setting.
 This limit is per physical (Posix) thread.
 The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equals to the number of stacks specified by :ref:`setting-stack-cache-size` multiplied by the size of one stack, itself specified via :ref:`setting-stack-size`.
+
+Linux limits the number of memory mappings a process can allocate by the ``vm.max_map_count`` kernel parameter.
+A single ``MThread`` stack can take up to 3 memory mappings.
+Starting with version 4.9, it is advised to check and if needed update the value of ``sysctl vm.max_map_count`` to make sure that the :program:`Recursor` can allocate enough stacks under load; suggested value is at least ``4 * (threads + 2) * max-mthreads``.
+Some Linux distributions use a default value of about one million, which should be enough for most configurations.
+Other distributions default to 64k, which can be too low for large setups.
 
 Performance tips
 ----------------

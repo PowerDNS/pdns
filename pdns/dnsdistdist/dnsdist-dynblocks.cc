@@ -311,7 +311,8 @@ bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const timespec& now
   if (!beQuiet && (got == nullptr || expired)) {
     warnlog("Inserting dynamic block for %s for %d seconds: %s", dblock.domain, dblock.until.tv_sec - now.tv_sec, dblock.reason);
   }
-  blocks.add(dblock.domain, std::move(dblock));
+  auto domain = dblock.domain;
+  blocks.add(domain, std::move(dblock));
   return true;
 }
 }

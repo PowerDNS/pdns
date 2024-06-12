@@ -1779,6 +1779,7 @@ static int initSyncRes(Logr::log_t log)
   SyncRes::s_event_trace_enabled = ::arg().asNum("event-trace-enabled");
   SyncRes::s_save_parent_ns_set = ::arg().mustDo("save-parent-ns-set");
   SyncRes::s_max_busy_dot_probes = ::arg().asNum("max-busy-dot-probes");
+  SyncRes::s_max_CNAMES_followed = ::arg().asNum("max-cnames-followed");
   {
     uint64_t sse = ::arg().asNum("serve-stale-extensions");
     if (sse > std::numeric_limits<uint16_t>::max()) {

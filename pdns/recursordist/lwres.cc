@@ -270,7 +270,7 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
   }
 
   for (const auto& record : records) {
-    m.addRR(record, exportTypes, false);
+    m.addRR(record, exportTypes, std::nullopt);
   }
   m.commitResponse();
 
