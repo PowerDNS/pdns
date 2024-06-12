@@ -12,7 +12,7 @@ case $context in
                 psql --user="$GPGSQLUSER" -c "ANALYZE" "$GPGSQLDB"
 
 		cat > pdns-gpgsql.conf << __EOF__
-module-dir=./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=gpgsql
 gpgsql-dbname=$GPGSQLDB
 gpgsql-user=$GPGSQLUSER

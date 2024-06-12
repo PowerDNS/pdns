@@ -17,7 +17,7 @@ case $context in
 			"$GMYSQLDB"
 
 		cat > pdns-gmysql.conf << __EOF__
-module-dir=./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=gmysql
 gmysql-dbname=$GMYSQLDB
 gmysql-user=$GMYSQLUSER

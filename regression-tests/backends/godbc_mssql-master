@@ -17,7 +17,7 @@ case $context in
 		# actually terminates
 		tosql gsqlite | grep -v -E '(COMMIT|TRANSACTION)' | awk '1;!(NR%98){print "go"}' | cat - <(echo go) /dev/null | $BSQLODBC
 		cat > pdns-godbc_mssql.conf << __EOF__
-module-dir=./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=godbc
 godbc-datasource=$GODBC_MSSQL_DSN
 godbc-username=$GODBC_MSSQL_USERNAME

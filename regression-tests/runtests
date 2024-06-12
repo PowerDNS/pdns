@@ -7,19 +7,38 @@ fi
 PATH=.:$PATH:/usr/sbin
 MAKE=${MAKE:-make}
 
-export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
-export PDNS2=${PDNS2:-${PWD}/../pdns/pdns_server}
-export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
-export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
-export SDIG=${SDIG:-${PWD}/../pdns/sdig}
-export NOTIFY=${NOTIFY:-${PWD}/../pdns/pdns_notify}
-export NSEC3DIG=${NSEC3DIG:-${PWD}/../pdns/nsec3dig}
-export SAXFR=${SAXFR:-${PWD}/../pdns/saxfr}
-export ZONE2SQL=${ZONE2SQL:-${PWD}/../pdns/zone2sql}
-export ZONE2JSON=${ZONE2JSON:-${PWD}/../pdns/zone2json}
-export ZONE2LDAP=${ZONE2LDAP:-${PWD}/../pdns/zone2ldap}
-export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
-export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
+if [ -z "$PDNS_BUILD_PATH" ]; then
+  # PDNS_BUILD_PATH is unset or empty. Assume an autotools build.
+  PDNS_BUILD_PATH=.
+
+  export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
+  export PDNS2=${PDNS2:-${PWD}/../pdns/pdns_server}
+  export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
+  export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
+  export SDIG=${SDIG:-${PWD}/../pdns/sdig}
+  export NOTIFY=${NOTIFY:-${PWD}/../pdns/pdns_notify}
+  export NSEC3DIG=${NSEC3DIG:-${PWD}/../pdns/nsec3dig}
+  export SAXFR=${SAXFR:-${PWD}/../pdns/saxfr}
+  export ZONE2SQL=${ZONE2SQL:-${PWD}/../pdns/zone2sql}
+  export ZONE2JSON=${ZONE2JSON:-${PWD}/../pdns/zone2json}
+  export ZONE2LDAP=${ZONE2LDAP:-${PWD}/../pdns/zone2ldap}
+  export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
+  export PDNSCONTROL=${PDNSCONTROL:-${PWD}/../pdns/pdns_control}
+else
+  export PDNS=${PDNS:-$PDNS_BUILD_PATH/pdns-auth}
+  export PDNS2=${PDNS2:-$PDNS_BUILD_PATH/pdns-auth}
+  export PDNSRECURSOR=${PDNSRECURSOR:-$PDNS_BUILD_PATH/pdns/recursordist/pdns_recursor}
+  export RECCONTROL=${RECCONTROL:-$PDNS_BUILD_PATH/pdns/recursordist/rec_control}
+  export SDIG=${SDIG:-$PDNS_BUILD_PATH/sdig}
+  export NOTIFY=${NOTIFY:-$PDNS_BUILD_PATH/pdns-auth-notify}
+  export NSEC3DIG=${NSEC3DIG:-$PDNS_BUILD_PATH/nsec3dig}
+  export SAXFR=${SAXFR:-$PDNS_BUILD_PATH/saxfr}
+  export ZONE2SQL=${ZONE2SQL:-$PDNS_BUILD_PATH/pdns-zone2sql}
+  export ZONE2JSON=${ZONE2JSON:-$PDNS_BUILD_PATH/pdns-zone2json}
+  export ZONE2LDAP=${ZONE2LDAP:-$PDNS_BUILD_PATH/pdns-zone2ldap}
+  export PDNSUTIL=${PDNSUTIL:-$PDNS_BUILD_PATH/pdns-auth-util}
+  export PDNSCONTROL=${PDNSCONTROL:-$PDNS_BUILD_PATH/pdns-auth-control}
+fi
 
 unset _JAVA_OPTIONS
 
@@ -45,7 +64,7 @@ skipped=0
 
 touch passed_tests failed_tests skipped_tests
 
-for a in $(find $testsdir -type d | grep -v ^.$ | grep -v .svn | grep -v ^confdir | LC_ALL=C sort) 
+for a in $(find $testsdir -type d | grep -v ^.$ | grep -v .svn | grep -v ^confdir | LC_ALL=C sort)
 do
 	if [ ! -x $a/command ]
 	then
@@ -60,9 +79,9 @@ do
 
 	echo  "$testname: " >> test-results
 	cat $a/description >> test-results
-	
+
 	SKIPIT=0
-	if [ -e $a/skip ] 
+	if [ -e $a/skip ]
 	then
 		SKIPIT=1
 		result="	Skipped test $a"
@@ -94,7 +113,7 @@ do
 		result="	Skipped test $a because it's not the specified single test"
 	fi
 
-				
+
 	if [ $SKIPIT = 1 ]
 	then
 		echo $testname >> skipped_tests
@@ -115,7 +134,7 @@ do
 		done
 		[ -n "$context" ] && [ -e "$a/expected_result.$context" ] && expected=$a/expected_result.$context
 		diff ${diffopts} $expected $a/real_result > $a/diff 2>&1
-		if [ -s $a/diff ] 
+		if [ -s $a/diff ]
 		then
 			if [ $FAIL = 0 ]
 			then
@@ -144,7 +163,7 @@ do
 				failed=$[$failed+1]
 			fi
 		fi
-	fi	
+	fi
 	echo "$result"
 	echo
 	echo "$result" >> test-results

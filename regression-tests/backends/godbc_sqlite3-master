@@ -7,7 +7,7 @@ case $context in
 		echo 'ANALYZE; PRAGMA journal_mode=WAL;' | sqlite3 pdns.sqlite3
 
 		cat > pdns-godbc_sqlite3.conf << __EOF__
-module-dir=./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=godbc
 godbc-datasource=$GODBC_SQLITE3_DSN
 

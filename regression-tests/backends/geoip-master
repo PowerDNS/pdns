@@ -132,12 +132,12 @@ EOF
 
 		geoipdatabase=${geoipdatabase:-$testsdir/GeoLiteCity.dat}
 
-		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
+		$RUNWRAPPER $PDNS --loglevel=7 --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=geoip \
 			--cache-ttl=$cachettl --dname-processing --no-config \
 			--distributor-threads=1 \
                         --geoip-zones-file=$testsdir/geo.yaml --geoip-database-files="$geoipdatabase" \
-                        --module-dir=./modules --edns-subnet-processing=yes \
+                        --module-dir="$PDNS_BUILD_PATH/modules" --edns-subnet-processing=yes \
 			$geoipkeydir &
 		;;
 

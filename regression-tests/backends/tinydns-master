@@ -1,10 +1,10 @@
 case $context in
 	tinydns)
-		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
+		$RUNWRAPPER $PDNS --loglevel=7 --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=tinydns \
 		 --cache-ttl=$cachettl --dname-processing --no-config \
 			--dnsupdate=yes \
-			--tinydns-dbfile=../modules/tinydnsbackend/data.cdb --module-dir=./modules &
+			--tinydns-dbfile=../modules/tinydnsbackend/data.cdb --module-dir="$PDNS_BUILD_PATH/modules" &
 		skipreasons="nodnssec noent nodyndns nometa noaxfr noalias"
 		;;
 

@@ -23,14 +23,14 @@ case $context in
 
 		# generate pdns.conf for pdnsutil
 		cat > pdns-lua2.conf <<EOF
-module-dir=./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=lua2
 lua2-filename=$testsdir/$luascript
 lua2-api=2
 allow-axfr-ips=0.0.0.0/0,::/0
 EOF
 
-		$RUNWRAPPER $PDNS --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
+		$RUNWRAPPER $PDNS --loglevel=7 --daemon=no --local-address=$address --local-port=$port --socket-dir=./ \
 			--no-shuffle --launch=lua2 \
 			--cache-ttl=$cachettl --dname-processing --no-config \
 			--distributor-threads=1 --zone-cache-refresh-interval=$interval \

@@ -8,7 +8,7 @@ case $context in
 		echo ANALYZE\; | sqlite3 pdns.sqlite3
 
 		cat > pdns-gsqlite3.conf << __EOF__
-module-dir=./modules
+module-dir=$PDNS_BUILD_PATH/modules
 launch=gsqlite3
 gsqlite3-database=pdns.sqlite3
 consistent-backends
