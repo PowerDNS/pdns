@@ -286,7 +286,7 @@ class PDNSPBConnHandler(object):
             for entry in mt.value.intVal:
                 values = ', '.join([values, str(entry)]) if values != '' else str(entry)
 
-            print('- %s -> %s' % (mt.key, values))
+            print('- (meta) %s -> %s' % (mt.key, values))
 
     def getRequestorSubnet(self, msg):
         requestorstr = None
