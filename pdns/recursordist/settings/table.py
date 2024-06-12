@@ -1687,31 +1687,31 @@ thus it may not be available in all pre-built packages.
 If protobuf is enabled and configured, then the newly observed domain
 status will appear as a flag in Response messages.
  ''',
-        'versionadded': '4.2.0'
+    'versionadded': '4.2.0'
     },
     {
-        'name': 'log',
-        'section': 'nod',
-        'oldname': 'new-domain-log',
-        'type': LType.Bool,
-        'default': 'true',
-        'help': 'Log newly observed domains.',
-        'doc': '''
+        'name' : 'log',
+        'section' : 'nod',
+        'oldname' : 'new-domain-log',
+        'type' : LType.Bool,
+        'default' : 'true',
+        'help' : 'Log newly observed domains.',
+        'doc' : '''
 If a newly observed domain is detected, log that domain in the
 recursor log file. The log line looks something like::
 
  Jul 18 11:31:25 Newly observed domain nod=sdfoijdfio.com
  ''',
-        'versionadded': '4.2.0'
+    'versionadded': '4.2.0'
     },
     {
-        'name': 'lookup',
-        'section': 'nod',
-        'oldname': 'new-domain-lookup',
-        'type': LType.String,
-        'default': '',
-        'help': 'Perform a DNS lookup newly observed domains as a subdomain of the configured domain',
-        'doc': '''
+        'name' : 'lookup',
+        'section' : 'nod',
+        'oldname' : 'new-domain-lookup',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'Perform a DNS lookup newly observed domains as a subdomain of the configured domain',
+        'doc' : '''
 If a domain is specified, then each time a newly observed domain is
 detected, the recursor will perform an A record lookup of '<newly
 observed domain>.<lookup domain>'. For example if 'new-domain-lookup'
@@ -1721,16 +1721,16 @@ detected, then an A record lookup will be made for
 newly observed domain with partners, vendors or security teams. The
 result of the DNS lookup will be ignored by the recursor.
  ''',
-        'versionadded': '4.2.0'
+    'versionadded': '4.2.0'
     },
     {
-        'name': 'db_size',
-        'section': 'nod',
-        'oldname': 'new-domain-db-size',
-        'type': LType.Uint64,
-        'default': '67108864',
-        'help': 'Size of the DB used to track new domains in terms of number of cells. Defaults to 67108864',
-        'doc': '''
+        'name' : 'db_size',
+        'section' : 'nod',
+        'oldname' : 'new-domain-db-size',
+        'type' : LType.Uint64,
+        'default' : '67108864',
+        'help' : 'Size of the DB used to track new domains in terms of number of cells. Defaults to 67108864',
+        'doc' : '''
 The default size of the stable bloom filter used to store previously
 observed domains is 67108864. To change the number of cells, use this
 setting. For each cell, the SBF uses 1 bit of memory, and one byte of
@@ -1763,41 +1763,41 @@ preserved across recursor restarts.
 If you change the new-domain-db-size setting, you must remove any files
 from this directory.
  ''',
-        'versionadded': '4.2.0'
+    'versionadded': '4.2.0'
     },
     {
-        'name': 'db_snapshot_interval',
-        'section': 'nod',
-        'oldname': 'new-domain-db-snapshot-interval',
-        'type': LType.Uint64,
-        'default': '600',
-        'help': 'Interval (in seconds) to write the NOD and UDR DB snapshots',
-        'doc': '''
+        'name' : 'db_snapshot_interval',
+        'section' : 'nod',
+        'oldname' : 'new-domain-db-snapshot-interval',
+        'type' : LType.Uint64,
+        'default' : '600',
+        'help' : 'Interval (in seconds) to write the NOD and UDR DB snapshots',
+        'doc' : '''
 Interval (in seconds) to write the NOD and UDR DB snapshots.
 Set to zero to disable snapshot writing.',
  ''',
-        'versionadded': '5.1.0'
+    'versionadded': '5.1.0'
     },
     {
-        'name': 'whitelist',
-        'section': 'nod',
-        'oldname': 'new-domain-whitelist',
-        'type': LType.String,
-        'default': '',
-        'help': 'List of domains (and implicitly all subdomains) which will never be considered a new domain (deprecated)',
-        'doc': '',
+        'name' : 'whitelist',
+        'section' : 'nod',
+        'oldname' : 'new-domain-whitelist',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'List of domains (and implicitly all subdomains) which will never be considered a new domain (deprecated)',
+        'doc' : '',
         'versionadded': '4.2.0',
         'deprecated': ('4.5.0', 'Use :ref:`setting-new-domain-ignore-list`.'),
         'skip-yaml': True,
     },
     {
-        'name': 'ignore_list',
-        'section': 'nod',
-        'oldname': 'new-domain-ignore-list',
-        'type': LType.ListStrings,
-        'default': '',
-        'help': 'List of domains (and implicitly all subdomains) which will never be considered a new domain',
-        'doc': '''
+        'name' : 'ignore_list',
+        'section' : 'nod',
+        'oldname' : 'new-domain-ignore-list',
+        'type' : LType.ListStrings,
+        'default' : '',
+        'help' : 'List of domains (and implicitly all subdomains) which will never be considered a new domain',
+        'doc' : '''
 This setting is a list of all domains (and implicitly all subdomains)
 that will never be considered a new domain. For example, if the domain
 'example.com' is in the list, then 'foo.bar.example.com' will never be
