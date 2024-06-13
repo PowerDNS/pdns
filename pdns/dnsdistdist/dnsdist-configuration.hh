@@ -27,6 +27,7 @@
 #include <optional>
 #include <string>
 
+#include "config.h"
 #include "credentials.hh"
 #include "dnsdist-carbon.hh"
 #include "dnsdist-query-count.hh"
@@ -182,6 +183,9 @@ struct Configuration
   uint64_t d_maxTCPClientThreads{0};
   size_t d_maxTCPConnectionsPerClient{0};
   size_t d_udpVectorSize{1};
+  size_t d_ringsCapacity{10000};
+  size_t d_ringsNumberOfShards{10};
+  size_t d_ringsNbLockTries{5};
   uint32_t d_socketUDPSendBuffer{0};
   uint32_t d_socketUDPRecvBuffer{0};
   uint32_t d_hashPerturbation{0};
@@ -189,6 +193,8 @@ struct Configuration
   uint8_t d_udpTimeout{2};
   bool d_randomizeUDPSocketsToBackend{false};
   bool d_randomizeIDsToBackend{false};
+  bool d_ringsRecordQueries{true};
+  bool d_ringsRecordResponses{true};
 };
 
 /* this part of the configuration can be updated at runtime via
@@ -197,7 +203,9 @@ struct RuntimeConfiguration
 {
   rules::RuleChains d_ruleChains;
   servers_t d_backends;
+#ifndef DISABLE_CARBON
   std::vector<dnsdist::Carbon::Endpoint> d_carbonEndpoints;
+#endif /* DISABLE_CARBON */
   std::map<std::string, std::shared_ptr<ServerPool>> d_pools;
   std::shared_ptr<const CredentialsHolder> d_webPassword;
   std::shared_ptr<const CredentialsHolder> d_webAPIKey;

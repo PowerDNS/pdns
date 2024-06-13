@@ -860,27 +860,29 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     const std::function<void(dnsdist::configuration::Configuration& config, uint64_t value)> mutator;
     const size_t maximumValue{std::numeric_limits<uint64_t>::max()};
   };
-  static const std::vector<UnsignedIntegerImmutableConfigurationItems> unsignedIntegerImmutableConfigItems{
+  static const std::vector<UnsignedIntegerImmutableConfigurationItems> unsignedIntegerImmutableConfigItems
+  {
     {"setMaxTCPQueuedConnections", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPQueuedConnections = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setMaxTCPClientThreads", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPClientThreads = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setMaxTCPConnectionsPerClient", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPConnectionsPerClient = newValue; }, std::numeric_limits<uint64_t>::max()},
-    {"setTCPInternalPipeBufferSize", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_tcpInternalPipeBufferSize = newValue; }, std::numeric_limits<uint64_t>::max()},
-    {"setMaxCachedTCPConnectionsPerDownstream", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setTCPDownstreamCleanupInterval", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
-    {"setTCPDownstreamMaxIdleTime", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setMaxTCPClientThreads", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPClientThreads = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setMaxTCPConnectionsPerClient", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPConnectionsPerClient = newValue; }, std::numeric_limits<uint64_t>::max()},
+      {"setTCPInternalPipeBufferSize", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_tcpInternalPipeBufferSize = newValue; }, std::numeric_limits<uint64_t>::max()},
+      {"setMaxCachedTCPConnectionsPerDownstream", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setTCPDownstreamCleanupInterval", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setTCPDownstreamMaxIdleTime", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-    {"setOutgoingDoHWorkerThreads", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHWorkers = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setMaxIdleDoHConnectionsPerDownstream", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setDoHDownstreamCleanupInterval", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
-    {"setDoHDownstreamMaxIdleTime", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setOutgoingDoHWorkerThreads", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHWorkers = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setMaxIdleDoHConnectionsPerDownstream", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setDoHDownstreamCleanupInterval", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setDoHDownstreamMaxIdleTime", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-    {"setMaxUDPOutstanding", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setWHashedPertubation", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setMaxUDPOutstanding", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setWHashedPertubation", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()},
 #ifndef DISABLE_RECVMMSG
-    {"setUDPMultipleMessagesVectorSize", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpVectorSize = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setUDPMultipleMessagesVectorSize", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpVectorSize = newValue; }, std::numeric_limits<uint32_t>::max()},
 #endif /* DISABLE_RECVMMSG */
-    {"setUDPTimeout", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()},
-    {"setConsoleMaximumConcurrentConnections", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_consoleMaxConcurrentConnections = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setUDPTimeout", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()},
+      {"setConsoleMaximumConcurrentConnections", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_consoleMaxConcurrentConnections = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setRingBuffersLockRetries", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_ringsNbLockTries = newValue; }, std::numeric_limits<uint64_t>::max()},
   };
 
   struct DoubleImmutableConfigurationItems
@@ -2141,39 +2143,45 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setRingBuffersSize", [client](uint64_t capacity, boost::optional<uint64_t> numberOfShards) {
-    setLuaSideEffect();
-    if (!checkConfigurationTime("setRingBuffersSize")) {
+    if (client) {
       return;
     }
-    if (!client) {
-      g_rings.setCapacity(capacity, numberOfShards ? *numberOfShards : 10);
+    setLuaSideEffect();
+    try {
+      dnsdist::configuration::updateImmutableConfiguration([capacity, numberOfShards](dnsdist::configuration::Configuration& config) {
+        config.d_ringsCapacity = capacity;
+        if (numberOfShards) {
+          config.d_ringsNumberOfShards = *numberOfShards;
+        }
+      });
     }
-    else {
-      g_rings.setCapacity(0, 1);
+    catch (const std::exception& exp) {
+      g_outputBuffer = "setRingBuffersSize cannot be used at runtime!\n";
+      errlog("setRingBuffersSize cannot be used at runtime!");
     }
   });
 
-  luaCtx.writeFunction("setRingBuffersLockRetries", [](uint64_t retries) {
-    setLuaSideEffect();
-    g_rings.setNumberOfLockRetries(retries);
-  });
-
-  luaCtx.writeFunction("setRingBuffersOptions", [](const LuaAssociativeTable<boost::variant<bool, uint64_t>>& options) {
-    setLuaSideEffect();
-    if (!checkConfigurationTime("setRingBuffersOptions")) {
+  luaCtx.writeFunction("setRingBuffersOptions", [client](const LuaAssociativeTable<boost::variant<bool, uint64_t>>& options) {
+    if (client) {
       return;
     }
-    if (options.count("lockRetries") > 0) {
-      auto retries = boost::get<uint64_t>(options.at("lockRetries"));
-      g_rings.setNumberOfLockRetries(retries);
+    setLuaSideEffect();
+    try {
+      dnsdist::configuration::updateImmutableConfiguration([&options](dnsdist::configuration::Configuration& config) {
+        if (options.count("lockRetries") > 0) {
+          config.d_ringsNbLockTries = boost::get<uint64_t>(options.at("lockRetries"));
+        }
+        if (options.count("recordQueries") > 0) {
+          config.d_ringsRecordQueries = boost::get<bool>(options.at("recordQueries"));
+        }
+        if (options.count("recordResponses") > 0) {
+          config.d_ringsRecordResponses = boost::get<bool>(options.at("recordResponses"));
+        }
+      });
     }
-    if (options.count("recordQueries") > 0) {
-      auto record = boost::get<bool>(options.at("recordQueries"));
-      g_rings.setRecordQueries(record);
-    }
-    if (options.count("recordResponses") > 0) {
-      auto record = boost::get<bool>(options.at("recordResponses"));
-      g_rings.setRecordResponses(record);
+    catch (const std::exception& exp) {
+      g_outputBuffer = "setRingBuffersOption cannot be used at runtime!\n";
+      errlog("setRingBuffersOption cannot be used at runtime!");
     }
   });
 
@@ -2291,9 +2299,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* DISABLE_POLICIES_BINDINGS */
 
   luaCtx.writeFunction("setProxyProtocolACL", [](LuaTypeOrArrayOf<std::string> inp) {
-    if (!checkConfigurationTime("setProxyProtocolACL")) {
-      return;
-    }
     setLuaSideEffect();
     NetmaskGroup nmg;
     if (auto* str = boost::get<string>(&inp)) {

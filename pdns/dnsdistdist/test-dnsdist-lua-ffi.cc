@@ -750,7 +750,7 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
   gettime(&now);
 
   g_rings.reset();
-  g_rings.init();
+  g_rings.init(10000, 10);
   BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
 
   g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);

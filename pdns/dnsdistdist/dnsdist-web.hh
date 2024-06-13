@@ -2,6 +2,7 @@
 
 #include "credentials.hh"
 #include "dnsdist-prometheus.hh"
+#include "sstuff.hh"
 
 namespace dnsdist::webserver
 {
