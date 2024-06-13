@@ -2166,7 +2166,7 @@ bool dnsdist_ffi_dnsquestion_generate_svc_response(dnsdist_ffi_dnsquestion_t* dn
   parameters.reserve(parametersListSize);
   for (size_t idx = 0; idx < parametersListSize; idx++) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): this is a C API
-    const auto& parameter = parametersList[idx];
+    const auto* parameter = parametersList[idx];
     if (parameter == nullptr) {
       return false;
     }
