@@ -43,7 +43,6 @@ public:
 
   static Endpoint newEndpoint(const std::string& address, std::string ourName, uint64_t interval, const std::string& namespace_name, const std::string& instance_name);
   static void run(const std::vector<Endpoint>& endpoints);
-  static void addEndpointAtRuntime(const Endpoint& endpoint);
 };
 
 }

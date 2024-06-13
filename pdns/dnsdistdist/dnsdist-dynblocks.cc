@@ -3,10 +3,10 @@
 #include "dnsdist-metrics.hh"
 #include "sholder.hh"
 
+#ifndef DISABLE_DYNBLOCKS
 static GlobalStateHolder<ClientAddressDynamicRules> s_dynblockNMG;
 static GlobalStateHolder<SuffixDynamicRules> s_dynblockSMT;
 
-#ifndef DISABLE_DYNBLOCKS
 void DynBlockRulesGroup::apply(const timespec& now)
 {
   counts_t counts;

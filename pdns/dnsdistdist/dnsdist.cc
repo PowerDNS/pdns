@@ -2793,7 +2793,7 @@ static void cleanupLuaObjects()
     config.d_pools.clear();
     config.d_backends.clear();
   });
-  clearWebHandlers();
+  dnsdist::webserver::clearWebHandlers();
   dnsdist::lua::hooks::clearMaintenanceHooks();
 }
 #endif /* defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)) */
@@ -2824,6 +2824,11 @@ static void sigTermHandler([[maybe_unused]] int sig)
   if (dnsdist::g_asyncHolder) {
     dnsdist::g_asyncHolder->stop();
   }
+
+  for (auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
+    backend->stop();
+  }
+
   {
     auto lock = g_lua.lock();
     cleanupLuaObjects();
@@ -3413,7 +3418,10 @@ int main(int argc, char** argv)
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
     }
 
-    g_rings.init();
+    {
+      const auto& config = dnsdist::configuration::getImmutableConfiguration();
+      g_rings.init(config.d_ringsCapacity, config.d_ringsNumberOfShards, config.d_ringsNbLockTries, config.d_ringsRecordQueries, config.d_ringsRecordResponses);
+    }
 
     for (auto& frontend : g_frontends) {
       setUpLocalBind(frontend);

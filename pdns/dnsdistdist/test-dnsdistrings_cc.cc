@@ -15,8 +15,8 @@ BOOST_AUTO_TEST_SUITE(dnsdistrings_cc)
 
 static void test_ring(size_t maxEntries, size_t numberOfShards, size_t nbLockTries)
 {
-  Rings rings(maxEntries, numberOfShards, nbLockTries);
-  rings.init();
+  Rings rings;
+  rings.init(maxEntries, numberOfShards, nbLockTries);
   size_t entriesPerShard = maxEntries / numberOfShards;
 
   BOOST_CHECK_EQUAL(rings.getNumberOfShards(), numberOfShards);
@@ -208,8 +208,8 @@ BOOST_AUTO_TEST_CASE(test_Rings_Threaded) {
   dnsdist::Protocol protocol = dnsdist::Protocol::DoUDP;
   dnsdist::Protocol outgoingProtocol = dnsdist::Protocol::DoUDP;
 
-  Rings rings(numberOfEntries, numberOfShards, lockAttempts, true);
-  rings.init();
+  Rings rings;
+  rings.init(numberOfEntries, numberOfShards, lockAttempts, true);
 #if defined(DNSDIST_RINGS_WITH_MACADDRESS)
   Rings::Query query({requestor, qname, now, dh, size, qtype, protocol, dnsdist::MacAddress(), false});
 #else
