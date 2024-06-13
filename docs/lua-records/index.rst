@@ -21,7 +21,7 @@ tiny (or larger) `Lua <https://www.lua.org>`_ statements.
   interoperability, and strive to turn this functionality into a broadly
   supported standard.
 
-To enable this feature, either set `:ref:`setting-enable-lua-records` in the configuration,
+To enable this feature, either set :ref:`setting-enable-lua-records` in the configuration,
 or set the ``ENABLE-LUA-RECORDS`` per-zone metadata item to ``1``.
 
 In addition, to benefit from the geographical features, make sure the PowerDNS
