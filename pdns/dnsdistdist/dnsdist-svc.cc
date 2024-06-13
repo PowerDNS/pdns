@@ -20,6 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist-svc.hh"
+#include "dnsdist.hh"
+#include "dnsdist-ecs.hh"
+#include "dnsdist-lua.hh"
 #include "dnswriter.hh"
 #include "svc-records.hh"
 
@@ -130,4 +133,94 @@ struct SVCRecordParameters parseSVCParameters(const svcParamsLua_t& params)
     }
   }
   return parameters;
+}
+
+namespace dnsdist::svc
+{
+bool generateSVCResponse(DNSQuestion& dnsQuestion, const std::vector<std::vector<uint8_t>>& svcRecordPayloads, const std::set<std::pair<DNSName, ComboAddress>>& additionals4, const std::set<std::pair<DNSName, ComboAddress>>& additionals6, const ResponseConfig& responseConfig)
+{
+  /* it will likely be a bit bigger than that because of additionals */
+  size_t totalPayloadsSize = 0;
+  for (const auto& payload : svcRecordPayloads) {
+    totalPayloadsSize += payload.size();
+  }
+  const auto numberOfRecords = svcRecordPayloads.size();
+  const auto qnameWireLength = dnsQuestion.ids.qname.wirelength();
+  if (dnsQuestion.getMaximumSize() < (sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords * 12 /* recordstart */ + totalPayloadsSize)) {
+    return false;
+  }
+
+  PacketBuffer newPacket;
+  newPacket.reserve(sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords * 12 /* recordstart */ + totalPayloadsSize);
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(newPacket, dnsQuestion.ids.qname, dnsQuestion.ids.qtype);
+  for (const auto& payload : svcRecordPayloads) {
+    packetWriter.startRecord(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, responseConfig.ttl);
+    packetWriter.xfrBlob(payload);
+    packetWriter.commit();
+  }
+
+  if (newPacket.size() < dnsQuestion.getMaximumSize()) {
+    for (const auto& additional : additionals4) {
+      packetWriter.startRecord(additional.first.isRoot() ? dnsQuestion.ids.qname : additional.first, QType::A, responseConfig.ttl, QClass::IN, DNSResourceRecord::ADDITIONAL);
+      packetWriter.xfrCAWithoutPort(4, additional.second);
+      packetWriter.commit();
+    }
+  }
+
+  if (newPacket.size() < dnsQuestion.getMaximumSize()) {
+    for (const auto& additional : additionals6) {
+      packetWriter.startRecord(additional.first.isRoot() ? dnsQuestion.ids.qname : additional.first, QType::AAAA, responseConfig.ttl, QClass::IN, DNSResourceRecord::ADDITIONAL);
+      packetWriter.xfrCAWithoutPort(6, additional.second);
+      packetWriter.commit();
+    }
+  }
+
+  if (g_addEDNSToSelfGeneratedResponses && queryHasEDNS(dnsQuestion)) {
+    bool dnssecOK = ((getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0);
+    packetWriter.addOpt(g_PayloadSizeSelfGenAnswers, 0, dnssecOK ? EDNS_HEADER_FLAG_DO : 0);
+    packetWriter.commit();
+  }
+
+  if (newPacket.size() >= dnsQuestion.getMaximumSize()) {
+    /* sorry! */
+    return false;
+  }
+
+  packetWriter.getHeader()->id = dnsQuestion.getHeader()->id;
+  packetWriter.getHeader()->qr = true; // for good measure
+  setResponseHeadersFromConfig(*packetWriter.getHeader(), responseConfig);
+  dnsQuestion.getMutableData() = std::move(newPacket);
+
+  return true;
+}
+
+bool generateSVCResponse(DNSQuestion& dnsQuestion, uint32_t ttl, const std::vector<SVCRecordParameters>& parameters)
+{
+  std::vector<std::vector<uint8_t>> payloads;
+  std::set<std::pair<DNSName, ComboAddress>> additionals4;
+  std::set<std::pair<DNSName, ComboAddress>> additionals6;
+  ResponseConfig responseConfig;
+  responseConfig.setAA = true;
+  responseConfig.ttl = ttl;
+
+  payloads.reserve(parameters.size());
+  for (const auto& parameter : parameters) {
+    std::vector<uint8_t> payload;
+    if (!generateSVCPayload(payload, parameter)) {
+      throw std::runtime_error("Unable to generate a valid SVC record from the supplied parameters");
+    }
+
+    payloads.push_back(std::move(payload));
+
+    for (const auto& hint : parameter.ipv4hints) {
+      additionals4.insert({parameter.target, ComboAddress(hint)});
+    }
+
+    for (const auto& hint : parameter.ipv6hints) {
+      additionals6.insert({parameter.target, ComboAddress(hint)});
+    }
+  }
+
+  return generateSVCResponse(dnsQuestion, payloads, additionals4, additionals6, responseConfig);
+}
 }
