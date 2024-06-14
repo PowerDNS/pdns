@@ -81,6 +81,10 @@ public:
   {
     throw std::runtime_error("This TLS backend does not have the capability to load a tickets key from a file");
   }
+  virtual void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& /* hook */)
+  {
+    throw std::runtime_error("This TLS backend does not have the capability to setup a hook for added tickets keys");
+  }
 
   void handleTicketsKeyRotation(time_t now)
   {
@@ -149,6 +153,13 @@ public:
   {
     if (d_ctx != nullptr) {
       d_ctx->rotateTicketsKey(now);
+    }
+  }
+
+  void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook)
+  {
+    if (d_ctx != nullptr) {
+      d_ctx->setTicketsKeyAddedHook(hook);
     }
   }
 

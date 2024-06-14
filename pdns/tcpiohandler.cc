@@ -813,6 +813,11 @@ public:
     }
   }
 
+  void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook) override
+  {
+    d_feContext->d_ticketKeys.setTicketsKeyAddedHook(hook);
+  }
+
   void loadTicketsKeys(const std::string& keyFile) final
   {
     d_feContext->d_ticketKeys.loadTicketsKeys(keyFile);
@@ -986,6 +991,14 @@ public:
       d_key.data = nullptr;
       throw;
     }
+  }
+  std::string content() const
+  {
+    std::string result{};
+    if (d_key.data != nullptr && d_key.size > 0) {
+      result.append(reinterpret_cast<const char*>(d_key.data), d_key.size);
+    }
+    return result;
   }
 
   ~GnuTLSTicketsKey()
@@ -1730,6 +1743,11 @@ public:
     return connection;
   }
 
+  void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook) override
+  {
+    d_ticketsKeyAddedHook = hook;
+  }
+
   void rotateTicketsKey(time_t now) override
   {
     if (!d_enableTickets) {
@@ -1744,6 +1762,12 @@ public:
 
     if (d_ticketsKeyRotationDelay > 0) {
       d_ticketsKeyNextRotation = now + d_ticketsKeyRotationDelay;
+    }
+
+    if (d_ticketsKeyAddedHook) {
+      auto ticketsKey = *(d_ticketsKey.read_lock());
+      auto content = ticketsKey->content();
+      d_ticketsKeyAddedHook(content.c_str(), content.size());
     }
   }
 
@@ -1792,6 +1816,7 @@ private:
   SharedLockGuarded<std::shared_ptr<GnuTLSTicketsKey>> d_ticketsKey{nullptr};
   bool d_enableTickets{true};
   bool d_validateCerts{true};
+  dnsdist_tickets_key_added_hook d_ticketsKeyAddedHook;
 };
 
 #endif /* HAVE_GNUTLS */
