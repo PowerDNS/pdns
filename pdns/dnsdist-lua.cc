@@ -3058,6 +3058,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const std::string&)>("loadTicketsKey", [](std::shared_ptr<DOHFrontend> frontend, const std::string& key) {
+    if (frontend != nullptr) {
+      frontend->loadTicketsKey(key);
+    }
+  });
+
   luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const LuaArray<std::shared_ptr<DOHResponseMapEntry>>&)>("setResponsesMap", [](std::shared_ptr<DOHFrontend> frontend, const LuaArray<std::shared_ptr<DOHResponseMapEntry>>& map) {
     if (frontend != nullptr) {
       auto newMap = std::make_shared<std::vector<std::shared_ptr<DOHResponseMapEntry>>>();
@@ -3285,6 +3291,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto ctx = frontend->getContext();
     if (ctx) {
       ctx->loadTicketsKeys(file);
+    }
+  });
+
+  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)(const std::string&)>("loadTicketsKey", [](std::shared_ptr<TLSFrontend>& frontend, const std::string& key) {
+    if (frontend == nullptr) {
+      return;
+    }
+    auto ctx = frontend->getContext();
+    if (ctx) {
+      ctx->loadTicketsKey(key);
     }
   });
 
