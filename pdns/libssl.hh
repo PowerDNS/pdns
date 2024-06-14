@@ -100,6 +100,7 @@ public:
 #if OPENSSL_VERSION_MAJOR >= 3
   int encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx) const;
   bool decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx) const;
+  std::string content() const;
 #else
   int encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const;
   bool decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const;
@@ -111,6 +112,8 @@ private:
   unsigned char d_hmacKey[TLS_TICKETS_MAC_KEY_SIZE];
 };
 
+using dnsdist_tickets_key_added_hook = std::function<void(const char* key, size_t keyLen)>;
+
 class OpenSSLTLSTicketKeysRing
 {
 public:
@@ -121,10 +124,11 @@ public:
   size_t getKeysCount();
   void loadTicketsKeys(const std::string& keyFile);
   void rotateTicketsKey(time_t now);
+  void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook);
 
 private:
   void addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& newKey);
-
+  dnsdist_tickets_key_added_hook d_ticketsKeyAddedHook;
   SharedLockGuarded<boost::circular_buffer<std::shared_ptr<OpenSSLTLSTicketKey> > > d_ticketKeys;
 };
 

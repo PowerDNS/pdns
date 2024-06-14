@@ -3011,6 +3011,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
+
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const dnsdist_tickets_key_added_hook&)>("setTicketsKeyAddedHook", [](const std::shared_ptr<DOHFrontend>& frontend, const dnsdist_tickets_key_added_hook& hook) {
+    if (frontend != nullptr) {
+      frontend->setTicketsKeyAddedHook(hook);
+    }
+  });
+
   luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const LuaArray<std::shared_ptr<DOHResponseMapEntry>>&)>("setResponsesMap", [](const std::shared_ptr<DOHFrontend>& frontend, const LuaArray<std::shared_ptr<DOHResponseMapEntry>>& map) {
     if (frontend != nullptr) {
       auto newMap = std::make_shared<std::vector<std::shared_ptr<DOHResponseMapEntry>>>();
@@ -3208,6 +3215,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
+  luaCtx.registerFunction<void (std::shared_ptr<TLSCtx>::*)(const dnsdist_tickets_key_added_hook&)>("setTicketsKeyAddedHook", [](const std::shared_ptr<TLSCtx>& frontend, const dnsdist_tickets_key_added_hook& hook) {
+    if (frontend != nullptr) {
+      frontend->setTicketsKeyAddedHook(hook);
+    }
+  });
+
   luaCtx.registerFunction<void (std::shared_ptr<TLSCtx>::*)(const std::string&)>("loadTicketsKeys", [](std::shared_ptr<TLSCtx>& ctx, const std::string& file) {
     if (ctx != nullptr) {
       ctx->loadTicketsKeys(file);
@@ -3219,6 +3232,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       return std::string();
     }
     return frontend->d_addr.toStringWithPort();
+  });
+
+  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)(const dnsdist_tickets_key_added_hook&)>("setTicketsKeyAddedHook", [](const std::shared_ptr<TLSFrontend>& frontend, const dnsdist_tickets_key_added_hook& hook) {
+    if (frontend == nullptr) {
+      return;
+    }
+      auto ctx = frontend->getContext();
+    if (ctx) {
+      ctx->setTicketsKeyAddedHook(hook);
+    }
   });
 
   luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSFrontend>& frontend) {

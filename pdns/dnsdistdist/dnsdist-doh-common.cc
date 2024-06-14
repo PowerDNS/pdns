@@ -94,6 +94,11 @@ void DOHFrontend::rotateTicketsKey(time_t now)
   return d_tlsContext.rotateTicketsKey(now);
 }
 
+void DOHFrontend::setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook)
+{
+  return d_tlsContext.setTicketsKeyAddedHook(hook);
+}
+
 void DOHFrontend::loadTicketsKeys(const std::string& keyFile)
 {
   return d_tlsContext.loadTicketsKeys(keyFile);

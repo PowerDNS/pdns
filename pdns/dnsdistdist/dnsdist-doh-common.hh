@@ -162,6 +162,10 @@ struct DOHFrontend
   {
   }
 
+  virtual void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& /* hook */)
+  {
+  }
+
   virtual void loadTicketsKeys(const std::string& /* keyFile */)
   {
   }
@@ -185,6 +189,7 @@ struct DOHFrontend
   virtual void setup();
   virtual void reloadCertificates();
 
+  virtual void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook);
   virtual void rotateTicketsKey(time_t now);
   virtual void loadTicketsKeys(const std::string& keyFile);
   virtual void handleTicketsKeyRotation();

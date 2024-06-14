@@ -631,6 +631,16 @@ OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing() = default;
 void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& newKey)
 {
   d_ticketKeys.write_lock()->push_front(std::move(newKey));
+  if (d_ticketsKeyAddedHook) {
+    auto key = d_ticketKeys.read_lock()->front();
+    auto keyContent = key->content();
+    d_ticketsKeyAddedHook(keyContent.c_str(), keyContent.size());
+  }
+}
+
+void OpenSSLTLSTicketKeysRing::setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook)
+{
+  d_ticketsKeyAddedHook = hook;
 }
 
 std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getEncryptionKey()
@@ -735,6 +745,17 @@ OpenSSLTLSTicketKey::~OpenSSLTLSTicketKey()
 bool OpenSSLTLSTicketKey::nameMatches(const unsigned char name[TLS_TICKETS_KEY_NAME_SIZE]) const
 {
   return (memcmp(d_name, name, sizeof(d_name)) == 0);
+}
+
+std::string OpenSSLTLSTicketKey::content() const
+{
+  std::string result{};
+  result.reserve(TLS_TICKETS_KEY_NAME_SIZE + TLS_TICKETS_CIPHER_KEY_SIZE + TLS_TICKETS_MAC_KEY_SIZE);
+  result.append(reinterpret_cast<const char*>(d_name), TLS_TICKETS_KEY_NAME_SIZE);
+  result.append(reinterpret_cast<const char*>(d_cipherKey), TLS_TICKETS_CIPHER_KEY_SIZE);
+  result.append(reinterpret_cast<const char*>(d_hmacKey), TLS_TICKETS_MAC_KEY_SIZE);
+
+  return result;
 }
 
 #if OPENSSL_VERSION_MAJOR >= 3
