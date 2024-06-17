@@ -4,6 +4,7 @@ import socket
 import struct
 import sys
 import time
+import requests
 
 try:
     range = xrange
@@ -34,6 +35,10 @@ class ProxyProtocolRecursorTest(RecursorTest):
 
 class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
     _confdir = 'ProxyProtocol'
+    _wsPort = 8042
+    _wsTimeout = 2
+    _wsPassword = 'secretpassword'
+    _apiKey = 'secretapikey'
     _lua_dns_script_file = """
 
     function gettag(remote, ednssubnet, localip, qname, qtype, ednsoptions, tcp, proxyProtocolValues)
@@ -120,7 +125,29 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
     proxy-protocol-from=127.0.0.1
     proxy-protocol-maximum-size=512
     allow-from=127.0.0.0/24, ::1/128, ::42/128
-""" % ()
+    webserver=yes
+    webserver-port=%d
+    webserver-address=127.0.0.1
+    webserver-password=%s
+api-key=%s
+
+""" % (_wsPort, _wsPassword, _apiKey)
+
+    def checkStats(self, expected127001):
+        headers = {'x-api-key': self._apiKey}
+        url = 'http://127.0.0.1:' + str(self._wsPort) + '/jsonstat?command=get-remote-ring&name=remotes'
+        r = requests.get(url, headers=headers, timeout=self._wsTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        # We allow all kind of entries, but 127.0.0.1 must have the given value, due to the
+        # testLocalProxyProtocol test, which actually does not set a source address.  If we see a
+        # higher value than expected, some ProxyProtocol clients were accounted as 127.0.0.1, which
+        # is not right as all other tests set a source addres other than 127.0.0.1
+        for entry in content['entries']:
+            if entry[1] == '127.0.0.1':
+                self.assertEqual(entry[0], expected127001)
 
     def testLocalProxyProtocol(self):
         qname = 'local.proxy-protocol.recursor-tests.powerdns.com.'
@@ -147,6 +174,7 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
             res = dns.message.from_wire(data)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
+        self.checkStats(1)
 
         # TCP
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -175,6 +203,7 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
             res = dns.message.from_wire(data)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
+        self.checkStats(2)
 
     def testInvalidMagicProxyProtocol(self):
         qname = 'invalid-magic.proxy-protocol.recursor-tests.powerdns.com.'
