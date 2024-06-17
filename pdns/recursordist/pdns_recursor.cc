@@ -625,17 +625,18 @@ static bool nodCheckNewDomain(Logr::log_t nodlogger, const DNSName& dname)
 {
   bool ret = false;
   // First check the (sub)domain isn't ignored for NOD purposes
-  if (!g_nodDomainWL.check(dname)) {
-    // Now check the NODDB (note this is probabilistic so can have FNs/FPs)
-    if (g_nodDBp && g_nodDBp->isNewDomain(dname)) {
-      if (g_nodLog) {
-        // This should probably log to a dedicated log file
-        SLOG(g_log << Logger::Notice << "Newly observed domain nod=" << dname << endl,
-             nodlogger->info(Logr::Notice, "New domain observed"));
-      }
-      t_Counters.at(rec::Counter::nodCount)++;
-      ret = true;
+  if (g_nodDomainWL.check(dname)) {
+    return ret;
+  }
+  // Now check the NODDB (note this is probabilistic so can have FNs/FPs)
+  if (g_nodDBp && g_nodDBp->isNewDomain(dname)) {
+    if (g_nodLog) {
+      // This should probably log to a dedicated log file
+      SLOG(g_log << Logger::Notice << "Newly observed domain nod=" << dname << endl,
+           nodlogger->info(Logr::Notice, "New domain observed"));
     }
+    t_Counters.at(rec::Counter::nodCount)++;
+    ret = true;
   }
   return ret;
 }
@@ -664,6 +665,10 @@ static void sendNODLookup(Logr::log_t nodlogger, const DNSName& dname)
 static bool udrCheckUniqueDNSRecord(Logr::log_t nodlogger, const DNSName& dname, uint16_t qtype, const DNSRecord& record)
 {
   bool ret = false;
+  // First check the (sub)domain isn't ignored for UDR purposes
+  if (g_udrDomainWL.check(dname)) {
+    return ret;
+  }
   if (record.d_place == DNSResourceRecord::ANSWER || record.d_place == DNSResourceRecord::ADDITIONAL) {
     // Create a string that represent a triplet of (qname, qtype and RR[type, name, content])
     std::stringstream strStream;

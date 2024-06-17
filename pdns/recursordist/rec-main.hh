@@ -245,6 +245,7 @@ extern bool g_nodEnabled;
 extern DNSName g_nodLookupDomain;
 extern bool g_nodLog;
 extern SuffixMatchNode g_nodDomainWL;
+extern SuffixMatchNode g_udrDomainWL;
 extern std::string g_nod_pbtag;
 extern bool g_udrEnabled;
 extern bool g_udrLog;

@@ -19,7 +19,7 @@ NOD is disabled by default, and must be enabled through the use of the following
 
 Once enabled the recursor will keep track of previously seen domains using the SBF data structure, which is periodically persisted to the directory specified in the ``new-domain-history-dir``, which defaults to /var/lib/pdns-recursor/nod.
 
-Administrators may wish to prevent certain domains or subdomains from ever triggering the NOD algorithm, in which case those domains must be added to the ``new-domain-ignore-list`` setting as a comma separated list. No domain (or subdomain of a domain) listed will be considered a newly observed domain.
+Administrators may wish to prevent certain domains or subdomains from ever triggering the NOD algorithm, in which case those domains must be added to the ``new-domain-ignore-list`` setting as a comma separated list. No domain (or subdomain of a domain) listed will be considered a newly observed domain. It is also possible to use ``new-domain-ignore-list-file`` to read a file with ignored domains, one domain per line.
 
 There are several ways to receive the information about newly observed domains:
 
@@ -58,6 +58,8 @@ UDR is disabled by default - to enable it, set ``unique-response-tracking=yes`` 
 The data is persisted to /var/lib/pdns-recursor/udr by default, which can be changed with the setting ``unique-response-history-dir=<new directory>``.
 
 The SBF (which is maintained separately per recursor thread) cell size defaults to 67108864, which can be changed using the setting ``unique-response-db-size``. The same caveats regarding FPs/FNs apply as for NOD.
+
+Similarly to NOD, administrators may wish to prevent certain domains or subdomains from ever triggering the UDR algorithm, in which case those domains must be added to the ``udr-ignore-list`` setting as a comma separated list. No domain (or subdomain of a domain) listed will be considered a new unique domain response. It is also possible to use ``udr-ignore-list-file`` to read a file with ignored domains, one domain per line.
 
 Similarly to NOD, unique domain responses can be tracked using several mechanisms:
 

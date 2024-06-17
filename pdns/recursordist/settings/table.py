@@ -1715,9 +1715,9 @@ recursor log file. The log line looks something like::
 If a domain is specified, then each time a newly observed domain is
 detected, the recursor will perform an A record lookup of '<newly
 observed domain>.<lookup domain>'. For example if 'new-domain-lookup'
-is configured as 'nod.powerdns.com', and a new domain 'xyz123.tv' is
+is configured as 'nod.powerdns.com', and a new domain 'example.com' is
 detected, then an A record lookup will be made for
-'xyz123.tv.nod.powerdns.com'. This feature gives a way to share the
+'example.com.nod.powerdns.com'. This feature gives a way to share the
 newly observed domain with partners, vendors or security teams. The
 result of the DNS lookup will be ignored by the recursor.
  ''',
@@ -1776,7 +1776,7 @@ from this directory.
 Interval (in seconds) to write the NOD and UDR DB snapshots.
 Set to zero to disable snapshot writing.',
  ''',
-        'versionadded': '5.1.0'
+    'versionadded': '5.1.0'
     },
     {
         'name' : 'whitelist',
@@ -1800,12 +1800,52 @@ Set to zero to disable snapshot writing.',
         'doc' : '''
 This setting is a list of all domains (and implicitly all subdomains)
 that will never be considered a new domain. For example, if the domain
-'xyz123.tv' is in the list, then 'foo.bar.xyz123.tv' will never be
+'example.com' is in the list, then 'foo.bar.example.com' will never be
 considered a new domain. One use-case for the ignore list is to never
 reveal details of internal subdomains via the new-domain-lookup
 feature.
  ''',
     'versionadded': '4.5.0'
+    },
+    {
+        'name' : 'ignore_list_file',
+        'section' : 'nod',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'File with a list of domains (and implicitly all subdomains) which will never be considered a new domain',
+        'doc' : '''
+Path to a file with a list of domains. File should have one domain per line,
+with no extra characters or comments.
+See :doc:`ignore_list`.
+ ''',
+    'versionadded': '5.1.0'
+    },
+    {
+        'name' : 'udr_ignore_list',
+        'section' : 'nod',
+        'type' : LType.ListStrings,
+        'default' : '',
+        'help' : 'List of domains (and implicitly all subdomains) which will never be considered for UDR',
+        'doc' : '''
+This setting is a list of all domains (and implicitly all subdomains)
+that will never be considered for a new unique domain request.
+For example, if the domain 'example.com' is in the list, then 'foo.bar.example.com'
+will never be considered for a new unique domain request.
+ ''',
+    'versionadded': '5.1.0'
+    },
+    {
+        'name' : 'udr_ignore_list_file',
+        'section' : 'nod',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'File with list of domains (and implicitly all subdomains) which will never be considered for UDR',
+        'doc' : '''
+Path to a file with a list of domains. File should have one domain per line,
+with no extra characters or comments.
+See :doc:`udr_ignore_list`.
+ ''',
+    'versionadded': '5.1.0'
     },
     {
         'name' : 'pb_tag',
