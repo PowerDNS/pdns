@@ -170,7 +170,7 @@ void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAccep
     ++d_numthreads;
   }
   catch (const std::exception& e) {
-    errlog("Error creating TCP worker: %", e.what());
+    errlog("Error creating TCP worker: %s", e.what());
   }
 }
 
