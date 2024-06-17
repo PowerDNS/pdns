@@ -565,6 +565,9 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
           ++iter->second.stats.netmaskMatches;
         }
       }
+      if (t_remotes) {
+        t_remotes->push_back(conn->d_source);
+      }
       if (t_allowFrom && !t_allowFrom->match(&conn->d_mappedSource)) {
         if (!g_quiet) {
           SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP query from " << conn->d_mappedSource.toString() << ", address not matched by allow-from" << endl,
@@ -691,10 +694,6 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
              g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an over capacity drop", "exception", Logging::Loggable("PDNSException")));
       }
       return;
-    }
-
-    if (t_remotes) {
-      t_remotes->push_back(addr);
     }
 
     ComboAddress destaddr;

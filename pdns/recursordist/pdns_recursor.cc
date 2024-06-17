@@ -2550,7 +2550,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
         }
       }
       if (t_remotes) {
-        t_remotes->push_back(fromaddr);
+        t_remotes->push_back(source);
       }
 
       if (t_allowFrom && !t_allowFrom->match(&mappedSource)) {
