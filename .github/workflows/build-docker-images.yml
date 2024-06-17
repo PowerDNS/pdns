@@ -98,7 +98,7 @@ jobs:
           tags: ${{ inputs.image-tags }}
       - name: Build and load powerdns product images
         id: build-image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile-${{ inputs.product }}
