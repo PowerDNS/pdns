@@ -5,18 +5,11 @@
 #include <thread>
 #include <unistd.h>
 
-#ifdef HAVE_NET_SNMP
-#include <net-snmp/net-snmp-config.h>
-#include <net-snmp/definitions.h>
-#include <net-snmp/types.h>
-#include <net-snmp/utilities.h>
-#include <net-snmp/config_api.h>
-#include <net-snmp/agent/net-snmp-agent-includes.h>
-#undef INET6 /* SRSLY? */
-#endif /* HAVE_NET_SNMP */
-
 #include "mplexer.hh"
 #include "channel.hh"
+
+typedef struct netsnmp_request_info_s netsnmp_request_info;
+typedef struct variable_list netsnmp_variable_list;
 
 class SNMPAgent
 {
@@ -40,8 +33,7 @@ public:
 #endif /* HAVE_NET_SNMP */
 protected:
 #ifdef HAVE_NET_SNMP
-  /* OID for snmpTrapOID.0 */
-  static const std::array<oid, 11> snmpTrapOID;
+  static void addSNMPTrapOID(netsnmp_variable_list** varList, const void* value, size_t len);
 
   static bool sendTrap(pdns::channel::Sender<netsnmp_variable_list, void(*)(netsnmp_variable_list*)>& sender,
                        netsnmp_variable_list* varList);

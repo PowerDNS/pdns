@@ -9,6 +9,14 @@ std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
 
 #ifdef HAVE_NET_SNMP
 
+#include <net-snmp/net-snmp-config.h>
+#include <net-snmp/definitions.h>
+#include <net-snmp/types.h>
+#include <net-snmp/utilities.h>
+#include <net-snmp/config_api.h>
+#include <net-snmp/agent/net-snmp-agent-includes.h>
+#undef INET6 /* SRSLY? */
+
 #define DNSDIST_OID 1, 3, 6, 1, 4, 1, 43315, 3
 #define DNSDIST_STATS_OID DNSDIST_OID, 1
 #define DNSDIST_STATS_TABLE_OID DNSDIST_OID, 2
@@ -387,12 +395,9 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const DownstreamState& dss)
   const string backendStatus = dss.getStatus();
   netsnmp_variable_list* varList = nullptr;
 
-  snmp_varlist_add_variable(&varList,
-                            snmpTrapOID.data(),
-                            snmpTrapOID.size(),
-                            ASN_OBJECT_ID,
-                            backendStatusChangeTrapOID.data(),
-                            backendStatusChangeTrapOID.size() * sizeof(oid));
+  addSNMPTrapOID(&varList,
+                 backendStatusChangeTrapOID.data(),
+                 backendStatusChangeTrapOID.size() * sizeof(oid));
 
   snmp_varlist_add_variable(&varList,
                             backendNameOID.data(),
@@ -426,12 +431,9 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
 #ifdef HAVE_NET_SNMP
   netsnmp_variable_list* varList = nullptr;
 
-  snmp_varlist_add_variable(&varList,
-                            snmpTrapOID.data(),
-                            snmpTrapOID.size(),
-                            ASN_OBJECT_ID,
-                            customTrapOID.data(),
-                            customTrapOID.size() * sizeof(oid));
+  addSNMPTrapOID(&varList,
+                 customTrapOID.data(),
+                 customTrapOID.size() * sizeof(oid));
 
   snmp_varlist_add_variable(&varList,
                             trapReasonOID.data(),
@@ -462,12 +464,9 @@ bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dnsQuestion, const std::st
 
   netsnmp_variable_list* varList = nullptr;
 
-  snmp_varlist_add_variable(&varList,
-                            snmpTrapOID.data(),
-                            snmpTrapOID.size(),
-                            ASN_OBJECT_ID,
-                            actionTrapOID.data(),
-                            actionTrapOID.size() * sizeof(oid));
+  addSNMPTrapOID(&varList,
+                 actionTrapOID.data(),
+                 actionTrapOID.size() * sizeof(oid));
 
   snmp_varlist_add_variable(&varList,
                             socketFamilyOID.data(),

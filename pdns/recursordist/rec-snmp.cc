@@ -30,6 +30,14 @@
 
 #ifdef HAVE_NET_SNMP
 
+#include <net-snmp/net-snmp-config.h>
+#include <net-snmp/definitions.h>
+#include <net-snmp/types.h>
+#include <net-snmp/utilities.h>
+#include <net-snmp/config_api.h>
+#include <net-snmp/agent/net-snmp-agent-includes.h>
+#undef INET6 /* SRSLY? */
+
 #define RECURSOR_OID 1, 3, 6, 1, 4, 1, 43315, 2
 #define RECURSOR_STATS_OID RECURSOR_OID, 1
 #define RECURSOR_TRAPS_OID RECURSOR_OID, 10, 0
@@ -277,12 +285,9 @@ bool RecursorSNMPAgent::sendCustomTrap([[maybe_unused]] const std::string& reaso
 #ifdef HAVE_NET_SNMP
   netsnmp_variable_list* varList = nullptr;
 
-  snmp_varlist_add_variable(&varList,
-                            snmpTrapOID.data(),
-                            snmpTrapOID.size(),
-                            ASN_OBJECT_ID,
-                            customTrapOID.data(),
-                            customTrapOID.size() * sizeof(oid));
+  addSNMPTrapOID(&varList,
+                 customTrapOID.data(),
+                 customTrapOID.size() * sizeof(oid));
 
   snmp_varlist_add_variable(&varList,
                             trapReasonOID.data(),
