@@ -1720,7 +1720,7 @@ using WebHandler = std::function<void(const YaHTTP::Request&, YaHTTP::Response&)
 struct WebHandlerContext
 {
   WebHandler d_handler;
-  bool d_isLua;
+  bool d_isLua{false};
 };
 
 static SharedLockGuarded<std::unordered_map<std::string, WebHandlerContext>> s_webHandlers;
