@@ -214,4 +214,23 @@ namespace PacketMangling
     return true;
   }
 }
+
+void setResponseHeadersFromConfig(dnsheader& dnsheader, const ResponseConfig& config)
+{
+  if (config.setAA) {
+    dnsheader.aa = *config.setAA;
+  }
+  if (config.setAD) {
+    dnsheader.ad = *config.setAD;
+  }
+  else {
+    dnsheader.ad = false;
+  }
+  if (config.setRA) {
+    dnsheader.ra = *config.setRA;
+  }
+  else {
+    dnsheader.ra = dnsheader.rd; // for good measure
+  }
+}
 }
