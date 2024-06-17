@@ -137,7 +137,7 @@ public:
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override;
 
   virtual IOState sendResponse(const struct timeval& now, TCPResponse&& response);
-  void handleResponseSent(TCPResponse& currentResponse);
+  void handleResponseSent(TCPResponse& currentResponse, size_t sentBytes);
   virtual IOState handleHandshake(const struct timeval& now);
   void handleHandshakeDone(const struct timeval& now);
   ProxyProtocolResult handleProxyProtocolPayload();
