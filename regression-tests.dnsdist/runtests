@@ -11,14 +11,16 @@ python -V
 
 if [ `uname -s` == Darwin ]
 then
-  if [ ! -e /usr/local/opt/curl-openssl ]
+  BREW_CURL_PREFIX=$(brew --prefix curl)
+  if [ ! -e "${BREW_CURL_PREFIX}" ]
   then
-    echo Please run: brew install curl-openssl, and try again
+    echo Please run: brew install curl, and try again
     exit 1
   else
-    export PYCURL_CURL_CONFIG=/usr/local/opt/curl-openssl/bin/curl-config
-    export LDFLAGS=-L/usr/local/opt/openssl/lib
-    export CPPFLAGS=-I/usr/local/opt/openssl/include
+    export PYCURL_CURL_CONFIG="${BREW_CURL_PREFIX}/bin/curl-config"
+    export LDFLAGS="-L${BREW_CURL_PREFIX}/lib${LDFLAGS+ $LDFLAGS}"
+    export CPPFLAGS="-I${BREW_CURL_PREFIX}/include${CPPFLAGS+ $CPPFLAGS}"
+    export PKG_CONFIG_PATH="${BREW_CURL_PREFIX}/lib/pkgconfig"
   fi
 fi
 pip install -U pip wheel | cat
