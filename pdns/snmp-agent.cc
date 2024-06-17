@@ -9,6 +9,14 @@
 
 #ifdef HAVE_NET_SNMP
 
+#include <net-snmp/net-snmp-config.h>
+#include <net-snmp/definitions.h>
+#include <net-snmp/types.h>
+#include <net-snmp/utilities.h>
+#include <net-snmp/config_api.h>
+#include <net-snmp/agent/net-snmp-agent-includes.h>
+#undef INET6 /* SRSLY? */
+
 #ifndef HAVE_SNMP_SELECT_INFO2
 /* that's terrible, because it means we are going to have trouble with large
    FD numbers at some point.. */
@@ -25,7 +33,7 @@
 # include <net-snmp/library/large_fd_set.h>
 #endif
 
-const std::array<oid, 11> SNMPAgent::snmpTrapOID = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
+static const std::array<oid, 11> s_snmpTrapOID = { 1, 3, 6, 1, 6, 3, 1, 1, 4, 1, 0 };
 
 int SNMPAgent::setCounter64Value(netsnmp_request_info* request,
                                  uint64_t value)
@@ -38,6 +46,16 @@ int SNMPAgent::setCounter64Value(netsnmp_request_info* request,
                            &val64,
                            sizeof(val64));
   return SNMP_ERR_NOERROR;
+}
+
+void SNMPAgent::addSNMPTrapOID(netsnmp_variable_list** varList, const void* value, size_t len)
+{
+  snmp_varlist_add_variable(varList,
+                            s_snmpTrapOID.data(),
+                            s_snmpTrapOID.size(),
+                            ASN_OBJECT_ID,
+                            value,
+                            len);
 }
 
 bool SNMPAgent::sendTrap(pdns::channel::Sender<netsnmp_variable_list, void(*)(netsnmp_variable_list*)>& sender,
