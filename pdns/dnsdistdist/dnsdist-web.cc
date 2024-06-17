@@ -1730,7 +1730,7 @@ void registerWebHandler(const std::string& endpoint, WebHandler handler, bool is
 void registerWebHandler(const std::string& endpoint, WebHandler handler, bool isLua)
 {
   auto handlers = s_webHandlers.write_lock();
-  (*handlers).emplace(std::make_pair(endpoint, WebHandlerContext{std::move(handler), isLua}));
+  (*handlers)[endpoint] = WebHandlerContext{std::move(handler), isLua};
 }
 
 void clearWebHandlers()
