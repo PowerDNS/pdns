@@ -501,7 +501,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   } // good query
 }
 
-static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var)
+static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var) // NOLINT(readability-function-cognitive-complexity)
 {
   auto conn = boost::any_cast<shared_ptr<TCPConnection>>(var);
 
@@ -564,6 +564,9 @@ static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& v
           conn->d_mappedSource = iter->second.address;
           ++iter->second.stats.netmaskMatches;
         }
+      }
+      if (t_remotes) {
+        t_remotes->push_back(conn->d_source);
       }
       if (t_allowFrom && !t_allowFrom->match(&conn->d_mappedSource)) {
         if (!g_quiet) {
@@ -693,14 +696,13 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
       return;
     }
 
-    if (t_remotes) {
-      t_remotes->push_back(addr);
-    }
-
     ComboAddress destaddr;
     socklen_t len = sizeof(destaddr);
     getsockname(newsock, reinterpret_cast<sockaddr*>(&destaddr), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     bool fromProxyProtocolSource = expectProxyProtocol(addr, destaddr);
+    if (!fromProxyProtocolSource && t_remotes) {
+      t_remotes->push_back(addr);
+    }
     ComboAddress mappedSource = addr;
     if (!fromProxyProtocolSource && t_proxyMapping) {
       if (const auto* iter = t_proxyMapping->lookup(addr)) {
