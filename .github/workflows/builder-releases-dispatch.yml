@@ -32,13 +32,6 @@ jobs:
     with:
       branch-name: rel/auth-4.7.x
 
-  call-builder-auth-46:
-    name: Call builder rel/auth-4.6.x
-    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
-    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/auth-4.6.x
-    with:
-      branch-name: rel/auth-4.6.x
-
   call-builder-rec-50:
     name: Call builder rel/rec-5.0.x
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
