@@ -3171,7 +3171,7 @@ static void startFrontends()
 
   std::vector<ClientState*> tcpStates;
   std::vector<ClientState*> udpStates;
-  for (auto& clientState : dnsdist::getFrontends()) {
+  for (const auto& clientState : dnsdist::getFrontends()) {
 #ifdef HAVE_XSK
     if (clientState->xskInfo) {
       dnsdist::xsk::addDestinationAddress(clientState->local);
@@ -3423,7 +3423,7 @@ int main(int argc, char** argv)
       g_rings.init(config.d_ringsCapacity, config.d_ringsNumberOfShards, config.d_ringsNbLockTries, config.d_ringsRecordQueries, config.d_ringsRecordResponses);
     }
 
-    for (auto& frontend : dnsdist::getFrontends()) {
+    for (const auto& frontend : dnsdist::getFrontends()) {
       setUpLocalBind(*frontend);
     }
 
