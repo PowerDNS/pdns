@@ -1717,14 +1717,20 @@ static void handleRings(const YaHTTP::Request& req, YaHTTP::Response& resp)
 }
 
 using WebHandler = std::function<void(const YaHTTP::Request&, YaHTTP::Response&)>;
-static SharedLockGuarded<std::unordered_map<std::string, WebHandler>> s_webHandlers;
+struct WebHandlerContext
+{
+  WebHandler d_handler;
+  bool d_isLua{false};
+};
 
-void registerWebHandler(const std::string& endpoint, WebHandler handler);
+static SharedLockGuarded<std::unordered_map<std::string, WebHandlerContext>> s_webHandlers;
 
-void registerWebHandler(const std::string& endpoint, WebHandler handler)
+void registerWebHandler(const std::string& endpoint, WebHandler handler, bool isLua = false);
+
+void registerWebHandler(const std::string& endpoint, WebHandler handler, bool isLua)
 {
   auto handlers = s_webHandlers.write_lock();
-  (*handlers)[endpoint] = std::move(handler);
+  (*handlers)[endpoint] = WebHandlerContext{std::move(handler), isLua};
 }
 
 void clearWebHandlers()
@@ -1868,17 +1874,23 @@ static void connectionThread(WebClientConnection&& conn)
       resp.status = 405;
     }
     else {
-      WebHandler handler;
+      std::optional<WebHandlerContext> handlerCtx{std::nullopt};
       {
         auto handlers = s_webHandlers.read_lock();
         const auto webHandlersIt = handlers->find(req.url.path);
         if (webHandlersIt != handlers->end()) {
-          handler = webHandlersIt->second;
+          handlerCtx = webHandlersIt->second;
         }
       }
 
-      if (handler) {
-        handler(req, resp);
+      if (handlerCtx) {
+        if (handlerCtx->d_isLua) {
+          auto lua = g_lua.lock();
+          handlerCtx->d_handler(req, resp);
+        }
+        else {
+          handlerCtx->d_handler(req, resp);
+        }
       }
       else {
         resp.status = 404;
