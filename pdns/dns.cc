@@ -108,16 +108,16 @@ uint32_t hashQuestion(const uint8_t* packet, uint16_t packet_len, uint32_t init,
     ok = false;
     return init;
   }
-  // C++ 17 does not have std::u8string_view
-  std::basic_string_view<uint8_t> name(packet + sizeof(dnsheader), packet_len - sizeof(dnsheader));
-  std::basic_string_view<uint8_t>::size_type len = 0;
+  // C++ 17 does not have std::u8string_view, nor std::basic_string_view<uint8_t>
+  std::basic_string_view<char> name(reinterpret_cast<const char*>(packet) + sizeof(dnsheader), packet_len - sizeof(dnsheader));
+  std::basic_string_view<char>::size_type len = 0;
 
   while (len < name.length()) {
     uint8_t labellen = name[len++];
     if (labellen == 0) {
       ok = true;
       // len is name.length() at max as it was < before the increment
-      return burtleCI(name.data(), len, init);
+      return burtleCI(reinterpret_cast<const uint8_t*>(name.data()), len, init);
     }
     len += labellen;
   }
