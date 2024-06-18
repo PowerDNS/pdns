@@ -143,6 +143,7 @@ public:
 class ServerPolicy;
 struct ServerPool;
 struct DownstreamState;
+struct ClientState;
 
 using servers_t = std::vector<std::shared_ptr<DownstreamState>>;
 
@@ -161,6 +162,7 @@ struct Configuration
 {
   std::set<std::string> d_capabilitiesToRetain;
   std::vector<uint32_t> d_tcpFastOpenKey;
+  std::vector<std::shared_ptr<ClientState>> d_frontends;
 #ifdef __linux__
   // On Linux this gives us 128k pending queries (default is 8192 queries),
   // which should be enough to deal with huge spikes

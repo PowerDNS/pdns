@@ -27,6 +27,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-backoff.hh"
 #include "dnsdist-configuration.hh"
+#include "dnsdist-frontend.hh"
 #include "dnsdist-metrics.hh"
 
 #ifndef DISABLE_CARBON
@@ -113,7 +114,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
     }
 
     std::map<std::string, uint64_t> frontendDuplicates;
-    for (const auto& front : g_frontends) {
+    for (const auto& front : dnsdist::getFrontends()) {
       if (front->udpFD == -1 && front->tcpFD == -1) {
         continue;
       }
@@ -222,7 +223,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
     {
       std::map<std::string, uint64_t> dohFrontendDuplicates;
       const string base = "dnsdist." + hostname + ".main.doh.";
-      for (const auto& doh : g_dohlocals) {
+      for (const auto& doh : dnsdist::getDoHFrontends()) {
         string name = doh->d_tlsContext.d_addr.toStringWithPort();
         boost::replace_all(name, ".", "_");
         boost::replace_all(name, ":", "_");

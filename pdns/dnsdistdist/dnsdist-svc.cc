@@ -175,7 +175,6 @@ bool generateSVCResponse(DNSQuestion& dnsQuestion, const std::vector<std::vector
     }
   }
 
-
   const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
   if (runtimeConfig.d_addEDNSToSelfGeneratedResponses && queryHasEDNS(dnsQuestion)) {
     bool dnssecOK = ((getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0);
