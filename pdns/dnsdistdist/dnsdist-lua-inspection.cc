@@ -259,10 +259,10 @@ static counts_t exceedRespByterate(unsigned int rate, int seconds)
 // NOLINTNEXTLINE(bugprone-exception-escape)
 struct GrepQParams
 {
-  boost::optional<Netmask> netmask;
-  boost::optional<DNSName> name;
+  std::optional<Netmask> netmask;
+  std::optional<DNSName> name;
+  std::optional<unsigned int> msec;
   pdns::UniqueFilePtr outputFile{nullptr};
-  int msec = -1;
 };
 
 static std::optional<GrepQParams> parseGrepQParams(const LuaTypeOrArrayOf<std::string>& inp, boost::optional<LuaAssociativeTable<std::string>>& options)
@@ -302,20 +302,30 @@ static std::optional<GrepQParams> parseGrepQParams(const LuaTypeOrArrayOf<std::s
   for (const auto& filter : filters) {
     try {
       result.netmask = Netmask(filter);
+      continue;
     }
     catch (...) {
-      if (boost::ends_with(filter, "ms") && sscanf(filter.c_str(), "%ums", &result.msec) != 0) {
-        ;
+      /* that's OK, let's try something else */
+    }
+
+    if (boost::ends_with(filter, "ms")) {
+      /* skip the ms at the end */
+      const auto msecStr = filter.substr(0, filter.size() - 2);
+      try {
+        result.msec = pdns::checked_stoi<unsigned int>(msecStr);
+        continue;
       }
-      else {
-        try {
-          result.name = DNSName(filter);
-        }
-        catch (...) {
-          g_outputBuffer = "Could not parse '" + filter + "' as domain name or netmask";
-          return std::nullopt;
-        }
+      catch (...) {
+        /* that's OK, let's try to parse as a DNS name */
       }
+    }
+
+    try {
+      result.name = DNSName(filter);
+    }
+    catch (...) {
+      g_outputBuffer = "Could not parse '" + filter + "' as domain name or netmask";
+      return std::nullopt;
     }
   }
   return result;
@@ -341,8 +351,8 @@ static bool ringEntryMatches(const GrepQParams& params, const C& entry)
 
   constexpr bool response = std::is_same_v<C, Rings::Response>;
   if constexpr (response) {
-    if (params.msec != -1) {
-      msecmatch = (entry.usec / 1000 > static_cast<unsigned int>(params.msec));
+    if (params.msec) {
+      msecmatch = (entry.usec / 1000 > *params.msec);
     }
   }
 
@@ -584,7 +594,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       fprintf(params.outputFile.get(), "%s", headLine.c_str());
     }
 
-    if (params.msec == -1) {
+    if (!params.msec) {
       for (const auto& entry : queries) {
         if (!ringEntryMatches(params, entry)) {
           continue;
