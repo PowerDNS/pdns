@@ -3223,7 +3223,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("reloadAllCertificates", []() {
-    for (auto& frontend : dnsdist::getFrontends()) {
+    for (const auto& frontend : dnsdist::getFrontends()) {
       if (!frontend) {
         continue;
       }
