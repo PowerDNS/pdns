@@ -24,6 +24,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-frontend.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-rings.hh"
@@ -732,7 +733,7 @@ void setupLuaInspection(LuaContext& luaCtx)
     ret << (fmt % "#" % "Address" % "Connections" % "Max concurrent conn" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration" % "TLS new sessions" % "TLS Resumptions" % "TLS unknown ticket keys" % "TLS inactive ticket keys" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other") << endl;
 
     size_t counter = 0;
-    for (const auto& frontend : g_frontends) {
+    for (const auto& frontend : dnsdist::getFrontends()) {
       ret << (fmt % counter % frontend->local.toStringWithPort() % frontend->tcpCurrentConnections % frontend->tcpMaxConcurrentConnections % frontend->tcpDiedReadingQuery % frontend->tcpDiedSendingResponse % frontend->tcpGaveUp % frontend->tcpClientTimeouts % frontend->tcpDownstreamTimeouts % frontend->tcpAvgQueriesPerConnection % frontend->tcpAvgConnectionDuration % frontend->tlsNewSessions % frontend->tlsResumptions % frontend->tlsUnknownTicketKey % frontend->tlsInactiveTicketKey % frontend->tls10queries % frontend->tls11queries % frontend->tls12queries % frontend->tls13queries % frontend->tlsUnknownqueries) << endl;
       ++counter;
     }
@@ -759,7 +760,7 @@ void setupLuaInspection(LuaContext& luaCtx)
     ret << (fmt % "#" % "Address" % "DH key too small" % "Inappropriate fallback" % "No shared cipher" % "Unknown cipher type" % "Unknown exchange type" % "Unknown protocol" % "Unsupported EC" % "Unsupported protocol") << endl;
 
     size_t counter = 0;
-    for (const auto& frontend : g_frontends) {
+    for (const auto& frontend : dnsdist::getFrontends()) {
       if (!frontend->hasTLS()) {
         continue;
       }

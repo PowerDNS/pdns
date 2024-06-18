@@ -1020,12 +1020,6 @@ enum ednsHeaderFlags
   EDNS_HEADER_FLAG_DO = 32768
 };
 
-extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
-extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
-extern std::vector<shared_ptr<DOQFrontend>> g_doqlocals;
-extern std::vector<shared_ptr<DOH3Frontend>> g_doh3locals;
-extern std::vector<std::unique_ptr<ClientState>> g_frontends;
-
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
 extern std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
 
@@ -1040,7 +1034,6 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
 
 bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState);
 
-extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
 bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 

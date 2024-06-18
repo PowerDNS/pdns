@@ -34,6 +34,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-configuration.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-prometheus.hh"
@@ -696,7 +697,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << frontsbase << "tlshandshakefailures " << "counter" << "\n";
 
   std::map<std::string,uint64_t> frontendDuplicates;
-  for (const auto& front : g_frontends) {
+  for (const auto& front : dnsdist::getFrontends()) {
     if (front->udpFD == -1 && front->tcpFD == -1) {
       continue;
     }
@@ -782,7 +783,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
 #ifdef HAVE_DNS_OVER_HTTPS
   std::map<std::string,uint64_t> dohFrontendDuplicates;
-  for(const auto& doh : g_dohlocals) {
+  for(const auto& doh : dnsdist::getDoHFrontends()) {
     const string frontName = doh->d_tlsContext.d_addr.toStringWithPort();
     uint64_t threadNumber = 0;
     auto dupPair = frontendDuplicates.emplace(frontName, 1);
@@ -1144,8 +1145,8 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   Json::array frontends;
   num = 0;
-  frontends.reserve(g_frontends.size());
-  for (const auto& front : g_frontends) {
+  frontends.reserve(dnsdist::getFrontends().size());
+  for (const auto& front : dnsdist::getFrontends()) {
     if (front->udpFD == -1 && front->tcpFD == -1) {
       continue;
     }
@@ -1200,9 +1201,10 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   Json::array dohs;
 #ifdef HAVE_DNS_OVER_HTTPS
   {
-    dohs.reserve(g_dohlocals.size());
+    const auto dohFrontends = dnsdist::getDoHFrontends();
+    dohs.reserve(dohFrontends.size());
     num = 0;
-    for (const auto& doh : g_dohlocals) {
+    for (const auto& doh : dohFrontends) {
       dohs.emplace_back(Json::object{
         {"id", num++},
         {"address", doh->d_tlsContext.d_addr.toStringWithPort()},
@@ -1271,7 +1273,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   string localaddressesStr;
   {
     std::set<std::string> localaddresses;
-    for (const auto& front : g_frontends) {
+    for (const auto& front : dnsdist::getFrontends()) {
       localaddresses.insert(front->local.toStringWithPort());
     }
     for (const auto& addr : localaddresses) {

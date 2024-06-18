@@ -50,6 +50,7 @@
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-edns.hh"
+#include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-hooks.hh"
@@ -96,16 +97,9 @@ using std::thread;
 
 string g_outputBuffer;
 
-std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
-std::vector<std::shared_ptr<DOHFrontend>> g_dohlocals;
-std::vector<std::shared_ptr<DOQFrontend>> g_doqlocals;
-std::vector<std::shared_ptr<DOH3Frontend>> g_doh3locals;
-std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
-
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
 std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
 
-std::vector<std::unique_ptr<ClientState>> g_frontends;
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers.
    We send directly to those sockets.
@@ -2685,37 +2679,37 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   }
 }
 
-static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
+static void setUpLocalBind(ClientState& cstate)
 {
   /* skip some warnings if there is an identical UDP context */
-  bool warn = !cstate->tcp || cstate->tlsFrontend != nullptr || cstate->dohFrontend != nullptr;
-  int& descriptor = !cstate->tcp ? cstate->udpFD : cstate->tcpFD;
+  bool warn = !cstate.tcp || cstate.tlsFrontend != nullptr || cstate.dohFrontend != nullptr;
+  int& descriptor = !cstate.tcp ? cstate.udpFD : cstate.tcpFD;
   (void)warn;
 
-  setupLocalSocket(*cstate, cstate->local, descriptor, cstate->tcp, warn);
+  setupLocalSocket(cstate, cstate.local, descriptor, cstate.tcp, warn);
 
-  for (auto& [addr, socket] : cstate->d_additionalAddresses) {
-    setupLocalSocket(*cstate, addr, socket, true, false);
+  for (auto& [addr, socket] : cstate.d_additionalAddresses) {
+    setupLocalSocket(cstate, addr, socket, true, false);
   }
 
-  if (cstate->tlsFrontend != nullptr) {
-    if (!cstate->tlsFrontend->setupTLS()) {
-      errlog("Error while setting up TLS on local address '%s', exiting", cstate->local.toStringWithPort());
+  if (cstate.tlsFrontend != nullptr) {
+    if (!cstate.tlsFrontend->setupTLS()) {
+      errlog("Error while setting up TLS on local address '%s', exiting", cstate.local.toStringWithPort());
       _exit(EXIT_FAILURE);
     }
   }
 
-  if (cstate->dohFrontend != nullptr) {
-    cstate->dohFrontend->setup();
+  if (cstate.dohFrontend != nullptr) {
+    cstate.dohFrontend->setup();
   }
-  if (cstate->doqFrontend != nullptr) {
-    cstate->doqFrontend->setup();
+  if (cstate.doqFrontend != nullptr) {
+    cstate.doqFrontend->setup();
   }
-  if (cstate->doh3Frontend != nullptr) {
-    cstate->doh3Frontend->setup();
+  if (cstate.doh3Frontend != nullptr) {
+    cstate.doh3Frontend->setup();
   }
 
-  cstate->ready = true;
+  cstate.ready = true;
 }
 
 struct CommandLineParameters
@@ -3131,11 +3125,13 @@ static void dropPrivileges(const CommandLineParameters& cmdLine)
 
 static void initFrontends(const CommandLineParameters& cmdLine)
 {
+  auto frontends = dnsdist::configuration::getImmutableConfiguration().d_frontends;
+
   if (!cmdLine.locals.empty()) {
-    for (auto it = g_frontends.begin(); it != g_frontends.end();) {
+    for (auto it = frontends.begin(); it != frontends.end();) {
       /* DoH, DoT and DNSCrypt frontends are separate */
       if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->doqFrontend == nullptr && (*it)->doh3Frontend == nullptr) {
-        it = g_frontends.erase(it);
+        it = frontends.erase(it);
       }
       else {
         ++it;
@@ -3144,18 +3140,22 @@ static void initFrontends(const CommandLineParameters& cmdLine)
 
     for (const auto& loc : cmdLine.locals) {
       /* UDP */
-      g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), false, false, 0, "", std::set<int>{}, true));
+      frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), false, false, 0, "", std::set<int>{}, true));
       /* TCP */
-      g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), true, false, 0, "", std::set<int>{}, true));
+      frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), true, false, 0, "", std::set<int>{}, true));
     }
   }
 
-  if (g_frontends.empty()) {
+  if (frontends.empty()) {
     /* UDP */
-    g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), false, false, 0, "", std::set<int>{}, true));
+    frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), false, false, 0, "", std::set<int>{}, true));
     /* TCP */
-    g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "", std::set<int>{}, true));
+    frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "", std::set<int>{}, true));
   }
+
+  dnsdist::configuration::updateImmutableConfiguration([&frontends](dnsdist::configuration::Configuration& config) {
+    config.d_frontends = std::move(frontends);
+  });
 }
 
 namespace dnsdist
@@ -3171,7 +3171,7 @@ static void startFrontends()
 
   std::vector<ClientState*> tcpStates;
   std::vector<ClientState*> udpStates;
-  for (auto& clientState : g_frontends) {
+  for (auto& clientState : dnsdist::getFrontends()) {
 #ifdef HAVE_XSK
     if (clientState->xskInfo) {
       dnsdist::xsk::addDestinationAddress(clientState->local);
@@ -3389,7 +3389,7 @@ int main(int argc, char** argv)
 
     initFrontends(cmdLine);
 
-    for (const auto& frontend : g_frontends) {
+    for (const auto& frontend : dnsdist::getFrontends()) {
       if (!frontend->tcp) {
         ++udpBindsCount;
       }
@@ -3423,8 +3423,8 @@ int main(int argc, char** argv)
       g_rings.init(config.d_ringsCapacity, config.d_ringsNumberOfShards, config.d_ringsNbLockTries, config.d_ringsRecordQueries, config.d_ringsRecordResponses);
     }
 
-    for (auto& frontend : g_frontends) {
-      setUpLocalBind(frontend);
+    for (auto& frontend : dnsdist::getFrontends()) {
+      setUpLocalBind(*frontend);
     }
 
     {

@@ -23,8 +23,6 @@ std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
 Rings g_rings;
 #endif /* BENCH_POLICIES */
 
-std::vector<std::unique_ptr<ClientState>> g_frontends;
-
 /* add stub implementations, we don't want to include the corresponding object files
    and their dependencies */
 

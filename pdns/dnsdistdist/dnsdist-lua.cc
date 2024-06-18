@@ -46,6 +46,7 @@
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-discovery.hh"
 #include "dnsdist-ecs.hh"
+#include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-hooks.hh"
@@ -982,12 +983,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
     parseLocalBindVars(vars, reusePort, tcpFastOpenQueueSize, interface, cpus, tcpListenQueueSize, maxInFlightQueriesPerConn, tcpMaxConcurrentConnections, enableProxyProtocol);
 
+    auto frontends = dnsdist::configuration::getImmutableConfiguration().d_frontends;
     try {
       ComboAddress loc(addr, 53);
-      for (auto it = g_frontends.begin(); it != g_frontends.end();) {
+      for (auto it = frontends.begin(); it != frontends.end();) {
         /* DoH, DoT and DNSCrypt frontends are separate */
         if ((*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->dohFrontend == nullptr) {
-          it = g_frontends.erase(it);
+          it = frontends.erase(it);
         }
         else {
           ++it;
@@ -995,8 +997,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       // only works pre-startup, so no sync necessary
-      auto udpCS = std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
-      auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
+      auto udpCS = std::make_shared<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
+      auto tcpCS = std::make_shared<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       if (tcpListenQueueSize > 0) {
         tcpCS->tcpListenQueueSize = tcpListenQueueSize;
       }
@@ -1019,10 +1021,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
       }
 #endif /* HAVE_XSK */
-      g_frontends.push_back(std::move(udpCS));
-      g_frontends.push_back(std::move(tcpCS));
+      frontends.push_back(std::move(udpCS));
+      frontends.push_back(std::move(tcpCS));
 
       checkAllParametersConsumed("setLocal", vars);
+      dnsdist::configuration::updateImmutableConfiguration([&frontends](dnsdist::configuration::Configuration& config) {
+        config.d_frontends = std::move(frontends);
+      });
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error: " + string(e.what()) + "\n";
@@ -1052,8 +1057,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     try {
       ComboAddress loc(addr, 53);
       // only works pre-startup, so no sync necessary
-      auto udpCS = std::make_unique<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
-      auto tcpCS = std::make_unique<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
+      auto udpCS = std::make_shared<ClientState>(loc, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
+      auto tcpCS = std::make_shared<ClientState>(loc, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       if (tcpListenQueueSize > 0) {
         tcpCS->tcpListenQueueSize = tcpListenQueueSize;
       }
@@ -1075,8 +1080,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
       }
 #endif /* HAVE_XSK */
-      g_frontends.push_back(std::move(udpCS));
-      g_frontends.push_back(std::move(tcpCS));
+      dnsdist::configuration::updateImmutableConfiguration([&udpCS, &tcpCS](dnsdist::configuration::Configuration& config) {
+        config.d_frontends.push_back(std::move(udpCS));
+        config.d_frontends.push_back(std::move(tcpCS));
+      });
 
       checkAllParametersConsumed("addLocal", vars);
     }
@@ -1147,10 +1154,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #if 0
     // Useful for debugging leaks, but might lead to race under load
     // since other threads are still running.
-    for (auto& frontend : g_tlslocals) {
+    for (auto& frontend : getDoTFrontends()) {
       frontend->cleanup();
     }
-    g_tlslocals.clear();
     g_rings.clear();
 #endif /* 0 */
     pdns::coverage::dumpCoverageData();
@@ -1769,13 +1775,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       auto ctx = std::make_shared<DNSCryptContext>(providerName, certKeys);
 
       /* UDP */
-      auto clientState = std::make_unique<ClientState>(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
+      auto clientState = std::make_shared<ClientState>(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       clientState->dnscryptCtx = ctx;
-      g_dnsCryptLocals.push_back(ctx);
-      g_frontends.push_back(std::move(clientState));
+
+      dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+        config.d_frontends.push_back(std::move(clientState));
+      });
 
       /* TCP */
-      clientState = std::make_unique<ClientState>(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
+      clientState = std::make_shared<ClientState>(ComboAddress(addr, 443), true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       clientState->dnscryptCtx = std::move(ctx);
       if (tcpListenQueueSize > 0) {
         clientState->tcpListenQueueSize = tcpListenQueueSize;
@@ -1787,7 +1795,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
       }
 
-      g_frontends.push_back(std::move(clientState));
+      dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+        config.d_frontends.push_back(std::move(clientState));
+      });
     }
     catch (const std::exception& e) {
       errlog("Error during addDNSCryptBind() processing: %s", e.what());
@@ -1803,7 +1813,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     size_t idx = 0;
 
     std::unordered_set<std::shared_ptr<DNSCryptContext>> contexts;
-    for (const auto& frontend : g_frontends) {
+    for (const auto& frontend : dnsdist::getFrontends()) {
       const std::shared_ptr<DNSCryptContext> ctx = frontend->dnscryptCtx;
       if (!ctx || contexts.count(ctx) != 0) {
         continue;
@@ -1819,15 +1829,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("getDNSCryptBind", [](uint64_t idx) {
     setLuaNoSideEffect();
     std::shared_ptr<DNSCryptContext> ret = nullptr;
-    if (idx < g_dnsCryptLocals.size()) {
-      ret = g_dnsCryptLocals.at(idx);
+    auto frontends = dnsdist::getDNSCryptFrontends();
+    if (idx < frontends.size()) {
+      ret = frontends.at(idx);
     }
     return ret;
   });
 
   luaCtx.writeFunction("getDNSCryptBindCount", []() {
     setLuaNoSideEffect();
-    return g_dnsCryptLocals.size();
+    return dnsdist::getDNSCryptFrontends().size();
   });
 #endif /* HAVE_DNSCRYPT */
 
@@ -1936,7 +1947,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       ret << (fmt % "#" % "Address" % "Protocol" % "Queries") << endl;
 
       size_t counter = 0;
-      for (const auto& front : g_frontends) {
+      for (const auto& front : dnsdist::getFrontends()) {
         ret << (fmt % counter % front->local.toStringWithPort() % front->getType() % front->queries) << endl;
         counter++;
       }
@@ -1951,15 +1962,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("getBind", [](uint64_t num) {
     setLuaNoSideEffect();
     ClientState* ret = nullptr;
-    if (num < g_frontends.size()) {
-      ret = g_frontends[num].get();
+    auto frontends = dnsdist::getFrontends();
+    if (num < frontends.size()) {
+      ret = frontends[num].get();
     }
     return ret;
   });
 
   luaCtx.writeFunction("getBindCount", []() {
     setLuaNoSideEffect();
-    return g_frontends.size();
+    return dnsdist::getFrontends().size();
   });
 
   luaCtx.writeFunction("help", [](boost::optional<std::string> command) {
@@ -2554,8 +2566,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     }
 
-    g_dohlocals.push_back(frontend);
-    auto clientState = std::make_unique<ClientState>(frontend->d_tlsContext.d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
+    auto clientState = std::make_shared<ClientState>(frontend->d_tlsContext.d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
     clientState->dohFrontend = std::move(frontend);
     clientState->d_additionalAddresses = std::move(additionalAddresses);
 
@@ -2565,7 +2576,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (tcpMaxConcurrentConnections > 0) {
       clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
     }
-    g_frontends.push_back(std::move(clientState));
+
+    dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+      config.d_frontends.push_back(std::move(clientState));
+    });
 #else /* HAVE_DNS_OVER_HTTPS */
       throw std::runtime_error("addDOHLocal() called but DNS over HTTPS support is not present!");
 #endif /* HAVE_DNS_OVER_HTTPS */
@@ -2635,12 +2649,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       checkAllParametersConsumed("addDOH3Local", vars);
     }
-    g_doh3locals.push_back(frontend);
-    auto clientState = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
+
+    auto clientState = std::make_shared<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
     clientState->doh3Frontend = frontend;
     clientState->d_additionalAddresses = std::move(additionalAddresses);
 
-    g_frontends.push_back(std::move(clientState));
+    dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+      config.d_frontends.push_back(std::move(clientState));
+    });
 #else
       throw std::runtime_error("addDOH3Local() called but DNS over HTTP/3 support is not present!");
 #endif
@@ -2710,12 +2726,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       checkAllParametersConsumed("addDOQLocal", vars);
     }
-    g_doqlocals.push_back(frontend);
-    auto clientState = std::make_unique<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
+
+    auto clientState = std::make_shared<ClientState>(frontend->d_local, false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
     clientState->doqFrontend = std::move(frontend);
     clientState->d_additionalAddresses = std::move(additionalAddresses);
 
-    g_frontends.push_back(std::move(clientState));
+    dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+      config.d_frontends.push_back(std::move(clientState));
+    });
 #else
       throw std::runtime_error("addDOQLocal() called but DNS over QUIC support is not present!");
 #endif
@@ -2729,7 +2747,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       boost::format fmt("%-3d %-20.20s %-15d %-15d %-15d %-15d");
       ret << (fmt % "#" % "Address" % "Bad Version" % "Invalid Token" % "Errors" % "Valid") << endl;
       size_t counter = 0;
-      for (const auto& ctx : g_doqlocals) {
+      for (const auto& ctx : dnsdist::getDoQFrontends()) {
         ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_doqUnsupportedVersionErrors % ctx->d_doqInvalidTokensReceived % ctx->d_errorResponses % ctx->d_validResponses) << endl;
         counter++;
       }
@@ -2752,12 +2770,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     setLuaNoSideEffect();
     try {
-      if (index < g_doqlocals.size()) {
-        result = g_doqlocals.at(index);
+      auto doqFrontends = dnsdist::getDoQFrontends();
+      if (index < doqFrontends.size()) {
+        result = doqFrontends.at(index);
       }
       else {
-        errlog("Error: trying to get DOQ frontend with index %d but we only have %d frontend(s)\n", index, g_doqlocals.size());
-        g_outputBuffer = "Error: trying to get DOQ frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_doqlocals.size()) + " frontend(s)\n";
+        errlog("Error: trying to get DOQ frontend with index %d but we only have %d frontend(s)\n", index, doqFrontends.size());
+        g_outputBuffer = "Error: trying to get DOQ frontend with index " + std::to_string(index) + " but we only have " + std::to_string(doqFrontends.size()) + " frontend(s)\n";
       }
     }
     catch (const std::exception& e) {
@@ -2769,7 +2788,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getDOQFrontendCount", []() {
     setLuaNoSideEffect();
-    return g_doqlocals.size();
+    return dnsdist::getDoQFrontends().size();
   });
 
   luaCtx.registerFunction<void (std::shared_ptr<DOQFrontend>::*)()>("reloadCertificates", [](const std::shared_ptr<DOQFrontend>& frontend) {
@@ -2787,7 +2806,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       boost::format fmt("%-3d %-20.20s %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d %-15d");
       ret << (fmt % "#" % "Address" % "HTTP" % "HTTP/1" % "HTTP/2" % "GET" % "POST" % "Bad" % "Errors" % "Redirects" % "Valid" % "# ticket keys" % "Rotation delay" % "Next rotation") << endl;
       size_t counter = 0;
-      for (const auto& ctx : g_dohlocals) {
+      for (const auto& ctx : dnsdist::getDoHFrontends()) {
         ret << (fmt % counter % ctx->d_tlsContext.d_addr.toStringWithPort() % ctx->d_httpconnects % ctx->d_http1Stats.d_nbQueries % ctx->d_http2Stats.d_nbQueries % ctx->d_getqueries % ctx->d_postqueries % ctx->d_badrequests % ctx->d_errorresponses % ctx->d_redirectresponses % ctx->d_validresponses % ctx->getTicketsKeysCount() % ctx->getTicketsKeyRotationDelay() % ctx->getNextTicketsKeyRotation()) << endl;
         counter++;
       }
@@ -2810,7 +2829,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       boost::format fmt("%-3d %-20.20s %-15d %-15d %-15d %-15d");
       ret << (fmt % "#" % "Address" % "Bad Version" % "Invalid Token" % "Errors" % "Valid") << endl;
       size_t counter = 0;
-      for (const auto& ctx : g_doh3locals) {
+      for (const auto& ctx : dnsdist::getDoH3Frontends()) {
         ret << (fmt % counter % ctx->d_local.toStringWithPort() % ctx->d_doh3UnsupportedVersionErrors % ctx->d_doh3InvalidTokensReceived % ctx->d_errorResponses % ctx->d_validResponses) << endl;
         counter++;
       }
@@ -2833,12 +2852,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     setLuaNoSideEffect();
     try {
-      if (index < g_doh3locals.size()) {
-        result = g_doh3locals.at(index);
+      auto doh3Frontends = dnsdist::getDoH3Frontends();
+      if (index < doh3Frontends.size()) {
+        result = doh3Frontends.at(index);
       }
       else {
-        errlog("Error: trying to get DOH3 frontend with index %d but we only have %d frontend(s)\n", index, g_doh3locals.size());
-        g_outputBuffer = "Error: trying to get DOH3 frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_doh3locals.size()) + " frontend(s)\n";
+        errlog("Error: trying to get DOH3 frontend with index %d but we only have %d frontend(s)\n", index, doh3Frontends.size());
+        g_outputBuffer = "Error: trying to get DOH3 frontend with index " + std::to_string(index) + " but we only have " + std::to_string(doh3Frontends.size()) + " frontend(s)\n";
       }
     }
     catch (const std::exception& e) {
@@ -2850,7 +2870,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getDOH3FrontendCount", []() {
     setLuaNoSideEffect();
-    return g_doh3locals.size();
+    return dnsdist::getDoH3Frontends().size();
   });
 
   luaCtx.registerFunction<void (std::shared_ptr<DOH3Frontend>::*)()>("reloadCertificates", [](const std::shared_ptr<DOH3Frontend>& frontend) {
@@ -2869,7 +2889,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = "\n- HTTP/1:\n\n";
       ret << (fmt % "#" % "Address" % "200" % "400" % "403" % "500" % "502" % "Others") << endl;
       size_t counter = 0;
-      for (const auto& ctx : g_dohlocals) {
+      for (const auto& ctx : dnsdist::getDoHFrontends()) {
         ret << (fmt % counter % ctx->d_tlsContext.d_addr.toStringWithPort() % ctx->d_http1Stats.d_nb200Responses % ctx->d_http1Stats.d_nb400Responses % ctx->d_http1Stats.d_nb403Responses % ctx->d_http1Stats.d_nb500Responses % ctx->d_http1Stats.d_nb502Responses % ctx->d_http1Stats.d_nbOtherResponses) << endl;
         counter++;
       }
@@ -2879,7 +2899,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer += "\n- HTTP/2:\n\n";
       ret << (fmt % "#" % "Address" % "200" % "400" % "403" % "500" % "502" % "Others") << endl;
       counter = 0;
-      for (const auto& ctx : g_dohlocals) {
+      for (const auto& ctx : dnsdist::getDoHFrontends()) {
         ret << (fmt % counter % ctx->d_tlsContext.d_addr.toStringWithPort() % ctx->d_http2Stats.d_nb200Responses % ctx->d_http2Stats.d_nb400Responses % ctx->d_http2Stats.d_nb403Responses % ctx->d_http2Stats.d_nb500Responses % ctx->d_http2Stats.d_nb502Responses % ctx->d_http2Stats.d_nbOtherResponses) << endl;
         counter++;
       }
@@ -2902,12 +2922,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_DNS_OVER_HTTPS
     setLuaNoSideEffect();
     try {
-      if (index < g_dohlocals.size()) {
-        result = g_dohlocals.at(index);
+      auto dohFrontends = dnsdist::getDoHFrontends();
+      if (index < dohFrontends.size()) {
+        result = dohFrontends.at(index);
       }
       else {
-        errlog("Error: trying to get DOH frontend with index %d but we only have %d frontend(s)\n", index, g_dohlocals.size());
-        g_outputBuffer = "Error: trying to get DOH frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_dohlocals.size()) + " frontend(s)\n";
+        errlog("Error: trying to get DOH frontend with index %d but we only have %d frontend(s)\n", index, dohFrontends.size());
+        g_outputBuffer = "Error: trying to get DOH frontend with index " + std::to_string(index) + " but we only have " + std::to_string(dohFrontends.size()) + " frontend(s)\n";
       }
     }
     catch (const std::exception& e) {
@@ -2922,7 +2943,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getDOHFrontendCount", []() {
     setLuaNoSideEffect();
-    return g_dohlocals.size();
+    return dnsdist::getDoHFrontends().size();
   });
 
   luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)()>("reloadCertificates", [](const std::shared_ptr<DOHFrontend>& frontend) {
@@ -3045,7 +3066,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         vinfolog("Loading default TLS provider '%s'", provider);
       }
       // only works pre-startup, so no sync necessary
-      auto clientState = std::make_unique<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
+      auto clientState = std::make_shared<ClientState>(frontend->d_addr, true, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       clientState->tlsFrontend = frontend;
       clientState->d_additionalAddresses = std::move(additionalAddresses);
       if (tcpListenQueueSize > 0) {
@@ -3058,8 +3079,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConns;
       }
 
-      g_tlslocals.push_back(clientState->tlsFrontend);
-      g_frontends.push_back(std::move(clientState));
+      dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+        config.d_frontends.push_back(std::move(clientState));
+      });
     }
     catch (const std::exception& e) {
       g_outputBuffer = "Error: " + string(e.what()) + "\n";
@@ -3078,7 +3100,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       //             1    2           3                 4                  5
       ret << (fmt % "#" % "Address" % "# ticket keys" % "Rotation delay" % "Next rotation") << endl;
       size_t counter = 0;
-      for (const auto& ctx : g_tlslocals) {
+      for (const auto& ctx : dnsdist::getDoTFrontends()) {
         ret << (fmt % counter % ctx->d_addr.toStringWithPort() % ctx->getTicketsKeysCount() % ctx->getTicketsKeyRotationDelay() % ctx->getNextTicketsKeyRotation()) << endl;
         counter++;
       }
@@ -3097,13 +3119,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     std::shared_ptr<TLSCtx> result = nullptr;
 #ifdef HAVE_DNS_OVER_TLS
     setLuaNoSideEffect();
+    const auto tlsFrontends = dnsdist::getDoTFrontends();
     try {
-      if (index < g_tlslocals.size()) {
-        result = g_tlslocals.at(index)->getContext();
+      if (index < tlsFrontends.size()) {
+        result = tlsFrontends.at(index)->getContext();
       }
       else {
-        errlog("Error: trying to get TLS context with index %d but we only have %d context(s)\n", index, g_tlslocals.size());
-        g_outputBuffer = "Error: trying to get TLS context with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + " context(s)\n";
+        errlog("Error: trying to get TLS context with index %d but we only have %d context(s)\n", index, tlsFrontends.size());
+        g_outputBuffer = "Error: trying to get TLS context with index " + std::to_string(index) + " but we only have " + std::to_string(tlsFrontends.size()) + " context(s)\n";
       }
     }
     catch (const std::exception& e) {
@@ -3121,12 +3144,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_DNS_OVER_TLS
     setLuaNoSideEffect();
     try {
-      if (index < g_tlslocals.size()) {
-        result = g_tlslocals.at(index);
+      auto tlsFrontends = dnsdist::getDoTFrontends();
+      if (index < tlsFrontends.size()) {
+        result = tlsFrontends.at(index);
       }
       else {
-        errlog("Error: trying to get TLS frontend with index %d but we only have %d frontends\n", index, g_tlslocals.size());
-        g_outputBuffer = "Error: trying to get TLS frontend with index " + std::to_string(index) + " but we only have " + std::to_string(g_tlslocals.size()) + " frontend(s)\n";
+        errlog("Error: trying to get TLS frontend with index %d but we only have %d frontends\n", index, tlsFrontends.size());
+        g_outputBuffer = "Error: trying to get TLS frontend with index " + std::to_string(index) + " but we only have " + std::to_string(tlsFrontends.size()) + " frontend(s)\n";
       }
     }
     catch (const std::exception& e) {
@@ -3141,7 +3165,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getTLSFrontendCount", []() {
     setLuaNoSideEffect();
-    return g_tlslocals.size();
+    return dnsdist::getDoTFrontends().size();
   });
 
   luaCtx.registerFunction<void (std::shared_ptr<TLSCtx>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSCtx>& ctx) {
@@ -3199,7 +3223,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("reloadAllCertificates", []() {
-    for (auto& frontend : g_frontends) {
+    for (auto& frontend : dnsdist::getFrontends()) {
       if (!frontend) {
         continue;
       }

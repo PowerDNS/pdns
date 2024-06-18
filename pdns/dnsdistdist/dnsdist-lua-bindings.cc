@@ -23,6 +23,7 @@
 #include "config.h"
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
+#include "dnsdist-frontend.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-resolver.hh"
 #include "dnsdist-svc.hh"
@@ -673,7 +674,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       return;
     }
     if (bpf) {
-      for (const auto& frontend : g_frontends) {
+      for (const auto& frontend : dnsdist::getFrontends()) {
         frontend->attachFilter(bpf, frontend->getSocket());
       }
     }
