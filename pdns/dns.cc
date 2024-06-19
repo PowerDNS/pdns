@@ -24,6 +24,7 @@
 #endif
 #include "dns.hh"
 #include "misc.hh"
+#include "views.hh"
 #include <stdexcept>
 #include <iostream>
 #include <boost/algorithm/string.hpp>
@@ -102,27 +103,27 @@ std::string Opcode::to_s(uint8_t opcode) {
 }
 
 // goal is to hash based purely on the question name, and turn error into 'default'
-uint32_t hashQuestion(const uint8_t* packet, uint16_t packet_len, uint32_t init, bool& ok)
+uint32_t hashQuestion(const uint8_t* packet, uint16_t packet_len, uint32_t init, bool& wasOK)
 {
   if (packet_len < sizeof(dnsheader)) {
-    ok = false;
+    wasOK = false;
     return init;
   }
-  // C++ 17 does not have std::u8string_view
-  std::basic_string_view<uint8_t> name(packet + sizeof(dnsheader), packet_len - sizeof(dnsheader));
-  std::basic_string_view<uint8_t>::size_type len = 0;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  pdns::views::UnsignedCharView name(packet + sizeof(dnsheader), packet_len - sizeof(dnsheader));
+  pdns::views::UnsignedCharView::size_type len = 0;
 
   while (len < name.length()) {
     uint8_t labellen = name[len++];
     if (labellen == 0) {
-      ok = true;
+      wasOK = true;
       // len is name.length() at max as it was < before the increment
       return burtleCI(name.data(), len, init);
     }
     len += labellen;
   }
   // We've encountered a label that is too long
-  ok = false;
+  wasOK = false;
   return init;
 }
 
