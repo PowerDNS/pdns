@@ -1821,33 +1821,6 @@ See :ref:`setting-new-domain-ignore-list`.
     'versionadded': '5.1.0'
     },
     {
-        'name' : 'udr_ignore_list',
-        'section' : 'nod',
-        'type' : LType.ListStrings,
-        'default' : '',
-        'help' : 'List of domains (and implicitly all subdomains) which will never be considered for UDR',
-        'doc' : '''
-This setting is a list of all domains (and implicitly all subdomains)
-that will never be considered for a new unique domain request.
-For example, if the domain 'example.com' is in the list, then 'foo.bar.example.com'
-will never be considered for a new unique domain request.
- ''',
-    'versionadded': '5.1.0'
-    },
-    {
-        'name' : 'udr_ignore_list_file',
-        'section' : 'nod',
-        'type' : LType.String,
-        'default' : '',
-        'help' : 'File with list of domains (and implicitly all subdomains) which will never be considered for UDR',
-        'doc' : '''
-Path to a file with a list of domains. File should have one domain per line,
-with no extra characters or comments.
-See :ref:`setting-udr-ignore-list`.
- ''',
-    'versionadded': '5.1.0'
-    },
-    {
         'name' : 'pb_tag',
         'section' : 'nod',
         'oldname' : 'new-domain-pb-tag',
@@ -3039,6 +3012,33 @@ If protobuf is configured, then this tag will be added to all protobuf response 
 a unique DNS response is observed.
  ''',
     'versionadded': '4.2.0'
+    },
+    {
+        'name' : 'unique_response_ignore_list',
+        'section' : 'nod',
+        'type' : LType.ListStrings,
+        'default' : '',
+        'help' : 'List of domains (and implicitly all subdomains) which will never be considered for UDR',
+        'doc' : '''
+This setting is a list of all domains (and implicitly all subdomains)
+that will never be considered for a new unique domain request.
+For example, if the domain 'example.com' is in the list, then 'foo.bar.example.com'
+will never be considered for a new unique domain request.
+''',
+        'versionadded': '5.1.0'
+    },
+    {
+        'name' : 'unique_response_ignore_list_file',
+        'section' : 'nod',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'File with list of domains (and implicitly all subdomains) which will never be considered for UDR',
+        'doc' : '''
+Path to a file with a list of domains. File should have one domain per line,
+with no extra characters or comments.
+See :ref:`setting-unique-response-ignore-list`.
+''',
+        'versionadded': '5.1.0'
     },
     {
         'name' : 'use_incoming_edns_subnet',

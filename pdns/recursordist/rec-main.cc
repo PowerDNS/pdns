@@ -906,9 +906,9 @@ static void setupNODGlobal()
   g_udrLog = ::arg().mustDo("unique-response-log");
   g_nod_pbtag = ::arg()["new-domain-pb-tag"];
   g_udr_pbtag = ::arg()["unique-response-pb-tag"];
-  parseIgnorelist(::arg()["udr-ignore-list"], g_udrDomainWL);
-  if (!::arg().isEmpty("udr-ignore-list-file")) {
-    parseIgnorelistFile(::arg()["udr-ignore-list-file"], g_udrDomainWL);
+  parseIgnorelist(::arg()["unique-response-ignore-list"], g_udrDomainWL);
+  if (!::arg().isEmpty("unique-response-ignore-list-file")) {
+    parseIgnorelistFile(::arg()["unique-response-ignore-list-file"], g_udrDomainWL);
   }
 }
 #endif /* NOD_ENABLED */
