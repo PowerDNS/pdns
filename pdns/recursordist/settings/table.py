@@ -1816,7 +1816,7 @@ feature.
         'doc' : '''
 Path to a file with a list of domains. File should have one domain per line,
 with no extra characters or comments.
-See :doc:`ignore_list`.
+See :ref:`setting-new-domain-ignore-list`.
  ''',
     'versionadded': '5.1.0'
     },
@@ -1843,7 +1843,7 @@ will never be considered for a new unique domain request.
         'doc' : '''
 Path to a file with a list of domains. File should have one domain per line,
 with no extra characters or comments.
-See :doc:`udr_ignore_list`.
+See :ref:`setting-udr-ignore-list`.
  ''',
     'versionadded': '5.1.0'
     },

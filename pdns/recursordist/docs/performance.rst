@@ -110,6 +110,32 @@ When running with >3000 queries per second, and running Linux versions prior to 
 This is solved by rebooting with ``clock=tsc`` or upgrading to a 2.6.17 kernel.
 This is relevant if dmesg shows ``Using pmtmr for high-res timesource``.
 
+Memory usage
+------------
+
+:program:`Recursor` keeps all the data it needs in memory.
+The default configuration uses a little more than 1GB when the caches are full.
+Depending on configuration, memory usage can amount to many gigabytes for a large installation.
+
+.. warning::
+   Avoid swapping. The memory access patterns of :program:`Recursor` are random. This means
+   that it will cause trashing (the OS spending lots of time pulling in and writing out memory
+   pages) if :program:`Recursor` uses more physical memory than available and performance will be severely impacted.
+
+Below the memory usage observed for a specific test case are described.
+Please note that depending on OS, version of system libraries, version of the :program:`Recursor`, features used and usage patterns these numbers may vary.
+Test and observe your system to learn more about the memory requirements specific to your case.
+
+The most important subsystems that use memory are:
+
+- The packet cache. The amount of memory used in a test case was about 500 bytes per entry
+- The record cache. The amount of memory used in a test case was about 850 bytes per entry
+- Authoritative zones loaded. Memory usage is dependent on the size and number loaded.
+- RPZ zones loaded. Memory usage is dependent on the size and number loaded.
+- NOD DBs. Memory usage is dependent on specific settings of this subsystem.
+
+An estimate for the memory used by its caches for a :program:`Recursor` having 2 million record cache entries and 1 million packet cache entries is ``2e6 * 850 * + 1e6 * 500 = about 2GB``.
+
 Connection tracking and firewalls
 ---------------------------------
 
