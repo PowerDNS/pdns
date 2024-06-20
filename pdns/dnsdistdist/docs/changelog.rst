@@ -58,7 +58,7 @@ Changelog
     :pullreq: 14336
     :tickets: 14279
 
-    Edit the systemd unit file, `CAP_BPF` is no longer enough
+    Edit the systemd unit file, ``CAP_BPF`` is no longer enough
 
   .. change::
     :tags: Bug Fixes
