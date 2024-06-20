@@ -21,7 +21,7 @@ Changelog
     :tags: Bug Fixes, Webserver
     :pullreq: 14170
 
-    Prevent a race when calling `registerWebHandler` at runtime
+    Prevent a race when calling ``registerWebHandler`` at runtime
 
   .. change::
     :tags: Bug Fixes
