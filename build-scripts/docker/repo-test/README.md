@@ -10,6 +10,11 @@ To see the supported releases do `./generate-repo-files.py --help`.
 This tool is mainly used internally to test releases but might be useful
 for others.
 
+## Known Issues
+
+- `--test-aarch64` really only makes sense if the test script is running on
+  another platform (and so far we've assumed `x86_64` to be the default)
+
 ## Dependencies
 
 - Python 3
