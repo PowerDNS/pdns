@@ -2,6 +2,89 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.5
+  :released: 20th of June 2024
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 14163
+
+    Reply to HTTP/2 PING frames immediately
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 14166
+
+    Use the correct source IP for outgoing QUIC datagrams
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 14170
+
+    Prevent a race when calling ``registerWebHandler`` at runtime
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14331
+
+    Syslog should be enabled by default
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 14332
+
+    Log the correct amount of bytes sent for DoH w/ nghttp2
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 14333
+
+    Enforce a maximum number of HTTP request fields and a maximum HTTP request line size
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14334
+
+    Fix a warning when compiling the unit tests without XSK
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14335
+
+    autoconf: allow prerelease systemd versions (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14336
+    :tickets: 14279
+
+    Edit the systemd unit file, ``CAP_BPF`` is no longer enough
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14337
+
+    Fix 'Error creating TCP worker' error message
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14338
+
+    Add a Lua FFI function to set proxy protocol values
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14339
+
+    Add Lua FFI bindings to generate SVC responses
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 14342
+
+    Fix a race condition with custom Lua web handlers
+
+.. changelog::
   :version: 1.9.4
   :released: 13th of May 2024
 
