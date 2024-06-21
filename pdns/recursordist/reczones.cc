@@ -35,8 +35,10 @@
 #include "settings/cxxsettings.hh"
 #include "rec-system-resolve.hh"
 
+// XXX consider including rec-main.hh?
 extern int g_argc;
 extern char** g_argv;
+extern string g_yamlSettingsSuffix;
 
 bool primeHints(time_t now)
 {
@@ -147,7 +149,7 @@ string reloadZoneConfiguration(bool yaml)
          log->info(Logr::Notice, "Reloading zones, purging data from cache"));
 
     if (yaml) {
-      configname += ".yml";
+      configname += g_yamlSettingsSuffix;
       string msg;
       pdns::rust::settings::rec::Recursorsettings settings;
       // XXX Does ::arg()["include-dir"] have the right value, i.e. potentially overriden by command line?

@@ -41,15 +41,20 @@ override_dh_auto_install:
 	install -m 644 -t debian/pdns-recursor/usr/share/pdns-recursor/snmp RECURSOR-MIB.txt
 	rm -f debian/pdns-recursor/etc/powerdns/recursor.conf-dist
 	rm -f debian/pdns-recursor/etc/powerdns/recursor.yml-dist
-	./pdns_recursor --no-config --config=default | sed \
-		-e 's!^# config-dir=.*!config-dir=/etc/powerdns!' \
-		-e 's!^# hint-file=.*!&\nhint-file=/usr/share/dns/root.hints!' \
-		-e 's!^# include-dir=.*!&\ninclude-dir=/etc/powerdns/recursor.d!' \
-		-e 's!^# local-address=.*!local-address=127.0.0.1!' \
-		-e 's!^# lua-config-file=.*!lua-config-file=/etc/powerdns/recursor.lua!' \
-		-e 's!^# quiet=.*!quiet=yes!' \
-		-e '/^# version-string=.*/d' \
-		> debian/pdns-recursor/etc/powerdns/recursor.conf
+	@echo "\
+	dnssec:\n\
+	  # validation: process\n\
+	recursor:\n\
+	  hint_file: /usr/share/dns/root.hints\n\
+	  include_dir: /etc/powerdns/recursor.d\n\
+	  lua_config_file: /etc/powerdns/recursor.lua\n\
+	incoming:\n\
+	 # listen:\n\
+	 # - 127.0.0.1\n\
+	outgoing:\n\
+	 # source_address:\n\
+	 # - 0.0.0.0\n\
+	" > debian/pdns-recursor/etc/powerdns/recursor.conf
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))

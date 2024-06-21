@@ -81,15 +81,23 @@ make %{?_smp_mflags} check || (cat test-suite.log && false)
 %install
 make install DESTDIR=%{buildroot}
 
-%{__mv} %{buildroot}%{_sysconfdir}/%{name}/recursor.conf{-dist,}
 %{__mkdir} %{buildroot}%{_sysconfdir}/%{name}/recursor.d
 
 # change user and group to pdns-recursor and add default include-dir
-sed -i \
-    -e 's/# setuid=/setuid=pdns-recursor/' \
-    -e 's/# setgid=/setgid=pdns-recursor/' \
-    -e 's!# include-dir=.*!&\ninclude-dir=%{_sysconfdir}/%{name}/recursor.d!' \
-    %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
+cat << EOF > %{buildroot}%{_sysconfdir}/%{name}/recursor.conf
+dnssec:
+  # validation: process
+recursor:
+  include_dir: %{_sysconfdir}/%{name}/recursor.d
+  setuid: pdns-recursor
+  setgid: pdns-recursor
+incoming:
+  # listen:
+  # - 127.0.0.1
+outgoing:
+  # source_address:
+  # - 0.0.0.0
+EOF
 
 %{__install } -d %{buildroot}/%{_sharedstatedir}/%{name}
 

@@ -42,7 +42,7 @@ BUILT_SOURCES=htmlfiles.h \
 	dnslabeltext.cc
 
 CLEANFILES = htmlfiles.h \
-	recursor.conf-dist recursor.yml-dist
+	recursor.yml-dist
 
 htmlfiles.h: incfiles ${srcdir}/html/* ${srcdir}/html/js/*
 	$(AM_V_GEN)$(srcdir)/incfiles > $@.tmp
@@ -552,10 +552,7 @@ pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 	$(srcdir)/mkpubsuffixcc $< $@
 
 ## Config file
-sysconf_DATA = recursor.conf-dist recursor.yml-dist
-
-recursor.conf-dist: pdns_recursor
-	$(AM_V_GEN)./pdns_recursor --config=default > $@
+sysconf_DATA = recursor.yml-dist
 
 recursor.yml-dist: pdns_recursor
 	dir=$$(mktemp -d) && touch "$$dir/recursor.yml" && ./pdns_recursor --config-dir="$$dir" --config=default 2> /dev/null > $@ && rm "$$dir/recursor.yml" && rmdir "$$dir"

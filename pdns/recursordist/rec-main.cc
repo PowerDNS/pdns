@@ -85,6 +85,7 @@ string g_pidfname;
 RecursorControlChannel g_rcc; // only active in the handler thread
 bool g_regressionTestMode;
 bool g_yamlSettings;
+string g_yamlSettingsSuffix;
 bool g_luaSettingsInYAML;
 
 #ifdef NOD_ENABLED
@@ -1382,7 +1383,7 @@ void parseACLs()
     cleanSlashes(configName);
 
     if (g_yamlSettings) {
-      configName += ".yml";
+      configName += g_yamlSettingsSuffix;
       string msg;
       pdns::rust::settings::rec::Recursorsettings settings;
       // XXX Does ::arg()["include-dir"] have the right value, i.e. potentially overriden by command line?
@@ -3214,11 +3215,20 @@ int main(int argc, char** argv)
 
     ::arg().setSLog(startupLog);
 
-    const string yamlconfigname = configname + ".yml";
+    string yamlconfigname;
     pdns::rust::settings::rec::Recursorsettings settings;
-    auto yamlstatus = pdns::settings::rec::tryReadYAML(yamlconfigname, true, g_yamlSettings, g_luaSettingsInYAML, settings, startupLog);
-    if (yamlstatus == pdns::settings::rec::PresentButFailed) {
-      return 1;
+    pdns::settings::rec::YamlSettingsStatus yamlstatus{};
+
+    for (const string suffix : {".yml", ".conf"}) {
+      yamlconfigname = configname + suffix;
+      yamlstatus = pdns::settings::rec::tryReadYAML(yamlconfigname, true, g_yamlSettings, g_luaSettingsInYAML, settings, startupLog);
+      if (yamlstatus == pdns::settings::rec::YamlSettingsStatus::OK) {
+        g_yamlSettingsSuffix = suffix;
+        break;
+      }
+      if (suffix == ".yml" && yamlstatus == pdns::settings::rec::PresentButFailed) {
+        return 1;
+      }
     }
 
     if (g_yamlSettings) {
@@ -3232,8 +3242,9 @@ int main(int argc, char** argv)
       auto lock = g_yamlStruct.lock();
       *lock = std::move(settings);
     }
-    if (yamlstatus == pdns::settings::rec::YamlSettingsStatus::CannotOpen) {
+    else {
       configname += ".conf";
+      startupLog->info(Logr::Warning, "Trying to read YAML from .yml or .conf failed, failing back to old-style config read", "configname", Logging::Loggable(configname));
       bool mustExit = false;
       std::tie(ret, mustExit) = doConfig(startupLog, configname, argc, argv);
       if (ret != 0 || mustExit) {
