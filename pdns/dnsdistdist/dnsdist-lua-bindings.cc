@@ -23,6 +23,8 @@
 #include "config.h"
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
+#include "dnsdist-dynblocks.hh"
+#include "dnsdist-dynbpf.hh"
 #include "dnsdist-frontend.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-resolver.hh"
@@ -260,7 +262,9 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<bool (ComboAddress::*)() const>("isIPv6", [](const ComboAddress& addr) { return addr.sin4.sin_family == AF_INET6; });
   luaCtx.registerFunction<bool (ComboAddress::*)() const>("isMappedIPv4", [](const ComboAddress& addr) { return addr.isMappedIPv4(); });
   luaCtx.registerFunction<ComboAddress (ComboAddress::*)() const>("mapToIPv4", [](const ComboAddress& addr) { return addr.mapToIPv4(); });
-  luaCtx.registerFunction<bool (nmts_t::*)(const ComboAddress&)>("match", [](nmts_t& set, const ComboAddress& addr) { return set.match(addr); });
+#ifndef DISABLE_DYNBLOCKS
+  luaCtx.registerFunction<bool (ClientAddressDynamicRules::*)(const ComboAddress&) const>("match", [](const ClientAddressDynamicRules& set, const ComboAddress& addr) { return set.match(addr); });
+#endif /* DISABLE_DYNBLOCKS */
 #endif /* DISABLE_COMBO_ADDR_BINDINGS */
 
 #ifndef DISABLE_DNSNAME_BINDINGS

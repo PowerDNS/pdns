@@ -162,7 +162,6 @@ template <class T>
 using LuaTypeOrArrayOf = boost::variant<T, LuaArray<T>>;
 
 using luaruleparams_t = LuaAssociativeTable<std::string>;
-using nmts_t = NetmaskTree<DynBlock, AddressAndPortRange>;
 
 using luadnsrule_t = boost::variant<string, LuaArray<std::string>, std::shared_ptr<DNSRule>, DNSName, LuaArray<DNSName>>;
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var, const std::string& calledFrom);

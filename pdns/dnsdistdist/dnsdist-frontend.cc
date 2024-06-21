@@ -22,6 +22,7 @@
 
 #include "dnsdist-frontend.hh"
 #include "dnsdist.hh"
+#include "dnsdist-configuration.hh"
 
 namespace dnsdist
 {

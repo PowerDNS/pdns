@@ -24,6 +24,7 @@
 #endif
 
 #include "dnsdist-carbon.hh"
+#include "dnsdist-cache.hh"
 #include "dnsdist.hh"
 #include "dnsdist-backoff.hh"
 #include "dnsdist-configuration.hh"

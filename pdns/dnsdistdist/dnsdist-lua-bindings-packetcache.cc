@@ -25,6 +25,7 @@
 
 #include "config.h"
 #include "dnsdist.hh"
+#include "dnsdist-cache.hh"
 #include "dnsdist-lua.hh"
 
 #include <boost/lexical_cast.hpp>

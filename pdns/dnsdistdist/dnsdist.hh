@@ -33,12 +33,8 @@
 #include <unistd.h>
 #include <unordered_map>
 
-#include <boost/variant.hpp>
-
+#include "bpf-filter.hh"
 #include "circular_buffer.hh"
-#include "dnscrypt.hh"
-#include "dnsdist-cache.hh"
-#include "dnsdist-dynbpf.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-lbpolicies.hh"
 #include "dnsdist-protocols.hh"
@@ -51,7 +47,6 @@
 #include "misc.hh"
 #include "mplexer.hh"
 #include "noinitvector.hh"
-#include "tcpiohandler.hh"
 #include "uuid-utils.hh"
 #include "proxy-protocol.hh"
 #include "stat_t.hh"
@@ -202,73 +197,6 @@ struct DNSResponse : DNSQuestion
   const std::shared_ptr<DownstreamState>& d_downstream;
 };
 
-struct DynBlock
-{
-  DynBlock()
-  {
-    until.tv_sec = 0;
-    until.tv_nsec = 0;
-  }
-
-  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_) :
-    reason(reason_), domain(domain_), until(until_), action(action_)
-  {
-  }
-
-  DynBlock(const DynBlock& rhs) :
-    reason(rhs.reason), domain(rhs.domain), until(rhs.until), tagSettings(rhs.tagSettings), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
-  {
-    blocks.store(rhs.blocks);
-  }
-
-  DynBlock(DynBlock&& rhs) :
-    reason(std::move(rhs.reason)), domain(std::move(rhs.domain)), until(rhs.until), tagSettings(std::move(rhs.tagSettings)), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
-  {
-    blocks.store(rhs.blocks);
-  }
-
-  DynBlock& operator=(const DynBlock& rhs)
-  {
-    reason = rhs.reason;
-    until = rhs.until;
-    domain = rhs.domain;
-    action = rhs.action;
-    blocks.store(rhs.blocks);
-    warning = rhs.warning;
-    bpf = rhs.bpf;
-    tagSettings = rhs.tagSettings;
-    return *this;
-  }
-
-  DynBlock& operator=(DynBlock&& rhs)
-  {
-    reason = std::move(rhs.reason);
-    until = rhs.until;
-    domain = std::move(rhs.domain);
-    action = rhs.action;
-    blocks.store(rhs.blocks);
-    warning = rhs.warning;
-    bpf = rhs.bpf;
-    tagSettings = std::move(rhs.tagSettings);
-    return *this;
-  }
-
-  struct TagSettings
-  {
-    std::string d_name;
-    std::string d_value;
-  };
-
-  string reason;
-  DNSName domain;
-  timespec until{};
-  std::shared_ptr<TagSettings> tagSettings{nullptr};
-  mutable std::atomic<uint32_t> blocks{0};
-  DNSAction::Action action{DNSAction::Action::None};
-  bool warning{false};
-  bool bpf{false};
-};
-
 using pdns::stat_t;
 
 class BasicQPSLimiter
@@ -386,6 +314,8 @@ private:
 class XskPacket;
 class XskSocket;
 class XskWorker;
+
+class DNSCryptContext;
 
 struct ClientState
 {
@@ -587,6 +517,7 @@ struct ClientState
 };
 
 struct CrossProtocolQuery;
+class FDMultiplexer;
 
 struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
 {
@@ -962,6 +893,8 @@ void responderThread(std::shared_ptr<DownstreamState> dss);
 extern RecursiveLockGuarded<LuaContext> g_lua;
 extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
 
+class DNSDistPacketCache;
+
 class DNSRule
 {
 public:
@@ -1017,7 +950,6 @@ enum ednsHeaderFlags
 };
 
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
-extern std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
 
 void tcpAcceptorThread(const std::vector<ClientState*>& states);
 
@@ -1030,6 +962,8 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
 
 bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState);
 
+class DNSCryptQuery;
+
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
 bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
 
@@ -1041,6 +975,7 @@ enum class ProcessQueryResult : uint8_t
   Asynchronous
 };
 
+#include "dnsdist-actions.hh"
 #include "dnsdist-rule-chains.hh"
 
 ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend);

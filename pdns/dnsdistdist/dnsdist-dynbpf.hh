@@ -75,3 +75,5 @@ private:
   };
   LockGuarded<Data> d_data;
 };
+
+extern std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
