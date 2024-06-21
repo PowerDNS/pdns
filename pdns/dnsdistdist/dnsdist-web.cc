@@ -1431,8 +1431,8 @@ static void handleConfigDump(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.status = 200;
 
   Json::array doc;
-  const auto runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
-  const auto immutableConfig = dnsdist::configuration::getImmutableConfiguration();
+  const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
   using configentry_t = boost::variant<bool, double, std::string>;
   std::vector<std::pair<std::string, configentry_t>> configEntries{
     {"acl", runtimeConfiguration.d_ACL.toString()},

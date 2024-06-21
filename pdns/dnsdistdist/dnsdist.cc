@@ -1031,7 +1031,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
   }
 
   {
-    const auto runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
     if (runtimeConfig.d_queryCountConfig.d_enabled) {
       string qname = dnsQuestion.ids.qname.toLogString();
       bool countQuery{true};
@@ -2455,7 +2455,7 @@ static void dropUserPrivs(uid_t uid)
 
 static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCount)
 {
-  const auto immutableConfig = dnsdist::configuration::getImmutableConfiguration();
+  const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
   /* stdin, stdout, stderr */
   rlim_t requiredFDsCount = 3;
   const auto backends = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
@@ -2506,7 +2506,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
 
 static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr, int& socket, bool tcp, bool warn)
 {
-  const auto immutableConfig = dnsdist::configuration::getImmutableConfiguration();
+  const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
   static bool s_warned_ipv6_recvpktinfo = false;
   (void)warn;
   socket = SSocket(addr.sin4.sin_family, !tcp ? SOCK_DGRAM : SOCK_STREAM, 0);
