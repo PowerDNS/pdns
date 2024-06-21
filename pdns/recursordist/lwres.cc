@@ -214,7 +214,7 @@ static void logOutgoingQuery(const std::shared_ptr<std::vector<std::unique_ptr<R
   }
 }
 
-static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const boost::optional<const boost::uuids::uuid&>& initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& address, const DNSName& domain, int type, uint16_t qid, bool doTCP, bool tls, const boost::optional<Netmask>& srcmask, size_t bytes, int rcode, const std::vector<DNSRecord>& records, const struct timeval& queryTime, const std::set<uint16_t>& exportTypes, const std::string nsName)
+static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const boost::optional<const boost::uuids::uuid&>& initialRequestId, const boost::uuids::uuid& uuid, const ComboAddress& address, const DNSName& domain, int type, uint16_t qid, bool doTCP, bool tls, const boost::optional<Netmask>& srcmask, size_t bytes, int rcode, const std::vector<DNSRecord>& records, const struct timeval& queryTime, const std::set<uint16_t>& exportTypes, const std::string& nsName)
 {
   if (!outgoingLoggers) {
     return;
