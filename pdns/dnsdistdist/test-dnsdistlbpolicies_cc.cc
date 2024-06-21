@@ -33,18 +33,6 @@ bool TLSFrontend::setupTLS()
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static): this is a stub, the real one is not that simple..
-std::string DNSQuestion::getTrailingData() const
-{
-  return "";
-}
-
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static): this is a stub, the real one is not that simple..
-bool DNSQuestion::setTrailingData(const std::string& tail)
-{
-  return false;
-}
-
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static): this is a stub, the real one is not that simple..
 bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dnsQuestion, const std::string& reason)
 {
   return false;
