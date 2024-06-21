@@ -65,9 +65,8 @@ BOOST_AUTO_TEST_CASE(test_distributor_basic) {
 
 struct BackendSlow
 {
-  std::unique_ptr<DNSPacket> question(Question& query)
+  std::unique_ptr<DNSPacket> question([[maybe_unused]] Question& query)
   {
-    (void)query;
     if (d_shouldSleep) {
       /* only sleep once per distributor thread, otherwise
          we are sometimes destroyed before picking up the queued
