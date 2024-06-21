@@ -25,6 +25,7 @@ struct dnsdist_ffi_servers_list_t;
 struct dnsdist_ffi_server_t;
 struct dnsdist_ffi_dnsquestion_t;
 
+struct DNSQuestion;
 struct DownstreamState;
 
 struct PerThreadPoliciesState;

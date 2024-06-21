@@ -22,6 +22,7 @@
 #include "dnsdist-async.hh"
 #include "dnsdist-internal-queries.hh"
 #include "dolog.hh"
+#include "mplexer.hh"
 #include "threadname.hh"
 
 namespace dnsdist

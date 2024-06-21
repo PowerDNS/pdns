@@ -68,6 +68,73 @@ struct dnsdist_ffi_stat_node_t
   SMTBlockParameters& d_blockParameters;
 };
 
+struct DynBlock
+{
+  DynBlock()
+  {
+    until.tv_sec = 0;
+    until.tv_nsec = 0;
+  }
+
+  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_) :
+    reason(reason_), domain(domain_), until(until_), action(action_)
+  {
+  }
+
+  DynBlock(const DynBlock& rhs) :
+    reason(rhs.reason), domain(rhs.domain), until(rhs.until), tagSettings(rhs.tagSettings), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
+  {
+    blocks.store(rhs.blocks);
+  }
+
+  DynBlock(DynBlock&& rhs) :
+    reason(std::move(rhs.reason)), domain(std::move(rhs.domain)), until(rhs.until), tagSettings(std::move(rhs.tagSettings)), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
+  {
+    blocks.store(rhs.blocks);
+  }
+
+  DynBlock& operator=(const DynBlock& rhs)
+  {
+    reason = rhs.reason;
+    until = rhs.until;
+    domain = rhs.domain;
+    action = rhs.action;
+    blocks.store(rhs.blocks);
+    warning = rhs.warning;
+    bpf = rhs.bpf;
+    tagSettings = rhs.tagSettings;
+    return *this;
+  }
+
+  DynBlock& operator=(DynBlock&& rhs)
+  {
+    reason = std::move(rhs.reason);
+    until = rhs.until;
+    domain = std::move(rhs.domain);
+    action = rhs.action;
+    blocks.store(rhs.blocks);
+    warning = rhs.warning;
+    bpf = rhs.bpf;
+    tagSettings = std::move(rhs.tagSettings);
+    return *this;
+  }
+
+  struct TagSettings
+  {
+    std::string d_name;
+    std::string d_value;
+  };
+
+  string reason;
+  DNSName domain;
+  timespec until{};
+  std::shared_ptr<TagSettings> tagSettings{nullptr};
+  mutable std::atomic<uint32_t> blocks{0};
+  DNSAction::Action action{DNSAction::Action::None};
+  bool warning{false};
+  bool bpf{false};
+};
+
 using dnsdist_ffi_dynamic_block_inserted_hook = std::function<void(uint8_t type, const char* key, const char* reason, uint8_t action, uint64_t duration, bool warning)>;
 using ClientAddressDynamicRules = NetmaskTree<DynBlock, AddressAndPortRange>;
 using SuffixDynamicRules = SuffixMatchTree<DynBlock>;

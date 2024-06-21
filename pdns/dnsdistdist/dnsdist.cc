@@ -96,7 +96,6 @@ using std::thread;
 string g_outputBuffer;
 
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
-std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
 
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers.

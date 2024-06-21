@@ -28,6 +28,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include "dnsdist-lua-ffi.hh"
+#include "dnsdist-cache.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-web.hh"
 #include "dnsparser.hh"

@@ -21,6 +21,7 @@
  */
 
 #include "dnsdist-async.hh"
+#include "dnsdist-cache.hh"
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"

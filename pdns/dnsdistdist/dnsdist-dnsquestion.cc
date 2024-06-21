@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsdist.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsdist-dnsparser.hh"
 
 std::string DNSQuestion::getTrailingData() const
