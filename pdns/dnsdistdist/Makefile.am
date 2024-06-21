@@ -156,6 +156,7 @@ dnsdist_SOURCES = \
 	dnsdist-discovery.cc dnsdist-discovery.hh \
 	dnsdist-dnscrypt.cc \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
+	dnsdist-dnsquestion.cc \
 	dnsdist-doh-common.cc dnsdist-doh-common.hh \
 	dnsdist-downstream-connection.hh \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
@@ -280,6 +281,7 @@ testrunner_SOURCES = \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
+	dnsdist-dnsquestion.cc \
 	dnsdist-doh-common.cc dnsdist-doh-common.hh \
 	dnsdist-downstream-connection.hh \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
@@ -554,6 +556,7 @@ fuzz_target_dnsdistcache_SOURCES = \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
+	dnsdist-dnsquestion.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-idstate.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \

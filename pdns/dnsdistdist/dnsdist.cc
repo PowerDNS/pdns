@@ -46,7 +46,6 @@
 #include "dnsdist-console.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-discovery.hh"
-#include "dnsdist-dnsparser.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-edns.hh"
@@ -72,7 +71,6 @@
 #include "doh.hh"
 #include "dolog.hh"
 #include "dnsname.hh"
-#include "dnsparser.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
 #include "lock.hh"
@@ -187,38 +185,6 @@ struct DelayedPacket
 
 static std::unique_ptr<DelayPipe<DelayedPacket>> g_delay{nullptr};
 #endif /* DISABLE_DELAY_PIPE */
-
-std::string DNSQuestion::getTrailingData() const
-{
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  const auto* message = reinterpret_cast<const char*>(this->getData().data());
-  const uint16_t messageLen = getDNSPacketLength(message, this->getData().size());
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  return {message + messageLen, this->getData().size() - messageLen};
-}
-
-bool DNSQuestion::setTrailingData(const std::string& tail)
-{
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  const char* message = reinterpret_cast<const char*>(this->data.data());
-  const uint16_t messageLen = getDNSPacketLength(message, this->data.size());
-  this->data.resize(messageLen);
-  if (!tail.empty()) {
-    if (!hasRoomFor(tail.size())) {
-      return false;
-    }
-    this->data.insert(this->data.end(), tail.begin(), tail.end());
-  }
-  return true;
-}
-
-bool DNSQuestion::editHeader(const std::function<bool(dnsheader&)>& editFunction)
-{
-  if (data.size() < sizeof(dnsheader)) {
-    throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
-  }
-  return dnsdist::PacketMangling::editDNSHeaderFromPacket(data, editFunction);
-}
 
 static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
 {

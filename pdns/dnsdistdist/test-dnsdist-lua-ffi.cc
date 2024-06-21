@@ -250,14 +250,11 @@ BOOST_AUTO_TEST_CASE(test_Query)
 
   {
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_trailing_data(&lightDQ, nullptr), 0U);
-#if 0
-    // DNSQuestion::setTrailingData() and DNSQuestion::getTrailingData() are currently stubs in the test runner
     std::string garbage("thisissomegarbagetrailingdata");
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_set_trailing_data(&lightDQ, garbage.data(), garbage.size()), true);
     const char* buffer = nullptr;
     BOOST_REQUIRE_EQUAL(dnsdist_ffi_dnsquestion_get_trailing_data(&lightDQ, &buffer), garbage.size());
     BOOST_CHECK_EQUAL(garbage, std::string(buffer));
-#endif
   }
 
   {

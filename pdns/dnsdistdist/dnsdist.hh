@@ -38,7 +38,6 @@
 #include "circular_buffer.hh"
 #include "dnscrypt.hh"
 #include "dnsdist-cache.hh"
-#include "dnsdist-configuration.hh"
 #include "dnsdist-dynbpf.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-lbpolicies.hh"
@@ -67,10 +66,7 @@ struct ClientState;
 
 struct DNSQuestion
 {
-  DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_) :
-    data(data_), ids(ids_), ecsPrefixLength(ids.origRemote.sin4.sin_family == AF_INET ? dnsdist::configuration::getCurrentRuntimeConfiguration().d_ECSSourcePrefixV4 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_ECSSourcePrefixV6), ecsOverride(dnsdist::configuration::getCurrentRuntimeConfiguration().d_ecsOverride)
-  {
-  }
+  DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_);
   DNSQuestion(const DNSQuestion&) = delete;
   DNSQuestion& operator=(const DNSQuestion&) = delete;
   DNSQuestion(DNSQuestion&&) = default;
