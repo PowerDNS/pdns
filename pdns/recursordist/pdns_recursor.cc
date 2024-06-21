@@ -785,6 +785,24 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
                 }),
               ret.end());
   }
+  else {
+    // Remove double SOA records
+    std::set<DNSName> seenSOAs;
+    ret.erase(std::remove_if(
+                             ret.begin(),
+                             ret.end(),
+                             [&seenSOAs](DNSRecord& record) {
+                               if (record.d_type == QType::SOA) {
+                                 if (seenSOAs.count(record.d_name) > 0) {
+                                   // We've had this SOA before, remove it
+                                   return true;
+                                 }
+                                 seenSOAs.insert(record.d_name);
+                               }
+                               return false;
+                             }),
+              ret.end());
+  }
   t_Counters.at(rec::Counter::dns64prefixanswers)++;
   return rcode;
 }
