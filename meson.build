@@ -106,6 +106,15 @@ libpdns_gettime = declare_dependency(
   )
 )
 
+libpdns_uuidutils = declare_dependency(
+  link_whole: static_library(
+    'pdns-uuidutils',
+    src_dir / 'uuid-utils.cc',
+    src_dir / 'uuid-utils.hh',
+    dependencies: dep_rt,
+  )
+)
+
 if get_option('module-lmdb') != 'disabled'
   subdir('ext' / 'lmdb-safe')
 endif
@@ -623,8 +632,6 @@ common_sources += files(
   src_dir / 'unix_semaphore.cc',
   src_dir / 'unix_utility.cc',
   src_dir / 'utility.hh',
-  src_dir / 'uuid-utils.cc',
-  src_dir / 'uuid-utils.hh',
   src_dir / 'validate.hh',
   src_dir / 'version.cc',
   src_dir / 'version.hh',
@@ -690,6 +697,7 @@ tools = {
   },
   'pdns-auth-util': {
     'main': src_dir / 'pdnsutil.cc',
+    'export-dynamic': true,
     'files-extra': libpdns_bind_dnssec_schema_gen,
     'deps-extra': [
       dep_modules,
@@ -983,6 +991,7 @@ foreach tool, info: tools
       dependencies: [
         deps,
         libpdns_common,
+        libpdns_uuidutils,
         deps_extra,
       ],
     )
