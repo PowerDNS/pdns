@@ -772,7 +772,7 @@ void DynBlockMaintenance::run()
 
   time_t now = time(nullptr);
   auto purgeInterval = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlocksPurgeInterval;
-  time_t nextExpiredPurge = now + purgeInterval;
+  time_t nextExpiredPurge = now + static_cast<time_t>(purgeInterval);
   time_t nextMetricsCollect = now + static_cast<time_t>(metricsCollectionInterval);
   time_t nextMetricsGeneration = now + metricsGenerationInterval;
 
@@ -820,6 +820,7 @@ void DynBlockMaintenance::run()
       warnlog("Error in the dynamic block maintenance thread: %s", e.what());
     }
     catch (...) {
+      vinfolog("Unhandled error in the dynamic block maintenance thread");
     }
   }
 }
