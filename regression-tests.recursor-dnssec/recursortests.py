@@ -809,7 +809,7 @@ distributor-threads={threads}""".format(confdir=confdir,
         return message
 
     @classmethod
-    def sendTCPQuery(cls, query, timeout=2.0):
+    def sendTCPQuery(cls, query, timeout=2.0, decode=True, fwparams=dict()):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if timeout:
             sock.settimeout(timeout)
@@ -835,7 +835,9 @@ distributor-threads={threads}""".format(confdir=confdir,
 
         message = None
         if data:
-            message = dns.message.from_wire(data)
+            if not decode:
+                return data
+            message = dns.message.from_wire(data, **fwparams)
         return message
 
     @classmethod
