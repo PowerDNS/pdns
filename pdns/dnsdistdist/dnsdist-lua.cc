@@ -720,7 +720,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
                          else if (auto* str = boost::get<std::string>(&var)) {
                            const auto uuid = getUniqueID(*str);
-                           for (auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
+                           for (const auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
                              if (*state->d_config.id == uuid) {
                                server = state;
                              }

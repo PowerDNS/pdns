@@ -184,7 +184,7 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
     }
 
     if (totalWeight > 0) {
-      targetLoad = (currentLoad / totalWeight) * consistentHashBalancingFactor;
+      targetLoad = (currentLoad / static_cast<double>(totalWeight)) * consistentHashBalancingFactor;
     }
   }
 

@@ -296,7 +296,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
   return true;
 }
 
-static void carbonHandler(Carbon::Endpoint endpoint)
+static void carbonHandler(const Carbon::Endpoint& endpoint)
 {
   setThreadName("dnsdist/carbon");
   const auto intervalUSec = endpoint.interval * 1000 * 1000;
@@ -356,7 +356,7 @@ Carbon::Endpoint Carbon::newEndpoint(const std::string& address, std::string our
 
 void Carbon::run(const std::vector<Carbon::Endpoint>& endpoints)
 {
-  for (auto& endpoint : endpoints) {
+  for (const auto& endpoint : endpoints) {
     std::thread newHandler(carbonHandler, endpoint);
     newHandler.detach();
   }

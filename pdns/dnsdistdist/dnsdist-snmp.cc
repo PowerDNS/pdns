@@ -282,7 +282,7 @@ static netsnmp_variable_list* backendStatTable_get_first_data_point(void** loop_
   auto backends = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
   s_servers.clear();
   s_servers.reserve(backends.size());
-  for (const auto& server : backends) {
+  for (auto& server : backends) {
     s_servers.push_back(std::move(server));
   }
 

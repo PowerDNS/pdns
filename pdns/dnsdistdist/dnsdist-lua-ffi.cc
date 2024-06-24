@@ -1161,12 +1161,12 @@ size_t dnsdist_ffi_packetcache_get_domain_list_by_addr(const char* poolName, con
   }
 
   const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
-  auto it = pools.find(poolName);
-  if (it == pools.end()) {
+  auto poolIt = pools.find(poolName);
+  if (poolIt == pools.end()) {
     return 0;
   }
 
-  auto pool = it->second;
+  auto pool = poolIt->second;
   if (!pool->packetCache) {
     return 0;
   }
@@ -1210,12 +1210,12 @@ size_t dnsdist_ffi_packetcache_get_address_list_by_domain(const char* poolName, 
   }
 
   const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
-  auto it = pools.find(poolName);
-  if (it == pools.end()) {
+  auto poolIt = pools.find(poolName);
+  if (poolIt == pools.end()) {
     return 0;
   }
 
-  auto pool = it->second;
+  auto pool = poolIt->second;
   if (!pool->packetCache) {
     return 0;
   }
