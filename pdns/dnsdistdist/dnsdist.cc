@@ -3457,7 +3457,7 @@ int main(int argc, char** argv)
     /* create the default pool no matter what */
     createPoolIfNotExists("");
 
-    for (auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
+    for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
       if (backend->connected) {
         backend->start();
       }

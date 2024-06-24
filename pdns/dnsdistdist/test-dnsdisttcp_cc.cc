@@ -57,10 +57,10 @@ void handleResponseSent(const InternalQueryState& ids, double udiff, const Combo
 
 std::function<ProcessQueryResult(DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend)> s_processQuery;
 
-ProcessQueryResult processQuery(DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   if (s_processQuery) {
-    return s_processQuery(dq, selectedBackend);
+    return s_processQuery(dnsQuestion, selectedBackend);
   }
 
   return ProcessQueryResult::Drop;
@@ -1767,6 +1767,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
   }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 {
   const auto tcpRecvTimeout = dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout;
