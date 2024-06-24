@@ -100,7 +100,7 @@ void setPoolPolicy(const string& poolName, std::shared_ptr<ServerPolicy> policy)
 void addServerToPool(const string& poolName, std::shared_ptr<DownstreamState> server);
 void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamState> server);
 
-const std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName);
+std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName);
 
 std::shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 

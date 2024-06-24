@@ -773,7 +773,7 @@ void DynBlockMaintenance::run()
   time_t now = time(nullptr);
   auto purgeInterval = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlocksPurgeInterval;
   time_t nextExpiredPurge = now + purgeInterval;
-  time_t nextMetricsCollect = now + metricsCollectionInterval;
+  time_t nextMetricsCollect = now + static_cast<time_t>(metricsCollectionInterval);
   time_t nextMetricsGeneration = now + metricsGenerationInterval;
 
   while (true) {
@@ -813,7 +813,7 @@ void DynBlockMaintenance::run()
         purgeExpired(tspec);
 
         now = time(nullptr);
-        nextExpiredPurge = now + purgeInterval;
+        nextExpiredPurge = now + static_cast<time_t>(purgeInterval);
       }
     }
     catch (const std::exception& e) {

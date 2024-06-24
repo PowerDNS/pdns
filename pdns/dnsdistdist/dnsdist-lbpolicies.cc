@@ -256,7 +256,7 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
   return servers.at(candidates.at((counter++) % candidates.size()) - 1).second;
 }
 
-const std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName)
+std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName)
 {
   std::shared_ptr<ServerPool> pool = getPool(poolName);
   return pool->getServers();
@@ -266,9 +266,9 @@ std::shared_ptr<ServerPool> createPoolIfNotExists(const string& poolName)
 {
   {
     const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
-    const auto it = pools.find(poolName);
-    if (it != pools.end()) {
-      return it->second;
+    const auto poolIt = pools.find(poolName);
+    if (poolIt != pools.end()) {
+      return poolIt->second;
     }
   }
 
@@ -323,12 +323,12 @@ void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamStat
 std::shared_ptr<ServerPool> getPool(const std::string& poolName)
 {
   const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
-  auto it = pools.find(poolName);
-  if (it == pools.end()) {
+  auto poolIt = pools.find(poolName);
+  if (poolIt == pools.end()) {
     throw std::out_of_range("No pool named " + poolName);
   }
 
-  return it->second;
+  return poolIt->second;
 }
 
 ServerPolicy::ServerPolicy(const std::string& name_, const std::string& code): d_name(name_), d_perThreadPolicyCode(code), d_isLua(true), d_isFFI(true), d_isPerThread(true)
