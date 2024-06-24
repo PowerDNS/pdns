@@ -1811,6 +1811,7 @@ feature.
         'name' : 'ignore_list_file',
         'section' : 'nod',
         'type' : LType.String,
+        'oldname' : 'new-domain-ignore-list-file',
         'default' : '',
         'help' : 'File with a list of domains (and implicitly all subdomains) which will never be considered a new domain',
         'doc' : '''
@@ -3021,9 +3022,9 @@ a unique DNS response is observed.
         'help' : 'List of domains (and implicitly all subdomains) which will never be considered for UDR',
         'doc' : '''
 This setting is a list of all domains (and implicitly all subdomains)
-that will never be considered for a new unique domain request.
+that will never be considered for new unique domain responses.
 For example, if the domain 'example.com' is in the list, then 'foo.bar.example.com'
-will never be considered for a new unique domain request.
+will never be considered for a new unique domain response.
 ''',
         'versionadded': '5.1.0'
     },
