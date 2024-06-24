@@ -560,7 +560,7 @@ BOOST_AUTO_TEST_CASE(test_lua)
   )foo";
   resetLuaContext();
   g_lua.lock()->writeFunction("setServerPolicyLua", [](const string& name, const ServerPolicy::policyfunc_t& policy) {
-    auto pol = std::make_shared<ServerPolicy>(name, std::move(policy), true);
+    auto pol = std::make_shared<ServerPolicy>(name, policy, true);
     dnsdist::configuration::updateRuntimeConfiguration([&pol](dnsdist::configuration::RuntimeConfiguration& config) {
       config.d_lbPolicy = std::move(pol);
     });

@@ -2486,7 +2486,7 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
       SSetsockopt(socket, IPPROTO_TCP, TCP_FASTOPEN, clientState.fastOpenQueueSize);
 #ifdef TCP_FASTOPEN_KEY
       if (!immutableConfig.d_tcpFastOpenKey.empty()) {
-        auto res = setsockopt(socket, IPPROTO_IP, TCP_FASTOPEN_KEY, immutableConfig.d_tcpFastOpenKey.data(), immutableConfig.d_tcpFastOpenKey.size() * sizeof(immutableConfig.d_tcpFastOpenKey.at(0)));
+        auto res = setsockopt(socket, IPPROTO_IP, TCP_FASTOPEN_KEY, immutableConfig.d_tcpFastOpenKey.data(), immutableConfig.d_tcpFastOpenKey.size() * sizeof(immutableConfig.d_tcpFastOpenKey[0]));
         if (res == -1) {
           throw runtime_error("setsockopt for level IPPROTO_TCP and opname TCP_FASTOPEN_KEY failed: " + stringerror());
         }

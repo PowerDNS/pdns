@@ -376,7 +376,7 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_V4Ports, TestFixture) 
     /* we (again) insert just above 50 qps from several clients the same IPv4 port range, this should update the block which will
        check by looking at the blocked counter */
     {
-      auto block = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(AddressAndPortRange(ComboAddress("192.0.2.1:0"), 32, 16));
+      auto* block = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(AddressAndPortRange(ComboAddress("192.0.2.1:0"), 32, 16));
       BOOST_REQUIRE(block != nullptr);
       BOOST_CHECK_EQUAL(block->second.blocks, 0U);
       block->second.blocks = 42U;
@@ -397,7 +397,7 @@ BOOST_FIXTURE_TEST_CASE(test_DynBlockRulesGroup_QueryRate_V4Ports, TestFixture) 
     BOOST_CHECK_EQUAL(dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(), 1U);
     {
       /* previous address/port should still be blocked */
-      auto block = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(AddressAndPortRange(ComboAddress("192.0.2.1:0"), 32, 16));
+      auto* block = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(AddressAndPortRange(ComboAddress("192.0.2.1:0"), 32, 16));
       BOOST_REQUIRE(block != nullptr);
       BOOST_CHECK_EQUAL(block->second.blocks, 42U);
     }
