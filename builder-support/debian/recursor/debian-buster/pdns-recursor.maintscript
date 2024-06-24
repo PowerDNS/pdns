@@ -1,0 +1,3 @@
+# must support Ubuntu focal, with dpkg 1.19.7
+rm_conffile /etc/powerdns/recursor.lua 5.1~
+
