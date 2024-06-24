@@ -144,7 +144,10 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   });
   luaCtx.registerFunction<std::string (DownstreamState::*)() const>("getName", [](const DownstreamState& state) -> const std::string& { return state.getName(); });
   luaCtx.registerFunction<std::string (DownstreamState::*)() const>("getNameWithAddr", [](const DownstreamState& state) -> const std::string& { return state.getNameWithAddr(); });
-  luaCtx.registerMember("upStatus", &DownstreamState::upStatus);
+  luaCtx.registerMember<bool(DownstreamState::*)>(
+    "upStatus",
+    [](const DownstreamState& state) -> bool { return state.upStatus.load(std::memory_order_relaxed); },
+    [](DownstreamState& state, bool newStatus) { state.upStatus.store(newStatus); });
   luaCtx.registerMember<int(DownstreamState::*)>(
     "weight",
     [](const DownstreamState& state) -> int { return state.d_config.d_weight; },

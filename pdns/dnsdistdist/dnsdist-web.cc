@@ -1078,7 +1078,7 @@ static void addServerToJSON(Json::array& servers, int identifier, const std::sha
     status = "DOWN";
   }
   else {
-    status = (backend->upStatus ? "up" : "down");
+    status = (backend->upStatus.load(std::memory_order_relaxed) ? "up" : "down");
   }
 
   Json::array pools;

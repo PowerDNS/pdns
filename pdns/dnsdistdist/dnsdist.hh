@@ -903,7 +903,7 @@ public:
   uint16_t currentCheckFailures{0};
   std::atomic<bool> hashesComputed{false};
   std::atomic<bool> connected{false};
-  bool upStatus{false};
+  std::atomic<bool> upStatus{false};
 
 private:
   void handleUDPTimeout(IDState& ids);
@@ -942,7 +942,7 @@ public:
     else if (d_config.availability == Availability::Up) {
       return true;
     }
-    return upStatus;
+    return upStatus.load(std::memory_order_relaxed);
   }
 
   void setUp()
@@ -952,8 +952,8 @@ public:
 
   void setUpStatus(bool newStatus)
   {
-    upStatus = newStatus;
-    if (!upStatus) {
+    upStatus.store(newStatus);
+    if (!newStatus) {
       latencyUsec = 0.0;
       latencyUsecTCP = 0.0;
     }
@@ -999,7 +999,7 @@ public:
       status = "DOWN";
     }
     else {
-      status = (upStatus ? "up" : "down");
+      status = (upStatus.load(std::memory_order_relaxed) ? "up" : "down");
     }
     return status;
   }

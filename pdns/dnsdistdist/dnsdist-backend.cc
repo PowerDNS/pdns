@@ -834,7 +834,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
 
     currentCheckFailures++;
 
-    if (upStatus) {
+    if (upStatus.load()) {
       /* we were previously marked as "up" and failed a health-check,
          let's see if this is enough to move to the "down" state or if
          need more failed checks for that */
@@ -853,7 +853,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     }
   }
 
-  if (newState != upStatus) {
+  if (newState != upStatus.load()) {
     /* we are actually moving to a new state */
     if (!IsAnyAddress(d_config.remote)) {
       infolog("Marking downstream %s as '%s'", getNameWithAddr(), newState ? "up" : "down");
