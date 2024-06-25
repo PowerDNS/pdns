@@ -7,6 +7,9 @@ When upgrading several versions, please read **all** notes applying to the upgra
 5.0.6 to 5.1.0 and master
 -------------------------
 
+The recursor.conf configuration file may contain YAML configuration syntax and new installs using our packages from repo.powerdns.com will install a configuration file using YAML syntax.
+Note to third-party package maintainers: please start doing the same.
+
 New settings
 ^^^^^^^^^^^^
 
@@ -17,6 +20,9 @@ New settings
 - The :ref:`setting-system-resolver-interval` setting has been introduced to set the interval of resolve checks done by the system resolver.
 - The :ref:`setting-system-resolver-self-resolve-check` setting has been introduced to disable to discovery of self-resolving configurations.
 - The :ref:`setting-max-chain-length` setting has been introduced to limit the maximum number of queries that can be attached to an outgoing request chain.
+- The :ref:`setting-max-cnames-followed` setting has been introduced to limit the length of CNAME chains followed. Previously this limit was fixed at 10.
+- The :ref:`setting-new-domain-ignore-list-file`, :ref:`setting-unique-response-ignore-list` and  :ref:`setting-unique-response-ignore-list-file` settings have been introduced to filter names reported by the NOD and UDR subsystems.
+
 
 Changed settings
 ^^^^^^^^^^^^^^^^

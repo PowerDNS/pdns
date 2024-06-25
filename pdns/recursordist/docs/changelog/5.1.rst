@@ -4,6 +4,68 @@ Changelogs for 5.1.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.1.0-rc1
+  :released: 25th of June 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14373
+    :tickets: 14362
+
+    Don't send double SOA record in the case of a dns64 CNAME that does not resolve.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14265,14374
+    :tickets: 13935
+
+    Allow recursor.conf file to contain YAML to ease transition to YAML config.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14318
+
+    Add nsName into outgoing protobuf request/response messages.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14359
+    :tickets: 14356
+
+    dns.cc: use pdns::views::UnsignedCharView.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14346
+    :tickets: 13021
+
+    Fix TCP case for policy tags set by gettag(_ffi).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14340
+
+    Fix client remotes count when using proxy protocol.
+
+  .. change::
+    :tags:  Improvements
+    :pullreq: 14312
+
+    Do not add UDR field to outgoingProtobuf answer messages
+
+  .. change::
+    :tags:  Improvements
+    :pullreq: 14275
+
+    Add options for ignoring domains for UDR purposes (Ensar Sarajčić).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14309
+
+    Make max CNAME chain length handled settable, previously fixed at 10.
+
+.. changelog::
   :version: 5.1.0-beta1
   :released: 6th of June 2024
 

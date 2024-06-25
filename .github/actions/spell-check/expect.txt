@@ -391,6 +391,7 @@ elgoog
 endbr
 Enden
 enp
+Ensar
 ent
 envoutput
 epel
