@@ -95,24 +95,26 @@ size_t writen2(int fileDesc, const void *buf, size_t count)
   return count;
 }
 
-size_t readn2(int fd, void* buffer, size_t len)
+size_t readn2(int fileDesc, void* buffer, size_t len)
 {
-  size_t pos=0;
-  ssize_t res;
-  for(;;) {
-    res = read(fd, (char*)buffer + pos, len - pos);
-    if(res == 0)
+  size_t pos = 0;
+
+  for (;;) {
+    auto res = read(fileDesc, static_cast<char *>(buffer) + pos, len - pos); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic): it's the API
+    if (res == 0) {
       throw runtime_error("EOF while reading message");
-    if(res < 0) {
-      if (errno == EAGAIN)
+    }
+    if (res < 0) {
+      if (errno == EAGAIN) {
         throw std::runtime_error("used readn2 on non-blocking socket, got EAGAIN");
-      else
-        unixDie("failed in readn2");
+      }
+      unixDie("failed in readn2");
     }
 
-    pos+=(size_t)res;
-    if(pos == len)
+    pos += static_cast<size_t>(res);
+    if (pos == len) {
       break;
+    }
   }
   return len;
 }
