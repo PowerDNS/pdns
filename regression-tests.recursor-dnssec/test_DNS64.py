@@ -32,9 +32,11 @@ class DNS64RecursorTest(RecursorTest):
 @ 3600 IN SOA {soa}
 www 3600 IN A 192.0.2.42
 www 3600 IN TXT "does exist"
+txt 3600 IN TXT "a and aaaa do not exist"
 aaaa 3600 IN AAAA 2001:db8::1
 cname 3600 IN CNAME cname2.example.dns64.
 cname2 3600 IN CNAME www.example.dns64.
+cname3 3600 IN CNAME txt.example.dns64.
 formerr 3600 IN A 192.0.2.43
 """.format(soa=cls._SOA))
 
@@ -107,6 +109,22 @@ formerr 3600 IN A 192.0.2.43
             for expected in expectedResults:
                 self.assertRRsetInAnswer(res, expected)
 
+    # there is a CNAME from the name to a name that is NODATA for both A and AAAA
+    # so we should get a NODATA with a single SOA record (#14362)
+    def testCNAMEToNoData(self):
+        qname = 'cname3.example.dns64.'
+
+        expectedAnswer = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'CNAME', 'txt.example.dns64.')
+        query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query, 2.0, True, {"one_rr_per_rrset": True}) # we want to detect dups
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertEqual(len(res.answer), 1)
+            self.assertEqual(len(res.authority), 1)
+            self.assertRRsetInAnswer(res, expectedAnswer)
+            self.assertAuthorityHasSOA(res)
+
     # this type (AAAA) does not exist for this name and there is no A record either, we should get a NXDomain
     def testNXD(self):
         qname = 'nxd.example.dns64.'
@@ -116,6 +134,18 @@ formerr 3600 IN A 192.0.2.43
             sender = getattr(self, method)
             res = sender(query)
             self.assertRcodeEqual(res, dns.rcode.NXDOMAIN)
+
+    # this type (AAAA) does not exist for this name and there is no A record either, we should get a NODATA as TXT does exist
+    def testNoData(self):
+        qname = 'txt.example.dns64.'
+
+        query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query, 2.0, True, {"one_rr_per_rrset": True}) # we want to detect dups
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertEqual(len(res.answer), 0)
+            self.assertEqual(len(res.authority), 1)
 
     # there is an AAAA record, we should get it
     def testExistingAAAA(self):
