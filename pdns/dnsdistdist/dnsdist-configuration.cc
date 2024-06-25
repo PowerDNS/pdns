@@ -26,8 +26,8 @@
 namespace dnsdist::configuration
 {
 static GlobalStateHolder<RuntimeConfiguration> s_currentRuntimeConfiguration;
-static Configuration s_configuration;
-static std::atomic<bool> s_configurationDone{false};
+static ImmutableConfiguration s_immutableConfiguration;
+static std::atomic<bool> s_immutableConfigurationDone{false};
 
 const RuntimeConfiguration& getCurrentRuntimeConfiguration()
 {
@@ -40,27 +40,29 @@ void updateRuntimeConfiguration(const std::function<void(RuntimeConfiguration&)>
   s_currentRuntimeConfiguration.modify(mutator);
 }
 
-void updateImmutableConfiguration(const std::function<void(Configuration&)>& mutator)
+void updateImmutableConfiguration(const std::function<void(ImmutableConfiguration&)>& mutator)
 {
-  if (isConfigurationDone()) {
+  if (isImmutableConfigurationDone()) {
     throw std::runtime_error("Trying to update an immutable setting at runtime!");
   }
 
-  mutator(s_configuration);
+  mutator(s_immutableConfiguration);
 }
 
-const Configuration& getImmutableConfiguration()
+const ImmutableConfiguration& getImmutableConfiguration()
 {
-  return s_configuration;
+  return s_immutableConfiguration;
 }
 
-bool isConfigurationDone()
+bool isImmutableConfigurationDone()
 {
-  return s_configurationDone.load();
+  return s_immutableConfigurationDone.load();
 }
 
-void setConfigurationDone()
+void setImmutableConfigurationDone()
 {
-  s_configurationDone.store(true);
+  if (s_immutableConfigurationDone.exchange(true)) {
+    throw std::runtime_error("Trying to seal the runtime-immutable configuration a second time");
+  }
 }
 }

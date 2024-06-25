@@ -3118,7 +3118,7 @@ static void initFrontends(const CommandLineParameters& cmdLine)
     frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "", std::set<int>{}, true));
   }
 
-  dnsdist::configuration::updateImmutableConfiguration([&frontends](dnsdist::configuration::Configuration& config) {
+  dnsdist::configuration::updateImmutableConfiguration([&frontends](dnsdist::configuration::ImmutableConfiguration& config) {
     config.d_frontends = std::move(frontends);
   });
 }
@@ -3279,7 +3279,7 @@ int main(int argc, char** argv)
     }
 #endif
     dnsdist::initRandom();
-    dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::Configuration& config) {
+    dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& config) {
       config.d_hashPerturbation = dnsdist::getRandomValue(0xffffffff);
     });
 
@@ -3364,12 +3364,12 @@ int main(int argc, char** argv)
     }
 
     if (dnsdist::configuration::getImmutableConfiguration().d_maxTCPClientThreads == 0 && tcpBindsCount > 0) {
-      dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& config) {
         config.d_maxTCPClientThreads = static_cast<size_t>(10);
       });
     }
 
-    dnsdist::configuration::setConfigurationDone();
+    dnsdist::configuration::setImmutableConfigurationDone();
 
     {
       const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
