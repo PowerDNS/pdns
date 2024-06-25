@@ -305,7 +305,7 @@ static void LuaThread(const std::string& code)
 
 static bool checkConfigurationTime(const std::string& name)
 {
-  if (!dnsdist::configuration::isConfigurationDone()) {
+  if (!dnsdist::configuration::isImmutableConfigurationDone()) {
     return true;
   }
   g_outputBuffer = name + " cannot be used at runtime!\n";
@@ -444,7 +444,7 @@ static void handleNewServerSourceParameter(boost::optional<newserver_t>& vars, D
         }
 #ifdef SO_BINDTODEVICE
         /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
-        dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::Configuration& currentConfig) {
+        dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& currentConfig) {
           currentConfig.d_capabilitiesToRetain.insert("CAP_NET_RAW");
         });
 #endif
@@ -460,7 +460,7 @@ static void handleNewServerSourceParameter(boost::optional<newserver_t>& vars, D
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
   luaCtx.writeFunction("inClientStartup", [client]() {
-    return client && !dnsdist::configuration::isConfigurationDone();
+    return client && !dnsdist::configuration::isImmutableConfigurationDone();
   });
 
   luaCtx.writeFunction("inConfigCheck", [configCheck]() {
@@ -653,7 +653,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_XSK
                          LuaArray<std::shared_ptr<XskSocket>> luaXskSockets;
                          if (getOptionalValue<LuaArray<std::shared_ptr<XskSocket>>>(vars, "xskSockets", luaXskSockets) > 0 && !luaXskSockets.empty()) {
-                           if (dnsdist::configuration::isConfigurationDone()) {
+                           if (dnsdist::configuration::isImmutableConfigurationDone()) {
                              throw std::runtime_error("Adding a server with xsk at runtime is not supported");
                            }
                            std::vector<std::shared_ptr<XskSocket>> xskSockets;
@@ -700,7 +700,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (ret->connected) {
-                           if (!dnsdist::configuration::isConfigurationDone()) {
+                           if (!dnsdist::configuration::isImmutableConfigurationDone()) {
                              ret->start();
                            }
                          }
@@ -851,52 +851,52 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   struct BooleanImmutableConfigurationItems
   {
     const std::string name;
-    const std::function<void(dnsdist::configuration::Configuration& config, bool newValue)> mutator;
+    const std::function<void(dnsdist::configuration::ImmutableConfiguration& config, bool newValue)> mutator;
   };
   static const std::vector<BooleanImmutableConfigurationItems> booleanImmutableConfigItems{
-    {"setRandomizedOutgoingSockets", [](dnsdist::configuration::Configuration& config, bool newValue) { config.d_randomizeUDPSocketsToBackend = newValue; }},
-    {"setRandomizedIdsOverUDP", [](dnsdist::configuration::Configuration& config, bool newValue) { config.d_randomizeIDsToBackend = newValue; }},
+    {"setRandomizedOutgoingSockets", [](dnsdist::configuration::ImmutableConfiguration& config, bool newValue) { config.d_randomizeUDPSocketsToBackend = newValue; }},
+    {"setRandomizedIdsOverUDP", [](dnsdist::configuration::ImmutableConfiguration& config, bool newValue) { config.d_randomizeIDsToBackend = newValue; }},
   };
   struct UnsignedIntegerImmutableConfigurationItems
   {
     const std::string name;
-    const std::function<void(dnsdist::configuration::Configuration& config, uint64_t value)> mutator;
+    const std::function<void(dnsdist::configuration::ImmutableConfiguration& config, uint64_t value)> mutator;
     const size_t maximumValue{std::numeric_limits<uint64_t>::max()};
   };
   static const std::vector<UnsignedIntegerImmutableConfigurationItems> unsignedIntegerImmutableConfigItems
   {
-    {"setMaxTCPQueuedConnections", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPQueuedConnections = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setMaxTCPClientThreads", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPClientThreads = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setMaxTCPConnectionsPerClient", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxTCPConnectionsPerClient = newValue; }, std::numeric_limits<uint64_t>::max()},
-      {"setTCPInternalPipeBufferSize", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_tcpInternalPipeBufferSize = newValue; }, std::numeric_limits<uint64_t>::max()},
-      {"setMaxCachedTCPConnectionsPerDownstream", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setTCPDownstreamCleanupInterval", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
-      {"setTCPDownstreamMaxIdleTime", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setMaxTCPQueuedConnections", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPQueuedConnections = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setMaxTCPClientThreads", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPClientThreads = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setMaxTCPConnectionsPerClient", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPConnectionsPerClient = newValue; }, std::numeric_limits<uint64_t>::max()},
+      {"setTCPInternalPipeBufferSize", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpInternalPipeBufferSize = newValue; }, std::numeric_limits<uint64_t>::max()},
+      {"setMaxCachedTCPConnectionsPerDownstream", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setTCPDownstreamCleanupInterval", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setTCPDownstreamMaxIdleTime", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-      {"setOutgoingDoHWorkerThreads", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHWorkers = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setMaxIdleDoHConnectionsPerDownstream", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setDoHDownstreamCleanupInterval", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
-      {"setDoHDownstreamMaxIdleTime", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setOutgoingDoHWorkerThreads", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHWorkers = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setMaxIdleDoHConnectionsPerDownstream", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setDoHDownstreamCleanupInterval", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setDoHDownstreamMaxIdleTime", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-      {"setMaxUDPOutstanding", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setWHashedPertubation", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setMaxUDPOutstanding", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, std::numeric_limits<uint16_t>::max()},
+      {"setWHashedPertubation", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()},
 #ifndef DISABLE_RECVMMSG
-      {"setUDPMultipleMessagesVectorSize", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpVectorSize = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setUDPMultipleMessagesVectorSize", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_udpVectorSize = newValue; }, std::numeric_limits<uint32_t>::max()},
 #endif /* DISABLE_RECVMMSG */
-      {"setUDPTimeout", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()},
-      {"setConsoleMaximumConcurrentConnections", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_consoleMaxConcurrentConnections = newValue; }, std::numeric_limits<uint32_t>::max()},
-      {"setRingBuffersLockRetries", [](dnsdist::configuration::Configuration& config, uint64_t newValue) { config.d_ringsNbLockTries = newValue; }, std::numeric_limits<uint64_t>::max()},
+      {"setUDPTimeout", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()},
+      {"setConsoleMaximumConcurrentConnections", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_consoleMaxConcurrentConnections = newValue; }, std::numeric_limits<uint32_t>::max()},
+      {"setRingBuffersLockRetries", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_ringsNbLockTries = newValue; }, std::numeric_limits<uint64_t>::max()},
   };
 
   struct DoubleImmutableConfigurationItems
   {
     const std::string name;
-    const std::function<void(dnsdist::configuration::Configuration& config, double value)> mutator;
+    const std::function<void(dnsdist::configuration::ImmutableConfiguration& config, double value)> mutator;
     const double maximumValue{1.0};
   };
   static const std::vector<DoubleImmutableConfigurationItems> doubleImmutableConfigItems{
-    {"setConsistentHashingBalancingFactor", [](dnsdist::configuration::Configuration& config, double newValue) { config.d_consistentHashBalancingFactor = newValue; }, 1.0},
-    {"setWeightedBalancingFactor", [](dnsdist::configuration::Configuration& config, double newValue) { config.d_weightedBalancingFactor = newValue; }, 1.0},
+    {"setConsistentHashingBalancingFactor", [](dnsdist::configuration::ImmutableConfiguration& config, double newValue) { config.d_consistentHashBalancingFactor = newValue; }, 1.0},
+    {"setWeightedBalancingFactor", [](dnsdist::configuration::ImmutableConfiguration& config, double newValue) { config.d_weightedBalancingFactor = newValue; }, 1.0},
   };
 
   for (const auto& item : booleanConfigItems) {
@@ -917,7 +917,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     luaCtx.writeFunction(item.name, [&item](uint64_t value) {
       checkParameterBound(item.name, value, item.maximumValue);
       try {
-        dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::Configuration& config) {
+        dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::ImmutableConfiguration& config) {
           item.mutator(config, value);
         });
       }
@@ -936,7 +936,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
 
       try {
-        dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::Configuration& config) {
+        dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::ImmutableConfiguration& config) {
           item.mutator(config, value);
         });
       }
@@ -1027,7 +1027,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       frontends.push_back(std::move(tcpCS));
 
       checkAllParametersConsumed("setLocal", vars);
-      dnsdist::configuration::updateImmutableConfiguration([&frontends](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([&frontends](dnsdist::configuration::ImmutableConfiguration& config) {
         config.d_frontends = std::move(frontends);
       });
     }
@@ -1082,7 +1082,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
       }
 #endif /* HAVE_XSK */
-      dnsdist::configuration::updateImmutableConfiguration([&udpCS, &tcpCS](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([&udpCS, &tcpCS](dnsdist::configuration::ImmutableConfiguration& config) {
         config.d_frontends.push_back(std::move(udpCS));
         config.d_frontends.push_back(std::move(tcpCS));
       });
@@ -1277,7 +1277,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                                                     (interval ? *interval : 30),
                                                     (namespace_name ? *namespace_name : "dnsdist"),
                                                     (instance_name ? *instance_name : "main"));
-    if (dnsdist::configuration::isConfigurationDone()) {
+    if (dnsdist::configuration::isImmutableConfigurationDone()) {
       dnsdist::Carbon::run({newEndpoint});
     }
     dnsdist::configuration::updateRuntimeConfiguration([&newEndpoint](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -1304,7 +1304,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       config.d_webServerAddress = local;
     });
 
-    if (dnsdist::configuration::isConfigurationDone()) {
+    if (dnsdist::configuration::isImmutableConfigurationDone()) {
       try {
         auto sock = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
         sock.bind(local, true);
@@ -1409,12 +1409,12 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       config.d_consoleEnabled = true;
     });
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
-    if (dnsdist::configuration::isConfigurationDone() && dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey.empty()) {
+    if (dnsdist::configuration::isImmutableConfigurationDone() && dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey.empty()) {
       warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
     }
 #endif
 
-    if (dnsdist::configuration::isConfigurationDone()) {
+    if (dnsdist::configuration::isImmutableConfigurationDone()) {
       try {
         auto sock = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
         sock.bind(local, true);
@@ -1514,7 +1514,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setKey", [](const std::string& key) {
-    if (!dnsdist::configuration::isConfigurationDone() && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
+    if (!dnsdist::configuration::isImmutableConfigurationDone() && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey.empty()) { // this makes sure the commandline -k key prevails over dnsdist.conf
       return; // but later setKeys() trump the -k value again
     }
 #if !defined(HAVE_LIBSODIUM) && !defined(HAVE_LIBCRYPTO)
@@ -1780,7 +1780,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       auto clientState = std::make_shared<ClientState>(ComboAddress(addr, 443), false, reusePort, tcpFastOpenQueueSize, interface, cpus, enableProxyProtocol);
       clientState->dnscryptCtx = ctx;
 
-      dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
         config.d_frontends.push_back(std::move(clientState));
       });
 
@@ -1797,7 +1797,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
       }
 
-      dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
         config.d_frontends.push_back(std::move(clientState));
       });
     }
@@ -2162,7 +2162,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     setLuaSideEffect();
     try {
-      dnsdist::configuration::updateImmutableConfiguration([capacity, numberOfShards](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([capacity, numberOfShards](dnsdist::configuration::ImmutableConfiguration& config) {
         config.d_ringsCapacity = capacity;
         if (numberOfShards) {
           config.d_ringsNumberOfShards = *numberOfShards;
@@ -2181,7 +2181,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     setLuaSideEffect();
     try {
-      dnsdist::configuration::updateImmutableConfiguration([&options](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([&options](dnsdist::configuration::ImmutableConfiguration& config) {
         if (options.count("lockRetries") > 0) {
           config.d_ringsNbLockTries = boost::get<uint64_t>(options.at("lockRetries"));
         }
@@ -2206,7 +2206,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = "Invalid value passed to setTCPFastOpenKey()!\n";
       return;
     }
-    dnsdist::configuration::updateImmutableConfiguration([&key](dnsdist::configuration::Configuration& config) {
+    dnsdist::configuration::updateImmutableConfiguration([&key](dnsdist::configuration::ImmutableConfiguration& config) {
       config.d_tcpFastOpenKey = std::move(key);
     });
   });
@@ -2579,7 +2579,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConnections;
     }
 
-    dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+    dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
       config.d_frontends.push_back(std::move(clientState));
     });
 #else /* HAVE_DNS_OVER_HTTPS */
@@ -2656,7 +2656,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     clientState->doh3Frontend = frontend;
     clientState->d_additionalAddresses = std::move(additionalAddresses);
 
-    dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+    dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
       config.d_frontends.push_back(std::move(clientState));
     });
 #else
@@ -2733,7 +2733,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     clientState->doqFrontend = std::move(frontend);
     clientState->d_additionalAddresses = std::move(additionalAddresses);
 
-    dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+    dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
       config.d_frontends.push_back(std::move(clientState));
     });
 #else
@@ -3081,7 +3081,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         clientState->d_tcpConcurrentConnectionsLimit = tcpMaxConcurrentConns;
       }
 
-      dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([&clientState](dnsdist::configuration::ImmutableConfiguration& config) {
         config.d_frontends.push_back(std::move(clientState));
       });
     }
@@ -3274,7 +3274,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("addCapabilitiesToRetain", [](LuaTypeOrArrayOf<std::string> caps) {
     try {
-      dnsdist::configuration::updateImmutableConfiguration([&caps](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([&caps](dnsdist::configuration::ImmutableConfiguration& config) {
         if (caps.type() == typeid(std::string)) {
           config.d_capabilitiesToRetain.insert(boost::get<std::string>(caps));
         }
@@ -3300,7 +3300,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     checkParameterBound("setUDPSocketBufferSizes", snd, std::numeric_limits<uint32_t>::max());
 
     try {
-      dnsdist::configuration::updateImmutableConfiguration([snd, recv](dnsdist::configuration::Configuration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([snd, recv](dnsdist::configuration::ImmutableConfiguration& config) {
         config.d_socketUDPSendBuffer = snd;
         config.d_socketUDPRecvBuffer = recv;
       });

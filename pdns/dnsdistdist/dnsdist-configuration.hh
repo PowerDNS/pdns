@@ -44,6 +44,7 @@ using servers_t = std::vector<std::shared_ptr<DownstreamState>>;
 
 namespace dnsdist::configuration
 {
+/* This part of the configuration is compile-time only */
 /* when we add EDNS to a query, we don't want to advertise
    a large buffer size */
 static constexpr size_t s_EdnsUDPPayloadSize{512};
@@ -53,7 +54,7 @@ static_assert(s_defaultPayloadSizeSelfGenAnswers < s_udpIncomingBufferSize, "The
 
 /* this part of the configuration can only be updated at configuration
    time, and is immutable once the configuration phase is over */
-struct Configuration
+struct ImmutableConfiguration
 {
   std::set<std::string> d_capabilitiesToRetain;
   std::vector<uint32_t> d_tcpFastOpenKey;
@@ -167,13 +168,13 @@ struct RuntimeConfiguration
 */
 const RuntimeConfiguration& getCurrentRuntimeConfiguration();
 /* Get the runtime-immutable configuration */
-const Configuration& getImmutableConfiguration();
+const ImmutableConfiguration& getImmutableConfiguration();
 /* Update the runtime-immutable part of the configuration. This function can only be called
    during configuration time (isConfigurationDone() returns false), and will throw otherwise. */
-void updateImmutableConfiguration(const std::function<void(Configuration&)>& mutator);
+void updateImmutableConfiguration(const std::function<void(ImmutableConfiguration&)>& mutator);
 void updateRuntimeConfiguration(const std::function<void(RuntimeConfiguration&)>& mutator);
 /* Whether parsing the configuration is done, meaning the runtime-immutable part of the
    configuration is now sealed */
-bool isConfigurationDone();
-void setConfigurationDone();
+bool isImmutableConfigurationDone();
+void setImmutableConfigurationDone();
 }
