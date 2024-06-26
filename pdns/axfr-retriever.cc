@@ -171,23 +171,31 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
 
 void AXFRRetriever::timeoutReadn(uint16_t bytes, uint16_t timeoutsec)
 {
-  time_t start=time(nullptr);
-  int n=0;
-  int numread;
-  while(n<bytes) {
-    // coverity[store_truncates_time_t]
-    int res=waitForData(d_sock, static_cast<int>(timeoutsec - (time(nullptr) - start)));
-    if(res<0)
-      throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
-    if(!res)
-      throw ResolverException("Timeout while reading data from remote nameserver over TCP");
+  const time_t start = time(nullptr);
+  uint16_t bytesRead = 0;
 
-    numread=recv(d_sock, &d_buf.at(n), bytes-n, 0);
-    if(numread<0)
-      throw ResolverException("Reading data from remote nameserver over TCP: "+stringerror());
-    if(numread==0)
+  while (bytesRead < bytes) {
+    // coverity[store_truncates_time_t]
+    auto elapsed = time(nullptr) - start;
+    if (elapsed > timeoutsec) {
+      throw ResolverException("Timeout while reading data from remote nameserver over TCP");
+    }
+    auto res = waitForData(d_sock, static_cast<int>(timeoutsec - elapsed));
+    if (res < 0) {
+      throw ResolverException("Reading data from remote nameserver over TCP: " + stringerror());
+    }
+    if (res == 0) {
+      throw ResolverException("Timeout while reading data from remote nameserver over TCP");
+    }
+
+    auto received = recv(d_sock, &d_buf.at(bytesRead), bytes - bytesRead, 0);
+    if (received < 0) {
+      throw ResolverException("Reading data from remote nameserver over TCP: " + stringerror());
+    }
+    if (received == 0) {
       throw ResolverException("Remote nameserver closed TCP connection");
-    n+=numread;
+    }
+    bytesRead += static_cast<uint16_t>(received);
   }
 }
 
