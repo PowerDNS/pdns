@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(test_distributor_queue) {
     }
     }, DistributorFatal, [](DistributorFatal) { return true; });
 
-  BOOST_CHECK_GT(queued, 1000);
+  BOOST_CHECK_GT(queued, 1000U);
 
   // now we want to make sure that all queued queries have been processed
   // otherwise LeakSanitizer will report a leak, but we are only willing to

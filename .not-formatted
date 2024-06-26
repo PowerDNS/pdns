@@ -99,8 +99,6 @@
 ./pdns/ednsoptions.cc
 ./pdns/ednsoptions.hh
 ./pdns/ednspadding.cc
-./pdns/fstrm_logger.cc
-./pdns/fstrm_logger.hh
 ./pdns/gettime.cc
 ./pdns/gettime.hh
 ./pdns/histog.hh
@@ -237,8 +235,6 @@
 ./pdns/version.hh
 ./pdns/webserver.cc
 ./pdns/webserver.hh
-./pdns/xpf.cc
-./pdns/xpf.hh
 ./pdns/zone2json.cc
 ./pdns/zone2ldap.cc
 ./pdns/zone2sql.cc
