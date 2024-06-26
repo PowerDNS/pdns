@@ -111,7 +111,7 @@ libpdns_uuidutils = declare_dependency(
     'pdns-uuidutils',
     src_dir / 'uuid-utils.cc',
     src_dir / 'uuid-utils.hh',
-    dependencies: [dep_rt, dep_boost, ],
+    dependencies: [dep_rt, dep_boost],
   )
 )
 
