@@ -729,7 +729,7 @@ void fromLuaToRust(const LuaConfigItems& luaConfig, pdns::rust::settings::rec::D
       }
     }
     if (!dsRecords.empty()) {
-      pdns::rust::settings::rec::TrustAnchor trustAnchor{anchors.first.toString(), dsRecords};
+      pdns::rust::settings::rec::TrustAnchor trustAnchor{anchors.first.toString(), std::move(dsRecords)};
       dnssec.trustanchors.emplace_back(trustAnchor);
     }
   }
