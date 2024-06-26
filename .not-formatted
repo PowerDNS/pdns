@@ -177,7 +177,6 @@
 ./pdns/snmp-agent.cc
 ./pdns/snmp-agent.hh
 ./pdns/speedtest.cc
-./pdns/sstuff.hh
 ./pdns/standalone_fuzz_target_runner.cc
 ./pdns/stat_t.hh
 ./pdns/statbag.cc
