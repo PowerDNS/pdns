@@ -132,7 +132,7 @@ public:
     ++d_generation;
   }
 
-  typedef T value_type;
+  using value_type = T;
 
 private:
   unsigned int getGeneration() const

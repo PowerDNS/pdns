@@ -82,9 +82,11 @@ class ReadWriteLock
 {
 public:
   ReadWriteLock() = default;
+  ~ReadWriteLock() = default;
 
   ReadWriteLock(const ReadWriteLock& rhs) = delete;
   ReadWriteLock(ReadWriteLock&& rhs) = delete;
+  ReadWriteLock& operator=(ReadWriteLock&&) = delete;
   ReadWriteLock& operator=(const ReadWriteLock& rhs) = delete;
 
   std::shared_mutex& getLock()
@@ -109,8 +111,11 @@ public:
   {
   }
 
+  ~ReadLock() = default;
   ReadLock(const ReadLock& rhs) = delete;
   ReadLock& operator=(const ReadLock& rhs) = delete;
+  ReadLock& operator=(ReadLock&&) = delete;
+
   ReadLock(ReadLock&& rhs) noexcept :
     d_lock(std::move(rhs.d_lock))
   {
@@ -138,8 +143,11 @@ public:
   {
   }
 
+  ~WriteLock() = default;
   WriteLock(const WriteLock& rhs) = delete;
   WriteLock& operator=(const WriteLock& rhs) = delete;
+  WriteLock& operator=(WriteLock&&) = delete;
+
   WriteLock(WriteLock&& rhs) noexcept :
     d_lock(std::move(rhs.d_lock))
   {
@@ -167,10 +175,13 @@ public:
   {
   }
 
+  ~TryReadLock() = default;
   TryReadLock(const TryReadLock& rhs) = delete;
+  TryReadLock(TryReadLock&&) = delete;
   TryReadLock& operator=(const TryReadLock& rhs) = delete;
+  TryReadLock& operator=(TryReadLock&&) = delete;
 
-  bool gotIt() const
+  [[nodiscard]] bool gotIt() const
   {
     return d_lock.owns_lock();
   }
@@ -197,10 +208,13 @@ public:
   {
   }
 
+  ~TryWriteLock() = default;
   TryWriteLock(const TryWriteLock& rhs) = delete;
+  TryWriteLock(TryWriteLock&&) = delete;
   TryWriteLock& operator=(const TryWriteLock& rhs) = delete;
+  TryWriteLock& operator=(TryWriteLock&&) = delete;
 
-  bool gotIt() const
+  [[nodiscard]] bool gotIt() const
   {
     return d_lock.owns_lock();
   }
@@ -268,7 +282,7 @@ public:
     return d_lock.owns_lock();
   }
 
-  bool owns_lock() const noexcept
+  [[nodiscard]] bool owns_lock() const noexcept
   {
     return d_lock.owns_lock();
   }
@@ -373,7 +387,7 @@ public:
     return d_lock.owns_lock();
   }
 
-  bool owns_lock() const noexcept
+  [[nodiscard]] bool owns_lock() const noexcept
   {
     return d_lock.owns_lock();
   }
@@ -437,7 +451,7 @@ public:
     return d_lock.owns_lock();
   }
 
-  bool owns_lock() const noexcept
+  [[nodiscard]] bool owns_lock() const noexcept
   {
     return d_lock.owns_lock();
   }
