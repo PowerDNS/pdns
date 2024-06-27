@@ -22,6 +22,7 @@ const bool TCPIOHandler::s_disableConnectForUnitTests = false;
 
 #include "libssl.hh"
 
+dnsdist_tickets_key_added_hook TLSCtx::s_ticketsKeyAddedHook{nullptr};
 
 class OpenSSLFrontendContext
 {
@@ -811,11 +812,6 @@ public:
     if (d_ticketsKeyRotationDelay > 0) {
       d_ticketsKeyNextRotation = now + d_ticketsKeyRotationDelay;
     }
-  }
-
-  void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook) override
-  {
-    d_feContext->d_ticketKeys.setTicketsKeyAddedHook(hook);
   }
 
   void loadTicketsKeys(const std::string& keyFile) final
@@ -1743,18 +1739,11 @@ public:
     return connection;
   }
 
-  void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook) override
-  {
-    d_ticketsKeyAddedHook = hook;
-  }
-
-  void rotateTicketsKey(time_t now) override
+  void addTicketsKey(time_t now, std::shared_ptr<GnuTLSTicketsKey>&& newKey)
   {
     if (!d_enableTickets) {
       return;
     }
-
-    auto newKey = std::make_shared<GnuTLSTicketsKey>();
 
     {
       *(d_ticketsKey.write_lock()) = std::move(newKey);
@@ -1764,13 +1753,21 @@ public:
       d_ticketsKeyNextRotation = now + d_ticketsKeyRotationDelay;
     }
 
-    if (d_ticketsKeyAddedHook) {
+    if (TLSCtx::hasTicketsKeyAddedHook()) {
       auto ticketsKey = *(d_ticketsKey.read_lock());
       auto content = ticketsKey->content();
-      d_ticketsKeyAddedHook(content.c_str(), content.size());
+      TLSCtx::getTicketsKeyAddedHook()(content);
     }
   }
+  void rotateTicketsKey(time_t now) override
+  {
+    if (!d_enableTickets) {
+      return;
+    }
 
+    auto newKey = std::make_shared<GnuTLSTicketsKey>();
+    addTicketsKey(now, std::move(newKey));
+  }
   void loadTicketsKeys(const std::string& file) final
   {
     if (!d_enableTickets) {
@@ -1778,13 +1775,7 @@ public:
     }
 
     auto newKey = std::make_shared<GnuTLSTicketsKey>(file);
-    {
-      *(d_ticketsKey.write_lock()) = std::move(newKey);
-    }
-
-    if (d_ticketsKeyRotationDelay > 0) {
-      d_ticketsKeyNextRotation = time(nullptr) + d_ticketsKeyRotationDelay;
-    }
+    addTicketsKey(time(nullptr), std::move(newKey));
   }
 
   size_t getTicketsKeysCount() override
@@ -1816,7 +1807,6 @@ private:
   SharedLockGuarded<std::shared_ptr<GnuTLSTicketsKey>> d_ticketsKey{nullptr};
   bool d_enableTickets{true};
   bool d_validateCerts{true};
-  dnsdist_tickets_key_added_hook d_ticketsKeyAddedHook;
 };
 
 #endif /* HAVE_GNUTLS */

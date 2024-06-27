@@ -2173,6 +2173,17 @@ Other functions
   Code is supplied as a string, not as a function object.
   Note that this function does nothing in 'client' or 'config-check' modes.
 
+.. function:: setTicketsKeyAddedHook(callback)
+
+  .. versionadded:: 1.9.0
+
+  Set a Lua function that will be called everytime a new tickets key is added. The function receives:
+
+  * the key content as a string
+  * the keylen as an integer
+
+  See :doc:`../advanced/tls-sessions-management` for more information.
+
 .. function:: submitToMainThread(cmd, dict)
 
   .. versionadded:: 1.8.0
@@ -2322,17 +2333,6 @@ DOHFrontend
 
      Replace the current TLS tickets key by a new random one.
 
-  .. method:: DOHFrontend:setTicketsKeyAddedHook(callback)
-
-     .. versionadded:: 1.9.0
-
-    Set a Lua function that will be called everytime a new tickets key is added. The function receives:
-
-    * the key content as a string
-    * the keylen as an integer
-
-    See :doc:`../advanced/tls-sessions-management` for more information.
-
   .. method:: DOHFrontend:setResponsesMap(rules)
 
      Set a list of HTTP response rules allowing to intercept HTTP queries very early, before the DNS payload has been processed, and send custom responses including error pages, redirects and static content.
@@ -2475,17 +2475,6 @@ TLSContext
 
      Replace the current TLS tickets key by a new random one.
 
-  .. method:: TLSContext:setTicketsKeyAddedHook(callback)
-
-     .. versionadded:: 1.9.0
-
-    Set a Lua function that will be called everytime a new tickets key is added. The function receives:
-
-    * the key content as a string
-    * the keylen as an integer
-
-    See :doc:`../advanced/tls-sessions-management` for more information.
-
 TLSFrontend
 ~~~~~~~~~~~
 
@@ -2526,17 +2515,6 @@ TLSFrontend
   .. versionadded:: 1.6.0
 
      Replace the current TLS tickets key by a new random one.
-
-  .. method:: TLSFrontend:setTicketsKeyAddedHook(callback)
-
-     .. versionadded:: 1.9.0
-
-    Set a Lua function that will be called everytime a new tickets key is added. The function receives:
-
-    * the key content as a string
-    * the keylen as an integer
-
-    See :doc:`../advanced/tls-sessions-management` for more information.
 
 EDNS on Self-generated answers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

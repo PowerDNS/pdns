@@ -42,6 +42,7 @@
 
 #undef CERT
 #include "misc.hh"
+#include "tcpiohandler.hh"
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
@@ -631,16 +632,11 @@ OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing() = default;
 void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& newKey)
 {
   d_ticketKeys.write_lock()->push_front(std::move(newKey));
-  if (d_ticketsKeyAddedHook) {
+  if (TLSCtx::hasTicketsKeyAddedHook()) {
     auto key = d_ticketKeys.read_lock()->front();
     auto keyContent = key->content();
-    d_ticketsKeyAddedHook(keyContent.c_str(), keyContent.size());
+    TLSCtx::getTicketsKeyAddedHook()(keyContent);
   }
-}
-
-void OpenSSLTLSTicketKeysRing::setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook)
-{
-  d_ticketsKeyAddedHook = hook;
 }
 
 std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getEncryptionKey()
