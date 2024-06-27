@@ -1708,7 +1708,7 @@ public:
 
     uint16_t port = d_addr.getPort();
     if (d_portMask < 16) {
-      uint16_t mask = ~(0xFFFF >> d_portMask);
+      auto mask = static_cast<uint16_t>(~(0xFFFF >> d_portMask));
       port = port & mask;
     }
 
