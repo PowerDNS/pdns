@@ -547,7 +547,7 @@ class TestTLSTicketsKeyAddedCallback(DNSDistTest):
         """
         LuaThread: Test the lua newThread interface
         """
-        self.sendConsoleCommand('getTLSFrontend(0):setTicketsKeyAddedHook(keyAddedCallback)');
+        self.sendConsoleCommand('setTicketsKeyAddedHook(keyAddedCallback)');
         called = self.sendConsoleCommand('callbackCalled')
         self.assertEqual(int(called), 0)
         self.sendConsoleCommand("getTLSFrontend(0):rotateTicketsKey()")
