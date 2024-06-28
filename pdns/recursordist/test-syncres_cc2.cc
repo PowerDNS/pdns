@@ -410,7 +410,7 @@ BOOST_AUTO_TEST_CASE(test_throttled_server)
 
   /* mark ns as down */
   time_t now = sr->getNow().tv_sec;
-  SyncRes::doThrottle(now, ns, SyncRes::s_serverdownthrottletime, 10000);
+  SyncRes::doThrottle(now, ns, SyncRes::s_serverdownthrottletime, 10000, SyncRes::ThrottleReason::Timeout);
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
@@ -432,7 +432,7 @@ BOOST_AUTO_TEST_CASE(test_throttled_server_count)
   const size_t blocks = 10;
   /* mark ns as down for 'blocks' queries */
   time_t now = sr->getNow().tv_sec;
-  SyncRes::doThrottle(now, ns, SyncRes::s_serverdownthrottletime, blocks);
+  SyncRes::doThrottle(now, ns, SyncRes::s_serverdownthrottletime, blocks, SyncRes::ThrottleReason::Timeout);
 
   for (size_t idx = 0; idx < blocks; idx++) {
     BOOST_CHECK(SyncRes::isThrottled(now, ns));
@@ -454,7 +454,7 @@ BOOST_AUTO_TEST_CASE(test_throttled_server_time)
   const size_t seconds = 1;
   /* mark ns as down for 'seconds' seconds */
   time_t now = sr->getNow().tv_sec;
-  SyncRes::doThrottle(now, ns, seconds, 10000);
+  SyncRes::doThrottle(now, ns, seconds, 10000, SyncRes::ThrottleReason::Timeout);
 
   BOOST_CHECK(SyncRes::isThrottled(now, ns));
 
