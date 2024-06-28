@@ -484,6 +484,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   static const std::set<std::string> metricBlacklist = {"special-memory-usage", "latency-count", "latency-sum"};
   {
     auto entries = dnsdist::metrics::g_stats.entries.read_lock();
+    std::unordered_set<std::string> helpAndTypeSent;
     for (const auto& entry : *entries) {
       const auto& metricName = entry.d_name;
 
@@ -515,8 +516,11 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       // for these we have the help and types encoded in the sources
       // but we need to be careful about labels in custom metrics
       std::string helpName = prometheusMetricName.substr(0, prometheusMetricName.find('{'));
-      output << "# HELP " << helpName << " " << metricDetails.description << "\n";
-      output << "# TYPE " << helpName << " " << prometheusTypeName << "\n";
+      if (helpAndTypeSent.count(helpName) == 0) {
+        helpAndTypeSent.insert(helpName);
+        output << "# HELP " << helpName << " " << metricDetails.description << "\n";
+        output << "# TYPE " << helpName << " " << prometheusTypeName << "\n";
+      }
       output << prometheusMetricName << " ";
 
       if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
