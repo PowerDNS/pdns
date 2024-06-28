@@ -45,6 +45,7 @@ GlobalStateHolder<servers_t> g_dstates;
 QueryCount g_qcount;
 
 const bool TCPIOHandler::s_disableConnectForUnitTests = true;
+dnsdist_tickets_key_added_hook TLSCtx::s_ticketsKeyAddedHook{nullptr};
 
 bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
 {

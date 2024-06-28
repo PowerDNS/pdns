@@ -988,10 +988,11 @@ public:
       throw;
     }
   }
-  std::string content() const
+  [[nodiscard]] std::string content() const
   {
     std::string result{};
     if (d_key.data != nullptr && d_key.size > 0) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       result.append(reinterpret_cast<const char*>(d_key.data), d_key.size);
     }
     return result;
