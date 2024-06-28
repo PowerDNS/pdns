@@ -25,69 +25,73 @@
 
 #include "lock.hh"
 
-/** This is sort of a light-weight RCU idea. 
+/** This is sort of a light-weight RCU idea.
     Suitable for when you frequently consult some "readonly" state, which infrequently
-    gets changed. One way of dealing with this is fully locking access to the state, but 
+    gets changed. One way of dealing with this is fully locking access to the state, but
     this is rather wasteful.
 
-    Instead, in the code below, the frequent users of the state get a "readonly" copy of it, 
-    which they can consult.  On access, we atomically compare if the local copy is still current 
+    Instead, in the code below, the frequent users of the state get a "readonly" copy of it,
+    which they can consult.  On access, we atomically compare if the local copy is still current
     with the global one.  If it isn't we do the lock thing, and create a new local copy.
 
-    Meanwhile, to upgrade the global state, methods are offered that do appropriate locking 
+    Meanwhile, to upgrade the global state, methods are offered that do appropriate locking
     and upgrade the 'generation' counter, signaling to the local copies that they need to be
     refreshed on the next access.
 
     Two ways to change the global copy are available:
         getCopy(), which delivers a deep copy of the current state, followed by setState()
-	modify(), which accepts a (lambda)function that modifies the state
+        modify(), which accepts a (lambda)function that modifies the state
 
-    NOTE: The actual destruction of the 'old' state happens when the last local state 
+    NOTE: The actual destruction of the 'old' state happens when the last local state
     relinquishes its access to the state.
 
     "read-only"
-    Sometimes, a 'state' can contain parts that can safely be modified by multiple users, for 
+    Sometimes, a 'state' can contain parts that can safely be modified by multiple users, for
     example, atomic counters. In such cases, it may be useful to explicitly declare such counters
     as mutable.  */
 
-template<typename T> class GlobalStateHolder;
+template <typename T>
+class GlobalStateHolder;
 
-template<typename T>
+template <typename T>
 class LocalStateHolder
 {
 public:
-  explicit LocalStateHolder(GlobalStateHolder<T>* source) : d_source(source)
+  explicit LocalStateHolder(GlobalStateHolder<T>* source) :
+    d_source(source)
   {}
 
-  const T* operator->()  // fast const-only access, but see "read-only" above
+  const T* operator->() // fast const-only access, but see "read-only" above
   {
-    if(d_source->getGeneration() != d_generation) {
-      d_source->getState(&d_state, & d_generation);
+    if (d_source->getGeneration() != d_generation) {
+      d_source->getState(&d_state, &d_generation);
     }
 
     return d_state.get();
   }
-  const T& operator*()  // fast const-only access, but see "read-only" above
+  const T& operator*() // fast const-only access, but see "read-only" above
   {
     return *operator->();
   }
 
   void reset()
   {
-    d_generation=0;
+    d_generation = 0;
     d_state.reset();
   }
+
 private:
   std::shared_ptr<T> d_state;
   unsigned int d_generation{0};
   const GlobalStateHolder<T>* d_source;
 };
 
-template<typename T>
+template <typename T>
 class GlobalStateHolder
 {
 public:
-  GlobalStateHolder() : d_state(std::make_shared<T>())
+  GlobalStateHolder() :
+    d_state(std::make_shared<T>())
   {}
   LocalStateHolder<T> getLocal()
   {
@@ -112,14 +116,15 @@ public:
     }
   }
 
-  T getCopy() const  //!< Safely & slowly get a copy of the global state
+  T getCopy() const //!< Safely & slowly get a copy of the global state
   {
     return *(*(d_state.lock()));
   }
-  
+
   //! Safely & slowly modify the global state
-  template<typename F>
-  void modify(F act) {
+  template <typename F>
+  void modify(F act)
+  {
     auto state = d_state.lock();
     auto newState = *(*state); // and yes, these three steps are necessary, can't ever modify state in place, even when locked!
     act(newState);
@@ -127,7 +132,8 @@ public:
     ++d_generation;
   }
 
-  typedef T value_type;
+  using value_type = T;
+
 private:
   unsigned int getGeneration() const
   {

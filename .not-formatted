@@ -120,7 +120,6 @@
 ./pdns/kvresp.cc
 ./pdns/libssl.cc
 ./pdns/libssl.hh
-./pdns/lock.hh
 ./pdns/lua-auth4.cc
 ./pdns/lua-auth4.hh
 ./pdns/lua-base4.cc
@@ -170,7 +169,6 @@
 ./pdns/secpoll.cc
 ./pdns/secpoll.hh
 ./pdns/serialtweaker.cc
-./pdns/sholder.hh
 ./pdns/signingpipe.cc
 ./pdns/signingpipe.hh
 ./pdns/sillyrecords.cc
