@@ -1817,7 +1817,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       }
     }
     if(doSigs)
-      addRRSigs(d_dk, B, authSet, r->getRRS());
+      addRRSigs(d_dk, B, authSet, r->getRRS(), &p);
 
     if(PC.enabled() && !noCache && p.couldBeCached())
       PC.insert(p, *r, r->getMinTTL()); // in the packet cache
