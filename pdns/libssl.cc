@@ -747,9 +747,11 @@ std::string OpenSSLTLSTicketKey::content() const
 {
   std::string result{};
   result.reserve(TLS_TICKETS_KEY_NAME_SIZE + TLS_TICKETS_CIPHER_KEY_SIZE + TLS_TICKETS_MAC_KEY_SIZE);
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
   result.append(reinterpret_cast<const char*>(d_name), TLS_TICKETS_KEY_NAME_SIZE);
   result.append(reinterpret_cast<const char*>(d_cipherKey), TLS_TICKETS_CIPHER_KEY_SIZE);
   result.append(reinterpret_cast<const char*>(d_hmacKey), TLS_TICKETS_MAC_KEY_SIZE);
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
   return result;
 }
