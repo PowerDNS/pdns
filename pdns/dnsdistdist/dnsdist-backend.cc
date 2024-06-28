@@ -803,7 +803,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     currentCheckFailures = 0;
     consecutiveSuccessfulChecks++;
 
-    if (!upStatus) {
+    if (!upStatus.load(std::memory_order_relaxed)) {
       /* we were previously marked as "down" and had a successful health-check,
          let's see if this is enough to move to the "up" state or if we need
          more successful health-checks for that */
@@ -834,7 +834,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
 
     currentCheckFailures++;
 
-    if (upStatus.load()) {
+    if (upStatus.load(std::memory_order_relaxed)) {
       /* we were previously marked as "up" and failed a health-check,
          let's see if this is enough to move to the "down" state or if
          need more failed checks for that */
@@ -853,7 +853,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     }
   }
 
-  if (newState != upStatus.load()) {
+  if (newState != upStatus.load(std::memory_order_relaxed)) {
     /* we are actually moving to a new state */
     if (!IsAnyAddress(d_config.remote)) {
       infolog("Marking downstream %s as '%s'", getNameWithAddr(), newState ? "up" : "down");
