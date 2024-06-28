@@ -245,26 +245,33 @@ public:
 
 static LockGuarded<nsspeeds_t> s_nsSpeeds;
 
-template <class Thing>
-class Throttle : public boost::noncopyable
+class Throttle
 {
 public:
+  Throttle() = default;
+  ~Throttle() = default;
+  Throttle(Throttle&&) = delete;
+  Throttle& operator=(const Throttle&) = default;
+  Throttle& operator=(Throttle&&) = delete;
+  Throttle(const Throttle&) = delete;
+
+  using Key = std::tuple<ComboAddress, DNSName, QType>;
   struct entry_t
   {
-    entry_t(const Thing& thing_, time_t ttd_, unsigned int count_) :
-      thing(thing_), ttd(ttd_), count(count_)
+    entry_t(Key  thing_, time_t ttd_, unsigned int count_) :
+      thing(std::move(thing_)), ttd(ttd_), count(count_)
     {
     }
-    Thing thing;
+    Key thing;
     time_t ttd;
     mutable unsigned int count;
   };
   using cont_t = multi_index_container<entry_t,
                                        indexed_by<
-                                         ordered_unique<tag<Thing>, member<entry_t, Thing, &entry_t::thing>>,
+                                         ordered_unique<tag<Key>, member<entry_t, Key, &entry_t::thing>>,
                                          ordered_non_unique<tag<time_t>, member<entry_t, time_t, &entry_t::ttd>>>>;
 
-  bool shouldThrottle(time_t now, const Thing& arg)
+  bool shouldThrottle(time_t now, const Key& arg)
   {
     auto iter = d_cont.find(arg);
     if (iter == d_cont.end()) {
@@ -279,7 +286,7 @@ public:
     return true; // still listed, still blocked
   }
 
-  void throttle(time_t now, const Thing& arg, time_t ttl, unsigned int count)
+  void throttle(time_t now, const Key& arg, time_t ttl, unsigned int count)
   {
     auto iter = d_cont.find(arg);
     time_t ttd = now + ttl;
@@ -289,7 +296,7 @@ public:
     else if (ttd > iter->ttd || count > iter->count) {
       ttd = std::max(iter->ttd, ttd);
       count = std::max(iter->count, count);
-      auto& ind = d_cont.template get<Thing>();
+      auto& ind = d_cont.template get<Key>();
       ind.modify(iter, [ttd, count](entry_t& entry) { entry.ttd = ttd; entry.count = count; });
     }
   }
@@ -309,7 +316,7 @@ public:
     d_cont.clear();
   }
 
-  void clear(const Thing& thing)
+  void clear(const Key& thing)
   {
     d_cont.erase(thing);
   }
@@ -323,7 +330,7 @@ private:
   cont_t d_cont;
 };
 
-static LockGuarded<Throttle<std::tuple<ComboAddress, DNSName, QType>>> s_throttle;
+static LockGuarded<Throttle> s_throttle;
 
 struct SavedParentEntry
 {
