@@ -445,6 +445,9 @@ static void fillZone(UeberBackend& backend, const DNSName& zonename, HttpRespons
     vector<DNSResourceRecord> records;
     vector<Comment> comments;
 
+    QType qType = QType::ANY;
+    DNSName qName;
+
     // load all records + sort
     {
       DNSResourceRecord resourceRecord;
@@ -452,14 +455,11 @@ static void fillZone(UeberBackend& backend, const DNSName& zonename, HttpRespons
         domainInfo.backend->list(zonename, static_cast<int>(domainInfo.id), true); // incl. disabled
       }
       else {
-        QType qType;
-        if (req->getvars.count("rrset_type") == 0) {
-          qType = QType::ANY;
-        }
-        else {
+        qName = DNSName(req->getvars["rrset_name"]);
+        if (req->getvars.count("rrset_type") != 0) {
           qType = req->getvars["rrset_type"];
         }
-        domainInfo.backend->lookup(qType, DNSName(req->getvars["rrset_name"]), static_cast<int>(domainInfo.id));
+        domainInfo.backend->lookup(qType, qName, static_cast<int>(domainInfo.id));
       }
       while (domainInfo.backend->get(resourceRecord)) {
         if (resourceRecord.qtype.getCode() == 0) {
@@ -483,7 +483,9 @@ static void fillZone(UeberBackend& backend, const DNSName& zonename, HttpRespons
       Comment comment;
       domainInfo.backend->listComments(domainInfo.id);
       while (domainInfo.backend->getComment(comment)) {
-        comments.push_back(comment);
+        if ((qName.empty() || comment.qname == qName) && (qType == QType::ANY || comment.qtype == qType)) {
+          comments.push_back(comment);
+        }
       }
       sort(comments.begin(), comments.end(), [](const Comment& rrA, const Comment& rrB) {
         /* if you ever want to update this comparison function,
