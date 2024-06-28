@@ -516,7 +516,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       // for these we have the help and types encoded in the sources
       // but we need to be careful about labels in custom metrics
       std::string helpName = prometheusMetricName.substr(0, prometheusMetricName.find('{'));
-      if (!helpAndTypeSent.count(helpName)) {
+      if (helpAndTypeSent.count(helpName) == 0) {
         helpAndTypeSent.insert(helpName);
         output << "# HELP " << helpName << " " << metricDetails.description << "\n";
         output << "# TYPE " << helpName << " " << prometheusTypeName << "\n";
