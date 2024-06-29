@@ -259,7 +259,7 @@ public:
   void getCertificateResponse(time_t now, PacketBuffer& response) const;
   int encryptResponse(PacketBuffer& response, size_t maxResponseSize, bool tcp);
 
-  static const size_t s_minUDPLength = 256;
+  static constexpr size_t s_minUDPLength = 256;
 
 private:
   static void fillServerNonce(DNSCryptNonceType& nonce);

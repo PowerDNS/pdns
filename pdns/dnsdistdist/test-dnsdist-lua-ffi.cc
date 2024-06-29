@@ -28,12 +28,14 @@
 #include <boost/test/unit_test.hpp>
 
 #include "dnsdist-lua-ffi.hh"
+#include "dnsdist-cache.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-web.hh"
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 
-bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
+bool dnsdist::webserver::addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
 {
   return true;
 }
@@ -236,7 +238,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
   }
 
   {
-    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_prefix_length(&lightDQ), g_ECSSourcePrefixV4);
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_prefix_length(&lightDQ), dnsdist::configuration::getCurrentRuntimeConfiguration().d_ECSSourcePrefixV4);
     dnsdist_ffi_dnsquestion_set_ecs_prefix_length(&lightDQ, 65535);
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_prefix_length(&lightDQ), 65535U);
   }
@@ -250,14 +252,11 @@ BOOST_AUTO_TEST_CASE(test_Query)
 
   {
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_trailing_data(&lightDQ, nullptr), 0U);
-#if 0
-    // DNSQuestion::setTrailingData() and DNSQuestion::getTrailingData() are currently stubs in the test runner
     std::string garbage("thisissomegarbagetrailingdata");
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_set_trailing_data(&lightDQ, garbage.data(), garbage.size()), true);
     const char* buffer = nullptr;
     BOOST_REQUIRE_EQUAL(dnsdist_ffi_dnsquestion_get_trailing_data(&lightDQ, &buffer), garbage.size());
     BOOST_CHECK_EQUAL(garbage, std::string(buffer));
-#endif
   }
 
   {
@@ -474,10 +473,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
   testPool->packetCache = packetCache;
   std::string poolWithNoCacheName("test-pool-without-cache");
   auto testPoolWithNoCache = std::make_shared<ServerPool>();
-  auto localPools = g_pools.getCopy();
-  localPools.emplace(poolName, testPool);
-  localPools.emplace(poolWithNoCacheName, testPoolWithNoCache);
-  g_pools.setState(localPools);
+  dnsdist::configuration::updateRuntimeConfiguration([&poolName, &testPool, &poolWithNoCacheName, &testPoolWithNoCache](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_pools.emplace(poolName, testPool);
+    config.d_pools.emplace(poolWithNoCacheName, testPoolWithNoCache);
+  });
 
   {
     dnsdist_ffi_domain_list_t* list = nullptr;
@@ -750,7 +749,7 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
   gettime(&now);
 
   g_rings.reset();
-  g_rings.init();
+  g_rings.init(10000, 10);
   BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
 
   g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);

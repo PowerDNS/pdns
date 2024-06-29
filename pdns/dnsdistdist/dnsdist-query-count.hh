@@ -19,21 +19,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
 #pragma once
 
-#include "snmp-agent.hh"
+#include <functional>
+#include <unordered_map>
+#include <string>
+#include <tuple>
 
-class DNSDistSNMPAgent;
+#include "lock.hh"
 
-#include "dnsdist.hh"
+struct DNSQuestion;
 
-class DNSDistSNMPAgent : public SNMPAgent
+namespace dnsdist::QueryCount
 {
-public:
-  DNSDistSNMPAgent(const std::string& name, const std::string& daemonSocket);
-  bool sendBackendStatusChangeTrap(const DownstreamState&);
-  bool sendCustomTrap(const std::string& reason);
-  bool sendDNSTrap(const DNSQuestion&, const std::string& reason = "");
+struct Configuration
+{
+  using Filter = std::function<std::tuple<bool, std::string>(const DNSQuestion* dq)>;
+  Configuration() = default;
+  Filter d_filter;
+  bool d_enabled{false};
 };
 
-extern std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent;
+using Records = std::unordered_map<std::string, unsigned int>;
+extern SharedLockGuarded<Records> g_queryCountRecords;
+}

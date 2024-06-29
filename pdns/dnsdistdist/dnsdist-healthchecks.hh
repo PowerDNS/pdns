@@ -25,7 +25,5 @@
 #include "mplexer.hh"
 #include "sstuff.hh"
 
-extern bool g_verboseHealthChecks;
-
 bool queueHealthCheck(std::unique_ptr<FDMultiplexer>& mplexer, const std::shared_ptr<DownstreamState>& downstream, bool initial = false);
 void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial = false);

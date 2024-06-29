@@ -24,21 +24,17 @@
 
 #include "dnsdist-rings.hh"
 
-void Rings::setCapacity(size_t newCapacity, size_t numberOfShards)
-{
-  if (d_initialized) {
-    throw std::runtime_error("Rings::setCapacity() should not be called once the rings have been initialized");
-  }
-  d_capacity = newCapacity;
-  d_numberOfShards = numberOfShards;
-}
-
-void Rings::init()
+void Rings::init(size_t capacity, size_t numberOfShards, size_t nbLockRetries, bool recordQueries, bool recordResponses)
 {
   if (d_initialized.exchange(true)) {
     throw std::runtime_error("Rings::init() should only be called once");
   }
 
+  d_capacity = capacity;
+  d_numberOfShards = numberOfShards;
+  d_nbLockTries = nbLockRetries;
+  d_recordQueries = recordQueries;
+  d_recordResponses = recordResponses;
   if (d_numberOfShards <= 1) {
     d_nbLockTries = 0;
   }
@@ -59,26 +55,6 @@ void Rings::init()
   /* we just recreated the shards so they are now empty */
   d_nbQueryEntries = 0;
   d_nbResponseEntries = 0;
-}
-
-void Rings::setNumberOfLockRetries(size_t retries)
-{
-  if (d_numberOfShards <= 1) {
-    d_nbLockTries = 0;
-  }
-  else {
-    d_nbLockTries = retries;
-  }
-}
-
-void Rings::setRecordQueries(bool record)
-{
-  d_recordQueries = record;
-}
-
-void Rings::setRecordResponses(bool record)
-{
-  d_recordResponses = record;
 }
 
 size_t Rings::numDistinctRequestors()

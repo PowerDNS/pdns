@@ -28,7 +28,7 @@
 
 #ifdef HAVE_LIBEDIT
 #if defined(__OpenBSD__) || defined(__NetBSD__)
-// If this is not undeffed, __attribute__ wil be redefined by /usr/include/readline/rlstdc.h
+// If this is not undeffed, __attribute__ will be redefined by /usr/include/readline/rlstdc.h
 #undef __STRICT_ANSI__
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -46,12 +46,7 @@
 #include "dnsdist-crypto.hh"
 #include "threadname.hh"
 
-GlobalStateHolder<NetmaskGroup> g_consoleACL;
-vector<pair<struct timeval, string>> g_confDelta;
-std::string g_consoleKey;
-bool g_logConsoleConnections{true};
-bool g_consoleEnabled{false};
-uint32_t g_consoleOutputMsgMaxSize{10000000};
+static LockGuarded<std::vector<pair<timeval, string>>> s_confDelta;
 
 static ConcurrentConnectionManager s_connManager(100);
 
@@ -96,12 +91,6 @@ private:
   FDWrapper d_fileDesc;
 };
 
-void setConsoleMaximumConcurrentConnections(size_t max)
-{
-  s_connManager.setMaxConcurrentConnections(max);
-}
-
-// MUST BE CALLED UNDER A LOCK - right now the LuaLock
 static void feedConfigDelta(const std::string& line)
 {
   if (line.empty()) {
@@ -109,7 +98,15 @@ static void feedConfigDelta(const std::string& line)
   }
   timeval now{};
   gettimeofday(&now, nullptr);
-  g_confDelta.emplace_back(now, line);
+  s_confDelta.lock()->emplace_back(now, line);
+}
+
+namespace dnsdist::console
+{
+const std::vector<std::pair<timeval, std::string>>& getConfigurationDelta()
+{
+  return *(s_confDelta.lock());
+}
 }
 
 #ifdef HAVE_LIBEDIT
@@ -156,7 +153,7 @@ static ConsoleCommandResult getMsgLen32(int fileDesc, uint32_t* len)
     }
 
     *len = ntohl(raw);
-    if (*len > g_consoleOutputMsgMaxSize) {
+    if (*len > dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleOutputMsgMaxSize) {
       return ConsoleCommandResult::TooLarge;
     }
 
@@ -181,7 +178,8 @@ static bool putMsgLen32(int fileDesc, uint32_t len)
 
 static ConsoleCommandResult sendMessageToServer(int fileDesc, const std::string& line, dnsdist::crypto::authenticated::Nonce& readingNonce, dnsdist::crypto::authenticated::Nonce& writingNonce, const bool outputEmptyLine)
 {
-  string msg = dnsdist::crypto::authenticated::encryptSym(line, g_consoleKey, writingNonce);
+  const auto& consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
+  string msg = dnsdist::crypto::authenticated::encryptSym(line, consoleKey, writingNonce);
   const auto msgLen = msg.length();
   if (msgLen > std::numeric_limits<uint32_t>::max()) {
     cerr << "Encrypted message is too long to be sent to the server, " << std::to_string(msgLen) << " > " << std::numeric_limits<uint32_t>::max() << endl;
@@ -201,7 +199,7 @@ static ConsoleCommandResult sendMessageToServer(int fileDesc, const std::string&
     return commandResult;
   }
   if (commandResult == ConsoleCommandResult::TooLarge) {
-    cerr << "Received a console message whose length (" << len << ") is exceeding the allowed one (" << g_consoleOutputMsgMaxSize << "), closing that connection" << endl;
+    cerr << "Received a console message whose length (" << len << ") is exceeding the allowed one (" << dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleOutputMsgMaxSize << "), closing that connection" << endl;
     return commandResult;
   }
 
@@ -216,21 +214,25 @@ static ConsoleCommandResult sendMessageToServer(int fileDesc, const std::string&
   msg.clear();
   msg.resize(len);
   readn2(fileDesc, msg.data(), len);
-  msg = dnsdist::crypto::authenticated::decryptSym(msg, g_consoleKey, readingNonce);
+  msg = dnsdist::crypto::authenticated::decryptSym(msg, consoleKey, readingNonce);
   cout << msg;
   cout.flush();
 
   return ConsoleCommandResult::Valid;
 }
 
-void doClient(ComboAddress server, const std::string& command)
+namespace dnsdist::console
 {
-  if (!dnsdist::crypto::authenticated::isValidKey(g_consoleKey)) {
+void doClient(const std::string& command)
+{
+  const auto consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
+  const auto server = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleServerAddress;
+  if (!dnsdist::crypto::authenticated::isValidKey(consoleKey)) {
     cerr << "The currently configured console key is not valid, please configure a valid key using the setKey() directive" << endl;
     return;
   }
 
-  if (g_verbose) {
+  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
     cout << "Connecting to " << server.toStringWithPort() << endl;
   }
 
@@ -471,10 +473,11 @@ void doConsole()
     }
   }
 }
+}
 
 #ifndef DISABLE_COMPLETION
 /**** CARGO CULT CODE AHEAD ****/
-const std::vector<ConsoleKeyword> g_consoleKeywords
+static const std::vector<dnsdist::console::ConsoleKeyword> s_consoleKeywords
 {
   /* keyword, function, parameters, description */
   {"addACL", true, "netmask", "add to the ACL set who can use this server"},
@@ -851,7 +854,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords
 #if defined(HAVE_LIBEDIT)
 extern "C"
 {
-  static char* my_generator(const char* text, int state)
+  static char* dnsdist_completion_generator(const char* text, int state)
   {
     string textStr(text);
     /* to keep it readable, we try to keep only 4 keywords per line
@@ -862,7 +865,7 @@ extern "C"
       s_counter = 0;
     }
 
-    for (const auto& keyword : g_consoleKeywords) {
+    for (const auto& keyword : s_consoleKeywords) {
       if (boost::starts_with(keyword.name, textStr) && counter++ == s_counter) {
         std::string value(keyword.name);
         s_counter++;
@@ -878,12 +881,12 @@ extern "C"
     return nullptr;
   }
 
-  char** my_completion(const char* text, int start, int end)
+  static char** dnsdist_completion_callback(const char* text, int start, int end)
   {
     char** matches = nullptr;
     if (start == 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): readline
-      matches = rl_completion_matches(const_cast<char*>(text), &my_generator);
+      matches = rl_completion_matches(const_cast<char*>(text), &dnsdist_completion_generator);
     }
 
     // skip default filename completion.
@@ -895,6 +898,33 @@ extern "C"
 #endif /* HAVE_LIBEDIT */
 #endif /* DISABLE_COMPLETION */
 
+namespace dnsdist::console
+{
+#ifndef DISABLE_COMPLETION
+const std::vector<ConsoleKeyword>& getConsoleKeywords()
+{
+  return s_consoleKeywords;
+}
+#endif /* DISABLE_COMPLETION */
+
+void setupCompletion()
+{
+#ifndef DISABLE_COMPLETION
+#ifdef HAVE_LIBEDIT
+  rl_attempted_completion_function = dnsdist_completion_callback;
+  rl_completion_append_character = 0;
+#endif /* DISABLE_COMPLETION */
+#endif /* HAVE_LIBEDIT */
+}
+
+void clearHistory()
+{
+#ifdef HAVE_LIBEDIT
+  clear_history();
+#endif /* HAVE_LIBEDIT */
+  s_confDelta.lock()->clear();
+}
+
 static void controlClientThread(ConsoleConnection&& conn)
 {
   try {
@@ -902,6 +932,7 @@ static void controlClientThread(ConsoleConnection&& conn)
 
     setTCPNoDelay(conn.getFD());
 
+    const auto consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
     dnsdist::crypto::authenticated::Nonce theirs;
     dnsdist::crypto::authenticated::Nonce ours;
     dnsdist::crypto::authenticated::Nonce readingNonce;
@@ -929,7 +960,7 @@ static void controlClientThread(ConsoleConnection&& conn)
       line.resize(len);
       readn2(conn.getFD(), line.data(), len);
 
-      line = dnsdist::crypto::authenticated::decryptSym(line, g_consoleKey, readingNonce);
+      line = dnsdist::crypto::authenticated::decryptSym(line, consoleKey, readingNonce);
 
       string response;
       try {
@@ -1021,11 +1052,11 @@ static void controlClientThread(ConsoleConnection&& conn)
       catch (const LuaContext::SyntaxErrorException& e) {
         response = "Error: " + string(e.what()) + ": ";
       }
-      response = dnsdist::crypto::authenticated::encryptSym(response, g_consoleKey, writingNonce);
+      response = dnsdist::crypto::authenticated::encryptSym(response, consoleKey, writingNonce);
       putMsgLen32(conn.getFD(), response.length());
       writen2(conn.getFD(), response.c_str(), response.length());
     }
-    if (g_logConsoleConnections) {
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_logConsoleConnections) {
       infolog("Closed control connection from %s", conn.getClient().toStringWithPort());
     }
   }
@@ -1034,11 +1065,13 @@ static void controlClientThread(ConsoleConnection&& conn)
   }
 }
 
-// NOLINTNEXTLINE(performance-unnecessary-value-param): this is thread
-void controlThread(std::shared_ptr<Socket> acceptFD, ComboAddress local)
+void controlThread(Socket&& acceptFD)
 {
   try {
     setThreadName("dnsdist/control");
+    const ComboAddress local = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleServerAddress;
+    s_connManager.setMaxConcurrentConnections(dnsdist::configuration::getImmutableConfiguration().d_consoleMaxConcurrentConnections);
+
     ComboAddress client;
     // make sure that the family matches the one from the listening IP,
     // so that getSocklen() returns the correct size later, otherwise
@@ -1046,25 +1079,25 @@ void controlThread(std::shared_ptr<Socket> acceptFD, ComboAddress local)
     client.sin4.sin_family = local.sin4.sin_family;
 
     int sock{-1};
-    auto localACL = g_consoleACL.getLocal();
     infolog("Accepting control connections on %s", local.toStringWithPort());
 
-    while ((sock = SAccept(acceptFD->getHandle(), client)) >= 0) {
-
+    while ((sock = SAccept(acceptFD.getHandle(), client)) >= 0) {
+      const auto& consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
       FDWrapper socket(sock);
-      if (!dnsdist::crypto::authenticated::isValidKey(g_consoleKey)) {
+      if (!dnsdist::crypto::authenticated::isValidKey(consoleKey)) {
         vinfolog("Control connection from %s dropped because we don't have a valid key configured, please configure one using setKey()", client.toStringWithPort());
         continue;
       }
 
-      if (!localACL->match(client)) {
+      const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+      if (!runtimeConfig.d_consoleACL.match(client)) {
         vinfolog("Control connection from %s dropped because of ACL", client.toStringWithPort());
         continue;
       }
 
       try {
         ConsoleConnection conn(client, std::move(socket));
-        if (g_logConsoleConnections) {
+        if (runtimeConfig.d_logConsoleConnections) {
           warnlog("Got control connection from %s", client.toStringWithPort());
         }
 
@@ -1080,11 +1113,4 @@ void controlThread(std::shared_ptr<Socket> acceptFD, ComboAddress local)
     errlog("Control thread died: %s", e.what());
   }
 }
-
-void clearConsoleHistory()
-{
-#ifdef HAVE_LIBEDIT
-  clear_history();
-#endif /* HAVE_LIBEDIT */
-  g_confDelta.clear();
 }

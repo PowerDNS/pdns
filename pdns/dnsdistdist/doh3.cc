@@ -96,7 +96,6 @@ struct DOH3ServerConfig
 
   using ConnectionsMap = std::map<PacketBuffer, H3Connection>;
 
-  LocalHolders holders;
   ConnectionsMap d_connections;
   QuicheConfig config;
   QuicheHTTP3Config http3config;
@@ -142,12 +141,9 @@ public:
 
     if (!response.isAsync()) {
 
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
       dnsResponse.ids.doh3u = std::move(unit);
 
-      if (!processResponse(dnsResponse.ids.doh3u->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
+      if (!processResponse(dnsResponse.ids.doh3u->response, dnsResponse, false)) {
         if (dnsResponse.ids.doh3u) {
 
           sendBackDOH3Unit(std::move(dnsResponse.ids.doh3u), "Response dropped by rules");
@@ -491,10 +487,9 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
 
     remote = unit->ids.origRemote;
     DOH3ServerConfig* dsc = unit->dsc;
-    auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
-    if (!holders.acl->match(remote)) {
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       vinfolog("Query from %s (DoH3) dropped because of ACL", remote.toStringWithPort());
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();
@@ -562,7 +557,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
     });
     unit->ids.cs = &clientState;
 
-    auto result = processQuery(dnsQuestion, holders, downstream);
+    auto result = processQuery(dnsQuestion, downstream);
     if (result == ProcessQueryResult::Drop) {
       unit->status_code = 403;
       handleImmediateResponse(std::move(unit), "DoH3 dropped query");

@@ -397,7 +397,7 @@ public:
   }
 
 private:
-  static const size_t s_buflen{4096};
+  static constexpr size_t s_buflen{4096};
   std::string d_buffer;
   int d_socket;
 };

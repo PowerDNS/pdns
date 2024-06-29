@@ -28,20 +28,6 @@
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
 
-/* when we add EDNS to a query, we don't want to advertise
-   a large buffer size */
-size_t g_EdnsUDPPayloadSize = 512;
-static const uint16_t defaultPayloadSizeSelfGenAnswers = 1232;
-static_assert(defaultPayloadSizeSelfGenAnswers < s_udpIncomingBufferSize, "The UDP responder's payload size should be smaller or equal to our incoming buffer size");
-uint16_t g_PayloadSizeSelfGenAnswers{defaultPayloadSizeSelfGenAnswers};
-
-/* draft-ietf-dnsop-edns-client-subnet-04 "11.1.  Privacy" */
-uint16_t g_ECSSourcePrefixV4 = 24;
-uint16_t g_ECSSourcePrefixV6 = 56;
-
-bool g_ECSOverride{false};
-bool g_addEDNSToSelfGeneratedResponses{true};
-
 int rewriteResponseWithoutEDNS(const PacketBuffer& initialPacket, PacketBuffer& newContent)
 {
   if (initialPacket.size() < sizeof(dnsheader)) {
@@ -261,7 +247,7 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
   }
 
   if (ednsAdded) {
-    packetWriter.addOpt(g_EdnsUDPPayloadSize, 0, 0, {{optionToReplace, std::string(&newOptionContent.at(EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE), newOptionContent.size() - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE))}}, 0);
+    packetWriter.addOpt(dnsdist::configuration::s_EdnsUDPPayloadSize, 0, 0, {{optionToReplace, std::string(&newOptionContent.at(EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE), newOptionContent.size() - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE))}}, 0);
     optionAdded = true;
   }
 
@@ -585,7 +571,7 @@ static bool addECSToExistingOPT(PacketBuffer& packet, size_t maximumSize, const 
 
 static bool addEDNSWithECS(PacketBuffer& packet, size_t maximumSize, const string& newECSOption, bool& ednsAdded, bool& ecsAdded)
 {
-  if (!generateOptRR(newECSOption, packet, maximumSize, g_EdnsUDPPayloadSize, 0, false)) {
+  if (!generateOptRR(newECSOption, packet, maximumSize, dnsdist::configuration::s_EdnsUDPPayloadSize, 0, false)) {
     return false;
   }
 
@@ -918,7 +904,7 @@ bool setNegativeAndAdditionalSOA(DNSQuestion& dnsQuestion, bool nxd, const DNSNa
   bool hadEDNS = false;
   bool dnssecOK = false;
 
-  if (g_addEDNSToSelfGeneratedResponses) {
+  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses) {
     uint16_t payloadSize = 0;
     uint16_t zValue = 0;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -997,7 +983,7 @@ bool setNegativeAndAdditionalSOA(DNSQuestion& dnsQuestion, bool nxd, const DNSNa
 
   if (hadEDNS) {
     /* now we need to add a new OPT record */
-    return addEDNS(packet, dnsQuestion.getMaximumSize(), dnssecOK, g_PayloadSizeSelfGenAnswers, dnsQuestion.ednsRCode);
+    return addEDNS(packet, dnsQuestion.getMaximumSize(), dnssecOK, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers, dnsQuestion.ednsRCode);
   }
 
   return true;
@@ -1036,9 +1022,9 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dnsQuestion)
     return true;
   });
 
-  if (g_addEDNSToSelfGeneratedResponses) {
+  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses) {
     /* now we need to add a new OPT record */
-    return addEDNS(packet, dnsQuestion.getMaximumSize(), dnssecOK, g_PayloadSizeSelfGenAnswers, dnsQuestion.ednsRCode);
+    return addEDNS(packet, dnsQuestion.getMaximumSize(), dnssecOK, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers, dnsQuestion.ednsRCode);
   }
 
   /* otherwise we are just fine */
@@ -1150,7 +1136,7 @@ bool setEDNSOption(DNSQuestion& dnsQuestion, uint16_t ednsCode, const std::strin
   }
 
   auto& data = dnsQuestion.getMutableData();
-  if (generateOptRR(optRData, data, dnsQuestion.getMaximumSize(), g_EdnsUDPPayloadSize, 0, false)) {
+  if (generateOptRR(optRData, data, dnsQuestion.getMaximumSize(), dnsdist::configuration::s_EdnsUDPPayloadSize, 0, false)) {
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
       header.arcount = htons(1);
       return true;
@@ -1196,7 +1182,7 @@ bool setInternalQueryRCode(InternalQueryState& state, PacketBuffer& buffer, uint
     buffer.resize(sizeof(dnsheader) + qnameLength + sizeof(uint16_t) + sizeof(uint16_t));
     if (hadEDNS) {
       DNSQuestion dnsQuestion(state, buffer);
-      if (!addEDNS(buffer, dnsQuestion.getMaximumSize(), (edns0.extFlags & htons(EDNS_HEADER_FLAG_DO)) != 0, g_PayloadSizeSelfGenAnswers, 0)) {
+      if (!addEDNS(buffer, dnsQuestion.getMaximumSize(), (edns0.extFlags & htons(EDNS_HEADER_FLAG_DO)) != 0, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers, 0)) {
         return false;
       }
     }

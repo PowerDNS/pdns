@@ -1,10 +1,9 @@
 
 #include "dnsdist-snmp.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-metrics.hh"
 #include "dolog.hh"
 
-bool g_snmpEnabled{false};
-bool g_snmpTrapsEnabled{false};
 std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
 
 #ifdef HAVE_NET_SNMP
@@ -280,11 +279,11 @@ static netsnmp_variable_list* backendStatTable_get_first_data_point(void** loop_
 
   /* get a copy of the shared_ptrs so they are not
      destroyed while we process the request */
-  auto dstates = g_dstates.getLocal();
+  auto backends = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
   s_servers.clear();
-  s_servers.reserve(dstates->size());
-  for (const auto& server : *dstates) {
-    s_servers.push_back(server);
+  s_servers.reserve(backends.size());
+  for (auto& server : backends) {
+    s_servers.push_back(std::move(server));
   }
 
   return backendStatTable_get_next_data_point(loop_context,
@@ -599,7 +598,7 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& d
   registerGauge64Stat("cpuUserMSec", cpuUserMSecOID, &getCPUTimeUser);
   registerGauge64Stat("cpuSysMSec", cpuSysMSecOID, &getCPUTimeSystem);
   registerGauge64Stat("fdUsage", fdUsageOID, &getOpenFileDescriptors);
-  registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, [](const std::string&) { return g_dynblockNMG.getLocal()->size(); });
+  registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, [](const std::string&) { return dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(); });
   registerGauge64Stat("securityStatus", securityStatusOID, [](const std::string&) { return dnsdist::metrics::g_stats.securityStatus.load(); });
   registerGauge64Stat("realMemoryUsage", realMemoryUsageOID, &getRealMemoryUsage);
 

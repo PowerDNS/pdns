@@ -27,9 +27,6 @@
 #include "dolog.hh"
 #include "dns_random.hh"
 
-GlobalStateHolder<ServerPolicy> g_policy;
-bool g_roundrobinFailOnNoServer{false};
-
 static constexpr size_t s_staticArrayCutOff = 16;
 template <typename T> using DynamicIndexArray = std::vector<std::pair<T, size_t>>;
 template <typename T> using StaticIndexArray = std::array<std::pair<T, size_t>, s_staticArrayCutOff>;
@@ -84,16 +81,15 @@ shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVec
   return leastOutstanding(servers, dq);
 }
 
-double g_weightedBalancingFactor = 0;
-
 template <class T> static std::shared_ptr<DownstreamState> getValRandom(const ServerPolicy::NumberedServerVector& servers, T& poss, const unsigned int val, const double targetLoad)
 {
   constexpr int max = std::numeric_limits<int>::max();
   int sum = 0;
 
   size_t usableServers = 0;
+  const auto weightedBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_consistentHashBalancingFactor;
   for (const auto& d : servers) {      // w=1, w=10 -> 1, 11
-    if (d.second->isUp() && (g_weightedBalancingFactor == 0 || (d.second->outstanding <= (targetLoad * d.second->d_config.d_weight)))) {
+    if (d.second->isUp() && (weightedBalancingFactor == 0 || (static_cast<double>(d.second->outstanding.load()) <= (targetLoad * d.second->d_config.d_weight)))) {
       // Don't overflow sum when adding high weights
       if (d.second->d_config.d_weight > max - sum) {
         sum = max;
@@ -125,8 +121,8 @@ static shared_ptr<DownstreamState> valrandom(const unsigned int val, const Serve
 {
   using ValRandomType = int;
   double targetLoad = std::numeric_limits<double>::max();
-
-  if (g_weightedBalancingFactor > 0) {
+  const auto weightedBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_consistentHashBalancingFactor;
+  if (weightedBalancingFactor > 0) {
     /* we start with one, representing the query we are currently handling */
     double currentLoad = 1;
     size_t totalWeight = 0;
@@ -138,7 +134,7 @@ static shared_ptr<DownstreamState> valrandom(const unsigned int val, const Serve
     }
 
     if (totalWeight > 0) {
-      targetLoad = (currentLoad / totalWeight) * g_weightedBalancingFactor;
+      targetLoad = (currentLoad / static_cast<double>(totalWeight)) * weightedBalancingFactor;
     }
   }
 
@@ -157,9 +153,6 @@ shared_ptr<DownstreamState> wrandom(const ServerPolicy::NumberedServerVector& se
   return valrandom(dns_random_uint32(), servers);
 }
 
-uint32_t g_hashperturb;
-double g_consistentHashBalancingFactor = 0;
-
 shared_ptr<DownstreamState> whashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash)
 {
   return valrandom(hash, servers);
@@ -167,7 +160,8 @@ shared_ptr<DownstreamState> whashedFromHash(const ServerPolicy::NumberedServerVe
 
 shared_ptr<DownstreamState> whashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return whashedFromHash(servers, dq->ids.qname.hash(g_hashperturb));
+  const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
+  return whashedFromHash(servers, dq->ids.qname.hash(hashPerturbation));
 }
 
 shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t qhash)
@@ -177,7 +171,8 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
   shared_ptr<DownstreamState> ret = nullptr, first = nullptr;
 
   double targetLoad = std::numeric_limits<double>::max();
-  if (g_consistentHashBalancingFactor > 0) {
+  const auto consistentHashBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_consistentHashBalancingFactor;
+  if (consistentHashBalancingFactor > 0) {
     /* we start with one, representing the query we are currently handling */
     double currentLoad = 1;
     size_t totalWeight = 0;
@@ -189,12 +184,12 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
     }
 
     if (totalWeight > 0) {
-      targetLoad = (currentLoad / totalWeight) * g_consistentHashBalancingFactor;
+      targetLoad = (currentLoad / static_cast<double>(totalWeight)) * consistentHashBalancingFactor;
     }
   }
 
   for (const auto& d: servers) {
-    if (d.second->isUp() && (g_consistentHashBalancingFactor == 0 || d.second->outstanding <= (targetLoad * d.second->d_config.d_weight))) {
+    if (d.second->isUp() && (consistentHashBalancingFactor == 0 || static_cast<double>(d.second->outstanding.load()) <= (targetLoad * d.second->d_config.d_weight))) {
       // make sure hashes have been computed
       if (!d.second->hashesComputed) {
         d.second->hash();
@@ -229,7 +224,8 @@ shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVe
 
 shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
-  return chashedFromHash(servers, dq->ids.qname.hash(g_hashperturb));
+  const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
+  return chashedFromHash(servers, dq->ids.qname.hash(hashPerturbation));
 }
 
 shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
@@ -248,7 +244,7 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
   }
 
   if (candidates.empty()) {
-    if (g_roundrobinFailOnNoServer) {
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_roundrobinFailOnNoServer) {
       return shared_ptr<DownstreamState>();
     }
     for (auto& d : servers) {
@@ -260,31 +256,37 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
   return servers.at(candidates.at((counter++) % candidates.size()) - 1).second;
 }
 
-const std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const pools_t& pools, const std::string& poolName)
+std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName)
 {
-  std::shared_ptr<ServerPool> pool = getPool(pools, poolName);
+  std::shared_ptr<ServerPool> pool = getPool(poolName);
   return pool->getServers();
 }
 
-std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName)
+std::shared_ptr<ServerPool> createPoolIfNotExists(const string& poolName)
 {
-  std::shared_ptr<ServerPool> pool;
-  pools_t::iterator it = pools.find(poolName);
-  if (it != pools.end()) {
-    pool = it->second;
+  {
+    const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+    const auto poolIt = pools.find(poolName);
+    if (poolIt != pools.end()) {
+      return poolIt->second;
+    }
   }
-  else {
-    if (!poolName.empty())
-      vinfolog("Creating pool %s", poolName);
-    pool = std::make_shared<ServerPool>();
-    pools.insert(std::pair<std::string, std::shared_ptr<ServerPool> >(poolName, pool));
+
+  if (!poolName.empty()) {
+    vinfolog("Creating pool %s", poolName);
   }
+
+  auto pool = std::make_shared<ServerPool>();
+  dnsdist::configuration::updateRuntimeConfiguration([&poolName,&pool](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_pools.emplace(poolName, pool);
+  });
+
   return pool;
 }
 
-void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy)
+void setPoolPolicy(const string& poolName, std::shared_ptr<ServerPolicy> policy)
 {
-  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
+  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(poolName);
   if (!poolName.empty()) {
     vinfolog("Setting pool %s server selection policy to %s", poolName, policy->getName());
   } else {
@@ -293,9 +295,9 @@ void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<Serve
   pool->policy = std::move(policy);
 }
 
-void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
+void addServerToPool(const string& poolName, std::shared_ptr<DownstreamState> server)
 {
-  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(pools, poolName);
+  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(poolName);
   if (!poolName.empty()) {
     vinfolog("Adding server to pool %s", poolName);
   } else {
@@ -304,9 +306,9 @@ void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<Dow
   pool->addServer(server);
 }
 
-void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server)
+void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamState> server)
 {
-  std::shared_ptr<ServerPool> pool = getPool(pools, poolName);
+  std::shared_ptr<ServerPool> pool = getPool(poolName);
 
   if (!poolName.empty()) {
     vinfolog("Removing server from pool %s", poolName);
@@ -318,15 +320,15 @@ void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_pt
   pool->removeServer(server);
 }
 
-std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName)
+std::shared_ptr<ServerPool> getPool(const std::string& poolName)
 {
-  pools_t::const_iterator it = pools.find(poolName);
-
-  if (it == pools.end()) {
+  const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+  auto poolIt = pools.find(poolName);
+  if (poolIt == pools.end()) {
     throw std::out_of_range("No pool named " + poolName);
   }
 
-  return it->second;
+  return poolIt->second;
 }
 
 ServerPolicy::ServerPolicy(const std::string& name_, const std::string& code): d_name(name_), d_perThreadPolicyCode(code), d_isLua(true), d_isFFI(true), d_isPerThread(true)

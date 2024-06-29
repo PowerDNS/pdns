@@ -39,8 +39,6 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
 {
   try {
     setThreadName("dnsdist/XskResp");
-    auto localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-    auto localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
     auto pollfds = getPollFdsForWorker(*xskInfo);
     while (!dss->isStopped()) {
       poll(pollfds.data(), pollfds.size(), -1);
@@ -75,7 +73,7 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
             /* fallback to sending the packet via normal socket */
             ids->xskPacketHeader.clear();
           }
-          if (!processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids))) {
+          if (!processResponderPacket(dss, response, std::move(*ids))) {
             xskInfo->markAsFree(packet);
             infolog("XSK packet pushed to queue because processResponderPacket failed");
             return;
@@ -114,11 +112,11 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
   }
 }
 
-bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, LocalHolders& holders, bool& expectProxyProtocol)
+bool XskIsQueryAcceptable(const XskPacket& packet, ClientState& clientState, bool& expectProxyProtocol)
 {
   const auto& from = packet.getFromAddr();
   expectProxyProtocol = expectProxyProtocolFrom(from);
-  if (!holders.acl->match(from) && !expectProxyProtocol) {
+  if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(from) && !expectProxyProtocol) {
     vinfolog("Query from %s dropped because of ACL", from.toStringWithPort());
     ++dnsdist::metrics::g_stats.aclDrops;
     return false;
@@ -204,7 +202,6 @@ void XskClientThread(ClientState* clientState)
 {
   setThreadName("dnsdist/xskClient");
   auto xskInfo = clientState->xskInfo;
-  LocalHolders holders;
 
   for (;;) {
 #if defined(__SANITIZE_THREAD__)
@@ -219,7 +216,7 @@ void XskClientThread(ClientState* clientState)
 #else
     xskInfo->incomingPacketsQueue.consume_all([&](XskPacket& packet) {
 #endif
-      if (XskProcessQuery(*clientState, holders, packet)) {
+      if (XskProcessQuery(*clientState, packet)) {
         packet.updatePacket();
         xskInfo->pushToSendQueue(packet);
       }

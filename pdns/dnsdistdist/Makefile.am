@@ -144,23 +144,27 @@ dnsdist_SOURCES = \
 	dns.cc dns.hh \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
+	dnsdist-actions.hh \
 	dnsdist-async.cc dnsdist-async.hh \
-	dnsdist-backend.cc \
+	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
 	dnsdist-concurrent-connections.hh \
+	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-discovery.cc dnsdist-discovery.hh \
 	dnsdist-dnscrypt.cc \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
+	dnsdist-dnsquestion.cc \
 	dnsdist-doh-common.cc dnsdist-doh-common.hh \
 	dnsdist-downstream-connection.hh \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-edns.cc dnsdist-edns.hh \
+	dnsdist-frontend.cc dnsdist-frontend.hh \
 	dnsdist-healthchecks.cc dnsdist-healthchecks.hh \
 	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-internal-queries.cc dnsdist-internal-queries.hh \
@@ -194,6 +198,7 @@ dnsdist_SOURCES = \
 	dnsdist-protobuf.cc dnsdist-protobuf.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \
 	dnsdist-proxy-protocol.cc dnsdist-proxy-protocol.hh \
+	dnsdist-query-count.hh dnsdist-query-count.cc \
 	dnsdist-random.cc dnsdist-random.hh \
 	dnsdist-resolver.cc dnsdist-resolver.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
@@ -270,18 +275,21 @@ testrunner_SOURCES = \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-async.cc dnsdist-async.hh \
-	dnsdist-backend.cc \
+	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-concurrent-connections.hh \
+	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
+	dnsdist-dnsquestion.cc \
 	dnsdist-doh-common.cc dnsdist-doh-common.hh \
 	dnsdist-downstream-connection.hh \
 	dnsdist-dynblocks.cc dnsdist-dynblocks.hh \
 	dnsdist-dynbpf.cc dnsdist-dynbpf.hh \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-edns.cc dnsdist-edns.hh \
+	dnsdist-frontend.cc dnsdist-frontend.hh \
 	dnsdist-idstate.cc dnsdist-idstate.hh \
 	dnsdist-kvs.cc dnsdist-kvs.hh \
 	dnsdist-lbpolicies.cc dnsdist-lbpolicies.hh \
@@ -547,7 +555,9 @@ fuzz_target_dnsdistcache_SOURCES = \
 	channel.hh channel.cc \
 	dns.cc dns.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
+	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \
+	dnsdist-dnsquestion.cc \
 	dnsdist-ecs.cc dnsdist-ecs.hh \
 	dnsdist-idstate.hh \
 	dnsdist-protocols.cc dnsdist-protocols.hh \

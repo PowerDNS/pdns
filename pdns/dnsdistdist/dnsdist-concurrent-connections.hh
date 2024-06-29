@@ -24,6 +24,7 @@
 #include <map>
 #include "iputils.hh"
 #include "lock.hh"
+#include "dnsdist-configuration.hh"
 
 namespace dnsdist
 {
@@ -32,12 +33,13 @@ class IncomingConcurrentTCPConnectionsManager
 public:
   static bool accountNewTCPConnection(const ComboAddress& from)
   {
-    if (s_maxTCPConnectionsPerClient == 0) {
+    const auto maxConnsPerClient = dnsdist::configuration::getImmutableConfiguration().d_maxTCPConnectionsPerClient;
+    if (maxConnsPerClient == 0) {
       return true;
     }
     auto db = s_tcpClientsConcurrentConnectionsCount.lock();
     auto& count = (*db)[from];
-    if (count >= s_maxTCPConnectionsPerClient) {
+    if (count >= maxConnsPerClient) {
       return false;
     }
     ++count;
@@ -46,7 +48,8 @@ public:
 
   static void accountClosedTCPConnection(const ComboAddress& from)
   {
-    if (s_maxTCPConnectionsPerClient == 0) {
+    const auto maxConnsPerClient = dnsdist::configuration::getImmutableConfiguration().d_maxTCPConnectionsPerClient;
+    if (maxConnsPerClient == 0) {
       return;
     }
     auto db = s_tcpClientsConcurrentConnectionsCount.lock();
@@ -57,14 +60,8 @@ public:
     }
   }
 
-  static void setMaxTCPConnectionsPerClient(size_t max)
-  {
-    s_maxTCPConnectionsPerClient = max;
-  }
-
 private:
   static LockGuarded<std::map<ComboAddress, size_t, ComboAddress::addressOnlyLessThan>> s_tcpClientsConcurrentConnectionsCount;
-  static size_t s_maxTCPConnectionsPerClient;
 };
 
 }

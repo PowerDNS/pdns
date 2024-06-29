@@ -10,14 +10,10 @@ class TCPClientThreadData
 {
 public:
   TCPClientThreadData():
-    localRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal()), localCacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), localXFRRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::XFRResponseRules).getLocal()), mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
+    mplexer(std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent()))
   {
   }
 
-  LocalHolders holders;
-  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions;
-  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions;
-  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localXFRRespRuleActions;
   std::unique_ptr<FDMultiplexer> mplexer{nullptr};
   pdns::channel::Receiver<ConnectionInfo> queryReceiver;
   pdns::channel::Receiver<CrossProtocolQuery> crossProtocolQueryReceiver;
@@ -31,7 +27,7 @@ public:
   enum class QueryProcessingResult : uint8_t { Forwarded, TooSmall, InvalidHeaders, Dropped, SelfAnswered, NoBackend, Asynchronous };
   enum class ProxyProtocolResult : uint8_t { Reading, Done, Error };
 
-  IncomingTCPConnectionState(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now): d_buffer(sizeof(uint16_t)), d_ci(std::move(ci)), d_handler(d_ci.fd, timeval{g_tcpRecvTimeout,0}, d_ci.cs->tlsFrontend ? d_ci.cs->tlsFrontend->getContext() : (d_ci.cs->dohFrontend ? d_ci.cs->dohFrontend->d_tlsContext.getContext() : nullptr), now.tv_sec), d_connectionStartTime(now), d_ioState(make_unique<IOStateHandler>(*threadData.mplexer, d_ci.fd)), d_threadData(threadData), d_creatorThreadID(std::this_thread::get_id())
+  IncomingTCPConnectionState(ConnectionInfo&& ci, TCPClientThreadData& threadData, const struct timeval& now): d_buffer(sizeof(uint16_t)), d_ci(std::move(ci)), d_handler(d_ci.fd, timeval{dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout,0}, d_ci.cs->tlsFrontend ? d_ci.cs->tlsFrontend->getContext() : (d_ci.cs->dohFrontend ? d_ci.cs->dohFrontend->d_tlsContext.getContext() : nullptr), now.tv_sec), d_connectionStartTime(now), d_ioState(make_unique<IOStateHandler>(*threadData.mplexer, d_ci.fd)), d_threadData(threadData), d_creatorThreadID(std::this_thread::get_id())
   {
     d_origDest.reset();
     d_origDest.sin4.sin_family = d_ci.remote.sin4.sin_family;
@@ -57,47 +53,49 @@ public:
 
   boost::optional<struct timeval> getClientReadTTD(struct timeval now) const
   {
-    if (g_maxTCPConnectionDuration == 0 && g_tcpRecvTimeout == 0) {
+    const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    if (runtimeConfiguration.d_maxTCPConnectionDuration == 0 && runtimeConfiguration.d_tcpRecvTimeout == 0) {
       return boost::none;
     }
 
-    if (g_maxTCPConnectionDuration > 0) {
+    if (runtimeConfiguration.d_maxTCPConnectionDuration > 0) {
       auto elapsed = now.tv_sec - d_connectionStartTime.tv_sec;
-      if (elapsed < 0 || (static_cast<size_t>(elapsed) >= g_maxTCPConnectionDuration)) {
+      if (elapsed < 0 || (static_cast<size_t>(elapsed) >= runtimeConfiguration.d_maxTCPConnectionDuration)) {
         return now;
       }
-      auto remaining = g_maxTCPConnectionDuration - elapsed;
-      if (g_tcpRecvTimeout == 0 || remaining <= static_cast<size_t>(g_tcpRecvTimeout)) {
+      auto remaining = runtimeConfiguration.d_maxTCPConnectionDuration - elapsed;
+      if (runtimeConfiguration.d_tcpRecvTimeout == 0 || remaining <= static_cast<size_t>(runtimeConfiguration.d_tcpRecvTimeout)) {
         now.tv_sec += remaining;
         return now;
       }
     }
 
-    now.tv_sec += g_tcpRecvTimeout;
+    now.tv_sec += runtimeConfiguration.d_tcpRecvTimeout;
     return now;
   }
 
   boost::optional<struct timeval> getClientWriteTTD(const struct timeval& now) const
   {
-    if (g_maxTCPConnectionDuration == 0 && g_tcpSendTimeout == 0) {
+    const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    if (runtimeConfiguration.d_maxTCPConnectionDuration == 0 && runtimeConfiguration.d_tcpSendTimeout == 0) {
       return boost::none;
     }
 
-    struct timeval res = now;
+    timeval res(now);
 
-    if (g_maxTCPConnectionDuration > 0) {
+    if (runtimeConfiguration.d_maxTCPConnectionDuration > 0) {
       auto elapsed = res.tv_sec - d_connectionStartTime.tv_sec;
-      if (elapsed < 0 || static_cast<size_t>(elapsed) >= g_maxTCPConnectionDuration) {
+      if (elapsed < 0 || static_cast<size_t>(elapsed) >= runtimeConfiguration.d_maxTCPConnectionDuration) {
         return res;
       }
-      auto remaining = g_maxTCPConnectionDuration - elapsed;
-      if (g_tcpSendTimeout == 0 || remaining <= static_cast<size_t>(g_tcpSendTimeout)) {
+      auto remaining = runtimeConfiguration.d_maxTCPConnectionDuration - elapsed;
+      if (runtimeConfiguration.d_tcpSendTimeout == 0 || remaining <= static_cast<size_t>(runtimeConfiguration.d_tcpSendTimeout)) {
         res.tv_sec += remaining;
         return res;
       }
     }
 
-    res.tv_sec += g_tcpSendTimeout;
+    res.tv_sec += runtimeConfiguration.d_tcpSendTimeout;
     return res;
   }
 

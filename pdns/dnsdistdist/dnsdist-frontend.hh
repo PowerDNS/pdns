@@ -21,19 +21,22 @@
  */
 #pragma once
 
-#include "snmp-agent.hh"
+#include <memory>
+#include <vector>
 
-class DNSDistSNMPAgent;
+struct ClientState;
+class DNSCryptContext;
+class TLSFrontend;
+struct DOHFrontend;
+struct DOQFrontend;
+struct DOH3Frontend;
 
-#include "dnsdist.hh"
-
-class DNSDistSNMPAgent : public SNMPAgent
+namespace dnsdist
 {
-public:
-  DNSDistSNMPAgent(const std::string& name, const std::string& daemonSocket);
-  bool sendBackendStatusChangeTrap(const DownstreamState&);
-  bool sendCustomTrap(const std::string& reason);
-  bool sendDNSTrap(const DNSQuestion&, const std::string& reason = "");
-};
-
-extern std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent;
+const std::vector<std::shared_ptr<ClientState>>& getFrontends();
+std::vector<std::shared_ptr<DNSCryptContext>> getDNSCryptFrontends();
+std::vector<std::shared_ptr<TLSFrontend>> getDoTFrontends();
+std::vector<std::shared_ptr<DOHFrontend>> getDoHFrontends();
+std::vector<std::shared_ptr<DOQFrontend>> getDoQFrontends();
+std::vector<std::shared_ptr<DOH3Frontend>> getDoH3Frontends();
+}

@@ -22,8 +22,10 @@
 #include <fcntl.h>
 
 #include "dnsdist.hh"
-#include "dnsdist-lua.hh"
+#include "dnsdist-console.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-frontend.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-tcp.hh"
@@ -495,7 +497,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       }
       totalEntries += rings.back().size();
     }
-    vector<std::unordered_map<string, boost::variant<string, unsigned int>>> ret;
+    vector<std::unordered_map<string, boost::variant<unsigned int, string>>> ret;
     ret.reserve(totalEntries);
     for (const auto& ring : rings) {
       for (const auto& entry : ring) {
@@ -533,7 +535,7 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.writeFunction("delta", []() {
     setLuaNoSideEffect();
     // we hold the lua lock already!
-    for (const auto& entry : g_confDelta) {
+    for (const auto& entry : dnsdist::console::getConfigurationDelta()) {
       tm entryTime{};
       localtime_r(&entry.first.tv_sec, &entryTime);
       std::array<char, 80> date{};
@@ -719,10 +721,11 @@ void setupLuaInspection(LuaContext& luaCtx)
 
   luaCtx.writeFunction("showTCPStats", [] {
     setLuaNoSideEffect();
+    const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
     ostringstream ret;
     boost::format fmt("%-12d %-12d %-12d %-12d");
     ret << (fmt % "Workers" % "Max Workers" % "Queued" % "Max Queued") << endl;
-    ret << (fmt % g_tcpclientthreads->getThreadsCount() % (g_maxTCPClientThreads ? *g_maxTCPClientThreads : 0) % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections) << endl;
+    ret << (fmt % g_tcpclientthreads->getThreadsCount() % immutableConfig.d_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % immutableConfig.d_maxTCPQueuedConnections) << endl;
     ret << endl;
 
     ret << "Frontends:" << endl;
@@ -730,7 +733,7 @@ void setupLuaInspection(LuaContext& luaCtx)
     ret << (fmt % "#" % "Address" % "Connections" % "Max concurrent conn" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration" % "TLS new sessions" % "TLS Resumptions" % "TLS unknown ticket keys" % "TLS inactive ticket keys" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other") << endl;
 
     size_t counter = 0;
-    for (const auto& frontend : g_frontends) {
+    for (const auto& frontend : dnsdist::getFrontends()) {
       ret << (fmt % counter % frontend->local.toStringWithPort() % frontend->tcpCurrentConnections % frontend->tcpMaxConcurrentConnections % frontend->tcpDiedReadingQuery % frontend->tcpDiedSendingResponse % frontend->tcpGaveUp % frontend->tcpClientTimeouts % frontend->tcpDownstreamTimeouts % frontend->tcpAvgQueriesPerConnection % frontend->tcpAvgConnectionDuration % frontend->tlsNewSessions % frontend->tlsResumptions % frontend->tlsUnknownTicketKey % frontend->tlsInactiveTicketKey % frontend->tls10queries % frontend->tls11queries % frontend->tls12queries % frontend->tls13queries % frontend->tlsUnknownqueries) << endl;
       ++counter;
     }
@@ -740,9 +743,8 @@ void setupLuaInspection(LuaContext& luaCtx)
     fmt = boost::format("%-3d %-20.20s %-20.20s %-20d %-20d %-25d %-25d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20f %-20f");
     ret << (fmt % "#" % "Name" % "Address" % "Connections" % "Max concurrent conn" % "Died sending query" % "Died reading response" % "Gave up" % "Read timeouts" % "Write timeouts" % "Connect timeouts" % "Too many conn" % "Total connections" % "Reused connections" % "TLS resumptions" % "Avg queries/conn" % "Avg duration") << endl;
 
-    auto states = g_dstates.getLocal();
     counter = 0;
-    for (const auto& backend : *states) {
+    for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
       ret << (fmt % counter % backend->getName() % backend->d_config.remote.toStringWithPort() % backend->tcpCurrentConnections % backend->tcpMaxConcurrentConnections % backend->tcpDiedSendingQuery % backend->tcpDiedReadingResponse % backend->tcpGaveUp % backend->tcpReadTimeouts % backend->tcpWriteTimeouts % backend->tcpConnectTimeouts % backend->tcpTooManyConcurrentConnections % backend->tcpNewConnections % backend->tcpReusedConnections % backend->tlsResumptions % backend->tcpAvgQueriesPerConnection % backend->tcpAvgConnectionDuration) << endl;
       ++counter;
     }
@@ -758,7 +760,7 @@ void setupLuaInspection(LuaContext& luaCtx)
     ret << (fmt % "#" % "Address" % "DH key too small" % "Inappropriate fallback" % "No shared cipher" % "Unknown cipher type" % "Unknown exchange type" % "Unknown protocol" % "Unsupported EC" % "Unsupported protocol") << endl;
 
     size_t counter = 0;
-    for (const auto& frontend : g_frontends) {
+    for (const auto& frontend : dnsdist::getFrontends()) {
       if (!frontend->hasTLS()) {
         continue;
       }
@@ -1070,7 +1072,7 @@ void setupLuaInspection(LuaContext& luaCtx)
                          parseDynamicActionOptionalParameters("addDynBlockSMT", rule, action, optionalParameters);
 
                          bool needUpdate = false;
-                         auto slow = g_dynblockSMT.getCopy();
+                         auto smtBlocks = dnsdist::DynamicBlocks::getSuffixDynamicRulesCopy();
                          for (const auto& capair : names) {
                            DNSName domain(capair.second);
                            domain.makeUsLowerCase();
@@ -1078,13 +1080,13 @@ void setupLuaInspection(LuaContext& luaCtx)
                            until.tv_sec += actualSeconds;
                            DynBlock dblock{msg, until, domain, action ? *action : DNSAction::Action::None};
                            dblock.tagSettings = rule.d_tagSettings;
-                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, std::move(dblock), false)) {
+                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(smtBlocks, now, std::move(dblock), false)) {
                              needUpdate = true;
                            }
                          }
 
                          if (needUpdate) {
-                           g_dynblockSMT.setState(slow);
+                           dnsdist::DynamicBlocks::setSuffixDynamicRules(std::move(smtBlocks));
                          }
                        });
 
@@ -1123,9 +1125,9 @@ void setupLuaInspection(LuaContext& luaCtx)
                          DynBlock dblock{msg, until, DNSName(), action ? *action : DNSAction::Action::None};
                          dblock.tagSettings = rule.d_tagSettings;
 
-                         auto slow = g_dynblockNMG.getCopy();
-                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, std::move(dblock), false)) {
-                           g_dynblockNMG.setState(slow);
+                         auto dynamicRules = dnsdist::DynamicBlocks::getClientAddressDynamicRulesCopy();
+                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(dynamicRules, now, target, std::move(dblock), false)) {
+                           dnsdist::DynamicBlocks::setClientAddressDynamicRules(std::move(dynamicRules));
                          }
                        });
 #endif /* DISABLE_DYNBLOCKS */
