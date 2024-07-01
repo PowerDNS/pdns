@@ -3442,6 +3442,7 @@ vector<std::function<void(void)>> setupLua(LuaContext& luaCtx, bool client, bool
   setupLuaBindingsDNSParser(luaCtx);
   setupLuaBindingsDNSQuestion(luaCtx);
   setupLuaBindingsKVS(luaCtx, client);
+  setupLuaBindingsLogging(luaCtx);
   setupLuaBindingsNetwork(luaCtx, client);
   setupLuaBindingsPacketCache(luaCtx, client);
   setupLuaBindingsProtoBuf(luaCtx, client, configCheck);

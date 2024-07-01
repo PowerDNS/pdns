@@ -177,6 +177,7 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client);
 void setupLuaBindingsDNSParser(LuaContext& luaCtx);
 void setupLuaBindingsDNSQuestion(LuaContext& luaCtx);
 void setupLuaBindingsKVS(LuaContext& luaCtx, bool client);
+void setupLuaBindingsLogging(LuaContext& luaCtx);
 void setupLuaBindingsNetwork(LuaContext& luaCtx, bool client);
 void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client);
 void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck);
