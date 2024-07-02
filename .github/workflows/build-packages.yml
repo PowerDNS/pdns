@@ -247,4 +247,6 @@ jobs:
           echo "$SSHKEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           echo "$HOSTKEY" > ~/.ssh/known_hosts
-          rsync -4rlptD ${{steps.download-src-provenance.outputs.download-path}}/*.jsonl ${{steps.download-provenance.outputs.download-path}}/*.jsonl "${RSYNCTARGET}/${PRODUCT}/${VERSION}/"
+          mkdir -m 700 -p "slsa/${PRODUCT}/${VERSION}/"
+          mv ${{steps.download-src-provenance.outputs.download-path}}/*.jsonl ${{steps.download-provenance.outputs.download-path}}/*.jsonl "slsa/${PRODUCT}/${VERSION}"
+          rsync -4rlptD slsa/* "$RSYNCTARGET"
