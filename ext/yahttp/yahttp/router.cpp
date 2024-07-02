@@ -49,20 +49,20 @@ namespace YaHTTP {
             rpos = route.size();
             upos = requrl.path.size();
             break;
-          } else { 
-            // match until url[upos] or next / if pattern is at end
-            while (upos < requrl.path.size()) {
-               if (route[rpos+1] == '\0' && requrl.path[upos] == '/') {
-                  break;
-               }
-               if (requrl.path[upos] == route[rpos+1]) {
-                  break;
-               }
-               upos++;
-            }
-            nend = upos;
-            params[pname] = funcptr::tie(nstart, nend);
           }
+          // match until url[upos] or next / if pattern is at end
+          while (upos < requrl.path.size()) {
+            if (route[rpos+1] == '\0' && requrl.path[upos] == '/') {
+              break;
+            }
+            if (requrl.path[upos] == route[rpos+1]) {
+              break;
+            }
+            upos++;
+          }
+          nend = upos;
+          params[pname] = funcptr::tie(nstart, nend);
+
           upos--;
         }
         else if (route[rpos] != requrl.path[upos]) {
