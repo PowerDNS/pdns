@@ -516,3 +516,40 @@ class TestPKCSTLSCertificate(DNSDistTest, TLSTests):
         cls.startResponders()
         cls.startDNSDist()
         cls.setUpSockets()
+
+class TestTLSTicketsKeyAddedCallback(DNSDistTest):
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = pickAvailablePort()
+    _numberOfKeys = 5
+
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
+    newServer{address="127.0.0.1:%s"}
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+
+    callbackCalled = 0
+    function keyAddedCallback(key, keyLen)
+      callbackCalled = keyLen
+    end
+
+    """
+
+    def testLuaThreadCounter(self):
+        """
+        LuaThread: Test the lua newThread interface
+        """
+        self.sendConsoleCommand('setTicketsKeyAddedHook(keyAddedCallback)');
+        called = self.sendConsoleCommand('callbackCalled')
+        self.assertEqual(int(called), 0)
+        self.sendConsoleCommand("getTLSFrontend(0):rotateTicketsKey()")
+        called = self.sendConsoleCommand('callbackCalled')
+        self.assertGreater(int(called), 0)

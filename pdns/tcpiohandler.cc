@@ -22,6 +22,7 @@ const bool TCPIOHandler::s_disableConnectForUnitTests = false;
 
 #include "libssl.hh"
 
+dnsdist_tickets_key_added_hook TLSCtx::s_ticketsKeyAddedHook{nullptr};
 
 class OpenSSLFrontendContext
 {
@@ -987,6 +988,16 @@ public:
       throw;
     }
   }
+  [[nodiscard]] std::string content() const
+  {
+    std::string result{};
+    if (d_key.data != nullptr && d_key.size > 0) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      result.append(reinterpret_cast<const char*>(d_key.data), d_key.size);
+      safe_memory_lock(result.data(), result.size());
+    }
+    return result;
+  }
 
   ~GnuTLSTicketsKey()
   {
@@ -1730,13 +1741,11 @@ public:
     return connection;
   }
 
-  void rotateTicketsKey(time_t now) override
+  void addTicketsKey(time_t now, std::shared_ptr<GnuTLSTicketsKey>&& newKey)
   {
     if (!d_enableTickets) {
       return;
     }
-
-    auto newKey = std::make_shared<GnuTLSTicketsKey>();
 
     {
       *(d_ticketsKey.write_lock()) = std::move(newKey);
@@ -1745,8 +1754,23 @@ public:
     if (d_ticketsKeyRotationDelay > 0) {
       d_ticketsKeyNextRotation = now + d_ticketsKeyRotationDelay;
     }
-  }
 
+    if (TLSCtx::hasTicketsKeyAddedHook()) {
+      auto ticketsKey = *(d_ticketsKey.read_lock());
+      auto content = ticketsKey->content();
+      TLSCtx::getTicketsKeyAddedHook()(content);
+      safe_memory_release(content.data(), content.size());
+    }
+  }
+  void rotateTicketsKey(time_t now) override
+  {
+    if (!d_enableTickets) {
+      return;
+    }
+
+    auto newKey = std::make_shared<GnuTLSTicketsKey>();
+    addTicketsKey(now, std::move(newKey));
+  }
   void loadTicketsKeys(const std::string& file) final
   {
     if (!d_enableTickets) {
@@ -1754,13 +1778,7 @@ public:
     }
 
     auto newKey = std::make_shared<GnuTLSTicketsKey>(file);
-    {
-      *(d_ticketsKey.write_lock()) = std::move(newKey);
-    }
-
-    if (d_ticketsKeyRotationDelay > 0) {
-      d_ticketsKeyNextRotation = time(nullptr) + d_ticketsKeyRotationDelay;
-    }
+    addTicketsKey(time(nullptr), std::move(newKey));
   }
 
   size_t getTicketsKeysCount() override

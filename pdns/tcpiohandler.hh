@@ -66,6 +66,8 @@ protected:
   bool d_resumedFromInactiveTicketKey{false};
 };
 
+using dnsdist_tickets_key_added_hook = std::function<void(const std::string& key)>;
+
 class TLSCtx
 {
 public:
@@ -81,7 +83,6 @@ public:
   {
     throw std::runtime_error("This TLS backend does not have the capability to load a tickets key from a file");
   }
-
   void handleTicketsKeyRotation(time_t now)
   {
     if (d_ticketsKeyRotationDelay != 0 && now > d_ticketsKeyNextRotation) {
@@ -124,10 +125,25 @@ public:
     return false;
   }
 
+  static void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook)
+  {
+    TLSCtx::s_ticketsKeyAddedHook = hook;
+  }
+  static const dnsdist_tickets_key_added_hook& getTicketsKeyAddedHook()
+  {
+    return TLSCtx::s_ticketsKeyAddedHook;
+  }
+  static bool hasTicketsKeyAddedHook()
+  {
+    return TLSCtx::s_ticketsKeyAddedHook != nullptr;
+  }
 protected:
   std::atomic_flag d_rotatingTicketsKey;
   std::atomic<time_t> d_ticketsKeyNextRotation{0};
   time_t d_ticketsKeyRotationDelay{0};
+
+private:
+  static dnsdist_tickets_key_added_hook s_ticketsKeyAddedHook;
 };
 
 class TLSFrontend

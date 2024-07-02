@@ -42,6 +42,7 @@
 
 #undef CERT
 #include "misc.hh"
+#include "tcpiohandler.hh"
 
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x2090100fL)
 /* OpenSSL < 1.1.0 needs support for threading/locking in the calling application. */
@@ -631,6 +632,13 @@ OpenSSLTLSTicketKeysRing::~OpenSSLTLSTicketKeysRing() = default;
 void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& newKey)
 {
   d_ticketKeys.write_lock()->push_front(std::move(newKey));
+  if (TLSCtx::hasTicketsKeyAddedHook()) {
+    auto key = d_ticketKeys.read_lock()->front();
+    auto keyContent = key->content();
+    TLSCtx::getTicketsKeyAddedHook()(keyContent);
+    // fills mem with 0's
+    OPENSSL_cleanse(keyContent.data(), keyContent.size());
+  }
 }
 
 std::shared_ptr<OpenSSLTLSTicketKey> OpenSSLTLSTicketKeysRing::getEncryptionKey()
@@ -735,6 +743,19 @@ OpenSSLTLSTicketKey::~OpenSSLTLSTicketKey()
 bool OpenSSLTLSTicketKey::nameMatches(const unsigned char name[TLS_TICKETS_KEY_NAME_SIZE]) const
 {
   return (memcmp(d_name, name, sizeof(d_name)) == 0);
+}
+
+std::string OpenSSLTLSTicketKey::content() const
+{
+  std::string result{};
+  result.reserve(TLS_TICKETS_KEY_NAME_SIZE + TLS_TICKETS_CIPHER_KEY_SIZE + TLS_TICKETS_MAC_KEY_SIZE);
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+  result.append(reinterpret_cast<const char*>(d_name), TLS_TICKETS_KEY_NAME_SIZE);
+  result.append(reinterpret_cast<const char*>(d_cipherKey), TLS_TICKETS_CIPHER_KEY_SIZE);
+  result.append(reinterpret_cast<const char*>(d_hmacKey), TLS_TICKETS_MAC_KEY_SIZE);
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+
+  return result;
 }
 
 #if OPENSSL_VERSION_MAJOR >= 3
