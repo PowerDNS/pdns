@@ -255,8 +255,22 @@ public:
   static void clearThrottle();
   static bool isThrottled(time_t now, const ComboAddress& server, const DNSName& target, QType qtype);
   static bool isThrottled(time_t now, const ComboAddress& server);
-  static void doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries);
-  static void doThrottle(time_t now, const ComboAddress& server, const DNSName& name, QType qtype, time_t duration, unsigned int tries);
+
+  enum class ThrottleReason : uint8_t
+  {
+    None,
+    ServerDown,
+    PermanentError,
+    Timeout,
+    ParseError,
+    RCodeServFail,
+    RCodeRefused,
+    RCodeOther,
+    TCPTruncate,
+    Lame,
+  };
+  static void doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries, ThrottleReason reason);
+  static void doThrottle(time_t now, const ComboAddress& server, const DNSName& name, QType qtype, time_t duration, unsigned int tries, ThrottleReason reason);
   static void unThrottle(const ComboAddress& server, const DNSName& qname, QType qtype);
 
   static uint64_t getFailedServersSize();

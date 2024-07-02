@@ -245,26 +245,36 @@ public:
 
 static LockGuarded<nsspeeds_t> s_nsSpeeds;
 
-template <class Thing>
-class Throttle : public boost::noncopyable
+class Throttle
 {
 public:
+  Throttle() = default;
+  ~Throttle() = default;
+  Throttle(Throttle&&) = delete;
+  Throttle& operator=(const Throttle&) = default;
+  Throttle& operator=(Throttle&&) = delete;
+  Throttle(const Throttle&) = delete;
+
+  using Key = std::tuple<ComboAddress, DNSName, QType>;
+  using Reason = SyncRes::ThrottleReason;
+
   struct entry_t
   {
-    entry_t(const Thing& thing_, time_t ttd_, unsigned int count_) :
-      thing(thing_), ttd(ttd_), count(count_)
+    entry_t(Key thing_, time_t ttd_, unsigned int count_, Reason reason_) :
+      thing(std::move(thing_)), ttd(ttd_), count(count_), reason(reason_)
     {
     }
-    Thing thing;
+    Key thing;
     time_t ttd;
     mutable unsigned int count;
+    Reason reason;
   };
   using cont_t = multi_index_container<entry_t,
                                        indexed_by<
-                                         ordered_unique<tag<Thing>, member<entry_t, Thing, &entry_t::thing>>,
+                                         ordered_unique<tag<Key>, member<entry_t, Key, &entry_t::thing>>,
                                          ordered_non_unique<tag<time_t>, member<entry_t, time_t, &entry_t::ttd>>>>;
 
-  bool shouldThrottle(time_t now, const Thing& arg)
+  bool shouldThrottle(time_t now, const Key& arg)
   {
     auto iter = d_cont.find(arg);
     if (iter == d_cont.end()) {
@@ -279,18 +289,22 @@ public:
     return true; // still listed, still blocked
   }
 
-  void throttle(time_t now, const Thing& arg, time_t ttl, unsigned int count)
+  void throttle(time_t now, const Key& arg, time_t ttl, unsigned int count, Reason reason)
   {
     auto iter = d_cont.find(arg);
     time_t ttd = now + ttl;
     if (iter == d_cont.end()) {
-      d_cont.emplace(arg, ttd, count);
+      d_cont.emplace(arg, ttd, count, reason);
     }
     else if (ttd > iter->ttd || count > iter->count) {
       ttd = std::max(iter->ttd, ttd);
       count = std::max(iter->count, count);
-      auto& ind = d_cont.template get<Thing>();
-      ind.modify(iter, [ttd, count](entry_t& entry) { entry.ttd = ttd; entry.count = count; });
+      auto& ind = d_cont.template get<Key>();
+      ind.modify(iter, [ttd, count, reason](entry_t& entry) {
+        entry.ttd = ttd;
+        entry.count = count;
+        entry.reason = reason;
+      });
     }
   }
 
@@ -309,7 +323,7 @@ public:
     d_cont.clear();
   }
 
-  void clear(const Thing& thing)
+  void clear(const Key& thing)
   {
     d_cont.erase(thing);
   }
@@ -319,11 +333,31 @@ public:
     ind.erase(ind.begin(), ind.upper_bound(now));
   }
 
+  static std::string toString(Reason reason)
+  {
+    static const std::array<std::string, 10> reasons = {
+      "None",
+      "ServerDown",
+      "PermanentError",
+      "Timeout",
+      "ParseError",
+      "RCodeServFail",
+      "RCodeRefused",
+      "RCodeOther",
+      "TCPTruncate",
+      "Lame"};
+    const auto index = static_cast<unsigned int>(reason);
+    if (index >= reasons.size()) {
+      return "?";
+    }
+    return reasons.at(index);
+  }
+
 private:
   cont_t d_cont;
 };
 
-static LockGuarded<Throttle<std::tuple<ComboAddress, DNSName, QType>>> s_throttle;
+static LockGuarded<Throttle> s_throttle;
 
 struct SavedParentEntry
 {
@@ -1279,14 +1313,14 @@ void SyncRes::unThrottle(const ComboAddress& server, const DNSName& name, QType 
   s_throttle.lock()->clear(std::tuple(server, name, qtype));
 }
 
-void SyncRes::doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries)
+void SyncRes::doThrottle(time_t now, const ComboAddress& server, time_t duration, unsigned int tries, Throttle::Reason reason)
 {
-  s_throttle.lock()->throttle(now, std::tuple(server, g_rootdnsname, 0), duration, tries);
+  s_throttle.lock()->throttle(now, std::tuple(server, g_rootdnsname, 0), duration, tries, reason);
 }
 
-void SyncRes::doThrottle(time_t now, const ComboAddress& server, const DNSName& name, QType qtype, time_t duration, unsigned int tries)
+void SyncRes::doThrottle(time_t now, const ComboAddress& server, const DNSName& name, QType qtype, time_t duration, unsigned int tries, Throttle::Reason reason)
 {
-  s_throttle.lock()->throttle(now, std::tuple(server, name, qtype), duration, tries);
+  s_throttle.lock()->throttle(now, std::tuple(server, name, qtype), duration, tries, reason);
 }
 
 uint64_t SyncRes::doDumpThrottleMap(int fileDesc)
@@ -1301,7 +1335,7 @@ uint64_t SyncRes::doDumpThrottleMap(int fileDesc)
     return 0;
   }
   fprintf(filePtr.get(), "; throttle map dump follows\n");
-  fprintf(filePtr.get(), "; remote IP\tqname\tqtype\tcount\tttd\n");
+  fprintf(filePtr.get(), "; remote IP\tqname\tqtype\tcount\tttd\treason\n");
   uint64_t count = 0;
 
   // Get a copy to avoid holding the lock while doing I/O
@@ -1309,8 +1343,8 @@ uint64_t SyncRes::doDumpThrottleMap(int fileDesc)
   for (const auto& iter : throttleMap) {
     count++;
     timebuf_t tmp;
-    // remote IP, dns name, qtype, count, ttd
-    fprintf(filePtr.get(), "%s\t%s\t%s\t%u\t%s\n", std::get<0>(iter.thing).toString().c_str(), std::get<1>(iter.thing).toLogString().c_str(), std::get<2>(iter.thing).toString().c_str(), iter.count, timestamp(iter.ttd, tmp));
+    // remote IP, dns name, qtype, count, ttd, reason
+    fprintf(filePtr.get(), "%s\t%s\t%s\t%u\t%s\t%s\n", std::get<0>(iter.thing).toString().c_str(), std::get<1>(iter.thing).toLogString().c_str(), std::get<2>(iter.thing).toString().c_str(), iter.count, timestamp(iter.ttd, tmp), Throttle::toString(iter.reason).c_str());
   }
 
   return count;
@@ -5415,11 +5449,11 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       if (s_serverdownmaxfails > 0 && auth != g_rootdnsname && s_fails.lock()->incr(remoteIP, d_now) >= s_serverdownmaxfails) {
         LOG(prefix << qname << ": Max fails reached resolving on " << remoteIP.toString() << ". Going full throttle for " << s_serverdownthrottletime << " seconds" << endl);
         // mark server as down
-        doThrottle(d_now.tv_sec, remoteIP, s_serverdownthrottletime, 10000);
+        doThrottle(d_now.tv_sec, remoteIP, s_serverdownthrottletime, 10000, Throttle::Reason::ServerDown);
       }
       else if (resolveret == LWResult::Result::PermanentError) {
         // unreachable, 1 minute or 100 queries
-        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 100);
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 100, Throttle::Reason::PermanentError);
       }
       else {
         // If the actual response time was more than 80% of the default timeout, we throttle. On a
@@ -5427,7 +5461,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
         // such a shortened timeout.
         if (responseUsec > g_networkTimeoutMsec * 800) {
           // timeout, 10 seconds or 5 queries
-          doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 5);
+          doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 5, Throttle::Reason::Timeout);
         }
       }
     }
@@ -5444,10 +5478,10 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
       if (doTCP) {
         // we can be more heavy-handed over TCP
-        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 10);
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 10, Throttle::Reason::ParseError);
       }
       else {
-        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 2);
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 10, 2, Throttle::Reason::ParseError);
       }
     }
     return false;
@@ -5463,7 +5497,19 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
         s_nsSpeeds.lock()->find_or_enter(nsName.empty() ? DNSName(remoteIP.toStringWithPort()) : nsName, d_now).submit(remoteIP, 1000000, d_now); // 1 sec
       }
       else {
-        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 3);
+        Throttle::Reason reason{};
+        switch (lwr.d_rcode) {
+        case RCode::ServFail:
+          reason = Throttle::Reason::RCodeServFail;
+          break;
+        case RCode::Refused:
+          reason = Throttle::Reason::RCodeRefused;
+          break;
+        default:
+          reason = Throttle::Reason::RCodeOther;
+          break;
+        }
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 3, reason);
       }
     }
     return false;
@@ -5483,7 +5529,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix << qname << ": Truncated bit set, over TCP?" << endl);
       if (!dontThrottle) {
         /* let's treat that as a ServFail answer from this server */
-        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 3);
+        doThrottle(d_now.tv_sec, remoteIP, qname, qtype, 60, 3, Throttle::Reason::TCPTruncate);
       }
       return false;
     }
@@ -5889,7 +5935,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           }
           /* was lame */
           if (!shouldNotThrottle(&tns->first, &*remoteIP)) {
-            doThrottle(d_now.tv_sec, *remoteIP, qname, qtype, 60, 100);
+            doThrottle(d_now.tv_sec, *remoteIP, qname, qtype, 60, 100, Throttle::Reason::Lame);
           }
         }
 

@@ -8,6 +8,7 @@
 ./pdns/auth-carbon.cc
 ./pdns/auth-packetcache.cc
 ./pdns/auth-packetcache.hh
+./pdns/auth-primarycommunicator.cc
 ./pdns/auth-querycache.cc
 ./pdns/auth-querycache.hh
 ./pdns/axfr-retriever.cc
@@ -125,7 +126,6 @@
 ./pdns/lua-record.cc
 ./pdns/malloctrace.cc
 ./pdns/malloctrace.hh
-./pdns/auth-primarycommunicator.cc
 ./pdns/minicurl.cc
 ./pdns/minicurl.hh
 ./pdns/misc.cc
