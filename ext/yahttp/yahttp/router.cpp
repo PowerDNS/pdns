@@ -62,8 +62,15 @@ namespace YaHTTP {
           }
           nend = upos;
           params[pname] = funcptr::tie(nstart, nend);
-
-          upos--;
+          if (upos > 0) {
+            upos--;
+          }
+          else {
+            // If upos is zero, do not decrement it and then increment at bottom of loop, this disturbs Coverity.
+            // Only increment rpos and continue loop
+            rpos++;
+            continue;
+          }
         }
         else if (route[rpos] != requrl.path[upos]) {
           break;
