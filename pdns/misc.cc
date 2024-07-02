@@ -284,7 +284,7 @@ auto pdns::OpenSSL::error(const std::string& errorMessage) -> std::runtime_error
     }
   }
 #endif
-  return std::runtime_error(fullErrorMessage);
+  return std::runtime_error{fullErrorMessage};
 }
 
 auto pdns::OpenSSL::error(const std::string& componentName, const std::string& errorMessage) -> std::runtime_error

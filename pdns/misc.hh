@@ -46,7 +46,17 @@
 class DNSName;
 
 // Do not change to "using TSIGHashEnum ..." until you know CodeQL does not choke on it
-typedef enum { TSIG_MD5, TSIG_SHA1, TSIG_SHA224, TSIG_SHA256, TSIG_SHA384, TSIG_SHA512, TSIG_GSS } TSIGHashEnum;
+typedef enum
+{
+  TSIG_MD5,
+  TSIG_SHA1,
+  TSIG_SHA224,
+  TSIG_SHA256,
+  TSIG_SHA384,
+  TSIG_SHA512,
+  TSIG_GSS,
+} TSIGHashEnum;
+
 namespace pdns
 {
 /**
