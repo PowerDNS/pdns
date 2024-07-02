@@ -24,7 +24,7 @@ jobs:
       matrix:
         product: ['authoritative', 'recursor', 'dnsdist']
         os:
-          - centos-7
+          - el-7
           - el-8
           - centos-9-stream
           - ubuntu-lunar
