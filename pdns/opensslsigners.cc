@@ -19,14 +19,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#include "config.h"
 #include "misc.hh"
 #include <memory>
 #include <openssl/crypto.h>
 #include <openssl/ec.h>
 #include <optional>
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 #include <openssl/obj_mac.h>
 #ifdef HAVE_LIBCRYPTO_ECDSA
 #include <openssl/ecdsa.h>
