@@ -525,11 +525,10 @@ void WebServer::serveConnection(const std::shared_ptr<Socket>& client) const {
 
     try {
       while(!req.complete) {
-        int bytes;
-        char buf[16000];
-        bytes = client->readWithTimeout(buf, sizeof(buf), timeout);
+        std::array<char, 16000> buf{};
+        auto bytes = client->readWithTimeout(buf.data(), buf.size(), timeout);
         if (bytes > 0) {
-          string data = string(buf, bytes);
+          string data = string(buf.data(), bytes);
           req.complete = yarl.feed(data);
         } else {
           // read error OR EOF

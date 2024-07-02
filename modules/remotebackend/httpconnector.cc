@@ -431,23 +431,19 @@ int HTTPConnector::recv_message(Json& output)
   if (d_socket == nullptr) {
     return -1; // cannot receive :(
   }
-  char buffer[4096];
-  int rd = -1;
-  time_t t0 = 0;
+  std::array<char, 4096> buffer{};
+  time_t time0 = 0;
 
   arl.initialize(&resp);
 
   try {
-    t0 = time((time_t*)nullptr);
-    while (!arl.ready() && (labs(time((time_t*)nullptr) - t0) <= timeout)) {
-      rd = d_socket->readWithTimeout(buffer, sizeof(buffer), timeout);
-      if (rd == 0) {
+    time0 = time(nullptr);
+    while (!arl.ready() && (labs(time(nullptr) - time0) <= timeout)) {
+      auto readBytes = d_socket->readWithTimeout(buffer.data(), buffer.size(), timeout);
+      if (readBytes == 0) {
         throw NetworkError("EOF while reading");
       }
-      if (rd < 0) {
-        throw NetworkError(std::string(strerror(rd)));
-      }
-      arl.feed(std::string(buffer, rd));
+      arl.feed(std::string(buffer.data(), readBytes));
     }
     // timeout occurred.
     if (!arl.ready()) {
@@ -470,13 +466,12 @@ int HTTPConnector::recv_message(Json& output)
     throw PDNSException("Received unacceptable HTTP status code " + std::to_string(resp.status) + " from HTTP endpoint " + d_addr.toStringWithPort());
   }
 
-  int rv = -1;
   std::string err;
   output = Json::parse(resp.body, err);
   if (output != nullptr) {
-    return resp.body.size();
+    return static_cast<int>(resp.body.size());
   }
   g_log << Logger::Error << "Cannot parse JSON reply: " << err << endl;
 
-  return rv;
+  return -1;
 }
