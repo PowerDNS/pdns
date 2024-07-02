@@ -994,6 +994,7 @@ public:
     if (d_key.data != nullptr && d_key.size > 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       result.append(reinterpret_cast<const char*>(d_key.data), d_key.size);
+      safe_memory_lock(result.data(), result.size());
     }
     return result;
   }
@@ -1758,6 +1759,7 @@ public:
       auto ticketsKey = *(d_ticketsKey.read_lock());
       auto content = ticketsKey->content();
       TLSCtx::getTicketsKeyAddedHook()(content);
+      safe_memory_release(content.data(), content.size());
     }
   }
   void rotateTicketsKey(time_t now) override
