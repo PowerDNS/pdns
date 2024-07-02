@@ -53,8 +53,8 @@ uint32_t getSerialFromPrimary(const ComboAddress& primary, const DNSName& zone, 
   string reply;
   reply.resize(4096);
   // will throw a NetworkError on timeout
-  ssize_t got = s.readWithTimeout(&reply[0], reply.size(), timeout);
-  if (got < 0 || static_cast<size_t>(got) < sizeof(dnsheader)) {
+  size_t got = s.readWithTimeout(reply.data(), reply.size(), timeout);
+  if (got < sizeof(dnsheader)) {
     throw std::runtime_error("Invalid response size " + std::to_string(got));
   }
 
