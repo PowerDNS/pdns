@@ -27,12 +27,7 @@ class LuaContext;
 
 namespace dnsdist::lua::hooks
 {
-using MaintenanceCallback = std::function<void()>;
-using TicketsKeyAddedHook = std::function<void(const char*, size_t)>;
-
 void runMaintenanceHooks(const LuaContext& context);
-void addMaintenanceCallback(const LuaContext& context, MaintenanceCallback callback);
-void setTicketsKeyAddedHook(const LuaContext& context, const TicketsKeyAddedHook& hook);
 void clearMaintenanceHooks();
 void setupLuaHooks(LuaContext& luaCtx);
 }

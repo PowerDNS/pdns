@@ -2175,7 +2175,7 @@ Other functions
 
 .. function:: setTicketsKeyAddedHook(callback)
 
-  .. versionadded:: 1.9.0
+  .. versionadded:: 1.9.6
 
   Set a Lua function that will be called everytime a new tickets key is added. The function receives:
 

@@ -636,6 +636,8 @@ void OpenSSLTLSTicketKeysRing::addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& new
     auto key = d_ticketKeys.read_lock()->front();
     auto keyContent = key->content();
     TLSCtx::getTicketsKeyAddedHook()(keyContent);
+    // fills mem with 0's
+    OPENSSL_cleanse(keyContent.data(), keyContent.size());
   }
 }
 
