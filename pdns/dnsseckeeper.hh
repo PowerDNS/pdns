@@ -31,6 +31,7 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include "dnssecinfra.hh"
 #include "dnsrecords.hh"
+#include "dnspacket.hh"
 #include "ueberbackend.hh"
 #include "lock.hh"
 
@@ -208,7 +209,7 @@ public:
   bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg);
   bool setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
   bool unsetNSEC3PARAM(const DNSName& zname);
-  void getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, uint32_t signTTL);
+  void getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, uint32_t signTTL, DNSPacket* p=nullptr);
   bool isPresigned(const DNSName& zname, bool useCache=true);
   bool setPresigned(const DNSName& zname);
   bool unsetPresigned(const DNSName& zname);
@@ -303,7 +304,6 @@ private:
   static size_t s_maxEntries;
 };
 
-class DNSPacket;
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 // for SOA-EDIT
 uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const DNSName& zonename);

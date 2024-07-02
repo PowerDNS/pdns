@@ -145,7 +145,7 @@ static int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSN
 // this is the entrypoint from DNSPacket
 static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, const DNSName& signQName, const DNSName& wildcardname, uint16_t signQType,
                          uint32_t signTTL, DNSResourceRecord::Place signPlace,
-                         sortedRecords_t& toSign, vector<DNSZoneRecord>& outsigned, uint32_t origTTL)
+                         sortedRecords_t& toSign, vector<DNSZoneRecord>& outsigned, uint32_t origTTL, DNSPacket* p)
 {
   //cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
   if(toSign.empty())
@@ -153,7 +153,7 @@ static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& sign
   vector<RRSIGRecordContent> rrcs;
   if(dk.isPresigned(signer)) {
     //cerr<<"Doing presignatures"<<endl;
-    dk.getPreRRSIGs(db, outsigned, origTTL); // does it all
+    dk.getPreRRSIGs(db, outsigned, origTTL, p); // does it all
   }
   else {
     if(getRRSIGsForRRSET(dk, signer, wildcardname.countLabels() ? wildcardname : signQName, signQType, signTTL, toSign, rrcs) < 0)  {
@@ -203,7 +203,7 @@ static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name,
   return false;
 }
 
-void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, vector<DNSZoneRecord>& rrs)
+void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, vector<DNSZoneRecord>& rrs, DNSPacket* p)
 {
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
 
@@ -222,7 +222,7 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
   for(auto pos = rrs.cbegin(); pos != rrs.cend(); ++pos) {
     if(pos != rrs.cbegin() && (signQType != pos->dr.d_type  || signQName != pos->dr.d_name)) {
       if (getBestAuthFromSet(authSet, authQName, signer))
-        addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL);
+        addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL, p);
     }
     signedRecords.push_back(*pos);
     signQName = pos->dr.d_name.makeLowerCase();
@@ -248,6 +248,6 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
     }
   }
   if (getBestAuthFromSet(authSet, authQName, signer))
-    addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL);
+    addSignature(dk, db, signer, signQName, wildcardQName, signQType, signTTL, signPlace, toSign, signedRecords, origTTL, p);
   rrs.swap(signedRecords);
 }
