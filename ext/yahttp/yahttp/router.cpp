@@ -49,21 +49,28 @@ namespace YaHTTP {
             rpos = route.size();
             upos = requrl.path.size();
             break;
-          } else { 
-            // match until url[upos] or next / if pattern is at end
-            while (upos < requrl.path.size()) {
-               if (route[rpos+1] == '\0' && requrl.path[upos] == '/') {
-                  break;
-               }
-               if (requrl.path[upos] == route[rpos+1]) {
-                  break;
-               }
-               upos++;
-            }
-            nend = upos;
-            params[pname] = funcptr::tie(nstart, nend);
           }
-          upos--;
+          // match until url[upos] or next / if pattern is at end
+          while (upos < requrl.path.size()) {
+            if (route[rpos+1] == '\0' && requrl.path[upos] == '/') {
+              break;
+            }
+            if (requrl.path[upos] == route[rpos+1]) {
+              break;
+            }
+            upos++;
+          }
+          nend = upos;
+          params[pname] = funcptr::tie(nstart, nend);
+          if (upos > 0) {
+            upos--;
+          }
+          else {
+            // If upos is zero, do not decrement it and then increment at bottom of loop, this disturbs Coverity.
+            // Only increment rpos and continue loop
+            rpos++;
+            continue;
+          }
         }
         else if (route[rpos] != requrl.path[upos]) {
           break;
