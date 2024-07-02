@@ -24,6 +24,9 @@
 #include "boost/algorithm/string/join.hpp"
 #include "pdns/arguments.hh"
 
+#include "pdns/dnsbackend.hh"
+#include "pdns/lua-auth4.hh"
+
 class Lua2BackendAPIv2 : public DNSBackend, AuthLua4
 {
 private:
