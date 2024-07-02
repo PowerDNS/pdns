@@ -894,15 +894,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
   }
 
   if (shouldRectify && !isPresigned) {
-    // Rectify
-    if (isZoneApiRectifyEnabled(domainInfo)) {
-      string info;
-      string error_msg;
-      if (!dnssecKeeper.rectifyZone(zonename, error_msg, info, false) && !domainInfo.isSecondaryType()) {
-        // for Secondary zones, it is possible that rectifying was not needed (example: empty zone).
-        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
-      }
-    }
+    // First increase the serial (which removes the ordername from the SOA RR) if configured. And then rectify.
 
     // Increase serial
     string soa_edit_api_kind;
@@ -921,6 +913,16 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
         if (!domainInfo.backend->replaceRRSet(domainInfo.id, resourceRecord.qname, resourceRecord.qtype, vector<DNSResourceRecord>(1, resourceRecord))) {
           throw ApiException("Hosting backend does not support editing records.");
         }
+      }
+    }
+
+    // Rectify
+    if (isZoneApiRectifyEnabled(domainInfo)) {
+      string info;
+      string error_msg;
+      if (!dnssecKeeper.rectifyZone(zonename, error_msg, info, false) && !domainInfo.isSecondaryType()) {
+        // for Secondary zones, it is possible that rectifying was not needed (example: empty zone).
+        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
       }
     }
   }
