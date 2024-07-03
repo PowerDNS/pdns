@@ -15,7 +15,7 @@
 uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
 
 #include "ext/luawrapper/include/LuaContext.hpp"
-LockGuarded<LuaContext> g_lua{LuaContext()};
+RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};
 
 bool g_snmpEnabled{false};
 bool g_snmpTrapsEnabled{false};

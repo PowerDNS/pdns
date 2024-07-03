@@ -888,7 +888,7 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
   }
 }
 
-LockGuarded<LuaContext> g_lua{LuaContext()};
+RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};
 ComboAddress g_serverControl{"127.0.0.1:5199"};
 
 static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoofContent, bool raw)
