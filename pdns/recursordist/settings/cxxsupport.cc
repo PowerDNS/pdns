@@ -1095,7 +1095,7 @@ void fromRustToLuaConfig(const pdns::rust::settings::rec::ProtobufServer& pbServ
   exp.enabled = true;
   exp.exportTypes.clear();
   for (const auto& type : pbServer.exportTypes) {
-    exp.exportTypes.emplace(QType::chartocode(std::string(type).c_str()));
+    exp.exportTypes.emplace(QType::fromString(std::string(type)));
   }
   for (const auto& server : pbServer.servers) {
     exp.servers.emplace_back(std::string(server));
@@ -1253,10 +1253,10 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::SortList>& s
 void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::AllowedAdditionalQType>& alloweds, std::map<QType, std::pair<std::set<QType>, AdditionalMode>>& lua)
 {
   for (const auto& allowed : alloweds) {
-    QType qtype(QType::chartocode(std::string(allowed.qtype).c_str()));
+    QType qtype = QType::fromString(std::string(allowed.qtype));
     std::set<QType> set;
     for (const auto& target : allowed.targets) {
-      set.emplace(QType::chartocode(std::string(target).c_str()));
+      set.emplace(QType::fromString(std::string(target)));
     }
     AdditionalMode mode = AdditionalMode::CacheOnlyRequireAuth;
     mode = cvtAdditional(std::string(allowed.mode));
@@ -1384,7 +1384,7 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const s
 uint16_t pdns::rust::settings::rec::qTypeStringToCode(::rust::Str str)
 {
   std::string tmp(str.data(), str.length());
-  return QType::chartocode(tmp.c_str());
+  return QType::fromString(std::string(tmp));
 }
 
 bool pdns::rust::settings::rec::isValidHostname(::rust::Str str)

@@ -851,7 +851,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName& qname, const QType qtype, con
   static const DNSName negativetrustanchorserver("negativetrustanchor.server.");
 
   bool handled = false;
-  vector<pair<QType::typeenum, string>> answers;
+  vector<pair<QType::QTypeEnum, string>> answers;
 
   if ((qname == arpa || qname == ip6_arpa) && qclass == QClass::IN) {
     handled = true;
