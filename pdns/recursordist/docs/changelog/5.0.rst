@@ -4,6 +4,31 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+   :version: 5.0.7
+   :released: 3rd of July 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14379
+    :tickets: 14373
+
+    Remove potential double SOA records if the target of a dns64 name is NODATA.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14351
+    :tickets: 14346
+
+    Fix TCP case for policy tags to not produce cached tags in protobuf messages.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14348
+    :tickets: 14340
+
+    Count substituted remote in case of proxy protocol.
+
+.. changelog::
    :version: 5.0.6
    :released: 5th of June 2024
 

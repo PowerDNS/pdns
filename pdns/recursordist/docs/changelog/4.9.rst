@@ -2,6 +2,24 @@ Changelogs for 4.9.X
 ====================
 
 .. changelog::
+  :version: 4.9.7
+  :released: 3rd of July 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14380
+    :tickets: 14373
+
+    Remove potential double SOA records if the target of a dns64 name is NODATA.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14352
+    :tickets: 14346
+
+    Fix TCP case for policy tags to not produce cached tags in protobuf messages.
+
+.. changelog::
   :version: 4.9.6
   :released: 14th of May 2024
 

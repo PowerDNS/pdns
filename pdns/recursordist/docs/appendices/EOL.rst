@@ -45,7 +45,7 @@ That means that we ask you to reproduce potential issues on the latest minor rel
    * - 4.8
      - December 12 2022
      - June 30 2023
-     - June 30 2024
+     - EOL June 30 2024
    * - 4.7
      - May 30 2022
      - December 12 2022
