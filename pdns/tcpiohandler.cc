@@ -11,6 +11,8 @@ const bool TCPIOHandler::s_disableConnectForUnitTests = false;
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
 
+dnsdist_tickets_key_added_hook TLSCtx::s_ticketsKeyAddedHook{nullptr};
+
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 #ifdef HAVE_LIBSSL
 
@@ -22,7 +24,6 @@ const bool TCPIOHandler::s_disableConnectForUnitTests = false;
 
 #include "libssl.hh"
 
-dnsdist_tickets_key_added_hook TLSCtx::s_ticketsKeyAddedHook{nullptr};
 
 class OpenSSLFrontendContext
 {
