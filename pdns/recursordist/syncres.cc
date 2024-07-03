@@ -4219,29 +4219,34 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
 
   for (auto rec = lwr.d_records.begin(); rec != lwr.d_records.end();) {
 
+    // Allow OPT record containing EDNS(0) data
     if (rec->d_type == QType::OPT) {
       ++rec;
       continue;
     }
 
+    // Disallow QClass != IN
     if (rec->d_class != QClass::IN) {
       LOG(prefix << qname << ": Removing non internet-classed data received from " << auth << endl);
       rec = lwr.d_records.erase(rec);
       continue;
     }
 
+    // Disallow QType ANY in responses
     if (rec->d_type == QType::ANY) {
       LOG(prefix << qname << ": Removing 'ANY'-typed data received from " << auth << endl);
       rec = lwr.d_records.erase(rec);
       continue;
     }
 
+    // Disallow any name not part of qname requested
     if (!rec->d_name.isPartOf(auth)) {
       LOG(prefix << qname << ": Removing record '" << rec->d_name << "|" << DNSRecordContent::NumberToType(rec->d_type) << "|" << rec->getContent()->getZoneRepresentation() << "' in the " << (int)rec->d_place << " section received from " << auth << endl);
       rec = lwr.d_records.erase(rec);
       continue;
     }
 
+    // Special case for Amazon CNAME records
     /* dealing with the records in answer */
     if (!(lwr.d_aabit || wasForwardRecurse) && rec->d_place == DNSResourceRecord::ANSWER) {
       /* for now we allow a CNAME for the exact qname in ANSWER with AA=0, because Amazon DNS servers
@@ -4253,12 +4258,15 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       }
     }
 
+    // Disallow QType DNAME in non-answer section or containing an answer that is not a parent of or equal to the question name
     if (rec->d_type == QType::DNAME && (rec->d_place != DNSResourceRecord::ANSWER || !qname.isPartOf(rec->d_name))) {
       LOG(prefix << qname << ": Removing invalid DNAME record '" << rec->d_name << "|" << DNSRecordContent::NumberToType(rec->d_type) << "|" << rec->getContent()->getZoneRepresentation() << "' in the " << (int)rec->d_place << " section received from " << auth << endl);
       rec = lwr.d_records.erase(rec);
       continue;
     }
 
+    // Disallow answer records not anwering the QType requested. ANY, CNAME, DNAME, RRSIG complicate matters here
+    // Question: is the SOA check OK?  See RFC2181 section 7.1
     if (rec->d_place == DNSResourceRecord::ANSWER && (qtype != QType::ANY && rec->d_type != qtype.getCode() && s_redirectionQTypes.count(rec->d_type) == 0 && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG)) {
       LOG(prefix << qname << ": Removing irrelevant record '" << rec->d_name << "|" << DNSRecordContent::NumberToType(rec->d_type) << "|" << rec->getContent()->getZoneRepresentation() << "' in the ANSWER section received from " << auth << endl);
       rec = lwr.d_records.erase(rec);
@@ -4274,6 +4282,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
 
     /* dealing with the records in authority */
+    // Only allow NS, DS, SOA, RRSIG, NSEC, NSEC3 in AUTHORITY section
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type != QType::NS && rec->d_type != QType::DS && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG && rec->d_type != QType::NSEC && rec->d_type != QType::NSEC3) {
       LOG(prefix << qname << ": Removing irrelevant record '" << rec->d_name << "|" << DNSRecordContent::NumberToType(rec->d_type) << "|" << rec->getContent()->getZoneRepresentation() << "' in the AUTHORITY section received from " << auth << endl);
       rec = lwr.d_records.erase(rec);
@@ -4281,12 +4290,14 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
 
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::SOA) {
+      // Disallow a SOA record with a name that is not a parent of or equal to the name we asked
       if (!qname.isPartOf(rec->d_name)) {
         LOG(prefix << qname << ": Removing irrelevant SOA record '" << rec->d_name << "|" << rec->getContent()->getZoneRepresentation() << "' in the AUTHORITY section received from " << auth << endl);
         rec = lwr.d_records.erase(rec);
         continue;
       }
 
+      // Disallow SOA without AA bit (except for forward with RD=1)
       if (!(lwr.d_aabit || wasForwardRecurse)) {
         LOG(prefix << qname << ": Removing irrelevant record (AA not set) '" << rec->d_name << "|" << DNSRecordContent::NumberToType(rec->d_type) << "|" << rec->getContent()->getZoneRepresentation() << "' in the AUTHORITY section received from " << auth << endl);
         rec = lwr.d_records.erase(rec);
@@ -4303,6 +4314,8 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       }
     }
 
+    // This test assumes the SOA record comes before an NS, as the two flags only get computed when we see a SOA record in the AUTHORITY section
+    // Question: is that correct or should these flags always be computed?
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS && (isNXDomain || isNXQType)) {
       /*
        * We don't want to pick up NS records in AUTHORITY and their ADDITIONAL sections of NXDomain answers
