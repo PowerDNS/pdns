@@ -512,8 +512,9 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId
   }
 
   Netmask addr{"0.0.0.0/0"};
-  if (pkt_p != nullptr)
+  if (pkt_p != nullptr) {
     addr = Netmask(pkt_p->getRealRemote());
+  }
 
   gl.netmask = 0;
 
@@ -582,8 +583,9 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId
 
 bool GeoIPBackend::get(DNSResourceRecord& r)
 {
-  if (d_result.empty())
+  if (d_result.empty()) {
     return false;
+  }
 
   r = d_result.back();
   d_result.pop_back();

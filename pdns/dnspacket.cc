@@ -112,9 +112,7 @@ ComboAddress DNSPacket::getRemote() const
 
 ComboAddress DNSPacket::getInnerRemote() const
 {
-  if (d_inner_remote)
-    return *d_inner_remote;
-  return d_remote;
+  return d_inner_remote ? *d_inner_remote : d_remote;
 }
 
 uint16_t DNSPacket::getRemotePort() const
@@ -708,14 +706,12 @@ bool DNSPacket::hasValidEDNSCookie() const
 
 Netmask DNSPacket::getRealRemote() const
 {
-  if(d_haveednssubnet)
-    return d_eso.source;
-  return Netmask(getInnerRemote());
+  return d_haveednssubnet ? d_eso.source : Netmask{getInnerRemote()};
 }
 
 void DNSPacket::setSocket(Utility::sock_t sock)
 {
-  d_socket=sock;
+  d_socket = sock;
 }
 
 void DNSPacket::commitD()

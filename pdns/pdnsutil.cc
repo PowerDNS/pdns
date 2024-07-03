@@ -4231,16 +4231,15 @@ try
   }
   return 0;
 }
-catch(PDNSException& ae) {
-  cerr<<"Error: "<<ae.reason<<endl;
+catch (PDNSException& ae) {
+  cerr << "Error: " << ae.reason << endl;
   return 1;
 }
-catch(std::exception& e) {
-  cerr<<"Error: "<<e.what()<<endl;
+catch (std::exception& e) {
+  cerr << "Error: " << e.what() << endl;
   return 1;
 }
-catch(...)
-{
-  cerr<<"Caught an unknown exception"<<endl;
+catch (...) {
+  cerr << "Caught an unknown exception" << endl;
   return 1;
 }
