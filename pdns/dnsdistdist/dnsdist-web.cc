@@ -1583,7 +1583,7 @@ static void handleCacheManagement(const YaHTTP::Request& req, YaHTTP::Response& 
     return;
   }
   if (expungeType != req.getvars.end()) {
-    type = QType::chartocode(expungeType->second.c_str());
+    type = QType::fromString(expungeType->second);
   }
 
   std::shared_ptr<ServerPool> pool;

@@ -544,7 +544,7 @@ void setupLuaRules(LuaContext& luaCtx)
     }
     else {
       string val = boost::get<string>(str);
-      qtype = QType::chartocode(val.c_str());
+      qtype = QType::fromString(val);
       if (qtype == 0) {
         throw std::runtime_error("Unable to convert '" + val + "' to a DNS type");
       }
