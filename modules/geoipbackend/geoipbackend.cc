@@ -237,7 +237,7 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, 
         }
         else {
           string qtype = boost::to_upper_copy(rec->first.as<string>());
-          rr.qtype = qtype;
+          rr.qtype = QType::fromString(qtype);
         }
         rr.has_weight = false;
         rr.weight = 100;

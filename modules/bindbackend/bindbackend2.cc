@@ -869,7 +869,7 @@ void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records
   }
 
   DNSResourceRecord rr;
-  rr.qtype = "#0";
+  rr.qtype = QType::fromString("#0");
   rr.content = "";
   rr.ttl = 0;
   for (auto& nt : nonterm) {

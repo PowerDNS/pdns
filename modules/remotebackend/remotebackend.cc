@@ -252,7 +252,7 @@ bool RemoteBackend::get(DNSResourceRecord& rr)
     return false;
   }
 
-  rr.qtype = stringFromJson(d_result["result"][d_index], "qtype");
+  rr.qtype = QType::fromString(stringFromJson(d_result["result"][d_index], "qtype"));
   rr.qname = DNSName(stringFromJson(d_result["result"][d_index], "qname"));
   rr.qclass = QClass::IN;
   rr.content = stringFromJson(d_result["result"][d_index], "content");
@@ -853,7 +853,7 @@ bool RemoteBackend::searchRecords(const string& pattern, size_t maxResults, vect
 
   for (const auto& row : answer["result"].array_items()) {
     DNSResourceRecord rr;
-    rr.qtype = stringFromJson(row, "qtype");
+    rr.qtype = QType::fromString(stringFromJson(row, "qtype"));
     rr.qname = DNSName(stringFromJson(row, "qname"));
     rr.qclass = QClass::IN;
     rr.content = stringFromJson(row, "content");

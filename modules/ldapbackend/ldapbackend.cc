@@ -180,7 +180,7 @@ void LdapBackend::extract_entry_results(const DNSName& domain, const DNSResult& 
       attrname = attribute.first;
       // extract qtype string from ldap attribute name by removing the 'Record' suffix.
       qstr = attrname.substr(0, attrname.length() - 6);
-      qt = toUpper(qstr);
+      qt = QType::fromString(qstr);
 
       for (const auto& value : attribute.second) {
         if (qtype != qt && qtype != QType::ANY) {

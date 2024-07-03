@@ -55,7 +55,7 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSPacket, void()>("clearRecords",[](DNSPacket &p){p.clearRecords();});
   d_lw->registerFunction<DNSPacket, void(DNSRecord&, bool)>("addRecord", [](DNSPacket &p, DNSRecord &dr, bool auth) { DNSZoneRecord dzr; dzr.dr = dr; dzr.auth = auth; p.addRecord(std::move(dzr)); });
   d_lw->registerFunction<DNSPacket, void(const vector<pair<unsigned int, DNSRecord> >&)>("addRecords", [](DNSPacket &p, const vector<pair<unsigned int, DNSRecord> >& records){ for(const auto &dr: records){ DNSZoneRecord dzr; dzr.dr = std::get<1>(dr); dzr.auth = true; p.addRecord(std::move(dzr)); }});
-  d_lw->registerFunction<DNSPacket, void(unsigned int, const DNSName&, const std::string&)>("setQuestion", [](DNSPacket &p, unsigned int opcode, const DNSName &name, const string &type){ QType qtype; qtype = type; p.setQuestion(static_cast<int>(opcode), name, static_cast<int>(qtype.getCode())); });
+  d_lw->registerFunction<DNSPacket, void(unsigned int, const DNSName&, const std::string&)>("setQuestion", [](DNSPacket &packet, unsigned int opcode, const DNSName &name, const string &type){ QType qtype; qtype = QType::fromString(type); packet.setQuestion(static_cast<int>(opcode), name, static_cast<int>(qtype.getCode())); });
   d_lw->registerFunction<DNSPacket, bool()>("isEmpty", [](DNSPacket &p){return p.isEmpty();});
   d_lw->registerFunction<DNSPacket, std::shared_ptr<DNSPacket>()>("replyPacket",[](DNSPacket& p){ return p.replyPacket();});
   d_lw->registerFunction<DNSPacket, bool()>("hasEDNSSubnet", [](DNSPacket &p){return p.hasEDNSSubnet();});
@@ -70,7 +70,7 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerMember<DNSPacket, DNSName>("qdomainzone", [](const DNSPacket &p) -> DNSName { return p.qdomainzone; }, [](DNSPacket &p, const DNSName& name) { p.qdomainzone = name; });
 
   d_lw->registerMember<DNSPacket, std::string>("d_peer_principal", [](const DNSPacket &p) -> std::string { return p.d_peer_principal; }, [](DNSPacket &p, const std::string &princ) { p.d_peer_principal = princ; });
-  d_lw->registerMember<DNSPacket, const std::string>("qtype", [](const DNSPacket &p) ->  const std::string { return p.qtype.toString(); }, [](DNSPacket &p, const std::string &type) { p.qtype = type; });
+  d_lw->registerMember<DNSPacket, const std::string>("qtype", [](const DNSPacket &packet) -> std::string { return packet.qtype.toString(); }, [](DNSPacket &packet, const std::string &type) { packet.qtype = QType::fromString(type); });
 /* End of DNSPacket */
 
 

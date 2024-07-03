@@ -82,7 +82,7 @@ void BaseLua4::prepareContext() {
   d_lw->writeFunction("newDRR", [](const DNSName& qname, const string& qtype, const unsigned int ttl, const string& content, boost::optional<int> domain_id, boost::optional<int> auth){
     auto drr = DNSResourceRecord();
     drr.qname = qname;
-    drr.qtype = qtype;
+    drr.qtype = QType::fromString(qtype);
     drr.ttl = ttl;
     drr.setContent(content);
     if (domain_id)
@@ -177,7 +177,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) { return cas.count(ca)>0; });
 
   // QType
-  d_lw->writeFunction("newQType", [](const string& s) { QType q; q = s; return q; });
+  d_lw->writeFunction("newQType", [](const string& newQType) { QType qType; qType = QType::fromString(newQType); return qType; });
   d_lw->registerFunction("getCode", &QType::getCode);
   d_lw->registerFunction("getName", &QType::toString);
   d_lw->registerEqFunction<bool(QType::*)(const QType&)>([](const QType& a, const QType& b){ return a == b;}); // operator overloading confuses LuaContext
@@ -216,7 +216,7 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction("match", (bool (NetmaskGroup::*)(const ComboAddress&) const)&NetmaskGroup::match);
 
   // DNSRecord
-  d_lw->writeFunction("newDR", [](const DNSName& name, const std::string& type, unsigned int ttl, const std::string& content, int place) { QType qtype; qtype = type; auto dr = DNSRecord(); dr.d_name = name; dr.d_type = qtype.getCode(); dr.d_ttl = ttl; dr.setContent(shared_ptr<DNSRecordContent>(DNSRecordContent::make(dr.d_type, QClass::IN, content))); dr.d_place = static_cast<DNSResourceRecord::Place>(place); return dr; });
+  d_lw->writeFunction("newDR", [](const DNSName& name, const std::string& type, unsigned int ttl, const std::string& content, int place) { QType qtype; qtype = QType::fromString(type); auto dnsRecord = DNSRecord(); dnsRecord.d_name = name; dnsRecord.d_type = qtype.getCode(); dnsRecord.d_ttl = ttl; dnsRecord.setContent(shared_ptr<DNSRecordContent>(DNSRecordContent::make(dnsRecord.d_type, QClass::IN, content))); dnsRecord.d_place = static_cast<DNSResourceRecord::Place>(place); return dnsRecord; });
   d_lw->registerMember("name", &DNSRecord::d_name);
   d_lw->registerMember("type", &DNSRecord::d_type);
   d_lw->registerMember("ttl", &DNSRecord::d_ttl);

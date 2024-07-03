@@ -1,4 +1,5 @@
 #include "dnsrecords.hh"
+#include "qtype.hh"
 #include <boost/smart_ptr/make_shared_array.hpp>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -1497,7 +1498,7 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
   rr.qname = zone;
   rr.auth = true;
   rr.ttl = ::arg().asNum("default-ttl");
-  rr.qtype = "SOA";
+  rr.qtype = QType::fromString("SOA");
 
   string soa = ::arg()["default-soa-content"];
   boost::replace_all(soa, "@", zone.toStringNoDot());
@@ -1735,9 +1736,9 @@ static int deleteRRSet(const std::string& zone_, const std::string& name_, const
   else
     name=DNSName(name_)+zone;
 
-  QType qt(QType::chartocode(type_.c_str()));
+  QType qType(QType::fromString(type_));
   di.backend->startTransaction(zone, -1);
-  di.backend->replaceRRSet(di.id, name, qt, vector<DNSResourceRecord>());
+  di.backend->replaceRRSet(di.id, name, qType, vector<DNSResourceRecord>());
   di.backend->commitTransaction();
   return EXIT_SUCCESS;
 }

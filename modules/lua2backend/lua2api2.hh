@@ -143,7 +143,7 @@ public:
           if (item.second.which() == 1)
             rec.qtype = QType(boost::get<int>(item.second));
           else if (item.second.which() == 3)
-            rec.qtype = boost::get<string>(item.second);
+            rec.qtype = QType::fromString(boost::get<string>(item.second));
           else if (item.second.which() == 4)
             rec.qtype = boost::get<QType>(item.second);
           else

@@ -45,8 +45,8 @@ BOOST_AUTO_TEST_SUITE(test_dnsrecords_cc)
 
 BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
-  typedef boost::tuple<QType::typeenum, std::string, std::string, std::string, broken_marker> case_t;
-  typedef std::list<case_t> cases_t;
+  using case_t = boost::tuple<QType::QTypeEnum, std::string, std::string, std::string, broken_marker>;
+  using cases_t = std::list<case_t>;
   MRRecordContent::report();
   IPSECKEYRecordContent::report();
   KXRecordContent::report();
@@ -283,7 +283,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_S(QType::CAA, "0 issue \"aaaaaaa\"", "\x00\x05\x69\x73\x73\x75\x65\x61\x61\x61\x61\x61\x61\x61"))
      (CASE_S(QType::CAA, "0 issue \"aaaaaaa.aaa\"", "\x00\x05\x69\x73\x73\x75\x65\x61\x61\x61\x61\x61\x61\x61\x2e\x61\x61\x61"))
      (CASE_S(QType::DLV, "20642 8 2 04443abe7e94c3985196beae5d548c727b044dda5151e60d7cd76a9fd931d00e", "\x50\xa2\x08\x02\x04\x44\x3a\xbe\x7e\x94\xc3\x98\x51\x96\xbe\xae\x5d\x54\x8c\x72\x7b\x04\x4d\xda\x51\x51\xe6\x0d\x7c\xd7\x6a\x9f\xd9\x31\xd0\x0e"))
-     (CASE_S((QType::typeenum)65226,"\\# 3 414243","\x41\x42\x43"))
+     (CASE_S((QType::QTypeEnum)65226,"\\# 3 414243","\x41\x42\x43"))
 
 ;
 
@@ -349,8 +349,8 @@ BOOST_AUTO_TEST_CASE(test_record_types_bad_values) {
   enum class case_type_t { zone, wire };
 
   // qtype, value, zone/wire format, broken
-  typedef boost::tuple<const QType::typeenum, const std::string, case_type_t, broken_marker> case_t;
-  typedef std::list<case_t> cases_t;
+  using case_t = boost::tuple<const QType::QTypeEnum, const std::string, case_type_t, broken_marker>;
+  using cases_t = std::list<case_t>;
 
 #define ZONE_CASE(type, input) case_t(type, BINARY(input), case_type_t::zone, broken_marker::WORKING)
 #define WIRE_CASE(type, input) case_t(type, BINARY(input), case_type_t::wire, broken_marker::WORKING)
@@ -471,27 +471,27 @@ BOOST_AUTO_TEST_CASE(test_opt_record_out) {
 // special record test, because Unknown record types are the worst
 BOOST_AUTO_TEST_CASE(test_unknown_records_in) {
 
-  auto validUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 42");
+  auto validUnknown = DNSRecordContent::make(static_cast<QType::QTypeEnum>(65534), QClass::IN, "\\# 1 42");
 
   // we need at least two parts
-  BOOST_CHECK_THROW(auto notEnoughPartsUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\#"), MOADNSException);
+  BOOST_CHECK_THROW(auto notEnoughPartsUnknown = DNSRecordContent::make(static_cast<QType::QTypeEnum>(65534), QClass::IN, "\\#"), MOADNSException);
 
   // two parts are OK when the RDATA size is 0, not OK otherwise
-  auto validEmptyUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 0");
-  BOOST_CHECK_THROW(auto twoPartsNotZeroUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1"), MOADNSException);
+  auto validEmptyUnknown = DNSRecordContent::make(static_cast<QType::QTypeEnum>(65534), QClass::IN, "\\# 0");
+  BOOST_CHECK_THROW(auto twoPartsNotZeroUnknown = DNSRecordContent::make(static_cast<QType::QTypeEnum>(65534), QClass::IN, "\\# 1"), MOADNSException);
 
   // the first part has to be "\#"
-  BOOST_CHECK_THROW(auto invalidFirstPartUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\$ 0"), MOADNSException);
+  BOOST_CHECK_THROW(auto invalidFirstPartUnknown = DNSRecordContent::make(static_cast<QType::QTypeEnum>(65534), QClass::IN, "\\$ 0"), MOADNSException);
 
   // RDATA length is not even
-  BOOST_CHECK_THROW(auto unevenUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 A"), MOADNSException);
+  BOOST_CHECK_THROW(auto unevenUnknown = DNSRecordContent::make(static_cast<QType::QTypeEnum>(65534), QClass::IN, "\\# 1 A"), MOADNSException);
 
   // RDATA length is not equal to the expected size
-  BOOST_CHECK_THROW(auto wrongRDATASizeUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 2 AA"), MOADNSException);
+  BOOST_CHECK_THROW(auto wrongRDATASizeUnknown = DNSRecordContent::make(static_cast<QType::QTypeEnum>(65534), QClass::IN, "\\# 2 AA"), MOADNSException);
 
   // RDATA is invalid (invalid hex value)
   try {
-    auto invalidRDATAUnknown = DNSRecordContent::make(static_cast<QType::typeenum>(65534), QClass::IN, "\\# 1 JJ");
+    auto invalidRDATAUnknown = DNSRecordContent::make(static_cast<QType::QTypeEnum>(65534), QClass::IN, "\\# 1 JJ");
     // we should not reach that code
     BOOST_CHECK(false);
     // but if we do let's see what we got (likely what was left over on the stack)
@@ -596,7 +596,7 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_types) {
     auto nsecContent = std::dynamic_pointer_cast<NSECRecordContent>(validNSEC);
     BOOST_REQUIRE(nsecContent);
 
-    for (const auto type : { QType::A, QType::MX, QType::RRSIG, QType::NSEC, static_cast<QType::typeenum>(1234) }) {
+    for (const auto type : { QType::A, QType::MX, QType::RRSIG, QType::NSEC, static_cast<QType::QTypeEnum>(1234) }) {
       BOOST_CHECK(nsecContent->isSet(type));
     }
     BOOST_CHECK_EQUAL(nsecContent->isSet(QType::NSEC3), false);
@@ -648,7 +648,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
     auto nsec3Content = std::dynamic_pointer_cast<NSEC3RecordContent>(validNSEC3);
     BOOST_REQUIRE(nsec3Content);
 
-    for (const auto type : { QType::A, QType::MX, QType::RRSIG, QType::NSEC3, static_cast<QType::typeenum>(1234), static_cast<QType::typeenum>(65535) }) {
+    for (const auto type : { QType::A, QType::MX, QType::RRSIG, QType::NSEC3, static_cast<QType::QTypeEnum>(1234), static_cast<QType::QTypeEnum>(65535) }) {
       BOOST_CHECK(nsec3Content->isSet(type));
     }
     BOOST_CHECK_EQUAL(nsec3Content->isSet(QType::NSEC), false);
