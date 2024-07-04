@@ -2173,6 +2173,17 @@ Other functions
   Code is supplied as a string, not as a function object.
   Note that this function does nothing in 'client' or 'config-check' modes.
 
+.. function:: setTicketsKeyAddedHook(callback)
+
+  .. versionadded:: 1.9.6
+
+  Set a Lua function that will be called everytime a new tickets key is added. The function receives:
+
+  * the key content as a string
+  * the keylen as an integer
+
+  See :doc:`../advanced/tls-sessions-management` for more information.
+
 .. function:: submitToMainThread(cmd, dict)
 
   .. versionadded:: 1.8.0

@@ -1099,7 +1099,7 @@ public:
 using servers_t = vector<std::shared_ptr<DownstreamState>>;
 
 void responderThread(std::shared_ptr<DownstreamState> dss);
-extern LockGuarded<LuaContext> g_lua;
+extern RecursiveLockGuarded<LuaContext> g_lua;
 extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
 
 class DNSRule
