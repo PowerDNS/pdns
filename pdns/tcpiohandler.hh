@@ -66,8 +66,6 @@ protected:
   bool d_resumedFromInactiveTicketKey{false};
 };
 
-using dnsdist_tickets_key_added_hook = std::function<void(const std::string& key)>;
-
 class TLSCtx
 {
 public:
@@ -125,11 +123,13 @@ public:
     return false;
   }
 
-  static void setTicketsKeyAddedHook(const dnsdist_tickets_key_added_hook& hook)
+  using tickets_key_added_hook = std::function<void(const std::string& key)>;
+
+  static void setTicketsKeyAddedHook(const tickets_key_added_hook& hook)
   {
     TLSCtx::s_ticketsKeyAddedHook = hook;
   }
-  static const dnsdist_tickets_key_added_hook& getTicketsKeyAddedHook()
+  static const tickets_key_added_hook& getTicketsKeyAddedHook()
   {
     return TLSCtx::s_ticketsKeyAddedHook;
   }
@@ -143,7 +143,7 @@ protected:
   time_t d_ticketsKeyRotationDelay{0};
 
 private:
-  static dnsdist_tickets_key_added_hook s_ticketsKeyAddedHook;
+  static tickets_key_added_hook s_ticketsKeyAddedHook;
 };
 
 class TLSFrontend
