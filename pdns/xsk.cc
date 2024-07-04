@@ -1213,33 +1213,16 @@ std::vector<pollfd> getPollFdsForWorker(XskWorker& info)
   return fds;
 }
 
-void XskWorker::fillUniqueEmptyOffset()
-{
-  auto frames = sharedEmptyFrameOffset->lock();
-  const auto moveSize = std::min(static_cast<size_t>(32), frames->size());
-  if (moveSize > 0) {
-    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-    uniqueEmptyFrameOffset.insert(uniqueEmptyFrameOffset.end(), std::make_move_iterator(frames->end() - moveSize), std::make_move_iterator(frames->end()));
-    frames->resize(frames->size() - moveSize);
-  }
-}
-
 std::optional<XskPacket> XskWorker::getEmptyFrame()
 {
-  if (!uniqueEmptyFrameOffset.empty()) {
-    auto offset = uniqueEmptyFrameOffset.back();
-    uniqueEmptyFrameOffset.pop_back();
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    return XskPacket(offset + umemBufBase, 0, frameSize);
+  auto frames = sharedEmptyFrameOffset->lock();
+  if (frames->empty()) {
+    return std::nullopt;
   }
-  fillUniqueEmptyOffset();
-  if (!uniqueEmptyFrameOffset.empty()) {
-    auto offset = uniqueEmptyFrameOffset.back();
-    uniqueEmptyFrameOffset.pop_back();
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    return XskPacket(offset + umemBufBase, 0, frameSize);
-  }
-  return std::nullopt;
+  auto offset = frames->back();
+  frames->pop_back();
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  return XskPacket(offset + umemBufBase, 0, frameSize);
 }
 
 void XskWorker::markAsFree(const XskPacket& packet)
@@ -1248,7 +1231,10 @@ void XskWorker::markAsFree(const XskPacket& packet)
 #ifdef DEBUG_UMEM
   checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, offset, {UmemEntryStatus::Status::Received, UmemEntryStatus::Status::TXQueue}, UmemEntryStatus::Status::Free);
 #endif /* DEBUG_UMEM */
-  uniqueEmptyFrameOffset.push_back(offset);
+  {
+    auto frames = sharedEmptyFrameOffset->lock();
+    frames->push_back(offset);
+  }
 }
 
 uint32_t XskPacket::getFlags() const noexcept
