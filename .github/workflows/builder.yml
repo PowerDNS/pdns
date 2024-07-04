@@ -37,7 +37,7 @@ jobs:
           - ubuntu-22.04
           - ubicloud-standard-2-arm
         exclude:
-          - os: centos-7
+          - os: el-7
             runner-os: ubicloud-standard-2-arm
       fail-fast: false
     steps:
