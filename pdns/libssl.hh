@@ -100,11 +100,12 @@ public:
 #if OPENSSL_VERSION_MAJOR >= 3
   int encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx) const;
   bool decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, EVP_MAC_CTX* hctx) const;
-  [[nodiscard]] std::string content() const;
 #else
   int encrypt(unsigned char keyName[TLS_TICKETS_KEY_NAME_SIZE], unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const;
   bool decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const;
 #endif
+
+  [[nodiscard]] std::string content() const;
 
 private:
   unsigned char d_name[TLS_TICKETS_KEY_NAME_SIZE];
