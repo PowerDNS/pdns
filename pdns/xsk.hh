@@ -298,8 +298,6 @@ public:
   uint8_t* umemBufBase{nullptr};
   // list of frames that are shared with the XskRouter
   std::shared_ptr<LockGuarded<vector<uint64_t>>> sharedEmptyFrameOffset;
-  // list of frames that we own, used to generate new packets (health-check)
-  vector<uint64_t> uniqueEmptyFrameOffset;
   const size_t frameSize{XskSocket::getFrameSize()};
   FDWrapper workerWaker;
   FDWrapper xskSocketWaker;
@@ -319,10 +317,7 @@ public:
   void cleanWorkerNotification() const noexcept;
   void cleanSocketNotification() const noexcept;
   [[nodiscard]] uint64_t frameOffset(const XskPacket& packet) const noexcept;
-  // reap empty umem entry from sharedEmptyFrameOffset into uniqueEmptyFrameOffset
-  void fillUniqueEmptyOffset();
-  // look for an empty umem entry in uniqueEmptyFrameOffset
-  // then sharedEmptyFrameOffset if needed
+  // get an empty umem entry from sharedEmptyFrameOffset
   std::optional<XskPacket> getEmptyFrame();
 };
 std::vector<pollfd> getPollFdsForWorker(XskWorker& info);
