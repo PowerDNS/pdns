@@ -992,13 +992,13 @@ BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
       if (domain == DNSName("powerdns.com.") && type == QType::A) {
         addRecordToLW(res, domain, QType::A, "192.0.2.1");
         addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
-        addRecordToLW(res, domain, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400");
+        addRecordToLW(res, domain, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY);
         addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
       }
       else if (domain == DNSName("powerdns.com.") && type == QType::AAAA) {
         addRecordToLW(res, domain, QType::AAAA, "2001:db8::1");
         addRRSIG(keys, res->d_records, DNSName("powerdns.com."), 300);
-        addRecordToLW(res, domain, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400");
+        addRecordToLW(res, domain, QType::SOA, "foo. bar. 2017032800 1800 900 604800 86400", DNSResourceRecord::AUTHORITY);
         /* no RRSIG this time! */
       }
 
@@ -1011,7 +1011,7 @@ BOOST_AUTO_TEST_CASE(test_bogus_does_not_replace_secure_in_the_cache)
   vector<DNSRecord> ret;
   int res = sr->beginResolve(DNSName("powerdns.com."), QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
-  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK_EQUAL(ret.size(), 2U);
 
   const ComboAddress who;
   vector<DNSRecord> cached;

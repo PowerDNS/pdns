@@ -4270,8 +4270,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
 
     // Disallow answer records not anwering the QType requested. ANY, CNAME, DNAME, RRSIG complicate matters here
-    // Question: is the SOA check OK?  See RFC2181 section 7.1
-    if (rec->d_place == DNSResourceRecord::ANSWER && (qtype != QType::ANY && rec->d_type != qtype.getCode() && !isRedirection(rec->d_type) && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG)) {
+    if (rec->d_place == DNSResourceRecord::ANSWER && (qtype != QType::ANY && rec->d_type != qtype.getCode() && !isRedirection(rec->d_type) && rec->d_type != QType::RRSIG)) {
       LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
       rec = lwr.d_records.erase(rec);
       continue;
