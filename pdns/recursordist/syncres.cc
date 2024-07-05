@@ -4250,18 +4250,6 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       continue;
     }
 
-    // Special case for Amazon CNAME records
-    /* dealing with the records in answer */
-    if (!(lwr.d_aabit || wasForwardRecurse) && rec->d_place == DNSResourceRecord::ANSWER) {
-      /* for now we allow a CNAME for the exact qname in ANSWER with AA=0, because Amazon DNS servers
-         are sending such responses */
-      if (rec->d_type != QType::CNAME || qname != rec->d_name) {
-        LOG(prefix << qname << ": Removing record '" << rec->toString() << "' in the ANSWER section without the AA bit set received from " << auth << endl);
-        rec = lwr.d_records.erase(rec);
-        continue;
-      }
-    }
-
     // Disallow QType DNAME in non-answer section or containing an answer that is not a parent of or equal to the question name
     if (rec->d_type == QType::DNAME && (rec->d_place != DNSResourceRecord::ANSWER || !qname.isPartOf(rec->d_name))) {
       LOG(prefix << qname << ": Removing invalid DNAME record '" << rec->toString() << "' in the " << DNSResourceRecord::placeString(rec->d_place) << " section received from " << auth << endl);
@@ -4269,92 +4257,122 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       continue;
     }
 
-    // Disallow answer records not anwering the QType requested. ANY, CNAME, DNAME, RRSIG complicate matters here
-    if (rec->d_place == DNSResourceRecord::ANSWER && (qtype != QType::ANY && rec->d_type != qtype.getCode() && !isRedirection(rec->d_type) && rec->d_type != QType::RRSIG)) {
-      LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
-      rec = lwr.d_records.erase(rec);
-      continue;
-    }
-
-    if (rec->d_place == DNSResourceRecord::ANSWER && !haveAnswers) {
-      haveAnswers = true;
-    }
-
+    /* dealing with the records in answer */
     if (rec->d_place == DNSResourceRecord::ANSWER) {
+      // Special case for Amazon CNAME records
+      if (!(lwr.d_aabit || wasForwardRecurse)) {
+        /* for now we allow a CNAME for the exact qname in ANSWER with AA=0, because Amazon DNS servers
+           are sending such responses */
+        if (rec->d_type != QType::CNAME || qname != rec->d_name) {
+          LOG(prefix << qname << ": Removing record '" << rec->toString() << "' in the ANSWER section without the AA bit set received from " << auth << endl);
+          rec = lwr.d_records.erase(rec);
+          continue;
+        }
+      }
+      // Disallow answer records not anwering the QType requested. ANY, CNAME, DNAME, RRSIG complicate matters here
+      if (qtype != QType::ANY && rec->d_type != qtype.getCode() && !isRedirection(rec->d_type) && rec->d_type != QType::RRSIG) {
+        LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
+        rec = lwr.d_records.erase(rec);
+        continue;
+      }
+
+      haveAnswers = true;
       allowAdditionalEntry(allowedAdditionals, *rec);
     }
 
     /* dealing with the records in authority */
     // Only allow NS, DS, SOA, RRSIG, NSEC, NSEC3 in AUTHORITY section
-    if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type != QType::NS && rec->d_type != QType::DS && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG && rec->d_type != QType::NSEC && rec->d_type != QType::NSEC3) {
-      LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the AUTHORITY section received from " << auth << endl);
-      rec = lwr.d_records.erase(rec);
-      continue;
-    }
-
-    if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::SOA) {
-      // Disallow a SOA record with a name that is not a parent of or equal to the name we asked
-      if (!qname.isPartOf(rec->d_name)) {
-        LOG(prefix << qname << ": Removing irrelevant SOA record '" << rec->toString() << "' in the AUTHORITY section received from " << auth << endl);
+    else if (rec->d_place == DNSResourceRecord::AUTHORITY) {
+      if (rec->d_type != QType::NS && rec->d_type != QType::DS && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG && rec->d_type != QType::NSEC && rec->d_type != QType::NSEC3) {
+        LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the AUTHORITY section received from " << auth << endl);
+        rec = lwr.d_records.erase(rec);
+        continue;
+      }
+      if (rec->d_type == QType::NS && !d_updatingRootNS && rec->d_name == g_rootdnsname) {
+        /*
+         * We don't want to pick up root NS records in AUTHORITY and their associated ADDITIONAL sections of random queries.
+         * So remove them and don't add them to allowedAdditionals.
+         */
+        LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a response received from " << auth << endl);
         rec = lwr.d_records.erase(rec);
         continue;
       }
 
-      // Disallow SOA without AA bit (except for forward with RD=1)
-      if (!(lwr.d_aabit || wasForwardRecurse)) {
-        LOG(prefix << qname << ": Removing irrelevant record (AA not set) '" << rec->toString() << "' in the AUTHORITY section received from " << auth << endl);
-        rec = lwr.d_records.erase(rec);
-        continue;
-      }
-
-      if (!haveAnswers) {
-        if (lwr.d_rcode == RCode::NXDomain) {
-          isNXDomain = true;
+      if (rec->d_type == QType::SOA) {
+        // Disallow a SOA record with a name that is not a parent of or equal to the name we asked
+        if (!qname.isPartOf(rec->d_name)) {
+          LOG(prefix << qname << ": Removing irrelevant SOA record '" << rec->toString() << "' in the AUTHORITY section received from " << auth << endl);
+          rec = lwr.d_records.erase(rec);
+          continue;
         }
-        else if (lwr.d_rcode == RCode::NoError) {
-          isNXQType = true;
+        // Disallow SOA without AA bit (except for forward with RD=1)
+        if (!(lwr.d_aabit || wasForwardRecurse)) {
+          LOG(prefix << qname << ": Removing irrelevant record (AA not set) '" << rec->toString() << "' in the AUTHORITY section received from " << auth << endl);
+          rec = lwr.d_records.erase(rec);
+          continue;
+        }
+
+        if (!haveAnswers) {
+          switch (lwr.d_rcode) {
+          case RCode::NXDomain:
+            isNXDomain = true;
+            break;
+          case RCode::NoError:
+            isNXQType = true;
+            break;
+          }
         }
       }
     }
 
-    // This test assumes the SOA record comes before an NS, as the two flags only get computed when we see a SOA record in the AUTHORITY section
-    // Question: is that correct or should these flags always be computed?
-    if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS && (isNXDomain || isNXQType)) {
-      /*
-       * We don't want to pick up NS records in AUTHORITY and their ADDITIONAL sections of NXDomain answers
-       * because they are somewhat easy to insert into a large, fragmented UDP response
-       * for an off-path attacker by injecting spoofed UDP fragments. So do not add these to allowedAdditionals.
-       */
-      LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a " << (isNXDomain ? "NXD" : "NXQTYPE") << " response received from " << auth << endl);
-      rec = lwr.d_records.erase(rec);
+    ++rec;
+  } // end of first loop, handled answer and most of authority section
+
+  sanitizeRecordsPass2(prefix, lwr, qname, auth, allowedAdditionals, isNXDomain, isNXQType);
+}
+
+void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, std::unordered_set<DNSName>& allowedAdditionals, bool isNXDomain, bool isNXQType)
+{
+  // Second loop, we know now if the answer was NxDomain or NoData
+  for (auto rec = lwr.d_records.begin(); rec != lwr.d_records.end();) {
+
+    // Allow OPT record containing EDNS(0) data
+    if (rec->d_type == QType::OPT) {
+      ++rec;
       continue;
     }
 
-    if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS && !d_updatingRootNS && rec->d_name == g_rootdnsname) {
-      /*
-       * We don't want to pick up root NS records in AUTHORITY and their associated ADDITIONAL sections of random queries.
-       * So don't add them to allowedAdditionals.
-       */
-      LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a response received from " << auth << endl);
-      rec = lwr.d_records.erase(rec);
+    if (rec->d_place == DNSResourceRecord::ANSWER) {
+      // Fully handled ANSWER section in first loop. This might change with more strict validation
+      ++rec;
       continue;
     }
-
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS) {
+      if (isNXDomain || isNXQType) {
+        /*
+         * We don't want to pick up NS records in AUTHORITY and their ADDITIONAL sections of NXDomain answers
+         * because they are somewhat easy to insert into a large, fragmented UDP response
+         * for an off-path attacker by injecting spoofed UDP fragments. So do not add these to allowedAdditionals.
+         */
+        LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a " << (isNXDomain ? "NXD" : "NXQTYPE") << " response received from " << auth << endl);
+        rec = lwr.d_records.erase(rec);
+        continue;
+      }
       allowAdditionalEntry(allowedAdditionals, *rec);
     }
-
     /* dealing with the records in additional */
-    if (rec->d_place == DNSResourceRecord::ADDITIONAL && rec->d_type != QType::A && rec->d_type != QType::AAAA && rec->d_type != QType::RRSIG) {
-      LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ADDITIONAL section received from " << auth << endl);
-      rec = lwr.d_records.erase(rec);
-      continue;
-    }
+    else if (rec->d_place == DNSResourceRecord::ADDITIONAL) {
+      if (rec->d_type != QType::A && rec->d_type != QType::AAAA && rec->d_type != QType::RRSIG) {
+        LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ADDITIONAL section received from " << auth << endl);
+        rec = lwr.d_records.erase(rec);
+        continue;
+      }
 
-    if (rec->d_place == DNSResourceRecord::ADDITIONAL && allowedAdditionals.count(rec->d_name) == 0) {
-      LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ADDITIONAL section received from " << auth << endl);
-      rec = lwr.d_records.erase(rec);
-      continue;
+      if (allowedAdditionals.count(rec->d_name) == 0) {
+        LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ADDITIONAL section received from " << auth << endl);
+        rec = lwr.d_records.erase(rec);
+        continue;
+      }
     }
 
     ++rec;
