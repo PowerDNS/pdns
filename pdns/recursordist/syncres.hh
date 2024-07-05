@@ -603,7 +603,6 @@ private:
   static EDNSSubnetOpts s_ecsScopeZero;
   static LogMode s_lm;
   static std::unique_ptr<NetmaskGroup> s_dontQuery;
-  const static std::unordered_set<QType> s_redirectionQTypes;
 
   struct GetBestNSAnswer
   {
