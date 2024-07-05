@@ -12,8 +12,10 @@
 #include <pthread.h>
 
 #include <openssl/conf.h>
+#if OPENSSL_VERSION_MAJOR < 3 || !defined(HAVE_TLS_PROVIDERS)
 #ifndef OPENSSL_NO_ENGINE
 #include <openssl/engine.h>
+#endif
 #endif
 #include <openssl/err.h>
 #ifndef DISABLE_OCSP_STAPLING
