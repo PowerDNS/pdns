@@ -82,20 +82,20 @@ struct UmemEntryStatus
   Status status{Status::Free};
 };
 
-LockGuarded<std::unordered_map<uint64_t, UmemEntryStatus>> s_umems;
+LockGuarded<std::map<std::pair<void*, uint64_t>, UmemEntryStatus>> s_umems;
 
-void checkUmemIntegrity(const char* function, int line, uint64_t offset, const std::set<UmemEntryStatus::Status>& validStatuses, UmemEntryStatus::Status newStatus)
+void checkUmemIntegrity(const char* function, int line, std::shared_ptr<LockGuarded<vector<uint64_t>>> vect, uint64_t offset, const std::set<UmemEntryStatus::Status>& validStatuses, UmemEntryStatus::Status newStatus)
 {
   auto umems = s_umems.lock();
-  if (validStatuses.count(umems->at(offset).status) == 0) {
-    std::cerr << "UMEM integrity check failed at " << function << ": " << line << ": status is " << static_cast<int>(umems->at(offset).status) << ", expected: ";
+  if (validStatuses.count(umems->at({vect.get(), offset}).status) == 0) {
+    std::cerr << "UMEM integrity check failed at " << function << ": " << line << ": status of "<<(void*)vect.get()<<", "<<offset<<" is " << static_cast<int>(umems->at({vect.get(), offset}).status) << ", expected: ";
     for (const auto status : validStatuses) {
       std::cerr << static_cast<int>(status) << " ";
     }
     std::cerr << std::endl;
     abort();
   }
-  (*umems)[offset].status = newStatus;
+  (*umems)[{vect.get(), offset}].status = newStatus;
 }
 }
 #endif /* DEBUG_UMEM */
@@ -164,7 +164,7 @@ XskSocket::XskSocket(size_t frameNum_, std::string ifName_, uint32_t queue_id, c
 #ifdef DEBUG_UMEM
       {
         auto umems = s_umems.lock();
-        (*umems)[idx * frameSize + XDP_PACKET_HEADROOM] = UmemEntryStatus();
+        (*umems)[{sharedEmptyFrameOffset.get(), idx * frameSize + XDP_PACKET_HEADROOM}] = UmemEntryStatus();
       }
 #endif /* DEBUG_UMEM */
     }
@@ -314,7 +314,7 @@ void XskSocket::fillFq(uint32_t fillSize) noexcept
   for (; processed < toFill; processed++) {
     *xsk_ring_prod__fill_addr(&fq, idx++) = uniqueEmptyFrameOffset.back();
 #ifdef DEBUG_UMEM
-    checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, uniqueEmptyFrameOffset.back(), {UmemEntryStatus::Status::Free}, UmemEntryStatus::Status::FillQueue);
+    checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, sharedEmptyFrameOffset, uniqueEmptyFrameOffset.back(), {UmemEntryStatus::Status::Free}, UmemEntryStatus::Status::FillQueue);
 #endif /* DEBUG_UMEM */
     uniqueEmptyFrameOffset.pop_back();
   }
@@ -362,7 +362,7 @@ void XskSocket::send(std::vector<XskPacket>& packets)
         .len = packet.getFrameLen(),
         .options = 0};
 #ifdef DEBUG_UMEM
-      checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, frameOffset(packet), {UmemEntryStatus::Status::Free, UmemEntryStatus::Status::Received}, UmemEntryStatus::Status::TXQueue);
+      checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, sharedEmptyFrameOffset, frameOffset(packet), {UmemEntryStatus::Status::Free, UmemEntryStatus::Status::Received}, UmemEntryStatus::Status::TXQueue);
 #endif /* DEBUG_UMEM */
       queued++;
     }
@@ -392,7 +392,7 @@ std::vector<XskPacket> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failedCou
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
       XskPacket packet = XskPacket(reinterpret_cast<uint8_t*>(desc->addr + baseAddr), desc->len, frameSize);
 #ifdef DEBUG_UMEM
-      checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, frameOffset(packet), {UmemEntryStatus::Status::Free, UmemEntryStatus::Status::FillQueue}, UmemEntryStatus::Status::Received);
+      checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, sharedEmptyFrameOffset, frameOffset(packet), {UmemEntryStatus::Status::FillQueue}, UmemEntryStatus::Status::Received);
 #endif /* DEBUG_UMEM */
 
       if (!packet.parse(false)) {
@@ -450,7 +450,7 @@ void XskSocket::recycle(size_t size) noexcept
   for (; processed < completeSize; ++processed) {
     uniqueEmptyFrameOffset.push_back(*xsk_ring_cons__comp_addr(&cq, idx++));
 #ifdef DEBUG_UMEM
-    checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, uniqueEmptyFrameOffset.back(), {UmemEntryStatus::Status::Received, UmemEntryStatus::Status::TXQueue}, UmemEntryStatus::Status::Free);
+    checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, sharedEmptyFrameOffset, uniqueEmptyFrameOffset.back(), {UmemEntryStatus::Status::Received, UmemEntryStatus::Status::TXQueue}, UmemEntryStatus::Status::Free);
 #endif /* DEBUG_UMEM */
   }
   xsk_ring_cons__release(&cq, processed);
@@ -523,9 +523,8 @@ void XskSocket::markAsFree(const XskPacket& packet)
 {
   auto offset = frameOffset(packet);
 #ifdef DEBUG_UMEM
-  checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, offset, {UmemEntryStatus::Status::Received, UmemEntryStatus::Status::TXQueue}, UmemEntryStatus::Status::Free);
+  checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, sharedEmptyFrameOffset, offset, {UmemEntryStatus::Status::Received, UmemEntryStatus::Status::TXQueue}, UmemEntryStatus::Status::Free);
 #endif /* DEBUG_UMEM */
-
   uniqueEmptyFrameOffset.push_back(offset);
 }
 
@@ -1270,7 +1269,7 @@ void XskWorker::markAsFree(const XskPacket& packet)
 {
   auto offset = frameOffset(packet);
 #ifdef DEBUG_UMEM
-  checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, offset, {UmemEntryStatus::Status::Received, UmemEntryStatus::Status::TXQueue}, UmemEntryStatus::Status::Free);
+  checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, d_sharedEmptyFrameOffset, offset, {UmemEntryStatus::Status::Received, UmemEntryStatus::Status::TXQueue}, UmemEntryStatus::Status::Free);
 #endif /* DEBUG_UMEM */
   {
     auto frames = d_sharedEmptyFrameOffset->lock();
