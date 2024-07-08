@@ -1,0 +1,295 @@
+project(
+  'pdns-recursor',
+  ['c', 'cpp'],
+  version: run_command('../../builder-support' / 'gen-version', check: true).stdout().strip(),
+  license: 'GPLv2',
+  license_files: 'NOTICE',
+  meson_version: '>= 1.2.1',
+  default_options: [
+    'buildtype=debugoptimized',
+    'warning_level=2',          # TODO Move this to 3 to enable -Wpedantic
+    'cpp_std=c++17',
+  ],
+)
+add_project_arguments('-DRECURSOR', language: 'cpp')
+#add_project_arguments('-DSYSCONFDIR=X', language: 'cpp') # XXX
+add_project_arguments('-DNODCACHEDIRNOD="Y"', language: 'cpp') # XXX
+add_project_arguments('-DNODCACHEDIRUDR="Z"', language: 'cpp') # XXX
+
+product_source_dir = meson.current_source_dir()
+product_build_dir = meson.current_build_dir()
+summary('Source Dir', product_source_dir, section: 'Build')
+summary('Build Dir', product_build_dir, section: 'Build')
+
+# Create the configuration object and dependencies list.
+conf = configuration_data()
+
+# Feature detection and system configuration
+subdir('meson' / 'config')                  # Config
+subdir('meson' / 'version')                 # Generate version define
+subdir('meson' / 'compiler-setup')          # Common compiler setup
+subdir('meson' / 'summary')                 # Print a system/project summary
+subdir('meson' / 'sysconfdir')              # Sysconfdir
+#subdir('meson' / 'libdir')                  # Libdir
+subdir('meson' / 'platform')                # Platform detection
+subdir('meson' / 'timet-size')              # Check the size of time_t
+subdir('meson' / 'timet-sign')              # Check the sign of time_t
+subdir('meson' / 'atomics')                 # Check atomics support
+subdir('meson' / 'pthread-headers')         # Check pthread headers
+subdir('meson' / 'pthread-setname')         # Pthread setname madness
+subdir('meson' / 'strerror')                # Strerror_r
+subdir('meson' / 'lua')                     # Lua
+subdir('meson' / 'hardening')               # Hardening
+subdir('meson' / 'net-libs')                # Network Libraries
+subdir('meson' / 'tm-gmtoff')               # Check for tm_gmtoff field in struct tm
+subdir('meson' / 'mmap')                    # Check for mmap
+subdir('meson' / 'libsodium')               # Libsodium-based signers
+subdir('meson' / 'libdecaf')                # Libdecaf-based signers
+subdir('meson' / 'libcrypto')               # OpenSSL-based signers
+subdir('meson' / 'libssl')                  # OpenSSL libssl
+subdir('meson' / 'libsnmp')                 # SNMP
+subdir('meson' / 'gnutls')                  # GnuTLS
+subdir('meson' / 'dot')                     # DNS over TLS
+subdir('meson' / 'clock-gettime')           # Clock_gettime
+subdir('meson' / 'boost')                   # Boost
+#subdir('meson' / 'boost-program-options')   # Boost Program Options Library
+subdir('meson' / 'boost-context')           # Boost Context Switching Library
+subdir('meson' / 'boost-test')              # Boost Testing Library
+subdir('meson' / 'reproducible')            # Reproducible Builds
+subdir('meson' / 'libsystemd')              # Systemd notification
+subdir('meson' / 'systemd')                 # Systemd and unit file handling
+subdir('meson' / 'code-coverage')           # Code coverage
+subdir('meson' / 'auto-var-init')           # Automatic Variable Initialization
+subdir('meson' / 'sanitizers')              # Sanitizers
+subdir('meson' / 'malloc-trace')            # Malloc-trace
+subdir('meson' / 'socket-dir')              # Socket Dir
+subdir('meson' / 'various-functions')       # Various Functions
+subdir('meson' / 'various-headers')         # Various Headers
+subdir('meson' / 'libresolv')               # res_query XXX
+
+common_sources = []
+
+fs = import('fs')
+src_dir = fs.is_dir('.') ? '.' : ''
+docs_dir = 'docs'
+# Toplevel includes
+dep_pdns = declare_dependency(include_directories: include_directories('.', src_dir))
+
+# Ext
+subdir('ext' / 'arc4random')
+subdir('ext' / 'json11')
+subdir('ext' / 'luawrapper')
+#subdir('ext' / 'probds') XXX
+subdir('ext' / 'protozero')
+subdir('ext' / 'yahttp')
+subdir('settings')
+#subdir('settings' / 'rust')
+
+common_sources += files(
+  src_dir / 'aggressive_nsec.cc',
+  src_dir / 'arguments.cc',
+  src_dir / 'axfr-retriever.cc',
+  src_dir / 'base32.cc',
+  src_dir / 'base64.cc',
+  src_dir / 'capabilities.cc',
+  src_dir / 'channel.cc',
+  src_dir / 'coverage.cc',
+  src_dir / 'credentials.cc',
+  src_dir / 'dns.cc',
+  src_dir / 'dnsname.cc',
+  src_dir / 'dnsparser.cc',
+  src_dir / 'dnsrecords.cc',
+  src_dir / 'dnssecinfra.cc',
+  src_dir / 'dnswriter.cc',
+  src_dir / 'ednsextendederror.cc',
+  src_dir / 'ednsoptions.cc',
+  src_dir / 'ednspadding.cc',
+  src_dir / 'ednssubnet.cc',
+  src_dir / 'filterpo.cc',
+  src_dir / 'fstrm_logger.cc',
+  src_dir / 'gettime.cc',
+  src_dir / 'gss_context.cc',
+  src_dir / 'iputils.cc',
+  src_dir / 'ixfr.cc',
+  src_dir / 'json.cc',
+  src_dir / 'libssl.cc',
+  src_dir / 'logger.cc',
+  src_dir / 'logging.cc',
+  src_dir / 'lua-base4.cc',
+  src_dir / 'lua-recursor4.cc',
+  src_dir / 'lwres.cc',
+  src_dir / 'misc.cc',
+  src_dir / 'mtasker_context.cc',
+  src_dir / 'negcache.cc',
+  src_dir / 'nsecrecords.cc',
+  src_dir / 'opensslsigners.cc',
+  src_dir / 'pdns_recursor.cc',
+  src_dir / 'pollmplexer.cc',
+  src_dir / 'protozero.cc',
+  src_dir / 'proxy-protocol.cc',
+  src_dir / 'pubsuffix.cc',
+  src_dir / 'pubsuffixloader.cc',
+  src_dir / 'qtype.cc',
+  src_dir / 'query-local-address.cc',
+  src_dir / 'rcpgenerator.cc',
+  src_dir / 'rec-carbon.cc',
+  src_dir / 'rec-eventtrace.cc',
+  src_dir / 'rec-lua-conf.cc',
+  src_dir / 'rec-protozero.cc',
+  src_dir / 'rec-responsestats.cc',
+  src_dir / 'rec-system-resolve.cc',
+  src_dir / 'rec-taskqueue.cc',
+  src_dir / 'rec-tcounters.cc',
+  src_dir / 'rec-tcp.cc',
+  src_dir / 'rec-tcpout.cc',
+  src_dir / 'rec-zonetocache.cc',
+  src_dir / 'rec_channel.cc',
+  src_dir / 'rec_channel_rec.cc',
+  src_dir / 'recpacketcache.cc',
+  src_dir / 'rec-snmp.cc',
+  src_dir / 'rec-tcp.cc',
+  src_dir / 'recursor_cache.cc',
+  src_dir / 'reczones-helpers.cc',
+  src_dir / 'reczones.cc',
+  src_dir / 'remote_logger.cc',
+  src_dir / 'resolver.cc',
+  src_dir / 'rpzloader.cc',
+  src_dir / 'secpoll-recursor.cc',
+  src_dir / 'secpoll.cc',
+  src_dir / 'shuffle.cc',
+  src_dir / 'sillyrecords.cc',
+  src_dir / 'snmp-agent.cc',
+  src_dir / 'sortlist.cc',
+  src_dir / 'svc-records.cc',
+  src_dir / 'syncres.cc',
+  src_dir / 'taskqueue.cc',
+  src_dir / 'tcpiohandler.cc',
+  src_dir / 'threadname.cc',
+  src_dir / 'tsigverifier.cc',
+  src_dir / 'unix_utility.cc',
+  src_dir / 'uuid-utils.cc',
+  src_dir / 'validate.cc',
+  src_dir / 'validate-recursor.cc',
+  src_dir / 'version.cc',
+  src_dir / 'webserver.cc',
+  src_dir / 'ws-api.cc',
+  src_dir / 'ws-recursor.cc',
+  src_dir / 'zonemd.cc',
+  src_dir / 'zoneparser-tng.cc',
+)
+
+# Generate config.h
+config_h = configure_file(configuration: conf, output: 'config.h')
+
+html_sources = [] # XXX
+incfiles = find_program('incfiles')
+
+htmlfiles = custom_target(
+  command: [incfiles, '@SOURCE_ROOT@'],
+  input: html_sources,
+  output: 'htmlfiles.h',
+  capture: true
+)
+
+dep_htmlfiles = declare_dependency(
+  sources: [htmlfiles],
+)
+
+deps = [
+  dep_pdns,
+  dep_boost,
+  dep_boost_context,
+  dep_json11,
+  dep_libcrypto,
+  dep_libresolv,
+  dep_libsnmp,
+  dep_libsodium,
+  dep_libssl,
+  dep_lua,
+  dep_protozero,
+  dep_rust_settings,
+  dep_settings,
+  dep_yahttp,
+  dep_htmlfiles,
+]
+
+libpdns_dnslabeltext_source = src_dir / 'dnslabeltext.rl'
+libpdns_dnslabeltext_gen    = src_dir / 'dnslabeltext.cc'
+if not fs.is_file(libpdns_dnslabeltext_gen)
+  ragel = find_program('ragel', required: true)
+
+  summary('Ragel', ragel.found(), bool_yn: ragel.found(), section: 'DNS Labels')
+  summary('Ragel Path', ragel.full_path(), section: 'DNS Labels')
+  summary('Ragel Version', ragel.version(), section: 'DNS Labels')
+
+  ragel_generator = generator(
+    ragel,
+    output: '@BASENAME@.cc',
+    arguments: ['@INPUT@', '-o', '@OUTPUT@'],
+  )
+
+  libpdns_dnslabeltext_gen = ragel_generator.process(libpdns_dnslabeltext_source)
+endif
+
+libpdns_dnslabeltext = declare_dependency(
+  link_with: static_library(
+    'pdns-dnslabeltext',
+    libpdns_dnslabeltext_gen,
+    dependencies: deps,
+  )
+)
+
+libpdns_common = declare_dependency(
+  link_with: static_library(
+    'pdns-common',
+    common_sources,
+    config_h,
+    dependencies: [
+      deps,
+      libpdns_dnslabeltext,
+    ],
+  )
+)
+
+
+tools = {
+  'pdns-recursor': {
+    'main': src_dir / 'rec-main.cc',
+    'deps-extra': [
+    ],
+    'manpages': [],
+  },
+}
+
+man_pages = []
+foreach tool, info: tools
+  var_name = tool.underscorify()
+  main = files(info['main'])
+
+  export_dynamic = 'export-dynamic' in info ? info['export-dynamic'] : false
+  files_extra = 'files-extra' in info ? info['files-extra'] : []
+  deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
+
+  set_variable(
+    var_name,
+    executable(
+      tool,
+      main,
+      config_h,
+      files_extra,
+      export_dynamic: export_dynamic,
+      dependencies: [
+        deps,
+        libpdns_common,
+        deps_extra,
+      ],
+    )
+  )
+
+  if 'manpages' in info
+    foreach man_page: info['manpages']
+      man_pages += docs_dir / 'manpages' / (man_page + '.rst')
+    endforeach
+  endif
+endforeach
+
