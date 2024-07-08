@@ -23,6 +23,7 @@ summary('Build Dir', product_build_dir, section: 'Build')
 
 # Create the configuration object and dependencies list.
 conf = configuration_data()
+conf.set_quoted('PACKAGE_STRING', meson.project_version(), description: 'version')
 
 # Feature detection and system configuration
 subdir('meson' / 'config')                  # Config
@@ -66,6 +67,8 @@ subdir('meson' / 'socket-dir')              # Socket Dir
 subdir('meson' / 'various-functions')       # Various Functions
 subdir('meson' / 'various-headers')         # Various Headers
 subdir('meson' / 'libresolv')               # res_query XXX
+subdir('meson' / 'dnstap')                  # DNSTAP through libfstream
+subdir('meson' / 'libcurl')                 # Curl
 
 common_sources = []
 
@@ -106,7 +109,6 @@ common_sources += files(
   src_dir / 'ednspadding.cc',
   src_dir / 'ednssubnet.cc',
   src_dir / 'filterpo.cc',
-  src_dir / 'fstrm_logger.cc',
   src_dir / 'gettime.cc',
   src_dir / 'gss_context.cc',
   src_dir / 'iputils.cc',
@@ -178,6 +180,29 @@ common_sources += files(
   src_dir / 'zoneparser-tng.cc',
 )
 
+conditional_sources = {
+  'minicurl': {
+    'sources': [
+      src_dir / 'minicurl.cc',
+      src_dir / 'minicurl.hh',
+    ],
+    'condition': dep_libcurl.found(),
+  },
+  'dnstap': {
+    'sources': [
+      src_dir / 'dnstap.cc',
+      src_dir / 'fstrm_logger.cc',
+    ],
+    'condition': dep_dnstap.found(),
+  },
+}
+
+foreach name, info: conditional_sources
+  if info['condition']
+    common_sources += files(info['sources'])
+  endif
+endforeach
+
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
 
@@ -205,13 +230,18 @@ deps = [
   dep_libsnmp,
   dep_libsodium,
   dep_libssl,
+  dep_gnutls,
   dep_lua,
   dep_protozero,
   dep_rust_settings,
   dep_settings,
   dep_yahttp,
   dep_htmlfiles,
+  dep_dnstap,
+  dep_libcurl,
 ]
+
+# XXX pub suffix list
 
 libpdns_dnslabeltext_source = src_dir / 'dnslabeltext.rl'
 libpdns_dnslabeltext_gen    = src_dir / 'dnslabeltext.cc'
