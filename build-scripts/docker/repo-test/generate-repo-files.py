@@ -112,16 +112,10 @@ def write_dockerfile (os, os_version, release):
 def write_list_file (os, os_version, release):
     tpl = g_env.get_template('pdns-list.jinja2')
 
-    if os in ['debian', 'ubuntu']:
-        arch = ' [arch=amd64,arm64] '
-    else:
-        arch = ' '
-
     f = open('pdns.list.{}.{}-{}'.format(release, os, os_version), 'w')
     f.write(tpl.render({ "os": os,
                          "os_version": os_version,
-                         "release": release,
-                         "arch": arch }))
+                         "release": release }))
     f.close()
 
 
