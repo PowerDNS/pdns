@@ -88,7 +88,7 @@ void checkUmemIntegrity(const char* function, int line, std::shared_ptr<LockGuar
 {
   auto umems = s_umems.lock();
   if (validStatuses.count(umems->at({vect.get(), offset}).status) == 0) {
-    std::cerr << "UMEM integrity check failed at " << function << ": " << line << ": status of "<<(void*)vect.get()<<", "<<offset<<" is " << static_cast<int>(umems->at({vect.get(), offset}).status) << ", expected: ";
+    std::cerr << "UMEM integrity check failed at " << function << ": " << line << ": status of " << (void*)vect.get() << ", " << offset << " is " << static_cast<int>(umems->at({vect.get(), offset}).status) << ", expected: ";
     for (const auto status : validStatuses) {
       std::cerr << static_cast<int>(status) << " ";
     }
@@ -918,7 +918,7 @@ void XskPacket::rewrite() noexcept
     /* needed to get the correct checksum */
     setIPv4Header(ipHeader);
     setUDPHeader(udpHeader);
-    //udpHeader.check = tcp_udp_v4_checksum(&ipHeader);
+    // udpHeader.check = tcp_udp_v4_checksum(&ipHeader);
     rewriteIpv4Header(&ipHeader, getFrameLen());
     setIPv4Header(ipHeader);
     setUDPHeader(udpHeader);
