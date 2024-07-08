@@ -1358,7 +1358,7 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const s
 
   case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
     SLOG(g_log << Logger::Error << "YAML config found for configname '" << yamlconfigname << "' but error ocurred processing it" << endl,
-         startupLog->error(Logr::Error, msg, "YAML config found, but error occurred processsing it", "configname", Logging::Loggable(yamlconfigname)));
+         startupLog->error(Logr::Error, msg, "YAML config found, but error occurred processing it", "configname", Logging::Loggable(yamlconfigname)));
     break;
 
   case pdns::settings::rec::YamlSettingsStatus::OK:
