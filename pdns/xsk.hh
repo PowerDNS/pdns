@@ -275,7 +275,11 @@ bool operator<(const XskPacket& lhs, const XskPacket& rhs) noexcept;
 class XskWorker
 {
 public:
-  enum class Type : uint8_t { OutgoingOnly, Bidirectional};
+  enum class Type : uint8_t
+  {
+    OutgoingOnly,
+    Bidirectional
+  };
 
 private:
   using XskPacketRing = boost::lockfree::spsc_queue<XskPacket, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS * 2>>;
