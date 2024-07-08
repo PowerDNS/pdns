@@ -58,7 +58,7 @@ using MACAddr = std::array<uint8_t, 6>;
 // We allocate frames that are placed into the descriptors in the fill queue, allowing the kernel to put incoming packets into the frames and place descriptors into the rx queue.
 // Once we have read the descriptors from the rx queue we release them, but we own the frames.
 // After we are done with the frame, we place them into descriptors of either the fill queue (empty frames) or tx queues (packets to be sent).
-// Once the kernel is done, it places descriptors referencing these frames into the cq where we can recycle them (packets destined to the tx queue or empty frame to the fill queue queue).
+// Once the kernel is done, it places descriptors referencing these frames into the cq where we can recycle them (packets destined to the tx queue or empty frame to the fill queue).
 
 // XskSocket routes packets to multiple worker threads registered on XskSocket via XskSocket::addWorker based on the destination port number of the packet.
 // The kernel and the worker thread holding XskWorker will wake up the XskSocket through XskFd and the Eventfd corresponding to each worker thread, respectively.
@@ -269,45 +269,42 @@ public:
 };
 bool operator<(const XskPacket& lhs, const XskPacket& rhs) noexcept;
 
-/* g++ defines __SANITIZE_THREAD__
-   clang++ supports the nice __has_feature(thread_sanitizer),
-   let's merge them */
-#if defined(__has_feature)
-#if __has_feature(thread_sanitizer)
-#define __SANITIZE_THREAD__ 1
-#endif
-#endif
-
 // XskWorker obtains XskPackets of specific ports in the NIC from XskSocket through cq.
 // After finishing processing the packet, XskWorker puts the packet into sq so that XskSocket decides whether to send it through the network card according to XskPacket::flags.
 // XskWorker wakes up XskSocket via xskSocketWaker after putting the packets in sq.
 class XskWorker
 {
-#if defined(__SANITIZE_THREAD__)
-  using XskPacketRing = LockGuarded<boost::lockfree::spsc_queue<XskPacket, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS * 2>>>;
-#else
+public:
+  enum class Type : uint8_t { OutgoingOnly, Bidirectional};
+
+private:
   using XskPacketRing = boost::lockfree::spsc_queue<XskPacket, boost::lockfree::capacity<XSK_RING_CONS__DEFAULT_NUM_DESCS * 2>>;
-#endif
+  // queue of packets to be processed by this worker
+  XskPacketRing d_incomingPacketsQueue;
+  // queue of packets processed by this worker (to be sent, or discarded)
+  XskPacketRing d_outgoingPacketsQueue;
+  // list of frames that are shared with the XskRouter
+  std::shared_ptr<LockGuarded<vector<uint64_t>>> d_sharedEmptyFrameOffset;
+  uint8_t* d_umemBufBase{nullptr};
+  const size_t d_frameSize{XskSocket::getFrameSize()};
+  Type d_type;
 
 public:
-  // queue of packets to be processed by this worker
-  XskPacketRing incomingPacketsQueue;
-  // queue of packets processed by this worker (to be sent, or discarded)
-  XskPacketRing outgoingPacketsQueue;
-
-  uint8_t* umemBufBase{nullptr};
-  // list of frames that are shared with the XskRouter
-  std::shared_ptr<LockGuarded<vector<uint64_t>>> sharedEmptyFrameOffset;
-  const size_t frameSize{XskSocket::getFrameSize()};
   FDWrapper workerWaker;
   FDWrapper xskSocketWaker;
 
-  XskWorker();
   static int createEventfd();
   static void notify(int desc);
-  static std::shared_ptr<XskWorker> create();
+  static std::shared_ptr<XskWorker> create(Type);
+
+  XskWorker(Type);
+  void setSharedFrames(std::shared_ptr<LockGuarded<vector<uint64_t>>>& frames);
+  void setUmemBufBase(uint8_t* base);
   void pushToProcessingQueue(XskPacket& packet);
   void pushToSendQueue(XskPacket& packet);
+  bool hasIncomingFrames();
+  void processIncomingFrames(const std::function<void(XskPacket& packet)>& callback);
+  void processOutgoingFrames(const std::function<void(XskPacket& packet)>& callback);
   void markAsFree(const XskPacket& packet);
   // notify worker that at least one packet is available for processing
   void notifyWorker() const;

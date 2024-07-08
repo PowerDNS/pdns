@@ -852,9 +852,9 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             continue;
           }
 
-          if (processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfo) {
+          if (processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfoResponder) {
 #ifdef HAVE_XSK
-            auto& xskInfo = ids->cs->xskInfo;
+            auto& xskInfo = ids->cs->xskInfoResponder;
             auto xskPacket = xskInfo->getEmptyFrame();
             if (!xskPacket) {
               continue;
