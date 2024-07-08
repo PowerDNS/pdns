@@ -275,7 +275,16 @@ void XskSocket::removeDestinationAddress(const std::string& mapPath, const Combo
 
 void XskSocket::fillFq(uint32_t fillSize) noexcept
 {
-  {
+  if (uniqueEmptyFrameOffset.size() < fillSize) {
+    auto frames = sharedEmptyFrameOffset->lock();
+    const auto moveSize = std::min(static_cast<size_t>(fillSize), frames->size());
+    if (moveSize > 0) {
+      // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+      uniqueEmptyFrameOffset.insert(uniqueEmptyFrameOffset.end(), std::make_move_iterator(frames->end() - moveSize), std::make_move_iterator(frames->end()));
+      frames->resize(frames->size() - moveSize);
+    }
+  }
+  else if (uniqueEmptyFrameOffset.size() > (10 * fillSize)) {
     // if we have less than holdThreshold frames in the shared queue (which might be an issue
     // when the XskWorker needs empty frames), move frames from the unique container into the
     // shared one. This might not be optimal right now.
@@ -290,7 +299,9 @@ void XskSocket::fillFq(uint32_t fillSize) noexcept
     }
   }
 
-  if (uniqueEmptyFrameOffset.size() < fillSize) {
+  fillSize = std::min(fillSize, static_cast<uint32_t>(uniqueEmptyFrameOffset.size()));
+  if (fillSize == 0) {
+    auto frames = sharedEmptyFrameOffset->lock();
     return;
   }
 
@@ -393,11 +404,13 @@ std::vector<XskPacket> XskSocket::recv(uint32_t recvSizeMax, uint32_t* failedCou
       }
     }
     catch (const std::exception& exp) {
-      std::cerr << "Exception while processing the XSK RX queue: " << exp.what() << std::endl;
+      ++failed;
+      ++processed;
       break;
     }
     catch (...) {
-      std::cerr << "Exception while processing the XSK RX queue" << std::endl;
+      ++failed;
+      ++processed;
       break;
     }
   }
@@ -844,29 +857,24 @@ void XskWorker::notify(int desc)
   }
 }
 
-XskWorker::XskWorker() :
-  workerWaker(createEventfd()), xskSocketWaker(createEventfd())
+XskWorker::XskWorker(XskWorker::Type type) :
+  d_type(type), workerWaker(createEventfd()), xskSocketWaker(createEventfd())
 {
 }
 
 void XskWorker::pushToProcessingQueue(XskPacket& packet)
 {
-#if defined(__SANITIZE_THREAD__)
-  if (!incomingPacketsQueue.lock()->push(packet)) {
-#else
-  if (!incomingPacketsQueue.push(packet)) {
-#endif
+  if (d_type == Type::OutgoingOnly) {
+    throw std::runtime_error("Trying to push an incoming packet into an outgoing-only XSK Worker");
+  }
+  if (!d_incomingPacketsQueue.push(packet)) {
     markAsFree(packet);
   }
 }
 
 void XskWorker::pushToSendQueue(XskPacket& packet)
 {
-#if defined(__SANITIZE_THREAD__)
-  if (!outgoingPacketsQueue.lock()->push(packet)) {
-#else
-  if (!outgoingPacketsQueue.push(packet)) {
-#endif
+  if (!d_outgoingPacketsQueue.push(packet)) {
     markAsFree(packet);
   }
 }
@@ -911,7 +919,7 @@ void XskPacket::rewrite() noexcept
     /* needed to get the correct checksum */
     setIPv4Header(ipHeader);
     setUDPHeader(udpHeader);
-    udpHeader.check = tcp_udp_v4_checksum(&ipHeader);
+    //udpHeader.check = tcp_udp_v4_checksum(&ipHeader);
     rewriteIpv4Header(&ipHeader, getFrameLen());
     setIPv4Header(ipHeader);
     setUDPHeader(udpHeader);
@@ -1119,15 +1127,15 @@ void XskWorker::notifyXskSocket() const
   notify(xskSocketWaker);
 }
 
-std::shared_ptr<XskWorker> XskWorker::create()
+std::shared_ptr<XskWorker> XskWorker::create(Type type)
 {
-  return std::make_shared<XskWorker>();
+  return std::make_shared<XskWorker>(type);
 }
 
 void XskSocket::addWorker(std::shared_ptr<XskWorker> worker)
 {
   const auto socketWaker = worker->xskSocketWaker.getHandle();
-  worker->umemBufBase = umem.bufBase;
+  worker->setUmemBufBase(umem.bufBase);
   d_workers.insert({socketWaker, std::move(worker)});
   fds.push_back(pollfd{
     .fd = socketWaker,
@@ -1145,14 +1153,47 @@ void XskSocket::removeWorkerRoute(const ComboAddress& dest)
   d_workerRoutes.lock()->erase(dest);
 }
 
+void XskWorker::setSharedFrames(std::shared_ptr<LockGuarded<vector<uint64_t>>>& frames)
+{
+  d_sharedEmptyFrameOffset = frames;
+}
+
+void XskWorker::setUmemBufBase(uint8_t* base)
+{
+  d_umemBufBase = base;
+}
+
 uint64_t XskWorker::frameOffset(const XskPacket& packet) const noexcept
 {
-  return packet.getFrameOffsetFrom(umemBufBase);
+  return packet.getFrameOffsetFrom(d_umemBufBase);
 }
 
 void XskWorker::notifyWorker() const
 {
   notify(workerWaker);
+}
+
+bool XskWorker::hasIncomingFrames()
+{
+  if (d_type == Type::OutgoingOnly) {
+    throw std::runtime_error("Looking for incoming packets in an outgoing-only XSK Worker");
+  }
+
+  return d_incomingPacketsQueue.read_available() != 0U;
+}
+
+void XskWorker::processIncomingFrames(const std::function<void(XskPacket& packet)>& callback)
+{
+  if (d_type == Type::OutgoingOnly) {
+    throw std::runtime_error("Looking for incoming packets in an outgoing-only XSK Worker");
+  }
+
+  d_incomingPacketsQueue.consume_all(callback);
+}
+
+void XskWorker::processOutgoingFrames(const std::function<void(XskPacket& packet)>& callback)
+{
+  d_outgoingPacketsQueue.consume_all(callback);
 }
 
 void XskSocket::getMACFromIfName()
@@ -1215,14 +1256,14 @@ std::vector<pollfd> getPollFdsForWorker(XskWorker& info)
 
 std::optional<XskPacket> XskWorker::getEmptyFrame()
 {
-  auto frames = sharedEmptyFrameOffset->lock();
+  auto frames = d_sharedEmptyFrameOffset->lock();
   if (frames->empty()) {
     return std::nullopt;
   }
   auto offset = frames->back();
   frames->pop_back();
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  return XskPacket(offset + umemBufBase, 0, frameSize);
+  return XskPacket(offset + d_umemBufBase, 0, d_frameSize);
 }
 
 void XskWorker::markAsFree(const XskPacket& packet)
@@ -1232,7 +1273,7 @@ void XskWorker::markAsFree(const XskPacket& packet)
   checkUmemIntegrity(__PRETTY_FUNCTION__, __LINE__, offset, {UmemEntryStatus::Status::Received, UmemEntryStatus::Status::TXQueue}, UmemEntryStatus::Status::Free);
 #endif /* DEBUG_UMEM */
   {
-    auto frames = sharedEmptyFrameOffset->lock();
+    auto frames = d_sharedEmptyFrameOffset->lock();
     frames->push_back(offset);
   }
 }
