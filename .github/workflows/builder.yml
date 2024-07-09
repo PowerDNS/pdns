@@ -24,7 +24,7 @@ jobs:
       matrix:
         product: ['recursor']
         os:
-          - centos-7
+          - el-7
           - el-8
           - centos-9-stream
           - ubuntu-lunar
@@ -37,7 +37,7 @@ jobs:
           - ubuntu-22.04
           - ubicloud-standard-2-arm
         exclude:
-          - os: centos-7
+          - os: el-7
             runner-os: ubicloud-standard-2-arm
       fail-fast: false
     steps:
