@@ -192,8 +192,10 @@ class XskPacket
 public:
   enum Flags : uint32_t
   {
+    /* whether the payload has been modified */
     UPDATE = 1 << 0,
     DELAY = 1 << 1,
+    /* whether the headers have already been updated */
     REWRITE = 1 << 2
   };
 
@@ -234,6 +236,7 @@ private:
   void setIPv6Header(const ipv6hdr& ipv6Header) noexcept;
   [[nodiscard]] udphdr getUDPHeader() const noexcept;
   void setUDPHeader(const udphdr& udpHeader) noexcept;
+  /* exchange the source and destination addresses (ethernet and IP) */
   void changeDirectAndUpdateChecksum() noexcept;
 
   constexpr static uint8_t DefaultTTL = 64;
@@ -250,10 +253,13 @@ public:
   [[nodiscard]] PacketBuffer cloneHeaderToPacketBuffer() const;
   void setAddr(const ComboAddress& from_, MACAddr fromMAC, const ComboAddress& to_, MACAddr toMAC) noexcept;
   bool setPayload(const PacketBuffer& buf);
+  /* rewrite the headers, usually after setAddr() and setPayload() have been called */
   void rewrite() noexcept;
   void setHeader(PacketBuffer& buf);
   XskPacket(uint8_t* frame, size_t dataSize, size_t frameSize);
   void addDelay(int relativeMilliseconds) noexcept;
+  /* if the payload have been updated, and the headers have not been rewritten, exchange the source
+     and destination addresses (ethernet and IP) and rewrite the headers */
   void updatePacket() noexcept;
   // parse IP and UDP payloads
   bool parse(bool fromSetHeader);

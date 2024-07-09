@@ -729,7 +729,7 @@ void XskPacket::changeDirectAndUpdateChecksum() noexcept
     // IPV6
     auto ipv6 = getIPv6Header();
     std::swap(ipv6.daddr, ipv6.saddr);
-    assert(ipv6.nexthdr == IPPROTO_UDP);
+    ipv6.nexthdr = IPPROTO_UDP;
 
     auto udp = getUDPHeader();
     std::swap(udp.dest, udp.source);
@@ -738,16 +738,18 @@ void XskPacket::changeDirectAndUpdateChecksum() noexcept
     /* needed to get the correct checksum */
     setIPv6Header(ipv6);
     setUDPHeader(udp);
-    udp.check = tcp_udp_v6_checksum(&ipv6);
+    // do not bother setting the UDP checksum: 0 is a valid value and most AF_XDP
+    // implementations do the same
+    // udp.check = tcp_udp_v6_checksum(&ipv6);
     rewriteIpv6Header(&ipv6, getFrameLen());
     setIPv6Header(ipv6);
     setUDPHeader(udp);
   }
-  else {
+  else if (ethHeader.h_proto == htons(ETH_P_IP)) {
     // IPV4
     auto ipv4 = getIPv4Header();
     std::swap(ipv4.daddr, ipv4.saddr);
-    assert(ipv4.protocol == IPPROTO_UDP);
+    ipv4.protocol = IPPROTO_UDP;
 
     auto udp = getUDPHeader();
     std::swap(udp.dest, udp.source);
@@ -756,7 +758,9 @@ void XskPacket::changeDirectAndUpdateChecksum() noexcept
     /* needed to get the correct checksum */
     setIPv4Header(ipv4);
     setUDPHeader(udp);
-    udp.check = tcp_udp_v4_checksum(&ipv4);
+    // do not bother setting the UDP checksum: 0 is a valid value and most AF_XDP
+    // implementations do the same
+    // udp.check = tcp_udp_v4_checksum(&ipv4);
     rewriteIpv4Header(&ipv4, getFrameLen());
     setIPv4Header(ipv4);
     setUDPHeader(udp);
@@ -908,9 +912,9 @@ void XskPacket::rewrite() noexcept
     auto ipHeader = getIPv4Header();
     ipHeader.daddr = to.sin4.sin_addr.s_addr;
     ipHeader.saddr = from.sin4.sin_addr.s_addr;
+    ipHeader.protocol = IPPROTO_UDP;
 
     auto udpHeader = getUDPHeader();
-    ipHeader.protocol = IPPROTO_UDP;
     udpHeader.source = from.sin4.sin_port;
     udpHeader.dest = to.sin4.sin_port;
     udpHeader.len = htons(getDataSize() + sizeof(udpHeader));
@@ -918,6 +922,8 @@ void XskPacket::rewrite() noexcept
     /* needed to get the correct checksum */
     setIPv4Header(ipHeader);
     setUDPHeader(udpHeader);
+    // do not bother setting the UDP checksum: 0 is a valid value and most AF_XDP
+    // implementations do the same
     // udpHeader.check = tcp_udp_v4_checksum(&ipHeader);
     rewriteIpv4Header(&ipHeader, getFrameLen());
     setIPv4Header(ipHeader);
@@ -929,9 +935,9 @@ void XskPacket::rewrite() noexcept
     auto ipHeader = getIPv6Header();
     memcpy(&ipHeader.daddr, &to.sin6.sin6_addr, sizeof(ipHeader.daddr));
     memcpy(&ipHeader.saddr, &from.sin6.sin6_addr, sizeof(ipHeader.saddr));
+    ipHeader.nexthdr = IPPROTO_UDP;
 
     auto udpHeader = getUDPHeader();
-    ipHeader.nexthdr = IPPROTO_UDP;
     udpHeader.source = from.sin6.sin6_port;
     udpHeader.dest = to.sin6.sin6_port;
     udpHeader.len = htons(getDataSize() + sizeof(udpHeader));
@@ -939,7 +945,9 @@ void XskPacket::rewrite() noexcept
     /* needed to get the correct checksum */
     setIPv6Header(ipHeader);
     setUDPHeader(udpHeader);
-    udpHeader.check = tcp_udp_v6_checksum(&ipHeader);
+    // do not bother setting the UDP checksum: 0 is a valid value and most AF_XDP
+    // implementations do the same
+    // udpHeader.check = tcp_udp_v6_checksum(&ipHeader);
     setIPv6Header(ipHeader);
     setUDPHeader(udpHeader);
   }
