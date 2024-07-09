@@ -1007,6 +1007,7 @@ void setupLuaLoadBalancingContext(LuaContext& luaCtx)
 {
   setupLuaBindings(luaCtx, true, false);
   setupLuaBindingsDNSQuestion(luaCtx);
+  setupLuaBindingsLogging(luaCtx);
   setupLuaBindingsKVS(luaCtx, true);
   setupLuaVars(luaCtx);
 
@@ -1018,6 +1019,7 @@ void setupLuaLoadBalancingContext(LuaContext& luaCtx)
 void setupLuaFFIPerThreadContext(LuaContext& luaCtx)
 {
   setupLuaVars(luaCtx);
+  setupLuaBindingsLogging(luaCtx);
 
 #ifdef LUAJIT_VERSION
   luaCtx.executeCode(getLuaFFIWrappers());
