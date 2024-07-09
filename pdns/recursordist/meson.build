@@ -12,9 +12,7 @@ project(
   ],
 )
 add_project_arguments('-DRECURSOR', language: 'cpp')
-#add_project_arguments('-DSYSCONFDIR=X', language: 'cpp') # XXX
-add_project_arguments('-DNODCACHEDIRNOD="Y"', language: 'cpp') # XXX
-add_project_arguments('-DNODCACHEDIRUDR="Z"', language: 'cpp') # XXX
+
 
 product_source_dir = meson.current_source_dir()
 product_build_dir = meson.current_build_dir()
@@ -24,6 +22,8 @@ summary('Build Dir', product_build_dir, section: 'Build')
 # Create the configuration object and dependencies list.
 conf = configuration_data()
 conf.set_quoted('PACKAGE_STRING', meson.project_version(), description: 'version')
+conf.set_quoted('NODCACHEDIRNOD', get_option('localstatedir') + '/nod', description: 'NOD data directory')
+conf.set_quoted('NODCACHEDIRUDR', get_option('localstatedir') + '/udr', description: 'NDR data directory')
 
 # Feature detection and system configuration
 subdir('meson' / 'config')                  # Config
@@ -64,7 +64,7 @@ subdir('meson' / 'malloc-trace')            # Malloc-trace
 subdir('meson' / 'socket-dir')              # Socket Dir
 subdir('meson' / 'various-functions')       # Various Functions
 subdir('meson' / 'various-headers')         # Various Headers
-subdir('meson' / 'libresolv')               # res_query XXX
+subdir('meson' / 'libresolv')               # res_query
 subdir('meson' / 'dnstap')                  # DNSTAP through libfstream
 subdir('meson' / 'libcurl')                 # Curl
 
@@ -122,7 +122,6 @@ common_sources += files(
   src_dir / 'pollmplexer.cc',
   src_dir / 'protozero.cc',
   src_dir / 'proxy-protocol.cc',
-  src_dir / 'pubsuffix.cc',
   src_dir / 'pubsuffixloader.cc',
   src_dir / 'qtype.cc',
   src_dir / 'query-local-address.cc',
@@ -195,7 +194,25 @@ endforeach
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
 
-html_sources = [] # XXX
+html_sources = [
+  src_dir / 'html/index.html',
+  src_dir / 'html/local-2022.js',
+  src_dir / 'html/js/rickshaw.min.js',
+  src_dir / 'html/js/moment.js',
+  src_dir / 'html/js/rickshaw.js',
+  src_dir / 'html/js/d3.v3.js',
+  src_dir / 'html/js/handlebars-v4.0.11.js',
+  src_dir / 'html/js/handlebars-v4.0.11-min.js',
+  src_dir / 'html/js/d3.v3-min.js',
+  src_dir / 'html/js/moment.min.js',
+  src_dir / 'html/lines.css',
+  src_dir / 'html/legend.css',
+  src_dir / 'html/styling.css',
+  src_dir / 'html/detail.css',
+  src_dir / 'html/graph.css',
+  src_dir / 'html/powerdns-logo-220px.png',
+]
+
 incfiles = find_program('incfiles')
 
 htmlfiles = custom_target(
@@ -262,7 +279,29 @@ libpdns_signers_openssl = declare_dependency(
   )
 )
 
-# XXX pub suffix list
+# If we have pubsuff.x in the source tree, use it. Otherwise download and build it.
+pubsuffix_dl_source =  'effective_tld_names.dat'
+pubsuffix_cc = src_dir / 'pubsuffix.cc'
+if not fs.is_file(pubsuffix_cc)
+  curl_command = find_program('curl', required: true)
+  pubsuffix_dl_source = custom_target(
+    'pubsuffix-dl',
+    command: [curl_command, '-s', '-S', '-o', '@OUTPUT@', 'https://publicsuffix.org/list/public_suffix_list.dat'],
+    output: pubsuffix_dl_source
+  )
+
+  mkpubsuffix_command = find_program('mkpubsuffixcc', required: true)
+  pubsuffix_cc = custom_target(
+    'pubsuffix-cc',
+    command: [mkpubsuffix_command, '@INPUT@', '@OUTPUT@'],
+    input: pubsuffix_dl_source,
+    output: 'pubsuffix.cc',
+  )
+endif
+
+dep_pubsuffix = declare_dependency(
+  sources: pubsuffix_cc
+)
 
 libpdns_dnslabeltext_source = src_dir / 'dnslabeltext.rl'
 libpdns_dnslabeltext_gen    = src_dir / 'dnslabeltext.cc'
@@ -326,6 +365,7 @@ tools = {
       libpdns_signers_openssl,
       libpdns_signers_decaf,
       libpdns_signers_sodium,
+      dep_pubsuffix,
     ],
   },
   'rec_control': {
