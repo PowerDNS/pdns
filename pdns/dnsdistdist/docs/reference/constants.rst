@@ -127,7 +127,7 @@ These constants represent an Action that can be returned from :func:`LuaAction` 
  * ``DNSAction.Pool``: use the specified pool to forward this query
  * ``DNSAction.Refused``: return a response with a Refused rcode
  * ``DNSAction.ServFail``: return a response with a ServFail rcode
- * ``DNSAction.SetTag``: set a tag, see :function:`SetTagAction` (only used for Dynamic Block actions, see meth:`DNSQuestion:setTag` to set a tag from Lua)
+ * ``DNSAction.SetTag``: set a tag, see :func:`SetTagAction` (only used for Dynamic Block actions, see meth:`DNSQuestion:setTag` to set a tag from Lua)
  * ``DNSAction.Spoof``: spoof the response using the supplied IPv4 (A), IPv6 (AAAA) or string (CNAME) value. TTL will be 60 seconds.
  * ``DNSAction.SpoofPacket``: spoof the response using the supplied raw packet
  * ``DNSAction.SpoofRaw``: spoof the response using the supplied raw value as record data (see also :meth:`DNSQuestion:spoof` and :func:`dnsdist_ffi_dnsquestion_spoof_raw` to spoof multiple values)

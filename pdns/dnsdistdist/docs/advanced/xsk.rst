@@ -1,7 +1,7 @@
 ``AF_XDP`` / ``XSK``
 ====================
 
-Since 1.9.0, :program:`dnsdist` can use `AF_XDP <https://www.kernel.org/doc/html/v4.18/networking/af_xdp.html>`_ for high performance UDP packet processing recent Linux kernels (4.18+). It requires :program:`dnsdist` to have the ``CAP_NET_ADMIN`` and ``CAP_SYS_ADMIN`` capabilities at startup, and to have been compiled with the ``--with-xsk`` configure option.
+Since 1.9.0, :program:`dnsdist` can use `AF_XDP <https://www.kernel.org/doc/html/v4.18/networking/af_xdp.html>`_ for high performance UDP packet processing recent Linux kernels (4.18+). It requires :program:`dnsdist` to have the ``CAP_NET_ADMIN``, ``CAP_SYS_ADMIN`` and ``CAP_NET_RAW`` capabilities at startup, and to have been compiled with the ``--with-xsk`` configure option.
 
 .. note::
    To retain the required capabilities it is necessary to call :func:`addCapabilitiesToRetain` during startup, as :program:`dnsdist` drops capabilities after startup.
@@ -129,3 +129,15 @@ then with:
    :alt: AF_XDP CPU
 
 The first run handled roughly 1 million QPS, the second run 2.5 millions, with the CPU usage being much lower in the ``AF_XDP`` case.
+
+Running under systemd
+---------------------
+
+:program:`dnsdist` needs quite a few more additional permissions to use ``AF_XDP``:
+
+- to access the ``BPF`` maps directory, it needs to be able to go into the ``/sys/fs/bpf`` directory: one option is to ``chmod o+x /sys/fs/bpf``, a safer one is to restrict that to the ``dnsdist`` user instead via ``chgrp dnsdist /sys/fs/bpf && chmod g+x /sys/fs/bpf``
+- to read the ``BPF`` maps themselves, they need to be readable by the ``dnsdist`` user: ``chown -R dnsdist:dnsdist /sys/fs/bpf/dnsdist/``
+- to create ``AF_XDP`` sockets: add ``AF_XDP`` to ``RestrictAddressFamilies`` in the systemd unit file
+- to load a BPF program: add ``CAP_SYS_ADMIN`` to ``CapabilityBoundingSet`` and ``AmbientCapabilities`` in the systemd unit file
+- to create raw network sockets: add ``CAP_NET_RAW`` to ``CapabilityBoundingSet`` and ``AmbientCapabilities`` in the systemd unit file
+- and finally to lock enough memory: ensure that ``LimitMEMLOCK=infinity`` is set in the systemd unit file

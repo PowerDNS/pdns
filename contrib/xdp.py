@@ -120,16 +120,26 @@ try:
 except KeyboardInterrupt:
   pass
 
-for item in v4filter.items():
-  print(f"{str(netaddr.IPAddress(item[0].value))} ({ACTIONS[item[1].action]}): {item[1].counter}")
-for item in v6filter.items():
-  print(f"{str(socket.inet_ntop(socket.AF_INET6, item[0]))} ({ACTIONS[item[1].action]}): {item[1].counter}")
-for item in cidr4filter.items():
-  addr = netaddr.IPAddress(socket.ntohl(item[0].addr))
-  print(f"{str(addr)}/{str(item[0].cidr)} ({ACTIONS[item[1].action]}): {item[1].counter}")
-for item in cidr6filter.items():
-  print(f"{str(socket.inet_ntop(socket.AF_INET6, item[0].addr))}/{str(item[0].cidr)} ({ACTIONS[item[1].action]}): {item[1].counter}")
-for item in qnamefilter.items():
-  print(f"{''.join(map(chr, item[0].qname)).strip()}/{INV_QTYPES[item[0].qtype]} ({ACTIONS[item[1].action]}): {item[1].counter}")
+if v4filter or v6filter or cidr4filter or cidr6filter:
+  print("Blocked networks:")
+  for item in v4filter.items():
+    print(f"- {str(netaddr.IPAddress(item[0].value))} ({ACTIONS[item[1].action]}): {item[1].counter}")
+  for item in v6filter.items():
+    print(f"- {str(socket.inet_ntop(socket.AF_INET6, item[0]))} ({ACTIONS[item[1].action]}): {item[1].counter}")
+  for item in cidr4filter.items():
+    addr = netaddr.IPAddress(socket.ntohl(item[0].addr))
+    print(f"- {str(addr)}/{str(item[0].cidr)} ({ACTIONS[item[1].action]}): {item[1].counter}")
+  for item in cidr6filter.items():
+    print(f"- {str(socket.inet_ntop(socket.AF_INET6, item[0].addr))}/{str(item[0].cidr)} ({ACTIONS[item[1].action]}): {item[1].counter}")
+
+if qnamefilter:
+  print("Blocked query names:")
+  for item in qnamefilter.items():
+    print(f"- {''.join(map(chr, item[0].qname)).strip()}/{INV_QTYPES[item[0].qtype]} ({ACTIONS[item[1].action]}): {item[1].counter}")
+
+if parameters.xsk and xskDestinations:
+  print("Content of the AF_XDP (XSK) routing map:")
+  for item in xskDestinations.items():
+    print(f"- {str(netaddr.IPAddress(socket.ntohl(item[0].addr)))}:{str(socket.ntohs(item[0].port))}")
 
 xdp.remove_xdp(parameters.interface, 0)
