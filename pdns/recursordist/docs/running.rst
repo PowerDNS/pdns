@@ -122,7 +122,7 @@ Be aware that this causes overhead and should not be used in a high query-per-se
 
     Jul 09 09:08:32 msg="Answer" subsystem="syncres" level="0" prio="Info" tid="4" ts="1720508912.549" additional="1" answer-is-variable="0" answers="1" dotout="0" ecs="" into-packetcache="1" maxdepth="3" mtid="1" netms="617.317000" outqueries="13" proto="udp" qname="www.example.com" qtype="A" rcode="0" rd="1" remote="127.0.0.1:54573" tcpout="0" throttled="0" timeouts="0" totms="627.060000" validationState="Secure"
 
-I ``quiet`` is set to ``false``, the following keys and values are logged for questions and answers not
+When ``quiet`` is set to ``false``, the following keys and values are logged for questions and answers not
 answered from the packet cache.
 Refer to :doc:`appendices/structuredlogging` for more details on the common keys used for structured logging messages.
 Note that depending on record cache content a single client query can result into multiple queries to authoritative servers.
@@ -159,9 +159,9 @@ If the exact answer is available from the record cache no outgoing queries are n
 |                       |servers to resolve answer    |                                     |
 +-----------------------+-----------------------------+-------------------------------------+
 |``into-packetcache``   |Is the answer being stored   |Variable answers (as determined by   |
-|                       |into the packetcache?        |the recursor) or answers marked as   |
-|                       |                             |variable by Lua code will not be put |
-|                       |                             |into the packet cache.               |
+|                       |into the packetcache?        |the recursor or marked as such by Lua|
+|                       |                             |code) will not be put into the packet|
+|                       |                             |cache                                |
 +-----------------------+-----------------------------+-------------------------------------+
 |``maxdepth``           |Depth of recursion needed to |Some queries need resolving multiple |
 |                       |resolve answer               |targets, e.g. to find the right      |
