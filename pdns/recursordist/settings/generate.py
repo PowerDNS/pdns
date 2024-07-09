@@ -802,7 +802,7 @@ def generate():
         dupcheck1[entry['oldname']] = True
         dupcheck2[entry['section'] + '.' + entry['name']] = True
     # And generate C++, Rust and docs code based on table
-    gen_cxx(srcdir, entries)
+    gen_cxx(gendir, entries)
     gen_rust(srcdir, entries)
     # Avoid generating doc files in a sdist based build
     if os.path.isdir('../docs'):

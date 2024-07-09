@@ -8,7 +8,7 @@ sources = files(
 )
 
 generated = [
-  'timestamp',
+  'cxxsettings-generated.cc',
 ]
 
 python = find_program('python3')
@@ -19,11 +19,11 @@ settings = custom_target(
   output: generated,
 )
 
-subdir('rust')
-
 dep_settings = declare_dependency(
-  dependencies: dep_rust_settings,
-  sources: [settings, 'cxxsupport.cc', 'cxxsettings-generated.cc'],
+  sources: [settings, 'cxxsupport.cc'],
   include_directories: [include_directories('.'), ]
 )
+
+subdir('rust')
+
 

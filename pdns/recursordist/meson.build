@@ -31,7 +31,6 @@ subdir('meson' / 'version')                 # Generate version define
 subdir('meson' / 'compiler-setup')          # Common compiler setup
 subdir('meson' / 'summary')                 # Print a system/project summary
 subdir('meson' / 'sysconfdir')              # Sysconfdir
-#subdir('meson' / 'libdir')                  # Libdir
 subdir('meson' / 'platform')                # Platform detection
 subdir('meson' / 'timet-size')              # Check the size of time_t
 subdir('meson' / 'timet-sign')              # Check the sign of time_t
@@ -53,7 +52,6 @@ subdir('meson' / 'gnutls')                  # GnuTLS
 subdir('meson' / 'dot')                     # DNS over TLS
 subdir('meson' / 'clock-gettime')           # Clock_gettime
 subdir('meson' / 'boost')                   # Boost
-#subdir('meson' / 'boost-program-options')   # Boost Program Options Library
 subdir('meson' / 'boost-context')           # Boost Context Switching Library
 subdir('meson' / 'boost-test')              # Boost Testing Library
 subdir('meson' / 'reproducible')            # Reproducible Builds
@@ -70,6 +68,8 @@ subdir('meson' / 'libresolv')               # res_query XXX
 subdir('meson' / 'dnstap')                  # DNSTAP through libfstream
 subdir('meson' / 'libcurl')                 # Curl
 
+subdir('settings')
+
 common_sources = []
 
 fs = import('fs')
@@ -82,11 +82,8 @@ dep_pdns = declare_dependency(include_directories: include_directories('.', src_
 subdir('ext' / 'arc4random')
 subdir('ext' / 'json11')
 subdir('ext' / 'luawrapper')
-#subdir('ext' / 'probds') XXX
 subdir('ext' / 'protozero')
 subdir('ext' / 'yahttp')
-subdir('settings')
-#subdir('settings' / 'rust')
 
 common_sources += files(
   src_dir / 'aggressive_nsec.cc',
@@ -195,6 +192,18 @@ conditional_sources = {
     ],
     'condition': dep_dnstap.found(),
   },
+  'libsodium': {
+    'sources': [
+      src_dir / 'sodiumsigners.cc',
+    ],
+    'condition': dep_libsodium.found(),
+  },
+  'libdecaf': {
+    'sources': [
+      src_dir / 'decafsigners.cc',
+    ],
+    'condition': dep_libdecaf.found(),
+  },
 }
 
 foreach name, info: conditional_sources
@@ -222,6 +231,8 @@ dep_htmlfiles = declare_dependency(
 
 deps = [
   dep_pdns,
+  dep_settings,
+  dep_rust_settings,
   dep_boost,
   dep_boost_context,
   dep_json11,
@@ -233,8 +244,6 @@ deps = [
   dep_gnutls,
   dep_lua,
   dep_protozero,
-  dep_rust_settings,
-  dep_settings,
   dep_yahttp,
   dep_htmlfiles,
   dep_dnstap,
@@ -281,15 +290,105 @@ libpdns_common = declare_dependency(
   )
 )
 
-
 tools = {
-  'pdns-recursor': {
+  'pdns_recursor': {
     'main': src_dir / 'rec-main.cc',
+    'manpages': ['pdns_recursor.1'],
     'deps-extra': [
+      dep_boost,
+      dep_lua,
+      dep_protozero,
+      dep_yahttp,
+      dep_json11,
+      dep_settings,
+      dep_rust_settings,
     ],
-    'manpages': [],
+  },
+  'rec_control': {
+    'main': src_dir / 'rec_control.cc',
+    'manpages': ['pdns_control.1'],
+    'deps-extra': [
+      dep_boost,
+      dep_settings,
+      dep_rust_settings,
+    ],
   },
 }
+
+if get_option('unit-tests')
+  librec_test = declare_dependency(
+    link_whole: static_library(
+      'rec-test',
+      config_h,
+      src_dir / 'ednscookies.cc',
+      src_dir / 'test-aggressive_nsec_cc.cc',
+      src_dir / 'test-arguments_cc.cc',
+      src_dir / 'test-base32_cc.cc',
+      src_dir / 'test-base64_cc.cc',
+      src_dir / 'test-common.hh',
+      src_dir / 'test-credentials_cc.cc',
+      src_dir / 'test-dns_random_hh.cc',
+      src_dir / 'test-dnsname_cc.cc',
+      src_dir / 'test-dnsparser_hh.cc',
+      src_dir / 'test-dnsrecordcontent.cc',
+      src_dir / 'test-dnsrecords_cc.cc',
+      src_dir / 'test-ednsoptions_cc.cc',
+      src_dir / 'test-filterpo_cc.cc',
+      src_dir / 'test-histogram_hh.cc',
+      src_dir / 'test-iputils_hh.cc',
+      src_dir / 'test-ixfr_cc.cc',
+      src_dir / 'test-luawrapper.cc',
+      src_dir / 'test-misc_hh.cc',
+      src_dir / 'test-mplexer.cc',
+      src_dir / 'test-mtasker.cc',
+      src_dir / 'test-negcache_cc.cc',
+      src_dir / 'test-packetcache_hh.cc',
+      src_dir / 'test-rcpgenerator_cc.cc',
+      src_dir / 'test-rec-system-resolve.cc',
+      src_dir / 'test-rec-taskqueue.cc',
+      src_dir / 'test-rec-tcounters_cc.cc',
+      src_dir / 'test-rec-zonetocache.cc',
+      src_dir / 'test-recpacketcache_cc.cc',
+      src_dir / 'test-recursorcache_cc.cc',
+      src_dir / 'test-reczones-helpers.cc',
+      src_dir / 'test-rpzloader_cc.cc',
+      src_dir / 'test-secpoll_cc.cc',
+      src_dir / 'test-settings.cc',
+      src_dir / 'test-signers.cc',
+      src_dir / 'test-syncres_cc.cc',
+      src_dir / 'test-syncres_cc.hh',
+      src_dir / 'test-syncres_cc1.cc',
+      src_dir / 'test-syncres_cc10.cc',
+      src_dir / 'test-syncres_cc2.cc',
+      src_dir / 'test-syncres_cc3.cc',
+      src_dir / 'test-syncres_cc4.cc',
+      src_dir / 'test-syncres_cc5.cc',
+      src_dir / 'test-syncres_cc6.cc',
+      src_dir / 'test-syncres_cc7.cc',
+      src_dir / 'test-syncres_cc8.cc',
+      src_dir / 'test-syncres_cc9.cc',
+      src_dir / 'test-tsig.cc',
+      dependencies: [
+          dep_boost,
+          dep_boost_test,
+          dep_lua,
+          dep_settings,
+          dep_rust_settings,
+      ],
+    )
+  )
+  tools += {
+    'testrunner': {
+        'main': src_dir / 'testrunner.cc',
+        'deps-extra': [
+          librec_test,
+          dep_boost_test,
+        ],
+    }
+  }
+endif
+
+
 
 man_pages = []
 foreach tool, info: tools
@@ -309,7 +408,6 @@ foreach tool, info: tools
       files_extra,
       export_dynamic: export_dynamic,
       dependencies: [
-        deps,
         libpdns_common,
         deps_extra,
       ],

@@ -16,7 +16,7 @@ env.append('RUST_TARGET', '')
 env.append('RUSTC_TARGET_ARCH', '')
 
 lib_settings = custom_target('libsettings.a',
-  output: outfile,
+  output: [outfile, 'cxx.h'],
   input: infile,
   command: [build,
   ],
@@ -25,10 +25,12 @@ lib_settings = custom_target('libsettings.a',
     'src/bridge.rs',
     'src/helpers.rs',
   ],
+  depends: settings,
   env: env,
 )
 
 dep_rust_settings = declare_dependency(
-  link_with: lib_settings,
+  link_with: lib_settings[0],
+  sources: lib_settings[1],
   include_directories: [include_directories('.'), include_directories('src')]
 )
