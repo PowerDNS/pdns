@@ -10,10 +10,17 @@ AC_DEFUN([PDNS_WITH_QUICHE], [
 
   AS_IF([test "x$with_quiche" != "xno"], [
     AS_IF([test "x$with_quiche" = "xyes" -o "x$with_quiche" = "xauto"], [
-      PKG_CHECK_MODULES([QUICHE], [quiche >= 0.15.0], [
+      PKG_CHECK_MODULES([QUICHE], [quiche >= 0.22.0], [
         [HAVE_QUICHE=1]
         AC_DEFINE([HAVE_QUICHE], [1], [Define to 1 if you have quiche])
-      ], [ : ])
+        AC_DEFINE([HAVE_QUICHE_STREAM_ERROR_CODES], [1], [Define to 1 if the Quiche API includes error code in quiche_conn_stream_recv and quiche_conn_stream_send])
+      ], [
+        # Quiche is older than 0.22.0, or no Quiche at all
+        PKG_CHECK_MODULES([QUICHE], [quiche >= 0.15.0], [
+          [HAVE_QUICHE=1]
+          AC_DEFINE([HAVE_QUICHE], [1], [Define to 1 if you have quiche])
+        ], [ : ])
+      ])
     ])
   ])
   AM_CONDITIONAL([HAVE_QUICHE], [test "x$QUICHE_LIBS" != "x"])

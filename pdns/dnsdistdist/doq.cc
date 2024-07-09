@@ -267,7 +267,12 @@ static bool tryWriteResponse(Connection& conn, const uint64_t streamID, PacketBu
 {
   size_t pos = 0;
   while (pos < response.size()) {
+#ifdef HAVE_QUICHE_STREAM_ERROR_CODES
+    uint64_t quicheErrorCode{0};
+    auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, &response.at(pos), response.size() - pos, true, &quicheErrorCode);
+#else
     auto res = quiche_conn_stream_send(conn.d_conn.get(), streamID, &response.at(pos), response.size() - pos, true);
+#endif
     if (res == QUICHE_ERR_DONE) {
       response.erase(response.begin(), response.begin() + static_cast<ssize_t>(pos));
       return false;
@@ -606,9 +611,17 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
     bool fin = false;
     auto existingLength = streamBuffer.size();
     streamBuffer.resize(existingLength + 512);
+#ifdef HAVE_QUICHE_STREAM_ERROR_CODES
+    uint64_t quicheErrorCode{0};
+    auto received = quiche_conn_stream_recv(conn.d_conn.get(), streamID,
+                                            &streamBuffer.at(existingLength), 512,
+                                            &fin,
+                                            &quicheErrorCode);
+#else
     auto received = quiche_conn_stream_recv(conn.d_conn.get(), streamID,
                                             &streamBuffer.at(existingLength), 512,
                                             &fin);
+#endif
     if (received == 0 || received == QUICHE_ERR_DONE) {
       streamBuffer.resize(existingLength);
       return;
