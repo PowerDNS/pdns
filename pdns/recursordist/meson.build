@@ -91,8 +91,6 @@ common_sources += files(
   src_dir / 'axfr-retriever.cc',
   src_dir / 'base32.cc',
   src_dir / 'base64.cc',
-  src_dir / 'capabilities.cc',
-  src_dir / 'channel.cc',
   src_dir / 'coverage.cc',
   src_dir / 'credentials.cc',
   src_dir / 'dns.cc',
@@ -121,8 +119,6 @@ common_sources += files(
   src_dir / 'mtasker_context.cc',
   src_dir / 'negcache.cc',
   src_dir / 'nsecrecords.cc',
-  src_dir / 'opensslsigners.cc',
-  src_dir / 'pdns_recursor.cc',
   src_dir / 'pollmplexer.cc',
   src_dir / 'protozero.cc',
   src_dir / 'proxy-protocol.cc',
@@ -139,14 +135,10 @@ common_sources += files(
   src_dir / 'rec-system-resolve.cc',
   src_dir / 'rec-taskqueue.cc',
   src_dir / 'rec-tcounters.cc',
-  src_dir / 'rec-tcp.cc',
-  src_dir / 'rec-tcpout.cc',
   src_dir / 'rec-zonetocache.cc',
   src_dir / 'rec_channel.cc',
   src_dir / 'rec_channel_rec.cc',
   src_dir / 'recpacketcache.cc',
-  src_dir / 'rec-snmp.cc',
-  src_dir / 'rec-tcp.cc',
   src_dir / 'recursor_cache.cc',
   src_dir / 'reczones-helpers.cc',
   src_dir / 'reczones.cc',
@@ -191,18 +183,6 @@ conditional_sources = {
       src_dir / 'fstrm_logger.cc',
     ],
     'condition': dep_dnstap.found(),
-  },
-  'libsodium': {
-    'sources': [
-      src_dir / 'sodiumsigners.cc',
-    ],
-    'condition': dep_libsodium.found(),
-  },
-  'libdecaf': {
-    'sources': [
-      src_dir / 'decafsigners.cc',
-    ],
-    'condition': dep_libdecaf.found(),
   },
 }
 
@@ -250,6 +230,38 @@ deps = [
   dep_libcurl,
 ]
 
+# Conditional sources that need to be separated into standalone libraries for special
+# linking without implicitly getting rid of symbols.
+libpdns_signers_sodium = dependency('', required: false)
+if dep_libsodium.found()
+  libpdns_signers_sodium = declare_dependency(
+    link_whole: static_library(
+      'pdns-signers-sodium',
+      sources: files(src_dir / 'sodiumsigners.cc'),
+      dependencies: [dep_boost, dep_libsodium],
+    )
+  )
+endif
+
+libpdns_signers_decaf = dependency('', required: false)
+if dep_libdecaf.found()
+  libpdns_signers_decaf = declare_dependency(
+    link_whole: static_library(
+      'pdns-signers-decaf',
+      sources: files(src_dir / 'decafsigners.cc'),
+      dependencies: [dep_boost, dep_libdecaf],
+    )
+  )
+endif
+
+libpdns_signers_openssl = declare_dependency(
+  link_whole: static_library(
+    'pdns-signers-openssl',
+    sources: files(src_dir / 'opensslsigners.cc'),
+    dependencies: [dep_boost, dep_libssl],
+  )
+)
+
 # XXX pub suffix list
 
 libpdns_dnslabeltext_source = src_dir / 'dnslabeltext.rl'
@@ -293,6 +305,15 @@ libpdns_common = declare_dependency(
 tools = {
   'pdns_recursor': {
     'main': src_dir / 'rec-main.cc',
+    'files-extra': [
+      src_dir / 'capabilities.cc',
+      src_dir / 'channel.cc',
+      src_dir / 'pdns_recursor.cc',
+      src_dir / 'rec-tcp.cc',
+      src_dir / 'rec-tcpout.cc',
+      src_dir / 'rec-snmp.cc',
+      src_dir / 'rec-tcp.cc',
+    ],
     'manpages': ['pdns_recursor.1'],
     'deps-extra': [
       dep_boost,
@@ -302,6 +323,9 @@ tools = {
       dep_json11,
       dep_settings,
       dep_rust_settings,
+      libpdns_signers_openssl,
+      libpdns_signers_decaf,
+      libpdns_signers_sodium,
     ],
   },
   'rec_control': {
@@ -374,6 +398,9 @@ if get_option('unit-tests')
           dep_lua,
           dep_settings,
           dep_rust_settings,
+          libpdns_signers_openssl,
+          libpdns_signers_decaf,
+          libpdns_signers_sodium,
       ],
     )
   )

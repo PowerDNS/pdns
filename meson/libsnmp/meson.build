@@ -1,5 +1,7 @@
 opt_libsnmp = get_option('snmp')
 
+dep_libsnmp = declare_dependency()
+
 if get_option('snmp')
     snmp_config = find_program('net-snmp-config', required: true)
     snmp_ldflags_res = run_command(snmp_config, '--libs', check: true)
