@@ -25,7 +25,7 @@ jobs:
       matrix:
         product: ['recursor']
         os:
-          - centos-7
+          - el-7
           - el-8
           - centos-9-stream
           - ubuntu-lunar
