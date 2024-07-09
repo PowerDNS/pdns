@@ -111,4 +111,97 @@ Do not forget to disable tracing after diagnosis is done::
 
   rec_control trace-regex
 
+Logging details of queries and answers
+--------------------------------------
 
+In some cases a tracing provides too much information, and we want to follow what the recursor is doing on a higher level.
+By setting :ref:`setting-yaml-logging.quiet` to ``true`` the recursor will produce a log line for each client query received and answered.
+Be aware that this causes overhead and should not be used in a high query-per-second production environment::
+
+    Jul 09 09:08:31 msg="Question" subsystem="syncres" level="0" prio="Info" tid="4" ts="1720508911.919" ecs="" mtid="1" proto="udp" qname="www.example.com" qtype="A" remote="127.0.0.1:54573"
+
+    Jul 09 09:08:32 msg="Answer" subsystem="syncres" level="0" prio="Info" tid="4" ts="1720508912.549" additional="1" answer-is-variable="0" answers="1" dotout="0" ecs="" into-packetcache="1" maxdepth="3" mtid="1" netms="617.317000" outqueries="13" proto="udp" qname="www.example.com" qtype="A" rcode="0" rd="1" remote="127.0.0.1:54573" tcpout="0" throttled="0" timeouts="0" totms="627.060000" validationState="Secure"
+
+When ``quiet`` is set to ``false``, the following keys and values are logged for questions and answers not
+answered from the packet cache.
+Refer to :doc:`appendices/structuredlogging` for more details on the common keys used for structured logging messages.
+Note that depending on record cache content a single client query can result into multiple queries to authoritative servers.
+If the exact answer is available from the record cache no outgoing queries are needed.
+
++-------------------------------------------------------------------------------------------+
+|                         **Keys common to Questions and Answers**                          |
++-----------------------+-----------------------------+-------------------------------------+
+| **Key**               | **Description**             | **Remarks**                         |
++-----------------------+-----------------------------+-------------------------------------+
+|``ecs``                |Client ECS info              |Filled in if enabled                 |
++-----------------------+-----------------------------+-------------------------------------+
+|``proto``              |Protocol used by client      |``udp`` or ``tcp``                   |
++-----------------------+-----------------------------+-------------------------------------+
+|``qname``              |Query name                   |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``qtype``              |Query type                   |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``remote``             |Client address               |IP:port combination                  |
++-----------------------+-----------------------------+-------------------------------------+
+|                               **Keys specific to Answers**                                |
++-----------------------+-----------------------------+-------------------------------------+
+|``additional``         |Number of additional records |                                     |
+|                       |in answer                    |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``answer-is-variable`` |Is answer marked variable by |e.g. ECS dependent answers           |
+|                       |recursor?                    |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``answers``            |Number of answer records in  |                                     |
+|                       |answer                       |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``dotout``             |Number of outgoing DoT       |                                     |
+|                       |queries sent to authoritative|                                     |
+|                       |servers to resolve answer    |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``into-packetcache``   |Is the answer being stored   |Variable answers (as determined by   |
+|                       |into the packetcache?        |the recursor or marked as such by Lua|
+|                       |                             |code) will not be put into the packet|
+|                       |                             |cache                                |
++-----------------------+-----------------------------+-------------------------------------+
+|``maxdepth``           |Depth of recursion needed to |Some queries need resolving multiple |
+|                       |resolve answer               |targets, e.g. to find the right      |
+|                       |                             |delegation or answers containing     |
+|                       |                             |CNAMEs                               |
++-----------------------+-----------------------------+-------------------------------------+
+|``netms``              |Time spent waiting for       |                                     |
+|                       |answers from authoritative   |                                     |
+|                       |servers                      |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``outqueries``         |Total queries sent to        |A single client query can cause      |
+|                       |authoritative servers        |multiple queries to authoritative    |
+|                       |                             |servers, depending on record cache   |
+|                       |                             |content and the query itself.        |
++-----------------------+-----------------------------+-------------------------------------+
+|``rcode``              |Result code                  |If no rcode is available (e.g. in the|
+|                       |                             |case of timeouts) this value can be  |
+|                       |                             |negative                             |
++-----------------------+-----------------------------+-------------------------------------+
+|``rd``                 |Did the client set the       |                                     |
+|                       |Recursion Desired DNS Header |                                     |
+|                       |flag?                        |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``tcpout``             |Number of outgoing TCP       |                                     |
+|                       |queries sent to authoritative|                                     |
+|                       |servers to resolve answer    |                                     |
+|                       |                             |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``throttled``          |Number of potential outgoing |If a target is throttled, the        |
+|                       |queries **not** sent out     |recursor will try another suitable   |
+|                       |because the target was marked|authoritative server (if available)  |
+|                       |as unreliable by previous    |                                     |
+|                       |interactions                 |                                     |
+|                       |                             |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``timeouts``           |Number of outgoing queries   |                                     |
+|                       |that timed out               |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``totms``              |Total time spent resolving   |                                     |
++-----------------------+-----------------------------+-------------------------------------+
+|``validationState``    |The DNSSEC status of the     |                                     |
+|                       |answer                       |                                     |
++-----------------------+-----------------------------+-------------------------------------+

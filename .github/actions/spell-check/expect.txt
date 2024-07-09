@@ -349,6 +349,7 @@ domainrelatedobject
 Donatas
 dontcare
 doq
+dotout
 downsides
 downstreams
 dport
@@ -865,6 +866,7 @@ netherlabs
 netinet
 netmaskgroup
 netmasks
+netms
 netsnmp
 NETWORKMASK
 Neue
@@ -1361,6 +1363,7 @@ TCPKEEPALIVE
 tcplatency
 tcpmaxconcurrentconnections
 tcpnewconnections
+tcpout
 tcpreusedconnections
 tcptoomanyconcurrentconnections
 tds
@@ -1397,6 +1400,7 @@ tokenuser
 Tolstov
 Toosarani
 Toshifumi
+totms
 Travaille
 tribool
 trustanchor
