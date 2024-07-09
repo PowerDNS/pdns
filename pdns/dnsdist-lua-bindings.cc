@@ -31,8 +31,7 @@
 #include "dolog.hh"
 #include "xsk.hh"
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
-void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
+void setupLuaBindingsLogging(LuaContext& luaCtx)
 {
   luaCtx.writeFunction("vinfolog", [](const string& arg) {
       vinfolog("%s", arg);
@@ -50,7 +49,11 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer+=arg;
       g_outputBuffer+="\n";
     });
+}
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
+void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
+{
   /* Exceptions */
   luaCtx.registerFunction<string(std::exception_ptr::*)()const>("__tostring", [](const std::exception_ptr& eptr) -> std::string {
       try {
