@@ -25,7 +25,7 @@ jobs:
       matrix:
         product: ['dnsdist']
         os:
-          - centos-7
+          - el-7
           - ubuntu-bionic
           - el-8
           - centos-9-stream
