@@ -33,19 +33,37 @@ public:
     view(data_, size_)
   {
   }
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): No unsigned char view in C++17
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast): No unsigned char view in C++17
   UnsignedCharView(const unsigned char* data_, size_t size_) :
     view(reinterpret_cast<const char*>(data_), size_)
   {
   }
-  const unsigned char& at(std::string_view::size_type pos) const
+  using size_type = std::string_view::size_type;
+
+  [[nodiscard]] const unsigned char& at(size_type pos) const
   {
     return reinterpret_cast<const unsigned char&>(view.at(pos));
   }
 
-  size_t size() const
+  [[nodiscard]] const unsigned char& operator[](size_type pos) const
+  {
+    return reinterpret_cast<const unsigned char&>(view[pos]);
+  }
+
+  [[nodiscard]] const unsigned char* data() const
+  {
+    return reinterpret_cast<const unsigned char*>(view.data());
+  }
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast): No unsigned char view in C++17
+
+  [[nodiscard]] size_t size() const
   {
     return view.size();
+  }
+
+  [[nodiscard]] size_t length() const
+  {
+    return view.length();
   }
 
 private:
