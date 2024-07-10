@@ -54,6 +54,7 @@ subdir('meson' / 'clock-gettime')           # Clock_gettime
 subdir('meson' / 'boost')                   # Boost
 subdir('meson' / 'boost-context')           # Boost Context Switching Library
 subdir('meson' / 'boost-test')              # Boost Testing Library
+subdir('meson' / 'boost-filesystem')        # Boost File System Library
 subdir('meson' / 'reproducible')            # Reproducible Builds
 subdir('meson' / 'libsystemd')              # Systemd notification
 subdir('meson' / 'systemd')                 # Systemd and unit file handling
@@ -83,7 +84,9 @@ subdir('ext' / 'arc4random')
 subdir('ext' / 'json11')
 subdir('ext' / 'luawrapper')
 subdir('ext' / 'protozero')
+subdir('ext' / 'probds')
 subdir('ext' / 'yahttp')
+subdir('meson' / 'nod')                     # Newly Observed Domains
 
 common_sources += files(
   src_dir / 'aggressive_nsec.cc',
@@ -183,6 +186,12 @@ conditional_sources = {
     ],
     'condition': dep_dnstap.found(),
   },
+  'nod': {
+    'sources': [
+      src_dir / 'nod.cc',
+    ],
+    'condition': dep_nod.found(),
+  },
 }
 
 foreach name, info: conditional_sources
@@ -279,7 +288,7 @@ libpdns_signers_openssl = declare_dependency(
   )
 )
 
-# If we have pubsuff.x in the source tree, use it. Otherwise download and build it.
+# If we have pubsuffix.cc in the source tree, use it. Otherwise download and build it.
 pubsuffix_dl_source =  'effective_tld_names.dat'
 pubsuffix_cc = src_dir / 'pubsuffix.cc'
 if not fs.is_file(pubsuffix_cc)
@@ -356,6 +365,7 @@ tools = {
     'manpages': ['pdns_recursor.1'],
     'deps-extra': [
       dep_boost,
+      dep_nod,
       dep_lua,
       dep_protozero,
       dep_yahttp,
@@ -379,11 +389,8 @@ tools = {
   },
 }
 
-if get_option('unit-tests')
-  librec_test = declare_dependency(
-    link_whole: static_library(
-      'rec-test',
-      config_h,
+test_sources = []
+test_sources += files(
       src_dir / 'ednscookies.cc',
       src_dir / 'test-aggressive_nsec_cc.cc',
       src_dir / 'test-arguments_cc.cc',
@@ -432,10 +439,23 @@ if get_option('unit-tests')
       src_dir / 'test-syncres_cc8.cc',
       src_dir / 'test-syncres_cc9.cc',
       src_dir / 'test-tsig.cc',
+)
+
+if enable_nod
+  test_sources += files(src_dir / 'test-nod_cc.cc')
+endif
+
+if get_option('unit-tests')
+  librec_test = declare_dependency(
+    link_whole: static_library(
+      'rec-test',
+      config_h,
+      test_sources,
       dependencies: [
           dep_boost,
           dep_boost_test,
           dep_lua,
+          dep_nod,
           dep_settings,
           dep_rust_settings,
           libpdns_signers_openssl,
@@ -446,7 +466,9 @@ if get_option('unit-tests')
   )
   tools += {
     'testrunner': {
-        'main': src_dir / 'testrunner.cc',
+        'main': [
+          src_dir / 'testrunner.cc',
+        ],
         'deps-extra': [
           librec_test,
           dep_boost_test,
