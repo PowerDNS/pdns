@@ -4,6 +4,30 @@ Changelogs for 5.1.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.1.0
+  :released: 10th of July 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14435
+
+    Fix typo in log message.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14402
+    :tickets: 14400
+
+    Switch el7 builds to Oracle Linux 7
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14389
+    :tickets: 14384
+
+    Keep Lua config in Debian/Ubuntu package as existing setups might use it, even though a fresh one does not.
+
+.. changelog::
   :version: 5.1.0-rc1
   :released: 25th of June 2024
 
