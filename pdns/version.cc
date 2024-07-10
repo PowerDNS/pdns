@@ -19,9 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
+
 #include "logger.hh"
 #include "version.hh"
 #include "dnsbackend.hh"
@@ -33,11 +33,11 @@ static ProductType productType;
 string compilerVersion()
 {
 #if defined(__clang__)
-  return string("clang " __clang_version__);
+  return "clang " __clang_version__;
 #elif defined(__GNUC__)
-  return string("gcc " __VERSION__);
+  return "gcc " __VERSION__;
 #else // add other compilers here
-  return string("Unknown compiler");
+  return "Unknown compiler";
 #endif
 }
 
@@ -188,9 +188,11 @@ void showBuildConfiguration()
   const auto& modules = BackendMakers().getModules();
   g_log << Logger::Warning << "Loaded modules: " << boost::join(modules, " ") << endl;
 #endif
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #ifdef PDNS_CONFIG_ARGS
 #define double_escape(s) #s
 #define escape_quotes(s) double_escape(s)
+// NOLINTEND(cppcoreguidelines-macro-usage)
   g_log << Logger::Warning << "Configured with: " << escape_quotes(PDNS_CONFIG_ARGS) << endl;
 #undef escape_quotes
 #undef double_escape
@@ -199,17 +201,17 @@ void showBuildConfiguration()
 
 string fullVersionString()
 {
-  ostringstream s;
-  s << productName() << " " VERSION;
+  ostringstream ret;
+  ret << productName() << " " VERSION;
 #ifndef REPRODUCIBLE
-  s << " (built " __DATE__ " " __TIME__ " by " BUILD_HOST ")";
+  ret << " (built " __DATE__ " " __TIME__ " by " BUILD_HOST ")";
 #endif
-  return s.str();
+  return ret.str();
 }
 
-void versionSetProduct(ProductType pt)
+void versionSetProduct(ProductType productType_)
 {
-  productType = pt;
+  productType = productType_;
 }
 
 ProductType versionGetProduct()
