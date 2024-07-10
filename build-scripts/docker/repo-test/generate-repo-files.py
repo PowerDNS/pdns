@@ -243,7 +243,7 @@ def test_release (release, arch='x86_64'):
     for df in dockerfiles:
         if arch == 'aarch64' and str(df).endswith('centos-7'):
             continue
-        if arch == 'aarch64' and not release in ['rec-51', 'rec-master',
+        if arch == 'aarch64' and not release in ['rec-49', 'rec-50', 'rec-51', 'rec-master',
                                                  'dnsdist-19', 'dnsdist-master']:
             continue
         if g_verbose:
