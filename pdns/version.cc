@@ -21,11 +21,14 @@
  */
 
 #include "config.h"
-
-#include "logger.hh"
 #include "version.hh"
-#include "dnsbackend.hh"
+#include "namespaces.hh"
 
+#ifdef PDNS_MODULES
+#include "dnsbackend.hh"
+#endif
+
+#include <sstream>
 #include <boost/algorithm/string/join.hpp>
 
 static ProductType productType;
@@ -70,27 +73,40 @@ string productTypeApiType()
   return "unknown";
 }
 
-void showProductVersion()
+vector<string> getProductVersionLines()
 {
-  g_log << Logger::Warning << productName() << " " << VERSION << " (C) "
+  vector<string> ret;
+  std::istringstream istr(getProductVersion());
+  for (string line; std::getline(istr, line);) {
+    ret.emplace_back(line);
+  }
+  return ret;
+}
+
+string getProductVersion()
+{
+  ostringstream ret;
+  ret << productName() << " " << VERSION << " (C) "
                                                                  "PowerDNS.COM BV"
         << endl;
-  g_log << Logger::Warning << "Using " << (sizeof(unsigned long) * 8) << "-bits mode. "
+  ret << "Using " << (sizeof(unsigned long) * 8) << "-bits mode. "
                                                                          "Built using "
         << compilerVersion()
 #ifndef REPRODUCIBLE
         << " on " __DATE__ " " __TIME__ " by " BUILD_HOST
 #endif
         << "." << endl;
-  g_log << Logger::Warning << "PowerDNS comes with ABSOLUTELY NO WARRANTY. "
+  ret << "PowerDNS comes with ABSOLUTELY NO WARRANTY. "
                               "This is free software, and you are welcome to redistribute it "
                               "according to the terms of the GPL version 2."
         << endl;
+  return ret.str();
 }
 
-void showBuildConfiguration()
+string getBuildConfiguration()
 {
-  g_log << Logger::Warning << "Features: "
+  ostringstream ret;
+  ret << "Features: "
         <<
 #ifdef HAVE_LIBDECAF
     "decaf "
@@ -184,19 +200,20 @@ void showBuildConfiguration()
     endl;
 #ifdef PDNS_MODULES
   // Auth only
-  g_log << Logger::Warning << "Built-in modules: " << PDNS_MODULES << endl;
+  ret << "Built-in modules: " << PDNS_MODULES << endl;
   const auto& modules = BackendMakers().getModules();
-  g_log << Logger::Warning << "Loaded modules: " << boost::join(modules, " ") << endl;
+  ret << "Loaded modules: " << boost::join(modules, " ") << endl;
 #endif
 // NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #ifdef PDNS_CONFIG_ARGS
 #define double_escape(s) #s
 #define escape_quotes(s) double_escape(s)
 // NOLINTEND(cppcoreguidelines-macro-usage)
-  g_log << Logger::Warning << "Configured with: " << escape_quotes(PDNS_CONFIG_ARGS) << endl;
+  ret << "Configured with: " << escape_quotes(PDNS_CONFIG_ARGS) << endl;
 #undef escape_quotes
 #undef double_escape
 #endif
+  return ret.str();
 }
 
 string fullVersionString()

@@ -20,7 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <string>
+#include "namespaces.hh"
 
 enum ProductType
 {
@@ -28,12 +28,13 @@ enum ProductType
   ProductRecursor
 };
 
-std::string compilerVersion();
-void showProductVersion();
-void showBuildConfiguration();
-std::string fullVersionString();
-std::string getPDNSVersion();
-std::string productName();
-std::string productTypeApiType();
+[[nodiscard]] std::string compilerVersion();
+[[nodiscard]] std::vector<std::string> getProductVersionLines();
+[[nodiscard]] std::string getProductVersion();
+[[nodiscard]] std::string getBuildConfiguration();
+[[nodiscard]] std::string fullVersionString();
+[[nodiscard]] std::string getPDNSVersion();
+[[nodiscard]] std::string productName();
+[[nodiscard]] std::string productTypeApiType();
 void versionSetProduct(ProductType productType_);
-ProductType versionGetProduct();
+[[nodiscard]] ProductType versionGetProduct();
