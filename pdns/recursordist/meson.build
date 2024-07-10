@@ -372,6 +372,7 @@ tools = {
       dep_json11,
       dep_settings,
       dep_rust_settings,
+      dep_systemd,
       libpdns_signers_openssl,
       libpdns_signers_decaf,
       libpdns_signers_sodium,
