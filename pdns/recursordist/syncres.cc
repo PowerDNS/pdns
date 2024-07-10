@@ -4269,7 +4269,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
           continue;
         }
       }
-      // Disallow answer records not anwering the QType requested. ANY, CNAME, DNAME, RRSIG complicate matters here
+      // Disallow answer records not answering the QType requested. ANY, CNAME, DNAME, RRSIG complicate matters here
       if (qtype != QType::ANY && rec->d_type != qtype.getCode() && !isRedirection(rec->d_type) && rec->d_type != QType::RRSIG) {
         LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
         rec = lwr.d_records.erase(rec);
@@ -4324,6 +4324,14 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         }
       }
     }
+    /* dealing with recors in additional */
+    else if (rec->d_place == DNSResourceRecord::ADDITIONAL) {
+      if (rec->d_type != QType::A && rec->d_type != QType::AAAA && rec->d_type != QType::RRSIG) {
+        LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ADDITIONAL section received from " << auth << endl);
+        rec = lwr.d_records.erase(rec);
+        continue;
+      }
+    }
 
     ++rec;
   } // end of first loop, handled answer and most of authority section
@@ -4362,12 +4370,6 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
     }
     /* dealing with the records in additional */
     else if (rec->d_place == DNSResourceRecord::ADDITIONAL) {
-      if (rec->d_type != QType::A && rec->d_type != QType::AAAA && rec->d_type != QType::RRSIG) {
-        LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ADDITIONAL section received from " << auth << endl);
-        rec = lwr.d_records.erase(rec);
-        continue;
-      }
-
       if (allowedAdditionals.count(rec->d_name) == 0) {
         LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ADDITIONAL section received from " << auth << endl);
         rec = lwr.d_records.erase(rec);
