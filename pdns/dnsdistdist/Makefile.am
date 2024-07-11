@@ -439,14 +439,14 @@ endif
 
 if HAVE_DNS_OVER_TLS
 if HAVE_GNUTLS
-dnsdist_LDADD += -lgnutls
+dnsdist_LDADD += $(GNUTLS_LIBS)
 endif
 endif
 
 if HAVE_DNS_OVER_HTTPS
 
 if HAVE_GNUTLS
-dnsdist_LDADD += -lgnutls
+dnsdist_LDADD += $(GNUTLS_LIBS)
 endif
 
 if HAVE_LIBH2OEVLOOP

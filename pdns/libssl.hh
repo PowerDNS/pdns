@@ -105,6 +105,8 @@ public:
   bool decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx, HMAC_CTX* hctx) const;
 #endif
 
+  [[nodiscard]] std::string content() const;
+
 private:
   unsigned char d_name[TLS_TICKETS_KEY_NAME_SIZE];
   unsigned char d_cipherKey[TLS_TICKETS_CIPHER_KEY_SIZE];
@@ -124,7 +126,6 @@ public:
 
 private:
   void addKey(std::shared_ptr<OpenSSLTLSTicketKey>&& newKey);
-
   SharedLockGuarded<boost::circular_buffer<std::shared_ptr<OpenSSLTLSTicketKey> > > d_ticketKeys;
 };
 
