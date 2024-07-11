@@ -2,6 +2,53 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.6
+  :released: TBD
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14436
+
+    Fix a race in the XSK/AF_XDP backend handling code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14437
+
+    dns.cc: use pdns::views::UnsignedCharView
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14438
+
+    Make the logging functions available to all Lua environments
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 14439
+    :tickets: 14395
+
+    Dedup Prometheus help and type lines for custom metrics with labels
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14449
+
+    Add support for a callback when a new tickets key is added
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14450
+
+    Handle Quiche >= 0.22.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14452
+
+    Don't include openssl/engine.h if it's not going to be used (Sander Hoentjen)
+
+.. changelog::
   :version: 1.9.5
   :released: 20th of June 2024
 
