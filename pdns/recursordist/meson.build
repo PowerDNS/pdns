@@ -241,6 +241,7 @@ deps = [
   dep_rust_settings,
   dep_boost,
   dep_boost_context,
+  dep_threads,
   dep_json11,
   dep_libcrypto,
   dep_libresolv,
