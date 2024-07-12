@@ -809,12 +809,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       std::shared_ptr<XskSocket> socket;
       parseXskVars(vars, socket);
       if (socket) {
-        udpCS->xskInfo = XskWorker::create(XskWorker::Type::Bidirectional);
-        udpCS->xskInfo->setSharedFrames(socket->sharedEmptyFrameOffset);
+        udpCS->xskInfo = XskWorker::create(XskWorker::Type::Bidirectional, socket->sharedEmptyFrameOffset);
         socket->addWorker(udpCS->xskInfo);
         socket->addWorkerRoute(udpCS->xskInfo, loc);
-        udpCS->xskInfoResponder = XskWorker::create(XskWorker::Type::OutgoingOnly);
-        udpCS->xskInfoResponder->setSharedFrames(socket->sharedEmptyFrameOffset);
+        udpCS->xskInfoResponder = XskWorker::create(XskWorker::Type::OutgoingOnly, socket->sharedEmptyFrameOffset);
         socket->addWorker(udpCS->xskInfoResponder);
         vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
       }
@@ -866,12 +864,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       std::shared_ptr<XskSocket> socket;
       parseXskVars(vars, socket);
       if (socket) {
-        udpCS->xskInfo = XskWorker::create(XskWorker::Type::Bidirectional);
-        udpCS->xskInfo->setSharedFrames(socket->sharedEmptyFrameOffset);
+        udpCS->xskInfo = XskWorker::create(XskWorker::Type::Bidirectional, socket->sharedEmptyFrameOffset);
         socket->addWorker(udpCS->xskInfo);
         socket->addWorkerRoute(udpCS->xskInfo, loc);
-        udpCS->xskInfoResponder = XskWorker::create(XskWorker::Type::OutgoingOnly);
-        udpCS->xskInfoResponder->setSharedFrames(socket->sharedEmptyFrameOffset);
+        udpCS->xskInfoResponder = XskWorker::create(XskWorker::Type::OutgoingOnly, socket->sharedEmptyFrameOffset);
         socket->addWorker(udpCS->xskInfoResponder);
         vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", socket->getXDPMode(), loc.toStringWithPort());
       }
