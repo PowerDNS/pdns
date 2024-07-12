@@ -87,15 +87,16 @@ LockGuarded<std::map<std::pair<void*, uint64_t>, UmemEntryStatus>> s_umems;
 void checkUmemIntegrity(const char* function, int line, std::shared_ptr<LockGuarded<vector<uint64_t>>> vect, uint64_t offset, const std::set<UmemEntryStatus::Status>& validStatuses, UmemEntryStatus::Status newStatus)
 {
   auto umems = s_umems.lock();
-  if (validStatuses.count(umems->at({vect.get(), offset}).status) == 0) {
-    std::cerr << "UMEM integrity check failed at " << function << ": " << line << ": status of " << (void*)vect.get() << ", " << offset << " is " << static_cast<int>(umems->at({vect.get(), offset}).status) << ", expected: ";
+  auto& umemState = umems->at({vect.get(), offset});
+  if (validStatuses.count(umemState.status) == 0) {
+    std::cerr << "UMEM integrity check failed at " << function << ": " << line << ": status of " << (void*)vect.get() << ", " << offset << " is " << static_cast<int>(umemState.status) << ", expected: ";
     for (const auto status : validStatuses) {
       std::cerr << static_cast<int>(status) << " ";
     }
     std::cerr << std::endl;
     abort();
   }
-  (*umems)[{vect.get(), offset}].status = newStatus;
+  umemState.status = newStatus;
 }
 }
 #endif /* DEBUG_UMEM */
