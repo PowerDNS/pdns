@@ -127,3 +127,17 @@ uint32_t hashQuestion(const uint8_t* packet, uint16_t packet_len, uint32_t init,
   return init;
 }
 
+static const std::array<std::string, 4> placeNames = {
+  "QUESTION",
+  "ANSWER",
+  "AUTHORITY",
+  "ADDITIONAL"
+};
+
+std::string DNSResourceRecord::placeString(uint8_t place)
+{
+  if (place >= placeNames.size()) {
+    return "?";
+  }
+  return placeNames.at(place);
+}
