@@ -24,7 +24,7 @@ jobs:
       matrix:
         product: ['authoritative']
         os:
-          - centos-7
+          - el-7
           - ubuntu-bionic
           - el-8
           - centos-9-stream
