@@ -305,10 +305,9 @@ public:
 
   static int createEventfd();
   static void notify(int desc);
-  static std::shared_ptr<XskWorker> create(Type);
+  static std::shared_ptr<XskWorker> create(Type type, const std::shared_ptr<LockGuarded<std::vector<uint64_t>>>& frames);
 
-  XskWorker(Type);
-  void setSharedFrames(std::shared_ptr<LockGuarded<vector<uint64_t>>>& frames);
+  XskWorker(Type type, const std::shared_ptr<LockGuarded<std::vector<uint64_t>>>& frames);
   void setUmemBufBase(uint8_t* base);
   void pushToProcessingQueue(XskPacket& packet);
   void pushToSendQueue(XskPacket& packet);

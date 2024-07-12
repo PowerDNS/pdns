@@ -860,8 +860,8 @@ void XskWorker::notify(int desc)
   }
 }
 
-XskWorker::XskWorker(XskWorker::Type type) :
-  d_type(type), workerWaker(createEventfd()), xskSocketWaker(createEventfd())
+XskWorker::XskWorker(XskWorker::Type type, const std::shared_ptr<LockGuarded<std::vector<uint64_t>>>& frames) :
+  d_sharedEmptyFrameOffset(frames), d_type(type), workerWaker(createEventfd()), xskSocketWaker(createEventfd())
 {
 }
 
@@ -1134,9 +1134,9 @@ void XskWorker::notifyXskSocket() const
   notify(xskSocketWaker);
 }
 
-std::shared_ptr<XskWorker> XskWorker::create(Type type)
+std::shared_ptr<XskWorker> XskWorker::create(Type type, const std::shared_ptr<LockGuarded<std::vector<uint64_t>>>& frames)
 {
-  return std::make_shared<XskWorker>(type);
+  return std::make_shared<XskWorker>(type, frames);
 }
 
 void XskSocket::addWorker(std::shared_ptr<XskWorker> worker)
@@ -1158,11 +1158,6 @@ void XskSocket::addWorkerRoute(const std::shared_ptr<XskWorker>& worker, const C
 void XskSocket::removeWorkerRoute(const ComboAddress& dest)
 {
   d_workerRoutes.lock()->erase(dest);
-}
-
-void XskWorker::setSharedFrames(std::shared_ptr<LockGuarded<vector<uint64_t>>>& frames)
-{
-  d_sharedEmptyFrameOffset = frames;
 }
 
 void XskWorker::setUmemBufBase(uint8_t* base)
