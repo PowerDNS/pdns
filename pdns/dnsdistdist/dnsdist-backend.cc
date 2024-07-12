@@ -905,10 +905,9 @@ void DownstreamState::registerXsk(std::vector<std::shared_ptr<XskSocket>>& xsks)
   d_config.sourceMACAddr = d_xskSockets.at(0)->getSourceMACAddress();
 
   for (auto& xsk : d_xskSockets) {
-    auto xskInfo = XskWorker::create();
+    auto xskInfo = XskWorker::create(XskWorker::Type::Bidirectional, xsk->sharedEmptyFrameOffset);
     d_xskInfos.push_back(xskInfo);
     xsk->addWorker(xskInfo);
-    xskInfo->sharedEmptyFrameOffset = xsk->sharedEmptyFrameOffset;
   }
   reconnect(false);
 }

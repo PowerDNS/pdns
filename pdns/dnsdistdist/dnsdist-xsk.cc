@@ -48,11 +48,7 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
       if ((pollfds[0].revents & POLLIN) != 0) {
         needNotify = true;
         xskInfo->cleanSocketNotification();
-#if defined(__SANITIZE_THREAD__)
-        xskInfo->incomingPacketsQueue.lock()->consume_all([&](XskPacket& packet) {
-#else
-        xskInfo->incomingPacketsQueue.consume_all([&](XskPacket& packet) {
-#endif
+        xskInfo->processIncomingFrames([&](XskPacket& packet) {
           if (packet.getDataLen() < sizeof(dnsheader)) {
             xskInfo->markAsFree(packet);
             return;
@@ -77,7 +73,7 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
           }
           if (!processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids))) {
             xskInfo->markAsFree(packet);
-            infolog("XSK packet pushed to queue because processResponderPacket failed");
+            vinfolog("XSK packet dropped because processResponderPacket failed");
             return;
           }
           if (response.size() > packet.getCapacity()) {
@@ -171,11 +167,7 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
         if ((fds.at(fdIndex).revents & POLLIN) != 0) {
           ready--;
           const auto& info = xsk->getWorkerByDescriptor(fds.at(fdIndex).fd);
-#if defined(__SANITIZE_THREAD__)
-          info->outgoingPacketsQueue.lock()->consume_all([&](XskPacket& packet) {
-#else
-          info->outgoingPacketsQueue.consume_all([&](XskPacket& packet) {
-#endif
+          info->processOutgoingFrames([&](XskPacket& packet) {
             if ((packet.getFlags() & XskPacket::UPDATE) == 0) {
               xsk->markAsFree(packet);
               return;
@@ -207,18 +199,10 @@ void XskClientThread(ClientState* clientState)
   LocalHolders holders;
 
   for (;;) {
-#if defined(__SANITIZE_THREAD__)
-    while (xskInfo->incomingPacketsQueue.lock()->read_available() == 0U) {
-#else
-    while (xskInfo->incomingPacketsQueue.read_available() == 0U) {
-#endif
+    while (!xskInfo->hasIncomingFrames()) {
       xskInfo->waitForXskSocket();
     }
-#if defined(__SANITIZE_THREAD__)
-    xskInfo->incomingPacketsQueue.lock()->consume_all([&](XskPacket& packet) {
-#else
-    xskInfo->incomingPacketsQueue.consume_all([&](XskPacket& packet) {
-#endif
+    xskInfo->processIncomingFrames([&](XskPacket& packet) {
       if (XskProcessQuery(*clientState, holders, packet)) {
         packet.updatePacket();
         xskInfo->pushToSendQueue(packet);
