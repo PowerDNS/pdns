@@ -66,10 +66,3 @@ jobs:
     uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/dnsdist-1.8.x
     with:
       branch-name: rel/dnsdist-1.8.x
-
-  call-builder-dnsdist-17:
-    name: Call builder rel/dnsdist-1.7.x
-    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
-    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/dnsdist-1.7.x
-    with:
-      branch-name: rel/dnsdist-1.7.x
