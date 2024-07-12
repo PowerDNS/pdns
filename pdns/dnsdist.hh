@@ -516,6 +516,7 @@ struct ClientState
   std::shared_ptr<DOH3Frontend> doh3Frontend{nullptr};
   std::shared_ptr<BPFFilter> d_filter{nullptr};
   std::shared_ptr<XskWorker> xskInfo{nullptr};
+  std::shared_ptr<XskWorker> xskInfoResponder{nullptr};
   size_t d_maxInFlightQueriesPerConn{1};
   size_t d_tcpConcurrentConnectionsLimit{0};
   int udpFD{-1};
