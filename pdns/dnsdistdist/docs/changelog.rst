@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 1.9.6
-  :released: TBD
+  :released: 16th of July 2024
 
   .. change::
     :tags: Bug Fixes
