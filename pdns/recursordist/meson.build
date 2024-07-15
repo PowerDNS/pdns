@@ -200,8 +200,21 @@ foreach name, info: conditional_sources
   endif
 endforeach
 
+conf.set('HAVE_BOOST_CONTAINER_FLAT_SET_HPP', have_boost_1_48_0, description: 'Boost version >= 1.48.0 has boost::container::flat_set')
+
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
+
+sh_program = find_program('sh')
+dep_no_config_in_source_check = custom_target(
+    input: [],
+    output: ['config.h file in source directory check'],
+    command: [sh_program, '-c', 'test ! -e @SOURCE_ROOT@/config.h'],
+    build_always_stale: true,
+)
+dep_no_config_in_source = declare_dependency(
+  sources: dep_no_config_in_source_check
+)
 
 html_sources = [
   src_dir / 'html/index.html',
@@ -237,6 +250,7 @@ dep_htmlfiles = declare_dependency(
 
 deps = [
   dep_pdns,
+  dep_no_config_in_source,
   dep_settings,
   dep_rust_settings,
   dep_boost,

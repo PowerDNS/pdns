@@ -1,3 +1,1 @@
-module_dist = ['LICENSE', 'README.md']
-
-subdir('yahttp')
+../../../../ext/yahttp/meson.build
