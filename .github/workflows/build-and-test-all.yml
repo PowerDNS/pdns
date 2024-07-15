@@ -120,6 +120,7 @@ jobs:
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
+          fail-on-error: false
       - run: inv ci-auth-install ${{ matrix.build_option }}
       - run: ccache -s
       - if: ${{ matrix.builder != 'meson' }}
@@ -195,6 +196,7 @@ jobs:
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
+          fail-on-error: false
       - run: inv ci-make-install
       - run: ccache -s
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
@@ -271,6 +273,7 @@ jobs:
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
+          fail-on-error: false
       - run: inv ci-make-install
       - run: ccache -s
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
@@ -345,6 +348,7 @@ jobs:
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
+          fail-on-error: false
 
   test-auth-backend:
     needs:
@@ -471,6 +475,7 @@ jobs:
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
+          fail-on-error: false
 
   test-ixfrdist:
     needs:
@@ -508,6 +513,7 @@ jobs:
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
+          fail-on-error: false
 
   test-recursor-api:
     needs:
@@ -553,6 +559,7 @@ jobs:
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
+          fail-on-error: false
 
   test-recursor-regression:
     needs:
@@ -600,6 +607,7 @@ jobs:
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
+          fail-on-error: false
 
   test-recursor-bulk:
     name: 'test rec *mini* bulk'
@@ -645,6 +653,7 @@ jobs:
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
+          fail-on-error: false
 
   test-dnsdist-regression:
     needs:
@@ -692,6 +701,7 @@ jobs:
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
+          fail-on-error: false
 
   swagger-syntax-check:
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
@@ -732,6 +742,7 @@ jobs:
         uses: coverallsapp/github-action@v2
         with:
           parallel-finished: true
+          fail-on-error: false
       - name: Install jq and jc
         run: "sudo apt-get update && sudo apt-get install jq jc"
       - name: Fail job if any of the previous jobs failed
