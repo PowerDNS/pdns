@@ -69,15 +69,10 @@ public:
   }
 
 private:
-  struct PerThreadState
-  {
-    LuaContext d_luaContext;
-    std::unordered_map<std::string, ffipolicyfunc_t> d_policies;
-    bool d_initialized{false};
-  };
+  struct PerThreadState;
 
   const ffipolicyfunc_t& getPerThreadPolicy() const;
-  static thread_local PerThreadState t_perThreadState;
+  static thread_local std::unique_ptr<PerThreadState> t_perThreadState;
 
 public:
   std::string d_name;

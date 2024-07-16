@@ -10,7 +10,6 @@
 
 #include "dnsdist-rules.hh"
 
-void checkParameterBound(const std::string& parameter, uint64_t value, size_t max);
 void checkParameterBound(const std::string& parameter, uint64_t value, size_t max)
 {
   if (value > max) {

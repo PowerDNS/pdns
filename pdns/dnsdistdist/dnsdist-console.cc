@@ -44,6 +44,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-crypto.hh"
+#include "dnsdist-lua.hh"
 #include "threadname.hh"
 
 static LockGuarded<std::vector<pair<timeval, string>>> s_confDelta;
