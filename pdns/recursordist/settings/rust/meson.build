@@ -27,10 +27,11 @@ lib_settings = custom_target('libsettings.a',
   ],
   depends: settings,
   env: env,
+  console: true,
 )
 
 dep_rust_settings = declare_dependency(
   link_with: lib_settings[0],
   sources: lib_settings[1],
-  include_directories: [include_directories('.'), include_directories('src')]
+  include_directories: [include_directories('.'), include_directories('src')],
 )

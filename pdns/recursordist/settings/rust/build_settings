@@ -1,8 +1,8 @@
-#!/bin/sh -xe
+#!/bin/sh -e
 
-echo "PWD=$PWD"
-echo "srcdir=$srcdir"
-echo "builddir=$builddir"
+#echo "PWD=$PWD"
+#echo "srcdir=$srcdir"
+#echo "builddir=$builddir"
 
 $CARGO build --release $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml
 

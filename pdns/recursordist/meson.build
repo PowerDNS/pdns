@@ -48,7 +48,6 @@ subdir('meson' / 'libdecaf')                # Libdecaf-based signers
 subdir('meson' / 'libcrypto')               # OpenSSL-based signers
 subdir('meson' / 'libssl')                  # OpenSSL libssl
 subdir('meson' / 'libsnmp')                 # SNMP
-subdir('meson' / 'gnutls')                  # GnuTLS
 subdir('meson' / 'dot')                     # DNS over TLS
 subdir('meson' / 'clock-gettime')           # Clock_gettime
 subdir('meson' / 'boost')                   # Boost
@@ -208,7 +207,7 @@ config_h = configure_file(configuration: conf, output: 'config.h')
 sh_program = find_program('sh')
 dep_no_config_in_source_check = custom_target(
     input: [],
-    output: ['config.h file in source directory check'],
+    output: ['check absense of config.h file in source directory'],
     command: [sh_program, '-c', 'test ! -e @SOURCE_ROOT@/config.h'],
     build_always_stale: true,
 )
@@ -262,7 +261,6 @@ deps = [
   dep_libsnmp,
   dep_libsodium,
   dep_libssl,
-  dep_gnutls,
   dep_lua,
   dep_protozero,
   dep_yahttp,
@@ -273,31 +271,31 @@ deps = [
 
 # Conditional sources that need to be separated into standalone libraries for special
 # linking without implicitly getting rid of symbols.
-libpdns_signers_sodium = dependency('', required: false)
+librec_signers_sodium = dependency('', required: false)
 if dep_libsodium.found()
-  libpdns_signers_sodium = declare_dependency(
+  librec_signers_sodium = declare_dependency(
     link_whole: static_library(
-      'pdns-signers-sodium',
+      'rec-signers-sodium',
       sources: files(src_dir / 'sodiumsigners.cc'),
       dependencies: [dep_boost, dep_libsodium],
     )
   )
 endif
 
-libpdns_signers_decaf = dependency('', required: false)
+librec_signers_decaf = dependency('', required: false)
 if dep_libdecaf.found()
-  libpdns_signers_decaf = declare_dependency(
+  librec_signers_decaf = declare_dependency(
     link_whole: static_library(
-      'pdns-signers-decaf',
+      'rec-signers-decaf',
       sources: files(src_dir / 'decafsigners.cc'),
       dependencies: [dep_boost, dep_libdecaf],
     )
   )
 endif
 
-libpdns_signers_openssl = declare_dependency(
+librec_signers_openssl = declare_dependency(
   link_whole: static_library(
-    'pdns-signers-openssl',
+    'rec-signers-openssl',
     sources: files(src_dir / 'opensslsigners.cc'),
     dependencies: [dep_boost, dep_libssl],
   )
@@ -327,9 +325,9 @@ dep_pubsuffix = declare_dependency(
   sources: pubsuffix_cc
 )
 
-libpdns_dnslabeltext_source = src_dir / 'dnslabeltext.rl'
-libpdns_dnslabeltext_gen    = src_dir / 'dnslabeltext.cc'
-if not fs.is_file(libpdns_dnslabeltext_gen)
+librec_dnslabeltext_source = src_dir / 'dnslabeltext.rl'
+librec_dnslabeltext_gen    = src_dir / 'dnslabeltext.cc'
+if not fs.is_file(librec_dnslabeltext_gen)
   ragel = find_program('ragel', required: true)
 
   summary('Ragel', ragel.found(), bool_yn: ragel.found(), section: 'DNS Labels')
@@ -342,25 +340,25 @@ if not fs.is_file(libpdns_dnslabeltext_gen)
     arguments: ['@INPUT@', '-o', '@OUTPUT@'],
   )
 
-  libpdns_dnslabeltext_gen = ragel_generator.process(libpdns_dnslabeltext_source)
+  librec_dnslabeltext_gen = ragel_generator.process(librec_dnslabeltext_source)
 endif
 
-libpdns_dnslabeltext = declare_dependency(
+librec_dnslabeltext = declare_dependency(
   link_with: static_library(
-    'pdns-dnslabeltext',
-    libpdns_dnslabeltext_gen,
+    'rec-dnslabeltext',
+    librec_dnslabeltext_gen,
     dependencies: deps,
   )
 )
 
-libpdns_common = declare_dependency(
+librec_common = declare_dependency(
   link_with: static_library(
-    'pdns-common',
+    'rec-common',
     common_sources,
     config_h,
     dependencies: [
       deps,
-      libpdns_dnslabeltext,
+      librec_dnslabeltext,
     ],
   )
 )
@@ -388,15 +386,15 @@ tools = {
       dep_settings,
       dep_rust_settings,
       dep_systemd,
-      libpdns_signers_openssl,
-      libpdns_signers_decaf,
-      libpdns_signers_sodium,
+      librec_signers_openssl,
+      librec_signers_decaf,
+      librec_signers_sodium,
       dep_pubsuffix,
     ],
   },
   'rec_control': {
     'main': src_dir / 'rec_control.cc',
-    'manpages': ['pdns_control.1'],
+    'manpages': ['rec_control.1'],
     'deps-extra': [
       dep_boost,
       dep_settings,
@@ -474,9 +472,9 @@ if get_option('unit-tests')
           dep_nod,
           dep_settings,
           dep_rust_settings,
-          libpdns_signers_openssl,
-          libpdns_signers_decaf,
-          libpdns_signers_sodium,
+          librec_signers_openssl,
+          librec_signers_decaf,
+          librec_signers_sodium,
       ],
     )
   )
@@ -513,7 +511,7 @@ foreach tool, info: tools
       files_extra,
       export_dynamic: export_dynamic,
       dependencies: [
-        libpdns_common,
+        librec_common,
         deps_extra,
       ],
     )

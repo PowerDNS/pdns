@@ -766,9 +766,8 @@ def generate():
     """Read table, validate and generate C++, Rst and .rst files"""
     srcdir = '.'
     gendir = '.'
-    print(len(sys.argv))
     if len(sys.argv) == 3:
-        print("Using srcdir and gendir from argumens")
+        print("Generate: using srcdir and gendir from argumens")
         srcdir = sys.argv[1]
         gendir = sys.argv[2]
 
@@ -776,7 +775,6 @@ def generate():
     print("Generate srcdir: " + srcdir + " = " + os.path.realpath(srcdir))
     print("Generate gendir: " + gendir + " = " + os.path.realpath(gendir))
 
-    #os.makedirs(gendir + '/rust/src', exist_ok=True)
     # read table
     with open(srcdir + '/table.py', mode='r', encoding="utf-8") as file:
         entries = eval(file.read())
