@@ -22,6 +22,7 @@
 #include "dnsdist-async.hh"
 #include "dnsdist-internal-queries.hh"
 #include "dolog.hh"
+#include "mplexer.hh"
 #include "threadname.hh"
 
 namespace dnsdist
@@ -222,8 +223,7 @@ static bool resumeResponse(std::unique_ptr<CrossProtocolQuery>&& response)
     auto& ids = response->query.d_idstate;
     DNSResponse dnsResponse = response->getDR();
 
-    LocalHolders holders;
-    auto result = processResponseAfterRules(response->query.d_buffer, *holders.cacheInsertedRespRuleActions, dnsResponse, ids.cs->muted);
+    auto result = processResponseAfterRules(response->query.d_buffer, dnsResponse, ids.cs->muted);
     if (!result) {
       /* easy */
       return true;
@@ -284,9 +284,8 @@ bool resumeQuery(std::unique_ptr<CrossProtocolQuery>&& query)
   }
 
   DNSQuestion dnsQuestion = query->getDQ();
-  LocalHolders holders;
 
-  auto result = processQueryAfterRules(dnsQuestion, holders, query->downstream);
+  auto result = processQueryAfterRules(dnsQuestion, query->downstream);
   if (result == ProcessQueryResult::Drop) {
     /* easy */
     return true;

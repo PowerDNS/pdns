@@ -19,21 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#pragma once
 
-#include "snmp-agent.hh"
+#include "dnsdist-query-count.hh"
 
-class DNSDistSNMPAgent;
-
-#include "dnsdist.hh"
-
-class DNSDistSNMPAgent : public SNMPAgent
+namespace dnsdist::QueryCount
 {
-public:
-  DNSDistSNMPAgent(const std::string& name, const std::string& daemonSocket);
-  bool sendBackendStatusChangeTrap(const DownstreamState&);
-  bool sendCustomTrap(const std::string& reason);
-  bool sendDNSTrap(const DNSQuestion&, const std::string& reason = "");
-};
-
-extern std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent;
+SharedLockGuarded<Records> g_queryCountRecords;
+}

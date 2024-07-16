@@ -91,7 +91,6 @@ struct DOQServerConfig
 
   using ConnectionsMap = std::map<PacketBuffer, Connection>;
 
-  LocalHolders holders;
   ConnectionsMap d_connections;
   QuicheConfig config;
   ClientState* clientState{nullptr};
@@ -135,13 +134,9 @@ public:
     memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
-
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
       dnsResponse.ids.doqu = std::move(unit);
 
-      if (!processResponse(dnsResponse.ids.doqu->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
+      if (!processResponse(dnsResponse.ids.doqu->response, dnsResponse, false)) {
         if (dnsResponse.ids.doqu) {
 
           sendBackDOQUnit(std::move(dnsResponse.ids.doqu), "Response dropped by rules");
@@ -413,10 +408,9 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
 
     remote = unit->ids.origRemote;
     DOQServerConfig* dsc = unit->dsc;
-    auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
-    if (!holders.acl->match(remote)) {
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       vinfolog("Query from %s (DoQ) dropped because of ACL", remote.toStringWithPort());
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();
@@ -480,7 +474,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
     });
     unit->ids.cs = &clientState;
 
-    auto result = processQuery(dnsQuestion, holders, downstream);
+    auto result = processQuery(dnsQuestion, downstream);
     if (result == ProcessQueryResult::Drop) {
       handleImmediateResponse(std::move(unit), "DoQ dropped query");
       return;

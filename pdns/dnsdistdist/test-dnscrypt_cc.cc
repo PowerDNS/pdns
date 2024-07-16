@@ -34,8 +34,6 @@
 #include "dolog.hh"
 #include <unistd.h>
 
-bool g_verbose{false};
-
 BOOST_AUTO_TEST_SUITE(test_dnscrypt_cc)
 
 #ifdef HAVE_DNSCRYPT

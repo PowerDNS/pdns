@@ -31,6 +31,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-internal-queries.hh"
+#include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-xsk.hh"
 
@@ -42,12 +43,12 @@
 #include "ednscookies.hh"
 #include "ednssubnet.hh"
 
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   return ProcessQueryResult::Drop;
 }
 
-bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
   return false;
 }
@@ -84,14 +85,14 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap([[maybe_unused]] DownstreamSt
 #ifdef HAVE_XSK
 namespace dnsdist::xsk
 {
-bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket& packet)
+bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
 {
   return false;
 }
 }
 #endif /* HAVE_XSK */
 
-bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids)
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids)
 {
   return false;
 }
@@ -1656,7 +1657,7 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, 0);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 
   {
@@ -1671,7 +1672,7 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, EDNS_HEADER_FLAG_DO);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 
   {
@@ -1686,7 +1687,7 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, 0);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 
   {
@@ -1701,7 +1702,7 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, EDNS_HEADER_FLAG_DO);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 }
 

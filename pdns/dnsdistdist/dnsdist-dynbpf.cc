@@ -21,6 +21,8 @@
  */
 #include "dnsdist-dynbpf.hh"
 
+std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
+
 bool DynBPFFilter::block(const ComboAddress& addr, const struct timespec& until)
 {
   bool inserted = false;

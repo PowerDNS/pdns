@@ -1104,13 +1104,13 @@ private:
 class PoolAvailableRule : public DNSRule
 {
 public:
-  PoolAvailableRule(const std::string& poolname) : d_pools(&g_pools), d_poolname(poolname)
+  PoolAvailableRule(const std::string& poolname) : d_poolname(poolname)
   {
   }
 
   bool matches(const DNSQuestion* dq) const override
   {
-    return (getPool(*d_pools, d_poolname)->countServers(true) > 0);
+    return (getPool(d_poolname)->countServers(true) > 0);
   }
 
   string toString() const override
@@ -1118,20 +1118,19 @@ public:
     return "pool '" + d_poolname + "' is available";
   }
 private:
-  mutable LocalStateHolder<pools_t> d_pools;
   std::string d_poolname;
 };
 
 class PoolOutstandingRule : public DNSRule
 {
 public:
-  PoolOutstandingRule(const std::string& poolname, const size_t limit) : d_pools(&g_pools), d_poolname(poolname), d_limit(limit)
+  PoolOutstandingRule(const std::string& poolname, const size_t limit) : d_poolname(poolname), d_limit(limit)
   {
   }
 
   bool matches(const DNSQuestion* dq) const override
   {
-    return (getPool(*d_pools, d_poolname)->poolLoad()) > d_limit;
+    return (getPool(d_poolname)->poolLoad()) > d_limit;
   }
 
   string toString() const override
@@ -1139,7 +1138,6 @@ public:
     return "pool '" + d_poolname + "' outstanding > " + std::to_string(d_limit);
   }
 private:
-  mutable LocalStateHolder<pools_t> d_pools;
   std::string d_poolname;
   size_t d_limit;
 };

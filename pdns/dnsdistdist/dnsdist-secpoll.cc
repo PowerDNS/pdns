@@ -91,6 +91,8 @@ static std::string getFirstTXTAnswer(const std::string& answer)
 
 static std::string getSecPollStatus(const std::string& queriedName, int timeout=2)
 {
+  const auto verbose = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
+
   const DNSName sentName(queriedName);
   std::vector<uint8_t> packet;
   DNSPacketWriter pw(packet, sentName, QType::TXT);
@@ -108,13 +110,13 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
     string reply;
     int ret = waitForData(sock.getHandle(), timeout, 0);
     if (ret < 0) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Error while waiting for the secpoll response from stub resolver %s: %d", dest.toString(), ret);
       }
       continue;
     }
     else if (ret == 0) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Timeout while waiting for the secpoll response from stub resolver %s", dest.toString());
       }
       continue;
@@ -124,14 +126,14 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
       sock.read(reply);
     }
     catch(const std::exception& e) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Error while reading for the secpoll response from stub resolver %s: %s", dest.toString(), e.what());
       }
       continue;
     }
 
     if (reply.size() <= sizeof(struct dnsheader)) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Too short answer of size %d received from the secpoll stub resolver %s", reply.size(), dest.toString());
       }
       continue;
@@ -140,14 +142,14 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
     struct dnsheader d;
     memcpy(&d, reply.c_str(), sizeof(d));
     if (d.id != pw.getHeader()->id) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Invalid ID (%d / %d) received from the secpoll stub resolver %s", d.id, pw.getHeader()->id, dest.toString());
       }
       continue;
     }
 
     if (d.rcode != RCode::NoError) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Response code '%s' received from the secpoll stub resolver %s for '%s'", RCode::to_s(d.rcode), dest.toString(), queriedName);
       }
 
@@ -159,7 +161,7 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
     }
 
     if (ntohs(d.qdcount) != 1 || ntohs(d.ancount) != 1) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Invalid answer (qdcount %d / ancount %d) received from the secpoll stub resolver %s", ntohs(d.qdcount), ntohs(d.ancount), dest.toString());
       }
       continue;
@@ -170,7 +172,7 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
     DNSName receivedName(reply.c_str(), reply.size(), sizeof(dnsheader), false, &receivedType, &receivedClass);
 
     if (receivedName != sentName || receivedType != QType::TXT || receivedClass != QClass::IN) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%s / %s) does not match, received from the secpoll stub resolver %s", receivedName, sentName, QType(receivedType).toString(), QType(QType::TXT).toString(), QClass(receivedClass).toString(), QClass::IN.toString(), dest.toString());
       }
       continue;
@@ -182,12 +184,12 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
   throw std::runtime_error("Unable to get a valid Security Status update");
 }
 
-static bool g_secPollDone{false};
-std::string g_secPollSuffix{"secpoll.powerdns.com."};
-time_t g_secPollInterval{3600};
-
+namespace dnsdist::secpoll
+{
 void doSecPoll(const std::string& suffix)
 {
+  static bool s_secPollDone{false};
+
   if (suffix.empty()) {
     return;
   }
@@ -211,7 +213,7 @@ void doSecPoll(const std::string& suffix)
     int securityStatus = std::stoi(split.first);
     std::string securityMessage = split.second;
 
-    if (securityStatus == 1 && !g_secPollDone) {
+    if (securityStatus == 1 && !s_secPollDone) {
       infolog("Polled security status of version %s at startup, no known issues reported: %s", std::string(VERSION), securityMessage);
     }
     if (securityStatus == 2) {
@@ -222,14 +224,14 @@ void doSecPoll(const std::string& suffix)
     }
 
     dnsdist::metrics::g_stats.securityStatus = securityStatus;
-    g_secPollDone = true;
+    s_secPollDone = true;
     return;
   }
   catch (const std::exception& e) {
     if (releaseVersion) {
       warnlog("Error while retrieving the security update for version %s: %s", version, e.what());
     }
-    else if (!g_secPollDone) {
+    else if (!s_secPollDone) {
       infolog("Error while retrieving the security update for version %s: %s", version, e.what());
     }
   }
@@ -237,13 +239,14 @@ void doSecPoll(const std::string& suffix)
   if (releaseVersion) {
     warnlog("Failed to retrieve security status update for '%s' on %s", pkgv, queriedName);
   }
-  else if (!g_secPollDone) {
+  else if (!s_secPollDone) {
     infolog("Not validating response for security status update, this is a non-release version.");
 
     /* for non-released versions, there is no use sending the same message several times,
        let's just accept that there will be no security polling for this exact version */
-    g_secPollDone = true;
+    s_secPollDone = true;
   }
+}
 }
 
 #endif /* DISABLE_SECPOLL */

@@ -33,12 +33,8 @@
 #include <unistd.h>
 #include <unordered_map>
 
-#include <boost/variant.hpp>
-
+#include "bpf-filter.hh"
 #include "circular_buffer.hh"
-#include "dnscrypt.hh"
-#include "dnsdist-cache.hh"
-#include "dnsdist-dynbpf.hh"
 #include "dnsdist-idstate.hh"
 #include "dnsdist-lbpolicies.hh"
 #include "dnsdist-protocols.hh"
@@ -51,17 +47,11 @@
 #include "misc.hh"
 #include "mplexer.hh"
 #include "noinitvector.hh"
-#include "sholder.hh"
-#include "tcpiohandler.hh"
 #include "uuid-utils.hh"
 #include "proxy-protocol.hh"
 #include "stat_t.hh"
 
 uint64_t uptimeOfProcess(const std::string& str);
-
-extern uint16_t g_ECSSourcePrefixV4;
-extern uint16_t g_ECSSourcePrefixV6;
-extern bool g_ECSOverride;
 
 using QTag = std::unordered_map<string, string>;
 
@@ -71,10 +61,7 @@ struct ClientState;
 
 struct DNSQuestion
 {
-  DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_) :
-    data(data_), ids(ids_), ecsPrefixLength(ids.origRemote.sin4.sin_family == AF_INET ? g_ECSSourcePrefixV4 : g_ECSSourcePrefixV6), ecsOverride(g_ECSOverride)
-  {
-  }
+  DNSQuestion(InternalQueryState& ids_, PacketBuffer& data_);
   DNSQuestion(const DNSQuestion&) = delete;
   DNSQuestion& operator=(const DNSQuestion&) = delete;
   DNSQuestion(DNSQuestion&&) = default;
@@ -210,184 +197,6 @@ struct DNSResponse : DNSQuestion
   const std::shared_ptr<DownstreamState>& d_downstream;
 };
 
-/* so what could you do:
-   drop,
-   fake up nxdomain,
-   provide actual answer,
-   allow & and stop processing,
-   continue processing,
-   modify header:    (servfail|refused|notimp), set TC=1,
-   send to pool */
-
-class DNSAction
-{
-public:
-  enum class Action : uint8_t
-  {
-    Drop,
-    Nxdomain,
-    Refused,
-    Spoof,
-    Allow,
-    HeaderModify,
-    Pool,
-    Delay,
-    Truncate,
-    ServFail,
-    None,
-    NoOp,
-    NoRecurse,
-    SpoofRaw,
-    SpoofPacket,
-    SetTag,
-  };
-  static std::string typeToString(const Action& action)
-  {
-    switch (action) {
-    case Action::Drop:
-      return "Drop";
-    case Action::Nxdomain:
-      return "Send NXDomain";
-    case Action::Refused:
-      return "Send Refused";
-    case Action::Spoof:
-      return "Spoof an answer";
-    case Action::SpoofPacket:
-      return "Spoof a raw answer from bytes";
-    case Action::SpoofRaw:
-      return "Spoof an answer from raw bytes";
-    case Action::Allow:
-      return "Allow";
-    case Action::HeaderModify:
-      return "Modify the header";
-    case Action::Pool:
-      return "Route to a pool";
-    case Action::Delay:
-      return "Delay";
-    case Action::Truncate:
-      return "Truncate over UDP";
-    case Action::ServFail:
-      return "Send ServFail";
-    case Action::SetTag:
-      return "Set Tag";
-    case Action::None:
-    case Action::NoOp:
-      return "Do nothing";
-    case Action::NoRecurse:
-      return "Set rd=0";
-    }
-
-    return "Unknown";
-  }
-
-  virtual Action operator()(DNSQuestion*, string* ruleresult) const = 0;
-  virtual ~DNSAction()
-  {
-  }
-  virtual string toString() const = 0;
-  virtual std::map<string, double> getStats() const
-  {
-    return {{}};
-  }
-  virtual void reload()
-  {
-  }
-};
-
-class DNSResponseAction
-{
-public:
-  enum class Action : uint8_t
-  {
-    Allow,
-    Delay,
-    Drop,
-    HeaderModify,
-    ServFail,
-    Truncate,
-    None
-  };
-  virtual Action operator()(DNSResponse*, string* ruleresult) const = 0;
-  virtual ~DNSResponseAction()
-  {
-  }
-  virtual string toString() const = 0;
-  virtual void reload()
-  {
-  }
-};
-
-struct DynBlock
-{
-  DynBlock()
-  {
-    until.tv_sec = 0;
-    until.tv_nsec = 0;
-  }
-
-  DynBlock(const std::string& reason_, const struct timespec& until_, const DNSName& domain_, DNSAction::Action action_) :
-    reason(reason_), domain(domain_), until(until_), action(action_)
-  {
-  }
-
-  DynBlock(const DynBlock& rhs) :
-    reason(rhs.reason), domain(rhs.domain), until(rhs.until), tagSettings(rhs.tagSettings), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
-  {
-    blocks.store(rhs.blocks);
-  }
-
-  DynBlock(DynBlock&& rhs) :
-    reason(std::move(rhs.reason)), domain(std::move(rhs.domain)), until(rhs.until), tagSettings(std::move(rhs.tagSettings)), action(rhs.action), warning(rhs.warning), bpf(rhs.bpf)
-  {
-    blocks.store(rhs.blocks);
-  }
-
-  DynBlock& operator=(const DynBlock& rhs)
-  {
-    reason = rhs.reason;
-    until = rhs.until;
-    domain = rhs.domain;
-    action = rhs.action;
-    blocks.store(rhs.blocks);
-    warning = rhs.warning;
-    bpf = rhs.bpf;
-    tagSettings = rhs.tagSettings;
-    return *this;
-  }
-
-  DynBlock& operator=(DynBlock&& rhs)
-  {
-    reason = std::move(rhs.reason);
-    until = rhs.until;
-    domain = std::move(rhs.domain);
-    action = rhs.action;
-    blocks.store(rhs.blocks);
-    warning = rhs.warning;
-    bpf = rhs.bpf;
-    tagSettings = std::move(rhs.tagSettings);
-    return *this;
-  }
-
-  struct TagSettings
-  {
-    std::string d_name;
-    std::string d_value;
-  };
-
-  string reason;
-  DNSName domain;
-  timespec until{};
-  std::shared_ptr<TagSettings> tagSettings{nullptr};
-  mutable std::atomic<uint32_t> blocks{0};
-  DNSAction::Action action{DNSAction::Action::None};
-  bool warning{false};
-  bool bpf{false};
-};
-
-extern GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
-
-extern vector<pair<struct timeval, std::string>> g_confDelta;
-
 using pdns::stat_t;
 
 class BasicQPSLimiter
@@ -502,26 +311,11 @@ private:
   bool d_passthrough{true};
 };
 
-typedef std::unordered_map<string, unsigned int> QueryCountRecords;
-typedef std::function<std::tuple<bool, string>(const DNSQuestion* dq)> QueryCountFilter;
-struct QueryCount
-{
-  QueryCount()
-  {
-  }
-  ~QueryCount()
-  {
-  }
-  SharedLockGuarded<QueryCountRecords> records;
-  QueryCountFilter filter;
-  bool enabled{false};
-};
-
-extern QueryCount g_qcount;
-
 class XskPacket;
 class XskSocket;
 class XskWorker;
+
+class DNSCryptContext;
 
 struct ClientState
 {
@@ -723,6 +517,7 @@ struct ClientState
 };
 
 struct CrossProtocolQuery;
+class FDMultiplexer;
 
 struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
 {
@@ -1092,16 +887,13 @@ public:
     }
     return latencyUsec;
   }
-
-  static int s_udpTimeout;
-  static bool s_randomizeSockets;
-  static bool s_randomizeIDs;
 };
-using servers_t = vector<std::shared_ptr<DownstreamState>>;
 
 void responderThread(std::shared_ptr<DownstreamState> dss);
 extern RecursiveLockGuarded<LuaContext> g_lua;
 extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
+
+class DNSDistPacketCache;
 
 class DNSRule
 {
@@ -1157,45 +949,7 @@ enum ednsHeaderFlags
   EDNS_HEADER_FLAG_DO = 32768
 };
 
-extern GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
-extern DNSAction::Action g_dynBlockAction;
-
-extern GlobalStateHolder<ServerPolicy> g_policy;
-extern GlobalStateHolder<servers_t> g_dstates;
-extern GlobalStateHolder<pools_t> g_pools;
-extern GlobalStateHolder<NetmaskGroup> g_ACL;
-
-extern ComboAddress g_serverControl; // not changed during runtime
-
-extern std::vector<shared_ptr<TLSFrontend>> g_tlslocals;
-extern std::vector<shared_ptr<DOHFrontend>> g_dohlocals;
-extern std::vector<shared_ptr<DOQFrontend>> g_doqlocals;
-extern std::vector<shared_ptr<DOH3Frontend>> g_doh3locals;
-extern std::vector<std::unique_ptr<ClientState>> g_frontends;
-extern bool g_truncateTC;
-extern bool g_fixupCase;
-extern int g_tcpRecvTimeout;
-extern int g_tcpSendTimeout;
-extern uint16_t g_maxOutstanding;
-extern std::atomic<bool> g_configurationDone;
-extern boost::optional<uint64_t> g_maxTCPClientThreads;
-extern uint64_t g_maxTCPQueuedConnections;
-extern size_t g_maxTCPQueriesPerConn;
-extern size_t g_maxTCPConnectionDuration;
-extern size_t g_tcpInternalPipeBufferSize;
-extern pdns::stat16_t g_cacheCleaningDelay;
-extern pdns::stat16_t g_cacheCleaningPercentage;
-extern uint32_t g_staleCacheEntriesTTL;
-extern bool g_apiReadWrite;
-extern std::string g_apiConfigDirectory;
-extern bool g_servFailOnNoPolicy;
-extern size_t g_udpVectorSize;
-extern bool g_allowEmptyResponse;
-extern uint32_t g_socketUDPSendBuffer;
-extern uint32_t g_socketUDPRecvBuffer;
-
 extern shared_ptr<BPFFilter> g_defaultBPFFilter;
-extern std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
 
 void tcpAcceptorThread(const std::vector<ClientState*>& states);
 
@@ -1204,23 +958,14 @@ void setLuaSideEffect(); // set to report a side effect, cancelling all _no_ sid
 bool getLuaNoSideEffect(); // set if there were only explicit declarations of _no_ side effect
 void resetLuaSideEffect(); // reset to indeterminate state
 
-bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote);
+bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, bool allowEmptyResponse);
 
 bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState);
 
-extern std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
+class DNSCryptQuery;
+
 bool handleDNSCryptQuery(PacketBuffer& packet, DNSCryptQuery& query, bool tcp, time_t now, PacketBuffer& response);
 bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp);
-
-#include "dnsdist-snmp.hh"
-
-extern bool g_snmpEnabled;
-extern bool g_snmpTrapsEnabled;
-extern std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent;
-extern bool g_addEDNSToSelfGeneratedResponses;
-
-extern std::set<std::string> g_capabilitiesToRetain;
-static const uint16_t s_udpIncomingBufferSize{1500}; // don't accept UDP queries larger than this value
 
 enum class ProcessQueryResult : uint8_t
 {
@@ -1230,34 +975,15 @@ enum class ProcessQueryResult : uint8_t
   Asynchronous
 };
 
+#include "dnsdist-actions.hh"
 #include "dnsdist-rule-chains.hh"
 
-struct LocalHolders
-{
-  LocalHolders() :
-    acl(g_ACL.getLocal()), policy(g_policy.getLocal()), ruleactions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::Rules).getLocal()), cacheMissRuleActions(dnsdist::rules::getRuleChainHolder(dnsdist::rules::RuleChain::CacheMissRules).getLocal()), cacheHitRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheHitResponseRules).getLocal()), cacheInsertedRespRuleActions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal()), selfAnsweredRespRuleactions(dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules).getLocal()), servers(g_dstates.getLocal()), dynNMGBlock(g_dynblockNMG.getLocal()), dynSMTBlock(g_dynblockSMT.getLocal()), pools(g_pools.getLocal())
-  {
-  }
-
-  LocalStateHolder<NetmaskGroup> acl;
-  LocalStateHolder<ServerPolicy> policy;
-  LocalStateHolder<vector<dnsdist::rules::RuleAction>> ruleactions;
-  LocalStateHolder<vector<dnsdist::rules::RuleAction>> cacheMissRuleActions;
-  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheHitRespRuleactions;
-  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> cacheInsertedRespRuleActions;
-  LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> selfAnsweredRespRuleactions;
-  LocalStateHolder<servers_t> servers;
-  LocalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> dynNMGBlock;
-  LocalStateHolder<SuffixMatchTree<DynBlock>> dynSMTBlock;
-  LocalStateHolder<pools_t> pools;
-};
-
-ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend);
-bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
+ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend);
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend);
+bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop);
-bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted);
-bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids);
+bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted);
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids);
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse);
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend = true);

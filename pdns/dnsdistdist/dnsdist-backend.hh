@@ -21,19 +21,11 @@
  */
 #pragma once
 
-#include "snmp-agent.hh"
+#include <memory>
 
-class DNSDistSNMPAgent;
+struct DownstreamState;
 
-#include "dnsdist.hh"
-
-class DNSDistSNMPAgent : public SNMPAgent
+namespace dnsdist::backend
 {
-public:
-  DNSDistSNMPAgent(const std::string& name, const std::string& daemonSocket);
-  bool sendBackendStatusChangeTrap(const DownstreamState&);
-  bool sendCustomTrap(const std::string& reason);
-  bool sendDNSTrap(const DNSQuestion&, const std::string& reason = "");
-};
-
-extern std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent;
+void registerNewBackend(std::shared_ptr<DownstreamState>& backend);
+}

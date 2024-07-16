@@ -23,6 +23,9 @@
 #include "config.h"
 #include "dnsdist.hh"
 #include "dnsdist-async.hh"
+#include "dnsdist-dynblocks.hh"
+#include "dnsdist-dynbpf.hh"
+#include "dnsdist-frontend.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-resolver.hh"
 #include "dnsdist-svc.hh"
@@ -116,15 +119,11 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   /* DownstreamState */
   luaCtx.registerFunction<void (DownstreamState::*)(int)>("setQPS", [](DownstreamState& state, int lim) { state.qps = lim > 0 ? QPSLimiter(lim, lim) : QPSLimiter(); });
   luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(string)>("addPool", [](const std::shared_ptr<DownstreamState>& state, const string& pool) {
-    auto localPools = g_pools.getCopy();
-    addServerToPool(localPools, pool, state);
-    g_pools.setState(localPools);
+    addServerToPool(pool, state);
     state->d_config.pools.insert(pool);
   });
   luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(string)>("rmPool", [](const std::shared_ptr<DownstreamState>& state, const string& pool) {
-    auto localPools = g_pools.getCopy();
-    removeServerFromPool(localPools, pool, state);
-    g_pools.setState(localPools);
+    removeServerFromPool(pool, state);
     state->d_config.pools.erase(pool);
   });
   luaCtx.registerFunction<uint64_t (DownstreamState::*)() const>("getOutstanding", [](const DownstreamState& state) { return state.outstanding.load(); });
@@ -263,7 +262,9 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction<bool (ComboAddress::*)() const>("isIPv6", [](const ComboAddress& addr) { return addr.sin4.sin_family == AF_INET6; });
   luaCtx.registerFunction<bool (ComboAddress::*)() const>("isMappedIPv4", [](const ComboAddress& addr) { return addr.isMappedIPv4(); });
   luaCtx.registerFunction<ComboAddress (ComboAddress::*)() const>("mapToIPv4", [](const ComboAddress& addr) { return addr.mapToIPv4(); });
-  luaCtx.registerFunction<bool (nmts_t::*)(const ComboAddress&)>("match", [](nmts_t& set, const ComboAddress& addr) { return set.match(addr); });
+#ifndef DISABLE_DYNBLOCKS
+  luaCtx.registerFunction<bool (ClientAddressDynamicRules::*)(const ComboAddress&) const>("match", [](const ClientAddressDynamicRules& set, const ComboAddress& addr) { return set.match(addr); });
+#endif /* DISABLE_DYNBLOCKS */
 #endif /* DISABLE_COMBO_ADDR_BINDINGS */
 
 #ifndef DISABLE_DNSNAME_BINDINGS
@@ -672,12 +673,12 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.registerFunction<void (std::shared_ptr<BPFFilter>::*)()>("attachToAllBinds", [](std::shared_ptr<BPFFilter>& bpf) {
     std::string res;
-    if (!g_configurationDone) {
+    if (!dnsdist::configuration::isImmutableConfigurationDone()) {
       throw std::runtime_error("attachToAllBinds() cannot be used at configuration time!");
       return;
     }
     if (bpf) {
-      for (const auto& frontend : g_frontends) {
+      for (const auto& frontend : dnsdist::getFrontends()) {
         frontend->attachFilter(bpf, frontend->getSocket());
       }
     }
@@ -740,7 +741,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_XSK
   using xskopt_t = LuaAssociativeTable<boost::variant<uint32_t, std::string>>;
   luaCtx.writeFunction("newXsk", [client](xskopt_t opts) {
-    if (g_configurationDone) {
+    if (dnsdist::configuration::isImmutableConfigurationDone()) {
       throw std::runtime_error("newXsk() only can be used at configuration time!");
     }
     if (client) {

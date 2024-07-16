@@ -175,9 +175,10 @@ bool generateSVCResponse(DNSQuestion& dnsQuestion, const std::vector<std::vector
     }
   }
 
-  if (g_addEDNSToSelfGeneratedResponses && queryHasEDNS(dnsQuestion)) {
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (runtimeConfig.d_addEDNSToSelfGeneratedResponses && queryHasEDNS(dnsQuestion)) {
     bool dnssecOK = ((getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0);
-    packetWriter.addOpt(g_PayloadSizeSelfGenAnswers, 0, dnssecOK ? EDNS_HEADER_FLAG_DO : 0);
+    packetWriter.addOpt(runtimeConfig.d_payloadSizeSelfGenAnswers, 0, dnssecOK ? EDNS_HEADER_FLAG_DO : 0);
     packetWriter.commit();
   }
 

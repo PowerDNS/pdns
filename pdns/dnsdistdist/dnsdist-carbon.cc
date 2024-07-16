@@ -24,8 +24,11 @@
 #endif
 
 #include "dnsdist-carbon.hh"
+#include "dnsdist-cache.hh"
 #include "dnsdist.hh"
 #include "dnsdist-backoff.hh"
+#include "dnsdist-configuration.hh"
+#include "dnsdist-frontend.hh"
 #include "dnsdist-metrics.hh"
 
 #ifndef DISABLE_CARBON
@@ -35,8 +38,6 @@
 
 namespace dnsdist
 {
-
-LockGuarded<Carbon::Config> Carbon::s_config;
 
 static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 {
@@ -73,8 +74,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       }
     }
 
-    auto states = g_dstates.getLocal();
-    for (const auto& state : *states) {
+    for (const auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
       string serverName = state->getName().empty() ? state->d_config.remote.toStringWithPort() : state->getName();
       boost::replace_all(serverName, ".", "_");
       string base = namespace_name;
@@ -115,7 +115,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
     }
 
     std::map<std::string, uint64_t> frontendDuplicates;
-    for (const auto& front : g_frontends) {
+    for (const auto& front : dnsdist::getFrontends()) {
       if (front->udpFD == -1 && front->tcpFD == -1) {
         continue;
       }
@@ -176,8 +176,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       }
     }
 
-    auto localPools = g_pools.getLocal();
-    for (const auto& entry : *localPools) {
+    for (const auto& entry : dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools) {
       string poolName = entry.first;
       boost::replace_all(poolName, ".", "_");
       if (poolName.empty()) {
@@ -225,7 +224,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
     {
       std::map<std::string, uint64_t> dohFrontendDuplicates;
       const string base = "dnsdist." + hostname + ".main.doh.";
-      for (const auto& doh : g_dohlocals) {
+      for (const auto& doh : dnsdist::getDoHFrontends()) {
         string name = doh->d_tlsContext.d_addr.toStringWithPort();
         boost::replace_all(name, ".", "_");
         boost::replace_all(name, ":", "_");
@@ -270,7 +269,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 
     {
       std::string qname;
-      auto records = g_qcount.records.write_lock();
+      auto records = dnsdist::QueryCount::g_queryCountRecords.write_lock();
       for (const auto& record : *records) {
         qname = record.first;
         boost::replace_all(qname, ".", "_");
@@ -297,7 +296,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
   return true;
 }
 
-static void carbonHandler(Carbon::Endpoint&& endpoint)
+static void carbonHandler(const Carbon::Endpoint& endpoint)
 {
   setThreadName("dnsdist/carbon");
   const auto intervalUSec = endpoint.interval * 1000 * 1000;
@@ -338,41 +337,29 @@ static void carbonHandler(Carbon::Endpoint&& endpoint)
   }
 }
 
-bool Carbon::addEndpoint(Carbon::Endpoint&& endpoint)
+Carbon::Endpoint Carbon::newEndpoint(const std::string& address, std::string ourName, uint64_t interval, const std::string& namespace_name, const std::string& instance_name)
 {
-  if (endpoint.ourname.empty()) {
+  if (ourName.empty()) {
     try {
-      endpoint.ourname = getCarbonHostName();
+      ourName = getCarbonHostName();
     }
-    catch (const std::exception& e) {
-      throw std::runtime_error(std::string("The 'ourname' setting in 'carbonServer()' has not been set and we are unable to determine the system's hostname: ") + e.what());
+    catch (const std::exception& exp) {
+      throw std::runtime_error(std::string("The 'ourname' setting in 'carbonServer()' has not been set and we are unable to determine the system's hostname: ") + exp.what());
     }
   }
-
-  auto config = s_config.lock();
-  if (config->d_running) {
-    // we already started the threads, let's just spawn a new one
-    std::thread newHandler(carbonHandler, std::move(endpoint));
-    newHandler.detach();
-  }
-  else {
-    config->d_endpoints.push_back(std::move(endpoint));
-  }
-  return true;
+  return Carbon::Endpoint{ComboAddress(address, 2003),
+                          !namespace_name.empty() ? namespace_name : "dnsdist",
+                          ourName,
+                          !instance_name.empty() ? instance_name : "main",
+                          interval < std::numeric_limits<unsigned int>::max() ? static_cast<unsigned int>(interval) : 30};
 }
 
-void Carbon::run()
+void Carbon::run(const std::vector<Carbon::Endpoint>& endpoints)
 {
-  auto config = s_config.lock();
-  if (config->d_running) {
-    throw std::runtime_error("The carbon threads are already running");
-  }
-  for (auto& endpoint : config->d_endpoints) {
-    std::thread newHandler(carbonHandler, std::move(endpoint));
+  for (const auto& endpoint : endpoints) {
+    std::thread newHandler(carbonHandler, endpoint);
     newHandler.detach();
   }
-  config->d_endpoints.clear();
-  config->d_running = true;
 }
 
 }

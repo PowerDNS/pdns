@@ -207,7 +207,6 @@ struct DOHServerConfig
   DOHServerConfig& operator=(DOHServerConfig&&) = delete;
   ~DOHServerConfig() = default;
 
-  LocalHolders holders;
   std::set<std::string, std::less<>> paths;
   h2o_globalconf_t h2o_config{};
   h2o_context_t h2o_ctx{};
@@ -503,12 +502,9 @@ public:
     memcpy(&cleartextDH, dr.getHeader().get(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
       dr.ids.du = std::move(dohUnit);
 
-      if (!processResponse(dynamic_cast<DOHUnit*>(dr.ids.du.get())->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false)) {
+      if (!processResponse(dynamic_cast<DOHUnit*>(dr.ids.du.get())->response, dr, false)) {
         if (dr.ids.du) {
           dohUnit = getDUFromIDS(dr.ids);
           dohUnit->status_code = 503;
@@ -699,7 +695,6 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
 
     remote = ids.origRemote;
     DOHServerConfig* dsc = unit->dsc;
-    auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
     if (unit->query.size() < sizeof(dnsheader) || unit->query.size() > std::numeric_limits<uint16_t>::max()) {
@@ -760,7 +755,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     ids.cs = &clientState;
     dnsQuestion.sni = std::move(unit->sni);
     ids.du = std::move(unit);
-    auto result = processQuery(dnsQuestion, holders, downstream);
+    auto result = processQuery(dnsQuestion, downstream);
 
     if (result == ProcessQueryResult::Drop) {
       unit = getDUFromIDS(ids);
@@ -1075,8 +1070,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       }
     }
 
-    auto& holders = dsc->holders;
-    if (!holders.acl->match(remote)) {
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       ++dnsdist::metrics::g_stats.aclDrops;
       vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
       h2o_send_error_403(req, "Forbidden", "DoH query not allowed because of ACL", 0);
@@ -1387,7 +1381,7 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     return;
   }
 
-  if (dsc->dohFrontend->d_earlyACLDrop && !dsc->dohFrontend->d_trustForwardedForHeader && !dsc->holders.acl->match(remote)) {
+  if (dsc->dohFrontend->d_earlyACLDrop && !dsc->dohFrontend->d_trustForwardedForHeader && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
     ++dnsdist::metrics::g_stats.aclDrops;
     vinfolog("Dropping DoH connection from %s because of ACL", remote.toStringWithPort());
     h2o_socket_close(sock);
@@ -1650,15 +1644,12 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&&
     }
   }
   if (!dohUnit->truncated) {
-    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
     DNSResponse dnsResponse(dohUnit->ids, udpResponse, dohUnit->downstream);
     dnsheader cleartextDH{};
     memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
 
     dnsResponse.ids.du = std::move(dohUnit);
-    if (!processResponse(udpResponse, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
+    if (!processResponse(udpResponse, dnsResponse, false)) {
       if (dnsResponse.ids.du) {
         dohUnit = getDUFromIDS(dnsResponse.ids);
         dohUnit->status_code = 503;

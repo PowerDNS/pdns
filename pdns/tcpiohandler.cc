@@ -7,6 +7,19 @@
 
 const bool TCPIOHandler::s_disableConnectForUnitTests = false;
 
+namespace {
+bool shouldDoVerboseLogging()
+{
+#ifdef DNSDIST
+  return dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
+#elif defined(RECURSOR)
+  return false;
+#else
+  return true;
+#endif
+}
+}
+
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
@@ -83,7 +96,7 @@ public:
 
     if (!d_conn) {
       vinfolog("Error creating TLS object");
-      if (g_verbose) {
+      if (shouldDoVerboseLogging()) {
         ERR_print_errors_fp(stderr);
       }
       throw std::runtime_error("Error creating TLS object");
@@ -103,7 +116,7 @@ public:
 
     if (!d_conn) {
       vinfolog("Error creating TLS object");
-      if (g_verbose) {
+      if (shouldDoVerboseLogging()) {
         ERR_print_errors_fp(stderr);
       }
       throw std::runtime_error("Error creating TLS object");
@@ -201,7 +214,7 @@ public:
     }
 #endif
     else {
-      if (g_verbose) {
+      if (shouldDoVerboseLogging()) {
         throw std::runtime_error("Error while processing TLS connection: (" + std::to_string(error) + ") " + libssl_get_error_string());
       } else {
         throw std::runtime_error("Error while processing TLS connection: " + std::to_string(error));

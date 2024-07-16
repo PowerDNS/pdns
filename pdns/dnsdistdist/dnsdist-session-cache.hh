@@ -38,28 +38,9 @@ public:
   void putSessions(const boost::uuids::uuid& backendID, time_t now, std::vector<std::unique_ptr<TLSSession>>&& sessions);
   std::unique_ptr<TLSSession> getSession(const boost::uuids::uuid& backendID, time_t now);
 
-  static void setCleanupDelay(time_t delay)
-  {
-    s_cleanupDelay = delay;
-  }
-
-  static void setSessionValidity(time_t validity)
-  {
-    s_sessionValidity = validity;
-  }
-
-  static void setMaxTicketsPerBackend(uint16_t max)
-  {
-    s_maxSessionsPerBackend = max;
-  }
-
   size_t getSize();
 
 private:
-  static time_t s_cleanupDelay;
-  static time_t s_sessionValidity;
-  static uint16_t s_maxSessionsPerBackend;
-
   struct BackendEntry
   {
     std::deque<std::unique_ptr<TLSSession>> d_sessions;
