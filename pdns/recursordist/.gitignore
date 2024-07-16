@@ -41,6 +41,7 @@
 /dnsmessage.pb.h
 /pdns-recursor.service
 /pdns-recursor@.service
+/pubsuffix.cc
 /lua.hpp
 /test-suite.log
 /testrunner.log
