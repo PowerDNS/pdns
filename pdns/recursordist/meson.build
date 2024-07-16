@@ -37,6 +37,7 @@ subdir('meson' / 'timet-sign')              # Check the sign of time_t
 subdir('meson' / 'atomics')                 # Check atomics support
 subdir('meson' / 'pthread-headers')         # Check pthread headers
 subdir('meson' / 'pthread-setname')         # Pthread setname madness
+subdir('meson' / 'pthread-np')              # Pthread _np functions
 subdir('meson' / 'strerror')                # Strerror_r
 subdir('meson' / 'lua')                     # Lua
 subdir('meson' / 'hardening')               # Hardening
