@@ -377,9 +377,9 @@ def gen_cxx_brigestructtoldstylesettings(file, entries):
         file.write(f'to_arg(settings.{section}.{name});\n')
     file.write('}\n')
 
-def gen_cxx(entries):
+def gen_cxx(gendir, entries):
     """Generate the C++ code from the defs in table.py"""
-    with open('cxxsettings-generated.cc', mode='w', encoding="UTF-8") as file:
+    with open(gendir + '/cxxsettings-generated.cc', mode='w', encoding="UTF-8") as file:
         file.write('// THIS IS A GENERATED FILE. DO NOT EDIT. SOURCE: see settings dir\n\n')
         file.write('#include "arguments.hh"\n')
         file.write('#include "cxxsettings.hh"\n')
@@ -572,20 +572,20 @@ def write_rust_merge_trait_impl(file, section, entries):
     file.write('    }\n')
     file.write('}\n\n')
 
-def gen_rust(entries):
+def gen_rust(srcdir, entries):
     """Generate Rust code all entries"""
     def_functions = []
     sections = {}
-    with open('rust/src/lib.rs', mode='w', encoding='UTF-8') as file:
+    with open(srcdir + '/rust/src/lib.rs', mode='w', encoding='UTF-8') as file:
         file.write('// THIS IS A GENERATED FILE. DO NOT EDIT. SOURCE: see settings dir\n')
         file.write('// START INCLUDE rust-preable-in.rs\n')
-        with open('rust-preamble-in.rs', mode='r', encoding='UTF-8') as pre:
+        with open(srcdir + '/rust-preamble-in.rs', mode='r', encoding='UTF-8') as pre:
             file.write(pre.read())
             file.write('// END INCLUDE rust-preamble-in.rs\n\n')
 
         file.write('#[cxx::bridge(namespace = "pdns::rust::settings::rec")]\n')
         file.write('mod recsettings {\n')
-        with open('rust-bridge-in.rs', mode='r', encoding='UTF-8') as bridge:
+        with open(srcdir + '/rust-bridge-in.rs', mode='r', encoding='UTF-8') as bridge:
             file.write('    // START INCLUDE rust-bridge-in.rs\n')
             for line in bridge:
                 file.write('    ' + line)
@@ -657,12 +657,12 @@ def gen_docs_meta(file, entry, name, is_tuple):
             else:
                 file.write(f'.. {name}:: {vers}\n')
 
-def gen_oldstyle_docs(entries):
+def gen_oldstyle_docs(srcdir, entries):
     """Write old style docs"""
-    with open('../docs/settings.rst', mode='w', encoding='UTF-8') as file:
+    with open(srcdir + '/../docs/settings.rst', mode='w', encoding='UTF-8') as file:
         file.write('.. THIS IS A GENERATED FILE. DO NOT EDIT. SOURCE: see settings dir\n')
         file.write('   START INCLUDE docs-old-preamble-in.rst\n\n')
-        with open('docs-old-preamble-in.rst', mode='r', encoding='UTF-8') as pre:
+        with open(srcdir + '/docs-old-preamble-in.rst', mode='r', encoding='UTF-8') as pre:
             file.write(pre.read())
             file.write('.. END INCLUDE docs-old-preamble-in.rst\n\n')
 
@@ -713,13 +713,13 @@ def fixxrefs(entries, arg):
                 arg = arg.replace(key, repl)
     return arg
 
-def gen_newstyle_docs(argentries):
+def gen_newstyle_docs(srcdir, argentries):
     """Write new style docs"""
     entries = sorted(argentries, key = lambda entry: [entry['section'], entry['name']])
-    with open('../docs/yamlsettings.rst', 'w', encoding='utf-8') as file:
+    with open(srcdir + '/../docs/yamlsettings.rst', 'w', encoding='utf-8') as file:
         file.write('.. THIS IS A GENERATED FILE. DO NOT EDIT. SOURCE: see settings dir\n')
         file.write('   START INCLUDE docs-new-preamble-in.rst\n\n')
-        with open('docs-new-preamble-in.rst', mode='r', encoding='utf-8') as pre:
+        with open(srcdir + '/docs-new-preamble-in.rst', mode='r', encoding='utf-8') as pre:
             file.write(pre.read())
             file.write('.. END INCLUDE docs-new-preamble-in.rst\n\n')
 
@@ -764,8 +764,19 @@ RUNTIME = '*runtime determined*'
 
 def generate():
     """Read table, validate and generate C++, Rst and .rst files"""
+    srcdir = '.'
+    gendir = '.'
+    if len(sys.argv) == 3:
+        print("Generate: using srcdir and gendir from argumens")
+        srcdir = sys.argv[1]
+        gendir = sys.argv[2]
+
+    print("Generate cwd: " + os.getcwd())
+    print("Generate srcdir: " + srcdir + " = " + os.path.realpath(srcdir))
+    print("Generate gendir: " + gendir + " = " + os.path.realpath(gendir))
+
     # read table
-    with open('table.py', mode='r', encoding="utf-8") as file:
+    with open(srcdir + '/table.py', mode='r', encoding="utf-8") as file:
         entries = eval(file.read())
 
     for entry in entries:
@@ -789,11 +800,17 @@ def generate():
         dupcheck1[entry['oldname']] = True
         dupcheck2[entry['section'] + '.' + entry['name']] = True
     # And generate C++, Rust and docs code based on table
-    gen_cxx(entries)
-    gen_rust(entries)
+    # C++ code goes int build dir
+    gen_cxx(gendir, entries)
+    # Generate Rust code into src dir, as I did not manage to figure out the Cargo stuff
+    # with mixed sources both in build and src dir
+    gen_rust(srcdir, entries)
     # Avoid generating doc files in a sdist based build
     if os.path.isdir('../docs'):
-        gen_oldstyle_docs(entries)
-        gen_newstyle_docs(entries)
-
+        gen_oldstyle_docs(srcdir, entries)
+        gen_newstyle_docs(srcdir, entries)
+    # touch pseudo output file
+    with open(gendir + '/timestamp', mode='w', encoding="utf-8") as file:
+        file.write('')
+        file.close()
 generate()
