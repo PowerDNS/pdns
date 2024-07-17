@@ -1017,7 +1017,7 @@ if python.found()
     'man-pages',
     command: [
       python,
-      docs_dir / 'generate-man-pages.py',
+      product_source_dir / docs_dir / 'generate-man-pages.py',
       '--venv-name', 'venv-auth-man-pages',
       '--requirements-file', docs_dir / 'requirements.txt',
       '--source-directory', docs_dir,
