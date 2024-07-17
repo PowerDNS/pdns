@@ -161,8 +161,8 @@ deps = [
 
 if dep_systemd.found()
   systemd_service_conf = configuration_data()
-  systemd_service_conf.set('BinDir', get_option('bindir'))
-  systemd_service_conf.set('StaticBinDir', get_option('sbindir'))
+  systemd_service_conf.set('BinDir', get_option('prefix') / get_option('bindir'))
+  systemd_service_conf.set('StaticBinDir', get_option('prefix') / get_option('sbindir'))
   systemd_service_user = get_option('systemd-service-user')
   systemd_service_group = get_option('systemd-service-group')
   systemd_service_conf.set('ServiceUser', systemd_service_user)
@@ -229,6 +229,7 @@ if dep_systemd.found()
   auth_service_conf_general = configuration_data()
   auth_service_conf_general.merge_from(auth_service_conf)
   auth_service_conf_general.set('Description', 'PowerDNS Authoritative Server')
+  auth_service_conf_general.set('ConfigName', '')
   auth_service_conf_general.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns-auth' : '')
   auth_service_conf_general.set('SyslogIdentifier', 'pdns-auth')
   auth_service_conf_general.set('RuntimeDirectory', 'pdns-auth')
@@ -268,6 +269,7 @@ if dep_systemd.found()
     ixfrdist_service_conf_general = configuration_data()
     ixfrdist_service_conf_general.merge_from(ixfrdist_service_conf)
     ixfrdist_service_conf_general.set('Description', 'PowerDNS IXFR Distributor')
+    ixfrdist_service_conf_general.set('Config', '')
 
     configure_file(
       input: 'auth' / 'systemd' / 'ixfrdist.service.in',
@@ -278,7 +280,7 @@ if dep_systemd.found()
     ixfrdist_service_conf_instance = configuration_data()
     ixfrdist_service_conf_instance.merge_from(ixfrdist_service_conf)
     ixfrdist_service_conf_instance.set('Description', 'PowerDNS IXFR Distributor %i')
-    ixfrdist_service_conf_instance.set('Config', '--config=' + get_option('sysconfdir') + '/ixfrdist-%.ymli')
+    ixfrdist_service_conf_instance.set('Config', '--config=' + get_option('sysconfdir') + '/ixfrdist-%i.yml')
 
     configure_file(
       input: 'auth' / 'systemd' / 'ixfrdist.service.in',
