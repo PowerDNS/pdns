@@ -4078,6 +4078,12 @@ void SyncRes::fixupAnswer(const std::string& prefix, LWResult& lwr, const DNSNam
 
 static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec)
 {
+  // As we only use a limited amount of NS names for resolving, limit number of additional names as
+  // well.  s_maxnsperresolve is a proper limit for the NS case and is also reasonable for other
+  // qtypes.  Allow one extra for qname itself, which is always in allowedAdditionals.
+  if (SyncRes::s_maxnsperresolve > 0 && allowedAdditionals.size() > SyncRes::s_maxnsperresolve + 1) {
+    return;
+  }
   switch (rec.d_type) {
   case QType::MX:
     if (auto mxContent = getRR<MXRecordContent>(rec)) {
