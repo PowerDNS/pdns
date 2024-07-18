@@ -92,7 +92,7 @@ For example, with the above example ``recursor.yml`` and an include directory co
 
 After merging, ``dnssec.log_bogus`` will be ``false``, the sequence of ``recursor.forward_zones`` will contain 2 zones and the ``outgoing`` addresses used will contain one entry, as the ``extra.yml`` entry has overwritten the existing one.
 
-``outgoing.dont-query`` has a non-empty sequence as default value. The main ``recursor.yml`` did not set it, so before processing ``extra.yml`` had the default value.
+``outgoing.dont-query`` has a non-empty sequence as default value. The main ``recursor.yml`` did not set it, so before processing ``extra.yml`` it had the default value.
 After processing ``extra.yml`` the value will be set to the empty sequence, as existing default values are overwritten by new values.
 
 .. warning::
@@ -118,9 +118,12 @@ After processing ``extra.yml`` the value will be set to the empty sequence, as e
    The result will *not* be a a single forward with two IP addresses, but two entries for ``example.net``.
    It depends on the specific setting how the sequence is processed and interpreted further.
 
+Description of YAML syntax for structured types
+-----------------------------------------------
+
 Socket Address
 ^^^^^^^^^^^^^^
-A socket address is either an IP or and IP:port combination
+A socket address is a string containing either an IP address or and IP address:port combination
 For example:
 
 .. code-block:: yaml
@@ -152,14 +155,14 @@ A forward zone is defined as:
 
 .. code-block:: yaml
 
-  zone: zonename
+  zone: string
   forwarders:
     - Socket Address
     - ...
   recurse: Boolean, default false
   allow_notify:  Boolean, default false
 
-An example of a ``forward_zones`` entry, which consists of a sequence of forward zone entries:
+An example of a ``forward_zones`` entry, which consists of a sequence of `Forward Zone`_ entries:
 
 .. code-block:: yaml
 
@@ -186,10 +189,10 @@ An auth zone is defined as:
 
 .. code-block:: yaml
 
-  zone: name
-  file: filename
+  zone: string
+  file: string
 
-An example of a ``auth_zones`` entry, consisting of a sequence of auth zones:
+An example of a ``auth_zones`` entry, consisting of a sequence of `Auth Zone`_:
 
 .. code-block:: yaml
 
@@ -200,10 +203,10 @@ An example of a ``auth_zones`` entry, consisting of a sequence of auth zones:
        file: zones/example.net.zone
 
 
-YAML settings corresponding to Lua config items
------------------------------------------------
+Description of YAML syntax corresponding to Lua config items
+------------------------------------------------------------
 
-The YAML settings below were introduced in verison 5.1.0 and correspond to the
+The YAML settings below were introduced in version 5.1.0 and correspond to their
 respective Lua settings. Refer to :doc:`lua-config/index`.
 
 TrustAnchor
@@ -212,10 +215,10 @@ As of version 5.1.0, a trust anchor is defined as
 
 .. code-block:: yaml
 
-   name: zonename
+   name: string
    dsrecords: sequence of DS record strings in presentation format
 
-An example of a ``trustanchors`` sequence:
+An example of a ``trustanchors`` entry, which is a sequence of `TrustAnchor`_:
 
 .. code-block:: yaml
 
@@ -230,10 +233,10 @@ As of version 5.1.0, a negative trust anchor is defined as
 
 .. code-block:: yaml
 
-   name: zonename
-   reason: text
+   name: string
+   reason: string
 
-An example of a ``negative trustanchors`` sequence:
+An example of a ``negative_trustanchors`` entry, which is a sequence of `NegativeTrustAnchor`_:
 
 .. code-block:: yaml
 
@@ -258,21 +261,17 @@ As of version 5.1.0, a protobuf server is defined as
     exportTypes: [A, AAAA, CNAME] Sequence of QType names
     logMappedFrom: false
 
-An example of a ``protobuf_servers`` entry:
+An example of a ``protobuf_servers`` entry, which is a sequence of `ProtobufServer`_:
 
 .. code-block:: yaml
 
   protobuf_servers:
-  - servers: [6.7.8.9]
-    timeout: 2
-    maxQueuedEntries: 100
-    reconnectWaitTime: 1
-    taggedOnly: false
-    asyncConnect: false
-    logQueries: true
-    logResponses: true
-    exportTypes: [A, AAAA, CNAME]
-    logMappedFrom: false
+    - servers: [127.0.0.1:4578]
+      exportTypes: [A, AAAA]
+    - servers: ['[2001:DB8::1]':7891]
+      logQueries: false
+      logResponses: true
+      exportTypes: [A]
 
 DNSTapFrameStreamServers
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -290,6 +289,14 @@ As of version 5.1.0, a dnstap framestream server is defined as
   queueNotifyThreshold: 0
   reopenInterval: 0
 
+An example of a ``dnstap_framestream_servers`` entry, which is a sequence of `DNSTapFrameStreamServers`_:
+
+.. code-block:: yaml
+
+  dnstap_framestream_servers:
+    - servers: [127.0.0.1:2024]
+      logQueries: false
+      logResponses: true
 
 DNSTapNODFrameStreamServers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -297,7 +304,7 @@ As of version 5.1.0, an NOD dnstap framestream server is defined as
 
 .. code-block:: yaml
 
-  servers: [] Sequence of strings representing SocketAddress or a socker path
+  servers: [] Sequence of strings representing SocketAddress or a socket path
   logNODs: true
   logUDRs: false
   bufferHint: 0
@@ -306,6 +313,15 @@ As of version 5.1.0, an NOD dnstap framestream server is defined as
   outputQueueSize: 0
   queueNotifyThreshold: 0
   reopenInterval: 0
+
+An example of a ``dnstap_nod_framestream_servers`` entry, which is a sequence of `DNSTapNODFrameStreamServers`_:
+
+.. code-block:: yaml
+
+  dnstap_nop_framestream_servers:
+    - servers: [127.0.0.1:2024]
+      logNODs: false
+      logUDRs: true
 
 SortList
 ^^^^^^^^
@@ -317,6 +333,22 @@ As of version 5.1.0, a sortlist entry is defined as
      subnets:
       - subnet: Subnet
         order: number
+
+An example of a ``sortlists`` entry, which is a sequence of `SortList`_:
+
+.. code-block:: yaml
+
+  sortlists:
+    - key: 198.18.0.0/8
+      subnets:
+       - subnet: 233.252.0.0/24
+         order: 10
+    - key: 198.18.1.0/8
+      subnets:
+        - subnet: 198.18.0.0/16
+          order: 20
+        - subnet: 203.0.113.0/24
+          order: 20
 
 RPZ
 ^^^
@@ -350,7 +382,18 @@ As of version 5.1.0, an RPZ entry is defined as
     dumpFile: string
     seedFile: string
 
-If ``addresses` is empty, the ``name`` field specifies the path name of the RPZ, otherwise the ``name`` field defines the name of the RPZ.
+If ``addresses`` is empty, the ``name`` field specifies the path name of the RPZ, otherwise the ``name`` field defines the name of the RPZ.
+
+
+An example of an ``rpzs`` entry, which is a sequence of `RPZ`_:
+
+.. code-block:: yaml
+
+  rpzs:
+    - name: 'path/to/a/file'
+    - name: 'remote.rpz'
+      addresses: ['192.168.178.99']
+      policyName: mypolicy
 
 ZoneToCache
 ^^^^^^^^^^^
@@ -369,21 +412,21 @@ As of version 5.1.0, a ZoneToCache entry is defined as
    refreshPeriod: 86400
    retryOnErrorPeriod: 60
    maxReceivedMBytes: 0 Zero mean no restrcition
-   localAddress: local IP address to  bind to. 
+   localAddress: local IP address to  bind to.
    zonemd: One of ignore, validate, require
    dnssec: One of ignore, validate, require
 
-For example, a sequence of two ZoneToCache entries:
+An example of an ``zonetocaches`` entry, which is a sequence of `ZoneToCache`_:
 
 .. code-block:: yaml
 
    zonetocaches:
-   - zone: .
-     method: url
-     sources: ['http://...']
-    - zone: example.com
-      method: file
-      sources: ['dir/example.com.zone']
+     - zone: .
+       method: url
+       sources: ['https://www.example.com/path']
+     - zone: example.com
+       method: file
+       sources: ['dir/example.com.zone']
 
 AllowedAdditionalQType
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -395,7 +438,7 @@ As of version 5.1.0, an allowed addtional qtype entry is defined as:
    targets: [] Sequence of string representing QType
    mode: One of Ignore, CacheOnly, CacheOnlyRequireAuth, ResolveImmediately, ResolveDeferred, default CacheOnlyRequireAuth
 
-For example:
+An example of an ``allowed_additional_qtypes`` entry, which is a sequence of `AllowedAdditionalQType`_:
 
 .. code-block:: yaml
 
@@ -416,15 +459,29 @@ As of version 5.1.0, a proxy mapping entry is defined as:
    address: IPAddress
    domains: [] Sequence of string
 
-For example:
+An example of an ``proxymappings`` entry, which is a sequence of `ProxyMapping`_:
 
 .. code-block:: yaml
 
    proxymappings:
-   - subnet: 192.168.178.0/24
-     address: 128.66.1.2
-
+     - subnet: 192.168.178.0/24
+       address: 128.66.1.2
+     - subnet: 192.168.179.0/24
+       address: 128.66.1.3
+       domains:
+         - example.com
+         - example.net
 
 The YAML settings
 -----------------
+
+The notation ``section.name`` means that an entry ``name`` can appear in the YAML section ``section``.
+So the entry ``recordcache.max_ttl`` will end up in settings file as follows:
+
+.. code-block:: yaml
+
+   recordcache:
+     ...
+     max_ttl: 3600
+     ...
 
