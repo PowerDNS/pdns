@@ -4277,7 +4277,11 @@ try
       found = true;
     }
     if (!found) {
-      cerr << "Backend found 0 zone record results" << endl;
+      cerr << "Backend found 0 zone record results";
+      if (type != QType::ANY) {
+        cerr << "- maybe retry with type ANY?";
+      }
+      cerr << endl;
       return 1;
     }
 
