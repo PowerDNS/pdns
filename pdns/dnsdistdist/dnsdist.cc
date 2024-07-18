@@ -187,8 +187,8 @@ static std::unique_ptr<DelayPipe<DelayedPacket>> g_delay{nullptr};
 
 static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
 {
-  constexpr auto doAvg = [](double& var, double n, double weight) {
-    var = (weight - 1) * var / weight + n / weight;
+  constexpr auto doAvg = [](pdns::stat_t_trait<double>& var, double n, double weight) {
+    var.store((weight - 1) * var.load() / weight + n / weight);
   };
 
   if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {

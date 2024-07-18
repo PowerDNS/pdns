@@ -817,9 +817,6 @@ void setupLuaInspection(LuaContext& luaCtx)
       else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
         second = (flt % (*adval)->load()).str();
       }
-      else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
-        second = (flt % (**dval)).str();
-      }
       else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
         second = std::to_string((*func)(entry.d_name));
       }
