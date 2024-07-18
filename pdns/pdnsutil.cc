@@ -4249,7 +4249,7 @@ try
     }
 
     QType type;
-    type = cmds.at(3);
+    type = DNSRecordContent::TypeToNumber(cmds.at(3));
 
     DNSName name{cmds.at(2)};
 
