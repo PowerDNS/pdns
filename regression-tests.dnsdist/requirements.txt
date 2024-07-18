@@ -4,7 +4,7 @@ libnacl>=1.4.3,<1.7
 requests>=2.1.0
 protobuf>=3.0
 pyasn1==0.4.8
-pysnmp>=4.3.4
+pysnmp>=5,<6
 future>=0.17.1
 pycurl>=7.43.0
 lmdb>=0.95
