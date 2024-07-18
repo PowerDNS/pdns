@@ -1,12 +1,6 @@
 FROM {{ os_image }}:{{ os_version }}
 
-{% if os_version == '8' or os_version == '9' %}
-RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ os_version }}.noarch.rpm bind-utils
-{% endif %}
-
-{% if os_version == '7' %}
-RUN yum install -y yum-plugin-priorities
-{% endif %}
+RUN yum install -y oracle-epel-release-el{{ os_version }} bind-utils
 
 {% if release == 'dnsdist-15' and os_version == '8' %}
 RUN dnf install -y 'dnf-command(config-manager)'
