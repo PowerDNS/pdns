@@ -1,3 +1,5 @@
+#include "dnsname.hh"
+#include "dnsparser.hh"
 #include "dnsrecords.hh"
 #include <boost/smart_ptr/make_shared_array.hpp>
 #ifdef HAVE_CONFIG_H
@@ -2566,6 +2568,8 @@ try
     cout << "]" << endl;
     cout << "                                   Add a ZSK or KSK to zone and specify algo&bits" << endl;
     cout << "backend-cmd BACKEND CMD [CMD..]    Perform one or more backend commands" << endl;
+    cout << "backend-lookup BACKEND NAME TYPE CLIENT-IP" << endl;
+    cout << "                                   Perform a backend lookup of NAME, TYPE and CLIENT-IP" << endl;
     cout << "b2b-migrate OLD NEW                Move all data from one backend to another" << endl;
     cout << "bench-db [filename]                Bench database backend with queries, one zone per line" << endl;
     cout << "check-zone ZONE                    Check a zone for correctness" << endl;
@@ -4221,6 +4225,49 @@ try
     for (auto i = next(begin(cmds), 2); i != end(cmds); ++i) {
       cerr << "== " << *i << endl;
       cout << matchingBackend->directBackendCmd(*i);
+    }
+
+    return 0;
+  }
+  else if (cmds.at(0) == "backend-lookup") {
+    if (cmds.size() < 5) {
+      cerr << "Usage: backend-lookup BACKEND NAME TYPE CLIENT-IP-SUBNET" << endl;
+      return 1;
+    }
+
+    std::unique_ptr<DNSBackend> matchingBackend{nullptr};
+
+    for (auto& backend : BackendMakers().all()) {
+      if (backend->getPrefix() == cmds.at(1)) {
+        matchingBackend = std::move(backend);
+      }
+    }
+
+    if (matchingBackend == nullptr) {
+      cerr << "Unknown backend '" << cmds.at(1) << "'" << endl;
+      return 1;
+    }
+
+    QType type;
+    type = cmds.at(3);
+
+    DNSName name{cmds.at(2)};
+
+    DNSPacket queryPacket(true);
+    Netmask clientNetmask(cmds.at(4));
+    queryPacket.setRealRemote(clientNetmask);
+
+    matchingBackend->lookup(type, name, -1, &queryPacket);
+
+    bool found = false;
+    DNSZoneRecord resultZoneRecord;
+    while (matchingBackend->get(resultZoneRecord)) {
+      cout << resultZoneRecord.dr.d_name.toString() << "\t" << resultZoneRecord.dr.getContent()->getZoneRepresentation() << "\t" << std::to_string(resultZoneRecord.dr.d_ttl) << "\t" << QClass(resultZoneRecord.dr.d_class).toString() << "\t" << DNSRecordContent::NumberToType(resultZoneRecord.dr.d_type, resultZoneRecord.dr.d_class) << "\t" << endl;
+      found = true;
+    }
+    if (!found) {
+      cerr << "Backend found 0 zone record results" << endl;
+      return 1;
     }
 
     return 0;
