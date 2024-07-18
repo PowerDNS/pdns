@@ -1,6 +1,7 @@
 #include "dnsname.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
+#include "qtype.hh"
 #include <boost/smart_ptr/make_shared_array.hpp>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -4230,8 +4231,8 @@ try
     return 0;
   }
   else if (cmds.at(0) == "backend-lookup") {
-    if (cmds.size() < 5) {
-      cerr << "Usage: backend-lookup BACKEND NAME TYPE CLIENT-IP-SUBNET" << endl;
+    if (cmds.size() < 3) {
+      cerr << "Usage: backend-lookup BACKEND NAME [TYPE [CLIENT-IP-SUBNET]]" << endl;
       return 1;
     }
 
@@ -4248,14 +4249,18 @@ try
       return 1;
     }
 
-    QType type;
-    type = DNSRecordContent::TypeToNumber(cmds.at(3));
+    QType type = QType::ANY;
+    if (cmds.size() > 3) {
+      type = DNSRecordContent::TypeToNumber(cmds.at(3));
+    }
 
     DNSName name{cmds.at(2)};
 
     DNSPacket queryPacket(true);
-    Netmask clientNetmask(cmds.at(4));
-    queryPacket.setRealRemote(clientNetmask);
+    if (cmds.size() > 4) {
+      Netmask clientNetmask(cmds.at(4));
+      queryPacket.setRealRemote(clientNetmask);
+    }
 
     matchingBackend->lookup(type, name, -1, &queryPacket);
 

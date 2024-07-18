@@ -283,7 +283,7 @@ backend-cmd *BACKEND* *CMD* [*CMD...*]
     Send a text command to a backend for execution. GSQL backends will
     take SQL commands, other backends may take different things. Be
     careful!
-backend-lookup *BACKEND* *NAME* *TYPE* *CLIENT-IP-SUBNET*
+backend-lookup *BACKEND* *NAME* [*TYPE* [*CLIENT-IP-SUBNET*]]
     Perform a backend record filtering lookup.
 bench-db [*FILE*]
     Perform a benchmark of the backend-database.
