@@ -63,8 +63,16 @@ namespace YaHTTP {
             while(k2 < static_cast<int>(req->url.path.size()) && req->url.path[k2] != url[k1+1]) k2++;
             pos2 = k2;
             params[pname] = funcptr::tie(pos1,pos2);
+            if (k2 > 0) {
+              k2--;
+            }
+            else {
+              // If k2 is zero, do not decrement it and then increment at bottom of loop
+              // Only increment k1 and continue loop
+              k1++;
+              continue;
+            }
           }
-          k2--;
         }
         else if (url[k1] != req->url.path[k2]) {
           break;
