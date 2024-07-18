@@ -349,7 +349,7 @@ Carbon::Endpoint Carbon::newEndpoint(const std::string& address, std::string our
   }
   return Carbon::Endpoint{ComboAddress(address, 2003),
                           !namespace_name.empty() ? namespace_name : "dnsdist",
-                          ourName,
+                          std::move(ourName),
                           !instance_name.empty() ? instance_name : "main",
                           interval < std::numeric_limits<unsigned int>::max() ? static_cast<unsigned int>(interval) : 30};
 }

@@ -211,6 +211,7 @@ static void moveRuleToTop(IdentifierTypeT chainIdentifier)
     if (rules.empty()) {
       return;
     }
+    //coverity[auto_causes_copy]
     auto subject = *rules.rbegin();
     rules.erase(std::prev(rules.end()));
     rules.insert(rules.begin(), subject);
@@ -227,6 +228,7 @@ static void mvRule(IdentifierTypeT chainIdentifier, unsigned int from, unsigned 
       g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
       return;
     }
+    //coverity[auto_causes_copy]
     auto subject = rules[from];
     rules.erase(rules.begin() + from);
     if (destination > rules.size()) {

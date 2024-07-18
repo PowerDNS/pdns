@@ -1238,7 +1238,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   Json::array pools;
   {
     num = 0;
-    const auto localPools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+    const auto& localPools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
     pools.reserve(localPools.size());
     for (const auto& pool : localPools) {
       const auto& cache = pool.second->packetCache;
