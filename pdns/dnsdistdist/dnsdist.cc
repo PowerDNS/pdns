@@ -1497,6 +1497,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 
       ++dnsdist::metrics::g_stats.cacheMisses;
 
+      //coverity[auto_causes_copy]
       const auto existingPool = dnsQuestion.ids.poolName;
       const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
       const auto& cacheMissRuleActions = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::CacheMissRules);
@@ -2423,7 +2424,7 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
   /* stdin, stdout, stderr */
   rlim_t requiredFDsCount = 3;
-  const auto backends = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
+  const auto& backends = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
   /* UDP sockets to backends */
   size_t backendUDPSocketsCount = 0;
   for (const auto& backend : backends) {
@@ -3484,6 +3485,7 @@ int main(int argc, char** argv)
     checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
     {
+      //coverity[auto_causes_copy]
       const auto states = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends; // it is a copy, but the internal shared_ptrs are the real deal
       auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states.size()));
       for (auto& dss : states) {

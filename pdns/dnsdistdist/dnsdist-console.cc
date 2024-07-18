@@ -226,7 +226,9 @@ namespace dnsdist::console
 {
 void doClient(const std::string& command)
 {
+  //coverity[auto_causes_copy]
   const auto consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
+  //coverity[auto_causes_copy]
   const auto server = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleServerAddress;
   if (!dnsdist::crypto::authenticated::isValidKey(consoleKey)) {
     cerr << "The currently configured console key is not valid, please configure a valid key using the setKey() directive" << endl;
@@ -933,6 +935,7 @@ static void controlClientThread(ConsoleConnection&& conn)
 
     setTCPNoDelay(conn.getFD());
 
+    //coverity[auto_causes_copy]
     const auto consoleKey = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey;
     dnsdist::crypto::authenticated::Nonce theirs;
     dnsdist::crypto::authenticated::Nonce ours;
@@ -958,6 +961,7 @@ static void controlClientThread(ConsoleConnection&& conn)
       }
 
       std::string line;
+      //coverity[tainted_data]
       line.resize(len);
       readn2(conn.getFD(), line.data(), len);
 

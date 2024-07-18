@@ -1244,6 +1244,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("getPoolServers", [](const string& pool) {
+    //coverity[auto_causes_copy]
     const auto poolServers = getDownstreamCandidates(pool);
     return *poolServers;
   });
@@ -1852,7 +1853,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       //             1        2         3                4
       ret << (fmt % "Name" % "Cache" % "ServerPolicy" % "Servers") << endl;
 
+      //coverity[auto_causes_copy]
       const auto defaultPolicyName = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName();
+      //coverity[auto_causes_copy]
       const auto pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
       for (const auto& entry : pools) {
         const string& name = entry.first;
@@ -1890,7 +1893,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaNoSideEffect();
     LuaArray<std::string> ret;
     int count = 1;
-    const auto pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+    const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
     for (const auto& entry : pools) {
       const string& name = entry.first;
       ret.emplace_back(count++, name);
