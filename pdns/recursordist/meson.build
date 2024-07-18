@@ -251,7 +251,6 @@ dep_htmlfiles = declare_dependency(
 deps = [
   dep_pdns,
   dep_no_config_in_source,
-  dep_settings,
   dep_rust_settings,
   dep_boost,
   dep_boost_context,
@@ -359,6 +358,7 @@ librec_common = declare_dependency(
     config_h,
     dependencies: [
       deps,
+      dep_settings_ch,
       librec_dnslabeltext,
     ],
   )
@@ -491,8 +491,6 @@ if get_option('unit-tests')
     }
   }
 endif
-
-
 
 man_pages = []
 foreach tool, info: tools
