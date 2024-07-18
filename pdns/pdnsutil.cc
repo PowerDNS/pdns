@@ -4262,7 +4262,7 @@ try
     bool found = false;
     DNSZoneRecord resultZoneRecord;
     while (matchingBackend->get(resultZoneRecord)) {
-      cout << resultZoneRecord.dr.d_name.toString() << "\t" << resultZoneRecord.dr.getContent()->getZoneRepresentation() << "\t" << std::to_string(resultZoneRecord.dr.d_ttl) << "\t" << QClass(resultZoneRecord.dr.d_class).toString() << "\t" << DNSRecordContent::NumberToType(resultZoneRecord.dr.d_type, resultZoneRecord.dr.d_class) << "\t" << endl;
+      cout << resultZoneRecord.dr.d_name.toString() << "\t" << std::to_string(resultZoneRecord.dr.d_ttl) << "\t" << QClass(resultZoneRecord.dr.d_class).toString() << "\t" << DNSRecordContent::NumberToType(resultZoneRecord.dr.d_type, resultZoneRecord.dr.d_class) << "\t" << resultZoneRecord.dr.getContent()->getZoneRepresentation() << endl;
       found = true;
     }
     if (!found) {
