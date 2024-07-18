@@ -1,6 +1,6 @@
 # USAGE
 
-#   docker build --build-arg MAKEFLAGS=-j8 -t recursor -f docker/Dockerfile-recursor .
+#   docker build --build-arg MAKEFLAGS=-j8 -t recursor -f Dockerfile-recursor .
 #   docker run -p 1053:53 -p 1053:53/udp -ti --rm recursor
 #   dig a www.example.com @0 -p 1053
 
