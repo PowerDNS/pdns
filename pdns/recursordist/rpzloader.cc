@@ -269,10 +269,13 @@ static shared_ptr<const SOARecordContent> loadRPZFromServer(Logr::log_t plogger,
         continue;
       }
 
+      // We want the full name in the SOA record
+      if (dnsRecord.d_type == QType::SOA) {
+        zone->setSOA(dnsRecord);
+      }
       dnsRecord.d_name.makeUsRelative(zoneName);
       if (dnsRecord.d_type == QType::SOA) {
         soaRecordContent = getRR<SOARecordContent>(dnsRecord);
-        zone->setSOA(dnsRecord);
         continue;
       }
 

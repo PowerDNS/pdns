@@ -799,9 +799,14 @@ void DNSFilterEngine::Zone::dumpAddrPolicy(FILE* filePtr, const Netmask& netmask
 
 void DNSFilterEngine::Zone::dump(FILE* filePtr) const
 {
-  /* fake the SOA record */
-  auto soa = DNSRecordContent::make(QType::SOA, QClass::IN, "fake.RPZ. hostmaster.fake.RPZ. " + std::to_string(d_serial) + " " + std::to_string(d_refresh) + " 600 3600000 604800");
-  fprintf(filePtr, "%s IN SOA %s\n", d_domain.toString().c_str(), soa->getZoneRepresentation().c_str());
+  if (DNSRecord soa = d_zoneData->d_soa; !soa.d_name.empty()) {
+    fprintf(filePtr, "%s IN SOA %s\n", soa.d_name.toString().c_str(), soa.getContent()->getZoneRepresentation().c_str());
+  }
+  else {
+    /* fake the SOA record */
+    auto soarr = DNSRecordContent::make(QType::SOA, QClass::IN, "fake.RPZ. hostmaster.fake.RPZ. " + std::to_string(d_serial) + " " + std::to_string(d_refresh) + " 600 3600000 604800");
+    fprintf(filePtr, "%s IN SOA %s\n", d_domain.toString().c_str(), soarr->getZoneRepresentation().c_str());
+  }
 
   for (const auto& pair : d_qpolName) {
     dumpNamedPolicy(filePtr, pair.first + d_domain, pair.second);
