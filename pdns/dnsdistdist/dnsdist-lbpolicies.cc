@@ -338,24 +338,30 @@ ServerPolicy::ServerPolicy(const std::string& name_, const std::string& code): d
   auto ret = tmpContext.executeCode<ServerPolicy::ffipolicyfunc_t>(code);
 }
 
-thread_local ServerPolicy::PerThreadState ServerPolicy::t_perThreadState;
+struct ServerPolicy::PerThreadState
+{
+  LuaContext d_luaContext;
+  std::unordered_map<std::string, ffipolicyfunc_t> d_policies;
+};
+
+thread_local std::unique_ptr<ServerPolicy::PerThreadState> ServerPolicy::t_perThreadState;
 
 const ServerPolicy::ffipolicyfunc_t& ServerPolicy::getPerThreadPolicy() const
 {
   auto& state = t_perThreadState;
-  if (!state.d_initialized) {
-    setupLuaLoadBalancingContext(state.d_luaContext);
-    state.d_initialized = true;
+  if (!state) {
+    state = std::make_unique<ServerPolicy::PerThreadState>();
+    setupLuaLoadBalancingContext(state->d_luaContext);
   }
 
-  const auto& it = state.d_policies.find(d_name);
-  if (it != state.d_policies.end()) {
-    return it->second;
+  const auto& policyIt = state->d_policies.find(d_name);
+  if (policyIt != state->d_policies.end()) {
+    return policyIt->second;
   }
 
-  auto newPolicy = state.d_luaContext.executeCode<ServerPolicy::ffipolicyfunc_t>(d_perThreadPolicyCode);
-  state.d_policies[d_name] = std::move(newPolicy);
-  return state.d_policies.at(d_name);
+  auto newPolicy = state->d_luaContext.executeCode<ServerPolicy::ffipolicyfunc_t>(d_perThreadPolicyCode);
+  state->d_policies[d_name] = std::move(newPolicy);
+  return state->d_policies.at(d_name);
 }
 
 std::shared_ptr<DownstreamState> ServerPolicy::getSelectedBackend(const ServerPolicy::NumberedServerVector& servers, DNSQuestion& dq) const

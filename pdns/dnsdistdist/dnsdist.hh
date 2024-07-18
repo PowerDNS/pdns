@@ -22,7 +22,6 @@
 #pragma once
 
 #include "config.h"
-#include "ext/luawrapper/include/LuaContext.hpp"
 
 #include <condition_variable>
 #include <memory>
@@ -890,8 +889,6 @@ public:
 };
 
 void responderThread(std::shared_ptr<DownstreamState> dss);
-extern RecursiveLockGuarded<LuaContext> g_lua;
-extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
 
 class DNSDistPacketCache;
 

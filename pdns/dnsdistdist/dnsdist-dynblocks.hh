@@ -33,6 +33,8 @@ extern "C"
 #include "dnsdist-lua-inspection-ffi.h"
 }
 
+#include "ext/luawrapper/include/LuaContext.hpp"
+
 // dnsdist_ffi_stat_node_t is a lightuserdata
 template <>
 struct LuaContext::Pusher<dnsdist_ffi_stat_node_t*>

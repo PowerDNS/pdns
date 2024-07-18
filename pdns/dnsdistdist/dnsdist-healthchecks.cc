@@ -24,6 +24,7 @@
 #include "tcpiohandler-mplexer.hh"
 #include "dnswriter.hh"
 #include "dolog.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-random.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-nghttp2.hh"

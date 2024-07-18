@@ -38,6 +38,7 @@
 #include "dnsdist-dynbpf.hh"
 #include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-prometheus.hh"
 #include "dnsdist-rings.hh"

@@ -30,6 +30,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-kvs.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dolog.hh"
 #include "dnsparser.hh"

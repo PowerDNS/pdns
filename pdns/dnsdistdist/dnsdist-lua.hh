@@ -21,11 +21,17 @@
  */
 #pragma once
 
+#include <random>
+
 #include "dolog.hh"
 #include "dnsdist.hh"
 #include "dnsdist-dnsparser.hh"
 #include "dnsparser.hh"
-#include <random>
+
+#include "ext/luawrapper/include/LuaContext.hpp"
+
+extern RecursiveLockGuarded<LuaContext> g_lua;
+extern std::string g_outputBuffer; // locking for this is ok, as locked by g_luamutex
 
 class SpoofAction : public DNSAction
 {

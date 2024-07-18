@@ -27,6 +27,8 @@ extern "C" {
 #include "dnsdist-lua-ffi-interface.h"
 }
 
+#include "ext/luawrapper/include/LuaContext.hpp"
+
 // dnsdist_ffi_dnsquestion_t is a lightuserdata
 template<>
 struct LuaContext::Pusher<dnsdist_ffi_dnsquestion_t*> {
