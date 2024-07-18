@@ -2314,13 +2314,22 @@ void SyncRes::getBestNSFromCache(const DNSName& qname, const QType qtype, vector
         g_recCache->doWipeCache(subdomain, false, QType::NS);
       }
       if (!missing.empty() && missing.size() < nsVector.size()) {
-        // We miss glue, but we have a chance to resolve it, since we do have address(es) for at least one NS
+        // We miss glue, but we have a chance to resolve it
+        // Pick a few and push async tasks to resolve them
+        const unsigned int max = 2;
+        unsigned int counter = 0;
+        shuffle(missing.begin(), missing.end(), pdns::dns_random_engine());
         for (const auto& name : missing) {
           if (s_doIPv4 && pushResolveIfNotInNegCache(name, QType::A, d_now)) {
             LOG(prefix << qname << ": A glue for " << subdomain << " NS " << name << " missing, pushed task to resolve" << endl);
+            counter++;
           }
           if (s_doIPv6 && pushResolveIfNotInNegCache(name, QType::AAAA, d_now)) {
             LOG(prefix << qname << ": AAAA glue for " << subdomain << " NS " << name << " missing, pushed task to resolve" << endl);
+            counter++;
+          }
+          if (counter >= max) {
+            break;
           }
         }
       }
@@ -4123,6 +4132,12 @@ void SyncRes::fixupAnswer(const std::string& prefix, LWResult& lwr, const DNSNam
 
 static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals, const DNSRecord& rec)
 {
+  // As we only use a limited amount of NS names for resolving, limit number of additional names as
+  // well.  s_maxnsperresolve is a proper limit for the NS case and is also reasonable for other
+  // qtypes.  Allow one extra for qname itself, which is always in allowedAdditionals.
+  if (SyncRes::s_maxnsperresolve > 0 && allowedAdditionals.size() > SyncRes::s_maxnsperresolve + 1) {
+    return;
+  }
   switch (rec.d_type) {
   case QType::MX:
     if (auto mxContent = getRR<MXRecordContent>(rec)) {
