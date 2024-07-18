@@ -25,6 +25,8 @@ pub struct AuthZone {
     zone: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     file: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    notify_allowed: bool,
 }
 
 // A single trust anchor
