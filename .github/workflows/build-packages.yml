@@ -195,6 +195,7 @@ jobs:
       base64-subjects: "${{ needs.build.outputs[format('pkghashes-{0}-{1}', matrix.os, matrix.architecture)] }}"
       upload-assets: false
       provenance-name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-${{ matrix.os }}-${{ matrix.architecture }}.intoto.jsonl"
+      private-repository: true
 
   provenance-src:
     needs: build
@@ -208,6 +209,7 @@ jobs:
       base64-subjects: "${{ needs.build.outputs.srchashes }}"
       upload-assets: false
       provenance-name: "${{ inputs.product }}-${{ needs.build.outputs.version }}-src.intoto.jsonl"
+      private-repository: true
 
   upload-provenance:
     needs: [prepare, build, provenance-src, provenance-pkgs]
