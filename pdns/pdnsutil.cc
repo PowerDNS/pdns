@@ -4257,8 +4257,9 @@ try
     DNSName name{cmds.at(2)};
 
     DNSPacket queryPacket(true);
+    Netmask clientNetmask;
     if (cmds.size() > 4) {
-      Netmask clientNetmask(cmds.at(4));
+      clientNetmask = cmds.at(4);
       queryPacket.setRealRemote(clientNetmask);
     }
 
@@ -4267,7 +4268,12 @@ try
     bool found = false;
     DNSZoneRecord resultZoneRecord;
     while (matchingBackend->get(resultZoneRecord)) {
-      cout << resultZoneRecord.dr.d_name.toString() << "\t" << std::to_string(resultZoneRecord.dr.d_ttl) << "\t" << QClass(resultZoneRecord.dr.d_class).toString() << "\t" << DNSRecordContent::NumberToType(resultZoneRecord.dr.d_type, resultZoneRecord.dr.d_class) << "\t" << resultZoneRecord.dr.getContent()->getZoneRepresentation() << endl;
+      cout << resultZoneRecord.dr.d_name.toString() << "\t" << std::to_string(resultZoneRecord.dr.d_ttl) << "\t" << QClass(resultZoneRecord.dr.d_class).toString() << "\t" << DNSRecordContent::NumberToType(resultZoneRecord.dr.d_type, resultZoneRecord.dr.d_class) << "\t" << resultZoneRecord.dr.getContent()->getZoneRepresentation();
+      if (resultZoneRecord.scopeMask > 0) {
+        clientNetmask.setBits(resultZoneRecord.scopeMask);
+        cout << "\t" << "; " << clientNetmask.toString();
+      }
+      cout << endl;
       found = true;
     }
     if (!found) {
