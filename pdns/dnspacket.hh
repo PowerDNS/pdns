@@ -65,6 +65,7 @@ public:
   ComboAddress getRemote() const;
   ComboAddress getInnerRemote() const; // for proxy protocol
   Netmask getRealRemote() const;
+  void setRealRemote(const Netmask& netmask);
   ComboAddress getLocal() const
   {
     ComboAddress ca;
