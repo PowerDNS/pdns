@@ -513,11 +513,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
         output << (*val)->load();
       }
-      else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+      else if (const auto& adval = std::get_if<pdns::stat_double_t*>(&entry.d_value)) {
         output << (*adval)->load();
-      }
-      else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
-        output << **dval;
       }
       else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
         output << (*func)(entry.d_name);
@@ -933,11 +930,8 @@ static void addStatsToJSONObject(Json::object& obj)
     if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
       obj.emplace(entry.d_name, (double)(*val)->load());
     }
-    else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+    else if (const auto& adval = std::get_if<pdns::stat_double_t*>(&entry.d_value)) {
       obj.emplace(entry.d_name, (*adval)->load());
-    }
-    else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
-      obj.emplace(entry.d_name, (**dval));
     }
     else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
       obj.emplace(entry.d_name, (double)(*func)(entry.d_name));
@@ -1402,17 +1396,11 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
           {"name", item.d_name},
           {"value", (double)(*val)->load()}});
       }
-      else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&item.d_value)) {
+      else if (const auto& adval = std::get_if<pdns::stat_double_t*>(&item.d_value)) {
         doc.emplace_back(Json::object{
           {"type", "StatisticItem"},
           {"name", item.d_name},
           {"value", (*adval)->load()}});
-      }
-      else if (const auto& dval = std::get_if<double*>(&item.d_value)) {
-        doc.emplace_back(Json::object{
-          {"type", "StatisticItem"},
-          {"name", item.d_name},
-          {"value", (**dval)}});
       }
       else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&item.d_value)) {
         doc.emplace_back(Json::object{

@@ -64,7 +64,7 @@ struct MutableGauge
   }
   ~MutableGauge() = default;
 
-  mutable pdns::stat_t_trait<double> d_value{0};
+  mutable pdns::stat_double_t d_value{0};
 };
 
 static SharedLockGuarded<std::map<std::string, MutableCounter, std::less<>>> s_customCounters;

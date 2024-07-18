@@ -344,9 +344,9 @@ struct ClientState
   stat_t tls12queries{0}; // valid DNS queries received via TLSv1.2
   stat_t tls13queries{0}; // valid DNS queries received via TLSv1.3
   stat_t tlsUnknownqueries{0}; // valid DNS queries received via unknown TLS version
-  pdns::stat_t_trait<double> tcpAvgQueriesPerConnection{0.0};
+  pdns::stat_double_t tcpAvgQueriesPerConnection{0.0};
   /* in ms */
-  pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};
+  pdns::stat_double_t tcpAvgConnectionDuration{0.0};
   std::set<int> cpus;
   std::string interface;
   ComboAddress local;
@@ -654,11 +654,11 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
   stat_t tcpReusedConnections{0};
   stat_t tcpNewConnections{0};
   stat_t tlsResumptions{0};
-  pdns::stat_t_trait<double> tcpAvgQueriesPerConnection{0.0};
+  pdns::stat_double_t tcpAvgQueriesPerConnection{0.0};
   /* in ms */
-  pdns::stat_t_trait<double> tcpAvgConnectionDuration{0.0};
-  pdns::stat_t_trait<double> queryLoad{0.0};
-  pdns::stat_t_trait<double> dropRate{0.0};
+  pdns::stat_double_t tcpAvgConnectionDuration{0.0};
+  pdns::stat_double_t queryLoad{0.0};
+  pdns::stat_double_t dropRate{0.0};
 
   SharedLockGuarded<std::vector<unsigned int>> hashes;
   LockGuarded<std::unique_ptr<FDMultiplexer>> mplexer{nullptr};

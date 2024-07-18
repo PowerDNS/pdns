@@ -61,11 +61,8 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
         if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
           str << (*val)->load();
         }
-        else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+        else if (const auto& adval = std::get_if<pdns::stat_double_t*>(&entry.d_value)) {
           str << (*adval)->load();
-        }
-        else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
-          str << **dval;
         }
         else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
           str << (*func)(entry.d_name);
