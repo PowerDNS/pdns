@@ -81,14 +81,14 @@ struct Stats
   stat_t tcpQueryPipeFull{0};
   stat_t tcpCrossProtocolQueryPipeFull{0};
   stat_t tcpCrossProtocolResponsePipeFull{0};
-  pdns::stat_t_trait<double> latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
-  pdns::stat_t_trait<double> latencyTCPAvg100{0}, latencyTCPAvg1000{0}, latencyTCPAvg10000{0}, latencyTCPAvg1000000{0};
-  pdns::stat_t_trait<double> latencyDoTAvg100{0}, latencyDoTAvg1000{0}, latencyDoTAvg10000{0}, latencyDoTAvg1000000{0};
-  pdns::stat_t_trait<double> latencyDoHAvg100{0}, latencyDoHAvg1000{0}, latencyDoHAvg10000{0}, latencyDoHAvg1000000{0};
-  pdns::stat_t_trait<double> latencyDoQAvg100{0}, latencyDoQAvg1000{0}, latencyDoQAvg10000{0}, latencyDoQAvg1000000{0};
-  pdns::stat_t_trait<double> latencyDoH3Avg100{0}, latencyDoH3Avg1000{0}, latencyDoH3Avg10000{0}, latencyDoH3Avg1000000{0};
+  pdns::stat_double_t latencyAvg100{0}, latencyAvg1000{0}, latencyAvg10000{0}, latencyAvg1000000{0};
+  pdns::stat_double_t latencyTCPAvg100{0}, latencyTCPAvg1000{0}, latencyTCPAvg10000{0}, latencyTCPAvg1000000{0};
+  pdns::stat_double_t latencyDoTAvg100{0}, latencyDoTAvg1000{0}, latencyDoTAvg10000{0}, latencyDoTAvg1000000{0};
+  pdns::stat_double_t latencyDoHAvg100{0}, latencyDoHAvg1000{0}, latencyDoHAvg10000{0}, latencyDoHAvg1000000{0};
+  pdns::stat_double_t latencyDoQAvg100{0}, latencyDoQAvg1000{0}, latencyDoQAvg10000{0}, latencyDoQAvg1000000{0};
+  pdns::stat_double_t latencyDoH3Avg100{0}, latencyDoH3Avg1000{0}, latencyDoH3Avg10000{0}, latencyDoH3Avg1000000{0};
   using statfunction_t = std::function<uint64_t(const std::string&)>;
-  using entry_t = std::variant<stat_t*, pdns::stat_t_trait<double>*, statfunction_t>;
+  using entry_t = std::variant<stat_t*, pdns::stat_double_t*, statfunction_t>;
   struct EntryPair
   {
     std::string d_name;

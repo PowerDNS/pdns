@@ -140,7 +140,7 @@ static int handleFloatStats(netsnmp_mib_handler* handler,
     return SNMP_ERR_GENERR;
   }
 
-  if (const auto& val = std::get_if<pdns::stat_t_trait<double>*>(&stIt->second)) {
+  if (const auto& val = std::get_if<pdns::stat_double_t*>(&stIt->second)) {
     std::string str(std::to_string((*val)->load()));
     snmp_set_var_typed_value(requests->requestvb,
                              ASN_OCTET_STR,
@@ -152,7 +152,7 @@ static int handleFloatStats(netsnmp_mib_handler* handler,
   return SNMP_ERR_GENERR;
 }
 
-static void registerFloatStat(const char* name, const OIDStat& statOID, pdns::stat_t_trait<double>* ptr)
+static void registerFloatStat(const char* name, const OIDStat& statOID, pdns::stat_double_t* ptr)
 {
   if (statOID.size() != OID_LENGTH(queriesOID)) {
     errlog("Invalid OID for SNMP Float statistic %s", name);
