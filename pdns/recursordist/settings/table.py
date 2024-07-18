@@ -1187,9 +1187,12 @@ Useful during upgrade testing.
         'section' : 'recursor',
         'type' : LType.String,
         'default' : '',
-        'help' : 'Include *.conf files from this directory',
+        'help' : 'Include settings files from this directory.',
         'doc' : '''
-Directory to scan for additional config files. All files that end with .conf are loaded in order using ``POSIX`` as locale.
+Directory to scan for additional config files. All files that end with ``.conf`` are loaded in order using ``POSIX`` as locale.
+ ''',
+        'doc-new' : '''
+Directory to scan for additional config files. All files that end with ``.yml`` are loaded in order using ``POSIX`` as locale.
  ''',
     },
     {
