@@ -376,7 +376,6 @@ ebpfblocklist
 ECCN
 ech
 econds
-ECSDA
 ecswho
 editline
 edns
