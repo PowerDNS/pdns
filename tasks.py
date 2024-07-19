@@ -1059,6 +1059,9 @@ def ci_build_and_install_quiche(c, repo):
     c.run(f'echo {quiche_hash}"  "quiche-{quiche_version}.tar.gz | sha256sum -c -')
     c.run(f'tar xf quiche-{quiche_version}.tar.gz')
     with c.cd(f'quiche-{quiche_version}'):
+        # Disable SONAME in the quiche shared library, we do not intend this library to be used by anyone else and it makes things more complicated since we rename it to libdnsdist-quiche
+        c.run('sed -i \'s/ffi = \["dep:cdylib-link-lines"\]/ffi = \[\]/\' quiche/Cargo.toml')
+        c.run('sed -i \'s,cdylib_link_lines::metabuild();,//cdylib_link_lines::metabuild();,\' quiche/src/build.rs')
         c.run('cargo build --release --no-default-features --features ffi,boringssl-boring-crate --package quiche')
         # cannot use c.sudo() inside a cd() context, see https://github.com/pyinvoke/invoke/issues/687
         c.run('sudo install -Dm644 quiche/include/quiche.h /usr/include')
