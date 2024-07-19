@@ -97,6 +97,7 @@ signed by valid TSIG signature for the zone.
 
 .. deprecated:: 4.5.0
   Renamed to :ref:`setting-allow-unsigned-autoprimary`.
+  Removed in 4.9.0
 
 .. _setting-also-notify:
 
@@ -1113,6 +1114,7 @@ When combining the ``"`` delimited chunks of a LUA record, whether to insert whi
 
 .. deprecated:: 4.5.0
   Renamed to :ref:`setting-primary`.
+  Removed in 4.9.0.
 
 -  Boolean
 -  Default: no
@@ -1684,6 +1686,7 @@ signing speed by changing this number.
 
 .. deprecated:: 4.5.0
   Renamed to :ref:`setting-secondary`.
+  Removed in 4.9.0.
 
 .. _setting-slave-cycle-interval:
 
@@ -1692,6 +1695,7 @@ signing speed by changing this number.
 
 .. deprecated:: 4.5.0
   Renamed to :ref:`setting-xfr-cycle-interval`.
+  Removed in 4.9.0.
 
 .. _setting-slave-renotify:
 
@@ -1700,6 +1704,7 @@ signing speed by changing this number.
 
 .. deprecated:: 4.5.0
   Renamed to :ref:`setting-secondary-do-renotify`.
+  Removed in 4.9.0.
 
 -  Boolean
 -  Default: no
@@ -1784,6 +1789,7 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 
 .. deprecated:: 4.5.0
   Renamed to :ref:`setting-autosecondary`.
+  Removed in 4.9.0.
 
 -  Boolean
 -  Default: no
