@@ -284,7 +284,7 @@ backend-cmd *BACKEND* *CMD* [*CMD...*]
     take SQL commands, other backends may take different things. Be
     careful!
 backend-lookup *BACKEND* *NAME* [*TYPE* [*CLIENT-IP-SUBNET*]]
-    Perform a backend record filtering lookup.
+    Perform a backend record lookup.
 bench-db [*FILE*]
     Perform a benchmark of the backend-database.
     *FILE* can be a file with a list, one per line, of zone names to use for this.
