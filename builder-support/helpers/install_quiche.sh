@@ -26,6 +26,9 @@ echo $0: Checking that the hash of ${QUICHE_TARBALL} is ${QUICHE_TARBALL_HASH}
 echo "${QUICHE_TARBALL_HASH}"  "${QUICHE_TARBALL}" | sha256sum -c -
 tar xf "${QUICHE_TARBALL}"
 cd "quiche-${QUICHE_VERSION}"
+# Disable SONAME in the quiche shared library, we do not intend this library to be used by anyone else and it makes things more complicated since we rename it to libdnsdist-quiche
+sed -i 's/ffi = \["dep:cdylib-link-lines"\]/ffi = \[\]/' quiche/Cargo.toml
+sed -i 's,cdylib_link_lines::metabuild();,//cdylib_link_lines::metabuild();,' quiche/src/build.rs
 RUST_BACKTRACE=1 cargo build --release --no-default-features --features ffi,boringssl-boring-crate --package quiche
 
 install -m644 quiche/include/quiche.h "${INSTALL_PREFIX}"/include
