@@ -2569,8 +2569,8 @@ try
     cout << "]" << endl;
     cout << "                                   Add a ZSK or KSK to zone and specify algo&bits" << endl;
     cout << "backend-cmd BACKEND CMD [CMD..]    Perform one or more backend commands" << endl;
-    cout << "backend-lookup BACKEND NAME TYPE CLIENT-IP" << endl;
-    cout << "                                   Perform a backend lookup of NAME, TYPE and CLIENT-IP" << endl;
+    cout << "backend-lookup BACKEND NAME [[TYPE] CLIENT-IP-SUBNET]" << endl;
+    cout << "                                   Perform a backend lookup of NAME, TYPE and CLIENT-IP-SUBNET" << endl;
     cout << "b2b-migrate OLD NEW                Move all data from one backend to another" << endl;
     cout << "bench-db [filename]                Bench database backend with queries, one zone per line" << endl;
     cout << "check-zone ZONE                    Check a zone for correctness" << endl;
