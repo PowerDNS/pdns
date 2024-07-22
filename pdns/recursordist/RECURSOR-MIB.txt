@@ -1444,7 +1444,7 @@ recGroup OBJECT-GROUP
         zoneDisallowedNotify,
         nonResolvingNameserverEntries,
         maintenanceUSec,
-        maintenanceCalls,
+        maintenanceCount,
         authrcode0Count,
         authrcode1Count,
         authrcode2Count,
