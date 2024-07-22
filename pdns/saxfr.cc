@@ -16,6 +16,7 @@
 
 StatBag S;
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int main(int argc, char** argv)
 try
 {
@@ -144,9 +145,11 @@ try
          throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
        }
        for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-         if(i->first.d_type != QType::TKEY) continue;
+         if (i->d_type != QType::TKEY) {
+           continue;
+         }
          // recover TKEY record
-         tkrc = TKEYRecordContent(i->first.getContent()->getZoneRepresentation());
+         tkrc = TKEYRecordContent(i->getContent()->getZoneRepresentation());
          input = tkrc.d_key;
        }
     }

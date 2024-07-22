@@ -171,16 +171,16 @@ try
     {
       // cerr<<"got nsec3 ["<<i->first.d_name<<"]"<<endl;
       // cerr<<i->first.d_content->getZoneRepresentation()<<endl;
-      const auto r = getRR<NSEC3RecordContent>(*i);
-      if (!r) {
+      const auto nsec3Record = getRR<NSEC3RecordContent>(*i);
+      if (!nsec3Record) {
         continue;
       }
       // nsec3.insert(new nsec3()
       // cerr<<toBase32Hex(r.d_nexthash)<<endl;
-      nsec3s.emplace(toLower(i->d_name.getRawLabel(0)), toBase32Hex(r->d_nexthash));
-      nsec3salt = r->d_salt;
-      nsec3iters = r->d_iterations;
-      nsec3t.emplace(toLower(i->d_name.getRawLabel(0)), r->numberOfTypesSet());
+      nsec3s.emplace(toLower(i->d_name.getRawLabel(0)), toBase32Hex(nsec3Record->d_nexthash));
+      nsec3salt = nsec3Record->d_salt;
+      nsec3iters = nsec3Record->d_iterations;
+      nsec3t.emplace(toLower(i->d_name.getRawLabel(0)), nsec3Record->numberOfTypesSet());
     }
     else
     {

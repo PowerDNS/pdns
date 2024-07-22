@@ -241,9 +241,11 @@ static void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int
 
 static void compactAnswerSet(MOADNSParser::answers_t orig, set<DNSRecord>& compacted)
 {
-  for(MOADNSParser::answers_t::const_iterator i=orig.begin(); i != orig.end(); ++i)
-    if(i->d_place==DNSResourceRecord::ANSWER)
-      compacted.insert(*i);
+  for (const auto& rec : orig) {
+    if (rec.d_place == DNSResourceRecord::ANSWER) {
+      compacted.insert(rec);
+    }
+  }
 }
 
 static bool isRcodeOk(int rcode)
@@ -261,10 +263,12 @@ static bool isRootReferral(const MOADNSParser::answers_t& answers)
   bool ok=true;
   for(MOADNSParser::answers_t::const_iterator iter = answers.begin(); iter != answers.end(); ++iter) {
     //    cerr<<(int)iter->d_place<<", "<<iter->d_name<<" "<<iter->d_type<<", # "<<answers.size()<<endl;
-    if(iter->d_place!=2)
-      ok=false;
-    if(!iter->d_name.isRoot() || iter->d_type!=QType::NS)
-      ok=false;
+    if (iter->d_place != 2) {
+      ok = false;
+    }
+    if (!iter->d_name.isRoot() || iter->d_type != QType::NS) {
+      ok = false;
+    }
   }
   return ok;
 }

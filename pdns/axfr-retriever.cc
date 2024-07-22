@@ -148,9 +148,11 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
     err = parseResult(mdp, DNSName(), 0, 0, &res);
 
     if (!err) {
-      for(const auto& answer :  mdp.d_answers)
-        if (answer.d_type == QType::SOA)
+      for(const auto& answer :  mdp.d_answers) {
+        if (answer.d_type == QType::SOA) {
           d_soacount++;
+        }
+      }
     }
   }
   else {

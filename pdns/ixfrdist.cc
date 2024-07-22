@@ -1224,8 +1224,8 @@ static void tcpWorker(int tid) {
         for (auto &answer : mdp.d_answers) {
           // from dnsparser.hh:
           // typedef vector<pair<DNSRecord, uint16_t > > answers_t;
-          if (answer.first.d_type == QType::SOA && answer.first.d_place == DNSResourceRecord::AUTHORITY) {
-            clientSOA = getRR<SOARecordContent>(answer.first);
+          if (answer.d_type == QType::SOA && answer.d_place == DNSResourceRecord::AUTHORITY) {
+            clientSOA = getRR<SOARecordContent>(answer);
             if (clientSOA != nullptr) {
               break;
             }
