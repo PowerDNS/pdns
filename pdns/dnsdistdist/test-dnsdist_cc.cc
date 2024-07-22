@@ -1987,9 +1987,9 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
   }
   {
     /* now with incoming EDNS */
@@ -2010,11 +2010,11 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, g_rootdnsname);
   }
 
   /* test No Data */
@@ -2037,9 +2037,9 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
   }
   {
     /* now with incoming EDNS */
@@ -2060,11 +2060,11 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, g_rootdnsname);
   }
 
   /* SOA in the authority section*/
@@ -2090,9 +2090,9 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
   }
   {
     /* now with incoming EDNS */
@@ -2113,11 +2113,11 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, g_rootdnsname);
   }
 
   /* test No Data */
@@ -2140,9 +2140,9 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
   }
   {
     /* now with incoming EDNS */
@@ -2163,11 +2163,11 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, g_rootdnsname);
   }
 }
 
@@ -2282,8 +2282,8 @@ BOOST_AUTO_TEST_CASE(test_setEDNSOption)
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
   BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
-  BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::OPT));
-  BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, g_rootdnsname);
+  BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::OPT));
+  BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, g_rootdnsname);
 
   EDNS0Record edns0{};
   BOOST_REQUIRE(getEDNS0Record(dnsQuestion.getData(), edns0));

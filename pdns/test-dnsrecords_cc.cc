@@ -701,7 +701,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
 
     MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
     BOOST_REQUIRE_EQUAL(parser.d_answers.size(), 1U);
-    const auto& record = parser.d_answers.at(0).first;
+    const auto& record = parser.d_answers.at(0);
     BOOST_REQUIRE(record.d_type == QType::NSEC3);
     BOOST_REQUIRE(record.d_class == QClass::IN);
     auto content = getRR<NSEC3RecordContent>(record);

@@ -768,7 +768,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
   // Check if all the records provided are within the zone
   for(const auto & answer : mdp.d_answers) {
-    const DNSRecord *rr = &answer.first;
+    const DNSRecord *rr = &answer;
     // Skip this check for other field types (like the TSIG -  which is in the additional section)
     // For a TSIG, the label is the dnskey, so it does not pass the endOn validation.
     if (! (rr->d_place == DNSResourceRecord::ANSWER || rr->d_place == DNSResourceRecord::AUTHORITY))
@@ -790,7 +790,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
   // 3.2.1 and 3.2.2 - Prerequisite check
   for(const auto & answer : mdp.d_answers) {
-    const DNSRecord *rr = &answer.first;
+    const DNSRecord *rr = &answer;
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       int res = checkUpdatePrerequisites(rr, &di);
       if (res>0) {
@@ -807,7 +807,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
   typedef std::map<rrSetKey_t, rrVector_t> RRsetMap_t;
   RRsetMap_t preReqRRsets;
   for(const auto& i: mdp.d_answers) {
-    const DNSRecord* rr = &i.first;
+    const DNSRecord* rr = &i;
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       // Last line of 3.2.3
       if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY)
@@ -855,7 +855,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
     uint changedRecords = 0;
     // 3.4.1 - Prescan section
     for(const auto & answer : mdp.d_answers) {
-      const DNSRecord *rr = &answer.first;
+      const DNSRecord *rr = &answer;
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         int res = checkUpdatePrescan(rr);
         if (res>0) {
@@ -882,12 +882,12 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
     // Another special case is the addition of both a CNAME and a non-CNAME for the same name (#6270)
     set<DNSName> cn, nocn;
     for (const auto &rr : mdp.d_answers) {
-      if (rr.first.d_place == DNSResourceRecord::AUTHORITY && rr.first.d_class == QClass::IN && rr.first.d_ttl > 0) {
+      if (rr.d_place == DNSResourceRecord::AUTHORITY && rr.d_class == QClass::IN && rr.d_ttl > 0) {
         // Addition
-        if (rr.first.d_type == QType::CNAME) {
-          cn.insert(rr.first.d_name);
-        } else if (rr.first.d_type != QType::RRSIG) {
-          nocn.insert(rr.first.d_name);
+        if (rr.d_type == QType::CNAME) {
+          cn.insert(rr.d_name);
+        } else if (rr.d_type != QType::RRSIG) {
+          nocn.insert(rr.d_name);
         }
       }
     }
@@ -901,7 +901,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
     vector<const DNSRecord *> cnamesToAdd, nonCnamesToAdd;
     for(const auto & answer : mdp.d_answers) {
-      const DNSRecord *rr = &answer.first;
+      const DNSRecord *rr = &answer;
       if (rr->d_place == DNSResourceRecord::AUTHORITY) {
         /* see if it's permitted by policy */
         if (this->d_update_policy_lua != nullptr) {

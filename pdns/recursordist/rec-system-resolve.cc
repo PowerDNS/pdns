@@ -92,7 +92,7 @@ std::string serverID()
   if (parser.d_header.rcode != RCode::NoError || parser.d_answers.size() != 1) {
     return {};
   }
-  const auto& dnsrecord = parser.d_answers.at(0).first;
+  const auto& dnsrecord = parser.d_answers.at(0);
   if (dnsrecord.d_type == QType::TXT) {
     if (auto txt = getRR<TXTRecordContent>(dnsrecord); txt != nullptr) {
       const auto& text = txt->d_text;

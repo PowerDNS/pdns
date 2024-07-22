@@ -305,7 +305,7 @@ void MOADNSParser::init(bool query, const std::string_view& packet)
         d_tsigPos = recordStartPos;
       }
 
-      d_answers.emplace_back(std::move(dr), pr.getPosition() - sizeof(dnsheader));
+      d_answers.emplace_back(std::move(dr));
     }
 
 #if 0
@@ -342,7 +342,7 @@ bool MOADNSParser::hasEDNS() const
   }
 
   for (const auto& record : d_answers) {
-    if (record.first.d_place == DNSResourceRecord::ADDITIONAL && record.first.d_type == QType::OPT) {
+    if (record.d_place == DNSResourceRecord::ADDITIONAL && record.d_type == QType::OPT) {
       return true;
     }
   }

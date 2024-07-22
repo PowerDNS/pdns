@@ -82,17 +82,17 @@ static void checkTSIG(const DNSName& tsigName, const DNSName& tsigAlgo, const st
   TSIGRecordContent trc;
 
   for(const auto& answer: mdp.d_answers) {
-    if(answer.first.d_type == QType::TSIG) {
-      BOOST_CHECK_EQUAL(answer.first.d_place, DNSResourceRecord::ADDITIONAL);
-      BOOST_CHECK_EQUAL(answer.first.d_class, QClass::ANY);
-      BOOST_CHECK_EQUAL(answer.first.d_ttl, 0U);
+    if(answer.d_type == QType::TSIG) {
+      BOOST_CHECK_EQUAL(answer.d_place, DNSResourceRecord::ADDITIONAL);
+      BOOST_CHECK_EQUAL(answer.d_class, QClass::ANY);
+      BOOST_CHECK_EQUAL(answer.d_ttl, 0U);
       BOOST_CHECK_EQUAL(tsigFound, false);
 
-      auto rectrc = getRR<TSIGRecordContent>(answer.first);
+      auto rectrc = getRR<TSIGRecordContent>(answer);
       if (rectrc) {
         trc = *rectrc;
         theirMac = rectrc->d_mac;
-        keyName = answer.first.d_name;
+        keyName = answer.d_name;
         tsigFound = true;
       }
     }

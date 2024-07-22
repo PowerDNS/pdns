@@ -104,16 +104,16 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
 
   for (MOADNSParser::answers_t::const_iterator i = mdp.d_answers.begin();
        i != mdp.d_answers.end(); ++i) {
-    cout << i->first.d_place - 1 << "\t" << i->first.d_name.toString() << "\t"
-         << ttl(i->first.d_ttl) << "\t" << nameForClass(i->first.d_class, i->first.d_type) << "\t"
-         << DNSRecordContent::NumberToType(i->first.d_type);
+    cout << i->d_place - 1 << "\t" << i->d_name.toString() << "\t"
+         << ttl(i->d_ttl) << "\t" << nameForClass(i->d_class, i->d_type) << "\t"
+         << DNSRecordContent::NumberToType(i->d_type);
     if (dumpluaraw) {
-      cout<<"\t"<< makeLuaString(i->first.getContent()->serialize(DNSName(), true))<<endl;
+      cout<<"\t"<< makeLuaString(i->getContent()->serialize(DNSName(), true))<<endl;
       continue;
     }
-    if (i->first.d_class == QClass::IN) {
-      if (i->first.d_type == QType::RRSIG) {
-        string zoneRep = i->first.getContent()->getZoneRepresentation();
+    if (i->d_class == QClass::IN) {
+      if (i->d_type == QType::RRSIG) {
+        string zoneRep = i->getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         cout << "\t" << parts[0] << " "
@@ -121,8 +121,8 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
              << " [expiry] [inception] [keytag] " << parts[7] << " ...\n";
         continue;
       }
-      if (!showflags && i->first.d_type == QType::NSEC3) {
-        string zoneRep = i->first.getContent()->getZoneRepresentation();
+      if (!showflags && i->d_type == QType::NSEC3) {
+        string zoneRep = i->getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         cout << "\t" << parts[0] << " [flags] "
@@ -133,16 +133,16 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         cout << "\n";
         continue;
       }
-      if (i->first.d_type == QType::DNSKEY) {
-        string zoneRep = i->first.getContent()->getZoneRepresentation();
+      if (i->d_type == QType::DNSKEY) {
+        string zoneRep = i->getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         cout << "\t" << parts[0] << " "
              << parts[1] << " " << parts[2] << " ...\n";
         continue;
       }
-      if (i->first.d_type == QType::SOA && hidesoadetails) {
-        string zoneRep = i->first.getContent()->getZoneRepresentation();
+      if (i->d_type == QType::SOA && hidesoadetails) {
+        string zoneRep = i->getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         cout << "\t" << parts[0] << " "
@@ -151,7 +151,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         continue;
       }
     }
-    cout << "\t" << i->first.getContent()->getZoneRepresentation() << "\n";
+    cout << "\t" << i->getContent()->getZoneRepresentation() << "\n";
   }
 
   EDNSOpts edo;

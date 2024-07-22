@@ -669,11 +669,11 @@ struct ParsePacketTest
     } lwr;
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
       DNSResourceRecord rr;
-      rr.qtype=i->first.d_type;
-      rr.qname=i->first.d_name;
+      rr.qtype=i->d_type;
+      rr.qname=i->d_name;
 
-      rr.ttl=i->first.d_ttl;
-      rr.content=i->first.getContent()->getZoneRepresentation();  // this should be the serialised form
+      rr.ttl=i->d_ttl;
+      rr.content=i->getContent()->getZoneRepresentation();  // this should be the serialised form
       lwr.d_result.push_back(rr);
     }
 

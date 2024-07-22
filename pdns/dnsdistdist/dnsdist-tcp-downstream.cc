@@ -191,11 +191,11 @@ static bool getSerialFromIXFRQuery(TCPQuery& query)
     MOADNSParser parser(true, reinterpret_cast<const char*>(query.d_buffer.data() + sizeof(uint16_t) + proxyPayloadSize), payloadSize);
 
     for (const auto& record : parser.d_answers) {
-      if (record.first.d_place != DNSResourceRecord::AUTHORITY || record.first.d_class != QClass::IN || record.first.d_type != QType::SOA) {
+      if (record.d_place != DNSResourceRecord::AUTHORITY || record.d_class != QClass::IN || record.d_type != QType::SOA) {
         return false;
       }
 
-      auto unknownContent = getRR<UnknownRecordContent>(record.first);
+      auto unknownContent = getRR<UnknownRecordContent>(record);
       if (!unknownContent) {
         return false;
       }
@@ -815,11 +815,11 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
     }
     else {
       for (const auto& record : parser.d_answers) {
-        if (record.first.d_class != QClass::IN || record.first.d_type != QType::SOA) {
+        if (record.d_class != QClass::IN || record.d_type != QType::SOA) {
           continue;
         }
 
-        auto unknownContent = getRR<UnknownRecordContent>(record.first);
+        auto unknownContent = getRR<UnknownRecordContent>(record);
         if (!unknownContent) {
           continue;
         }

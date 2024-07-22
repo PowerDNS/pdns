@@ -117,14 +117,14 @@ BOOST_AUTO_TEST_CASE(test_Response)
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2U);
 
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 3U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::A));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, newTarget);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::AAAA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, newTarget);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::A));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, newTarget);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::AAAA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, newTarget);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).d_name, g_rootdnsname);
   }
 
   {
@@ -156,14 +156,14 @@ BOOST_AUTO_TEST_CASE(test_Response)
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2U);
 
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 3U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::A));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, newTarget);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::AAAA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, notTheTarget);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::A));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, newTarget);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::AAAA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, notTheTarget);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).d_name, g_rootdnsname);
   }
 
   {
@@ -194,18 +194,18 @@ BOOST_AUTO_TEST_CASE(test_Response)
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
 
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 3U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::CNAME));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, newTarget);
-    auto content = getRR<UnknownRecordContent>(mdp.d_answers.at(0).first);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::CNAME));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, newTarget);
+    auto content = getRR<UnknownRecordContent>(mdp.d_answers.at(0));
     BOOST_REQUIRE(content != nullptr);
     BOOST_CHECK_EQUAL(content->getRawContent().size(), notTheTarget.getStorage().size());
 
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::A));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, notTheTarget);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::A));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, notTheTarget);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(2).d_name, g_rootdnsname);
   }
 
   {
@@ -259,11 +259,11 @@ BOOST_AUTO_TEST_CASE(test_Response)
 
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 7U);
     for (const auto& answer : mdp.d_answers) {
-      if (answer.first.d_type == QType::OPT) {
+      if (answer.d_type == QType::OPT) {
         continue;
       }
-      BOOST_CHECK_EQUAL(answer.first.d_class, QClass::IN);
-      BOOST_CHECK_EQUAL(answer.first.d_name, newTarget);
+      BOOST_CHECK_EQUAL(answer.d_class, QClass::IN);
+      BOOST_CHECK_EQUAL(answer.d_name, newTarget);
     }
   }
 
@@ -322,11 +322,11 @@ BOOST_AUTO_TEST_CASE(test_Response)
 
       BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 8U);
       for (const auto& answer : mdp.d_answers) {
-        if (answer.first.d_type == QType::OPT) {
+        if (answer.d_type == QType::OPT) {
           continue;
         }
-        BOOST_CHECK_EQUAL(answer.first.d_class, QClass::IN);
-        BOOST_CHECK_EQUAL(answer.first.d_name, target);
+        BOOST_CHECK_EQUAL(answer.d_class, QClass::IN);
+        BOOST_CHECK_EQUAL(answer.d_name, target);
       }
     }
 
@@ -344,11 +344,11 @@ BOOST_AUTO_TEST_CASE(test_Response)
 
       BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 8U);
       for (const auto& answer : mdp.d_answers) {
-        if (answer.first.d_type == QType::OPT) {
+        if (answer.d_type == QType::OPT) {
           continue;
         }
-        BOOST_CHECK_EQUAL(answer.first.d_class, QClass::IN);
-        BOOST_CHECK_EQUAL(answer.first.d_name, newTarget);
+        BOOST_CHECK_EQUAL(answer.d_class, QClass::IN);
+        BOOST_CHECK_EQUAL(answer.d_name, newTarget);
       }
     }
   }
@@ -377,9 +377,9 @@ BOOST_AUTO_TEST_CASE(test_Response)
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
 
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::ALIAS));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, target);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::ALIAS));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, target);
   }
 }
 

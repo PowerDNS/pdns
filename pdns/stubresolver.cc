@@ -177,9 +177,9 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
     }
 
     for (const auto& answer : mdp.d_answers) {
-      if (answer.first.d_place == 1 && answer.first.d_type == qtype) {
+      if (answer.d_place == 1 && answer.d_type == qtype) {
         DNSZoneRecord zrr;
-        zrr.dr = answer.first;
+        zrr.dr = answer;
         zrr.auth = true;
         ret.push_back(zrr);
       }

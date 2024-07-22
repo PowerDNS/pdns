@@ -884,18 +884,18 @@ bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo)
   eo->d_extFlags=0;
   if(mdp.d_header.arcount && !mdp.d_answers.empty()) {
     for(const MOADNSParser::answers_t::value_type& val :  mdp.d_answers) {
-      if(val.first.d_place == DNSResourceRecord::ADDITIONAL && val.first.d_type == QType::OPT) {
-        eo->d_packetsize=val.first.d_class;
+      if(val.d_place == DNSResourceRecord::ADDITIONAL && val.d_type == QType::OPT) {
+        eo->d_packetsize=val.d_class;
 
         EDNS0Record stuff;
-        uint32_t ttl=ntohl(val.first.d_ttl);
+        uint32_t ttl=ntohl(val.d_ttl);
         static_assert(sizeof(EDNS0Record) == sizeof(uint32_t), "sizeof(EDNS0Record) must match sizeof(uint32_t)");
         memcpy(&stuff, &ttl, sizeof(stuff));
 
         eo->d_extRCode=stuff.extRCode;
         eo->d_version=stuff.version;
         eo->d_extFlags = ntohs(stuff.extFlags);
-        auto orc = getRR<OPTRecordContent>(val.first);
+        auto orc = getRR<OPTRecordContent>(val);
         if(orc == nullptr)
           return false;
         orc->getData(eo->d_options);
