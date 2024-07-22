@@ -4,6 +4,45 @@ Changelogs for 5.1.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+   :version: 5.1.1
+   :released: 23rd of July 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14516
+    :tickets: 14514
+
+    Fix maintenanceCalls vs maintenanceCount in SNMP MIB.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14501
+    :tickets: 14499
+
+    Limit the number of async tasks pushed to resolve NS names and optimizer processing of additionals.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14481
+    :tickets: 14471
+
+    Dump right SOA into dumpFile and report non-relative SOA for includeSOA=true.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14478
+    :tickets: 14404
+
+    Yahttp router: avoid unsigned underflow in match().
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14477
+    :tickets: 14459
+
+    Move default Docker config to YAML.
+
+.. changelog::
   :version: 5.1.0
   :released: 10th of July 2024
 
