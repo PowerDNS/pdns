@@ -4,6 +4,45 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+   :version: 5.0.8
+   :released: 23rd of July 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14502
+    :tickets: 14499
+
+    Limit the number of async tasks pushed to resolve NS names and optimize processing of additionals.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14482
+    :tickets: 14471
+
+    Dump right SOA into dumpFile and report non-relative SOA for includeSOA=true.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14479
+    :tickets: 14404
+
+    Yahttp router: avoid unsigned underflow in route().
+
+  .. change::
+    :tags: Improvements.
+    :pullreq: 14412
+    :tickets: 134400
+
+    Switch el7 builds to Oracle Linux 7.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14415
+    :tickets: 14359
+
+    dns.cc: use pdns::views::UnsignedCharView.
+
+.. changelog::
    :version: 5.0.7
    :released: 3rd of July 2024
 
