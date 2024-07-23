@@ -338,6 +338,7 @@ testrunner_SOURCES = \
 	rpzloader.cc rpzloader.hh \
 	secpoll.cc \
 	settings/cxxsupport.cc \
+	shuffle.cc shuffle.hh \
 	sholder.hh \
 	sillyrecords.cc \
 	sortlist.cc sortlist.hh \

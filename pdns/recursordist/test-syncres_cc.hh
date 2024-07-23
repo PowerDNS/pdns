@@ -48,7 +48,7 @@ void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSN
 
 typedef std::unordered_map<DNSName, std::pair<DNSSECPrivateKey, DSRecordContent>> testkeysset_t;
 
-bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const DNSName& signer, uint32_t sigValidity, bool broken = false, boost::optional<uint8_t> algo = boost::none, boost::optional<DNSName> wildcard = boost::none, boost::optional<time_t> now = boost::none);
+bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const DNSName& signer, uint32_t sigValidity, std::variant<bool, int> broken = false, boost::optional<uint8_t> algo = boost::none, boost::optional<DNSName> wildcard = boost::none, boost::optional<time_t> now = boost::none);
 
 void addDNSKEY(const testkeysset_t& keys, const DNSName& signer, uint32_t ttl, std::vector<DNSRecord>& records);
 
