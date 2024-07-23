@@ -19,6 +19,7 @@
             'list-autoprimaries:List all autoprimaries'
             'add-zone-key:Add a ZSK or KSK to zone and specify algo&bits'
             'backend-cmd:Perform one or more backend commands'
+            'backend-lookup:Perform a backend record lookup'
             'b2b-migrate:Move all data from one backend to another'
             'bench-db:Bench database backend with queries, one zone per line'
             'check-zone:Check a zone for correctness'

@@ -65,6 +65,7 @@ public:
   ComboAddress getRemote() const;
   ComboAddress getInnerRemote() const; // for proxy protocol
   Netmask getRealRemote() const;
+  void setRealRemote(const Netmask& netmask);
   ComboAddress getLocal() const
   {
     ComboAddress ca;
@@ -97,7 +98,7 @@ public:
 
   void clearRecords(); //!< when building a packet, wipe all previously added records (clears 'rrs')
 
-  /** Add a DNSZoneRecord to this packet. A DNSPacket (as does a DNS Packet) has 4 kinds of resource records. Questions, 
+  /** Add a DNSZoneRecord to this packet. A DNSPacket (as does a DNS Packet) has 4 kinds of resource records. Questions,
       Answers, Authority and Additional. See RFC 1034 and 1035 for details. You can specify where a record needs to go in the
       DNSZoneRecord d_place field */
   void addRecord(DNSZoneRecord&&);  // adds to 'rrs'
@@ -169,7 +170,7 @@ public:
   vector<DNSZoneRecord>& getRRS() { return d_rrs; }
   bool checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc) const;
 
-  static uint16_t s_udpTruncationThreshold; 
+  static uint16_t s_udpTruncationThreshold;
   static bool s_doEDNSSubnetProcessing;
   static bool s_doEDNSCookieProcessing;
   static string s_EDNSCookieKey;

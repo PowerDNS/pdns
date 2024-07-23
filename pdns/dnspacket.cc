@@ -704,6 +704,11 @@ bool DNSPacket::hasValidEDNSCookie() const
   return d_ednscookievalid;
 }
 
+void DNSPacket::setRealRemote(const Netmask& netmask) {
+  d_eso.source = netmask;
+  d_haveednssubnet = true;
+}
+
 Netmask DNSPacket::getRealRemote() const
 {
   return d_haveednssubnet ? d_eso.source : Netmask{getInnerRemote()};
