@@ -277,15 +277,15 @@ void DNSProxy::mainloop()
 
         if (mdp.d_header.rcode == RCode::NoError) {
           for (const auto& answer : mdp.d_answers) {
-            if (answer.first.d_place == DNSResourceRecord::ANSWER || (answer.first.d_place == DNSResourceRecord::AUTHORITY && answer.first.d_type == QType::SOA)) {
+            if (answer.d_place == DNSResourceRecord::ANSWER || (answer.d_place == DNSResourceRecord::AUTHORITY && answer.d_type == QType::SOA)) {
 
-              if (answer.first.d_type == iter->second.qtype || (iter->second.qtype == QType::ANY && (answer.first.d_type == QType::A || answer.first.d_type == QType::AAAA))) {
+              if (answer.d_type == iter->second.qtype || (iter->second.qtype == QType::ANY && (answer.d_type == QType::A || answer.d_type == QType::AAAA))) {
                 DNSZoneRecord dzr;
                 dzr.dr.d_name = iter->second.aname;
-                dzr.dr.d_type = answer.first.d_type;
-                dzr.dr.d_ttl = answer.first.d_ttl;
-                dzr.dr.d_place = answer.first.d_place;
-                dzr.dr.setContent(answer.first.getContent());
+                dzr.dr.d_type = answer.d_type;
+                dzr.dr.d_ttl = answer.d_ttl;
+                dzr.dr.d_place = answer.d_place;
+                dzr.dr.setContent(answer.getContent());
                 iter->second.complete->addRecord(std::move(dzr));
               }
             }

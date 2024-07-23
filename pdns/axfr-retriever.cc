@@ -148,9 +148,11 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
     err = parseResult(mdp, DNSName(), 0, 0, &res);
 
     if (!err) {
-      for(const auto& answer :  mdp.d_answers)
-        if (answer.first.d_type == QType::SOA)
+      for(const auto& answer :  mdp.d_answers) {
+        if (answer.d_type == QType::SOA) {
           d_soacount++;
+        }
+      }
     }
   }
   else {
@@ -158,11 +160,11 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
     records->reserve(mdp.d_answers.size());
 
     for(auto& r: mdp.d_answers) {
-      if (r.first.d_type == QType::SOA) {
+      if (r.d_type == QType::SOA) {
         d_soacount++;
       }
 
-      records->push_back(std::move(r.first));
+      records->push_back(std::move(r));
     }
   }
 

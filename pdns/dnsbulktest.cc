@@ -161,15 +161,15 @@ struct SendReceive
       }
       dnsResult.rcode = mdp.d_header.rcode;
       for (auto i = mdp.d_answers.begin(); i != mdp.d_answers.end(); ++i) {
-        if (i->first.d_place == 1 && i->first.d_type == mdp.d_qtype) {
-          dnsResult.ips.emplace_back(i->first.getContent()->getZoneRepresentation());
+        if (i->d_place == 1 && i->d_type == mdp.d_qtype) {
+          dnsResult.ips.emplace_back(i->getContent()->getZoneRepresentation());
         }
-        if (i->first.d_place == 2 && i->first.d_type == QType::SOA) {
+        if (i->d_place == 2 && i->d_type == QType::SOA) {
           dnsResult.seenauthsoa = true;
         }
         if (!g_quiet) {
-          cout << i->first.d_place - 1 << "\t" << i->first.d_name << "\tIN\t" << DNSRecordContent::NumberToType(i->first.d_type);
-          cout << "\t" << i->first.d_ttl << "\t" << i->first.getContent()->getZoneRepresentation() << "\n";
+          cout << i->d_place - 1 << "\t" << i->d_name << "\tIN\t" << DNSRecordContent::NumberToType(i->d_type);
+          cout << "\t" << i->d_ttl << "\t" << i->getContent()->getZoneRepresentation() << "\n";
         }
       }
 

@@ -595,8 +595,9 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     }
 
     lwr->d_records.reserve(mdp.d_answers.size());
-    for (const auto& a : mdp.d_answers)
-      lwr->d_records.push_back(a.first);
+    for (const auto& answer : mdp.d_answers) {
+      lwr->d_records.push_back(answer);
+    }
 
     EDNSOpts edo;
     if (EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {

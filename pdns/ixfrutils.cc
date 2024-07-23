@@ -65,8 +65,8 @@ uint32_t getSerialFromPrimary(const ComboAddress& primary, const DNSName& zone, 
     throw std::runtime_error("RCODE from response is not NoError but " + RCode::to_s(mdp.d_header.rcode));
   }
   for(const auto& r: mdp.d_answers) {
-    if(r.first.d_type == QType::SOA) {
-      sr = getRR<SOARecordContent>(r.first);
+    if(r.d_type == QType::SOA) {
+      sr = getRR<SOARecordContent>(r);
       if(sr != nullptr) {
         return sr->d_st.serial;
       }

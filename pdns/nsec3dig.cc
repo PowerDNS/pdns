@@ -167,35 +167,35 @@ try
   string nsec3salt;
   int nsec3iters = 0;
   for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {     
-    if(i->first.d_type == QType::NSEC3)
+    if(i->d_type == QType::NSEC3)
     {
       // cerr<<"got nsec3 ["<<i->first.d_name<<"]"<<endl;
       // cerr<<i->first.d_content->getZoneRepresentation()<<endl;
-      const auto r = getRR<NSEC3RecordContent>(i->first);
-      if (!r) {
+      const auto nsec3Record = getRR<NSEC3RecordContent>(*i);
+      if (!nsec3Record) {
         continue;
       }
       // nsec3.insert(new nsec3()
       // cerr<<toBase32Hex(r.d_nexthash)<<endl;
-      nsec3s.emplace(toLower(i->first.d_name.getRawLabel(0)), toBase32Hex(r->d_nexthash));
-      nsec3salt = r->d_salt;
-      nsec3iters = r->d_iterations;
-      nsec3t.emplace(toLower(i->first.d_name.getRawLabel(0)), r->numberOfTypesSet());
+      nsec3s.emplace(toLower(i->d_name.getRawLabel(0)), toBase32Hex(nsec3Record->d_nexthash));
+      nsec3salt = nsec3Record->d_salt;
+      nsec3iters = nsec3Record->d_iterations;
+      nsec3t.emplace(toLower(i->d_name.getRawLabel(0)), nsec3Record->numberOfTypesSet());
     }
     else
     {
-      // cerr<<"namesseen.insert('"<<i->first.d_name<<"')"<<endl;
-      names.insert(i->first.d_name);
-      namesseen.insert(i->first.d_name);
+      // cerr<<"namesseen.insert('"<<i->d_name<<"')"<<endl;
+      names.insert(i->d_name);
+      namesseen.insert(i->d_name);
     }
 
-    if(i->first.d_type == QType::CNAME)
+    if(i->d_type == QType::CNAME)
     {
-      namesseen.insert(DNSName(i->first.getContent()->getZoneRepresentation()));
+      namesseen.insert(DNSName(i->getContent()->getZoneRepresentation()));
     }
 
-    cout << i->first.d_place - 1 << "\t" << i->first.d_name.toString() << "\t" << i->first.d_ttl << "\tIN\t" << DNSRecordContent::NumberToType(i->first.d_type);
-    cout << "\t" << i->first.getContent()->getZoneRepresentation() << "\n";
+    cout << i->d_place - 1 << "\t" << i->d_name.toString() << "\t" << i->d_ttl << "\tIN\t" << DNSRecordContent::NumberToType(i->d_type);
+    cout << "\t" << i->getContent()->getZoneRepresentation() << "\n";
   }
 
 #if 0

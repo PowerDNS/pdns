@@ -22,13 +22,13 @@ bool TSIGTCPVerifier::check(const string& data, const MOADNSParser& mdp)
   }
 
   for(const auto& answer :  mdp.d_answers) {
-    if (answer.first.d_type == QType::SOA) {
+    if (answer.d_type == QType::SOA) {
       // A SOA is either the first or the last record. We need to check TSIG if that's the case.
       checkTSIG = true;
     }
 
-    if(answer.first.d_type == QType::TSIG) {
-      auto trc = getRR<TSIGRecordContent>(answer.first);
+    if(answer.d_type == QType::TSIG) {
+      auto trc = getRR<TSIGRecordContent>(answer);
       if(trc) {
         theirMac = trc->d_mac;
         d_trc.d_time = trc->d_time;

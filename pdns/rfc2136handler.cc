@@ -768,13 +768,14 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
   // Check if all the records provided are within the zone
   for(const auto & answer : mdp.d_answers) {
-    const DNSRecord *rr = &answer.first;
+    const DNSRecord *dnsRecord = &answer;
     // Skip this check for other field types (like the TSIG -  which is in the additional section)
     // For a TSIG, the label is the dnskey, so it does not pass the endOn validation.
-    if (! (rr->d_place == DNSResourceRecord::ANSWER || rr->d_place == DNSResourceRecord::AUTHORITY))
+    if (dnsRecord->d_place != DNSResourceRecord::ANSWER && dnsRecord->d_place != DNSResourceRecord::AUTHORITY) {
       continue;
+    }
 
-    if (!rr->d_name.isPartOf(di.zone)) {
+    if (!dnsRecord->d_name.isPartOf(di.zone)) {
       g_log<<Logger::Error<<msgPrefix<<"Received update/record out of zone, sending NotZone."<<endl;
       return RCode::NotZone;
     }
@@ -790,11 +791,11 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
   // 3.2.1 and 3.2.2 - Prerequisite check
   for(const auto & answer : mdp.d_answers) {
-    const DNSRecord *rr = &answer.first;
-    if (rr->d_place == DNSResourceRecord::ANSWER) {
-      int res = checkUpdatePrerequisites(rr, &di);
+    const DNSRecord *dnsRecord = &answer;
+    if (dnsRecord->d_place == DNSResourceRecord::ANSWER) {
+      int res = checkUpdatePrerequisites(dnsRecord, &di);
       if (res>0) {
-        g_log<<Logger::Error<<msgPrefix<<"Failed PreRequisites check for "<<rr->d_name<<", returning "<<RCode::to_s(res)<<endl;
+        g_log<<Logger::Error<<msgPrefix<<"Failed PreRequisites check for "<<dnsRecord->d_name<<", returning "<<RCode::to_s(res)<<endl;
         di.backend->abortTransaction();
         return res;
       }
@@ -807,16 +808,17 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
   typedef std::map<rrSetKey_t, rrVector_t> RRsetMap_t;
   RRsetMap_t preReqRRsets;
   for(const auto& i: mdp.d_answers) {
-    const DNSRecord* rr = &i.first;
-    if (rr->d_place == DNSResourceRecord::ANSWER) {
+    const DNSRecord* dnsRecord = &i;
+    if (dnsRecord->d_place == DNSResourceRecord::ANSWER) {
       // Last line of 3.2.3
-      if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY)
+      if (dnsRecord->d_class != QClass::IN && dnsRecord->d_class != QClass::NONE && dnsRecord->d_class != QClass::ANY) {
         return RCode::FormErr;
+      }
 
-      if (rr->d_class == QClass::IN) {
-        rrSetKey_t key = {rr->d_name, QType(rr->d_type)};
+      if (dnsRecord->d_class == QClass::IN) {
+        rrSetKey_t key = {dnsRecord->d_name, QType(dnsRecord->d_type)};
         rrVector_t *vec = &preReqRRsets[key];
-        vec->push_back(DNSResourceRecord::fromWire(*rr));
+        vec->push_back(DNSResourceRecord::fromWire(*dnsRecord));
       }
     }
   }
@@ -855,9 +857,9 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
     uint changedRecords = 0;
     // 3.4.1 - Prescan section
     for(const auto & answer : mdp.d_answers) {
-      const DNSRecord *rr = &answer.first;
-      if (rr->d_place == DNSResourceRecord::AUTHORITY) {
-        int res = checkUpdatePrescan(rr);
+      const DNSRecord *dnsRecord = &answer;
+      if (dnsRecord->d_place == DNSResourceRecord::AUTHORITY) {
+        int res = checkUpdatePrescan(dnsRecord);
         if (res>0) {
           g_log<<Logger::Error<<msgPrefix<<"Failed prescan check, returning "<<res<<endl;
           di.backend->abortTransaction();
@@ -882,12 +884,12 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
     // Another special case is the addition of both a CNAME and a non-CNAME for the same name (#6270)
     set<DNSName> cn, nocn;
     for (const auto &rr : mdp.d_answers) {
-      if (rr.first.d_place == DNSResourceRecord::AUTHORITY && rr.first.d_class == QClass::IN && rr.first.d_ttl > 0) {
+      if (rr.d_place == DNSResourceRecord::AUTHORITY && rr.d_class == QClass::IN && rr.d_ttl > 0) {
         // Addition
-        if (rr.first.d_type == QType::CNAME) {
-          cn.insert(rr.first.d_name);
-        } else if (rr.first.d_type != QType::RRSIG) {
-          nocn.insert(rr.first.d_name);
+        if (rr.d_type == QType::CNAME) {
+          cn.insert(rr.d_name);
+        } else if (rr.d_type != QType::RRSIG) {
+          nocn.insert(rr.d_name);
         }
       }
     }
@@ -901,29 +903,30 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
     vector<const DNSRecord *> cnamesToAdd, nonCnamesToAdd;
     for(const auto & answer : mdp.d_answers) {
-      const DNSRecord *rr = &answer.first;
-      if (rr->d_place == DNSResourceRecord::AUTHORITY) {
+      const DNSRecord *dnsRecord = &answer;
+      if (dnsRecord->d_place == DNSResourceRecord::AUTHORITY) {
         /* see if it's permitted by policy */
         if (this->d_update_policy_lua != nullptr) {
-          if (!this->d_update_policy_lua->updatePolicy(rr->d_name, QType(rr->d_type), di.zone, packet)) {
-            g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << rr->d_name << "/" << QType(rr->d_type).toString() << ": Not permitted by policy"<<endl;
+          if (!this->d_update_policy_lua->updatePolicy(dnsRecord->d_name, QType(dnsRecord->d_type), di.zone, packet)) {
+            g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << dnsRecord->d_name << "/" << QType(dnsRecord->d_type).toString() << ": Not permitted by policy"<<endl;
             continue;
           } else {
-            g_log<<Logger::Debug<<msgPrefix<<"Accepting update for " << rr->d_name << "/" << QType(rr->d_type).toString() << ": Permitted by policy"<<endl;
+            g_log<<Logger::Debug<<msgPrefix<<"Accepting update for " << dnsRecord->d_name << "/" << QType(dnsRecord->d_type).toString() << ": Permitted by policy"<<endl;
           }
         }
 
-        if (rr->d_class == QClass::NONE  && rr->d_type == QType::NS && rr->d_name == di.zone)
-          nsRRtoDelete.push_back(rr);
-        else if (rr->d_class == QClass::IN &&  rr->d_ttl > 0) {
-          if (rr->d_type == QType::CNAME) {
-            cnamesToAdd.push_back(rr);
+        if (dnsRecord->d_class == QClass::NONE  && dnsRecord->d_type == QType::NS && dnsRecord->d_name == di.zone) {
+          nsRRtoDelete.push_back(dnsRecord);
+        }
+        else if (dnsRecord->d_class == QClass::IN &&  dnsRecord->d_ttl > 0) {
+          if (dnsRecord->d_type == QType::CNAME) {
+            cnamesToAdd.push_back(dnsRecord);
           } else {
-            nonCnamesToAdd.push_back(rr);
+            nonCnamesToAdd.push_back(dnsRecord);
           }
         }
         else
-          changedRecords += performUpdate(msgPrefix, rr, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
+          changedRecords += performUpdate(msgPrefix, dnsRecord, &di, isPresigned, &narrow, &haveNSEC3, &ns3pr, &updatedSerial);
       }
     }
     for (const auto &rr : cnamesToAdd) {

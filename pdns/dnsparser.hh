@@ -482,10 +482,9 @@ public:
 
   DNSName d_qname;
   uint16_t d_qclass, d_qtype;
-  //uint8_t d_rcode;
   dnsheader d_header;
 
-  typedef vector<pair<DNSRecord, uint16_t > > answers_t;
+  using answers_t = vector<DNSRecord>;
 
   //! All answers contained in this packet (everything *but* the question section)
   answers_t d_answers;

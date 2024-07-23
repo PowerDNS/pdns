@@ -513,15 +513,15 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_
 
   bool gotit=false;
   for(const auto & answer : mdp.d_answers) {
-    if(answer.first.d_type == QType::TSIG && answer.first.d_class == QType::ANY) {
+    if(answer.d_type == QType::TSIG && answer.d_class == QType::ANY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
-      auto content = getRR<TSIGRecordContent>(answer.first);
+      auto content = getRR<TSIGRecordContent>(answer);
       if (!content) {
         g_log<<Logger::Error<<"TSIG record has no or invalid content (invalid packet)"<<endl;
         return false;
       }
       *trc = *content;
-      *keyname = answer.first.d_name;
+      *keyname = answer.d_name;
       gotit=true;
     }
   }
@@ -546,15 +546,15 @@ bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
       return false;
     }
 
-    if(answer.first.d_type == QType::TKEY) {
+    if(answer.d_type == QType::TKEY) {
       // cast can fail, f.e. if d_content is an UnknownRecordContent.
-      auto content = getRR<TKEYRecordContent>(answer.first);
+      auto content = getRR<TKEYRecordContent>(answer);
       if (!content) {
         g_log<<Logger::Error<<"TKEY record has no or invalid content (invalid packet)"<<endl;
         return false;
       }
       *tr = *content;
-      *keyname = answer.first.d_name;
+      *keyname = answer.d_name;
       gotit=true;
     }
   }

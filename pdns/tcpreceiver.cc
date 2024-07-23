@@ -1189,10 +1189,10 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
   uint32_t serial = 0;
   MOADNSParser mdp(false, q->getString());
   for(const auto & answer : mdp.d_answers) {
-    const DNSRecord *rr = &answer.first;
-    if (rr->d_type == QType::SOA && rr->d_place == DNSResourceRecord::AUTHORITY) {
+    const DNSRecord *dnsRecord = &answer;
+    if (dnsRecord->d_type == QType::SOA && dnsRecord->d_place == DNSResourceRecord::AUTHORITY) {
       vector<string>parts;
-      stringtok(parts, rr->getContent()->getZoneRepresentation());
+      stringtok(parts, dnsRecord->getContent()->getZoneRepresentation());
       if (parts.size() >= 3) {
         try {
           pdns::checked_stoi_into(serial, parts[2]);
@@ -1209,8 +1209,8 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
         sendPacket(outpacket,outsock);
         return 0;
       }
-    } else if (rr->d_type != QType::TSIG && rr->d_type != QType::OPT) {
-      g_log<<Logger::Warning<<logPrefix<<"additional records in IXFR query, type: "<<QType(rr->d_type).toString()<<endl;
+    } else if (dnsRecord->d_type != QType::TSIG && dnsRecord->d_type != QType::OPT) {
+      g_log<<Logger::Warning<<logPrefix<<"additional records in IXFR query, type: "<<QType(dnsRecord->d_type).toString()<<endl;
       outpacket->setRcode(RCode::FormErr);
       sendPacket(outpacket,outsock);
       return 0;

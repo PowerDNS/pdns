@@ -16,6 +16,7 @@
 
 StatBag S;
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int main(int argc, char** argv)
 try
 {
@@ -144,9 +145,11 @@ try
          throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
        }
        for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-         if(i->first.d_type != QType::TKEY) continue;
+         if (i->d_type != QType::TKEY) {
+           continue;
+         }
          // recover TKEY record
-         tkrc = TKEYRecordContent(i->first.getContent()->getZoneRepresentation());
+         tkrc = TKEYRecordContent(i->getContent()->getZoneRepresentation());
          input = tkrc.d_key;
        }
     }
@@ -209,39 +212,39 @@ try
       throw PDNSException(string("Remote server refused: ") + std::to_string(mdp.d_header.rcode));
     }
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
-      if (i->first.d_type == QType::TSIG) {
+      if (i->d_type == QType::TSIG) {
         string message;
         if (!tsig) {
           std::cerr<<"Unexpected TSIG signature in data"<<endl;
         }
-        trc = TSIGRecordContent(i->first.getContent()->getZoneRepresentation());
+        trc = TSIGRecordContent(i->getContent()->getZoneRepresentation());
         continue;
       }
-      if(i->first.d_type == QType::SOA)
+      if(i->d_type == QType::SOA)
       {
         ++soacount;
       }
-      else if (i->first.d_type == QType::NSEC3PARAM) {
-        ns3pr = NSEC3PARAMRecordContent(i->first.getContent()->getZoneRepresentation());
+      else if (i->d_type == QType::NSEC3PARAM) {
+        ns3pr = NSEC3PARAMRecordContent(i->getContent()->getZoneRepresentation());
         isNSEC3 = true;
       }
 
       ostringstream o;
-      o<<"\t"<<i->first.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(i->first.d_type);
+      o<<"\t"<<i->d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(i->d_type);
       if(showdetails)
       {
-        o<<"\t"<<i->first.getContent()->getZoneRepresentation();
+        o<<"\t"<<i->getContent()->getZoneRepresentation();
       }
-      else if(i->first.d_type == QType::RRSIG)
+      else if(i->d_type == QType::RRSIG)
       {
-        string zoneRep = i->first.getContent()->getZoneRepresentation();
+        string zoneRep = i->getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         o<<"\t"<<parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" "<<parts[3]<<" [expiry] [inception] [keytag] "<<parts[7]<<" ...";
       }
-      else if(i->first.d_type == QType::NSEC3)
+      else if(i->d_type == QType::NSEC3)
       {
-        string zoneRep = i->first.getContent()->getZoneRepresentation();
+        string zoneRep = i->getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         o<<"\t"<<parts[0]<<" ";
@@ -253,21 +256,21 @@ try
         for(vector<string>::iterator iter = parts.begin()+5; iter != parts.end(); ++iter)
           o<<" "<<*iter;
       }
-      else if(i->first.d_type == QType::DNSKEY)
+      else if(i->d_type == QType::DNSKEY)
       {
-        string zoneRep = i->first.getContent()->getZoneRepresentation();
+        string zoneRep = i->getContent()->getZoneRepresentation();
         vector<string> parts;
         stringtok(parts, zoneRep);
         o<<"\t"<<parts[0]<<" "<<parts[1]<<" "<<parts[2]<<" ...";
       }
       else
       {
-        o<<"\t"<<i->first.getContent()->getZoneRepresentation();
+        o<<"\t"<<i->getContent()->getZoneRepresentation();
       }
 
-      records.emplace_back(i->first.d_name, o.str());
+      records.emplace_back(i->d_name, o.str());
 
-      DNSName shorter(i->first.d_name);
+      DNSName shorter(i->d_name);
       do {
         labels.insert(shorter);
         if (shorter == DNSName(argv[3]))
