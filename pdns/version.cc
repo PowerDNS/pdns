@@ -87,117 +87,94 @@ string getProductVersion()
 {
   ostringstream ret;
   ret << productName() << " " << VERSION << " (C) "
-                                                                 "PowerDNS.COM BV"
-        << endl;
+                                            "PowerDNS.COM BV"
+      << endl;
   ret << "Using " << (sizeof(unsigned long) * 8) << "-bits mode. "
-                                                                         "Built using "
-        << compilerVersion()
+                                                    "Built using "
+      << compilerVersion()
 #ifndef REPRODUCIBLE
-        << " on " __DATE__ " " __TIME__ " by " BUILD_HOST
+      << " on " __DATE__ " " __TIME__ " by " BUILD_HOST
 #endif
-        << "." << endl;
+      << "." << endl;
   ret << "PowerDNS comes with ABSOLUTELY NO WARRANTY. "
-                              "This is free software, and you are welcome to redistribute it "
-                              "according to the terms of the GPL version 2."
-        << endl;
+         "This is free software, and you are welcome to redistribute it "
+         "according to the terms of the GPL version 2."
+      << endl;
   return ret.str();
 }
 
 string getBuildConfiguration()
 {
   ostringstream ret;
-  ret << "Features: "
-        <<
+  ret << "Features:"
 #ifdef HAVE_LIBDECAF
-    "decaf "
-        <<
+      << " decaf"
 #endif
 #ifdef HAVE_BOOST_CONTEXT
-    "fcontext "
-        <<
+      << " fcontext"
 #endif
 #ifdef HAVE_LIBCRYPTO_ECDSA
-    "libcrypto-ecdsa "
-        <<
+      << " libcrypto-ecdsa"
 #endif
 #ifdef HAVE_LIBCRYPTO_ED25519
-    "libcrypto-ed25519 "
-        <<
+      << " libcrypto-ed25519"
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
-    "libcrypto-ed448 "
-        <<
+      << " libcrypto-ed448"
 #endif
 #ifdef HAVE_LIBCRYPTO_EDDSA
-    "libcrypto-eddsa "
-        <<
+      << " libcrypto-eddsa"
 #endif
 #ifdef HAVE_LIBDL
-    "libdl "
-        <<
+      << " libdl"
 #endif
 #ifdef HAVE_GEOIP
-    "libgeoip "
-        <<
+      << " libgeoip"
 #endif
 #ifdef HAVE_MMDB
-    "libmaxminddb "
-        <<
+      << " libmaxminddb"
 #endif
 #ifdef HAVE_LUA
-    "lua "
-        <<
+      << " lua"
 #endif
 #ifdef HAVE_LUA_RECORDS
-    "lua-records "
-        <<
+      << " lua-records"
 #endif
 #ifdef NOD_ENABLED
-    "nod "
-        <<
+      << " nod"
 #endif
 #ifdef HAVE_P11KIT1
-    "PKCS#11 "
-        <<
+      << " PKCS#11"
 #endif
-    "protobuf "
-        <<
+      << " protobuf"
 #ifdef HAVE_FSTRM
-    "dnstap-framestream "
-        <<
+      << " dnstap-framestream"
 #endif
 #ifdef REMOTEBACKEND_ZEROMQ
-    "remotebackend-zeromq "
-        <<
+      << " remotebackend-zeromq"
 #endif
 #ifdef HAVE_NET_SNMP
-    "snmp "
-        <<
+      << " snmp"
 #endif
 #ifdef HAVE_LIBSODIUM
-    "sodium "
-        <<
+      << " sodium"
 #endif
 #ifdef HAVE_LIBCURL
-    "curl "
-        <<
+      << " curl"
 #endif
 #ifdef HAVE_DNS_OVER_TLS
-    "DoT "
-        <<
+      << " DoT"
 #endif
 #ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
-    "scrypt "
-        <<
+      << " scrypt"
 #endif
 #ifdef ENABLE_GSS_TSIG
-    "gss-tsig "
-        <<
+      << " gss-tsig"
 #endif
 #ifdef VERBOSELOG
-    "verboselog" <<
+      << " verboselog"
 #endif
-    endl;
+      << endl;
 #ifdef PDNS_MODULES
   // Auth only
   ret << "Built-in modules: " << PDNS_MODULES << endl;
@@ -208,7 +185,7 @@ string getBuildConfiguration()
 #ifdef PDNS_CONFIG_ARGS
 #define double_escape(s) #s
 #define escape_quotes(s) double_escape(s)
-// NOLINTEND(cppcoreguidelines-macro-usage)
+  // NOLINTEND(cppcoreguidelines-macro-usage)
   ret << "Configured with: " << escape_quotes(PDNS_CONFIG_ARGS) << endl;
 #undef escape_quotes
 #undef double_escape

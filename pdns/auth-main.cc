@@ -1202,6 +1202,7 @@ static void sigTermHandler([[maybe_unused]] int signal)
 #endif /* COVERAGE */
 
 //! The main function of pdns, the pdns process
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int main(int argc, char** argv)
 {
   versionSetProduct(ProductAuthoritative);
