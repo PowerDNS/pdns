@@ -1202,6 +1202,7 @@ static void sigTermHandler([[maybe_unused]] int signal)
 #endif /* COVERAGE */
 
 //! The main function of pdns, the pdns process
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int main(int argc, char** argv)
 {
   versionSetProduct(ProductAuthoritative);
@@ -1226,8 +1227,8 @@ int main(int argc, char** argv)
     ::arg().laxParse(argc, argv); // do a lax parse
 
     if (::arg().mustDo("version")) {
-      showProductVersion();
-      showBuildConfiguration();
+      cout << getProductVersion();
+      cout << getBuildConfiguration();
       return 0;
     }
 
@@ -1501,7 +1502,9 @@ int main(int argc, char** argv)
 
   DLOG(g_log << Logger::Warning << "Verbose logging in effect" << endl);
 
-  showProductVersion();
+  for (const string& line : getProductVersionLines()) {
+    g_log << Logger::Info << line << endl;
+  }
 
   try {
     mainthread();

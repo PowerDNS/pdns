@@ -3153,8 +3153,8 @@ int main(int argc, char** argv)
     ::arg().laxParse(argc, argv); // do a lax parse
 
     if (::arg().mustDo("version")) {
-      showProductVersion();
-      showBuildConfiguration();
+      cout << getProductVersion();
+      cout << getBuildConfiguration();
       return 0;
     }
     if (::arg().mustDo("help")) {
@@ -3174,7 +3174,10 @@ int main(int argc, char** argv)
     }
     g_log.setLoglevel(s_logUrgency);
     g_log.toConsole(s_logUrgency);
-    showProductVersion();
+
+    for (const string& line : getProductVersionLines()) {
+      g_log << Logger::Info << line << endl;
+    }
     if (!::arg().mustDo("structured-logging")) {
       g_log << Logger::Error << "Disabling structured logging is not supported anymore" << endl;
     }
