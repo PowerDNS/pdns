@@ -19,15 +19,39 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#pragma once
-#include <vector>
 
-struct DNSRecord;
-struct DNSZoneRecord;
+#ifndef BOOST_TEST_DYN_LINK
+#define BOOST_TEST_DYN_LINK
+#endif
 
-namespace pdns
+#define BOOST_TEST_NO_MAIN
+
+#include "config.h"
+#include <boost/test/unit_test.hpp>
+
+#include "shuffle.hh"
+#include "test-common.hh"
+
+BOOST_AUTO_TEST_SUITE(shuffle_cc)
+
+BOOST_AUTO_TEST_CASE(test_simple)
 {
-void shuffle(std::vector<DNSZoneRecord>& rrs);
-void orderAndShuffle(std::vector<DNSRecord>& rrs, bool includingAdditionals);
-unsigned int dedup(std::vector<DNSRecord>& rrs);
+  std::vector<DNSRecord> list;
+  auto* address = &list;
+  addRecordToList(list, DNSName("foo"), QType::A, "1.2.3.4");
+  addRecordToList(list, DNSName("foo2"), QType::A, "1.2.3.4");
+  auto dups = pdns::dedup(list);
+  BOOST_CHECK_EQUAL(dups, 0U);
+  BOOST_CHECK_EQUAL(list.size(), 2U);
+  addRecordToList(list, DNSName("foo"), QType::A, "1.2.3.4");
+  dups = pdns::dedup(list);
+  BOOST_CHECK_EQUAL(dups, 1U);
+  BOOST_CHECK_EQUAL(list.size(), 2U);
+  addRecordToList(list, DNSName("Foo"), QType::A, "1.2.3.4");
+  dups = pdns::dedup(list);
+  BOOST_CHECK_EQUAL(dups, 1U);
+  BOOST_CHECK_EQUAL(list.size(), 2U);
+  BOOST_CHECK_EQUAL(address, &list);
 }
+
+BOOST_AUTO_TEST_SUITE_END()

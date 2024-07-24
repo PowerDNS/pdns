@@ -141,45 +141,46 @@ void pdns::orderAndShuffle(vector<DNSRecord>& rrs, bool includingAdditionals)
   shuffle(rrs, includingAdditionals);
 }
 
-void pdns::dedup(vector<DNSRecord>& rrs)
+unsigned int pdns::dedup(vector<DNSRecord>& rrs)
 {
   // This functino tries to avoid unneccesary work
   // First a vector with zero or one element does not need dedupping
   if (rrs.size() <= 1) {
-    return;
+    return 0;
   }
 
   // If we have a larger vector, first check if we actually have duplicates.
   // We assume the most common case is: no
-  std::unordered_set<std::string> seen;
-  std::vector<bool> unique(rrs.size(), false);
+  std::set<std::tuple<DNSName, QType, std::string>> seen;
+  std::vector<bool> dups(rrs.size(), false);
 
   unsigned int counter = 0;
-  unsigned int numUnique = 0;
+  unsigned int numDups = 0;
 
   for (const auto& rec : rrs) {
-    // This ignores class, ttl and place
-    if (seen.emplace(rec.getContent()->serialize(rec.d_name, true, true)).second) {
-      unique[counter] = true;
-      numUnique++;
+    // This ignores class, ttl and place by using constants for those
+    if (!seen.emplace(rec.d_name.makeLowerCase(), rec.d_type, rec.getContent()->serialize(rec.d_name, true, false)).second) {
+      dups[counter] = true;
+      numDups++;
     }
     ++counter;
   }
 
-  if (numUnique == rrs.size()) {
+  if (numDups == 0) {
     // Original is fine as-is.
-    return;
+    return 0;
   }
 
   // We avoid calling erase, as it calls a lot of move constructors. This can hurt, especially if
   // you call it on a large vector muliple times.
   // So we just take the elements that are unique
   std::vector<DNSRecord> ret;
-  ret.reserve(numUnique);
+  ret.reserve(rrs.size() - numDups);
   for (counter = 0; counter < rrs.size(); ++counter) {
-    if (unique[counter]) {
+    if (!dups[counter]) {
       ret.emplace_back(std::move(rrs[counter]));
     }
   }
   rrs = std::move(ret);
+  return numDups;
 }

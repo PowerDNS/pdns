@@ -367,7 +367,7 @@ bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const 
   if (auto* bval = std::get_if<bool>(&broken); bval != nullptr && *bval) {
     rrc.d_signature[0] ^= 42;
   }
-  else if (auto *ival = std::get_if<int>(&broken)) {
+  else if (auto* ival = std::get_if<int>(&broken)) {
     rrc.d_signature[0] ^= *ival; // NOLINT(*-narrowing-conversions)
   }
 
