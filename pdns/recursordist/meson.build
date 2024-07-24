@@ -523,3 +523,24 @@ foreach tool, info: tools
   endif
 endforeach
 
+# Man-pages.
+py = import('python')
+python = py.find_installation('python3', modules: 'venv', required: false)
+
+summary('Python', python.found(), bool_yn: true, section: 'Manual Pages')
+summary('Path', python.full_path(), section: 'Manual Pages')
+summary('Version', python.version(), section: 'Manual Pages')
+
+if python.found()
+  run_target(
+    'man-pages',
+    command: [
+      python,
+      product_source_dir / docs_dir / 'generate-man-pages.py',
+      '--venv-name', 'venv-rec-man-pages',
+      '--requirements-file', docs_dir / 'requirements.txt',
+      '--source-directory', docs_dir,
+      '--target-directory', 'rec-man-pages',
+    ] + man_pages,
+  )
+endif
