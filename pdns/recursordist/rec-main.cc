@@ -2907,6 +2907,10 @@ static void recursorThread()
       checkFrameStreamExport(luaconfsLocal, luaconfsLocal->frameStreamExportConfig, t_frameStreamServersInfo);
       checkFrameStreamExport(luaconfsLocal, luaconfsLocal->nodFrameStreamExportConfig, t_nodFrameStreamServersInfo);
 #endif
+      for (const auto& rpz : luaconfsLocal->rpzs) {
+        string name = rpz.polName.empty() ? (rpz.primaries.empty() ? "rpzFile" : rpz.name) : rpz.polName;
+        t_Counters.at(rec::PolicyNameHits::policyName).counts[name] = 0;
+      }
     }
 
     t_fdm = unique_ptr<FDMultiplexer>(getMultiplexer(log));
@@ -3439,11 +3443,19 @@ void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t
   }
 }
 
+static void* pleaseInitPolCounts(const string& name)
+{
+  if (t_Counters.at(rec::PolicyNameHits::policyName).counts.count(name) == 0) {
+    t_Counters.at(rec::PolicyNameHits::policyName).counts[name] = 0;
+  }
+  return nullptr;
+}
+
 static void activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci, shared_ptr<DNSFilterEngine::Zone>& zone)
 {
   auto log = lci.d_slog->withValues("file", Logging::Loggable(params.name));
 
-  zone->setName(params.polName);
+  zone->setName(params.polName.empty() ? "rpzFile" : params.polName);
   try {
     SLOG(g_log << Logger::Warning << "Loading RPZ from file '" << params.name << "'" << endl,
          log->info(Logr::Info, "Loading RPZ from file"));
@@ -3519,10 +3531,11 @@ static void activateRPZs(LuaConfigItems& lci)
     else {
       DNSName domain(params.name);
       zone->setDomain(domain);
-      zone->setName(params.polName);
+      zone->setName(params.polName.empty() ? params.name : params.polName);
       params.zoneIdx = lci.dfe.addZone(zone);
       activateRPZPrimary(params, lci, zone, domain);
     }
+    broadcastFunction([name = zone->getName()] { return pleaseInitPolCounts(name); });
   }
 }
 
