@@ -44,7 +44,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
   .. versionchanged:: 5.1.0
 
-     Added support for the HTTPS, SVCB and APTR record types.
+     Added support for the HTTPS, SVCB and NAPTR record types.
 
 .. function:: protobufServer(server [[[[[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], maskV4=32], maskV6=128], asyncConnect=false], taggedOnly=false])
 
@@ -100,7 +100,7 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
 
   .. versionchanged:: 5.1.0
 
-     Added support for the HTTPS, SVCB and APTR records types.
+     Added support for the HTTPS, SVCB and NAPTR records types.
 
 .. function:: outgoingProtobufServer(server [[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], asyncConnect=false])
 
