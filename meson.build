@@ -1093,14 +1093,23 @@ endif
 
 if get_option('unit-tests-backends')
   start_test_stop = files('regression-tests' / 'start-test-stop')[0]
-endif
 
-if get_option('module-geoip') != 'disabled' and get_option('unit-tests-backends')
-  test(
-    'pdns-auth-backend-geoip',
-    start_test_stop,
-    args: ['5300', 'geoip'],
-    workdir: product_source_dir / 'regression-tests',
-    depends: [pdns_auth],
-  )
+  test_modules = {
+    'geoip': 'module-geoip',
+    'lmdb': 'module-lmdb',
+    'lmdb-nodnssec': 'module-lmdb',
+  }
+
+  foreach module, option: test_modules
+    if get_option(option) != 'disabled'
+      test(
+        'pdns-auth-backend-' + module,
+        start_test_stop,
+        args: ['5300', module],
+        workdir: product_source_dir / 'regression-tests',
+        depends: [pdns_auth, pdns_auth_util, sdig, saxfr],
+        is_parallel: false,
+      )
+    endif
+  endforeach
 endif
