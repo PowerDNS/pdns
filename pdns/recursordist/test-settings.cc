@@ -497,7 +497,7 @@ BOOST_AUTO_TEST_CASE(test_yaml_ta_merge)
   LuaConfigItems lua2;
   pdns::settings::rec::fromBridgeStructToLuaConfig(settings, lua2, proxyMapping);
   BOOST_CHECK_EQUAL(lua2.dsAnchors.size(), 2U);
-  BOOST_CHECK_EQUAL(lua2.dsAnchors[DNSName(".")].size(), 1U);
+  BOOST_CHECK_EQUAL(lua2.dsAnchors[DNSName(".")].size(), 2U);
   BOOST_CHECK_EQUAL(lua2.dsAnchors[DNSName("a")].size(), 2U);
 }
 
