@@ -1,0 +1,4 @@
+_signal.ns1.example.net.      86400  IN  SOA     ns1.example.net. admin.example.net. 2018031900 (
+                                                 1800 900 604800 86400 )
+              86400  IN  NS      ns1.example.net.
+              86400  IN  NS      ns2.example.net.

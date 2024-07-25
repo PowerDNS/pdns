@@ -3929,9 +3929,9 @@ try
     }
     DNSName zone(cmds.at(1));
     string kind = cmds.at(2);
-    const static std::array<string, 7> multiMetaWhitelist = {"ALLOW-AXFR-FROM", "ALLOW-DNSUPDATE-FROM",
+    const static std::array<string, 8> multiMetaWhitelist = {"ALLOW-AXFR-FROM", "ALLOW-DNSUPDATE-FROM",
       "ALSO-NOTIFY", "TSIG-ALLOW-AXFR", "TSIG-ALLOW-DNSUPDATE", "GSS-ALLOW-AXFR-PRINCIPAL",
-      "PUBLISH-CDS"};
+      "PUBLISH-CDS", "SIGNALING-ZONE"};
     bool clobber = true;
     if (cmds.at(0) == "add-meta") {
       clobber = false;
