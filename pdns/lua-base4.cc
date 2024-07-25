@@ -289,8 +289,8 @@ void BaseLua4::prepareContext() {
   d_lw->writeVariable("pdns", d_pd);
 }
 
-void BaseLua4::loadStream(std::istream &is) {
-  d_lw->executeCode(is);
+void BaseLua4::loadStream(std::istream &stream) {
+  d_lw->executeCode(stream);
 
   postLoad();
 }
