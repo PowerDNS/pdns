@@ -10,12 +10,14 @@ class BaseLua4 : public boost::noncopyable
 {
 protected:
   std::unique_ptr<LuaContext> d_lw; // this is way on top because it must get destroyed _last_
+  std::string d_include_path; // path where scripts to include at postLoad are
 
 public:
-  BaseLua4();
-  void loadFile(const std::string& fname);
-  void loadString(const std::string& script);
-  void loadStream(std::istream& is);
+  BaseLua4(const std::string &includePath) : d_include_path(includePath) {};
+  void loadFile(const std::string &fname, bool doPostLoad=true);
+  void loadString(const std::string &script);
+  void loadStream(std::istream &stream, bool doPostLoad=true);
+  void includePath(const std::string &directory);
   virtual ~BaseLua4(); // this is so unique_ptr works with an incomplete type
 protected:
   void prepareContext();

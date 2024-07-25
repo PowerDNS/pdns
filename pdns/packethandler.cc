@@ -71,14 +71,15 @@ PacketHandler::PacketHandler():B(g_programname), d_dk(&B)
   d_doExpandALIAS = ::arg().mustDo("expand-alias");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
   string fname= ::arg()["lua-prequery-script"];
+
   if(fname.empty())
   {
     d_pdl = nullptr;
   }
   else
   {
-    d_pdl = std::make_unique<AuthLua4>();
-    d_pdl->loadFile(fname); // XXX exception handling?
+    d_pdl = std::make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
+    d_pdl->loadFile(fname);
   }
   fname = ::arg()["lua-dnsupdate-policy-script"];
   if (fname.empty())
@@ -87,11 +88,12 @@ PacketHandler::PacketHandler():B(g_programname), d_dk(&B)
   }
   else
   {
-    d_update_policy_lua = std::make_unique<AuthLua4>();
     try {
+      d_update_policy_lua = std::make_unique<AuthLua4>();
       d_update_policy_lua->loadFile(fname);
     }
-    catch (const std::runtime_error&) {
+    catch (const std::runtime_error& e) {
+      g_log<<Logger::Warning<<"Failed to load update policy - disabling: "<<e.what()<<endl;
       d_update_policy_lua = nullptr;
     }
   }

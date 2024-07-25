@@ -639,7 +639,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
   return rrs;
 }
 
-void CommunicatorClass::suck(const DNSName& domain, const ComboAddress& remote, bool force)
+void CommunicatorClass::suck(const DNSName& domain, const ComboAddress& remote, bool force) // NOLINT(readability-function-cognitive-complexity)
 {
   {
     auto data = d_data.lock();
@@ -700,7 +700,7 @@ void CommunicatorClass::suck(const DNSName& domain, const ComboAddress& remote, 
     }
     if (!script.empty()) {
       try {
-        pdl = make_unique<AuthLua4>();
+        pdl = make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
         pdl->loadFile(script);
         g_log << Logger::Info << logPrefix << "loaded Lua script '" << script << "'" << endl;
       }

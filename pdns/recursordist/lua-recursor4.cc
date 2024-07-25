@@ -34,8 +34,6 @@
 #include <unordered_set>
 #include "rec-main.hh"
 
-RecursorLua4::RecursorLua4() { prepareContext(); }
-
 boost::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
 {
   if (dh != nullptr) {
@@ -160,7 +158,7 @@ struct DynMetric
 
 // clang-format off
 
-void RecursorLua4::postPrepareContext()
+void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive-complexity)
 {
   d_lw->registerMember<const DNSName (DNSQuestion::*)>("qname", [](const DNSQuestion& dnsQuestion) -> const DNSName& { return dnsQuestion.qname; }, [](DNSQuestion& /* dnsQuestion */, const DNSName& newName) { (void) newName; });
   d_lw->registerMember<uint16_t (DNSQuestion::*)>("qtype", [](const DNSQuestion& dnsQuestion) -> uint16_t { return dnsQuestion.qtype; }, [](DNSQuestion& /* dnsQuestion */, uint16_t newType) { (void) newType; });
@@ -495,6 +493,9 @@ void RecursorLua4::postPrepareContext()
       (*event.discardedPolicies)[policy] = true;
     }
   });
+  if (!d_include_path.empty()) {
+    includePath(d_include_path);
+  }
 }
 
 // clang-format on

@@ -291,6 +291,7 @@ static void declareArguments()
 
   ::arg().set("lua-prequery-script", "Lua script with prequery handler (DO NOT USE)") = "";
   ::arg().set("lua-dnsupdate-policy-script", "Lua script with DNS update policy handler") = "";
+  ::arg().set("lua-global-include-dir", "Include *.lua files from this directory into Lua contexts") = "";
 
   ::arg().setSwitch("traceback-handler", "Enable the traceback handler (Linux only)") = "yes";
   ::arg().setSwitch("direct-dnskey", "Fetch DNSKEY, CDS and CDNSKEY RRs from backend during DNSKEY or CDS/CDNSKEY synthesis") = "no";

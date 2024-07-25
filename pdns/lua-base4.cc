@@ -1,8 +1,10 @@
+#include "config.h"
 #include <cassert>
 #include <fstream>
 #include <unordered_set>
 #include <unordered_map>
 #include <typeinfo>
+#include <sys/stat.h>
 #include "logger.hh"
 #include "logging.hh"
 #include "iputils.hh"
@@ -15,24 +17,60 @@
 #include "ext/luawrapper/include/LuaContext.hpp"
 #include "dns_random.hh"
 
-BaseLua4::BaseLua4() = default;
-
-void BaseLua4::loadFile(const std::string& fname)
+void BaseLua4::loadFile(const std::string& fname, bool doPostLoad)
 {
   std::ifstream ifs(fname);
   if (!ifs) {
     auto ret = errno;
     auto msg = stringerror(ret);
-    SLOG(g_log << Logger::Error << "Unable to read configuration file from '" << fname << "': " << msg << endl,
-         g_slog->withName("lua")->error(Logr::Error, ret, "Unable to read configuration file", "file", Logging::Loggable(fname), "msg", Logging::Loggable(msg)));
+    g_log << Logger::Error << "Unable to read configuration file from '" << fname << "': " << msg << endl;
     throw std::runtime_error(msg);
   }
-  loadStream(ifs);
+  loadStream(ifs, doPostLoad);
 };
 
 void BaseLua4::loadString(const std::string &script) {
   std::istringstream iss(script);
-  loadStream(iss);
+  loadStream(iss, true);
+};
+
+void BaseLua4::includePath(const std::string& directory) {
+  std::vector<std::string> vec;
+  const std::string& suffix = "lua";
+  auto directoryError = pdns::visit_directory(directory, [this, &directory, &suffix, &vec]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
+    (void)this;
+    if (boost::starts_with(name, ".")) {
+      return true; // skip any dots
+    }
+    if (boost::ends_with(name, suffix)) {
+      // build name
+      string fullName = directory + "/" + std::string(name);
+      // ensure it's readable file
+      struct stat statInfo
+      {
+      };
+      if (stat(fullName.c_str(), &statInfo) != 0 || !S_ISREG(statInfo.st_mode)) {
+        string msg = fullName + " is not a regular file";
+        g_log << Logger::Error << msg << std::endl;
+        throw PDNSException(msg);
+      }
+      vec.emplace_back(fullName);
+    }
+    return true;
+  });
+
+  if (directoryError) {
+    int err = errno;
+    string msg = directory + " is not accessible: " + stringerror(err);
+    g_log << Logger::Error << msg << std::endl;
+    throw PDNSException(msg);
+  }
+
+  std::sort(vec.begin(), vec.end(), CIStringComparePOSIX());
+
+  for(const auto& file: vec) {
+    loadFile(file, false);
+  }
 };
 
 //  By default no features
@@ -289,10 +327,12 @@ void BaseLua4::prepareContext() {
   d_lw->writeVariable("pdns", d_pd);
 }
 
-void BaseLua4::loadStream(std::istream &is) {
-  d_lw->executeCode(is);
+void BaseLua4::loadStream(std::istream &stream, bool doPostLoad) {
+  d_lw->executeCode(stream);
 
-  postLoad();
+  if (doPostLoad) {
+    postLoad();
+  }
 }
 
 BaseLua4::~BaseLua4() = default;

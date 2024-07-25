@@ -13,8 +13,6 @@
 
 #include "ueberbackend.hh"
 
-AuthLua4::AuthLua4() { prepareContext(); }
-
 LuaContext* AuthLua4::getLua()
 {
   return d_lw.get();
@@ -84,6 +82,9 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSName(UpdatePolicyQuery::*)()>("getTsigName", [](UpdatePolicyQuery& upq) { return upq.tsigName; });
   d_lw->registerFunction<std::string(UpdatePolicyQuery::*)()>("getPeerPrincipal", [](UpdatePolicyQuery& upq) { return upq.peerPrincipal; });
 /* end of update policy */
+  if (!d_include_path.empty()) {
+    includePath(d_include_path);
+  }
 }
 
 void AuthLua4::postLoad() {

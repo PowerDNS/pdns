@@ -1391,7 +1391,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
 {
   if(!LUA ||                  // we don't have a Lua state yet
      !g_LuaRecordSharedState) { // or we want a new one even if we had one
-    LUA = make_unique<AuthLua4>();
+    LUA = make_unique<AuthLua4>(::arg()["lua-global-include-dir"]);
     setupLuaRecords(*LUA->getLua());
   }
 
