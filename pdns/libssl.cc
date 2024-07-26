@@ -13,6 +13,7 @@
 #include <openssl/conf.h>
 #if defined(DNSDIST) && (OPENSSL_VERSION_MAJOR < 3 || !defined(HAVE_TLS_PROVIDERS))
 #ifndef OPENSSL_NO_ENGINE
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage): used by the preprocessor below
 #define DNSDIST_ENABLE_LIBSSL_ENGINE 1
 #include <openssl/engine.h>
 #endif
