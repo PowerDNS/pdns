@@ -1,4 +1,3 @@
-
 #include "config.h"
 #include "libssl.hh"
 
@@ -12,8 +11,9 @@
 #include <pthread.h>
 
 #include <openssl/conf.h>
-#if OPENSSL_VERSION_MAJOR < 3 || !defined(HAVE_TLS_PROVIDERS)
+#if defined(DNSDIST) && (OPENSSL_VERSION_MAJOR < 3 || !defined(HAVE_TLS_PROVIDERS))
 #ifndef OPENSSL_NO_ENGINE
+#define DNSDIST_ENABLE_LIBSSL_ENGINE 1
 #include <openssl/engine.h>
 #endif
 #endif
@@ -89,7 +89,7 @@ static std::atomic<uint64_t> s_users;
 #if OPENSSL_VERSION_MAJOR >= 3 && defined(HAVE_TLS_PROVIDERS)
 static LockGuarded<std::unordered_map<std::string, std::unique_ptr<OSSL_PROVIDER, decltype(&OSSL_PROVIDER_unload)>>> s_providers;
 #else
-#ifndef OPENSSL_NO_ENGINE
+#if defined(DNSDIST_ENABLE_LIBSSL_ENGINE)
 static LockGuarded<std::unordered_map<std::string, std::unique_ptr<ENGINE, decltype(&ENGINE_free)>>> s_engines;
 #endif
 #endif
@@ -155,15 +155,13 @@ void registerOpenSSLUser()
 void unregisterOpenSSLUser()
 {
   if (s_users.fetch_sub(1) == 1) {
-#if OPENSSL_VERSION_MAJOR < 3 || !defined(HAVE_TLS_PROVIDERS)
-#ifndef OPENSSL_NO_ENGINE
+#if defined(DNSDIST_ENABLE_LIBSSL_ENGINE)
     for (auto& [name, engine] : *s_engines.lock()) {
       ENGINE_finish(engine.get());
       engine.reset();
     }
     s_engines.lock()->clear();
-#endif
-#endif
+#endif /* PDNS_ENABLE_LIBSSL_ENGINE */
 #if (OPENSSL_VERSION_NUMBER < 0x1010000fL || (defined LIBRESSL_VERSION_NUMBER && LIBRESSL_VERSION_NUMBER < 0x2090100fL))
     ERR_free_strings();
 
@@ -204,12 +202,14 @@ std::pair<bool, std::string> libssl_load_provider(const std::string& providerNam
 }
 #endif /* HAVE_LIBSSL && OPENSSL_VERSION_MAJOR >= 3 && HAVE_TLS_PROVIDERS */
 
-#if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)
+#if defined(HAVE_LIBSSL) && !HAVE_TLS_PROVIDERS
 std::pair<bool, std::string> libssl_load_engine([[maybe_unused]] const std::string& engineName, [[maybe_unused]] const std::optional<std::string>& defaultString)
 {
-#ifdef OPENSSL_NO_ENGINE
+#if defined(OPENSSL_NO_ENGINE)
   return { false, "OpenSSL has been built without engine support" };
-#else
+#elif !defined(DNSDIST_ENABLE_LIBSSL_ENGINE)
+  return { false, "SSL engine support not enabled" };
+#else /* DNSDIST_ENABLE_LIBSSL_ENGINE */
   if (s_users.load() == 0) {
     /* We need to make sure that OpenSSL has been properly initialized before loading an engine.
        This messes up our accounting a bit, so some memory might not be properly released when
@@ -239,7 +239,7 @@ std::pair<bool, std::string> libssl_load_engine([[maybe_unused]] const std::stri
 
   engines->insert({engineName, std::move(engine)});
   return { true, "" };
-#endif
+#endif /* DNSDIST_ENABLE_LIBSSL_ENGINE */
 }
 #endif /* HAVE_LIBSSL && !HAVE_TLS_PROVIDERS */
 
