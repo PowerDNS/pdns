@@ -34,7 +34,7 @@ To be able to use more CPU cores for UDP queries processing, it is possible to u
 Note that this require ``SO_REUSEPORT`` support in the underlying operating system (added for example in Linux 3.9).
 Please also be aware that doing so will increase lock contention and might not therefore scale linearly, as discussed below.
 
-Another possibility is to use the reuseport option to run several dnsdist processes in parallel on the same host, thus avoiding the lock contention issue at the cost of having to deal with the fact that the different processes will not share informations, like statistics or DDoS offenders.
+Another possibility is to use the reuseport option to run several dnsdist processes in parallel on the same host, thus avoiding the lock contention issue at the cost of having to deal with the fact that the different processes will not share information, like statistics or DDoS offenders.
 
 The UDP threads handling the responses from the backends do not use a lot of CPU, but if needed it is also possible to add the same backend several times to the dnsdist configuration to distribute the load over several responder threads::
 

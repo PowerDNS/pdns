@@ -488,7 +488,7 @@ Changelogs for 4.1.x
     :pullreq: 6555
     :tickets: 6396
 
-    Report unparseable data in stoul invalid_argument exception
+    Report unparsable data in stoul invalid_argument exception
 
   .. change::
     :tags: Improvements
