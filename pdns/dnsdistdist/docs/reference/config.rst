@@ -1530,7 +1530,7 @@ Dynamic Blocks
   :param int clientIPMask: The network mask to apply to the address. Default is 32 for IPv4, 128 for IPv6.
   :param int clientIPPortMask: The port mask to use to specify a range of ports to match, when the clients are behind a CG-NAT.
 
-  Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported by the action paramater.
+  Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported by the action parameter.
 
 .. function:: addDynBlocks(addresses, message[, seconds=10[, action]])
 
@@ -1543,7 +1543,7 @@ Dynamic Blocks
   :param int seconds: The number of seconds this block to expire
   :param int action: The action to take when the dynamic block matches, see :ref:`DNSAction <DNSAction>`. (default to DNSAction.None, meaning the one set with :func:`setDynBlocksAction` is used)
 
-  Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported by the action paramater.
+  Please see the documentation for :func:`setDynBlocksAction` to confirm which actions are supported by the action parameter.
 
 .. function:: clearDynBlocks()
 

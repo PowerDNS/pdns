@@ -35,7 +35,7 @@ Both the PowerDNS Authoritative Server and the Recursor can parse PROXYv2 header
 
   proxy-protocol-from=192.0.2.2
 
-For more informations, see the `authoritative server's documentation <https://doc.powerdns.com/authoritative/settings.html#proxy-protocol-from>`_ or the `recursor's documentation <https://docs.powerdns.com/recursor/settings.html#proxy-protocol-from>`_.
+For more information, see the `authoritative server's documentation <https://doc.powerdns.com/authoritative/settings.html#proxy-protocol-from>`_ or the `recursor's documentation <https://docs.powerdns.com/recursor/settings.html#proxy-protocol-from>`_.
 
 From clients to dnsdist
 ^^^^^^^^^^^^^^^^^^^^^^^

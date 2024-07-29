@@ -83,7 +83,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :pullreq: 14222
     :tickets: 14185
 
-    Report error and adjust max-mthreads when linux map limit (vm.max_map_count) is too low to accomodate resource usage under load.
+    Report error and adjust max-mthreads when linux map limit (vm.max_map_count) is too low to accommodate resource usage under load.
 
 .. changelog::
    :version: 5.0.5

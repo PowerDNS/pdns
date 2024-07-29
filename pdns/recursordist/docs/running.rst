@@ -56,7 +56,7 @@ To log only info messages, use ``local0.=info``
 
 Cache Management
 ----------------
-Sometimes a domain fails to resolve due to an error on the domain owner's end, or records for your own domain have updated and you want your users to immediatly see them without waiting for the TTL to expire.
+Sometimes a domain fails to resolve due to an error on the domain owner's end, or records for your own domain have updated and you want your users to immediately see them without waiting for the TTL to expire.
 The :doc:`rec_control <manpages/rec_control.1>` tool can be used to selectively wipe the cache.
 
 To wipe all records for the exact name 'www.example.com'::

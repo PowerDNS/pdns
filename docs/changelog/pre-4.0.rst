@@ -1443,7 +1443,7 @@ Other changes
    parameters for pdnssec.
 -  `commit 2f2b014 <https://github.com/PowerDNS/pdns/commit/2f2b014>`__:
    apply variant of code in `ticket
-   714 <https://github.com/PowerDNS/pdns/issues/714>`__ so we can lauch
+   714 <https://github.com/PowerDNS/pdns/issues/714>`__ so we can launch
    pipe backend scripts with parameters, plus add experimental code that
    if pipe-command is a unix domain socket, we use that.
 -  `commit 9566683 <https://github.com/PowerDNS/pdns/commit/9566683>`__:
@@ -4749,7 +4749,7 @@ Improvements
    fact only made things worse.
 -  LDAP backend updates from its author Norbert Sendetzky. Reverse
    lookups should work now too.
--  An error message about unparseable packets did not include the
+-  An error message about unparsable packets did not include the
    originating IP address (fixed by Mark Bergsma)
 -  PowerDNS can now be started via path resolution while running with a
    guardian. Suggested by Maurice Nonnekes.

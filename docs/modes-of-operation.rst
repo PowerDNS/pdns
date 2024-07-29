@@ -148,7 +148,7 @@ respective domain to allow immediate freshness checks for this domain.
   ``/etc`` and ``/home``, possibly being unable to write AXFR'd zones.
 
 PowerDNS also reacts to notifies by immediately checking if the zone has
-updated and if so, retransfering it.
+updated and if so, retransferring it.
 
 All backends which implement this feature must make sure that they can
 handle transactions so as to not leave the zone in a half updated state.

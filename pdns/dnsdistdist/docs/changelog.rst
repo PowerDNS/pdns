@@ -5399,7 +5399,7 @@ Changelog
     :tags: Improvements
     :pullreq: 6637
 
-    Don't copy unitialized values of SuffixMatchTree
+    Don't copy uninitialized values of SuffixMatchTree
 
   .. change::
     :tags: Improvements

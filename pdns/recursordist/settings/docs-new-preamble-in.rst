@@ -12,11 +12,11 @@ Settings on the command line are processed after the file-based settings are pro
 
    Release 5.0.0 will install a default old-style ``recursor.conf`` file.
 
-   Starting with version 5.1.0, in the absense of a ``recursor.yml`` file, an existing ``recursor.conf`` will be processed as YAML,
+   Starting with version 5.1.0, in the absence of a ``recursor.yml`` file, an existing ``recursor.conf`` will be processed as YAML,
    if that fails, it will be processed as old-style configuration.
    Packages will stop installing a old-style ``recursor.conf`` file and start installing a default ``recursor.conf`` file containing YAML syntax.
 
-   With the release of 5.2.0, the default will be to expect a YAML configuation file and reading of old-style ``recursor.conf`` files will have to be enabled specifically by providing a command line option.
+   With the release of 5.2.0, the default will be to expect a YAML configuration file and reading of old-style ``recursor.conf`` files will have to be enabled specifically by providing a command line option.
 
    In a future release support for the "old-style" ``recursor.conf`` settings file will be dropped.
 
@@ -138,7 +138,7 @@ If no prefix length is specified, ``/32`` or ``/128`` is assumed, indicating a s
 Subnets can also be prefixed with a ``!``, specifying negation.
 This can be used to deny addresses from a previously allowed range.
 
-For example, ``alow-from`` takes a sequence of subnets:
+For example, ``allow-from`` takes a sequence of subnets:
 
 .. code-block:: yaml
 
@@ -408,7 +408,7 @@ As of version 5.1.0, a ZoneToCache entry is defined as
    tsig:
      name: name of key
      algo: algorithm
-     secret: Base64 endcoded secret
+     secret: Base64 encoded secret
    refreshPeriod: 86400
    retryOnErrorPeriod: 60
    maxReceivedMBytes: 0 Zero mean no restrcition
@@ -430,7 +430,7 @@ An example of an ``zonetocaches`` entry, which is a sequence of `ZoneToCache`_:
 
 AllowedAdditionalQType
 ^^^^^^^^^^^^^^^^^^^^^^
-As of version 5.1.0, an allowed addtional qtype entry is defined as:
+As of version 5.1.0, an allowed additional qtype entry is defined as:
 
 .. code-block:: yaml
 

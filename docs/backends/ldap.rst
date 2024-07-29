@@ -175,7 +175,7 @@ information.
 
 -  ``simple``: Search the requested domain by comparing the
    associatedDomain attributes with the domain string in the question.
--  ``tree``: Search entires by translating the domain string into a LDAP
+-  ``tree``: Search entries by translating the domain string into a LDAP
    dn. Your LDAP tree must be designed in the same way as the DNS LDAP
    tree. The question for "myhost.linuxnetworks.de" would translate into
    "dc=myhost,dc=linuxnetworks,dc=de,ou=hosts=..." and the entry where
