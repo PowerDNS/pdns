@@ -140,9 +140,10 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
   * ``logQueries=true``: bool - log outgoing queries
   * ``logResponses=true``: bool - log incoming responses
 
-  The following options apply to the settings of the framestream library. Refer to the documentation of that
-  library for the default values, exact description and allowable values for these options.
-  For all these options, absence or a zero value has the effect of using the library-provided default value.
+  The following options apply to the settings of the `framestream library
+  <https://github.com/farsightsec/fstrm>`. Refer to the documentation of that library for the default
+  values, exact description and allowable values for these options. For all these options, absence or a zero
+  value has the effect of using the library-provided default value.
 
   * ``bufferHint=0``: unsigned
   * ``flushTimeout=0``: unsigned
@@ -169,9 +170,10 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
   * ``logNODs=true``: bool - log NODs
   * ``logUDRs=false``: bool - log UDRs
 
-  The following options apply to the settings of the framestream library. Refer to the documentation of that
-  library for the default values, exact description and allowable values for these options.
-  For all these options, absence or a zero value has the effect of using the library-provided default value.
+  The following options apply to the settings of the `framestream library
+  <https://github.com/farsightsec/fstrm>`. Refer to the documentation of that library for the default
+  values, exact description and allowable values for these options. For all these options, absence or a zero
+  value has the effect of using the library-provided default value.
 
   * ``bufferHint=0``: unsigned
   * ``flushTimeout=0``: unsigned
