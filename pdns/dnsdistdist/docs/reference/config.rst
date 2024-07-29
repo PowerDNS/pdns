@@ -1372,6 +1372,7 @@ Status, Statistics and More
 
   * ``#`` - The number of the server, can be used as the argument for :func:`getServer`
   * ``UUID`` - The UUID of the backend. Can be set with the ``id`` option of :func:`newServer`
+  * ``Name`` - The name of the backend, if any
   * ``Address`` - The IP address and port of the server
   * ``State`` - The current state of the server
   * ``Qps`` - Current number of queries per second
@@ -1381,8 +1382,10 @@ Status, Statistics and More
   * ``Queries`` - Total amount of queries sent to this server
   * ``Drops`` - Number of queries that were dropped by this server
   * ``Drate`` - Number of queries dropped per second by this server
-  * ``Lat`` - The latency of this server in milliseconds
+  * ``Lat`` - The latency of this server, for queries forwarded over UDP, in milliseconds
+  * ``Outstanding`` - The current number of in-flight queries
   * ``Pools`` - The pools this server belongs to
+  * ``TCP`` - The latency of this server, for queries forwarded over TCP, in milliseconds
 
   :param table options: A table with key: value pairs with display options.
 
