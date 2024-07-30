@@ -1,8 +1,10 @@
 #pragma once
+
 #include <stdexcept>
 #include <string_view>
+#include <sstream>
 #include <iostream>
-#include "lmdb-safe.hh"
+
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
@@ -11,38 +13,37 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
-#include <sstream>
-// using std::cout;
-// using std::endl;
 
+#include "lmdb-safe.hh"
 
 /*
-   Open issues:
+ * OPEN ISSUES:
+ *
+ * - Everything should go into a namespace.
+ * - Decide on what is an error and what is an exception.
+ * - Could id=0 be magic? (e.g. 'no such id') - yes.
+ * - Is boost the best serializer? It's a good default.
+ * - Perhaps use the separate index concept from multi_index.
+ * - Perhaps get eiter to be of same type so that for(auto& a : x) works.
+ *   - Make it more value-like with unique_ptr.
+ */
 
-   Everything should go into a namespace
-   What is an error? What is an exception?
-   could id=0 be magic? ('no such id')
-     yes
-   Is boost the best serializer?
-     good default
-   Perhaps use the separate index concept from multi_index
-   perhaps get eiter to be of same type so for(auto& a : x) works
-     make it more value "like" with unique_ptr
-*/
+/**
+ * LMDB ID Vector Type.
+ */
+typedef std::vector<uint32_t> LmdbIdVec;
 
-
-/** Return the highest ID used in a database. Returns 0 for an empty DB.
-    This makes us start everything at ID=1, which might make it possible to
-    treat id 0 as special
-*/
+/**
+ * Return the highest ID used in a database. Returns 0 for an empty DB. This makes us
+ * start everything at ID=1, which might make it possible to treat id 0 as special.
+ */
 unsigned int MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi);
 
-/** Return a randomly generated ID that is unique and not zero.
-    May throw if the database is very full.
-*/
+/**
+ * Return a randomly generated ID that is unique and not zero. May throw if the database
+ * is very full.
+ */
 unsigned int MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi);
-
-typedef std::vector<uint32_t> LMDBIDvec;
 
 /** This is our serialization interface.
     You can define your own serToString for your type if you know better
@@ -304,7 +305,7 @@ public:
       // auto range = (*d_parent.d_txn)->prefix_range<N>(domain);
 
       // auto range = prefix_range<N>(key);
-      LMDBIDvec ids;
+      LmdbIdVec ids;
 
       // because we know we only want one item, pass onlyOldest=true to consistently get the same one out of a set of duplicates
       get_multi<N>(key, ids, true);
@@ -643,7 +644,7 @@ public:
     };
 
     template<int N>
-    void get_multi(const typename std::tuple_element<N, tuple_t>::type::type& key, LMDBIDvec& ids, bool onlyOldest=false)
+    void get_multi(const typename std::tuple_element<N, tuple_t>::type::type& key, LmdbIdVec& ids, bool onlyOldest=false)
     {
       // std::cerr<<"in get_multi"<<std::endl;
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);

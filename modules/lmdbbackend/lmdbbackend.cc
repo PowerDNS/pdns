@@ -1327,7 +1327,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
   abortTransaction();
 
-  LMDBIDvec idvec;
+  LmdbIdVec idvec;
 
   if (!d_handle_dups) {
     // get domain id
@@ -1352,7 +1352,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
     { // Remove metadata
       auto txn = d_tmeta->getRWTransaction();
-      LMDBIDvec ids;
+      LmdbIdVec ids;
 
       txn.get_multi<0>(domain, ids);
 
@@ -1365,7 +1365,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
     { // Remove cryptokeys
       auto txn = d_tkdb->getRWTransaction();
-      LMDBIDvec ids;
+      LmdbIdVec ids;
       txn.get_multi<0>(domain, ids);
 
       for (auto _id : ids) {
@@ -1909,7 +1909,7 @@ bool LMDBBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string
 {
   meta.clear();
   auto txn = d_tmeta->getROTransaction();
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   DomainMeta dm;
@@ -1926,7 +1926,7 @@ bool LMDBBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 {
   auto txn = d_tmeta->getRWTransaction();
 
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   DomainMeta dmeta;
@@ -1950,7 +1950,7 @@ bool LMDBBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 bool LMDBBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 {
   auto txn = d_tkdb->getROTransaction();
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   KeyDataDB key;
@@ -2567,7 +2567,7 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
 bool LMDBBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& content)
 {
   auto txn = d_ttsig->getROTransaction();
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   TSIGKey key;
@@ -2588,7 +2588,7 @@ bool LMDBBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, cons
 {
   auto txn = d_ttsig->getRWTransaction();
 
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   TSIGKey key;
@@ -2614,7 +2614,7 @@ bool LMDBBackend::deleteTSIGKey(const DNSName& name)
 {
   auto txn = d_ttsig->getRWTransaction();
 
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   TSIGKey key;
@@ -2698,7 +2698,7 @@ string LMDBBackend::directBackendCmd(const string& query)
 
           auto id = iter.getID();
 
-          LMDBIDvec ids;
+          LmdbIdVec ids;
           txn.get_multi<0>(di.zone, ids);
 
           if (ids.size() != 1) {
