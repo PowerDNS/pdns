@@ -45,55 +45,47 @@ unsigned int MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi);
  */
 unsigned int MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi);
 
-/** This is our serialization interface.
-    You can define your own serToString for your type if you know better
-*/
-template<typename T>
-std::string serToString(const T& t)
+/**
+ * This is our serialization interface. It can be specialized for other types.
+ */
+template <typename T>
+std::string serializeToBuffer(const T& value)
 {
-  std::string serial_str;
-  boost::iostreams::back_insert_device<std::string> inserter(serial_str);
-  boost::iostreams::stream<boost::iostreams::back_insert_device<std::string> > s(inserter);
-  boost::archive::binary_oarchive oa(s, boost::archive::no_header | boost::archive::no_codecvt);
-
-  oa << t;
-  return serial_str;
+  std::string buffer;
+  boost::iostreams::back_insert_device<std::string> inserter(buffer);
+  boost::iostreams::stream<boost::iostreams::back_insert_device<std::string>> inserterStream(inserter);
+  boost::archive::binary_oarchive outputArchive(inserterStream, boost::archive::no_header | boost::archive::no_codecvt);
+  outputArchive << value;
+  return buffer;
 }
 
-template<typename T>
-void serFromString(const string_view& str, T& ret)
+template <typename T>
+void deserializeFromBuffer(const string_view& buffer, T& value)
 {
-  ret = T();
-
-  boost::iostreams::array_source source(&str[0], str.size());
+  value = T();
+  boost::iostreams::array_source source(&buffer[0], buffer.size());
   boost::iostreams::stream<boost::iostreams::array_source> stream(source);
-  boost::archive::binary_iarchive in_archive(stream, boost::archive::no_header|boost::archive::no_codecvt);
-  in_archive >> ret;
-
-  /*
-  std::istringstream istr{str};
-  boost::archive::binary_iarchive oi(istr,boost::archive::no_header|boost::archive::no_codecvt );
-  oi >> ret;
-  */
+  boost::archive::binary_iarchive inputArchive(stream, boost::archive::no_header | boost::archive::no_codecvt);
+  inputArchive >> value;
 }
-
 
 template <class T, class Enable>
-inline std::string keyConv(const T& t);
+inline std::string keyConv(const T& value);
 
-template <class T, typename std::enable_if<std::is_arithmetic<T>::value,T>::type* = nullptr>
-inline std::string keyConv(const T& t)
+template <class T, typename std::enable_if<std::is_arithmetic<T>::value, T>::type* = nullptr>
+inline std::string keyConv(const T& value)
 {
-  return std::string((char*)&t, sizeof(t));
+  return std::string((char*)&value, sizeof(value));
 }
 
-// this is how to override specific types.. it is ugly
-template<class T, typename std::enable_if<std::is_same<T, std::string>::value,T>::type* = nullptr>
-inline std::string keyConv(const T& t)
+/**
+ * keyConv specialization for std::string.
+ */
+template <class T, typename std::enable_if<std::is_same<T, std::string>::value, T>::type* = nullptr>
+inline std::string keyConv(const T& value)
 {
-  return t;
+  return value;
 }
-
 
 namespace {
   inline MDBOutVal getKeyFromCombinedKey(MDBInVal combined) {
@@ -291,7 +283,7 @@ public:
       if((*d_parent.d_txn)->get(d_parent.d_parent->d_main, id, data))
         return false;
 
-      serFromString(data.get<std::string>(), t);
+      deserializeFromBuffer(data.get<std::string>(), t);
       return true;
     }
 
@@ -379,10 +371,10 @@ public:
         if(d_on_index) {
           if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data))
             throw std::runtime_error("Missing id in constructor");
-          serFromString(d_data.get<std::string>(), d_t);
+          deserializeFromBuffer(d_data.get<std::string>(), d_t);
         }
         else
-          serFromString(d_id.get<std::string>(), d_t);
+          deserializeFromBuffer(d_id.get<std::string>(), d_t);
       }
 
       explicit iter_t(Parent* parent, typename Parent::cursor_t&& cursor, const std::string& prefix) :
@@ -406,10 +398,10 @@ public:
         if(d_on_index) {
           if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data))
             throw std::runtime_error("Missing id in constructor");
-          serFromString(d_data.get<std::string>(), d_t);
+          deserializeFromBuffer(d_data.get<std::string>(), d_t);
         }
         else
-          serFromString(d_id.get<std::string>(), d_t);
+          deserializeFromBuffer(d_id.get<std::string>(), d_t);
       }
 
 
@@ -474,13 +466,13 @@ public:
             // if(filter && !filter(data))
             //   goto next;
 
-            serFromString(data.get<std::string>(), d_t);
+            deserializeFromBuffer(data.get<std::string>(), d_t);
           }
           else {
             // if(filter && !filter(data))
             //   goto next;
 
-            serFromString(d_id.get<std::string>(), d_t);
+            deserializeFromBuffer(d_id.get<std::string>(), d_t);
           }
         }
         return *this;
@@ -764,7 +756,7 @@ public:
           // flags = MDB_APPEND;
         }
       }
-      (*d_txn)->put(d_parent->d_main, id, serToString(t), flags);
+      (*d_txn)->put(d_parent->d_main, id, serializeToBuffer(t), flags);
 
 #define insertMacro(N) std::get<N>(d_parent->d_tuple).put(*d_txn, t, id);
       insertMacro(0);
@@ -808,7 +800,7 @@ public:
       while(!cursor.get(key, data, first ? MDB_FIRST : MDB_NEXT)) {
         first = false;
         T t;
-        serFromString(data.get<std::string>(), t);
+        deserializeFromBuffer(data.get<std::string>(), t);
         clearIndex(key.get<uint32_t>(), t);
         cursor.del();
       }
