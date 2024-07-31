@@ -312,7 +312,7 @@ bool PipeBackend::get(DNSResourceRecord& r)
           r.auth = true;
         }
         r.qname = DNSName(parts[1 + extraFields]);
-        r.qtype = parts[3 + extraFields];
+        r.qtype = QType::fromString(parts[3 + extraFields]);
         pdns::checked_stoi_into(r.ttl, parts[4 + extraFields]);
         pdns::checked_stoi_into(r.domain_id, parts[5 + extraFields]);
 

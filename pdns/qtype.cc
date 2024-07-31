@@ -19,12 +19,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "dns.hh"
-#include <iostream>
+
+#include <cstdint>
+#include <stdexcept>
 #include <string>
-#include <vector>
 #include <utility>
-#include <sstream>
 #include "qtype.hh"
 #include "misc.hh"
 
@@ -100,73 +99,76 @@ const map<const string, uint16_t> QType::names = {
 #endif
 };
 
-static map<uint16_t, const string> swapElements(const map<const string, uint16_t>& names) {
-  map<uint16_t, const string> ret;
+static auto parsingError(const string& name) -> std::runtime_error
+{
+  string fullErrorMessage{"Unknown or invalid record type `"};
+  fullErrorMessage += name;
+  fullErrorMessage += "`";
+  return std::runtime_error{fullErrorMessage};
+}
 
-  for (const auto& n : names) {
-    ret.emplace(n.second, n.first);
+static auto invalidEmptyRecordType() -> std::runtime_error
+{
+  string fullErrorMessage{"Invalid empty record type"};
+  return std::runtime_error{fullErrorMessage};
+}
+
+auto QType::fromString(const string& name) -> QType
+{
+  if (name.empty()) {
+    throw invalidEmptyRecordType();
+  }
+
+  const auto& upperName = toUpper(name);
+
+  const auto& num = names.find(upperName);
+  if (num != names.cend()) {
+    return num->second;
+  }
+
+  if (name.at(0) == '#') {
+    return pdns::checked_stoi<uint16_t>(&name[1]);
+  }
+
+  if (boost::starts_with(upperName, "TYPE")) {
+    return pdns::checked_stoi<uint16_t>(&name[4]);
+  }
+
+  throw parsingError(name);
+}
+
+string QType::toString() const
+{
+  const auto& name = numbers.find(qtype);
+  if (name != numbers.cend()) {
+    return name->second;
+  }
+  return "TYPE" + std::to_string(qtype);
+}
+
+static map<uint16_t, const string> swapElements(const map<const string, uint16_t>& names)
+{
+  map<uint16_t, const string> ret;
+  for (const auto& name : names) {
+    ret.emplace(name.second, name.first);
   }
   return ret;
 }
 
 const map<uint16_t, const string> QType::numbers = swapElements(names);
 
-
 bool QType::isSupportedType() const
 {
-  return numbers.count(code) == 1;
+  return numbers.count(qtype) == 1;
 }
 
 bool QType::isMetadataType() const
 {
   // rfc6895 section 3.1, note ANY is 255 and falls outside the range
-  if (code == QType::OPT || (code >= rfc6895MetaLowerBound && code <= rfc6895MetaUpperBound)) {
-    return true;
-  }
-  return false;
+  return qtype == QType::OPT || (qtype >= rfc6895MetaLowerBound && qtype <= rfc6895MetaUpperBound);
 }
 
-const string QType::toString() const
-{
-  const auto& name = numbers.find(code);
-  if (name != numbers.cend()) {
-    return name->second;
-  }
-  return "TYPE" + std::to_string(code);
-}
-
-uint16_t QType::chartocode(const char *p)
-{
-  string P = toUpper(p);
-
-  const auto& num = names.find(P);
-  if (num != names.cend()) {
-    return num->second;
-  }
-  if (*p == '#') {
-    return static_cast<uint16_t>(atoi(p + 1));
-  }
-
-  if (boost::starts_with(P, "TYPE")) {
-    return static_cast<uint16_t>(atoi(p + 4));
-  }
-
-  return 0;
-}
-
-QType &QType::operator=(const char *p)
-{
-  code = chartocode(p);
-  return *this;
-}
-
-QType &QType::operator=(const string &s)
-{
-  code = chartocode(s.c_str());
-  return *this;
-}
-
-const std::string QClass::toString() const
+std::string QClass::toString() const
 {
   switch (qclass) {
   case IN:
@@ -177,7 +179,7 @@ const std::string QClass::toString() const
     return "NONE";
   case ANY:
     return "ANY";
-  default :
+  default:
     return "CLASS" + std::to_string(qclass);
   }
 }

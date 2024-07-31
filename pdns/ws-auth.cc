@@ -457,7 +457,7 @@ static void fillZone(UeberBackend& backend, const DNSName& zonename, HttpRespons
           qType = QType::ANY;
         }
         else {
-          qType = req->getvars["rrset_type"];
+          qType = QType::fromString(req->getvars["rrset_type"]);
         }
         domainInfo.backend->lookup(qType, DNSName(req->getvars["rrset_name"]), static_cast<int>(domainInfo.id));
       }
@@ -1908,7 +1908,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
         DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
         apiCheckQNameAllowedCharacters(qname.toString());
         QType qtype;
-        qtype = stringFromJson(rrset, "type");
+        qtype = QType::fromString(stringFromJson(rrset, "type"));
         if (qtype.getCode() == 0) {
           throw ApiException("RRset " + qname.toString() + " IN " + stringFromJson(rrset, "type") + ": unknown type given");
         }
@@ -2124,7 +2124,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
         DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
         apiCheckQNameAllowedCharacters(qname.toString());
         QType qtype;
-        qtype = stringFromJson(rrset, "type");
+        qtype = QType::fromString(stringFromJson(rrset, "type"));
         if (qtype.getCode() == 0) {
           throw ApiException("RRset " + qname.toString() + " IN " + stringFromJson(rrset, "type") + ": unknown type given");
         }
@@ -2337,7 +2337,7 @@ static void patchZone(UeberBackend& backend, const DNSName& zonename, DomainInfo
       DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
       apiCheckQNameAllowedCharacters(qname.toString());
       QType qtype;
-      qtype = stringFromJson(rrset, "type");
+      qtype = QType::fromString(stringFromJson(rrset, "type"));
       if (qtype.getCode() == 0) {
         throw ApiException("RRset " + qname.toString() + " IN " + stringFromJson(rrset, "type") + ": unknown type given");
       }

@@ -2350,7 +2350,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     if (begin == end) {
       return {1, "Need a qtype\n"};
     }
-    uint16_t qtype = QType::chartocode(begin->c_str());
+    uint16_t qtype = QType::fromString(*begin);
     if (qtype == 0) {
       return {1, "Unknown qtype " + *begin + "\n"};
     }

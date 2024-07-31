@@ -216,7 +216,7 @@ static void parseProtobufOptions(const boost::optional<protobufOptions_t>& vars,
         qtype = std::stoul(type);
       }
       catch (const std::exception& ex) {
-        qtype = QType::chartocode(type.c_str());
+        qtype = QType::fromString(type);
         if (qtype == 0) {
           throw std::runtime_error("Unknown QType '" + type + "' in protobuf's export types");
         }

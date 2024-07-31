@@ -2283,7 +2283,7 @@ void GSQLBackend::extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& r)
   else
     r.qname=DNSName(row[6]);
 
-  r.qtype=row[3];
+  r.qtype = QType::fromString(row[3]);
 
   if (d_upgradeContent && DNSRecordContent::isUnknownType(row[3]) && DNSRecordContent::isRegisteredType(r.qtype, r.qclass)) {
     r.content = DNSRecordContent::upgradeContent(r.qname, r.qtype, row[0]);
@@ -2324,7 +2324,7 @@ void GSQLBackend::extractComment(SSqlStatement::row_t& row, Comment& comment)
 {
   pdns::checked_stoi_into(comment.domain_id, row[0]);
   comment.qname = DNSName(row[1]);
-  comment.qtype = row[2];
+  comment.qtype = QType::fromString(row[2]);
   pdns::checked_stoi_into(comment.modified_at, row[3]);
   comment.account = std::move(row[4]);
   comment.content = std::move(row[5]);

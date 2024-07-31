@@ -479,7 +479,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
   bool subtree = req->getvars.count("subtree") > 0 && req->getvars["subtree"] == "true";
   uint16_t qtype = 0xffff;
   if (req->getvars.count("type") != 0) {
-    qtype = QType::chartocode(req->getvars["type"].c_str());
+    qtype = QType::fromString(req->getvars["type"]);
   }
 
   struct WipeCacheResult res = wipeCaches(canon, subtree, qtype);
