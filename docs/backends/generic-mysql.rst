@@ -1,4 +1,4 @@
-Generic MySQL backend
+Generic MySQL/MariaDB  backend
 =====================
 
 * Native: Yes
@@ -14,15 +14,15 @@ Generic MySQL backend
 * Launch name: ``gmysql``
 
 .. warning::
-  If using MySQL with 'slave' support enabled in PowerDNS you
-  **must** run MySQL with a table engine that supports transactions. In
+  If using MySQL  with 'slave' support enabled in PowerDNS you
+  **must** run MySQL  with a table engine that supports transactions. In
   practice, great results are achieved with the 'InnoDB' tables. PowerDNS
   will silently function with non-transaction aware MySQLs but at one
   point this is going to harm your database, for example when an incoming
   zone transfer fails.
 
 .. warning::
-  While it is possible to run the Generic MySQL backend on top of MySQL
+  While it is possible to run the Generic MySQL/MariaDB backend on top of MySQL/MariaDB 
   views, we have received several reports of this causing performance
   problems and memory leaks.  Please know that when reporting problems when
   running PowerDNS on top of a modified schema, our open source support
@@ -43,10 +43,10 @@ domains table. The following SQL does the job:
 .. literalinclude:: ../../modules/gmysqlbackend/enable-foreign-keys.mysql.sql
    :language: SQL
 
-Using MySQL replication
+Using MySQL/MariaDB replication
 -----------------------
 
-To support ``NATIVE`` domains, the ``binlog_format`` for the MySQL
+To support ``NATIVE`` domains, the ``binlog_format`` for the MySQL/MariaDB
 replication **must** be set to ``MIXED`` or ``ROW`` to prevent
 differences in data between replicated servers. See `"Setting
 The Binary Log
