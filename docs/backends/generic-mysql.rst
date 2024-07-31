@@ -14,8 +14,8 @@ Generic MySQL/MariaDB  backend
 * Launch name: ``gmysql``
 
 .. warning::
-  If using MySQL  with 'slave' support enabled in PowerDNS you
-  **must** run MySQL  with a table engine that supports transactions. In
+  If using MySQL with 'slave' support enabled in PowerDNS you
+  **must** run MySQL with a table engine that supports transactions. In
   practice, great results are achieved with the 'InnoDB' tables. PowerDNS
   will silently function with non-transaction aware MySQLs but at one
   point this is going to harm your database, for example when an incoming
@@ -51,6 +51,7 @@ replication **must** be set to ``MIXED`` or ``ROW`` to prevent
 differences in data between replicated servers. See `"Setting
 The Binary Log
 Format" <http://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html>`__
+and "Binary Log Formats" <https://mariadb.com/kb/en/binary-log-formats/>`__
 for more information.
 
 Otherwise, you will probably see:
