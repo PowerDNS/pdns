@@ -1,5 +1,5 @@
 Generic MySQL/MariaDB  backend
-=====================
+==============================
 
 * Native: Yes
 * Master: Yes
@@ -44,7 +44,7 @@ domains table. The following SQL does the job:
    :language: SQL
 
 Using MySQL/MariaDB replication
------------------------
+-------------------------------
 
 To support ``NATIVE`` domains, the ``binlog_format`` for the MySQL/MariaDB
 replication **must** be set to ``MIXED`` or ``ROW`` to prevent
