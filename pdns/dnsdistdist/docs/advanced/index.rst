@@ -24,3 +24,4 @@ These chapters contain information on the advanced features of dnsdist
    internal-design
    asynchronous-processing
    xsk
+   zero-scope
