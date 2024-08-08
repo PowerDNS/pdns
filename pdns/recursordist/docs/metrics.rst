@@ -388,8 +388,8 @@ dnssec-result-bogus-missing-negative-indication
 
 number of responses sent, packet-cache hits excluded, that were in the Bogus state because a NODATA or NXDOMAIN answer lacked the required SOA and/or NSEC(3) records.
 
-dnssec-result-bogus-signature-no-yet-valid
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dnssec-result-bogus-signature-not-yet-valid
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.4.2
 
 number of responses sent, packet-cache hits excluded, that were in the Bogus state because the signature inception time in the RRSIG was not yet valid.
