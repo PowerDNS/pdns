@@ -59,7 +59,7 @@ public:
   std::string toJson() const;
   void setType(CatalogType type) { d_type = type; }
 
-  void updateHash(CatalogHashMap& hashes, const DomainInfo& di) const;
+  static void updateCatalogHash(CatalogHashMap& hashes, const DomainInfo& di);
   DNSName getUnique() const { return DNSName(toBase32Hex(hashQNameWithSalt(std::to_string(d_id), 0, d_zone))); } // salt with domain id to detect recreated zones
   static DNSZoneRecord getCatalogVersionRecord(const DNSName& zone);
   void toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& dzrs) const;
@@ -77,4 +77,6 @@ public:
 private:
   CatalogType d_type;
   json11::Json d_doc;
+
+  bool parseJson(const std::string& json, CatalogType type);
 };
