@@ -132,7 +132,7 @@ public:
     declare(suffix, "update-account-query", "", "update domains set account=? where name=?");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=? where id=?");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=? where id=?");
-    declare(suffix, "info-all-primary-query", "", "select d.id, d.name, d.type, d.notified_serial,d.options, d.catalog,r.content from records r join domains d on r.domain_id=d.id and r.name=d.name where r.type='SOA' and r.disabled=0 and d.type in ('MASTER', 'PRODUCER')");
+    declare(suffix, "info-all-primary-query", "", "select d.id, d.name, d.type, d.notified_serial,d.options, d.catalog,r.content from records r join domains d on r.domain_id=d.id and r.name=d.name where r.type='SOA' and r.disabled=0 and d.type in ('MASTER', 'PRODUCER') order by d.id");
     declare(suffix, "info-producer-members-query", "", "select domains.id, domains.name, domains.options from records join domains on records.domain_id=domains.id and records.name=domains.name where domains.type='MASTER' and domains.catalog=? and records.type='SOA' and records.disabled=0");
     declare(suffix, "info-consumer-members-query", "", "select id, name, options, master from domains where type='SLAVE' and catalog=?");
     declare(suffix, "delete-domain-query", "", "delete from domains where name=?");
