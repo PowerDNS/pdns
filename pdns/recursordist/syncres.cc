@@ -1609,7 +1609,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool 
       ret = asyncresolve(address, sendQname, type, doTCP, sendRDQuery, EDNSLevel, now, srcmask, ctx, d_outgoingProtobufServers, d_frameStreamServers, luaconfsLocal->outgoingProtobufExportConfig.exportTypes, res, chained);
     }
 
-    if (ret == LWResult::Result::PermanentError || ret == LWResult::Result::OSLimitError || ret == LWResult::Result::Spoofed) {
+    if (ret == LWResult::Result::PermanentError || LWResult::isLimitError(ret) || ret == LWResult::Result::Spoofed) {
       break; // transport error, nothing to learn here
     }
 
@@ -5477,6 +5477,11 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       LOG(prefix << qname << ": Hit a local resource limit resolving" << (doTCP ? " over TCP" : "") << ", probable error: " << stringerror() << endl);
       t_Counters.at(rec::Counter::resourceLimits)++;
     }
+    else if (resolveret == LWResult::Result::ChainLimitError) {
+      /* Chain resource limit reached */
+      LOG(prefix << qname << ": Hit a chain limit resolving" << (doTCP ? " over TCP" : ""));
+      t_Counters.at(rec::Counter::chainLimits)++;
+    }
     else {
       /* LWResult::Result::PermanentError */
       t_Counters.at(rec::Counter::unreachables)++;
@@ -5487,7 +5492,7 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
     // don't account for resource limits, they are our own fault
     // And don't throttle when the IP address is on the dontThrottleNetmasks list or the name is part of dontThrottleNames
-    if (resolveret != LWResult::Result::OSLimitError && !chained && !dontThrottle) {
+    if (!LWResult::isLimitError(resolveret) && !chained && !dontThrottle) {
       uint32_t responseUsec = 1000000; // 1 sec for non-timeout cases
       // Use the actual time if we saw a timeout
       if (resolveret == LWResult::Result::Timeout) {

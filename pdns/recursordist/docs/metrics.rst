@@ -262,6 +262,10 @@ case-mismatches
 ^^^^^^^^^^^^^^^
 counts the number of mismatches in character   case since starting
 
+chain-limits
+^^^^^^^^^^^^
+counts the number of times a chain limit (size or age) has been hit
+
 chain-resends
 ^^^^^^^^^^^^^
 number of queries chained to existing outstanding   query
