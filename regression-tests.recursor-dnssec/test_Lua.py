@@ -11,7 +11,7 @@ from twisted.internet import reactor
 from recursortests import RecursorTest
 
 class GettagRecursorTest(RecursorTest):
-    _confdir = 'LuaGettag'
+    _confdir = 'GettagRecursor'
     _config_template = """
     log-common-errors=yes
     gettag-needs-edns-options=yes
@@ -209,7 +209,7 @@ class GettagRecursorTest(RecursorTest):
         self.assertResponseMatches(query, expected, res)
 
 class GettagRecursorDistributesQueriesTest(GettagRecursorTest):
-    _confdir = 'LuaGettagDistributes'
+    _confdir = 'GettagRecursorDistributesQueries'
     _config_template = """
     log-common-errors=yes
     gettag-needs-edns-options=yes
@@ -247,7 +247,7 @@ class UDPHooksResponder(DatagramProtocol):
         self.transport.write(response.to_wire(), address)
 
 class LuaHooksRecursorTest(RecursorTest):
-    _confdir = 'LuaHooks'
+    _confdir = 'LuaHooksRecursor'
     _config_template = """
 forward-zones=luahooks.example=%s.23
 log-common-errors=yes
@@ -446,7 +446,7 @@ quiet=no
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
 
 class LuaHooksRecursorDistributesTest(LuaHooksRecursorTest):
-    _confdir = 'LuaHooksDistributes'
+    _confdir = 'LuaHooksRecursorDistributes'
     _config_template = """
 forward-zones=luahooks.example=%s.23
 log-common-errors=yes
@@ -458,7 +458,7 @@ quiet=no
 class LuaDNS64Test(RecursorTest):
     """Tests the dq.followupAction("getFakeAAAARecords")"""
 
-    _confdir = 'lua-dns64'
+    _confdir = 'LuaDNS64'
     _config_template = """
     """
     _lua_dns_script_file = """
@@ -519,7 +519,7 @@ class GettagFFIDNS64Test(RecursorTest):
        - DNS64 should kick in, generating an AAAA
     """
 
-    _confdir = 'gettagffi-rpz-dns64'
+    _confdir = 'GettagFFIDNS64'
     _config_template = """
     dns64-prefix=64:ff9b::/96
     """
@@ -572,7 +572,7 @@ dns64.test.powerdns.com.zone.rpz. 60 IN A 192.0.2.42
 class PDNSRandomTest(RecursorTest):
     """Tests if pdnsrandom works"""
 
-    _confdir = 'pdnsrandom'
+    _confdir = 'PDNSRandom'
     _config_template = """
     """
     _lua_dns_script_file = """
@@ -600,7 +600,7 @@ class PDNSRandomTest(RecursorTest):
 class PDNSFeaturesTest(RecursorTest):
     """Tests if pdns_features works"""
 
-    _confdir = 'pdnsfeatures'
+    _confdir = 'PDNSFeatures'
     _config_template = """
     """
     _lua_dns_script_file = """
@@ -628,7 +628,7 @@ class PDNSFeaturesTest(RecursorTest):
 class PDNSGeneratingAnswerFromGettagTest(RecursorTest):
     """Tests that we can generate answers from gettag"""
 
-    _confdir = 'gettaganswers'
+    _confdir = 'PDNSGeneratingAnswerFromGettag'
     _config_template = """
     """
     _lua_dns_script_file = """
@@ -685,7 +685,7 @@ class PDNSGeneratingAnswerFromGettagTest(RecursorTest):
 class PDNSValidationStatesTest(RecursorTest):
     """Tests that we have access to the validation states from Lua"""
 
-    _confdir = 'validation-states-from-lua'
+    _confdir = 'PDNSValidationStates'
     _config_template = """
 dnssec=validate
 """
@@ -751,7 +751,7 @@ class PolicyEventFilterOnFollowUpTest(RecursorTest):
     """Tests the interaction between RPZ and followup queries (dns64, followCNAME)
     """
 
-    _confdir = 'policyeventfilter-followup'
+    _confdir = 'PolicyEventFilterOnFollowUp'
     _config_template = """
     """
     _lua_config_file = """
@@ -802,7 +802,7 @@ class PolicyEventFilterOnFollowUpWithNativeDNS64Test(RecursorTest):
     """Tests the interaction between followup queries and native dns64
     """
 
-    _confdir = 'policyeventfilter-followup-dns64'
+    _confdir = 'PolicyEventFilterOnFollowUpWithNativeDNS64'
     _config_template = """
     dns64-prefix=1234::/96
     """
@@ -838,7 +838,7 @@ class PolicyEventFilterOnFollowUpWithNativeDNS64Test(RecursorTest):
 class LuaPostResolveFFITest(RecursorTest):
     """Tests postresolve_ffi interface"""
 
-    _confdir = 'LuaPostResolveFFITest'
+    _confdir = 'LuaPostResolveFFI'
     _config_template = """
     """
     _lua_dns_script_file = """

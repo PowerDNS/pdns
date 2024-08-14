@@ -2,7 +2,7 @@ import dns
 from recursortests import RecursorTest
 
 
-class testTrustAnchorsEnabled(RecursorTest):
+class TrustAnchorsEnabledTest(RecursorTest):
     """This test will do a query for "trustanchor.server CH TXT" and hopes to get
     a proper answer"""
 
@@ -42,7 +42,7 @@ addNTA("example.com", "some reason")
         self.assertRRsetInAnswer(result, expected)
 
 
-class testTrustAnchorsDisabled(RecursorTest):
+class TrustAnchorsDisabledTest(RecursorTest):
     """This test will do a query for "trustanchor.server CH TXT" and hopes to get
     a proper answer"""
 

@@ -386,7 +386,7 @@ class ProtobufProxyMappingTest(TestRecursorProtobuf):
     This test makes sure that we correctly export queries and response over protobuf with a proxyMapping
     """
 
-    _confdir = 'ProtobufProxyMappingTest'
+    _confdir = 'ProtobufProxyMapping'
     _config_template = """
     auth-zones=example=configs/%s/example.zone
     allow-from=3.4.5.0/24
@@ -424,7 +424,7 @@ class ProtobufProxyMappingLogMappedTest(TestRecursorProtobuf):
     This test makes sure that we correctly export queries and response over protobuf.
     """
 
-    _confdir = 'ProtobufProxyMappingLogMappedTest'
+    _confdir = 'ProtobufProxyMappingLogMapped'
     _config_template = """
     auth-zones=example=configs/%s/example.zone
     allow-from=3.4.5.0/0"
@@ -643,7 +643,7 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
     that the recursor at least connects to the protobuf server.
     """
 
-    _confdir = 'OutgoingProtobuffWithECSMapping'
+    _confdir = 'OutgoingProtobufWithECSMapping'
     _config_template = """
     # Switch off QName Minimization, it generates much more protobuf messages
     # (or make the test much more smart!)
@@ -1532,7 +1532,7 @@ class ProtobufMetaFFITest(TestRecursorProtobuf):
     """
     This test makes sure that we can correctly add extra meta fields (FFI version).
     """
-    _confdir = 'ProtobufMetaFFITest'
+    _confdir = 'ProtobufMetaFFI'
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """

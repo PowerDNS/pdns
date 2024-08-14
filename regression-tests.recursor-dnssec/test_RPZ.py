@@ -387,7 +387,7 @@ class RPZXFRRecursorTest(RPZRecursorTest):
     -- The first server is a bogus one, to test that we correctly fail over to the second one
     rpzMaster({'127.0.0.1:9999', '127.0.0.1:%d'}, 'zone.rpz.', { refresh=1, includeSOA=true})
     """ % (rpzServerPort)
-    _confdir = 'RPZXFR'
+    _confdir = 'RPZXFRRecursor'
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'
@@ -564,7 +564,7 @@ class RPZFileRecursorTest(RPZRecursorTest):
     This test makes sure that we correctly load RPZ zones from a file
     """
 
-    _confdir = 'RPZFile'
+    _confdir = 'RPZFileRecursor'
     _lua_config_file = """
     rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz.", includeSOA=true })
     """ % (_confdir)
@@ -618,7 +618,7 @@ class RPZFileDefaultPolRecursorTest(RPZRecursorTest):
     This test makes sure that we correctly load RPZ zones from a file with a default policy
     """
 
-    _confdir = 'RPZFileDefaultPolicy'
+    _confdir = 'RPZFileDefaultPolRecursor'
     _lua_config_file = """
     rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz.", defpol=Policy.NoAction })
     """ % (_confdir)
@@ -671,7 +671,7 @@ class RPZFileDefaultPolNotOverrideLocalRecursorTest(RPZRecursorTest):
     This test makes sure that we correctly load RPZ zones from a file with a default policy, not overriding local data entries
     """
 
-    _confdir = 'RPZFileDefaultPolicyNotOverrideLocal'
+    _confdir = 'RPZFileDefaultPolNotOverrideLocalRecursor'
     _lua_config_file = """
     rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz.", defpol=Policy.NoAction, defpolOverrideLocalData=false })
     """ % (_confdir)
@@ -775,7 +775,7 @@ class RPZOrderingPrecedenceRecursorTest(RPZRecursorTest):
     This test makes sure that the recursor respects the RPZ ordering precedence rules
     """
 
-    _confdir = 'RPZOrderingPrecedence'
+    _confdir = 'RPZOrderingPrecedenceRecursor'
     _lua_config_file = """
     rpzFile('configs/%s/zone.rpz', { policyName="zone.rpz."})
     rpzFile('configs/%s/zone2.rpz', { policyName="zone2.rpz."})
@@ -1040,7 +1040,7 @@ class RPZFileModByLuaRecursorTest(RPZRecursorTest):
     This test makes sure that we correctly load RPZ zones from a file while being modified by Lua callbacks
     """
 
-    _confdir = 'RPZFileModByLua'
+    _confdir = 'RPZFileModByLuaRecursor'
     _lua_dns_script_file = """
     function preresolve(dq)
       if dq.qname:equal('zmod.example.') then

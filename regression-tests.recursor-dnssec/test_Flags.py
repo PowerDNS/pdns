@@ -5,7 +5,7 @@ import dns
 from recursortests import RecursorTest
 
 
-class TestFlags(RecursorTest):
+class FlagsTest(RecursorTest):
     _confdir = 'Flags'
     _config_template = """dnssec=%s"""
     _config_params = ['_dnssec_setting']

@@ -2,7 +2,7 @@ import dns
 import os
 from recursortests import RecursorTest
 
-class testBogusMaxTTL(RecursorTest):
+class BogusMaxTTLTest(RecursorTest):
     _confdir = 'BogusMaxTTL'
 
     _config_template = """dnssec=validate
