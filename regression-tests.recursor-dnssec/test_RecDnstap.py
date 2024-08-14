@@ -4,6 +4,7 @@ import socket
 import struct
 import sys
 import threading
+import time
 import dns
 import dnstap_pb2
 from unittest import SkipTest
@@ -330,6 +331,7 @@ dnstapFrameStreamServer({"%s"}, {logQueries=false})
         self.assertNotEqual(res, None)
 
         # We don't expect anything
+        time.sleep(1)
         self.assertTrue(DNSTapServerParameters.queue.empty())
 
 class DNSTapLogNODTest(TestRecursorDNSTap):
@@ -368,7 +370,7 @@ dnstapNODFrameStreamServer({"%s"})
         return dnstap
 
     def testA(self):
-        name = 'www.example.org.'
+        name = 'types.example.'
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
         res = self.sendUDPQuery(query)
