@@ -4232,6 +4232,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   /* list of names for which we will allow A and AAAA records in the additional section
      to remain */
   std::unordered_set<DNSName> allowedAdditionals = {qname};
+  std::unordered_set<DNSName> allowedAnswerNames = {qname};
   bool haveAnswers = false;
   bool isNXDomain = false;
   bool isNXQType = false;
@@ -4263,7 +4264,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       continue;
     }
 
-    // Disallow any name not part of qname requested
+    // Disallow any name not part of auth requested (i.e. disallow x.y.z if asking a NS authoritative for x.w.z)
     if (!rec->d_name.isPartOf(auth)) {
       LOG(prefix << qname << ": Removing record '" << rec->toString() << "' in the " << DNSResourceRecord::placeString(rec->d_place) << " section received from " << auth << endl);
       skipvec[counter] = true;
@@ -4272,6 +4273,8 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
 
     // Disallow QType DNAME in non-answer section or containing an answer that is not a parent of or equal to the question name
+    // i.e. disallowed bar.example.com. DNAME bar.example.net. when asking foo.example.com
+    // But allow it when asking for foo.bar.example.com.
     if (rec->d_type == QType::DNAME && (rec->d_place != DNSResourceRecord::ANSWER || !qname.isPartOf(rec->d_name))) {
       LOG(prefix << qname << ": Removing invalid DNAME record '" << rec->toString() << "' in the " << DNSResourceRecord::placeString(rec->d_place) << " section received from " << auth << endl);
       skipvec[counter] = true;
@@ -4301,6 +4304,14 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
       }
 
       haveAnswers = true;
+      if (rec->d_type == QType::CNAME) {
+        if (auto cnametarget = getRR<CNAMERecordContent>(*rec); cnametarget != nullptr) {
+          allowedAnswerNames.insert(cnametarget->getTarget());
+        }
+      }
+      else if (rec->d_type == QType::DNAME) {
+        allowedAnswerNames.insert(rec->d_name);
+      }
       allowAdditionalEntry(allowedAdditionals, *rec);
     }
 
@@ -4363,10 +4374,10 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
   } // end of first loop, handled answer and most of authority section
 
-  sanitizeRecordsPass2(prefix, lwr, qname, auth, allowedAdditionals, isNXDomain, isNXQType, skipvec, skipCount);
+  sanitizeRecordsPass2(prefix, lwr, qname, auth, allowedAnswerNames, allowedAdditionals, isNXDomain, isNXQType, skipvec, skipCount);
 }
 
-void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, std::unordered_set<DNSName>& allowedAdditionals, bool isNXDomain, bool isNXQType, std::vector<bool>& skipvec, unsigned int& skipCount)
+void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, std::unordered_set<DNSName>& allowedAnswerNames, std::unordered_set<DNSName>& allowedAdditionals, bool isNXDomain, bool isNXQType, std::vector<bool>& skipvec, unsigned int& skipCount)
 {
   // Second loop, we know now if the answer was NxDomain or NoData
   unsigned int counter = 0;
@@ -4381,8 +4392,12 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
     }
 
     if (rec->d_place == DNSResourceRecord::ANSWER) {
-      // Fully handled ANSWER section in first loop. This might change with more strict validation
-      continue;
+      if (allowedAnswerNames.count(rec->d_name) == 0) {
+        LOG(prefix << qname << ": Removing irrelevent record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
+        skipvec[counter] = true;
+        ++skipCount;
+        continue;
+      }
     }
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS) {
       if (isNXDomain || isNXQType) {
