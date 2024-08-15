@@ -63,10 +63,10 @@ DNSPacket::DNSPacket(bool isQuery): d_isQuery(isQuery)
   memset(&d, 0, sizeof(d));
 }
 
-const string& DNSPacket::getString(bool throwsOnTruncation)
+const string& DNSPacket::getString(bool leaveOverflow)
 {
   if(!d_wrapped)
-    wrapup(throwsOnTruncation);
+    wrapup(leaveOverflow);
 
   return d_rawpacket;
 }
@@ -260,7 +260,7 @@ bool DNSPacket::isEmpty()
 /** Must be called before attempting to access getData(). This function stuffs all resource
  *  records found in rrs into the data buffer. It also frees resource records queued for us.
  */
-void DNSPacket::wrapup(bool throwsOnTruncation)
+void DNSPacket::wrapup(bool leaveOverflow)
 {
   if(d_wrapped) {
     return;
@@ -280,6 +280,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   if(!d_xfr && !mustNotShuffle) {
     pdns::shuffle(d_rrs);
   }
+  d_leftRRs.clear();
   d_wrapped=true;
 
   vector<uint8_t> packet;
@@ -346,25 +347,36 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   if(!d_rrs.empty() || !opts.empty() || d_haveednssubnet || d_haveednssection || d_haveednscookie) {
     try {
       uint8_t maxScopeMask=0;
+      bool haveRRs = false;
       for(pos=d_rrs.begin(); pos < d_rrs.end(); ++pos) {
         maxScopeMask = max(maxScopeMask, pos->scopeMask);
 
         pw.startRecord(pos->dr.d_name, pos->dr.d_type, pos->dr.d_ttl, pos->dr.d_class, pos->dr.d_place);
         pos->dr.getContent()->toPacket(pw);
         if(pw.size() + optsize > (d_tcp ? 65535 : getMaxReplyLen())) {
-          if (throwsOnTruncation) {
-            throw PDNSException("attempt to write an oversized chunk");
-          }
+          // would overflow.
           pw.rollback();
-          pw.truncate();
-          pw.getHeader()->tc=1;
-          goto noCommit;
+          if (leaveOverflow) {
+            // send out the RRs that fit.
+            for(; pos < d_rrs.end(); ++pos) {
+              d_leftRRs.push_back(*pos);
+            }
+            break;
+          } else {
+            // indicate packet is truncated.
+            pw.truncate();
+            pw.getHeader()->tc=1;
+            goto noCommit;
+          }
         }
+        haveRRs = true;
       }
 
       // if(!pw.getHeader()->tc) // protect against double commit from addSignature
 
-      if(!d_rrs.empty()) pw.commit();
+      if(haveRRs) {
+        pw.commit();
+      }
 
       noCommit:;
 

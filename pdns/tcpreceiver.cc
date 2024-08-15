@@ -177,7 +177,7 @@ void TCPNameserver::sendPacket(std::unique_ptr<DNSPacket>& p, int outsock, bool 
 {
   uint16_t len=htons(p->getString(true).length());
 
-  // this also calls p->getString; call it after our explicit call so throwsOnTruncation=true is honoured
+  // this also calls p->getString; call it after our explicit call so leaveOverflow=true is honoured
   g_rs.submitResponse(*p, false, last);
 
   string buffer((const char*)&len, 2);
@@ -1141,13 +1141,19 @@ send:
   cerr<<"Outstanding: "<<csp.d_outstanding<<", "<<csp.d_queued - csp.d_signed << endl;
   cerr<<"Ready for consumption: "<<csp.getReady()<<endl;
   * */
+  vector<DNSZoneRecord> outzrs;
   for(;;) {
-    outpacket->getRRS() = csp.getChunk(true); // flush the pipe
-    if(!outpacket->getRRS().empty()) {
-      if(haveTSIGDetails && !tsigkeyname.empty())
+    outzrs = csp.getChunk(true); // flush the pipe
+
+    while (!outzrs.empty()) {
+      if(haveTSIGDetails && !tsigkeyname.empty()) {
         outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true); // first answer is 'normal'
+      }
+
+      outpacket->getRRS() = outzrs;
       try {
         sendPacket(outpacket, outsock, false);
+        outzrs = outpacket->getLeftRRs();
       }
       catch (PDNSException& pe) {
         throw PDNSException("during axfr-out of "+target.toString()+", this happened: "+pe.reason);
@@ -1155,8 +1161,10 @@ send:
       trc.d_mac=outpacket->d_trc.d_mac;
       outpacket=getFreshAXFRPacket(q);
     }
-    else
+
+    if (outzrs.empty()) {
       break;
+    }
   }
 
   udiff=dt.udiffNoReset();

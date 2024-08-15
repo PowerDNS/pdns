@@ -58,7 +58,7 @@ public:
 
   int noparse(const char *mesg, size_t len); //!< just suck the data inward
   int parse(const char *mesg, size_t len); //!< parse a raw UDP or TCP packet and suck the data inward
-  const string& getString(bool throwsOnTruncation=false); //!< for serialization - just passes the whole packet. If throwsOnTruncation is set, an exception will be raised if the records are too large to fit inside a single DNS payload, instead of setting the TC bit
+  const string& getString(bool leaveOverflow=false); //!< for serialization - just passes the whole packet. If leaveOverflow is set, records not fitting into a single DNS packet will be left in d_leftRRs and TC will not be set.
 
   // address & socket manipulation
   void setRemote(const ComboAddress*, std::optional<ComboAddress> = std::nullopt);
@@ -106,7 +106,6 @@ public:
   void setQuestion(int op, const DNSName &qdomain, int qtype);  // wipes 'd', sets a random id, creates start of packet (domain, type, class etc)
 
   DTime d_dt; //!< the time this packet was created. replyPacket() copies this in for you, so d_dt becomes the time spent processing the question+answer
-  void wrapup(bool throwsOnTruncation=false);  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer. If throwsOnTruncation is set, an exception will be raised if the records are too large to fit inside a single DNS payload, instead of setting the TC bit
   void spoofQuestion(const DNSPacket& qd); //!< paste in the exact right case of the question. Useful for PacketCache
   unsigned int getMinTTL(); //!< returns lowest TTL of any record in the packet
   bool isEmpty(); //!< returns true if there are no rrs in the packet
@@ -168,6 +167,7 @@ public:
   bool getTKEYRecord(TKEYRecordContent* tr, DNSName* keyname) const;
 
   vector<DNSZoneRecord>& getRRS() { return d_rrs; }
+  vector<DNSZoneRecord>& getLeftRRs() { return d_leftRRs; }  // RRs that did not fit into the packet if leaveOverflow=true.
   bool checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc) const;
 
   static uint16_t s_udpTruncationThreshold;
@@ -182,6 +182,7 @@ public:
 
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
+  void wrapup(bool leaveOverflow=false);  // writes out queued rrs, and generates the binary packet. also shuffles. also rectifies dnsheader 'd', and copies it to the stringbuffer. If leaveOverflow is set, records not fitting into a single DNS packet will be left in d_leftRRs and TC will not be set.
 
   string d_tsigsecret;
   DNSName d_tsigkeyname;
@@ -208,4 +209,6 @@ private:
   bool d_ednscookievalid{false};
   bool d_haveednssection{false};
   bool d_isQuery;
+
+  vector<DNSZoneRecord> d_leftRRs;
 };
