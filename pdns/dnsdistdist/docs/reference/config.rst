@@ -1368,10 +1368,9 @@ Status, Statistics and More
     ``options`` optional parameter added
 
   This function shows all backend servers currently configured and some statistics.
-  These statics have the following fields:
+  These statistics have the following fields:
 
   * ``#`` - The number of the server, can be used as the argument for :func:`getServer`
-  * ``UUID`` - The UUID of the backend. Can be set with the ``id`` option of :func:`newServer`
   * ``Name`` - The name of the backend, if any
   * ``Address`` - The IP address and port of the server
   * ``State`` - The current state of the server
@@ -1385,6 +1384,7 @@ Status, Statistics and More
   * ``Lat`` - The latency of this server, for queries forwarded over UDP, in milliseconds
   * ``Outstanding`` - The current number of in-flight queries
   * ``Pools`` - The pools this server belongs to
+  * ``UUID`` - The UUID of the backend, only displayed when the ``showUUIDs`` option is set. Can be set with the ``id`` option of :func:`newServer`
   * ``TCP`` - The latency of this server, for queries forwarded over TCP, in milliseconds
 
   :param table options: A table with key: value pairs with display options.
