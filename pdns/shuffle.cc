@@ -143,7 +143,7 @@ void pdns::orderAndShuffle(vector<DNSRecord>& rrs, bool includingAdditionals)
 
 unsigned int pdns::dedup(vector<DNSRecord>& rrs)
 {
-  // This functino tries to avoid unneccesary work
+  // This function tries to avoid unneccesary work
   // First a vector with zero or one element does not need dedupping
   if (rrs.size() <= 1) {
     return 0;
@@ -151,15 +151,16 @@ unsigned int pdns::dedup(vector<DNSRecord>& rrs)
 
   // If we have a larger vector, first check if we actually have duplicates.
   // We assume the most common case is: no
-  std::set<std::tuple<DNSName, QType, std::string>> seen;
+  std::unordered_set<std::string> seen;
   std::vector<bool> dups(rrs.size(), false);
 
   unsigned int counter = 0;
   unsigned int numDups = 0;
 
   for (const auto& rec : rrs) {
+    const auto key = rec.getContent()->wireFormatContent(rec.d_name, true, true);
     // This ignores class, ttl and place by using constants for those
-    if (!seen.emplace(rec.d_name.makeLowerCase(), rec.d_type, rec.getContent()->serialize(rec.d_name, true, false)).second) {
+    if (!seen.emplace(key).second) {
       dups[counter] = true;
       numDups++;
     }

@@ -48,8 +48,9 @@ BOOST_AUTO_TEST_CASE(test_simple)
   BOOST_CHECK_EQUAL(dups, 1U);
   BOOST_CHECK_EQUAL(list.size(), 2U);
   addRecordToList(list, DNSName("Foo"), QType::A, "1.2.3.4");
+  addRecordToList(list, DNSName("FoO"), QType::A, "1.2.3.4", DNSResourceRecord::ADDITIONAL, 999);
   dups = pdns::dedup(list);
-  BOOST_CHECK_EQUAL(dups, 1U);
+  BOOST_CHECK_EQUAL(dups, 2U);
   BOOST_CHECK_EQUAL(list.size(), 2U);
   BOOST_CHECK_EQUAL(address, &list);
 }
