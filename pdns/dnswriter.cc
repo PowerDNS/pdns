@@ -457,6 +457,12 @@ template <typename Container> void GenericDNSPacketWriter<Container>::getRecordP
   records.assign(d_content.begin() + d_sor, d_content.end());
 }
 
+// call __before commit__
+template <typename Container> void GenericDNSPacketWriter<Container>::getContentWireFormat(string& records)
+{
+  records.assign(d_content.begin() + d_rollbackmarker, d_content.end());
+}
+
 template <typename Container> uint32_t GenericDNSPacketWriter<Container>::size() const
 {
   return d_content.size();

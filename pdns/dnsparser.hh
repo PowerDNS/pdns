@@ -220,6 +220,26 @@ public:
     return record;
   }
 
+  [[nodiscard]] string wireFormatContent(const DNSName& qname, bool canonic = false, bool lowerCase = false) const
+  {
+    vector<uint8_t> packet;
+    DNSPacketWriter packetWriter(packet, g_rootdnsname, QType::A);
+
+    if (canonic) {
+      packetWriter.setCanonic(true);
+    }
+    if (lowerCase) {
+      packetWriter.setLowercase(true);
+    }
+
+    packetWriter.startRecord(qname, getType());
+    toPacket(packetWriter);
+
+    string record;
+    packetWriter.getContentWireFormat(record); // needs to be called before commit()
+    return record;
+  }
+
   virtual bool operator==(const DNSRecordContent& rhs) const
   {
     return typeid(*this)==typeid(rhs) && this->getZoneRepresentation() == rhs.getZoneRepresentation();
