@@ -1048,33 +1048,14 @@ def coverity_upload(c, email, project, tarball):
 
 @task
 def ci_build_and_install_quiche(c, repo):
-    with open(f'{repo}/builder-support/helpers/quiche.json') as quiche_json:
-        quiche_data = json.load(quiche_json)
-        quiche_version = quiche_data['version']
-        quiche_hash = quiche_data['SHA256SUM']
+    with c.cd(f'{repo}/builder-support/helpers/'):
+        c.run(f'sudo {repo}/builder-support/helpers/install_quiche.sh')
 
-    # we have to pass -L because GitHub will do a redirect, sadly
-    c.run(f'curl -L -o quiche-{quiche_version}.tar.gz https://github.com/cloudflare/quiche/archive/{quiche_version}.tar.gz')
-    # Line below should echo two spaces between digest and name
-    c.run(f'echo {quiche_hash}"  "quiche-{quiche_version}.tar.gz | sha256sum -c -')
-    c.run(f'tar xf quiche-{quiche_version}.tar.gz')
-    with c.cd(f'quiche-{quiche_version}'):
-        # Disable SONAME in the quiche shared library, we do not intend this library to be used by anyone else and it makes things more complicated since we rename it to libdnsdist-quiche
-        c.run('sed -i \'s/ffi = \["dep:cdylib-link-lines"\]/ffi = \[\]/\' quiche/Cargo.toml')
-        c.run('sed -i \'s,cdylib_link_lines::metabuild();,//cdylib_link_lines::metabuild();,\' quiche/src/build.rs')
-        c.run('cargo build --release --no-default-features --features ffi,boringssl-boring-crate --package quiche')
-        # cannot use c.sudo() inside a cd() context, see https://github.com/pyinvoke/invoke/issues/687
-        c.run('sudo install -Dm644 quiche/include/quiche.h /usr/include')
-        c.run('sudo install -Dm644 target/release/libquiche.so /usr/lib')
-        c.run('install -D target/release/libquiche.so /opt/dnsdist/lib/libquiche.so')
-        c.run(f"""sudo install -Dm644 /dev/stdin /usr/lib/pkgconfig/quiche.pc <<PC
-# quiche
-Name: quiche
-Description: quiche library
-URL: https://github.com/cloudflare/quiche
-Version: {quiche_version}
-Libs: -lquiche
-PC""")
+    # cannot use c.sudo() inside a cd() context, see https://github.com/pyinvoke/invoke/issues/687
+    c.run('sudo mv /usr/lib/libdnsdist-quiche.so /usr/lib/libquiche.so')
+    c.run("sudo sed -i 's,^Libs:.*,Libs: -lquiche,g' /usr/lib/pkgconfig/quiche.pc")
+    c.run('mkdir -p /opt/dnsdist/lib')
+    c.run('cp /usr/lib/libquiche.so /opt/dnsdist/lib/libquiche.so')
 
 # this is run always
 def setup():
