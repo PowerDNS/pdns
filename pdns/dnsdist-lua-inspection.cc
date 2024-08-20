@@ -378,12 +378,18 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.executeCode(R"(function topResponses(top, kind, labels) top = top or 10; kind = kind or 0; for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
 
-  luaCtx.writeFunction("getSlowResponses", [](uint64_t top, uint64_t msec, boost::optional<int> labels) {
-      return getGenResponses(top, labels, [msec](const Rings::Response& r) { return r.usec > msec*1000; });
+  luaCtx.writeFunction("getSlowResponses", [](uint64_t top, uint64_t msec, boost::optional<int> labels, boost::optional<bool> timeouts) {
+    return getGenResponses(top, labels, [msec, timeouts](const Rings::Response& resp) {
+      if (timeouts && *timeouts) {
+        return resp.usec == std::numeric_limits<unsigned int>::max();
+      }
+      return resp.usec > msec * 1000 && resp.usec != std::numeric_limits<unsigned int>::max();
     });
+  });
 
+  luaCtx.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec, labels, false)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
-  luaCtx.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
+  luaCtx.executeCode(R"(function topTimeouts(top, labels) top = top or 10; for k,v in ipairs(getSlowResponses(top, 0, labels, true)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
   luaCtx.writeFunction("getTopBandwidth", [](uint64_t top) {
       setLuaNoSideEffect();
