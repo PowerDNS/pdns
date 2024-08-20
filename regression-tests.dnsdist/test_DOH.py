@@ -184,6 +184,7 @@ class DOHTests(object):
         query.id = 0
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[rewrittenEcso])
+        response.want_dnssec(True)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -899,9 +900,10 @@ class DOHAddingECSTests(object):
         rewrittenEcso = clientsubnetoption.ClientSubnetOption('127.0.0.0', 24)
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512, options=[ecso], want_dnssec=True)
         query.id = 0
-        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512, options=[rewrittenEcso])
+        expectedQuery = dns.message.make_query(name, 'A', 'IN', use_edns=True, payload=512, options=[rewrittenEcso], want_dnssec=True)
         response = dns.message.make_response(query)
         response.use_edns(edns=True, payload=4096, options=[rewrittenEcso])
+        response.want_dnssec(True)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,

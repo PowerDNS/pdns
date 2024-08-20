@@ -242,7 +242,7 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
       /* addOrReplaceEDNSOption will set it to false if there is already an existing option */
       optionAdded = true;
       addOrReplaceEDNSOption(options, optionToReplace, optionAdded, overrideExisting, newOptionContent);
-      packetWriter.addOpt(recordHeader.d_class, edns0.extRCode, edns0.extFlags, options, edns0.version);
+      packetWriter.addOpt(recordHeader.d_class, edns0.extRCode, ntohs(edns0.extFlags), options, edns0.version);
     }
   }
 
