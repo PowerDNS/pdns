@@ -1422,7 +1422,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
     uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
 
     if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache) {
-      dnsQuestion.ids.dnssecOK = (getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
+      dnsQuestion.ids.dnssecOK = (dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
     }
 
     if (dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool->getECS()))) {

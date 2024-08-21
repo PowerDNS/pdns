@@ -380,8 +380,9 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optL
   return ENOENT;
 }
 
+namespace dnsdist {
 /* extract the start of the OPT RR in a QUERY packet if any */
-int getEDNSOptionsStart(const PacketBuffer& packet, const size_t offset, uint16_t* optRDPosition, size_t* remaining)
+int getEDNSOptionsStart(const PacketBuffer& packet, const size_t qnameWireLength, uint16_t* optRDPosition, size_t* remaining)
 {
   if (optRDPosition == nullptr || remaining == nullptr) {
     throw std::runtime_error("Invalid values passed to getEDNSOptionsStart");
@@ -389,7 +390,7 @@ int getEDNSOptionsStart(const PacketBuffer& packet, const size_t offset, uint16_
 
   const dnsheader_aligned dnsHeader(packet.data());
 
-  if (offset >= packet.size()) {
+  if (qnameWireLength >= packet.size()) {
     return ENOENT;
   }
 
@@ -397,7 +398,7 @@ int getEDNSOptionsStart(const PacketBuffer& packet, const size_t offset, uint16_
     return ENOENT;
   }
 
-  size_t pos = sizeof(dnsheader) + offset;
+  size_t pos = sizeof(dnsheader) + qnameWireLength;
   pos += DNS_TYPE_SIZE + DNS_CLASS_SIZE;
 
   if (pos >= packet.size()) {
@@ -427,6 +428,7 @@ int getEDNSOptionsStart(const PacketBuffer& packet, const size_t offset, uint16_
   *remaining = packet.size() - pos;
 
   return 0;
+}
 }
 
 void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPrefixLength)
@@ -531,7 +533,7 @@ bool parseEDNSOptions(const DNSQuestion& dnsQuestion)
 
   size_t remaining = 0;
   uint16_t optRDPosition{};
-  int res = getEDNSOptionsStart(dnsQuestion.getData(), dnsQuestion.ids.qname.wirelength(), &optRDPosition, &remaining);
+  int res = dnsdist::getEDNSOptionsStart(dnsQuestion.getData(), dnsQuestion.ids.qname.wirelength(), &optRDPosition, &remaining);
 
   if (res == 0) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -616,7 +618,7 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, const size_t maximumSize, cons
   uint16_t optRDPosition = 0;
   size_t remaining = 0;
 
-  int res = getEDNSOptionsStart(packet, qnameWireLength, &optRDPosition, &remaining);
+  int res = dnsdist::getEDNSOptionsStart(packet, qnameWireLength, &optRDPosition, &remaining);
 
   if (res != 0) {
     /* no EDNS but there might be another record in additional (TSIG?) */
@@ -996,7 +998,7 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dnsQuestion)
   size_t remaining = 0;
 
   auto& packet = dnsQuestion.getMutableData();
-  int res = getEDNSOptionsStart(packet, dnsQuestion.ids.qname.wirelength(), &optRDPosition, &remaining);
+  int res = dnsdist::getEDNSOptionsStart(packet, dnsQuestion.ids.qname.wirelength(), &optRDPosition, &remaining);
 
   if (res != 0) {
     /* if the initial query did not have EDNS0, we are done */
@@ -1031,46 +1033,97 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dnsQuestion)
   return true;
 }
 
+namespace dnsdist {
+static std::optional<size_t> getEDNSRecordPosition(const DNSQuestion& dnsQuestion)
+{
+  try {
+    const auto& packet = dnsQuestion.getData();
+    if (packet.size() <= sizeof(dnsheader)) {
+      return std::nullopt;
+    }
+
+    uint16_t optRDPosition = 0;
+    size_t remaining = 0;
+    auto res = getEDNSOptionsStart(packet, dnsQuestion.ids.qname.wirelength(), &optRDPosition, &remaining);
+    if (res != 0) {
+      return std::nullopt;
+    }
+
+    if (optRDPosition < DNS_TTL_SIZE) {
+      return std::nullopt;
+    }
+
+    return optRDPosition - DNS_TTL_SIZE;
+  }
+  catch (...) {
+    return std::nullopt;
+  }
+}
+
 // goal in life - if you send us a reasonably normal packet, we'll get Z for you, otherwise 0
 int getEDNSZ(const DNSQuestion& dnsQuestion)
 {
   try {
-    const auto& dnsHeader = dnsQuestion.getHeader();
-    if (ntohs(dnsHeader->qdcount) != 1 || dnsHeader->ancount != 0 || ntohs(dnsHeader->arcount) != 1 || dnsHeader->nscount != 0) {
-      return 0;
-    }
+    auto position = getEDNSRecordPosition(dnsQuestion);
 
-    if (dnsQuestion.getData().size() <= sizeof(dnsheader)) {
-      return 0;
-    }
-
-    size_t pos = sizeof(dnsheader) + dnsQuestion.ids.qname.wirelength() + DNS_TYPE_SIZE + DNS_CLASS_SIZE;
-
-    if (dnsQuestion.getData().size() <= (pos + /* root */ 1 + DNS_TYPE_SIZE + DNS_CLASS_SIZE)) {
+    if (!position) {
       return 0;
     }
 
     const auto& packet = dnsQuestion.getData();
-    if (packet.at(pos) != 0) {
-      /* not root, so not a valid OPT record */
+    if ((*position + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE + 1) >= packet.size()) {
       return 0;
     }
 
-    pos++;
-
-    uint16_t qtype = packet.at(pos) * 256 + packet.at(pos + 1);
-    pos += DNS_TYPE_SIZE;
-    pos += DNS_CLASS_SIZE;
-
-    if (qtype != QType::OPT || (pos + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE + 1) >= packet.size()) {
-      return 0;
-    }
-
-    return 0x100 * packet.at(pos + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE) + packet.at(pos + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE + 1);
+    return 0x100 * packet.at(*position + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE) + packet.at(*position + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE + 1);
   }
   catch (...) {
     return 0;
   }
+}
+
+std::optional<uint8_t> getEDNSVersion(const DNSQuestion& dnsQuestion)
+{
+  try {
+    auto position = getEDNSRecordPosition(dnsQuestion);
+
+    if (!position) {
+      return std::nullopt;
+    }
+
+    const auto& packet = dnsQuestion.getData();
+    if ((*position + EDNS_EXTENDED_RCODE_SIZE + EDNS_VERSION_SIZE) >= packet.size()) {
+      return std::nullopt;
+    }
+
+    return packet.at(*position + EDNS_EXTENDED_RCODE_SIZE);
+  }
+  catch (...) {
+    return std::nullopt;
+  }
+}
+
+std::optional<uint8_t> getEDNSExtendedRCode(const DNSQuestion& dnsQuestion)
+{
+  try {
+    auto position = getEDNSRecordPosition(dnsQuestion);
+
+    if (!position) {
+      return std::nullopt;
+    }
+
+    const auto& packet = dnsQuestion.getData();
+    if ((*position + EDNS_EXTENDED_RCODE_SIZE) >= packet.size()) {
+      return std::nullopt;
+    }
+
+    return packet.at(*position);
+  }
+  catch (...) {
+    return std::nullopt;
+  }
+}
+
 }
 
 bool queryHasEDNS(const DNSQuestion& dnsQuestion)
@@ -1078,7 +1131,7 @@ bool queryHasEDNS(const DNSQuestion& dnsQuestion)
   uint16_t optRDPosition = 0;
   size_t ecsRemaining = 0;
 
-  int res = getEDNSOptionsStart(dnsQuestion.getData(), dnsQuestion.ids.qname.wirelength(), &optRDPosition, &ecsRemaining);
+  int res = dnsdist::getEDNSOptionsStart(dnsQuestion.getData(), dnsQuestion.ids.qname.wirelength(), &optRDPosition, &ecsRemaining);
   return res == 0;
 }
 

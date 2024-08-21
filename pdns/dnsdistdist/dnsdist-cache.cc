@@ -51,7 +51,7 @@ bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnam
   uint16_t optRDPosition = 0;
   size_t remaining = 0;
 
-  int res = getEDNSOptionsStart(packet, qnameWireLength, &optRDPosition, &remaining);
+  int res = dnsdist::getEDNSOptionsStart(packet, qnameWireLength, &optRDPosition, &remaining);
 
   if (res == 0) {
     size_t ecsOptionStartPosition = 0;

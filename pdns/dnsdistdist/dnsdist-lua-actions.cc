@@ -909,7 +909,7 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsquestion, std::string*
   bool hadEDNS = false;
   if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dnsquestion)) {
     hadEDNS = true;
-    dnssecOK = ((getEDNSZ(*dnsquestion) & EDNS_HEADER_FLAG_DO) != 0);
+    dnssecOK = ((dnsdist::getEDNSZ(*dnsquestion) & EDNS_HEADER_FLAG_DO) != 0);
   }
 
   auto& data = dnsquestion->getMutableData();
