@@ -380,7 +380,8 @@ int locateEDNSOptRR(const PacketBuffer& packet, uint16_t* optStart, size_t* optL
   return ENOENT;
 }
 
-namespace dnsdist {
+namespace dnsdist
+{
 /* extract the start of the OPT RR in a QUERY packet if any */
 int getEDNSOptionsStart(const PacketBuffer& packet, const size_t qnameWireLength, uint16_t* optRDPosition, size_t* remaining)
 {
@@ -1033,7 +1034,8 @@ bool addEDNSToQueryTurnedResponse(DNSQuestion& dnsQuestion)
   return true;
 }
 
-namespace dnsdist {
+namespace dnsdist
+{
 static std::optional<size_t> getEDNSRecordPosition(const DNSQuestion& dnsQuestion)
 {
   try {
