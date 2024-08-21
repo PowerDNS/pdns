@@ -1600,7 +1600,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSVersion)
   const uint16_t qclass = QClass::IN;
   const GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
 
-  auto getVersion = [&qname, qtype, qclass](PacketBuffer& query) {
+  auto getVersion = [&qname](PacketBuffer& query) {
     InternalQueryState ids;
     ids.protocol = dnsdist::Protocol::DoUDP;
     ids.qname = qname;
@@ -1662,7 +1662,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSExtendedRCode)
   const uint16_t qtype = QType::A;
   const uint16_t qclass = QClass::IN;
 
-  auto getExtendedRCode = [&qname, qtype, qclass](PacketBuffer& query) {
+  auto getExtendedRCode = [&qname](PacketBuffer& query) {
     InternalQueryState ids;
     ids.protocol = dnsdist::Protocol::DoUDP;
     ids.qname = qname;
