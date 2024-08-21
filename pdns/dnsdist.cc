@@ -3270,6 +3270,13 @@ int main(int argc, char** argv)
 
     dnsdist::g_asyncHolder = std::make_unique<dnsdist::AsynchronousHolder>();
 
+    /* create the default pool no matter what */
+    {
+      auto localPools = g_pools.getCopy();
+      createPoolIfNotExists(localPools, "");
+      g_pools.setState(localPools);
+    }
+
     auto todo = setupLua(*(g_lua.lock()), false, false, g_cmdLine.config);
 
     setupPools();
@@ -3355,8 +3362,6 @@ int main(int argc, char** argv)
     }
 
     auto localPools = g_pools.getCopy();
-    /* create the default pool no matter what */
-    createPoolIfNotExists(localPools, "");
     if (!g_cmdLine.remotes.empty()) {
       for (const auto& address : g_cmdLine.remotes) {
         DownstreamState::Config config;
