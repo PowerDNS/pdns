@@ -897,7 +897,7 @@ bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* 
 {
   ReadLock rl(&s_state_lock);
 
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == domain) {
       SOAData sd;
       this->getSOA(domain, sd);
@@ -935,7 +935,7 @@ bool GeoIPBackend::getAllDomainMetadata(const DNSName& name, std::map<std::strin
     return false;
 
   ReadLock rl(&s_state_lock);
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       if (hasDNSSECkey(dom.domain)) {
         meta[string("NSEC3NARROW")].push_back("1");
@@ -953,7 +953,7 @@ bool GeoIPBackend::getDomainMetadata(const DNSName& name, const std::string& kin
     return false;
 
   ReadLock rl(&s_state_lock);
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       if (hasDNSSECkey(dom.domain)) {
         if (kind == "NSEC3NARROW")
@@ -972,7 +972,7 @@ bool GeoIPBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::Ke
   if (!d_dnssec)
     return false;
   ReadLock rl(&s_state_lock);
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -1018,7 +1018,7 @@ bool GeoIPBackend::removeDomainKey(const DNSName& name, unsigned int id)
   WriteLock rl(&s_state_lock);
   ostringstream path;
 
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -1054,7 +1054,7 @@ bool GeoIPBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t
   WriteLock rl(&s_state_lock);
   unsigned int nextid = 1;
 
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -1090,7 +1090,7 @@ bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id)
   if (!d_dnssec)
     return false;
   WriteLock rl(&s_state_lock);
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -1125,7 +1125,7 @@ bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
   if (!d_dnssec)
     return false;
   WriteLock rl(&s_state_lock);
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
