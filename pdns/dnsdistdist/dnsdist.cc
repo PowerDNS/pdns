@@ -3349,6 +3349,9 @@ int main(int argc, char** argv)
 
     dnsdist::g_asyncHolder = std::make_unique<dnsdist::AsynchronousHolder>();
 
+    /* create the default pool no matter what */
+    createPoolIfNotExists("");
+
     setupLua(*(g_lua.lock()), false, false, cmdLine.config);
 
     setupPools();
@@ -3454,9 +3457,6 @@ int main(int argc, char** argv)
       std::thread webServerThread(dnsdist::webserver::WebserverThread, std::move(listeningSockets.d_webServerSocket));
       webServerThread.detach();
     }
-
-    /* create the default pool no matter what */
-    createPoolIfNotExists("");
 
     for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
       if (backend->connected) {

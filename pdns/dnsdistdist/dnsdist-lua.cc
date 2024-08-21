@@ -736,8 +736,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          for (const string& poolName : server->d_config.pools) {
                            removeServerFromPool(poolName, server);
                          }
-                         /* the server might also be in the default pool */
-                         removeServerFromPool("", server);
+
+                         try {
+                           /* the server might also be in the default pool */
+                           removeServerFromPool("", server);
+                         }
+                         catch (const std::out_of_range& exp) {
+                           /* but the default pool might not exist yet, this is fine */
+                         }
 
                          dnsdist::configuration::updateRuntimeConfiguration([&server](dnsdist::configuration::RuntimeConfiguration& config) {
                            config.d_backends.erase(std::remove(config.d_backends.begin(), config.d_backends.end(), server), config.d_backends.end());
