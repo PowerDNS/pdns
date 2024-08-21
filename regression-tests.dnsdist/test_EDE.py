@@ -90,6 +90,47 @@ class TestBasics(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.checkMessageEDNS(expectedResponse, receivedResponse)
 
+    def testExtendedErrorBackendResponse(self):
+        """
+        EDE: Backend response (DO)
+        """
+        name = 'backend-response-do.ede.tests.powerdns.com.'
+        ede = extendederrors.ExtendedErrorOption(16, b'my extended error status')
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True, want_dnssec=True)
+
+        backendResponse = dns.message.make_response(query)
+        backendResponse.use_edns(edns=True, payload=4096, options=[])
+        backendResponse.want_dnssec(True)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        backendResponse.answer.append(rrset)
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=4096, options=[ede])
+        expectedResponse.want_dnssec(True)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, backendResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.checkMessageEDNS(expectedResponse, receivedResponse)
+
+        # testing the cache
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.checkMessageEDNS(expectedResponse, receivedResponse)
+
     def testExtendedErrorBackendResponseWithExistingEDE(self):
         """
         EDE: Backend response with existing EDE

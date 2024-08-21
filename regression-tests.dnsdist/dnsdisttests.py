@@ -864,11 +864,13 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     def checkMessageEDNSWithoutOptions(self, expected, received):
         self.assertEqual(expected, received)
         self.assertEqual(received.edns, 0)
+        self.assertEqual(expected.ednsflags, received.ednsflags)
         self.assertEqual(expected.payload, received.payload)
 
     def checkMessageEDNSWithoutECS(self, expected, received, withCookies=0):
         self.assertEqual(expected, received)
         self.assertEqual(received.edns, 0)
+        self.assertEqual(expected.ednsflags, received.ednsflags)
         self.assertEqual(expected.payload, received.payload)
         self.assertEqual(len(received.options), withCookies)
         if withCookies:
@@ -881,6 +883,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     def checkMessageEDNSWithECS(self, expected, received, additionalOptions=0):
         self.assertEqual(expected, received)
         self.assertEqual(received.edns, 0)
+        self.assertEqual(expected.ednsflags, received.ednsflags)
         self.assertEqual(expected.payload, received.payload)
         self.assertEqual(len(received.options), 1 + additionalOptions)
         hasECS = False
@@ -896,6 +899,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     def checkMessageEDNS(self, expected, received):
         self.assertEqual(expected, received)
         self.assertEqual(received.edns, 0)
+        self.assertEqual(expected.ednsflags, received.ednsflags)
         self.assertEqual(expected.payload, received.payload)
         self.assertEqual(len(expected.options), len(received.options))
         self.compareOptions(expected.options, received.options)
