@@ -24,7 +24,7 @@ at least the following information (if they are relevant):
 
 ## Filing an Issue or Bug
 **Note:** if you're planning to file a security bug, look at our
-[Security Policy](https://doc.powerdns.com/md/security/) first.
+[Security Policy](https://github.com/PowerDNS/pdns/security/policy) first.
 
 When filing an issue or bug report, make the title of the issue a very short
 summary (e.g. "Recursor crash when some-setting is set to 'crash'"). In the
