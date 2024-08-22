@@ -1,0 +1,25 @@
+---
+name: Trigger specific coverity scan
+
+on:
+  workflow_dispatch:
+    inputs:
+      product:
+        description: Product to build
+        type: choice
+        options:
+        - authoritative
+        - recursor
+        - dnsdist
+
+permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
+  contents: read
+
+jobs:
+  call-coverity:
+    uses: PowerDNS/pdns/.github/workflows/coverity.yml@master
+    with:
+      product: ${{ github.event.inputs.product }}
+    secrets:
+      COVERITY_TOKEN: ${{ secrets.COVERITY_TOKEN }}
+      COVERITY_EMAIL: ${{ secrets.COVERITY_EMAIL }}
