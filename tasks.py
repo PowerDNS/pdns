@@ -1049,6 +1049,9 @@ def coverity_upload(c, email, project, tarball):
 @task
 def ci_build_and_install_quiche(c, repo):
     with c.cd(f'{repo}/builder-support/helpers/'):
+        # be careful that rust needs to have been installed system-wide,
+        # as the one installed in GitHub actions' Ubuntu images in /home/runner/.cargo/bin/cargo
+        # is not in the path for the root user (and shouldn't be)
         c.run(f'sudo {repo}/builder-support/helpers/install_quiche.sh')
 
     # cannot use c.sudo() inside a cd() context, see https://github.com/pyinvoke/invoke/issues/687
