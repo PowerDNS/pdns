@@ -172,6 +172,11 @@ def apt_fresh(c):
     c.sudo('apt-get -y --allow-downgrades dist-upgrade')
 
 @task
+def install_lld_linker_if_needed(c):
+    if is_compiler_clang():
+        c.sudo(f'apt-get -y --no-install-recommends install lld-{clang_version}')
+
+@task
 def install_clang(c):
     """
     install clang and llvm
@@ -453,12 +458,14 @@ def get_cxxflags():
     ])
 
 
-def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', enable_systemd=True, enable_sodium=True):
+def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', additional_ld_flags='', enable_systemd=True, enable_sodium=True):
     cflags = " ".join([get_cflags(), additional_c_flags])
     cxxflags = " ".join([get_cxxflags(), additional_cxx_flags])
+    ldflags = additional_ld_flags
     return " ".join([
         f'CFLAGS="{cflags}"',
         f'CXXFLAGS="{cxxflags}"',
+        f'LDFLAGS="{ldflags}"',
         './configure',
         f"CC='{get_c_compiler()}'",
         f"CXX='{get_cxx_compiler()}'",
@@ -657,6 +664,9 @@ def ci_rec_configure(c, features, build_dir=None, meson=False):
 @task
 def ci_dnsdist_configure(c, features):
     additional_flags = ''
+    additional_ld_flags = ''
+    if is_compiler_clang():
+        additional_ld_flags += '-fuse-ld=lld '
     if features == 'full':
       features_set = '--enable-dnstap \
                       --enable-dnscrypt \
@@ -665,6 +675,7 @@ def ci_dnsdist_configure(c, features):
                       --enable-dns-over-quic \
                       --enable-dns-over-http3 \
                       --enable-systemd \
+                      --enable-yaml \
                       --prefix=/opt/dnsdist \
                       --with-gnutls \
                       --with-h2o \
@@ -725,7 +736,7 @@ def ci_dnsdist_configure(c, features):
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
     configure_cmd = " ".join([
         tools,
-        get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, enable_systemd=False, enable_sodium=False),
+        get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, additional_ld_flags=additional_ld_flags, enable_systemd=False, enable_sodium=False),
         features_set,
         unittests,
         fuzztargets,

@@ -8,12 +8,19 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 	$(NGHTTP2_CFLAGS) \
 	$(LIBCAP_CFLAGS) \
 	-I$(top_srcdir)/ext/protozero/include \
+	-I$(top_srcdir)/dnsdist-rust-lib \
+	-I$(top_builddir)/dnsdist-rust-lib \
+	-I$(top_srcdir)/dnsdist-rust-lib/rust/src \
 	-DSYSCONFDIR=\"${sysconfdir}\" \
 	-DBOOST_CONTAINER_USE_STD_EXCEPTIONS
 
+DNSDIST_RUST_LIBS = $(top_builddir)/dnsdist-rust-lib/rust/libdnsdist_rust.a $(LIBDL)
+
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS=ext/arc4random \
+SUBDIRS=dnsdist-rust-lib \
+	dnsdist-rust-lib/rust \
+	ext/arc4random \
 	ext/ipcrypt \
 	ext/yahttp
 
@@ -492,6 +499,10 @@ dnsdist_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
 dnsdist_SOURCES += doq-common.cc
 testrunner_SOURCES += doq-common.cc
 testrunner_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
+endif
+
+if HAVE_YAML_CONFIGURATION
+dnsdist_LDADD += $(DNSDIST_RUST_LIBS)
 endif
 
 if !HAVE_LUA_HPP
