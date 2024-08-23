@@ -25,4 +25,15 @@ mod dnsdistsetttings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         interval: u16
     }
+
+    /*
+     * Functions callable from C++
+     */
+    extern "Rust" {
+        fn parse_yaml_string(str: &str) -> Result<CarbonConfiguration>;
+    }
+}
+
+pub fn parse_yaml_string(str: &str) -> Result<dnsdistsetttings::CarbonConfiguration, serde_yaml::Error> {
+    serde_yaml::from_str(str)
 }
