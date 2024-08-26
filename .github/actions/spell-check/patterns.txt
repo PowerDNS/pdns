@@ -85,7 +85,7 @@ DoH
 # hit-count: 9 file-count: 7
 # Compiler flags
 (?:^|[\t ,"'`=(])-[DWL](?=[A-Z]{2,}|[A-Z][a-z]|[a-z]{2,})
-(?:^|[\t ,"'`=(])-f(?!ield|ile|ilter|orce|unction)(?=[A-Z]{2,}|[A-Z][a-z]|[a-z]{2,})
+(?:^|[\t ,"'`=(])-f(?!ield|ile|ilter|orce|ormat|unction)(?=[A-Z]{2,}|[A-Z][a-z]|[a-z]{2,})
 (?:^|[\t ,"'`=(])-l(?!imited)(?=[A-Z]{2,}|[A-Z][a-z]|[a-z]{2,})
 
 # hit-count: 9 file-count: 2

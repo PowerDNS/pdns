@@ -23,6 +23,7 @@ Aki
 Alenichev
 alexa
 algoroll
+alloca
 allocs
 Altpeter
 Anderton
@@ -162,9 +163,11 @@ cachekey
 Cairney
 calculatesoaserial
 calidns
+capf
 Cauquil
 ccache
 ccc
+ccls
 ccounts
 cdb
 CDBKV
@@ -183,6 +186,7 @@ chopoff
 Christof
 chrooted
 chrooting
+clangd
 clientanswers
 Cloos
 closesocket
@@ -208,8 +212,10 @@ colm
 comboaddress
 commandline
 committransaction
+compiledb
 conaxis
 configfile
+configmap
 configname
 configsetting
 confs
@@ -224,6 +230,7 @@ coredumps
 cornercases
 corpit
 costypetrisor
+coverallsapp
 coverity
 cppcheck
 createslavedomain
@@ -244,6 +251,8 @@ cvename
 cvs
 cvstrac
 CXXFLAGS
+cxxsettings
+cxxsupport
 daemonizing
 daemontools
 Daganoto
@@ -257,6 +266,7 @@ Daugaard
 Davids
 Dayneko
 dbfile
+dblacka
 dblfilename
 dblookup
 dbpf
@@ -270,6 +280,7 @@ deboynepollard
 Deduktiva
 dedup
 defcontent
+defmacro
 defpol
 defttl
 Dehaine
@@ -293,6 +304,7 @@ dilinger
 Dimitrios
 Directi
 Disqus
+distclean
 djbdns
 dlerror
 dlg
@@ -362,6 +374,7 @@ DTS
 Dufberg
 dumpluaraw
 dumresp
+dwarfstd
 dynblock
 dynblocklist
 dynblocksref
@@ -376,7 +389,6 @@ ebpfblocklist
 ECCN
 ech
 econds
-ECSDA
 ecswho
 editline
 edns
@@ -386,9 +398,14 @@ ednsoptionview
 ednssubnet
 EDNSTo
 edu
+eglot
 ejones
 Ekkelenkamp
+eldoc
 elgoog
+elisp
+elpa
+emacs
 endbr
 Enden
 enp
@@ -428,6 +445,8 @@ firewalled
 firewalls
 fixednow
 Florus
+flycheck
+flyspell
 footerbgcolor
 footertextcolor
 forfun
@@ -447,6 +466,7 @@ fulltoc
 fullycapable
 Furnell
 Fusl
+fuzzers
 fwzones
 FYhvws
 FZq
@@ -455,6 +475,8 @@ gacogne
 gatech
 Gavarret
 Gbps
+gcna
+gcovr
 gdpr
 Geijn
 genindex
@@ -483,6 +505,7 @@ gettime
 gettsigkey
 Geuze
 GFm
+ggdb
 Ghz
 Gibheer
 Gieben
@@ -520,6 +543,7 @@ Hannu
 Harker
 Hausberger
 headbgcolor
+headerline
 headerlink
 headfont
 headlinkcolor
@@ -565,6 +589,7 @@ ifportup
 ifurlextup
 ifurlup
 ihsinme
+imenu
 Imhard
 incbin
 includeboilerplate
@@ -608,6 +633,7 @@ Jelte
 Jermar
 Jeroen
 jessie
+joaotavora
 jonathaneen
 Jong
 Jorn
@@ -627,6 +653,8 @@ Kerkhof
 KEYBITS
 keyblock
 keydir
+keyids
+keymap
 keyname
 keypair
 keypairgen
@@ -634,6 +662,7 @@ keyroll
 keyroller
 keysearch
 keysize
+keystyle
 keytab
 keytype
 keywordmatches
@@ -656,6 +685,7 @@ ktls
 KTNAME
 Kuehrer
 kvs
+KVTo
 kxdpgun
 Ladot
 Lafon
@@ -669,9 +699,9 @@ latexpdf
 latlon
 latlonloc
 latomic
-lauch
 Laurient
 Laursen
+lcov
 LCUP
 LDA
 ldapbackend
@@ -687,6 +717,7 @@ lethalgroup
 letsencrypt
 letterpaper
 libatomic
+libclang
 libcrypto
 libcryptopp
 libdecaf
@@ -706,8 +737,10 @@ libpqpp
 libresolv
 libressl
 librt
+libsettings
 libsodium
 libsofthsm
+libstdc
 libsystemd
 libtdsodbc
 libxdp
@@ -743,6 +776,7 @@ loweralpha
 lowerroman
 Lrhazi
 lsock
+lsp
 lto
 luaaction
 luabackend
@@ -783,6 +817,7 @@ MBOXFW
 mbytes
 Meerwald
 Mekking
+melpa
 memlock
 Memusage
 menuselection
@@ -808,6 +843,7 @@ mmdb
 mnordhoff
 MOADNS
 Modderman
+modeline
 modifyingpolicydecisions
 modindex
 monshouwer
@@ -871,6 +907,7 @@ netsnmp
 NETWORKMASK
 Neue
 Neuf
+newcomment
 newcontent
 nftables
 nic
@@ -889,6 +926,7 @@ NODCACHEDIRNOD
 NODCACHEDIRUDR
 noedns
 noerrors
+NOLINTNEXTLINE
 NOLOCK
 nometasync
 Nominet
@@ -928,6 +966,7 @@ NULs
 NUMA
 numreceived
 nvd
+nwk
 nxd
 NXDATA
 nxdomain
@@ -978,7 +1017,6 @@ PACKAGEVERSION
 packetcache
 packethandler
 papersize
-paramater
 PARAMKEYWORDS
 PATC
 patchlevels
@@ -989,9 +1027,11 @@ Pbackend
 PCache
 pcap
 PCAPFILE
+pch
 pdns
 pdnsbackend
 pdnscontrol
+pdnskeyroller
 pdnsldap
 pdnslog
 pdnsodbx
@@ -1007,6 +1047,7 @@ Pertubation
 Pfetzing
 pgmysql
 pgmysqlbackend
+PGO
 pgp
 pgpsql
 phishing
@@ -1021,10 +1062,12 @@ pickwhashed
 pickwrandom
 piddir
 pidfile
+PIDs
 pilindex
 Pinski
 pipebackend
 pipermail
+pkghashes
 Plusnet
 plzz
 pmtmr
@@ -1051,6 +1094,7 @@ powerldap
 Predota
 preoutquery
 Preproc
+prepublishkeyroll
 prequery
 prerpz
 presignedness
@@ -1059,6 +1103,9 @@ primetime
 princ
 prioritization
 privs
+profdata
+profraw
+progn
 protobuf
 protozero
 providername
@@ -1092,6 +1139,7 @@ querycount
 querytime
 qytpe
 ragel
+raii
 Rak
 randombackend
 randombit
@@ -1115,6 +1163,7 @@ recursor
 recursord
 recursordist
 Recursordoc
+Recursorsettings
 Recuweb
 recvbuf
 recverr
@@ -1149,7 +1198,6 @@ respawning
 respout
 respsizes
 resynchronise
-retransfering
 reuseds
 reuseport
 RFCs
@@ -1158,11 +1206,13 @@ Rietz
 rightsidebar
 Rijsdijk
 ringbuffer
+rizsotto
 rkey
 rmem
 rname
 rocommunity
 Roel
+rolltype
 Rosmalen
 roundrobin
 rping
@@ -1212,7 +1262,7 @@ segfault
 selectmplexer
 senderrors
 Sendetzky
-sensistive
+serde
 Sergey
 serverpools
 serverselection
@@ -1224,6 +1274,7 @@ seting
 setkey
 setnotified
 SETPIPE
+setq
 settting
 setvariable
 Shabanov
@@ -1273,6 +1324,7 @@ socketdir
 softhsm
 Soldaat
 somedomain
+somestruct
 Sonix
 Soref
 Soroceanu
@@ -1291,6 +1343,7 @@ SPHINXOPTS
 SPHINXPROJ
 sphinxsidebar
 sphinxsidebarwrapper
+Spinlocks
 splitsetup
 Spruyt
 SQLs
@@ -1329,7 +1382,9 @@ Stussy
 stutiredboy
 subkey
 submitters
+subnamespace
 subnetmask
+substructs
 suffixmatchtree
 Sukhbir
 supermaster
@@ -1356,7 +1411,7 @@ Tarnell
 taskqueue
 tbhandler
 tcely
-TCounters
+tcounters
 tcpconnecttimeouts
 tcpdump
 TCPKEEPALIVE
@@ -1393,6 +1448,7 @@ tisr
 tlsa
 tmpfs
 tobool
+TOCTOU
 toctree
 todos
 toint
@@ -1402,6 +1458,7 @@ Toosarani
 Toshifumi
 totms
 Travaille
+treemacs
 tribool
 trustanchor
 trustanchorfile
@@ -1443,11 +1500,9 @@ uninett
 uninitialised
 Uninstaller
 unistd
-unitialized
 unixodbc
 unixtime
 unparsable
-unparseable
 UNPRIV
 unpublishdomainkey
 unreachables
@@ -1480,6 +1535,7 @@ Viala
 viewcode
 visitedlinkcolor
 vixie
+vla
 Voegeli
 Volker
 voxel
@@ -1527,6 +1583,7 @@ wouter
 wpad
 wproduction
 wrandom
+wrapv
 wuh
 Wzs
 Xander
@@ -1536,7 +1593,6 @@ xdp
 Xek
 Xeon
 XForwarded
-XFR
 Xiang
 xorbooter
 xpf
@@ -1544,9 +1600,11 @@ XRecord
 xsk
 xskmap
 XXXXXX
+XXXXXXX
 yahttp
 yamlconversion
 yamlsettings
+yasnippet
 Yehuda
 yeswehack
 Yiu
