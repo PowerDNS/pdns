@@ -140,6 +140,8 @@ void initSR(bool debug)
   }
 
   MemRecursorCache::s_maxServedStaleExtensions = 0;
+  MemRecursorCache::s_maxRRSetSize = 100;
+  MemRecursorCache::s_limitQTypeAny = true;
   NegCache::s_maxServedStaleExtensions = 0;
   g_recCache = std::make_unique<MemRecursorCache>();
   g_negCache = std::make_unique<NegCache>();

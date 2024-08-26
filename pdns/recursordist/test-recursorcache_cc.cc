@@ -8,6 +8,7 @@
 
 #include "iputils.hh"
 #include "recursor_cache.hh"
+#include "syncres.hh"
 
 BOOST_AUTO_TEST_SUITE(recursorcache_cc)
 
@@ -158,6 +159,7 @@ static void simple(time_t now)
     BOOST_CHECK_EQUAL(retrieved.size(), 0U);
 
     // QType::ANY should return any qtype, so from the right subnet we should get all of them
+    MemRecursorCache::s_limitQTypeAny = false;
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ANY), MemRecursorCache::None, &retrieved, ComboAddress("192.0.2.3")), (ttd - now));
     BOOST_CHECK_EQUAL(retrieved.size(), 3U);
     for (const auto& rec : retrieved) {
@@ -384,6 +386,52 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimpleDistantFuture)
   simple(2 * time_t(INT_MAX));
 }
 #endif
+
+BOOST_AUTO_TEST_CASE(test_RecursorCacheBig)
+{
+  MemRecursorCache MRC;
+
+  std::vector<DNSRecord> records;
+  std::vector<DNSRecord> retrieved;
+  const DNSName authZone(".");
+
+  time_t now = time(nullptr);
+  time_t ttd = now + 30;
+  DNSName power("powerdns.com.");
+  DNSRecord dr0;
+  string dr0Content("2001:DB8::");
+  dr0.d_name = power;
+  dr0.d_type = QType::AAAA;
+  dr0.d_class = QClass::IN;
+  dr0.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
+  dr0.d_place = DNSResourceRecord::ANSWER;
+  for (int i = 0; i < MemRecursorCache::s_maxRRSetSize; i++) {
+    dr0.setContent(std::make_shared<AAAARecordContent>(dr0Content + std::to_string(i)));
+    records.push_back(dr0);
+  }
+
+  // This one should fit
+  MRC.replace(now, power, QType::AAAA, records, {}, {}, true, authZone, boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1U);
+  BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), MemRecursorCache::None, &retrieved, ComboAddress()), (ttd - now));
+  BOOST_CHECK_EQUAL(retrieved.size(), MemRecursorCache::s_maxRRSetSize);
+
+  dr0.setContent(std::make_shared<AAAARecordContent>(dr0Content + std::to_string(MemRecursorCache::s_maxRRSetSize)));
+  records.push_back(dr0);
+  // This one is too large and should throw exception
+  MRC.replace(now, power, QType::AAAA, records, {}, {}, true, authZone, boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1U);
+
+  BOOST_CHECK_THROW((void)MRC.get(now, power, QType(QType::AAAA), MemRecursorCache::None, &retrieved, ComboAddress()),
+                    ImmediateServFailException);
+
+  records.resize(1);
+  // This one should fit again
+  MRC.replace(now, power, QType::AAAA, records, {}, {}, true, authZone, boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1U);
+  BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), MemRecursorCache::None, &retrieved, ComboAddress()), (ttd - now));
+  BOOST_CHECK_EQUAL(retrieved.size(), 1U);
+}
 
 BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost)
 {
