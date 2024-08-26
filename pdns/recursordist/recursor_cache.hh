@@ -54,6 +54,11 @@ public:
   // The time a stale cache entry is extended
   static constexpr uint32_t s_serveStaleExtensionPeriod = 30;
 
+  // Maximum size of RRSet we are willing to cache. If the RRSet is larger, we do create an entry,
+  // but mark it as too big. Subsequent gets will cause an ImmediateServFailException to be thrown.
+  static uint16_t s_maxRRSetSize;
+  static bool s_limitQTypeAny;
+
   [[nodiscard]] size_t size() const;
   [[nodiscard]] size_t bytes();
   [[nodiscard]] pair<uint64_t, uint64_t> stats();
@@ -142,6 +147,7 @@ private:
     QType d_qtype;
     bool d_auth;
     mutable bool d_submitted{false}; // whether this entry has been queued for refetch
+    bool d_tooBig{false};
   };
 
   /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific

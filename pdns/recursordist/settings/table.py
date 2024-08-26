@@ -1510,6 +1510,30 @@ at a minimum to allow for the extra queries qname-minimization generates when th
  ''',
     },
     {
+        'name' : 'limit_qtype_any',
+        'section' : 'recordcache',
+        'type' : LType.Bool,
+        'default' : 'true',
+        'help' : 'Limit answers to ANY queries in size',
+        'doc' : '''
+Limit answers to ANY queries constructed from the record cache in size.
+Trying to retrieve more than `:xref:setting-max-rrset-size` records will result in a ``ServFail``',
+ ''',
+    'versionadded': ['4.9.9', '5.0.9', '5.1.2']
+    },
+    {
+        'name' : 'max_rrset_size',
+        'section' : 'recordcache',
+        'type' : LType.Uint64,
+        'default' : '256',
+        'help' : 'Maximum size of RRSet in cache',
+        'doc' : '''
+Maximum size of RRSets in cache.
+Trying to retrieve larger RRSets will result in a ``ServFail``.',
+ ''',
+    'versionadded': ['4.9.x', '5.0.y', '5.1.x']
+    },
+    {
         'name' : 'max_ns_address_qperq',
         'section' : 'outgoing',
         'type' : LType.Uint64,
