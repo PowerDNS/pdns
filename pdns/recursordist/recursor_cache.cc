@@ -419,7 +419,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
   if (routingTag) {
     auto entries = getEntries(*lockedShard, qname, qtype, routingTag);
-    bool found = false;
+    unsigned int found = 0;
     time_t ttd{};
 
     if (entries.first != entries.second) {
@@ -436,17 +436,20 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
         if (!entryMatches(firstIndexIterator, qtype, requireAuth, who)) {
           continue;
         }
-        found = true;
+        ++found;
 
         handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
         ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
-        if (qtype != QType::ANY && qtype != QType::ADDR) { // normally if we have a hit, we are done
+        if (qtype == QType::ADDR && found == 2) {
+          break;
+        }
+        if (qtype != QType::ANY) { // normally if we have a hit, we are done
           break;
         }
       }
-      if (found) {
+      if (found > 0) {
         if (cachedState && ttd > now) {
           ptrAssign(state, *cachedState);
         }
@@ -460,7 +463,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
   if (entries.first != entries.second) {
     OrderedTagIterator_t firstIndexIterator;
-    bool found = false;
+    unsigned int found = 0;
     time_t ttd{};
 
     for (auto i = entries.first; i != entries.second; ++i) {
@@ -475,17 +478,20 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
       if (!entryMatches(firstIndexIterator, qtype, requireAuth, who)) {
         continue;
       }
-      found = true;
+      ++found;
 
       handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
       ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
-      if (qtype != QType::ANY && qtype != QType::ADDR) { // normally if we have a hit, we are done
+      if (qtype == QType::ADDR && found == 2) {
+        break;
+      }
+      if (qtype != QType::ANY) { // normally if we have a hit, we are done
         break;
       }
     }
-    if (found) {
+    if (found > 0) {
       if (cachedState && ttd > now) {
         ptrAssign(state, *cachedState);
       }
@@ -635,6 +641,7 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
       break;
     }
   }
+
   if (!isNew) {
     moveCacheItemToBack<SequencedTag>(lockedShard->d_map, stored);
   }
