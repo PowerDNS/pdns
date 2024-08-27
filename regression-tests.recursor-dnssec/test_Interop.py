@@ -7,7 +7,7 @@ from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 import threading
 
-class testInterop(RecursorTest):
+class InteropTest(RecursorTest):
     _confdir = 'Interop'
 
     _config_template = """dnssec=validate
@@ -151,7 +151,7 @@ forward-zones+=undelegated.insecure.example=%s.12
             cls._UDPResponder.setDaemon(True)
             cls._UDPResponder.start()
 
-class testInteropProcess(RecursorTest):
+class InteropProcessTest(RecursorTest):
     _confdir = 'InteropProcess'
 
     _config_template = """dnssec=process

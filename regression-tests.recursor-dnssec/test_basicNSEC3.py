@@ -3,7 +3,7 @@ from basicDNSSEC import BasicDNSSEC
 import os
 import subprocess
 
-class basicNSEC3(BasicDNSSEC):
+class basicNSEC3Test(BasicDNSSEC):
     __test__ = True
     _confdir = 'basicNSEC3'
 

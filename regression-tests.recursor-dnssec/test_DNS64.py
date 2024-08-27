@@ -3,7 +3,7 @@ import os
 
 from recursortests import RecursorTest
 
-class DNS64RecursorTest(RecursorTest):
+class DNS64Test(RecursorTest):
 
     _confdir = 'DNS64'
     _config_template = """
@@ -54,7 +54,7 @@ formerr 3600 IN A 192.0.2.43
 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2 IN PTR aaaa.example.dns64.
 """.format(soa=cls._SOA))
 
-        super(DNS64RecursorTest, cls).generateRecursorConfig(confdir)
+        super(DNS64Test, cls).generateRecursorConfig(confdir)
 
     # this type (A) exists for this name
     def testExistingA(self):

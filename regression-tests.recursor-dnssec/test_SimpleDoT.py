@@ -3,7 +3,7 @@ import os
 import subprocess
 from recursortests import RecursorTest
 
-class testSimpleDoT(RecursorTest):
+class SimpleDoTTest(RecursorTest):
     """
     This tests DoT to auth server in a very basic way and is dependent on powerdns.com nameservers having DoT enabled.
     """

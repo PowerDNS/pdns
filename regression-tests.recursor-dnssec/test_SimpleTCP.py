@@ -2,7 +2,7 @@ import dns
 import os
 from recursortests import RecursorTest
 
-class testSimpleTCP(RecursorTest):
+class SimpleTCPTest(RecursorTest):
     _confdir = 'SimpleTCP'
 
     _config_template = """dnssec=validate
@@ -16,7 +16,7 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
 @ 3600 IN SOA {soa}
 @ 3600 IN A 192.0.2.88
 """.format(soa=cls._SOA))
-        super(testSimpleTCP, cls).generateRecursorConfig(confdir)
+        super(SimpleTCPTest, cls).generateRecursorConfig(confdir)
 
     def testSOAs(self):
         for zone in ['.', 'example.', 'secure.example.']:

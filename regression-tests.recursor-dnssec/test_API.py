@@ -23,7 +23,7 @@ class APIRecursorTest(RecursorTest):
         cls.tearDownRecursor()
 
 class APIAllowedRecursorTest(APIRecursorTest):
-    _confdir = 'API'
+    _confdir = 'APIAllowedRecursor'
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'
@@ -48,7 +48,7 @@ api-key=%s
         self.assertTrue(r.json())
 
 class APIDeniedRecursorTest(APIRecursorTest):
-    _confdir = 'API'
+    _confdir = 'APIDeniedRecursor'
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'

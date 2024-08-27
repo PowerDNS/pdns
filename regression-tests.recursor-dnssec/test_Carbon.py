@@ -8,7 +8,7 @@ from queue import Queue
 
 from recursortests import RecursorTest
 
-class TestCarbon(RecursorTest):
+class CarbonTest(RecursorTest):
     _confdir = 'Carbon'
     _carbonNamespace = 'NS'
     _carbonInstance = 'Instance'

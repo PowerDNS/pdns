@@ -5,7 +5,7 @@ import pytest
 
 from recursortests import RecursorTest
 
-class ExtendedErrorsRecursorTest(RecursorTest):
+class ExtendedErrorsTest(RecursorTest):
 
     _confdir = 'ExtendedErrors'
     _config_template = """
@@ -81,7 +81,7 @@ extended-resolution-errors=yes
 *.rpz.extended.zone.rpz. 60 IN CNAME .
 """.format(soa=cls._SOA))
 
-        super(ExtendedErrorsRecursorTest, cls).generateRecursorConfig(confdir)
+        super(ExtendedErrorsTest, cls).generateRecursorConfig(confdir)
 
     def testNotIncepted(self):
         qname = 'signotincepted.bad-dnssec.wb.sidnlabs.nl.'
@@ -206,9 +206,9 @@ extended-resolution-errors=yes
         self.assertEqual(res.options[0].otype, 15)
         self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b'Extra text from Lua!'))
 
-class NoExtendedErrorsRecursorTest(RecursorTest):
+class NoExtendedErrorsTest(RecursorTest):
 
-    _confdir = 'ExtendedErrorsDisabled'
+    _confdir = 'NoExtendedErrors'
     _config_template = """
 dnssec=validate
 extended-resolution-errors=no
@@ -234,7 +234,7 @@ extended-resolution-errors=no
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        super(NoExtendedErrorsRecursorTest, cls).generateRecursorConfig(confdir)
+        super(NoExtendedErrorsTest, cls).generateRecursorConfig(confdir)
 
     def testNotIncepted(self):
         qname = 'signotincepted.bad-dnssec.wb.sidnlabs.nl.'

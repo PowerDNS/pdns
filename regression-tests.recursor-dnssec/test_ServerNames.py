@@ -2,7 +2,7 @@ import dns
 import os
 from recursortests import RecursorTest
 
-class testServerNames(RecursorTest):
+class ServerNamesTest(RecursorTest):
     """
     This tests all kinds naming things
     """

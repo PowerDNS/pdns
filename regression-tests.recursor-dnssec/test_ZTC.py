@@ -5,7 +5,7 @@ import subprocess
 
 from recursortests import RecursorTest
 
-class testZTC(RecursorTest):
+class ZTCTest(RecursorTest):
 
     _confdir = 'ZTC'
     _config_template = """

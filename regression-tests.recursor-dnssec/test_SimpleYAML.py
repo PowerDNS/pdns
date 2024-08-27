@@ -2,7 +2,7 @@ import dns
 import os
 from recursortests import RecursorTest
 
-class testSimpleYAML(RecursorTest):
+class SimpleYAMLTest(RecursorTest):
     _confdir = 'SimpleYAML'
 
     _config_template = """
@@ -21,7 +21,7 @@ dnssec:
 @ 3600 IN SOA {soa}
 @ 3600 IN A 192.0.2.88
 """.format(soa=cls._SOA))
-        super(testSimpleYAML, cls).generateRecursorYamlConfig(confdir)
+        super(SimpleYAMLTest, cls).generateRecursorYamlConfig(confdir)
 
     def testSOAs(self):
         for zone in ['.', 'example.', 'secure.example.']:

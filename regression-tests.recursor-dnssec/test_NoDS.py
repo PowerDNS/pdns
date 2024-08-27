@@ -2,7 +2,7 @@ import dns
 from recursortests import RecursorTest
 
 
-class testNoDS(RecursorTest):
+class NoDSTest(RecursorTest):
     _confdir = 'NoDS'
 
     _config_template = """dnssec=validate"""

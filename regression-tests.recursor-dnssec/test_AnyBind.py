@@ -3,7 +3,7 @@ import os
 import socket
 from recursortests import RecursorTest
 
-class testAnyBind(RecursorTest):
+class AnyBindTest(RecursorTest):
     _confdir = 'AnyBind'
 
     _config_template = """dnssec=validate
@@ -18,7 +18,7 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
 @ 3600 IN SOA {soa}
 @ 3600 IN A 192.0.2.88
 """.format(soa=cls._SOA))
-        super(testAnyBind, cls).generateRecursorConfig(confdir)
+        super(AnyBindTest, cls).generateRecursorConfig(confdir)
 
     @classmethod
     def setUpSockets(cls):

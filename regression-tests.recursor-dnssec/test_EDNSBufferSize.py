@@ -111,10 +111,11 @@ edns-outgoing-bufsize=%d
             self.assertEqual(message.edns, -1)
 
 
-class EDNSBufferTest16801680(EDNSBufferTest):
+class EDNSBuffer16801680Test(EDNSBufferTest):
     """
     Runs test cases 1, 2, 5, 6, 7, 8
     """
+    _confdir = 'EDNSBuffer16801680'
 
     def testEdnsBufferTestCase01(self):
         query = self.getMessage('01', 4096)
@@ -164,7 +165,7 @@ class EDNSBufferTest16801680(EDNSBufferTest):
             message = dns.message.from_wire(raw)
             self.checkEDNS(message, 512)
 
-class EDNSBufferTest16801681(EDNSBufferTest):
+class EDNSBuffer16801681Test(EDNSBufferTest):
     """
     Runs test case 3
     """
@@ -188,7 +189,7 @@ edns-outgoing-bufsize=%d
             self.checkEDNS(message, 512)
 
 
-class EDNSBufferTest16801679(EDNSBufferTest):
+class EDNSBuffer16801679Test(EDNSBufferTest):
     """
     Runs test case 4
     """

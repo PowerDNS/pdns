@@ -7,7 +7,7 @@ import subprocess
 
 from recursortests import RecursorTest
 
-class PacketCacheRecursorTest(RecursorTest):
+class PacketCacheTest(RecursorTest):
 
     _auth_zones = {
         '8': {'threads': 1,
@@ -44,7 +44,7 @@ d 3600 IN A 192.0.2.42
 e 3600 IN A 192.0.2.42
 f 3600 IN CNAME f            ; CNAME loop: dirty trick to get a ServFail in an authzone
 """.format(soa=cls._SOA))
-        super(PacketCacheRecursorTest, cls).generateRecursorConfig(confdir)
+        super(PacketCacheTest, cls).generateRecursorConfig(confdir)
 
     def checkPacketCacheMetrics(self, expectedHits, expectedMisses):
         self.waitForTCPSocket("127.0.0.1", self._wsPort)

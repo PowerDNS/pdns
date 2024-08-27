@@ -4,7 +4,7 @@ import time
 import subprocess
 from recursortests import RecursorTest
 
-class testTraceFail(RecursorTest):
+class TraceFailTest(RecursorTest):
     _confdir = 'TraceFail'
 
     _config_template = """

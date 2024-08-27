@@ -5,7 +5,7 @@ import time
 
 from recursortests import RecursorTest
 
-class testLockedCache(RecursorTest):
+class LockedCacheTest(RecursorTest):
     """
     Test that a locked cached entry is *not* updated by the same additional encountered in a second query
     """
@@ -55,7 +55,7 @@ class testLockedCache(RecursorTest):
         ttl2 = self.getCacheTTL()
         self.assertGreater(ttl1, ttl2)
 
-class testNotLockedCache(RecursorTest):
+class NotLockedCacheTest(RecursorTest):
     """
     Test that a not locked cached entry *is* updated by the same additional encountered in a second query
     """

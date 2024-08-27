@@ -611,7 +611,13 @@ distributor-threads={threads}""".format(confdir=confdir,
             raise AssertionError('%s failed (%d)' % (authcmd, cls._auths[ipaddress].returncode))
 
     @classmethod
+    def checkConfdir(cls, confdir):
+        if cls.__name__ != 'FlagsTest' and os.path.basename(confdir) + 'Test' != cls.__name__:
+            raise AssertionError('conf dir ' + confdir + ' and ' + cls.__name__ + ' inconsistent with convention')
+
+    @classmethod
     def generateRecursorConfig(cls, confdir):
+        cls.checkConfdir(confdir)
         params = tuple([getattr(cls, param) for param in cls._config_params])
         if len(params):
             print(params)
@@ -645,6 +651,7 @@ distributor-threads={threads}""".format(confdir=confdir,
 
     @classmethod
     def generateRecursorYamlConfig(cls, confdir, luaConfig=True):
+        cls.checkConfdir(confdir)
         params = tuple([getattr(cls, param) for param in cls._config_params])
         if len(params):
             print(params)
