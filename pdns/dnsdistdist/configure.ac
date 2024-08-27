@@ -19,6 +19,12 @@ LT_INIT([disable-static])
 CFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -fvisibility=hidden $CFLAGS"
 CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -fvisibility=hidden $CXXFLAGS"
 
+AC_SUBST([pdns_configure_args], ["$ac_configure_args"])
+AC_DEFINE_UNQUOTED([DNSDIST_CONFIG_ARGS],
+  ["$pdns_configure_args"],
+  [pdns configure arguments]
+)
+
 PDNS_WITH_LIBSODIUM
 PDNS_WITH_QUICHE
 PDNS_CHECK_DNSTAP([auto])
