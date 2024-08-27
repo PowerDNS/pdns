@@ -71,7 +71,6 @@ private:
   int tryAutoPrimary(const DNSPacket& p, const DNSName& tsigkeyname);
   int processNotify(const DNSPacket& );
   void addRootReferral(DNSPacket& r);
-  int doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) const;
   bool addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   bool addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   bool addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r);

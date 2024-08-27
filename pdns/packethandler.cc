@@ -276,12 +276,12 @@ bool PacketHandler::addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>
 }
 
 
-// This is our chaos class requests handler. Return 1 if content was added, 0 if it wasn't
-int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) const
+// This is our chaos class request handler. Returns a reply packet.
+[[nodiscard]]
+static std::unique_ptr<DNSPacket> doChaosRequest(const DNSPacket& p, const DNSName &target)
 {
-  DNSZoneRecord rr;
-
   if(p.qtype.getCode()==QType::TXT) {
+    DNSZoneRecord rr;
     static const DNSName versionbind("version.bind."), versionpdns("version.pdns."), idserver("id.server.");
     if (target==versionbind || target==versionpdns) {
       // modes: full, powerdns only, anonymous or custom
@@ -292,8 +292,7 @@ int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>
       else if(mode=="powerdns")
         content="Served by PowerDNS - https://www.powerdns.com/";
       else if(mode=="anonymous") {
-        r->setRcode(RCode::ServFail);
-        return 0;
+        return p.replyPacket(RCode::ServFail);
       }
       else
         content=mode;
@@ -304,8 +303,7 @@ int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>
       const static string id=::arg()["server-id"];
 
       if (id == "disabled") {
-        r->setRcode(RCode::Refused);
-        return 0;
+        return p.replyPacket(RCode::Refused);
       }
       string tid=id;
       if(!tid.empty() && tid[0]!='"') { // see #6010 however
@@ -314,20 +312,20 @@ int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>
       rr.dr.setContent(DNSRecordContent::make(QType::TXT, 1, tid));
     }
     else {
-      r->setRcode(RCode::Refused);
-      return 0;
+      return p.replyPacket(RCode::Refused);
     }
 
     rr.dr.d_ttl=5;
     rr.dr.d_name=target;
     rr.dr.d_type=QType::TXT;
     rr.dr.d_class=QClass::CHAOS;
-    r->addRecord(std::move(rr));
-    return 1;
+
+    auto reply = p.replyPacket();
+    reply->addRecord(std::move(rr));
+    return reply;
   }
 
-  r->setRcode(RCode::NotImp);
-  return 0;
+  return p.replyPacket(RCode::NotImp);
 }
 
 vector<DNSZoneRecord> PacketHandler::getBestReferralNS(DNSPacket& p, const DNSName &target)
@@ -1482,10 +1480,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     // catch chaos qclass requests
     if(p.qclass == QClass::CHAOS) {
-      if (doChaosRequest(p,r,target))
-        goto sendit;
-      else
-        return r;
+      return doChaosRequest(p, target);
     }
 
     // we only know about qclass IN (and ANY), send Refused for everything else.
