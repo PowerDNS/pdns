@@ -2885,6 +2885,7 @@ static void reportFeatures()
   cout << "systemd";
 #endif
   cout << endl;
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #ifdef DNSDIST_CONFIG_ARGS
 #define double_escape(s) #s
 #define escape_quotes(s) double_escape(s)
