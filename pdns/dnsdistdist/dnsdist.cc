@@ -2885,6 +2885,14 @@ static void reportFeatures()
   cout << "systemd";
 #endif
   cout << endl;
+#ifdef DNSDIST_CONFIG_ARGS
+#define double_escape(s) #s
+#define escape_quotes(s) double_escape(s)
+  // NOLINTEND(cppcoreguidelines-macro-usage)
+  cout << "Configured with: " << escape_quotes(DNSDIST_CONFIG_ARGS) << endl;
+#undef escape_quotes
+#undef double_escape
+#endif
 }
 
 static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLine, ComboAddress& clientAddress)
