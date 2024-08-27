@@ -61,6 +61,7 @@ public:
   UeberBackend *getBackend();
 
   int tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& tsigkeyname);
+  bool checkForCorrectTSIG(const DNSPacket& packet, DNSName* tsigkeyname, string* secret, TSIGRecordContent* tsigContent);
   static NetmaskGroup s_allowNotifyFrom;
   static set<string> s_forwardNotify;
   static bool s_SVCAutohints;
