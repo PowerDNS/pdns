@@ -27,7 +27,7 @@ export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
 export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
 export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
 
-LIBFAKETIME_DEFAULT=/usr/lib/x86_64-linux-gnu/faketime/libfaketimeMT.so.1 # ubuntu default
+LIBFAKETIME_DEFAULT=/usr/lib/$(arch)-linux-gnu/faketime/libfaketimeMT.so.1 # ubuntu default
 LIBAUTHBIND_DEFAULT=/usr/lib/authbind/libauthbind.so.1
 if [ $(uname -s) = "Darwin" ]; then
   # macOS is not /really/ supported here; it works for some tests, and then you might need sudo.
