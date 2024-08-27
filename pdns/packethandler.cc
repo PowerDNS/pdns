@@ -1337,22 +1337,6 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNS
 //! Called by the Distributor to ask a question. Returns 0 in case of an error
 std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 {
-  DNSZoneRecord rr;
-
-  int retargetcount=0;
-  set<DNSName> authSet;
-
-  vector<DNSZoneRecord> rrset;
-  bool weDone=false, weRedirected=false, weHaveUnauth=false, doSigs=false;
-  DNSName haveAlias;
-  uint8_t aliasScopeMask;
-
-  bool noCache=false;
-
-#ifdef HAVE_LUA_RECORDS
-  bool doLua=g_doLuaRecord;
-#endif
-
   if(p.d.qr) { // QR bit from dns packet (thanks RA from N)
     if(d_logDNSDetails)
       g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemoteString()<<", dropping"<<endl;
@@ -1405,7 +1389,6 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 #endif
     }
     p.setTSIGDetails(trc, keyname, secret, trc.d_mac); // this will get copied by replyPacket()
-    noCache=true;
   }
 
   if (p.qtype == QType::TKEY) {
@@ -1413,7 +1396,6 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   }
 
   try {
-
     // XXX FIXME do this in DNSPacket::parse ?
 
     if(!validDNSName(p.qdomain)) {
@@ -1438,19 +1420,52 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       S.inc("incoming-notifications");
       return p.replyPacket(processNotify(p));
     }
-    else if (p.d.opcode != Opcode::Query) {
+    else if (p.d.opcode == Opcode::Query) {
+      return processQuery(p);
+    } else {
       g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemoteString()<<" for "<<p.qdomain<<endl;
       return p.replyPacket(RCode::NotImp);
     }
+  }
+  catch(const DBException &e) {
+    g_log<<Logger::Error<<"Backend reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
+    S.inc("servfail-packets");
+    S.ringAccount("servfail-queries", p.qdomain, p.qtype);
+    return p.replyPacket(RCode::ServFail);
+  }
+  catch(const PDNSException &e) {
+    g_log<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+"), aborting"<<endl;
+    throw; // we WANT to die at this point
+  }
+  catch(const std::exception &e) {
+    g_log<<Logger::Error<<"Exception building answer packet for "<<p.qdomain<<"/"<<p.qtype.toString()<<" ("<<e.what()<<") sending out servfail"<<endl;
+    S.inc("servfail-packets");
+    S.ringAccount("servfail-queries", p.qdomain, p.qtype);
+    return p.replyPacket(RCode::ServFail);
+  }
+}
 
-    // From here on, we are handling a *Query* packet.
+// Handle a *Query* packet.
+unique_ptr<DNSPacket> PacketHandler::processQuery(DNSPacket& p) {
+  int retargetcount=0;
+  set<DNSName> authSet;
+
+  vector<DNSZoneRecord> rrset;
+  bool weDone=false, weRedirected=false, weHaveUnauth=false, doSigs=false, noCache=false;
+  DNSName haveAlias;
+  uint8_t aliasScopeMask;
+
+#ifdef HAVE_LUA_RECORDS
+  bool doLua=g_doLuaRecord;
+#endif
+
     // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.toString()<<" from "<<p.getRemoteString()<< " (tcp="<<p.d_tcp<<")"<<endl;
 
     if (p.qtype == QType::IXFR) {
       return p.replyPacket(RCode::Refused);
     }
 
-    DNSName target=p.qdomain;
+    DNSName target = p.qdomain;
 
     // catch chaos qclass requests
     if(p.qclass == QClass::CHAOS) {
@@ -1470,8 +1485,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       return reply;
     }
 
-    // generate an empty reply packet, possibly with TSIG details inside.
-    // After this point, the reply packets contents will (almost always) be preserved.
+    // We will now handle INternet class Queries. We expect to put a real reply into `r`.
     auto r{p.replyPacket()};
 
     // for qclass ANY the response should never be authoritative unless the response covers all classes.
@@ -1527,8 +1541,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     }
 
     if(p.qtype.getCode() == QType::SOA && d_sd.qname==p.qdomain) {
-      rr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
-      r->addRecord(std::move(rr));
+      r->addRecord(makeEditedDNSZRFromSOAData(d_dk, d_sd));
       goto sendit;
     }
 
@@ -1561,6 +1574,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 #endif
 
     // see what we get..
+    DNSZoneRecord rr;
     B.lookup(QType(QType::ANY), target, d_sd.domain_id, &p);
     rrset.clear();
     haveAlias.clear();
@@ -1793,23 +1807,6 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       PC.insert(p, *r, r->getMinTTL()); // in the packet cache
 
     return r;
-  }
-  catch(const DBException &e) {
-    g_log<<Logger::Error<<"Backend reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
-    S.inc("servfail-packets");
-    S.ringAccount("servfail-queries", p.qdomain, p.qtype);
-    return p.replyPacket(RCode::ServFail);
-  }
-  catch(const PDNSException &e) {
-    g_log<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+"), aborting"<<endl;
-    throw; // we WANT to die at this point
-  }
-  catch(const std::exception &e) {
-    g_log<<Logger::Error<<"Exception building answer packet for "<<p.qdomain<<"/"<<p.qtype.toString()<<" ("<<e.what()<<") sending out servfail"<<endl;
-    S.inc("servfail-packets");
-    S.ringAccount("servfail-queries", p.qdomain, p.qtype);
-    return p.replyPacket(RCode::ServFail);
-  }
 }
 
 //<! process TKEY record, and adds TKEY record to (r)eply, or error code.
