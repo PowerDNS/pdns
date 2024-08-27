@@ -4,7 +4,7 @@ from pysnmp.hlapi import *
 
 from recursortests import RecursorTest
 
-class TestSNMP(RecursorTest):
+class SNMPTest(RecursorTest):
 
     _snmpTimeout = 2.0
     _snmpServer = '127.0.0.1'

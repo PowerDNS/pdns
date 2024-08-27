@@ -2,7 +2,7 @@ import dns
 import os
 from recursortests import RecursorTest
 
-class testProxyByTable(RecursorTest):
+class ProxyByTableTest(RecursorTest):
     """
     This test makes sure that we correctly use the proxy-mapped address during the ACL check
     """
@@ -25,7 +25,7 @@ class testProxyByTable(RecursorTest):
 @ 3600 IN SOA {soa}
 @ 3600 IN A 192.0.2.88
 """.format(soa=cls._SOA))
-        super(testProxyByTable, cls).generateRecursorConfig(confdir)
+        super(ProxyByTableTest, cls).generateRecursorConfig(confdir)
 
 
     def testA(self):

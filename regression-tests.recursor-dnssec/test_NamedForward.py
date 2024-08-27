@@ -5,7 +5,7 @@ import subprocess
 import time
 from recursortests import RecursorTest
 
-class testNamedForward(RecursorTest):
+class NamedForwardTest(RecursorTest):
     """
     This is forwarding test using a name as target
     """
@@ -41,7 +41,7 @@ system-resolver-ttl=10
         self.assertMatchingRRSIGInAnswer(res, expected)
 
 @unittest.skipUnless('ENABLE_SUDO_TESTS' in os.environ, "sudo is not available")
-class testNamedForwardWithChange(RecursorTest):
+class NamedForwardWithChangeTest(RecursorTest):
     """
     This is forwarding test using a name as target and a changing resolve
     """

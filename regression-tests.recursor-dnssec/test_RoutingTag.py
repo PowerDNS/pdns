@@ -105,7 +105,7 @@ ecs-add-for=0.0.0.0/0
         cls.tearDownRecursor()
         os.unlink('tagfile')
 
-class testRoutingTag(RoutingTagTest):
+class RoutingTagTest(RoutingTagTest):
     _confdir = 'RoutingTag'
 
     _config_template = """
@@ -179,7 +179,7 @@ end
             print(e.output)
             raise
 
-class testRoutingTagFFI(RoutingTagTest):
+class RoutingTagFFITest(RoutingTagTest):
     _confdir = 'RoutingTagFFI'
 
     _config_template = """

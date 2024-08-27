@@ -3,7 +3,7 @@ import os
 import subprocess
 from recursortests import RecursorTest
 
-class testSimpleForwardOverDoT(RecursorTest):
+class SimpleForwardOverDoTTest(RecursorTest):
     """
     This is forwarding to a DoT server in a very basic way and is dependent on Quad9 working
     """

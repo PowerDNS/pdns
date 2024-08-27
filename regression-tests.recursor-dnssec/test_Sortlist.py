@@ -2,7 +2,7 @@ import dns
 from recursortests import RecursorTest
 
 
-class testSortlist(RecursorTest):
+class SortlistTest(RecursorTest):
     _confdir = 'Sortlist'
 
     _config_template = """dnssec=off"""

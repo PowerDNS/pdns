@@ -3,7 +3,7 @@ import os
 import time
 from recursortests import RecursorTest
 
-class testOOOTCP(RecursorTest):
+class OOOTCPTest(RecursorTest):
     _confdir = 'OOOTCP'
 
     _config_template = """dnssec=validate
@@ -11,7 +11,7 @@ class testOOOTCP(RecursorTest):
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        super(testOOOTCP, cls).generateRecursorConfig(confdir)
+        super(OOOTCPTest, cls).generateRecursorConfig(confdir)
 
     def testOOOVeryBasic(self):
         expected = {}

@@ -58,7 +58,7 @@ class RecPrometheusTest(RecursorTest):
             raise AssertionError('%s returned an unexpected output. Faulty line is "%s", complete content is "%s"' % (testcmd, line, output))
 
 class BasicPrometheusTest(RecPrometheusTest):
-    _confdir = 'Prometheus'
+    _confdir = 'BasicPrometheus'
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'

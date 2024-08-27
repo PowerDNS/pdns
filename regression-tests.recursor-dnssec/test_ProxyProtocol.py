@@ -14,7 +14,7 @@ except NameError:
 from recursortests import RecursorTest
 from proxyprotocol import ProxyProtocol
 
-class ProxyProtocolRecursorTest(RecursorTest):
+class ProxyProtocolTest(RecursorTest):
 
     @classmethod
     def setUpClass(cls):
@@ -33,8 +33,8 @@ class ProxyProtocolRecursorTest(RecursorTest):
     def tearDownClass(cls):
         cls.tearDownRecursor()
 
-class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
-    _confdir = 'ProxyProtocol'
+class ProxyProtocolAllowedTest(ProxyProtocolTest):
+    _confdir = 'ProxyProtocolAllowed'
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'
@@ -133,7 +133,7 @@ class ProxyProtocolAllowedRecursorTest(ProxyProtocolRecursorTest):
       dq:addAnswer(pdns.A, '192.0.2.1', 60)
       return true
     end
-    """ % (ProxyProtocolRecursorTest._recursorPort, ProxyProtocolRecursorTest._recursorPort)
+    """ % (ProxyProtocolTest._recursorPort, ProxyProtocolTest._recursorPort)
 
     _config_template = """
     proxy-protocol-from=127.0.0.1
@@ -486,9 +486,9 @@ api-key=%s
         self.assertEqual(count, 5)
         sock.close()
 
-class ProxyProtocolAllowedFFIRecursorTest(ProxyProtocolAllowedRecursorTest):
-    # same tests than ProxyProtocolAllowedRecursorTest but with the Lua FFI interface instead of the regular one
-    _confdir = 'ProxyProtocolFFI'
+class ProxyProtocolAllowedFFITest(ProxyProtocolAllowedTest):
+    # same tests than ProxyProtocolAllowedTest but with the Lua FFI interface instead of the regular one
+    _confdir = 'ProxyProtocolAllowedFFI'
     _lua_dns_script_file = """
     local ffi = require("ffi")
 
@@ -634,9 +634,9 @@ class ProxyProtocolAllowedFFIRecursorTest(ProxyProtocolAllowedRecursorTest):
       dq:addAnswer(pdns.A, '192.0.2.1', 60)
       return true
     end
-    """ % (ProxyProtocolAllowedRecursorTest._recursorPort)
+    """ % (ProxyProtocolAllowedTest._recursorPort)
 
-class ProxyProtocolNotAllowedRecursorTest(ProxyProtocolRecursorTest):
+class ProxyProtocolNotAllowedTest(ProxyProtocolTest):
     _confdir = 'ProxyProtocolNotAllowed'
     _lua_dns_script_file = """
 
@@ -672,7 +672,7 @@ class ProxyProtocolNotAllowedRecursorTest(ProxyProtocolRecursorTest):
             res = sender(query, False, '127.0.0.42', '255.255.255.255', 0, 65535, [ [0, b'foo' ], [ 255, b'bar'] ])
             self.assertEqual(res, None)
 
-class ProxyProtocolExceptionRecursorTest(ProxyProtocolRecursorTest):
+class ProxyProtocolExceptionTest(ProxyProtocolTest):
     _confdir = 'ProxyProtocolException'
     _lua_dns_script_file = """
 
@@ -686,7 +686,7 @@ class ProxyProtocolExceptionRecursorTest(ProxyProtocolRecursorTest):
     proxy-protocol-from=127.0.0.1/32
     proxy-protocol-exceptions=127.0.0.1:%d
     allow-from=127.0.0.0/24, ::1/128
-""" % (ProxyProtocolRecursorTest._recursorPort)
+""" % (ProxyProtocolTest._recursorPort)
 
     def testNoHeaderProxyProtocol(self):
         qname = 'no-header.proxy-protocol-not-allowed.recursor-tests.powerdns.com.'

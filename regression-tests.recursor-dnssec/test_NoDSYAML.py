@@ -1,7 +1,7 @@
 import dns
 from recursortests import RecursorTest
 
-class testNoDSYAML(RecursorTest):
+class NoDSYAMLTest(RecursorTest):
     _confdir = 'NoDSYAML'
 
     _config_template = """
@@ -11,7 +11,7 @@ dnssec:
 """
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        super(testNoDSYAML, cls).generateRecursorYamlConfig(confdir, False)
+        super(NoDSYAMLTest, cls).generateRecursorYamlConfig(confdir, False)
 
     def testNoDSInsecure(self):
         """#4430 When the root DS is removed, the result must be Insecure"""
