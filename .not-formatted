@@ -215,7 +215,6 @@
 ./pdns/test-ueberbackend_cc.cc
 ./pdns/test-zoneparser_tng_cc.cc
 ./pdns/threadname.cc
-./pdns/tkey.cc
 ./pdns/trusted-notification-proxy.cc
 ./pdns/trusted-notification-proxy.hh
 ./pdns/tsig-tests.cc
