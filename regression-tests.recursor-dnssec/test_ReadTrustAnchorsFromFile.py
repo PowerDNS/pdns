@@ -4,8 +4,8 @@ import subprocess
 from recursortests import RecursorTest
 
 
-class testReadTrustAnchorsFromFile(RecursorTest):
-    _confdir = 'ReadTAsFromFile'
+class ReadTrustAnchorsFromFileTest(RecursorTest):
+    _confdir = 'ReadTrustAnchorsFromFile'
 
     _config_template = """dnssec=validate"""
     _lua_config_file = """clearTA()

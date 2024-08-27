@@ -4,6 +4,7 @@ import socket
 import struct
 import sys
 import threading
+import time
 import dns
 import dnstap_pb2
 from unittest import SkipTest
@@ -330,6 +331,7 @@ dnstapFrameStreamServer({"%s"}, {logQueries=false})
         self.assertNotEqual(res, None)
 
         # We don't expect anything
+        time.sleep(1)
         self.assertTrue(DNSTapServerParameters.queue.empty())
 
 class DNSTapLogNODTest(TestRecursorDNSTap):
@@ -339,7 +341,7 @@ class DNSTapLogNODTest(TestRecursorDNSTap):
     that the recursor at least connects to the DNSTap server.
     """
 
-    _confdir = 'DNSTapLogNODQueries'
+    _confdir = 'DNSTapLogNOD'
     _config_template = """
 new-domain-tracking=yes
 new-domain-history-dir=configs/%s/nod
@@ -368,7 +370,7 @@ dnstapNODFrameStreamServer({"%s"})
         return dnstap
 
     def testA(self):
-        name = 'www.example.org.'
+        name = 'types.example.'
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.RD
         res = self.sendUDPQuery(query)
@@ -383,7 +385,7 @@ dnstapNODFrameStreamServer({"%s"})
 
 class DNSTapLogUDRTest(TestRecursorDNSTap):
 
-    _confdir = 'DNSTapLogUDRResponses'
+    _confdir = 'DNSTapLogUDR'
     _config_template = """
 new-domain-tracking=yes
 new-domain-history-dir=configs/%s/nod
@@ -427,7 +429,7 @@ dnstapNODFrameStreamServer({"%s"}, {logNODs=false, logUDRs=true})
 
 class DNSTapLogNODUDRTest(TestRecursorDNSTap):
 
-    _confdir = 'DNSTapLogNODUDRs'
+    _confdir = 'DNSTapLogNODUDR'
     _config_template = """
 new-domain-tracking=yes
 new-domain-history-dir=configs/%s/nod

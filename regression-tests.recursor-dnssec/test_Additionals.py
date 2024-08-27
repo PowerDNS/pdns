@@ -2,7 +2,7 @@ import dns
 import os
 from recursortests import RecursorTest
 
-class testAdditionalsDefault(RecursorTest):
+class AdditionalsDefaultTest(RecursorTest):
     _confdir = 'AdditionalsDefault'
 
     _config_template = """
@@ -40,7 +40,7 @@ class testAdditionalsDefault(RecursorTest):
         self.assertRRsetInAdditional(res, adds1)
         self.assertRRsetInAdditional(res, adds2)
 
-class testAdditionalsResolveImmediately(RecursorTest):
+class AdditionalsResolveImmediatelyTest(RecursorTest):
     _confdir = 'AdditionalsResolveImmediately'
     _config_template = """
     dnssec=validate
@@ -102,7 +102,7 @@ class testAdditionalsResolveImmediately(RecursorTest):
         self.assertRRsetInAdditional(res, adds7)
         self.assertMatchingRRSIGInAdditional(res, adds7)
 
-class testAdditionalsResolveCacheOnly(RecursorTest):
+class AdditionalsResolveCacheOnlyTest(RecursorTest):
     _confdir = 'AdditionalsResolveCacheOnly'
     _config_template = """
     dnssec=validate
